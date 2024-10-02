@@ -23,7 +23,7 @@ abbreviation stepn ("(_ \<turnstile> _ \<Rightarrow>'(_') _)" [50, 0, 0, 50] 50)
 abbreviation steps ("(_ \<turnstile> _ \<Rightarrow>* _)" [50, 0, 50] 50) where
 "P \<turnstile> u \<Rightarrow>* v \<equiv> ((step1 P) ^**) u v"
 
-definition "Lang A P = {w. P \<turnstile> [N A] \<Rightarrow>* map T w}"
+definition "Lang P A = {w. P \<turnstile> [N A] \<Rightarrow>* map T w}"
 
 lemma step1_apppend:
   "\<G> \<turnstile> u \<Rightarrow> v \<Longrightarrow> \<G> \<turnstile> u@w \<Rightarrow> v@w"

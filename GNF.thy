@@ -67,6 +67,7 @@ sorry
 lemma eps_freeE_Cons: "eps_free R \<Longrightarrow> (A,w) \<in> R \<Longrightarrow> \<exists>a u. w = a#u"
 sorry
 
+
 definition "rhs1 = fst o snd"
 definition "Rhs1 R = rhs1 ` Lnt R"
 
@@ -91,6 +92,20 @@ fun starts_with where "starts_with A (N B # w) \<longleftrightarrow> A = B"
 lemma starts_with_iff: "starts_with A w \<longleftrightarrow> (\<exists>v. w = N A # v)"
   apply (cases "(A,w)" rule: starts_with.cases) by auto
 
+definition "loop_free R A = (\<forall>(B,w) \<in> R. B = A \<longrightarrow> \<not> starts_with A w)"
+
+lemma loop_freeI:
+  assumes "\<And>w. (A,w) \<in> R \<Longrightarrow> \<not>starts_with A w" shows "loop_free R A"
+  using assms by (auto simp: loop_free_def)
+
+lemma loop_freeD: "loop_free R A \<Longrightarrow> (A, N A # w) \<notin> R"
+  by (auto simp: loop_free_def)
+
+definition "loop_free_list R A = (\<forall>(B,w) \<in> set R. B = A \<longrightarrow> \<not> starts_with A w)"
+
+lemma loop_free_Un: "loop_free (R \<union> S) A \<longleftrightarrow> loop_free R A \<and> loop_free S A"
+  by (auto simp:loop_free_def)
+
 definition "solved_list R As \<longleftrightarrow>
   (\<forall> B \<in> set As. \<forall>(A,w) \<in> set R. \<not>starts_with B w)"
 
@@ -113,6 +128,10 @@ lemma solved_not:
 definition Nts where "Nts R = concat [A#[B. N B \<leftarrow> w]. (A,w) \<leftarrow> R]"
 
 definition Nt where "Nt R = (\<Union>(A,w)\<in>R. {A}\<union>{B. N B \<in> set w})"
+
+fun hdnt where
+    "hdnt (N A#w) = Some A"
+  | "hdnt _ = None"
 
 lemma set_Nts_def: "set (Nts R) = Nt (set R)"
   by (auto simp: Nts_def Nt_def)
@@ -138,27 +157,36 @@ definition unwind_old_list where
   let X = [(B,w) \<leftarrow> R. starts_with A w] in
   diff_list X R @
   [(A, w@[N A']). (B,w) \<leftarrow> R, B = A \<and> \<not> starts_with A w] @
-  [(B,w@N A'#tl v). (B,v) \<leftarrow> R, (C,w) \<leftarrow> diff_list X R, starts_with A v \<and> A \<noteq> B \<and> C = A ])"
+  concat [[(B,w@tl v),(B,w@N A'#tl v)]. (B,v) \<leftarrow> R, (C,w) \<leftarrow> diff_list X R, starts_with A v \<and> A \<noteq> B \<and> C = A ])"
 
-definition "unwind_list R A A' = unwind_old_list R A A' @ unwind_new_list R A A'"
+definition unwind_old'_list where
+  "unwind_old'_list R A A' = (
+  let X = [(B,w) \<leftarrow> R. B = A \<and> starts_with A w] in
+  diff_list X R @
+  [(A, w@[N A']). (B,w) \<leftarrow> R, B = A \<and> \<not> starts_with A w])"
+
+definition unwind_old' where
+  "unwind_old' R A A' = (
+  let X = {(A, N A # w) | w. (A, N A # w) \<in> R} in
+  R - X \<union> {(A, w@[N A']) |w. (A,w) \<in> R - X})"
+
+lemma eps_free_unwind_old': "eps_free R \<Longrightarrow> eps_free (unwind_old' R A A')"
+  by (auto simp: eps_free_def unwind_old'_def)
+
+lemma set_unwind_old'_list: "set (unwind_old'_list R A A') = unwind_old' (set R) A A'"
+  by (auto simp: unwind_old'_def unwind_old'_list_def starts_with_iff)
 
 definition unwind_old where
   "unwind_old R A A' = (
   let X = {(B, N A # w) | B w. (B, N A # w) \<in> R} in
   R - X \<union> {(A, w@[N A']) |w. (A,w) \<in> R - X} \<union>
-{(B, w@ N A' # v) |B v w.
+  \<Union>{{(B, w@v),(B, w@ N A' # v)} |B v w.
  (B, N A # v) \<in> R \<and> A \<noteq> B \<and> (A,w) \<in> R - X })"
 
-value "unwind_old_list [(2, [N 1::(int,int)symb])] 1 2"
-lemma set_unwind_old_list: "set (unwind_old_list R A A') = unwind_old (set R) A A'"
-  apply (auto simp: unwind_old_list_def unwind_old_def starts_with_iff
-Cons_eq_append_conv )sorry
 
-lemma eps_free_unwind_old_list:
-  assumes "eps_free R"
-  shows "eps_free (unwind_old R A A')"
-  using assms
-  by (auto simp: unwind_old_def eps_free_def)
+lemma set_unwind_old_list: "set (unwind_old_list R A A') = unwind_old (set R) A A'"
+  apply (auto simp: unwind_old_def unwind_old_list_def starts_with_iff)
+  sorry
 
 definition unwind_new where
   "unwind_new R A A' = (
@@ -169,30 +197,283 @@ lemma set_unwind_new_list: "set (unwind_new_list R A A') = unwind_new (set R) A 
   apply (metis insertI1)
   by (metis insert_subset subset_insertI)
 
-definition "unwind R A A' =
-  unwind_old R A A' \<union> unwind_new R A A'"
+definition "expand R S As =
+  {(A,w) \<in> R. hd w \<notin> N ` As} \<union>
+  {(A,v@w) |A v w. \<exists>C \<in> As. (A,N C # w) \<in> R \<and> (C,v) \<in> S}"
 
-lemma set_unwind: "set (unwind_list R A A') = unwind (set R) A A'"
+lemma derive_expand_iff:
+  assumes "eps_free R"
+  shows "expand R S As \<turnstile> u \<Rightarrow> v \<longleftrightarrow>
+  (\<exists>u1 u2. \<exists>(A,w)\<in>R. u = u1 @ N A # u2 \<and>
+  (hd w \<notin> N ` As \<and> v = u1 @ w @ u2 \<or>
+  (\<exists>(C,r) \<in> S. C \<in> As \<and> hd w = N C \<and> v = u1 @ r @ tl w @ u2)))"
+  using assms
+  apply (auto simp: Bex_def expand_def derive_iff split:prod.splits)
+  apply force
+  by (metis append_eq_appendI eps_free_Nil list.exhaust_sel)
 
+definition "expand_list R S As =
+  [(B,w). (B,w) \<leftarrow> R, hd w \<notin> N ` set As] @
+  [(B,v@w). (B,N C # w) \<leftarrow> R, C \<in> set As, (D,v) \<leftarrow> S, D = C]"
+
+lemma set_expand_list: "set (expand_list R S As) = expand (set R) (set S) (set As)"
+  by (auto simp: expand_list_def expand_def)
+
+lemma eps_free_expand:
+  assumes "eps_free R" "eps_free S"
+  shows "eps_free (expand R S As)"
+  using assms
+  by (auto simp: eps_free_def expand_def split: prod.splits)
+
+definition "unwind_expand R As A A' =
+  unwind_old R A A' \<union>
+  expand (unwind_new R A A') (unwind_old R A A') (insert A As)"
+
+definition "unwind_expand_list R As A A' =
+  unwind_old_list R A A' @
+  expand_list (unwind_new_list R A A') (unwind_old_list R A A') (A#As)"
+
+lemma set_unwind_expand_list: "set (unwind_expand_list R As A A') =
+unwind_expand (set R) (set As) A A'"
+  by (simp add: unwind_expand_list_def unwind_expand_def
+set_expand_list set_unwind_old_list set_unwind_new_list)
+
+definition "unwind_expand' R As A A' = (
+  let old' = unwind_old' R A A' in
+  let R' = expand old' old' {A} in
+  expand (unwind_new R A A') R' (insert A As) \<union> R')"
+
+definition "unwind_expand'_list R As A A' = (
+  let old' = unwind_old'_list R A A' in
+  let R' = expand_list old' old' [A] in
+  R' @ expand_list (unwind_new_list R A A') R' (A#As))"
+
+
+value "unwind_old_list [(2, [N 1::(int,int)symb])] 1 2"
+
+
+lemma expand_derives:
+  assumes ef: "eps_free R"
+  assumes "expand R S As \<union> S \<turnstile> u \<Rightarrow>* v"
+  shows "R \<union> S \<turnstile> u \<Rightarrow>* v"
+  using assms(2)
+proof (induction)
+  case base
+  then show ?case by auto
+next
+  case (step y z)
+  from \<open>expand R S As \<union> S \<turnstile> y \<Rightarrow> z\<close>[unfolded Un_derive]
+  have "R \<union> S \<turnstile> y \<Rightarrow>* z"
+    apply (auto simp add: )defer
+     apply (meson Un_derive rtranclp.simps)
+    apply (auto simp: derive_expand_iff[OF ef])
+     apply (rule r_into_rtranclp)
+    using derive.intros Un_derive apply fastforce
+    subgoal premises Aw  for u1 u2 A w B v
+      apply (rule rtranclp_trans[of _ _ "u1@w@u2",OF r_into_rtranclp r_into_rtranclp])
+      using Aw Un_derive derive.intros apply fastforce
+    proof-
+      from Aw
+      have "S \<turnstile> u1 @ N B # tl w @ u2 \<Rightarrow> u1 @ v @ tl w @ u2"
+        using derive.simps by fastforce
+      with Aw(1-5) show "R \<union> S \<turnstile> u1 @ w @ u2 \<Rightarrow> u1 @ v @ tl w @ u2"
+        using Un_derive ef eps_freeE_Cons by fastforce
+    qed
+    done
+  with step.IH show ?case by auto
+qed
+
+lemma expand_derives2:
+  assumes ef: "eps_free R"
+  assumes "R \<union> S \<turnstile> u \<Rightarrow>* map T v"
+  shows "expand R S As \<union> S \<turnstile> u \<Rightarrow>* map T v"
   sorry
 
-lemma eps_free_unwind_new:
-  "eps_free (unwind_new R A A')"
-  by (auto intro!: eps_freeI simp: unwind_new_def)
+lemma Lang_expand:
+  assumes ef: "eps_free R"
+  shows "Lang (expand R S As \<union> S) A = Lang (R \<union> S) A"
+  unfolding Lang_def
+  using expand_derives[OF ef] expand_derives2[OF ef]
+  by (auto)
 
-definition "loop_free R A = (\<forall>(B,w) \<in> R. B = A \<longrightarrow> \<not> starts_with A w)"
+lemma unwind_expand':
+  assumes "solved R As" and "A' \<noteq> A" and "A' \<notin> Nt R \<union> As"
+  shows "unwind_expand R As A A' = unwind_expand' R As A A'"
+  sorry
 
-lemma loop_freeI:
-  assumes "\<And>w. (A,w) \<in> R \<Longrightarrow> \<not>starts_with A w" shows "loop_free R A"
-  using assms by (auto simp: loop_free_def)
+lemma eps_free_unwind_new: "eps_free (unwind_new R A A')"
+  sorry
 
-lemma loop_freeD: "loop_free R A \<Longrightarrow> (A, N A # w) \<notin> R"
-  by (auto simp: loop_free_def)
+lemma 
+  assumes ef: "eps_free R" and "N A' \<notin> set w \<union> set v"
+    and "(A, N A # e) \<in> R"
+    and "R \<turnstile> p @ N A # e \<Rightarrow>* map T s"
+  shows "\<exists>e'. hd e' \<noteq> N A \<and>
+  (A,e') \<in> R \<and>
+  unwind_new R A A' \<union> unwind_old' R A A' \<turnstile> p @ e' @ [N A'] \<Rightarrow>* map T s"
+  using assms(4)
+proof (induction "p @ N A # e" arbitrary: p e rule: converse_rtranclp_induct)
+  case base
+  then show ?case apply simp
+    by (metis ex_map_conv in_set_conv_decomp symb.distinct(1))
+next
+  case (step z)
+  have "(\<exists>p'. R \<turnstile> p \<Rightarrow> p' \<and> z = p' @ N A # e) \<or>
+  (\<exists>w. (A,w) \<in> R \<and> z = p @ w @ e) \<or>
+  (\<exists>e'. R \<turnstile> e \<Rightarrow> e' \<and> z = p @ N A # e')" sorry
 
-definition "loop_free_list R A = (\<forall>(B,w) \<in> set R. B = A \<longrightarrow> \<not> starts_with A w)"
+  then show ?case sorry
+qed
 
-lemma loop_free_Un: "loop_free (R \<union> S) A \<longleftrightarrow> loop_free R A \<and> loop_free S A"
-  by (auto simp:loop_free_def)
+
+
+lemma unwind_derives_easy:
+  assumes ef: "eps_free R" and "N A' \<notin> set w \<union> set v"
+  shows "unwind_new R A A' \<union> unwind_old' R A A' \<turnstile> w \<Rightarrow>* v \<longleftrightarrow>
+  R \<turnstile> w \<Rightarrow>* v"
+    (is "?l \<longleftrightarrow> ?r")
+proof
+  show "?r \<Longrightarrow> ?l"
+  proof (induction arbitrary: rule: rtranclp_induct)
+    case base
+    then show ?case by simp
+  next
+    case (step y z)
+    from \<open>R \<turnstile> y \<Rightarrow> z\<close> ef
+    obtain B a w u1 u2 where B: "(B,a#w) \<in> R" "y = u1 @ N B # u2"
+      "z = u1 @ a # w @ u2"
+      by (auto simp: derive_iff dest:eps_freeE_Cons)
+    have "unwind_new R A A' \<union> unwind_old' R A A' \<turnstile> y \<Rightarrow>* z"
+    proof (cases "B = A")
+      case [simp]: True
+      with B have Aw: "(A,a#w) \<in> R" by auto
+      show ?thesis
+      proof (cases "a = N A")
+        case True
+        thm step.IH
+        then show ?thesis sorry
+      next
+        case False
+        with Aw have "(B,a#w) \<in> unwind_old' R A A'"
+          by (auto simp: unwind_old'_def)
+        then show ?thesis
+          using B(2,3) derivehd.simps Cons_eq_appendI Un_derive derive.intros
+          by fastforce
+      qed
+    next
+      case False
+      show ?thesis sorry
+    qed
+    then show ?case
+      using step.IH by auto
+  qed
+  show "?l \<Longrightarrow> ?r" sorry
+qed
+
+definition "eq0 S S' = (\<forall>v. S \<turnstile> v \<Rightarrow>h* [] \<longleftrightarrow> S' \<turnstile> v \<Rightarrow>h* [])"
+
+definition "eqT1 S S' = (\<forall>c v w. S \<turnstile> v \<Rightarrow>h* T c # w \<longleftrightarrow> S' \<turnstile> v \<Rightarrow>h* T c # w)"
+
+lemma decomp_derives_0:
+  "R \<turnstile> v \<Rightarrow>* [] \<longleftrightarrow> R \<turnstile> v \<Rightarrow>h* []" sorry
+
+lemma decomp_derives_T1:
+  assumes "R \<turnstile> v \<Rightarrow>* T c # w"
+  shows "\<exists>u. R \<turnstile> v \<Rightarrow>h* T c # u \<and> R \<turnstile> u \<Rightarrow>* w"
+  sorry
+
+lemma derives_if_derivehds: "R \<turnstile> v \<Rightarrow>h* w \<Longrightarrow> R \<turnstile> v \<Rightarrow>* w" sorry
+
+lemma eqT1_derives:
+  assumes "eq0 R R'" "eqT1 R R'"
+  shows "R \<turnstile> v \<Rightarrow>* map T w \<Longrightarrow> R' \<turnstile> v \<Rightarrow>* map T w"
+proof (induction w arbitrary:v)
+  case Nil
+  with assms decomp_derives_0 show ?case by (auto simp: eq0_def)
+next
+  case (Cons a w)
+  then show ?case using decomp_derives_T1[of R v a "map T w"]
+    using \<open>eqT1 R R'\<close>[unfolded eqT1_def]
+    apply (auto)
+    by (meson derives_Cons derives_if_derivehds rtranclp_trans)
+qed
+
+lemma eps_free_Un: assumes "eps_free R" "eps_free S"
+  shows "eps_free (R \<union> S)"
+  using assms by (auto simp: eps_free_def)
+
+lemma eq0_if_eps_free:
+  assumes "eps_free R" "eps_free S"
+  shows "eq0 R S"
+  using assms apply (simp add: eps_free_def eq0_def split: prod.splits)
+  by (metis append_is_Nil_conv derivehd.simps rtranclp.cases rtranclp.rtrancl_refl)
+
+lemma Un_derives:
+  assumes "eps_free R" "eps_free S" "eps_free S'"
+    and eq1: "eqT1 (R \<union> S) (R \<union> S')"
+  shows "R \<union> S \<turnstile> v \<Rightarrow>* map T w \<longleftrightarrow> R \<union> S' \<turnstile> v \<Rightarrow>* map T w"
+proof-
+  have 1: "eq0 (R \<union> S) (R \<union> S')"
+    using assms(1-3) eq0_if_eps_free eps_free_Un by auto 
+  have 2: "eq0 (R \<union> S') (R \<union> S)"
+    using assms(1-3) eq0_if_eps_free eps_free_Un by auto 
+  from eqT1_derives[OF 1 eq1] eqT1_derives[OF 2]
+  show ?thesis apply auto
+    using eq1 eqT1_def by blast
+qed
+
+lemma eqT1_unwind':
+"eqT1 (unwind_new R A A' \<union> expand (unwind_old' R A A') (unwind_old' R A A') {A})
+     (unwind_new R A A' \<union> unwind_old' R A A')"
+  sorry
+
+lemma unwind_derives:
+  assumes "eps_free R"
+  shows "unwind_new R A A' \<union>
+   expand (unwind_old' R A A') (unwind_old' R A A') {A} \<turnstile> w \<Rightarrow>* map T v
+\<longleftrightarrow> unwind_new R A A' \<union> unwind_old' R A A' \<turnstile> w \<Rightarrow>* map T v"
+  apply (rule Un_derives)
+  using assms
+  by (simp_all add: eps_free_unwind_new eps_free_unwind_old' eps_free_expand
+      eqT1_unwind')
+
+lemma Lang_eqI_derives:
+  assumes "\<And>w v. R \<turnstile> w \<Rightarrow>* map T v \<longleftrightarrow> S \<turnstile> w \<Rightarrow>* map T v"
+  shows "Lang R = Lang S"
+  sorry
+
+lemma Lang_unwind:
+  assumes ef: "eps_free R"
+    and A': "S \<noteq> A'"
+  shows "Lang (unwind_new R A A' \<union>
+     expand (unwind_old' R A A') (unwind_old' R A A') {A}) S =
+   Lang R S"
+  apply (rule Lang_eqI_derives)
+  unfolding unwind_derives[OF ef]
+  apply (rule unwind_derives_easy[OF ef ])
+  apply (simp add:  )
+lemma Lang_unwind_expand':
+  assumes ef: "eps_free R"
+  assumes "solved R As" and "A' \<noteq> A" and "A' \<notin> Nt R \<union> As"
+    and "A' \<noteq> B"
+  shows "Lang (unwind_expand' R As A A') B = Lang R B"
+  apply (simp add: unwind_expand'_def Let_def del:)
+  apply (subst Lang_expand)
+  by (auto simp: eps_free_unwind_new Lang_unwind)
+
+
+lemma Lang_unwind_expand:
+  assumes ef: "eps_free R"
+  assumes "solved R As" and "A' \<noteq> A" and "A' \<notin> Nt R \<union> As"
+    and "A' \<noteq> B"
+  shows "Lang (unwind_expand R As A A') B = Lang R B"
+  by (simp add: unwind_expand'[OF assms(2-4)] Lang_unwind_expand'[OF assms])
+
+lemma eps_free_unwind_old_list:
+  assumes "eps_free R"
+  shows "eps_free (unwind_old R A A')"
+  using assms
+  by (auto simp: unwind_old_def eps_free_def)
 
 lemma in_Nt_if_starts_with: "(A, w) \<in> R \<Longrightarrow> starts_with B w \<Longrightarrow> B \<in> Nt R"
   apply (cases "(B,w)" rule: starts_with.cases)
@@ -209,10 +490,10 @@ lemma solved_list_unwind_old_list:
     and "eps_free R"
   shows "solved (unwind_old R A A') (insert A As)"
   using assms
-  by (force simp: Cons_eq_append_conv solved_def starts_with_iff unwind_old_def
+  apply (auto simp: Cons_eq_append_conv solved_def starts_with_iff unwind_old_def
       eps_free_Nil
       split: prod.splits)
-
+  by metis+
 
 lemma solved_Un: "solved (R \<union> S) As \<longleftrightarrow> solved R As \<and> solved S As"
   by (auto simp:solved_def)
@@ -221,12 +502,6 @@ lemma loop_free_unwind_new_list:
   assumes "A' \<noteq> A"
   shows "loop_free (unwind_new R A A') A"
   using assms by (auto simp: loop_free_def starts_with_iff unwind_new_def Cons_eq_append_conv)
-
-lemma loop_free_unwind:
-  assumes "A' \<noteq> A"
-  shows "loop_free (unwind R A A') A"
-  using loop_free_unwind_old_list[OF assms] loop_free_unwind_new_list[OF assms]
-  by (auto simp: unwind_def loop_free_Un)
 
 definition Rhs1s where "Rhs1s R = [A. (B,N A # w) \<leftarrow> R]"
 
@@ -262,21 +537,6 @@ lemma
   shows "\<not>starts_with A w"
   sorry
 *)
-
-fun hdnt where
-    "hdnt (N A#w) = Some A"
-  | "hdnt _ = None"
-
-definition "expand_list R S As =
-  [(B,w). (B,w) \<leftarrow> R, hdnt w \<notin> Some ` set As] @
-  [(B,v@w). (B,N C # w) \<leftarrow> R, C \<in> set As, (D,v) \<leftarrow> S, D = C]"
-
-definition "expand R S As =
-  {(B,w) \<in> R. hdnt w \<notin> Some ` As} \<union>
-  {(B,v@w) |B v w. \<exists>C \<in> As. (B,N C # w) \<in> R \<and> (C,v) \<in> S}"
-
-lemma set_expand_list: "set (expand_list R S As) = expand (set R) (set S) (set As)"
-  by (auto simp: expand_list_def expand_def)
 
 lemma expand_loop_free:
   assumes "A \<notin> As"
@@ -349,22 +609,7 @@ lemma solved_list_expand_list_unwind_new_list:
 text \<open>Instead, preservation of the language requires solved_listness
 of \<open>R\<close> with respect to \<open>As\<close>.\<close>
 
-lemma Lang_expand:
-  assumes "solved R As"
-  shows "Lang (S \<union> expand R S As) = Lang (S \<union> R)"
-  sorry
-
-definition "unwind_expand_list R As A A' =
- unwind_old_list R A A' @ expand_list (unwind_new_list R A A') (unwind_old_list R A A') (A#As)"
-
-definition "unwind_expand R As A A' =
-  unwind_old R A A' \<union>
-  expand (unwind_new R A A') (unwind_old R A A') (insert A As)"
-
-lemma set_unwind_expand_list: "set (unwind_expand_list R As A A') = unwind_expand (set R) (set As) A A'"
-  by (auto simp: unwind_expand_def unwind_expand_list_def set_unwind_old_list set_unwind_new_list set_expand_list)
-
-lemma solved_list_unwind_expand_list:
+lemma solved_unwind_expand:
   assumes ef: "eps_free R" and A': "A' \<notin> Nt R \<union> As"
     and so: "solved R As"
   shows "solved (unwind_expand R As A A') (insert A (insert A' As))"
@@ -379,17 +624,6 @@ proof-
     apply (rule solved_list_expand_list_unwind_new_list)
     using assms by auto
 qed
-
-definition step_list
-  where "step_list R As A A' =
- expand_list (unwind_expand_list R As A A') (unwind_expand_list R As A A') [A]"
-
-definition
-  "step R As A A' =
- expand (unwind_expand R As A A') (unwind_expand R As A A') {A}"
-
-lemma set_step_list: "set (step_list R As A A') = step (set R) (set As) A A'"
-  by (auto simp: step_list_def step_def set_expand_list set_unwind_expand_list)
 
 lemma solved_list_insert:
   assumes "solved R As"
@@ -438,25 +672,14 @@ proof-
     using eps_free_unwind_old_list[OF ef].
 qed
 
-theorem solved_list_step:
-  assumes ef: "eps_free R" and notin: "A' \<notin> Nt R \<union> As"
-    and neq: "A' \<noteq> A"
-    and so: "solved R As"
-  shows "solved (step R As A A') (insert A (insert A' As))"
-proof-
-  show ?thesis
-    apply (auto simp: step_def)
-    by (metis ef eps_free_unwind_expand expand_list_solved_list2 notin so solved_list_unwind_expand_list)
-qed
-
 fun realtime_list where
-  "realtime_list R (A#As) (A'#As') = step_list (realtime_list R As As') (As@As') A A'"
+  "realtime_list R (A#As) (A'#As') = unwind_expand_list (realtime_list R As As') (As@As') A A'"
 | "realtime_list R _ _ = R"
 
 context fixes R :: "('n,'t) prods" begin
 fun realtime where
   "realtime (A#As) (A'#As') =
-  step (realtime As As') (set (As@As')) A A'"
+  unwind_expand (realtime As As') (set (As@As')) A A'"
 | "realtime _ _ = R"
 
 end
@@ -498,7 +721,7 @@ lemma solved_realtime:
 proof (induction As As' rule: realtime.induct)
   case (1 A As A' As')
   with Nt_realtime_list[of R]
-    solved_list_step[where A=A and A'=A' and As = "set As \<union> set As'" and R ="realtime R As As'"]
+    solved_unwind_expand[where A=A and A'=A' and As = "set As \<union> set As'" and R ="realtime R As As'"]
   show ?case by (auto intro!: simp: eps_free_realtime_list insert_commute) 
 next
   case ("2_1" As')
@@ -507,6 +730,26 @@ next
   case ("2_2" As)
   then show ?case by (auto simp: solved_def)
 qed
+
+lemma Lang_realtime:
+  assumes "eps_free R"
+    and "length As \<le> length As'"
+    and "distinct (As @ As')" and "set As' \<inter> Nt R = {}"
+  shows "Lang (realtime R As As') = Lang R"
+proof (induction As As' rule: realtime.induct)
+  case (1 A As A' As')
+  with Nt_realtime_list[of R]
+    Lang_unwind_expand[where A=A and A'=A' and As = "set As \<union> set As'" and R ="realtime R As As'"]
+  show ?case by (auto intro!: simp: eps_free_realtime_list insert_commute) 
+next
+  case ("2_1" As')
+  then show ?case by auto
+next
+  case ("2_2" As)
+  then show ?case by (auto simp: solved_def)
+qed
+
+
 
 end
 

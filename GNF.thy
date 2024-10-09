@@ -199,7 +199,7 @@ lemma set_unwind_new_list: "set (unwind_new_list R A A') = unwind_new (set R) A 
 
 definition "expand R S As =
   {(A,w) \<in> R. hd w \<notin> N ` As} \<union>
-  {(A,v@w) |A v w. \<exists>C \<in> As. (A,N C # w) \<in> R \<and> (C,v) \<in> S}"
+  {(A,v@w) |A v w. \<exists>B \<in> As. (A,N B # w) \<in> R \<and> (B,v) \<in> S}"
 
 lemma derive_expand_iff:
   assumes "eps_free R"
@@ -252,7 +252,7 @@ definition "unwind_expand'_list R As A A' = (
 value "unwind_old_list [(2, [N 1::(int,int)symb])] 1 2"
 
 
-lemma expand_derives:
+lemma expand_derives_imp:
   assumes ef: "eps_free R"
   assumes "expand R S As \<union> S \<turnstile> u \<Rightarrow>* v"
   shows "R \<union> S \<turnstile> u \<Rightarrow>* v"
@@ -283,18 +283,132 @@ next
   with step.IH show ?case by auto
 qed
 
-lemma expand_derives2:
+lemma deriveln_prepend_T:
+  "R \<turnstile> map T p @ u \<Rightarrow>l(n) v \<longleftrightarrow> (\<exists>w. v = map T p @ w \<and> R \<turnstile> u \<Rightarrow>l(n) w)"
+  (is "?l \<longleftrightarrow> ?r")
+proof
+  assume ?r
+  then obtain w where [simp]: "v = map T p @ w" and uw: "R \<turnstile> u \<Rightarrow>l(n) w"
+    by auto
+  from uw
+  show ?l
+  proof (induction n arbitrary: u)
+    case 0
+    then show ?case by auto
+  next
+    case (Suc n)
+    then obtain x where ux: "R \<turnstile> u \<Rightarrow>l x" and xw: " R \<turnstile> x \<Rightarrow>l(n) w"
+      by (auto simp del: relpowp.simps(2) elim!: relpowp_Suc_E2)
+    from ux have "R \<turnstile> map T p @ u \<Rightarrow>l map T p @ x"
+      by (auto simp: derivel_map_T_append)
+    with Suc.IH[OF xw]
+    show ?case by (intro relpowp_Suc_I2)
+  qed
+next
+  assume ?l
+  then show ?r
+  proof(induct n arbitrary: u v)
+    case 0
+      then show ?case by auto
+  next
+    case (Suc n)
+    then show ?case
+     apply (auto simp: derivel_map_T_append relpowp_Suc_I2
+        elim!: relpowp_Suc_E2
+        simp del: relpowp.simps(2))
+      by (meson relpowp_Suc_I2)
+  qed
+qed
+
+lemma expand_derivels:
   assumes ef: "eps_free R"
-  assumes "R \<union> S \<turnstile> u \<Rightarrow>* map T v"
-  shows "expand R S As \<union> S \<turnstile> u \<Rightarrow>* map T v"
-  sorry
+    and RAs: "\<forall>(A,w) \<in> R. A \<notin> As"
+    and der: "R \<union> S \<turnstile> u \<Rightarrow>l* map T v"
+  shows "expand R S As \<union> S \<turnstile> u \<Rightarrow>l* map T v"
+proof-
+  from der
+  obtain n where "R \<union> S \<turnstile> u \<Rightarrow>l(n) map T v"
+    by (metis rtranclp_imp_relpowp)
+  then show ?thesis
+  proof (induction n arbitrary: u rule: less_induct)
+    case (less n)
+    then show ?case
+    proof (cases n)
+      case 0
+      then show ?thesis using less.prems by auto
+    next
+      case [simp]: (Suc m)
+      then obtain z where uz: "R \<union> S \<turnstile> u \<Rightarrow>l z" and zv: "R \<union> S \<turnstile> z \<Rightarrow>l(m) map T v"
+        by (metis less.prems relpowp_Suc_E2)
+      from uz have "R \<turnstile> u \<Rightarrow>l z \<or> (S \<turnstile> u \<Rightarrow>l z)"
+        by (simp add: Un_derivel)
+      then show ?thesis
+      proof
+        assume "S \<turnstile> u \<Rightarrow>l z"
+        then show ?thesis
+          by (metis Suc Un_derivel zv converse_rtranclp_into_rtranclp less.IH lessI)
+      next
+        assume "R \<turnstile> u \<Rightarrow>l z"
+        then obtain p A w y2 where [simp]: "u = map T p @ N A # y2"
+          and Aw: "(A,w) \<in> R"
+          and [simp]:"z = map T p @ w @ y2"
+          by (meson derivel.cases)
+        with ef obtain a w2 where [simp]: "w = a # w2" by (auto dest: eps_freeE_Cons)
+        show ?thesis
+        proof (cases "a \<in> N ` As")
+          case True
+          then obtain B where [simp]: "a = N B" and B: "B \<in> As" by auto
+          from zv have "m \<noteq> 0"
+            apply (intro notI)
+            by (auto simp: deriveln_prepend_T Cons_eq_map_conv append_eq_map_conv)
+          then obtain l where [simp]: "m = Suc l"
+            using old.nat.exhaust by auto
+          from zv obtain z' where zz': "R \<union> S \<turnstile> z \<Rightarrow>l z'"
+            and z'v: "R \<union> S \<turnstile> z' \<Rightarrow>l(l) map T v"
+            by (metis \<open>m = Suc l\<close> relpowp_Suc_D2)
+          from zz' have "\<exists>y. (B,y) \<in> R \<union> S \<and> z' = map T p @ y @ w2 @ y2"
+            by (auto simp:derivel_iff append_eq_append_conv2 map_eq_append_conv append_eq_map_conv append_eq_Cons_conv Cons_eq_append_conv)
+          then obtain y where By: "(B,y) \<in> R \<union> S"
+            and [simp]: "z' = map T p @ y @ w2 @ y2" by auto
+          with B RAs have "(B,y) \<in> S" by auto
+          with Aw B
+          have "(A,y@w2) \<in> expand R S As" by (auto simp: expand_def)
+          then have "expand R S As \<turnstile> u \<Rightarrow>l z'"
+            using derivel.intros by fastforce
+          then have "expand R S As \<union> S \<turnstile> u \<Rightarrow>l z'" by (auto simp: Un_derivel)
+          also from less.IH[OF _ z'v]
+          have "expand R S As \<union> S \<turnstile> z' \<Rightarrow>l* map T v" by auto
+          finally show ?thesis by auto
+        next
+          case False
+          with Aw have "(A,w) \<in> expand R S As" by (auto simp: expand_def Cons_eq_append_conv)
+          then have "expand R S As \<union> S \<turnstile> u \<Rightarrow>l z"
+            apply auto
+            by (metis Un_derivel append_Cons derivel.intros)
+          then show ?thesis
+            using less.IH
+            by (metis Suc zv converse_rtranclp_into_rtranclp lessI)
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma expand_derives:
+  assumes ef: "eps_free R"
+    and RAs: "\<forall>(A,w) \<in> R. A \<notin> As"
+  shows "expand R S As \<union> S \<turnstile> u \<Rightarrow>* map T v \<longleftrightarrow> R \<union> S \<turnstile> u \<Rightarrow>* map T v"
+  using expand_derives_imp[OF ef]
+    expand_derivels[folded derives_derivels, OF ef RAs]
+  by auto
 
 lemma Lang_expand:
   assumes ef: "eps_free R"
+    and RAs: "\<forall>(A,w) \<in> R. A \<notin> As"
   shows "Lang (expand R S As \<union> S) A = Lang (R \<union> S) A"
   unfolding Lang_def
-  using expand_derives[OF ef] expand_derives2[OF ef]
-  by (auto)
+  using expand_derives[OF assms]
+  by auto
 
 lemma unwind_expand':
   assumes "solved R As" and "A' \<noteq> A" and "A' \<notin> Nt R \<union> As"
@@ -357,7 +471,7 @@ proof
         with Aw have "(B,a#w) \<in> unwind_old' R A A'"
           by (auto simp: unwind_old'_def)
         then show ?thesis
-          using B(2,3) derivehd.simps Cons_eq_appendI Un_derive derive.intros
+          using B(2,3) Cons_eq_appendI Un_derive derive.intros
           by fastforce
       qed
     next
@@ -440,7 +554,7 @@ lemma unwind_derives:
 lemma Lang_eqI_derives:
   assumes "\<And>w v. R \<turnstile> w \<Rightarrow>* map T v \<longleftrightarrow> S \<turnstile> w \<Rightarrow>* map T v"
   shows "Lang R = Lang S"
-  sorry
+  by (auto simp: Lang_def assms)
 
 lemma Lang_unwind:
   assumes ef: "eps_free R"

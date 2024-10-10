@@ -2,13 +2,20 @@ theory CFG
 imports Main
 begin
 
-lemma relpowp_Suc_right: "(R ^^ Suc n) = R OO (R ^^ n)"
+lemma relpowp_Suc_right: "R ^^ Suc n = R OO (R ^^ n)"
   by (simp add: relpowp_commute)
+
+lemma relpowp_1[simp]: "(R :: 'a \<Rightarrow> 'a \<Rightarrow> bool) ^^ Suc 0 = R"
+  by auto
 
 lemma relpowp_mono:
   fixes x y :: 'a
   shows "(\<And>x y. R x y \<Longrightarrow> S x y) \<Longrightarrow> (R ^^ n) x y \<Longrightarrow> (S ^^ n) x y"
   apply (induction n arbitrary: y) by auto
+
+lemmas relpowp_Suc_left = relpowp.simps(2)
+
+declare relpowp.simps(2)[simp del]
 
 subsection "CFG and Derivations"
 
@@ -26,7 +33,7 @@ inductive derive :: "('n,'t) prods \<Rightarrow> ('n,'t) symbs \<Rightarrow> ('n
   ("(2_ \<turnstile>/ (_ \<Rightarrow>/ _))" [50, 0, 50] 50) where
 "(A,\<alpha>) \<in> P \<Longrightarrow> P \<turnstile> u @ [N A] @ v \<Rightarrow> u @ \<alpha> @ v"
 
-abbreviation deriven ("(2_ \<turnstile>/ _ /\<Rightarrow>'(_')/ _)" [50, 0, 0, 50] 50) where
+abbreviation deriven ("(2_ \<turnstile>/ (_ /\<Rightarrow>'(_')/ _))" [50, 0, 0, 50] 50) where
 "P \<turnstile> u \<Rightarrow>(n) v \<equiv> (derive P ^^ n) u v"
 
 abbreviation derives ("(2_ \<turnstile>/ (_/ \<Rightarrow>*/ _))" [50, 0, 50] 50) where
@@ -38,6 +45,9 @@ inductive derivel :: "('n,'t) prods \<Rightarrow> ('n,'t) symbs \<Rightarrow> ('
 
 abbreviation derivels ("(2_ \<turnstile>/ (_ \<Rightarrow>l*/ _))" [50, 0, 50] 50) where
 "P \<turnstile> u \<Rightarrow>l* v \<equiv> ((derivel P) ^**) u v"
+
+abbreviation derivels1 ("(2_ \<turnstile>/ (_ \<Rightarrow>l+/ _))" [50, 0, 50] 50) where
+"P \<turnstile> u \<Rightarrow>l+ v \<equiv> ((derivel P) ^++) u v"
 
 abbreviation deriveln ("(2_ \<turnstile>/ (_ \<Rightarrow>l'(_')/ _))" [50, 0, 0, 50] 50) where
 "P \<turnstile> u \<Rightarrow>l(n) v \<equiv> ((derivel P) ^^ n) u v"
@@ -123,8 +133,7 @@ lemma derive_from_empty[simp]:
 
 lemma deriven_from_empty[simp]:
   "P \<turnstile> [] \<Rightarrow>(n) w \<longleftrightarrow> n = 0 \<and> w = []"
-  by (induct n, auto
-      simp del: relpowp.simps(2) simp: relpowp_Suc_right)
+  by (induct n, auto simp: relpowp_Suc_right)
 
 lemma derivel_iff: "R \<turnstile> u \<Rightarrow>l v \<longleftrightarrow>
  (\<exists> (A,w) \<in> R. \<exists>u1 u2. u = map T u1 @ N A # u2 \<and> v = map T u1 @ w @ u2)"
@@ -155,7 +164,7 @@ proof (induction n arbitrary: u1 u2 v rule: less_induct)
   next
     case (Suc m)
     then obtain v12 where 1: "P \<turnstile> u1 @ u2 \<Rightarrow>(m) v12" and 2: "P \<turnstile> v12 \<Rightarrow> v"
-      using less.prems by(auto simp add: OO_def)
+      using less.prems by(auto simp add: relpowp.simps(2) OO_def)
     obtain v1 v2 m1 m2 where IH: "v12 = v1 @ v2" "P \<turnstile> u1 \<Rightarrow>(m1) v1" "P \<turnstile> u2 \<Rightarrow>(m2) v2" "m1 \<le> m" "m2 \<le> m"
       using less.IH[of m, OF _ 1] Suc by blast
     with 2 obtain A \<alpha> v1' v2' where #: "(A,\<alpha>) \<in> P" "v1 @ v2 = v1' @ [N A] @ v2'" "v = v1' @ \<alpha> @ v2'"
@@ -241,7 +250,7 @@ lemma N_Cons_derivel:
 lemma T_Cons_deriveln:
   "P \<turnstile> T a # u \<Rightarrow>l(n) v \<longleftrightarrow> (\<exists>w. v = T a # w \<and> P \<turnstile> u \<Rightarrow>l(n) w)"
   apply (induction n arbitrary: u v)
-  apply (auto simp: T_Cons_derivel relcomppI)
+  apply (auto simp: T_Cons_derivel relcomppI relpowp.simps)
   by (metis (no_types, lifting) T_Cons_derivel relcompp.simps)
 
 lemma N_Cons_deriveln:
@@ -250,8 +259,7 @@ lemma N_Cons_deriveln:
   | Suc m \<Rightarrow> \<exists>w. (A,w) \<in> P \<and> P \<turnstile> w @ u \<Rightarrow>l(m) v)"
   apply (cases n)
   by (auto simp: N_Cons_derivel
-      intro!: relpowp_Suc_I2 derivel.intros elim!: relpowp_Suc_E2
-      simp del: relpowp.simps(2))
+      intro!: relpowp_Suc_I2 derivel.intros elim!: relpowp_Suc_E2)
 
 lemma derivel_map_T_append:
   "P \<turnstile> map T w @ u \<Rightarrow>l v \<longleftrightarrow> (\<exists>x. v = map T w @ x \<and> P \<turnstile> u \<Rightarrow>l x)"
@@ -301,20 +309,20 @@ proof
   qed
   show "?r \<Longrightarrow> ?l"
     apply (auto simp:  split: nat.splits)
-    by (metis derive_singleton relpowp.simps(2) relpowp_Suc_I2)
+    by (metis derive_singleton relpowp_Suc_I2)
 qed
 
 lemma deriven_append:
   "P \<turnstile> u \<Rightarrow>(n) v \<Longrightarrow> P \<turnstile> u @ w \<Rightarrow>(n) v @ w"
   apply (induction n arbitrary: v)
    apply simp
-  using derive_append by fastforce
+  using derive_append by (fastforce simp: relpowp_Suc_left)
 
 lemma deriven_prepend:
   "P \<turnstile> u \<Rightarrow>(n) v \<Longrightarrow> P \<turnstile> w @ u \<Rightarrow>(n) w @ v"
   apply (induction n arbitrary: v)
    apply simp
-  using derive_prepend by fastforce
+  using derive_prepend by (fastforce simp: relpowp_Suc_left)
 
 lemma deriven_append_decomp:
   "P \<turnstile> u @ v \<Rightarrow>(n) w \<longleftrightarrow>
@@ -324,8 +332,7 @@ proof
   show "?l \<Longrightarrow> ?r"
     apply (induction n arbitrary: u v)
      apply auto[1]
-    apply (auto simp del: relpowp.simps simp: relpowp_Suc_right
-        derive_append_decomp)
+    apply (auto simp: relpowp_Suc_right derive_append_decomp)
      apply (metis add_Suc relpowp_Suc_I2)
     by (metis add_Suc_right relpowp_Suc_I2)
 next
@@ -362,7 +369,7 @@ proof
     case [simp]: (Suc m)
     with 1 obtain A w
       where [simp]: "a = N A" "(A,w) \<in> P" and w: "P \<turnstile> w \<Rightarrow>(m) v1"
-      by (auto simp: deriven_singleton simp del: relpowp.simps)
+      by (auto simp: deriven_singleton)
     with 2
     have "n = Suc (m + n2) \<and> v = v1 @ v2 \<and> a = N A \<and>
    (A,w) \<in> P \<and> P \<turnstile> w \<Rightarrow>(m) v1 \<and> P \<turnstile> u \<Rightarrow>(n2) v2"
@@ -379,7 +386,7 @@ next
     assume [simp]: "v = a # v2" and u: "P \<turnstile> u \<Rightarrow>(n) v2"
     from deriven_prepend[OF u, of "[a]"]
     show ?thesis
-      by (auto simp del: relpowp.simps(2))
+      by auto
   next
     fix n1 n2 A w v1 v2
     assume [simp]: "n = Suc (n1 + n2)" "v = v1 @ v2" "a = N A"
@@ -420,8 +427,7 @@ proof
       case (Cons a u)
       show ?case
         using Cons.prems(1) Cons.IH less.IH
-        apply (auto simp del: relpowp.simps
-            simp: deriven_Cons_decomp T_Cons_deriveln
+        apply (auto simp: deriven_Cons_decomp T_Cons_deriveln
             N_Cons_deriveln)
         by (metis deriven_append_decomp lessI)
     qed

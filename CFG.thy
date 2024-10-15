@@ -2,11 +2,14 @@ theory CFG
 imports Main
 begin
 
+(* TODO: move *)
 lemma relpowp_Suc_right: "R ^^ Suc n = R OO (R ^^ n)"
   by (simp add: relpowp_commute)
 
 lemma relpowp_1[simp]: "(R :: 'a \<Rightarrow> 'a \<Rightarrow> bool) ^^ Suc 0 = R"
   by auto
+
+declare relpowp_Suc_I2[trans]
 
 lemma relpowp_mono:
   fixes x y :: 'a

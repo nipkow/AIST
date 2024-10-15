@@ -494,9 +494,6 @@ next
   qed
 qed
 
-
-
-
 lemma unwind_complete:
   assumes ef: "eps_free R" and AA: "(A,[N A]) \<notin> R"
     and "R \<turnstile> u \<Rightarrow>l(n) map T v"

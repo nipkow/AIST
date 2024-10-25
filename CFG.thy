@@ -213,7 +213,7 @@ lemma deriven_from_empty[simp]:
   by (induct n, auto simp: relpowp_Suc_left)
 
 lemma derives_from_empty[simp]:
-  "\<G> \<turnstile> [] \<Rightarrow>* (w::('n,'t)symbs) \<longleftrightarrow> w = []"
+  "\<G> \<turnstile> [] \<Rightarrow>* w \<longleftrightarrow> w = []"
   by (auto elim: converse_rtranclpE)
 
 lemma derivel_iff: "R \<turnstile> u \<Rightarrow>l v \<longleftrightarrow>
@@ -228,7 +228,7 @@ lemma deriveln_from_empty[simp]:
   by (induct n, auto simp: relpowp_Suc_left)
 
 lemma derivels_from_empty[simp]:
-  "\<G> \<turnstile> [] \<Rightarrow>l* (w::('n,'t)symbs) \<longleftrightarrow> w = []"
+  "\<G> \<turnstile> [] \<Rightarrow>l* w \<longleftrightarrow> w = []"
   by (auto elim: converse_rtranclpE)
 
 lemma Un_derivel: "R \<union> S \<turnstile> y \<Rightarrow>l z \<longleftrightarrow> R \<turnstile> y \<Rightarrow>l z \<or> S \<turnstile> y \<Rightarrow>l z"
@@ -254,29 +254,19 @@ lemma derive_T_Cons:
   "P \<turnstile> T a # u \<Rightarrow> v \<longleftrightarrow> (\<exists>w. v = T a # w \<and> P \<turnstile> u \<Rightarrow> w)"
   by (fastforce simp: derive_iff Cons_eq_append_conv)
 
+lemma deriven_T_Cons:
+  "P \<turnstile> T a # u \<Rightarrow>(n) v \<longleftrightarrow> (\<exists>w. v = T a # w \<and> P \<turnstile> u \<Rightarrow>(n) w)"
+proof (induction n arbitrary: u)
+  case 0
+  show ?case by auto
+next
+  case (Suc n)
+  then show ?case by (force simp: derive_T_Cons relpowp_Suc_left OO_def)
+qed
+
 lemma derives_T_Cons:
   "P \<turnstile> T a # u \<Rightarrow>* v \<longleftrightarrow> (\<exists>w. v = T a # w \<and> P \<turnstile> u \<Rightarrow>* w)"
-  (is "?l \<longleftrightarrow> ?r")
-proof
-  show "?l \<Longrightarrow> ?r"
-    apply (induction "T a # u" arbitrary: u rule: converse_rtranclp_induct)
-    by (auto simp: derive_T_Cons)
-next
-  assume ?r
-  then obtain w where v: "v = T a # w" and uw: "P \<turnstile> u \<Rightarrow>* w"
-    by auto
-  from uw show ?l
-    apply (unfold v)
-  proof (induction arbitrary: rule: rtranclp_induct)
-    case base
-    then show ?case by simp
-  next
-    case (step y z)
-    from derive_Cons[OF \<open>P \<turnstile> y \<Rightarrow> z\<close>, of "T a"]
-      step.IH
-    show ?case by auto
-  qed
-qed
+  by (metis deriven_T_Cons rtranclp_power)
 
 lemma derivel_append:
   "P \<turnstile> u \<Rightarrow>l v \<Longrightarrow> P \<turnstile> u @ w \<Rightarrow>l v @ w"
@@ -308,6 +298,7 @@ lemma derivels1_append:
 lemma derivel_T_Cons:
   "P \<turnstile> T a # u \<Rightarrow>l v \<longleftrightarrow> (\<exists>w. v = T a # w \<and> P \<turnstile> u \<Rightarrow>l w)"
   apply (cases v)
+   apply (simp add: derivel_iff)
   apply (auto simp: derivel.simps Cons_eq_append_conv)
   apply (metis list.simps(9))
   done

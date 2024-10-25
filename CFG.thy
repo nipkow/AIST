@@ -121,6 +121,26 @@ lemma derive_prepend:
 apply(erule derive.cases)
 by (metis append.assoc derive.intros)
 
+lemma deriven_append:
+  "P \<turnstile> u \<Rightarrow>(n) v \<Longrightarrow> P \<turnstile> u @ w \<Rightarrow>(n) v @ w"
+  apply (induction n arbitrary: v)
+   apply simp
+  using derive_append by (fastforce simp: relpowp_Suc_right)
+
+lemma deriven_prepend:
+  "P \<turnstile> u \<Rightarrow>(n) v \<Longrightarrow> P \<turnstile> w @ u \<Rightarrow>(n) w @ v"
+  apply (induction n arbitrary: v)
+   apply simp
+  using derive_prepend by (fastforce simp: relpowp_Suc_right)
+
+lemma derives_append:
+  "P \<turnstile> u \<Rightarrow>* v \<Longrightarrow> P \<turnstile> u@w \<Rightarrow>* v@w"
+  by (metis deriven_append rtranclp_power)
+
+lemma derives_prepend:
+  "P \<turnstile> u \<Rightarrow>* v \<Longrightarrow> P \<turnstile> w@u \<Rightarrow>* w@v"
+  by (metis deriven_prepend rtranclp_power)
+
 lemma derive_append_decomp:
   "P \<turnstile> u@v \<Rightarrow> w \<longleftrightarrow>
   (\<exists>u'. w = u'@v \<and> P \<turnstile> u \<Rightarrow> u') \<or> (\<exists>v'. w = u@v' \<and> P \<turnstile> v \<Rightarrow> v')"
@@ -141,39 +161,48 @@ next
     by (auto simp add: derive_append derive_prepend)
 qed
 
+lemma deriven_append_decomp:
+  "P \<turnstile> u @ v \<Rightarrow>(n) w \<longleftrightarrow>
+  (\<exists>n1 n2 w1 w2. n = n1 + n2 \<and> w = w1 @ w2 \<and> P \<turnstile> u \<Rightarrow>(n1) w1 \<and> P \<turnstile> v \<Rightarrow>(n2) w2)"
+  (is "?l \<longleftrightarrow> ?r")
+proof
+  show "?l \<Longrightarrow> ?r"
+  proof (induction n arbitrary: u v)
+    case 0
+    then show ?case by simp
+  next
+    case (Suc n)
+    from Suc.prems
+    obtain u' v'
+      where or: "P \<turnstile> u \<Rightarrow> u' \<and> v' = v \<or> u' = u \<and> P \<turnstile> v \<Rightarrow> v'"
+        and n: "P \<turnstile> u'@v' \<Rightarrow>(n) w"
+      by (fastforce simp: relpowp_Suc_left derive_append_decomp)
+    from Suc.IH[OF n] or
+    show ?case
+      apply (elim disjE)
+       apply (metis add_Suc relpowp_Suc_I2)
+      by (metis add_Suc_right relpowp_Suc_I2)
+  qed
+next
+  assume ?r
+  then obtain n1 n2 w1 w2
+    where [simp]: "n = n1 + n2" "w = w1 @ w2"
+      and u: "P \<turnstile> u \<Rightarrow>(n1) w1" and v: "P \<turnstile> v \<Rightarrow>(n2) w2"
+    by auto
+  from u deriven_append
+  have "P \<turnstile> u @ v \<Rightarrow>(n1) w1 @ v" by fastforce
+  also from v deriven_prepend
+  have "P \<turnstile> w1 @ v \<Rightarrow>(n2) w1 @ w2" by fastforce
+  finally show ?l by auto
+qed
+
 lemma derive_Cons:
 "P \<turnstile> u \<Rightarrow> v \<Longrightarrow> P \<turnstile> a#u \<Rightarrow> a#v"
   using derive_prepend[of P u v "[a]"] by auto
 
-lemma derives_append:
-  "\<G> \<turnstile> u \<Rightarrow>* v \<Longrightarrow> \<G> \<turnstile> u@w \<Rightarrow>* v@w"
-proof (induction rule: rtranclp.induct)
-  case (rtrancl_refl)
-  then show ?case by simp
-next
-  case (rtrancl_into_rtrancl)
-  then show ?case
-    by (meson rtranclp.rtrancl_into_rtrancl derive_append)
-qed
-
-lemma derives_prepend:
-  "\<G> \<turnstile> u \<Rightarrow>* v \<Longrightarrow> \<G> \<turnstile> w@u \<Rightarrow>* w@v"
-proof (induction rule: rtranclp.induct)
-  case (rtrancl_refl)
-  then show ?case by simp
-next
-  case (rtrancl_into_rtrancl)
-  then show ?case
-    by (meson rtranclp.rtrancl_into_rtrancl derive_prepend)
-qed
-
 lemma derives_Cons:
 "R \<turnstile> u \<Rightarrow>* v \<Longrightarrow> R \<turnstile> a#u \<Rightarrow>* a#v"
   using derives_prepend[of _ _ _ "[a]"] by simp
-
-lemma deriv1_if_valid_prod:
-  "(A, \<alpha>) \<in> P \<Longrightarrow> P \<turnstile> [N A] \<Rightarrow> \<alpha>"
-by (metis append.left_neutral append.right_neutral derive.intros)
 
 lemma derive_from_empty[simp]:
   "P \<turnstile> [] \<Rightarrow> w \<longleftrightarrow> False"
@@ -183,6 +212,10 @@ lemma deriven_from_empty[simp]:
   "P \<turnstile> [] \<Rightarrow>(n) w \<longleftrightarrow> n = 0 \<and> w = []"
   by (induct n, auto simp: relpowp_Suc_left)
 
+lemma derives_from_empty[simp]:
+  "\<G> \<turnstile> [] \<Rightarrow>* (w::('n,'t)symbs) \<longleftrightarrow> w = []"
+  by (auto elim: converse_rtranclpE)
+
 lemma derivel_iff: "R \<turnstile> u \<Rightarrow>l v \<longleftrightarrow>
  (\<exists> (A,w) \<in> R. \<exists>u1 u2. u = map T u1 @ N A # u2 \<and> v = map T u1 @ w @ u2)"
   by (auto simp: derivel.simps)
@@ -190,63 +223,24 @@ lemma derivel_iff: "R \<turnstile> u \<Rightarrow>l v \<longleftrightarrow>
 lemma derivel_from_empty[simp]:
   "P \<turnstile> [] \<Rightarrow>l w \<longleftrightarrow> False" by (auto simp: derivel_iff)
 
+lemma deriveln_from_empty[simp]:
+  "P \<turnstile> [] \<Rightarrow>l(n) w \<longleftrightarrow> n = 0 \<and> w = []"
+  by (induct n, auto simp: relpowp_Suc_left)
+
+lemma derivels_from_empty[simp]:
+  "\<G> \<turnstile> [] \<Rightarrow>l* (w::('n,'t)symbs) \<longleftrightarrow> w = []"
+  by (auto elim: converse_rtranclpE)
+
 lemma Un_derivel: "R \<union> S \<turnstile> y \<Rightarrow>l z \<longleftrightarrow> R \<turnstile> y \<Rightarrow>l z \<or> S \<turnstile> y \<Rightarrow>l z"
   by (fastforce simp: derivel_iff)
 
-lemma Derivation_from_empty:
-  "\<G> \<turnstile> [] \<Rightarrow>* (w::('n,'t)symbs) \<Longrightarrow> w = []"
-by (induction "[]::('n,'t)symbs" w rule: rtranclp.induct) auto
-
-lemma derivels_from_empty:
-  "\<G> \<turnstile> [] \<Rightarrow>l* (w::('n,'t)symbs) \<Longrightarrow> w = []"
-by (induction "[]::('n,'t)symbs" w rule: rtranclp.induct) auto
-
-lemma Derivation_concat_split: "P \<turnstile> u1 @ u2 \<Rightarrow>(n) v \<Longrightarrow>
-  \<exists>v1 v2 n1 n2. v = v1 @ v2 \<and> P \<turnstile> u1 \<Rightarrow>(n1) v1 \<and> P \<turnstile> u2 \<Rightarrow>(n2) v2 \<and> n1 \<le> n \<and> n2 \<le> n"
-proof (induction n arbitrary: u1 u2 v rule: less_induct)
-  case (less n)
-  show ?case
-  proof (cases n)
-    case 0
-    then show ?thesis using less.prems by auto
-  next
-    case (Suc m)
-    then obtain v12 where 1: "P \<turnstile> u1 @ u2 \<Rightarrow>(m) v12" and 2: "P \<turnstile> v12 \<Rightarrow> v"
-      using less.prems by(auto simp add: relpowp.simps(2) OO_def)
-    obtain v1 v2 m1 m2 where IH: "v12 = v1 @ v2" "P \<turnstile> u1 \<Rightarrow>(m1) v1" "P \<turnstile> u2 \<Rightarrow>(m2) v2" "m1 \<le> m" "m2 \<le> m"
-      using less.IH[of m, OF _ 1] Suc by blast
-    with 2 obtain A \<alpha> v1' v2' where #: "(A,\<alpha>) \<in> P" "v1 @ v2 = v1' @ [N A] @ v2'" "v = v1' @ \<alpha> @ v2'"
-      by (meson derive.cases)
-    show ?thesis
-    proof (cases "length (v1' @ [N A]) \<le> length v1")
-      case True
-      let ?v2 = "take (length v1 - length (v1' @ [N A])) v2'"
-      have "v1 = v1' @ [N A] @ ?v2" using True #(2)
-        by (smt (verit, best) append.assoc append_eq_conv_conj take_all take_append)
-      then have "P \<turnstile> u1 \<Rightarrow>(Suc m1) v1' @ \<alpha> @ ?v2"
-        using IH(2) derive.intros[OF #(1), of v1' ?v2] Suc \<open>m1 \<le> m\<close> by (metis relpowp_Suc_I)
-      then show ?thesis using  #(2,3) IH(3-5) \<open>v1 = _\<close> Suc
-        by (smt (verit, best) append_assoc nat_le_linear not_less_eq_eq same_append_eq)
-    next
-      case False
-      let ?v1 = "drop (length v1) v1'"
-      have "v2 = ?v1 @ [N A] @ v2'" using False #(2)
-        by (simp add: append_eq_append_conv_if)
-      then have "P \<turnstile> u2 \<Rightarrow>(Suc m2) ?v1 @ \<alpha> @ v2'"
-        by (metis "#"(1) IH(3) relpowp_Suc_I derive.intros)
-      then show ?thesis using  #(2,3) IH(2,4,5) Suc \<open>v2 = _\<close>
-        by (metis append.assoc append_same_eq nat_le_linear not_less_eq_eq)
-    qed
-  qed
-qed
-
-lemma Derivation_start1:
+lemma deriven_start1:
   assumes "P \<turnstile> [N A] \<Rightarrow>(n) map T w"
   shows "\<exists>\<alpha> m. n = Suc m \<and> P \<turnstile> \<alpha> \<Rightarrow>(m) (map T w) \<and> (A,\<alpha>) \<in> P"
 proof (cases n)
   case 0
   thus ?thesis
-    using assms by (auto)
+    using assms by auto
 next
   case (Suc m)
   then obtain \<alpha> where *: "P \<turnstile> [N A] \<Rightarrow> \<alpha>" "P \<turnstile> \<alpha> \<Rightarrow>(m) map T w"
@@ -256,17 +250,17 @@ next
   thus ?thesis using *(2) Suc by auto
 qed
 
-lemma T_Cons_derive:
+lemma derive_T_Cons:
   "P \<turnstile> T a # u \<Rightarrow> v \<longleftrightarrow> (\<exists>w. v = T a # w \<and> P \<turnstile> u \<Rightarrow> w)"
   by (fastforce simp: derive_iff Cons_eq_append_conv)
 
-lemma T_Cons_derives:
+lemma derives_T_Cons:
   "P \<turnstile> T a # u \<Rightarrow>* v \<longleftrightarrow> (\<exists>w. v = T a # w \<and> P \<turnstile> u \<Rightarrow>* w)"
   (is "?l \<longleftrightarrow> ?r")
 proof
   show "?l \<Longrightarrow> ?r"
     apply (induction "T a # u" arbitrary: u rule: converse_rtranclp_induct)
-    by (auto simp: T_Cons_derive)
+    by (auto simp: derive_T_Cons)
 next
   assume ?r
   then obtain w where v: "v = T a # w" and uw: "P \<turnstile> u \<Rightarrow>* w"
@@ -311,55 +305,54 @@ lemma derivels1_append:
   "P \<turnstile> u \<Rightarrow>l+ v \<Longrightarrow> P \<turnstile> u @ w \<Rightarrow>l+ v @ w"
   by (metis deriveln_append tranclp_power)
 
-lemma T_Cons_derivel:
+lemma derivel_T_Cons:
   "P \<turnstile> T a # u \<Rightarrow>l v \<longleftrightarrow> (\<exists>w. v = T a # w \<and> P \<turnstile> u \<Rightarrow>l w)"
   apply (cases v)
   apply (auto simp: derivel.simps Cons_eq_append_conv)
   apply (metis list.simps(9))
   done
 
-lemma T_Cons_deriveln:
+lemma deriveln_T_Cons:
   "P \<turnstile> T a # u \<Rightarrow>l(n) v \<longleftrightarrow> (\<exists>w. v = T a # w \<and> P \<turnstile> u \<Rightarrow>l(n) w)"
   by (induction n arbitrary: u v;
-      fastforce simp: T_Cons_derivel relpowp_Suc_right OO_def)
+      fastforce simp: derivel_T_Cons relpowp_Suc_right OO_def)
 
-lemma T_Cons_derivels:
+lemma derivels_T_Cons:
   "P \<turnstile> T a # u \<Rightarrow>l* v \<longleftrightarrow> (\<exists>w. v = T a # w \<and> P \<turnstile> u \<Rightarrow>l* w)"
-  by (metis T_Cons_deriveln rtranclp_power)
+  by (metis deriveln_T_Cons rtranclp_power)
 
-lemma N_Cons_derivel:
+lemma derivel_N_Cons:
   "P \<turnstile> N A # u \<Rightarrow>l v \<longleftrightarrow> (\<exists>w. (A,w) \<in> P \<and> v = w @ u)"
   by (auto simp: derivel_iff Cons_eq_append_conv Cons_eq_map_conv)
 
-lemma N_Cons_derivels1:
+lemma derivels1_N_Cons:
   "P \<turnstile> N A # u \<Rightarrow>l+ v \<longleftrightarrow> (\<exists>w. (A,w) \<in> P \<and> P \<turnstile> w @ u \<Rightarrow>l* v)"
-  by (auto simp: tranclp_unfold_left N_Cons_derivel OO_def)
+  by (auto simp: tranclp_unfold_left derivel_N_Cons OO_def)
 
-lemma N_Cons_derivels:
+lemma derivels_N_Cons:
   "P \<turnstile> N A # u \<Rightarrow>l* v \<longleftrightarrow> v = N A # u \<or> (\<exists>w. (A,w) \<in> P \<and> P \<turnstile> w @ u \<Rightarrow>l* v)"
-  by (auto simp: Nitpick.rtranclp_unfold N_Cons_derivels1)
+  by (auto simp: Nitpick.rtranclp_unfold derivels1_N_Cons)
 
-lemma N_Cons_deriveln:
+lemma deriveln_N_Cons:
   "P \<turnstile> N A # u \<Rightarrow>l(n) v \<longleftrightarrow> (
   case n of 0 \<Rightarrow> v = N A # u
   | Suc m \<Rightarrow> \<exists>w. (A,w) \<in> P \<and> P \<turnstile> w @ u \<Rightarrow>l(m) v)"
   apply (cases n)
-  by (auto simp: N_Cons_derivel relpowp_Suc_left OO_def)
+  by (auto simp: derivel_N_Cons relpowp_Suc_left OO_def)
 
 lemma derivel_map_T_append:
   "P \<turnstile> map T w @ u \<Rightarrow>l v \<longleftrightarrow> (\<exists>x. v = map T w @ x \<and> P \<turnstile> u \<Rightarrow>l x)"
   apply (induction w arbitrary:v)
-  by (auto simp: T_Cons_derivel Cons_eq_append_conv)
+  by (auto simp: derivel_T_Cons Cons_eq_append_conv)
 
 lemma deriveln_map_T_append:
   "P \<turnstile> map T w @ u \<Rightarrow>l(n) v \<longleftrightarrow> (\<exists>x. v = map T w @ x \<and> P \<turnstile> u \<Rightarrow>l(n) x)"
-  apply (induction n arbitrary: u)
-  apply (auto simp: derivel_map_T_append relpowp_Suc_left OO_def)
-  by blast
+  by (induction n arbitrary: u;
+      force simp: derivel_map_T_append relpowp_Suc_left OO_def)
 
 lemma derivels_map_T_append:
   "P \<turnstile> map T w @ u \<Rightarrow>l* v \<longleftrightarrow> (\<exists>x. v = map T w @ x \<and> P \<turnstile> u \<Rightarrow>l* x)"
-  by (meson deriveln_map_T_append rtranclp_power)
+  by (metis deriveln_map_T_append rtranclp_power)
 
 lemma derive_singleton: "P \<turnstile> [a] \<Rightarrow> u \<longleftrightarrow> (\<exists>A. (A,u) \<in> P \<and> a = N A)"
   by (auto simp: derive_iff Cons_eq_append_conv)
@@ -381,42 +374,6 @@ proof
   show "?r \<Longrightarrow> ?l"
     apply (auto simp:  split: nat.splits)
     by (metis derive_singleton relpowp_Suc_I2)
-qed
-
-lemma deriven_append:
-  "P \<turnstile> u \<Rightarrow>(n) v \<Longrightarrow> P \<turnstile> u @ w \<Rightarrow>(n) v @ w"
-  apply (induction n arbitrary: v)
-   apply simp
-  using derive_append by (fastforce simp: relpowp_Suc_right)
-
-lemma deriven_prepend:
-  "P \<turnstile> u \<Rightarrow>(n) v \<Longrightarrow> P \<turnstile> w @ u \<Rightarrow>(n) w @ v"
-  apply (induction n arbitrary: v)
-   apply simp
-  using derive_prepend by (fastforce simp: relpowp_Suc_right)
-
-lemma deriven_append_decomp:
-  "P \<turnstile> u @ v \<Rightarrow>(n) w \<longleftrightarrow>
-  (\<exists>n1 n2 w1 w2. n = n1 + n2 \<and> w = w1 @ w2 \<and> P \<turnstile> u \<Rightarrow>(n1) w1 \<and> P \<turnstile> v \<Rightarrow>(n2) w2)"
-  (is "?l \<longleftrightarrow> ?r")
-proof
-  show "?l \<Longrightarrow> ?r"
-    apply (induction n arbitrary: u v)
-     apply auto[1]
-    apply (auto simp: relpowp_Suc_left derive_append_decomp)
-     apply (metis add_Suc relpowp_Suc_I2)
-    by (metis add_Suc_right relpowp_Suc_I2)
-next
-  assume ?r
-  then obtain n1 n2 w1 w2
-    where [simp]: "n = n1 + n2" "w = w1 @ w2"
-      and u: "P \<turnstile> u \<Rightarrow>(n1) w1" and v: "P \<turnstile> v \<Rightarrow>(n2) w2"
-    by auto
-  from u deriven_append
-  have "P \<turnstile> u @ v \<Rightarrow>(n1) w1 @ v" by fastforce
-  also from v deriven_prepend
-  have "P \<turnstile> w1 @ v \<Rightarrow>(n2) w1 @ w2" by fastforce
-  finally show ?l by auto
 qed
 
 lemma deriven_Cons_decomp:
@@ -465,7 +422,7 @@ next
       and w: "P \<turnstile> w \<Rightarrow>(n1) v1"
       and u: "P \<turnstile> u \<Rightarrow>(n2) v2"
     have "P \<turnstile> [a] \<Rightarrow> w"
-      by (simp add: Aw deriv1_if_valid_prod)
+      by (simp add: Aw derive_singleton)
     with w have "P \<turnstile> [a] \<Rightarrow>(Suc n1) v1"
       by (metis relpowp_Suc_I2)
     from deriven_append[OF this]
@@ -498,8 +455,8 @@ proof
       case (Cons a u)
       show ?case
         using Cons.prems(1) Cons.IH less.IH
-        apply (auto simp: deriven_Cons_decomp T_Cons_deriveln
-            N_Cons_deriveln)
+        apply (auto simp: deriven_Cons_decomp deriveln_T_Cons
+            deriveln_N_Cons)
         by (metis deriven_append_decomp lessI)
     qed
   qed
@@ -592,7 +549,7 @@ lemma derivern_append_map_T:
 
 lemma deriver_snoc_N:
   "P \<turnstile> u @ [N A] \<Rightarrow>r v \<longleftrightarrow> (\<exists>w. (A,w) \<in> P \<and> v = u @ w)"
-  by (force simp: deriver_iff_rev_derivel N_Cons_derivel rev_eq_append_conv)
+  by (force simp: deriver_iff_rev_derivel derivel_N_Cons rev_eq_append_conv)
 
 lemma deriver_singleton:
   "P \<turnstile> [N A] \<Rightarrow>r v \<longleftrightarrow> (A,v) \<in> P"
@@ -608,7 +565,7 @@ lemma derivers_snoc_N:
 
 lemma derivern_snoc_T:
   "P \<turnstile> u @ [T a] \<Rightarrow>r(n) v \<longleftrightarrow> (\<exists>w. v = w @ [T a] \<and> P \<turnstile> u \<Rightarrow>r(n) w)"
-  by (force simp: derivern_iff_rev_deriveln T_Cons_deriveln)
+  by (force simp: derivern_iff_rev_deriveln deriveln_T_Cons)
 
 lemma derivern_snoc_N:
   "P \<turnstile> u @ [N A] \<Rightarrow>r(n) v \<longleftrightarrow> (

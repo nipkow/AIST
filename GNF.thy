@@ -481,7 +481,7 @@ next
   case (Suc n)
   from Suc.prems
   obtain w where Aw: "(A,w) \<in> R" and wuv: "R \<turnstile> w@u \<Rightarrow>l(n) v"
-    by (auto simp: relpowp_Suc_left N_Cons_derivel)
+    by (auto simp: relpowp_Suc_left derivel_N_Cons)
   show ?case
   proof (cases "starts_with A w")
     case True
@@ -500,7 +500,7 @@ next
     next
       case w': False
       from w' Aw have "(A,w) \<in> loop R A" by (auto simp: in_loop)
-      then have "loop R A \<turnstile> [N A] \<Rightarrow>l N A # w'" by (auto simp: N_Cons_derivel)
+      then have "loop R A \<turnstile> [N A] \<Rightarrow>l N A # w'" by (auto simp: derivel_N_Cons)
       also from deriveln_append[OF n1, of w']
       have "loop R A \<turnstile> \<dots> \<Rightarrow>l(n1) N A # u' @ w'" by simp
       finally show ?thesis using len AxR Ax n2 by force
@@ -554,7 +554,7 @@ next
   from v0 have "(A', v @ [N A']) \<in> unwind_new R A A'"
       using AAv by (auto simp: unwind_new_def)
   with IH show ?case apply auto
-    by (meson converse_rtranclp_into_rtranclp deriv1_if_valid_prod derives_prepend)
+    by (meson converse_rtranclp_into_rtranclp derive_singleton derives_prepend)
 qed
 
 (*AY: could be generalized so that A is not left-most nonterminal of v. *)
@@ -580,7 +580,7 @@ proof (induction n arbitrary: u v rule: less_induct)
     proof (cases "B = A")
       case [simp]: True
       have "R \<turnstile> N A # u' \<Rightarrow>l w @ u'" using Bw
-        by (auto simp add: N_Cons_derivel)
+        by (auto simp: derivel_N_Cons)
       also note m
       finally have "R \<turnstile> N A # u' \<Rightarrow>l(n) map T v'" by simp
       from extract_loop[OF this]
@@ -615,7 +615,7 @@ proof (induction n arbitrary: u v rule: less_induct)
       next
         case False
         from Aw'R Aw' have "unwind R A A' \<turnstile> N A # u' \<Rightarrow> w' @ u'"
-          by (auto intro!: derivel_imp_derive simp: N_Cons_derivel unwind_def unwind_old_def)
+          by (auto intro!: derivel_imp_derive simp: derivel_N_Cons unwind_def unwind_old_def)
         with n1 IH False show ?thesis by (auto intro!:derives_prepend)
       qed
     next
@@ -733,7 +733,7 @@ next
     have "N A' \<notin> set w" using Suc.prems(2) by auto
     note Suc.IH[OF A'w this]
     also have "R \<turnstile> N A # w \<Rightarrow> N A # vs"
-      using AAv N_Cons_derivel derivel_imp_derive by fastforce
+      using AAv derivel_N_Cons derivel_imp_derive by fastforce
     finally show ?thesis.
   qed
 qed
@@ -807,7 +807,7 @@ proof (induction n arbitrary: u v rule: less_induct)
       from unwind_new_sound[OF A'R this] A'u' A'w' A'w''
       have "R \<turnstile> [N A] \<Rightarrow>* N A # u' @ w''" by auto
       also have "R \<turnstile> \<dots> \<Rightarrow> w' @ u' @ w''" using Aw'R
-        by (auto intro!: derivel_imp_derive simp: N_Cons_derivel)
+        by (auto intro!: derivel_imp_derive simp: derivel_N_Cons)
       finally have "R \<turnstile> [N A] \<Rightarrow>* \<dots>".
       note derives_prepend[OF this]
       also from A'u' A'w' A'w'' less.prems(2-3) less.IH[OF _ n2] len

@@ -2,7 +2,7 @@ theory CFG
 imports Main
 begin
 
-(* TODO: move *)
+(* TODO: are in devel, remove after release *)
 
 (* AY: predicate version of trancl_unfold_left *)
 lemma tranclp_unfold_left: "r^++ = r OO r^**"
@@ -26,19 +26,21 @@ lemma relpowp_mono:
 
 lemmas relpowp_Suc_right = relpowp.simps(2)
 
-declare relpowp.simps(2)[simp del]
-
-lemma rev_eq_append_conv: "rev xs = ys @ zs \<longleftrightarrow> xs = rev zs @ rev ys"
+lemma rev_eq_append_conv: "rev xs = ys @ zs \<longleftrightarrow> xs = rev zs @ rev ys"(* done *)
   by (metis rev_append rev_rev_ident)
 
-lemma append_eq_rev_conv: "xs @ ys = rev zs \<longleftrightarrow> rev ys @ rev xs = zs"
+lemma append_eq_rev_conv: "xs @ ys = rev zs \<longleftrightarrow> rev ys @ rev xs = zs"(* done *)
   using rev_eq_append_conv[of zs xs ys]
   by auto
 
 (* AY: variant of rev_eq_Cons_iff *)
-lemma Cons_eq_rev_iff: "x # xs = rev ys \<longleftrightarrow> ys = rev xs @ [x]"
+lemma Cons_eq_rev_iff: "x # xs = rev ys \<longleftrightarrow> ys = rev xs @ [x]"(* done *)
   using append_eq_rev_conv[of "[x]"]
   by auto
+
+(* end of TODO *)
+
+declare relpowp.simps(2)[simp del]
 
 lemma bex_pair_conv: "(\<exists>(x,y) \<in> R. P x y) \<longleftrightarrow> (\<exists>x y. (x,y) \<in> R \<and> P x y)"
   by auto

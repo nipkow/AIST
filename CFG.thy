@@ -67,8 +67,11 @@ fun nt :: "('n,'t)syms \<Rightarrow> 'n set" where
 "nt (NT A # v) = {A} \<union> nt v" |
 "nt (Tm a # v) = nt v"
 
-axiomatization fresh :: "('n::infinite,'t) prod list \<Rightarrow> 'n" where
-fresh: "fresh P \<notin> nts(set P)"
+definition nts :: "('n,'t)prodS \<Rightarrow> 'n set" where
+"nts P = (\<Union>(A,w)\<in>P. {A} \<union> nt w)"
+
+axiomatization fresh :: "('n::infinite,'t) prods \<Rightarrow> 'n" where
+fresh: "fresh ps \<notin> nts(set ps)"
 
 lemma nt_Cons: "nt (a#v) = (case a of NT A \<Rightarrow> {A} | _ \<Rightarrow> {}) \<union> nt v"
   by (cases a, auto)

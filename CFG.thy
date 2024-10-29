@@ -451,10 +451,19 @@ qed
 lemma derivel_imp_derive: "P \<turnstile> u \<Rightarrow>l v \<Longrightarrow> P \<turnstile> u \<Rightarrow> v"
   using derive.simps derivel.cases self_append_conv2 by fastforce
 
+lemma deriveln_imp_deriven:
+  "P \<turnstile> u \<Rightarrow>l(n) v \<Longrightarrow> P \<turnstile> u \<Rightarrow>(n) v"
+  using relpowp_mono derivel_imp_derive by metis
+
+lemma derivels_imp_derives:
+  "P \<turnstile> u \<Rightarrow>l* v \<Longrightarrow> P \<turnstile> u \<Rightarrow>* v"
+  by (metis derivel_imp_derive mono_rtranclp)
+
 lemma deriveln_iff_deriven:
   "P \<turnstile> u \<Rightarrow>l(n) map Tm v \<longleftrightarrow> P \<turnstile> u \<Rightarrow>(n) map Tm v"
   (is "?l \<longleftrightarrow> ?r")
 proof
+  show "?l \<Longrightarrow> ?r" using deriveln_imp_deriven.
   assume ?r
   then show "?l"
   proof (induction n arbitrary: u v rule: less_induct)
@@ -473,9 +482,6 @@ proof
         by (metis deriven_append_decomp lessI)
     qed
   qed
-next
-  show "?l \<Longrightarrow> ?r"
-    using relpowp_mono derivel_imp_derive by metis
 qed
 
 lemma derivels_iff_derives: "P \<turnstile> u \<Rightarrow>l* map Tm v \<longleftrightarrow> P \<turnstile> u \<Rightarrow>* map Tm v"
@@ -491,6 +497,9 @@ lemma deriver_imp_derive: "R \<turnstile> u \<Rightarrow>r v \<Longrightarrow> R
 
 lemma derivern_imp_deriven: "R \<turnstile> u \<Rightarrow>r(n) v \<Longrightarrow> R \<turnstile> u \<Rightarrow>(n) v"
   by (metis (no_types, lifting) deriver_imp_derive relpowp_mono)
+
+lemma derivers_imp_derives: "R \<turnstile> u \<Rightarrow>r* v \<Longrightarrow> R \<turnstile> u \<Rightarrow>* v"
+  by (metis deriver_imp_derive mono_rtranclp)
 
 lemma deriver_iff_rev_derivel:
   "P \<turnstile> u \<Rightarrow>r v \<longleftrightarrow> map_prod id rev ` P \<turnstile> rev u \<Rightarrow>l rev v"

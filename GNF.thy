@@ -82,8 +82,9 @@ lemma Rhs1_subset: "R \<subseteq> S \<Longrightarrow> Rhs1 R \<subseteq> Rhs1 S"
 lemma Rhs1_Un: "Rhs1 (R \<union> S) = Rhs1 R \<union> Rhs1 S"
   by (auto simp: Rhs1_def Lnt_def)
 
-fun starts_with where "starts_with A (NT B # w) \<longleftrightarrow> A = B"
-  | "starts_with _ _ = False"
+fun starts_with where
+  "starts_with _ [] = False" |
+  "starts_with A (a # w) \<longleftrightarrow> a = NT A"
 
 lemma starts_with_iff: "starts_with A w \<longleftrightarrow> (\<exists>v. w = NT A # v)"
   apply (cases "(A,w)" rule: starts_with.cases) by auto
@@ -117,13 +118,13 @@ lemma loop_free_Un: "loop_free (R \<union> S) A \<longleftrightarrow> loop_free 
   by (auto simp:loop_free_def)
 
 definition "solved_list R As \<longleftrightarrow>
-  (\<forall> B \<in> set As. \<forall>(A,w) \<in> set R. \<not>starts_with B w)"
+  (\<forall>A \<in> set As. \<forall>(B,w) \<in> set R. \<not>starts_with A w)"
 
 definition "solved R As \<longleftrightarrow>
-  (\<forall>B \<in> As. \<forall>(A,w) \<in> R. \<not>starts_with B w)"
+  (\<forall>A \<in> As. \<forall>(B,w) \<in> R. \<not>starts_with A w)"
 
 lemma solvedI:
-  assumes "\<And>B A w. B \<in> As \<Longrightarrow> (A,w) \<in> R \<Longrightarrow> \<not> starts_with B w"
+  assumes "\<And>A B w. A \<in> As \<Longrightarrow> (B,w) \<in> R \<Longrightarrow> \<not> starts_with A w"
   shows "solved R As"
   using assms by (auto simp: solved_def)
 
@@ -132,8 +133,7 @@ lemma solved: "solved (set R) (set As) = solved_list R As"
 
 lemma solved_not:
   "solved R As \<Longrightarrow> A \<in> As \<Longrightarrow> (B,NT A#w) \<notin> R"
-  apply (auto simp: solved_def split: prod.splits)
-  by (metis starts_with.simps(1))
+  by (fastforce simp: solved_def starts_with_iff split: prod.splits)
 
 definition Nts where "Nts R = concat [A#[B. NT B \<leftarrow> w]. (A,w) \<leftarrow> R]"
 
@@ -149,14 +149,7 @@ lemma set_Nts_def: "set (Nts R) = Nt (set R)"
 definition "diff_list = fold removeAll"
 
 lemma set_diff_list[simp]: "set(diff_list xs ys) = set ys - set xs"
-unfolding diff_list_def
-proof(induction xs arbitrary: ys)
-  case Nil
-  then show ?case by simp
-next
-  case (Cons a xs)
-  then show ?case by auto
-qed 
+  by (induction xs arbitrary: ys, auto simp: diff_list_def)
 
 definition unwind_new where
   "unwind_new R A A' = (
@@ -319,7 +312,7 @@ value "unwind_old_expand_list [(2, [NT 1::(int,int)sym])] 1 2"
 
 value "solved_list [(2::int, [NT 2::(int,int)sym, NT 1]), (1, [NT 2])] [1]"
 
-lemma expand_derives_imp:
+lemma expand_derives_sound:
   assumes ef: "eps_free R"
   assumes "expand R S As \<union> S \<turnstile> u \<Rightarrow>* v"
   shows "R \<union> S \<turnstile> u \<Rightarrow>* v"
@@ -350,14 +343,24 @@ next
   with step.IH show ?case by auto
 qed
 
+fun leftmost_nt where "leftmost_nt [] = None" |
+"leftmost_nt (NT A # w) = Some A" |
+"leftmost_nt (Tm c # w) = leftmost_nt w"
+
+lemma leftmost_nt_map_Tm_append: "leftmost_nt (map Tm u @ v) = leftmost_nt v"
+  by (induction u, auto)
+
+lemma leftmost_nt_map_Tm: "leftmost_nt (map Tm u) = None"
+  using leftmost_nt_map_Tm_append[of _ "[]"] by auto
+
 lemma expand_derivels:
   assumes ef: "eps_free R"
     and RAs: "fst ` R \<inter> As = {}"
-    and der: "R \<union> S \<turnstile> u \<Rightarrow>l* map Tm v"
-  shows "expand R S As \<union> S \<turnstile> u \<Rightarrow>l* map Tm v"
+    and der: "R \<union> S \<turnstile> u \<Rightarrow>l* v" and vAs: "leftmost_nt v \<notin> Some ` As"
+  shows "expand R S As \<union> S \<turnstile> u \<Rightarrow>l* v"
 proof-
   from der
-  obtain n where "R \<union> S \<turnstile> u \<Rightarrow>l(n) map Tm v"
+  obtain n where "R \<union> S \<turnstile> u \<Rightarrow>l(n) v"
     by (metis rtranclp_imp_relpowp)
   then show ?thesis
   proof (induction n arbitrary: u rule: less_induct)
@@ -368,7 +371,7 @@ proof-
       then show ?thesis using less.prems by auto
     next
       case [simp]: (Suc m)
-      then obtain z where uz: "R \<union> S \<turnstile> u \<Rightarrow>l z" and zv: "R \<union> S \<turnstile> z \<Rightarrow>l(m) map Tm v"
+      then obtain z where uz: "R \<union> S \<turnstile> u \<Rightarrow>l z" and zv: "R \<union> S \<turnstile> z \<Rightarrow>l(m) v"
         by (metis less.prems relpowp_Suc_E2)
       from uz have "R \<turnstile> u \<Rightarrow>l z \<or> (S \<turnstile> u \<Rightarrow>l z)"
         by (simp add: Un_derivel)
@@ -388,13 +391,13 @@ proof-
         proof (cases "a \<in> NT ` As")
           case True
           then obtain B where [simp]: "a = NT B" and B: "B \<in> As" by auto
-          from zv have "m \<noteq> 0"
+          from zv B vAs have "m \<noteq> 0"
             apply (intro notI)
-            by (auto simp: deriveln_map_Tm_append Cons_eq_map_conv append_eq_map_conv)
+            by (auto simp: leftmost_nt_map_Tm_append deriveln_map_Tm_append Cons_eq_map_conv append_eq_map_conv)
           then obtain l where [simp]: "m = Suc l"
             using old.nat.exhaust by auto
           from zv obtain z' where zz': "R \<union> S \<turnstile> z \<Rightarrow>l z'"
-            and z'v: "R \<union> S \<turnstile> z' \<Rightarrow>l(l) map Tm v"
+            and z'v: "R \<union> S \<turnstile> z' \<Rightarrow>l(l) v"
             by (metis \<open>m = Suc l\<close> relpowp_Suc_D2)
           from zz' have "\<exists>y. (B,y) \<in> R \<union> S \<and> z' = map Tm p @ y @ w2 @ y2"
             by (auto simp:derivel_iff append_eq_append_conv2 map_eq_append_conv append_eq_map_conv append_eq_Cons_conv Cons_eq_append_conv)
@@ -407,7 +410,7 @@ proof-
             using derivel.intros by fastforce
           then have "expand R S As \<union> S \<turnstile> u \<Rightarrow>l z'" by (auto simp: Un_derivel)
           also from less.IH[OF _ z'v]
-          have "expand R S As \<union> S \<turnstile> z' \<Rightarrow>l* map Tm v" by auto
+          have "expand R S As \<union> S \<turnstile> z' \<Rightarrow>l* v" by auto
           finally show ?thesis by auto
         next
           case False
@@ -429,9 +432,9 @@ lemma expand_derives:
   assumes ef: "eps_free R"
     and RAs: "fst ` R \<inter> As = {}"
   shows "expand R S As \<union> S \<turnstile> u \<Rightarrow>* map Tm v \<longleftrightarrow> R \<union> S \<turnstile> u \<Rightarrow>* map Tm v"
-  using expand_derives_imp[OF ef]
-    expand_derivels[unfolded derivels_iff_derives, OF ef RAs]
-  by auto
+  using expand_derives_sound[OF ef]
+    expand_derivels[OF ef RAs, of S u \<open>map Tm v\<close>]
+  by (auto simp: derivels_iff_derives leftmost_nt_map_Tm)
 
 lemma Lang_expand:
   assumes ef: "eps_free R"
@@ -911,7 +914,6 @@ lemma unwind_derives:
       eqT1_unwind')
 
 *)
-thm     and RAs: "fst ` R \<inter> As = {}"
 
 lemma Lang_unwind_expand:
   assumes ef: "eps_free R"
@@ -959,7 +961,7 @@ lemma loop_free_unwind_new_list:
   shows "loop_free (unwind_new R A A') A"
   using assms by (auto simp: loop_free_def starts_with_iff unwind_new_def Cons_eq_append_conv)
 
-definition Rhs1s where "Rhs1s R = [A. (B,N A # w) \<leftarrow> R]"
+definition Rhs1s where "Rhs1s R = [A. (B, NT A # w) \<leftarrow> R]"
 
 lemma set_Rhs1s: "set (Rhs1s R) = Rhs1 (set R)"
   by (auto simp: Rhs1s_def Rhs1_def Lnt_def rhs1_def image_Collect)
@@ -968,13 +970,13 @@ definition "eps_free_list R = (\<forall>(A,w) \<in> set R. w \<noteq> [])"
 
 definition Rex :: "(int,int) prod list"
   where "Rex = [
-  (1,[N 2, N 2]), (1, [T 0]),
-  (2, [N 2, N 2, N 2]), (2, [T 0, N 2]), (2, [T 1])]"
+  (1,[NT 2, NT 2]), (1, [Tm 0]),
+  (2, [NT 2, NT 2, NT 2]), (2, [Tm 0, NT 2]), (2, [Tm 1])]"
 
 definition Rex2 :: "(int,int) prod list"
   where "Rex2 = [
-  (1, [N 2, T 0]),
-  (2, [N 1, T 2]), (2, [T 1, N 1]), (2, [T 3])]"
+  (1, [NT 2, Tm 0]),
+  (2, [NT 1, Tm 2]), (2, [Tm 1, NT 1]), (2, [Tm 3])]"
 
 value "unwind_list Rex 2 3"
 
@@ -1023,14 +1025,8 @@ lemma expand_list_solved_list2:
       Cons_eq_append_conv eps_free_Nil
       split: prod.splits)
 
-lemma eps_free_expand_list:
-  assumes "eps_free R" "eps_free S"
-  shows "eps_free (expand R S Bs)"
-  using assms
-  by (auto intro!: eps_freeI simp: expand_def eps_free_Nil)
-
 definition Rex3 :: "(int,int) prod list" where "Rex3 = [
-(0,[N 0]), (1,[N 1, N 0])]"
+(0,[NT 0]), (1,[NT 1, NT 0])]"
 
 value "unwind_new_list Rex3 1 2"
 
@@ -1039,11 +1035,11 @@ value "expand_list (unwind_new_list Rex3 1 2) (unwind_old_expand_list Rex3 1 2) 
 text \<open>The following is true without assuming solved_listness of \<open>As\<close>,
 because of the definition of \<open>expand\<close>.\<close>
 
-lemma hd_in_Nt: "(A,N B#w) \<in> R \<Longrightarrow> B \<in> Nt R"
+lemma hd_in_Nt: "(A,NT B#w) \<in> R \<Longrightarrow> B \<in> Nt R"
   apply (auto simp: Nt_def split: prod.splits)
   by (metis list.set_intros(1) prod.inject)
 
-lemma hd2_in_Nt: "(A,x#N B#w) \<in> R \<Longrightarrow> B \<in> Nt R"
+lemma hd2_in_Nt: "(A,x#NT B#w) \<in> R \<Longrightarrow> B \<in> Nt R"
   apply (auto simp: Nt_def split: prod.splits)
   by (metis list.set_intros(1,2) prod.inject)
   
@@ -1093,10 +1089,10 @@ lemma eps_free_unwind_expand:
   shows "eps_free (unwind_expand R As A A')"
 proof-
   note 1 =  eps_free_unwind_old_expand_list[OF assms]
-  with eps_free_expand_list[OF this eps_free_unwind_new]
+  with eps_free_expand[OF this eps_free_unwind_new]
   show ?thesis
   apply (auto intro!:eps_freeI simp: eps_free_Nil unwind_expand_def)
-    by (smt (verit) eps_free_Nil eps_free_expand_list eps_free_unwind_new)
+    by (smt (verit) eps_free_Nil eps_free_expand eps_free_unwind_new)
 qed
 
 lemma loop_free_expand:

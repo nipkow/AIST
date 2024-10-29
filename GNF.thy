@@ -2,27 +2,15 @@ theory GNF
 imports CFG
 begin
 
-fun nt :: "('n,'t)syms \<Rightarrow> 'n set" where
-"nt [] = {}" |
-"nt (NT A # v) = {A} \<union> nt v" |
-"nt (Tm a # v) = nt v"
-
-lemma nt_Cons: "nt (a#v) = (case a of NT A \<Rightarrow> {A} | _ \<Rightarrow> {}) \<union> nt v"
-  by (cases a, auto)
-
-lemma nt_append[simp]: "nt (u @ v) = nt u \<union> nt v"
-  apply (induction u arbitrary: v rule: nt.induct)
-  by auto
-
 fun rt :: "('n,'t)syms \<Rightarrow> bool" where
 "rt [] = True" |
 "rt (Tm _ # _) = True" |
 "rt _ = False"
 
-definition rtps :: "('n,'t)prods \<Rightarrow> bool" where
+definition rtps :: "('n,'t)prodS \<Rightarrow> bool" where
 "rtps ps = (\<forall>p \<in> ps. rt(snd p))"
 
-definition Lnt :: "('n, 't) prods \<Rightarrow> ('n * 'n * ('n,'t)syms)set" where
+definition Lnt :: "('n, 't) prodS \<Rightarrow> ('n * 'n * ('n,'t)syms)set" where
 "Lnt P = {(A,B,w). (A, NT B # w) \<in> P}"
 
 lemma [code]: "Lnt P = \<Union> ((\<lambda>(A,w). case w of NT B#v \<Rightarrow> {(A,B,v)} | _ \<Rightarrow> {}) ` P)"
@@ -1143,7 +1131,7 @@ fun realtime_list where
   "realtime_list R (A#As) (A'#As') = unwind_expand_list (realtime_list R As As') (As@As') A A'"
 | "realtime_list R _ _ = R"
 
-context fixes R :: "('n,'t) prods" begin
+context fixes R :: "('n,'t) prodS" begin
 fun realtime where
   "realtime (A#As) (A'#As') =
   unwind_expand (realtime As As') (set (As@As')) A A'"
@@ -1162,7 +1150,7 @@ lemma Nt_realtime: "Nt (realtime R As As') \<subseteq> Nt R \<union> set As \<un
   sorry
 
 context
-  fixes R :: "('n,'t)prods"
+  fixes R :: "('n,'t)prodS"
   assumes ef: "eps_free R"
 begin
 
@@ -1225,10 +1213,10 @@ end
 value "unwind_expand_list [(1,[N 1 :: (int,int)sym, N 1])] [] 1 2"
 
 theorem GNF:
-fixes R :: "('n,'t)prods" and new :: "'n set \<Rightarrow> 'n"
+fixes R :: "('n,'t)prodS" and new :: "'n set \<Rightarrow> 'n"
 assumes "\<And>X. finite X \<Longrightarrow> new (X) \<notin> X"
 assumes "finite R" and "eps_free R" and "Rhs1 R \<subseteq> set As" "distinct As"
-shows "\<exists>R'::('n ,'t)prods. Lang S R' = Lang S R \<and> rtps R'"
+shows "\<exists>R'::('n ,'t)prodS. Lang S R' = Lang S R \<and> rtps R'"
   oops
 
 end

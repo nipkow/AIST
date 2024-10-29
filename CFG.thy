@@ -1,8 +1,8 @@
 theory CFG
-imports Main
+imports "HOL-Library.Infinite_Typeclass"
 begin
 
-(* TODO: are in devel, remove after release *)
+(* TODO: these lemmas are in devel, remove after release *)
 
 (* AY: predicate version of trancl_unfold_left *)
 lemma tranclp_unfold_left: "r^++ = r OO r^**"
@@ -57,11 +57,27 @@ type_synonym ('n,'t) syms = "('n,'t) sym list"
 
 type_synonym ('n,'t) prod = "'n \<times> ('n,'t) syms"
 
-type_synonym ('n,'t) prods = "('n,'t) prod set"
+type_synonym ('n,'t) prods = "('n,'t) prod list"
+type_synonym ('n,'t) prodS = "('n,'t) prod set"
 
-datatype ('n,'t) cfg =  CFG (prods : "('n,'t) prods") (start : "'n")
+datatype ('n,'t) cfg =  CFG (prodS : "('n,'t) prodS") (start : "'n")
 
-inductive derive :: "('n,'t) prods \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t)syms \<Rightarrow> bool"
+fun nt :: "('n,'t)syms \<Rightarrow> 'n set" where
+"nt [] = {}" |
+"nt (NT A # v) = {A} \<union> nt v" |
+"nt (Tm a # v) = nt v"
+
+axiomatization fresh :: "('n::infinite,'t) prod list \<Rightarrow> 'n" where
+fresh: "fresh P \<notin> nts(set P)"
+
+lemma nt_Cons: "nt (a#v) = (case a of NT A \<Rightarrow> {A} | _ \<Rightarrow> {}) \<union> nt v"
+  by (cases a, auto)
+
+lemma nt_append[simp]: "nt (u @ v) = nt u \<union> nt v"
+  apply (induction u arbitrary: v rule: nt.induct)
+  by auto
+
+inductive derive :: "('n,'t) prodS \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t)syms \<Rightarrow> bool"
   ("(2_ \<turnstile>/ (_ \<Rightarrow>/ _))" [50, 0, 50] 50) where
 "(A,\<alpha>) \<in> P \<Longrightarrow> P \<turnstile> u @ [NT A] @ v \<Rightarrow> u @ \<alpha> @ v"
 
@@ -71,14 +87,18 @@ abbreviation deriven ("(2_ \<turnstile>/ (_ /\<Rightarrow>'(_')/ _))" [50, 0, 0,
 abbreviation derives ("(2_ \<turnstile>/ (_/ \<Rightarrow>*/ _))" [50, 0, 50] 50) where
 "P \<turnstile> u \<Rightarrow>* v \<equiv> ((derive P) ^**) u v"
 
-definition "Lang P A = {w. P \<turnstile> [NT A] \<Rightarrow>* map Tm w}"
+definition Lang :: "('n,'t)prodS \<Rightarrow> 'n \<Rightarrow> 't list set" where
+"Lang P A = {w. P \<turnstile> [NT A] \<Rightarrow>* map Tm w}"
+
+abbreviation lang :: "('n,'t)prods \<Rightarrow> 'n \<Rightarrow> 't list set" where
+"lang ps A \<equiv> Lang (set ps) A"
 
 lemma Lang_eqI_derives:
   assumes "\<And>v. R \<turnstile> [NT A] \<Rightarrow>* map Tm v \<longleftrightarrow> S \<turnstile> [NT A] \<Rightarrow>* map Tm v"
   shows "Lang R A = Lang S A"
   by (auto simp: Lang_def assms)
 
-inductive derivel :: "('n,'t) prods \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t)syms \<Rightarrow> bool"
+inductive derivel :: "('n,'t) prodS \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t)syms \<Rightarrow> bool"
   ("(2_ \<turnstile>/ (_ \<Rightarrow>l/ _))" [50, 0, 50] 50) where
 "(A,\<alpha>) \<in> P \<Longrightarrow> P \<turnstile> map Tm u @ NT A # v \<Rightarrow>l map Tm u @ \<alpha> @ v"
 
@@ -91,7 +111,7 @@ abbreviation derivels1 ("(2_ \<turnstile>/ (_ \<Rightarrow>l+/ _))" [50, 0, 50] 
 abbreviation deriveln ("(2_ \<turnstile>/ (_ \<Rightarrow>l'(_')/ _))" [50, 0, 0, 50] 50) where
 "P \<turnstile> u \<Rightarrow>l(n) v \<equiv> ((derivel P) ^^ n) u v"
 
-inductive deriver :: "('n,'t) prods \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t)syms \<Rightarrow> bool"
+inductive deriver :: "('n,'t) prodS \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t)syms \<Rightarrow> bool"
   ("(2_ \<turnstile>/ (_ \<Rightarrow>r/ _))" [50, 0, 50] 50) where
 "(A,\<alpha>) \<in> P \<Longrightarrow> P \<turnstile> u @ NT A # map Tm v \<Rightarrow>r u @ \<alpha> @ map Tm v"
 

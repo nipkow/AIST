@@ -1,58 +1,44 @@
 theory eProds
-  imports CFG
+  imports "../CFG"
 begin
 
 (* AFP-Definition *)
-inductive nullable :: "('n,'t)cfg \<Rightarrow> ('n,'t)symbol \<Rightarrow> bool"
+inductive nullable :: "('n,'t) cfg \<Rightarrow> ('n,'t) sym \<Rightarrow> bool"
 for g where
   NullableSym:
-  "\<lbrakk> (x, gamma) \<in> set (prods g); \<forall>s \<in> set gamma. nullable g s \<rbrakk>
-  \<Longrightarrow> nullable g (NT x)"
+  "\<lbrakk> (x, gamma) \<in> prodS g; \<forall>s \<in> set gamma. nullable g s \<rbrakk>
+  \<Longrightarrow> nullable g (Nt x)"
 
 abbreviation "nullables G w \<equiv> (\<forall>s \<in> set w. nullable G s)"
 
 code_pred nullable .
 
-lemma nullables_if: "G \<turnstile> u \<Rightarrow>* v \<Longrightarrow> u=[a] \<Longrightarrow> nullables G v \<Longrightarrow> nullables G u"
+lemma nullables_if: "(prodS G) \<turnstile> u \<Rightarrow>* v \<Longrightarrow> u=[a] \<Longrightarrow> nullables G v \<Longrightarrow> nullables G u"
 proof(induction arbitrary: a rule: rtranclp.induct)
   case (rtrancl_refl a)
   then show ?case by simp
 next
   case (rtrancl_into_rtrancl u v w)
-  from \<open>G \<turnstile> v \<Rightarrow> w\<close> \<open>nullables G w\<close> have "nullables G v"
+  from \<open>(prodS G) \<turnstile> v \<Rightarrow> w\<close> \<open>nullables G w\<close> have "nullables G v"
     by (smt (verit, del_insts) Un_iff nullable.simps self_append_conv2 set_ConsD set_append
-        step1.cases)
+        derive.cases)
   thus ?case
     using rtrancl_into_rtrancl.IH rtrancl_into_rtrancl.prems(1) by blast
 qed
 
-corollary nullable_if: "G \<turnstile> [a] \<Rightarrow>* [] \<Longrightarrow> nullable G a"
-using nullables_if[of G "[a]" "[]" a] by simp
+corollary nullable_if: "(prodS G) \<turnstile> [a] \<Rightarrow>* [] \<Longrightarrow> nullable G a"
+  using nullables_if[of G "[a]" "[]" a] by simp
 
-lemma nullable: "nullable G a \<Longrightarrow> G \<turnstile> [a] \<Rightarrow>* []"
+lemma nullable: "nullable G a \<Longrightarrow> (prodS G) \<turnstile> [a] \<Rightarrow>* []"
 proof (induction  rule: nullable.induct)
   case (NullableSym x gamma)
-    hence "G \<turnstile> [NT x] \<Rightarrow>* gamma" 
-      using deriv1_if_valid_prod by fastforce
-  also have "G \<turnstile> gamma \<Rightarrow>* []" sorry
+    hence "(prodS G) \<turnstile> [Nt x] \<Rightarrow>* gamma" 
+      using derive_singleton by blast
+  also have "(prodS G) \<turnstile> gamma \<Rightarrow>* []" sorry (* TODO *)
   finally show ?case .
 qed
 
-(*
-thm nullable_nullable_gamma.inducts
-thm nullable_nullable_gamma.induct
-thm nullable_nullable_gamma.intros
-thm nullable.cases
-thm nullable_gamma.cases
-thm nullable_nullable_gamma.NullableSym
-thm nullable_nullable_gamma.NullableNil
-thm nullable_nullable_gamma.NullableCons
-
-lemma nullable_not2: "(G \<turnstile> [a] \<Rightarrow>* []) \<Longrightarrow> nullable G a" (G \<turnstile> r \<Rightarrow>* []) \<Longrightarrow> nullable_gamma G r"
-proof (induction  rule: nullable_nullable_gamma.inducts)
-*)
-
-fun munge0 :: "('n, 't) cfg \<Rightarrow> ('n, 't) rhs \<Rightarrow> ('n, 't) rhs list" where
+fun munge0 :: "('n, 't) cfg \<Rightarrow> ('n, 't) syms \<Rightarrow> ('n, 't) syms list" where
   "munge0 G [] = [[]]" |
   "munge0 G (s#sl) = (
     if nullable G s then ((map ((#) s) (munge0 G sl)) @ munge0 G sl) 
@@ -60,47 +46,51 @@ fun munge0 :: "('n, 't) cfg \<Rightarrow> ('n, 't) rhs \<Rightarrow> ('n, 't) rh
 
 thm munge0.induct
 
-definition munge :: "('n, 't) cfg \<Rightarrow> ('n \<times> ('n, 't) symbol list) list \<Rightarrow> ('n \<times> ('n, 't) symbol list) set" where
-"munge G P = {(l,r'). \<exists>r. (l,r) \<in> set P \<and> r' \<in> set (munge0 G r) \<and> (r' \<noteq> [])}"
+definition munge :: "('n, 't) cfg \<Rightarrow> ('n \<times> ('n, 't) syms) set \<Rightarrow> ('n \<times> ('n, 't) syms) set" where
+"munge G P = {(l,r'). \<exists>r. (l,r) \<in> P \<and> r' \<in> set (munge0 G r) \<and> (r' \<noteq> [])}"
 
-definition "negr G G' = ((set (prods G') = munge G (prods G)) \<and> (start G' = start G))"
+definition "negr G G' = ((prodS G' = munge G (prodS G)) \<and> (start G' = start G))"
 
+(* Why do I not need this anymore? 
 (* auxiliary function to prove finiteness *)
-definition munge_fun :: "('n, 't) cfg \<Rightarrow> 'n \<times> ('n, 't) symbol list \<Rightarrow> ('n \<times> ('n, 't) symbol list) set" where 
+definition munge_fun :: "('n, 't) cfg \<Rightarrow> 'n \<times> ('n, 't) syms \<Rightarrow> ('n \<times> ('n, 't) syms) set" where 
   "munge_fun G p = {(l',r'). l' = fst p \<and> r' \<in> set (munge0 G (snd p)) \<and> (r' \<noteq> [])}"
 
-lemma munge_fun_eq: "munge G P = \<Union>((munge_fun G) ` (set P))"
+lemma munge_fun_eq: "munge G P = \<Union>((munge_fun G) ` P)"
 proof 
-  show "munge G P \<subseteq> (\<Union> (munge_fun G ` set P))" 
+  show "munge G P \<subseteq> (\<Union> (munge_fun G ` P))" 
    unfolding munge_def munge_fun_def by auto
 next
-  show "\<Union>((munge_fun G) ` (set P)) \<subseteq> munge G P"
-  proof 
-    fix x
-    assume "x \<in> \<Union>((munge_fun G) ` (set P))"
+  show "\<Union>((munge_fun G) ` P) \<subseteq> munge G P"
+     fix x
+    assume "x \<in> \<Union>((munge_fun G) ` P)"
     obtain l r' where "x = (l,r')" by fastforce
-    hence "(l,r') \<in> \<Union>((munge_fun G) ` (set P))" 
-      using \<open>x \<in> \<Union>((munge_fun G) ` (set P))\<close> by simp
-    hence 1: "\<exists>r. r' \<in> set (munge0 G r) \<and> (r' \<noteq> []) \<and> (l,r) \<in> (set P)" 
+    hence "(l,r') \<in> \<Union>((munge_fun G) ` P)" 
+      using \<open>x \<in> \<Union>((munge_fun G) ` P)\<close> by simp
+    hence 1: "\<exists>r. r' \<in> set (munge0 G r) \<and> (r' \<noteq> []) \<and> (l,r) \<in> P" 
       using munge_fun_def by fastforce
-    from this  obtain r where "r' \<in> set (munge0 G r) \<and> (l,r) \<in> (set P)" 
+    from this  obtain r where "r' \<in> set (munge0 G r) \<and> (l,r) \<in> P" 
       by blast
     thus "x \<in> munge G P" unfolding munge_fun_def munge_def
       using 1 \<open>x = (l, r')\<close> by blast 
   qed
 qed
 
-lemma finitenegrProds: "finite (munge G P)" 
+(* Had to add the assms, because CFG.thy changed prodS to a set*)
+lemma finitenegrProds: 
+  assumes "finite P"  
+  shows "finite (munge G P)" 
 proof -
-  have "\<forall>p \<in> set P. finite (munge_fun G p)"
+  have "\<forall>p \<in> P. finite (munge_fun G p)"
     unfolding munge_fun_def by auto
-  hence "finite (\<Union>((munge_fun G) ` (set P)))"
-    using finite_UN by auto
+  hence "finite (\<Union>((munge_fun G) ` P))"
+    using finite_UN assms by simp
   thus ?thesis using munge_fun_eq by metis
 qed
+*)
 
 lemma negr_exists: "\<forall>G. \<exists>G'. negr G G'" 
-  unfolding negr_def by (metis cfg.sel finite_list finitenegrProds)
+  unfolding negr_def by (metis cfg.sel)
 
 lemma eq_snegr: "negr G G' \<Longrightarrow> (start G = start G')"
   by (simp add: negr_def)
@@ -123,7 +113,7 @@ next
         set_append) 
 qed
 
-lemma negr_r1: "(r' \<in> set (munge0 G r) \<Longrightarrow> G \<turnstile> r \<Rightarrow>* r')"
+lemma negr_r1: "(r' \<in> set (munge0 G r) \<Longrightarrow> (prodS G) \<turnstile> r \<Rightarrow>* r')"
 proof (induction r arbitrary: r')
   case (Cons a r)
   then show ?case 
@@ -131,24 +121,24 @@ proof (induction r arbitrary: r')
     case True
     obtain e where "e \<in> set (munge0 G r) \<and> (r' = (a#e) \<or> r' = e)" (is "?e")
       using Cons.prems True by auto
-    hence 1: "G \<turnstile> r \<Rightarrow>* e" 
+    hence 1: "(prodS G) \<turnstile> r \<Rightarrow>* e" 
       using Cons.IH by blast
-    hence 2: "G \<turnstile> [a]@r \<Rightarrow>* [a]@e" 
-      using \<open>?e\<close> deriv_prepend by blast
-    have "G \<turnstile> [a] \<Rightarrow>* []" 
+    hence 2: "(prodS G) \<turnstile> [a]@r \<Rightarrow>* [a]@e" 
+      using \<open>?e\<close> derives_prepend by blast
+    have "(prodS G) \<turnstile> [a] \<Rightarrow>* []" 
       using True nullable(1) by blast
-    hence "G \<turnstile> [a]@r \<Rightarrow>* r" 
-      using deriv_apppend by fastforce
+    hence "(prodS G) \<turnstile> [a]@r \<Rightarrow>* r" 
+      using derives_append by fastforce
     thus ?thesis 
       using 1 2 \<open>?e\<close> by force 
   next
     case False
     obtain e where "e \<in> set (munge0 G r) \<and> (r' = (a#e))" (is "?e")
       using Cons.prems False by auto
-    hence "G \<turnstile> r \<Rightarrow>* e" 
+    hence "(prodS G) \<turnstile> r \<Rightarrow>* e" 
       using Cons.IH by simp
-    hence "G \<turnstile> [a]@r \<Rightarrow>* [a]@e" 
-      using deriv_prepend by blast
+    hence "(prodS G) \<turnstile> [a]@r \<Rightarrow>* [a]@e" 
+      using derives_prepend by blast
     thus ?thesis
       using \<open>?e\<close> by simp
   qed
@@ -156,85 +146,75 @@ qed simp
 
 lemma negr_r2: 
   assumes "negr G G'"
-    and "G' \<turnstile> u \<Rightarrow> v"
-  shows "G \<turnstile> u \<Rightarrow>* v"
+    and "prodS G' \<turnstile> u \<Rightarrow> v"
+  shows "prodS G \<turnstile> u \<Rightarrow>* v"
   using assms 
 proof -
-  obtain A \<alpha> r1 r2 where "(A, \<alpha>) \<in> set (prods G') \<and> u = r1 @ [NT A] @ r2 \<and> v = r1 @ \<alpha> @ r2" (is "?A")
-    using assms step1.cases by meson
-  hence 1: "(A, \<alpha>) \<in> {(l,r'). \<exists>r. (l,r) \<in> set (prods G) \<and> r' \<in> set (munge0 G r) \<and> (r' \<noteq> [])}"
+  obtain A \<alpha> r1 r2 where "(A, \<alpha>) \<in> prodS G' \<and> u = r1 @ [Nt A] @ r2 \<and> v = r1 @ \<alpha> @ r2" (is "?A")
+    using assms derive.cases by meson
+  hence 1: "(A, \<alpha>) \<in> {(l,r'). \<exists>r. (l,r) \<in> prodS G \<and> r' \<in> set (munge0 G r) \<and> (r' \<noteq> [])}"
     using assms(1) unfolding negr_def munge_def by simp
-  obtain r where "(A, r) \<in> set (prods G) \<and> \<alpha> \<in> set (munge0 G r)" (is "?r")
+  obtain r where "(A, r) \<in> prodS G \<and> \<alpha> \<in> set (munge0 G r)" (is "?r")
     using 1 by blast
-  hence "G \<turnstile> r \<Rightarrow>* \<alpha>" 
+  hence "prodS G \<turnstile> r \<Rightarrow>* \<alpha>" 
     using negr_r1 by blast
-  hence 2: "G \<turnstile> r1 @ r @ r2 \<Rightarrow>* r1 @ \<alpha> @ r2"
-    using \<open>?r\<close> deriv_prepend deriv_apppend by blast
-  hence "G \<turnstile> r1 @ [NT A] @ r2 \<Rightarrow> r1 @ r @ r2" 
-    using \<open>?r\<close> step1.simps by blast
+  hence 2: "prodS G \<turnstile> r1 @ r @ r2 \<Rightarrow>* r1 @ \<alpha> @ r2"
+    using \<open>?r\<close> derives_prepend derives_append by blast
+  hence "prodS G \<turnstile> r1 @ [Nt A] @ r2 \<Rightarrow> r1 @ r @ r2" 
+    using \<open>?r\<close> derive.simps by fast
   thus ?thesis 
     using 2 by (simp add: \<open>?A\<close>)
 qed
 
 lemma negr_r3:
   assumes "negr G G'"
-    and "G' \<turnstile> u \<Rightarrow>* v"
-  shows "G \<turnstile> u \<Rightarrow>* v"
+    and "prodS G' \<turnstile> u \<Rightarrow>* v"
+  shows "prodS G \<turnstile> u \<Rightarrow>* v"
   using assms by (smt (verit, del_insts) negr_r2 rtranclp.rtrancl_refl rtranclp_induct rtranclp_trans)
 
 lemma negr_r4:
-  assumes "(l,r) \<in> set (prods G)"
+  assumes "(l,r) \<in> prodS G"
     and "negr G G'"
     and "r' \<in> set (munge0 G r) \<and> (r' \<noteq> [])"
-  shows "(l,r') \<in> set (prods G')"
+  shows "(l,r') \<in> prodS G'"
   using assms by (smt (verit) case_prod_conv mem_Collect_eq munge_def negr_def)
 
 lemma negr_r5: "r \<in> set (munge0 G r)" 
   by (induction r) auto
 
 lemma negr_r6: 
-  assumes "(l,r) \<in> set (prods G)"
+  assumes "(l,r) \<in> prodS G"
     and "r' \<noteq> []"
     and "no_rhs G r r'"
     and "negr G G'"
-  shows "(l,r') \<in> set (prods G')"
+  shows "(l,r') \<in> prodS G'"
   using assms negr_r4 unfolding no_rhs_def by fast
 
 lemma negr_r7: 
   assumes "negr G G'"
-    and "G \<turnstile> [NT A] \<Rightarrow> v"
+    and "prodS G \<turnstile> [Nt A] \<Rightarrow> v"
     and "no_rhs G v v' \<and> (v' \<noteq> [])"
-  shows "G' \<turnstile> [NT A] \<Rightarrow> v'"
+  shows "prodS G' \<turnstile> [Nt A] \<Rightarrow> v'"
 proof -
-  have "(A,v) \<in> set (prods G)" 
-    using assms(2) valid_prod_if_deriv1 by fast
-  hence "(A,v') \<in> set (prods G')" 
+  have "(A,v) \<in> prodS G" 
+    using assms(2) by (simp add: derive_singleton)
+  hence "(A,v') \<in> prodS G'" 
     using assms negr_r6 conjE by fastforce
   thus ?thesis 
-    using deriv1_if_valid_prod by fast
+    using derive_singleton by fast
 qed
 
 lemma negr_r8:
   assumes "negr G G'"
-    and "G \<turnstile> [NT A] \<Rightarrow> v"
+    and "prodS G \<turnstile> [Nt A] \<Rightarrow> v"
     and "no_rhs G v v' \<and> (v' \<noteq> [])"
-  shows "G' \<turnstile> [NT A] \<Rightarrow>* v'"
+  shows "prodS G' \<turnstile> [Nt A] \<Rightarrow>* v'"
   using assms negr_r7 by fast
 
-(* lemma negr_r9 & negr_r10 \<Longrightarrow> nullable_rev 
-
-lemma negr_r9:
-  assumes "\<not>nullable_gamma G r"
-    and "G \<turnstile> r \<Rightarrow>* r'"
-  shows "r' \<noteq> []"
-  using assms apply (induction r arbitrary: r') apply auto 
-  apply (simp add: NullableNil) sorry
-*)
-  
 lemma negr_r11:
   assumes "sf \<in> set (munge0 G s) \<and> (sf \<noteq> [])"
     and "negr G G'"
-  shows "\<exists>l. ((l,s) \<in> set (prods G) \<longrightarrow> (l,sf) \<in> set (prods G'))"
+  shows "\<exists>l. ((l,s) \<in> prodS G \<longrightarrow> (l,sf) \<in> prodS G')"
   using assms by (meson negr_r4)
 
 lemma negr_r12a: 
@@ -272,11 +252,11 @@ lemma negr_r14:
 
 
 lemma negr_r15:
-  assumes "G \<turnstile> r \<Rightarrow>* rf"
+  assumes "prodS G \<turnstile> r \<Rightarrow>* rf"
     and "negr G G'"
     and "r = [s]"
     and "no_rhs G rf rf' \<and> (rf' \<noteq> [])"
-  shows "G' \<turnstile> r \<Rightarrow>* rf'"
+  shows "prodS G' \<turnstile> r \<Rightarrow>* rf'"
   using assms
 proof (induction arbitrary: rf')
   case base
@@ -297,11 +277,11 @@ next
   proof (cases "b = []")
     case True
     then show ?thesis 
-      using step Derivation1_from_empty by blast 
+      using step derive_from_empty by blast
   next
     case False
-    obtain r1 rhs r2 lhs where "b = (r1@[NT lhs]@r2) \<and> c = (r1@rhs@r2) \<and> (lhs, rhs) \<in> set (prods G)" (is "?bc")
-      using False step by (meson step1.cases)
+    obtain r1 rhs r2 lhs where "b = (r1@[Nt lhs]@r2) \<and> c = (r1@rhs@r2) \<and> (lhs, rhs) \<in> prodS G" (is "?bc")
+      using False step by (meson derive.cases)
     from this obtain r1' rhs' r2' where 
       "(rf' = (r1'@rhs'@r2')) \<and> no_rhs G r1 r1' \<and> no_rhs G rhs rhs' \<and> no_rhs G r2 r2'" (is "?rf'")
       using step negr_r14 by metis
@@ -314,29 +294,32 @@ next
           using True \<open>?rf'\<close> by simp
         hence "nullables G rhs"
           using no_rhs_nullable by blast
-        hence "no_rhs G [NT lhs] []" 
+        hence "no_rhs G [Nt lhs] []" 
           unfolding no_rhs_def using \<open>?bc\<close> NullableSym by fastforce
-        hence "no_rhs G (r1@[NT lhs]@r2) (r1'@r2')"
-          using negr_r12b[of G r1 r1' "[NT lhs]" "[]" r2 r2'] \<open>?rf'\<close> by simp
+        hence "no_rhs G (r1@[Nt lhs]@r2) (r1'@r2')"
+          using negr_r12b[of G r1 r1' "[Nt lhs]" "[]" r2 r2'] \<open>?rf'\<close> by simp
         then show ?thesis 
           using \<open>?bc\<close> \<open>rf' = r1' @ r2'\<close> step by blast
     next
       case False
-        have "no_rhs G (r1@[NT lhs]@r2) (r1'@[NT lhs]@r2')"
-          using negr_r12b[of G r1 r1' \<open>[NT lhs]\<close> \<open>[NT lhs]\<close> r2 r2'] negr_r5[of \<open>[NT lhs]\<close> G] no_rhs_def \<open>?rf'\<close> by blast
-        hence 1: "G' \<turnstile> [s] \<Rightarrow>* (r1'@[NT lhs]@r2')" 
+        have "no_rhs G (r1@[Nt lhs]@r2) (r1'@[Nt lhs]@r2')"
+          using negr_r12b[of G r1 r1' \<open>[Nt lhs]\<close> \<open>[Nt lhs]\<close> r2 r2'] negr_r5[of \<open>[Nt lhs]\<close> G] no_rhs_def \<open>?rf'\<close> by blast
+        hence 1: "prodS G' \<turnstile> [s] \<Rightarrow>* (r1'@[Nt lhs]@r2')" 
           using \<open>?bc\<close> step by blast
-        have "G \<turnstile> [NT lhs] \<Rightarrow> rhs" 
-          using \<open>?bc\<close> step(2) deriv1_if_valid_prod[of lhs rhs G] by simp
-        hence "G' \<turnstile> [NT lhs] \<Rightarrow> rhs'"
+        have "prodS G \<turnstile> [Nt lhs] \<Rightarrow> rhs" 
+          using \<open>?bc\<close> step(2) derive_singleton by blast
+        hence "prodS G' \<turnstile> [Nt lhs] \<Rightarrow> rhs'"
           using negr_r7[of G G' lhs rhs rhs'] False step \<open>?rf'\<close> by blast
-        hence "G' \<turnstile> (r1'@[NT lhs]@r2') \<Rightarrow> (r1'@rhs'@r2')" 
-          using step1_apppend step1_prepend by blast
+        hence "prodS G' \<turnstile> (r1'@[Nt lhs]@r2') \<Rightarrow> (r1'@rhs'@r2')" 
+          using derive_append derive_prepend by blast
         thus ?thesis using 1
         by (simp add: \<open>?rf'\<close> step.prems(2))
     qed
   qed
 qed
+
+definition "isWord w \<longleftrightarrow> (\<nexists>A. Nt A \<in> set w)"   
+definition "L G = {w. prodS G \<turnstile> [Nt (start G)] \<Rightarrow>* w \<and> isWord w}"
 
 theorem negr_eq_if_noe:
   assumes "negr G G'"
@@ -347,14 +330,14 @@ proof
   proof 
     fix x
     assume "x \<in> L G"
-    have "\<forall>x. G \<turnstile> [NT (start G)] \<Rightarrow>* x \<longrightarrow> x \<noteq> []"
+    have "\<forall>x. prodS G \<turnstile> [Nt (start G)] \<Rightarrow>* x \<longrightarrow> x \<noteq> []"
       using assms L_def isWord_def by fastforce
     hence 1: "no_rhs G x x" 
       unfolding no_rhs_def using negr_r5 by auto
     have "start G' = start G"
       using assms(1) negr_def by blast
-    hence "G' \<turnstile> [NT (start G')] \<Rightarrow>* x"
-      using negr_r15[of G "[NT (start G')]" x G' x] using 1 assms L_def \<open>x \<in> L G\<close> by auto
+    hence "prodS G' \<turnstile> [Nt (start G')] \<Rightarrow>* x"
+      using 1 assms L_def \<open>x \<in> L G\<close> by (metis (no_types, lifting) CollectD negr_r15)
     thus "x \<in> L G'"
       using L_def \<open>x \<in> L G\<close> by auto
   qed
@@ -371,14 +354,14 @@ qed
 (* correctness *)
 lemma negr_correct:
   assumes "negr G G'"
-  shows "\<nexists>p. p \<in> set (prods G') \<and> snd p = []"
+  shows "\<nexists>p. p \<in> prodS G' \<and> snd p = []"
   using assms unfolding negr_def munge_def by simp
 
 lemma negr_correct2:
   assumes "negr G G'"
   shows "[] \<notin> L G'"
   using assms unfolding negr_def L_def munge_def isWord_def 
-  by (smt (verit, best) append_is_Nil_conv case_prod_conv list.distinct(1) mem_Collect_eq rtranclp.simps step1.cases)
+  by (smt (verit, ccfv_threshold) CollectD append_is_Nil_conv case_prod_conv derive.cases not_Cons_self2 rtranclp.cases)
 
 lemma negr_correct3:
   assumes "negr G G'"

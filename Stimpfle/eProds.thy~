@@ -2,6 +2,7 @@ theory eProds
   imports "../CFG"
 begin
 
+(* AFP-Definition *)
 inductive nullable :: "('n,'t) cfg \<Rightarrow> ('n,'t) sym \<Rightarrow> bool"
 for g where
   NullableSym:
@@ -9,6 +10,8 @@ for g where
   \<Longrightarrow> nullable g (Nt x)"
 
 abbreviation "nullables G w \<equiv> (\<forall>s \<in> set w. nullable G s)"
+
+code_pred nullable .
 
 lemma nullables_if: "(prodS G) \<turnstile> u \<Rightarrow>* v \<Longrightarrow> u=[a] \<Longrightarrow> nullables G v \<Longrightarrow> nullables G u"
 proof(induction arbitrary: a rule: rtranclp.induct)
@@ -26,24 +29,12 @@ qed
 corollary nullable_if: "(prodS G) \<turnstile> [a] \<Rightarrow>* [] \<Longrightarrow> nullable G a"
   using nullables_if[of G "[a]" "[]" a] by simp
 
-lemma nullable_aux: "\<forall>s\<in>set gamma. nullable G s \<and> prodS G \<turnstile> [s] \<Rightarrow>* [] \<Longrightarrow> prodS G \<turnstile> gamma \<Rightarrow>* []"
-proof (induction gamma)
-  case (Cons a list)
-  hence "prodS G \<turnstile> list \<Rightarrow>* []"
-    by simp
-  moreover have "prodS G \<turnstile> [a] \<Rightarrow>* []"
-    using Cons by simp
-  ultimately show ?case 
-    using derives_Cons[of \<open>prodS G\<close> list \<open>[]\<close> \<open>a\<close>] by simp
-qed simp
-
 lemma nullable: "nullable G a \<Longrightarrow> (prodS G) \<turnstile> [a] \<Rightarrow>* []"
-proof (induction rule: nullable.induct)
+proof (induction  rule: nullable.induct)
   case (NullableSym x gamma)
     hence "(prodS G) \<turnstile> [Nt x] \<Rightarrow>* gamma" 
       using derive_singleton by blast
-    also have "(prodS G) \<turnstile> gamma \<Rightarrow>* []" 
-      using NullableSym nullable_aux by blast
+  also have "(prodS G) \<turnstile> gamma \<Rightarrow>* []" sorry (* TODO *)
   finally show ?case .
 qed
 
@@ -60,7 +51,7 @@ definition munge :: "('n, 't) cfg \<Rightarrow> ('n \<times> ('n, 't) syms) set 
 
 definition "negr G G' = ((prodS G' = munge G (prodS G)) \<and> (start G' = start G))"
 
-
+(* Why do I not need this anymore? 
 (* auxiliary function to prove finiteness *)
 definition munge_fun :: "('n, 't) cfg \<Rightarrow> 'n \<times> ('n, 't) syms \<Rightarrow> ('n \<times> ('n, 't) syms) set" where 
   "munge_fun G p = {(l',r'). l' = fst p \<and> r' \<in> set (munge0 G (snd p)) \<and> (r' \<noteq> [])}"
@@ -71,8 +62,7 @@ proof
    unfolding munge_def munge_fun_def by auto
 next
   show "\<Union>((munge_fun G) ` P) \<subseteq> munge G P"
-  proof
-    fix x
+     fix x
     assume "x \<in> \<Union>((munge_fun G) ` P)"
     obtain l r' where "x = (l,r')" by fastforce
     hence "(l,r') \<in> \<Union>((munge_fun G) ` P)" 
@@ -86,6 +76,7 @@ next
   qed
 qed
 
+(* Had to add the assms, because CFG.thy changed prodS to a set*)
 lemma finitenegrProds: 
   assumes "finite P"  
   shows "finite (munge G P)" 
@@ -96,14 +87,10 @@ proof -
     using finite_UN assms by simp
   thus ?thesis using munge_fun_eq by metis
 qed
+*)
 
-(* trivial, prodS G' is not necessary finite. Maybe delete this one? *)
-lemma negr_exists_trivial: "\<forall>G. \<exists>G'. negr G G'" 
+lemma negr_exists: "\<forall>G. \<exists>G'. negr G G'" 
   unfolding negr_def by (metis cfg.sel)
-
-(* better version *)
-lemma negr_exists: "\<forall>G. \<exists>G'. finite (prodS G) \<longrightarrow> (negr G G' \<and> finite (prodS G'))"
-  unfolding negr_def by (metis cfg.sel finitenegrProds)
 
 lemma eq_snegr: "negr G G' \<Longrightarrow> (start G = start G')"
   by (simp add: negr_def)
@@ -331,41 +318,8 @@ next
   qed
 qed
 
-(* Proof that Aditis definition of L G is the same as Lang (prodS G) (start G)*)
 definition "isWord w \<longleftrightarrow> (\<nexists>A. Nt A \<in> set w)"   
 definition "L G = {w. prodS G \<turnstile> [Nt (start G)] \<Rightarrow>* w \<and> isWord w}"
-
-lemma L_eq_Lang1: "(map Tm) ` Lang (prodS G) (start G) \<subseteq> L G"
-proof -
-  have "\<forall>w \<in> Lang (prodS G) (start G). isWord (map Tm w)"
-    unfolding isWord_def by auto
-  moreover have "\<forall>w \<in> Lang (prodS G) (start G). (prodS G) \<turnstile> [Nt (start G)] \<Rightarrow>* (map Tm w)"
-    unfolding Lang_def by simp
-  ultimately show ?thesis
-    using L_def by blast
-qed
-
-lemma L_eq_Lang2: "L G \<subseteq> (map Tm) ` Lang (prodS G) (start G)"
-proof 
-  fix w
-  assume "w \<in> L G"
-  hence 1: "prodS G \<turnstile> [Nt (start G)] \<Rightarrow>* w \<and> isWord w"
-    using L_def by blast
-  obtain w' where "w = map Tm w'"
-    by (metis 1 ex_map_conv isWord_def sym.exhaust)
-  hence "w' \<in> {w'. prodS G \<turnstile> [Nt (start G)] \<Rightarrow>* map Tm w'}"
-    using 1 by blast
-  hence "w \<in> (map Tm) ` {w'. prodS G \<turnstile> [Nt (start G)] \<Rightarrow>* map Tm w'}"
-    using \<open>w = map Tm w'\<close> by blast
-  thus "w \<in> (map Tm) ` Lang (prodS G) (start G)"
-    by (simp add: Lang_def)
-qed
-
-lemma L_eq_Lang: "L G = (map Tm) ` Lang (prodS G) (start G)"
-  using L_eq_Lang1 L_eq_Lang2 by blast
-
-lemma L_Lang: "L G = L G' \<longleftrightarrow> Lang (prodS G) (start G) = Lang (prodS G') (start G')"
-  using L_eq_Lang by (metis (mono_tags, lifting) Collect_cong L_def Lang_def image_eqI mem_Collect_eq)
 
 theorem negr_eq_if_noe:
   assumes "negr G G'"
@@ -412,7 +366,7 @@ lemma negr_correct2:
 lemma negr_correct3:
   assumes "negr G G'"
   shows "L G' = L G - {[]}"
-sorry (* TODO *)
+sorry
 
 (*
 lemma negr_correct3:

@@ -382,28 +382,55 @@ next
 qed
 
 (* correctness *)
-lemma nepr_correct:
+lemma noe_Prods_nepr:
   assumes "nepr P P'"
   shows "\<nexists>p. p \<in> set P' \<and> snd p = []"
   using assms unfolding nepr_def munge_def by simp
 
-lemma nepr_correct2:
+lemma noe_lang_nepr:
   assumes "nepr P P'"
   shows "[] \<notin> lang P' S"
-  using assms unfolding nepr_def Lang_def munge_def
-  by (smt (verit, best) CollectD append_is_Nil_conv case_prod_conv derive.cases list.distinct(1) map_is_Nil_conv rtranclp.cases)
+proof (rule ccontr)
+  assume "\<not>([] \<notin> lang P' S)"
+  hence "set P' \<turnstile> [Nt S] \<Rightarrow>* map Tm []"
+    using Lang_def by fast
+  hence "set P' \<turnstile> [Nt S] \<Rightarrow>* []"
+    by simp
+  hence "\<exists>A. set P' \<turnstile> [Nt S] \<Rightarrow>* [Nt A] \<and> (A, []) \<in> set P'"
+    by (smt (verit, best) append.left_neutral append_is_Nil_conv append_self_conv derive.cases list.distinct(1) rtranclp.cases)
+  thus False 
+    using assms unfolding nepr_def munge_def by blast 
+qed
 
-lemma nepr_correct3:
+theorem nepr_lang_eq:
   assumes "nepr P P'"
   shows "lang P' S = lang P S - {[]}"
-sorry (* TODO *)
-
-(*
-lemma nepr_correct3:
-  assumes "nepr G G'"
-    and "L \<G> = L G - {[]}"
-  shows "L \<G> = L G'"
-  using assms unfolding nepr_def L_def munge_def isWord_def sorry
-*)
+proof 
+  show "lang P' S \<subseteq> lang P S - {[]}"
+  proof 
+    fix w
+    assume "w \<in> lang P' S"
+    hence "w \<in> lang P' S - {[]}"
+      using assms noe_lang_nepr by fastforce
+    thus "w \<in> lang P S - {[]}"
+      using assms by (simp add: Lang_def nepr_r3)
+  qed
+next
+  show "lang P S - {[]} \<subseteq> lang P' S"
+  proof 
+    fix w
+    assume "w \<in> lang P S - {[]}"
+    hence 1: "(map Tm w) \<noteq> []" 
+      by simp
+    have 2: "set P \<turnstile> [Nt S] \<Rightarrow>* (map Tm w)"
+      using \<open>w \<in> lang P S - {[]}\<close> Lang_def by fast
+    have "no_rhs P (map Tm w) (map Tm w)"
+      using \<open>w \<in> lang P S - {[]}\<close> nepr_r5 no_rhs_def by blast
+    hence "set P' \<turnstile> [Nt S] \<Rightarrow>* (map Tm w)"
+      using 1 2 nepr_r15[of P \<open>[Nt S]\<close> \<open>map Tm w\<close> P' \<open>Nt S\<close> \<open>map Tm w\<close>] assms by simp
+    thus "w \<in> lang P' S"
+      by (simp add: Lang_def)
+  qed
+qed
 
 end

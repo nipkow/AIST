@@ -205,7 +205,7 @@ proof -
   qed
 qed
 
-(* p = (A, [Tm t]): Replace the new non-terminal A in rhs by terminal t *)
+(* p = (A, [Tm t]): Replace the fresh Nt A in rhs by \<alpha> *)
 fun elim :: "('n, 't) prod \<Rightarrow> ('n, 't) syms \<Rightarrow> ('n, 't) syms"  where
   "elim _ [] = []" |
   "elim (A,\<alpha>) (r#rhs) = (if r = Nt A then \<alpha>@(elim (A,\<alpha>) rhs) else r#(elim (A,\<alpha>) rhs))"

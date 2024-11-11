@@ -65,7 +65,7 @@ proof -
   ultimately show ?thesis unfolding noUnitProds_def by simp
 qed
 
-
+find_consts "'a set \<Rightarrow> 'b"
 definition prodTmnls :: "('n,'t) prod \<Rightarrow> nat" where
   "prodTmnls p = (if length (snd p) \<le> 1 then 0 else length (filter (isTmnlSym) (snd p)))"
 
@@ -74,6 +74,10 @@ definition prodNonTmnls :: "('n,'t) prod \<Rightarrow> nat" where
 
 definition badTmnlsCount :: "('n,'t) prods \<Rightarrow> nat" where
   "badTmnlsCount P = fold (+) (map prodTmnls P) 0"
+
+(* maybe this definition suits my trans1tmnl_def better *)
+definition badTmnlsCountAlt :: "('n,'t) prodS \<Rightarrow> bool" where
+  "badTmnlsCountAlt P = (\<forall>p \<in> P. prodTmnls p = 0)"
 
 definition badNtmsCount :: "('n,'t) prods \<Rightarrow> nat" where
   "badNtmsCount P = fold (+) (map prodNonTmnls P) 0"
@@ -665,12 +669,22 @@ theorem cnf_lemma:
 
 (* Part 2 *)
 
-lemma lemam16_b:
+lemma lemma16_b:
   assumes "badTmnlsCount P = 0"
     and "r \<in> set P"
   shows "prodTmnls r = 0 "
   using assms unfolding badTmnlsCount_def
   by (simp add: fold_plus_sum_list_rev) 
+
+lemma lemma16_bNT:
+  assumes "badNtmsCount P = 0"
+    and "r \<in> set P"
+  shows "prodNonTmnls r = 0"
+  using assms unfolding badNtmsCount_def
+  by (simp add: fold_plus_sum_list_rev)
+
+lemma sumMapDel: "fold (+) (map f l) 0 = 0 \<Longrightarrow> fold (+) (map f(removeAll e l)) 0 = 0"
+  oops
 
 theorem trans1Tmnl_2: 
   assumes "infinite(UNIV::'a set)"
@@ -682,7 +696,6 @@ next
   case (Suc x)
   then show ?case sorry
 qed
-
 
 definition "isCnf P \<equiv> (\<forall>l r. (l,r) \<in> set P \<longrightarrow> (
     (length r = 2 \<and> list_all (isNonTmnlSym) r) \<or> 

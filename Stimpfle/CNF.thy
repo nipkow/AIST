@@ -38,7 +38,7 @@ definition trans1Tmnl :: "'n \<Rightarrow> 't \<Rightarrow> ('n, 't) prods \<Rig
       "trans1Tmnl A t P P' \<equiv> (
     \<exists> l r p s. (l,r) \<in> set P \<and> (r = p@[Tm t]@s) 
     \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> nts (set P))
-    \<and> (set P' = ((set P - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})))"
+    \<and> (P' = ((removeAll (l,r) P) @ [(A,[Tm t]), (l, p@[Nt A]@s)])))"
 
 lemma trans1Tmnl_noeProds:
   assumes "noeProds (set P)"
@@ -55,7 +55,7 @@ proof -
     using assms(1) unfolding noUnitProds_def by simp
   obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) 
       \<and> set P' = ((set P - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})" (is "?lrps")
-    using assms(2) unfolding trans1Tmnl_def by auto
+    using assms(2) set_removeAll unfolding trans1Tmnl_def by force
   hence "\<nexists>l' A'. (l,[Nt A']) \<in> {(A,[Tm t]), (l, p@[Nt A]@s)}" 
     using Cons_eq_append_conv by fastforce
   hence "\<nexists>l' A'. (l',[Nt A']) \<in> ((set P - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})"
@@ -66,30 +66,41 @@ proof -
 qed
 
 find_consts "'a set \<Rightarrow> 'b"
-definition prodTmnls :: "('n,'t) prod \<Rightarrow> nat" where
-  "prodTmnls p = (if length (snd p) \<le> 1 then 0 else length (filter (isTmnlSym) (snd p)))"
+definition prodTms :: "('n,'t) prod \<Rightarrow> nat" where
+  "prodTms p = (if length (snd p) \<le> 1 then 0 else length (filter (isTmnlSym) (snd p)))"
 
-definition prodNonTmnls :: "('n,'t) prod \<Rightarrow> nat" where
-  "prodNonTmnls p = (if length (snd p) \<le> 2 then 0 else length (filter (isNonTmnlSym) (snd p)))"
+definition prodNts :: "('n,'t) prod \<Rightarrow> nat" where
+  "prodNts p = (if length (snd p) \<le> 2 then 0 else length (filter (isNonTmnlSym) (snd p)))"
 
-definition badTmnlsCount :: "('n,'t) prods \<Rightarrow> nat" where
-  "badTmnlsCount P = fold (+) (map prodTmnls P) 0"
+(* More like Aditis definition *)
+fun badTmsCount :: "('n,'t) prods \<Rightarrow> nat" where
+  "badTmsCount [] = 0" |
+  "badTmsCount (p#ps) = (prodTms p) + badTmsCount ps"
 
-(* maybe this definition suits my trans1tmnl_def better *)
-definition badTmnlsCountAlt :: "('n,'t) prodS \<Rightarrow> bool" where
-  "badTmnlsCountAlt P = (\<forall>p \<in> P. prodTmnls p = 0)"
+(* My definition based on sets instead of list iteration *)
+definition badTms :: "('n,'t) prodS \<Rightarrow> bool" where
+  "badTms P = (\<forall>p \<in> P. prodTms p = 0)"
 
-definition badNtmsCount :: "('n,'t) prods \<Rightarrow> nat" where
-  "badNtmsCount P = fold (+) (map prodNonTmnls P) 0"
+find_consts "'a set \<Rightarrow> nat"
+
+lemma badTms_eq_badTmsCount: "badTms (set P) \<longleftrightarrow> badTmsCount P = 0"
+ unfolding badTms_def apply (induction P) by auto
+
+fun badNtsCount :: "('n,'t) prods \<Rightarrow> nat" where
+  "badNtsCount [] = 0" |
+  "badNtsCount (p#ps) = (prodNts p) + badNtsCount ps"
+
+definition badNts :: "('n,'t) prodS \<Rightarrow> bool" where
+  "badNts P = (\<forall>p \<in> P. prodNts p = 0)"
 
 definition cnf :: "('n,'t) prods \<Rightarrow> bool" where
-  "cnf P = ((badTmnlsCount P = 0) \<and> (badNtmsCount P = 0))"
+  "cnf P = ((badTmsCount P = 0) \<and> (badNtsCount P = 0))"
 
 definition trans2Nt :: "'n \<Rightarrow> 'n \<Rightarrow> 'n \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods \<Rightarrow> bool" where
       "trans2Nt A B\<^sub>1 B\<^sub>2 P P' \<equiv> (
     \<exists>l r p s. (l,r) \<in> set P \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s)
     \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> nts (set P))
-    \<and> (set P' = ((set P - {(l,r)}) \<union> {(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)})))"
+    \<and> (P' = ((removeAll (l,r) P) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)])))"
 
 lemma trans2Nt_noeProds:
   assumes "noeProds (set P)"
@@ -106,7 +117,7 @@ lemma trans2Nt_noUnitProds:
     using assms(1) unfolding noUnitProds_def by simp
   obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) 
       \<and> (set P' = ((set P - {(l,r)}) \<union> {(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)}))" (is "?lrps")
-    using assms(2) unfolding trans2Nt_def by auto
+    using assms(2) set_removeAll unfolding trans2Nt_def by force
   hence "\<nexists>l' A'. (l,[Nt A']) \<in> {(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)}" 
     using Cons_eq_append_conv by fastforce
   hence "\<nexists>l' A'. (l',[Nt A']) \<in> ((set P - {(l,r)}) \<union> {(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)})"
@@ -131,7 +142,7 @@ proof -
     using assms(2) derive.cases by meson
   obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> nts (set P))
       \<and> set P' = ((set P - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})" (is "?lrps")
-    using assms(1) unfolding trans1Tmnl_def by auto
+    using assms(1) set_removeAll unfolding trans1Tmnl_def by force
   thus ?thesis 
   proof (cases "u = l")
     case True
@@ -167,7 +178,7 @@ proof -
     using assms(2) derive.cases by meson
   obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> nts (set P))
     \<and> (set P' = ((set P - {(l,r)}) \<union> {(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)}))" (is "?lrps")
-    using assms(1) unfolding trans2Nt_def by auto
+    using assms(1) set_removeAll unfolding trans2Nt_def by force
   thus ?thesis
   proof (cases "u = l")
     case True
@@ -292,7 +303,7 @@ lemma lemma1:
 proof -
   obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> nts (set P)) 
       \<and> set P' = ((set P - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})" (is "?lrps")
-    using assms(1) unfolding trans1Tmnl_def by auto
+    using assms(1) set_removeAll unfolding trans1Tmnl_def by force
   obtain p' s' u v where "lhs = p'@[Nt u]@s' \<and> rhs = p'@v@s' \<and> (u,v) \<in> set P'" (is "?uv")
     using assms(2) derive.cases by meson
   thus ?thesis
@@ -363,7 +374,7 @@ lemma lemma1Nt:
 proof -
   obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> nts (set P))
     \<and> (set P' = ((set P - {(l,r)}) \<union> {(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)}))" (is "?lrps")
-    using assms(1) unfolding trans2Nt_def by auto
+    using assms(1) set_removeAll unfolding trans2Nt_def by force
   obtain p' s' u v where "lhs = p'@[Nt u]@s' \<and> rhs = p'@v@s' \<and> (u,v) \<in> set P'" (is "?uv")
     using assms(2) derive.cases by meson
   thus ?thesis
@@ -597,7 +608,7 @@ lemma trans1Tmnl_nts:
 proof -
   obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> nts (set P)) 
       \<and> set P' = ((set P - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})" (is "?lrps")
-    using assms(1) unfolding trans1Tmnl_def by auto
+    using assms(1) set_removeAll unfolding trans1Tmnl_def by force
   thus ?thesis
   proof (cases "S \<in> nts {(l,r)}")
     case True
@@ -625,7 +636,7 @@ lemma trans2Nt_nts:
 proof -
   obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> nts (set P))
     \<and> (set P' = ((set P - {(l,r)}) \<union> {(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)}))" (is "?lrps")
-    using assms(1) unfolding trans2Nt_def by auto
+    using assms(1) set_removeAll unfolding trans2Nt_def by force
     thus ?thesis
   proof (cases "S \<in> nts {(l,r)}")
     case True
@@ -668,34 +679,88 @@ theorem cnf_lemma:
   using assms cnf_lemma2 cnf_lemma2Nt trans1TmnlRtc_nts by fastforce
 
 (* Part 2 *)
+lemma badTmsCount_append: "badTmsCount (P@P') = badTmsCount P + badTmsCount P'"
+  by (induction P) auto
 
-lemma lemma16_b:
-  assumes "badTmnlsCount P = 0"
-    and "r \<in> set P"
-  shows "prodTmnls r = 0 "
-  using assms unfolding badTmnlsCount_def
-  by (simp add: fold_plus_sum_list_rev) 
+lemma badNtsCount_append: "badNtsCount (P@P') = badNtsCount P + badNtsCount P'"
+  by (induction P) auto
 
-lemma lemma16_bNT:
-  assumes "badNtmsCount P = 0"
-    and "r \<in> set P"
-  shows "prodNonTmnls r = 0"
-  using assms unfolding badNtmsCount_def
-  by (simp add: fold_plus_sum_list_rev)
+lemma badTmsCount_removeAll: 
+  assumes "prodTms p > 0" "p \<in> set P"
+  shows "badTmsCount (removeAll p P) < badTmsCount P"
+  using assms by (induction P) fastforce+
 
-lemma sumMapDel: "fold (+) (map f l) 0 = 0 \<Longrightarrow> fold (+) (map f(removeAll e l)) 0 = 0"
-  oops
+lemma badNtsCount_removeAll: 
+  assumes "prodNts p > 0" "p \<in> set P"
+  shows "badNtsCount (removeAll p P) < badNtsCount P"
+  using assms by (induction P) fastforce+
+
+lemma badTmnsCount_removeAll2:
+  assumes "prodTms p > 0" "p \<in> set P" "prodTms p' < prodTms p"
+  shows "badTmsCount (removeAll p P) + prodTms p' < badTmsCount P"
+  using assms by (induction P) fastforce+
+
+lemma lemma6_a: 
+  assumes "trans1Tmnl A t P P'" 
+  shows "badTmsCount P' < badTmsCount P"
+proof -
+  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> nts (set P)) 
+      \<and> P' = ((removeAll (l,r) P) @ [(A,[Tm t]), (l, p@[Nt A]@s)])" (is "?lrps")
+    using assms unfolding trans1Tmnl_def by auto
+  hence "prodTms (l,p@[Tm t]@s) = length (filter (isTmnlSym) (p@[Tm t]@s))"
+    unfolding prodTms_def by auto
+  hence 1: "prodTms (l,p@[Tm t]@s) = Suc (length (filter (isTmnlSym) (p@s)))"
+    by (simp add: isTmnlSym_def)
+  have 2: "badTmsCount P' = badTmsCount (removeAll (l,r) P) + badTmsCount [(A,[Tm t])] + badTmsCount [(l, p@[Nt A]@s)]"
+    using \<open>?lrps\<close> by (auto simp: badTmsCount_append)
+  have 3: "badTmsCount (removeAll (l,r) P) < badTmsCount P"
+    using 1 badTmsCount_removeAll \<open>?lrps\<close> gr0_conv_Suc by blast
+  have "prodTms (l, p@[Nt A]@s) = (length (filter (isTmnlSym) (p@[Nt A]@s))) \<or> prodTms (l, p@[Nt A]@s) = 0"
+    unfolding prodTms_def using \<open>?lrps\<close> by simp
+  thus ?thesis
+  proof 
+    assume "prodTms (l, p@[Nt A]@s) = (length (filter (isTmnlSym) (p@[Nt A]@s)))"
+    hence "badTmsCount P' = badTmsCount (removeAll (l,r) P) + prodTms (l, p@[Nt A]@s)"
+      using 2 by (simp add: prodTms_def)
+    moreover have "prodTms (l,p@[Nt A]@s) < prodTms (l,p@[Tm t]@s)"
+      using 1 \<open>prodTms (l, p @ [Nt A] @ s) = length (filter isTmnlSym (p @ [Nt A] @ s))\<close> isTmnlSym_def by force 
+    ultimately show "badTmsCount P' < badTmsCount P" 
+      using badTmnsCount_removeAll2[of "(l,r)" P "(l,p @[Nt A]@s)"] \<open>?lrps\<close> 1 by auto
+  next 
+    assume "prodTms (l, p@[Nt A]@s) = 0"
+    hence "badTmsCount P' = badTmsCount (removeAll (l,r) P)"
+      using 2 by (simp add: prodTms_def)
+    thus "badTmsCount P' < badTmsCount P" 
+      using 3 by simp
+  qed
+qed
+
+lemma slemma6_b: 
+  assumes "trans2Nt A B\<^sub>1 B\<^sub>2 P P'"
+  shows "badNtsCount P' < badNtsCount P"
+proof -
+  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> nts (set P))
+    \<and> (P' = ((removeAll (l,r) P) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)]))" (is "?lrps")
+    using assms(1) unfolding trans2Nt_def by auto
+  hence "prodNts (l,p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) = length (filter (isNonTmnlSym) (p@[Nt B\<^sub>1,Nt B\<^sub>2]@s))"
+    unfolding prodNts_def by auto
+  hence 1: "prodNts (l,p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) = Suc (Suc (length (filter (isNonTmnlSym) (p@s))))"
+    by (simp add: isNonTmnlSym_def)
+  have 2: "badNtsCount P' = badNtsCount (removeAll (l,r) P) + badNtsCount [(A, [Nt B\<^sub>1,Nt B\<^sub>2])] + badNtsCount [(l, (p@[Nt A]@s))]"
+    using \<open>?lrps\<close> by (auto simp: badNtsCount_append prodNts_def)
+  have 3: "badNtsCount (removeAll (l,r) P) < badNtsCount P"
+    using \<open>?lrps\<close> badNtsCount_removeAll 1 by force
+  have "prodNts (l, p@[Nt A]@s) = length (filter (isNonTmnlSym) (p@[Nt A]@s)) \<or> prodNts (l, p@[Nt A]@s) = 0"
+    unfolding prodNts_def using \<open>?lrps\<close> by simp
+  thus ?thesis sorry
+qed
+
+
 
 theorem trans1Tmnl_2: 
   assumes "infinite(UNIV::'a set)"
-  shows "\<exists>P'. ((\<lambda>x y. \<exists>A t. trans1Tmnl A t x y) ^**) P P' \<and> (badTmnlsCount P' = 0)"
-proof (induction "badTmnlsCount P")
-  case 0
-  then show ?case by auto
-next
-  case (Suc x)
-  then show ?case sorry
-qed
+  shows "\<exists>P'. ((\<lambda>x y. \<exists>A t. trans1Tmnl A t x y) ^**) P P' \<and> (badTms (set P'))"
+  sorry
 
 definition "isCnf P \<equiv> (\<forall>l r. (l,r) \<in> set P \<longrightarrow> (
     (length r = 2 \<and> list_all (isNonTmnlSym) r) \<or> 

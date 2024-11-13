@@ -817,12 +817,26 @@ proof -
     by (metis isNonTmnlSym_def isTmnlSym_def sym.exhaust)
 qed
 
-lemma list_longer3: "length l \<ge> 3 \<Longrightarrow> (\<exists>hd tl x y. l = hd@[x]@[y]@tl \<and> (hd \<noteq> [] \<or> tl \<noteq> []))"
-  by (metis Suc_le_length_iff append.left_neutral append_Cons neq_Nil_conv numeral_3_eq_3)
+lemma badTmsCountNot0:
+  assumes "badTmsCount P > 0"
+  shows "\<exists>l r t. (l,r) \<in> set P \<and> length r \<ge> 2 \<and> Tm t \<in> set r"
+proof -
+  have "\<exists>p \<in> set P. prodTms p > 0"
+    using assms badTmsCountSet not_gr0 by blast
+  from this obtain l r where "(l, r) \<in> set P \<and> prodTms (l,r) > 0" (is "?lr")
+    by auto
+  hence 1: "length r \<ge> 2"
+    unfolding prodTms_def using not_le_imp_less by fastforce
+  hence "prodTms (l,r) = length (filter (isTmnlSym) r)"
+    unfolding prodTms_def by simp
+  hence "\<exists>t. Tm t \<in> set r"
+    by (metis \<open>?lr\<close> empty_filter_conv isTmnlSym_def length_greater_0_conv)
+  thus ?thesis using \<open>?lr\<close> 1 by blast
+qed
 
 lemma badNtsCountNot0: 
   assumes "badNtsCount P > 0" 
-  shows "(\<exists>l r. (l, r) \<in> set P \<and> length r \<ge> 3)"
+  shows "\<exists>l r. (l, r) \<in> set P \<and> length r \<ge> 3"
 proof -
   have "\<exists>p \<in> set P. prodNts p > 0"
     using assms badNtsCountSet not_gr0 by blast
@@ -831,6 +845,24 @@ proof -
   hence "length r \<ge> 3"
     unfolding prodNts_def using not_le_imp_less by fastforce
   thus ?thesis using \<open>?lr\<close> by auto
+qed
+
+lemma list_longer2: "length l \<ge> 2 \<and> x \<in> set l \<Longrightarrow> (\<exists>hd tl . l = hd@[x]@tl \<and> (hd \<noteq> [] \<or> tl \<noteq> []))"
+  using split_list_last by fastforce 
+
+lemma list_longer3: "length l \<ge> 3 \<Longrightarrow> (\<exists>hd tl x y. l = hd@[x]@[y]@tl \<and> (hd \<noteq> [] \<or> tl \<noteq> []))"
+  by (metis Suc_le_length_iff append.left_neutral append_Cons neq_Nil_conv numeral_3_eq_3)
+
+lemma lemma8_a:
+  assumes "badTmsCount P > 0"
+  shows "\<exists>P' A t. trans1Tm A t P P'"
+proof -
+  obtain l r t where "(l,r) \<in> set P \<and> length r \<ge> 2 \<and> Tm t \<in> set r" (is "?lr")
+    using assms badTmsCountNot0 by blast
+  hence "\<exists>p s. r = p@[Tm t]@s \<and> (p \<noteq> [] \<or> s \<noteq> [])" 
+    unfolding isTmnlSym_def using \<open>?lr\<close> list_longer2[of r] by blast
+  thus ?thesis
+    unfolding trans1Tm_def using \<open>?lr\<close> by blast
 qed
 
 lemma lemma8_b:
@@ -852,14 +884,56 @@ proof -
     using trans2Nt_def \<open>?lr\<close> by blast
 qed
 
-theorem trans1Tm_2: "\<exists>P'. ((\<lambda>x y. \<exists>A t. trans1Tm A t x y) ^**) P P' \<and> (badTmsCount P' = 0)"
-  sorry
+lemma lemma11_a: "\<nexists>P' A t. trans1Tm A t P P' \<Longrightarrow> badTmsCount P = 0"
+  using lemma8_a by blast
+
+lemma lemma11_b: 
+  assumes "\<nexists>P' A B\<^sub>1 B\<^sub>2. trans2Nt A B\<^sub>1 B\<^sub>2 P P'"
+    and "badTmsCount P = 0" 
+    shows "badNtsCount P = 0"
+  using assms lemma8_b by blast
+
+(* maybe (P::('n::infinite,'t) prods) is not needed (P could suffice) *)
+lemma trans1Tm_2: "\<exists>P'. ((\<lambda>x y. \<exists>A t. trans1Tm A t x y) ^**) (P::('n::infinite,'t) prods) P' \<and> (badTmsCount P' = 0)"
+proof (induction "badTmsCount P")
+  case (Suc x)
+  then show ?case 
+  proof (cases "x = 0")
+    case True
+    then show ?thesis 
+      by (metis (no_types, lifting) Suc.hyps(2) lemma6_a lemma8_a less_Suc0 r_into_rtranclp)
+  next
+    case False
+    obtain P' where "\<exists>A t. trans1Tm A t P P'" 
+      using Suc lemma11_a by fastforce
+    hence "badTmsCount P' < badTmsCount P" sorry
+    then show ?thesis sorry
+  qed
+qed auto
+
+lemma trans2Nt_2: 
+  assumes "badTmsCount P = 0"
+    shows "\<exists>P'. ((\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. trans2Nt A B\<^sub>1 B\<^sub>2 x y) ^**) (P::('n::infinite,'t) prods) P' \<and> (badNtsCount P' = 0)"
+  apply (induction "badNtsCount P") apply auto sorry
+
+theorem thm4_5: "S \<in> nts (set (P::('n::infinite,'t) prods)) \<Longrightarrow> \<exists>P'. (cnf P') \<and> (lang P S = lang P' S)"
+proof -
+  obtain P' where "((\<lambda>x y. \<exists>A t. trans1Tm A t x y) ^**) P P' \<and> (badTmsCount P' = 0)" (is "?P'")
+    using trans1Tm_2 by blast
+  obtain P'' where "((\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. trans2Nt A B\<^sub>1 B\<^sub>2 x y) ^**) P' P'' \<and> (badNtsCount P'' = 0) \<and> (badTmsCount P'' = 0)" (is "?P''")
+    using \<open>?P'\<close> trans2Nt_2 lemma15_a by blast
+  hence "cnf P''"
+    using cnf_def by blast
+  moreover have "S \<in> nts (set P) \<Longrightarrow> lang P S = lang P'' S"
+    using \<open>?P'\<close> \<open>?P''\<close> cnf_lemma by blast
+  ultimately show "S \<in> nts (set P) \<Longrightarrow> \<exists>P'. (cnf P') \<and> (lang P S = lang P' S)" 
+    using \<open>?P'\<close> \<open>?P''\<close> by blast
+qed
 
 definition "isCnf P \<equiv> (\<forall>l r. (l,r) \<in> set P \<longrightarrow> (
     (length r = 2 \<and> list_all (isNonTmnlSym) r) \<or> 
     (length r = 1 \<and> list_all (isTmnlSym) r)))"
 
-
-theorem cnf_trans: "\<forall>P. infinite(UNIV::'a set) \<and> [] \<notin> lang P S \<Longrightarrow> \<exists>P'. isCnf P'" 
+theorem cnf_ex: "S \<in> nts (set (P::('n::infinite,'t) prods)) \<Longrightarrow> \<exists>P'. (isCnf P') \<and> (lang P S = lang P' S)"
   sorry
 end

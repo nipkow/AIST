@@ -72,7 +72,6 @@ definition prodTms :: "('n,'t) prod \<Rightarrow> nat" where
 definition prodNts :: "('n,'t) prod \<Rightarrow> nat" where
   "prodNts p = (if length (snd p) \<le> 2 then 0 else length (filter (isNonTmnlSym) (snd p)))"
 
-(* More like Aditis definition *)
 fun badTmsCount :: "('n,'t) prods \<Rightarrow> nat" where
   "badTmsCount [] = 0" |
   "badTmsCount (p#ps) = (prodTms p) + badTmsCount ps"
@@ -203,10 +202,6 @@ qed
 fun elim :: "('n, 't) prod \<Rightarrow> ('n, 't) syms \<Rightarrow> ('n, 't) syms"  where
   "elim _ [] = []" |
   "elim (A,\<alpha>) (r#rhs) = (if r = Nt A then \<alpha>@(elim (A,\<alpha>) rhs) else r#(elim (A,\<alpha>) rhs))"
-
-(* Does rhs from new grammar G' has any new nonterminals, i.e. ones not in G *)
-definition noNewNts :: "('n, 't) prods \<Rightarrow> ('n, 't) sym set \<Rightarrow> bool" where
-  "noNewNts P rhS = (\<forall>r. (Nt r \<in> rhS) \<longrightarrow> r \<in> nts (set P))"
 
 lemma slemma1_1: 
   assumes "trans1Tm A t P P'"
@@ -893,28 +888,43 @@ lemma lemma11_b:
     shows "badNtsCount P = 0"
   using assms lemma8_b by blast
 
-(* maybe (P::('n::infinite,'t) prods) is not needed (P could suffice) *)
-lemma trans1Tm_2: "\<exists>P'. ((\<lambda>x y. \<exists>A t. trans1Tm A t x y) ^**) (P::('n::infinite,'t) prods) P' \<and> (badTmsCount P' = 0)"
-proof (induction "badTmsCount P")
-  case (Suc x)
-  then show ?case 
-  proof (cases "x = 0")
-    case True
-    then show ?thesis 
-      by (metis (no_types, lifting) Suc.hyps(2) lemma6_a lemma8_a less_Suc0 r_into_rtranclp)
-  next
+thm converse_rtranclp_into_rtranclp
+lemma trans1Tm_2: "\<exists>P'. ((\<lambda>x y. \<exists>A t. trans1Tm A t x y) ^**) P P' \<and> (badTmsCount P' = 0)"
+proof (induction "badTmsCount P" arbitrary: P rule: less_induct)
+  case less
+  then show ?case
+  proof (cases "badTmsCount P = 0")
     case False
-    obtain P' where "\<exists>A t. trans1Tm A t P P'" 
-      using Suc lemma11_a by fastforce
-    hence "badTmsCount P' < badTmsCount P" sorry
-    then show ?thesis sorry
-  qed
-qed auto
+    from this obtain P' A t where "trans1Tm A t P P'" (is "?P'")
+      using lemma8_a by blast
+    hence "badTmsCount P' < badTmsCount P"
+      using lemma6_a[of A t P P'] by blast
+    from this obtain P'' where "(\<lambda>x y. \<exists>A t. trans1Tm A t x y)\<^sup>*\<^sup>* P' P'' \<and> badTmsCount P'' = 0"
+      using less by blast
+    thus ?thesis 
+      using \<open>?P'\<close> converse_rtranclp_into_rtranclp[of "(\<lambda>x y. \<exists>A t. trans1Tm A t x y)" P P' P''] by blast
+  qed blast
+qed
 
+thm lemma11_b lemma6_b slemma15_a converse_rtranclp_into_rtranclp rtranclp.rtrancl_refl
 lemma trans2Nt_2: 
   assumes "badTmsCount P = 0"
-    shows "\<exists>P'. ((\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. trans2Nt A B\<^sub>1 B\<^sub>2 x y) ^**) (P::('n::infinite,'t) prods) P' \<and> (badNtsCount P' = 0)"
-  apply (induction "badNtsCount P") apply auto sorry
+    shows "\<exists>P'. ((\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. trans2Nt A B\<^sub>1 B\<^sub>2 x y) ^**) P P' \<and> (badNtsCount P' = 0)"
+using assms proof (induction "badNtsCount P" arbitrary: P rule: less_induct)
+  case less
+  then show ?case 
+  proof (cases "badNtsCount P = 0")
+    case False
+    from this obtain P' A B\<^sub>1 B\<^sub>2 where "trans2Nt A B\<^sub>1 B\<^sub>2 P P'" (is "?P'")
+      using assms lemma8_b less(2) by blast
+    hence "badNtsCount P' < badNtsCount P"
+      using lemma6_b by blast
+    from this obtain P'' where "(\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. trans2Nt A B\<^sub>1 B\<^sub>2 x y)\<^sup>*\<^sup>* P' P'' \<and> badNtsCount P'' = 0"
+      using less slemma15_a[of A B\<^sub>1 B\<^sub>2 P P'] \<open>?P'\<close> by blast
+    then show ?thesis 
+      using \<open>?P'\<close> converse_rtranclp_into_rtranclp[of "(\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. trans2Nt A B\<^sub>1 B\<^sub>2 x y)" P P' P''] by blast
+  qed blast
+qed
 
 theorem thm4_5: "S \<in> nts (set (P::('n::infinite,'t) prods)) \<Longrightarrow> \<exists>P'. (cnf P') \<and> (lang P S = lang P' S)"
 proof -
@@ -934,6 +944,13 @@ definition "isCnf P \<equiv> (\<forall>l r. (l,r) \<in> set P \<longrightarrow> 
     (length r = 2 \<and> list_all (isNonTmnlSym) r) \<or> 
     (length r = 1 \<and> list_all (isTmnlSym) r)))"
 
-theorem cnf_ex: "S \<in> nts (set (P::('n::infinite,'t) prods)) \<Longrightarrow> \<exists>P'. (isCnf P') \<and> (lang P S = lang P' S)"
-  sorry
+theorem cnf_exists: 
+  assumes "S \<in> nts (set (P::('n::infinite,'t) prods))" 
+  shows "\<exists>P'. (isCnf P') \<and> (lang P' S = lang P S - {[]})"
+proof -
+  have "\<exists>P\<^sub>0. nepr P P\<^sub>0" 
+    using nepr_exists by blast
+  thus ?thesis sorry
+qed
+
 end

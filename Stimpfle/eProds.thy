@@ -64,7 +64,7 @@ definition nepr :: "('n,'t) prods \<Rightarrow> ('n,'t) prods \<Rightarrow> bool
   "nepr P P' = (set P' = munge P)"
 
 (* auxiliary function to prove finiteness *)
-definition munge_fun :: "('n, 't) prods \<Rightarrow> ('n, 't) prod \<Rightarrow> ('n \<times> ('n, 't) syms) set" where 
+definition munge_fun :: "('n, 't) prods \<Rightarrow> ('n, 't) prod \<Rightarrow> ('n, 't) prodS" where 
   "munge_fun P p = {(l',r'). l' = fst p \<and> r' \<in> set (munge0 P (snd p)) \<and> (r' \<noteq> [])}"
 
 lemma munge_fun_eq: "munge P = \<Union>((munge_fun P) ` set P)"
@@ -97,7 +97,7 @@ proof -
   thus ?thesis using munge_fun_eq by metis
 qed
 
-lemma nepr_exists: "\<forall>G. \<exists>G'. nepr G G'"
+lemma nepr_exists: "\<forall>P. \<exists>P'. nepr P P'"
   unfolding nepr_def by (simp add: finite_list finiteneprProds)
 
 

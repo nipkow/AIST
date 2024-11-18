@@ -2,6 +2,7 @@ theory uProds
   imports "../CFG" eProds
 begin
 
+(* definitions *)
 (* TODO: maybe add tm, tms and allSyms to CFG.thy ? *)
 fun tm :: "('n,'t)syms \<Rightarrow> 't set" where
   "tm [] = {}" |
@@ -18,41 +19,9 @@ definition allSyms :: "('n,'t)prodS \<Rightarrow> ('n,'t) sym set" where
 definition unitProds :: "('n,'t) prods \<Rightarrow> ('n,'t) prodS" where
   "unitProds P = {(l,r) \<in> set P. \<exists>A. r = [Nt A]}"
 
-fun uprods :: "('n,'t) prods \<Rightarrow> ('n,'t) prods" where
-  "uprods [] = []" |
-  "uprods (p#ps) = (if \<exists>A. (snd p) = [Nt A] then p#uprods ps else uprods ps)"
-
-lemma unitProds_uprods: "set (uprods P) = unitProds P"
-  unfolding unitProds_def by (induction P) auto
-
-lemma finiteunitProds: "finite (unitProds P)"
-  using unitProds_uprods by (metis List.finite_set)
-
 (* A \<Rightarrow>* B where A and B are in nonTerminals g *)
 definition allDepS :: "('n, 't) prodS \<Rightarrow> ('n \<times> 'n) set" where
   "allDepS P = {(a,b). P \<turnstile> [Nt a] \<Rightarrow>* [Nt b] \<and> a \<in> nts P \<and> b \<in> nts P}"
-
-(* cross product of all nts in P. Used to show finiteness for allDepS *)
-definition ntsCross :: "('n, 't) prodS  \<Rightarrow> ('n \<times> 'n) set" where
-  "ntsCross P = {(A, B). A \<in> nts P \<and> B \<in> nts P }"
-
-lemma nt_finite: "finite (nt A)"
-  apply (induction A) apply auto
-  by (metis Un_insert_left finite_insert nt.simps(2) nt.simps(3) sup_bot_left sym.exhaust)
-
-lemma finiteallDeps: 
-  assumes "finite P" 
-  shows  "finite (allDepS P)"
-proof -
-  have "finite (nts P)"
-    unfolding nts_def using assms nt_finite using nt_finite by auto
-  hence "finite (ntsCross P)"
-    unfolding ntsCross_def by auto
-  moreover have "allDepS P \<subseteq> ntsCross P"
-    unfolding allDepS_def ntsCross_def by blast
-  ultimately show ?thesis
-    using assms infinite_super by fastforce 
-qed
 
 definition nonUnitProds :: "('n, 't) prods \<Rightarrow> ('n, 't) prodS" where
   "nonUnitProds P = (set P - (unitProds P))"
@@ -66,9 +35,154 @@ definition uppr_rules :: "('n, 't) prods \<Rightarrow> ('n, 't) prodS" where
 definition uppr :: "('n, 't) prods \<Rightarrow> ('n, 't) prods \<Rightarrow> bool" where
   "uppr P P' = (set P' = uppr_rules P)"
 
-(* Existence of uppr for every P *)
+(* Proofs *)
+(* Finiteness & Existence *)
+
+(* finiteness unitProds which also implies finiteness for nonUnitProds *)
+fun uprods :: "('n,'t) prods \<Rightarrow> ('n,'t) prods" where
+  "uprods [] = []" |
+  "uprods (p#ps) = (if \<exists>A. (snd p) = [Nt A] then p#uprods ps else uprods ps)"
+
+lemma unitProds_uprods: "set (uprods P) = unitProds P"
+  unfolding unitProds_def by (induction P) auto
+
+lemma finiteunitProds: "finite (unitProds P)"
+  using unitProds_uprods by (metis List.finite_set)
+
+(* finiteness for allDepS *)
+definition ntsCross :: "('n, 't) prodS  \<Rightarrow> ('n \<times> 'n) set" where
+  "ntsCross P = {(A, B). A \<in> nts P \<and> B \<in> nts P }"
+
+lemma nt_finite: "finite (nt A)"
+  apply (induction A) apply auto
+  by (metis Un_insert_left finite_insert nt.simps(2) nt.simps(3) sup_bot_left sym.exhaust)
+
+lemma finiteallDepS: 
+  assumes "finite P" 
+  shows  "finite (allDepS P)"
+proof -
+  have "finite (nts P)"
+    unfolding nts_def using assms nt_finite using nt_finite by auto
+  hence "finite (ntsCross P)"
+    unfolding ntsCross_def by auto
+  moreover have "allDepS P \<subseteq> ntsCross P"
+    unfolding allDepS_def ntsCross_def by blast
+  ultimately show ?thesis
+    using assms infinite_super by fastforce 
+qed
+
+(* finiteness for newProds *)
+definition nPlambda :: "('n, 't) prodS \<Rightarrow> ('n \<times> 'n) \<Rightarrow> ('n, 't) prodS" where
+  "nPlambda P d = {fst d} \<times> {r. (snd d, r) \<in> P}"
+
+lemma nPImage: "\<Union>((nPlambda (nonUnitProds P)) ` (allDepS (unitProds P))) = newProds P"
+  unfolding newProds_def nPlambda_def by fastforce
+
+lemma finitenPlambda:
+  assumes "finite P" 
+  shows "finite (nPlambda P d)"
+proof -
+  have "{(B, r). (B, r) \<in> P \<and> B = snd d} \<subseteq> P" 
+    by blast
+  hence "finite {(B, r). (B, r) \<in> P \<and> B = snd d}"
+    using assms finite_subset by blast
+  hence "finite (snd ` {(B, r). (B, r) \<in> P \<and> B = snd d})" 
+    by simp
+  moreover have "{r. (snd d, r) \<in> P} = (snd ` {(B, r). (B, r) \<in> P \<and> B = snd d})"
+    by force
+  ultimately show ?thesis
+    using assms unfolding nPlambda_def by simp
+qed
+
+lemma finitenewProds: "finite (newProds P)"
+proof -
+  have "finite (nonUnitProds P)"
+    unfolding nonUnitProds_def using finiteunitProds by blast
+  moreover have "finite (allDepS (unitProds P))"
+    using finiteunitProds finiteallDepS by blast
+  ultimately show ?thesis
+    using nPImage finitenPlambda finite_UN by metis
+qed
+
+(* finiteness uppe_rules *)
+lemma finiteupprRules: "finite (uppr_rules P)"
+proof -
+  have "finite (nonUnitProds P)"
+    unfolding nonUnitProds_def using finiteunitProds by blast
+  moreover have "finite (newProds P)"
+    using finitenewProds by blast
+  ultimately show ?thesis
+    unfolding uppr_rules_def by blast
+qed
+
+(* uppr Existence *)
 lemma uppr_exists: "\<forall>P. \<exists>P'. uppr P P'"
-  sorry
+  unfolding uppr_def using finiteupprRules finite_list by blast
+
+(* towards theorem 4.4 *)
+
+lemma inNonUnitProds:
+  "p \<in> nonUnitProds P \<Longrightarrow> p \<in> set P"
+  unfolding nonUnitProds_def by blast
+
+lemma psubDeriv:
+  assumes "P \<turnstile> u \<Rightarrow> v"
+    and "\<forall>p \<in> P. p \<in> P'"
+  shows "P' \<turnstile> u \<Rightarrow> v"
+  using assms by (meson derive_iff)
+
+lemma psubRtcDeriv:
+  assumes "P \<turnstile> u \<Rightarrow>* v"
+    and "\<forall>p \<in> P. p \<in> P'"
+  shows "P' \<turnstile> u \<Rightarrow>* v"
+  using assms by (induction rule: rtranclp.induct) (auto simp: psubDeriv rtranclp.rtrancl_into_rtrancl)
+
+lemma unitProds_deriv: 
+  assumes "unitProds P \<turnstile> u \<Rightarrow>* v"
+  shows "set P \<turnstile> u \<Rightarrow>* v"
+proof -
+  have "\<forall>p \<in> unitProds P. p \<in> set P"
+    unfolding unitProds_def by blast
+  thus ?thesis 
+    using assms psubRtcDeriv by blast
+qed
+
+lemma uppr_r3:
+  assumes "uppr P P'"
+    and "set P' \<turnstile> u \<Rightarrow> v"
+  shows "set P \<turnstile> u \<Rightarrow>* v"
+proof -
+  obtain A \<alpha> r1 r2 where "(A, \<alpha>) \<in> set P' \<and> u = r1 @ [Nt A] @ r2 \<and> v = r1 @ \<alpha> @ r2" (is "?A")
+    using assms derive.cases by meson
+  hence "(A, \<alpha>) \<in> nonUnitProds P \<or> (A, \<alpha>) \<in> newProds P"
+    using assms(1) unfolding uppr_def uppr_rules_def by simp
+  thus ?thesis
+  proof
+    assume "(A, \<alpha>) \<in> nonUnitProds P"
+    hence "(A, \<alpha>) \<in> set P"
+      using inNonUnitProds by blast
+    hence "set P \<turnstile> r1 @ [Nt A] @ r2 \<Rightarrow> r1 @ \<alpha> @ r2"
+      by (auto simp: derive.simps)
+    thus ?thesis using \<open>?A\<close> by simp
+  next 
+    assume "(A, \<alpha>) \<in> newProds P"
+    from this obtain B where "(B, \<alpha>) \<in> nonUnitProds P \<and> (A, B) \<in> allDepS (unitProds P)" (is "?B")
+      unfolding newProds_def by blast
+    hence "unitProds P \<turnstile> [Nt A] \<Rightarrow>* [Nt B]"
+      unfolding allDepS_def by simp
+    hence "set P \<turnstile> [Nt A] \<Rightarrow>* [Nt B]"
+      using unitProds_deriv by blast
+    hence 1: "set P \<turnstile> r1 @ [Nt A] @ r2 \<Rightarrow>* r1 @ [Nt B] @ r2"
+      using derives_append derives_prepend by blast
+    have "(B, \<alpha>) \<in> set P"
+      using \<open>?B\<close> inNonUnitProds by blast
+    hence "set P \<turnstile> r1 @ [Nt B] @ r2 \<Rightarrow> r1 @ \<alpha> @ r2"
+      by (auto simp: derive.simps)
+    thus ?thesis 
+      using 1 \<open>?A\<close> by simp
+  qed
+qed
+    
 
 (*
 theorem thm4_4: 

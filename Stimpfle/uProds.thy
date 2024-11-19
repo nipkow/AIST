@@ -104,7 +104,7 @@ proof -
     using nPImage finitenPlambda finite_UN by metis
 qed
 
-(* finiteness uppe_rules *)
+(* finiteness uppr_rules *)
 lemma finiteupprRules: "finite (uppr_rules P)"
 proof -
   have "finite (nonUnitProds P)"
@@ -182,7 +182,101 @@ proof -
       using 1 \<open>?A\<close> by simp
   qed
 qed
-    
+
+lemma uppr_r4: 
+  assumes "set P' \<turnstile> u \<Rightarrow>* v"
+    and "uppr P P'"
+  shows "set P \<turnstile> u \<Rightarrow>* v"
+  using assms by (induction rule: rtranclp.induct) (auto simp: uppr_r3 rtranclp_trans)
+
+lemma uppr_r5:
+  assumes "set P \<turnstile> u \<Rightarrow> v"
+    and "uppr P P'" "\<forall>a \<in> set v. \<exists>t. a = Tm t"
+  shows "set P' \<turnstile> u \<Rightarrow> v"
+proof -
+  obtain A \<alpha> r1 r2 where "(A, \<alpha>) \<in> set P \<and> u = r1 @ [Nt A] @ r2 \<and> v = r1 @ \<alpha> @ r2" (is "?A")
+    using assms(1) derive.cases by meson
+  hence  "\<forall>a \<in> set \<alpha>. \<exists>t. a = Tm t"
+    using assms(3) by simp
+  hence "(A, \<alpha>) \<notin> unitProds P"
+    unfolding unitProds_def by auto
+  hence "(A, \<alpha>) \<in> nonUnitProds P"
+    unfolding nonUnitProds_def using \<open>?A\<close> by blast
+  hence "(A, \<alpha>) \<in> set P'"
+    using assms(2) unfolding uppr_def uppr_rules_def by blast
+  hence "set P' \<turnstile> r1 @ [Nt A] @ r2 \<Rightarrow> r1 @ \<alpha> @ r2"
+    by (auto simp: derive.simps)
+  thus ?thesis 
+    using \<open>?A\<close> by blast
+qed
+
+lemma uppr_r6:
+  assumes "P \<turnstile> [Nt A] \<Rightarrow> [Nt B]"
+    and "A \<in> nts P" "B \<in> nts P"
+  shows "(A, B) \<in> allDepS P"
+  using assms unfolding allDepS_def by blast
+
+lemma deriv_allDepS:
+  assumes "set P \<turnstile> [Nt A] \<Rightarrow> [Nt B]"
+  shows "(A, B) \<in> allDepS (unitProds P)"
+proof -
+  have "(A, [Nt B]) \<in> set P"
+    using assms by (simp add: derive_singleton)
+  hence "(A, [Nt B]) \<in> unitProds P"
+    unfolding unitProds_def by blast
+  hence "unitProds P \<turnstile> [Nt A] \<Rightarrow> [Nt B]"
+    by (simp add: derive_singleton)
+  moreover have "B \<in> nts (unitProds P) \<and> A \<in> nts (unitProds P)"
+    using \<open>(A, [Nt B]) \<in> unitProds P\<close> nts_def by fastforce
+  ultimately show ?thesis
+    unfolding allDepS_def by blast
+qed
+
+lemma uppr_r8:
+  assumes "uppr P P'"
+    and "set P \<turnstile> [Nt A] \<Rightarrow> [Nt B]" "set P \<turnstile> [Nt B] \<Rightarrow> r" "\<nexists>N. r = [Nt N]"
+  shows "set P' \<turnstile> [Nt A] \<Rightarrow> r"
+proof -
+  have 1: "(A, [Nt B]) \<in> set P \<and> (B, r) \<in> set P"
+    using assms(2) assms(3) by (simp add: derive_singleton)
+  hence 2: "(B, r) \<in> nonUnitProds P"
+    unfolding nonUnitProds_def using assms(4) by (simp add: unitProds_def)
+  have "(A, B) \<in> allDepS (unitProds P)"
+    using assms(2) deriv_allDepS by fast
+  hence "(A, r) \<in> newProds P"
+    unfolding newProds_def using 2 by blast
+  hence "(A, r) \<in> set P'"
+    using assms(1) unfolding uppr_def uppr_rules_def by blast
+  thus ?thesis
+    by (simp add: derive_singleton)
+qed
+
+lemma uppr_r9:
+  assumes "uppr P P'"
+    and "set P' \<turnstile> [Nt A] \<Rightarrow> v"
+  shows "\<exists>B. unitProds P \<turnstile> [Nt A] \<Rightarrow>* [Nt B] \<and> set P \<turnstile> [Nt B] \<Rightarrow> v"
+proof -
+  have "(A, v) \<in> set P'"
+    using assms(2) by (simp add: derive_singleton)
+  hence "(A, v) \<in> nonUnitProds P \<or> (A, v) \<in> newProds P"
+    using assms(1) unfolding uppr_def uppr_rules_def by blast
+  thus ?thesis 
+  proof 
+    assume "(A, v) \<in> nonUnitProds P"
+    thus ?thesis 
+      unfolding nonUnitProds_def unitProds_def using derive_singleton by blast
+  next 
+    assume "(A, v) \<in> newProds P" 
+    from this obtain B where "(B, v) \<in> nonUnitProds P \<and> (A, B) \<in> allDepS (unitProds P)" (is "?B")
+      unfolding newProds_def by blast
+    hence "set P \<turnstile> [Nt B] \<Rightarrow> v"
+      unfolding nonUnitProds_def unitProds_def using derive_singleton by blast
+    moreover have "unitProds P \<turnstile> [Nt A] \<Rightarrow>* [Nt B]"
+      using \<open>?B\<close> unfolding allDepS_def by blast
+    ultimately show ?thesis by blast
+  qed
+qed
+
 
 (*
 theorem thm4_4: 

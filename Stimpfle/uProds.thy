@@ -277,20 +277,69 @@ proof -
   qed
 qed
 
+lemma uppr_r10: "set P \<turnstile> [Nt A] \<Rightarrow> [Nt B] \<Longrightarrow> unitProds P \<turnstile> [Nt A] \<Rightarrow> [Nt B]"
+  unfolding unitProds_def by (simp add: derive_singleton)
 
-(*
+lemma uppr_r12: 
+  assumes "uppr P P'" "(A, \<alpha>) \<in> set P'"
+  shows "(A, \<alpha>) \<notin> unitProds P"
+  using assms unfolding uppr_def uppr_rules_def nonUnitProds_def unitProds_def newProds_def by blast
+
+lemma uppr_r13:
+  assumes "uppr P P'" "(A,\<alpha>) \<in> set P'"
+  shows "\<nexists>B. \<alpha> = [Nt B]"
+  using assms unfolding uppr_def uppr_rules_def nonUnitProds_def unitProds_def newProds_def by blast
+
+lemma uppr_r14: 
+  assumes "uppr P P'" 
+    and "set P \<turnstile> [Nt A] \<Rightarrow> [Nt B]" "set P' \<turnstile> [Nt B] \<Rightarrow> v"
+  shows "set P' \<turnstile> [Nt A] \<Rightarrow> v"
+proof -
+  have 1: "(A, B) \<in> allDepS (unitProds P)"
+    using deriv_allDepS assms(2) by fast
+  have 2: "(B, v) \<in> set P'"
+    using assms(3) by (simp add: derive_singleton)
+  thus ?thesis
+  proof (cases "(B, v) \<in> set P")
+    case True
+    hence "(B, v) \<in> nonUnitProds P"
+      unfolding nonUnitProds_def using assms(1) assms(3) uppr_r12[of P P' B v] by (simp add: derive_singleton)
+    then show ?thesis
+    using 1 assms(1) unfolding uppr_def uppr_rules_def newProds_def derive_singleton by blast
+  next
+    case False
+    hence "(B, v) \<in> newProds P"
+      using assms(1) 2 unfolding nonUnitProds_def uppr_def uppr_rules_def by simp
+    from this obtain C where "(C, v) \<in> nonUnitProds P \<and> (B, C) \<in> allDepS (unitProds P)" (is "?C")
+      unfolding newProds_def by blast
+    hence "unitProds P \<turnstile> [Nt A] \<Rightarrow>* [Nt C]"
+      using 1 unfolding allDepS_def by auto
+    hence "(A, C) \<in> allDepS (unitProds P)"
+      unfolding allDepS_def using "1" \<open>?C\<close> allDepS_def by fastforce
+    hence "(A, v) \<in> newProds P"
+      unfolding newProds_def using \<open>?C\<close> by blast
+    hence "(A, v) \<in> set P'"
+      using assms(1) unfolding uppr_def uppr_rules_def by blast
+    thus ?thesis
+      by (simp add: derive_singleton)
+  qed
+qed
+
+lemma uppr_r20: 
+  assumes "set P \<turnstile> u \<Rightarrow>* v"
+    and "uppr P P'" "\<forall>a \<in> set v. \<exists>t. a = Tm t"
+  shows "set P' \<turnstile> u \<Rightarrow>* v"
+  sorry
+
 theorem thm4_4: 
-  assumes "[] \<notin> L G"
-    and "negr G0 G"
-    and "upgr G G'"
-  shows "L G = L G'"
-  using assms sorry
-*)
+  assumes "uppr P P'"
+  shows "lang P S = lang P' S"
+  sorry
 
 theorem uppr_lang_eq:
   assumes "nepr P\<^sub>0 P"
     and "uppr P P'"
-  shows "lang P S = lang P' S"
+  shows "lang P' S = lang P\<^sub>0 S - {[]}"
   sorry
 
 end

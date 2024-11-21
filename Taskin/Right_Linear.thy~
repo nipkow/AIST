@@ -3,10 +3,10 @@ imports Binarize
 begin
 
 definition rlin :: "('n, 't) prods \<Rightarrow> bool" where
-"rlin ps = (\<forall>(A,w) \<in> set ps. \<exists>u. w = map Tm u \<or> (\<exists>B. w = map Tm u @ [Nt B]))"
+"rlin ps = (\<forall>(A,w) \<in> set ps. \<exists>u. w = map Tm u \<or> (\<exists>B. w = map Tm u @ [NT B]))"
 
 definition rlin2 :: "('a, 't) prods \<Rightarrow> bool" where
-"rlin2 ps = (\<forall>(A,w) \<in> set ps. w = [] \<or> (\<exists>a B. w = [Tm a, Nt B]))"
+"rlin2 ps = (\<forall>(A,w) \<in> set ps. w = [] \<or> (\<exists>a B. w = [Tm a, NT B]))"
 
 lemma "rlin2 ps \<Longrightarrow> rlin ps"
 unfolding rlin_def rlin2_def
@@ -16,7 +16,7 @@ by (metis (no_types, lifting) append_eq_Cons_conv map_eq_Cons_conv map_is_Nil_co
 definition clean :: "('n,'t)prods \<Rightarrow> ('n,'t)prods" where "clean = undefined"
 
 lemma lang_clean: "lang ps A  = lang (clean ps) A"
-  sorry
+sorry
 (*
 lemma lengt_clean: "(A,w) \<in> set(binarize ps) \<Longrightarrow> length w \<le> 2"
 by(induction ps rule: binarize.induct)(auto simp: Let_def)

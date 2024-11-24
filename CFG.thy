@@ -61,7 +61,7 @@ type_synonym ('n,'t) prods = "('n,'t) prod list"
 type_synonym ('n,'t) Prods = "('n,'t) prod set"
 
 datatype ('n,'t) cfg = cfg (prods : "('n,'t) prods") (start : "'n")
-datatype ('n,'t) Cfg = Cfg (Prods : "('n,'t) Prods") (start : "'n")
+datatype ('n,'t) Cfg = Cfg (Prods : "('n,'t) Prods") (Start : "'n")
 
 fun nt :: "('n,'t)syms \<Rightarrow> 'n set" where
 "nt [] = {}" |

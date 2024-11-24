@@ -317,40 +317,40 @@ next
   qed
 qed
 
-(* Proof that Aditis definition of L G is the same as Lang (Prods G) (start G). This part has become obsolete *)
+(* Proof that Aditis definition of L G is the same as Lang (Prods G) (Start G). This part has become obsolete *)
 definition "isWord w \<longleftrightarrow> (\<nexists>A. Nt A \<in> set w)"   
-definition "L G = {w. Prods G \<turnstile> [Nt (start G)] \<Rightarrow>* w \<and> isWord w}"
+definition "L G = {w. Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* w \<and> isWord w}"
 
-lemma L_eq_Lang1: "(map Tm) ` Lang (Prods G) (start G) \<subseteq> L G"
+lemma L_eq_Lang1: "(map Tm) ` Lang (Prods G) (Start G) \<subseteq> L G"
 proof -
-  have "\<forall>w \<in> Lang (Prods G) (start G). isWord (map Tm w)"
+  have "\<forall>w \<in> Lang (Prods G) (Start G). isWord (map Tm w)"
     unfolding isWord_def by auto
-  moreover have "\<forall>w \<in> Lang (Prods G) (start G). (Prods G) \<turnstile> [Nt (start G)] \<Rightarrow>* (map Tm w)"
+  moreover have "\<forall>w \<in> Lang (Prods G) (Start G). (Prods G) \<turnstile> [Nt (Start G)] \<Rightarrow>* (map Tm w)"
     unfolding Lang_def by simp
   ultimately show ?thesis
     using L_def by blast
 qed
 
-lemma L_eq_Lang2: "L G \<subseteq> (map Tm) ` Lang (Prods G) (start G)"
+lemma L_eq_Lang2: "L G \<subseteq> (map Tm) ` Lang (Prods G) (Start G)"
 proof 
   fix w
   assume "w \<in> L G"
-  hence 1: "Prods G \<turnstile> [Nt (start G)] \<Rightarrow>* w \<and> isWord w"
+  hence 1: "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* w \<and> isWord w"
     using L_def by blast
   obtain w' where "w = map Tm w'"
     by (metis 1 ex_map_conv isWord_def sym.exhaust)
-  hence "w' \<in> {w'. Prods G \<turnstile> [Nt (start G)] \<Rightarrow>* map Tm w'}"
+  hence "w' \<in> {w'. Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* map Tm w'}"
     using 1 by blast
-  hence "w \<in> (map Tm) ` {w'. Prods G \<turnstile> [Nt (start G)] \<Rightarrow>* map Tm w'}"
+  hence "w \<in> (map Tm) ` {w'. Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* map Tm w'}"
     using \<open>w = map Tm w'\<close> by blast
-  thus "w \<in> (map Tm) ` Lang (Prods G) (start G)"
+  thus "w \<in> (map Tm) ` Lang (Prods G) (Start G)"
     by (simp add: Lang_def)
 qed
 
-lemma L_eq_Lang: "L G = (map Tm) ` Lang (Prods G) (start G)"
+lemma L_eq_Lang: "L G = (map Tm) ` Lang (Prods G) (Start G)"
   using L_eq_Lang1 L_eq_Lang2 by blast
 
-lemma L_Lang: "L G = L G' \<longleftrightarrow> Lang (Prods G) (start G) = Lang (Prods G') (start G')"
+lemma L_Lang: "L G = L G' \<longleftrightarrow> Lang (Prods G) (Start G) = Lang (Prods G') (Start G')"
   using L_eq_Lang by (metis (mono_tags, lifting) Collect_cong L_def Lang_def image_eqI mem_Collect_eq)
 
 theorem nepr_eq_if_noe:

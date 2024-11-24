@@ -9,27 +9,27 @@ fun tm :: "('n,'t)syms \<Rightarrow> 't set" where
   "tm (Nt A # v) = tm v" |
   "tm (Tm a # v) = {a} \<union> tm v"
 
-definition tms :: "('n,'t)prodS \<Rightarrow> 't set" where 
+definition tms :: "('n,'t)Prods \<Rightarrow> 't set" where 
   "tms P = (\<Union>(A,w)\<in>P. tm w)"
 
-definition allSyms :: "('n,'t)prodS \<Rightarrow> ('n,'t) sym set" where 
-  "allSyms P = (Nt ` nts P) \<union> (Tm ` tms P)"
+definition allSyms :: "('n,'t)Prods \<Rightarrow> ('n,'t) sym set" where 
+  "allSyms P = (Nt ` Nts P) \<union> (Tm ` tms P)"
 
 (* Rules of the form A\<rightarrow>B, where A and B are in nonterminals P *)
-definition unitProds :: "('n,'t) prods \<Rightarrow> ('n,'t) prodS" where
+definition unitProds :: "('n,'t) prods \<Rightarrow> ('n,'t) Prods" where
   "unitProds P = {(l,r) \<in> set P. \<exists>A. r = [Nt A]}"
 
 (* A \<Rightarrow>* B where A and B are in nonTerminals g *)
-definition allDepS :: "('n, 't) prodS \<Rightarrow> ('n \<times> 'n) set" where
-  "allDepS P = {(a,b). P \<turnstile> [Nt a] \<Rightarrow>* [Nt b] \<and> a \<in> nts P \<and> b \<in> nts P}"
+definition allDepS :: "('n, 't) Prods \<Rightarrow> ('n \<times> 'n) set" where
+  "allDepS P = {(a,b). P \<turnstile> [Nt a] \<Rightarrow>* [Nt b] \<and> a \<in> Nts P \<and> b \<in> Nts P}"
 
-definition nonUnitProds :: "('n, 't) prods \<Rightarrow> ('n, 't) prodS" where
+definition nonUnitProds :: "('n, 't) prods \<Rightarrow> ('n, 't) Prods" where
   "nonUnitProds P = (set P - (unitProds P))"
 
-definition newProds :: "('n, 't) prods \<Rightarrow> ('n, 't) prodS" where 
+definition newProds :: "('n, 't) prods \<Rightarrow> ('n, 't) Prods" where 
   "newProds P = {(a,r). \<exists>b. (b,r) \<in> (nonUnitProds P) \<and> (a, b) \<in> allDepS (unitProds P)}"
 
-definition uppr_rules :: "('n, 't) prods \<Rightarrow> ('n, 't) prodS" where
+definition uppr_rules :: "('n, 't) prods \<Rightarrow> ('n, 't) Prods" where
   "uppr_rules P = (nonUnitProds P \<union> newProds P)"
 
 definition uppr :: "('n, 't) prods \<Rightarrow> ('n, 't) prods \<Rightarrow> bool" where
@@ -50,8 +50,8 @@ lemma finiteunitProds: "finite (unitProds P)"
   using unitProds_uprods by (metis List.finite_set)
 
 (* finiteness for allDepS *)
-definition ntsCross :: "('n, 't) prodS  \<Rightarrow> ('n \<times> 'n) set" where
-  "ntsCross P = {(A, B). A \<in> nts P \<and> B \<in> nts P }"
+definition NtsCross :: "('n, 't) Prods  \<Rightarrow> ('n \<times> 'n) set" where
+  "NtsCross P = {(A, B). A \<in> Nts P \<and> B \<in> Nts P }"
 
 lemma nt_finite: "finite (nt A)"
   apply (induction A) apply auto
@@ -61,18 +61,18 @@ lemma finiteallDepS:
   assumes "finite P" 
   shows  "finite (allDepS P)"
 proof -
-  have "finite (nts P)"
-    unfolding nts_def using assms nt_finite using nt_finite by auto
-  hence "finite (ntsCross P)"
-    unfolding ntsCross_def by auto
-  moreover have "allDepS P \<subseteq> ntsCross P"
-    unfolding allDepS_def ntsCross_def by blast
+  have "finite (Nts P)"
+    unfolding Nts_def using assms nt_finite using nt_finite by auto
+  hence "finite (NtsCross P)"
+    unfolding NtsCross_def by auto
+  moreover have "allDepS P \<subseteq> NtsCross P"
+    unfolding allDepS_def NtsCross_def by blast
   ultimately show ?thesis
     using assms infinite_super by fastforce 
 qed
 
 (* finiteness for newProds *)
-definition nPlambda :: "('n, 't) prodS \<Rightarrow> ('n \<times> 'n) \<Rightarrow> ('n, 't) prodS" where
+definition nPlambda :: "('n, 't) Prods \<Rightarrow> ('n \<times> 'n) \<Rightarrow> ('n, 't) Prods" where
   "nPlambda P d = {fst d} \<times> {r. (snd d, r) \<in> P}"
 
 lemma nPImage: "\<Union>((nPlambda (nonUnitProds P)) ` (allDepS (unitProds P))) = newProds P"
@@ -212,7 +212,7 @@ qed
 
 lemma uppr_r6:
   assumes "P \<turnstile> [Nt A] \<Rightarrow> [Nt B]"
-    and "A \<in> nts P" "B \<in> nts P"
+    and "A \<in> Nts P" "B \<in> Nts P"
   shows "(A, B) \<in> allDepS P"
   using assms unfolding allDepS_def by blast
 
@@ -226,8 +226,8 @@ proof -
     unfolding unitProds_def by blast
   hence "unitProds P \<turnstile> [Nt A] \<Rightarrow> [Nt B]"
     by (simp add: derive_singleton)
-  moreover have "B \<in> nts (unitProds P) \<and> A \<in> nts (unitProds P)"
-    using \<open>(A, [Nt B]) \<in> unitProds P\<close> nts_def by fastforce
+  moreover have "B \<in> Nts (unitProds P) \<and> A \<in> Nts (unitProds P)"
+    using \<open>(A, [Nt B]) \<in> unitProds P\<close> Nts_def by fastforce
   ultimately show ?thesis
     unfolding allDepS_def by blast
 qed

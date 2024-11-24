@@ -318,7 +318,7 @@ qed
 
 lemma binarize_dom1:
   assumes "N \<notin> set (dom ps)"
-      and "N \<in> nts (set ps')"
+      and "N \<in> Nts (set ps')"
     shows "N \<notin> set (dom (binarize1 ps' ps))"
   using assms proof (induction ps' ps rule: binarize1.induct)
   case (1 ps')
@@ -340,30 +340,30 @@ qed
 
 lemma binarize_syms_dom1:
   assumes "N \<notin> set (dom ps)"
-      and "N \<in> nts (set ps)"
-    shows "N \<notin> set (dom (binarize1 ps ps)) \<and> N \<in> nts (set (binarize1 ps ps))"
-  using assms binarize_syms1 binarize_dom1 nts_syms_equI by blast
+      and "N \<in> Nts (set ps)"
+    shows "N \<notin> set (dom (binarize1 ps ps)) \<and> N \<in> Nts (set (binarize1 ps ps))"
+  using assms binarize_syms1 binarize_dom1 Nts_syms_equI by blast
 
 lemma binarize_syms_dom':
   assumes "N \<notin> set (dom ps)"
-      and "N \<in> nts (set ps)"
-    shows "N \<notin> set (dom (binarize' ps)) \<and> N \<in> nts (set (binarize' ps))"
+      and "N \<in> Nts (set ps)"
+    shows "N \<notin> set (dom (binarize' ps)) \<and> N \<in> Nts (set (binarize' ps))"
   unfolding binarize'_def by (simp add: assms binarize_syms_dom1)
 
 lemma binarize_syms_dom'':
   assumes "N \<notin> set (dom ps)"
-      and "N \<in> nts (set ps)"
-    shows "N \<notin> set (dom ((binarize'^^n) ps)) \<and> N \<in> nts (set ((binarize'^^n) ps))"
+      and "N \<in> Nts (set ps)"
+    shows "N \<notin> set (dom ((binarize'^^n) ps)) \<and> N \<in> Nts (set ((binarize'^^n) ps))"
   using assms by (induction n) (auto simp add: binarize_syms_dom')
 
 lemma binarize_syms_dom:
    assumes "N \<notin> set (dom ps)"
-      and  "N \<in> nts (set ps)"
-    shows "N \<notin> set (dom (binarize ps)) \<and> N \<in> nts (set (binarize ps))"
+      and  "N \<in> Nts (set ps)"
+    shows "N \<notin> set (dom (binarize ps)) \<and> N \<in> Nts (set (binarize ps))"
   unfolding binarize_def using assms binarize_syms_dom'' by blast
 
 lemma lang_binarize: 
-  assumes "N \<in> nts (set ps)"
+  assumes "N \<in> Nts (set ps)"
   shows "lang ps N = lang (binarize ps) N"
 proof (cases "N \<in> set (dom ps)")
   case True

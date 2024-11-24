@@ -8,10 +8,10 @@ definition isTmnlSym :: "('n, 't) sym \<Rightarrow> bool" where
 definition isNonTmnlSym :: "('n, 't) sym \<Rightarrow> bool" where 
   "isNonTmnlSym s = (\<exists>A. s = Nt A)"
 
-definition noeProds :: "('n, 't) prodS \<Rightarrow> bool" where
+definition noeProds :: "('n, 't) Prods \<Rightarrow> bool" where
   "noeProds P = (\<nexists>l. (l,[]) \<in> P)"
 
-definition noUnitProds :: "('n, 't) prodS \<Rightarrow> bool" where
+definition noUnitProds :: "('n, 't) Prods \<Rightarrow> bool" where
   "noUnitProds P = (\<nexists>l A. (l,[Nt A]) \<in> P)"
 
 lemma negrImpnoeProds: 
@@ -123,7 +123,7 @@ qed
 lemma trans2Nt_aux1:
   assumes "trans2Nt A B\<^sub>1 B\<^sub>2 P P'"
   shows "A \<noteq> B\<^sub>1 \<and> A \<noteq> B\<^sub>2"
-  using assms fresh unfolding trans2Nt_def nts_def by fastforce
+  using assms fresh unfolding trans2Nt_def Nts_def by fastforce
 
 
 lemma cnf_r1Tm: 
@@ -133,7 +133,7 @@ lemma cnf_r1Tm:
 proof -
   obtain p' s' u v where "lhs = p'@[Nt u]@s' \<and> rhs = p'@v@s' \<and> (u,v) \<in> set P" (is "?uv")
     using assms(2) derive.cases by meson
-  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> nts (set P))
+  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set P))
       \<and> set P' = ((set P - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})" (is "?lrps")
     using assms(1) set_removeAll fresh unfolding trans1Tm_def by fastforce
   thus ?thesis 
@@ -169,7 +169,7 @@ lemma cnf_r1Nt:
 proof -
   obtain p' s' u v where "lhs = p'@[Nt u]@s' \<and> rhs = p'@v@s' \<and> (u,v) \<in> set P" (is "?uv")
     using assms(2) derive.cases by meson
-  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> nts (set P))
+  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set P))
     \<and> (set P' = ((set P - {(l,r)}) \<union> {(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)}))" (is "?lrps")
     using assms(1) set_removeAll fresh unfolding trans2Nt_def by fastforce
   thus ?thesis
@@ -208,10 +208,10 @@ lemma slemma1_1:
     and "(A, \<alpha>) \<in> set P'"
   shows "\<alpha> = [Tm t]"
 proof -
-  have "A \<notin> nts (set P)"
+  have "A \<notin> Nts (set P)"
     using assms(1) fresh unfolding trans1Tm_def by blast
   hence "\<nexists>\<alpha>. (A, \<alpha>) \<in> set P"
-    unfolding nts_def by auto
+    unfolding Nts_def by auto
   hence "\<nexists>\<alpha>. \<alpha> \<noteq> [Tm t] \<and> (A, \<alpha>) \<in> set P'"
     using assms(1) unfolding trans1Tm_def by auto
   thus ?thesis 
@@ -223,10 +223,10 @@ lemma slemma1_1Nt:
     and "(A, \<alpha>) \<in> set P'"
   shows "\<alpha> = [Nt B\<^sub>1,Nt B\<^sub>2]"
 proof -
-  have "A \<notin> nts (set P)"
+  have "A \<notin> Nts (set P)"
     using assms(1) fresh unfolding trans2Nt_def by blast
   hence "\<nexists>\<alpha>. (A, \<alpha>) \<in> set P"
-    unfolding nts_def  by auto
+    unfolding Nts_def  by auto
   hence "\<nexists>\<alpha>. \<alpha> \<noteq> [Nt B\<^sub>1,Nt B\<^sub>2] \<and> (A, \<alpha>) \<in> set P'"
     using assms(1) unfolding trans2Nt_def by auto
   thus ?thesis 
@@ -254,8 +254,8 @@ lemma slemma4_3_1:
   shows "(\<alpha> = elim (A, \<alpha>) [Nt lhs])"
   using assms by simp
 
-lemma nts_correct: "A \<notin> nts P \<Longrightarrow> (\<nexists>S \<alpha>. (S, \<alpha>) \<in> P \<and> (Nt A \<in> {Nt S} \<union> set \<alpha>))"
-  unfolding nts_def apply (induction rule: nt.induct) apply auto
+lemma Nts_correct: "A \<notin> Nts P \<Longrightarrow> (\<nexists>S \<alpha>. (S, \<alpha>) \<in> P \<and> (Nt A \<in> {Nt S} \<union> set \<alpha>))"
+  unfolding Nts_def apply (induction rule: nt.induct) apply auto
   by (metis Un_iff case_prod_conv in_set_conv_decomp insertCI nt.simps(2) nt_append)
 
 lemma slemma4_4:
@@ -263,10 +263,10 @@ lemma slemma4_4:
     and "(l,r) \<in> set P"
   shows "(Nt A) \<notin> set r"
 proof -
-  have "A \<notin> nts (set P)"
+  have "A \<notin> Nts (set P)"
     using assms(1) fresh unfolding trans1Tm_def by blast
   hence "\<nexists>S \<alpha>. (S, \<alpha>) \<in> set P \<and> (Nt A \<in> {Nt S} \<union> set \<alpha>)"
-    using nts_correct[of A \<open>set P\<close>] by blast
+    using Nts_correct[of A \<open>set P\<close>] by blast
   thus ?thesis 
     using assms(2) by blast
 qed
@@ -276,10 +276,10 @@ lemma slemma4_4Nt:
     and "(l,r) \<in> set P"
   shows "(Nt A) \<notin> set r"
 proof -
-  have "A \<notin> nts (set P)"
+  have "A \<notin> Nts (set P)"
     using assms(1) fresh unfolding trans2Nt_def by blast
   hence "\<nexists>S \<alpha>. (S, \<alpha>) \<in> set P \<and> (Nt A \<in> {Nt S} \<union> set \<alpha>)"
-    using nts_correct[of A \<open>set P\<close>] by blast
+    using Nts_correct[of A \<open>set P\<close>] by blast
   thus ?thesis 
     using assms(2) by blast
 qed
@@ -290,7 +290,7 @@ lemma lemma1:
     and "set P' \<turnstile> lhs \<Rightarrow> rhs"
   shows "(elim (A, [Tm t]) lhs = elim (A, [Tm t]) rhs) \<or> (set P \<turnstile> (elim (A, [Tm t]) lhs) \<Rightarrow> (elim (A, [Tm t]) rhs))"
 proof -
-  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> nts (set P)) 
+  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set P)) 
       \<and> set P' = ((set P - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})" (is "?lrps")
     using assms(1) set_removeAll fresh unfolding trans1Tm_def by fastforce
   obtain p' s' u v where "lhs = p'@[Nt u]@s' \<and> rhs = p'@v@s' \<and> (u,v) \<in> set P'" (is "?uv")
@@ -361,7 +361,7 @@ lemma lemma1Nt:
   shows "(elim (A, [Nt B\<^sub>1,Nt B\<^sub>2]) lhs = elim (A, [Nt B\<^sub>1,Nt B\<^sub>2]) rhs) 
           \<or> ((set P) \<turnstile> (elim (A, [Nt B\<^sub>1,Nt B\<^sub>2]) lhs) \<Rightarrow> elim (A, [Nt B\<^sub>1,Nt B\<^sub>2]) rhs)"
 proof -
-  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> nts (set P))
+  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set P))
     \<and> (set P' = ((set P - {(l,r)}) \<union> {(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)}))" (is "?lrps")
     using assms(1) set_removeAll fresh unfolding trans2Nt_def by fastforce
   obtain p' s' u v where "lhs = p'@[Nt u]@s' \<and> rhs = p'@v@s' \<and> (u,v) \<in> set P'" (is "?uv")
@@ -459,19 +459,19 @@ lemma slemma4_7: "map Tm w = elim (A, \<alpha>) (map Tm w)"
 
 lemma slemma4_2: 
   assumes "trans1Tm A t P P'"
-    and "N \<in> nts (set P)"
+    and "N \<in> Nts (set P)"
   shows "[Nt N] = elim (A, [Tm t]) [Nt N]"
   using assms fresh unfolding trans1Tm_def by auto
 
 lemma slemma4_2Nt: 
   assumes "trans2Nt A B\<^sub>1 B\<^sub>2 P P'"
-    and "N \<in> nts (set P)"
+    and "N \<in> Nts (set P)"
   shows "[Nt N] = elim (A, [Nt B\<^sub>1, Nt B\<^sub>2]) [Nt N]"
   using assms fresh unfolding trans2Nt_def by auto
 
 lemma lemma4:
   assumes "trans1Tm A t P P'" 
-    and "S \<in> nts (set P)"
+    and "S \<in> Nts (set P)"
   shows "lang P' S \<subseteq> lang P S"
 proof 
   fix w
@@ -492,7 +492,7 @@ qed
 
 lemma lemma4Nt:
   assumes "trans2Nt A B\<^sub>1 B\<^sub>2 P P'"
-    and "S \<in> nts (set P)"
+    and "S \<in> Nts (set P)"
   shows "lang P' S \<subseteq> lang P S"
 proof
   fix w
@@ -550,12 +550,12 @@ proof
 qed 
 
 lemma cnf_lemma1: 
-  assumes "trans1Tm A t P P'" "S \<in> nts (set P)"
+  assumes "trans1Tm A t P P'" "S \<in> Nts (set P)"
   shows "lang P S = lang P' S"
   using assms lemma4 lemma5 by fast
 
 lemma cnf_lemma1Nt: 
-  assumes "trans2Nt A B\<^sub>1 B\<^sub>2 P P'" "S \<in> nts (set P)"
+  assumes "trans2Nt A B\<^sub>1 B\<^sub>2 P P'" "S \<in> Nts (set P)"
   shows "lang P S = lang P' S"
   using assms lemma4Nt lemma5Nt by fast
 
@@ -586,86 +586,86 @@ lemma trans2NtRtc_noUnitProds:
   shows "noUnitProds (set P')"
   using assms by (induction) (auto simp: trans2Nt_noUnitProds)
 
-(* proofs about nts and an arbitrary start Symbol S *)
+(* proofs about Nts and an arbitrary start Symbol S *)
 
-lemma nts_aux1: "nts (P \<union> P') = nts P \<union> nts P'"
-  unfolding nts_def by simp
+lemma Nts_aux1: "Nts (P \<union> P') = Nts P \<union> Nts P'"
+  unfolding Nts_def by simp
 
-lemma trans1Tm_nts: 
-  assumes "trans1Tm A t P P'" "S \<in> nts (set P)"
-  shows "S \<in> nts (set P')"
+lemma trans1Tm_Nts: 
+  assumes "trans1Tm A t P P'" "S \<in> Nts (set P)"
+  shows "S \<in> Nts (set P')"
 proof -
-  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> nts (set P)) 
+  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set P)) 
       \<and> set P' = ((set P - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})" (is "?lrps")
     using assms(1) set_removeAll fresh unfolding trans1Tm_def by fastforce
   thus ?thesis
-  proof (cases "S \<in> nts {(l,r)}")
+  proof (cases "S \<in> Nts {(l,r)}")
     case True
-    hence "S \<in> nts {(A,[Tm t]), (l, p@[Nt A]@s)}"
-      unfolding nts_def using \<open>?lrps\<close> by auto
-    then show ?thesis using  \<open>?lrps\<close> nts_aux1 by (metis UnCI)
+    hence "S \<in> Nts {(A,[Tm t]), (l, p@[Nt A]@s)}"
+      unfolding Nts_def using \<open>?lrps\<close> by auto
+    then show ?thesis using  \<open>?lrps\<close> Nts_aux1 by (metis UnCI)
   next
     case False
-    hence "S \<in> nts (set P - {(l,r)})"
-      unfolding nts_def using \<open>?lrps\<close> 
-      by (metis UnCI UnE Un_Diff_cancel2 assms(2) nts_aux1 nts_def)
+    hence "S \<in> Nts (set P - {(l,r)})"
+      unfolding Nts_def using \<open>?lrps\<close> 
+      by (metis UnCI UnE Un_Diff_cancel2 assms(2) Nts_aux1 Nts_def)
     then show ?thesis 
-      by (simp add: \<open>?lrps\<close> nts_def)
+      by (simp add: \<open>?lrps\<close> Nts_def)
   qed
 qed  
 
-lemma trans1TmRtc_nts: 
-  assumes "((\<lambda>x y. \<exists>A t. trans1Tm A t x y) ^**) P P'" "S \<in> nts (set P)"
-  shows "S \<in> nts (set P')"
-  using assms by (induction rule: rtranclp.induct) (auto simp: trans1Tm_nts)
+lemma trans1TmRtc_Nts: 
+  assumes "((\<lambda>x y. \<exists>A t. trans1Tm A t x y) ^**) P P'" "S \<in> Nts (set P)"
+  shows "S \<in> Nts (set P')"
+  using assms by (induction rule: rtranclp.induct) (auto simp: trans1Tm_Nts)
 
-lemma trans2Nt_nts: 
-  assumes "trans2Nt A B\<^sub>1 B\<^sub>2 P P'" "S \<in> nts (set P)"
-  shows "S \<in> nts (set P')"
+lemma trans2Nt_Nts: 
+  assumes "trans2Nt A B\<^sub>1 B\<^sub>2 P P'" "S \<in> Nts (set P)"
+  shows "S \<in> Nts (set P')"
 proof -
-  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> nts (set P))
+  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set P))
     \<and> (set P' = ((set P - {(l,r)}) \<union> {(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)}))" (is "?lrps")
     using assms(1) set_removeAll fresh unfolding trans2Nt_def by fastforce
     thus ?thesis
-  proof (cases "S \<in> nts {(l,r)}")
+  proof (cases "S \<in> Nts {(l,r)}")
     case True
-    hence "S \<in> nts {(A,[Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)}"
-      unfolding nts_def using \<open>?lrps\<close> by auto
+    hence "S \<in> Nts {(A,[Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)}"
+      unfolding Nts_def using \<open>?lrps\<close> by auto
     then show ?thesis 
-      using  \<open>?lrps\<close> nts_aux1 by (metis UnCI)
+      using  \<open>?lrps\<close> Nts_aux1 by (metis UnCI)
   next
     case False
-    hence "S \<in> nts (set P - {(l,r)})"
-      unfolding nts_def using \<open>?lrps\<close> 
-      by (metis UnCI UnE Un_Diff_cancel2 assms(2) nts_aux1 nts_def)
+    hence "S \<in> Nts (set P - {(l,r)})"
+      unfolding Nts_def using \<open>?lrps\<close> 
+      by (metis UnCI UnE Un_Diff_cancel2 assms(2) Nts_aux1 Nts_def)
     then show ?thesis 
-      by (simp add: \<open>?lrps\<close> nts_def)
+      by (simp add: \<open>?lrps\<close> Nts_def)
   qed
 qed  
 
-lemma trans2NtRtc_nts: 
-  assumes "((\<lambda>x y. \<exists>A t B\<^sub>1 B\<^sub>2. trans2Nt A B\<^sub>1 B\<^sub>2 x y) ^**) P P'" "S \<in> nts (set P)"
-  shows "S \<in> nts (set P')"
-  using assms by (induction rule: rtranclp.induct) (auto simp: trans2Nt_nts)
+lemma trans2NtRtc_Nts: 
+  assumes "((\<lambda>x y. \<exists>A t B\<^sub>1 B\<^sub>2. trans2Nt A B\<^sub>1 B\<^sub>2 x y) ^**) P P'" "S \<in> Nts (set P)"
+  shows "S \<in> Nts (set P')"
+  using assms by (induction rule: rtranclp.induct) (auto simp: trans2Nt_Nts)
 
 (* Termination for an arbitrary start Symbol S *)
 
 theorem cnf_lemma2: 
-  assumes "((\<lambda>x y. \<exists>A t. trans1Tm A t x y) ^**) P P'" "S \<in> nts (set P)" 
+  assumes "((\<lambda>x y. \<exists>A t. trans1Tm A t x y) ^**) P P'" "S \<in> Nts (set P)" 
   shows "(lang P S = lang P' S)"
-  using assms by (induction rule: rtranclp.induct) (fastforce simp: cnf_lemma1 trans1TmRtc_nts)+
+  using assms by (induction rule: rtranclp.induct) (fastforce simp: cnf_lemma1 trans1TmRtc_Nts)+
 
 theorem cnf_lemma2Nt: 
-  assumes "((\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. trans2Nt A B\<^sub>1 B\<^sub>2 x y) ^**) P P'" "S \<in> nts (set P)" 
+  assumes "((\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. trans2Nt A B\<^sub>1 B\<^sub>2 x y) ^**) P P'" "S \<in> Nts (set P)" 
   shows "(lang P S = lang P' S)"
-  using assms by (induction rule: rtranclp.induct) (fastforce simp: cnf_lemma1Nt trans2NtRtc_nts)+
+  using assms by (induction rule: rtranclp.induct) (fastforce simp: cnf_lemma1Nt trans2NtRtc_Nts)+
 
 theorem cnf_lemma: 
   assumes "((\<lambda>x y. \<exists>A t. trans1Tm A t x y) ^**) P P'"
     and "((\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. trans2Nt A B\<^sub>1 B\<^sub>2 x y) ^**) P' P''"
-    and "S \<in> nts (set P)"
+    and "S \<in> Nts (set P)"
   shows "lang P S = lang P'' S"
-  using assms cnf_lemma2 cnf_lemma2Nt trans1TmRtc_nts by fastforce
+  using assms cnf_lemma2 cnf_lemma2Nt trans1TmRtc_Nts by fastforce
 
 (* Part 2 *)
 lemma badTmsCount_append: "badTmsCount (P@P') = badTmsCount P + badTmsCount P'"
@@ -698,7 +698,7 @@ lemma lemma6_a:
   assumes "trans1Tm A t P P'" 
   shows "badTmsCount P' < badTmsCount P"
 proof -
-  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> nts (set P)) 
+  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set P)) 
       \<and> P' = ((removeAll (l,r) P) @ [(A,[Tm t]), (l, p@[Nt A]@s)])" (is "?lrps")
     using assms fresh unfolding trans1Tm_def by auto
   hence "prodTms (l,p@[Tm t]@s) = length (filter (isTmnlSym) (p@[Tm t]@s))"
@@ -733,7 +733,7 @@ lemma lemma6_b:
   assumes "trans2Nt A B\<^sub>1 B\<^sub>2 P P'"
   shows "badNtsCount P' < badNtsCount P"
 proof -
-  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> nts (set P))
+  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set P))
     \<and> (P' = ((removeAll (l,r) P) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)]))" (is "?lrps")
     using assms(1) fresh unfolding trans2Nt_def by auto
   hence "prodNts (l,p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) = length (filter (isNonTmnlSym) (p@[Nt B\<^sub>1,Nt B\<^sub>2]@s))"
@@ -778,7 +778,7 @@ lemma slemma15_a:
     and "badTmsCount P = 0"
   shows "badTmsCount P' = 0"
 proof -
-  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> nts (set P))
+  obtain l r p s where "(l,r) \<in> set P \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set P))
     \<and> (P' = ((removeAll (l,r) P) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)]))" (is "?lrps")
     using assms(1) fresh unfolding trans2Nt_def by auto
   hence "badTmsCount P' = badTmsCount (removeAll (l,r) P) + badTmsCount [(l, (p@[Nt A]@s))]"
@@ -926,7 +926,7 @@ using assms proof (induction "badNtsCount P" arbitrary: P rule: less_induct)
   qed blast
 qed
 
-theorem thm4_5: "S \<in> nts (set (P::('n::infinite,'t) prods)) \<Longrightarrow> \<exists>P'. (cnf P') \<and> (lang P S = lang P' S)"
+theorem thm4_5: "S \<in> Nts (set (P::('n::infinite,'t) prods)) \<Longrightarrow> \<exists>P'. (cnf P') \<and> (lang P S = lang P' S)"
 proof -
   obtain P' where "((\<lambda>x y. \<exists>A t. trans1Tm A t x y) ^**) P P' \<and> (badTmsCount P' = 0)" (is "?P'")
     using trans1Tm_2 by blast
@@ -934,9 +934,9 @@ proof -
     using \<open>?P'\<close> trans2Nt_2 lemma15_a by blast
   hence "cnf P''"
     using cnf_def by blast
-  moreover have "S \<in> nts (set P) \<Longrightarrow> lang P S = lang P'' S"
+  moreover have "S \<in> Nts (set P) \<Longrightarrow> lang P S = lang P'' S"
     using \<open>?P'\<close> \<open>?P''\<close> cnf_lemma by blast
-  ultimately show "S \<in> nts (set P) \<Longrightarrow> \<exists>P'. (cnf P') \<and> (lang P S = lang P' S)" 
+  ultimately show "S \<in> Nts (set P) \<Longrightarrow> \<exists>P'. (cnf P') \<and> (lang P S = lang P' S)" 
     using \<open>?P'\<close> \<open>?P''\<close> by blast
 qed
 
@@ -945,7 +945,7 @@ definition "isCnf P \<equiv> (\<forall>l r. (l,r) \<in> set P \<longrightarrow> 
     (length r = 1 \<and> list_all (isTmnlSym) r)))"
 
 theorem cnf_exists: 
-  assumes "S \<in> nts (set (P::('n::infinite,'t) prods))" 
+  assumes "S \<in> Nts (set (P::('n::infinite,'t) prods))" 
   shows "\<exists>P'. (isCnf P') \<and> (lang P' S = lang P S - {[]})"
 proof -
   have "\<exists>P\<^sub>0. nepr P P\<^sub>0" 

@@ -9,11 +9,11 @@ fun tm :: "('n,'t)syms \<Rightarrow> 't set" where
   "tm (Nt A # v) = tm v" |
   "tm (Tm a # v) = {a} \<union> tm v"
 
-definition tms :: "('n,'t)Prods \<Rightarrow> 't set" where 
-  "tms P = (\<Union>(A,w)\<in>P. tm w)"
+definition Tms :: "('n,'t)Prods \<Rightarrow> 't set" where 
+  "Tms P = (\<Union>(A,w)\<in>P. tm w)"
 
 definition allSyms :: "('n,'t)Prods \<Rightarrow> ('n,'t) sym set" where 
-  "allSyms P = (Nt ` Nts P) \<union> (Tm ` tms P)"
+  "allSyms P = (Nt ` Nts P) \<union> (Tm ` Tms P)"
 
 (* Rules of the form A\<rightarrow>B, where A and B are in nonterminals P *)
 definition unitProds :: "('n,'t) prods \<Rightarrow> ('n,'t) Prods" where
@@ -331,15 +331,15 @@ lemma uppr_r20:
   shows "set P' \<turnstile> u \<Rightarrow>* v"
   sorry
 
-theorem thm4_4: 
+theorem uppr_lang_eq: 
   assumes "uppr P P'"
   shows "lang P S = lang P' S"
-  sorry
+  unfolding Lang_def using assms uppr_r4 uppr_r20 ex_map_conv by meson
 
-theorem uppr_lang_eq:
-  assumes "nepr P\<^sub>0 P"
-    and "uppr P P'"
+theorem nepr_uppr_lang_eq:
+  assumes "nepr P P\<^sub>0"
+    and "uppr P\<^sub>0 P'"
   shows "lang P' S = lang P\<^sub>0 S - {[]}"
-  sorry
+  using assms nepr_lang_eq[of P P\<^sub>0 S] uppr_lang_eq[of P\<^sub>0 P' S] by blast
 
 end

@@ -317,7 +317,7 @@ next
   qed
 qed
 
-(* Proof that Aditis definition of L G is the same as Lang (Prods G) (Start G). This part has become obsolete *)
+(* Proof that Aditis definition of L G is the same as Lang (Prods G) (Start G). This part has become obsolete 
 definition "isWord w \<longleftrightarrow> (\<nexists>A. Nt A \<in> set w)"   
 definition "L G = {w. Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* w \<and> isWord w}"
 
@@ -352,6 +352,7 @@ lemma L_eq_Lang: "L G = (map Tm) ` Lang (Prods G) (Start G)"
 
 lemma L_Lang: "L G = L G' \<longleftrightarrow> Lang (Prods G) (Start G) = Lang (Prods G') (Start G')"
   using L_eq_Lang by (metis (mono_tags, lifting) Collect_cong L_def Lang_def image_eqI mem_Collect_eq)
+*)
 
 theorem nepr_eq_if_noe:
   assumes "nepr P P'"

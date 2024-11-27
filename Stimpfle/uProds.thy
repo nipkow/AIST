@@ -1,5 +1,5 @@
 theory uProds
-  imports "../CFG" eProds
+  imports eProds
 begin
 
 (* definitions *)

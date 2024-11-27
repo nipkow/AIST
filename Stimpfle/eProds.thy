@@ -209,13 +209,6 @@ proof -
     using derive_singleton by fast
 qed
 
-lemma nepr_r8:
-  assumes "nepr P P'"
-    and "set P \<turnstile> [Nt A] \<Rightarrow> v"
-    and "no_rhs P v v' \<and> (v' \<noteq> [])"
-  shows "set P' \<turnstile> [Nt A] \<Rightarrow>* v'"
-  using assms nepr_r7 by fast
-
 lemma nepr_r12a: 
   assumes "no_rhs P r1 r1'"
     and "no_rhs P r2 r2'"
@@ -232,14 +225,6 @@ lemma nepr_r12b:
   apply (induction r1 arbitrary: r1' r2 r2' r3 r3' rule: munge0.induct) 
    apply auto 
   using nepr_r12a no_rhs_def by blast
-
-lemma nepr_r13:
-  assumes "no_rhs P r r'"
-  shows "(\<exists>r1 r2 r1' r2'. (r=r1@r2) \<and> (r'=r1'@r2') \<and> no_rhs P r1 r1' \<and> no_rhs P r2 r2')"
-  using assms unfolding no_rhs_def 
-  apply (induction r arbitrary: r' rule: munge0.induct) 
-   apply auto 
-  by fastforce
 
 lemma nepr_r14:
   assumes "no_rhs P (r1@r2) r'"

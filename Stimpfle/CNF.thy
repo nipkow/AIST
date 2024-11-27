@@ -549,18 +549,6 @@ qed simp
 lemma slemma4_7: "map Tm w = elim (A, \<alpha>) (map Tm w)"
   by (induction w) auto
 
-lemma slemma4_2: 
-  assumes "uniformize A t G G'"
-    and "N \<in> Nts (set (prods G))"
-  shows "[Nt N] = elim (A, [Tm t]) [Nt N]"
-  using assms fresh unfolding uniformize_def by auto
-
-lemma slemma4_2Nt: 
-  assumes "binarizeNt A B\<^sub>1 B\<^sub>2 G G'"
-    and "N \<in> Nts (set (prods G))"
-  shows "[Nt N] = elim (A, [Nt B\<^sub>1, Nt B\<^sub>2]) [Nt N]"
-  using assms fresh unfolding binarizeNt_def by auto
-
 lemma lemma4:
   assumes "uniformize A t G G'" 
   shows "L G' \<subseteq> L G"
@@ -678,7 +666,7 @@ lemma binarizeNtRtc_nouProds:
   shows "nouProds (set (prods G'))"
   using assms by (induction) (auto simp: binarizeNt_nouProds)
 
-(* proofs about Nts and an arbitrary start Symbol S *)
+(* proofs about Nts *)
 
 lemma Nts_aux1: "Nts (P \<union> P') = Nts P \<union> Nts P'"
   unfolding Nts_def by simp
@@ -740,7 +728,7 @@ lemma binarizeNtRtc_Nts:
   shows "S \<in> Nts (set (prods G'))"
   using assms by (induction rule: rtranclp.induct) (auto simp: binarizeNt_Nts)
 
-(* Termination for an arbitrary start Symbol S *)
+(* Termination *)
 
 theorem cnf_lemma2: 
   assumes "((\<lambda>x y. \<exists>A t. uniformize A t x y) ^**) G G'"
@@ -854,12 +842,6 @@ proof -
       using 3 by simp
   qed
 qed
-
-lemma lemma7_a: "uniformize A t G G' \<Longrightarrow> badTmsCount (prods G) > 0"
-  using lemma6_a by fastforce
-
-lemma lemma7_b: "binarizeNt A B\<^sub>1 B\<^sub>2 G G' \<Longrightarrow> badNtsCount (prods G) > 0"
-  using lemma6_b by fastforce
 
 lemma badTmsCount0_removeAll: "badTmsCount P = 0 \<Longrightarrow> badTmsCount (removeAll (l,r) P) = 0" 
   by (induction P) auto 
@@ -977,15 +959,6 @@ proof -
   thus ?thesis by blast
 qed
 
-lemma lemma11_a: "\<nexists>G' A t. uniformize A t G G' \<Longrightarrow> badTmsCount (prods G) = 0"
-  using lemma8_a by blast
-
-lemma lemma11_b: 
-  assumes "\<nexists>G' A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 G G'"
-    and "badTmsCount (prods G) = 0" 
-    shows "badNtsCount (prods G) = 0"
-  using assms lemma8_b by blast
-
 lemma uniformize_2: "\<exists>G'. ((\<lambda>x y. \<exists>A t. uniformize A t x y) ^**) G G' \<and> (badTmsCount (prods G') = 0)"
 proof (induction "badTmsCount (prods G)" arbitrary: G rule: less_induct)
   case less
@@ -1022,7 +995,7 @@ using assms proof (induction "badNtsCount (prods G)" arbitrary: G rule: less_ind
   qed blast
 qed
 
-theorem thm4_5: "\<forall>G::('n::infinite,'t) cfg. \<exists>G'::('n,'t)cfg. uniform G' \<and> binary G' \<and> L G = L G'"
+theorem uni_bin_exists: "\<forall>G::('n::infinite,'t) cfg. \<exists>G'::('n,'t)cfg. uniform G' \<and> binary G' \<and> L G = L G'"
 proof 
   fix G::"('n::infinite,'t) cfg"
   obtain G' where "((\<lambda>x y. \<exists>A t. uniformize A t x y) ^**) G G' \<and> (badTmsCount (prods G') = 0)" (is "?G'")

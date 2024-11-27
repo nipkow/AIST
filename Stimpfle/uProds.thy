@@ -342,4 +342,5 @@ theorem nepr_uppr_lang_eq:
   shows "lang P' S = lang P\<^sub>0 S - {[]}"
   using assms nepr_lang_eq[of P P\<^sub>0 S] uppr_lang_eq[of P\<^sub>0 P' S] by blast
 
+unused_thms
 end

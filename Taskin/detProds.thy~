@@ -2,59 +2,19 @@ theory detProds
 imports "../CFG"
 begin
 
+(* maybe set? *)
 (* CFG? *)
 (* domain *)
 fun dom :: "('n::infinite, 't) prods \<Rightarrow> 'n list" where
   "dom [] = []"
 | "dom ((A,u) # ps) = A # dom ps"
 
+(* maybe set? *)
 (* CFG? *)
 (* symbols *)
 fun syms :: "('n::infinite, 't) prods \<Rightarrow> ('n,'t) syms" where
   "syms [] = []"
 | "syms ((A,v)#ps) = Nt A # v @ syms ps"
-
-(* CFG? *)
-fun tm :: "('n,'t)syms \<Rightarrow> 't set" where
-  "tm [] = {}" |
-  "tm (Nt A # v) = tm v" |
-  "tm (Tm a # v) = {a} \<union> tm v"
-
-(* CFG? *)
-definition tms :: "('n,'t)prodS \<Rightarrow> 't set" where 
-  "tms P = (\<Union>(A,w)\<in>P. tm w)"
-
-(* CFG? *)
-definition symS :: "('n,'t) prodS \<Rightarrow> ('n,'t) sym set" where 
-  "symS ps = (Nt ` nts ps) \<union> (Tm ` tms ps)"
-
-(* CFG? *)
-lemma symS_un: "symS (a \<union> as) = symS a \<union> symS as"
-  sorry
-
-(* CFG? *)
-lemma symS_one: "symS {(A,u)} = {Nt A} \<union> set u"
-  sorry
-
-(* CFG? *)
-lemma "set (syms ps) = symS (set ps)"
-proof (induction ps)
-  case Nil
-  then show ?case by (simp add: nts_def symS_def tms_def)
-next
-  case (Cons a ps)
-  let ?A = "fst a" let ?u = "snd a"
-  have "set (syms (a # ps)) = set (Nt ?A # ?u @ syms ps)"
-    by (metis prod.collapse syms.simps(2))
-  also have "... = {Nt ?A} \<union> set ?u \<union> set (syms ps)" by simp
-  also from Cons.IH have "... = {Nt ?A} \<union> set ?u \<union> symS (set ps)" by simp
-  also have "... = symS {a} \<union> symS (set ps)"
-    using symS_one by (metis prod.collapse)
-  also have "... = symS ({a} \<union> set ps)"
-    using symS_un by blast
-  also have "... = symS (set (a # ps))" by simp
-  finally show ?case by simp
-qed
 
 (* CFG? *)
 lemma dom_eq: "set (dom ((A,u) # ps)) = set (dom ((A,s) # ps))"

@@ -2,16 +2,16 @@ theory Right_Linear
 imports "../Stimpfle/uProds" Binarize
 begin
 
-definition rlin :: "('n, 't) prodS \<Rightarrow> bool" where
+definition rlin :: "('n, 't) Prods \<Rightarrow> bool" where
 "rlin ps = (\<forall>(A,w) \<in> ps. \<exists>u. w = map Tm u \<or> (\<exists>B. w = map Tm u @ [Nt B]))"
 
-definition rlin_nounit :: "('n, 't) prodS \<Rightarrow> bool" where
+definition rlin_nounit :: "('n, 't) Prods \<Rightarrow> bool" where
 "rlin_nounit ps = (\<forall>(A,w) \<in> ps. \<exists>u. w = map Tm u \<or> (\<exists>B. w = map Tm u @ [Nt B] \<and> length u > 0))"
 
-definition rlin_eps :: "('n, 't) prodS \<Rightarrow> bool" where
+definition rlin_eps :: "('n, 't) Prods \<Rightarrow> bool" where
 "rlin_eps ps = (\<forall>(A,w) \<in> ps. w = [] \<or> (\<exists>u B. w = map Tm u @ [Nt B] \<and> length u > 0))"
 
-definition rlin2 :: "('a, 't) prodS \<Rightarrow> bool" where
+definition rlin2 :: "('a, 't) Prods \<Rightarrow> bool" where
 "rlin2 ps = (\<forall>(A,w) \<in> ps. w = [] \<or> (\<exists>a B. w = [Tm a, Nt B]))"
 
 lemma "rlin2 ps \<Longrightarrow> rlin ps"
@@ -342,29 +342,29 @@ next
   qed
 qed
 
-lemma finalize_nts1:
-  assumes "N \<in> nts (set ps)"
-  shows   "N \<in> nts (set (finalize1 ps ps))"
-  using assms finalize_syms1 nts_syms_equI by metis
+lemma finalize_Nts1:
+  assumes "N \<in> Nts (set ps)"
+  shows   "N \<in> Nts (set (finalize1 ps ps))"
+  using assms finalize_syms1 Nts_syms_equI by metis
 
-lemma finalize_nts':
-  assumes "N \<in> nts (set ps)"
-  shows   "N \<in> nts (set (finalize' ps))"
-  unfolding finalize'_def by (simp add: assms finalize_nts1)
+lemma finalize_Nts':
+  assumes "N \<in> Nts (set ps)"
+  shows   "N \<in> Nts (set (finalize' ps))"
+  unfolding finalize'_def by (simp add: assms finalize_Nts1)
 
-lemma finalize_nts'n:
-  assumes "N \<in> nts (set ps)"
-  shows   "N \<in> nts (set ((finalize' ^^ n) ps))"
-  by (induction n) (auto simp add: assms finalize_nts')
+lemma finalize_Nts'n:
+  assumes "N \<in> Nts (set ps)"
+  shows   "N \<in> Nts (set ((finalize' ^^ n) ps))"
+  by (induction n) (auto simp add: assms finalize_Nts')
 
-lemma finalize_nts:
-  assumes "N \<in> nts (set ps)"
-  shows   "N \<in> nts (set (finalize ps))"
-  unfolding finalize_def by (simp add: assms finalize_nts'n)
+lemma finalize_Nts:
+  assumes "N \<in> Nts (set ps)"
+  shows   "N \<in> Nts (set (finalize ps))"
+  unfolding finalize_def by (simp add: assms finalize_Nts'n)
 
 lemma finalize_dom1:
   assumes "N \<notin> set (dom ps)"
-      and "N \<in> nts (set ps')"
+      and "N \<in> Nts (set ps')"
     shows "N \<notin> set (dom (finalize1 ps' ps))"
 using assms proof (induction ps' ps rule: finalize1.induct)
   case (1 ps')
@@ -385,30 +385,30 @@ qed
 
 lemma finalize_syms_dom1:
   assumes "N \<notin> set (dom ps)"
-      and "N \<in> nts (set ps)"
-    shows "N \<notin> set (dom (finalize1 ps ps)) \<and> N \<in> nts (set (finalize1 ps ps))"
-  using assms finalize_syms1 finalize_dom1 nts_syms_equI by metis
+      and "N \<in> Nts (set ps)"
+    shows "N \<notin> set (dom (finalize1 ps ps)) \<and> N \<in> Nts (set (finalize1 ps ps))"
+  using assms finalize_syms1 finalize_dom1 Nts_syms_equI by metis
 
 lemma finalize_syms_dom':
   assumes "N \<notin> set (dom ps)"
-      and "N \<in> nts (set ps)"
-    shows "N \<notin> set (dom (finalize' ps)) \<and> N \<in> nts (set (finalize' ps))"
+      and "N \<in> Nts (set ps)"
+    shows "N \<notin> set (dom (finalize' ps)) \<and> N \<in> Nts (set (finalize' ps))"
   unfolding finalize'_def by (simp add: assms finalize_syms_dom1)
 
 lemma finalize_syms_dom'':
   assumes "N \<notin> set (dom ps)"
-      and "N \<in> nts (set ps)"
-    shows "N \<notin> set (dom ((finalize'^^n) ps)) \<and> N \<in> nts (set ((finalize'^^n) ps))"
+      and "N \<in> Nts (set ps)"
+    shows "N \<notin> set (dom ((finalize'^^n) ps)) \<and> N \<in> Nts (set ((finalize'^^n) ps))"
   using assms by (induction n) (auto simp add: finalize_syms_dom')
 
 lemma finalize_syms_dom:
    assumes "N \<notin> set (dom ps)"
-      and  "N \<in> nts (set ps)"
-    shows "N \<notin> set (dom (finalize ps)) \<and> N \<in> nts (set (finalize ps))"
+      and  "N \<in> Nts (set ps)"
+    shows "N \<notin> set (dom (finalize ps)) \<and> N \<in> Nts (set (finalize ps))"
   unfolding finalize_def using assms finalize_syms_dom'' by blast
 
 lemma lang_finalize: 
-  assumes "N \<in> nts (set ps)"
+  assumes "N \<in> Nts (set ps)"
   shows "lang ps N = lang (finalize ps) N"
 proof (cases "N \<in> set (dom ps)")
   case True
@@ -519,7 +519,7 @@ definition clean :: "('n,'t) prods \<Rightarrow> ('n,'t)prods" where
  "clean ps = uRemove ps"
 
 lemma lang_clean: "lang ps A  = lang (clean ps) A"
-  by (simp add: clean_def thm4_4 uRemove)
+  by (simp add: clean_def uppr_lang_eq uRemove)
 
 definition rlin2_of_rlin :: "('n::infinite,'t)prods \<Rightarrow> ('n,'t)prods" where
   "rlin2_of_rlin ps = binarize (finalize (clean ps))"
@@ -541,7 +541,7 @@ qed
 
 
 lemma lang_rlin2_of_rlin:
-  assumes "N \<in> nts (set (clean ps))"
+  assumes "N \<in> Nts (set (clean ps))"
   shows "lang ps N = lang (rlin2_of_rlin ps) N"
 proof -
   have "lang ps N = lang (clean ps) N"
@@ -549,7 +549,7 @@ proof -
   also from assms have "... = lang (finalize (clean ps)) N"
     using lang_finalize by blast
   also from assms have "... = lang (binarize (finalize (clean ps))) N"
-    using finalize_nts lang_binarize by blast
+    using finalize_Nts lang_binarize by blast
   also have "... = lang (rlin2_of_rlin ps) N"
     by (simp add: rlin2_of_rlin_def)
   finally show ?thesis .

@@ -539,6 +539,7 @@ using assms proof -
     by (simp add: clean_def rlin2_of_rlin_def)
 qed
 
+
 lemma lang_rlin2_of_rlin:
   assumes "N \<in> nts (set (clean ps))"
   shows "lang ps N = lang (rlin2_of_rlin ps) N"

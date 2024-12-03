@@ -3,7 +3,7 @@ theory uProds
 begin
 
 (* definitions *)
-(* TODO: maybe add tm, tms and allSyms to CFG.thy ? *)
+(* TODO: add to CFG.thy *)
 fun tm :: "('n,'t)syms \<Rightarrow> 't set" where
   "tm [] = {}" |
   "tm (Nt A # v) = tm v" |
@@ -12,8 +12,18 @@ fun tm :: "('n,'t)syms \<Rightarrow> 't set" where
 definition Tms :: "('n,'t)Prods \<Rightarrow> 't set" where 
   "Tms P = (\<Union>(A,w)\<in>P. tm w)"
 
-definition allSyms :: "('n,'t)Prods \<Rightarrow> ('n,'t) sym set" where 
-  "allSyms P = (Nt ` Nts P) \<union> (Tm ` Tms P)"
+definition AllSyms :: "('n,'t)Prods \<Rightarrow> ('n,'t) sym set" where 
+  "AllSyms P = (Nt ` Nts P) \<union> (Tm ` Tms P)"
+
+definition nts :: "('n,'t) prods \<Rightarrow> 'n set" where
+  "nts P = Nts (set P)"
+
+definition tms :: "('n,'t) prods \<Rightarrow> 't set" where
+  "tms P = Tms (set P)"
+
+definition allSyms :: "('n,'t) prods \<Rightarrow> ('n,'t) sym set" where
+  "allSyms P = AllSyms (set P)"
+(* End of TODO *)
 
 (* Rules of the form A\<rightarrow>B, where A and B are in nonterminals P *)
 definition unitProds :: "('n,'t) prods \<Rightarrow> ('n,'t) Prods" where

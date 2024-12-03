@@ -7,10 +7,10 @@ fun rt :: "('n,'t)syms \<Rightarrow> bool" where
 "rt (Tm _ # _) = True" |
 "rt _ = False"
 
-definition rtps :: "('n,'t)prodS \<Rightarrow> bool" where
+definition rtps :: "('n,'t)Prods \<Rightarrow> bool" where
 "rtps ps = (\<forall>p \<in> ps. rt(snd p))"
 
-definition Lnt :: "('n, 't) prodS \<Rightarrow> ('n * 'n * ('n,'t)syms)set" where
+definition Lnt :: "('n, 't) Prods \<Rightarrow> ('n * 'n * ('n,'t)syms)set" where
 "Lnt P = {(A,B,w). (A, Nt B # w) \<in> P}"
 
 lemma [code]: "Lnt P = \<Union> ((\<lambda>(A,w). case w of Nt B#v \<Rightarrow> {(A,B,v)} | _ \<Rightarrow> {}) ` P)"
@@ -137,14 +137,14 @@ lemma solved_not:
 
 definition nonterminals where "nonterminals R = concat [A#[B. Nt B \<leftarrow> w]. (A,w) \<leftarrow> R]"
 
-definition Nonterminal where "Nonterminal R = (\<Union>(A,w)\<in>R. {A}\<union>{B. Nt B \<in> set w})"
+definition Nonterminals where "Nonterminals R = (\<Union>(A,w)\<in>R. {A}\<union>{B. Nt B \<in> set w})"
 
 fun hdnt where
     "hdnt (Nt A#w) = Some A"
   | "hdnt _ = None"
 
-lemma set_nonterminals_def: "set (nonterminals R) = Nonterminal (set R)"
-  by (auto simp: nonterminals_def Nonterminal_def)
+lemma set_nonterminals_def: "set (nonterminals R) = Nonterminals (set R)"
+  by (auto simp: nonterminals_def Nonterminals_def)
 
 definition "diff_list = fold removeAll"
 
@@ -447,7 +447,7 @@ lemma Lang_expand:
 subsection \<open>Soundness of unwind\<close>
 
 lemma unwind_expand':
-  assumes "solved R As" and "A' \<noteq> A" and "A' \<notin> Nonterminal R \<union> As"
+  assumes "solved R As" and "A' \<noteq> A" and "A' \<notin> Nonterminals R \<union> As"
   shows "unwind_expand R As A A' = unwind_expand' R As A A'"
   sorry
 
@@ -663,7 +663,7 @@ lemma Nt_in_set_iff_nt: "Nt A \<in> set w \<longleftrightarrow> A \<in> nt w"
   by (induction w, auto simp: nt_Cons split: sym.splits)
 
 lemma unwind_new_only_last:
-  assumes A'R: "A' \<notin> Nonterminal R"
+  assumes A'R: "A' \<notin> Nonterminals R"
     and "unwind_new R A A' \<turnstile> [Nt A'] \<Rightarrow>(n) u"
   shows "Nt A' \<notin> set u \<or> (\<exists>u'. u = u' @ [Nt A'] \<and> Nt A' \<notin> set u')"
   using assms(2)
@@ -682,11 +682,11 @@ next
     by (auto simp: derive_iff unwind_new_def append_eq_append_conv2
         append_eq_Cons_conv Cons_eq_append_conv)
   with A'R A'u' show ?case
-    by (auto simp: unwind_new_def append_eq_append_conv2 append_eq_Cons_conv Nonterminal_def)
+    by (auto simp: unwind_new_def append_eq_append_conv2 append_eq_Cons_conv Nonterminals_def)
 qed
 
 lemma unwind_new_sound:
-  assumes A'R: "A' \<notin> Nonterminal R"
+  assumes A'R: "A' \<notin> Nonterminals R"
     and "unwind_new R A A' \<turnstile> [Nt A'] \<Rightarrow>(n) vs"
     and A'vs: "Nt A' \<notin> set vs"
   shows "R \<turnstile> [Nt A] \<Rightarrow>* Nt A # vs"
@@ -705,7 +705,7 @@ next
     with yvs have [simp]: "y = vs" by auto
     with Suc y have "\<exists>v. (A,Nt A # v) \<in> R \<and> y = v"
       apply (simp add: unwind_new_def derive_singleton)
-      by (auto simp: Nonterminal_def split: prod.splits)
+      by (auto simp: Nonterminals_def split: prod.splits)
     then show ?thesis apply (intro r_into_rtranclp)
       by (auto simp: derive_singleton)
   next
@@ -714,8 +714,8 @@ next
       by (auto simp: relpowp_Suc_left unwind_new_def derive_iff)
     with A'R y obtain v
       where AAv: "(A,Nt A # v) \<in> R" and [simp]: "y = v @ [Nt A']"
-      by (auto simp: unwind_new_def derive_singleton Nonterminal_def split: prod.splits)
-    from AAv A'R have A'v: "Nt A' \<notin> set v" by (auto simp: Nonterminal_def)
+      by (auto simp: unwind_new_def derive_singleton Nonterminals_def split: prod.splits)
+    from AAv A'R have A'v: "Nt A' \<notin> set v" by (auto simp: Nonterminals_def)
     with fst_unwind_new[of R A A']
     have "nt v \<inter> fst ` ?R' = {}" by (auto simp: Nt_in_set_iff_nt)
     from yvs[simplified] deriven_append_undef[OF this]
@@ -730,10 +730,10 @@ next
 qed
 
 lemma right_loop_unwind:
-  assumes A'R: "A' \<notin> Nonterminal R"
+  assumes A'R: "A' \<notin> Nonterminals R"
   shows "right_loop (unwind R A A') A' \<subseteq> unwind_new R A A'"
   using assms
-  by (auto simp: right_loop_def unwind_def unwind_old_def unwind_new_def Nonterminal_def)
+  by (auto simp: right_loop_def unwind_def unwind_old_def unwind_new_def Nonterminals_def)
 
 lemma map_Tm_eq_map_Tm: "map Tm u = map Tm v \<longleftrightarrow> u = v"
   by (metis list.inj_map_strong sym.inject(2))
@@ -745,7 +745,7 @@ lemma unwind_sound:
   assumes "unwind R A A' \<turnstile> u \<Rightarrow>r(n) v"
     and "Nt A' \<notin> set u"
     and "Nt A' \<notin> set v"
-    and A'R: "A' \<notin> Nonterminal R"
+    and A'R: "A' \<notin> Nonterminals R"
   shows "R \<turnstile> u \<Rightarrow>* v"
   using assms(1-3)
 proof (induction n arbitrary: u v rule: less_induct)
@@ -770,7 +770,7 @@ proof (induction n arbitrary: u v rule: less_induct)
       with BwR' A'R obtain w'
         where [simp]: "B = A" "w = w' @ [Nt A']"
           and Aw'R: "(A,w') \<in> R" and A'w': "Nt A' \<notin> set w'"
-        by (auto simp: unwind_old_def Nonterminal_def split: prod.splits)
+        by (auto simp: unwind_old_def Nonterminals_def split: prod.splits)
       from m[folded append_assoc, unfolded derivern_append_map_Tm]
       obtain v' where v': "unwind R A A' \<turnstile> (l @ w') @ [Nt A'] \<Rightarrow>r(m) v'"
         and [simp]: "v = v' @ map Tm r"
@@ -783,7 +783,7 @@ proof (induction n arbitrary: u v rule: less_induct)
         and n2: "unwind R A A' \<turnstile> (l @ w') @ u' @ w'' \<Rightarrow>r(n2) v'" by auto
       from w'' A'R have A'w''R: "(A',w'') \<in> unwind_new R A A'"
         and A'w'': "Nt A' \<notin> set w''"
-        by (auto simp: unwind_def unwind_old_def unwind_new_def Nonterminal_def ends_with_def)
+        by (auto simp: unwind_def unwind_old_def unwind_new_def Nonterminals_def ends_with_def)
       from n1 right_loop_unwind[OF A'R, THEN deriver_mono]
       have n1: "unwind_new R A A' \<turnstile> [Nt A'] \<Rightarrow>r(n1) u' @ [Nt A']"
         apply (auto simp: le_fun_def)
@@ -812,14 +812,14 @@ proof (induction n arbitrary: u v rule: less_induct)
       then have "R \<turnstile> u \<Rightarrow> l @ w @ map Tm r" by (auto simp: derive_iff)
       also have "R \<turnstile> \<dots> \<Rightarrow>* v"
         apply (rule less.IH[OF _ m]) using A'R BwR' A'l False less.prems
-        by (auto simp: Nonterminal_def split:prod.splits)
+        by (auto simp: Nonterminals_def split:prod.splits)
       finally show ?thesis.
     qed
   qed
 qed
 
 lemma unwind_derives:
-  assumes "Nt A' \<notin> set u" and "A' \<notin> Nonterminal R"
+  assumes "Nt A' \<notin> set u" and "A' \<notin> Nonterminals R"
   shows "unwind R A A' \<turnstile> u \<Rightarrow>* map Tm v \<longleftrightarrow> R \<turnstile> u \<Rightarrow>* map Tm v"
     (is "?l \<longleftrightarrow> ?r")
 proof
@@ -839,7 +839,7 @@ next
 qed
 
 lemma Lang_unwind:
-  assumes A'R: "A' \<notin> Nonterminal R" and "B \<noteq> A'"
+  assumes A'R: "A' \<notin> Nonterminals R" and "B \<noteq> A'"
   shows "Lang (unwind R A A') B = Lang R B"
   apply (rule Lang_eqI_derives)
   apply (rule unwind_derives)
@@ -917,12 +917,12 @@ lemma unwind_derives:
 
 lemma Lang_unwind_expand:
   assumes ef: "eps_free R"
-  assumes "solved R As" and "A' \<noteq> A" and A'RAs: "A' \<notin> Nonterminal R \<union> As"
+  assumes "solved R As" and "A' \<noteq> A" and A'RAs: "A' \<notin> Nonterminals R \<union> As"
     and "A' \<noteq> B"
   shows "Lang (unwind_expand R As A A') B = Lang R B"
   apply (simp add: unwind_expand_def Let_def del:)
   apply (subst Lang_expand[OF eps_free_unwind_new])
-  using A'RAs apply (force simp: unwind_new_def Nonterminal_def)
+  using A'RAs apply (force simp: unwind_new_def Nonterminals_def)
   using Lang_unwind
   apply (auto simp:  )
   sorry
@@ -933,9 +933,9 @@ lemma eps_free_unwind_old_expand_list:
   using assms
   by (auto simp: unwind_old_expand_def eps_free_def)
 
-lemma in_Nonterminal_if_starts_with: "(A, w) \<in> R \<Longrightarrow> starts_with B w \<Longrightarrow> B \<in> Nonterminal R"
+lemma in_Nonterminals_if_starts_with: "(A, w) \<in> R \<Longrightarrow> starts_with B w \<Longrightarrow> B \<in> Nonterminals R"
   apply (cases "(B,w)" rule: starts_with.cases)
-    apply (auto simp: Nonterminal_def split: prod.split)
+    apply (auto simp: Nonterminals_def split: prod.split)
   by (metis list.set_intros(1) prod.inject)
   
 lemma loop_free_unwind_old_expand:
@@ -1035,18 +1035,18 @@ value "expand_list (unwind_new_list Rex3 1 2) (unwind_old_expand_list Rex3 1 2) 
 text \<open>The following is true without assuming solved_listness of \<open>As\<close>,
 because of the definition of \<open>expand\<close>.\<close>
 
-lemma hd_in_Nonterminal: "(A,Nt B#w) \<in> R \<Longrightarrow> B \<in> Nonterminal R"
-  apply (auto simp: Nonterminal_def split: prod.splits)
+lemma hd_in_Nonterminals: "(A,Nt B#w) \<in> R \<Longrightarrow> B \<in> Nonterminals R"
+  apply (auto simp: Nonterminals_def split: prod.splits)
   by (metis list.set_intros(1) prod.inject)
 
-lemma hd2_in_Nonterminal: "(A,x#Nt B#w) \<in> R \<Longrightarrow> B \<in> Nonterminal R"
-  apply (auto simp: Nonterminal_def split: prod.splits)
+lemma hd2_in_Nonterminals: "(A,x#Nt B#w) \<in> R \<Longrightarrow> B \<in> Nonterminals R"
+  apply (auto simp: Nonterminals_def split: prod.splits)
   by (metis list.set_intros(1,2) prod.inject)
   
 
 lemma solved_list_expand_list_unwind_new_list:
   assumes "A' \<notin> As"
-    and "eps_free R" "A' \<notin> Nonterminal R"
+    and "eps_free R" "A' \<notin> Nonterminals R"
     and "solved R As"
   shows "solved (expand (unwind_new R A A')
  (unwind_old_expand R A A') (insert A As))
@@ -1055,20 +1055,20 @@ lemma solved_list_expand_list_unwind_new_list:
   apply (intro solvedI)
   by (auto simp: expand_def solved_not
       unwind_new_def unwind_old_expand_def neq_Nil_conv starts_with_iff
-      Cons_eq_append_conv eps_free_Nil hd_in_Nonterminal hd2_in_Nonterminal)
+      Cons_eq_append_conv eps_free_Nil hd_in_Nonterminals hd2_in_Nonterminals)
 
 
 text \<open>Instead, preservation of the language requires solved_listness
 of \<open>R\<close> with respect to \<open>As\<close>.\<close>
 
 lemma solved_unwind_expand:
-  assumes ef: "eps_free R" and A': "A' \<notin> Nonterminal R \<union> As"
+  assumes ef: "eps_free R" and A': "A' \<notin> Nonterminals R \<union> As"
     and so: "solved R As"
   shows "solved (unwind_expand R As A A') (insert A (insert A' As))"
 proof-
   have so2: "solved R (insert A' As)"
     using so A' 
-    by (auto simp: solved_def in_Nonterminal_if_starts_with split: prod.splits)
+    by (auto simp: solved_def in_Nonterminals_if_starts_with split: prod.splits)
   show ?thesis
     apply (auto simp: unwind_expand_def solved_Un
         solved_unwind_old_expand[OF so2 ef])
@@ -1127,7 +1127,7 @@ fun realtime_list where
   "realtime_list R (A#As) (A'#As') = unwind_expand_list (realtime_list R As As') (As@As') A A'"
 | "realtime_list R _ _ = R"
 
-context fixes R :: "('n,'t) prodS" begin
+context fixes R :: "('n,'t) Prods" begin
 fun realtime where
   "realtime (A#As) (A'#As') =
   unwind_expand (realtime As As') (set (As@As')) A A'"
@@ -1136,17 +1136,17 @@ fun realtime where
 end
 
 lemma solved_if_disj:
-  assumes disj: "set As' \<inter> Nonterminal R = {}"
+  assumes disj: "set As' \<inter> Nonterminals R = {}"
   shows "solved R (set As')"
   using disj
-  by (auto simp: solved_def dest:in_Nonterminal_if_starts_with)
+  by (auto simp: solved_def dest:in_Nonterminals_if_starts_with)
 
 
-lemma Nonterminal_realtime: "Nonterminal (realtime R As As') \<subseteq> Nonterminal R \<union> set As \<union> set As'"
+lemma Nonterminals_realtime: "Nonterminals (realtime R As As') \<subseteq> Nonterminals R \<union> set As \<union> set As'"
   sorry
 
 context
-  fixes R :: "('n,'t)prodS"
+  fixes R :: "('n,'t)Prods"
   assumes ef: "eps_free R"
 begin
 
@@ -1166,12 +1166,12 @@ qed
 lemma solved_realtime:
   assumes "eps_free R"
     and "length As \<le> length As'"
-    and "distinct (As @ As')" and "set As' \<inter> Nonterminal R = {}"
+    and "distinct (As @ As')" and "set As' \<inter> Nonterminals R = {}"
   shows "solved (realtime R As As') (set As \<union> set As')"
   using assms
 proof (induction As As' rule: realtime.induct)
   case (1 A As A' As')
-  with Nonterminal_realtime[of R]
+  with Nonterminals_realtime[of R]
     solved_unwind_expand[where A=A and A'=A' and As = "set As \<union> set As'" and R ="realtime R As As'"]
   show ?case by (auto intro!: simp: eps_free_realtime insert_commute) 
 next
@@ -1185,13 +1185,13 @@ qed
 lemma Lang_realtime:
   assumes "eps_free R"
     and "length As \<le> length As'"
-    and "distinct (As @ As')" and "set As' \<inter> Nonterminal R = {}"
+    and "distinct (As @ As')" and "set As' \<inter> Nonterminals R = {}"
     and "B \<notin> set As'"
   shows "Lang (realtime R As As') B = Lang R B"
   using assms(2-)
 proof (induction As As' rule: realtime.induct)
   case (1 A As A' As')
-  with Nonterminal_realtime[of R] solved_realtime[OF \<open>eps_free R\<close> ]
+  with Nonterminals_realtime[of R] solved_realtime[OF \<open>eps_free R\<close> ]
     Lang_unwind_expand[where A=A and A'=A' and As = "set As \<union> set As'" and R ="realtime R As As'" and B=B]
   show ?case by (auto intro!: simp: eps_free_realtime insert_commute) 
 next
@@ -1209,10 +1209,10 @@ end
 value "unwind_expand_list [(1,[N 1 :: (int,int)sym, N 1])] [] 1 2"
 
 theorem GNF:
-fixes R :: "('n,'t)prodS" and new :: "'n set \<Rightarrow> 'n"
+fixes R :: "('n,'t)Prods" and new :: "'n set \<Rightarrow> 'n"
 assumes "\<And>X. finite X \<Longrightarrow> new (X) \<notin> X"
 assumes "finite R" and "eps_free R" and "Rhs1 R \<subseteq> set As" "distinct As"
-shows "\<exists>R'::('n ,'t)prodS. Lang S R' = Lang S R \<and> rtps R'"
+shows "\<exists>R'::('n ,'t)Prods. Lang S R' = Lang S R \<and> rtps R'"
   oops
 
 end

@@ -57,14 +57,14 @@ fun munge0 :: "('n, 't) prods \<Rightarrow> ('n, 't) syms \<Rightarrow> ('n, 't)
     if nullable P s then ((map ((#) s) (munge0 P sl)) @ munge0 P sl) 
     else (map ((#) s) (munge0 P sl)))"
 
-definition munge :: "('n, 't) prods \<Rightarrow> ('n, 't) prodS" where
+definition munge :: "('n, 't) prods \<Rightarrow> ('n, 't) Prods" where
 "munge P = {(l,r'). \<exists>r. (l,r) \<in> set P \<and> r' \<in> set (munge0 P r) \<and> (r' \<noteq> [])}"
 
 definition nepr :: "('n,'t) prods \<Rightarrow> ('n,'t) prods \<Rightarrow> bool" where 
   "nepr P P' = (set P' = munge P)"
 
 (* auxiliary function to prove finiteness *)
-definition munge_fun :: "('n, 't) prods \<Rightarrow> ('n, 't) prod \<Rightarrow> ('n, 't) prodS" where 
+definition munge_fun :: "('n, 't) prods \<Rightarrow> ('n, 't) prod \<Rightarrow> ('n, 't) Prods" where 
   "munge_fun P p = {(l',r'). l' = fst p \<and> r' \<in> set (munge0 P (snd p)) \<and> (r' \<noteq> [])}"
 
 lemma munge_fun_eq: "munge P = \<Union>((munge_fun P) ` set P)"
@@ -209,13 +209,6 @@ proof -
     using derive_singleton by fast
 qed
 
-lemma nepr_r8:
-  assumes "nepr P P'"
-    and "set P \<turnstile> [Nt A] \<Rightarrow> v"
-    and "no_rhs P v v' \<and> (v' \<noteq> [])"
-  shows "set P' \<turnstile> [Nt A] \<Rightarrow>* v'"
-  using assms nepr_r7 by fast
-
 lemma nepr_r12a: 
   assumes "no_rhs P r1 r1'"
     and "no_rhs P r2 r2'"
@@ -232,14 +225,6 @@ lemma nepr_r12b:
   apply (induction r1 arbitrary: r1' r2 r2' r3 r3' rule: munge0.induct) 
    apply auto 
   using nepr_r12a no_rhs_def by blast
-
-lemma nepr_r13:
-  assumes "no_rhs P r r'"
-  shows "(\<exists>r1 r2 r1' r2'. (r=r1@r2) \<and> (r'=r1'@r2') \<and> no_rhs P r1 r1' \<and> no_rhs P r2 r2')"
-  using assms unfolding no_rhs_def 
-  apply (induction r arbitrary: r' rule: munge0.induct) 
-   apply auto 
-  by fastforce
 
 lemma nepr_r14:
   assumes "no_rhs P (r1@r2) r'"
@@ -317,41 +302,42 @@ next
   qed
 qed
 
-(* Proof that Aditis definition of L G is the same as Lang (prodS G) (start G). This part has become obsolete *)
+(* Proof that Aditis definition of L G is the same as Lang (Prods G) (Start G). This part has become obsolete 
 definition "isWord w \<longleftrightarrow> (\<nexists>A. Nt A \<in> set w)"   
-definition "L G = {w. prodS G \<turnstile> [Nt (start G)] \<Rightarrow>* w \<and> isWord w}"
+definition "L G = {w. Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* w \<and> isWord w}"
 
-lemma L_eq_Lang1: "(map Tm) ` Lang (prodS G) (start G) \<subseteq> L G"
+lemma L_eq_Lang1: "(map Tm) ` Lang (Prods G) (Start G) \<subseteq> L G"
 proof -
-  have "\<forall>w \<in> Lang (prodS G) (start G). isWord (map Tm w)"
+  have "\<forall>w \<in> Lang (Prods G) (Start G). isWord (map Tm w)"
     unfolding isWord_def by auto
-  moreover have "\<forall>w \<in> Lang (prodS G) (start G). (prodS G) \<turnstile> [Nt (start G)] \<Rightarrow>* (map Tm w)"
+  moreover have "\<forall>w \<in> Lang (Prods G) (Start G). (Prods G) \<turnstile> [Nt (Start G)] \<Rightarrow>* (map Tm w)"
     unfolding Lang_def by simp
   ultimately show ?thesis
     using L_def by blast
 qed
 
-lemma L_eq_Lang2: "L G \<subseteq> (map Tm) ` Lang (prodS G) (start G)"
+lemma L_eq_Lang2: "L G \<subseteq> (map Tm) ` Lang (Prods G) (Start G)"
 proof 
   fix w
   assume "w \<in> L G"
-  hence 1: "prodS G \<turnstile> [Nt (start G)] \<Rightarrow>* w \<and> isWord w"
+  hence 1: "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* w \<and> isWord w"
     using L_def by blast
   obtain w' where "w = map Tm w'"
     by (metis 1 ex_map_conv isWord_def sym.exhaust)
-  hence "w' \<in> {w'. prodS G \<turnstile> [Nt (start G)] \<Rightarrow>* map Tm w'}"
+  hence "w' \<in> {w'. Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* map Tm w'}"
     using 1 by blast
-  hence "w \<in> (map Tm) ` {w'. prodS G \<turnstile> [Nt (start G)] \<Rightarrow>* map Tm w'}"
+  hence "w \<in> (map Tm) ` {w'. Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* map Tm w'}"
     using \<open>w = map Tm w'\<close> by blast
-  thus "w \<in> (map Tm) ` Lang (prodS G) (start G)"
+  thus "w \<in> (map Tm) ` Lang (Prods G) (Start G)"
     by (simp add: Lang_def)
 qed
 
-lemma L_eq_Lang: "L G = (map Tm) ` Lang (prodS G) (start G)"
+lemma L_eq_Lang: "L G = (map Tm) ` Lang (Prods G) (Start G)"
   using L_eq_Lang1 L_eq_Lang2 by blast
 
-lemma L_Lang: "L G = L G' \<longleftrightarrow> Lang (prodS G) (start G) = Lang (prodS G') (start G')"
+lemma L_Lang: "L G = L G' \<longleftrightarrow> Lang (Prods G) (Start G) = Lang (Prods G') (Start G')"
   using L_eq_Lang by (metis (mono_tags, lifting) Collect_cong L_def Lang_def image_eqI mem_Collect_eq)
+*)
 
 theorem nepr_eq_if_noe:
   assumes "nepr P P'"

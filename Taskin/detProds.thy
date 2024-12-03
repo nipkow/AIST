@@ -83,8 +83,8 @@ lemma dom_set:
   by (induction ps) auto
 
 (* CFG? *)
-lemma fresh_dom: "B \<notin> nts (set ps) \<Longrightarrow> B \<notin> set (dom ps)"
-  by (induction ps) (auto simp add: nts_def)
+lemma fresh_dom: "B \<notin> Nts (set ps) \<Longrightarrow> B \<notin> set (dom ps)"
+  by (induction ps) (auto simp add: Nts_def)
 
 (* CFG? *)
 lemma nt_set1: "B \<notin> nt u \<Longrightarrow> Nt B \<notin> set u"
@@ -95,16 +95,16 @@ lemma nt_set2: "Nt B \<notin> set u \<Longrightarrow> B \<notin> nt u"
   by (induction u rule: nt.induct) auto
 
 (* CFG? *)
-lemma nts_to_syms: "N \<in> nts (set ps) \<Longrightarrow> Nt N \<in> set (syms ps)"
+lemma Nts_to_syms: "N \<in> Nts (set ps) \<Longrightarrow> Nt N \<in> set (syms ps)"
   apply (induction ps)
-   apply (auto simp add: nts_def split: prod.splits)
+   apply (auto simp add: Nts_def split: prod.splits)
   apply (meson nt_set2)
   done
 
 (* CFG? *)
-lemma syms_to_nts: "Nt N \<in> set (syms ps) \<Longrightarrow> N \<in> nts (set ps)"
+lemma syms_to_Nts: "Nt N \<in> set (syms ps) \<Longrightarrow> N \<in> Nts (set ps)"
   apply (induction ps)
-   apply (auto simp add: nts_def split: prod.splits)
+   apply (auto simp add: Nts_def split: prod.splits)
   apply (meson nt_set1)
   done
 
@@ -113,8 +113,8 @@ lemma nts_syms_equI: "N \<in> nts (set ps) \<longleftrightarrow> Nt N \<in> set 
   using nts_to_syms syms_to_nts by metis
 
 (* CFG? *)
-lemma fresh_set: "B \<notin> nts (set ps) \<Longrightarrow> (A,u) \<in> set ps \<Longrightarrow> Nt B \<notin> set u"
-  by (induction ps) (auto simp add: nt_set1 nts_def)
+lemma fresh_set: "B \<notin> Nts (set ps) \<Longrightarrow> (A,u) \<in> set ps \<Longrightarrow> Nt B \<notin> set u"
+  by (induction ps) (auto simp add: nt_set1 Nts_def)
 
 (* CFG? *)
 lemma syms_inv:
@@ -192,7 +192,7 @@ lemma syms_set: "a \<notin> set (syms ps) \<Longrightarrow> (A,u) \<in> set ps \
   using syms_inv by blast
 
 (* CFG? *)
-lemma fresh_syms: "B \<notin> nts (set ps) \<Longrightarrow> Nt B \<notin> set (syms ps)"
+lemma fresh_syms: "B \<notin> Nts (set ps) \<Longrightarrow> Nt B \<notin> set (syms ps)"
   using dom_set fresh_dom fresh_set syms_inv by fastforce
 
 (* CFG? *)

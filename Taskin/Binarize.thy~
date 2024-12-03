@@ -50,6 +50,13 @@ fun count :: "('n::infinite, 't) prods \<Rightarrow> nat" where
 definition binarize :: "('n::infinite, 't) prods \<Rightarrow> ('n, 't) prods" where
   "binarize ps = (binarize' ^^ (count ps)) ps"
 
+(* does not do what binarize does? *)
+definition trans2Nt :: "'n::infinite \<Rightarrow> 'n \<Rightarrow> 'n \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods \<Rightarrow> bool" where
+      "trans2Nt A B\<^sub>1 B\<^sub>2 P P' \<equiv> (
+    \<exists>l r p s. (l,r) \<in> set P \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s)
+    \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A = fresh P)
+    \<and> (P' = ((removeAll (l,r) P) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)])))"
+
 lemma count_dec1:
   assumes "binarize1 ps' ps \<noteq> ps" 
   shows "count ps > count (binarize1 ps' ps)"

@@ -4,18 +4,18 @@ begin
 
 (* CFG? *)
 (* domain *)
-fun dom :: "('n::infinite, 't) prods \<Rightarrow> 'n list" where
+fun dom :: "('n, 't) prods \<Rightarrow> 'n list" where
   "dom [] = []"
 | "dom ((A,u) # ps) = A # dom ps"
 
 (* CFG? *)
 (* symbols *)
-fun syms :: "('n::infinite, 't) prods \<Rightarrow> ('n,'t) syms" where
+fun syms :: "('n, 't) prods \<Rightarrow> ('n,'t) syms" where
   "syms [] = []"
 | "syms ((A,v)#ps) = Nt A # v @ syms ps"
 
 (* CFG? *)
-fun tm :: "('n,'t)syms \<Rightarrow> 't set" where
+fun tm :: "('n,'t) syms \<Rightarrow> 't set" where
   "tm [] = {}" |
   "tm (Nt A # v) = tm v" |
   "tm (Tm a # v) = {a} \<union> tm v"
@@ -29,12 +29,29 @@ definition symS :: "('n,'t) prodS \<Rightarrow> ('n,'t) sym set" where
   "symS ps = (Nt ` nts ps) \<union> (Tm ` tms ps)"
 
 (* CFG? *)
+lemma nts_un: 
+  "Nt ` nts (a \<union> as) = Nt ` (nts a) \<union> Nt ` (nts as)"
+  unfolding nts_def by blast
+
+(* CFG? *)
+lemma tms_un: 
+  "Tm ` tms (a \<union> as) = Tm ` (tms a) \<union> Tm ` (tms as)"
+  unfolding tms_def by blast
+
+(* CFG? *)
 lemma symS_un: "symS (a \<union> as) = symS a \<union> symS as"
-  sorry
+  unfolding symS_def by (simp add: nts_un sup_assoc sup_left_commute tms_un)
+
+(* CFG? *)
+lemma nt_tm: "Nt ` nt u \<union> Tm ` tm u = set u"
+  apply (induction u)
+   apply simp
+  apply (smt (verit, best) Un_commute image_insert image_is_empty insert_is_Un list.sel(1) list.sel(3) list.simps(15) nt.elims nt.simps(1) set_empty sup.idem sup_left_commute sym.distinct(1) tm.elims tm.simps(1))
+  done
 
 (* CFG? *)
 lemma symS_one: "symS {(A,u)} = {Nt A} \<union> set u"
-  sorry
+  unfolding symS_def nts_def tms_def using nt_tm by auto
 
 (* CFG? *)
 lemma "set (syms ps) = symS (set ps)"
@@ -93,7 +110,7 @@ lemma syms_to_nts: "Nt N \<in> set (syms ps) \<Longrightarrow> N \<in> nts (set 
 
 (* CFG? *)
 lemma nts_syms_equI: "N \<in> nts (set ps) \<longleftrightarrow> Nt N \<in> set (syms ps)"
-  using nts_to_syms syms_to_nts by blast
+  using nts_to_syms syms_to_nts by metis
 
 (* CFG? *)
 lemma fresh_set: "B \<notin> nts (set ps) \<Longrightarrow> (A,u) \<in> set ps \<Longrightarrow> Nt B \<notin> set u"
@@ -148,7 +165,7 @@ qed
 (* CFG? *)
 lemma syms_subset: 
   "set ps \<subseteq> set ps' \<Longrightarrow> s \<in> set (syms ps) \<Longrightarrow> s \<in> set (syms ps')"
-  using syms_inv by blast
+  using syms_inv by (metis subset_code(1))
 
 (* CFG? *)
 lemma syms_not_eq: "Nt B \<notin> set (syms ps) \<Longrightarrow> (A,u) \<in> set ps \<Longrightarrow> A \<noteq> B"
@@ -180,7 +197,7 @@ lemma fresh_syms: "B \<notin> nts (set ps) \<Longrightarrow> Nt B \<notin> set (
 
 (* CFG? *)
 lemma syms_dom_not_eq: "Nt B \<notin> set (syms ps) \<Longrightarrow> N \<in> set (dom ps) \<Longrightarrow> N \<noteq> B"
-  using syms_dom2 by blast
+  using syms_dom2 by metis
 
 fun substW :: "'a list \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
   "substW [] _ _ = []"
@@ -301,7 +318,7 @@ next
   proof (cases "B = B'")
     case True
     then have "v = v'" 
-      using B_notin_dom b_c_def dom_set by auto
+      using B_notin_dom b_c_def dom_set by fastforce
     then have "substW b (Nt B) v = substW c (Nt B) v" 
       using b_c_def B_notin_v True by (simp add: substW_skip substW_split)
     then show ?thesis

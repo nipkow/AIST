@@ -181,7 +181,7 @@ next
 next
   case (5 ps' C s0 v vb vc ps)
   then show ?case
-    apply simp by (metis fresh fresh_syms list.simps(15))
+    by simp (metis fresh fresh_syms list.simps(15))
 qed
 
 lemma binarize_der1:
@@ -195,12 +195,12 @@ next
   then obtain A ps'' B u s where defs: "set ps = {(A, s # u)} \<union> set ps'' \<and> set (binarize1 ps ps) = {(A, [s, Nt B]), (B, u)} \<union> set ps'' \<and> Nt B \<notin> set (syms ps)"
     by (meson binarize1_cases)
   from defs have a_not_b: "A \<noteq> B" using syms_not_eq by fast
-  from defs assms have a1: "N \<noteq> B" using syms_dom_not_eq by auto
+  from defs assms have a1: "N \<noteq> B" using syms_dom_not_eq by fastforce
   from defs have a2: "Nt B \<notin> set (map Tm x)" by auto
   from defs have a3: "Nt B \<notin> set u" using syms_not_set by fastforce
   from defs have "set ps = set ((A, s # u) # ps'')" by simp
   with defs a_not_b have a4: "B \<notin> set (dom ((A, [s, Nt B]) # ps''))" using syms_dom2 dom_eq by metis
-  from defs have notB: "Nt B \<notin> set (syms ps'')" using syms_subset2 by auto
+  from defs have notB: "Nt B \<notin> set (syms ps'')" using syms_subset2 by fastforce
   then have 1: "set ps = set (substP ((A, [s, Nt B]) # ps'') (Nt B) u)" proof -
     from defs have "set ps = {(A, s # u)} \<union> set ps''" by simp
     also have "... = set ((A, s#u) # ps'')" by simp
@@ -238,7 +238,7 @@ next
 next
   case (5 ps' A s0 v vb vc ps)
   then show ?case
-    apply simp by (metis dom.simps(2) list.set_intros(1) list.set_intros(2) subsetI)
+    by simp (metis dom.simps(2) list.set_intros(1) list.set_intros(2) subsetI)
 qed
 
 lemma dom_binarize':
@@ -320,7 +320,7 @@ next
 next
   case (5 ps' A s0 v vb vc ps)
   then show ?case
-    apply simp by (metis (no_types, opaque_lifting) list.set_intros(1) list.set_intros(2) syms_inv)
+    by simp (metis (no_types, opaque_lifting) list.set_intros(1) list.set_intros(2) syms_inv)
 qed
 
 lemma binarize_dom1:
@@ -342,14 +342,14 @@ next
 next
   case (5 ps' A s0 v vb vc ps)
   then show ?case
-    apply simp by (metis dom.simps(2) fresh set_ConsD)
+    by simp (metis dom.simps(2) fresh set_ConsD)
 qed
 
 lemma binarize_syms_dom1:
   assumes "N \<notin> set (dom ps)"
       and "N \<in> nts (set ps)"
     shows "N \<notin> set (dom (binarize1 ps ps)) \<and> N \<in> nts (set (binarize1 ps ps))"
-  using assms binarize_syms1 binarize_dom1 nts_syms_equI by blast
+  using assms binarize_syms1 binarize_dom1 nts_syms_equI by metis
 
 lemma binarize_syms_dom':
   assumes "N \<notin> set (dom ps)"
@@ -379,7 +379,7 @@ proof (cases "N \<in> set (dom ps)")
 next
   case False
   then show ?thesis
-    using assms binarize_syms_dom dom_lang by blast
+    using assms binarize_syms_dom dom_lang by metis
 qed
 
 end

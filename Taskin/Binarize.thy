@@ -369,6 +369,26 @@ lemma binarize_syms_dom:
     shows "N \<notin> set (dom (binarize ps)) \<and> N \<in> Nts (set (binarize ps))"
   unfolding binarize_def using assms binarize_syms_dom'' by blast
 
+lemma binarize_Nts1:
+  assumes "N \<in> Nts (set ps)"
+  shows   "N \<in> Nts (set (binarize1 ps ps))"
+  using assms binarize_syms1 Nts_syms_equI by metis
+
+lemma binarize_Nts':
+  assumes "N \<in> Nts (set ps)"
+  shows   "N \<in> Nts (set (binarize' ps))"
+  unfolding binarize'_def by (simp add: assms binarize_Nts1)
+
+lemma binarize_Nts'n:
+  assumes "N \<in> Nts (set ps)"
+  shows   "N \<in> Nts (set ((binarize' ^^ n) ps))"
+  by (induction n) (auto simp add: assms binarize_Nts')
+
+lemma binarize_Nts:
+  assumes "N \<in> Nts (set ps)"
+  shows   "N \<in> Nts (set (binarize ps))"
+  unfolding binarize_def by (simp add: assms binarize_Nts'n)
+
 lemma lang_binarize: 
   assumes "N \<in> Nts (set ps)"
   shows "lang ps N = lang (binarize ps) N"

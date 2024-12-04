@@ -5,11 +5,13 @@ begin
 definition rlin :: "('n, 't) Prods \<Rightarrow> bool" where
 "rlin ps = (\<forall>(A,w) \<in> ps. \<exists>u. w = map Tm u \<or> (\<exists>B. w = map Tm u @ [Nt B]))"
 
-definition rlin_nounit :: "('n, 't) Prods \<Rightarrow> bool" where
-"rlin_nounit ps = (\<forall>(A,w) \<in> ps. \<exists>u. w = map Tm u \<or> (\<exists>B. w = map Tm u @ [Nt B] \<and> length u > 0))"
+(* new version *)
+definition rlin_noterm :: "('n, 't) Prods \<Rightarrow> bool" where
+  "rlin_noterm ps = (\<forall>(A,w) \<in> ps. w = [] \<or> (\<exists>u B. w = map Tm u @ [Nt B]))"
 
-definition rlin_eps :: "('n, 't) Prods \<Rightarrow> bool" where
-"rlin_eps ps = (\<forall>(A,w) \<in> ps. w = [] \<or> (\<exists>u B. w = map Tm u @ [Nt B] \<and> length u > 0))"
+(* new version *)
+definition rlin_bin :: "('n, 't) Prods \<Rightarrow> bool" where
+  "rlin_bin ps = (\<forall>(A,w) \<in> ps. w = [] \<or> (\<exists>B. w = [Nt B] \<or> (\<exists>a. w = [Tm a, Nt B])))"
 
 definition rlin2 :: "('a, 't) Prods \<Rightarrow> bool" where
 "rlin2 ps = (\<forall>(A,w) \<in> ps. w = [] \<or> (\<exists>a B. w = [Tm a, Nt B]))"
@@ -36,24 +38,25 @@ proof -
   thus ?thesis .
 qed
 
-lemma uppr_rlin:
-  assumes rlin_ps: "rlin (set ps')"
+(* new version *)
+lemma uppr_rlin2:
+  assumes rlinbin: "rlin_bin (set ps')"
     and uppr_ps': "uppr ps' ps"
-  shows "rlin_nounit (set ps)"
-proof -
-  from rlin_ps have "rlin_nounit (set ps' - {(A,w) \<in> set ps'. \<exists>B. w = [Nt B]})"
-    unfolding rlin_nounit_def using rlin_split by (smt (verit, del_insts) Diff_iff case_prodI case_prodI2 mem_Collect_eq)
-  then have "rlin_nounit (set ps' - (unitProds ps'))"
+  shows "rlin2 (set ps)"
+proof - 
+  from rlinbin have "rlin2 (set ps' - {(A,w) \<in> set ps'. \<exists>B. w = [Nt B]})"
+    using rlin2_def rlin_bin_def by fastforce
+  then have "rlin2 (set ps' - (unitProds ps'))"
     by (simp add: unitProds_def)
-  then have 1: "rlin_nounit (nonUnitProds ps')"
+  then have 1: "rlin2 (nonUnitProds ps')"
     by (simp add: nonUnitProds_def)
-  then have 2: "rlin_nounit (newProds ps')"
-    unfolding newProds_def rlin_nounit_def by (smt (verit, del_insts) mem_Collect_eq split_conv split_def)
-  from 1 2 have "rlin_nounit (nonUnitProds ps' \<union> newProds ps')"
-    unfolding rlin_nounit_def by fast
-  then have "rlin_nounit (uppr_rules ps')"
+  then have 2: "rlin2 (newProds ps')"
+    unfolding newProds_def rlin2_def by fastforce
+  from 1 2 have "rlin2 (nonUnitProds ps' \<union> newProds ps')"
+    unfolding rlin2_def by auto
+  then have "rlin2 (uppr_rules ps')"
     by (simp add: uppr_rules_def)
-  with uppr_ps' have "rlin_nounit (set ps)"
+  with uppr_ps' have "rlin2 (set ps)"
     by (simp add: uppr_def)
   then show ?thesis .
 qed
@@ -116,76 +119,84 @@ proof -
   then show ?thesis using funpow_fix by metis
 qed
 
-lemma finalize_rlin1: 
-  assumes "rlin_nounit (set ps)"
+(* new version *)
+lemma finalize_rlinnoterm1:
+  assumes "rlin (set ps)"
       and "ps = finalize1 ps' ps"
-  shows "rlin_eps (set ps)"
+    shows "rlin_noterm (set ps)"
   using assms proof (induction ps' ps rule: finalize1.induct)
   case (1 ps')
   then show ?case
-    by (simp add: rlin_eps_def)
+    by (simp add: rlin_noterm_def)
 next
   case (2 ps' A ps)
   then show ?case
-    by (simp add: rlin_eps_def rlin_nounit_def)
+    by (simp add: rlin_def rlin_noterm_def)
 next
   case (3 ps' A v va ps)
-  then show ?case
-    by (smt (verit, best) case_prod_conv finalize1.simps(3) list.sel(3) not_Cons_self2 rlin_eps_def rlin_nounit_def set_ConsD set_subset_Cons subset_code(1))
+  then show ?case proof (cases "\<exists>u. v#va = map Tm u")
+    case True
+    with 3 show ?thesis by simp (meson list.inject not_Cons_self)
+  next
+    case False
+    with 3 show ?thesis
+      by (simp add: rlin_def rlin_noterm_def)
+  qed
 qed
 
-lemma finalize_nounit1:
-  "rlin_nounit (set ps) \<Longrightarrow> rlin_nounit (set (finalize1 ps' ps))"
+(* new version *)
+lemma finalize_rlin1:
+  "rlin (set ps) \<Longrightarrow> rlin (set (finalize1 ps' ps))"
 proof (induction ps' ps rule: finalize1.induct)
   case (1 ps')
   then show ?case by simp
 next
   case (2 ps' A ps)
   then show ?case
-    by (simp add: rlin_nounit_def)
+    by (simp add: rlin_def)
 next
   case (3 ps' A v va ps)
-  then show ?case  proof (cases "\<exists>u. v # va = map Tm u")
+  then show ?case proof (cases "\<exists>u. v#va = map Tm u")
     case True
-    let ?B = "fresh ps'"
-    from "3.prems" have 1: "rlin_nounit (set ps)"
-      by (simp add: rlin_nounit_def)
-    from True have 2: "\<exists>u B. v#va @ [Nt ?B] = map Tm u @ [Nt B] \<and> length u > 0" by force
-    have 3: "\<exists>u. [] = map Tm u" by simp
-    from 1 2 3 show ?thesis
-      by (smt (verit, ccfv_threshold) True append_Cons case_prodI2 finalize1.simps(3) prod.sel(2) rlin_nounit_def set_ConsD)
+    with 3 show ?thesis 
+     by simp (smt (verit, del_insts) append_Cons case_prodI2 list.simps(15) list.simps(8) prod.sel(2) rlin_def set_ConsD set_subset_Cons subset_code(1))
   next
     case False
     with 3 show ?thesis
-      by (metis (no_types, lifting) finalize1.simps(3) list.set_intros(1) rlin_nounit_def set_ConsD set_subset_Cons subset_code(1))
+      by (simp add: rlin_def)
   qed
 qed
 
-lemma finalize_nounit':
-  "rlin_nounit (set ps) \<Longrightarrow> rlin_nounit (set (finalize' ps))"
-  unfolding finalize'_def using finalize_nounit1 by blast
-
-lemma finalize_nounit:
-  "rlin_nounit (set ps) \<Longrightarrow> rlin_nounit (set ((finalize'^^n) ps))"
-  by (induction n) (auto simp add: finalize_nounit')
-
+(* new version *)
 lemma finalize_rlin':
-  assumes "rlin_nounit (set ps)"
-      and "ps = finalize' ps"
-  shows "rlin_eps (set ps)"
-  using assms finalize_rlin1 finalize'_def by metis
+  "rlin (set ps) \<Longrightarrow> rlin (set (finalize' ps))"
+  unfolding finalize'_def using finalize_rlin1 by blast
 
-lemma finalize_rlin: 
-  "rlin_nounit (set ps) \<Longrightarrow> rlin_eps (set (finalize ps))"
+(* new version *)
+lemma finalize_rlin:
+  "rlin (set ps) \<Longrightarrow> rlin (set ((finalize'^^n) ps))"
+  by (induction n) (auto simp add: finalize_rlin')
+
+(* new version *)
+lemma finalize_rlinnoterm':
+  assumes "rlin (set ps)"
+      and "ps = finalize' ps"
+  shows "rlin_noterm (set ps)"
+  using assms finalize_rlinnoterm1 finalize'_def by metis
+
+(* new version *)
+
+lemma finalize_rlinnoterm: 
+  "rlin (set ps) \<Longrightarrow> rlin_noterm (set (finalize ps))"
 proof -
-  assume asm: "rlin_nounit (set ps)"
-  then have 1: "rlin_nounit (set ((finalize' ^^ countfin ps) ps))"
-    using finalize_nounit by auto
+  assume asm: "rlin (set ps)"
+  then have 1: "rlin (set ((finalize' ^^ countfin ps) ps))"
+    using finalize_rlin by auto
   have "finalize'((finalize' ^^ countfin ps) ps) = (finalize' ^^ countfin ps) ps"
     using finalize_ffpi by blast
-  with 1 have "rlin_eps (set ((finalize' ^^ countfin ps) ps))"
-    using finalize_rlin' by metis
-  then have "rlin_eps (set (finalize ps))"
+  with 1 have "rlin_noterm (set ((finalize' ^^ countfin ps) ps))"
+    using finalize_rlinnoterm' by metis
+  then have "rlin_noterm (set (finalize ps))"
     by (simp add: finalize_def)
   then show ?thesis .
 qed
@@ -420,94 +431,101 @@ next
     using assms finalize_syms_dom dom_lang by metis
 qed
 
-lemma binarize1_rlin2: 
-  assumes "rlin_eps (set ps)"
+(* new version *)
+lemma binarize_rlinbin1: 
+  assumes "rlin_noterm (set ps)"
       and "ps = binarize1 ps' ps"
-  shows "rlin2 (set ps)"
+  shows "rlin_bin (set ps)"
   using assms proof (induction ps' ps rule: binarize1.induct)
   case (1 ps')
   then show ?case
-    by (simp add: rlin2_def)
+    by (simp add: rlin_bin_def)
 next
   case (2 ps' A ps)
   then show ?case
-    by (simp add: rlin2_def rlin_eps_def)
+    by (simp add: rlin_noterm_def rlin_bin_def)
 next
   case (3 ps' A s0 ps)
-  then show ?case
-    by (simp add: rlin2_def rlin_eps_def)
+  then show ?case 
+    by (simp add: rlin_noterm_def rlin_bin_def)
 next
   case (4 ps' A s0 s1 ps)
-  then have 1: "rlin2 (set ps)" by (simp add: rlin_eps_def)
-  from 4(2) have "[s0, s1] = [] \<or> (\<exists>u B. [s0, s1] = map Tm u @ [Nt B] \<and> length u > 0)"
-    by (simp add: rlin_eps_def)
-  then obtain u B where 2: "[s0, s1] = map Tm u @ [Nt B] \<and> length u > 0" by blast
-  from 1 2 show ?case by simp (smt (verit, del_insts) case_prodI2 insert_iff map_eq_Cons_D rlin2_def snd_conv)
+  then have 1: "rlin_bin (set ps)" by (simp add: rlin_noterm_def)
+  from 4(2) have " [s0,s1] = [] \<or> (\<exists>u B. [s0,s1] = map Tm u @ [Nt B])"
+    by (simp add: rlin_noterm_def)
+  then obtain u B where 2: "[s0, s1] = map Tm u @ [Nt B]" by blast
+  from 1 2 show ?case 
+    by simp (smt (verit, ccfv_threshold) case_prodI2 insert_iff map_eq_Cons_D rlin_bin_def snd_conv)
 next
   case (5 ps' A s0 v vb vc ps)
-  then show ?case
-    by (metis binarize1.simps(5) list.sel(3) not_Cons_self2)
+  then show ?case 
+    by simp (meson list.inject not_Cons_self)
 qed
 
-lemma binarize_eps1:
-  "rlin_eps (set ps) \<Longrightarrow> rlin_eps (set (binarize1 ps' ps))"
+(* new version *)
+lemma binarize_noterm1:
+  "rlin_noterm (set ps) \<Longrightarrow> rlin_noterm (set (binarize1 ps' ps))"
 proof (induction ps' ps rule: binarize1.induct)
   case (1 ps')
   then show ?case by simp
 next
   case (2 ps' A ps)
   then show ?case
-    by (simp add: rlin_eps_def)
+    by (simp add: rlin_noterm_def)
 next
   case (3 ps' A s0 ps)
   then show ?case 
-    by (simp add: rlin_eps_def)
+    by (simp add: rlin_noterm_def)
 next
   case (4 ps' A s0 s1 ps)
   then show ?case 
-    by (simp add: rlin_eps_def)
+    by (simp add: rlin_noterm_def)
 next
   case (5 ps' A s0 v vb vc ps)
-  from 5 have 1: "rlin_eps (set ps)"
-    by (simp add: rlin_eps_def)
-  from 5 have a1: "s0 # v # vb # vc = [] \<or> (\<exists>u B. s0 # v # vb # vc = map Tm u @ [Nt B] \<and> length u > 0)"
-    by (simp add: rlin_eps_def)
+  from 5 have 1: "rlin_noterm (set ps)"
+    by (simp add: rlin_noterm_def)
+  from 5 have a1: "s0 # v # vb # vc = [] \<or> (\<exists>u B. s0 # v # vb # vc = map Tm u @ [Nt B])"
+    by (simp add: rlin_noterm_def)
   then have a2: "\<exists>x. s0 = Tm x"
-    by (metis (no_types, opaque_lifting) append_eq_Cons_conv list.discI list.inject map_eq_Cons_conv)
-  from a1 obtain u B where 2: "s0 # v # vb # vc = map Tm u @ [Nt B] \<and> length u > 0" by blast
+    by simp (metis butlast.simps(2) butlast_snoc hd_map list.distinct(1) list.sel(1) map_is_Nil_conv)
+  from a1 obtain u B where 2: "s0 # v # vb # vc = map Tm u @ [Nt B]" by blast
   let ?B = "fresh ps'"
-  from a2 have 2: "\<exists>u B. [s0, Nt ?B] = map Tm u @ [Nt B] \<and> length u > 0"
-    by (metis Cons_eq_append_conv Cons_eq_map_conv length_Cons lessI list.map_disc_iff list.size(3))
-  from a1 have 3: "\<exists>u B. v # vb # vc = map Tm u @ [Nt B] \<and> length u > 0" 
-    by simp (metis (no_types, lifting) Nil_is_map_conv append_self_conv2 list.discI list.map_sel(2) list.sel(3) tl_append2)
-  show ?case by simp (smt (verit) "1" "2" "3" case_prod_conv rlin_eps_def set_ConsD)
+  from a2 have 2: "\<exists>u B. [s0, Nt ?B] = map Tm u @ [Nt B]"
+    by simp (metis list.map_disc_iff list.simps(9))
+  from a1 have 3: "\<exists>u B. v # vb # vc = map Tm u @ [Nt B]" 
+    by simp (metis Nil_is_map_conv list.distinct(1) list.map_sel(2) list.sel(3) self_append_conv2 tl_append2) 
+  show ?case by simp (smt (verit) 1 2 3 case_prod_conv rlin_noterm_def set_ConsD)
 qed
 
-lemma binarize_eps':
-  "rlin_eps (set ps) \<Longrightarrow> rlin_eps (set (binarize' ps))"
-  unfolding binarize'_def using binarize_eps1 by blast
+(* new version *)
+lemma binarize_noterm':
+  "rlin_noterm (set ps) \<Longrightarrow> rlin_noterm (set (binarize' ps))"
+  unfolding binarize'_def using binarize_noterm1 by blast
 
-lemma binarize_eps:
-  "rlin_eps (set ps) \<Longrightarrow> rlin_eps (set ((binarize'^^n) ps))"
-  by (induction n) (auto simp add: binarize_eps')
+(* new version *)
+lemma binarize_noterm:
+  "rlin_noterm (set ps) \<Longrightarrow> rlin_noterm (set ((binarize'^^n) ps))"
+  by (induction n) (auto simp add: binarize_noterm')
 
-lemma binarize_rlin':
-  assumes "rlin_eps (set ps)"
+(* new version *)
+lemma binarize_rlinbin':
+  assumes "rlin_noterm (set ps)"
       and "ps = binarize' ps"
-  shows "rlin2 (set ps)"
-  using assms binarize1_rlin2 binarize'_def by metis
+  shows "rlin_bin (set ps)"
+  using assms binarize_rlinbin1 binarize'_def by metis
 
-lemma binarize_rlin2: 
-  "rlin_eps (set ps) \<Longrightarrow> rlin2 (set (binarize ps))"
+(* new version *)
+lemma binarize_rlinbin: 
+  "rlin_noterm (set ps) \<Longrightarrow> rlin_bin (set (binarize ps))"
 proof -
-  assume asm: "rlin_eps (set ps)"
-  then have 1: "rlin_eps (set ((binarize' ^^ count ps) ps))"
-    using binarize_eps by auto
+  assume asm: "rlin_noterm (set ps)"
+  then have 1: "rlin_noterm (set ((binarize' ^^ count ps) ps))"
+    using binarize_noterm by auto
   have "binarize'((binarize' ^^ count ps) ps) = (binarize' ^^ count ps) ps"
     using binarize_ffpi by blast
-  with 1 have "rlin2 (set ((binarize' ^^ count ps) ps))"
-    using binarize_rlin' by metis
-  then have "rlin2 (set (binarize ps))"
+  with 1 have "rlin_bin (set ((binarize' ^^ count ps) ps))"
+    using binarize_rlinbin' by metis
+  then have "rlin_bin (set (binarize ps))"
     by (simp add: binarize_def)
   then show ?thesis .
 qed
@@ -521,35 +539,34 @@ definition clean :: "('n,'t) prods \<Rightarrow> ('n,'t)prods" where
 lemma lang_clean: "lang ps A  = lang (clean ps) A"
   by (simp add: clean_def uppr_lang_eq uRemove)
 
-definition rlin2_of_rlin :: "('n::infinite,'t)prods \<Rightarrow> ('n,'t)prods" where
-  "rlin2_of_rlin ps = binarize (finalize (clean ps))"
+definition rlin2_of_rlin :: "('n::infinite,'t) prods \<Rightarrow> ('n,'t)prods" where
+  "rlin2_of_rlin ps = clean (binarize (finalize ps))"
 
 lemma rlin2_rlin2_of_rlin: 
   assumes "rlin (set ps)" 
   shows "rlin2 (set (rlin2_of_rlin ps))"
 using assms proof -
   assume "rlin (set ps)"
-  with uRemove have "rlin_nounit (set (uRemove ps))"
-    using uppr_rlin by blast
-  then have "rlin_eps (set (finalize (uRemove ps)))"
-    by (simp add: finalize_rlin)
-  then have "rlin2 (set (binarize (finalize (uRemove ps))))"
-    by (simp add: binarize_rlin2)
+  then have "rlin_noterm (set (finalize ps))"
+    using finalize_rlinnoterm by blast
+  then have "rlin_bin (set (binarize (finalize ps)))"
+    by (simp add: binarize_rlinbin)
+  then have "rlin2 (set (uRemove (binarize (finalize ps))))"
+    by (simp add: uRemove uppr_rlin2)
   thus "rlin2 (set (rlin2_of_rlin ps))"
     by (simp add: clean_def rlin2_of_rlin_def)
 qed
 
-
 lemma lang_rlin2_of_rlin:
-  assumes "N \<in> Nts (set (clean ps))"
+  assumes "N \<in> Nts (set ps)"
   shows "lang ps N = lang (rlin2_of_rlin ps) N"
 proof -
-  have "lang ps N = lang (clean ps) N"
-    using lang_clean by fast
-  also from assms have "... = lang (finalize (clean ps)) N"
+  from assms have "lang ps N = lang (finalize ps) N"
     using lang_finalize by blast
-  also from assms have "... = lang (binarize (finalize (clean ps))) N"
-    using finalize_Nts lang_binarize by blast
+  also have "... = lang (binarize (finalize ps)) N"
+    using lang_binarize assms finalize_Nts by blast
+  also  have "... = lang (clean (binarize (finalize ps))) N"
+    using lang_clean assms finalize_Nts binarize_Nts by fast
   also have "... = lang (rlin2_of_rlin ps) N"
     by (simp add: rlin2_of_rlin_def)
   finally show ?thesis .

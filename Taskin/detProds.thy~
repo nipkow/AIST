@@ -3,18 +3,6 @@ imports "../Stimpfle/uProds" "../CFG"
 begin
 
 (* CFG? *)
-(* domain *)
-fun dom :: "('n, 't) prods \<Rightarrow> 'n list" where
-  "dom [] = []"
-| "dom ((A,u) # ps) = A # dom ps"
-
-(* CFG? *)
-(* symbols *)
-fun syms :: "('n, 't) prods \<Rightarrow> ('n,'t) syms" where
-  "syms [] = []"
-| "syms ((A,v)#ps) = Nt A # v @ syms ps"
-
-(* CFG? *)
 lemma Nts_un: 
   "Nt ` Nts (a \<union> as) = Nt ` (Nts a) \<union> Nt ` (Nts as)"
   unfolding Nts_def by blast
@@ -24,167 +12,119 @@ lemma Tms_un:
   "Tm ` Tms (a \<union> as) = Tm ` (Tms a) \<union> Tm ` (Tms as)"
   unfolding Tms_def by blast
 
+(* CFG? unused
+lemma symS_un: "Syms (a \<union> as) = Syms a \<union> Syms as"
+  unfolding Syms_def by (simp add: Nts_un sup_assoc sup_left_commute Tms_un)
+*)
 (* CFG? *)
-lemma symS_un: "AllSyms (a \<union> as) = AllSyms a \<union> AllSyms as"
-  unfolding AllSyms_def by (simp add: Nts_un sup_assoc sup_left_commute Tms_un)
+lemma nt_tm: "Nt ` nts_of_syms u \<union> Tm ` tms_of_syms u = set u"
+by (induction u rule: nts_of_syms.induct) auto
 
-(* CFG? *)
-lemma nt_tm: "Nt ` nt u \<union> Tm ` tm u = set u"
-  apply (induction u)
-   apply simp
-  apply (smt (verit, best) Un_commute image_insert image_is_empty insert_is_Un list.sel(1) list.sel(3) list.simps(15) nt.elims nt.simps(1) set_empty sup.idem sup_left_commute sym.distinct(1) tm.elims tm.simps(1))
-  done
-
-(* CFG? *)
-lemma AllSyms_one: "AllSyms {(A,u)} = {Nt A} \<union> set u"
-  unfolding AllSyms_def Nts_def Tms_def using nt_tm by auto
-
-(* CFG? *)
-lemma syms_AllSyms_eq:
-"set (syms ps) = AllSyms (set ps)"
+(* CFG? 
+lemma Syms_one: "Syms {(A,u)} = {Nt A} \<union> set u"
+  unfolding Syms_def Nts_def Tms_def using nt_tm by auto
+*)
+(* CFG? 
+lemma syms_Syms_eq:
+"set (syms ps) = Syms (set ps)"
 proof (induction ps)
   case Nil
-  then show ?case by (simp add: Nts_def AllSyms_def Tms_def)
+  then show ?case by (simp add: Nts_def Syms_def Tms_def)
 next
   case (Cons a ps)
   let ?A = "fst a" let ?u = "snd a"
   have "set (syms (a # ps)) = set (Nt ?A # ?u @ syms ps)"
     by (metis prod.collapse syms.simps(2))
   also have "... = {Nt ?A} \<union> set ?u \<union> set (syms ps)" by simp
-  also from Cons.IH have "... = {Nt ?A} \<union> set ?u \<union> AllSyms (set ps)" by simp
-  also have "... = AllSyms {a} \<union> AllSyms (set ps)"
-    using AllSyms_one by (metis prod.collapse)
-  also have "... = AllSyms ({a} \<union> set ps)"
+  also from Cons.IH have "... = {Nt ?A} \<union> set ?u \<union> Syms (set ps)" by simp
+  also have "... = Syms {a} \<union> Syms (set ps)"
+    using Syms_one by (metis prod.collapse)
+  also have "... = Syms ({a} \<union> set ps)"
     using symS_un by blast
-  also have "... = AllSyms (set (a # ps))" by simp
+  also have "... = Syms (set (a # ps))" by simp
   finally show ?case by simp
 qed
-
+*)
 (* CFG? *)
-lemma dom_eq: "set (dom ((A,u) # ps)) = set (dom ((A,s) # ps))"
-  by auto
+lemma lhss_eq: "lhss ((A,u) # ps) = lhss ((A,s) # ps)"
+  by (auto simp: Lhss_def)
 
 (* CFG? *)
 lemma dom_set: 
-  "B \<notin> set (dom ps) \<Longrightarrow> (B,v) \<notin> set ps"
-  by (induction ps) auto
+  "B \<notin> Lhss P \<Longrightarrow> (B,v) \<notin> P"
+  by (auto simp: Lhss_def)
 
 (* CFG? *)
-lemma fresh_dom: "B \<notin> Nts (set ps) \<Longrightarrow> B \<notin> set (dom ps)"
-  by (induction ps) (auto simp add: Nts_def)
+lemma fresh_dom: "B \<notin> Nts P \<Longrightarrow> B \<notin> Lhss P"
+by (auto simp: Lhss_def Nts_def)
 
 (* CFG? *)
-lemma nt_set1: "B \<notin> nt u \<Longrightarrow> Nt B \<notin> set u"
-  by (induction u rule: nt.induct) auto
+lemma nts_of_syms_set1: "B \<notin> nts_of_syms u \<Longrightarrow> Nt B \<notin> set u"
+  by (induction u rule: nts_of_syms.induct) auto
 
 (* CFG? *)
-lemma nt_set2: "Nt B \<notin> set u \<Longrightarrow> B \<notin> nt u"
-  by (induction u rule: nt.induct) auto
+lemma nts_of_syms_set2: "Nt B \<notin> set u \<Longrightarrow> B \<notin> nts_of_syms u"
+  by (induction u rule: nts_of_syms.induct) auto
 
 (* CFG? *)
-lemma Nts_to_syms: "N \<in> Nts (set ps) \<Longrightarrow> Nt N \<in> set (syms ps)"
-  apply (induction ps)
-   apply (auto simp add: Nts_def split: prod.splits)
-  apply (meson nt_set2)
-  done
+lemma Nts_to_syms: "N \<in> Nts P \<Longrightarrow> Nt N \<in> Syms P"
+unfolding Nts_def Syms_def
+apply (auto split: prod.splits)
+ apply blast
+using nts_of_syms_set2 by fastforce
 
 (* CFG? *)
-lemma syms_to_Nts: "Nt N \<in> set (syms ps) \<Longrightarrow> N \<in> Nts (set ps)"
-  apply (induction ps)
-   apply (auto simp add: Nts_def split: prod.splits)
-  apply (meson nt_set1)
-  done
+lemma syms_to_Nts: "Nt N \<in> Syms P \<Longrightarrow> N \<in> Nts P"
+unfolding Nts_def Syms_def
+apply (auto split: prod.splits)
+ apply blast
+using nts_of_syms_set1 by fastforce
 
 (* CFG? *)
-lemma Nts_syms_equI: "N \<in> Nts (set ps) \<longleftrightarrow> Nt N \<in> set (syms ps)"
+lemma Nts_syms_equI: "N \<in> Nts P \<longleftrightarrow> Nt N \<in> Syms P"
   using Nts_to_syms syms_to_Nts by metis
 
 (* CFG? *)
-lemma fresh_set: "B \<notin> Nts (set ps) \<Longrightarrow> (A,u) \<in> set ps \<Longrightarrow> Nt B \<notin> set u"
-  by (induction ps) (auto simp add: nt_set1 Nts_def)
+lemma fresh_set: "B \<notin> Nts P \<Longrightarrow> (A,u) \<in> P \<Longrightarrow> Nt B \<notin> set u"
+unfolding Nts_def using nts_of_syms_set1 by fastforce
 
 (* CFG? *)
 lemma syms_inv:
-  "s \<in> set (syms ps) \<longleftrightarrow> (\<exists>A u. (A,u) \<in> set ps \<and> (s = Nt A \<or> s \<in> set u))"
-proof
-  assume "s \<in> set (syms ps)"
-  then show "\<exists>A u. (A, u) \<in> set ps \<and> (s = Nt A \<or> s \<in> set u)"
-  proof (induction ps)
-    case Nil
-    then show ?case by simp
-  next
-    case (Cons a ps)
-    let ?A = "fst a" let ?u = "snd a"
-    have A_u_set: "(?A, ?u) \<in> set (a # ps)" by simp
-    then show ?case proof (cases "s \<in> set (syms ps)")
-      case True
-      then show ?thesis using Cons.IH by auto
-    next
-      case False
-      with Cons.prems have "s \<in> set (Nt ?A # ?u)" 
-        by (metis (no_types, opaque_lifting) Un_iff append_eq_Cons_conv set_append split_pairs syms.simps(2))
-      then have "(s = Nt ?A \<or> s \<in> set ?u)" by auto
-      with A_u_set show ?thesis by blast
-    qed
-  qed
-next
-  assume asm: "\<exists>A u. (A, u) \<in> set ps \<and> (s = Nt A \<or> s \<in> set u)"
-  then show "s \<in> set (syms ps)"
-  proof (induction ps)
-    case Nil
-    then show ?case by simp
-  next
-    case (Cons a ps)
-    with asm obtain A u where A_u_def: "(A, u) \<in> set (a # ps) \<and> (s = Nt A \<or> s \<in> set u)" by blast
-    then show ?case proof (cases "(A, u) \<in> set ps")
-      case True
-      with Cons.IH A_u_def show ?thesis
-        by (metis (mono_tags, lifting) Un_iff list.discI list.sel(3) list.set_intros(2) set_append syms.elims)
-    next
-      case False
-      with A_u_def have "(A,u) = a" by simp
-      then show ?thesis
-        using A_u_def by force
-    qed
-  qed
-qed
+  "s \<in> Syms P \<longleftrightarrow> (\<exists>A u. (A,u) \<in> P \<and> (s = Nt A \<or> s \<in> set u))"
+unfolding Syms_def by auto
 
 (* CFG? *)
 lemma syms_subset: 
-  "set ps \<subseteq> set ps' \<Longrightarrow> s \<in> set (syms ps) \<Longrightarrow> s \<in> set (syms ps')"
-  using syms_inv by (metis subset_code(1))
+  "P \<subseteq> P' \<Longrightarrow> s \<in> Syms P \<Longrightarrow> s \<in> Syms P'"
+unfolding Syms_def by auto
 
 (* CFG? *)
-lemma syms_not_eq: "Nt B \<notin> set (syms ps) \<Longrightarrow> (A,u) \<in> set ps \<Longrightarrow> A \<noteq> B"
+lemma syms_not_eq: "Nt B \<notin> Syms P \<Longrightarrow> (A,u) \<in> P \<Longrightarrow> A \<noteq> B"
   using syms_inv by blast
 
 (* CFG? *)
-lemma syms_not_set: "Nt B \<notin> set (syms ps) \<Longrightarrow> (A,u) \<in> set ps \<Longrightarrow> Nt B \<notin> set u"
+lemma syms_not_set: "Nt B \<notin> Syms P \<Longrightarrow> (A,u) \<in> P \<Longrightarrow> Nt B \<notin> set u"
   using syms_inv by blast
 
 (* CFG? *)
-lemma syms_dom: "Nt B \<notin> set (syms ps) \<Longrightarrow> B \<notin> set (dom ps)"
-  by (induction ps) auto
+lemma syms_dom: "Nt B \<notin> Syms P \<Longrightarrow> B \<notin> Lhss P"
+unfolding Lhss_def Syms_def by auto
 
 (* CFG? *)
-lemma syms_dom2: "Nt B \<notin> set (syms ps) \<Longrightarrow> set ps' = set ps \<Longrightarrow> B \<notin> set (dom ps')"
-  by (induction ps)  (auto simp add: syms_dom syms_inv)
-
-(* CFG? *)
-lemma syms_subset2: "Nt B \<notin> set (syms ps) \<Longrightarrow> set ps' \<subseteq> set ps \<Longrightarrow> Nt B \<notin> set (syms ps')"
+lemma syms_subset2: "Nt B \<notin> syms ps \<Longrightarrow> set ps' \<subseteq> set ps \<Longrightarrow> Nt B \<notin> syms ps'"
   using syms_subset by blast
 
 (* CFG? *)
-lemma syms_set: "a \<notin> set (syms ps) \<Longrightarrow> (A,u) \<in> set ps \<Longrightarrow> a \<notin> set u"
+lemma syms_set: "a \<notin> syms ps \<Longrightarrow> (A,u) \<in> set ps \<Longrightarrow> a \<notin> set u"
   using syms_inv by blast
 
 (* CFG? *)
-lemma fresh_syms: "B \<notin> Nts (set ps) \<Longrightarrow> Nt B \<notin> set (syms ps)"
-  using dom_set fresh_dom fresh_set syms_inv by fastforce
+lemma fresh_syms: "B \<notin> nts ps \<Longrightarrow> Nt B \<notin> syms ps"
+  by (metis syms_to_Nts)
 
 (* CFG? *)
-lemma syms_dom_not_eq: "Nt B \<notin> set (syms ps) \<Longrightarrow> N \<in> set (dom ps) \<Longrightarrow> N \<noteq> B"
-  using syms_dom2 by metis
+lemma syms_dom_not_eq: "Nt B \<notin> Syms P \<Longrightarrow> N \<in> Lhss P \<Longrightarrow> N \<noteq> B"
+  using syms_dom by force
 
 fun substW :: "'a list \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
   "substW [] _ _ = []"
@@ -226,10 +166,10 @@ lemma substP_split: "substP (ps @ ps') s u = substP ps s u @ substP ps' s u"
 lemma substP_skip1: "s \<notin> set v \<Longrightarrow> substP ((A,v) # ps) s u = (A,v) # substP ps s u"
   by (auto simp add: substW_skip substP_def)
 
-lemma substP_skip2: "s \<notin> set (syms ps) \<Longrightarrow> substP ps s u = ps"
-  by (induction ps) (auto simp add: substP_def substW_skip)
+lemma substP_skip2: "s \<notin> syms ps \<Longrightarrow> substP ps s u = ps"
+unfolding Syms_def by (induction ps) (auto simp add: substP_def substW_skip)
 
-lemma substP_rev: "Nt B \<notin> set (syms ps) \<Longrightarrow> substP (substP ps s [Nt B]) (Nt B) [s] = ps"
+lemma substP_rev: "Nt B \<notin> syms ps \<Longrightarrow> substP (substP ps s [Nt B]) (Nt B) [s] = ps"
 proof (induction ps)
   case Nil
   then show ?case
@@ -254,8 +194,8 @@ next
 qed
 
 lemma substP_dom:
-"dom ps = dom (substP ps s u)"
-  by (induction ps) (auto simp add: substP_def)
+  "lhss ps = lhss (substP ps s u)"
+by (auto simp add: Lhss_def substP_def)
 
 lemma if_set_map:
   "x' \<in> set (map f l) \<Longrightarrow> (\<exists>x. x \<in> set l \<and> f x = x')"
@@ -291,7 +231,7 @@ lemma substPW_der:
   assumes prem: "set ((B,v)#ps) \<turnstile> nta \<Rightarrow>* u"
       and NTA_def: "nta = [Nt A]"
       and A_B_noteq: "A \<noteq> B"
-      and B_notin_dom: "B \<notin> set (dom ps)"
+      and B_notin_dom: "B \<notin> lhss ps"
       and B_notin_v: "Nt B \<notin> set v"
     shows "set (substP ps (Nt B) v) \<turnstile> nta \<Rightarrow>* substW u (Nt B) v"
 using assms proof (induction rule: rtranclp.induct)
@@ -305,7 +245,7 @@ next
   proof (cases "B = B'")
     case True
     then have "v = v'" 
-      using B_notin_dom b_c_def dom_set by fastforce
+      using B_notin_dom b_c_def unfolding Lhss_def by auto
     then have "substW b (Nt B) v = substW c (Nt B) v" 
       using b_c_def B_notin_v True by (simp add: substW_skip substW_split)
     then show ?thesis
@@ -324,14 +264,14 @@ qed
 lemma only_if_part: 
   assumes "set ((B,v)#ps) \<turnstile> [Nt A] \<Rightarrow>* u"
       and A_B_noteq: "A \<noteq> B"
-      and B_notin_dom: "B \<notin> set (dom ps)"
+      and B_notin_dom: "B \<notin> lhss ps"
       and B_notin_v: "Nt B \<notin> set v"
       and B_notin_u: "Nt B \<notin> set u"
     shows "set (substP ps (Nt B) v) \<turnstile> [Nt A] \<Rightarrow>* u"
   by (metis assms substW_skip substPW_der)
 
 lemma substP_lang: 
-  assumes "B \<notin> set (dom ps)" and
+  assumes "B \<notin> lhss ps" and
           "Nt B \<notin> set v" and
           "Nt B \<notin> set u" and
           "A \<noteq> B"

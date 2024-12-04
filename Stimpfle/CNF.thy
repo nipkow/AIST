@@ -33,8 +33,7 @@ lemma upgr_noeProds:
   unfolding uppr_def noeProds_def uppr_rules_def nonUnitProds_def unitProds_def newProds_def by simp
 
 lemma Nts_correct: "A \<notin> Nts P \<Longrightarrow> (\<nexists>S \<alpha>. (S, \<alpha>) \<in> P \<and> (Nt A \<in> {Nt S} \<union> set \<alpha>))"
-  unfolding Nts_def apply (induction rule: nts_of_syms.induct) apply simp
-  by (metis Un_iff case_prod_conv in_set_conv_decomp insertCI nts_of_syms.simps(2) nts_of_syms_append)
+unfolding Nts_def nts_of_syms_def by auto
 
 lemma not_in_lang: 
   assumes "S \<notin> Nts P"  
@@ -219,8 +218,7 @@ qed
 lemma binarizeNt_aux1:
   assumes "binarizeNt A B\<^sub>1 B\<^sub>2 G G'"
   shows "A \<noteq> B\<^sub>1 \<and> A \<noteq> B\<^sub>2"
-  using assms fresh unfolding binarizeNt_def Nts_def by fastforce
-
+  using assms fresh unfolding binarizeNt_def Nts_def nts_of_syms_def by fastforce
 
 lemma cnf_r1Tm: 
   assumes "uniformize A t G G'"
@@ -682,7 +680,7 @@ proof -
   proof (cases "S \<in> Nts {(l,r)}")
     case True
     hence "S \<in> Nts {(A,[Tm t]), (l, p@[Nt A]@s)}"
-      unfolding Nts_def using \<open>?lrps\<close> by auto
+      unfolding Nts_def nts_of_syms_def using \<open>?lrps\<close> by auto
     then show ?thesis using  \<open>?lrps\<close> Nts_aux1 by (metis UnCI)
   next
     case False
@@ -710,7 +708,7 @@ proof -
   proof (cases "S \<in> Nts {(l,r)}")
     case True
     hence "S \<in> Nts {(A,[Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)}"
-      unfolding Nts_def using \<open>?lrps\<close> by auto
+      unfolding Nts_def nts_of_syms_def using \<open>?lrps\<close> by auto
     then show ?thesis 
       using  \<open>?lrps\<close> Nts_aux1 by (metis UnCI)
   next

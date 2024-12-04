@@ -40,15 +40,12 @@ lemma finiteunitProds: "finite (unitProds P)"
 definition NtsCross :: "('n, 't) Prods  \<Rightarrow> ('n \<times> 'n) set" where
   "NtsCross P = {(A, B). A \<in> Nts P \<and> B \<in> Nts P }"
 
-lemma nt_finite: "finite (nts_of_syms A)"
-by (induction A rule: nts_of_syms.induct) auto
-
 lemma finiteallDepS: 
   assumes "finite P" 
   shows  "finite (allDepS P)"
 proof -
   have "finite (Nts P)"
-    unfolding Nts_def using assms nt_finite using nt_finite by auto
+    unfolding Nts_def using assms finite_nts_of_syms by auto
   hence "finite (NtsCross P)"
     unfolding NtsCross_def by auto
   moreover have "allDepS P \<subseteq> NtsCross P"
@@ -213,7 +210,7 @@ proof -
   hence "unitProds P \<turnstile> [Nt A] \<Rightarrow> [Nt B]"
     by (simp add: derive_singleton)
   moreover have "B \<in> Nts (unitProds P) \<and> A \<in> Nts (unitProds P)"
-    using \<open>(A, [Nt B]) \<in> unitProds P\<close> Nts_def by fastforce
+    using \<open>(A, [Nt B]) \<in> unitProds P\<close> Nts_def nts_of_syms_def by fastforce
   ultimately show ?thesis
     unfolding allDepS_def by blast
 qed

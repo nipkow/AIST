@@ -65,15 +65,11 @@ type_synonym ('n,'t) Prods = "('n,'t) prod set"
 datatype ('n,'t) cfg = cfg (prods : "('n,'t) prods") (start : "'n")
 datatype ('n,'t) Cfg = Cfg (Prods : "('n,'t) Prods") (Start : "'n")
 
-fun nts_of_syms :: "('n,'t)syms \<Rightarrow> 'n set" where
-"nts_of_syms [] = {}" |
-"nts_of_syms (Nt A # v) = {A} \<union> nts_of_syms v" |
-"nts_of_syms (Tm a # v) = nts_of_syms v"
+definition nts_of_syms :: "('n,'t)syms \<Rightarrow> 'n set" where
+"nts_of_syms w = {A. Nt A \<in> set w}"
 
-fun tms_of_syms :: "('n,'t)syms \<Rightarrow> 't set" where
-"tms_of_syms [] = {}" |
-"tms_of_syms (Nt A # v) = tms_of_syms v" |
-"tms_of_syms (Tm a # v) = {a} \<union> tms_of_syms v"
+definition tms_of_syms :: "('n,'t)syms \<Rightarrow> 't set" where
+"tms_of_syms w = {a. Tm a \<in> set w}"
 
 definition Nts :: "('n,'t)Prods \<Rightarrow> 'n set" where
   "Nts P = (\<Union>(A,w)\<in>P. {A} \<union> nts_of_syms w)"
@@ -102,12 +98,14 @@ abbreviation lhss :: "('n, 't) prods \<Rightarrow> 'n set" where
 axiomatization fresh :: "('n::infinite,'t) prods \<Rightarrow> 'n" where
 fresh: "fresh ps \<notin> Nts(set ps)"
 
+lemma inj_Nt: "inj Nt"
+by (simp add: inj_def)
+
 lemma nts_of_syms_Cons: "nts_of_syms (a#v) = (case a of Nt A \<Rightarrow> {A} | _ \<Rightarrow> {}) \<union> nts_of_syms v"
-  by (cases a, auto)
+by (auto simp: nts_of_syms_def split: sym.split)
 
 lemma nts_of_syms_append[simp]: "nts_of_syms (u @ v) = nts_of_syms u \<union> nts_of_syms v"
-  apply (induction u arbitrary: v rule: nts_of_syms.induct)
-  by auto
+by (auto simp: nts_of_syms_def)
 
 lemma Syms_simps[simp]:
   "Syms {} = {}"
@@ -121,6 +119,12 @@ lemma Lhss_simps[simp]:
   "Lhss(P \<union> P') = Lhss P \<union> Lhss P'"
 by(auto simp: Lhss_def)
 
+lemma finite_nts_of_syms: "finite (nts_of_syms w)"
+proof -
+  have "Nt ` {A. Nt A \<in> set w} \<subseteq> set w" by auto
+  from finite_inverse_image[OF _ inj_Nt]
+  show ?thesis unfolding nts_of_syms_def using finite_inverse_image[OF _ inj_Nt] by auto
+qed
 
 subsection "Derivations"
 

@@ -347,9 +347,9 @@ qed
 
 lemma binarize_syms_dom1:
   assumes "N \<notin> set (dom ps)"
-      and "N \<in> nts (set ps)"
-    shows "N \<notin> set (dom (binarize1 ps ps)) \<and> N \<in> nts (set (binarize1 ps ps))"
-  using assms binarize_syms1 binarize_dom1 nts_syms_equI by metis
+      and "N \<in> Nts (set ps)"
+    shows "N \<notin> set (dom (binarize1 ps ps)) \<and> N \<in> Nts (set (binarize1 ps ps))"
+  using assms binarize_syms1 binarize_dom1 Nts_syms_equI by metis
 
 lemma binarize_syms_dom':
   assumes "N \<notin> set (dom ps)"

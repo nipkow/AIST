@@ -191,7 +191,7 @@ proof -
 qed
 
 lemma finalize1_cases:
-  "finalize1 ps' ps = ps \<or> (\<exists>A w ps'' B. set ps = {(A, w)} \<union> set ps'' \<and> set (finalize1 ps' ps) = {(A,w @ [Nt B]),(B,[])} \<union> set ps'' \<and> Nt B \<notin> set (syms ps'))"
+  "finalize1 ps' ps = ps \<or> (\<exists>A w ps'' B. set ps = {(A, w)} \<union> set ps'' \<and> set (finalize1 ps' ps) = {(A,w @ [Nt B]),(B,[])} \<union> set ps'' \<and> Nt B \<notin> syms ps')"
 proof (induction ps' ps rule: finalize1.induct)
   case (1 ps')
   then show ?case by simp
@@ -202,11 +202,11 @@ next
     then show ?thesis by simp
   next
     case False
-    then obtain A w ps'' B where defs: "set ps = {(A, w)} \<union> set ps'' \<and> set (finalize1 ps' ps) = {(A, w @ [Nt B]), (B, [])} \<union> set ps'' \<and> Nt B \<notin> set (syms ps')"
+    then obtain A w ps'' B where defs: "set ps = {(A, w)} \<union> set ps'' \<and> set (finalize1 ps' ps) = {(A, w @ [Nt B]), (B, [])} \<union> set ps'' \<and> Nt B \<notin> syms ps'"
     using 2 by blast
     from defs have wit: "set ((C, []) # ps) = {(A, w)} \<union> set ((C, []) # ps'')" by simp
     from defs have wit2: "set (finalize1 ps' ((C, []) # ps)) = {(A, w @ [Nt B]), (B, [])} \<union> set ((C, []) # ps'')" by simp
-    from defs have wit3: "Nt B \<notin> set (syms ps')" by simp
+    from defs have wit3: "Nt B \<notin> syms ps'" by simp
     from wit wit2 wit3 show ?thesis by blast
   qed
 next
@@ -221,35 +221,36 @@ next
       with false1 show ?thesis by simp
   next
     case False
-    with false1 obtain A w ps'' B where defs: "set ps = {(A, w)} \<union> set ps'' \<and> set (finalize1 ps' ps) = {(A, w @ [Nt B]), (B, [])} \<union> set ps'' \<and> Nt B \<notin> set (syms ps')"
+    with false1 obtain A w ps'' B where defs: "set ps = {(A, w)} \<union> set ps'' \<and> set (finalize1 ps' ps) = {(A, w @ [Nt B]), (B, [])} \<union> set ps'' \<and> Nt B \<notin> syms ps'"
     using 3 by blast
     from defs have wit: "set ((C, v#va) # ps) = {(A, w)} \<union> set ((C, v#va) # ps'')" by simp
     from defs false1 have wit2: "set (finalize1 ps' ((C, v#va) # ps)) = {(A, w @ [Nt B]), (B, [])} \<union> set ((C, v#va) # ps'')" by simp
-    from defs have wit3: "Nt B \<notin> set (syms ps')" by simp
+    from defs have wit3: "Nt B \<notin> syms ps'" by simp
     from wit wit2 wit3 show ?thesis by blast
   qed
   qed
 qed
 
 lemma finalize_der1:
-  assumes "N \<in> set (dom ps)"
+  assumes "N \<in> lhss ps"
   shows "set ps \<turnstile> [Nt N] \<Rightarrow>* map Tm x \<longleftrightarrow> set (finalize1 ps ps) \<turnstile> [Nt N] \<Rightarrow>* map Tm x"
  proof (cases "finalize1 ps ps = ps")
   case True
   then show ?thesis by simp
 next
   case False
-  then obtain A w ps'' B where defs: "set ps = {(A, w)} \<union> set ps'' \<and> set (finalize1 ps ps) = {(A, w @ [Nt B]), (B, [])} \<union> set ps'' \<and> Nt B \<notin> set (syms ps)"
+  then obtain A w ps'' B where defs: "set ps = {(A, w)} \<union> set ps'' \<and> set (finalize1 ps ps) = {(A, w @ [Nt B]), (B, [])} \<union> set ps'' \<and> Nt B \<notin> syms ps"
     by (meson finalize1_cases)
   from defs have a_not_b: "A \<noteq> B" using syms_not_eq by fast
   from defs assms have a1: "N \<noteq> B" using syms_dom_not_eq by fastforce
   from defs have a2: "Nt B \<notin> set (map Tm x)" by auto
   from defs have a3: "Nt B \<notin> set []" by simp
   from defs have "set ps = set ((A, w) # ps'')" by simp
-  with defs a_not_b have a4: "B \<notin> set (dom ((A, w @ [Nt B]) # ps''))" using syms_dom2 dom_eq by metis
-  from defs have notB: "Nt B \<notin> set (syms ps'')" using syms_subset2 by fastforce
+  with defs a_not_b have a4: "B \<notin> lhss ((A, w @ [Nt B]) # ps'')"
+    unfolding Lhss_def apply auto by (meson insert_iff syms_inv)
+  from defs have notB: "Nt B \<notin> syms ps''" unfolding Syms_def by blast
   then have 1: "set ps = set (substP ((A, w @ [Nt B]) # ps'') (Nt B) [])" proof -
-    from defs have s1: "Nt B \<notin> set (syms ps)" by simp
+    from defs have s1: "Nt B \<notin> syms ps" unfolding Syms_def by meson
     from defs have s2: "(A,w) \<in> set ps" by blast
     from s1 s2 have b_notin_w: "Nt B \<notin> set w" using syms_not_set by fastforce
     from defs have "set ps = {(A, w)} \<union> set ps''" by simp
@@ -268,42 +269,42 @@ next
 qed
 
 lemma finalize_der':
-  assumes "N \<in> set (dom ps)"
+  assumes "N \<in> lhss ps"
   shows "set ps \<turnstile> [Nt N] \<Rightarrow>* map Tm x \<longleftrightarrow> set (finalize' ps) \<turnstile> [Nt N] \<Rightarrow>* map Tm x"
   unfolding finalize'_def by (simp add: assms finalize_der1)
 
 lemma dom_finalize1:
-  "set (dom ps) \<subseteq> set (dom (finalize1 ps' ps))"
+  "lhss ps \<subseteq> lhss (finalize1 ps' ps)"
 proof (induction ps' ps rule: finalize1.induct)
   case (1 ps')
   then show ?case by simp
 next
   case (2 ps' A ps)
-  then show ?case by auto
+  then show ?case unfolding Lhss_def by auto
 next
   case (3 ps' A v va ps)
-  then show ?case by simp (metis dom.simps(2) list.set_intros(1) list.simps(15) set_subset_Cons subset_insertI2)
+  then show ?case unfolding Lhss_def by (auto simp: Let_def)
 qed
 
 lemma dom_finalize':
-  "set (dom ps) \<subseteq> set (dom (finalize' ps))"
+  "lhss ps \<subseteq> lhss (finalize' ps)"
   by (simp add: finalize'_def dom_finalize1)
 
 lemma dom_finalize'':
-  "set (dom ps) \<subseteq> set (dom ((finalize'^^n) ps))"
+  "lhss ps \<subseteq> lhss ((finalize'^^n) ps)"
   apply (induction n)
    apply simp
   using dom_finalize' by auto
 
 lemma finalize_der'': 
-  assumes "A \<in> set (dom ps)"
+  assumes "A \<in> lhss ps"
   shows "set ps \<turnstile> [Nt A] \<Rightarrow>* map Tm x \<longleftrightarrow> set ((finalize'^^n) ps) \<turnstile> [Nt A] \<Rightarrow>* map Tm x"
 using assms proof (induction n)
   case 0
   then show ?case by simp
 next
   case (Suc n)
-  have "A \<in> set (dom ((finalize' ^^ n) ps))"
+  have "A \<in> lhss ((finalize' ^^ n) ps)"
     using assms dom_finalize'' by blast
   then have "set ((finalize' ^^ n) ps) \<turnstile> [Nt A] \<Rightarrow>* map Tm x \<longleftrightarrow> set (finalize' ((finalize' ^^ n) ps)) \<turnstile> [Nt A] \<Rightarrow>* map Tm x"
     using finalize_der' by blast
@@ -313,111 +314,115 @@ next
 qed
 
 lemma finalize_der: 
-  assumes "A \<in> set (dom ps)"
+  assumes "A \<in> lhss ps"
   shows "set ps \<turnstile> [Nt A] \<Rightarrow>* map Tm x \<longleftrightarrow> set (finalize ps) \<turnstile> [Nt A] \<Rightarrow>* map Tm x"
   by (simp add: assms finalize_def finalize_der'')
 
 lemma lang_finalize':
-  assumes "N \<in> set (dom ps)"
+  assumes "N \<in> lhss ps"
   shows "lang ps N = lang (finalize ps) N"
   by (meson Lang_eqI_derives assms finalize_der)
 
 lemma finalize_syms1:
-  assumes  "Nt N \<in> set (syms ps)"
-    shows  "Nt N \<in> set (syms (finalize1 ps' ps))"
+  assumes  "Nt N \<in> syms ps"
+    shows  "Nt N \<in> syms (finalize1 ps' ps)"
 using assms proof (induction ps' ps rule: finalize1.induct)
   case (1 ps')
   then show ?case by simp
 next
   case (2 ps' A ps)
-  then show ?case by auto
+  then show ?case unfolding Syms_def by auto
 next
   case (3 ps' A v va ps)
   then show ?case proof (cases "\<exists>u. v#va = map Tm u")
     case True
-    with 3 show ?thesis by simp (metis UnCI list.set_intros(1) list.set_intros(2) set_append syms.simps(2))
+    with 3 show ?thesis unfolding Syms_def by (auto simp: Let_def)
   next
     case False
-    with 3 show ?thesis by auto
+    with 3 show ?thesis unfolding Syms_def by (auto)
   qed
 qed
 
 lemma finalize_Nts1:
-  assumes "N \<in> Nts (set ps)"
-  shows   "N \<in> Nts (set (finalize1 ps ps))"
+  assumes "N \<in> nts ps"
+  shows   "N \<in> nts (finalize1 ps ps)"
   using assms finalize_syms1 Nts_syms_equI by metis
 
 lemma finalize_Nts':
-  assumes "N \<in> Nts (set ps)"
-  shows   "N \<in> Nts (set (finalize' ps))"
+  assumes "N \<in> nts ps"
+  shows   "N \<in> nts (finalize' ps)"
   unfolding finalize'_def by (simp add: assms finalize_Nts1)
 
 lemma finalize_Nts'n:
-  assumes "N \<in> Nts (set ps)"
-  shows   "N \<in> Nts (set ((finalize' ^^ n) ps))"
+  assumes "N \<in> nts ps"
+  shows   "N \<in> nts ((finalize' ^^ n) ps)"
   by (induction n) (auto simp add: assms finalize_Nts')
 
 lemma finalize_Nts:
-  assumes "N \<in> Nts (set ps)"
-  shows   "N \<in> Nts (set (finalize ps))"
+  assumes "N \<in> nts ps"
+  shows   "N \<in> nts (finalize ps)"
   unfolding finalize_def by (simp add: assms finalize_Nts'n)
 
 lemma finalize_dom1:
-  assumes "N \<notin> set (dom ps)"
-      and "N \<in> Nts (set ps')"
-    shows "N \<notin> set (dom (finalize1 ps' ps))"
+  assumes "N \<notin> lhss ps"
+      and "N \<in> nts ps'"
+    shows "N \<notin> lhss (finalize1 ps' ps)"
 using assms proof (induction ps' ps rule: finalize1.induct)
   case (1 ps')
   then show ?case by simp
 next
   case (2 ps' A ps)
-  then show ?case by auto
+  then show ?case unfolding Lhss_def by simp
 next
   case (3 ps' A v va ps)
   then show ?case proof (cases "\<exists>u. v#va = map Tm u")
     case True
-    with 3 show ?thesis by simp (metis dom.simps(2) fresh set_ConsD)
+    with 3 show ?thesis unfolding Lhss_def by (auto simp: Let_def fresh)
   next
     case False
-    with 3 show ?thesis by auto
+    with 3 show ?thesis unfolding Lhss_def by (auto simp: Let_def)
   qed
 qed
 
 lemma finalize_syms_dom1:
-  assumes "N \<notin> set (dom ps)"
-      and "N \<in> Nts (set ps)"
-    shows "N \<notin> set (dom (finalize1 ps ps)) \<and> N \<in> Nts (set (finalize1 ps ps))"
+  assumes "N \<notin> lhss ps"
+      and "N \<in> nts ps"
+    shows "N \<notin> lhss (finalize1 ps ps) \<and> N \<in> nts (finalize1 ps ps)"
   using assms finalize_syms1 finalize_dom1 Nts_syms_equI by metis
 
 lemma finalize_syms_dom':
-  assumes "N \<notin> set (dom ps)"
-      and "N \<in> Nts (set ps)"
-    shows "N \<notin> set (dom (finalize' ps)) \<and> N \<in> Nts (set (finalize' ps))"
+  assumes "N \<notin> lhss ps"
+      and "N \<in> nts ps"
+    shows "N \<notin> lhss (finalize' ps) \<and> N \<in> nts (finalize' ps)"
   unfolding finalize'_def by (simp add: assms finalize_syms_dom1)
 
 lemma finalize_syms_dom'':
-  assumes "N \<notin> set (dom ps)"
-      and "N \<in> Nts (set ps)"
-    shows "N \<notin> set (dom ((finalize'^^n) ps)) \<and> N \<in> Nts (set ((finalize'^^n) ps))"
+  assumes "N \<notin> lhss ps"
+      and "N \<in> nts ps"
+    shows "N \<notin> lhss ((finalize'^^n) ps) \<and> N \<in> nts ((finalize'^^n) ps)"
   using assms by (induction n) (auto simp add: finalize_syms_dom')
 
 lemma finalize_syms_dom:
-   assumes "N \<notin> set (dom ps)"
-      and  "N \<in> Nts (set ps)"
-    shows "N \<notin> set (dom (finalize ps)) \<and> N \<in> Nts (set (finalize ps))"
+   assumes "N \<notin> lhss ps"
+      and  "N \<in> nts ps"
+    shows "N \<notin> lhss (finalize ps) \<and> N \<in> nts (finalize ps)"
   unfolding finalize_def using assms finalize_syms_dom'' by blast
 
+lemma Lang_empty_if_notin_Lhss: "A \<notin> Lhss P \<Longrightarrow> Lang P A = {}" 
+unfolding Lhss_def Lang_def
+by auto (metis case_prod_conv deriven_start1 insertI1 rtranclp_power)
+
 lemma lang_finalize: 
-  assumes "N \<in> Nts (set ps)"
+  assumes "N \<in> nts ps"
   shows "lang ps N = lang (finalize ps) N"
-proof (cases "N \<in> set (dom ps)")
+proof (cases "N \<in> lhss ps")
   case True
   then show ?thesis
     using lang_finalize' by blast
 next
   case False
   then show ?thesis
-    using assms finalize_syms_dom dom_lang by metis
+    using assms by (metis finalize_syms_dom Lang_empty_if_notin_Lhss)
 qed
 
 lemma binarize1_rlin2: 
@@ -541,7 +546,7 @@ qed
 
 
 lemma lang_rlin2_of_rlin:
-  assumes "N \<in> Nts (set (clean ps))"
+  assumes "N \<in> nts (clean ps)"
   shows "lang ps N = lang (rlin2_of_rlin ps) N"
 proof -
   have "lang ps N = lang (clean ps) N"

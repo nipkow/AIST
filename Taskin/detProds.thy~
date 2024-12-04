@@ -1,5 +1,5 @@
 theory detProds
-imports "../CFG"
+imports "../Stimpfle/uProds" "../CFG"
 begin
 
 (* CFG? *)
@@ -15,32 +15,18 @@ fun syms :: "('n, 't) prods \<Rightarrow> ('n,'t) syms" where
 | "syms ((A,v)#ps) = Nt A # v @ syms ps"
 
 (* CFG? *)
-fun tm :: "('n,'t) syms \<Rightarrow> 't set" where
-  "tm [] = {}" |
-  "tm (Nt A # v) = tm v" |
-  "tm (Tm a # v) = {a} \<union> tm v"
+lemma Nts_un: 
+  "Nt ` Nts (a \<union> as) = Nt ` (Nts a) \<union> Nt ` (Nts as)"
+  unfolding Nts_def by blast
 
 (* CFG? *)
-definition tms :: "('n,'t)prodS \<Rightarrow> 't set" where 
-  "tms P = (\<Union>(A,w)\<in>P. tm w)"
+lemma Tms_un: 
+  "Tm ` Tms (a \<union> as) = Tm ` (Tms a) \<union> Tm ` (Tms as)"
+  unfolding Tms_def by blast
 
 (* CFG? *)
-definition symS :: "('n,'t) prodS \<Rightarrow> ('n,'t) sym set" where 
-  "symS ps = (Nt ` nts ps) \<union> (Tm ` tms ps)"
-
-(* CFG? *)
-lemma nts_un: 
-  "Nt ` nts (a \<union> as) = Nt ` (nts a) \<union> Nt ` (nts as)"
-  unfolding nts_def by blast
-
-(* CFG? *)
-lemma tms_un: 
-  "Tm ` tms (a \<union> as) = Tm ` (tms a) \<union> Tm ` (tms as)"
-  unfolding tms_def by blast
-
-(* CFG? *)
-lemma symS_un: "symS (a \<union> as) = symS a \<union> symS as"
-  unfolding symS_def by (simp add: nts_un sup_assoc sup_left_commute tms_un)
+lemma symS_un: "AllSyms (a \<union> as) = AllSyms a \<union> AllSyms as"
+  unfolding AllSyms_def by (simp add: Nts_un sup_assoc sup_left_commute Tms_un)
 
 (* CFG? *)
 lemma nt_tm: "Nt ` nt u \<union> Tm ` tm u = set u"
@@ -50,26 +36,27 @@ lemma nt_tm: "Nt ` nt u \<union> Tm ` tm u = set u"
   done
 
 (* CFG? *)
-lemma symS_one: "symS {(A,u)} = {Nt A} \<union> set u"
-  unfolding symS_def nts_def tms_def using nt_tm by auto
+lemma AllSyms_one: "AllSyms {(A,u)} = {Nt A} \<union> set u"
+  unfolding AllSyms_def Nts_def Tms_def using nt_tm by auto
 
 (* CFG? *)
-lemma "set (syms ps) = symS (set ps)"
+lemma syms_AllSyms_eq:
+"set (syms ps) = AllSyms (set ps)"
 proof (induction ps)
   case Nil
-  then show ?case by (simp add: nts_def symS_def tms_def)
+  then show ?case by (simp add: Nts_def AllSyms_def Tms_def)
 next
   case (Cons a ps)
   let ?A = "fst a" let ?u = "snd a"
   have "set (syms (a # ps)) = set (Nt ?A # ?u @ syms ps)"
     by (metis prod.collapse syms.simps(2))
   also have "... = {Nt ?A} \<union> set ?u \<union> set (syms ps)" by simp
-  also from Cons.IH have "... = {Nt ?A} \<union> set ?u \<union> symS (set ps)" by simp
-  also have "... = symS {a} \<union> symS (set ps)"
-    using symS_one by (metis prod.collapse)
-  also have "... = symS ({a} \<union> set ps)"
+  also from Cons.IH have "... = {Nt ?A} \<union> set ?u \<union> AllSyms (set ps)" by simp
+  also have "... = AllSyms {a} \<union> AllSyms (set ps)"
+    using AllSyms_one by (metis prod.collapse)
+  also have "... = AllSyms ({a} \<union> set ps)"
     using symS_un by blast
-  also have "... = symS (set (a # ps))" by simp
+  also have "... = AllSyms (set (a # ps))" by simp
   finally show ?case by simp
 qed
 
@@ -109,8 +96,8 @@ lemma syms_to_Nts: "Nt N \<in> set (syms ps) \<Longrightarrow> N \<in> Nts (set 
   done
 
 (* CFG? *)
-lemma nts_syms_equI: "N \<in> nts (set ps) \<longleftrightarrow> Nt N \<in> set (syms ps)"
-  using nts_to_syms syms_to_nts by metis
+lemma Nts_syms_equI: "N \<in> Nts (set ps) \<longleftrightarrow> Nt N \<in> set (syms ps)"
+  using Nts_to_syms syms_to_Nts by metis
 
 (* CFG? *)
 lemma fresh_set: "B \<notin> Nts (set ps) \<Longrightarrow> (A,u) \<in> set ps \<Longrightarrow> Nt B \<notin> set u"

@@ -33,8 +33,8 @@ lemma upgr_noeProds:
   unfolding uppr_def noeProds_def uppr_rules_def nonUnitProds_def unitProds_def newProds_def by simp
 
 lemma Nts_correct: "A \<notin> Nts P \<Longrightarrow> (\<nexists>S \<alpha>. (S, \<alpha>) \<in> P \<and> (Nt A \<in> {Nt S} \<union> set \<alpha>))"
-  unfolding Nts_def apply (induction rule: nt.induct) apply simp
-  by (metis Un_iff case_prod_conv in_set_conv_decomp insertCI nt.simps(2) nt_append)
+  unfolding Nts_def apply (induction rule: nts_of_syms.induct) apply simp
+  by (metis Un_iff case_prod_conv in_set_conv_decomp insertCI nts_of_syms.simps(2) nts_of_syms_append)
 
 lemma not_in_lang: 
   assumes "S \<notin> Nts P"  

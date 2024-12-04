@@ -2,29 +2,6 @@ theory uProds
   imports eProds
 begin
 
-(* definitions *)
-(* TODO: add to CFG.thy *)
-fun tm :: "('n,'t)syms \<Rightarrow> 't set" where
-  "tm [] = {}" |
-  "tm (Nt A # v) = tm v" |
-  "tm (Tm a # v) = {a} \<union> tm v"
-
-definition Tms :: "('n,'t)Prods \<Rightarrow> 't set" where 
-  "Tms P = (\<Union>(A,w)\<in>P. tm w)"
-
-definition AllSyms :: "('n,'t)Prods \<Rightarrow> ('n,'t) sym set" where 
-  "AllSyms P = (Nt ` Nts P) \<union> (Tm ` Tms P)"
-
-definition nts :: "('n,'t) prods \<Rightarrow> 'n set" where
-  "nts P = Nts (set P)"
-
-definition tms :: "('n,'t) prods \<Rightarrow> 't set" where
-  "tms P = Tms (set P)"
-
-definition allSyms :: "('n,'t) prods \<Rightarrow> ('n,'t) sym set" where
-  "allSyms P = AllSyms (set P)"
-(* End of TODO *)
-
 (* Rules of the form A\<rightarrow>B, where A and B are in nonterminals P *)
 definition unitProds :: "('n,'t) prods \<Rightarrow> ('n,'t) Prods" where
   "unitProds P = {(l,r) \<in> set P. \<exists>A. r = [Nt A]}"
@@ -63,9 +40,8 @@ lemma finiteunitProds: "finite (unitProds P)"
 definition NtsCross :: "('n, 't) Prods  \<Rightarrow> ('n \<times> 'n) set" where
   "NtsCross P = {(A, B). A \<in> Nts P \<and> B \<in> Nts P }"
 
-lemma nt_finite: "finite (nt A)"
-  apply (induction A) apply auto
-  by (metis Un_insert_left finite_insert nt.simps(2) nt.simps(3) sup_bot_left sym.exhaust)
+lemma nt_finite: "finite (nts_of_syms A)"
+by (induction A rule: nts_of_syms.induct) auto
 
 lemma finiteallDepS: 
   assumes "finite P" 

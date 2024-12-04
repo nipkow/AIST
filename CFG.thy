@@ -63,23 +63,55 @@ type_synonym ('n,'t) Prods = "('n,'t) prod set"
 datatype ('n,'t) cfg = cfg (prods : "('n,'t) prods") (start : "'n")
 datatype ('n,'t) Cfg = Cfg (Prods : "('n,'t) Prods") (Start : "'n")
 
-fun nt :: "('n,'t)syms \<Rightarrow> 'n set" where
-"nt [] = {}" |
-"nt (Nt A # v) = {A} \<union> nt v" |
-"nt (Tm a # v) = nt v"
+fun nts_of_syms :: "('n,'t)syms \<Rightarrow> 'n set" where
+"nts_of_syms [] = {}" |
+"nts_of_syms (Nt A # v) = {A} \<union> nts_of_syms v" |
+"nts_of_syms (Tm a # v) = nts_of_syms v"
+
+fun tms_of_syms :: "('n,'t)syms \<Rightarrow> 't set" where
+"tms_of_syms [] = {}" |
+"tms_of_syms (Nt A # v) = tms_of_syms v" |
+"tms_of_syms (Tm a # v) = {a} \<union> tms_of_syms v"
 
 definition Nts :: "('n,'t)Prods \<Rightarrow> 'n set" where
-  "Nts P = (\<Union>(A,w)\<in>P. {A} \<union> nt w)"
+  "Nts P = (\<Union>(A,w)\<in>P. {A} \<union> nts_of_syms w)"
+
+definition Tms :: "('n,'t)Prods \<Rightarrow> 't set" where 
+  "Tms P = (\<Union>(A,w)\<in>P. tms_of_syms w)"
+
+abbreviation nts :: "('n,'t) prods \<Rightarrow> 'n set" where
+  "nts P \<equiv> Nts (set P)"
+
+definition Syms :: "('n,'t)Prods \<Rightarrow> ('n,'t) sym set" where 
+  "Syms P = (\<Union>(A,w)\<in>P. {Nt A} \<union> set w)"
+
+abbreviation tms :: "('n,'t) prods \<Rightarrow> 't set" where
+  "tms P \<equiv> Tms (set P)"
+
+abbreviation syms :: "('n,'t) prods \<Rightarrow> ('n,'t) sym set" where
+  "syms P \<equiv> Syms (set P)"
+
+definition Lhss :: "('n, 't) Prods \<Rightarrow> 'n set" where
+"Lhss P = (\<Union>(A,w) \<in> P. {A})"
+
+abbreviation lhss :: "('n, 't) prods \<Rightarrow> 'n set" where
+"lhss ps \<equiv> Lhss(set ps)"
 
 axiomatization fresh :: "('n::infinite,'t) prods \<Rightarrow> 'n" where
 fresh: "fresh ps \<notin> Nts(set ps)"
 
-lemma nt_Cons: "nt (a#v) = (case a of Nt A \<Rightarrow> {A} | _ \<Rightarrow> {}) \<union> nt v"
+lemma nts_of_syms_Cons: "nts_of_syms (a#v) = (case a of Nt A \<Rightarrow> {A} | _ \<Rightarrow> {}) \<union> nts_of_syms v"
   by (cases a, auto)
 
-lemma nt_append[simp]: "nt (u @ v) = nt u \<union> nt v"
-  apply (induction u arbitrary: v rule: nt.induct)
+lemma nts_of_syms_append[simp]: "nts_of_syms (u @ v) = nts_of_syms u \<union> nts_of_syms v"
+  apply (induction u arbitrary: v rule: nts_of_syms.induct)
   by auto
+
+lemma Syms_simps[simp]: "Syms {} = {}" "Syms(insert (A,w) P) = {Nt A} \<union> set w \<union> Syms P"
+by(auto simp: Syms_def)
+
+lemma Lhss_simps[simp]: "Lhss {} = {}" "Lhss(insert (A,w) P) = {A} \<union> Lhss P"
+by(auto simp: Lhss_def)
 
 inductive derive :: "('n,'t) Prods \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t)syms \<Rightarrow> bool"
   ("(2_ \<turnstile>/ (_ \<Rightarrow>/ _))" [50, 0, 50] 50) where

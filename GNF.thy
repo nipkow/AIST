@@ -643,7 +643,7 @@ proof (induction p arbitrary: u v)
 next
   case (Cons a p)
   then have "a \<notin> Nt ` fst ` R"
-    by (fastforce simp: image_iff)
+    by (fastforce simp: nts_of_syms_def image_iff)
   note * = derive_Cons_undef[OF this]
   from Cons.prems have "nts_of_syms p \<inter> fst ` R = {}" by (auto simp: nts_of_syms_Cons)
   from Cons.IH[OF this]
@@ -660,7 +660,7 @@ lemma fst_unwind_new: "fst ` unwind_new R A A' \<subseteq> {A'}"
   by (auto simp: unwind_new_def)
 
 lemma Nt_in_set_iff_nts_of_syms: "Nt A \<in> set w \<longleftrightarrow> A \<in> nts_of_syms w"
-  by (induction w, auto simp: nts_of_syms_Cons split: sym.splits)
+  by (auto simp: nts_of_syms_def)
 
 lemma unwind_new_only_last:
   assumes A'R: "A' \<notin> Nonterminals R"
@@ -1201,7 +1201,6 @@ next
   case ("2_2" As)
   then show ?case by (auto simp: solved_def)
 qed
-
 
 
 end

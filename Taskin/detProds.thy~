@@ -18,7 +18,7 @@ lemma symS_un: "Syms (a \<union> as) = Syms a \<union> Syms as"
 *)
 (* CFG? *)
 lemma nt_tm: "Nt ` nts_of_syms u \<union> Tm ` tms_of_syms u = set u"
-by (induction u rule: nts_of_syms.induct) auto
+unfolding nts_of_syms_def tms_of_syms_def by (auto simp:image_iff) (metis sym.exhaust)
 
 (* CFG? 
 lemma Syms_one: "Syms {(A,u)} = {Nt A} \<union> set u"
@@ -60,11 +60,11 @@ by (auto simp: Lhss_def Nts_def)
 
 (* CFG? *)
 lemma nts_of_syms_set1: "B \<notin> nts_of_syms u \<Longrightarrow> Nt B \<notin> set u"
-  by (induction u rule: nts_of_syms.induct) auto
+  by (simp add: nts_of_syms_def)
 
 (* CFG? *)
 lemma nts_of_syms_set2: "Nt B \<notin> set u \<Longrightarrow> B \<notin> nts_of_syms u"
-  by (induction u rule: nts_of_syms.induct) auto
+  by (simp add: nts_of_syms_def)
 
 (* CFG? *)
 lemma Nts_to_syms: "N \<in> Nts P \<Longrightarrow> Nt N \<in> Syms P"

@@ -388,6 +388,20 @@ next
   qed
 qed
 
+lemma rtrancl_derive_induct[consumes 1, case_names base step]:
+assumes "P \<turnstile> xs \<Rightarrow>* ys"
+and "Q xs"
+and "\<And>u B v w. \<lbrakk> P \<turnstile> xs \<Rightarrow>* u @ [Nt B] @ v; Q (u @ [Nt B] @ v); (B,w) \<in> P \<rbrakk> \<Longrightarrow> Q (u @ w @ v)"
+shows "Q ys"
+using assms
+proof (induction rule: rtranclp_induct)
+  case base
+  from this(1) show ?case .
+next
+  case step
+  from derive.cases[OF step(2)] step(1,3-) show ?case by metis
+qed
+
 
 subsubsection "Leftmost/Rightmost Derivations"
 

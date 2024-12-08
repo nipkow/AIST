@@ -227,7 +227,38 @@ next
     using substP_der by (smt (verit, best) derive.simps derives_append derives_prepend rtranclp_trans)
 qed
 
-lemma substPW_der: 
+lemma
+  assumes prem: "set ((B,v)#ps) \<turnstile> [Nt A] \<Rightarrow>* u"
+      and A_B_noteq: "A \<noteq> B"
+      and B_notin_dom: "B \<notin> lhss ps"
+      and B_notin_v: "Nt B \<notin> set v"
+    shows "set (substP ps (Nt B) v) \<turnstile> [Nt A] \<Rightarrow>* substW u (Nt B) v"
+using assms(1) proof (induction rule: rtrancl_derive_induct)
+  case base
+  then show ?case using assms(2) by simp
+next
+  case (step s B' w v')
+  then show ?case
+  proof (cases "B = B'")
+    case True
+    then have "v = v'" 
+      using B_notin_dom step.hyps unfolding Lhss_def by auto
+    then have "substW (s @ [Nt B'] @ w) (Nt B) v = substW (s @ v' @ w) (Nt B) v" 
+      using step.prems B_notin_v True by (simp add: substW_skip substW_split)
+    then show ?thesis
+      using step.IH by argo
+  next
+    case False
+    then have "(B',v') \<in> set ps"
+      using step by auto
+    then have "(B', substW v' (Nt B) v) \<in> set (substP ps (Nt B) v)"
+      by (metis (no_types, lifting) list.set_map pair_imageI substP_def)
+    with rtrancl_into_rtrancl show ?thesis 
+      by (smt (verit, ccfv_threshold) False step.IH step.prems derive.simps rtranclp.simps substW.simps(1) substW.simps(2) substW_split sym.inject(1))
+  qed
+qed
+
+lemma substPW_der:
   assumes prem: "set ((B,v)#ps) \<turnstile> nta \<Rightarrow>* u"
       and NTA_def: "nta = [Nt A]"
       and A_B_noteq: "A \<noteq> B"

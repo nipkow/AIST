@@ -314,35 +314,46 @@ value "unwind_old_expand [(2, [Nt 1::(int,int)sym])] 1 2"
 
 value "solved [(2::int, [Nt 2::(int,int)sym, Nt 1]), (1, [Nt 2])] [1]"
 
+lemma in_ExpandE:
+  assumes "(A, w) \<in> Expand R S As"
+    and "\<And>b w'. w = b # w' \<Longrightarrow> b \<notin> Nt ` As \<Longrightarrow> (A,w) \<in> R \<Longrightarrow> thesis"
+    and "\<And>B w' v. w = v @ w' \<Longrightarrow> B \<in> As \<Longrightarrow>
+    (A, Nt B # w') \<in> R \<Longrightarrow> (B,v) \<in> S \<Longrightarrow> thesis"
+  shows thesis
+  using assms by (auto simp: Expand_def)
+
 lemma Expand_derives_sound:
   assumes ef: "Eps_free R"
   assumes "Expand R S As \<union> S \<turnstile> u \<Rightarrow>* v"
   shows "R \<union> S \<turnstile> u \<Rightarrow>* v"
   using assms(2)
-proof (induction)
+proof (induction rule: rtrancl_derive_induct)
   case base
   then show ?case by auto
 next
-  case (step y z)
-  from \<open>Expand R S As \<union> S \<turnstile> y \<Rightarrow> z\<close>[unfolded Un_derive]
-  have "R \<union> S \<turnstile> y \<Rightarrow>* z"
-    apply (auto simp add: )defer
-     apply (meson Un_derive rtranclp.simps)
-    apply (auto simp: derive_Expand_iff)
-     apply (rule r_into_rtranclp)
-    using derive.intros Un_derive apply fastforce
-    subgoal premises Aw  for u1 u2 A w B v
-      apply (rule rtranclp_trans[of _ _ "u1@Nt B # w@u2",OF r_into_rtranclp r_into_rtranclp])
-      using Aw Un_derive derive.intros apply fastforce
-    proof-
-      from Aw
-      have "S \<turnstile> u1 @ Nt B # w @ u2 \<Rightarrow> u1 @ v @ w @ u2"
-        using derive.simps by fastforce
-      with Aw(1-5) show "R \<union> S \<turnstile> u1 @ Nt B # w @ u2 \<Rightarrow> u1 @ v @ w @ u2"
-        using Un_derive ef Eps_freeE_Cons by fastforce
-    qed
-    done
-  with step.IH show ?case by auto
+  case (step l A r w)
+  from \<open>(A, w) \<in> Expand R S As \<union> S\<close>
+  have "R \<union> S \<turnstile> [Nt A] \<Rightarrow>* w"
+    apply (elim UnE in_ExpandE)
+  proof goal_cases
+    case (1 b w')
+    then show ?case
+      by (simp add: derive_singleton r_into_rtranclp)
+  next
+    case (2 B w' v)
+    then have "R \<union> S \<turnstile> [Nt A] \<Rightarrow>* Nt B # w'"
+      by (simp add: derive_singleton r_into_rtranclp)
+    also from 2 have "R \<union> S \<turnstile> \<dots> \<Rightarrow> v @ w'"
+      by (simp add: derivel_Nt_Cons derivel_imp_derive)
+    finally show ?case using 2 by simp
+  next
+    case 3
+    then show ?case
+      by (simp add: derive_singleton r_into_rtranclp)
+  qed
+  with step(3)
+  show ?case
+    by (meson derives_append derives_prepend rtranclp_trans)
 qed
 
 fun leftmost_nt where "leftmost_nt [] = None" |
@@ -1123,15 +1134,15 @@ proof-
     using Eps_free_unwind_old_expand[OF ef].
 qed
 
-fun realtime_list where
-  "realtime_list R (A#As) (A'#As') = unwind_expand (realtime_list R As As') (As@As') A A'"
-| "realtime_list R _ _ = R"
+fun realtime where
+  "realtime R (A#As) (A'#As') = unwind_expand (realtime R As As') (As@As') A A'"
+| "realtime R _ _ = R"
 
 context fixes R :: "('n,'t) Prods" begin
-fun realtime where
-  "realtime (A#As) (A'#As') =
-  Unwind_Expand (realtime As As') (set (As@As')) A A'"
-| "realtime _ _ = R"
+fun Realtime where
+  "Realtime (A#As) (A'#As') =
+  Unwind_Expand (Realtime As As') (set (As@As')) A A'"
+| "Realtime _ _ = R"
 
 end
 
@@ -1142,7 +1153,7 @@ lemma Solved_if_disj:
   by (auto simp: Solved_def dest:in_Nonterminals_if_starts_with)
 
 
-lemma Nonterminals_realtime: "Nonterminals (realtime R As As') \<subseteq> Nonterminals R \<union> set As \<union> set As'"
+lemma Nonterminals_Realtime: "Nonterminals (Realtime R As As') \<subseteq> Nonterminals R \<union> set As \<union> set As'"
   sorry
 
 context
@@ -1150,9 +1161,9 @@ context
   assumes ef: "Eps_free R"
 begin
 
-lemma Eps_free_realtime:
-  shows "Eps_free (realtime R As As')"
-proof (induction As As' rule: realtime.induct)
+lemma Eps_free_Realtime:
+  shows "Eps_free (Realtime R As As')"
+proof (induction As As' rule: Realtime.induct)
   case (1 A As A' As')
   then show ?case apply auto sorry
 next
@@ -1163,17 +1174,17 @@ next
   then show ?case sorry
 qed
 
-lemma Solved_realtime:
+lemma Solved_Realtime:
   assumes "Eps_free R"
     and "length As \<le> length As'"
     and "distinct (As @ As')" and "set As' \<inter> Nonterminals R = {}"
-  shows "Solved (realtime R As As') (set As \<union> set As')"
+  shows "Solved (Realtime R As As') (set As \<union> set As')"
   using assms
-proof (induction As As' rule: realtime.induct)
+proof (induction As As' rule: Realtime.induct)
   case (1 A As A' As')
-  with Nonterminals_realtime[of R]
-    Solved_Unwind_Expand[where A=A and A'=A' and As = "set As \<union> set As'" and R ="realtime R As As'"]
-  show ?case by (auto intro!: simp: Eps_free_realtime insert_commute) 
+  with Nonterminals_Realtime[of R]
+    Solved_Unwind_Expand[where A=A and A'=A' and As = "set As \<union> set As'" and R ="Realtime R As As'"]
+  show ?case by (auto intro!: simp: Eps_free_Realtime insert_commute) 
 next
   case ("2_1" As')
   with Solved_if_disj show ?case by auto
@@ -1182,18 +1193,18 @@ next
   then show ?case by (auto simp: Solved_def)
 qed
 
-lemma Lang_realtime:
+lemma Lang_Realtime:
   assumes "Eps_free R"
     and "length As \<le> length As'"
     and "distinct (As @ As')" and "set As' \<inter> Nonterminals R = {}"
     and "B \<notin> set As'"
-  shows "Lang (realtime R As As') B = Lang R B"
+  shows "Lang (Realtime R As As') B = Lang R B"
   using assms(2-)
-proof (induction As As' rule: realtime.induct)
+proof (induction As As' rule: Realtime.induct)
   case (1 A As A' As')
-  with Nonterminals_realtime[of R] Solved_realtime[OF \<open>Eps_free R\<close> ]
-    Lang_Unwind_Expand[where A=A and A'=A' and As = "set As \<union> set As'" and R ="realtime R As As'" and B=B]
-  show ?case by (auto intro!: simp: Eps_free_realtime insert_commute) 
+  with Nonterminals_Realtime[of R] Solved_Realtime[OF \<open>Eps_free R\<close> ]
+    Lang_Unwind_Expand[where A=A and A'=A' and As = "set As \<union> set As'" and R ="Realtime R As As'" and B=B]
+  show ?case by (auto intro!: simp: Eps_free_Realtime insert_commute) 
 next
   case ("2_1" As')
   then show ?case by auto

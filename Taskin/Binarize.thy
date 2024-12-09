@@ -237,22 +237,9 @@ lemma lang_binarize_lhss:
 
 (* Extending assumption from domain to arbitrary non-terminal *)
 
-lemma Lhss_empty_lang:
-  assumes "A \<notin> Lhss P"
-  shows "Lang P A = {}"
-proof -
-  have "\<nexists>x. P \<turnstile> [Nt A] \<Rightarrow>* map Tm x" proof 
-  from assms have nol: "\<nexists>u. (A,u) \<in> P" by (simp add: Lhss_set)
-  assume "\<exists>x. P \<turnstile> [Nt A] \<Rightarrow>* map Tm x"
-  then obtain x where x_def: "P \<turnstile> [Nt A] \<Rightarrow>* map Tm x" by blast
-  thus False proof (induction rule: rtrancl_derive_induct)
-    case base
-    with nol x_def show ?case 
-      by simp (meson deriven_start1 rtranclp_power)
-  qed simp
-qed
-  thus ?thesis unfolding Lang_def by blast
-qed
+lemma Lang_empty_if_notin_Lhss: "A \<notin> Lhss P \<Longrightarrow> Lang P A = {}" 
+unfolding Lhss_def Lang_def
+by auto (metis case_prod_conv deriven_start1 insertI1 rtranclp_power)
 
 lemma binarize_syms1:
   assumes  "Nt A \<in> syms ps"
@@ -268,13 +255,13 @@ using assms proof (induction ps' ps rule: binarize1.induct)
   qed
 qed auto
 
-lemma binarize_lhss1:
+lemma binarize_lhss_nts1:
   assumes "A \<notin> lhss ps"
       and "A \<in> nts ps'"
     shows "A \<notin> lhss (binarize1 ps' ps)"
   using assms proof (induction ps' ps rule: binarize1.induct)
   case (3 ps' A s0 u ps)
-  then show ?case proof (cases "length u \<le> 1")
+  thus ?case proof (cases "length u \<le> 1")
     case True
     with 3 show ?thesis by auto
   next
@@ -283,21 +270,21 @@ lemma binarize_lhss1:
   qed
 qed simp_all
 
-lemma binarize_syms_lhss'n:
+lemma binarize_lhss_nts'n:
   assumes "A \<notin> lhss ps"
       and "A \<in> nts ps"
     shows "A \<notin> lhss ((binarize'^^n) ps) \<and> A \<in> nts ((binarize'^^n) ps)"
 using assms proof (induction n)
   case (Suc n)
   thus ?case 
-    unfolding binarize'_def by (simp add: binarize_lhss1 binarize_syms1 Nts_syms_equI)
+    unfolding binarize'_def by (simp add: binarize_lhss_nts1 binarize_syms1 Nts_syms_equI)
 qed simp
 
-lemma binarize_syms_lhss:
+lemma binarize_lhss_nts:
    assumes "A \<notin> lhss ps"
       and  "A \<in> nts ps"
     shows "A \<notin> lhss (binarize ps) \<and> A \<in> nts (binarize ps)"
-  unfolding binarize_def using assms binarize_syms_lhss'n by blast
+  unfolding binarize_def using assms binarize_lhss_nts'n by blast
 
 lemma binarize_nts'n:
   assumes "A \<in> nts ps"
@@ -323,7 +310,7 @@ proof (cases "A \<in> lhss ps")
 next
   case False
   thus ?thesis
-    using assms binarize_syms_lhss Lhss_empty_lang by fast
+    using assms binarize_lhss_nts Lang_empty_if_notin_Lhss by fast
 qed
 
 end

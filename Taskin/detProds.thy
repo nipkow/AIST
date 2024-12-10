@@ -1,5 +1,5 @@
 theory detProds
-imports "../Stimpfle/uProds" "../CFG"
+imports "../CFG"
 begin
 
 (* CFG? *)
@@ -50,12 +50,12 @@ lemma lhss_eq: "lhss ((A,u) # ps) = lhss ((A,s) # ps)"
   by (auto simp: Lhss_def)
 
 (* CFG? *)
-lemma dom_set: 
+lemma Lhss_set: 
   "B \<notin> Lhss P \<Longrightarrow> (B,v) \<notin> P"
   by (auto simp: Lhss_def)
 
 (* CFG? *)
-lemma fresh_dom: "B \<notin> Nts P \<Longrightarrow> B \<notin> Lhss P"
+lemma fresh_Lhss: "B \<notin> Nts P \<Longrightarrow> B \<notin> Lhss P"
 by (auto simp: Lhss_def Nts_def)
 
 (* CFG? *)
@@ -67,21 +67,21 @@ lemma nts_of_syms_set2: "Nt B \<notin> set u \<Longrightarrow> B \<notin> nts_of
   by (simp add: nts_of_syms_def)
 
 (* CFG? *)
-lemma Nts_to_syms: "N \<in> Nts P \<Longrightarrow> Nt N \<in> Syms P"
+lemma Nts_to_syms: "B \<in> Nts P \<Longrightarrow> Nt B \<in> Syms P"
 unfolding Nts_def Syms_def
 apply (auto split: prod.splits)
  apply blast
 using nts_of_syms_set2 by fastforce
 
 (* CFG? *)
-lemma syms_to_Nts: "Nt N \<in> Syms P \<Longrightarrow> N \<in> Nts P"
+lemma syms_to_Nts: "Nt B \<in> Syms P \<Longrightarrow> B \<in> Nts P"
 unfolding Nts_def Syms_def
 apply (auto split: prod.splits)
  apply blast
 using nts_of_syms_set1 by fastforce
 
 (* CFG? *)
-lemma Nts_syms_equI: "N \<in> Nts P \<longleftrightarrow> Nt N \<in> Syms P"
+lemma Nts_syms_equI: "B \<in> Nts P \<longleftrightarrow> Nt B \<in> Syms P"
   using Nts_to_syms syms_to_Nts by metis
 
 (* CFG? *)
@@ -107,24 +107,24 @@ lemma syms_not_set: "Nt B \<notin> Syms P \<Longrightarrow> (A,u) \<in> P \<Long
   using syms_inv by blast
 
 (* CFG? *)
-lemma syms_dom: "Nt B \<notin> Syms P \<Longrightarrow> B \<notin> Lhss P"
+lemma syms_Lhss: "Nt B \<notin> Syms P \<Longrightarrow> B \<notin> Lhss P"
 unfolding Lhss_def Syms_def by auto
 
 (* CFG? *)
-lemma syms_subset2: "Nt B \<notin> syms ps \<Longrightarrow> set ps' \<subseteq> set ps \<Longrightarrow> Nt B \<notin> syms ps'"
+lemma syms_subset2: "Nt B \<notin> Syms P \<Longrightarrow> P' \<subseteq> P \<Longrightarrow> Nt B \<notin> Syms P'"
   using syms_subset by blast
 
 (* CFG? *)
-lemma syms_set: "a \<notin> syms ps \<Longrightarrow> (A,u) \<in> set ps \<Longrightarrow> a \<notin> set u"
+lemma syms_set: "a \<notin> Syms P \<Longrightarrow> (A,u) \<in> P \<Longrightarrow> a \<notin> set u"
   using syms_inv by blast
 
 (* CFG? *)
-lemma fresh_syms: "B \<notin> nts ps \<Longrightarrow> Nt B \<notin> syms ps"
+lemma fresh_syms: "B \<notin> Nts P \<Longrightarrow> Nt B \<notin> Syms P"
   by (metis syms_to_Nts)
 
 (* CFG? *)
-lemma syms_dom_not_eq: "Nt B \<notin> Syms P \<Longrightarrow> N \<in> Lhss P \<Longrightarrow> N \<noteq> B"
-  using syms_dom by force
+lemma syms_Lhss_not_eq: "Nt B \<notin> Syms P \<Longrightarrow> A \<in> Lhss P \<Longrightarrow> A \<noteq> B"
+  using syms_Lhss by force
 
 fun substW :: "'a list \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
   "substW [] _ _ = []"
@@ -145,7 +145,7 @@ lemma substW_rev: "y' \<notin> set xs \<Longrightarrow> substW (substW xs y [y']
   by (induction xs) auto
 
 lemma substW_der:
-  "(B,v) \<in> set ps \<Longrightarrow> (set ps) \<turnstile> u \<Rightarrow>* substW u (Nt B) v"
+  "(B,v) \<in> P \<Longrightarrow> P \<turnstile> u \<Rightarrow>* substW u (Nt B) v"
 proof (induction u)
   case Nil
   then show ?case by simp
@@ -167,7 +167,7 @@ lemma substP_skip1: "s \<notin> set v \<Longrightarrow> substP ((A,v) # ps) s u 
   by (auto simp add: substW_skip substP_def)
 
 lemma substP_skip2: "s \<notin> syms ps \<Longrightarrow> substP ps s u = ps"
-unfolding Syms_def by (induction ps) (auto simp add: substP_def substW_skip)
+  by (induction ps) (auto simp add: substP_def substW_skip)
 
 lemma substP_rev: "Nt B \<notin> syms ps \<Longrightarrow> substP (substP ps s [Nt B]) (Nt B) [s] = ps"
 proof (induction ps)
@@ -190,10 +190,10 @@ next
   also from Cons.prems have "... = (?A, ?u) # ps"
     using substW_rev syms_inv by (metis list.set_intros(1) prod.collapse)
   also have "... = a # ps" by simp
-  finally show ?case by simp
+  finally show ?case .
 qed
 
-lemma substP_dom:
+lemma substP_lhss:
   "lhss ps = lhss (substP ps s u)"
 by (auto simp add: Lhss_def substP_def)
 
@@ -218,16 +218,13 @@ qed
 
 lemma if_part:
   "set (substP ps (Nt B) v) \<turnstile> [Nt A] \<Rightarrow>* u \<Longrightarrow> set ((B,v) # ps) \<turnstile> [Nt A] \<Rightarrow>* u"
-proof (induction rule: rtranclp.induct)
-  case (rtrancl_refl a)
-  then show ?case by simp
-next
-  case (rtrancl_into_rtrancl a b c)
+proof (induction rule: rtrancl_derive_induct)
+  case (step u A v w)
   then show ?case 
-    using substP_der by (smt (verit, best) derive.simps derives_append derives_prepend rtranclp_trans)
-qed
+    by simp (metis (no_types, lifting) derives_append derives_prepend list.simps(15) rtranclp_trans step.IH substP_der)
+qed simp
 
-lemma
+lemma substPW_der:
   assumes prem: "set ((B,v)#ps) \<turnstile> [Nt A] \<Rightarrow>* u"
       and A_B_noteq: "A \<noteq> B"
       and B_notin_dom: "B \<notin> lhss ps"
@@ -255,40 +252,6 @@ next
       by (metis (no_types, lifting) list.set_map pair_imageI substP_def)
     with rtrancl_into_rtrancl show ?thesis 
       by (smt (verit, ccfv_threshold) False step.IH step.prems derive.simps rtranclp.simps substW.simps(1) substW.simps(2) substW_split sym.inject(1))
-  qed
-qed
-
-lemma substPW_der:
-  assumes prem: "set ((B,v)#ps) \<turnstile> nta \<Rightarrow>* u"
-      and NTA_def: "nta = [Nt A]"
-      and A_B_noteq: "A \<noteq> B"
-      and B_notin_dom: "B \<notin> lhss ps"
-      and B_notin_v: "Nt B \<notin> set v"
-    shows "set (substP ps (Nt B) v) \<turnstile> nta \<Rightarrow>* substW u (Nt B) v"
-using assms proof (induction rule: rtranclp.induct)
-  case (rtrancl_refl a)
-  then show ?case by simp
-next
-  case (rtrancl_into_rtrancl a b c)
-  then obtain s B' v' w where b_c_def: "b = s @ [Nt B'] @ w \<and> c = s @ v' @ w \<and> (B',v') \<in> set ((B, v) # ps)" 
-    by (meson derive.simps)
-  then show ?case
-  proof (cases "B = B'")
-    case True
-    then have "v = v'" 
-      using B_notin_dom b_c_def unfolding Lhss_def by auto
-    then have "substW b (Nt B) v = substW c (Nt B) v" 
-      using b_c_def B_notin_v True by (simp add: substW_skip substW_split)
-    then show ?thesis
-      using A_B_noteq B_notin_dom B_notin_v rtrancl_into_rtrancl.IH rtrancl_into_rtrancl.prems(1) by argo
-  next
-    case False
-    then have "(B',v') \<in> set ps"
-      using b_c_def by auto
-    then have "(B', substW v' (Nt B) v) \<in> set (substP ps (Nt B) v)"
-      by (metis (no_types, lifting) list.set_map pair_imageI substP_def)
-    with rtrancl_into_rtrancl show ?thesis 
-      by (smt (verit, ccfv_threshold) False b_c_def derive.simps rtranclp.simps substW.simps(1) substW.simps(2) substW_split sym.inject(1))
   qed
 qed
 

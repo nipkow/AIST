@@ -403,6 +403,11 @@ next
 qed
 
 
+lemma Lang_empty_if_notin_Lhss: "A \<notin> Lhss P \<Longrightarrow> Lang P A = {}" 
+unfolding Lhss_def Lang_def
+by auto (metis case_prod_conv deriven_start1 insertI1 rtranclp_power)
+
+
 subsubsection "Leftmost/Rightmost Derivations"
 
 inductive derivel :: "('n,'t) Prods \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t)syms \<Rightarrow> bool"

@@ -35,11 +35,13 @@ lemma upgr_noeProds:
 lemma Nts_correct: "A \<notin> Nts P \<Longrightarrow> (\<nexists>S \<alpha>. (S, \<alpha>) \<in> P \<and> (Nt A \<in> {Nt S} \<union> set \<alpha>))"
 unfolding Nts_def nts_of_syms_def by auto
 
+(* subsumed by lemma Lang_empty_if_notin_Lhss
 lemma not_in_lang: 
   assumes "S \<notin> Nts P"  
   shows "Lang P S = {}"
   using assms Nts_correct 
   by (metis Lang_def all_not_in_conv deriven_start1 insert_is_Un list.set_intros(1) list.simps(15) mem_Collect_eq rtranclp_power)
+*)
 
 (* Chomsky Normal Form *)
 

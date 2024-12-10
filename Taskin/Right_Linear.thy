@@ -419,10 +419,6 @@ lemma finalize_syms_dom:
     shows "N \<notin> lhss (finalize ps) \<and> N \<in> nts (finalize ps)"
   unfolding finalize_def using assms finalize_syms_dom'' by blast
 
-lemma Lang_empty_if_notin_Lhss: "A \<notin> Lhss P \<Longrightarrow> Lang P A = {}" 
-unfolding Lhss_def Lang_def
-by auto (metis case_prod_conv deriven_start1 insertI1 rtranclp_power)
-
 lemma lang_finalize: 
   assumes "N \<in> nts ps"
   shows "lang ps N = lang (finalize ps) N"

@@ -563,11 +563,7 @@ using assms proof -
 qed
 
 lemma lang_rlin2_of_rlin:
-<<<<<<< HEAD
-  assumes "N \<in> nts (clean ps)"
-=======
   assumes "N \<in> Nts (set ps)"
->>>>>>> a0c7d30fa0a57ae2e43f86879c5df6aebe51b122
   shows "lang ps N = lang (rlin2_of_rlin ps) N"
 proof -
   from assms have "lang ps N = lang (finalize ps) N"

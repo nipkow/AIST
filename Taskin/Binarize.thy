@@ -297,11 +297,6 @@ proof
   qed
 qed
 
-lemma dom_lang:
-  assumes "N \<notin> Lhss P"
-  shows "Lang P N = {}"
-  using dom_der Lang_def assms by fastforce
-
 lemma binarize_syms1:
   assumes  "Nt N \<in> syms ps"
     shows  "Nt N \<in> syms (binarize1 ps' ps)"
@@ -399,7 +394,7 @@ proof (cases "N \<in> lhss ps")
 next
   case False
   then show ?thesis
-    using assms binarize_syms_dom dom_lang by metis
+    using assms by (metis binarize_syms_dom Lang_empty_if_notin_Lhss)
 qed
 
 end

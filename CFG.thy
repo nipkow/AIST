@@ -144,6 +144,16 @@ definition Ders :: "('n,'t)Prods \<Rightarrow> 'n \<Rightarrow> ('n,'t)syms set"
 abbreviation ders :: "('n,'t)prods \<Rightarrow> 'n \<Rightarrow> ('n,'t)syms set" where
 "ders ps \<equiv> Ders (set ps)"
 
+lemma DersI:
+  assumes "P \<turnstile> [Nt A] \<Rightarrow>* w" shows "w \<in> Ders P A"
+  using assms by (auto simp: Ders_def)
+
+lemma DersD:
+  assumes "w \<in> Ders P A" shows "P \<turnstile> [Nt A] \<Rightarrow>* w"
+  using assms by (auto simp: Ders_def)
+
+lemmas DersE = DersD[elim_format]
+
 definition Lang :: "('n,'t)Prods \<Rightarrow> 'n \<Rightarrow> 't list set" where
 "Lang P A = {w. P \<turnstile> [Nt A] \<Rightarrow>* map Tm w}"
 
@@ -196,6 +206,21 @@ lemma derives_append:
 lemma derives_prepend:
   "P \<turnstile> u \<Rightarrow>* v \<Longrightarrow> P \<turnstile> w@u \<Rightarrow>* w@v"
   by (metis deriven_prepend rtranclp_power)
+
+lemma derives_rule:
+  assumes 2: "(A,w) \<in> R" and 1: "R \<turnstile> x \<Rightarrow>* y @ Nt A # z" and 3: "R \<turnstile> y@w@z \<Rightarrow>* v"
+  shows "R \<turnstile> x \<Rightarrow>* v"
+proof-
+  note 1
+  also have "R \<turnstile> y @ Nt A # z \<Rightarrow> y @ w @ z"
+    using derive.intros[OF 2] by simp
+  also note 3
+  finally show ?thesis.
+qed
+
+lemma derives_Cons_rule:
+  assumes 1: "(A,w) \<in> R" and 2: "R \<turnstile> w @ u \<Rightarrow>* v" shows "R \<turnstile> Nt A # u \<Rightarrow>* v"
+  using derives_rule[OF 1, of "Nt A # u" "[]" u v] 2 by auto
 
 lemma derive_append_decomp:
   "P \<turnstile> u@v \<Rightarrow> w \<longleftrightarrow>
@@ -252,6 +277,10 @@ next
   finally show ?l by auto
 qed
 
+lemma derives_append_decomp:
+  "P \<turnstile> u @ v \<Rightarrow>* w \<longleftrightarrow> (\<exists>u' v'. P \<turnstile> u \<Rightarrow>* u' \<and> P \<turnstile> v \<Rightarrow>* v' \<and> w = u' @ v')"
+  by (auto simp: rtranclp_power deriven_append_decomp)
+
 lemma derive_Cons:
 "P \<turnstile> u \<Rightarrow> v \<Longrightarrow> P \<turnstile> a#u \<Rightarrow> a#v"
   using derive_prepend[of P u v "[a]"] by auto
@@ -305,7 +334,6 @@ qed
 lemma derives_T_Cons:
   "P \<turnstile> Tm a # u \<Rightarrow>* v \<longleftrightarrow> (\<exists>w. v = Tm a # w \<and> P \<turnstile> u \<Rightarrow>* w)"
   by (metis deriven_Tm_Cons rtranclp_power)
-
 
 lemma derive_singleton: "P \<turnstile> [a] \<Rightarrow> u \<longleftrightarrow> (\<exists>A. (A,u) \<in> P \<and> a = Nt A)"
   by (auto simp: derive_iff Cons_eq_append_conv)
@@ -388,6 +416,33 @@ next
   qed
 qed
 
+lemma deriven_Suc_decomp_left:
+  "P \<turnstile> u \<Rightarrow>(Suc n) v \<longleftrightarrow> (\<exists>p A u2 w v1 v2 n1 n2.
+  u = p @ Nt A # u2 \<and> v = p @ v1 @ v2 \<and> n = n1 + n2 \<and>
+  (A,w) \<in> P \<and> P \<turnstile> w \<Rightarrow>(n1) v1 \<and>
+  P \<turnstile> u2 \<Rightarrow>(n2) v2)" (is "?l \<longleftrightarrow> ?r")
+proof
+  show "?r \<Longrightarrow> ?l"
+    by (auto intro!: deriven_prepend simp: deriven_Cons_decomp)
+  show "?l \<Longrightarrow> ?r"
+  proof(induction u arbitrary: v n)
+    case Nil
+    then show ?case by auto
+  next
+    case (Cons a u)
+    from Cons.prems[unfolded deriven_Cons_decomp]
+    show ?case
+    proof (elim disjE exE conjE, goal_cases)
+      case (1 v2)
+      with Cons.IH[OF this(2)] show ?thesis
+        apply (auto simp: Cons_eq_append_conv) by metis
+    next
+      case (2 n1 n2 A w v1 v2)
+      then show ?thesis by (fastforce simp:Cons_eq_append_conv)
+    qed
+  qed
+qed
+
 lemma rtrancl_derive_induct[consumes 1, case_names base step]:
   assumes "P \<turnstile> xs \<Rightarrow>* ys"
   and "Q xs"
@@ -402,6 +457,14 @@ next
   from derive.cases[OF step(2)] step(1,3-) show ?case by metis
 qed
 
+lemma derives_induct'[consumes 1, case_names base step]:
+  assumes "P \<turnstile> xs \<Rightarrow>* ys"
+  and Base: "Q ys"
+  and Step: "\<And>u A v w. \<lbrakk> P \<turnstile> u @ [Nt A] @ v \<Rightarrow>* ys; Q (u @ w @ v); (A,w) \<in> P \<rbrakk> \<Longrightarrow> Q (u @ [Nt A] @ v)"
+  shows "Q xs"
+  using assms(1)
+  apply (induction rule: converse_rtranclp_induct)
+  by (auto elim!: derive.cases intro!: Base Step intro: derives_rule)
 
 lemma Lang_empty_if_notin_Lhss: "A \<notin> Lhss P \<Longrightarrow> Lang P A = {}" 
 unfolding Lhss_def Lang_def

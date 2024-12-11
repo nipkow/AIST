@@ -2,6 +2,9 @@ theory GNF
 imports CFG
 begin
 
+lemma rtranclpE_power: "rtranclp r x y \<Longrightarrow> (\<And>n. (r^^n) x y \<Longrightarrow> thesis) \<Longrightarrow> thesis"
+  by (auto simp: rtranclp_power)
+
 fun rt :: "('n,'t)syms \<Rightarrow> bool" where
 "rt [] = True" |
 "rt (Tm _ # _) = True" |
@@ -56,14 +59,170 @@ lemma Eps_freeI:
   assumes "\<And>A r. (A,r) \<in> R \<Longrightarrow> r \<noteq> []" shows "Eps_free R"
   using assms by (auto simp: Eps_free_def)
 
-lemma "\<exists>R'. Eps_free R' \<and> (\<forall>A. Lang R' A = Lang R A - {[]})"
-sorry
-
 lemma Eps_free_Nil: "Eps_free R \<Longrightarrow> (A,[]) \<notin> R"
   by (auto simp: Eps_free_def)
 
 lemma Eps_freeE_Cons: "Eps_free R \<Longrightarrow> (A,w) \<in> R \<Longrightarrow> \<exists>a u. w = a#u"
   by (cases w, auto simp: Eps_free_def)
+
+lemma Eps_free_derives_Nil:
+  assumes R: "Eps_free R" shows "R \<turnstile> l \<Rightarrow>* [] \<longleftrightarrow> l = []" (is "?l \<longleftrightarrow> ?r")
+proof
+  show "?l \<Longrightarrow> ?r"
+  proof (induction rule: derives_induct')
+    case base
+    show ?case by simp
+  next
+    case (step u A v w)
+    then show ?case by (auto simp: Eps_free_Nil[OF R])
+  qed
+qed auto
+
+fun expand_eps where
+  "expand_eps A [] = {[]}"
+| "expand_eps A (a#w) =
+  Cons a ` expand_eps A w \<union> (if a = Nt A then expand_eps A w else {})"
+
+lemma expand_eps_self: "w \<in> expand_eps A w" by (induction w, auto)
+
+lemma expand_eps_complete:
+  "R \<turnstile> w \<Rightarrow>* v \<Longrightarrow> (\<exists>w' \<in> expand_eps A w. R \<turnstile> w' \<Rightarrow>* v)"
+proof (induction rule: rtrancl_derive_induct)
+  case base
+  show ?case by (auto intro!: bexI[OF _ expand_eps_self])
+next
+  case (step u A v w)
+  then show ?case by (auto intro!: bexI[OF _ expand_eps_self] intro: derives_rule)
+qed
+
+lemma expand_eps_sound:
+  assumes A0: "(A,[]) \<in> R"
+    and "w' \<in> expand_eps A w" and "R \<turnstile> w' \<Rightarrow>* v"
+  shows "R \<turnstile> w \<Rightarrow>* v"
+  using assms(3,2)
+proof (induction rule: rtrancl_derive_induct)
+  case base
+  then show ?case
+  proof (induction w arbitrary: w')
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a w)
+    then show ?case
+      by (auto simp: derives_Cons derives_Cons_rule[OF A0] split: if_splits)
+  qed
+next
+  case (step u A v w)
+  then show ?case by (auto dest: derives_rule)
+qed
+
+definition Eps_remove where "Eps_remove R =
+  {(A,r) \<in> R. r \<noteq> []} \<union>
+  {(B,w') | A B w w'. (A,[]) \<in> R \<and> (B,w) \<in> R \<and> w' \<in> expand_eps A w - {[]}}"
+
+definition Eps_extract where "Eps_extract R = {(A,[]) |A. R \<turnstile> [Nt A] \<Rightarrow>* []}"
+
+lemma Eps_extract_derives: "R \<turnstile> v \<Rightarrow>* [] \<longleftrightarrow> Eps_extract R \<turnstile> v \<Rightarrow>* []" (is "?l \<longleftrightarrow> ?R \<turnstile> v \<Rightarrow>* []")
+proof (safe elim!: rtranclpE_power)
+  show "R \<turnstile> v \<Rightarrow>(n) [] \<Longrightarrow> ?R \<turnstile> v \<Rightarrow>* []" for n
+  proof (induction n arbitrary: v rule: less_induct)
+    case (less n)
+    show ?case
+    proof (cases n)
+      case 0
+      with less.prems show ?thesis by auto
+    next
+      case (Suc m)
+      with less.prems
+      obtain A u w n1 n2 where
+        [simp]: "n = Suc (n1 + n2)" "v = Nt A # u"
+        and Aw: "(A, w) \<in> R"
+        and w: "R \<turnstile> w \<Rightarrow>(n1) []"
+        and u: "R \<turnstile> u \<Rightarrow>(n2) []"
+        by (auto simp: deriven_Suc_decomp_left)
+      from Aw w have "R \<turnstile> [Nt A] \<Rightarrow>(Suc n1) []"
+        by (auto simp: deriven_singleton)
+      then have "(A,[]) \<in> Eps_extract R"
+        by (auto simp: Eps_extract_def rtranclp_power)
+      with less.IH[OF _ u]
+      show ?thesis by (auto simp: Eps_extract_def derives_Cons_rule)
+    qed
+  qed
+  show "Eps_extract R \<turnstile> v \<Rightarrow>(n) [] \<Longrightarrow> R \<turnstile> v \<Rightarrow>* []" for n
+  proof (induction n arbitrary: v rule: less_induct)
+    case (less n)
+    show ?case
+    proof (cases n)
+      case 0
+      with less.prems show ?thesis by auto
+    next
+      case (Suc m)
+      with less.prems
+      obtain A u w n1 n2 where
+        [simp]: "n = Suc (n1 + n2)" "v = Nt A # u"
+        and Aw: "(A,w) \<in> ?R"
+        and w: "?R \<turnstile> w \<Rightarrow>(n1) []"
+        and u: "?R \<turnstile> u \<Rightarrow>(n2) []"
+        by (auto simp: deriven_Suc_decomp_left)
+      from Aw have "R \<turnstile> [Nt A] \<Rightarrow>* []" by (auto simp: Eps_extract_def)
+      with less.IH[OF _ u]
+      show ?thesis
+        apply (auto)
+        by (metis derives_Cons rtranclp_trans)
+    qed
+  qed
+qed
+
+lemma Eps_free_Eps_remove: "Eps_free (Eps_remove R)"
+  by (auto simp: Eps_free_def Eps_remove_def)
+
+lemma Eps_remove_derives_sound: "Eps_remove R \<turnstile> x \<Rightarrow>* y \<Longrightarrow> R \<turnstile> x \<Rightarrow>* y"
+proof (induction rule: rtrancl_derive_induct)
+  case base
+  then show ?case by auto
+next
+  case (step u A v w)
+  from this(2)[unfolded Eps_remove_def]
+  show ?case
+  proof (safe del: DiffE)
+    show "(A, w) \<in> R \<Longrightarrow> w \<noteq> [] \<Longrightarrow> ?thesis"
+      using step(3)
+      by (auto simp: derives_rule[OF _ _ rtranclp.rtrancl_refl])
+    fix B w' assume B: "(B,[]) \<in> R" and w: "w \<in> expand_eps B w' - {[]}"
+      and A: "(A,w') \<in> R"
+    show ?thesis
+      apply (rule derives_rule[OF A step(3)[simplified]])
+      using expand_eps_sound[OF B _ rtranclp.rtrancl_refl] w
+      by (auto intro!: derives_prepend derives_append)
+  qed
+qed
+
+lemma Eps_remove_derives_complete:
+  assumes uv: "R \<turnstile> u \<Rightarrow>* v"
+  shows "if v = [] then Eps_extract R \<turnstile> u \<Rightarrow>* [] else Eps_remove R \<turnstile> u \<Rightarrow>* v \<or> v = []"
+  using uv
+proof (elim rtranclpE_power)
+  show "R \<turnstile> u \<Rightarrow>(n) v \<Longrightarrow> ?thesis" for n
+  proof (induction n arbitrary: u v rule: less_induct)
+    case (less n)
+    show ?case
+    proof (cases n)
+      case 0
+      with less.prems show ?thesis by auto
+    next
+      case [simp]: (Suc m)
+      from less.prems
+      obtain p A u2 w v1 v2 n1 n2
+        where "u = p @ Nt A # u2" "v = p @ v1 @ v2"
+          and w: "(A,w) \<in> R" and "m = n1 + n2"
+          and wv1: "R \<turnstile> w \<Rightarrow>(n1) v1" and "R \<turnstile> u2 \<Rightarrow>(n2) v2"
+        by (fastforce simp: deriven_Suc_decomp_left)
+      note less.IH[OF _ wv1]
+      show ?thesis
+        oops
+
+lemma "\<exists>R'. Eps_free R' \<and> (\<forall>A. Lang R' A = Lang R A - {[]})"
+sorry
 
 
 definition "rhs1 = fst o snd"

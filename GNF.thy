@@ -51,33 +51,6 @@ by(auto simp: Lnt_def finite_vimageI inj_Lnt[simplified rule_def])
 lemma rtps_if_Lnt_empty: "Lnt P = {} \<Longrightarrow> rtps P"
 by(auto simp: Lnt_def rtps_def elim!:  rt.elims(3)) (metis rt.elims(3))
 
-definition Eps_free where "Eps_free R = (\<forall>(_,r) \<in> R. r \<noteq> [])"
-
-definition "eps_free R = (\<forall>(A,w) \<in> set R. w \<noteq> [])"
-
-lemma Eps_freeI:
-  assumes "\<And>A r. (A,r) \<in> R \<Longrightarrow> r \<noteq> []" shows "Eps_free R"
-  using assms by (auto simp: Eps_free_def)
-
-lemma Eps_free_Nil: "Eps_free R \<Longrightarrow> (A,[]) \<notin> R"
-  by (auto simp: Eps_free_def)
-
-lemma Eps_freeE_Cons: "Eps_free R \<Longrightarrow> (A,w) \<in> R \<Longrightarrow> \<exists>a u. w = a#u"
-  by (cases w, auto simp: Eps_free_def)
-
-lemma Eps_free_derives_Nil:
-  assumes R: "Eps_free R" shows "R \<turnstile> l \<Rightarrow>* [] \<longleftrightarrow> l = []" (is "?l \<longleftrightarrow> ?r")
-proof
-  show "?l \<Longrightarrow> ?r"
-  proof (induction rule: derives_induct')
-    case base
-    show ?case by simp
-  next
-    case (step u A v w)
-    then show ?case by (auto simp: Eps_free_Nil[OF R])
-  qed
-qed auto
-
 fun expand_eps where
   "expand_eps A [] = {[]}"
 | "expand_eps A (a#w) =

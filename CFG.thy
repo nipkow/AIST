@@ -330,6 +330,10 @@ next
   thus ?thesis using *(2) Suc by auto
 qed
 
+lemma Lang_empty_if_notin_Lhss: "A \<notin> Lhss P \<Longrightarrow> Lang P A = {}" 
+unfolding Lhss_def Lang_def
+by auto (metis case_prod_conv deriven_start1 insertI1 rtranclp_power)
+
 lemma derive_Tm_Cons:
   "P \<turnstile> Tm a # u \<Rightarrow> v \<longleftrightarrow> (\<exists>w. v = Tm a # w \<and> P \<turnstile> u \<Rightarrow> w)"
   by (fastforce simp: derive_iff Cons_eq_append_conv)
@@ -456,6 +460,27 @@ proof
   qed
 qed
 
+
+subsubsection "Customized Induction Principles"
+
+lemma deriven_induct[consumes 1, case_names 0 Suc]:
+  assumes "P \<turnstile> xs \<Rightarrow>(n) ys"
+  and "Q 0 xs"
+  and "\<And>n u A v w. \<lbrakk> P \<turnstile> xs \<Rightarrow>(n) u @ [Nt A] @ v; Q n (u @ [Nt A] @ v); (A,w) \<in> P \<rbrakk> \<Longrightarrow> Q (Suc n) (u @ w @ v)"
+  shows "Q n ys"
+using assms(1) proof (induction n arbitrary: ys)
+  case 0
+  thus ?case using assms(2) by auto
+next
+  case (Suc n)
+  from relpowp_Suc_E[OF Suc.prems]
+  obtain xs' where n: "P \<turnstile> xs \<Rightarrow>(n) xs'" and 1: "P \<turnstile> xs' \<Rightarrow> ys" by auto
+  from derive.cases[OF 1] obtain u A v w where "xs' = u @ [Nt A] @ v" "(A,w) \<in> P" "ys = u @ w @ v"
+    by metis
+  with Suc.IH[OF n] assms(3) n
+  show ?case by blast
+qed
+
 lemma rtrancl_derive_induct[consumes 1, case_names base step]:
   assumes "P \<turnstile> xs \<Rightarrow>* ys"
   and "Q xs"
@@ -478,10 +503,6 @@ lemma derives_induct'[consumes 1, case_names base step]:
   using assms(1)
   apply (induction rule: converse_rtranclp_induct)
   by (auto elim!: derive.cases intro!: Base Step intro: derives_rule)
-
-lemma Lang_empty_if_notin_Lhss: "A \<notin> Lhss P \<Longrightarrow> Lang P A = {}" 
-unfolding Lhss_def Lang_def
-by auto (metis case_prod_conv deriven_start1 insertI1 rtranclp_power)
 
 
 subsubsection "Leftmost/Rightmost Derivations"

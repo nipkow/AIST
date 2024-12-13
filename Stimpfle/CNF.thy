@@ -8,16 +8,13 @@ definition isTm :: "('n, 't) sym \<Rightarrow> bool" where
 definition isNt :: "('n, 't) sym \<Rightarrow> bool" where 
   "isNt s = (\<exists>A. s = Nt A)"
 
-definition noeProds :: "('n, 't) Prods \<Rightarrow> bool" where
-  "noeProds P = (\<nexists>l. (l,[]) \<in> P)"
-
 definition nouProds :: "('n, 't) Prods \<Rightarrow> bool" where
   "nouProds P = (\<nexists>l A. (l,[Nt A]) \<in> P)"
 
-lemma negrImpnoeProds: 
+lemma negrImpEps_free: 
   assumes "nepr P P'"
-  shows "noeProds (set P')"
-  using assms unfolding nepr_def noeProds_def munge_def by simp
+  shows "Eps_free (set P')"
+  using assms unfolding nepr_def munge_def Eps_free_def by blast
 
 lemma upgrImpnouProds:
   assumes "uppr P P'"
@@ -25,12 +22,12 @@ lemma upgrImpnouProds:
   using assms 
   unfolding uppr_def uppr_rules_def nonUnitProds_def newProds_def unitProds_def nouProds_def by simp
 
-lemma upgr_noeProds:
-  assumes "noeProds (set P)"
+lemma upgr_Eps_free:
+  assumes "Eps_free (set P)"
     and "uppr P P'"
-  shows "noeProds (set P')"
+  shows "Eps_free (set P')"
   using assms 
-  unfolding uppr_def noeProds_def uppr_rules_def nonUnitProds_def unitProds_def newProds_def by simp
+  unfolding uppr_def Eps_free_def uppr_rules_def nonUnitProds_def unitProds_def newProds_def by auto
 
 lemma Nts_correct: "A \<notin> Nts P \<Longrightarrow> (\<nexists>S \<alpha>. (S, \<alpha>) \<in> P \<and> (Nt A \<in> {Nt S} \<union> set \<alpha>))"
 unfolding Nts_def nts_of_syms_def by auto
@@ -58,11 +55,11 @@ definition uniformize :: "'n::infinite \<Rightarrow> 't \<Rightarrow> ('n, 't) c
     \<and> prods G' = ((removeAll (l,r) (prods G)) @ [(A,[Tm t]), (l, p@[Nt A]@s)]) 
     \<and> start G' = start G)"
 
-lemma uniformize_noeProds:
-  assumes "noeProds (set (prods G))"
+lemma uniformize_Eps_free:
+  assumes "Eps_free (set (prods G))"
     and "uniformize A t G G'"
-  shows "noeProds (set (prods G'))"
-  using assms unfolding uniformize_def noeProds_def by force
+  shows "Eps_free (set (prods G'))"
+  using assms unfolding uniformize_def Eps_free_def by force
 
 lemma uniformize_nouProds:
   assumes "nouProds (set (prods G))"
@@ -192,11 +189,11 @@ definition binarizeNt :: "'n::infinite \<Rightarrow> 'n \<Rightarrow> 'n \<Right
     \<and> prods G' = ((removeAll (l,r) (prods G)) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)])
     \<and> start G' = start G)"
 
-lemma binarizeNt_noeProds:
-  assumes "noeProds (set (prods G))"
+lemma binarizeNt_Eps_free:
+  assumes "Eps_free (set (prods G))"
     and "binarizeNt A B\<^sub>1 B\<^sub>2 G G'"
-  shows "noeProds (set (prods G'))"
-  using assms unfolding binarizeNt_def noeProds_def by force
+  shows "Eps_free (set (prods G'))"
+  using assms unfolding binarizeNt_def Eps_free_def by force
 
 lemma binarizeNt_nouProds:
   assumes "nouProds (set (prods G))"
@@ -642,17 +639,17 @@ lemma cnf_lemma1Nt:
 definition eqLang :: "('n,'t) cfg \<Rightarrow> ('n,'t) cfg \<Rightarrow> bool" where
   "eqLang G G' \<longleftrightarrow> L G = L G'"
 
-lemma uniformizeRtc_noeProds: 
+lemma uniformizeRtc_Eps_free: 
   assumes "((\<lambda>x y. \<exists>A t. uniformize A t x y) ^**) G G'"
-    and "noeProds (set (prods G))"
-  shows "noeProds (set (prods G'))"
-  using assms by (induction) (auto simp: uniformize_noeProds)
+    and "Eps_free (set (prods G))"
+  shows "Eps_free (set (prods G'))"
+  using assms by (induction) (auto simp: uniformize_Eps_free)
 
-lemma binarizeNtRtc_noeProds:
+lemma binarizeNtRtc_Eps_free:
   assumes "((\<lambda>x y. \<exists>A t B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y) ^**) G G'"
-    and "noeProds (set (prods G))"
-  shows "noeProds (set (prods G'))"
-  using assms by (induction) (auto simp: binarizeNt_noeProds)
+    and "Eps_free (set (prods G))"
+  shows "Eps_free (set (prods G'))"
+  using assms by (induction) (auto simp: binarizeNt_Eps_free)
 
 lemma uniformizeRtc_nouProds: 
   assumes "((\<lambda>x y. \<exists>A t. uniformize A t x y) ^**) G G'"
@@ -1011,15 +1008,15 @@ proof
 qed
 
 theorem cnf_noe_nou: 
-  assumes "noeProds (set (prods (G::('n::infinite,'t) cfg)))" "nouProds (set (prods G))"
-  shows "\<exists>G'::('n,'t) cfg. (uniform G' \<and> binary G') \<and> (L G = L G') \<and> noeProds (set (prods G')) \<and> nouProds (set (prods G'))"
+  assumes "Eps_free (set (prods (G::('n::infinite,'t) cfg)))" "nouProds (set (prods G))"
+  shows "\<exists>G'::('n,'t) cfg. (uniform G' \<and> binary G') \<and> (L G = L G') \<and> Eps_free (set (prods G')) \<and> nouProds (set (prods G'))"
 proof -
-  obtain G' where "((\<lambda>x y. \<exists>A t. uniformize A t x y) ^**) G G' \<and> (badTmsCount (prods G') = 0) \<and> noeProds (set (prods G')) \<and> nouProds (set (prods G'))" (is "?G'")
-    using assms uniformize_2 uniformizeRtc_noeProds uniformizeRtc_nouProds by blast
+  obtain G' where "((\<lambda>x y. \<exists>A t. uniformize A t x y) ^**) G G' \<and> (badTmsCount (prods G') = 0) \<and> Eps_free (set (prods G')) \<and> nouProds (set (prods G'))" (is "?G'")
+    using assms uniformize_2 uniformizeRtc_Eps_free uniformizeRtc_nouProds by blast
   obtain G'' where "((\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y) ^**) G' G'' \<and> (badNtsCount (prods G'') = 0) \<and> (badTmsCount (prods G'') = 0)" (is "?G''")
     using \<open>?G'\<close> binarizeNt_2 lemma15_a by blast
-  hence "uniform G'' \<and> binary G'' \<and> noeProds (set (prods G'')) \<and> nouProds (set (prods G''))"
-    using \<open>?G'\<close> count_bin_un binarizeNtRtc_noeProds binarizeNtRtc_nouProds by fastforce
+  hence "uniform G'' \<and> binary G'' \<and> Eps_free (set (prods G'')) \<and> nouProds (set (prods G''))"
+    using \<open>?G'\<close> count_bin_un binarizeNtRtc_Eps_free binarizeNtRtc_nouProds by fastforce
   moreover have "L G = L G''"
     using \<open>?G'\<close> \<open>?G''\<close> cnf_lemma by blast
   ultimately show ?thesis
@@ -1031,11 +1028,11 @@ definition cnf :: "('n, 't) cfg \<Rightarrow> bool" where
   "cnf G \<equiv> (\<forall>(A,\<alpha>) \<in> set (prods G).
     (length \<alpha> = 2 \<and> (\<forall>N \<in> set \<alpha>. isNt N)) \<or> (\<exists>t. \<alpha> = [Tm t]))"
 
-lemma cnf_eq: "cnf G \<longleftrightarrow> (uniform G \<and> binary G \<and> noeProds (set (prods G)) \<and> nouProds (set (prods G)))"
+lemma cnf_eq: "cnf G \<longleftrightarrow> (uniform G \<and> binary G \<and> Eps_free (set (prods G)) \<and> nouProds (set (prods G)))"
 proof 
   assume "cnf G" (is "?assm")
-  hence "noeProds (set (prods G))"
-    unfolding cnf_def noeProds_def by fastforce
+  hence "Eps_free (set (prods G))"
+    unfolding cnf_def Eps_free_def by fastforce
   moreover have "nouProds (set (prods G))"
     using \<open>?assm\<close> unfolding cnf_def nouProds_def isNt_def isTm_def by fastforce
   moreover have "uniform G"
@@ -1051,17 +1048,17 @@ proof
   qed
   moreover have "binary G"
     using \<open>?assm\<close> unfolding binary_def cnf_def by auto
-  ultimately show "uniform G \<and> binary G \<and> noeProds (set (prods G)) \<and> nouProds (set (prods G))"
+  ultimately show "uniform G \<and> binary G \<and> Eps_free (set (prods G)) \<and> nouProds (set (prods G))"
     by blast
 next 
-  assume "uniform G \<and> binary G \<and> noeProds (set (prods G)) \<and> nouProds (set (prods G))" (is "?assm")
+  assume "uniform G \<and> binary G \<and> Eps_free (set (prods G)) \<and> nouProds (set (prods G))" (is "?assm")
   have"\<forall>p \<in> set (prods G). (length (snd p) = 2 \<and> (\<forall>N \<in> set (snd p). isNt N)) \<or> (\<exists>t. (snd p) = [Tm t])"
   proof
     fix p assume "p \<in> set (prods G)" (is "?p")
     obtain A \<alpha> where "(A, \<alpha>) = p" (is "?A\<alpha>")
       by (metis prod.exhaust_sel)
     hence "length \<alpha> = 1 \<or> length \<alpha> = 2"
-      using \<open>?assm\<close> \<open>?p\<close> order_neq_le_trans unfolding binary_def noeProds_def  by fastforce
+      using \<open>?assm\<close> \<open>?p\<close> order_neq_le_trans unfolding binary_def Eps_free_def  by fastforce
     hence "(length \<alpha> = 2 \<and> (\<forall>N \<in> set \<alpha>. isNt N)) \<or> (\<exists>t. \<alpha> = [Tm t])"
     proof 
       assume "length \<alpha> = 1"
@@ -1094,11 +1091,11 @@ proof
     using uppr_exists by blast
   obtain G\<^sub>u where "G\<^sub>u = cfg P\<^sub>u (start G)" (is "?G\<^sub>u")
     by simp
-  hence 1: "noeProds (set (prods G\<^sub>u)) \<and> nouProds (set (prods G\<^sub>u))"
-    using \<open>?P\<^sub>0\<close> \<open>?P\<^sub>u\<close> negrImpnoeProds upgrImpnouProds upgr_noeProds by fastforce
+  hence 1: "Eps_free (set (prods G\<^sub>u)) \<and> nouProds (set (prods G\<^sub>u))"
+    using \<open>?P\<^sub>0\<close> \<open>?P\<^sub>u\<close> negrImpEps_free upgrImpnouProds upgr_Eps_free by fastforce
   have 2: "L G\<^sub>u = L G - {[]}"
     using \<open>?P\<^sub>0\<close> \<open>?P\<^sub>u\<close> \<open>?G\<^sub>u\<close> nepr_uppr_lang_eq[of \<open>prods G\<close> P\<^sub>0 P\<^sub>u \<open>start G\<close>] by (simp add: nepr_lang_eq)
-  obtain G'::"('n,'t) cfg" where "uniform G' \<and> binary G' \<and> L G\<^sub>u = L G' \<and> noeProds (set (prods G')) \<and> nouProds (set (prods G'))" (is "?G'")
+  obtain G'::"('n,'t) cfg" where "uniform G' \<and> binary G' \<and> L G\<^sub>u = L G' \<and> Eps_free (set (prods G')) \<and> nouProds (set (prods G'))" (is "?G'")
     using 1 cnf_noe_nou by blast
   hence "cnf G'" 
     using \<open>?G'\<close> cnf_eq by blast

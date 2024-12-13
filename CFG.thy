@@ -160,6 +160,19 @@ definition Lang :: "('n,'t)Prods \<Rightarrow> 'n \<Rightarrow> 't list set" whe
 abbreviation lang :: "('n,'t)prods \<Rightarrow> 'n \<Rightarrow> 't list set" where
 "lang ps A \<equiv> Lang (set ps) A"
 
+text \<open>This definition is tricky to use because one needs to supply a type of nonterminals.\<close>
+
+definition cfl :: "'n itself \<Rightarrow> 't list set \<Rightarrow> bool" where
+"cfl (TYPE('n)) L = (\<exists>P S::'n. L = Lang P S)"
+
+text \<open>Ideally one would existentially quantify over 'n on the right-hand side, but we cannot
+quantify over types in HOL.\<close>
+
+text \<open>This is a demo how to use the definition.\<close>
+
+lemma "cfl TYPE('a) L1 \<and> cfl TYPE('b) L2 \<Longrightarrow> cfl TYPE(('a+'b)option) (L1 \<union> L2)"
+oops
+
 lemma Lang_Ders: "map Tm ` (Lang P A) \<subseteq> Ders P A"
 unfolding Lang_def Ders_def by auto
 

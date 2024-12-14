@@ -50,13 +50,6 @@ fun count :: "('n::infinite, 't) prods \<Rightarrow> nat" where
 definition binarize :: "('n::infinite, 't) prods \<Rightarrow> ('n, 't) prods" where
   "binarize ps = (binarize' ^^ (count ps)) ps"
 
-(* does not do what binarize does?
-definition trans2Nt :: "'n::infinite \<Rightarrow> 'n \<Rightarrow> 'n \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods \<Rightarrow> bool" where
-      "trans2Nt A B\<^sub>1 B\<^sub>2 P P' \<equiv> (
-    \<exists>l r p s. (l,r) \<in> set P \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s)
-    \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A = fresh P)
-    \<and> (P' = ((removeAll (l,r) P) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)])))" *)
-
 lemma count_dec1:
   assumes "binarize1 ps' ps \<noteq> ps" 
   shows "count ps > count (binarize1 ps' ps)"
@@ -228,12 +221,12 @@ qed simp
 lemma binarize_der: 
   assumes "A \<in> lhss ps"
   shows "set ps \<turnstile> [Nt A] \<Rightarrow>* map Tm x \<longleftrightarrow> set (binarize ps) \<turnstile> [Nt A] \<Rightarrow>* map Tm x"
-  unfolding binarize_def using assms binarize_der'n by blast
+  unfolding binarize_def using binarize_der'n[OF assms] by simp
 
 lemma lang_binarize_lhss: 
   assumes "A \<in> lhss ps"
   shows "lang ps A = lang (binarize ps) A"
-  by (meson Lang_eqI_derives assms binarize_der)
+  using binarize_der[OF assms] Lang_eqI_derives by metis
 
 (* Extending assumption from domain to arbitrary non-terminal *)
 
@@ -280,7 +273,7 @@ lemma binarize_lhss_nts:
    assumes "A \<notin> lhss ps"
       and  "A \<in> nts ps"
     shows "A \<notin> lhss (binarize ps) \<and> A \<in> nts (binarize ps)"
-  unfolding binarize_def using assms binarize_lhss_nts'n by blast
+  unfolding binarize_def using binarize_lhss_nts'n[OF assms] by simp
 
 lemma binarize_nts'n:
   assumes "A \<in> nts ps"

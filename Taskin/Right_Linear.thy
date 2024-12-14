@@ -284,12 +284,12 @@ qed simp
 lemma finalize_der: 
   assumes "A \<in> lhss ps"
   shows "set ps \<turnstile> [Nt A] \<Rightarrow>* map Tm x \<longleftrightarrow> set (finalize ps) \<turnstile> [Nt A] \<Rightarrow>* map Tm x"
-  unfolding finalize_def using assms finalize_der'n by blast
+  unfolding finalize_def using finalize_der'n[OF assms] by simp
 
 lemma lang_finalize_lhss:
   assumes "A \<in> lhss ps"
   shows "lang ps A = lang (finalize ps) A"
-  by (meson Lang_eqI_derives assms finalize_der)
+  using finalize_der[OF assms] Lang_eqI_derives by metis
 
 lemma finalize_syms1:
   assumes  "Nt A \<in> syms ps"
@@ -317,7 +317,7 @@ qed simp
 lemma finalize_nts:
   assumes "A \<in> nts ps"
   shows   "A \<in> nts (finalize ps)"
-  unfolding finalize_def using assms finalize_nts'n by blast
+  unfolding finalize_def using finalize_nts'n[OF assms] by simp
 
 lemma finalize_lhss_nts1:
   assumes "A \<notin> lhss ps"
@@ -348,7 +348,7 @@ lemma finalize_lhss_nts:
    assumes "A \<notin> lhss ps"
       and  "A \<in> nts ps"
     shows "A \<notin> lhss (finalize ps) \<and> A \<in> nts (finalize ps)"
-  unfolding finalize_def using assms finalize_lhss_nts'n by blast
+  unfolding finalize_def using finalize_lhss_nts'n[OF assms] by simp
 
 lemma lang_finalize: 
   assumes "A \<in> nts ps"

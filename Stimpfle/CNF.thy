@@ -100,16 +100,16 @@ fun badNtsCount :: "('n,'t) prods \<Rightarrow> nat" where
 lemma badNtsCountSet: "(\<forall>p \<in> set P. prodNts p = 0) \<longleftrightarrow> badNtsCount P = 0"
   by (induction P) auto
 
-definition uniform :: "('n, 't) cfg \<Rightarrow> bool" where
-  "uniform G \<equiv> \<forall>(A, \<alpha>) \<in> set (prods G). (\<nexists>t. Tm t \<in> set \<alpha>) \<or> (\<exists>t. \<alpha> = [Tm t])"
+definition uniform :: "('n, 't) Prods \<Rightarrow> bool" where
+  "uniform P \<equiv> \<forall>(A, \<alpha>) \<in> P. (\<nexists>t. Tm t \<in> set \<alpha>) \<or> (\<exists>t. \<alpha> = [Tm t])"
 
 lemma uniform_badTmsCount: 
-  "uniform G \<longleftrightarrow> badTmsCount (prods G) = 0"
+  "uniform (set ps) \<longleftrightarrow> badTmsCount ps = 0"
 proof 
-  assume "uniform G" (is "?assm")
-  have "\<forall>p \<in> set (prods G). prodTms p = 0"
+  assume "uniform (set ps)" (is "?assm")
+  have "\<forall>p \<in> set ps. prodTms p = 0"
   proof 
-    fix p assume "p \<in> set (prods G)"
+    fix p assume "p \<in> set ps"
     hence "(\<nexists>t. Tm t \<in> set (snd p)) \<or> (\<exists>t. snd p = [Tm t])"
       using \<open>?assm\<close> unfolding uniform_def by auto
     hence "length (snd p) \<le> 1 \<or> (\<nexists>t. Tm t \<in> set (snd p))"
@@ -119,13 +119,13 @@ proof
     thus "prodTms p = 0"
       unfolding prodTms_def by argo
    qed
-   thus "badTmsCount (prods G) = 0"
+   thus "badTmsCount ps = 0"
      using badTmsCountSet by blast
 next 
-  assume "badTmsCount (prods G) = 0" (is "?assm")
-  have "\<forall>p \<in> set (prods G). ((\<nexists>t. Tm t \<in> set (snd p)) \<or> (\<exists>t. snd p = [Tm t]))"
+  assume "badTmsCount ps = 0" (is "?assm")
+  have "\<forall>p \<in> set ps. ((\<nexists>t. Tm t \<in> set (snd p)) \<or> (\<exists>t. snd p = [Tm t]))"
   proof 
-    fix p assume "p \<in> set (prods G)"
+    fix p assume "p \<in> set ps"
     hence "prodTms p = 0"
       using \<open>?assm\<close> badTmsCountSet by blast
     hence "length (snd p) \<le> 1 \<or> length (filter (isTm) (snd p)) = 0"
@@ -137,20 +137,20 @@ next
     thus "(\<nexists>t. Tm t \<in> set (snd p)) \<or> (\<exists>t. snd p = [Tm t])"
       by (auto simp: length_Suc_conv)
   qed
-  thus "uniform G"
+  thus "uniform (set ps)"
     unfolding uniform_def by auto
 qed
 
-definition binary :: "('n, 't) cfg \<Rightarrow> bool" where
-  "binary G \<equiv> \<forall>(A, \<alpha>) \<in> set (prods G). length \<alpha> \<le> 2"
+definition binary :: "('n, 't) Prods \<Rightarrow> bool" where
+  "binary P \<equiv> \<forall>(A, \<alpha>) \<in> P. length \<alpha> \<le> 2"
 
 lemma binary_badNtsCount:
-  assumes "uniform G" "badNtsCount (prods G) = 0"
-  shows "binary G"
+  assumes "uniform (set ps)" "badNtsCount ps = 0"
+  shows "binary (set ps)"
 proof -
-  have "\<forall>p \<in> set (prods G). length (snd p) \<le> 2"
+  have "\<forall>p \<in> set ps. length (snd p) \<le> 2"
   proof 
-    fix p assume "p \<in> set (prods G)" (is "?assm")
+    fix p assume "p \<in> set ps" (is "?assm")
     obtain A \<alpha> where "(A, \<alpha>) = p"
       using prod.collapse by blast
     hence "((\<nexists>t. Tm t \<in> set \<alpha>) \<or> (\<exists>t. \<alpha> = [Tm t])) \<and> (prodNts (A, \<alpha>) = 0)"
@@ -168,16 +168,16 @@ proof -
     by (auto simp: binary_def)
 qed
 
-lemma count_bin_un: "(binary G \<and> uniform G) \<longleftrightarrow> (badTmsCount (prods G) = 0 \<and> badNtsCount (prods G) = 0)"
+lemma count_bin_un: "(binary (set ps) \<and> uniform (set ps)) \<longleftrightarrow> (badTmsCount ps = 0 \<and> badNtsCount ps = 0)"
 proof 
-  assume "binary G \<and> uniform G" (is "?assm")
-  hence "badTmsCount (prods G) = 0 \<and> (\<forall>(A, \<alpha>) \<in> set (prods G). length \<alpha> \<le> 2)"
+  assume "binary (set ps) \<and> uniform (set ps)" (is "?assm")
+  hence "badTmsCount ps = 0 \<and> (\<forall>(A, \<alpha>) \<in> set ps. length \<alpha> \<le> 2)"
     unfolding binary_def using uniform_badTmsCount by blast
-  thus "badTmsCount (prods G) = 0 \<and> badNtsCount (prods G) = 0"
+  thus "badTmsCount ps = 0 \<and> badNtsCount ps = 0"
     by (metis badNtsCountSet case_prodE prod.sel(2) prodNts_def)
 next
-  assume "badTmsCount (prods G) = 0 \<and> badNtsCount (prods G) = 0" (is "?assm")
-  show "binary G \<and> uniform G"
+  assume "badTmsCount ps = 0 \<and> badNtsCount ps = 0" (is "?assm")
+  show "binary (set ps) \<and> uniform (set ps)"
     using \<open>?assm\<close> binary_badNtsCount uniform_badTmsCount by blast 
 qed
 
@@ -992,30 +992,30 @@ using assms proof (induction "badNtsCount (prods G)" arbitrary: G rule: less_ind
   qed blast
 qed
 
-theorem uni_bin_exists: "\<forall>G::('n::infinite,'t) cfg. \<exists>G'::('n,'t)cfg. uniform G' \<and> binary G' \<and> L G = L G'"
+theorem uni_bin_exists: "\<forall>G::('n::infinite,'t) cfg. \<exists>G'::('n,'t)cfg. uniform (set (prods G')) \<and> binary (set (prods G')) \<and> L G = L G'"
 proof 
   fix G::"('n::infinite,'t) cfg"
   obtain G' where "((\<lambda>x y. \<exists>A t. uniformize A t x y) ^**) G G' \<and> (badTmsCount (prods G') = 0)" (is "?G'")
     using uniformize_2 by blast
   obtain G'' where "((\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y) ^**) G' G'' \<and> (badNtsCount (prods G'') = 0) \<and> (badTmsCount (prods G'') = 0)" (is "?G''")
     using \<open>?G'\<close> binarizeNt_2 lemma15_a by blast
-  hence "uniform G'' \<and> binary G''"
+  hence "uniform (set (prods G'')) \<and> binary (set (prods G''))"
     using count_bin_un by blast
   moreover have "L G = L G''"
     using \<open>?G'\<close> \<open>?G''\<close> cnf_lemma by blast
-  ultimately show "\<exists>G'::('n,'t)cfg. uniform G' \<and> binary G' \<and> L G = L G'"
+  ultimately show "\<exists>G'::('n,'t)cfg. uniform (set (prods G')) \<and> binary (set (prods G')) \<and> L G = L G'"
     by blast
 qed
 
 theorem cnf_noe_nou: 
   assumes "Eps_free (set (prods (G::('n::infinite,'t) cfg)))" "nouProds (set (prods G))"
-  shows "\<exists>G'::('n,'t) cfg. (uniform G' \<and> binary G') \<and> (L G = L G') \<and> Eps_free (set (prods G')) \<and> nouProds (set (prods G'))"
+  shows "\<exists>G'::('n,'t) cfg. (uniform (set (prods G')) \<and> binary (set (prods G'))) \<and> (L G = L G') \<and> Eps_free (set (prods G')) \<and> nouProds (set (prods G'))"
 proof -
   obtain G' where "((\<lambda>x y. \<exists>A t. uniformize A t x y) ^**) G G' \<and> (badTmsCount (prods G') = 0) \<and> Eps_free (set (prods G')) \<and> nouProds (set (prods G'))" (is "?G'")
     using assms uniformize_2 uniformizeRtc_Eps_free uniformizeRtc_nouProds by blast
   obtain G'' where "((\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y) ^**) G' G'' \<and> (badNtsCount (prods G'') = 0) \<and> (badTmsCount (prods G'') = 0)" (is "?G''")
     using \<open>?G'\<close> binarizeNt_2 lemma15_a by blast
-  hence "uniform G'' \<and> binary G'' \<and> Eps_free (set (prods G'')) \<and> nouProds (set (prods G''))"
+  hence "uniform (set (prods G'')) \<and> binary (set (prods G'')) \<and> Eps_free (set (prods G'')) \<and> nouProds (set (prods G''))"
     using \<open>?G'\<close> count_bin_un binarizeNtRtc_Eps_free binarizeNtRtc_nouProds by fastforce
   moreover have "L G = L G''"
     using \<open>?G'\<close> \<open>?G''\<close> cnf_lemma by blast
@@ -1023,38 +1023,39 @@ proof -
     using \<open>?G'\<close> \<open>?G''\<close> assms(1) by blast
 qed
 
+definition CNF :: "('n, 't) Prods \<Rightarrow> bool" where
+  "CNF P \<equiv> (\<forall>(A,\<alpha>) \<in> P. (length \<alpha> = 2 \<and> (\<forall>N \<in> set \<alpha>. isNt N)) \<or> (\<exists>t. \<alpha> = [Tm t]))"
 
-definition cnf :: "('n, 't) cfg \<Rightarrow> bool" where
-  "cnf G \<equiv> (\<forall>(A,\<alpha>) \<in> set (prods G).
-    (length \<alpha> = 2 \<and> (\<forall>N \<in> set \<alpha>. isNt N)) \<or> (\<exists>t. \<alpha> = [Tm t]))"
+abbreviation cnf :: "('n, 't) cfg \<Rightarrow> bool" where
+  "cnf G \<equiv> CNF (set (prods G))"
 
-lemma cnf_eq: "cnf G \<longleftrightarrow> (uniform G \<and> binary G \<and> Eps_free (set (prods G)) \<and> nouProds (set (prods G)))"
+lemma CNF_eq: "CNF P \<longleftrightarrow> (uniform P \<and> binary P \<and> Eps_free P \<and> nouProds P)"
 proof 
-  assume "cnf G" (is "?assm")
-  hence "Eps_free (set (prods G))"
-    unfolding cnf_def Eps_free_def by fastforce
-  moreover have "nouProds (set (prods G))"
-    using \<open>?assm\<close> unfolding cnf_def nouProds_def isNt_def isTm_def by fastforce
-  moreover have "uniform G"
+  assume "CNF P" (is "?assm")
+  hence "Eps_free P"
+    unfolding CNF_def Eps_free_def by fastforce
+  moreover have "nouProds P"
+    using \<open>?assm\<close> unfolding CNF_def nouProds_def isNt_def isTm_def by fastforce
+  moreover have "uniform P"
   proof -
-    have "\<forall>(A,\<alpha>) \<in> set (prods G). (length \<alpha> = 2 \<and> (\<forall>N \<in> set \<alpha>. isNt N)) \<or> (\<exists>t. \<alpha> = [Tm t])"
-      using \<open>?assm\<close> unfolding cnf_def.
-    hence "\<forall>(A, \<alpha>) \<in> set (prods G). (\<forall>N \<in> set \<alpha>. isNt N) \<or> (\<exists>t. \<alpha> = [Tm t])"
+    have "\<forall>(A,\<alpha>) \<in> P. (length \<alpha> = 2 \<and> (\<forall>N \<in> set \<alpha>. isNt N)) \<or> (\<exists>t. \<alpha> = [Tm t])"
+      using \<open>?assm\<close> unfolding CNF_def.
+    hence "\<forall>(A, \<alpha>) \<in> P. (\<forall>N \<in> set \<alpha>. isNt N) \<or> (\<exists>t. \<alpha> = [Tm t])"
       by blast
-    hence "\<forall>(A, \<alpha>) \<in> set (prods G). (\<nexists>t. Tm t \<in> set \<alpha>) \<or> (\<exists>t. \<alpha> = [Tm t])"
+    hence "\<forall>(A, \<alpha>) \<in> P. (\<nexists>t. Tm t \<in> set \<alpha>) \<or> (\<exists>t. \<alpha> = [Tm t])"
       by (auto simp: isNt_def)
-    thus "uniform G"
+    thus "uniform P"
       unfolding uniform_def.
   qed
-  moreover have "binary G"
-    using \<open>?assm\<close> unfolding binary_def cnf_def by auto
-  ultimately show "uniform G \<and> binary G \<and> Eps_free (set (prods G)) \<and> nouProds (set (prods G))"
+  moreover have "binary P"
+    using \<open>?assm\<close> unfolding binary_def CNF_def by auto
+  ultimately show "uniform P \<and> binary P \<and> Eps_free P \<and> nouProds P"
     by blast
 next 
-  assume "uniform G \<and> binary G \<and> Eps_free (set (prods G)) \<and> nouProds (set (prods G))" (is "?assm")
-  have"\<forall>p \<in> set (prods G). (length (snd p) = 2 \<and> (\<forall>N \<in> set (snd p). isNt N)) \<or> (\<exists>t. (snd p) = [Tm t])"
+  assume "uniform P \<and> binary P \<and> Eps_free P \<and> nouProds P" (is "?assm")
+  have"\<forall>p \<in> P. (length (snd p) = 2 \<and> (\<forall>N \<in> set (snd p). isNt N)) \<or> (\<exists>t. (snd p) = [Tm t])"
   proof
-    fix p assume "p \<in> set (prods G)" (is "?p")
+    fix p assume "p \<in> P" (is "?p")
     obtain A \<alpha> where "(A, \<alpha>) = p" (is "?A\<alpha>")
       by (metis prod.exhaust_sel)
     hence "length \<alpha> = 1 \<or> length \<alpha> = 2"
@@ -1078,7 +1079,7 @@ next
     thus "(length (snd p) = 2 \<and> (\<forall>N \<in> set (snd p). isNt N)) \<or> (\<exists>t. (snd p) = [Tm t])"
       using \<open>?A\<alpha>\<close> by auto
   qed
-  thus "cnf G" by (auto simp: cnf_def)
+  thus "CNF P" by (auto simp: CNF_def)
 qed
 
 theorem cnf_exists: 
@@ -1095,10 +1096,10 @@ proof
     using \<open>?P\<^sub>0\<close> \<open>?P\<^sub>u\<close> negrImpEps_free upgrImpnouProds upgr_Eps_free by fastforce
   have 2: "L G\<^sub>u = L G - {[]}"
     using \<open>?P\<^sub>0\<close> \<open>?P\<^sub>u\<close> \<open>?G\<^sub>u\<close> nepr_uppr_lang_eq[of \<open>prods G\<close> P\<^sub>0 P\<^sub>u \<open>start G\<close>] by (simp add: nepr_lang_eq)
-  obtain G'::"('n,'t) cfg" where "uniform G' \<and> binary G' \<and> L G\<^sub>u = L G' \<and> Eps_free (set (prods G')) \<and> nouProds (set (prods G'))" (is "?G'")
+  obtain G'::"('n,'t) cfg" where "uniform (set (prods G')) \<and> binary (set (prods G')) \<and> L G\<^sub>u = L G' \<and> Eps_free (set (prods G')) \<and> nouProds (set (prods G'))" (is "?G'")
     using 1 cnf_noe_nou by blast
   hence "cnf G'" 
-    using \<open>?G'\<close> cnf_eq by blast
+    using \<open>?G'\<close> CNF_eq by blast
   moreover have "L G' = L G - {[]}"
     using 2 \<open>?G'\<close> by blast
   ultimately show "\<exists>G'::('n,'t) cfg. (cnf G') \<and> (L G' = L G - {[]})" by blast

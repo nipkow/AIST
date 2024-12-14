@@ -1024,7 +1024,7 @@ proof -
 qed
 
 definition CNF :: "('n, 't) Prods \<Rightarrow> bool" where
-  "CNF P \<equiv> (\<forall>(A,\<alpha>) \<in> P. (length \<alpha> = 2 \<and> (\<forall>N \<in> set \<alpha>. isNt N)) \<or> (\<exists>t. \<alpha> = [Tm t]))"
+  "CNF P \<equiv> (\<forall>(A,\<alpha>) \<in> P. (\<exists>B C. \<alpha> = [Nt B, Nt C]) \<or> (\<exists>t. \<alpha> = [Tm t]))"
 
 abbreviation cnf :: "('n, 't) cfg \<Rightarrow> bool" where
   "cnf G \<equiv> CNF (set (prods G))"
@@ -1038,10 +1038,10 @@ proof
     using \<open>?assm\<close> unfolding CNF_def nouProds_def isNt_def isTm_def by fastforce
   moreover have "uniform P"
   proof -
-    have "\<forall>(A,\<alpha>) \<in> P. (length \<alpha> = 2 \<and> (\<forall>N \<in> set \<alpha>. isNt N)) \<or> (\<exists>t. \<alpha> = [Tm t])"
+    have "\<forall>(A,\<alpha>) \<in> P. (\<exists>B C. \<alpha> = [Nt B, Nt C]) \<or> (\<exists>t. \<alpha> = [Tm t])"
       using \<open>?assm\<close> unfolding CNF_def.
     hence "\<forall>(A, \<alpha>) \<in> P. (\<forall>N \<in> set \<alpha>. isNt N) \<or> (\<exists>t. \<alpha> = [Tm t])"
-      by blast
+      unfolding isNt_def by fastforce
     hence "\<forall>(A, \<alpha>) \<in> P. (\<nexists>t. Tm t \<in> set \<alpha>) \<or> (\<exists>t. \<alpha> = [Tm t])"
       by (auto simp: isNt_def)
     thus "uniform P"
@@ -1053,14 +1053,14 @@ proof
     by blast
 next 
   assume "uniform P \<and> binary P \<and> Eps_free P \<and> nouProds P" (is "?assm")
-  have"\<forall>p \<in> P. (length (snd p) = 2 \<and> (\<forall>N \<in> set (snd p). isNt N)) \<or> (\<exists>t. (snd p) = [Tm t])"
+  have"\<forall>p \<in> P. (\<exists>B C. (snd p) = [Nt B, Nt C]) \<or> (\<exists>t. (snd p) = [Tm t])"
   proof
     fix p assume "p \<in> P" (is "?p")
     obtain A \<alpha> where "(A, \<alpha>) = p" (is "?A\<alpha>")
       by (metis prod.exhaust_sel)
     hence "length \<alpha> = 1 \<or> length \<alpha> = 2"
-      using \<open>?assm\<close> \<open>?p\<close> order_neq_le_trans unfolding binary_def Eps_free_def  by fastforce
-    hence "(length \<alpha> = 2 \<and> (\<forall>N \<in> set \<alpha>. isNt N)) \<or> (\<exists>t. \<alpha> = [Tm t])"
+      using \<open>?assm\<close> \<open>?p\<close> order_neq_le_trans unfolding binary_def Eps_free_def by fastforce
+    hence "(\<exists>B C. (snd p) = [Nt B, Nt C]) \<or> (\<exists>t. \<alpha> = [Tm t])"
     proof 
       assume "length \<alpha> = 1"
       hence "\<exists>S. \<alpha> = [S]"
@@ -1070,14 +1070,17 @@ next
       ultimately show ?thesis by (metis sym.exhaust)
     next
       assume "length \<alpha> = 2"
-      hence "(\<nexists>t. Tm t \<in> set \<alpha>)"
-        using \<open>?assm\<close> \<open>?A\<alpha>\<close> \<open>?p\<close> unfolding uniform_def by auto
-      hence "(\<forall>N \<in> set \<alpha>. isNt N)"
-        unfolding isNt_def by (metis sym.exhaust)
-      thus ?thesis using \<open>length \<alpha> = 2\<close> by blast
+      obtain B C where "\<alpha> = [B, C]" (is "?BC")
+        using \<open>length \<alpha> = 2\<close> by (metis One_nat_def Suc_1 diff_Suc_1 length_0_conv length_Cons neq_Nil_conv)
+      have "(\<nexists>t. Tm t \<in> set \<alpha>)"
+        using \<open>length \<alpha> = 2\<close> \<open>?assm\<close> \<open>?A\<alpha>\<close> \<open>?p\<close> unfolding uniform_def by auto
+      hence "(\<forall>N \<in> set \<alpha>. \<exists>A. N = Nt A)"
+        by (metis sym.exhaust)
+      hence "\<exists>B' C'. B = Nt B' \<and> C = Nt C'" 
+        using \<open>?BC\<close> by simp
+      thus ?thesis using \<open>?A\<alpha>\<close> \<open>?BC\<close> by auto
     qed
-    thus "(length (snd p) = 2 \<and> (\<forall>N \<in> set (snd p). isNt N)) \<or> (\<exists>t. (snd p) = [Tm t])"
-      using \<open>?A\<alpha>\<close> by auto
+    thus "(\<exists>B C. (snd p) = [Nt B, Nt C]) \<or> (\<exists>t. (snd p) = [Tm t])" using \<open>?A\<alpha>\<close> by auto
   qed
   thus "CNF P" by (auto simp: CNF_def)
 qed

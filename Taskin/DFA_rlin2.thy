@@ -36,15 +36,34 @@ next
 qed
 
 lemma rlin2_nts_eq: 
-  assumes "P \<turnstile> [Nt A] \<Rightarrow>* [Nt B]"
-      and "rlin2 P"
+  assumes "rlin2 P"
+      and "P \<turnstile> [Nt A] \<Rightarrow>* [Nt B]"
     shows "A = B"
-  sorry
+proof -
+  from assms(2) have star_cases: "[Nt A] = [Nt B] \<or> (\<exists>w. P \<turnstile> [Nt A] \<Rightarrow> w \<and> P \<turnstile> w \<Rightarrow>* [Nt B])"
+    using converse_rtranclpE by force
+  show ?thesis proof cases
+    assume "\<not>[Nt A] = [Nt B]"
+    then obtain w where w_step: "P \<turnstile> [Nt A] \<Rightarrow> w" and w_star: "P \<turnstile> w \<Rightarrow>* [Nt B]"
+      using star_cases by auto
+    from assms(1) w_step have w_cases: "w = [] \<or> (\<exists>a C. w = [Tm a, Nt C])"
+      unfolding rlin2_def using derive_singleton[of P "Nt A" w] by auto
+    show ?thesis proof cases
+      assume "w = []"
+      with w_star show ?thesis by simp
+    next
+      assume "\<not>w = []"
+      with w_cases obtain a C where "w = [Tm a, Nt C]" by blast
+      with w_star show ?thesis
+        using derives_T_Cons[of P a "[Nt C]" "[Nt B]"] by simp
+    qed
+  qed simp
+qed
 
 lemma rlin2_intro_tm:
   assumes "rlin2 P"
-      and "P \<turnstile> [Nt A] \<Rightarrow>* map Tm xs @ [Tm x, Nt B]"
-    shows "\<exists>C. P \<turnstile> [Nt A] \<Rightarrow>* map Tm xs @ [Nt C] \<and> (C,[Tm x, Nt B]) \<in> P"
+      and "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w @ [Tm x, Nt B]"
+    shows "\<exists>C. P \<turnstile> [Nt A] \<Rightarrow>* map Tm w @ [Nt C] \<and> (C,[Tm x, Nt B]) \<in> P"
   sorry
 
 lemma mult_derive_to_nxts:
@@ -69,7 +88,7 @@ next
     unfolding nxt_rlin2_set_def nxt_rlin2_def by auto
 qed
 
-lemma rlin2_fin_eps:
+lemma rlin2_tms_eps:
   assumes "rlin2 P"
       and "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
     shows "\<exists>B. P \<turnstile> [Nt A] \<Rightarrow>* map Tm w @ [Nt B] \<and> (B,[]) \<in> P"
@@ -81,7 +100,7 @@ shows "w \<in> Lang P A \<Longrightarrow> A \<in> M \<Longrightarrow> \<exists>Z
 proof -
   assume w_lang: "w \<in> Lang P A" and A_in: "A \<in> M"
   from assms w_lang obtain B where A_der: "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w @ [Nt B]" and B_in: "(B,[]) \<in> P" 
-    unfolding Lang_def using rlin2_fin_eps by fast
+    unfolding Lang_def using rlin2_tms_eps by fast
   from A_in A_der have "B \<in> nxts_rlin2_set P M w" 
     using mult_derive_to_nxts[OF assms] by auto
   with B_in show ?thesis by blast

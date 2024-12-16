@@ -227,7 +227,7 @@ proof -
     unfolding Lang_def by blast
 qed
 
-theorem Lang_if_accepted_if_rlin2:
+theorem Lang_iff_accepted_if_rlin2:
 assumes "rlin2 P"
 shows "w \<in> Lang P A \<longleftrightarrow> (\<exists>Z \<in> nxts_rlin2_set P {A} w. (Z,[]) \<in> P)"
 using accepted_if_Lang[OF assms] Lang_if_accepted

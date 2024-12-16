@@ -95,6 +95,9 @@ definition Lhss :: "('n, 't) Prods \<Rightarrow> 'n set" where
 abbreviation lhss :: "('n, 't) prods \<Rightarrow> 'n set" where
 "lhss ps \<equiv> Lhss(set ps)"
 
+definition Rhss :: "('n \<times> 'a) set \<Rightarrow> 'n \<Rightarrow> 'a set" where
+"Rhss P A = {w. (A,w) \<in> P}"
+
 axiomatization fresh :: "('n::infinite,'t) prods \<Rightarrow> 'n" where
 fresh: "fresh ps \<notin> Nts(set ps)"
 
@@ -159,19 +162,6 @@ definition Lang :: "('n,'t)Prods \<Rightarrow> 'n \<Rightarrow> 't list set" whe
 
 abbreviation lang :: "('n,'t)prods \<Rightarrow> 'n \<Rightarrow> 't list set" where
 "lang ps A \<equiv> Lang (set ps) A"
-
-text \<open>This definition is tricky to use because one needs to supply a type of nonterminals.\<close>
-
-definition cfl :: "'n itself \<Rightarrow> 't list set \<Rightarrow> bool" where
-"cfl (TYPE('n)) L = (\<exists>P S::'n. L = Lang P S)"
-
-text \<open>Ideally one would existentially quantify over 'n on the right-hand side, but we cannot
-quantify over types in HOL.\<close>
-
-text \<open>This is a demo how to use the definition.\<close>
-
-lemma "cfl TYPE('a) L1 \<and> cfl TYPE('b) L2 \<Longrightarrow> cfl TYPE(('a+'b)option) (L1 \<union> L2)"
-oops
 
 lemma Lang_Ders: "map Tm ` (Lang P A) \<subseteq> Ders P A"
 unfolding Lang_def Ders_def by auto
@@ -503,6 +493,40 @@ lemma derives_induct'[consumes 1, case_names base step]:
   using assms(1)
   apply (induction rule: converse_rtranclp_induct)
   by (auto elim!: derive.cases intro!: Base Step intro: derives_rule)
+
+
+text \<open>Bottom-up definition of \<open>\<Rightarrow>*\<close>. Single definition yields more compact inductions.
+But \<open>rtrancl_derive_induct\<close> may already do the job.\<close>
+
+inductive derives_bu :: "('n, 't) Prods \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t) syms \<Rightarrow> bool"
+  ("(2_ \<turnstile>/ (_/ \<Rightarrow>bu/ _))" [50, 0, 50] 50) for P :: "('n, 't) Prods"
+  where
+bu_refl: "P \<turnstile> \<alpha> \<Rightarrow>bu \<alpha>" |
+bu_prod: "(A,\<alpha>) \<in> P \<Longrightarrow> P \<turnstile> [Nt A] \<Rightarrow>bu \<alpha>" |
+bu_embed: "\<lbrakk> P \<turnstile> \<alpha> \<Rightarrow>bu \<alpha>\<^sub>1 @ \<alpha>\<^sub>2 @ \<alpha>\<^sub>3; P \<turnstile> \<alpha>\<^sub>2 \<Rightarrow>bu \<beta> \<rbrakk> \<Longrightarrow> P \<turnstile> \<alpha> \<Rightarrow>bu \<alpha>\<^sub>1 @ \<beta> @ \<alpha>\<^sub>3"
+
+lemma derives_if_bu: "P \<turnstile> \<alpha> \<Rightarrow>bu \<beta> \<Longrightarrow> P \<turnstile> \<alpha> \<Rightarrow>* \<beta>"
+proof(induction rule: derives_bu.induct)
+  case (bu_refl) then show ?case by simp
+next
+  case (bu_prod A \<alpha>) then show ?case by (simp add: derives_Cons_rule)
+next
+  case (bu_embed \<alpha> \<alpha>\<^sub>1 \<alpha>\<^sub>2 \<alpha>\<^sub>3 \<beta>) then show ?case
+    by (meson derives_append derives_prepend rtranclp_trans)
+qed
+
+lemma derives_bu_if: "P \<turnstile> \<alpha> \<Rightarrow>* \<beta> \<Longrightarrow> P \<turnstile> \<alpha> \<Rightarrow>bu \<beta>"
+proof(induction rule: rtrancl_derive_induct)
+  case base
+  then show ?case by (simp add: bu_refl)
+next
+  case (step u A v w)
+  then show ?case
+    by (meson bu_embed bu_prod)
+qed
+
+lemma derives_bu_iff: "P \<turnstile> \<alpha> \<Rightarrow>bu \<beta> \<longleftrightarrow> P \<turnstile> \<alpha> \<Rightarrow>* \<beta>"
+by (meson derives_bu_if derives_if_bu)
 
 
 subsubsection "Leftmost/Rightmost Derivations"

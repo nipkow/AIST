@@ -13,22 +13,18 @@ definition nxts_rlin2_set :: "('n,'t)Prods \<Rightarrow> 'n set \<Rightarrow> 't
 "nxts_rlin2_set P = foldl (nxt_rlin2_set P)"
 
 lemma map_Tm_single_nt:
-  "map Tm w @ [Tm a, Nt A] = u1 @ [Nt B] @ u2 \<Longrightarrow> u1 = map Tm (w @ [a]) \<and> u2 = []"
+  assumes "map Tm w @ [Tm a, Nt A] = u1 @ [Nt B] @ u2"
+  shows "u1 = map Tm (w @ [a]) \<and> u2 = []"
 proof -
-  assume "map Tm w @ [Tm a, Nt A] = u1 @ [Nt B] @ u2"
-  hence asm: "map Tm (w @ [a]) @ [Nt A] = u1 @ [Nt B] @ u2" by simp
+  from assms have *: "map Tm (w @ [a]) @ [Nt A] = u1 @ [Nt B] @ u2" by simp
   have 1: "Nt B \<notin> set (map Tm (w @ [a]))" by auto
   have 2: "Nt B \<in> set (u1 @ [Nt B] @ u2)" by simp
-  from asm 1 2 have "Nt B \<in> set ([Nt A])"
+  from * 1 2 have "Nt B \<in> set ([Nt A])"
     by (metis list.set_intros(1) rotate1.simps(2) set_ConsD set_rotate1 sym.inject(1))
   hence "[Nt B] = [Nt A]" by simp
-  with 1 asm show ?thesis
+  with 1 * show ?thesis
     by (metis append_Cons append_Cons_eq_iff append_self_conv emptyE empty_set)
 qed
-
-lemma map_Tm_not_eps:
-  "map Tm xs @ [Nt B] = map Tm wa @ \<alpha> \<Longrightarrow> \<alpha> \<noteq> []"
-by (metis append.assoc append.right_neutral list.distinct(1) map_Tm_single_nt)
 
 lemma nxts_to_mult_derive:
   "B \<in> nxts_rlin2_set P M w \<Longrightarrow> (\<exists>A\<in>M. P \<turnstile> [Nt A] \<Rightarrow>* map Tm w @ [Nt B])"
@@ -105,7 +101,7 @@ proof -
   from w_def u2_eps u1_def have "map Tm w @ [Tm x, Nt B] = map Tm wa @ \<alpha>" by simp
   then have "map Tm (w @ [x]) @ [Nt B] = map Tm wa @ \<alpha>" by simp
   then have "\<alpha> \<noteq> []" 
-    using map_Tm_not_eps[of "w @ [x]" B wa \<alpha>] by simp
+    by (metis append.assoc append.right_neutral list.distinct(1) map_Tm_single_nt)
   with assms(1) C_prod obtain d D where "\<alpha> = [Tm d, Nt D]"
     using rlin2_def by fastforce
   from w_def u2_eps have x_d: "x = d" 
@@ -198,35 +194,39 @@ qed
 definition "accepted P A w = (\<exists>Z \<in> nxts_rlin2_set P {A} w. (Z,[]) \<in> P)"
 
 theorem accepted_if_Lang:
-assumes "rlin2 P"
-shows "w \<in> Lang P A \<Longrightarrow> A \<in> M \<Longrightarrow> \<exists>Z \<in> nxts_rlin2_set P M w. (Z,[]) \<in> P"
+  assumes "rlin2 P"
+      and "w \<in> Lang P A"
+    shows "accepted P A w"
 proof -
-  assume w_lang: "w \<in> Lang P A" and A_in: "A \<in> M"
-  from assms w_lang obtain B where A_der: "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w @ [Nt B]" and B_in: "(B,[]) \<in> P" 
+  from assms obtain B where A_der: "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w @ [Nt B]" and B_in: "(B,[]) \<in> P" 
     unfolding Lang_def using rlin2_tms_eps[of P A w] by auto
-  from A_in A_der have "B \<in> nxts_rlin2_set P M w" 
-    using mult_derive_to_nxts[OF assms] by auto
-  with B_in show ?thesis by blast
+  from A_der have "B \<in> nxts_rlin2_set P {A} w" 
+    using mult_derive_to_nxts[OF assms(1)] by auto
+  with B_in show ?thesis 
+    unfolding accepted_def by blast
 qed
 
-theorem Lang_if_accepted: "Z \<in> nxts_rlin2_set P M w \<Longrightarrow> (Z,[]) \<in> P \<Longrightarrow> \<exists>A\<in>M. w \<in> Lang P A"
+theorem Lang_if_accepted: 
+  assumes "accepted P A w"
+    shows "w \<in> Lang P A"
 proof -
-  assume Z_nxts: "Z \<in> nxts_rlin2_set P M w" and Z_eps: "(Z,[]) \<in> P"
-  from Z_nxts obtain A where A_der: "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w @ [Nt Z]" and A_in: "A \<in> M"
+  from assms obtain Z where Z_nxts: "Z \<in> nxts_rlin2_set P {A} w" and Z_eps: "(Z,[]) \<in> P"
+    unfolding accepted_def by blast
+  from Z_nxts obtain B where B_der: "P \<turnstile> [Nt B] \<Rightarrow>* map Tm w @ [Nt Z]" and B_in: "B \<in> {A}"
     using nxts_to_mult_derive by fast
+  from B_in have A_eq_B: "A = B" by simp
   from Z_eps have "P \<turnstile> [Nt Z] \<Rightarrow> []" 
     using derive_singleton[of P "Nt Z" "[]"] by simp
   hence "P \<turnstile> map Tm w @ [Nt Z] \<Rightarrow> map Tm w"
     using derive_prepend[of P "[Nt Z]" "[]" "map Tm w"] by simp
-  with A_der have "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w" by simp
-  with A_in show ?thesis 
+  with B_der A_eq_B have "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w" by simp
+  thus ?thesis 
     unfolding Lang_def by blast
 qed
 
 theorem Lang_iff_accepted_if_rlin2:
 assumes "rlin2 P"
-shows "w \<in> Lang P A \<longleftrightarrow> (\<exists>Z \<in> nxts_rlin2_set P {A} w. (Z,[]) \<in> P)"
-using accepted_if_Lang[OF assms] Lang_if_accepted
-by (metis singleton_iff)
+shows "w \<in> Lang P A \<longleftrightarrow> accepted P A w"
+using accepted_if_Lang[OF assms] Lang_if_accepted by fast
 
 end

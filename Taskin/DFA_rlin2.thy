@@ -1,6 +1,6 @@
 theory DFA_rlin2
 imports
-  Right_Linear
+  Right_Linear "$AFP/Regular-Sets/Regular_Exp"
 begin
 
 definition nxt_rlin2 :: "('n,'t)Prods \<Rightarrow> 'n \<Rightarrow> 't \<Rightarrow> 'n set" where

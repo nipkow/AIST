@@ -28,13 +28,7 @@ qed
 
 lemma map_Tm_not_eps:
   "map Tm xs @ [Nt B] = map Tm wa @ \<alpha> \<Longrightarrow> \<alpha> \<noteq> []"
-proof
-  assume "map Tm xs @ [Nt B] = map Tm wa @ \<alpha>" "\<alpha> = []"
-  hence "map Tm wa = map Tm xs @ [Nt B]" by simp
-  hence "\<exists>xs' ys'. wa = xs' @ ys' \<and> map Tm xs' = map Tm xs \<and> map Tm ys' = [Nt B]"
-    by (simp add: Cons_eq_map_conv map_eq_append_conv)
-  thus False by blast
-qed
+by (metis append.assoc append.right_neutral list.distinct(1) map_Tm_single_nt)
 
 lemma nxts_to_mult_derive:
   "B \<in> nxts_rlin2_set P M w \<Longrightarrow> (\<exists>A\<in>M. P \<turnstile> [Nt A] \<Rightarrow>* map Tm w @ [Nt B])"
@@ -200,6 +194,8 @@ proof -
   from alpha_eps C_prod have 2: "(C,[]) \<in> P"  by simp
   from 1 2 show ?thesis by auto
 qed
+
+definition "accepted P A w = (\<exists>Z \<in> nxts_rlin2_set P {A} w. (Z,[]) \<in> P)"
 
 theorem accepted_if_Lang:
 assumes "rlin2 P"

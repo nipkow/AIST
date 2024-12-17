@@ -6,9 +6,6 @@ imports
   CFG
 begin
 
-definition Rhss :: "('b \<times> 'a) set \<Rightarrow> 'b \<Rightarrow> 'a set" where
-"Rhss P A = {w. (A,w) \<in> P}"
-
 definition inst :: "('n \<Rightarrow> 't lang) \<Rightarrow> ('n, 't) sym \<Rightarrow> 't lang" where
 "inst L s = (case s of Tm a \<Rightarrow> {[a]} | Nt A \<Rightarrow> L A)"
 
@@ -21,8 +18,19 @@ definition insts :: "('n \<Rightarrow> 't lang) \<Rightarrow> ('n, 't) syms \<Ri
 definition subst_lang :: "('n,'t)Prods \<Rightarrow> ('n \<Rightarrow> 't lang) \<Rightarrow> ('n \<Rightarrow> 't lang)" where
 "subst_lang P L = (\<lambda>A. \<Union>w \<in> Rhss P A. insts L w)"
 
-definition Langs :: "('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> 't lang" where
-"Langs P = lfp (subst_lang P)"
+definition Lang :: "('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> 't lang" where
+"Lang P = lfp (subst_lang P)"
+
+hide_const (open) CFL.Lang
+
+lemma derives_if_CFL_Lang: "w \<in> CFL.Lang P A \<Longrightarrow> P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
+sorry
+
+lemma CFL_Lang_if_derives: "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w \<Longrightarrow> w \<in> CFL.Lang P A"
+sorry
+
+theorem CFL_Lang_eq_CFG_Lang: "CFL.Lang P A = Lang P A"
+unfolding CFG.Lang_def by(blast intro: CFL_Lang_if_derives derives_if_CFL_Lang)
 
 
 text \<open>This definition is tricky to use because one needs to supply a type of nonterminals.\<close>

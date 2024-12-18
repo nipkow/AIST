@@ -12,35 +12,45 @@ Used in many standard grammar transformations.
 Later: implementation via the \<open>while\<close> combinator.
 \<close>
 
-definition "closure F S = lfp(\<lambda>T. S \<union> T \<union> F T)"
+unbundle lattice_syntax
 
-abbreviation "closed F S \<equiv> (F S \<subseteq> S)"
+context complete_lattice
+begin
 
-lemma mono_closure_fun: "mono F \<Longrightarrow> mono (\<lambda>T. S \<union> T \<union> F T)"
+definition closure :: "('a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'a" where
+"closure F S = lfp(\<lambda>T. S \<squnion> T \<squnion> F T)"
+
+abbreviation "closed F S \<equiv> (F S \<le> S)"
+
+end
+
+lemma mono_closure_fun: "mono F \<Longrightarrow> mono (\<lambda>T::_::complete_lattice. S \<squnion> T \<squnion> F T)"
 by (smt (verit, ccfv_threshold) monoI monoD sup.absorb_iff1 sup_ge2 sup_left_commute sup_mono)
 
-theorem closure_incr: "S \<subseteq> closure F S"
+theorem closure_incr: "(S::_::complete_lattice) \<le> closure F S"
 unfolding closure_def by (meson le_sup_iff lfp_greatest)
 
-theorem closure_mono: "mono F \<Longrightarrow> S \<subseteq> T \<Longrightarrow> closure F S \<subseteq> closure F T"
-unfolding closure_def using lfp_mono[of "\<lambda>T. S \<union> T \<union> F T" "\<lambda>T'. T \<union> T' \<union> F T'"]
-by blast
+theorem closure_mono:
+shows "mono F \<Longrightarrow> S \<le> T \<Longrightarrow> closure F S \<le> closure F T"
+unfolding closure_def using lfp_mono[of "\<lambda>T. S \<squnion> T \<squnion> F T" "\<lambda>T'. T \<squnion> T' \<squnion> F T'"]
+by (meson order_refl sup.mono)
 
-lemma closure_idem: assumes "mono F" shows "closure F (closure F S) = closure F S"
+lemma closure_idem: assumes "mono F"
+shows "closure F (closure F S) = closure F (S::_::complete_lattice)"
 proof -
-  let ?F = "\<lambda>S T. S \<union> T \<union> F T"
-  have "\<forall>A. ?F S A \<subseteq> lfp (?F S) \<union> A \<union> F A"
-    using lfp_fixpoint[OF mono_closure_fun[OF assms]] by blast
-  then have *: "lfp (?F S) \<subseteq> lfp (?F (lfp (?F S)))"
+  let ?F = "\<lambda>S T. S \<squnion> T \<squnion> F T"
+  have "\<forall>A. ?F S A \<le> lfp (?F S) \<squnion> A \<squnion> F A"
+    by (meson le_sup_iff lfp_greatest order_refl sup.mono)
+  then have *: "lfp (?F S) \<le> lfp (?F (lfp (?F S)))"
     by (simp add: lfp_mono)
-  have "lfp (?F (lfp (?F S))) \<subseteq> lfp (?F S)"
+  have "lfp (?F (lfp (?F S))) \<le> lfp (?F S)"
     by (smt (verit, best) lfp_greatest lfp_lowerbound sup.absorb_iff2 sup.boundedE)
   with * closure_incr show ?thesis
- unfolding closure_def by blast
+ unfolding closure_def by order
 qed
 
 theorem closure_closed: assumes "mono F" shows "closed F (closure F S)"
 unfolding closure_def using lfp_fixpoint [OF mono_closure_fun[OF assms]]
-by auto
+by (simp add: order_eq_iff)
 
 end

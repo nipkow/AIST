@@ -15,8 +15,12 @@ definition solves :: "'a list \<Rightarrow> 'a rexp list \<Rightarrow> 'a rexp l
 "solves vars eqns sols = (length sols = length vars \<and> length eqns = length vars \<and>
   (\<forall>i < length vars. lang (sols!i) = lang (subst_rexp (zip vars sols) (eqns!i))))"
 
-definition solve :: "'a list \<Rightarrow> 'a rexp list \<Rightarrow> 'a rexp list" where
-"solve vars eqns = undefined"
+(* solve a single eqn "v = rhs" *)
+definition solve1 :: "'a \<Rightarrow> 'a rexp \<Rightarrow> 'a rexp" where
+"solve1 v rhs = undefined"
+
+fun solve :: "'a list \<Rightarrow> 'a rexp list \<Rightarrow> 'a rexp list" where
+"solve [] [] = []"
 
 theorem assumes "length vars = length eqns"
 shows "solves vars eqns (solve vars eqns)"

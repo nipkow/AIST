@@ -1,0 +1,19 @@
+theory Parikh
+  imports 
+    "../CFL"
+    "$AFP/Regular-Sets/Regular_Set"
+begin
+
+
+
+
+lemma f_ineq_gs: 
+  fixes f :: "nat \<Rightarrow> 'a lang list \<Rightarrow> 'a lang"
+  fixes m :: nat
+  fixes r :: nat
+  assumes "r \<le> m"
+  shows "True"
+  sorry
+
+
+end

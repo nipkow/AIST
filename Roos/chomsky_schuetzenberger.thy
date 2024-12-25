@@ -32,7 +32,7 @@ definition dyck_language :: "'g itself \<Rightarrow> ('g) brackets list set" whe
 lemma chomsky_schuetzenberger :
 assumes \<open>cfl TYPE('a) L\<close> 
 
-shows \<open>\<exists>R h. reg TYPE('a) R \<and> L = image h (R) \<and> hom h\<close>
+shows \<open>\<exists>R h. reg TYPE('a) R \<and> L = image h (R) \<and> hom h\<close> (*TODO hier fehlt noch die Klammersprache im Schnitt mit R*)
 sorry
 
 

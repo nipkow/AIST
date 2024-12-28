@@ -143,7 +143,11 @@ finally have \<open>image h ((dyck_language ?\<Gamma>) \<inter> (Re P S)) = L\<c
 moreover have hom: \<open>hom (h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list \<Rightarrow> 't list)\<close>
    using extending_gives_hom by (simp add: hom_def)
 moreover have \<open>reg TYPE('n) (Re P S)\<close> sorry
-ultimately have \<open>reg TYPE('n) (Re P S) \<and> L = image h ((dyck_language ?\<Gamma>) \<inter> (Re P S)) \<and> hom (h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list \<Rightarrow> 't list)\<close> by simp (* Wenn man hier hovert, hat das h verschiedene types bei verschiedenen vorkommen *)
+ultimately have \<open>reg TYPE('n) (Re P S) \<and> L = image h ((Re P S) \<inter> (dyck_language ?\<Gamma>)) \<and> hom (h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list \<Rightarrow> 't list)\<close> by blast 
+
+(*hier sollte eigentlich schon die ?thesis folgen, tut sie aber nicht... das h und das \<Gamma> können wir problemlos wegquantifizieren, aber das R irgendwie nicht. *)
+then have \<open>\<exists> h \<Gamma> .   reg TYPE('n) (Re P S) \<and> L = h ` ((Re P S) \<inter> dyck_language \<Gamma>) \<and> hom h\<close> by blast
+then have \<open>\<exists> R h \<Gamma> . reg TYPE('n) (R)      \<and> L = h ` ((R)      \<inter> dyck_language \<Gamma>) \<and> hom h\<close> (* ?? *)
 
 term \<open>Re P S\<close>
 term \<open>(h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list \<Rightarrow> 't list)\<close>

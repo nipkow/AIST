@@ -146,6 +146,8 @@ moreover have \<open>reg TYPE('n) (Re P S)\<close> sorry
 ultimately have \<open>reg TYPE('n) (Re P S) \<and> L = image h ((dyck_language ?\<Gamma>) \<inter> (Re P S)) \<and> hom (h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list \<Rightarrow> 't list)\<close> by simp (* Wenn man hier hovert, hat das h verschiedene types bei verschiedenen vorkommen *)
 
 term \<open>Re P S\<close>
+term \<open>(h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list \<Rightarrow> 't list)\<close>
+term ?\<Gamma>
 then show ?thesis 
 
 

@@ -2,7 +2,7 @@ theory chomsky_schuetzenberger
   imports Finite_Automata_HF.Finite_Automata_HF HOL.Nat "../CFG" "../CFL"
 begin
 
-
+declare [[names_short]]
 
 definition reg :: "'n itself \<Rightarrow> 't list set \<Rightarrow> bool" where
 "reg (TYPE('n)) L = (\<exists>P S::'n. L = Lang P S \<and> True) " (*TODO add type 3 stuff here*)               
@@ -119,7 +119,7 @@ lemma chomsky_schuetzenberger :
 fixes L::\<open>'t list set\<close>
 assumes \<open>CFL.cfl TYPE('n) L\<close> 
 
-shows \<open>\<exists>R h \<Gamma>. (reg TYPE('a) R) \<and> (L = image h (R \<inter> dyck_language \<Gamma>)) \<and> hom h\<close>
+shows \<open>\<exists>R h \<Gamma>. (reg TYPE('n) R) \<and> (L = image h (R \<inter> dyck_language \<Gamma>)) \<and> hom h\<close>
 proof -
 have \<open>\<exists>P S::'n. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> using \<open>cfl TYPE('n) L\<close> CNF_existence by auto
 then obtain P and S::'n where \<open>L = Lang P S\<close> and \<open>(\<forall>p \<in> P. CNF_rule p)\<close> by blast
@@ -148,7 +148,7 @@ ultimately have \<open>reg TYPE('n) (Re P S) \<and> L = image h ((dyck_language 
 term \<open>Re P S\<close>
 term \<open>(h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list \<Rightarrow> 't list)\<close>
 term ?\<Gamma>
-then show ?thesis 
+then show ?thesis
 
 
 

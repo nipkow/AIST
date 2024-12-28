@@ -8,8 +8,10 @@ definition reg :: "'n itself \<Rightarrow> 't list set \<Rightarrow> bool" where
 "reg (TYPE('n)) L = (\<exists>P S::'n. L = Lang P S \<and> True) " (*TODO add type 3 stuff here*)               
    
 
-definition hom :: \<open>('c list \<Rightarrow> 'b list) \<Rightarrow> bool\<close> where
-\<open>hom h = (\<forall>a b. h (a@b) = (h a) @ h (b))\<close>
+
+
+
+
 
 (* Klammertyp, wird kombiniert mit anderen Symbolen *)
 datatype bracket = Op | Cl
@@ -86,27 +88,65 @@ definition Re :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> 'a \<R
 \<open>Re P A = {x::(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list. 
 (P1 P x) \<and> (P2 P x) \<and> (P3 x) \<and> (P4 x) \<and> (P5 P A x)}\<close>
 
+declare [[show_types]]
+
+definition hom :: \<open>('c list \<Rightarrow> 'd list) \<Rightarrow> bool\<close> where
+\<open>hom h = (\<forall>a b. h (a@b) = (h a) @ h (b))\<close>
+
+(* by defining h on D we get a homomorphism on D* by extending it homomorphistically *)
+lemma extending_gives_hom :
+fixes h:: \<open>'a \<Rightarrow> 'b list\<close>
+shows \<open>hom (\<lambda>x. (concat (map h x)))\<close>
+unfolding hom_def by simp
+
+
+fun he :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) \<Rightarrow> 'b list\<close> where
+\<open>he (br, (p, i)) = 
+    (case p of 
+    (A, [Nt B, Nt C]) \<Rightarrow> [] | 
+    (A, [Tm a]) \<Rightarrow> (if br = Op \<and> i=1 then [a] else [])
+    )
+\<close>
+(* Der gesuchte Homomorphismus im Resultat*)
+fun h :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list \<Rightarrow> 'b list \<close> where
+\<open>h l = concat (map he l)\<close>
+
 
 (* Unser gewünschtes Resultat *)
 lemma chomsky_schuetzenberger :
-assumes \<open>CFL.cfl TYPE('a) L\<close> 
+fixes L::\<open>'t list set\<close>
+assumes \<open>CFL.cfl TYPE('n) L\<close> 
 
 shows \<open>\<exists>R h \<Gamma>. (reg TYPE('a) R) \<and> (L = image h (R \<inter> dyck_language \<Gamma>)) \<and> hom h\<close>
 proof -
-have \<open>\<exists>P S::'a. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> using \<open>cfl TYPE('a) L\<close> CNF_existence by auto
-then obtain P where \<open>\<exists>S::'a. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> by blast
+have \<open>\<exists>P S::'n. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> using \<open>cfl TYPE('n) L\<close> CNF_existence by auto
+then obtain P where \<open>\<exists>S::'n. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> by blast
 then obtain S where \<open>L = Lang P S\<close> and \<open>(\<forall>p \<in> P. CNF_rule p)\<close> by blast (* Warum geht das nicht in einzer Zeile...?*)
 term P
 let ?\<Gamma> = \<open>P \<times> {1::nat,2}\<close>
 let ?P' = \<open>image transform_production P\<close>
 let ?L' = \<open>Lang ?P' S\<close>
 term ?L'
+term L
+term ?\<Gamma>
+have \<open>?L' \<subseteq> dyck_language ?\<Gamma>\<close> sorry (* evtl gar nicht benötigt? *)
 
-have \<open>?L' \<subseteq> dyck_language ?\<Gamma>\<close> sorry (* evtl unnötig? *)
-
-have \<open>\<forall>A. \<forall>x::(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list. 
+have \<open>\<forall>A. \<forall>x::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list. 
 (image transform_production P) \<turnstile> [Nt S] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (dyck_language ?\<Gamma>) \<inter> (Re P A)\<close> sorry
 then have \<open>?L' = (dyck_language ?\<Gamma>) \<inter> (Re P S)\<close> by (metis (no_types, lifting) CFG.Lang_def mem_Collect_eq subsetI subset_antisym)
+
+then have \<open>image h ((dyck_language ?\<Gamma>) \<inter> (Re P S)) =  image h ?L'\<close> by simp
+also have \<open>... = L\<close> sorry
+finally have \<open>image h ((dyck_language ?\<Gamma>) \<inter> (Re P S)) = L\<close> by auto
+
+moreover have \<open>hom h\<close> using extending_gives_hom by (simp add: hom_def) (* h hat falschen type *)
+moreover have \<open>reg TYPE('n) (Re P S)\<close> sorry
+ultimately have \<open>reg TYPE('n) (Re P S) \<and> L = image h ((dyck_language ?\<Gamma>) \<inter> (Re P S)) \<and> hom h\<close> by simp (* Wenn man hier hovert, hat das h verschiedene types bei verschiedenen vorkommen *)
+
+term \<open>Re P S\<close>
+then show ?thesis
+
+
 
 qed
 

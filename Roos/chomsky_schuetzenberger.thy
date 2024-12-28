@@ -84,6 +84,7 @@ definition P5 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> 'a \<R
 \<open>P5 P A x = (( (\<forall>w. derives (image transform_production P) [Nt A] w) \<longrightarrow> 
        (\<exists>\<pi> l. \<pi> \<in> P \<and> \<pi> = (A, l) \<and> x \<noteq> [] \<and> x ! 0 = (Op, \<pi>, 1))))\<close>
 
+(* das ist die gesuchte Reguläre Sprache für den Schnitt mit der dyck-sprache *)
 definition Re :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> 'a \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list set\<close> where
 \<open>Re P A = {x::(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list. 
 (P1 P x) \<and> (P2 P x) \<and> (P3 x) \<and> (P4 x) \<and> (P5 P A x)}\<close>
@@ -93,13 +94,9 @@ declare [[show_types]]
 definition hom :: \<open>('c list \<Rightarrow> 'd list) \<Rightarrow> bool\<close> where
 \<open>hom h = (\<forall>a b. h (a@b) = (h a) @ h (b))\<close>
 
-(* by defining h on D we get a homomorphism on D* by extending it homomorphistically *)
-lemma extending_gives_hom :
-fixes h:: \<open>'a \<Rightarrow> 'b list\<close>
-shows \<open>hom (\<lambda>x. (concat (map h x)))\<close>
-unfolding hom_def by simp
 
 
+(* helper funktion für das eigentliche h im Resultat *)
 fun he :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) \<Rightarrow> 'b list\<close> where
 \<open>he (br, (p, i)) = 
     (case p of 
@@ -111,6 +108,11 @@ fun he :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat)
 fun h :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list \<Rightarrow> 'b list \<close> where
 \<open>h l = concat (map he l)\<close>
 
+(* by defining h on D we get a homomorphism on D* by extending it homomorphistically *)
+lemma extending_gives_hom :
+fixes h:: \<open>'a \<Rightarrow> 'b list\<close>
+shows \<open>hom (\<lambda>x. (concat (map h x)))\<close>
+unfolding hom_def by simp
 
 (* Unser gewünschtes Resultat *)
 lemma chomsky_schuetzenberger :

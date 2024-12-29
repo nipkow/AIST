@@ -114,22 +114,24 @@ fixes h:: \<open>'a \<Rightarrow> 'b list\<close>
 shows \<open>hom (\<lambda>x. (concat (map h x)))\<close>
 unfolding hom_def by simp
 
+
+
+
+
 (* Unser gewünschtes Resultat *)
 lemma chomsky_schuetzenberger :
 fixes L::\<open>'t list set\<close>
 assumes \<open>CFL.cfl TYPE('n) L\<close> 
 
-shows \<open>\<exists>R h \<Gamma>. (reg TYPE('n) R) \<and> (L = image h (R \<inter> dyck_language \<Gamma>)) \<and> hom h\<close>
+shows \<open>\<exists>(R::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list set) h \<Gamma>. (reg TYPE('n) R) \<and> (L = image h (R \<inter> dyck_language \<Gamma>)) \<and> hom h\<close>
 proof -
 have \<open>\<exists>P S::'n. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> using \<open>cfl TYPE('n) L\<close> CNF_existence by auto
 then obtain P and S::'n where \<open>L = Lang P S\<close> and \<open>(\<forall>p \<in> P. CNF_rule p)\<close> by blast
-term P
+
 let ?\<Gamma> = \<open>P \<times> {1::nat,2}\<close>
 let ?P' = \<open>image transform_production P\<close>
 let ?L' = \<open>Lang ?P' S\<close>
-term ?L'
-term L
-term ?\<Gamma>
+
 have \<open>?L' \<subseteq> dyck_language ?\<Gamma>\<close> sorry (* evtl gar nicht benötigt? *)
 
 have \<open>\<forall>A. \<forall>x::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list. 
@@ -144,17 +146,7 @@ moreover have hom: \<open>hom (h::(bracket \<times> ('n \<times> ('n, 't) sym li
    using extending_gives_hom by (simp add: hom_def)
 moreover have \<open>reg TYPE('n) (Re P S)\<close> sorry
 ultimately have \<open>reg TYPE('n) (Re P S) \<and> L = image h ((Re P S) \<inter> (dyck_language ?\<Gamma>)) \<and> hom (h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list \<Rightarrow> 't list)\<close> by blast 
-
-(*hier sollte eigentlich schon die ?thesis folgen, tut sie aber nicht... das h und das \<Gamma> können wir problemlos wegquantifizieren, aber das R irgendwie nicht. *)
-then have \<open>\<exists> h \<Gamma> .   reg TYPE('n) (Re P S) \<and> L = h ` ((Re P S) \<inter> dyck_language \<Gamma>) \<and> hom h\<close> by blast
-then have \<open>\<exists> R h \<Gamma> . reg TYPE('n) (R)      \<and> L = h ` ((R)      \<inter> dyck_language \<Gamma>) \<and> hom h\<close> (* ?? *)
-
-term \<open>Re P S\<close>
-term \<open>(h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list \<Rightarrow> 't list)\<close>
-term ?\<Gamma>
-then show ?thesis
-
-
+then show ?thesis by blast
 
 qed
 

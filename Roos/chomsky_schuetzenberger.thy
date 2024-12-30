@@ -89,7 +89,7 @@ definition Re :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> 'a \<R
 \<open>Re P A = {x::(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list. 
 (P1 P x) \<and> (P2 P x) \<and> (P3 x) \<and> (P4 x) \<and> (P5 P A x)}\<close>
 
-declare [[show_types]]
+
 
 definition hom :: \<open>('c list \<Rightarrow> 'd list) \<Rightarrow> bool\<close> where
 \<open>hom h = (\<forall>a b. h (a@b) = (h a) @ h (b))\<close>
@@ -101,12 +101,30 @@ fun he :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat)
 \<open>he (br, (p, i)) = 
     (case p of 
     (A, [Nt B, Nt C]) \<Rightarrow> [] | 
-    (A, [Tm a]) \<Rightarrow> (if br = Op \<and> i=1 then [a] else [])
+    (A, [Tm a]) \<Rightarrow> (if br = Op \<and> i=1 then [a] else []) | 
+    _ \<Rightarrow> []
     )
 \<close>
+
+(* auf symbole erweiterte helper funktion für das eigentliche h im Resultat *)
+fun he_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> nat ) sym \<Rightarrow> ('a,'b) sym list\<close> where
+\<open>he_ext (Tm (br, (p, i))) = 
+    (case p of 
+    (A, [Nt B, Nt C]) \<Rightarrow> [] | 
+    (A, [Tm a]) \<Rightarrow> (if br = Op \<and> i=1 then [Tm a] else []) | 
+    _ \<Rightarrow> []
+    )\<close> | 
+\<open>he_ext (Nt A) = [Nt A]\<close>
+
+
+
 (* Der gesuchte Homomorphismus im Resultat*)
 fun h :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list \<Rightarrow> 'b list \<close> where
 \<open>h l = concat (map he l)\<close>
+
+(* Auf symbole erweitertes h des Resultats *)
+fun h_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> nat ) sym list \<Rightarrow> ('a,'b) sym list \<close> where
+\<open>h_ext l = concat (map he_ext l)\<close>
 
 (* by defining h on D we get a homomorphism on D* by extending it homomorphically *)
 lemma extending_gives_hom :
@@ -115,6 +133,14 @@ shows \<open>hom (\<lambda>x. (concat (map h x)))\<close>
 unfolding hom_def by simp
 
 
+lemma helper: \<open>he_ext (Tm x) = map Tm (he x)\<close>
+apply(induction x rule: he.induct)
+by(auto split: list.splits sym.splits)
+
+lemma \<open>h_ext (map Tm x) = map Tm (h x)\<close>
+apply(induction x)
+apply(simp)
+using helper by fastforce
 
 
 
@@ -131,15 +157,17 @@ then obtain P and S::'n where \<open>L = Lang P S\<close> and \<open>(\<forall>p
 let ?\<Gamma> = \<open>P \<times> {1::nat,2}\<close>
 let ?P' = \<open>image transform_production P\<close>
 let ?L' = \<open>Lang ?P' S\<close>
+let ?h = \<open>h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list \<Rightarrow> 't list\<close>
 
 have \<open>?L' \<subseteq> dyck_language ?\<Gamma>\<close> sorry (* evtl gar nicht benötigt? *)
 
 have \<open>\<forall>A. \<forall>x::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list. 
 (image transform_production P) \<turnstile> [Nt S] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (dyck_language ?\<Gamma>) \<inter> (Re P A)\<close> sorry
 then have \<open>?L' = (dyck_language ?\<Gamma>) \<inter> (Re P S)\<close> by (metis (no_types, lifting) CFG.Lang_def mem_Collect_eq subsetI subset_antisym)
-
 then have \<open>image h ((dyck_language ?\<Gamma>) \<inter> (Re P S)) =  image h ?L'\<close> by simp
-also have \<open>... = L\<close> sorry
+also have \<open>... = Lang P S\<close> sorry
+
+also have \<open>... = L\<close> by (simp add: \<open>L = Lang P S\<close>)
 finally have \<open>image h ((dyck_language ?\<Gamma>) \<inter> (Re P S)) = L\<close> by auto
 
 moreover have hom: \<open>hom (h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list \<Rightarrow> 't list)\<close>

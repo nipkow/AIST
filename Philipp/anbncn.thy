@@ -17,11 +17,6 @@ theorem pumping_lemma:
   sorry
 
 
-(*
-In comparison to the coq proof that was provided to me as a starting point this proof only takes about 10% of the amount of lines. 
-This is achieved through focusing on the amount of letters rather then the exact structure of the word with multiple case analysis thus making some proofs easier to generalize.
-*)
-
 section "Preliminaries"
 
 abbreviation repl_one :: "'a  \<Rightarrow> nat \<Rightarrow> 'a list" ("_^*_")

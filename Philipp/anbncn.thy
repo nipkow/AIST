@@ -6,6 +6,13 @@ theory anbncn
   imports  "../CFG" "../Stimpfle/CNF" "HOL-Library.Sublist"
 begin                           
 
+text \<open>Please write your comments in this style. In particular:
+\<^item> Variables: \<open>x\<close>
+\<^item> Constants: @{const rev}
+\<^item> Terms: @{term "length(x # xs)"}
+\<^item> Propositions: @{prop "xs @ ys = ys @ xs"}
+That should suffice.
+\<close>
 
 abbreviation repl :: "'a list \<Rightarrow> nat \<Rightarrow> 'a list" ("_\<^sup>*/_")
   where "xs\<^sup>*n \<equiv> concat (replicate n xs)"

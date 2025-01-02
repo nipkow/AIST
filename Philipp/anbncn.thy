@@ -6,13 +6,7 @@ theory AnBnCn
   imports  "../CFG" "../Stimpfle/CNF" "HOL-Library.Sublist"
 begin                           
 
-text \<open>Please write your comments in this style. In particular:
-\<^item> Variables: \<open>x\<close>
-\<^item> Constants: @{const rev}
-\<^item> Terms: @{term "length(x # xs)"}
-\<^item> Propositions: @{prop "xs @ ys = ys @ xs"}
-That should suffice.
-\<close>
+
 
 text \<open>this theory proves that the language {@term "{word. \<exists> n. word = (a^*n)@ (b^*n) @(c^*n) }"} is not context free using the Pumping lemma for context free languages.
       This proof follows the texbook proof closely, using the same strategy to chose a word useable with the Pumping lemma.

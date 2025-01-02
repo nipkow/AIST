@@ -2,32 +2,31 @@
     Author:     Bruno Philipp, TU München
 *)
 
-theory anbncn
+theory AnBnCn
   imports  "../CFG" "../Stimpfle/CNF" "HOL-Library.Sublist"
 begin                           
 
-text \<open>Please write your comments in this style. In particular:
-\<^item> Variables: \<open>x\<close>
-\<^item> Constants: @{const rev}
-\<^item> Terms: @{term "length(x # xs)"}
-\<^item> Propositions: @{prop "xs @ ys = ys @ xs"}
-That should suffice.
-\<close>
+
+
+text \<open>this theory proves that the language {@term "{word. \<exists> n. word = (a^*n)@ (b^*n) @(c^*n) }"} is not context free using the Pumping lemma for context free languages.
+      This proof follows the texbook proof closely, using the same strategy to chose a word useable with the Pumping lemma.
+      In comparison to the coq proof by M.V.M Ramos et al. this proof is about 10% of the length, leaving out a lot of case analysis.
+      This is achieved through defining the language via the amount of different letters instead of the concrete structure of the word and a smart way of proving that the subword contains either \<open>a\<close> or \<open>c\<close> \<close>
 
 abbreviation repl :: "'a list \<Rightarrow> nat \<Rightarrow> 'a list" ("_\<^sup>*/_")
   where "xs\<^sup>*n \<equiv> concat (replicate n xs)"
 
 theorem pumping_lemma:
   assumes "cnf G"
-  shows "\<exists>n. \<forall>wort \<in> L G. length wort \<ge> n \<longrightarrow>
-     (\<exists>u v w x y. wort = u@v@w@x@y \<and> length (v@w@x) \<le> n \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@y \<in> L G))"
+  shows "\<exists>n. \<forall>word \<in> L G. length word \<ge> n \<longrightarrow>
+     (\<exists>u v w x y. word = u@v@w@x@y \<and> length (v@w@x) \<le> n \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@y \<in> L G))"
   sorry
 
 
 section "Preliminaries"
 
 abbreviation repl_one :: "'a  \<Rightarrow> nat \<Rightarrow> 'a list" ("_^*_")
-  where "xs^*n \<equiv>  replicate n xs"
+  where "xs^*n \<equiv> replicate n xs"
 
 lemma count_list_replicate:"count_list (a^*n) a = n"
   by (induction n)  auto
@@ -46,7 +45,7 @@ lemma  c_greater_count0:
   assumes "x@y = ((a^*n)@(b^*n)@(c^*n))" "length y\<ge>n" "a\<noteq>b" "b\<noteq>c" "c\<noteq>a"
   shows "count_list x c=0"
   using assms proof -
-   have "drop  (2*n) (x@y)=(c^*n)" using assms
+   have "drop (2*n) (x@y)=(c^*n)" using assms
      by simp
    then have count_c_end: "count_list (drop (2*n) (x@y)) c =n" 
      by (simp add: count_list_replicate)
@@ -62,20 +61,23 @@ lemma  c_greater_count0:
      by (metis append_eq_conv_conj assms(1) comm_semiring_class.distrib diff_add_inverse2 diff_diff_left length_append length_replicate mult_2 nat_mult_1 numeral_plus_numeral numerals(1) semiring_norm(3))
    then have "x=take (3*n-n-i) (take (3*n-n) (x@y))" using take_two 
      by (metis diff_le_self)
-    
-  then show ?thesis using count_c_front  
-     by (metis add.commute add_diff_cancel_left' count_list_drop diff_mult_distrib mult_numeral_1_right nat_mult_1 numeral_Bit1_eq_inc_double)
+   then have "x=take (3*n-n-i) (take (2*n) (x@y))" 
+     by fastforce  
+   text \<open>we are using @{thm count_list_drop} as we have proven {@term "count_list (take (2*n) (x@y)) c = 0} and {@term "x=take (3*n-n-i) (take (2*n) (x@y))"}\<close>
+  then show ?thesis using count_c_front count_list_drop
+     by (metis add.commute add_diff_cancel_left' diff_mult_distrib mult_numeral_1_right nat_mult_1 numeral_Bit1_eq_inc_double)
 qed
 
 lemma  a_greater_count0:
   assumes "x@y = ((a^*n)@(b^*n)@(c^*n)) " "length x\<ge>n" "a\<noteq>b" "b\<noteq>c" "c\<noteq>a"
   shows "count_list y a=0"
+  text \<open>this prof is easier than @{thm c_greater_count0} since a is at the start of the word rather than at the end \<close>
   using assms proof -
-  have count_whole: "count_list (x@y) a =n" using assms count_list_replicate 
+  have count_whole: "count_list (x@y) a = n" using assms count_list_replicate 
     by fastforce
-  have take_n:"take  (n) (x@y)=(a^*n)" using assms
+  have take_n:"take (n) (x@y)=(a^*n)" using assms
     by simp
-  then have count_take_n: "count_list (take  (n) (x@y)) a =n" 
+  then have count_take_n: "count_list (take (n) (x@y)) a = n" 
     by (simp add: count_list_replicate)
   have "\<exists> z. x=(take n (x@y))@z" 
     by (metis append_eq_conv_conj assms(2) nat_le_iff_add take_add)
@@ -85,14 +87,17 @@ lemma  a_greater_count0:
      by fastforce
   then have "count_list y a =0" using count_a_x
     by simp
-  
   then show ?thesis
     by presburger
 qed
 
+
+
 lemma a_or_b_zero:
   assumes  "a\<noteq>b" "b\<noteq>c" "c\<noteq>a" "u@w@y= ((a^*n)@ (b^*n) @(c^*n))" "length w\<le>n"
   shows "count_list w a =0\<or> count_list w c=0"
+  text \<open>This lemma uses @{term "count_list (w) a=0\<or>count_list w c=0 "} similar to all following proofs, focusing on the number of \<open>a\<close> and \<open>c\<close> found in \<open>w\<close> rather than the concrete structure.
+        It is also the merge of the two previous lemmas to make the final proof shorter\<close>
   using assms proof-
   show ?thesis using assms proof (cases "length u <n")
     case True 
@@ -116,8 +121,6 @@ lemma a_or_b_zero:
       by auto
   qed
 qed
-
-
 
 lemma in_set_one_not0:
   assumes "v \<noteq>[]" " sublist v x "
@@ -143,7 +146,7 @@ proof -
     case True
     then  have "\<exists> d\<in>set ((a^*n)@(b^*n) @(c^*n)).  count_list v d \<noteq>0" using  set in_set_one_not0 sublist_v 
       by blast
-    then have " (count_list (v) a) \<noteq>0 \<or> (count_list (v) b)\<noteq>0 \<or> (count_list (v) c) \<noteq>0 " using set 
+    then have "(count_list (v) a) \<noteq>0 \<or> (count_list (v) b)\<noteq>0 \<or> (count_list (v) c) \<noteq>0 " using set 
       by simp
     then show ?thesis 
       by force
@@ -153,7 +156,7 @@ proof -
       by fast
     then  have "\<exists> d\<in>set ((a^*n)@(b^*n) @(c^*n)).  count_list x d \<noteq>0" using  set in_set_one_not0 sublist_x
        by blast
-    then have " (count_list (x) a) \<noteq>0 \<or> (count_list (x) b)\<noteq>0 \<or> (count_list (x) c) \<noteq>0 " using set 
+    then have "(count_list (x) a) \<noteq>0 \<or> (count_list (x) b)\<noteq>0 \<or> (count_list (x) c) \<noteq>0 " using set 
        by simp
     then show ?thesis 
        by force
@@ -186,7 +189,8 @@ lemma  not_ex_y_count:
 
 lemma not_in_count:
   assumes "a\<noteq>b" "b\<noteq>c" "a\<noteq> c" "(count_list w a\<noteq>count_list w b) \<or> (count_list w b\<noteq> count_list w c) \<or> (count_list w c \<noteq> count_list w a)"
-  shows "w \<notin> {wort. \<exists> n.  wort= (a^*n)@(b^*n)@(c^*n)}"
+  shows "w \<notin> {word. \<exists> n.  word= (a^*n)@(b^*n)@(c^*n)}"
+  text \<open>This lemma is the biggest line saver, because proving that a word has a different number of \<open>a\<close>, \<open>b\<close> or \<open>c\<close> is easier than proving something more specific\<close>
   using assms not_ex_y_count
   by (smt (verit, del_insts) mem_Collect_eq)
 
@@ -194,7 +198,9 @@ section "a^n b^n c^n is not contextfree"
 
 lemma  pumping_application:
   assumes  "a\<noteq>b" "b\<noteq>c" "c\<noteq>a" "u@v@w@x@y= (a^*n)@ (b^*n) @(c^*n)" "count_list (v@w@x) a=0 \<or> count_list (v@w@x) c=0" "v@x\<noteq>[]"
-  shows "u@w@y \<notin> {wort. \<exists> n.  wort= (a^*n)@(b^*n)@(c^*n)}"
+  shows "u@w@y \<notin> {word. \<exists> n.  word= (a^*n)@(b^*n)@(c^*n)}"
+  text \<open>In this lemma it is proven that a word  @{term "u@(v\<^sup>*0)@w@(x\<^sup>*0)@y"} is not in the language @{term "{word. \<exists> n.  word= (a^*n)@(b^*n)@(c^*n)}"} as this is the easiest counterexample
+        useful for the Pumping lemma\<close>
 proof-
   have count_word_a: "count_list (u@v@w@x@y) a = n" using add_diff_cancel_right' append_eq_append_conv2 assms(1) assms(2) assms(3) assms(4) count_list_append count_list_replicate 
     by fastforce
@@ -238,30 +244,33 @@ proof-
 qed
 
 theorem anbncn_not_cnf:
-  assumes "a\<noteq>b" "b\<noteq>c" "c\<noteq>a"  "( L G = {wort. \<exists> n.  wort= (a^*n)@ (b^*n) @(c^*n) })"
+  assumes "a\<noteq>b" "b\<noteq>c" "c\<noteq>a"  "(L G = {word. \<exists> n.  word= (a^*n)@ (b^*n) @(c^*n) })"
   shows "\<not> cnf G  "
 proof 
   assume cnf :"cnf G"
-  then have pump:"\<exists>n. \<forall>wort \<in> L G . length wort \<ge> n \<longrightarrow>
-     (\<exists>u v w x y. wort = u@v@w@x@y \<and> length (v@w@x) \<le> n \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@y \<in> L G))" using assms pumping_lemma 
+  then have pump:"\<exists>n. \<forall>word \<in> L G . length word \<ge> n \<longrightarrow>
+     (\<exists>u v w x y. word = u@v@w@x@y \<and> length (v@w@x) \<le> n \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@y \<in> L G))" using assms pumping_lemma 
     by blast
-  then obtain n where a: "\<forall>wort \<in> L G . length wort \<ge> n \<longrightarrow>
-     (\<exists>u v w x y. wort = u@v@w@x@y \<and> length (v@w@x) \<le> n \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@y \<in> L G))" 
+  then obtain n where a: "\<forall>word \<in> L G . length word \<ge> n \<longrightarrow>
+     (\<exists>u v w x y. word = u@v@w@x@y \<and> length (v@w@x) \<le> n \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@y \<in> L G))" 
     by blast
-  let ?wort ="(a^*n)@ (b^*n) @(c^*n)"
-  have wInLg: "?wort \<in> L G" using assms 
+  let ?word ="(a^*n)@ (b^*n) @(c^*n)"
+  have wInLg: "?word \<in> L G" using assms 
     by blast  
-  have "length ?wort \<ge> n" 
+  have "length ?word \<ge> n" 
     by simp
-  then  have pumpie: " (\<exists>u v w x y. ?wort = u@v@w@x@y \<and> length (v@w@x) \<le> n \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@y \<in> L G))" using a wInLg 
+  then  have pumpie: "(\<exists>u v w x y. ?word = u@v@w@x@y \<and> length (v@w@x) \<le> n \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@y \<in> L G))" using a wInLg 
     by blast
-  then obtain u v w x y where  uvwxy:" ?wort = u@v@w@x@y \<and> length (v@w@x) \<le> n \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@y \<in> L G)" 
+  then obtain u v w x y where  uvwxy:" ?word = u@v@w@x@y \<and> length (v@w@x) \<le> n \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@y \<in> L G)" 
     by blast
   let ?vwx= "v@w@x"
-  have "sublist ?vwx ?wort"  
+  have "sublist ?vwx ?word"  
     by (metis append.assoc sublist_appendI uvwxy)
-  have " (count_list ?vwx  a=0 ) \<or>(count_list ?vwx c=0)" using  uvwxy a_or_b_zero assms 
-    by (metis (no_types, lifting) append.assoc)  
+  have "(count_list ?vwx  a=0 ) \<or> (count_list ?vwx c=0)" using  uvwxy a_or_b_zero assms 
+    by (metis (no_types, lifting) append.assoc)
+  text \<open>This theorem follows the texbook proof closely, we are choosing the \<open>?word\<close>  based on the pumping lemma number \<open>n\<close> 
+        then we note that  @{term "(count_list ?vwx  a=0 ) \<or> (count_list ?vwx c=0)"} similar to the textbook proof 
+        and finally applying @{thm pumping_application} to show that there is a word not in the language @{term "{word. \<exists> n.  word= (a^*n)@ (b^*n) @(c^*n) }"}\<close>
   then show False using  assms uvwxy pumping_application[of a b c u v w x y n]  
     by (metis (mono_tags, lifting) concat.simps(1) list.size(3) not_one_le_zero replicate_empty self_append_conv2)
 qed

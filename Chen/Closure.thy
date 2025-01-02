@@ -53,4 +53,36 @@ theorem closure_closed: assumes "mono F" shows "closed F (closure F S)"
 unfolding closure_def using lfp_fixpoint [OF mono_closure_fun[OF assms]]
 by (simp add: order_eq_iff)
 
+lemma closure_induct_subset:
+assumes "mono F"
+shows
+  "\<lbrakk> S \<subseteq> {a. P a};
+    \<And>A. A \<subseteq> {a. P a} \<inter> closure F S \<Longrightarrow> F A \<subseteq> {a. P a} \<rbrakk>
+  \<Longrightarrow> closure F S \<subseteq> {a. P a}"
+unfolding closure_def
+using lfp_induct[where P = "{a. P a}", OF mono_closure_fun[OF assms, where S=S]]
+by auto
+
+lemma closure_induct[consumes 1, case_names mono base step]:
+  "\<lbrakk> a \<in> closure F S;
+  mono F;
+  \<And>a. a\<in>S \<Longrightarrow> P a;
+  \<And>A b. \<lbrakk> \<And>a. a \<in> A \<Longrightarrow> P a \<and> a \<in> closure F S; b \<in> F A \<rbrakk> \<Longrightarrow> P b \<rbrakk>
+ \<Longrightarrow> P a"
+using closure_induct_subset[of F S P] by blast
+
+lemma (* Example *) "n \<in> closure (\<lambda>M. {m+2|m. m \<in> M}) {4::nat} \<Longrightarrow> even n" 
+proof (induction rule: closure_induct)
+  case mono
+  show ?case unfolding mono_def by blast
+next
+  case (base n)
+  then show ?case by simp
+next
+  case (step M n)
+  from step.hyps obtain m where "m \<in> M" "n = m+2" by auto
+  with step.IH[of m]
+  show ?case by auto
+qed
+
 end

@@ -36,7 +36,10 @@ proof (induction rule: rtrancl_derive_induct)
     by simp
 next
   case (step u A v w)
-  then show ?case sorry
+  then have "P \<turnstile> [Nt A] \<Rightarrow>* w"
+    sorry
+  then show ?case
+    using step.IH by (meson bu_embed derives_bu_if derives_if_bu)
 qed
 
 lemma Lang_eps_closure_subset: "Lang (eps_closure P) A \<subseteq> Lang P A"
@@ -47,15 +50,71 @@ theorem Lang_eps_closure: "Lang (eps_closure P) A = Lang P A"
 by (metis antisym[OF Lang_eps_closure_subset Lang_eps_closure_incr])
 
 lemma closed_eps_subst_eps_closure: "closed eps_subst (eps_closure P)"
-unfolding eps_closure_def using closure_closed[OF mono_eps_subst] by blast
+  unfolding eps_closure_def using closure_closed[OF mono_eps_subst] by blast
 
 definition "rm_eps P = {p \<in> eps_closure P . snd p \<noteq> []}"
 
+
 text \<open>The main theorem:\<close>
 theorem "Lang (rm_eps P) A = Lang P A - {[]}"
-sorry
+proof
+  have "\<forall> a. (a,[]) \<notin> rm_eps P"
+    unfolding rm_eps_def by simp
+  then have "[] \<notin> Lang (rm_eps P) A"
+    unfolding rm_eps_def Lang_def using CollectD Eps_freeI Eps_free_derives_Nil 
+    by (metis (no_types, lifting) list.map_disc_iff not_Cons_self2)
+  moreover have "Lang (rm_eps P) A \<subseteq> Lang P A"
+    unfolding rm_eps_def using Lang_eps_closure Lang_mono mem_Collect_eq subsetI 
+    by (metis (lifting))
+  ultimately show "Lang (rm_eps P) A \<subseteq> Lang P A - {[]}"
+    by auto
+next
+  have "\<And> w. w \<in> Lang P A - {[]} \<Longrightarrow> w \<in> Lang (rm_eps P) A"
+    proof -
+      fix w
+      assume "w \<in> Lang P A - {[]}"
+      then have "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
+        unfolding Lang_def by simp
+      then have "eps_closure P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
+        by (metis (no_types, lifting) Collect_mono_iff Lang_def Lang_eps_closure_incr)
+      then have "rm_eps P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
+        proof (induction rule: rtrancl_derive_induct)
+          case base
+          then show ?case by simp
+        next
+          case (step u A' v w)
+          consider (wEps) "w = []" | (NotwEps) "w \<noteq> []"
+            by auto
+          then show ?case 
+            proof (cases)
+              case (wEps)
+              then have "(A',[]) \<in> eps_closure P"
+                using step.hyps by auto
+              (* then have "eps_closure P \<turnstile> [Nt A] \<Rightarrow>* u @ [] @ v" *)
+              (*   using step.IH by (meson derive.intros rtranclp.simps step.hyps(1)) *)
+              (* then have "eps_closure P \<turnstile> [Nt A] \<Rightarrow>* u @ v" *)
+              (*   by simp *)
+              moreover have "rm_eps P \<turnstile> [Nt A] \<Rightarrow>* u @ [Nt A'] @ v"
+                using step.IH by blast
+              ultimately have "rm_eps P \<turnstile> [Nt A] \<Rightarrow>* u @ v"
+                sorry
+              then show ?thesis 
+                using wEps by auto
+            next
+              case (NotwEps)
+              then show ?thesis 
+              by (metis (mono_tags, lifting) derive.intros mem_Collect_eq rm_eps_def rtranclp.rtrancl_into_rtrancl snd_conv step.IH step.hyps(2))
+            qed
+        qed
+      then show "w \<in> Lang (rm_eps P) A"
+        unfolding Lang_def rm_eps_def eps_closure_def
+        by simp
+    qed
+  then show "Lang P A - {[]} \<subseteq> Lang (rm_eps P) A"
+    by auto
+qed
 (* maybe follows easily (but not directly) from \<open>Lang_eps_closure\<close>.
 Probably need to prove both directions separately.
 *)
-
+*)
 end

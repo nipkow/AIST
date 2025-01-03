@@ -190,7 +190,7 @@ lemma  not_ex_y_count:
 lemma not_in_count:
   assumes "a\<noteq>b" "b\<noteq>c" "a\<noteq> c" "(count_list w a\<noteq>count_list w b) \<or> (count_list w b\<noteq> count_list w c) \<or> (count_list w c \<noteq> count_list w a)"
   shows "w \<notin> {word. \<exists> n.  word= (a^*n)@(b^*n)@(c^*n)}"
-  text \<open>This lemma is the biggest line saver, because proving that a word has a different number of \<open>a\<close>, \<open>b\<close> or \<open>c\<close> is easier than proving something more specific\<close>
+  text \<open>This definition of a word not in the language is usefull as it allows us to prove a word is not in the language just by knowing the number of each letter in a word\<close>
   using assms not_ex_y_count
   by (smt (verit, del_insts) mem_Collect_eq)
 
@@ -211,6 +211,11 @@ proof-
   have count_non_zero: "((count_list (v@x) a) \<noteq>0) \<or> (count_list (v@x) b\<noteq>0) \<or> (count_list (v@x) c \<noteq> 0)" using count_vx_not_zero[of u v w x y n a b c] assms
     by simp  
   consider "count_list (v@w@x) a=0"|"count_list (v@w@x) c=0" using assms 
+    text \<open>in comparison to the proof in coq this is the only case analysis we are performing for the final proof.
+         in the coq proof this split is done like @{term "sublist (v@w@x) ((a^*n)@(b^*n))\<or>sublist (v@w@x) ((b^*n)@(c^*n))"}. 
+         the two definitions split the same, but it is easier to argue with our defintion, and it was also easier to proof @{thm count_vx_not_zero} than something similar with sublist 
+         the coq proof then uses another case analysis before ending up on their third level of case analysis now looking at the amount 
+         of each letter in \<open>v\<close> and \<open>x\<close> seperatley ending up with a total of 24 cases\<close>
     by argo
   then show ?thesis proof (cases)
     case 1

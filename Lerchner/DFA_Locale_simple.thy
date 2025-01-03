@@ -32,6 +32,8 @@ begin
 lemma start_exist: "1 \<in> S"
   by (metis atLeastAtMost_iff dfa_axioms dfa_def leI less_one not_gr_zero)
 
+
+
 (* Extended transition function for words *)
 fun nxts :: "'a list \<Rightarrow> nat \<Rightarrow> nat" where
   "nxts [] q = q" |
@@ -61,6 +63,10 @@ definition word_run_from_i_j :: "'a list \<Rightarrow> nat \<Rightarrow> nat \<R
 fun path_of_word :: "'a list \<Rightarrow> nat \<Rightarrow> nat list" where
   "path_of_word [] i = [i]" |
   "path_of_word (a#w) i = i # path_of_word w (nxt i a)"
+
+definition path_run_from_i_j :: "nat list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool" where
+  "path_run_from_i_j p i j = (if p=[] then i=j else hd p = i \<and> last p = j)"
+
 
 lemma length_of_path:"length (path_of_word w i) = length w + 1"
   apply(induction w arbitrary:i)

@@ -19,21 +19,15 @@ lemma lang_combine_plus:"lang (List.foldr Plus xs Zero) = \<Union>{lang x | x. x
 definition arcs_rexp :: "nat \<Rightarrow> nat \<Rightarrow> 'a rexp" where
    "arcs_rexp i j = foldr Plus [Atom a . a \<leftarrow> sigma, nxt i a = j] Zero"
 
-definition rexp_goes_through_node :: "'a rexp \<Rightarrow> nat  \<Rightarrow> nat \<Rightarrow> bool" where
-  "rexp_goes_through_node r i k = (\<exists>w \<in> lang r.  k \<in> set (path_of_word w i))"
-
 
 (** todo start at -1?**)
 fun R:: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a rexp " where
   "R i j 0 = (if i \<noteq> j then arcs_rexp i j else Plus One (arcs_rexp i j))" |
-  "R i j (Suc k) = (let R' = R i j k in
-                           if \<not>rexp_goes_through_node R' k i then 
-                              R'
-                           else
-                              let u = R    i    (Suc k) k in
-                              let v = R (Suc k) (Suc k) k in
-                              let w = R (Suc k)    j    k in
-                              Plus  R' (Times u (Times (Star v) w)))"
+  "R i j (Suc k) = (  let R'= R    i       j    k in
+                      let u = R    i    (Suc k) k in
+                      let v = R (Suc k) (Suc k) k in
+                      let w = R (Suc k)    j    k in
+                    Plus  R' (Times u (Times (Star v) w)))"
 
 
 
@@ -57,7 +51,6 @@ proof -
   qed
 
 lemma Rmono: "lang (R i j k) \<subseteq> lang (R i j (k + 1))"
-  apply(cases "rexp_goes_through_node ( R i j k) k i")
   by(auto)
 
 lemma lang_Rij0:" lang (R i j 0) = { [a] | a.  nxt i a = j}  \<union> (if i = j then {[]} else {})"
@@ -116,6 +109,117 @@ using assms proof -
 qed
 
 
+fun intersperse_alt :: "'b list \<Rightarrow> 'b \<Rightarrow> 'b list" where
+ "intersperse_alt xs k = concat (map (\<lambda>x. [x,k]) xs)"
+
+
+lemma path_decomposition:"(path_run_from_i_j p i j \<and> intermediate_path_restricted p k \<and> k \<in> set(intermediate_path  p)) \<Longrightarrow> 
+                                                                         (\<exists> p1 pss p3. p = [i] @  p1 @ [k] @ (concat (intersperse_alt pss[k])) @ p3 @ [j]  
+                                                                                      \<and>                 k \<notin> set( p1)
+                                                                                      \<and> (\<forall>p \<in> set pss.  k \<notin> set( p ))
+                                                                                      \<and>                 k \<notin> set( p3)
+                                                                          )"
+  unfolding path_run_from_i_j_def intermediate_path_restricted_def
+  sorry
+ 
+ 
+lemma " [i] @  p1 @ [k] @ (concat (intersperse_alt [x,y,z] [k])) @ p3 @ [j] =  
+        [i] @  p1 @ [k] @ x @ [k] @  y @ [k] @ z @ [k] @  p3 @ [j]   "
+  by auto
+
+
+
+
+lemma word_run_from_i_j_trans:"i \<in> S  \<Longrightarrow> j \<in> S \<Longrightarrow>word_run_from_i_j a i j \<Longrightarrow> word_run_from_i_j b j k \<Longrightarrow> word_run_from_i_j (a@b) i k"
+  unfolding word_run_from_i_j_def
+  apply(induction a arbitrary:i)
+  apply(auto)
+  by (simp add: transitions_in_S)
+
+lemma start_end_in_path:"word_run_from_i_j u x y  \<Longrightarrow> {x,y} \<subseteq> set (path_of_word u x )" for u x y
+    unfolding word_run_from_i_j_def
+    apply(induction u arbitrary:x y)
+    by(auto)
+ 
+
+
+lemma langRijk: 
+  assumes "i \<in> S  \<and> j \<in> S "
+  shows " w \<in> lang (R i j k) =(word_run_from_i_j w i j \<and>  intermediate_path_restricted (path_of_word w i) k)"
+using assms proof(induction k arbitrary: i j)
+  case 0
+  then show ?case
+    using langR1j0_1 langR1j0_2 by blast
+
+next
+  case (Suc k)
+
+  let ?p = "path_of_word w i"
+
+  let ?R'= "R    i       j    k" 
+  let ?u = "R    i    (Suc k) k "
+  let ?v = "R (Suc k) (Suc k) k" 
+  let ?w = "R (Suc k)    j    k" 
+
+
+
+
+ 
+
+  show ?case 
+  proof(cases "(k+1) \<notin> set (intermediate_path ?p)")
+    case True
+
+    have "w \<in> lang ?R' \<Longrightarrow> (word_run_from_i_j w i j \<and> intermediate_path_restricted (path_of_word w i) (Suc k))"
+    proof -
+      assume "w \<in> lang ?R'"
+
+      then have "w \<in>  lang (Plus ?R' (Times ?u (Times (Star ?v) ?w)))"
+        by(auto)
+
+     then have "w \<in>  lang (Plus ?R' (Times ?u (Times (Star ?v) ?w)))"
+        by(auto)
+
+      show "(word_run_from_i_j w i j \<and> intermediate_path_restricted (path_of_word w i) (Suc k))"
+        sorry
+    qed
+
+
+
+    then show ?thesis
+      sorry
+   
+  next
+    case False
+
+    let ?u = "R    i    (Suc k) k"
+    let ?v = "R (Suc k) (Suc k) k" 
+    let ?w = "R (Suc k)    j    k"
+
+    have "lang (R i j (Suc k)) =  lang (Plus  ?R' (Times ?u (Times (Star ?v) ?w)))"
+      by (simp add: False)
+
+    let ?p = "path_of_word w i"
+    have " k \<in> set(?p)" 
+  
+
+    obtain p1 p2 p3 where "?p = p1 @ p1 @ p3" 
+                            and "path_run_from_i_j p1 i k" and "k \<notin> set(intermediate_path p1)"
+                            and "path_run_from_i_j p2 k k" and "k \<notin> set(intermediate_path p1)"
+                            and "path_run_from_i_j p3 k j" and " k \<notin> set(intermediate_path p3)"
+
+  
+      have "k \<in> set(p)"
+
+  have "word_run_from_i_j w (Suc k) k"
+
+     then show ?thesis 
+       sorry
+  
+  qed
+
+
+qed
 
 
 lemma langRijk: 
@@ -130,7 +234,20 @@ next
   case (Suc k)
 
   show ?case 
+  proof(rule iffI)
+    assume " w \<in> lang (R i j (Suc k))"
+
+    show "word_run_from_i_j w i j \<and> intermediate_path_restricted (path_of_word w i) (Suc k)"  
+      sorry
+
+  next
+    assume "word_run_from_i_j w i j \<and> intermediate_path_restricted (path_of_word w i) (Suc k)"  
+    
+
+  show "    w \<in> lang (R i j (Suc k))"
     sorry
+
+  qed
 
 qed
  

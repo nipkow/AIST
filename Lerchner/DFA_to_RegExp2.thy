@@ -150,25 +150,24 @@ using assms proof -
 qed
 
 
-fun intersperse_alt :: "'b list \<Rightarrow> 'b \<Rightarrow> 'b list" where
- "intersperse_alt xs k = concat (map (\<lambda>x. [x,k]) xs)"
+lemma word_run_trans:"word_run_from_i_j x i k  \<Longrightarrow> word_run_from_i_j y k l  \<Longrightarrow> word_run_from_i_j (x@y) i l   "
+  unfolding word_run_from_i_j_def
+  apply(induction x arbitrary:i)
+  apply(auto)
+  using transitions_in_S by blast
 
 
-lemma path_decomposition:"(path_run_from_i_j p i j \<and> intermediate_path_restricted p k \<and> k \<in> set(intermediate_path  p)) \<Longrightarrow> 
-                                                                         (\<exists> p1 pss p3. p = [i] @  p1 @ [k] @ (concat (intersperse_alt pss[k])) @ p3 @ [j]  
-                                                                                      \<and>                 k \<notin> set( p1)
-                                                                                      \<and> (\<forall>p \<in> set pss.  k \<notin> set( p ))
-                                                                                      \<and>                 k \<notin> set( p3)
+lemma word_decomposition:"(word_run_from_i_j w i j \<Longrightarrow> intermediate_path_restricted (path_of_word w i) k \<Longrightarrow> k>0 \<Longrightarrow>  k \<in> set( (path_of_word w i))) \<Longrightarrow> 
+                                                                         (\<exists> w1 wss w3. w = w1 @ (concat ( wss)) @ w3 
+                                                                          \<and>                word_run_from_i_j  w1 i k \<and>  k \<notin> set(intermediate_path (path_of_word w1 i))
+                                                                          \<and> (\<forall>p \<in> set wss. word_run_from_i_j  p  k k \<and>  k \<notin> set(intermediate_path (path_of_word p  k)))
+                                                                          \<and>                word_run_from_i_j  w3 k j \<and>  k \<notin> set(intermediate_path (path_of_word w3 k))
                                                                           )"
-  unfolding path_run_from_i_j_def intermediate_path_restricted_def
-  nitpick
+ 
   sorry
+  
  
  
-lemma " [i] @  p1 @ [k] @ (concat (intersperse_alt [x,y,z] [k])) @ p3 @ [j] =  
-        [i] @  p1 @ [k] @ x @ [k] @  y @ [k] @ z @ [k] @  p3 @ [j]   "
-  by auto
-
 
 lemma word_run_from_i_j_trans:"word_run_from_i_j a i j \<Longrightarrow> word_run_from_i_j b j k \<Longrightarrow> word_run_from_i_j (a@b) i k"
   unfolding word_run_from_i_j_def
@@ -186,7 +185,9 @@ fun replicate_list :: "'b list \<Rightarrow> nat \<Rightarrow> 'b list"
   where
   "replicate_list lst k = concat (replicate k lst)"
 
-
+lemma r_restriced_paths: "w \<in> lang (R i j k) \<Longrightarrow>  path_restricted (path_of_word w i) (max (max i j) k) \<and>  intermediate_path_restricted (path_of_word w i) k"
+  unfolding intermediate_path_restricted_def path_restricted_def
+  sorry
 
 lemma langRijk: 
   assumes " k\<le>n "
@@ -225,7 +226,7 @@ next
   
  
   show ?case 
-  proof(cases "\<forall>s. s \<in> set (intermediate_path (path_of_word w i)) \<longrightarrow> s \<le>  k")
+  proof(cases "k+1 \<notin> set (intermediate_path (path_of_word  w i))")
     case not_through_k_plus_one:True
 
     have "w \<in> lang ?R' \<longleftrightarrow> (word_run_from_i_j w i j \<and> intermediate_path_restricted (path_of_word w i) (Suc k))"
@@ -266,11 +267,10 @@ next
             by (smt (verit, best) R_valid_path Suc.IH Suc.prems Suc_leD concE word_run_from_i_j_trans)
 
  
-          then have " intermediate_path_restricted (path_of_word w i) (Suc k)"
-            by (simp add: intermediate_path_restricted_def le_SucI not_through_k_plus_one)
-  
+   
         then show ?thesis
-          by (simp add: \<open>word_run_from_i_j w i j\<close>)
+          using \<open>w \<in> lang (R i j (Suc k))\<close> r_restriced_paths by blast
+
       qed
     qed
 
@@ -280,10 +280,25 @@ next
   next
     case False
 
-  
+    have "  (word_run_from_i_j w i j \<and> intermediate_path_restricted (path_of_word w i) (Suc k)) \<Longrightarrow> (w \<in> lang (R i j (Suc k)))"
+    proof -
+      assume " (word_run_from_i_j w i j \<and> intermediate_path_restricted (path_of_word w i) (Suc k))"
+      then obtain w1 wss w3 where "w = w1 @ (concat ( wss)) @ w3 " and " word_run_from_i_j w1 i (k +1) \<and>  k +1 \<notin> set(intermediate_path ( path_of_word w1 i))" 
+                                                            and  "(\<forall>p \<in> set wss. word_run_from_i_j p (k +1) (k +1) \<and>  k +1 \<notin> set(intermediate_path ( path_of_word p (k +1))))"
+                                                            and " word_run_from_i_j w3 (k +1) j \<and>  k +1 \<notin> set(intermediate_path ( path_of_word w3 (k +1)))"
+        using Suc_n_not_le_n atLeastAtMost_iff state_set_def word_decomposition word_run_sound
+        by metis  
+     
+
+      show "(w \<in> lang (R i j (Suc k)))"
+        using \<open>word_run_from_i_j w i j \<and> intermediate_path_restricted (path_of_word w i) (Suc k)\<close> atLeastAtMost_iff not_one_le_zero state_set_def word_decomposition word_run_sound by blast
+   
+    qed
+
+
+     then show ?thesis
+       by (metis Suc_n_not_le_n atLeastAtMost_iff r_restriced_paths state_set_def word_decomposition word_run_sound)
  
-     then show ?thesis sorry
-       
 
    qed
  qed

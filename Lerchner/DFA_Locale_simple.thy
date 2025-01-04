@@ -70,6 +70,16 @@ definition path_run_from_i_j :: "nat list \<Rightarrow> nat \<Rightarrow> nat \<
   "path_run_from_i_j p i j = (if p=[] then i=j else hd p = i \<and> last p = j)"
 
 
+lemma last_of_path:"last (path_of_word w i) = nxts w i "
+  apply(induction w arbitrary:i)
+  apply(auto)
+  using path_of_word.elims by blast
+
+lemma hd_of_path:"hd (path_of_word w i) =  i "
+  apply(induction w arbitrary:i)
+  by(auto)
+
+
 lemma word_run_sound_path:"word_run_from_i_j w i j \<Longrightarrow> (set (path_of_word w i) \<subseteq> S)"
   apply(induction w arbitrary:i)
   apply(auto simp add: word_run_sound)
@@ -112,6 +122,10 @@ definition paths_between :: "nat \<Rightarrow> nat \<Rightarrow> (nat list) set"
   - intermediate_path_restricted: Predicate for paths with bounded intermediate states
   - restricetd_paths_between: Set of paths with bounded intermediate states
 *)
+
+definition path_restricted :: "nat list \<Rightarrow> nat \<Rightarrow> bool" where
+  "path_restricted p k = (\<forall>s. s \<in> set ( p) \<longrightarrow> s \<le> k)"
+
 
 (* Predicate for paths where intermediate nodes are bounded *)
 definition intermediate_path_restricted :: "nat list \<Rightarrow> nat \<Rightarrow> bool" where

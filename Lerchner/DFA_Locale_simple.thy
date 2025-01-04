@@ -24,14 +24,13 @@ locale dfa =
     "n > 0"  (* At least one state *)
     and state_set_def: "S = {1..n}"  (* States are numbered 1 to n *)
     and states_subset: "Fin \<subseteq> S"     (* All accepting states are valid states *)
-    and transitions_in_S: "\<And>i a. i \<in> S \<longrightarrow> nxt i a \<in> S"  (* Transitions stay within valid states *)
-    and transitions_valid: "nxt i a = j \<Longrightarrow> a \<in> set sigma"  (* Transitions use valid symbols *)
+    and transitions_in_S: "i \<in> S \<longrightarrow> nxt i a \<in> S"  (* Transitions stay within valid states *)
+    and transitions_valid: "i \<in> S \<Longrightarrow> a \<in> set sigma \<Longrightarrow> nxt i a \<in> S"  (* Transitions use valid symbols *)
 begin
-
+ 
 (* Basic lemma showing that starting state exists in S *)
 lemma start_exist: "1 \<in> S"
   by (metis atLeastAtMost_iff dfa_axioms dfa_def leI less_one not_gr_zero)
-
 
 
 (* Extended transition function for words *)
@@ -41,17 +40,20 @@ fun nxts :: "'a list \<Rightarrow> nat \<Rightarrow> nat" where
   
 (* Word acceptance predicate *)
 definition accepted :: "'a list \<Rightarrow> bool" where
-  "accepted w = (nxts w 1 \<in> Fin)"
+  "accepted w = ((nxts w 1 \<in> Fin) \<and> set w \<subseteq> set sigma)"
+
 
 (* Predicate for paths between states *)
 definition word_run_from_i_j :: "'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool" where
-  "word_run_from_i_j w i j = (nxts w i = j)"
+  "word_run_from_i_j w i j = (i\<in> S \<and> set w \<subseteq> set sigma \<and> nxts w i = j)"
 
 
+lemma word_run_sound:"word_run_from_i_j w i j \<Longrightarrow> i\<in> S \<and> j \<in> S"
+  unfolding word_run_from_i_j_def
+  apply(induction w arbitrary:i)
+  using transitions_in_S by auto
 
-
-
-
+ 
 (* 
   Path-related operations and lemmas including:
   - path_of_word: Computes the sequence of states visited by a word
@@ -68,6 +70,11 @@ definition path_run_from_i_j :: "nat list \<Rightarrow> nat \<Rightarrow> nat \<
   "path_run_from_i_j p i j = (if p=[] then i=j else hd p = i \<and> last p = j)"
 
 
+lemma word_run_sound_path:"word_run_from_i_j w i j \<Longrightarrow> (set (path_of_word w i) \<subseteq> S)"
+  apply(induction w arbitrary:i)
+  apply(auto simp add: word_run_sound)
+  by (metis nxts.simps(2) order_trans set_subset_Cons subsetD transitions_in_S word_run_from_i_j_def)
+ 
 lemma length_of_path:"length (path_of_word w i) = length w + 1"
   apply(induction w arbitrary:i)
   apply(auto)
@@ -78,6 +85,14 @@ lemma path_in_S: "i \<in> S \<Longrightarrow> set (path_of_word w i) \<subseteq>
   apply(induction w arbitrary: i)
   apply(auto)
   by (meson in_mono transitions_in_S)
+
+
+lemma word_run_has_path:"word_run_from_i_j w i j = (i\<in> S \<and> set w \<subseteq> set sigma \<and> (let p=  path_of_word w i in hd p = i \<and> last p = j))"
+  unfolding word_run_from_i_j_def
+  apply(induction w i  rule:nxts.induct)
+  apply (simp)
+  by (smt (verit) dfa.path_of_word.elims dfa_axioms dual_order.trans last_ConsR list.discI list.inject list.sel(1) nxts.simps(2) set_subset_Cons transitions_in_S)
+  
 
 (* Get internal states of a path (excluding start and end) *)
 fun intermediate_path :: "nat list \<Rightarrow> nat list" where
@@ -123,6 +138,8 @@ lemma intermediate_smaller: "set (intermediate_path p) \<subseteq> set p"
 corollary restricted_n: "i\<in> S \<Longrightarrow> intermediate_path_restricted (path_of_word w i) n"
   unfolding intermediate_path_restricted_def
   by (metis atLeastAtMost_iff in_mono intermediate_smaller path_in_S state_set_def)
+
+
 
 
 end

@@ -26,7 +26,7 @@ next
 qed 
  
 
-
+(** Simple test of the R function. Somehow no code was generated inside the locale, so i copied the functions here **)
 
 fun arcs_rexp :: "nat \<Rightarrow> nat \<Rightarrow> nat rexp" where
   "arcs_rexp i j =  List.foldr Plus 
@@ -68,7 +68,7 @@ value "simp_rexp (simp_rexp (simp_rexp (R 1 2 1)))"
 value "simp_rexp (simp_rexp (simp_rexp (R 2 1 1)))"
 value "simp_rexp (simp_rexp (simp_rexp (R 2 2 1)))"
 
-value "simp_rexp (R 1 1 2) "
+value "simp_rexp (simp_rexp (simp_rexp (simp_rexp (simp_rexp  (R 1 1 2) ))))"
 value "simp_rexp (simp_rexp (simp_rexp (simp_rexp (simp_rexp  (R 1 2 2) ))))"
 value "simp_rexp (simp_rexp (simp_rexp (simp_rexp (simp_rexp  (R 2 1 2) ))))"
 value "simp_rexp (simp_rexp (simp_rexp (simp_rexp (simp_rexp  (R 2 2 2) ))))"

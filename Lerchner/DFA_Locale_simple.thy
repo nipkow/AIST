@@ -1,4 +1,8 @@
-theory DFA_Locale_simple
+(*  Title:      DFA_Locale_simple.thy
+    Author:     Manuel Lerchner
+*)
+
+theory DFA_locale_simple
 imports
   "$AFP/Regular-Sets/Regular_Exp"
 begin

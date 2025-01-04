@@ -1,6 +1,10 @@
+(*  Title:      DFA_to_RegExp.thy
+    Author:     Manuel Lerchner
+*)
+
 theory DFA_to_RegExp
 
-imports "DFA_Locale_simple"
+imports "DFA_locale_simple"
 begin
 
 (** 

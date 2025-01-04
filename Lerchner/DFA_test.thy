@@ -1,5 +1,9 @@
-theory test
-  imports Main HOL.List DFA_to_RegExp2
+(*  Title:      DFA_test.thy
+    Author:     Manuel Lerchner
+*)
+
+theory DFA_test
+  imports Main HOL.List DFA_to_RegExp
 begin
 
 interpretation simple_dfa: dfa 

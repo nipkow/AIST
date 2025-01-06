@@ -241,6 +241,19 @@ lemma word_to_inside_intermediate_path:"i\<in> S \<Longrightarrow> set w \<subse
   apply(auto)
   by (smt (verit) Nitpick.size_list_simp(2) One_nat_def Suc_less_eq butlast.simps(1) diff_Suc_eq_diff_pred diff_less length_butlast length_greater_0_conv length_tl less_trans_Suc nth_butlast nth_tl plus_1_eq_Suc word_to_inside__path zero_less_two)
 
+
+lemma sub_two_no_intermediate_path:"length x \<le> 2 \<Longrightarrow> intermediate_path x = []"
+  apply(auto)
+  using le_diff_conv by fastforce
+
+
+lemma last_concat_loops:"\<forall>w' \<in> set wss . last (path_of_word w' (Suc k)) = (Suc k)
+ \<Longrightarrow> last (path_of_word (concat wss) (Suc k)) = Suc k"
+       apply(induction wss)
+       apply(auto)
+       by (metis last_append last_tl nxts_last_of_path path_decomposition)
+
+
  
 subsection \<open>Restricted Paths\<close>
 
@@ -287,7 +300,20 @@ lemma path_shape_no_intermediate:"intermediate_path (path_of_word w i) = [] \<Lo
   apply(auto)
   by (metis butlast.simps(2) butlast_tl list.discI list.sel(2))
 
+lemma path_restricted_subword:"path_restricted (a@b@c) k \<Longrightarrow> path_restricted b k"
+  unfolding path_restricted_def
+  apply(induction a arbitrary: b c)
+  by(auto)
 
+lemma intermediate_path_restricted_subword:"intermediate_path_restricted (a@b@c) k \<Longrightarrow> intermediate_path_restricted b k"
+  unfolding intermediate_path_restricted_def
+  apply(cases "a=[] \<or> c = []")
+  apply(auto)
+  apply (metis Nil_is_append_conv butlast.simps(1) in_set_butlast_appendI list.distinct(1) list.sel(2) split_list tl_append2)
+  apply (metis Nil_tl append_self_conv2 butlast_tl in_set_butlast_appendI list.set_sel(2) tl_append2)
+  by (metis Nil_tl butlast_tl in_set_butlast_appendI list.set_sel(2))
+ 
+  
 lemma path_restricted_intermediate_path_restricted:"path_restricted (tl a) k \<and> path_restricted (butlast b) k \<Longrightarrow> intermediate_path_restricted (a@b) k"
   unfolding path_restricted_def intermediate_path_restricted_def
 proof(induction a arbitrary:b)
@@ -339,8 +365,53 @@ lemma path_restricted_trans: " path_restricted p k \<Longrightarrow>  path_restr
   apply(induction p)
   by(auto)
 
+lemma path_restricted_append: " path_restricted p k \<Longrightarrow>  path_restricted q k \<Longrightarrow> path_restricted (p @ q) k"
+  unfolding path_restricted_def
+  apply(induction p)
+  by(auto)
 
+
+
+
+lemma path_restricted_combine_intermediate: "k'\<ge>k\<Longrightarrow> p \<noteq> [] \<Longrightarrow>  intermediate_path_restricted p k \<Longrightarrow> last p = k' \<Longrightarrow> 
+                               path_restricted q k' \<Longrightarrow>    intermediate_path_restricted (p @ q  ) k'"
+proof -
+  assume "k \<le> k'"
+  assume "p\<noteq>[]"
+  assume "intermediate_path_restricted p k"
+  assume "last p = k'" 
+  assume "path_restricted q k'"
+
+  then obtain ls l where "ls @ [l] = p"
+    using \<open>p \<noteq> []\<close> append_butlast_last_id by auto
  
+  have "path_restricted (tl ls) k' "
+    by (metis \<open>intermediate_path_restricted p k\<close> \<open>k \<le> k'\<close> \<open>ls @ [l] = p\<close> append.right_neutral butlast.simps(2) butlast_append butlast_tl intermediate_path.elims intermediate_path_restricted_def not_Cons_self2 order.trans path_restricted_def)
+  then have "path_restricted (tl (ls @ [l])) k' "
+    apply(induction ls)
+    apply(auto)
+    by (metis \<open>last p = k'\<close> \<open>ls @ [l] = p\<close> append_self_conv2 last_snoc order_class.order_eq_iff path_restricted_append path_restricted_def path_restricted_subword set_ConsD)
+
+ then have "path_restricted (tl (ls @ [l]) @ q) k' "
+   by (simp add: \<open>path_restricted q k'\<close> path_restricted_append)
+    
+
+  then show "intermediate_path_restricted (p @ q  ) k'"
+    using \<open>ls @ [l] = p\<close> \<open>path_restricted (tl (ls @ [l])) k'\<close> \<open>path_restricted q k'\<close> path_restricted_intermediate_path_restricted path_restricted_trans by blast
+qed
+
+lemma intermediate_to_path_restricted_tl:"intermediate_path_restricted x k \<Longrightarrow> last x = k' \<Longrightarrow> k' \<ge> k \<Longrightarrow> path_restricted (tl x) k'"
+  by (smt (verit, ccfv_threshold) Orderings.order_eq_iff butlast.simps(2) dual_order.trans in_set_butlast_appendI intermediate_path.simps intermediate_path_restricted_def last.simps last_appendR last_tl list.distinct(1) list.sel(1) list.set_intros(1) path_restricted_def split_list split_list_first)
+
+
+lemma intermediate_to_path_restricted_butlast:"intermediate_path_restricted x k \<Longrightarrow> hd x = k' \<Longrightarrow> k' \<ge> k \<Longrightarrow> path_restricted (butlast x) k'"
+  by (smt (verit, ccfv_SIG) butlast.simps(1) butlast.simps(2) dual_order.trans intermediate_path.elims intermediate_path_restricted_def list.exhaust_sel nle_le path_restricted_def set_ConsD tl_Nil)
+
+lemma combine_intermediate_restricted:"hd x = k' \<and> intermediate_path_restricted x k \<Longrightarrow> last x = k'' \<Longrightarrow> path_restricted x (max k' (max k k''))"
+  apply(induction x)
+  unfolding intermediate_path_restricted_def path_restricted_def
+  apply fastforce
+  by (smt (verit, ccfv_threshold) Orderings.order_eq_iff append_self_conv2 butlast.simps(2) in_set_butlast_appendI intermediate_path.elims last_ConsL last_appendR list.sel(1) list.set_intros(1) max.coboundedI1 max.coboundedI2 split_list_first tl_append2)
 
 (* Lemmas about the language of a Regular Expression *)
 
@@ -350,7 +421,32 @@ lemma lang_combine_plus:"lang (List.foldr Plus xs Zero) = \<Union>{lang x | x. x
   apply(auto)
   done
 
+lemma star_restricted:"ws \<in> lang (Star X) \<Longrightarrow> (\<forall> w \<in> lang X. path_restricted w k) \<Longrightarrow> path_restricted ws k"
+  apply(auto)
+  apply(induction rule:star_induct)
+   apply(auto)
+  unfolding path_restricted_def
+  by (auto simp add: path_restricted_def)
 
+lemma lang_times_split:"w \<in> lang (Times a b) \<longleftrightarrow>( \<exists> w1 w2. w1 \<in> lang a \<and> w2 \<in> lang b \<and> w = w1 @ w2)"
+  apply(auto)
+  by (smt (verit) concE)
+
+lemma lang_star_split: "w \<in> lang (Star A) \<longleftrightarrow> (\<exists> ws . concat ws = w \<and> (\<forall>w' \<in> set ws . w' \<in> lang A)) "
+  apply(auto)
+  apply (metis in_star_iff_concat subset_iff)
+  by (metis concat_in_star subsetI)
+
+lemma star_runs_loop:"w \<in> lang (Star A) \<Longrightarrow> s \<in> S\<Longrightarrow>  (\<forall>w' \<in> lang A . word_run_from_i_j w' s s) \<Longrightarrow> word_run_from_i_j w s s"
+  unfolding word_run_from_i_j_def
+  apply(simp)
+  apply(induction arbitrary:s  rule:star_induct)
+   apply(auto)
+  using word_run_from_i_j_def word_run_trans by auto
+
+lemma lang_plus_either: "w \<in>  lang (Plus  A B) \<Longrightarrow> w \<in> lang A \<or> w \<in> lang B"
+  by simp
+ 
 
 end
 end

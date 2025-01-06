@@ -15,13 +15,20 @@ begin
   https://www-2.dc.uba.ar/staff/becher/Hopcroft-Motwani-Ullman-2001.pdf
 **)
 
-
 (** 
   I was able to prove correctness of the base case of the conversion function R i j 0, 
-  and completed half of the induction step R i j (k+1).
+  and completed most of the induction step R i j (k+1).
 
-  I got stuck in the induction step, because I could not get the claimed decomposition lemma to work.
-  But i think there is not much missing to complete the proof.
+  Moreover I was able to prove that the final construction of the regular expression is correct.
+
+  I got stuck at two points:
+    1. The decomposition of a word (or path) into three parts w1, ws, w2, as claimed in the book. 
+       I think this needs a complicated split function, that detects loops in a path, and splits the word accordingly.
+       I already spent to much time here, so I decided to sorry this part.
+
+    2. The proof that the intermediate path of a word w is restricted to k, if w is a path from i to j. 
+       (This should be trivial, but I could not get it to work. I proved a weaker version of this lemma, 
+        that states that all paths are restricted to max i j k however.)
 **)
 
 
@@ -163,10 +170,11 @@ corollary langRij0_correct: "i \<in> S \<Longrightarrow> j \<in> S \<Longrightar
   using langRij0_1 langRij0_2 by blast
 
 
-
-
-
-
+lemma langRij0_words_leq_1: "w \<in> lang (R i j 0) \<Longrightarrow> length w \<le> 1"
+  apply(cases "i \<in> S \<and> j \<in> S")
+  apply(auto)
+  apply(cases "i=j")
+  using lang_arcs_rexp by(auto)
 
 
 
@@ -174,126 +182,425 @@ corollary langRij0_correct: "i \<in> S \<Longrightarrow> j \<in> S \<Longrightar
 
 subsection "Proofs about the induction step R i j (k+1)"
 
-(** 
-I cant get the following decomposition lemma to work / be sound. The proof in the book claims that it should work somehow like this. But nitpick, and metis are unhappy with it.
-**)
 
-(**
-lemma word_decomposition:"(word_run_from_i_j w i j \<Longrightarrow> intermediate_path_restricted (path_of_word w i) k \<Longrightarrow> k>0 \<Longrightarrow>  k \<in> set( (path_of_word w i))) \<Longrightarrow> 
-                                                                         (\<exists> w1 wss w3. w = w1 @ (concat ( wss)) @ w3 
-                                                                          \<and>                word_run_from_i_j  w1 i k \<and>  k \<notin> set(intermediate_path (path_of_word w1 i))
-                                                                          \<and> (\<forall>p \<in> set wss. word_run_from_i_j  p  k k \<and>  k \<notin> set(intermediate_path (path_of_word p  k)))
-                                                                          \<and>                word_run_from_i_j  w3 k j \<and>  k \<notin> set(intermediate_path (path_of_word w3 k))
-                                                                          )"
- 
-  sorry
-**)
- 
 
 lemma Rmono: "lang (R i j k) \<subseteq> lang (R i j (k + 1))"
   apply(induction  i j k rule:R.induct)
    apply(auto)
   done
 
-lemma langRijk: 
-  assumes " k\<le>n "
-  shows " w \<in> lang (R i j k) \<longleftrightarrow> (word_run_from_i_j w i j \<and>  intermediate_path_restricted (path_of_word w i) k)"
-using assms proof(induction k arbitrary: i j w)
+lemma ssdss: "w \<in>  lang (Plus  A B) \<Longrightarrow> w \<in> lang A \<or> w \<in> lang B"
+  by simp
+
+lemma lang_times_split:"w \<in> lang (Times a b) \<longleftrightarrow>( \<exists> w1 w2. w1 \<in> lang a \<and> w2 \<in> lang b \<and> w = w1 @ w2)"
+  apply(auto)
+  by (smt (verit) concE)
+
+lemma lang_star_split: "w \<in> lang (Star A) \<longleftrightarrow> (\<exists> ws . concat ws = w \<and> (\<forall>w' \<in> set ws . w' \<in> lang A)) "
+  apply(auto)
+  apply (metis in_star_iff_concat subset_iff)
+  by (metis concat_in_star subsetI)
+
+lemma star_runs_loop:"w \<in> lang (Star A) \<Longrightarrow> s \<in> S\<Longrightarrow>  (\<forall>w' \<in> lang A . word_run_from_i_j w' s s) \<Longrightarrow> word_run_from_i_j w s s"
+  unfolding word_run_from_i_j_def
+  apply(simp)
+  apply(induction arbitrary:s e  rule:star_induct)
+   apply(auto)
+  using word_run_from_i_j_def word_run_trans by auto
+
+
+lemma last_concat_loops:"\<forall>w' \<in> set wss . last (path_of_word w' (Suc k)) = (Suc k)
+ \<Longrightarrow> last (path_of_word (concat wss) (Suc k)) = Suc k"
+       apply(induction wss)
+       apply(auto)
+       by (metis last_append last_tl nxts_last_of_path path_decomposition)
+
+
+lemma R_ijk_path_run:"w \<in> lang (R i j k) \<Longrightarrow> hd (path_of_word w i) = i \<and> last (path_of_word w i) = j"
+proof(induction k arbitrary:i j w)
   case 0
-  then show ?case
-    using langRij0_1 langRij0_2 by blast  
-   
+  then show ?case 
+    by (meson "0" dfa.langRij0_1 dfa.word_run_has_path dfa_axioms)
 next
   case (Suc k)
-
-  let ?R'= "R i j k" 
- 
-  show ?case 
-  proof(cases "\<forall> x \<in> set (intermediate_path (path_of_word  w i)) . x < k+1")
-    case not_through_k_plus_one:True
-
-    have "w \<in> lang ?R' \<longleftrightarrow> (word_run_from_i_j w i j \<and> intermediate_path_restricted (path_of_word w i) (Suc k))"
-    proof(rule iffI)
-      assume "w \<in> lang ?R'"
- 
-      show "(word_run_from_i_j w i j \<and> intermediate_path_restricted (path_of_word w i) (Suc k))"
-        by (meson Suc.IH Suc.prems Suc_leD \<open>w \<in> lang (R i j k)\<close> intermediate_path_restricted_def le_SucI)
-    next
-      assume "(word_run_from_i_j w i j \<and> intermediate_path_restricted (path_of_word w i) (Suc k))"
-
-      then have "intermediate_path_restricted (path_of_word w i) k"
-        unfolding intermediate_path_restricted_def
-        using not_through_k_plus_one le_Suc_eq by fastforce
-       
-      then  show "w \<in> lang ?R'"
-        by (simp add: Suc.IH Suc.prems Suc_leD \<open>word_run_from_i_j w i j \<and> intermediate_path_restricted (path_of_word w i) (Suc k)\<close>) 
-    qed
-
-    have "(w \<in> lang (R i j (Suc k))) \<Longrightarrow> (word_run_from_i_j w i j \<and> intermediate_path_restricted (path_of_word w i) (Suc k))"
-    proof -
-      assume "(w \<in> lang (R i j (Suc k)))"
-      then show ?thesis
-      proof(cases "(w \<in> lang (R i j k))")
-        case True
-        then show ?thesis
-          by (simp add: \<open>(w \<in> lang (R i j k)) = (word_run_from_i_j w i j \<and> intermediate_path_restricted (path_of_word w i) (Suc k))\<close>) 
-      next
-        case False
-        let ?u = "R    i    (Suc k) k "
-        let ?v = "R (Suc k) (Suc k) k" 
-        let ?w = "R (Suc k)    j    k" 
-
-       
-
-         have lang_times:"w \<in> lang (Times (R a b k) (R b c k)) \<Longrightarrow> word_run_from_i_j w a c" for a b c w
-          using Suc.IH Suc.prems word_run_trans by fastforce
-        
-          have word_run_star:"a \<in> S \<Longrightarrow> w \<in> star (lang (R a a k)) \<Longrightarrow>  word_run_from_i_j w a a" for a w
-          proof -
-            assume "a \<in> S"
-            show "w \<in> star (lang (R a a k)) \<Longrightarrow> word_run_from_i_j w a a"
-              apply(induction rule:star_induct)
-              apply (simp add: \<open>a \<in> S\<close> word_run_from_i_j_def)
-              using Suc.IH Suc.prems Suc_leD word_run_trans by blast
-          qed
-          
-          have "w \<in> lang (Plus  ?R' (Times ?u (Times (Star ?v) ?w)))"
-           by (metis R.simps(2) R_valid_path \<open>w \<in> lang (R i j (Suc k))\<close>)
-          then have "word_run_from_i_j w i j"
-            using lang_times word_run_star apply (simp add: False)
-            by (smt (verit, best) R_valid_path Suc.IH Suc.prems Suc_leD concE word_run_trans)
-
- 
-        then show ?thesis
-          by (metis Suc_eq_plus1 intermediate_path_restricted_def less_or_eq_imp_le not_through_k_plus_one)
-      qed
-    qed
-
-   then show ?thesis
-     by (metis Rmono Suc_eq_plus1 \<open>(w \<in> lang (R i j k)) = (word_run_from_i_j w i j \<and> intermediate_path_restricted (path_of_word w i) (Suc k))\<close> subset_iff)  
-           
+  then show ?case 
+  proof(cases "w \<in> lang (R i j k)")
+    case True
+    then show ?thesis
+      by (simp add: Suc.IH) 
   next
     case False
 
-    (**
-    I got stuck here, because I cant get the decomposition lemma to work.
-    **)
- 
-     then show ?thesis
-       sorry
+    let ?u = "R i (Suc k) k"
+    let ?v = "R (Suc k) (Suc k) k"
+    let ?w = "R (Suc k) j k"
 
+    have "w \<in> lang ( (Times ?u (Times (Star ?v) ?w)))"
+      by (smt (verit) False R.simps(2) R_valid_path Suc.prems ssdss)
+
+    then obtain w1 ws w2 wss where "w1@ws@w2 = w" "w1 \<in> lang ?u" and "ws \<in> lang (Star ?v)" and "w2 \<in> lang ?w"
+                              and "concat wss = ws" and "\<forall>w' \<in> set wss . w' \<in> lang ?v"
+      using lang_star_split by fastforce
+
+     have "\<forall>w' \<in> set wss . last (path_of_word w' (Suc k)) = (Suc k)"
+      by (simp add: Suc.IH \<open>\<forall>w'\<in>set wss. w' \<in> lang (R (Suc k) (Suc k) k)\<close>)
+ 
+     have "path_of_word w i = (path_of_word w1 i) @ tl (path_of_word ws (Suc k)) @  tl (path_of_word w2 (Suc k)) "
+       by (metis Suc.IH \<open>\<forall>w'\<in>set wss. last (path_of_word w' (Suc k)) = Suc k\<close> \<open>concat wss = ws\<close> \<open>w1 @ ws @ w2 = w\<close> \<open>w1 \<in> lang (R i (Suc k) k)\<close> combine_looped_path last_concat_loops list.distinct(1) path_decomposition tl_append2 word_implies_path)
+       
+     then show ?thesis 
+       apply(auto)
+       apply (metis hd_of_path)
+       by (smt (verit) Nil_is_append_conv Suc.IH \<open>\<forall>w'\<in>set wss. last (path_of_word w' (Suc k)) = Suc k\<close> \<open>concat wss = ws\<close> \<open>w1 \<in> lang (R i (Suc k) k)\<close> \<open>w2 \<in> lang (R (Suc k) j k)\<close> append.right_neutral hd_Cons_tl hd_Nil_eq_last last_appendR last_concat_loops last_snoc last_tl)
    qed
  qed
+
+
+
+
+lemma Rijk_restricted:" w \<in> lang (R i j k) \<Longrightarrow> path_restricted (path_of_word w i) (max (max i j) k)"
+  unfolding path_restricted_def intermediate_path_restricted_def
+proof(induction k arbitrary:i j w)
+  case 0
+    then have "w\<in> ( { [a] | a. a \<in> set sigma \<and>  nxt i a = j}  \<union> (if i = j then {[]} else {}))"
+      by (metis (no_types, lifting) R_valid_path lang_base_case)
+    then show ?case  
+      apply(cases "i=j")
+      by(auto)
+next
+  case (Suc k)
+  then show ?case 
+  proof(cases "w \<in> lang (R i j k)")
+    case True
+    then show ?thesis
+      by (smt (verit) Suc.IH le_SucI le_max_iff_disj) 
+  next
+    case False
+
+    let ?u = "R i (Suc k) k"
+    let ?v = "R (Suc k) (Suc k) k"
+    let ?w = "R (Suc k) j k"
+
+    have "w \<in> lang ( (Times ?u (Times (Star ?v) ?w)))"
+      by (smt (verit) False R.simps(2) R_valid_path Suc.prems ssdss)
+
+    then obtain w1 ws w2 wss where "w1@ws@w2 = w" "w1 \<in> lang ?u" and "ws \<in> lang (Star ?v)" and "w2 \<in> lang ?w"
+                              and ws_def:"concat wss = ws" and "\<forall>w' \<in> set wss . w' \<in> lang ?v"
+      using lang_star_split by fastforce
+
+     have "\<forall>w' \<in> set wss . last (path_of_word w' (Suc k)) = (Suc k)"
+      using R_ijk_path_run \<open>\<forall>w'\<in>set wss. w' \<in> lang (R (Suc k) (Suc k) k)\<close> by blast
+   
+     then have path_decomp:"path_of_word w i = (path_of_word w1 i) @ tl (path_of_word ws (Suc k)) @  tl (path_of_word w2 (Suc k)) "
+       by (smt (verit, ccfv_SIG) \<open>w1 @ ws @ w2 = w\<close> \<open>w1 \<in> lang (R i (Suc k) k)\<close> append_eq_appendI dfa.R_ijk_path_run dfa.last_of_path dfa.path_decomposition dfa.path_decomposition_2 dfa_axioms last_concat_loops ws_def)
+ 
+     then have "\<forall>w\<in>set wss. path_restricted (path_of_word w (Suc k)) (max (max (Suc k) (Suc k)) k)"
+       using Suc.IH \<open>\<forall>w'\<in>set wss. w' \<in> lang (R (Suc k) (Suc k) k)\<close> path_restricted_def by blast
+       
+    have "(\<forall>w\<in> set wss. last (path_of_word w (Suc k)) = (Suc k))"
+      using \<open>\<forall>w'\<in>set wss. w' \<in> lang (R (Suc k) (Suc k) k)\<close> dfa.R_ijk_path_run dfa_axioms by blast
+    then have "path_of_word (concat wss) (Suc k) = (Suc k) #concat (map (\<lambda> w \<Rightarrow> tl (path_of_word w (Suc k))) wss)"
+      by (simp add: combine_looped_path)
+
+    then have " path_restricted (path_of_word ws (Suc k)) (max (max (Suc k) (Suc k)) k) "
+      using ws_def unfolding path_restricted_def
+      apply(auto)
+      by (metis Suc.IH Suc_n_not_le_n \<open>\<forall>w'\<in>set wss. w' \<in> lang (R (Suc k) (Suc k) k)\<close> list.sel(2) list.set_sel(2) max_def)
+ 
+    moreover have "path_restricted (path_of_word w1 i) (max k (max i (Suc k)))"
+      by (metis Suc.IH \<open>w1 \<in> lang (R i (Suc k) k)\<close>  max.commute path_restricted_def)
+ 
+    moreover have " path_restricted (path_of_word w2 (Suc k)) (max k (max (Suc k) j))"
+      by (metis Suc.IH \<open>w2 \<in> lang (R (Suc k) j k)\<close>  max.commute path_restricted_def)
+
+
+
+     ultimately show ?thesis
+       using path_decomp unfolding path_restricted_def intermediate_path_restricted_def
+       apply(cases "i=j")
+       apply(auto)
+       apply (metis \<open>path_of_word (concat wss) (Suc k) = Suc k # concat (map (\<lambda>x. tl (path_of_word x (Suc k))) wss)\<close> list.discI list.set_sel(2) max.coboundedI2 ws_def)
+       apply (metis list.sel(2) list.set_sel(2) max.commute)
+       apply (metis \<open>path_of_word (concat wss) (Suc k) = Suc k # concat (map (\<lambda>x. tl (path_of_word x (Suc k))) wss)\<close> list.distinct(1) list.set_sel(2) max.coboundedI2 ws_def)
+       by (metis list.sel(2) list.set_sel(2) max.coboundedI2 max.commute max_def)
+  qed
+qed
+
+
+ 
+
+lemma langRijk_left_to_right: 
+  shows " w \<in> lang (R i j k) \<Longrightarrow> (word_run_from_i_j w i j \<and>  intermediate_path_restricted (path_of_word w i) k)"
+proof(induction k arbitrary: i j w)
+  case 0
+  then show ?case
+    by (simp add: langRij0_1) 
+next
+  case (Suc k)
+  then show ?case 
+  proof(cases "w \<in> lang (R i j k) ")
+    case True
+    then show ?thesis
+      by (metis Suc.IH intermediate_path_restricted_def le_SucI) 
+  next
+    case False
+
+    let ?u = "R i (Suc k) k"
+    let ?v = "R (Suc k) (Suc k) k"
+    let ?w = "R (Suc k) j k"
+
+    have "w \<in> lang ( (Times ?u (Times (Star ?v) ?w)))"
+      by (smt (verit) False R.simps(2) R_valid_path Suc.prems ssdss)
+
+    then obtain w1 ws w2 wss where "w1@ws@w2 = w" "w1 \<in> lang ?u" and "ws \<in> lang (Star ?v)" and "w2 \<in> lang ?w"
+                              and ws_def:"concat wss = ws" and "\<forall>w' \<in> set wss . w' \<in> lang ?v"
+      using lang_star_split by fastforce
+
+    then have "word_run_from_i_j w i j"
+      unfolding word_run_from_i_j_def
+      apply(auto)
+      using R_valid_path apply blast
+      using Suc.IH dfa.word_run_from_i_j_def dfa_axioms apply blast
+      apply (meson Suc.IH subset_code(1) word_run_from_i_j_def)
+      apply (meson Suc.IH dfa.word_run_from_i_j_def dfa_axioms subsetD)
+      using R_ijk_path_run Suc.prems nxts_last_of_path by blast
+
+    (** this should be trivial, but I still got stuck here **)
+
+    then have " intermediate_path_restricted (path_of_word w i) (Suc k)"
+      sorry
+
+    then show ?thesis
+      by (simp add: \<open>word_run_from_i_j w i j\<close>)  
+  qed
+qed
+
+
+
+
+subsection "Split function for words"
+
+(** 
+  I got stuck here, and decided to quit ^^
+**)
+
+
+lemma first_occurrence:"s \<in> set (xs) \<Longrightarrow> \<exists> pos. xs ! pos = s \<and> pos < length xs \<and> (\<forall>p<pos . xs!p \<noteq> s) "
+proof(induction xs)
+  case Nil
+  then show ?case
+    by simp 
+next
+  case (Cons a xs)
+  then show ?case 
+  proof(cases "a=s")
+    case True
+    then show ?thesis
+      by force 
+  next
+    case False
+  then obtain pos where pos: "xs ! pos = s" "pos < length xs" "\<forall>p<pos. xs!p \<noteq> s"
+      using Cons.IH Cons.prems by (auto simp: in_set_conv_nth)
+    let ?newpos = "pos + 1"
+    have "(a#xs) ! ?newpos = s"
+      using pos(1) by simp
+    moreover have "?newpos < length (a#xs)"
+      using pos(2) by simp
+    moreover have "\<forall>p<?newpos. (a#xs)!p \<noteq> s"
+      using pos(3) False by (auto simp: nth_Cons')
+    ultimately show ?thesis
+      by blast
+  qed
+qed
+
+
+lemma last_occurrence: "s \<in> set xs \<Longrightarrow> \<exists>pos. xs ! pos = s \<and> pos < length xs \<and> (\<forall>p>pos. p < length xs \<longrightarrow> xs ! p \<noteq> s)"
+proof (induction xs rule: rev_induct)
+  case Nil
+  then show ?case
+    by simp
+next
+  case (snoc x xs)
+  show ?case
+  proof (cases "x = s")
+    case True
+    then have "(xs @ [x]) ! length xs = s"
+      by simp
+    moreover have "length xs < length (xs @ [x])"
+      by simp
+    moreover have "\<forall>p>length xs. p < length (xs @ [x]) \<longrightarrow> (xs @ [x]) ! p \<noteq> s"
+      by simp
+    ultimately show ?thesis
+      by blast
+  next
+    case False
+    then obtain pos where pos: "xs ! pos = s" "pos < length xs" "\<forall>p>pos. p < length xs \<longrightarrow> xs ! p \<noteq> s"
+      using snoc.IH snoc.prems by (auto simp: in_set_conv_nth)
+    then have "(xs @ [x]) ! pos = s"
+      by (simp add: nth_append)
+    moreover have "pos < length (xs @ [x])"
+      using pos(2) by simp
+    moreover have "\<forall>p>pos. p < length (xs @ [x]) \<longrightarrow> (xs @ [x]) ! p \<noteq> s"
+      by (metis False butlast_snoc diff_Suc_1 le_less_Suc_eq length_butlast less_iff_Suc_add linorder_le_less_linear nth_append nth_append_length pos(3))
+    ultimately show ?thesis
+      by blast
+  qed
+qed
+
+
+(**
+  The following lemma should decompose a word w into three parts w1, ws, w2, as claimed in the book.
+  But I could not get it to work.
+**)
+
+lemma split:
+  assumes "word_run_from_i_j w i j"
+    assumes "k + 1 \<in> set (intermediate_path (path_of_word w i))"
+    assumes "intermediate_path_restricted (path_of_word w i) (k+1)"
+  shows "\<exists>w1 ws w2. w = w1 @ concat ws @ w2 \<and>
+     word_run_from_i_j w1 i (k+1) \<and> intermediate_path_restricted (path_of_word w1 i) k \<and>
+     (\<forall>w' \<in> set ws. word_run_from_i_j w' (k+1) (k+1) \<and> intermediate_path_restricted (path_of_word w' (k+1)) k) \<and>
+     word_run_from_i_j w2 (k+1) j \<and> intermediate_path_restricted (path_of_word w2 (k+1)) k"
+using assms proof (induction "count_list (intermediate_path (path_of_word w i)) (k+1)")
+  case 0
+  then show ?case
+    by (simp add: count_list_0_iff)
+next
+  case (Suc x)
+  let ?ps = " intermediate_path (path_of_word w i)"
+
+    have "k + 1 \<in> set (?ps)"
+    using Suc.prems(2) intermediate_smaller by auto
+
+  then obtain pos1 pos2 where "?ps ! pos1 = (k+1)" and "pos1 < length ?ps" and "(\<forall>p<pos1 . ?ps!p \<noteq> (k+1))"
+    and "?ps ! pos2 = (k+1) \<and> pos2 < length ?ps \<and> (\<forall>p>pos2. p < length ?ps \<longrightarrow> ?ps ! p \<noteq> (k+1))"
+    and "pos2 \<ge> pos1"
+    by (smt (verit, best) first_occurrence last_occurrence leI)
+
+  have "i # intermediate_path (path_of_word w i) @ [j] = path_of_word w i"
+    apply(auto)
+    by (metis Suc.prems(2) append_butlast_last_id assms(1) butlast.simps(1) dfa.word_implies_path dfa_axioms intermediate_path.simps last_tl list.collapse list.discI list.set_cases tl_Nil word_run_from_i_j_def)
+
+  let ?w1 = "take (pos1 + 1) w"
+  let ?ws = "take (pos2 - pos1  + 1 ) (drop (pos1 + 1) w)"
+  let ?w2 = "drop (pos2 + 2) w"
+
+ obtain substrings where
+      sub:"(\<forall>substring \<in> set substrings. word_run_from_i_j substring (k+1) (k+1) \<and> 
+                         intermediate_path_restricted (path_of_word substring (k+1)) k)" and
+       "concat substrings = ?ws"
+   sorry
+
+  let ?wss = substrings
+
+  have "?w1 @  concat (?wss) @ ?w2 = w"
+    apply(auto)
+   by (metis \<open>concat substrings = take (pos2 - pos1 + 1) (drop (pos1 + 1) w)\<close> \<open>pos1 \<le> pos2\<close> add.commute add_Suc_right append.assoc append_take_drop_id le_add_diff_inverse2 plus_1_eq_Suc take_add)
+
+
+  moreover have " word_run_from_i_j ?w1 i (k+1) "
+    by (metis Suc.prems(1) Suc.prems(2) \<open>intermediate_path (path_of_word w i) ! pos1 = k + 1\<close> \<open>pos1 < length (intermediate_path (path_of_word w i))\<close> length_greater_0_conv length_pos_if_in_set word_run_from_i_j_def word_to_inside_intermediate_path)
+
+  moreover have " word_run_from_i_j ?ws (k+1) (k+1) "
+    sorry
+
+  moreover have " word_run_from_i_j ?w2 (k+1) j "
+    sorry
+
+  moreover have "intermediate_path_restricted (path_of_word ?w1 i) k"
+    unfolding intermediate_path_restricted_def
+    sorry
+
+  moreover have "intermediate_path_restricted (path_of_word ?w2 (Suc k)) k"
+    sorry
+
+  moreover have "word_run_from_i_j (concat ?wss ) (Suc k) (Suc k)"
+    unfolding word_run_from_i_j_def
+    using sub   apply(auto)
+    apply (metis \<open>word_run_from_i_j (take (pos1 + 1) w) i (k + 1)\<close> add.commute dfa.word_run_sound dfa_axioms plus_1_eq_Suc)
+    apply (simp add: subset_iff word_run_from_i_j_def)
+    by (simp add: last_concat_loops nxts_last_of_path word_run_from_i_j_def)
+
+ 
+  ultimately show ?case
+    apply(auto)
+    by (metis Suc_eq_plus1 sub)
+qed
+
+
+
+
+lemma langRijk_right_to_left: 
+  shows "(word_run_from_i_j w i j \<and>  intermediate_path_restricted (path_of_word w i) k) \<Longrightarrow>  w \<in> lang (R i j k) "
+proof(induction k arbitrary: i j w)
+  case 0
+  then show ?case
+    using langRij0_2 by auto
+next
+  case (Suc k)
+  then show ?case 
+  proof(cases "k+1 \<notin> set (intermediate_path (path_of_word  w i))  ")
+    case True
+    then show ?thesis
+      apply(auto)
+      using Suc.prems word_run_sound apply blast
+      using Suc.prems word_run_sound apply auto[1]
+      by (metis Suc.IH Suc.prems intermediate_path.elims intermediate_path_restricted_def le_SucE)
+  next
+    case False
+
+    then have "\<forall>p \<in> set (intermediate_path (path_of_word  w i)). p \<le> k+1 "
+      by (metis Suc.prems Suc_eq_plus1 intermediate_path_restricted_def)
+   
+    have "w \<in> lang (R i j k) \<longleftrightarrow> (word_run_from_i_j w i j \<and> intermediate_path_restricted (path_of_word w i) k)"  for i j w
+     using Suc.IH dfa.langRijk_left_to_right dfa_axioms by blast
+
+   have "  word_run_from_i_j w i j"
+     by (simp add: Suc.prems)
+
+   moreover have "k + 1 \<in> set (intermediate_path (path_of_word w i))"
+     using False by blast
+     have "k + 1 \<in> S"
+       by (meson False \<open>word_run_from_i_j w i j\<close> in_mono intermediate_smaller path_in_S word_run_sound)
+
+    moreover have "intermediate_path_restricted (path_of_word w i) (k+1)"
+      using \<open>\<forall>p\<in>set (intermediate_path (path_of_word w i)). p \<le> k + 1\<close> intermediate_path_restricted_def by blast
+   
+    ultimately obtain w1 ws w2 where "w = w1 @ concat ws @ w2 \<and>
+     word_run_from_i_j w1 i (k+1) \<and> intermediate_path_restricted (path_of_word w1 i) k \<and>
+     (\<forall>w' \<in> set ws. word_run_from_i_j w' (k+1) (k+1) \<and> intermediate_path_restricted (path_of_word w' (k+1)) k) \<and>
+     word_run_from_i_j w2 (k+1) j \<and> intermediate_path_restricted (path_of_word w2 (k+1)) k"
+      using split  apply(auto)
+      by (metis Suc_eq_plus1 \<open>k + 1 \<in> set (intermediate_path (path_of_word w i))\<close> intermediate_path.elims)
+
+
+   have "w1 \<in> lang (R i (k+1) k)"
+     using \<open>\<And>w j i. (w \<in> lang (R i j k)) = (word_run_from_i_j w i j \<and> intermediate_path_restricted (path_of_word w i) k)\<close> \<open>w = w1 @ concat ws @ w2 \<and> word_run_from_i_j w1 i (k + 1) \<and> intermediate_path_restricted (path_of_word w1 i) k \<and> (\<forall>w'\<in>set ws. word_run_from_i_j w' (k + 1) (k + 1) \<and> intermediate_path_restricted (path_of_word w' (k + 1)) k) \<and> word_run_from_i_j w2 (k + 1) j \<and> intermediate_path_restricted (path_of_word w2 (k + 1)) k\<close> by auto
+   
+   have "concat ws \<in> lang (Star (R (k+1) (k+1) k))"
+     using \<open>\<And>w j i. (w \<in> lang (R i j k)) = (word_run_from_i_j w i j \<and> intermediate_path_restricted (path_of_word w i) k)\<close> \<open>w = w1 @ concat ws @ w2 \<and> word_run_from_i_j w1 i (k + 1) \<and> intermediate_path_restricted (path_of_word w1 i) k \<and> (\<forall>w'\<in>set ws. word_run_from_i_j w' (k + 1) (k + 1) \<and> intermediate_path_restricted (path_of_word w' (k + 1)) k) \<and> word_run_from_i_j w2 (k + 1) j \<and> intermediate_path_restricted (path_of_word w2 (k + 1)) k\<close> lang_star_split by blast
+  
+   have "w2 \<in> lang (R (k+1) j k)"
+     using \<open>\<And>w j i. (w \<in> lang (R i j k)) = (word_run_from_i_j w i j \<and> intermediate_path_restricted (path_of_word w i) k)\<close> \<open>w = w1 @ concat ws @ w2 \<and> word_run_from_i_j w1 i (k + 1) \<and> intermediate_path_restricted (path_of_word w1 i) k \<and> (\<forall>w'\<in>set ws. word_run_from_i_j w' (k + 1) (k + 1) \<and> intermediate_path_restricted (path_of_word w' (k + 1)) k) \<and> word_run_from_i_j w2 (k + 1) j \<and> intermediate_path_restricted (path_of_word w2 (k + 1)) k\<close> by auto
+
+   then show ?thesis
+     apply(simp)
+     by (metis Nat.add_diff_assoc \<open>concat ws \<in> lang (Star (R (k + 1) (k + 1) k))\<close> \<open>w = w1 @ concat ws @ w2 \<and> word_run_from_i_j w1 i (k + 1) \<and> intermediate_path_restricted (path_of_word w1 i) k \<and> (\<forall>w'\<in>set ws. word_run_from_i_j w' (k + 1) (k + 1) \<and> intermediate_path_restricted (path_of_word w' (k + 1)) k) \<and> word_run_from_i_j w2 (k + 1) j \<and> intermediate_path_restricted (path_of_word w2 (k + 1)) k\<close> \<open>w1 \<in> lang (R i (k + 1) k)\<close> concI dfa.word_run_sound dfa_axioms diff_add_inverse2 group_cancel.add2 lang.simps(6) le_numeral_extra(4) plus_1_eq_Suc)
+   qed
+qed
+ 
+
+corollary langRijk: 
+  shows " w \<in> lang (R i j k) \<longleftrightarrow> (word_run_from_i_j w i j \<and>  intermediate_path_restricted (path_of_word w i) k)"
+  using dfa.langRijk_left_to_right dfa.langRijk_right_to_left dfa_axioms by blast
 
 
 
 (** 
   The language of R i j k is the set of words that represent a path from i to j, only using states from S up to state k.
 **)
-corollary langRijk_correct: "i \<in> S \<Longrightarrow> j \<in> S \<Longrightarrow> w \<in> lang (R i j n) \<longleftrightarrow>   word_run_from_i_j w i j"
-  using langRijk restricted_n by auto
-
-
+corollary langRijk_correct: "i \<in> S \<Longrightarrow> j \<in> S \<Longrightarrow> w \<in> lang (R i j n) \<longleftrightarrow>  word_run_from_i_j w i j"
+  by (simp add: langRijk restricted_n)
 
 
 

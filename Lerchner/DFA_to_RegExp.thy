@@ -40,7 +40,7 @@ section "Defintion of the conversion function R i j k"
 definition arcs_rexp :: "nat \<Rightarrow> nat \<Rightarrow> 'a rexp" where
    "arcs_rexp i j = (if i \<in> S \<and> j \<in> S then foldr Plus [Atom a . a \<leftarrow> sigma, nxt i a = j] Zero else Zero)"
 
-lemma lang_arcs_rexp:" lang (arcs_rexp i j) = (if i \<in> S \<and> j \<in> S then { [a] | a. a \<in> set sigma \<and>  nxt i a = j} else {})"
+lemma lang_arcs_rexp: " lang (arcs_rexp i j) = (if i \<in> S \<and> j \<in> S then { [a] | a. a \<in> set sigma \<and>  nxt i a = j} else {})"
 proof (cases "i \<in> S \<and> j \<in> S")
   case True
     then have " lang (arcs_rexp i j) = lang (foldr Plus [Atom a . a \<leftarrow> sigma, nxt i a = j] Zero)"
@@ -472,12 +472,17 @@ definition rexp_of :: "'a rexp" where
 "rexp_of = List.foldr Plus 
              [ R 1 f n . f \<leftarrow> sorted_list_of_set Fin]
            Zero"
+ 
+lemma lang_rexp_of[simp]:"lang (rexp_of) = \<Union>{lang x | x. x \<in> set [ R 1 j n . j \<leftarrow> sorted_list_of_set Fin]}"
+  by (simp add: lang_combine_plus rexp_of_def)
 
 (** 
   The language of the created regular expression is the set of all accepted words.
 **)
-theorem rexp_of_correct: "w \<in> lang (rexp_of) \<longleftrightarrow> accepted w"
-proof -
+theorem  rexp_of_correct: "w \<in> lang (rexp_of) \<longleftrightarrow> accepted w"
+proof(cases "1 \<in> S")
+  case True
+
   have f:"finite S"
     by (simp add: state_set_def)
 
@@ -490,16 +495,23 @@ proof -
    also have "... = {w.  (\<exists>j \<in> Fin. word_run_from_i_j w 1 j)  }"
      using langRijk_correct by auto
    also have "... = {w.  (\<exists>j \<in> Fin.  set w \<subseteq> set sigma \<and> nxts w 1 = j)  }"
-     using start_exist word_run_from_i_j_def by auto
+     using True word_run_from_i_j_def by auto
    also have "...= {w. accepted w }"
      using accepted_def by auto
   ultimately show ?thesis
     by simp
+  
+next
+  case False
+  then show ?thesis 
+    apply(auto simp add: R_valid_path)
+    by (metis One_nat_def accepted_def atLeastAtMost_iff in_mono not_less_eq_eq old.nat.exhaust state_set_def states_subset zero_le)
 qed
+
 
 corollary "{w. accepted w} = lang (rexp_of)"
   using rexp_of_correct by auto
+ 
 
 end
-
 end

@@ -2,7 +2,7 @@
     Author:     Manuel Lerchner
 *)
 
-theory DFA_locale_simple
+theory DFA_Locale_simple
 imports
   "$AFP/Regular-Sets/Regular_Exp"
 begin
@@ -13,6 +13,7 @@ begin
   I added some extra assumptions, but I think they are all valid for any (non-empty) DFA.
 *)
 
+
 locale dfa =
   fixes 
     n :: nat                              (* Number of states *)
@@ -22,21 +23,19 @@ locale dfa =
     and Fin :: "nat set"                  (* Set of accepting states *)
 
   assumes 
-    "n > 0"                                                           (* At least one state *)
-    and state_set_def: "S = {1..n}"                                   (* States are numbered 1 to n *)
+                                                      (* At least one state *)
+      state_set_def: "S = {1..n}"                                   (* States are numbered 1 to n *)
     and states_subset: "Fin \<subseteq> S"                                      (* All accepting states are valid states *)
     and transitions_in_S: "i \<in> S \<longrightarrow> nxt i a \<in> S"                     (* Transitions stay within valid states *)
-    and transitions_valid: "i \<in> S \<Longrightarrow> a \<in> set sigma \<Longrightarrow> nxt i a \<in> S"  (* Transitions are valid *)
 begin
+
 
 section \<open>Basic Definitions and Lemmas\<close>
 
 subsection \<open>DFA Definition\<close>
 
 (* Basic lemma showing that starting state exists in S *)
-lemma start_exist: "1 \<in> S"
-  by (metis atLeastAtMost_iff dfa_axioms dfa_def leI less_one not_gr_zero)
-
+ 
 (* Extended transition function for words *)
 fun nxts :: "'a list \<Rightarrow> nat \<Rightarrow> nat" where
   "nxts [] q = q" |

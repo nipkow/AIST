@@ -2,6 +2,57 @@ theory chomsky_schuetzenberger
   imports Finite_Automata_HF.Finite_Automata_HF HOL.Nat "../CFG" "../CFL"
 begin
 
+text \<open>This file contains all the constructions needed for the chomsky-schuetzenberger theorem.
+We follow closely Automata and Computability @1997 pp 198–200 by Dexter C. Kozen for the proof.
+
+This theorem roughly states, that each type 2 language \<open>L\<close> can be written as 
+\<open>h(R \<inter> dyck_lang(\<Gamma>))\<close> for suitable alphabet Gamma, a regular language R, and a monoid-homomorphism h.
+
+
+The dyck language over some set \<open>\<Gamma>\<close> (also called bracket language) is defined as follows:  
+The symbols of Gamma are thought of as opening brackets. 
+For each symbol a closing bracket is added.
+The dyck language over Gamma then is the language of correctly bracketed terms.
+
+We implement this cloning of Gamma, by pairing each element \<open>g \<in> \<Gamma>\<close> either with an Element from
+\<open>datatype bracket = Op | Cl\<close>, as in \<open>Cl, g\<close>.
+
+
+A (very) rough proof overview of chomsky-schuetzenberger is as follows:
+Take some type 2 Grammar for \<open>L\<close> with Productions \<open>P\<close>, assume it in Chomsky normal form.
+From the old Productions \<open>P\<close> define new Productions \<open>P'\<close> using \<open>transform_production\<close>: 
+if \<open>\<pi> = A \<rightarrow> BC\<close>  let \<open>\<pi>' = A \<rightarrow> [\<^sub>\<pi>\<^sup>1  B  ]\<^sub>p\<^sup>1  [\<^sub>\<pi>\<^sup>2  C  ]\<^sub>p\<^sup>2\<close>
+elif \<open>\<pi> = A \<rightarrow> a\<close> let \<open>\<pi>' = A \<rightarrow> [\<^sub>\<pi>\<^sup>1     ]\<^sub>p\<^sup>1  [\<^sub>\<pi>\<^sup>2     ]\<^sub>p\<^sup>2\<close>
+\<open>B\<close> and \<open>C\<close> on the right side, are again viewed as Nonterminals,
+the brackets \<open>[\<^sub>\<pi>\<^sup>1\<close> are terminals. This means, we need a second copy of each production, 
+and then pair these with brackets for the non-terminal type - 
+\<open>bracket \<times> (old prod. type \<times> (type of ){1,2})\<close>
+
+This bracketing encodes the parse tree of any old expression in the word-output, and it turns out one can recover the old word by the homomorphism \<open>h\<close>, which sends \<open>[\<^sub>\<pi>\<^sup>1\<close> to \<open>a\<close> if \<open>\<pi> = A \<rightarrow> a\<close>, and sends every other bracket to \<open>\<epsilon>\<close>.
+
+Thus \<open>h(L') = L\<close> (*), so all we need to show is, that L' is of the form \<open>R \<inter> dyck_language \<Gamma>\<close>.
+
+\<open>R\<^sub>A\<close> is defined via an intersection of 5 regular languages. Each of these is defined via a property of words (actually the fith one has an additional parameter, a variable of the old kind) which is chosen to be the start symbol, so \<open>R := R\<^sub>S\<close> (**).
+
+We take the easiest \<open>\<Gamma>\<close> one can imagine with the right type: \<open>\<Gamma> = P \<times> {1,2}\<close>.
+
+One then shows \<open>A \<rightarrow>\<^sub>G\<^sub>'\<^sup>* x \<longleftrightarrow> x \<in> R\<^sub>A \<inter> dyck_language \<Gamma>\<close>. (***) This is where the main work of the proof goes into.
+Using this then for the old start symbol S gives the desired equation \<open>L' = R \<inter> dyck_language \<Gamma>\<close>
+\<close>
+
+
+
+text\<open>What is done and what is missing:
+
+The equation in (*) should be an easy induction on the derivation - it's missing. If one looks closer we need an extended version of \<open>h\<close> that can also be applied on variables - we defined this as \<open>h_ext\<close>. We showed that this does basically the same as \<open>h\<close> on the terminals (modulo the Tm operators ...) in \<open>h_ext (map Tm x) = map Tm (h x)\<close>. Presumably one can do the induction with \<open>h_ext\<close> and then reduce this to a result for \<open>h\<close>.
+
+The definition of what it means to be a regular language is a placeholder - it's a straight up copy of the type 2 definition. One needs to show that the intersection of regulars is regular and that the \<open>R\<^sub>A\<close> are regular. This is missing. The textbook says that regular expressions might be a good entry point for this - these are also already formalized in the AFP. Also one should check the formalization of the 5 properties again - these might be right, but i didn't spend any time on them, as they are not really used yet, they are needed for the lemma in the next paragraph. Maybe they also can be formulated with less index-bound checking.
+
+The Lemma (***) is missing. This is the main mathematics of the proof, it involes one easy direction and one hard. This is the only part where one needs the definitions of the regular languages. In the textbook this is a (local) lemma.\<close>
+
+
+
+
 declare [[names_short]]
 
 definition reg :: "'n itself \<Rightarrow> 't list set \<Rightarrow> bool" where
@@ -9,28 +60,22 @@ definition reg :: "'n itself \<Rightarrow> 't list set \<Rightarrow> bool" where
    
 
 
-
-
-
-
-(* Klammertyp, wird kombiniert mit anderen Symbolen *)
+text\<open>A type of brackets. Will be combined with other types.\<close>
 datatype bracket = Op | Cl
 
-
+text\<open>definition of what it means to be a balanced string\<close>
 inductive balanced :: "(bracket  \<times> ('a)) list \<Rightarrow> bool" where
   empty[intro]: "balanced []" |
   pair[intro]: "balanced xs \<Longrightarrow> balanced ((Op, g) # xs @ [(Cl, g)])" |
   concat[intro]: "balanced xs \<Longrightarrow> balanced ys \<Longrightarrow> balanced (xs @ ys)"
 
-
-(* Die Klammersprache über einer Menge R. Jedes Element r \<in> R wird zu einer öffnenden und einer schließenden Klammer gemacht, durch paarung mit bracket. (Cl, r) ist die Schließende Klammer, (Op, r) die öffnende. *)
-(*Wir brauchen später D := dyck_language ((Prods G) \<times> {1,2}) *)
+text\<open>The bracket language over a set R. Every element r \<in> R will get a Closing and an Opening version of itself, via pairing with the type bracket. We later need D := dyck_language ((Prods G) \<times> {1,2})\<close>
 
 definition dyck_language :: "'a set \<Rightarrow> (bracket  \<times> ('a)) list set" where
   "dyck_language R = {l. (balanced l) \<and> (\<forall>(br,r) \<in> (set l). r \<in> R)}"
 
 
-(* die im Beweis genutzte Transformation der Produktionen *)
+text\<open>The transformation of old productions to new productions used in the proof.\<close>
 definition transform_production :: "('n, 't) prod \<Rightarrow> 
 ('n, bracket \<times> ('n,'t) prod \<times> nat ) prod" where
   "transform_production p = (
@@ -41,30 +86,27 @@ definition transform_production :: "('n, 't) prod \<Rightarrow>
         (A, [ Tm (Op, (p,1)),       Tm (Cl, (p,1)), Tm (Op, (p,2)),       Tm (Cl, (p,2))  ]) 
 )"
 
-term \<open>(A::'n,[Tm (Op, (p:: ('n, 't) prod   ,1::nat))])\<close>
-(*  "P \<times> {1, 2}"
-  :: "(('a \<times> ('a, 'b) sym list) \<times> nat) set"   *)
 
-(* was eine Regel erfüllen muss um Chomsky zu sein *)
+text\<open>Definition of what it means to be a chomksy-form rule.\<close>
 definition CNF_rule :: "('c \<times> ('c, 'b) sym list) \<Rightarrow> bool" where
 \<open>CNF_rule p \<equiv>  (\<exists>(A::'c) B C. (p = (A,[Nt B, Nt C]))) \<or> (\<exists>A a. p= (A, [Tm a]))\<close>
 
-(* Existenz der Chomsky-Normalform *)
+text\<open>Existence of chomsky normal form. Doesn't forbid the start symbol on the right though, so it's techinally even weaker.\<close>
 lemma CNF_existence :
 assumes \<open>CFL.cfl TYPE('a) L\<close>
-shows \<open>\<exists>P S::'a. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> (* TODO Startsymbol nicht auf rechter Seite?*)
+shows \<open>\<exists>P S::'a. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> (* TODO start symbol not on the right side*)
 sorry
 
-(* (Directly) After each (Cl,p,1) always comes a (Op,p,2)*)
+text\<open> (Directly) After each (Cl,p,1) always comes a (Op,p,2) \<close>
 definition P1 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list \<Rightarrow> bool\<close> where
 \<open>P1 P x = (\<forall>p \<in> P. \<forall> i < length x.
   x ! i = (Cl, (p, 1)) \<longrightarrow> ( i+1 < length x \<and> x ! (i+1) = (Op, (p, 2))))\<close>
 
-(*After any (Cl,pi,2) there never comes an (Op,...) *)
+text\<open>After any (Cl,pi,2) there never comes an (Op,...)\<close>
 definition P2 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list \<Rightarrow> bool\<close> where
 \<open>P2 P x = (\<forall>p \<in> P. \<forall>r. (\<forall>i j. i < length x \<and> j < length x \<and> i < j \<and> x ! i = (Cl, (p, 2)) \<longrightarrow> x ! j \<noteq> (Op, r)))\<close>
 
-(*If pi = A\<rightarrow>BC, then after each (Op,pi,1) always comes a (Op,p,1) where B = lhs of p And after each (Op,pi,2) always comes a (Op,sigma,1) where C = lhs of sigma *)
+text\<open>If pi = A\<rightarrow>BC, then after each (Op,pi,1) always comes a (Op,p,1) where B = lhs of p And after each (Op,pi,2) always comes a (Op,sigma,1) where C = lhs of sigma\<close>
 definition P3 :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list \<Rightarrow> bool\<close> where
 \<open>P3 x = (\<forall>i < length x. 
        (\<exists>A B C. x ! i = (Op, ((A, [Nt B, Nt C]), 1)) \<longrightarrow> 
@@ -73,30 +115,30 @@ definition P3 :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<time
           ((i+1) < length x \<and> (\<exists>\<sigma> l. x ! (i+1) = (Op, (\<sigma>, 1)) \<and> \<sigma> = (C, l)))))\<close>
 
 
-(*If pi = A\<rightarrow>a then after each (Op,pi,1) comes a (Cl,pi,1) and after each (Op,pi,2) comes a (Cl,pi,2) *)
+text\<open>If pi = A\<rightarrow>a then after each (Op,pi,1) comes a (Cl,pi,1) and after each (Op,pi,2) comes a (Cl,pi,2)\<close>
 definition P4 :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list \<Rightarrow> bool\<close> where
 \<open>P4 x = ((\<forall>i < length x - 1. 
         (\<exists>A a. x ! i = (Op, ((A, [Tm a]), 1)) \<longrightarrow> x ! (i + 1) = (Cl, ((A, [Tm a]), 1))) \<and>
         (\<exists>A a. x ! i = (Op, ((A, [Tm a]), 2)) \<longrightarrow> x ! (i + 1) = (Cl, ((A, [Tm a]), 2)))))\<close>
 
-(*For all A, if A produces x under P', then there eists some pi \<in> P with lhs A such that x begins with (Op,pi,1) *)
+text\<open>For all A, if A produces x under P', then there eists some pi \<in> P with lhs A such that x begins with (Op,pi,1)\<close>
 definition P5 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> 'a \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list \<Rightarrow> bool\<close> where
 \<open>P5 P A x = (( (\<forall>w. derives (image transform_production P) [Nt A] w) \<longrightarrow> 
        (\<exists>\<pi> l. \<pi> \<in> P \<and> \<pi> = (A, l) \<and> x \<noteq> [] \<and> x ! 0 = (Op, \<pi>, 1))))\<close>
 
-(* das ist die gesuchte Reguläre Sprache für den Schnitt mit der dyck-sprache *)
+text\<open>This is the regular language, where one takes the Start symbol as a parameter, and then has the searched for \<open>R := R\<^sub>A\<close>\<close>
 definition Re :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> 'a \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list set\<close> where
 \<open>Re P A = {x::(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list. 
 (P1 P x) \<and> (P2 P x) \<and> (P3 x) \<and> (P4 x) \<and> (P5 P A x)}\<close>
 
 
-
+text\<open>Definition of monoid-homomorphism where multiplication is that of words.\<close>
 definition hom :: \<open>('c list \<Rightarrow> 'd list) \<Rightarrow> bool\<close> where
 \<open>hom h = (\<forall>a b. h (a@b) = (h a) @ h (b))\<close>
 
 
 
-(* helper funktion für das eigentliche h im Resultat *)
+text\<open>helper function for the definition of \<open>h\<close>\<close>
 fun he :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) \<Rightarrow> 'b list\<close> where
 \<open>he (br, (p, i)) = 
     (case p of 
@@ -106,7 +148,8 @@ fun he :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat)
     )
 \<close>
 
-(* auf symbole erweiterte helper funktion für das eigentliche h im Resultat *)
+
+text\<open>helper function for the definition of the extended \<open>h_ext\<close>\<close>
 fun he_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> nat ) sym \<Rightarrow> ('a,'b) sym list\<close> where
 \<open>he_ext (Tm (br, (p, i))) = 
     (case p of 
@@ -118,25 +161,26 @@ fun he_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> nat ) sym \<Rig
 
 
 
-(* Der gesuchte Homomorphismus im Resultat*)
+text\<open>The needed homomorphism in the proof\<close>
 fun h :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list \<Rightarrow> 'b list \<close> where
 \<open>h l = concat (map he l)\<close>
 
-(* Auf symbole erweitertes h des Resultats *)
+text\<open>The needed homomorphism in the proof, but extended on Variables\<close>
 fun h_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> nat ) sym list \<Rightarrow> ('a,'b) sym list \<close> where
 \<open>h_ext l = concat (map he_ext l)\<close>
 
-(* by defining h on D we get a homomorphism on D* by extending it homomorphically *)
+text\<open>by defining h on D we get a homomorphism on D* by extending it homomorphically - this is not quite what is going on here, since we want to define some stuff to map to \<open>\<epsilon>\<close>, but that's the idea. Turns out we dont need the lemma for our \<open>h\<close>, since simp can do it alone. \<close>
 lemma extending_gives_hom :
 fixes h:: \<open>'a \<Rightarrow> 'b list\<close>
 shows \<open>hom (\<lambda>x. (concat (map h x)))\<close>
 unfolding hom_def by simp
 
-
+text\<open>helper for showing the next lemma\<close>
 lemma helper: \<open>he_ext (Tm x) = map Tm (he x)\<close>
 apply(induction x rule: he.induct)
 by(auto split: list.splits sym.splits)
 
+text\<open>Show that the extension really is an extension in some sense.\<close>
 lemma \<open>h_ext (map Tm x) = map Tm (h x)\<close>
 apply(induction x)
 apply(simp)
@@ -144,7 +188,7 @@ using helper by fastforce
 
 
 
-(* Unser gewünschtes Resultat *)
+text\<open>The chomsky-scheutzenberger theorem that we want to prove.\<close>
 lemma chomsky_schuetzenberger :
 fixes L::\<open>'t list set\<close>
 assumes \<open>CFL.cfl TYPE('n) L\<close> 
@@ -159,19 +203,18 @@ let ?P' = \<open>image transform_production P\<close>
 let ?L' = \<open>Lang ?P' S\<close>
 let ?h = \<open>h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list \<Rightarrow> 't list\<close>
 
-have \<open>?L' \<subseteq> dyck_language ?\<Gamma>\<close> sorry (* evtl gar nicht benötigt? *)
+have \<open>?L' \<subseteq> dyck_language ?\<Gamma>\<close> sorry (* This might not be needed (but it was listed in the book). Leave this for last *)
 
 have \<open>\<forall>A. \<forall>x::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list. 
-(image transform_production P) \<turnstile> [Nt S] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (dyck_language ?\<Gamma>) \<inter> (Re P A)\<close> sorry
+(image transform_production P) \<turnstile> [Nt S] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (dyck_language ?\<Gamma>) \<inter> (Re P A)\<close> sorry (* This is the hard part of the proof - the local lemma in the textbook *)
 then have \<open>?L' = (dyck_language ?\<Gamma>) \<inter> (Re P S)\<close> by (metis (no_types, lifting) CFG.Lang_def mem_Collect_eq subsetI subset_antisym)
 then have \<open>image h ((dyck_language ?\<Gamma>) \<inter> (Re P S)) =  image h ?L'\<close> by simp
-also have \<open>... = Lang P S\<close> sorry
+also have \<open>... = Lang P S\<close> sorry (* For this h_ext should be used. *)
 
 also have \<open>... = L\<close> by (simp add: \<open>L = Lang P S\<close>)
 finally have \<open>image h ((dyck_language ?\<Gamma>) \<inter> (Re P S)) = L\<close> by auto
 
-moreover have hom: \<open>hom (h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list \<Rightarrow> 't list)\<close>
-   using extending_gives_hom by (simp add: hom_def)
+moreover have hom: \<open>hom (h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list \<Rightarrow> 't list)\<close> by (simp add: hom_def)
 moreover have \<open>reg TYPE('n) (Re P S)\<close> sorry
 ultimately have \<open>reg TYPE('n) (Re P S) \<and> L = image h ((Re P S) \<inter> (dyck_language ?\<Gamma>)) \<and> hom (h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list \<Rightarrow> 't list)\<close> by blast 
 then show ?thesis by blast

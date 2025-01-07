@@ -16,15 +16,13 @@ begin
 **)
 
 (** 
-  I was able to prove correctness of the base case of the conversion function R i j 0, 
-  and completed most of the induction step R i j (k+1).
+  I was able to prove most of the correctness of the conversion function R i j k.
 
-  Moreover I was able to prove that the final construction of the regular expression is correct.
+  I got stuck at a subproof, which states that a word w can be decomposed into three parts w1, ws, w2, as claimed in the book.
+      I think this needs a complicated split function, that detects occurrences of k+1 in the intermediate path of w and splits the word accordingly.
+      I already spent to much time here, so I decided to sorry this part.
 
-  I got stuck at The decomposition of a word (or path) into three parts w1, ws, w2, as claimed in the book. 
-       I think this needs a complicated split function, that detects loops in a path, and splits the word accordingly.
-       I already spent to much time here, so I decided to sorry this part.
-
+  The rest of the proof should be correct and complete.
 **)
 
 
@@ -378,6 +376,8 @@ next
    by (metis \<open>concat substrings = take (pos2 - pos1 + 1) (drop (pos1 + 1) w)\<close> \<open>pos1 \<le> pos2\<close> add.commute add_Suc_right append.assoc append_take_drop_id le_add_diff_inverse2 plus_1_eq_Suc take_add)
 
 
+  (* the remaining proofs should be trivial, with a correct split function *)
+
   moreover have " word_run_from_i_j ?w1 i (k+1) "
     by (metis Suc.prems(1) Suc.prems(2) \<open>intermediate_path (path_of_word w i) ! pos1 = k + 1\<close> \<open>pos1 < length (intermediate_path (path_of_word w i))\<close> length_greater_0_conv length_pos_if_in_set word_run_from_i_j_def word_to_inside_intermediate_path)
 
@@ -388,7 +388,6 @@ next
     sorry
 
   moreover have "intermediate_path_restricted (path_of_word ?w1 i) k"
-    unfolding intermediate_path_restricted_def
     sorry
 
   moreover have "intermediate_path_restricted (path_of_word ?w2 (Suc k)) k"

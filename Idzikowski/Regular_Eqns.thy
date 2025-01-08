@@ -173,36 +173,56 @@ Single forward step
 
 the if condition is always true but it makes a proof easier
 ›
-fun solve_fwd_step where
-"solve_fwd_step v eqns = (if v < length eqns then
+fun fwd_elim_step :: "nat ⇒ 'a eq_rhs list ⇒ 'a eq_rhs list" where
+"fwd_elim_step v eqns = (if v < length eqns then
 (let sol = solve1 v (eqns!v)
    ; eqns2 = eqns[v := sol]
    in var_subst_after v sol eqns2
 ) else eqns)"
 
 
-corollary solve_fwd_step_nolet:
-"solve_fwd_step v eqns = var_subst_after v (solve1 v (eqns!v)) (eqns[v := solve1 v (eqns!v)])"
+corollary fwd_elim_step_nolet:
+"fwd_elim_step v eqns = var_subst_after v (solve1 v (eqns!v)) (eqns[v := solve1 v (eqns!v)])"
 apply auto by metis
 
+text ‹we assume equation v is already solved, meaning it does not depend on any variables›
 
+fun back_subst_step :: "nat ⇒ 'a eq_rhs list ⇒ 'a eq_rhs list" where
+"back_subst_step v eqns = (if v < length eqns then
+(let val = (fst (eqns!v), [])
+    in map (\<lambda>e. var_subst e v val) eqns
+) else eqns)"
+
+text ‹
+reverse for loop
+›
 fun forloop_down :: "nat ⇒ (nat ⇒ 'a ⇒ 'a) ⇒ 'a ⇒ 'a" where
 "forloop_down 0 f x = x" |
 "forloop_down (Suc i) f x = forloop_down i f (f i x)"
 
 text ‹
+forward for loop
 for(nat i = 0; i < n; i++){
     x = f i x;
 }
 return x;
 ›
+(*
 fun forloop where
 "forloop n f x = forloop_down n (λi x. f (n - Suc i) x) x"
+*)
+fun forloop where
+"forloop 0 f x = x" |
+"forloop (Suc n) f x = f n (forloop n f x)"
 
 value "forloop 10 (λi x. x@[i]) []"
 
+lemma forloop_forloop_down:
+"forloop n f x = forloop_down n (λi x. f (n - Suc i) x) x"
+sorry
+
 fun fwd_elim where
-"fwd_elim eqns = forloop (length eqns) solve_fwd_step  eqns"
+"fwd_elim eqns = forloop (length eqns) fwd_elim_step  eqns"
 
 lemma forloop_down_preserve_back:
     assumes "\<And>x i. (i < i0 \<Longrightarrow> P (f i x) \<Longrightarrow> P x)"
@@ -219,14 +239,14 @@ lemma forloop_preserve_back:
     assumes "\<forall>x i. (P (f i x) \<longrightarrow> P x)"
     and "P (forloop i0 f x)"
     shows "P x"
-using assms forloop_down_preserve_back unfolding forloop.simps
+using assms forloop_down_preserve_back unfolding forloop_forloop_down
 by metis
 
 lemma forloop_preserve_back_strong:
     assumes "\<forall>x i. (i < i0 \<longrightarrow> P (f i x) \<longrightarrow> P x)"
     and "P (forloop i0 f x)"
     shows "P x"
-using assms forloop_down_preserve_back unfolding forloop.simps
+using assms forloop_down_preserve_back unfolding forloop_forloop_down
 by (metis (no_types, lifting) diff_Suc_less forloop_down.elims zero_less_Suc)
 
 lemma forloop_down_preserve_fwd:
@@ -246,11 +266,7 @@ lemma forloop_down_accumulate:
     and create: "\<And>i x. P i (f i x)"
     shows "\<forall> i < i0. P i (forloop_down i0 f x)"
 proof(induction i0 arbitrary: x)
-  case 0
-  then show ?case by auto
-next
   case (Suc i0)
-
   have "forloop_down (Suc i0) f x = forloop_down i0 f (f i0 x)" by auto
   moreover have "P i0 (f i0 x)" using create by auto
   then have "P i0 (forloop_down i0 f (f i0 x))"
@@ -258,27 +274,34 @@ next
   moreover have "\<forall>i<i0. P i (forloop_down i0 f (f i0 x))"
     using Suc by auto
   ultimately show ?case using less_Suc_eq by presburger
-qed
+qed auto
+
+lemma forloop_accumulate:
+    assumes conserve: "\<And>x i j. (j > i --> P i x --> P i (f j x))"
+    and create: "\<And>i x. P i (f i x)"
+    shows "\<forall>i < i0. P i (forloop i0 f x)"
+proof(induction i0 arbitrary: x)
+  case (Suc i0)
+  have "forloop (Suc i0) f x = f i0 (forloop i0 f x)" by auto
+  moreover have "P i0 (f i0 (forloop i0 f x))" using create by auto
+  moreover have "\<forall>i<i0. P i (f i0 (forloop i0 f x))"
+    using conserve Suc by auto
+  ultimately show ?case using less_Suc_eq by presburger
+qed auto
 
 
-fun double_rev :: "'a eq_rhs list \<Rightarrow> 'a eq_rhs list" where
-"double_rev lst = rev (map (\<lambda>(r,rs). (r,rev rs)) lst)"
-
-(*
- needs zeros in upper right diagonal
-*)
 fun backsubst where
-"backsubst [] s i = []" |
-"backsubst (e#es) s i = rhs_re e s # backsubst es (s(i := rhs_re e s)) (Suc i)"
+"backsubst eqns = forloop_down (length eqns) back_subst_step eqns"
 
+text ‹
+First do forward elimination
+then do backward substitution
+finally extract values, assuming all equations are of the solved form Xi = r
+›
 fun solve :: "'a eq_rhs list \<Rightarrow> 'a rexp list" where
-"solve es = rev (backsubst (double_rev (fwd_elim es)) (\<lambda>x. Zero) 0)"
+"solve eqns = (map fst (backsubst (fwd_elim eqns)))"
 
-lemma length_backsubst[simp]: "length (backsubst lst s i) = length lst"
-    apply(induction lst arbitrary: s i)
-    by auto
-
-
+text ‹Does equation v = (r,rs) hold for the variable assignment s›
 fun eq_holds :: "nat \<Rightarrow> 'a eq_rhs \<Rightarrow> (nat \<Rightarrow> 'a rexp) \<Rightarrow> bool" where
 "eq_holds v (r,rs) s = ((eq_lang (r,rs) s) = lang (s v))"
 
@@ -287,7 +310,6 @@ fun eq_holds_tup where
 
 definition solves :: "'a rexp list ⇒ ('a eq_rhs) list \<Rightarrow> bool" where
 "solves sols eqns = (length sols = length eqns \<and> (\<forall>i < length sols. eq_holds i (eqns!i) (\<lambda>v. sols!v)))"
-
 definition solves_fn :: "(nat ⇒ 'a rexp) ⇒ ('a eq_rhs) list \<Rightarrow> bool" where
 "solves_fn s eqns = (\<forall>i < length eqns. eq_holds i (eqns!i) s)"
 
@@ -535,14 +557,14 @@ proof-
 qed
 
 
-lemma solve_fwd_step_preserve:
-    assumes "solves s (solve_fwd_step v eqns)"
+lemma fwd_elim_step_preserve:
+    assumes "solves s (fwd_elim_step v eqns)"
     shows "solves s eqns"
 proof(cases "v < length eqns")
     case True
     let ?nolet = "var_subst_after v (solve1 v (eqns!v)) (eqns[v := solve1 v (eqns!v)])"
     have nolet: "solves s ?nolet"
-        using assms unfolding solve_fwd_step_nolet by simp
+        using assms unfolding fwd_elim_step_nolet by simp
 
     have "eq_holds v (?nolet!v) (l2f s)"
         using nolet ‹v < length eqns› unfolding solves_def by auto
@@ -564,8 +586,8 @@ lemma fwd_elim_preserve:
 proof-
     let ?P = "solves s"
     have "?P (fwd_elim eqns)" using assms by auto
-    then have "?P (forloop (length eqns) solve_fwd_step eqns)" by (metis fwd_elim.elims)
-    then show ?thesis using solve_fwd_step_preserve forloop_preserve_back[]
+    then have "?P (forloop (length eqns) fwd_elim_step eqns)" by (metis fwd_elim.elims)
+    then show ?thesis using fwd_elim_step_preserve forloop_preserve_back[]
     by metis
 qed
 
@@ -574,10 +596,17 @@ We want the equations to be triangular after forward elimination
 meaning, every equation only depends on variables after it
 ›
 
-definition tri where
-"tri v rhs = (\<forall>x \<le> v. lang (var_prefix x rhs) = {})"
+text ‹
+the zero column created by the vth iteration during forward elimination
+
+it only starts at the diagonal
+›
+
+definition zero_col where
+"zero_col v eqns = (\<forall>i < length eqns. i \<ge> v --> lang (var_prefix v (eqns!i)) = {})"
+
 definition triangular where
-"triangular eqns = (\<forall>i < length eqns. tri i (eqns!i))"
+"triangular eqns = (\<forall>i < length eqns. zero_col i eqns)"
 
 value "fwd_elim ([(Zero, [(Zero, 0)]), (Zero, [(One, 1)])] :: (int rexp \<times> (int rexp \<times> nat) list) list)"
 value "let sol = fwd_elim ([(Zero, [(Zero, 0)]), (Zero, [(One, 1)])] :: (int rexp \<times> (int rexp \<times> nat) list) list)
@@ -585,7 +614,29 @@ in lang (var_prefix 1 (sol!1))"
 
 value "fwd_elim ([(Atom 6, []), (Atom 6, [(One, 0)])] :: (int rexp \<times> (int rexp \<times> nat) list) list)"
 
+
+lemma fwd_elim_step_create_zero_column:
+    "zero_col v (fwd_elim_step v eqns)"
+sorry
+
+lemma fwd_elim_step_preserve_zero_column:
+    assumes "v > i"
+    and "zero_col i eqns"
+    shows "zero_col i (fwd_elim_step v eqns)"
+sorry
+
 lemma triangular_fwd_elim: "triangular (fwd_elim eqns)"
+proof-
+    have "length (fwd_elim eqns) = length eqns" sorry
+    then show ?thesis
+    unfolding triangular_def fwd_elim.simps
+    using
+        forloop_accumulate[of zero_col fwd_elim_step "length (fwd_elim eqns)" eqns]
+        fwd_elim_step_create_zero_column
+        fwd_elim_step_preserve_zero_column
+    by force
+qed
+
 
 theorem solve_correct:
 assumes "\<exists>s_lst. solves s_lst eqns"

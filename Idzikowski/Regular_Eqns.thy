@@ -756,6 +756,11 @@ proof-
     using length_map by auto
 qed
 
+
+text ‹
+TODO:
+deal with the edge case of variable indexes that are out of bounds of the variable array somehow
+›
 lemma backsubst_finishes_solve:
     assumes "triangular eqns"
     shows "trivial (backsubst eqns)"
@@ -767,7 +772,7 @@ proof-
     have "triangular (fwd_elim eqns)"
         using triangular_fwd_elim by simp
     then have "trivial (backsubst (fwd_elim eqns))"
-        sorry
+        using backsubst_finishes_solve by auto
     then have "solves (solve eqns) (backsubst (fwd_elim eqns))"
         using solve_trivial by auto
     then have "solves (solve eqns) (fwd_elim eqns)"

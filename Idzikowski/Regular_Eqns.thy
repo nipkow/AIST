@@ -759,7 +759,7 @@ qed
 
 text ‹
 TODO:
-deal with the edge case of variable indexes that are out of bounds of the variable array somehow
+deal with the edge case of variable indexes that are out of bounds of the equations array somehow
 ›
 lemma backsubst_finishes_solve:
     assumes "triangular eqns"

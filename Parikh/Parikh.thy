@@ -106,54 +106,45 @@ definition partial_sol :: "'a eq_sys \<Rightarrow> 'a eq_sys \<Rightarrow> bool"
                   \<and> (\<forall>s. solves_eq_sys_comm (sys_subst sys (\<lambda>i. if i < length sys then sol ! i else V i)) s)"
 
 
-section \<open>Lemma 1\<close>
+section \<open>The lemma from the paper\<close>
 
-(* TODO: change this, probably remove locale *)
-locale tmp =
-  fixes f_sys :: "'a eq_sys"
-  fixes m :: nat
-  fixes r :: nat
-  assumes "r \<le> m"
-  assumes "length f_sys = r+1"
-  assumes f_regular: "\<forall>eq \<in> set f_sys. regular_fun eq"
-begin
+fun g_pre :: "'a eq_sys \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a lfun" where
+  "g_pre _ _ 0 = N {}" |
+  "g_pre f_sys i (Suc n) = subst (f_sys ! i) (\<lambda>j. if j < length f_sys then g_pre f_sys j n else V j)"
 
-fun g_pre :: "nat \<Rightarrow> nat \<Rightarrow> 'a lfun" where
-  "g_pre _ 0 = N {}" |
-  "g_pre i (Suc n) = subst (f_sys ! i) (\<lambda>j. if j \<le> r then g_pre j n else V j)"
+definition g :: "'a eq_sys \<Rightarrow> nat \<Rightarrow> 'a lfun" where
+  "g f_sys i \<equiv> UnionC (\<lambda>n. g_pre f_sys i n)"
 
-definition g :: "nat \<Rightarrow> 'a lfun" where
-  "g i \<equiv> UnionC (\<lambda>n. g_pre i n)"
-
-(* The lemma from the paper *)
-lemma lemma1: "\<exists>g_sys. length g_sys = r+1 \<and> indep g_sys r
+lemma lemma_paper:
+  assumes "\<forall>eq \<in> set f_sys. regular_fun eq"
+    shows "\<exists>g_sys. length g_sys = length f_sys \<and> indep g_sys (length f_sys - 1)
                 \<and> (solves_ineq_sys f_sys s \<longrightarrow> solves_ineq_sys g_sys s)
                 \<and> (solves_eq_sys g_sys s \<longrightarrow> solves_eq_sys f_sys s)"
   sorry
 
-(* TODO: really necessary *)
-definition eq_sys_subseteq :: "'a eq_sys \<Rightarrow> 'a eq_sys \<Rightarrow> bool" where
-  "eq_sys_subseteq gs gs' \<equiv> (\<forall>s. \<forall>i\<le>r. subseteq_comm (eval (gs ! i) s) (eval (gs' ! i) s))"
 
-lemma lemma2_aux:
+section \<open>The theorem from the paper\<close>
+
+lemma theorem_paper_aux:
   assumes "regular_fun f0"
   shows "\<exists>g0. regular_fun g0 \<and> partial_sol [f0] [g0]
             \<and> (\<forall>g0'. partial_sol [f0] [g0'] \<longrightarrow>
                 (\<forall>s. parikh_img (eval g0 s) \<subseteq> parikh_img (eval g0' s)))"
   sorry
 
-(* The theorem from the paper *)
-lemma lemma2: "\<exists>gs. (\<forall>g \<in> set gs. regular_fun g) \<and> partial_sol f_sys gs
-                  \<and> (\<forall>gs'. partial_sol f_sys gs' \<longrightarrow> eq_sys_subseteq gs gs')"
+lemma theorem_paper:
+  assumes "\<forall>eq \<in> set f_sys. regular_fun eq"
+    shows "\<exists>gs. (\<forall>g \<in> set gs. regular_fun g) \<and> partial_sol f_sys gs
+                  \<and> (\<forall>gs'. partial_sol f_sys gs'
+                    \<longrightarrow>(\<forall>s. \<forall>i<length gs. subseteq_comm (eval (gs ! i) s) (eval (gs' ! i) s)))"
   sorry
 
 lemma
-  assumes "r = m"
-  shows "\<exists>s. (\<forall>i. regular_lang (s i)) \<and> solves_eq_sys_comm f_sys s
+  assumes "\<forall>eq \<in> set f_sys. regular_fun eq"
+      and "\<forall>eq \<in> set f_sys. \<forall>x \<in> vars eq. x < length f_sys"
+    shows "\<exists>s. (\<forall>i. regular_lang (s i)) \<and> solves_eq_sys_comm f_sys s
           \<and> (\<forall>s'. solves_eq_sys_comm f_sys s' \<longrightarrow> (\<forall>i. parikh_img (s' i) \<subseteq> parikh_img (s i)))"
   sorry
-
-end
 
 
 end

@@ -43,6 +43,25 @@ primrec subst :: "'a lfun \<Rightarrow> (nat \<Rightarrow> 'a lfun) \<Rightarrow
   "subst (Star f) s = Star (subst f s)"
 
 
+lemma lfun_mono_aux:
+  assumes "\<forall>i. s i \<subseteq> s' i"
+    shows "eval f s \<subseteq> eval f s'"
+using assms proof (induction rule: lfun.induct)
+  case (Conc x1a x2a)
+  then show ?case by fastforce
+next
+  case (Star f)
+  then show ?case
+    by (smt (verit, best) eval.simps(6) in_star_iff_concat order_trans subsetI)
+qed auto
+
+
+lemma lfun_mono:
+  fixes f :: "'a lfun"
+  shows "mono (eval f)"
+  using lfun_mono_aux by (metis le_funD monoI)
+
+
 section \<open>Regular functions\<close>
 
 inductive regular_fun :: "'a lfun \<Rightarrow> bool" where
@@ -106,58 +125,6 @@ next
   then have "Regular_Exp.lang (Regular_Exp.Star r) = eval (Star f) s" by simp
   then show ?case by blast
 qed auto
-
-
-lemma regular_fun_mono:
-  assumes "regular_fun f"
-  shows "mono (eval f)"
-using assms proof (induction rule: regular_fun.induct)
-  case (Variable uu)
-  then show ?case by (simp add: le_funD ord.mono_on_def)
-next
-  case (Const l)
-  then show ?case by (simp add: ord.mono_on_def)
-next
-  case (Union2 f g)
-  then show ?case by (smt (verit, best) eval.simps(3) ord.mono_on_def sup_mono)
-next
-  case (Conc f g)
-  then show ?case by (simp add: conc_mono ord.mono_on_def)
-next
-  case (Star f)
-  then show ?case
-    by (smt (verit, best) dual_order.trans eval.simps(6) in_star_iff_concat monotone_on_def subsetI)
-qed
-
-
-(*lemma regular_fun_mono:
-  assumes "regular_fun f"
-      and "\<forall>i. s i \<subseteq> s' i"
-    shows "eval f s \<subseteq> eval f s'"
-using assms proof (induction rule: regular_fun.induct)
-  case (Variable uu)
-  then show ?case by auto
-next
-  case (Const l)
-  then show ?case by auto
-next
-  case (Union2 f g)
-  then show ?case by auto
-next
-  case (Conc f g)
-  then show ?case by fastforce
-next
-  case (Star f)
-  have "\<And>w. w \<in> star (eval f s) \<Longrightarrow> w \<in> star (eval f s')"
-  proof -
-    fix w
-    assume "w \<in> star (eval f s)"
-    then obtain n where "w \<in> (eval f s) ^^ n" using star_pow by auto
-    with Star have "w \<in> (eval f s') ^^ n" using funpow_mono sorry
-    show "w \<in> star (eval f s')" sorry
-  qed
-  then show ?case sorry
-qed*)
 
 
 section \<open>Parikh image\<close>

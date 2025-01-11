@@ -62,6 +62,12 @@ lemma lfun_mono:
   using lfun_mono_aux by (metis le_funD monoI)
 
 
+lemma substitution_lemma:
+  assumes "\<forall>i. s' i = eval (upd i) s"
+  shows "eval (subst f upd) s = eval f s'"
+  using assms by (induction rule: lfun.induct) auto
+
+
 section \<open>Regular functions\<close>
 
 inductive regular_fun :: "'a lfun \<Rightarrow> bool" where
@@ -177,8 +183,82 @@ fun g_pre :: "'a eq_sys \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a lfu
   "g_pre _ _ 0 = N {}" |
   "g_pre f_sys i (Suc n) = subst (f_sys ! i) (\<lambda>j. if j < length f_sys then g_pre f_sys j n else V j)"
 
+lemma g_pre_eval:
+  assumes "\<forall>j < length f_sys. s' j = eval (g_pre f_sys j n) s"
+      and "\<forall>j \<ge> length f_sys. s' j = s j"
+    shows "eval (g_pre f_sys i (Suc n)) s = eval (f_sys ! i) s'"
+using assms by (simp add: substitution_lemma)
+
+lemma g_pre_monotonically_increasing:
+  "eval (g_pre f_sys i n) s \<subseteq> eval (g_pre f_sys i (Suc n)) s"
+proof (induction n arbitrary: i)
+  case 0
+  then show ?case by auto
+next
+  case (Suc n)
+  let ?s = "\<lambda>j. if j < length f_sys then eval (g_pre f_sys j n) s else s j"
+  let ?s_Suc = "\<lambda>j. if j < length f_sys then eval (g_pre f_sys j (Suc n)) s else s j"
+  from Suc.IH have s_subseteq_s_Suc: "?s j \<subseteq> ?s_Suc j" for j by auto
+
+  have "eval (g_pre f_sys i (Suc n)) s = eval (f_sys ! i) ?s" using g_pre_eval[of f_sys] by auto
+  also have "\<dots> \<subseteq> eval (f_sys ! i) ?s_Suc" using s_subseteq_s_Suc lfun_mono_aux[of ?s ?s_Suc] by auto
+  also have "\<dots> = eval (g_pre f_sys i (Suc (Suc n))) s" using g_pre_eval[of f_sys ?s_Suc] by auto
+  finally show ?case .
+qed
+
+lemma g_pre_subseteq_sol:
+  assumes "i < length f_sys"
+      and "solves_ineq_sys f_sys s"
+    shows "eval (g_pre f_sys i n) s \<subseteq> eval (f_sys ! i) s"
+using assms proof (induction n arbitrary: i)
+  case 0
+  then show ?case by auto
+next
+  case (Suc n)
+  let ?s' = "\<lambda>j. if j < length f_sys then eval (g_pre f_sys j n) s else s j"
+
+  have "?s' j \<subseteq> s j" for j
+  proof (cases "j < length f_sys")
+    case True
+    with Suc have "?s' j \<subseteq> eval (f_sys ! j) s" by auto
+    also have "\<dots> \<subseteq> s j" using assms(2) True unfolding solves_ineq_sys_def by auto
+    finally show ?thesis .
+  next
+    case False
+    then show ?thesis by auto
+  qed
+  then have "eval (f_sys ! i) ?s' \<subseteq> eval (f_sys ! i) s" using lfun_mono_aux by meson
+  then show ?case using g_pre_eval[of f_sys ?s'] by auto
+qed
+
+
 definition g :: "'a eq_sys \<Rightarrow> nat \<Rightarrow> 'a lfun" where
   "g f_sys i \<equiv> UnionC (\<lambda>n. g_pre f_sys i n)"
+
+lemma solves_g_if_solves_f_ineq:
+  assumes "i < length f_sys"
+      and "solves_ineq_sys f_sys s"
+    shows "eval (g f_sys i) s \<subseteq> eval (f_sys ! i) s"
+unfolding g_def proof
+  fix x
+  assume "x \<in> eval (UnionC (g_pre f_sys i)) s"
+  then show "x \<in> eval (f_sys ! i) s" using g_pre_subseteq_sol[OF assms] by auto
+qed
+
+lemma solves_f_if_solves_g_eq:
+  assumes "\<forall>i < length f_sys. eval (g f_sys i) s = s i"
+  shows "solves_eq_sys f_sys s"
+unfolding solves_eq_sys_def proof (standard, standard)
+  fix i
+  assume "i < length f_sys"
+  with assms(1) have "s i = (\<Union>n. eval (g_pre f_sys i n) s)" unfolding g_def by auto
+  also have "\<dots> = (\<Union>n. eval (subst (f_sys ! i) (\<lambda>i. if i < length f_sys then g_pre f_sys i n else V i)) s)"
+    sorry
+  also have "\<dots> = eval (subst (f_sys ! i) (\<lambda>i. if i < length f_sys then g f_sys i else V i)) s"
+    sorry
+  also have "\<dots> = eval (f_sys ! i) s" sorry
+  finally show "eval (f_sys ! i) s = s i" by auto
+qed
 
 lemma lemma_paper:
   assumes "\<forall>eq \<in> set f_sys. regular_fun eq"

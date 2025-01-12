@@ -566,14 +566,12 @@ lemma length_var_subst_after[simp]: "length (var_subst_after v sol eqns) = lengt
 lemma length_fwd_elim_step[simp]: "length (fwd_elim_step v eqns) = length eqns" unfolding fwd_elim_step_nolet by simp
 
 lemma nth_var_subst_after:
-    assumes "v < length eqns"
-    and "n < length eqns"
+    assumes "n < length eqns"
     shows "(var_subst_after v sol eqns)!n = (if n \<le> v then eqns!n else (var_subst (eqns!n) v sol))"
 proof-
     let ?xs = "(take (Suc v) eqns)"
     let ?ys = "map (\<lambda>e. var_subst e v sol) (drop (Suc v) eqns)"
     let ?full = "(?xs @ ?ys)"
-    have "v < length (take (Suc v) eqns)" using assms by auto
     have "(var_subst_after v sol eqns)!n = ?full!n" by auto
     also have "\<dots> = (if n < length ?xs then ?xs!n else ?ys!(n - length ?xs))"
         using nth_append by blast
@@ -593,6 +591,62 @@ corollary var_subst_after_v:
     shows "(var_subst_after v sol eqns)!v = eqns!v"
 using nth_var_subst_after by (metis assms dual_order.refl)
 
+lemma var_prefix_eq_plus: "lang (var_prefix v (eq_plus (a,as) (b,bs))) = lang (var_prefix v (a,as)) \<union> lang (var_prefix v (b,bs))"
+apply(induction as) by auto
+
+lemma var_prefix_eq_times: "lang (var_prefix v (eq_times a (b,bs))) = lang a @@ lang (var_prefix v (b,bs))"
+proof(induction bs)
+  case (Cons x xs)
+  have "lang (var_prefix v (eq_times a (b, x # xs))) = lang (var_prefix v (Times a b, map (λ(r,i). (Times a r, i)) (x#xs)))"
+    by auto
+  also have "\<dots> = \<Union> {lang xa |xa. (xa, v) \<in> set (map (λ(r,i). (Times a r, i)) (x#xs))}"
+    using lang_var_prefix unfolding eq_times.simps by metis
+  also have "\<dots> = \<Union> {lang xa |xa. (xa, v) \<in> set ((λ(r,i). (Times a r, i)) x # map (λ(r,i). (Times a r, i)) (xs))}"
+    by simp
+  also have "\<dots> = \<Union> {lang xa |xa. (xa, v) \<in> set ((Times a (fst x), (snd x)) # map (λ(r,i). (Times a r, i)) (xs))}"
+    by (simp add: case_prod_unfold)
+  also have "\<dots> = \<Union> {lang xa |xa. (xa, v) \<in> set [(Times a (fst x), (snd x))] \<union> set (map (λ(r,i). (Times a r, i)) (xs))}"
+    by simp
+  also have "\<dots> = \<Union> {lang xa |xa. (xa, v) \<in> set [(Times a (fst x), (snd x))]} \<union> \<Union> {lang xa |xa. (xa, v) \<in> set (map (λ(r,i). (Times a r, i)) (xs))}"
+    by blast
+  also have "\<dots> = \<Union> {lang xa |xa. (xa, v) \<in> set [(Times a (fst x), (snd x))]} \<union> lang (var_prefix v (eq_times a (b,xs)))"
+    using lang_var_prefix[of v _ "map (λ(r,i). (Times a r, i)) (xs)"] by simp
+  also have "\<dots> = lang a @@ (if (snd x) = v then lang (fst x) else {}) \<union> lang (var_prefix v (eq_times a (b,xs)))"
+    by simp
+  also have "\<dots> = lang a @@ (if (snd x) = v then lang (fst x) else {}) \<union> lang a @@ lang (var_prefix v (b, xs))"
+    using Cons.IH by simp
+  also have "\<dots> = lang a @@ ((if (snd x) = v then lang (fst x) else {}) \<union> lang (var_prefix v (b, xs)))"
+    by auto
+  finally show ?case by auto
+qed auto
+
+lemma var_subst_preserve_zero:
+    assumes "lang (var_prefix j (f,fs)) = {}"
+    and "lang (var_prefix j (t,ts)) = {}"
+    shows "lang (var_prefix j (var_subst (t,ts) v (f,fs))) = {}"
+proof-
+    obtain as bs where ab: "(as,bs) = partition (λ(r,i). i=v) ts"
+        by auto
+    then have bs_lang: "lang (var_prefix j (t, bs)) = {}"
+        using assms unfolding lang_var_prefix by auto
+
+    have "lang (var_prefix j (var_subst (t,ts) v (f,fs))) = lang (var_prefix j (eq_plus (t, bs) (eq_times (rsum (map fst as) Zero) (f, fs))))"
+        unfolding var_subst.simps using ab by simp
+    also have "\<dots> = lang (var_prefix j (t, bs)) \<union> (lang (rsum (map fst as) Zero) @@ lang (var_prefix j (f, fs)))"
+        using var_prefix_eq_plus var_prefix_eq_times by (metis eq_times.simps)
+    also have "\<dots> = lang (var_prefix j (t, bs))"
+        using assms by simp
+    also have "\<dots> = {}"
+        using ab assms bs_lang by simp
+    finally show ?thesis by blast
+qed
+
+corollary var_subst_preserve_zero2:
+    assumes "lang (var_prefix j fs) = {}"
+    and "lang (var_prefix j ts) = {}"
+    shows "lang (var_prefix j (var_subst ts v fs)) = {}"
+using var_subst_preserve_zero assms by (metis prod.exhaust_sel)
+
 text ‹
 var_subst_after
 does not change the solution because it only does var_subst
@@ -602,33 +656,31 @@ lemma var_subst_after_preserve:
     assumes "solves s (var_subst_after v sol eqns)"
     and "eq_holds v sol (l2f s)"
     shows "solves s eqns"
-sorry
+unfolding solves_def proof
+    show "length s = length eqns"
+        using length_var_subst_after assms by (metis solves_def)
+next
+    show "\<forall>i<length s. eq_holds i (eqns ! i) ((!) s)"
+proof
+    have "length s = length eqns" using length_var_subst_after assms by (metis solves_def)
 
-(*
-
-using assms map_lift2[of "(λv e. eq_holds v e s)" "(\<lambda>e. var_subst e v sol)" "(λv e. eq_holds v e s)" eqns]
-using nth_var_subst_after var_subst_correct2 length_map unfolding solves_fn_def sorry
-
-using assms unfolding solves_def proof-
-    let ?out = "var_subst_after v sol eqns"
-
-    have "\<forall>i. (?out!i = eqns!i \<or> ?out!i = var_subst (eqns!i) v sol)"
-    proof
-        fix i
-        show "?out!i = eqns!i \<or> ?out!i = var_subst (eqns!i) v sol" sorry
+    fix i
+    show "i < length s \<longrightarrow> eq_holds i (eqns ! i) ((!) s)" proof
+        assume "i < length s"
+        have ass: "(var_subst_after v sol eqns)!i = (if i \<le> v then eqns ! i else var_subst (eqns ! i) v sol)"
+            using nth_var_subst_after ‹length s = length eqns› by (metis ‹i < length s›)
+        show "eq_holds i (eqns ! i) ((!) s)"
+        proof(cases "i \<le> v")
+            case True
+            then show ?thesis by (metis \<open>i < length s\<close> ass assms(1) solves_def)
+            next
+            case False
+            then show ?thesis using assms ass unfolding solves_def var_subst_preserve_zero2
+            by (metis \<open>i < length s\<close> l2f.elims var_subst_correct2)
+        qed
+        qed
     qed
-    then show "length s = length eqns \<and> (\<forall>i<length s. eq_holds i (l2f eqns i) (l2f s))"
-        using var_subst_correct2 length_map var_subst_map_correct sorry
 qed
-*)
-
-(*
-using assms map_lift2[of "(λv e. eq_holds v e (l2f s))" "(\<lambda>e. var_subst e v sol)" "(λv e. eq_holds v e (l2f s))" eqns]
-using var_subst_correct2 length_map unfolding solves_fn_def sorry
-
-using assms var_subst_map_correct unfolding solves_fn_def sorry
-*)
-
 
 
 lemma fwd_elim_step_preserve:
@@ -683,8 +735,10 @@ the zero column created by the vth iteration during forward elimination
 it only starts at the diagonal
 ›
 
+
 definition zero_col where
 "zero_col v eqns = (\<forall>i < length eqns. i \<ge> v --> lang (var_prefix v (eqns!i)) = {})"
+
 
 definition triangular where
 "triangular eqns = (\<forall>i < length eqns. zero_col i eqns)"
@@ -705,34 +759,6 @@ next
   then show ?thesis using ardens_subst_correct by simp
 qed
 
-lemma var_prefix_eq_plus: "lang (var_prefix v (eq_plus (a,as) (b,bs))) = lang (var_prefix v (a,as)) \<union> lang (var_prefix v (b,bs))"
-apply(induction as) by auto
-
-lemma var_prefix_eq_times: "lang (var_prefix v (eq_times a (b,bs))) = lang a @@ lang (var_prefix v (b,bs))"
-proof(induction bs)
-  case (Cons x xs)
-  have "lang (var_prefix v (eq_times a (b, x # xs))) = lang (var_prefix v (Times a b, map (λ(r,i). (Times a r, i)) (x#xs)))"
-    by auto
-  also have "\<dots> = \<Union> {lang xa |xa. (xa, v) \<in> set (map (λ(r,i). (Times a r, i)) (x#xs))}"
-    using lang_var_prefix unfolding eq_times.simps by metis
-  also have "\<dots> = \<Union> {lang xa |xa. (xa, v) \<in> set ((λ(r,i). (Times a r, i)) x # map (λ(r,i). (Times a r, i)) (xs))}"
-    by simp
-  also have "\<dots> = \<Union> {lang xa |xa. (xa, v) \<in> set ((Times a (fst x), (snd x)) # map (λ(r,i). (Times a r, i)) (xs))}"
-    by (simp add: case_prod_unfold)
-  also have "\<dots> = \<Union> {lang xa |xa. (xa, v) \<in> set [(Times a (fst x), (snd x))] \<union> set (map (λ(r,i). (Times a r, i)) (xs))}"
-    by simp
-  also have "\<dots> = \<Union> {lang xa |xa. (xa, v) \<in> set [(Times a (fst x), (snd x))]} \<union> \<Union> {lang xa |xa. (xa, v) \<in> set (map (λ(r,i). (Times a r, i)) (xs))}"
-    by blast
-  also have "\<dots> = \<Union> {lang xa |xa. (xa, v) \<in> set [(Times a (fst x), (snd x))]} \<union> lang (var_prefix v (eq_times a (b,xs)))"
-    using lang_var_prefix[of v _ "map (λ(r,i). (Times a r, i)) (xs)"] by simp
-  also have "\<dots> = lang a @@ (if (snd x) = v then lang (fst x) else {}) \<union> lang (var_prefix v (eq_times a (b,xs)))"
-    by simp
-  also have "\<dots> = lang a @@ (if (snd x) = v then lang (fst x) else {}) \<union> lang a @@ lang (var_prefix v (b, xs))"
-    using Cons.IH by simp
-  also have "\<dots> = lang a @@ ((if (snd x) = v then lang (fst x) else {}) \<union> lang (var_prefix v (b, xs)))"
-    by auto
-  finally show ?case by auto
-qed auto
 
 
 lemma var_subst_propagate_zero:
@@ -790,7 +816,7 @@ proof-
                   case False
                   then have "v < i" using ‹v \<le> i› by simp
                   have "var_subst_after v sol (eqns[v := sol]) ! i = (if i \<le> v then (eqns[v:=sol]) ! i else var_subst ((eqns[v:=sol]) ! i) v sol)"
-                    using nth_var_subst_after[of v "eqns[v:=sol]" i sol] by (simp add: \<open>i < length eqns\<close> \<open>v < length eqns›)
+                    using nth_var_subst_after[of i "eqns[v:=sol]" v sol] by (simp add: \<open>i < length eqns›)
                   then show ?thesis using var_subst_propagate_zero2[OF ‹lang (var_prefix v sol) = {}›] ‹v < i› by simp
                 qed auto
                 then show "lang (var_prefix v (fwd_elim_step v eqns ! i)) = {}"
@@ -832,32 +858,6 @@ next
   then show ?thesis using solve1_preserve_zero by (metis assms eq_times.elims)
 qed
 
-lemma var_subst_preserve_zero:
-    assumes "lang (var_prefix j (f,fs)) = {}"
-    and "lang (var_prefix j (t,ts)) = {}"
-    shows "lang (var_prefix j (var_subst (t,ts) v (f,fs))) = {}"
-proof-
-    obtain as bs where ab: "(as,bs) = partition (λ(r,i). i=v) ts"
-        by auto
-    then have bs_lang: "lang (var_prefix j (t, bs)) = {}"
-        using assms unfolding lang_var_prefix by auto
-
-    have "lang (var_prefix j (var_subst (t,ts) v (f,fs))) = lang (var_prefix j (eq_plus (t, bs) (eq_times (rsum (map fst as) Zero) (f, fs))))"
-        unfolding var_subst.simps using ab by simp
-    also have "\<dots> = lang (var_prefix j (t, bs)) \<union> (lang (rsum (map fst as) Zero) @@ lang (var_prefix j (f, fs)))"
-        using var_prefix_eq_plus var_prefix_eq_times by (metis eq_times.simps)
-    also have "\<dots> = lang (var_prefix j (t, bs))"
-        using assms by simp
-    also have "\<dots> = {}"
-        using ab assms bs_lang by simp
-    finally show ?thesis by blast
-qed
-
-corollary var_subst_preserve_zero2:
-    assumes "lang (var_prefix j fs) = {}"
-    and "lang (var_prefix j ts) = {}"
-    shows "lang (var_prefix j (var_subst ts v fs)) = {}"
-using var_subst_preserve_zero assms by (metis prod.exhaust_sel)
 
 text ‹
 forward elimination does not modify earlier columns at all
@@ -891,7 +891,7 @@ unfolding zero_col_def proof(cases "v < length eqns")
                 next
                   case False
                   have p: "var_subst_after v sol (eqns[v := sol]) ! i = (if i \<le> v then (eqns[v:=sol]) ! i else var_subst ((eqns[v:=sol]) ! i) v sol)"
-                    using nth_var_subst_after[of v "eqns[v:=sol]" i sol] by (simp add: \<open>i < length eqns\<close> \<open>v < length eqns›)
+                    using nth_var_subst_after[of i "eqns[v:=sol]" v sol] by (simp add: \<open>i < length eqns\<close>)
                   then show ?thesis using assms proof(cases "i = v")
                     case True
                     then have "var_subst_after v sol (eqns[v := sol]) ! i = (eqns[v:=sol]) ! i" using p by simp
@@ -940,6 +940,27 @@ qed
 
 text ‹We call a system of equations triavial if all equations are of the form x = r›
 abbreviation trivial where "trivial eqns \<equiv> (\<forall>i < length eqns.\<forall>v. lang (var_prefix v (eqns!i)) = {})"
+
+text ‹
+The system of equations becomes trivial column by column during backward substitution
+so we want a column wise definition
+›
+definition zero_col_full where
+"zero_col_full v eqns = (\<forall>i < length eqns. lang (var_prefix v (eqns!i)) = {})"
+
+lemma trivial_columnwise: "(\<forall>i < length eqns. zero_col_full i eqns) \<Longrightarrow> trivial eqns"
+proof
+    fix j
+    assume ass: "\<forall>i<length eqns. zero_col_full i eqns"
+    show "j < length eqns \<longrightarrow> (\<forall>v. lang (var_prefix v (eqns ! j)) = {})" proof
+        assume "j < length eqns"
+        show "\<forall>v. lang (var_prefix v (eqns ! j)) = {}" proof
+            fix v
+            show "lang (var_prefix v (eqns ! j)) = {}"
+                using ass unfolding zero_col_full_def sorry
+        qed
+    qed
+qed
 
 
 lemma trivial_lang:

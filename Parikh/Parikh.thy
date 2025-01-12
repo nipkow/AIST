@@ -245,6 +245,54 @@ unfolding g_def proof
   then show "x \<in> eval (f_sys ! i) s" using g_pre_subseteq_sol[OF assms] by auto
 qed
 
+lemma Union_index_shift: "(\<Union>n. f n) = f 0 \<union> (\<Union>n. f (Suc n))"
+proof
+  show "\<Union> (range f) \<subseteq> f 0 \<union> (\<Union>n. f (Suc n))"
+  proof
+    fix x
+    assume "x \<in> \<Union> (range f)"
+    then obtain n where x_in_f: "n \<ge> 0 \<and> x \<in> f n" by auto
+    show "x \<in> f 0 \<union> (\<Union>n. f (Suc n))"
+    proof (cases "n=0")
+      case True
+      with x_in_f show ?thesis by auto
+    next
+      case False
+      with x_in_f have "\<exists>n'. Suc n' = n" by presburger
+      then obtain n' where "Suc n' = n" by blast
+      with x_in_f show ?thesis by auto
+    qed
+  qed
+  show "f 0 \<union> (\<Union>n. f (Suc n)) \<subseteq> \<Union> (range f)" by auto
+qed
+
+lemma "(\<Union>n. eval (g_pre f_sys i (Suc n)) s)
+    \<subseteq> eval (subst (f_sys ! i) (\<lambda>i. if i < length f_sys then g f_sys i else V i)) s"
+proof
+  fix x
+  assume "x \<in> (\<Union>n. eval (g_pre f_sys i (Suc n)) s)"
+  then obtain n where n_intro: "x \<in> eval (g_pre f_sys i (Suc n)) s" by auto
+
+  let ?s_g_pre = "\<lambda>j. if j < length f_sys then eval (g_pre f_sys j n) s else s j"
+  let ?s_g = "\<lambda>j. if j < length f_sys then eval (g f_sys j) s else s j"
+  have s_g_pre_subseteq_s_g: "?s_g_pre j \<subseteq> ?s_g j" for j unfolding g_def by auto
+
+  from n_intro have "x \<in> eval (f_sys ! i) ?s_g_pre"
+    using g_pre_eval[of f_sys ?s_g_pre] by auto
+  with s_g_pre_subseteq_s_g have "x \<in> eval (f_sys ! i) ?s_g"
+    using lfun_mono_aux[of ?s_g_pre ?s_g] by auto
+  then show "x \<in> eval (subst (f_sys ! i) (\<lambda>i. if i < length f_sys then g f_sys i else V i)) s"
+    using substitution_lemma by (smt (verit) eval.simps(1))
+qed
+
+lemma "eval (subst (f_sys ! i) (\<lambda>i. if i < length f_sys then g f_sys i else V i)) s
+    \<subseteq> (\<Union>n. eval (g_pre f_sys i (Suc n)) s)"
+proof
+  fix x
+  assume "x \<in> eval (subst (f_sys ! i) (\<lambda>i. if i < length f_sys then g f_sys i else V i)) s"
+  show "x \<in> (\<Union>n. eval (g_pre f_sys i (Suc n)) s)" sorry
+qed
+
 lemma solves_f_if_solves_g_eq:
   assumes "\<forall>i < length f_sys. eval (g f_sys i) s = s i"
   shows "solves_eq_sys f_sys s"
@@ -252,11 +300,11 @@ unfolding solves_eq_sys_def proof (standard, standard)
   fix i
   assume "i < length f_sys"
   with assms(1) have "s i = (\<Union>n. eval (g_pre f_sys i n) s)" unfolding g_def by auto
-  also have "\<dots> = (\<Union>n. eval (subst (f_sys ! i) (\<lambda>i. if i < length f_sys then g_pre f_sys i n else V i)) s)"
-    sorry
+  also have "\<dots> = (\<Union>n. eval (g_pre f_sys i (Suc n)) s)"
+    using Union_index_shift[of "\<lambda>n. eval (g_pre f_sys i n) s"] by auto
   also have "\<dots> = eval (subst (f_sys ! i) (\<lambda>i. if i < length f_sys then g f_sys i else V i)) s"
     sorry
-  also have "\<dots> = eval (f_sys ! i) s" sorry
+  also have "\<dots> = eval (f_sys ! i) s" using assms by (simp add: substitution_lemma)
   finally show "eval (f_sys ! i) s = s i" by auto
 qed
 

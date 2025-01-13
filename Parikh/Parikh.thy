@@ -22,6 +22,26 @@ lemma countable_union_finally_empty:
   sorry
 
 
+(* currently not needed *)
+lemma generalized_arden: "lfp (\<lambda>X. A @@ X \<union> B) = star A @@ B" (is "lfp ?f = _")
+proof (rule lfp_eqI)
+  show "mono ?f" by (simp add: Un_commute conc_mono le_supI2 monoI)
+
+  have "A @@ star A \<union> {[]} = star A" using star_unfold_left by blast
+  then show "A @@ star A @@ B \<union> B = star A @@ B"
+    by (metis conc_Un_distrib(2) conc_assoc conc_epsilon(1))
+
+  show "\<And>X. A @@ X \<union> B = X \<Longrightarrow> star A @@ B \<subseteq> X"
+  proof -
+    fix X
+    assume "A @@ X \<union> B = X"
+    then have "X = A ^^ Suc n @@ X \<union> (\<Union>m\<le>n. A ^^ m @@ B)" for n using arden_helper by metis
+    then have "A ^^ n @@ B \<subseteq> X" for n by blast
+    then show "star A @@ B \<subseteq> X" unfolding star_def by blast
+  qed
+qed
+
+
 
 section \<open>functions of languages\<close>
 
@@ -429,6 +449,35 @@ qed
 
 lemma parikh_img_star2: "parikh_img (star (star E @@ F)) = parikh_img ({[]} \<union> star E @@ star F @@ F)"
   sorry
+
+
+lemma parikh_img_arden_aux:
+  assumes "parikh_img (A @@ X \<union> B) = parikh_img X"
+  shows "parikh_img (A ^^ n @@ B) \<subseteq> parikh_img X"
+using assms proof (induction n)
+  case 0
+  then show ?case by auto
+next
+  case (Suc n)
+  then have "parikh_img (A ^^ (Suc n) @@ B) \<subseteq> parikh_img (A @@ A ^^ n @@B)"
+    by (simp add: conc_assoc)
+  moreover from Suc parikh_conc_left have "\<dots> \<subseteq> parikh_img (A @@ X)"
+    by (metis conc_Un_distrib(1) parikh_img_Un sup.orderE sup.orderI)
+  moreover from Suc.prems have "\<dots> \<subseteq> parikh_img X" by auto
+  ultimately show ?case by fast
+qed
+
+lemma parikh_img_arden:
+  assumes "parikh_img (A @@ X \<union> B) = parikh_img X"
+  shows "parikh_img (star A @@ B) \<subseteq> parikh_img X"
+proof
+  fix x
+  assume "x \<in> parikh_img (star A @@ B)"
+  then have "\<exists>n. x \<in> parikh_img (A ^^ n @@ B)"
+    unfolding star_def by (simp add: conc_UNION_distrib(2) parikh_img_UNION)
+  then obtain n where "x \<in> parikh_img (A ^^ n @@ B)" by blast
+  then show "x \<in> parikh_img X" using parikh_img_arden_aux[OF assms] by fast
+qed
 
 
 

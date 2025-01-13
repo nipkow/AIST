@@ -227,6 +227,9 @@ section \<open>Parikh image\<close>
 definition parikh_vec :: "'t list \<Rightarrow> ('t \<Rightarrow> nat)" where
   "parikh_vec xs c = length (filter (\<lambda>x. c = x) xs)"
 
+definition vec0 :: "'t \<Rightarrow> nat" where
+  "vec0 c \<equiv> 0"
+
 lemma parikh_vec_concat: "parikh_vec (u@v) = (\<lambda>c. parikh_vec u c + parikh_vec v c)"
   by (auto simp add: parikh_vec_def)
 
@@ -292,8 +295,40 @@ proof -
     using parikh_img_conc[of L1] parikh_img_conc[of L2] by auto
 qed
 
-lemma parikh_conc_distrib: "parikh_img A = parikh_img B \<Longrightarrow> parikh_img (A @@ C) = parikh_img (B @@ C)"
+lemma parikh_conc_right: "parikh_img A = parikh_img B \<Longrightarrow> parikh_img (A @@ C) = parikh_img (B @@ C)"
   by (auto simp add: parikh_img_conc)
+
+lemma parikh_conc_left: "parikh_img A = parikh_img B \<Longrightarrow> parikh_img (C @@ A) = parikh_img (C @@ B)"
+  by (auto simp add: parikh_img_conc)
+
+lemma parikh_pow_distrib: "parikh_img A = parikh_img B \<Longrightarrow> parikh_img (A ^^ n) = parikh_img (B ^^ n)"
+  by (induction n) (auto simp add: parikh_img_conc)
+
+lemma parikh_star_distrib:
+  assumes "parikh_img A = parikh_img B"
+  shows "parikh_img (star A) = parikh_img (star B)"
+proof
+  show "parikh_img (star A) \<subseteq> parikh_img (star B)"
+  proof
+    fix v
+    assume "v \<in> parikh_img (star A)"
+    then obtain w where w_intro: "parikh_vec w = v \<and> w \<in> star A" unfolding parikh_img_def by blast
+    then obtain n where "w \<in> A ^^ n" unfolding star_def by blast
+    then have "v \<in> parikh_img (A ^^ n)" using w_intro unfolding parikh_img_def by blast
+    with assms have "v \<in> parikh_img (B ^^ n)" using parikh_pow_distrib by blast
+    then show "v \<in> parikh_img (star B)" unfolding star_def using parikh_img_UNION by fastforce
+  qed
+  show "parikh_img (star B) \<subseteq> parikh_img (star A)"
+  proof
+    fix v
+    assume "v \<in> parikh_img (star B)"
+    then obtain w where w_intro: "parikh_vec w = v \<and> w \<in> star B" unfolding parikh_img_def by blast
+    then obtain n where "w \<in> B ^^ n" unfolding star_def by blast
+    then have "v \<in> parikh_img (B ^^ n)" using w_intro unfolding parikh_img_def by blast
+    with assms have "v \<in> parikh_img (A ^^ n)" using parikh_pow_distrib by blast
+    then show "v \<in> parikh_img (star A)" unfolding star_def using parikh_img_UNION by fastforce
+  qed
+qed
 
 
 lemma parikh_img_union_pow_aux1:
@@ -390,6 +425,11 @@ proof
   show "parikh_img (star (A \<union> B)) \<subseteq> parikh_img (star A @@ star B)" using parikh_img_star_aux1 by auto
   show "parikh_img (star A @@ star B) \<subseteq> parikh_img (star (A \<union> B))" using parikh_img_star_aux2 by auto
 qed
+
+
+lemma parikh_img_star2: "parikh_img (star (star E @@ F)) = parikh_img ({[]} \<union> star E @@ star F @@ F)"
+  sorry
+
 
 
 section \<open>systems of equations\<close>
@@ -625,6 +665,142 @@ qed
 
 
 section \<open>The theorem from the paper\<close>
+
+definition regular_fun' :: "nat \<Rightarrow> 'a lfun \<Rightarrow> bool" where
+  "regular_fun' x f \<equiv> \<exists>p q. regular_fun p \<and> regular_fun q \<and>
+    f = Union2 p (Conc q (V x)) \<and> (\<forall>y \<in> vars p. y \<noteq> x)"
+
+lemma "regular_fun' x f \<Longrightarrow> regular_fun f"
+  unfolding regular_fun'_def by fast
+
+lemma emptyset_regular: "regular_fun (N {})"
+  using lang.simps(1) by blast
+
+lemma epsilon_regular: "regular_fun (N {[]})"
+  using lang.simps(2) by blast
+
+
+lemma "regular_fun f \<Longrightarrow>
+    \<exists>f'. regular_fun' x f' \<and> (\<forall>s. parikh_img (eval f s) = parikh_img (eval f' s))"
+proof (induction rule: regular_fun.induct)
+  case (Variable y)
+  then show ?case
+  proof (cases "x=y")
+    let ?f' = "Union2 (N {}) (Conc (N {[]}) (V x))"
+    case True
+    then have "regular_fun' x ?f'"
+      unfolding regular_fun'_def by (simp add: emptyset_regular epsilon_regular)
+    moreover have "eval ?f' s = eval (V y) s" for s :: "'a state"
+      using True by simp
+    ultimately show ?thesis by metis
+  next
+    let ?f' = "Union2 (V y) (Conc (N {}) (V x))"
+    case False
+    then have "regular_fun' x ?f'"
+      unfolding regular_fun'_def by (auto simp add: emptyset_regular epsilon_regular)
+    moreover have "eval ?f' s = eval (V y) s" for s :: "'a state"
+      using False by simp
+    ultimately show ?thesis by metis
+  qed
+next
+  case (Const l)
+  let ?f' = "Union2 (N l) (Conc (N {}) (V x))"
+  have "regular_fun' x ?f'"
+    unfolding regular_fun'_def using Const by (auto simp add: emptyset_regular)
+  moreover have "eval ?f' s = eval (N l) s" for s :: "'a state" by simp
+  ultimately show ?case by metis
+next
+  case (Union2 f1 f2)
+  then obtain f1' f2' where f1'_intro: "regular_fun' x f1' \<and>
+      (\<forall>s. parikh_img (eval f1 s) = parikh_img (eval f1' s))"
+    and f2'_intro: "regular_fun' x f2' \<and> (\<forall>s. parikh_img (eval f2 s) = parikh_img (eval f2' s))"
+    by auto
+  then obtain p1 q1 p2 q2 where p1_q1_intro: "regular_fun p1 \<and> regular_fun q1 \<and>
+    f1' = Union2 p1 (Conc q1 (V x)) \<and> (\<forall>y \<in> vars p1. y \<noteq> x)"
+    and p2_q2_intro: "regular_fun p2 \<and> regular_fun q2 \<and> f2' = Union2 p2 (Conc q2 (V x)) \<and>
+    (\<forall>y \<in> vars p2. y \<noteq> x)" unfolding regular_fun'_def by auto
+
+  let ?f' = "Union2 (Union2 p1 p2) (Conc (Union2 q1 q2) (V x))"
+  have "regular_fun' x ?f'" unfolding regular_fun'_def using p1_q1_intro p2_q2_intro by auto
+  moreover have "parikh_img (eval ?f' s) = parikh_img (eval (Union2 f1 f2) s)" for s
+    using p1_q1_intro p2_q2_intro f1'_intro f2'_intro
+    by (simp add: conc_Un_distrib(2) sup_assoc sup_left_commute)
+  ultimately show ?case by metis
+next
+  case (Conc f1 f2)
+  then obtain f1' f2' where f1'_intro: "regular_fun' x f1' \<and>
+      (\<forall>s. parikh_img (eval f1 s) = parikh_img (eval f1' s))"
+    and f2'_intro: "regular_fun' x f2' \<and> (\<forall>s. parikh_img (eval f2 s) = parikh_img (eval f2' s))"
+    by auto
+  then obtain p1 q1 p2 q2 where p1_q1_intro: "regular_fun p1 \<and> regular_fun q1 \<and>
+    f1' = Union2 p1 (Conc q1 (V x)) \<and> (\<forall>y \<in> vars p1. y \<noteq> x)"
+    and p2_q2_intro: "regular_fun p2 \<and> regular_fun q2 \<and> f2' = Union2 p2 (Conc q2 (V x)) \<and>
+    (\<forall>y \<in> vars p2. y \<noteq> x)" unfolding regular_fun'_def by auto
+
+  let ?q' = "Union2 (Conc q1 (Conc (V x) q2)) (Union2 (Conc p1 q2) (Conc q1 p2))"
+  let ?f' = "Union2 (Conc p1 p2) (Conc ?q' (V x))"
+
+  have "\<forall>s. (parikh_img (eval (Conc f1 f2) s) = parikh_img (eval ?f' s))"
+  proof (rule allI)
+    fix s
+    have f2_subst: "parikh_img (eval f2 s) = parikh_img (eval p2 s \<union> eval q2 s @@ s x)"
+      using p2_q2_intro f2'_intro by auto
+
+    have "parikh_img (eval (Conc f1 f2) s) = parikh_img ((eval p1 s \<union> eval q1 s @@ s x) @@ eval f2 s)"
+      using p1_q1_intro f1'_intro
+      by (metis eval.simps(1) eval.simps(3) eval.simps(5) parikh_conc_right)
+    also have "\<dots> = parikh_img (eval p1 s @@ eval f2 s \<union> eval q1 s @@ s x @@ eval f2 s)"
+      by (simp add: conc_Un_distrib(2) conc_assoc)
+    also have "\<dots> = parikh_img (eval p1 s @@ (eval p2 s \<union> eval q2 s @@ s x)
+        \<union> eval q1 s @@ s x @@ (eval p2 s \<union> eval q2 s @@ s x))"
+      using f2_subst by (smt (verit, ccfv_threshold) parikh_conc_right parikh_img_Un parikh_img_commut)
+    also have "\<dots> = parikh_img (eval p1 s @@ eval p2 s \<union> (eval p1 s @@ eval q2 s @@ s x \<union>
+        eval q1 s @@ eval p2 s @@ s x \<union> eval q1 s @@ s x @@ eval q2 s @@ s x))"
+      using parikh_img_commut by (smt (z3) conc_Un_distrib(1) parikh_conc_right parikh_img_Un sup_assoc)
+    also have "\<dots> = parikh_img (eval p1 s @@ eval p2 s \<union> (eval p1 s @@ eval q2 s \<union>
+        eval q1 s @@ eval p2 s \<union> eval q1 s @@ s x @@ eval q2 s) @@ s x)"
+      by (simp add: conc_Un_distrib(2) conc_assoc)
+    also have "\<dots> = parikh_img (eval ?f' s)"
+      by (simp add: Un_commute)
+    finally show "parikh_img (eval (Conc f1 f2) s) = parikh_img (eval ?f' s)" .
+  qed
+  moreover have "regular_fun' x ?f'" unfolding regular_fun'_def using p1_q1_intro p2_q2_intro by auto
+  ultimately show ?case by metis
+next
+  case (Star f)
+  then obtain f' where f'_intro: "regular_fun' x f' \<and>
+      (\<forall>s. parikh_img (eval f s) = parikh_img (eval f' s))" by auto
+  then obtain p q where p_q_intro: "regular_fun p \<and> regular_fun q \<and>
+    f' = Union2 p (Conc q (V x)) \<and> (\<forall>y \<in> vars p. y \<noteq> x)" unfolding regular_fun'_def by auto
+
+  let ?q_new = "Conc (Star p) (Conc (Star (Conc q (V x))) (Conc (Star (Conc q (V x))) q))"
+  let ?f_new = "Union2 (Star p) (Conc ?q_new (V x))"
+
+  have "\<forall>s. (parikh_img (eval (Star f) s) = parikh_img (eval ?f_new s))"
+  proof (rule allI)
+    fix s
+    have "parikh_img (eval (Star f) s) = parikh_img (star (eval p s \<union> eval q s @@ s x))"
+      using f'_intro parikh_star_distrib p_q_intro
+      by (metis eval.simps(1) eval.simps(3) eval.simps(5) eval.simps(6))
+    also have "\<dots> = parikh_img (star (eval p s) @@ star (eval q s @@ s x))"
+      using parikh_img_star by blast
+    also have "\<dots> = parikh_img (star (eval p s) @@
+        star ({[]} \<union> star (eval q s @@ s x) @@ eval q s @@ s x))"
+      by (metis Un_commute conc_star_comm star_idemp star_unfold_left)
+    also have "\<dots> = parikh_img (star (eval p s) @@ star (star (eval q s @@ s x) @@ eval q s @@ s x))"
+      by auto
+    also have "\<dots> = parikh_img (star (eval p s) @@ ({[]} \<union> star (eval q s @@ s x)
+        @@ star (eval q s @@ s x) @@ eval q s @@ s x))"
+      using parikh_img_star2 parikh_conc_left by blast
+    also have "\<dots> = parikh_img (star (eval p s) @@ {[]} \<union> star (eval p s) @@ star (eval q s @@ s x)
+        @@ star (eval q s @@ s x) @@ eval q s @@ s x)" by (metis conc_Un_distrib(1))
+    also have "\<dots> = parikh_img (eval ?f_new s)" by (simp add: conc_assoc)
+    finally show "parikh_img (eval (Star f) s) = parikh_img (eval ?f_new s)" .
+  qed
+  moreover have "regular_fun' x ?f_new" unfolding regular_fun'_def using p_q_intro by fastforce
+  ultimately show ?case by metis
+qed
+
 
 lemma theorem_paper_aux:
   assumes "regular_fun f0"

@@ -40,21 +40,30 @@ fun rhs_re :: "'a eq_rhs \<Rightarrow> (nat \<Rightarrow> 'a rexp) \<Rightarrow>
 "rhs_re (r,rs) s = rsum (map (mre s) rs) r"
 
 
-text ‹list to function helper›
-fun l2f where "l2f l = (λi. l!i)"
+text ‹
+convert solution list to solution function
+variables past the length are mapped to Zero
+this allows omitting "bounds checks" in some proofs
+›
+fun l2f where "l2f l = (λi. if i < length l then l!i else Zero)"
 
 
 text ‹lift lang to rhs_re, needs a variable mapping s›
 abbreviation eq_lang where
 "eq_lang eq s \<equiv> lang (rhs_re eq s)"
 
-lemma eq_lang: "eq_lang (r,rs) s = \<Union> {lang x @@ lang (s v) | x v. (x,v) \<in> set rs} \<union> lang r"
+lemma eq_lang_mre: "eq_lang (r,rs) s = \<Union> {lang (mre s x) | x. x \<in> set rs} \<union> lang r"
 proof-
     have "eq_lang (r,rs) s = \<Union> {lang x |x. x \<in> set (map (mre s) rs)} \<union> lang r"
         using lang_rsum[of "(map (mre s) rs)" r] unfolding rhs_re.simps by blast
     also have "\<dots> = \<Union> {lang (mre s x) |x. x \<in> set rs} \<union> lang r"
         by fastforce
     finally show ?thesis by simp
+qed
+
+lemma eq_lang: "eq_lang (r,rs) s = \<Union> {lang x @@ lang (s v) | x v. (x,v) \<in> set rs} \<union> lang r"
+proof-
+    show ?thesis using eq_lang_mre by simp
 qed
 
 lemma lang_Union_eq_lang: "lang a \<union> eq_lang (b, bs) s = eq_lang (Plus a b, bs) s"
@@ -194,6 +203,10 @@ text ‹Substitute sol for v in all eqns after v›
 fun var_subst_after where
 "var_subst_after v sol eqns = (take (Suc v) eqns) @ map (\<lambda>e. var_subst e v sol) (drop (Suc v) eqns)"
 
+text ‹Substitute sol for v in all eqns before v›
+fun var_subst_before where
+"var_subst_before v sol eqns =  map (\<lambda>e. var_subst e v sol) (take v eqns) @ (drop v eqns)"
+
 text \<open>Solve a simultaneous list of equations using an algorithm very simmilar to Gaussian elimination\<close>
 
 text ‹
@@ -216,10 +229,11 @@ apply auto by metis
 text ‹we assume equation v is already solved, meaning it does not depend on any variables›
 
 fun back_subst_step :: "nat ⇒ 'a eq_rhs list ⇒ 'a eq_rhs list" where
-"back_subst_step v eqns = (if v < length eqns then
+"back_subst_step v eqns = (if (\<forall>i < length eqns. rexp_empty (var_prefix i (eqns!v))) \<and> v < length eqns then
 (let val = (fst (eqns!v), [])
-    in map (\<lambda>e. var_subst e v val) eqns
+    in var_subst_before v val eqns
 ) else eqns)"
+
 
 text ‹reverse for loop›
 fun forloop_down :: "nat ⇒ (nat ⇒ 'a ⇒ 'a) ⇒ 'a ⇒ 'a" where
@@ -334,7 +348,7 @@ fun eq_holds_tup where
 "eq_holds_tup (v,es) s = eq_holds v es s"
 
 definition solves :: "'a rexp list ⇒ ('a eq_rhs) list \<Rightarrow> bool" where
-"solves sols eqns = (length sols = length eqns \<and> (\<forall>i < length sols. eq_holds i (eqns!i) (\<lambda>v. sols!v)))"
+"solves sols eqns = (length sols = length eqns \<and> (\<forall>i < length sols. eq_holds i (eqns!i) (l2f sols)))"
 definition solves_fn :: "(nat ⇒ 'a rexp) ⇒ ('a eq_rhs) list \<Rightarrow> bool" where
 "solves_fn s eqns = (\<forall>i < length eqns. eq_holds i (eqns!i) s)"
 
@@ -556,11 +570,11 @@ proof
 qed
 
 lemma var_subst_map_correct:
-    assumes "solves_fn s (map (\<lambda>e. var_subst e v sol) eqns)"
-    and "eq_holds v sol s"
-    shows "solves_fn s eqns"
-using assms map_lift2[of "(λv e. eq_holds v e s)" "(\<lambda>e. var_subst e v sol)" "(λv e. eq_holds v e s)" eqns]
-using var_subst_correct2 length_map unfolding solves_fn_def by metis
+    assumes "solves s (map (\<lambda>e. var_subst e v sol) eqns)"
+    and "eq_holds v sol (l2f s)"
+    shows "solves s eqns"
+using assms map_lift2[of "(λv e. eq_holds v e (l2f s))" "(\<lambda>e. var_subst e v sol)" "(λv e. eq_holds v e (l2f s))" eqns]
+using var_subst_correct2 length_map unfolding solves_def by metis
 
 lemma length_var_subst_after[simp]: "length (var_subst_after v sol eqns) = length eqns" by simp
 lemma length_fwd_elim_step[simp]: "length (fwd_elim_step v eqns) = length eqns" unfolding fwd_elim_step_nolet by simp
@@ -590,6 +604,29 @@ corollary var_subst_after_v:
     assumes "v < length eqns"
     shows "(var_subst_after v sol eqns)!v = eqns!v"
 using nth_var_subst_after by (metis assms dual_order.refl)
+
+
+lemma nth_var_subst_before:
+    assumes "n < length eqns"
+    shows "(var_subst_before v sol eqns)!n = (if n \<ge> v then eqns!n else var_subst (eqns!n) v sol)"
+proof-
+    let ?xs = "map (\<lambda>e. var_subst e v sol) (take v eqns)"
+    let ?ys = "(drop v eqns)"
+    let ?full = "(?xs @ ?ys)"
+    have "(var_subst_before v sol eqns)!n = ?full!n" by auto
+    also have "\<dots> = (if n < length ?xs then ?xs!n else ?ys!(n - length ?xs))"
+        using nth_append by blast
+    also have "\<dots> = (if n < v then ?xs!n else ?ys!(n - v))"
+        using assms by simp
+    also have "\<dots> = (if n < v then take v (map (\<lambda>e. var_subst e v sol) eqns) ! n else ?ys!(n-v))"
+        using take_map by metis
+    also have "\<dots> = (if n < v then (map (\<lambda>e. var_subst e v sol) eqns)!n else ?ys!(n-v))"
+        using assms by simp
+    also have "\<dots> = (if n \<ge> v then ?ys!(n-v) else var_subst (eqns!n) v sol)"
+        using nth_map[of n eqns "\<lambda>e. var_subst e v sol"] assms by auto
+    finally show ?thesis using assms by auto
+qed
+
 
 lemma var_prefix_eq_plus: "lang (var_prefix v (eq_plus (a,as) (b,bs))) = lang (var_prefix v (a,as)) \<union> lang (var_prefix v (b,bs))"
 apply(induction as) by auto
@@ -660,23 +697,23 @@ unfolding solves_def proof
     show "length s = length eqns"
         using length_var_subst_after assms by (metis solves_def)
 next
-    show "\<forall>i<length s. eq_holds i (eqns ! i) ((!) s)"
+    show "\<forall>i<length s. eq_holds i (eqns ! i) (l2f s)"
 proof
     have "length s = length eqns" using length_var_subst_after assms by (metis solves_def)
 
     fix i
-    show "i < length s \<longrightarrow> eq_holds i (eqns ! i) ((!) s)" proof
+    show "i < length s \<longrightarrow> eq_holds i (eqns ! i) (l2f s)" proof
         assume "i < length s"
         have ass: "(var_subst_after v sol eqns)!i = (if i \<le> v then eqns ! i else var_subst (eqns ! i) v sol)"
             using nth_var_subst_after ‹length s = length eqns› by (metis ‹i < length s›)
-        show "eq_holds i (eqns ! i) ((!) s)"
+        show "eq_holds i (eqns ! i) (l2f s)"
         proof(cases "i \<le> v")
             case True
             then show ?thesis by (metis \<open>i < length s\<close> ass assms(1) solves_def)
             next
             case False
             then show ?thesis using assms ass unfolding solves_def var_subst_preserve_zero2
-            by (metis \<open>i < length s\<close> l2f.elims var_subst_correct2)
+            by (metis \<open>i < length s\<close> var_subst_correct2)
         qed
         qed
     qed
@@ -700,7 +737,8 @@ proof(cases "v < length eqns")
 
     then have "solves s (eqns[v := solve1 v (eqns!v)])"
         using nolet var_subst_after_preserve solve1_preserve sol by blast
-    then show ?thesis using sol unfolding solves_def l2f.simps by (metis length_list_update nth_list_update_neq solve1_preserve2)
+    then show ?thesis using sol length_list_update nth_list_update_neq solve1_preserve2 unfolding solves_def l2f.simps
+        by (metis (no_types, lifting))
 next
     case False
     then show ?thesis using assms by simp
@@ -717,12 +755,95 @@ proof-
     by metis
 qed
 
-text ‹the proof should be quite simmilar to fwd_elim_preserve›
+lemma backsubst_step_preserve:
+    assumes "solves s (back_subst_step v eqns)"
+    (*and "eq_lang (fst (eqns!v), []) (l2f s) = eq_lang (eqns!v) (l2f s)"*)
+    shows "solves s eqns"
+proof(cases "(\<forall>i < length eqns. rexp_empty (var_prefix i (eqns!v))) \<and> v < length eqns")
+    let ?val = "(fst (eqns!v), [])"
+    case True
+    then have def: "(back_subst_step v eqns) = var_subst_before v ?val eqns"
+    by simp
 
+    obtain r rs where rs: "(r,rs) = (eqns!v)" by (metis prod.exhaust_sel)
+
+    have "length eqns = length s"
+        using assms unfolding solves_def by simp
+
+    have "\<forall>i < length eqns. rexp_empty (var_prefix i (eqns!v))"
+        using True by simp
+    then have "\<forall>i < length eqns. lang (var_prefix i (r,rs)) = {}"
+        unfolding rs using rexp_empty_iff by blast
+    then have "\<forall>i < length eqns. \<Union> {lang x |x. (x, i) \<in> set rs} = {}"
+        using lang_var_prefix by blast
+    then have "\<forall>(r,i) \<in> set rs. i < length eqns \<longrightarrow> lang r = {}"
+        by auto
+    then have "eq_lang (r, []) (l2f s) = eq_lang (r,rs) (l2f s)" unfolding eq_lang_mre proof-
+        assume "\<forall>(r, i)\<in> set rs. i < length eqns \<longrightarrow> lang r = {}"
+        have "\<forall>(r,i) \<in> set rs. lang (mre (l2f s) (r,i)) = {}" proof
+            fix x
+            assume "x \<in> set rs"
+            obtain r i where ri: "(r,i) = x" by (metis prod.exhaust_sel)
+            have "lang (mre (l2f s) (r, i)) = {}" proof(cases "i < length eqns")
+              case True
+              then have "lang r = {}" using ri ‹x \<in> set rs› ‹\<forall>(r, i)\<in> set rs. i < length eqns \<longrightarrow> lang r = {}› by auto
+              then show ?thesis by simp
+            next
+              case False
+              then have "lang ((l2f s) i) = {}" using ‹length eqns = length s› by simp
+              then show ?thesis by simp
+            qed
+            then show "case x of (r, i) \<Rightarrow> lang (mre (l2f s) (r, i)) = {}" using ri by auto
+        qed
+        then have "\<Union> {lang (mre (l2f s) x) |x. x \<in> set rs} = {}" by auto
+        moreover have "\<Union> {lang (mre (l2f s) x) |x. x \<in> set []} = {}" by simp
+        ultimately show "\<Union> {lang (mre (l2f s) x) |x. x \<in> set []} \<union> lang r = \<Union> {lang (mre (l2f s) x) |x. x \<in> set rs} \<union> lang r" by argo
+    qed
+    then have lang_val: "eq_lang ?val (l2f s) = eq_lang (eqns!v) (l2f s)"
+        using rs by (simp add: split_pairs)
+
+    have len: "length (back_subst_step v eqns) = length eqns"
+        by auto
+    have "(back_subst_step v eqns)!v = eqns!v"
+        using nth_var_subst_before True by (metis def order_refl)
+    then have val_holds: "eq_holds v ?val (l2f s)"
+        using assms lang_val True unfolding solves_def by (metis eq_holds.simps len prod.exhaust_sel)
+    show ?thesis unfolding solves_def proof
+        show "length s = length eqns" using assms(1) unfolding solves_def len by simp
+    next
+        show "\<forall>i<length s. eq_holds i (eqns ! i) (l2f s)" proof
+            fix i show "i<length s \<longrightarrow> eq_holds i (eqns ! i) (l2f s)" proof
+                assume "i < length s"
+                then have "i < length eqns" by (metis assms(1) len solves_def)
+                have defi: "(back_subst_step v eqns)!i = (if i \<ge> v then eqns!i else var_subst (eqns!i) v ?val)"
+                    using nth_var_subst_before[OF ‹i < length eqns›] def by presburger
+                show "eq_holds i (eqns ! i) (l2f s)" proof(cases "i \<ge> v")
+                  case True
+                  then show ?thesis using defi by (metis \<open>i < length s\<close> assms(1) solves_def)
+                next
+                  case False
+                  then show ?thesis using defi var_subst_correct2 val_holds by (metis \<open>i < length s\<close> assms(1) solves_def)
+                qed
+            qed
+        qed
+    qed
+next
+    case False
+    thus ?thesis by (metis assms(1) back_subst_step.simps)
+qed
+
+text ‹the proof is quite simmilar to fwd_elim_preserve›
 lemma backsubst_preserve:
     assumes "solves s (backsubst eqns)"
     shows "solves s eqns"
-sorry
+proof-
+    let ?P = "solves s"
+    have "?P (backsubst eqns)" using assms by auto
+    then have "?P (forloop_down (length eqns) back_subst_step eqns)" by (metis backsubst.elims)
+    then show ?thesis using backsubst_step_preserve forloop_down_preserve_back
+    by metis
+qed
+
 
 text ‹
 We want the equations to be triangular after forward elimination
@@ -939,7 +1060,7 @@ proof-
 qed
 
 text ‹We call a system of equations triavial if all equations are of the form x = r›
-abbreviation trivial where "trivial eqns \<equiv> (\<forall>i < length eqns.\<forall>v. lang (var_prefix v (eqns!i)) = {})"
+abbreviation trivial where "trivial eqns \<equiv> (\<forall>i < length eqns.\<forall>v < length eqns. lang (var_prefix v (eqns!i)) = {})"
 
 text ‹
 The system of equations becomes trivial column by column during backward substitution
@@ -952,24 +1073,28 @@ lemma trivial_columnwise: "(\<forall>i < length eqns. zero_col_full i eqns) \<Lo
 proof
     fix j
     assume ass: "\<forall>i<length eqns. zero_col_full i eqns"
-    show "j < length eqns \<longrightarrow> (\<forall>v. lang (var_prefix v (eqns ! j)) = {})" proof
+    show "j < length eqns \<longrightarrow> (\<forall>v < length eqns. lang (var_prefix v (eqns ! j)) = {})" proof
         assume "j < length eqns"
-        show "\<forall>v. lang (var_prefix v (eqns ! j)) = {}" proof
+        show "\<forall>v < length eqns. lang (var_prefix v (eqns ! j)) = {}" proof
             fix v
-            show "lang (var_prefix v (eqns ! j)) = {}"
-                using ass unfolding zero_col_full_def sorry
+            show "v < length eqns \<longrightarrow> lang (var_prefix v (eqns ! j)) = {}"
+            proof
+                assume "v < length eqns"
+                show "lang (var_prefix v (eqns ! j)) = {}"
+                    using ass unfolding zero_col_full_def by (simp add: \<open>j < length eqns\<close> \<open>v < length eqns›)
+            qed
         qed
     qed
 qed
 
 
 lemma trivial_lang:
-    assumes "\<forall>i. lang (var_prefix i (r,rs)) = {}"
-    shows "eq_lang (r,rs) s = lang r"
+    assumes "\<forall>i < length s. lang (var_prefix i (r,rs)) = {}"
+    shows "eq_lang (r,rs) (l2f s) = lang r"
 proof-
-    have "\<forall>(x,i) \<in> set rs. lang x = {}"
-        using assms lang_var_prefix[of _ r rs] by blast
-    then show "eq_lang (r,rs) s = lang r"
+    have "\<forall>(x,i) \<in> set rs. i < length s --> lang x = {}"
+        using assms lang_var_prefix[of _ r rs] by auto
+    then show "eq_lang (r,rs) (l2f s) = lang r"
         apply(induction rs)
         by auto
 qed
@@ -980,9 +1105,9 @@ lemma solve_trivial:
     shows "solves (map fst eqns) eqns"
 proof-
     let ?s = "l2f (map fst eqns)"
-    have "\<forall>i<length (map fst eqns). eq_holds i (l2f eqns i) (l2f (map fst eqns))" proof
+    have "\<forall>i<length (map fst eqns). eq_holds i (eqns!i) (l2f (map fst eqns))" proof
         fix i
-        show "i < length (map fst eqns) \<longrightarrow> eq_holds i (l2f eqns i) (l2f (map fst eqns))"
+        show "i < length (map fst eqns) \<longrightarrow> eq_holds i (eqns!i) (l2f (map fst eqns))"
         proof
             assume "i < length (map fst eqns)"
             have "\<exists>r rs. eqns!i = (r,rs)" by simp
@@ -994,9 +1119,12 @@ proof-
             then have "lang (?s i) = lang r" using \<open>i < length (map fst eqns)\<close> by auto
 
             from ‹i < length (map fst eqns)› have "i < length eqns" by simp
+
+            have "eq_lang (r,rs) ?s = \<Union> {lang x @@ lang (l2f (map fst eqns) v) |x v. (x, v) \<in> set rs} \<union> lang r"
+                using eq_lang[of r rs ?s] by simp
             then have "eq_lang (r,rs) ?s = lang r"
-                using ‹trivial eqns› trivial_lang rs by metis
-            then show "eq_holds i (l2f eqns i) ?s" using rs ‹lang (?s i) = lang r› by simp
+                using ‹trivial eqns› trivial_lang rs by (metis (mono_tags, lifting) \<open>i < length eqns\<close> length_map)
+            then show "eq_holds i (eqns!i) ?s" using rs ‹lang (?s i) = lang r› by simp
         qed
     qed
     then show ?thesis unfolding solves_def
@@ -1009,6 +1137,7 @@ lemma trivial_backsubst:
     assumes "triangular eqns"
     shows "trivial (backsubst eqns)"
 sorry
+
 
 theorem solve_correct:
 shows "solves (solve eqns) eqns "

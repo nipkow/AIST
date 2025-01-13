@@ -56,6 +56,17 @@ next
   then show ?case using Suc by auto
 qed
 
+lemma derives_start1: (*this is just a consequence of deriven_start1 *) 
+  assumes "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
+  shows "\<exists>\<alpha>. P \<turnstile> \<alpha> \<Rightarrow>* (map Tm w) \<and> (A,\<alpha>) \<in> P"
+proof -
+  from assms obtain n where "P \<turnstile> [Nt A] \<Rightarrow>(n) map Tm w" using rtranclp_imp_relpowp by fast
+  then obtain \<alpha> m where "n = Suc m \<and> P \<turnstile> \<alpha> \<Rightarrow>(m) map Tm w \<and> (A, \<alpha>) \<in> P" using deriven_start1 by fast
+  then have "P \<turnstile> \<alpha> \<Rightarrow>* map Tm w \<and> (A, \<alpha>) \<in> P" by (auto simp add: relpowp_imp_rtranclp) 
+  then show ?thesis by auto
+qed  
+
+
 fun map_Nt :: "('a \<Rightarrow> 'b) \<Rightarrow> ('a, 't) sym \<Rightarrow> ('b, 't) sym" where
   "map_Nt f (Nt A) = Nt (f A)"
 | "map_Nt _ (Tm a) = Tm a"
@@ -157,42 +168,35 @@ proof  -
       fix w
       assume "w \<in> L ?G"
       then have "P \<turnstile> [Nt X] \<Rightarrow>* map Tm w" using CFG.Lang_def by fastforce
-      then have "\<exists>im. P \<turnstile> [Nt X] \<Rightarrow>* im \<and> im = map Tm w"
-        using rtranclp.cases by fastforce 
-      then obtain im where im_src: "P \<turnstile> [Nt X] \<Rightarrow>* im \<and> im = map Tm w" by blast
-      then have "P \<turnstile> [Nt X] \<Rightarrow>* im" by blast
-      then have ex_n: "\<exists>n. im = ([Tm a]\<^sup>*n) @ [Nt X] \<or> im = ([Tm a]\<^sup>*n)" 
+      then have "\<exists>n. map Tm w = ([Tm a]\<^sup>*n) @ [Nt X] \<or> (map Tm w::('n, 'a)syms) = ([Tm a]\<^sup>*n)"
       proof(induction rule: rtrancl_derive_induct)
         case base
         then show ?case by auto
       next
         case (step u A v w')
-        then have "P \<turnstile> u @ [Nt A] @ v \<Rightarrow> u @ w' @ v" using derive.intros by fast
-        obtain n where n_src: "u @ [Nt A] @ v = ([Tm a]\<^sup>*n) @ [Nt X] \<or> u @ [Nt A] @ v = ([Tm a]\<^sup>*n)" using step by auto 
-        then have eq_ax:"A = X" using P_def step.hyps(2) by auto
-        have notin: "Nt X \<notin> set (([Tm a]\<^sup>*n))" by simp
-        then have "u @ [Nt A] @ v = ([Tm a]\<^sup>*n) @ [Nt X]" using eq_ax n_src
-          by (metis append_Cons in_set_conv_decomp)
-        then have uv_eq: "u = ([Tm a]\<^sup>*n) \<and> v = []" using notin n_src eq_ax
-          by (metis Cons_eq_appendI append_Cons_eq_iff append_Nil in_set_insert insert_Nil snoc_eq_iff_butlast)
-        from eq_ax have "w' = [Tm a, Nt X] \<or> w' = []" using step P_def by simp
+        then have "A=X" using P_def by auto
+        have "P \<turnstile> u @ [Nt X] @ v \<Rightarrow> u @ w' @ v" using \<open>A=X\<close> derive.intros step by fast
+        obtain n where n_src: "u @ [Nt X] @ v = ([Tm a]\<^sup>*n) @ [Nt X] \<or> u @ [Nt X] @ v = ([Tm a]\<^sup>*n)" 
+          using \<open>A=X\<close> step by auto 
+        have notin: "Nt X \<notin> set ([Tm a]\<^sup>*n)" by simp
+        then have "u @ [Nt X] @ v = ([Tm a]\<^sup>*n) @ [Nt X]" 
+          using n_src append_Cons in_set_conv_decomp by metis
+        then have uv_eq: "u = ([Tm a]\<^sup>*n) \<and> v = []" 
+          using notin n_src Cons_eq_appendI append_Cons_eq_iff append_Nil in_set_insert insert_Nil snoc_eq_iff_butlast by metis
+        have "w' = [Tm a, Nt X] \<or> w' = []" using step(2) P_def by auto
         then show ?case
         proof
           assume "w' = [Tm a, Nt X]"
-          then have "u @ w' @ v = ([Tm a]\<^sup>*n) @ [Tm a, Nt X] @ []" using uv_eq by simp
-          then have "u @ w' @ v = ([Tm a]\<^sup>*(n+1)) @ [Nt X]" by (simp add: repl_append2) 
-          then show ?case by fastforce
+          then have "u @ w' @ v = ([Tm a]\<^sup>*(Suc n)) @ [Nt X]" using uv_eq by (simp add: repl_append2) 
+          then show ?case by blast
         next
           assume "w' = []"
-          then have "u @ w' @ v = ([Tm a]\<^sup>*n)" using uv_eq by simp
-          then show ?case by fastforce
+          then show ?case using uv_eq by blast
         qed
       qed
-      then obtain n' where n'_src: "im = ([Tm a]\<^sup>*n') @ [Nt X] \<or> im = ([Tm a]\<^sup>*n')" by blast
-      have "im = map Tm w" using im_src by blast
-      then have map_tm: "map Tm w = ([Tm a]\<^sup>*n') @ [Nt X] \<or> map Tm w = ([Tm a]\<^sup>*n')" using n'_src sorry (*I cannot figure out why this unification does not wrok*)
-      have "Nt X \<notin> set (map Tm w)" by auto 
-      then have "map Tm w = ([Tm a]\<^sup>*n')" using map_tm by fastforce
+      then obtain n' where n'_src: "(map Tm w) = ([Tm a]\<^sup>*n') @ [Nt X] \<or> ((map Tm w)::('n, 'a)syms) = ([Tm a]\<^sup>*n')" by auto
+      have "Nt X \<notin> set (map Tm w)" by auto
+      then have "((map Tm w)::('n, 'a)syms) = ([Tm a]\<^sup>*n')" using n'_src by fastforce
       have "map Tm ([a]\<^sup>*n') = ([Tm a]\<^sup>*n')" by (simp add: map_concat)
       then have "w = (a^*n')" using \<open>map Tm w = ([Tm a]\<^sup>*n')\<close> repl_repl_one by (metis list.inj_map_strong sym.inject(2))
       then show "w \<in> Lan" using assms repl_repl_one by auto
@@ -224,7 +228,52 @@ proof  -
   let ?G = "Cfg P X"
   have "L ?G = Lan" 
   proof
-    show "L ?G \<subseteq> Lan" sorry
+    show "L ?G \<subseteq> Lan" proof
+      fix w
+      assume "w \<in> L ?G"
+      then have "P \<turnstile> [Nt X] \<Rightarrow>* map Tm w" using CFG.Lang_def by fastforce
+      then have "\<exists>n. map Tm w = ([Tm a]\<^sup>*n) @ [Nt X] @ ([Tm b]\<^sup>*n) \<or> (map Tm w::('n, 'a)syms) = ([Tm a]\<^sup>*n) @ ([Tm b]\<^sup>*n)"
+      proof(induction rule: rtrancl_derive_induct)
+        case base
+        have "[Nt X] = ([Tm a]\<^sup>*0) @ [Nt X] @ ([Tm b]\<^sup>*0)" by auto
+        then show ?case by fast
+      next
+        case (step u A v w')
+        then have "A=X" using P_def by auto
+        have "P \<turnstile> u @ [Nt X] @ v \<Rightarrow> u @ w' @ v" using \<open>A=X\<close> derive.intros step by fast
+        obtain n where n_src: "u @ [Nt X] @ v = ([Tm a]\<^sup>*n) @ [Nt X] @ ([Tm b]\<^sup>*n) \<or> u @ [Nt X] @ v = ([Tm a]\<^sup>*n) @ ([Tm b]\<^sup>*n)" 
+          using \<open>A=X\<close> step by auto 
+        have notin2: "Nt X \<notin> set ([Tm a]\<^sup>*n) \<and> Nt X \<notin> set ([Tm b]\<^sup>*n)" by simp
+        have notin: "Nt X \<notin> set (([Tm a]\<^sup>*n) @ ([Tm b]\<^sup>*n))" by simp
+        then have uv_split: "u @ [Nt X] @ v = ([Tm a]\<^sup>*n) @ [Nt X] @ ([Tm b]\<^sup>*n)" 
+          by (metis n_src append_Cons in_set_conv_decomp)
+        have u_eq: "u = ([Tm a]\<^sup>*n)"
+          by (metis (no_types, lifting) uv_split notin2 Cons_eq_appendI append_Cons_eq_iff eq_Nil_appendI) 
+        then have v_eq: "v = ([Tm b]\<^sup>*n)" 
+           by (metis (no_types, lifting) uv_split notin2 Cons_eq_appendI append_Cons_eq_iff eq_Nil_appendI)
+        have "w' = [Tm a, Nt X, Tm b] \<or> w' = []" using step(2) P_def by auto
+        then show ?case
+        proof
+          assume "w' = [Tm a, Nt X, Tm b]"
+          then have "u @ w' @ v = ([Tm a]\<^sup>*n) @ [Tm a, Nt X, Tm b] @ ([Tm b]\<^sup>*n)"  using u_eq v_eq by simp
+          then have "u @ w' @ v = ([Tm a]\<^sup>*(Suc n)) @ [Nt X] @ ([Tm b]\<^sup>*(Suc n)) "
+            by (smt (z3)repl_append repl_append2 append_Cons append_self_conv2 repl_repl_one replicate_app_Cons_same) 
+          then show ?case by blast
+        next
+          assume "w' = []"
+          then show ?case using u_eq v_eq by blast
+        qed
+      qed
+      then obtain n' where n'_src: "(map Tm w) = ([Tm a]\<^sup>*n') @ [Nt X] @ ([Tm b]\<^sup>*n') \<or> ((map Tm w)::('n, 'a)syms) = ([Tm a]\<^sup>*n') @ ([Tm b]\<^sup>*n')" by auto
+      have "Nt X \<notin> set (map Tm w)" by auto
+      then have w_ab: "((map Tm w)::('n, 'a)syms) = ([Tm a]\<^sup>*n') @ ([Tm b]\<^sup>*n')" using n'_src by fastforce
+      have map_a: "([Tm a]\<^sup>*n') = map Tm ([a]\<^sup>*n')" by (simp add: map_concat)
+      have map_b: "([Tm b]\<^sup>*n') = map Tm ([b]\<^sup>*n')" by (simp add: map_concat)
+      from w_ab map_a map_b have "((map Tm w)::('n, 'a)syms) = map Tm ([a]\<^sup>*n') @  map Tm ([b]\<^sup>*n')" by metis
+      then have "((map Tm w)::('n, 'a)syms) = map Tm (([a]\<^sup>*n') @ ([b]\<^sup>*n'))" by simp
+      then have "w = (a^*n')@(b^*n')" using repl_repl_one by (metis list.inj_map_strong sym.inject(2))
+      then show "w \<in> Lan" using assms repl_repl_one by auto
+    qed
   next
     show "Lan \<subseteq> L ?G" 
     proof
@@ -267,7 +316,23 @@ proof -
 
   have "L ?G = Lconcat"
   proof
-    show "L ?G \<subseteq> Lconcat" sorry
+    show "L ?G \<subseteq> Lconcat" 
+    proof
+      fix w
+      assume "w \<in> L ?G"
+      then have "?P \<turnstile> [Nt (None, None)] \<Rightarrow>* map Tm w" using CFG.Lang_def by fastforce
+      then obtain \<alpha> where "?P \<turnstile> \<alpha> \<Rightarrow>* map Tm w \<and> ((None, None), \<alpha>) \<in> ?P" using derives_start1 by fast
+      then have "?P \<turnstile> [Nt (Some S1, None), Nt (None, Some S2)] \<Rightarrow>* map Tm w" by auto
+      then have "\<exists>w1 w2. w1 \<in> Ders ?P1r (Some S1, None) \<and> w2 \<in> Ders ?P2r (None, Some S2) \<and> map Tm w = w1@w2"
+      proof(induction rule: rtrancl_derive_induct)
+        case base
+        then show ?case unfolding Ders_def by auto
+      next
+        case (step u A v w)
+        then show ?case sorry    
+      qed
+      show "w \<in> Lconcat" sorry
+    qed
   next
     show "Lconcat \<subseteq> L ?G" 
     proof
@@ -357,9 +422,14 @@ proof -
   then have "cfl TYPE('a option \<times> 'a option) ?anbncm \<and> 
         cfl TYPE('b option \<times> 'b option) ?anbmcm \<and> 
         (\<nexists>GI. L GI = ?anbncm \<inter> ?anbmcm)" 
-    using assms anbncn_not_cfl[of a b c "(?anbncm \<inter> ?anbmcm)"] anbncm anbmcm by auto
+    using assms anbncn_not_cfl[of a b c] anbncm anbmcm by auto
+  then have "\<exists>L2. cfl TYPE('a option \<times> 'a option) ?anbncm \<and>
+     cfl TYPE('b option \<times> 'b option) L2 \<and>
+     (\<nexists>GI. CFL_intersection.L GI = ?anbncm \<inter> L2)" by auto
   (* this should be a simple unification, but maybe the TYPE in cfl causes issues*)
-  then show ?thesis sorry 
+  then show ?thesis using exI[of "\<lambda>L1. \<exists>L2.
+       cfl TYPE('a option \<times> 'a option) L1 \<and>
+       cfl TYPE('b option \<times> 'b option) L2 \<and> (\<nexists>GI. L GI = L1 \<inter> L2)" ?anbncm] sorry
 qed
 
 end

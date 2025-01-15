@@ -97,9 +97,6 @@ lemma lang_rsum2[simp]: "lang (rsum rs r) = (lsum (map lang rs) (lang r))"
 apply(induction rs)
 by auto
 
-lemma list_all_filter: "list_all p (filter p lst)"
-    by (simp add: list_all_iff)
-
 text ‹lift Times to eq_rhs on one side›
 fun eq_times :: "'a rexp ⇒ 'a eq_rhs ⇒ 'a eq_rhs" where
 "eq_times a (b,bs) = (Times a b, map (λ(r,i). (Times a r, i)) bs)"
@@ -473,7 +470,7 @@ lemma ardens_subst_correct:
 proof-
     obtain as bs where ab: "(as,bs) = partition (λ(r,j). j=v) rs" by auto
     have "as = filter (λ(r,j). j=v) rs" using ab by auto
-    then have as_all: "list_all (λ(r,j). j=v) as" using list_all_filter by auto
+    then have as_all: "list_all (λ(r,j). j=v) as" by (simp add: list_all_iff)
 
     have "ardens_subst v (r,rs) = eq_times (Star (rsum (map fst as) Zero)) (r,bs)"
         using ab by auto
@@ -499,7 +496,7 @@ proof-
 next
     obtain as bs where ab: "(as,bs) = partition (λ(r,j). j=v) rs" by auto
     have "bs = filter (Not o (λ(r,j). j=v)) rs" using ab by auto
-    then have bs_all: "list_all (Not o (λ(r,j). j=v)) bs" using list_all_filter by auto
+    then have bs_all: "list_all (Not o (λ(r,j). j=v)) bs" by (simp add: list_all_iff)
 
     let ?a = "Star (rsum (map fst as) Zero)"
     have "lang (var_prefix v (ardens_subst v (r,rs))) = lang (var_prefix v (eq_times ?a (r,bs)))"
@@ -521,7 +518,7 @@ lemma var_subst_correct:
 proof-
     obtain as bs where ab: "(as,bs) = partition (λ(r,j). j=vf) ts" by auto
     have "as = filter (λ(r,j). j=vf) ts" using ab by auto
-    then have as_all: "list_all (λ(r,j). j=vf) as" using list_all_filter by auto
+    then have as_all: "list_all (λ(r,j). j=vf) as" by (simp add: list_all_iff)
 
     have "eq_lang (var_subst (t,ts) vf (f,fs)) s = eq_lang (eq_plus (t,bs) (eq_times (rsum (map fst as) Zero) (f,fs))) s"
         using ab by auto

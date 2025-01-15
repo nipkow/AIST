@@ -229,7 +229,7 @@ apply auto by metis
 text ‹we assume equation v is already solved, meaning it does not depend on any variables›
 
 fun back_subst_step :: "nat ⇒ 'a eq_rhs list ⇒ 'a eq_rhs list" where
-"back_subst_step v eqns = (if (\<forall>i < length eqns. rexp_empty (var_prefix i (eqns!v))) \<and> v < length eqns then
+"back_subst_step v eqns = (if (\<forall>i < v. rexp_empty (var_prefix i (eqns!v))) \<and> v < length eqns then
 (let val = (fst (eqns!v), [])
     in var_subst_before v val eqns
 ) else eqns)"
@@ -331,6 +331,23 @@ qed auto
 
 fun backsubst where
 "backsubst eqns = forloop_down (length eqns) back_subst_step eqns"
+
+
+text ‹
+the zero column created by the vth iteration during forward elimination
+
+it only starts at the diagonal
+›
+definition zero_col where
+"zero_col v eqns = (\<forall>i < length eqns. i \<ge> v --> lang (var_prefix v (eqns!i)) = {})"
+
+
+text ‹
+We want the equations to be triangular after forward elimination
+meaning, every equation only depends on variables after it
+›
+definition triangular where
+"triangular eqns = (\<forall>i < length eqns. zero_col i eqns)"
 
 text ‹
 First do forward elimination
@@ -755,11 +772,17 @@ proof-
     by metis
 qed
 
+lemma backsubst_assert_holds:
+    assumes "triangular eqns"
+    and "v < length eqns"
+    shows "\<forall>i < v. rexp_empty (var_prefix i (eqns!v))"
+by (meson assms dual_order.strict_trans order_less_imp_le rexp_empty_iff triangular_def zero_col_def)
+
 lemma backsubst_step_preserve:
     assumes "solves s (back_subst_step v eqns)"
     (*and "eq_lang (fst (eqns!v), []) (l2f s) = eq_lang (eqns!v) (l2f s)"*)
     shows "solves s eqns"
-proof(cases "(\<forall>i < length eqns. rexp_empty (var_prefix i (eqns!v))) \<and> v < length eqns")
+proof(cases "(\<forall>i < v. rexp_empty (var_prefix i (eqns!v))) \<and> v < length eqns")
     let ?val = "(fst (eqns!v), [])"
     case True
     then have def: "(back_subst_step v eqns) = var_subst_before v ?val eqns"
@@ -770,27 +793,27 @@ proof(cases "(\<forall>i < length eqns. rexp_empty (var_prefix i (eqns!v))) \<an
     have "length eqns = length s"
         using assms unfolding solves_def by simp
 
-    have "\<forall>i < length eqns. rexp_empty (var_prefix i (eqns!v))"
+    have "\<forall>i < v. rexp_empty (var_prefix i (eqns!v))"
         using True by simp
-    then have "\<forall>i < length eqns. lang (var_prefix i (r,rs)) = {}"
+    then have "\<forall>i < v. lang (var_prefix i (r,rs)) = {}"
         unfolding rs using rexp_empty_iff by blast
-    then have "\<forall>i < length eqns. \<Union> {lang x |x. (x, i) \<in> set rs} = {}"
+    then have "\<forall>i < v. \<Union> {lang x |x. (x, i) \<in> set rs} = {}"
         using lang_var_prefix by blast
-    then have "\<forall>(r,i) \<in> set rs. i < length eqns \<longrightarrow> lang r = {}"
+    then have "\<forall>(r,i) \<in> set rs. i < v \<longrightarrow> lang r = {}"
         by auto
     then have "eq_lang (r, []) (l2f s) = eq_lang (r,rs) (l2f s)" unfolding eq_lang_mre proof-
-        assume "\<forall>(r, i)\<in> set rs. i < length eqns \<longrightarrow> lang r = {}"
+        assume "\<forall>(r, i)\<in> set rs. i < v \<longrightarrow> lang r = {}"
         have "\<forall>(r,i) \<in> set rs. lang (mre (l2f s) (r,i)) = {}" proof
             fix x
             assume "x \<in> set rs"
             obtain r i where ri: "(r,i) = x" by (metis prod.exhaust_sel)
-            have "lang (mre (l2f s) (r, i)) = {}" proof(cases "i < length eqns")
+            have "lang (mre (l2f s) (r, i)) = {}" proof(cases "i < v")
               case True
-              then have "lang r = {}" using ri ‹x \<in> set rs› ‹\<forall>(r, i)\<in> set rs. i < length eqns \<longrightarrow> lang r = {}› by auto
+              then have "lang r = {}" using ri ‹x \<in> set rs› ‹\<forall>(r, i)\<in> set rs. i < v \<longrightarrow> lang r = {}› by auto
               then show ?thesis by simp
             next
               case False
-              then have "lang ((l2f s) i) = {}" using ‹length eqns = length s› by simp
+              then have "lang ((l2f s) i) = {}" using ‹length eqns = length s› assms sorry
               then show ?thesis by simp
             qed
             then show "case x of (r, i) \<Rightarrow> lang (mre (l2f s) (r, i)) = {}" using ri by auto
@@ -845,24 +868,6 @@ proof-
 qed
 
 
-text ‹
-We want the equations to be triangular after forward elimination
-meaning, every equation only depends on variables after it
-›
-
-text ‹
-the zero column created by the vth iteration during forward elimination
-
-it only starts at the diagonal
-›
-
-
-definition zero_col where
-"zero_col v eqns = (\<forall>i < length eqns. i \<ge> v --> lang (var_prefix v (eqns!i)) = {})"
-
-
-definition triangular where
-"triangular eqns = (\<forall>i < length eqns. zero_col i eqns)"
 
 value "fwd_elim ([(Zero, [(Zero, 0)]), (Zero, [(One, 1)])] :: (int rexp \<times> (int rexp \<times> nat) list) list)"
 value "let sol = fwd_elim ([(Zero, [(Zero, 0)]), (Zero, [(One, 1)])] :: (int rexp \<times> (int rexp \<times> nat) list) list)
@@ -921,12 +926,10 @@ proof-
 
     show ?thesis unfolding zero_col_def proof
         fix i
-        show "i < length (fwd_elim_step v eqns) \<longrightarrow> v \<le> i \<longrightarrow> lang (var_prefix v (fwd_elim_step v eqns ! i)) = {}"
-        proof
+        show "i < length (fwd_elim_step v eqns) \<longrightarrow> v \<le> i \<longrightarrow> lang (var_prefix v (fwd_elim_step v eqns ! i)) = {}" proof
             assume "i < length (fwd_elim_step v eqns)"
             then have "i < length eqns" using len by simp
-            show "v \<le> i \<longrightarrow> lang (var_prefix v (fwd_elim_step v eqns ! i)) = {}"
-            proof
+            show "v \<le> i \<longrightarrow> lang (var_prefix v (fwd_elim_step v eqns ! i)) = {}" proof
                 assume "v \<le> i"
                 then have "v < length eqns" using \<open>i < length (fwd_elim_step v eqns)\<close> len by simp
 
@@ -1131,12 +1134,55 @@ proof-
     using length_map by auto
 qed
 
+
+lemma length_backsubst_step: "length (back_subst_step v eqns) = length eqns" by simp
+
 text ‹backward substitution turns a triangular system of equations into a trivial one›
+
+lemma back_subst_step_create_zero_col:
+    assumes "triangular eqns"
+    shows "zero_col_full v (back_subst_step v eqns)"
+sorry
+
+lemma back_subst_step_conserve_tri_to_zero:
+    assumes "triangular eqns \<longrightarrow> zero_col_full i eqns"
+    and "triangular (back_subst_step j eqns)"
+    shows "zero_col_full i (back_subst_step j eqns)"
+proof(cases "(\<forall>i < j. rexp_empty (var_prefix i (eqns!j))) \<and> j < length eqns")
+  case True
+  then show ?thesis sorry
+next
+  case False
+  then show ?thesis using assms by (metis back_subst_step.simps)
+qed
+
+
+lemma back_subst_step_preserve_triangular:
+    assumes "triangular eqns"
+    shows "triangular (back_subst_step v eqns)"
+proof(cases "(\<forall>i < v. rexp_empty (var_prefix i (eqns!v))) \<and> v < length eqns")
+  case True
+  then show ?thesis sorry
+qed (auto simp add: assms backsubst_assert_holds)
 
 lemma trivial_backsubst:
     assumes "triangular eqns"
     shows "trivial (backsubst eqns)"
-sorry
+proof-
+    have len: "length (backsubst eqns) = length eqns"
+        unfolding backsubst.simps using forloop_down_preserve_fwd[of "λx. length x = length eqns"] length_backsubst_step by metis
+
+    let ?P = "λi x. triangular x \<longrightarrow> zero_col_full i x"
+    have "triangular (backsubst eqns)"
+        unfolding backsubst.simps using forloop_down_preserve_fwd back_subst_step_preserve_triangular by (metis assms)
+    then have "\<forall>i < length eqns. zero_col_full i (backsubst eqns)"
+        using forloop_down_accumulate[of ?P]
+            back_subst_step_create_zero_col
+            back_subst_step_conserve_tri_to_zero
+    by (metis backsubst.simps)
+    then show "trivial (backsubst eqns)"
+        using trivial_columnwise len by metis
+qed
 
 
 theorem solve_correct:

@@ -24,7 +24,7 @@ abbreviation L :: "('n,'t) Cfg \<Rightarrow> 't list set" where
 abbreviation Lang_concat :: "'t list set \<Rightarrow> 't list set \<Rightarrow> 't list set" where
   "Lang_concat L1 L2 \<equiv> {word. \<exists>w1 \<in> L1. \<exists>w2 \<in> L2. word = w1 @ w2}"
 
-lemma repl_repl_one: "(a^*n) = ([a]\<^sup>*n)"
+lemma repl_repl_one: "([a]\<^sup>*n) = (a^*n)"
   apply(induction n)
   by(auto)
   
@@ -41,7 +41,7 @@ lemma count_repl: "count_list (a^*x) a = x"
   apply(induction x)
   by auto
 
-lemma derive_n_same:
+lemma deriven_same_repl:
   assumes "(A, u' @ [Nt A] @ v') \<in> P"
   shows "P \<turnstile> u @ [Nt A] @ v \<Rightarrow>(n) u @ (u'\<^sup>*n) @ [Nt A] @ (v'\<^sup>*n) @ v"
 proof (induction n)
@@ -56,7 +56,9 @@ next
   then show ?case using Suc by auto
 qed
 
-lemma derives_start1: (*this is just a consequence of deriven_start1 *) 
+(*this is just a consequence of CFG.deriven_start1 *) 
+thm CFG.deriven_start1
+lemma derives_start1: 
   assumes "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
   shows "\<exists>\<alpha>. P \<turnstile> \<alpha> \<Rightarrow>* (map Tm w) \<and> (A,\<alpha>) \<in> P"
 proof -
@@ -66,7 +68,7 @@ proof -
   then show ?thesis by auto
 qed  
 
-
+(* mapping a function on all Nts and related lemmas*)
 fun map_Nt :: "('a \<Rightarrow> 'b) \<Rightarrow> ('a, 't) sym \<Rightarrow> ('b, 't) sym" where
   "map_Nt f (Nt A) = Nt (f A)"
 | "map_Nt _ (Tm a) = Tm a"
@@ -102,6 +104,30 @@ proof
   show "map_Prods_Nt (\<lambda>x. x) (P::('a,'b) Prods) = P" by (simp add: map_Nt_ident) 
 qed
 
+lemma map_inv_Prods: 
+  assumes "inj f"
+  shows "map_Prods_Nt (the_inv f) (map_Prods_Nt f P) = P"
+proof -
+  have ident: "((the_inv f) o f) = (\<lambda>x. x)" using assms the_inv_f_f by fastforce
+  have "map_Prods_Nt (the_inv f) (map_Prods_Nt f P) = (map_Prods_Nt (the_inv f) o map_Prods_Nt f) P" by simp
+  then have "map_Prods_Nt (the_inv f) (map_Prods_Nt f P) = map_Prods_Nt ((the_inv f) o f) P" 
+    using map_Prods_Nt_comp by metis
+  then have "map_Prods_Nt (the_inv f) (map_Prods_Nt f P) = map_Prods_Nt (\<lambda>x. x) P" 
+    using ident by auto
+  then show "map_Prods_Nt (the_inv f) (map_Prods_Nt f P) = P" using map_Prods_Nt_ident by metis
+qed
+
+lemma map_inv_syms: 
+  assumes "inj f"
+  shows "map (map_Nt (the_inv f)) (map (map_Nt f) w) = w"
+proof -
+  have "((the_inv f) o f) = (\<lambda>x. x)" using assms the_inv_f_f by fastforce
+  then have "((map_Nt (the_inv f)) o (map_Nt f)) = (\<lambda>x. x)" using map_Nt_comp map_Nt_ident by metis
+  have "\<forall>y. map (map_Nt (the_inv f)) (map (map_Nt f) y) = y" by (simp add: \<open>map_Nt (the_inv f) o map_Nt f = (\<lambda>x. x)\<close>)
+  then show uv_unmap: "map (map_Nt (the_inv f)) (map (map_Nt f) w) = w" by blast
+qed
+
+(* equivalences after mapping an injective function over all Nts (necessary to show closedness of concatenation) *)
 lemma map_derive_equiv:
   assumes "inj f"
   shows "P \<turnstile> u \<Rightarrow> v \<longleftrightarrow> (map_Prods_Nt f P) \<turnstile> map (map_Nt f) u \<Rightarrow> map (map_Nt f) v"
@@ -111,30 +137,74 @@ proof
   then show "map_Prods_Nt f P \<turnstile> map (map_Nt f) u \<Rightarrow> map (map_Nt f) v" using derive_iff[of "map_Prods_Nt f P"] by auto
 next
   let ?Pm = "map_Prods_Nt f P"
-  let ?um = "(map (map_Nt f) u)"
-  let ?vm = "(map (map_Nt f) v)"
+  let ?um = "map (map_Nt f) u"
+  let ?vm = "map (map_Nt f) v"
   let ?g = "the_inv f"
   assume "?Pm \<turnstile> ?um \<Rightarrow> ?vm"
-  then obtain A \<alpha> u' v' where obt: "(A,\<alpha>) \<in> ?Pm \<and> ?um = u' @ Nt A # v' \<and> ?vm = u' @ \<alpha> @ v'" using derive_iff[of ?Pm] by blast
-  then have der: "map_Prods_Nt ?g ?Pm \<turnstile> map (map_Nt ?g) ?um \<Rightarrow> map (map_Nt ?g) ?vm" 
+  then obtain A \<alpha> u' v' where "(A,\<alpha>) \<in> ?Pm \<and> ?um = u' @ Nt A # v' \<and> ?vm = u' @ \<alpha> @ v'" 
+    using derive_iff[of ?Pm] by blast
+  then have "map_Prods_Nt ?g ?Pm \<turnstile> map (map_Nt ?g) ?um \<Rightarrow> map (map_Nt ?g) ?vm" 
     using derive_iff[of "map_Prods_Nt ?g ?Pm" "map (map_Nt ?g) ?um" "map (map_Nt ?g) ?vm"] by fastforce
-  have gf_ident: "(?g o f) = (\<lambda>x. x)" using assms the_inv_f_f by fastforce
-  then have "((map_Nt ?g) o (map_Nt f)) = (\<lambda>x. x)" using map_Nt_comp map_Nt_ident by metis
-  have "\<forall>y. map (map_Nt ?g) (map (map_Nt f) y) = y" using map_map[of "map_Nt (the_inv f)" "map_Nt f" u] by (simp add: \<open>map_Nt ?g \<circ> map_Nt f = (\<lambda>x. x)\<close>)
-  then have uv_unmap: "map (map_Nt ?g) ?um = u \<and> map (map_Nt ?g) ?vm = v" by blast
-  have "map_Prods_Nt ?g (map_Prods_Nt f P) = (map_Prods_Nt ?g o map_Prods_Nt f) P" by simp
-  then have "map_Prods_Nt ?g (map_Prods_Nt f P) = map_Prods_Nt (?g o f) P" using map_Prods_Nt_comp[of ?g f] by metis
-  then have "map_Prods_Nt ?g (map_Prods_Nt f P) = map_Prods_Nt (\<lambda>x. x) P" 
-    using gf_ident by auto
-  then have P_unmap: "map_Prods_Nt ?g (map_Prods_Nt f P) = P" using  map_Prods_Nt_ident by metis
-  show "P \<turnstile> u \<Rightarrow> v" using der uv_unmap P_unmap by simp
+  then show "P \<turnstile> u \<Rightarrow> v" using assms map_inv_syms map_inv_Prods by metis
+qed
+
+(* similar to CFG.relpowp_mono - necessary for map_derives_equiv *)
+thm CFG.relpowp_mono
+lemma relpowp_mono_fun: 
+  fixes x y :: 'a
+  shows "(\<And>x y. R x y \<Longrightarrow> S (f x) (f y)) \<Longrightarrow> (R ^^ n) x y \<Longrightarrow> (S ^^ n) (f x) (f y)"
+    apply (induction n arbitrary: y) 
+  by auto
+
+lemma map_derives_imp_map:
+  assumes "(map_Prods_Nt f P) \<turnstile> map (map_Nt f) u \<Rightarrow>* fv"
+  shows "\<exists>v. fv = map (map_Nt f) v"
+  using assms
+proof(induction rule: rtrancl_derive_induct)
+  case base
+  then show ?case by auto
+next
+  case (step u A v w)
+  then obtain A' where A'_src: "map (map_Nt f) [Nt A'] = [Nt A]" by auto
+  from step obtain drvW where "map (map_Nt f) drvW = u @ [Nt A] @ v" by auto
+  then have uAv_split: "u @ (map (map_Nt f) [Nt A']) @ v = map (map_Nt f) drvW" using A'_src by simp
+  from uAv_split obtain u' where u'_src: "map (map_Nt f) u' = u" by (metis map_eq_append_conv)
+  from uAv_split obtain v' where v'_src: "map (map_Nt f) v' = v" by (metis map_eq_append_conv)
+  from step obtain w' where "map (map_Nt f) w' = w" by auto
+  then have "u @ w @ v = map (map_Nt f) (u' @ w' @ v')" using u'_src v'_src by auto
+  then show ?case by fast
 qed
 
 lemma map_derives_equiv:
   assumes "inj f"
   shows "P \<turnstile> u \<Rightarrow>* v \<longleftrightarrow> (map_Prods_Nt f P) \<turnstile> map (map_Nt f) u \<Rightarrow>* map (map_Nt f) v"
-proof -
-  show ?thesis using assms map_derive_equiv[of f P u v] sorry
+proof
+  assume "P \<turnstile> u \<Rightarrow>* v"
+  then obtain n where "P \<turnstile> u \<Rightarrow>(n) v" using rtranclp_imp_relpowp by fast
+  then have "map_Prods_Nt f P \<turnstile> map (map_Nt f) u \<Rightarrow>(n) map (map_Nt f) v" 
+    using assms map_derive_equiv[of f P] relpowp_mono_fun[of "\<lambda>x y. P \<turnstile> x \<Rightarrow> y" "\<lambda> x y. (map_Prods_Nt f P) \<turnstile> x \<Rightarrow> y"] by blast
+  then show "map_Prods_Nt f P \<turnstile> map (map_Nt f) u \<Rightarrow>* map (map_Nt f) v"
+    using relpowp_imp_rtranclp by fast
+next
+  assume "map_Prods_Nt f P \<turnstile> map (map_Nt f) u \<Rightarrow>* map (map_Nt f) v"
+  then obtain n where n_src: "map_Prods_Nt f P \<turnstile> map (map_Nt f) u \<Rightarrow>(n) map (map_Nt f) v" 
+    using rtranclp_imp_relpowp by fast
+  then have "P \<turnstile> u \<Rightarrow>(n) v" 
+  proof(induction n arbitrary: v)
+    case 0
+    then have "map (map_Nt f) u = map (map_Nt f) v" by simp
+    then have "u = v" using assms map_inv_syms by metis 
+    then show ?case by simp
+  next
+    case (Suc n v)
+    then have "\<exists>w. map_Prods_Nt f P \<turnstile> map (map_Nt f) u \<Rightarrow>(n) map (map_Nt f) w \<and> map_Prods_Nt f P \<turnstile> map (map_Nt f) w \<Rightarrow> map (map_Nt f) v"
+      using relpowp_imp_rtranclp map_derives_imp_map by fastforce
+    then obtain w where "map_Prods_Nt f P \<turnstile> map (map_Nt f) u \<Rightarrow>(n) map (map_Nt f) w \<and> map_Prods_Nt f P \<turnstile> map (map_Nt f) w \<Rightarrow> map (map_Nt f) v"
+      by fast
+    then have "P \<turnstile> u \<Rightarrow>(n) w \<and> P \<turnstile> w \<Rightarrow> v" using Suc(1) map_derive_equiv assms by blast
+    then show ?case by auto
+  qed
+  then show "P \<turnstile> u \<Rightarrow>* v" using relpowp_imp_rtranclp by fast
 qed
 
 lemma map_Lang_equiv:
@@ -144,16 +214,11 @@ proof -
   have start: "[Nt (f S)] = map (map_Nt f) [Nt S]" by simp
   have word: "\<forall>w. map Tm w = map (map_Nt f) (map Tm w)" by simp
   have "{w. P \<turnstile> [Nt S] \<Rightarrow>* map Tm w} = {w. (map_Prods_Nt f P) \<turnstile> [Nt (f S)] \<Rightarrow>* map Tm w}" 
-    using assms start word map_derives_equiv[of f P] by metis 
+    using assms start word map_derives_equiv by metis 
   then show ?thesis using CFG.Lang_def by metis
 qed
 
 section "main proof"
-thm derive.induct
-thm rtrancl_derive_induct
-thm derives_induct'
-
-thm list.induct
 
 lemma an_cfl:
   assumes "Lan = {word. \<exists>n \<ge> 0. word = (a^*n)}"
@@ -209,7 +274,7 @@ proof  -
       then obtain n where n_src: "n \<ge> 0 \<and> w = (a^*n)" using assms by blast
       (*"X \<Rightarrow>* a^n"*)
       have Xa: "P \<turnstile> [Nt X] \<Rightarrow>(n) ([Tm a]\<^sup>*n) @ [Nt X]"
-        using P_def derive_n_same[of "X" "[Tm a]" "[]" _ _ "[]" ] by simp
+        using P_def deriven_same_repl[of "X" "[Tm a]" "[]" _ _ "[]" ] by simp
       have X\<epsilon>: "P \<turnstile> ([Tm a]\<^sup>*n) @ [Nt X] \<Rightarrow> ([Tm a]\<^sup>*n)" using P_def derive.intros[of "X" "[]" _ "[Tm a]\<^sup>*n" "[]"] by fastforce
       have "([Tm a]\<^sup>*n) = map Tm w" using n_src by (metis concat_map_singleton map_replicate)
       then have "P \<turnstile> [Nt X] \<Rightarrow>* map Tm w" using Xa X\<epsilon> relpowp_imp_rtranclp
@@ -282,7 +347,7 @@ proof  -
       then obtain n where n_src: "n \<ge> 0 \<and> w = (a^*n)@(b^*n)" using assms by blast
       (*"X \<Rightarrow>* a^nb^n"*)
       have Xa: "P \<turnstile> [Nt X] \<Rightarrow>(n) ([Tm a]\<^sup>*n) @ [Nt X] @ ([Tm b]\<^sup>*n)"
-        using P_def derive_n_same[of "X" "[Tm a]" "[Tm b]" _ _ "[]" "[]"] by simp
+        using P_def deriven_same_repl[of "X" "[Tm a]" "[Tm b]" _ _ "[]" "[]"] by simp
       have X\<epsilon>: "P \<turnstile> ([Tm a]\<^sup>*n) @ [Nt X] @ ([Tm b]\<^sup>*n) \<Rightarrow> ([Tm a]\<^sup>*n) @ ([Tm b]\<^sup>*n)" 
         using P_def derive.intros[of "X" "[]" _ "[Tm a]\<^sup>*n" "[Tm b]\<^sup>*n"] by fastforce
       have "([Tm a]\<^sup>*n) @ ([Tm b]\<^sup>*n) = (map Tm (a^*n)) @ (map Tm (b^*n))" by (metis concat_map_singleton map_replicate)
@@ -303,17 +368,21 @@ shows "cfl TYPE(('n option \<times> 'm option)) Lconcat"
 proof -
   obtain P1 S1 where L1_def: "L1 = Lang P1 (S1::'n)" using assms(1) cfl_def[of L1] by auto 
   obtain P2 S2 where L2_def: "L2 = Lang P2 (S2::'m)" using assms(2) cfl_def[of L2] by auto
-  let ?P1r = "map_Prods_Nt (\<lambda>A. (Some A, None)) P1"
-  let ?P2r = "map_Prods_Nt (\<lambda>A. (None, Some A)) P2"
+  let ?f1 = "(\<lambda>A. (Some A, None))"
+  let ?f2 = "(\<lambda>A. (None, Some A))"
+  let ?P1r = "map_Prods_Nt ?f1 P1"
+  let ?P2r = "map_Prods_Nt ?f2 P2"
   let ?P = "{((None, None), [Nt (Some S1, None), Nt (None, Some S2)])} \<union> ?P1r \<union> ?P2r"
   let ?G = "Cfg ?P (None, None)"
-  have "inj (\<lambda>A. (Some A, None))" by (simp add: inj_on_def) 
+  have "inj ?f1" by (simp add: inj_on_def) 
   then have L1r_def: "L1 = Lang ?P1r (Some S1, None)" 
     using L1_def map_Lang_equiv by fastforce
-  have "inj (\<lambda>A. (None, Some A))" by (simp add: inj_on_def) 
+  have "inj ?f2" by (simp add: inj_on_def) 
   then have L2r_def: "L2 = Lang ?P2r ((None, Some S2))" 
     using L2_def map_Lang_equiv by fastforce
 
+  (*maybe useful for proof? *)
+  (*have D1r: "Ders ?P1r (Some S1, None) = {map (map_Nt ?f1) der |der. der \<in> (Ders P1 S1)}" sorry*)
   have "L ?G = Lconcat"
   proof
     show "L ?G \<subseteq> Lconcat" 
@@ -329,7 +398,10 @@ proof -
         then show ?case unfolding Ders_def by auto
       next
         case (step u A v w)
-        then show ?case sorry    
+        then have "A = (None, None) \<or> (\<exists>A1. A = ?f1 A1) \<or> (\<exists>A2. A = ?f2 A2)" by force
+        have "\<And>v. ?P1r \<turnstile> (map (map_Nt ?f1) [Nt S1]) \<Rightarrow>* v \<Longrightarrow> (\<exists>v1. v = (map (map_Nt ?f1)) v1)"
+          using map_derives_imp_map by blast
+        then show ?case sorry
       qed
       show "w \<in> Lconcat" sorry
     qed
@@ -339,10 +411,12 @@ proof -
       fix w
       assume "w \<in> Lconcat"
       then obtain w1 w2 where w12_src: "(w1 \<in> L1) \<and> (w2 \<in> L2) \<and> w = w1 @ w2" using assms by blast
+      have P1r_sub: "?P1r \<subseteq> ?P" by auto
       from w12_src have "?P1r \<turnstile> [Nt (Some S1, None)] \<Rightarrow>* map Tm w1" using L1r_def CFG.Lang_def by fast
-      then have der_w1: "?P \<turnstile> [Nt (Some S1, None)] \<Rightarrow>* map Tm w1" sorry 
+      then have der_w1: "?P \<turnstile> [Nt (Some S1, None)] \<Rightarrow>* map Tm w1" using P1r_sub psubRtcDeriv by blast
+      have P2r_sub: "?P2r \<subseteq> ?P" by auto 
       from w12_src have "?P2r \<turnstile> [Nt (None, Some S2)] \<Rightarrow>* map Tm w2" using L2r_def CFG.Lang_def by fast
-      then have der_w2: "?P \<turnstile> [Nt (None, Some S2)] \<Rightarrow>* map Tm w2" sorry 
+      then have der_w2: "?P \<turnstile> [Nt (None, Some S2)] \<Rightarrow>* map Tm w2" using P2r_sub psubRtcDeriv by blast
       have "?P \<turnstile> [Nt (None, None)] \<Rightarrow> [Nt (Some S1, None), Nt (None, Some S2)]" 
         using derive.intros[of "(None, None)" "[Nt (Some S1, None), Nt (None, Some S2)]" ?P "[]"] by auto
       then have "?P \<turnstile> [Nt (None, None)] \<Rightarrow>* map Tm w1 @ [Nt (None, Some S2)]" 
@@ -366,7 +440,7 @@ lemma anbncn_not_cfl:
 
 
 (*this seems very tedious and unnecessary, there is likely a better way to do this*)
-lemma intersection_eq: 
+lemma intersection_anbncn: 
   assumes "a\<noteq>b" 
   and "b\<noteq>c" 
   and "c\<noteq>a"
@@ -418,7 +492,7 @@ proof -
   have "?anbmcm = (Lang_concat ?an ?bmcm)" by fastforce
   then have anbmcm: "cfl TYPE('b option \<times> 'b option) ?anbmcm" using an bmcm concat_closed by blast
   have "?anbncm \<inter> ?anbmcm = {word. \<exists>n \<ge> 0. word = (a^*n)@(b^*n)@(c^*n)}" 
-    using assms intersection_eq by fast
+    using assms intersection_anbncn by fast
   then have "cfl TYPE('a option \<times> 'a option) ?anbncm \<and> 
         cfl TYPE('b option \<times> 'b option) ?anbmcm \<and> 
         (\<nexists>GI. L GI = ?anbncm \<inter> ?anbmcm)" 

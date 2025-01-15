@@ -237,13 +237,16 @@ proof -
   ultimately show ?thesis by auto
 qed
 
-(* like CNF_derivln_first_tm, but also yields the situation directly before first step *)
+(* like CNF_derivln_first_tm, but also yields the situation directly before first step
+   and the lengths of the derivation fragments
+ *)
 lemma CNF_derivln_first_tm_strong:
   assumes derivln: "P \<turnstile> map Nt u \<Rightarrow>l(n) Tm t # v"
   and cnf: "CNF P"
-shows "\<exists>T ns. P \<turnstile> map Nt u \<Rightarrow>l* Nt T # map Nt ns \<and>
-              P \<turnstile> Nt T # map Nt ns \<Rightarrow>l Tm t # map Nt ns \<and>
-              P \<turnstile> Tm t # map Nt ns \<Rightarrow>l* Tm t # v" (is ?P)
+shows "\<exists>T ns n1 n2. P \<turnstile> map Nt u \<Rightarrow>l(n1) Nt T # map Nt ns \<and>
+                    P \<turnstile> Nt T # map Nt ns \<Rightarrow>l Tm t # map Nt ns \<and>
+                    P \<turnstile> Tm t # map Nt ns \<Rightarrow>l(n2) Tm t # v \<and>
+                    n1 + 1 + n2 = n" (is ?P)
 proof -
   from derivln show "?P"
   proof (induction n arbitrary: u v rule: nat_induct_with_1)
@@ -277,7 +280,6 @@ proof -
 
       from 1 have "P \<turnstile> map Nt u \<Rightarrow>l Tm t # v" by auto
       with u have "P \<turnstile> map Nt u \<Rightarrow>l(0) Nt A # map Nt u2" by simp
-      then have "P \<turnstile> map Nt u \<Rightarrow>l* Nt A # map Nt u2" by auto
 
       moreover from v w have "v = map Nt u2" by simp
       with 1 have "P \<turnstile> map Nt u \<Rightarrow>l(1) Tm t # map Nt u2" by auto
@@ -285,13 +287,16 @@ proof -
         by metis
       then have "P \<turnstile> Nt A # map Nt u2 \<Rightarrow>l Tm t # map Nt u2" by auto
 
-      moreover from v w have "P \<turnstile> Tm t # map Nt u2 \<Rightarrow>l* Tm t # v" by auto
+      moreover from v w have "P \<turnstile> Tm t # map Nt u2 \<Rightarrow>l(0) Tm t # v" by auto
 
       ultimately have
-        "P \<turnstile> map Nt u \<Rightarrow>l* Nt A # map Nt u2"
+        "P \<turnstile> map Nt u \<Rightarrow>l(0) Nt A # map Nt u2"
         "P \<turnstile> Nt A # map Nt u2 \<Rightarrow>l Tm t # map Nt u2"
-        "P \<turnstile> Tm t # map Nt u2 \<Rightarrow>l* Tm t # v" by auto
-      then show ?thesis by fast
+        "P \<turnstile> Tm t # map Nt u2 \<Rightarrow>l(0) Tm t # v"
+        "(0::nat) + 1 + 0 = 1" by auto
+
+      then show ?thesis
+        by blast
     qed
   next
     case (Suc m)
@@ -318,14 +323,14 @@ proof -
       with num_tms_y have "length tms = 0" by simp
       with tms_nts have y_nts: "y = map Nt nts" by auto
       with yv have "P \<turnstile> map Nt nts \<Rightarrow>l(m) Tm t # v" by simp
-      with Suc obtain T' nts'
-        where "P \<turnstile> map Nt nts \<Rightarrow>l* Nt T' # map Nt nts'"
+      with Suc obtain T' nts' n1' n2'
+        where "P \<turnstile> map Nt nts \<Rightarrow>l(n1') Nt T' # map Nt nts'"
           and "P \<turnstile> Nt T' # map Nt nts' \<Rightarrow>l Tm t # map Nt nts'"
-          and "P \<turnstile> Tm t # map Nt nts' \<Rightarrow>l* Tm t # v"
+          and "P \<turnstile> Tm t # map Nt nts' \<Rightarrow>l(n2') Tm t # v"
+          and "n1' + 1 + n2' = m"
         by blast
-      with uy have "P \<turnstile> map Nt u \<Rightarrow>l* Nt T' # map Nt nts' \<and> P \<turnstile> Nt T' # map Nt nts' \<Rightarrow>l Tm t # map Nt nts' \<and> P \<turnstile> Tm t # map Nt nts' \<Rightarrow>l* Tm t # v"
-        using y_nts by force
-      then show ?thesis by auto
+      then show ?thesis
+        by (smt (verit, best) add_Suc relpowp_Suc_I2 uy y_nts)
     next
       assume "num_tms y = Suc 0"
       with num_tms_y have "length tms = Suc 0" by simp
@@ -339,30 +344,33 @@ proof -
 
       from uy y_nts t_t have "P \<turnstile> map Nt u \<Rightarrow>l Tm t # map Nt nts" by auto
       then have single_step: "P \<turnstile> map Nt u \<Rightarrow>l(1) Tm t # map Nt nts" by auto
-      have "\<exists>T' ns'.
-              P \<turnstile> map Nt u \<Rightarrow>l* Nt T' # map Nt ns' \<and>
+      have "\<exists>T' ns' n1' n2'.
+              P \<turnstile> map Nt u \<Rightarrow>l(n1') Nt T' # map Nt ns' \<and>
               P \<turnstile> Nt T' # map Nt ns' \<Rightarrow>l Tm t # map Nt ns' \<and>
-              P \<turnstile> Tm t # map Nt ns' \<Rightarrow>l* Tm t # map Nt nts"
+              P \<turnstile> Tm t # map Nt ns' \<Rightarrow>l(n2') Tm t # map Nt nts \<and>
+              n1' + 1 + n2' = 1"
         using single_step Suc(1)[where u=u and v="map Nt nts"]
         by fast
-      then obtain T' ns' where
-          "P \<turnstile> map Nt u \<Rightarrow>l* Nt T' # map Nt ns'"
+      then obtain T' ns' n1' n2' where
+          "P \<turnstile> map Nt u \<Rightarrow>l(n1') Nt T' # map Nt ns'"
           "P \<turnstile> Nt T' # map Nt ns' \<Rightarrow>l Tm t # map Nt ns'"
-          "P \<turnstile> Tm t # map Nt ns' \<Rightarrow>l* Tm t # map Nt nts"
+          "P \<turnstile> Tm t # map Nt ns' \<Rightarrow>l(n2') Tm t # map Nt nts"
+          "n1' + 1 + n2' = 1"
         by fast
 
       moreover
-      from yv y_nts t_t have "P \<turnstile> Tm t # map Nt nts \<Rightarrow>l* Tm t # v"
+      from yv y_nts t_t have "P \<turnstile> Tm t # map Nt nts \<Rightarrow>l(m) Tm t # v"
         by (simp add: relpowp_imp_rtranclp)
-      with \<open>P \<turnstile> Tm t # map Nt ns' \<Rightarrow>l* Tm t # map Nt nts\<close> have
-          "P \<turnstile> Tm t # map Nt nts \<Rightarrow>l* Tm t # v" by auto
+      with \<open>P \<turnstile> Tm t # map Nt ns' \<Rightarrow>l(n2') Tm t # map Nt nts\<close> have
+          "P \<turnstile> Tm t # map Nt nts \<Rightarrow>l(m) Tm t # v"
+        by force
 
       ultimately have
-          "P \<turnstile> map Nt u \<Rightarrow>l* Nt T' # map Nt ns'"
+          "P \<turnstile> map Nt u \<Rightarrow>l(0) Nt T' # map Nt ns'"
           "P \<turnstile> Nt T' # map Nt ns' \<Rightarrow>l Tm t # map Nt ns'"
-          "P \<turnstile> Tm t # map Nt ns' \<Rightarrow>l* Tm t # v"
+          "P \<turnstile> Tm t # map Nt ns' \<Rightarrow>l(m) Tm t # v"
         by auto
-      then show ?thesis by fast
+      then show ?thesis by force
     qed
   qed
 qed

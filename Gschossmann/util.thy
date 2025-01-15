@@ -82,9 +82,39 @@ qed
 (* custom integer induction rule which also has a case for 1 *)
 lemma nat_induct_with_1 [case_names 0 1 Suc]:
   fixes n
-  assumes "P 0" "P 1" and "\<And>n. P 1 \<Longrightarrow> P n \<Longrightarrow> P (Suc n)"
+  assumes "P 0"
+      and "P 1"
+      and "\<And>n. P 1 \<Longrightarrow> P n \<Longrightarrow> P (Suc n)"
   shows "P n"
   using assms nat_induct by auto
 
+
+(* custom integer induction rule which provides stronger assumptions *)
+lemma nat_induct_leq [case_names 0 Leq]:
+  fixes n
+  assumes 0: "P 0"
+  and leq: "\<And>n. (\<And>m. m \<le> n \<Longrightarrow> P m) \<Longrightarrow> P (Suc n)"
+shows "P n"
+proof -
+  from assms have "\<And>m. m \<le> n \<Longrightarrow> P m"
+  proof (induction n)
+    case 0
+    then show ?case by simp
+  next
+    case (Suc n)
+    then have invariant: "\<And>m. m \<le> n \<Longrightarrow> P m" by simp
+    show ?case
+    proof (cases "m = Suc n")
+      case True
+      with Suc show ?thesis
+        by blast
+    next
+      case False
+      then show ?thesis
+        using Suc invariant le_Suc_eq by blast
+    qed
+  qed
+  then show ?thesis by auto
+qed
 
 end

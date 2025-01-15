@@ -39,5 +39,10 @@ next
   qed
 qed
 
+lemma map_tms_Prods_derivel:
+  assumes "P \<turnstile> map Nt a \<Rightarrow>* map Tm b"
+  shows "map_tms_Prods f P \<turnstile> map Nt a \<Rightarrow>* map Nt (map f b)"
+  sorry
+
 
 end

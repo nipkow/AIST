@@ -66,7 +66,7 @@ lemma isNt_isTm_o_rename_sym: "isTm = isTm o (rename_sym f)"
 
 (* syms derived in the original grammar are also derivable in the renamed grammar
    (but the nonterminals are renamed accordingly *)
-lemma cfg_rename_derive_dir1:
+lemma cfg_rename_derives_dir1:
   shows "(set p) \<turnstile> a \<Rightarrow>* b \<Longrightarrow> (set (rename_prods f p)) \<turnstile> (rename_syms f a) \<Rightarrow>* (rename_syms f b)"
 proof (induction rule: derives_induct')
   case base
@@ -88,13 +88,49 @@ next
 qed
 
 
+lemma cfg_rename_derivel_dir1:
+  assumes "(set p) \<turnstile> a \<Rightarrow>l b"
+  shows "(set (rename_prods f p)) \<turnstile> (rename_syms f a) \<Rightarrow>l (rename_syms f b)"
+proof -
+  from assms have "(\<exists> (A,w) \<in> (set p). \<exists>u1 u2. a = map Tm u1 @ Nt A # u2 \<and> b = map Tm u1 @ w @ u2)"
+    by (simp only: derivel_iff)
+  then obtain A w u1 u2 where A_w_u1_u2: "(A,w) \<in> (set p) \<and>
+                                          a = map Tm u1 @ Nt A # u2 \<and>
+                                          b = map Tm u1 @ w @ u2"
+    by fast
+  then have "(f A, rename_syms f w) \<in> (set (rename_prods f p)) \<and> 
+             rename_syms f a = map Tm u1 @ Nt (f A) # rename_syms f u2 \<and>
+             rename_syms f b = map Tm u1 @ rename_syms f w @ rename_syms f u2"
+    by force
+  then have "(\<exists> (A,w) \<in> (set (rename_prods f p)).
+        \<exists>u1 u2. rename_syms f a = map Tm u1 @ Nt A # u2 \<and> rename_syms f b = map Tm u1 @ w @ u2)"
+    by blast
+  then show ?thesis by (simp only: derivel_iff)
+qed
+
+lemma cfg_rename_derivels_dir1:
+  shows "(set p) \<turnstile> a \<Rightarrow>l* b \<Longrightarrow> (set (rename_prods f p)) \<turnstile> rename_syms f a \<Rightarrow>l* rename_syms f b"
+proof (induction rule: converse_rtranclp_induct)
+  case base
+  then show ?case
+    by simp
+next
+  case (step y z)
+  from step(1) have "(set (rename_prods f p)) \<turnstile> rename_syms f y \<Rightarrow>l rename_syms f z"
+    by (rule cfg_rename_derivel_dir1)
+  with step(3) show ?case
+    by simp
+qed
+
+
+
 (* renamed syms are derivable in the renamed grammar 
    iff their non-renamed counterpart is derivable in the original grammar *)
-lemma cfg_rename_derive:
+lemma cfg_rename_derives_iff:
   assumes "inj (f:: 'a \<Rightarrow> 'b)"
   shows "(set p) \<turnstile> (a:: ('a,'t) syms) \<Rightarrow>* b \<longleftrightarrow> (set (rename_prods f p)) \<turnstile> (rename_syms f a) \<Rightarrow>* (rename_syms f b)" (is "?l \<longleftrightarrow> ?r")
 proof
-  show "?l \<Longrightarrow> ?r" by (rule cfg_rename_derive_dir1)
+  show "?l \<Longrightarrow> ?r" by (rule cfg_rename_derives_dir1)
 next
   (* since f is injective, the second direction follows from the first by using the inverse *)
   obtain "g" where "g = the_inv f" and inv: "(\<And>x. (g (f x) = x))" using \<open>inj f\<close>
@@ -116,9 +152,54 @@ next
   with inv have "\<And>(p::('a,'t) prod). rename_prod g (rename_prod f p) = p" by force
   then have inv_rename_prods: "\<And>(ps::('a,'t) prods). rename_prods g (rename_prods f ps) = ps"
     by (simp add: map_idI)
-  then show "?r \<Longrightarrow> ?l" using cfg_rename_derive_dir1[where f=g]
+  then show "?r \<Longrightarrow> ?l" using cfg_rename_derives_dir1[where f=g]
     by (metis inv_rename_syms)
 qed
+
+
+
+
+
+
+
+(* renamed syms are derivable in the renamed grammar 
+   iff their non-renamed counterpart is derivable in the original grammar *)
+lemma cfg_rename_derivels_iff:
+  assumes "inj (f:: 'a \<Rightarrow> 'b)"
+  shows "(set p) \<turnstile> (a:: ('a,'t) syms) \<Rightarrow>l* b \<longleftrightarrow> (set (rename_prods f p)) \<turnstile> (rename_syms f a) \<Rightarrow>l* (rename_syms f b)" (is "?l \<longleftrightarrow> ?r")
+proof
+  show "?l \<Longrightarrow> ?r" by (rule cfg_rename_derivels_dir1)
+next
+  (* since f is injective, the second direction follows from the first by using the inverse *)
+  obtain "g" where "g = the_inv f" and inv: "(\<And>x. (g (f x) = x))" using \<open>inj f\<close>
+    by (simp add: the_inv_f_f)
+  then have "\<And>(s::('a,'t) sym). rename_sym g (rename_sym f s) = s"
+  proof -
+    fix s
+    show "rename_sym g (rename_sym f s) = (s::('a,'t) sym)"
+    proof (cases s)
+      case (Nt t)
+      then have "(rename_sym f s) = Nt (f t)" by simp
+      moreover have "rename_sym g (Nt (f t)) = Nt (g (f t))" by simp
+      moreover have "Nt (g (f t)) = Nt t" using inv by simp
+      ultimately show ?thesis using Nt by simp
+    qed simp
+  qed
+  then have inv_rename_syms: "\<And>(ss::('a,'t) syms). rename_syms g (rename_syms f ss) = ss"
+    by (simp add: map_idI)
+  with inv have "\<And>(p::('a,'t) prod). rename_prod g (rename_prod f p) = p" by force
+  then have inv_rename_prods: "\<And>(ps::('a,'t) prods). rename_prods g (rename_prods f ps) = ps"
+    by (simp add: map_idI)
+  then show "?r \<Longrightarrow> ?l" using cfg_rename_derivels_dir1[where f=g]
+    by (metis inv_rename_syms)
+qed
+
+
+
+
+
+
+
 
 
 (* renaming of nonterminals does not change language *)
@@ -136,7 +217,7 @@ proof -
     have "x \<in> L G \<longleftrightarrow> (set (?p)) \<turnstile> ?a \<Rightarrow>* ?b" unfolding Lang_def by simp
     moreover from inj have "(set (?p)) \<turnstile> ?a \<Rightarrow>* ?b \<longleftrightarrow>
         (set (rename_prods f ?p)) \<turnstile> (rename_syms f ?a) \<Rightarrow>* (rename_syms f ?b)"
-      by (rule cfg_rename_derive)
+      by (rule cfg_rename_derives_iff)
     moreover have "rename_syms f ?a = [Nt (f (start G))]" by simp
     moreover have "[Nt (f (start G))] = [Nt (start (?G'))]"
       by (metis cfg.collapse cfg.sel(2) rename_cfg.simps)

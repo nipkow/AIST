@@ -1,6 +1,6 @@
 theory DFA_rlin2
 imports
-  Right_Linear "$AFP/Regular-Sets/Regular_Exp"
+  Right_Linear "$AFP/Regular-Sets/Regular_Set"
 begin
 
 definition nxt_rlin2 :: "('n,'t)Prods \<Rightarrow> 'n \<Rightarrow> 't \<Rightarrow> 'n set" where
@@ -227,6 +227,6 @@ qed
 theorem Lang_iff_accepted_if_rlin2:
 assumes "rlin2 P"
 shows "w \<in> Lang P A \<longleftrightarrow> accepted P A w"
-using accepted_if_Lang[OF assms] Lang_if_accepted by fast
+  using accepted_if_Lang[OF assms] Lang_if_accepted by fast
 
 end

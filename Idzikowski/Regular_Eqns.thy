@@ -4,12 +4,23 @@ imports
 begin
 
 text \<open>
-We model equations of the form Xi = r1 X1 | r2 X2 | ... | rn Xn | r
+We model equations of the form Xi = r | (r1 X1) | (r2 X2) | ... | (rn Xn)
+
+where X are variables and r are regular expressions without variables
+
 variables are represented by natural numbers
+regular expressions by 'a rexp
 
 a system of equations is modeled as a list of right hand sides
 the variable on the left hand side is the index
 \<close>
+(*
+there is a difficulty with this representation
+
+it allows variables that have no equation, because they are out of bounds
+
+we tried dealing with this by defining them to be Zero
+*)
 type_synonym 'a eq_rhs = "'a rexp \<times> ('a rexp \<times> nat) list"
 
 abbreviation rsum where "rsum \<equiv> foldr Plus"
@@ -62,26 +73,11 @@ proof-
 qed
 
 lemma eq_lang: "eq_lang (r,rs) s = \<Union> {lang x @@ lang (s v) | x v. (x,v) \<in> set rs} \<union> lang r"
-proof-
-    show ?thesis using eq_lang_mre by simp
-qed
+using eq_lang_mre by simp
 
 lemma lang_Union_eq_lang: "lang a \<union> eq_lang (b, bs) s = eq_lang (Plus a b, bs) s"
 apply(induction bs)
 by auto
-
-lemma eq_lang_Cons: "eq_lang (r,(x,i)#xs) s = lang x @@ lang (s i) \<union> eq_lang (r,xs) s"
-by auto
-
-lemma lang_Union_eq_lang_Zero: "lang a \<union> eq_lang (Zero, bs) s = eq_lang (a, bs) s"
-apply(induction bs)
-by auto
-
-lemma eq_lang_conc[simp]: "eq_lang (a,as@bs) s = eq_lang (a, as) s \<union> eq_lang (Zero, bs) s"
-proof(induction as)
-  case Nil
-  then show ?case using lang_Union_eq_lang_Zero by auto
-qed auto
 
 lemma lsum_conc: "lsum rs r @@ b = lsum (map (λa. a @@ b) rs) (r @@ b)"
 proof(induction rs)
@@ -101,6 +97,8 @@ lemma lang_rsum2[simp]: "lang (rsum rs r) = (lsum (map lang rs) (lang r))"
 apply(induction rs)
 by auto
 
+lemma list_all_filter: "list_all p (filter p lst)"
+    by (simp add: list_all_iff)
 
 text ‹lift Times to eq_rhs on one side›
 fun eq_times :: "'a rexp ⇒ 'a eq_rhs ⇒ 'a eq_rhs" where
@@ -108,9 +106,6 @@ fun eq_times :: "'a rexp ⇒ 'a eq_rhs ⇒ 'a eq_rhs" where
 
 lemma lang_eq_times[simp]: "eq_lang (eq_times a (b,bs)) s = lang a @@ eq_lang (b,bs) s"
 proof(induction bs)
-  case Nil
-  then show ?case by auto
-next
   case (Cons x xs)
 
   have "\<exists>r i. x = (r,i)" by auto
@@ -125,7 +120,7 @@ next
   also have "\<dots> = eq_lang (Times a b, (Times a r, i) # ?ys) s"
     by auto
   also have "\<dots> = lang (Times a r) @@ lang (s i) \<union> eq_lang (Times a b, ?ys) s"
-    using eq_lang_Cons by auto
+     by auto
   also have "\<dots> = lang (Times a r) @@ lang (s i) \<union> eq_lang (eq_times a (b,xs)) s"
     by auto
   also have "\<dots> = lang (Times a r) @@ lang (s i) \<union> lang a @@ eq_lang (b, xs) s"
@@ -133,18 +128,13 @@ next
   also have "\<dots> = lang a @@ lang r @@ lang (s i) \<union> lang a @@ eq_lang (b, xs) s"
     using conc_assoc by auto
   also have "\<dots> = lang a @@ (lang r @@ lang (s i) \<union> eq_lang (b, xs) s)"
-    using conc_Un_distrib by auto
+    by auto
   also have "\<dots> = lang a @@ eq_lang (b, (r,i) # xs) s"
-    using eq_lang_Cons by auto
+     by auto
   finally show "eq_lang (eq_times a (b, x # xs)) s = lang a @@ eq_lang (b, x # xs) s"
     using ri by auto
-qed
+qed auto
 
-
-(*
-lemma lang_eq_times2[simp]: "eq_lang (eq_times a bs) s = lang a @@ eq_lang bs s"
-using lang_eq_times by (metis eq_times.elims)
-*)
 
 text ‹lift Plus to eq_rhs›
 fun eq_plus :: "'a eq_rhs ⇒ 'a eq_rhs ⇒ 'a eq_rhs" where
@@ -181,9 +171,10 @@ fun ardens_subst :: "nat \<Rightarrow> 'a eq_rhs \<Rightarrow> 'a eq_rhs" where
     in eq_times (Star (rsum (map fst as) Zero)) (r,bs)
 )"
 
+value "ardens_subst 0 (Atom ''b'', [(Atom ''a'', 0)])"
 
 
-text \<open>Solve a single equation \<open>v = rhs\<close>:\<close>
+text \<open>Solve a single equation v = (r,rs):\<close>
 fun solve1 :: "nat \<Rightarrow> 'a eq_rhs \<Rightarrow> 'a eq_rhs" where
 "solve1 v (r,rs) = (if rexp_empty (var_prefix v (r,rs)) then (r,rs) else ardens_subst v (r,rs))"
 
@@ -192,6 +183,17 @@ fun solve1 :: "nat \<Rightarrow> 'a eq_rhs \<Rightarrow> 'a eq_rhs" where
 text ‹
 substitute (f,fs) for variable v in (t,ts)
 letters mnemonic for "from" and "to"
+
+v = E
+x = α v | β
+⇒
+v = E
+x = α E | β
+
+E :: arbitrary term containing variables
+α :: rexp
+β :: rexp
+
 ›
 fun var_subst :: "'a eq_rhs ⇒ nat \<Rightarrow> 'a eq_rhs \<Rightarrow> 'a eq_rhs" where
 "var_subst (t,ts) v (f,fs) = (
@@ -199,15 +201,15 @@ fun var_subst :: "'a eq_rhs ⇒ nat \<Rightarrow> 'a eq_rhs \<Rightarrow> 'a eq_
     in eq_plus (t,bs) (eq_times (rsum (map fst as) Zero) (f,fs))
 )"
 
-text ‹Substitute sol for v in all eqns after v›
+text ‹ Substitute sol for v in all eqns after v (with bigger indexes) ›
 fun var_subst_after where
 "var_subst_after v sol eqns = (take (Suc v) eqns) @ map (\<lambda>e. var_subst e v sol) (drop (Suc v) eqns)"
 
-text ‹Substitute sol for v in all eqns before v›
+text ‹Substitute sol for v in all eqns before v (with smaller indexes)›
 fun var_subst_before where
 "var_subst_before v sol eqns =  map (\<lambda>e. var_subst e v sol) (take v eqns) @ (drop v eqns)"
 
-text \<open>Solve a simultaneous list of equations using an algorithm very simmilar to Gaussian elimination\<close>
+text \<open>Solve a simultaneous list of equations using an algorithm very similar to Gaussian elimination\<close>
 
 text ‹
 Single forward elimination step
@@ -221,19 +223,24 @@ fun fwd_elim_step :: "nat ⇒ 'a eq_rhs list ⇒ 'a eq_rhs list" where
    in var_subst_after v sol eqns2
 ) else eqns)"
 
-
 corollary fwd_elim_step_nolet:
 "fwd_elim_step v eqns = var_subst_after v (solve1 v (eqns!v)) (eqns[v := solve1 v (eqns!v)])"
 apply auto by metis
 
-text ‹we assume equation v is already solved, meaning it does not depend on any variables›
+text ‹
+The if condition should always be True
 
+if backward substitution would change the solution if does nothing instead
+so the proof does not need extra assumptions
+›
+text ‹ backward substitution ›
 fun back_subst_step :: "nat ⇒ 'a eq_rhs list ⇒ 'a eq_rhs list" where
-"back_subst_step v eqns = (if (\<forall>i < v. rexp_empty (var_prefix i (eqns!v))) \<and> v < length eqns then
+"back_subst_step v eqns = (if (\<forall>i. rexp_empty (var_prefix i (eqns!v))) \<and> v < length eqns then
 (let val = (fst (eqns!v), [])
     in var_subst_before v val eqns
 ) else eqns)"
 
+text ‹Iteration helpers›
 
 text ‹reverse for loop›
 fun forloop_down :: "nat ⇒ (nat ⇒ 'a ⇒ 'a) ⇒ 'a ⇒ 'a" where
@@ -247,18 +254,13 @@ for(nat i = 0; i < n; i++){
 }
 return x;
 ›
-(*
-fun forloop where
-"forloop n f x = forloop_down n (λi x. f (n - Suc i) x) x"
-*)
 fun forloop where
 "forloop 0 f x = x" |
 "forloop (Suc n) f x = f n (forloop n f x)"
 
 value "forloop 10 (λi x. x@[i]) []"
 
-fun fwd_elim where
-"fwd_elim eqns = forloop (length eqns) fwd_elim_step  eqns"
+
 
 lemma forloop_down_preserve_back:
     assumes "\<And>x i. (i < i0 \<Longrightarrow> P (f i x) \<Longrightarrow> P x)"
@@ -328,6 +330,16 @@ proof(induction i0 arbitrary: x)
   ultimately show ?case using less_Suc_eq by presburger
 qed auto
 
+
+
+
+text ‹ forward elimination ›
+
+fun fwd_elim where
+"fwd_elim eqns = forloop (length eqns) fwd_elim_step eqns"
+
+
+text ‹ backward substitution ›
 
 fun backsubst where
 "backsubst eqns = forloop_down (length eqns) back_subst_step eqns"
@@ -407,14 +419,6 @@ next
   qed
 qed
 
-lemma TimesZero: "lang (Times a Zero) = lang Zero" by simp
-lemma ZeroTimes: "lang (Times Zero a) = lang Zero" by simp
-lemma PlusZero: "lang (Plus a Zero) = lang a" by simp
-lemma ZeroPlus: "lang (Plus Zero a) = lang a" by simp
-
-lemma list_all_filter: "list_all p (filter p lst)"
-apply(induction lst)
-by auto
 
 (*can't think of a good name*)
 lemma list_var_dist:
@@ -460,6 +464,7 @@ proof-
     finally show "eq_lang (r,rs) s = eq_lang (Zero,as) s \<union> eq_lang (r,bs) s"
         by auto
 qed
+
 
 lemma ardens_subst_correct:
     assumes "eq_holds v (ardens_subst v (r,rs)) s"
@@ -674,6 +679,12 @@ proof(induction bs)
   finally show ?case by auto
 qed auto
 
+text ‹
+if a variable is zero
+in the source and destination equation
+substituting an unrelated variable does not change that
+›
+
 lemma var_subst_preserve_zero:
     assumes "lang (var_prefix j (f,fs)) = {}"
     and "lang (var_prefix j (t,ts)) = {}"
@@ -772,109 +783,6 @@ proof-
     by metis
 qed
 
-lemma backsubst_assert_holds:
-    assumes "triangular eqns"
-    and "v < length eqns"
-    shows "\<forall>i < v. rexp_empty (var_prefix i (eqns!v))"
-by (meson assms dual_order.strict_trans order_less_imp_le rexp_empty_iff triangular_def zero_col_def)
-
-lemma backsubst_step_preserve:
-    assumes "solves s (back_subst_step v eqns)"
-    (*and "eq_lang (fst (eqns!v), []) (l2f s) = eq_lang (eqns!v) (l2f s)"*)
-    shows "solves s eqns"
-proof(cases "(\<forall>i < v. rexp_empty (var_prefix i (eqns!v))) \<and> v < length eqns")
-    let ?val = "(fst (eqns!v), [])"
-    case True
-    then have def: "(back_subst_step v eqns) = var_subst_before v ?val eqns"
-    by simp
-
-    obtain r rs where rs: "(r,rs) = (eqns!v)" by (metis prod.exhaust_sel)
-
-    have "length eqns = length s"
-        using assms unfolding solves_def by simp
-
-    have "\<forall>i < v. rexp_empty (var_prefix i (eqns!v))"
-        using True by simp
-    then have "\<forall>i < v. lang (var_prefix i (r,rs)) = {}"
-        unfolding rs using rexp_empty_iff by blast
-    then have "\<forall>i < v. \<Union> {lang x |x. (x, i) \<in> set rs} = {}"
-        using lang_var_prefix by blast
-    then have "\<forall>(r,i) \<in> set rs. i < v \<longrightarrow> lang r = {}"
-        by auto
-    then have "eq_lang (r, []) (l2f s) = eq_lang (r,rs) (l2f s)" unfolding eq_lang_mre proof-
-        assume "\<forall>(r, i)\<in> set rs. i < v \<longrightarrow> lang r = {}"
-        have "\<forall>(r,i) \<in> set rs. lang (mre (l2f s) (r,i)) = {}" proof
-            fix x
-            assume "x \<in> set rs"
-            obtain r i where ri: "(r,i) = x" by (metis prod.exhaust_sel)
-            have "lang (mre (l2f s) (r, i)) = {}" proof(cases "i < v")
-              case True
-              then have "lang r = {}" using ri ‹x \<in> set rs› ‹\<forall>(r, i)\<in> set rs. i < v \<longrightarrow> lang r = {}› by auto
-              then show ?thesis by simp
-            next
-              case False
-              then have "lang ((l2f s) i) = {}" using ‹length eqns = length s› assms sorry
-              then show ?thesis by simp
-            qed
-            then show "case x of (r, i) \<Rightarrow> lang (mre (l2f s) (r, i)) = {}" using ri by auto
-        qed
-        then have "\<Union> {lang (mre (l2f s) x) |x. x \<in> set rs} = {}" by auto
-        moreover have "\<Union> {lang (mre (l2f s) x) |x. x \<in> set []} = {}" by simp
-        ultimately show "\<Union> {lang (mre (l2f s) x) |x. x \<in> set []} \<union> lang r = \<Union> {lang (mre (l2f s) x) |x. x \<in> set rs} \<union> lang r" by argo
-    qed
-    then have lang_val: "eq_lang ?val (l2f s) = eq_lang (eqns!v) (l2f s)"
-        using rs by (simp add: split_pairs)
-
-    have len: "length (back_subst_step v eqns) = length eqns"
-        by auto
-    have "(back_subst_step v eqns)!v = eqns!v"
-        using nth_var_subst_before True by (metis def order_refl)
-    then have val_holds: "eq_holds v ?val (l2f s)"
-        using assms lang_val True unfolding solves_def by (metis eq_holds.simps len prod.exhaust_sel)
-    show ?thesis unfolding solves_def proof
-        show "length s = length eqns" using assms(1) unfolding solves_def len by simp
-    next
-        show "\<forall>i<length s. eq_holds i (eqns ! i) (l2f s)" proof
-            fix i show "i<length s \<longrightarrow> eq_holds i (eqns ! i) (l2f s)" proof
-                assume "i < length s"
-                then have "i < length eqns" by (metis assms(1) len solves_def)
-                have defi: "(back_subst_step v eqns)!i = (if i \<ge> v then eqns!i else var_subst (eqns!i) v ?val)"
-                    using nth_var_subst_before[OF ‹i < length eqns›] def by presburger
-                show "eq_holds i (eqns ! i) (l2f s)" proof(cases "i \<ge> v")
-                  case True
-                  then show ?thesis using defi by (metis \<open>i < length s\<close> assms(1) solves_def)
-                next
-                  case False
-                  then show ?thesis using defi var_subst_correct2 val_holds by (metis \<open>i < length s\<close> assms(1) solves_def)
-                qed
-            qed
-        qed
-    qed
-next
-    case False
-    thus ?thesis by (metis assms(1) back_subst_step.simps)
-qed
-
-text ‹the proof is quite simmilar to fwd_elim_preserve›
-lemma backsubst_preserve:
-    assumes "solves s (backsubst eqns)"
-    shows "solves s eqns"
-proof-
-    let ?P = "solves s"
-    have "?P (backsubst eqns)" using assms by auto
-    then have "?P (forloop_down (length eqns) back_subst_step eqns)" by (metis backsubst.elims)
-    then show ?thesis using backsubst_step_preserve forloop_down_preserve_back
-    by metis
-qed
-
-
-
-value "fwd_elim ([(Zero, [(Zero, 0)]), (Zero, [(One, 1)])] :: (int rexp \<times> (int rexp \<times> nat) list) list)"
-value "let sol = fwd_elim ([(Zero, [(Zero, 0)]), (Zero, [(One, 1)])] :: (int rexp \<times> (int rexp \<times> nat) list) list)
-in lang (var_prefix 1 (sol!1))"
-
-value "fwd_elim ([(Atom 6, []), (Atom 6, [(One, 0)])] :: (int rexp \<times> (int rexp \<times> nat) list) list)"
-
 lemma solve1_create_zero:
     "lang (var_prefix v (solve1 v (r,rs))) = {}"
 proof(cases "rexp_empty (var_prefix v (r,rs))")
@@ -886,6 +794,12 @@ next
 qed
 
 
+
+
+text ‹
+if the equation for v does not depend on v
+then substituting it in removes dependancies on v
+›
 
 lemma var_subst_propagate_zero:
     assumes "lang (var_prefix v (f,fs)) = {}"
@@ -1062,7 +976,14 @@ proof-
     by (metis fwd_elim.simps)
 qed
 
-text ‹We call a system of equations triavial if all equations are of the form x = r›
+(*
+It could be helpful to demand, that the language of variable indexes out of bounds of eqns
+are also {}
+
+they should not exists anyways
+*)
+
+text ‹We call a system of equations trivial if all equations are of the form x = r›
 abbreviation trivial where "trivial eqns \<equiv> (\<forall>i < length eqns.\<forall>v < length eqns. lang (var_prefix v (eqns!i)) = {})"
 
 text ‹
@@ -1137,13 +1058,98 @@ qed
 
 lemma length_backsubst_step: "length (back_subst_step v eqns) = length eqns" by simp
 
-text ‹backward substitution turns a triangular system of equations into a trivial one›
 
+lemma backsubst_step_preserve:
+    assumes "solves s (back_subst_step v eqns)"
+    (*and "eq_lang (fst (eqns!v), []) (l2f s) = eq_lang (eqns!v) (l2f s)"*)
+    shows "solves s eqns"
+proof(cases "(\<forall>i. rexp_empty (var_prefix i (eqns!v))) \<and> v < length eqns")
+    let ?val = "(fst (eqns!v), [])"
+    case True
+    then have def: "(back_subst_step v eqns) = var_subst_before v ?val eqns"
+    by simp
+
+    obtain r rs where rs: "(r,rs) = (eqns!v)" by (metis prod.exhaust_sel)
+
+    have "length eqns = length s"
+        using assms unfolding solves_def by simp
+
+    have "\<forall>i. rexp_empty (var_prefix i (eqns!v))"
+        using True by simp
+    then have "\<forall>i. lang (var_prefix i (r,rs)) = {}"
+        unfolding rs using rexp_empty_iff by blast
+    then have "\<forall>i. \<Union> {lang x |x. (x, i) \<in> set rs} = {}"
+        using lang_var_prefix by blast
+    then have "\<forall>(r,i) \<in> set rs. lang r = {}"
+        by auto
+    then have "eq_lang (r, []) (l2f s) = eq_lang (r,rs) (l2f s)" unfolding eq_lang_mre by auto
+    then have lang_val: "eq_lang ?val (l2f s) = eq_lang (eqns!v) (l2f s)"
+        using rs by (simp add: split_pairs)
+
+    have len: "length (back_subst_step v eqns) = length eqns"
+        by auto
+    have "(back_subst_step v eqns)!v = eqns!v"
+        using nth_var_subst_before True by (metis def order_refl)
+    then have val_holds: "eq_holds v ?val (l2f s)"
+        using assms lang_val True unfolding solves_def by (metis eq_holds.simps len prod.exhaust_sel)
+    show ?thesis unfolding solves_def proof
+        show "length s = length eqns" using assms(1) unfolding solves_def len by simp
+    next
+        show "\<forall>i<length s. eq_holds i (eqns ! i) (l2f s)" proof
+            fix i show "i<length s \<longrightarrow> eq_holds i (eqns ! i) (l2f s)" proof
+                assume "i < length s"
+                then have "i < length eqns" by (metis assms(1) len solves_def)
+                have defi: "(back_subst_step v eqns)!i = (if i \<ge> v then eqns!i else var_subst (eqns!i) v ?val)"
+                    using nth_var_subst_before[OF ‹i < length eqns›] def by presburger
+                show "eq_holds i (eqns ! i) (l2f s)" proof(cases "i \<ge> v")
+                  case True
+                  then show ?thesis using defi by (metis \<open>i < length s\<close> assms(1) solves_def)
+                next
+                  case False
+                  then show ?thesis using defi var_subst_correct2 val_holds by (metis \<open>i < length s\<close> assms(1) solves_def)
+                qed
+            qed
+        qed
+    qed
+next
+    case False
+    thus ?thesis by (metis assms(1) back_subst_step.simps)
+qed
+
+text ‹
+backward substitution does not change the solution
+›
+lemma backsubst_preserve:
+    assumes "solves s (backsubst eqns)"
+    shows "solves s eqns"
+proof-
+    let ?P = "solves s"
+    have "?P (backsubst eqns)" using assms by auto
+    then have "?P (forloop_down (length eqns) back_subst_step eqns)" by (metis backsubst.elims)
+    then show ?thesis using backsubst_step_preserve forloop_down_preserve_back
+    by metis
+qed
+
+(*
+The proofs after this point are still unfinished
+
+the lemmas may be too general
+*)
+
+(*
+triangular is not enough, we need the equation for v to be trivial
+
+this is the case for the last equation after fwd_elim
+for the other ones it is only the case after the previous iterations
+*)
 lemma back_subst_step_create_zero_col:
     assumes "triangular eqns"
     shows "zero_col_full v (back_subst_step v eqns)"
 sorry
 
+(*
+we might need the conservation of a different property
+*)
 lemma back_subst_step_conserve_tri_to_zero:
     assumes "triangular eqns \<longrightarrow> zero_col_full i eqns"
     and "triangular (back_subst_step j eqns)"
@@ -1160,11 +1166,16 @@ qed
 lemma back_subst_step_preserve_triangular:
     assumes "triangular eqns"
     shows "triangular (back_subst_step v eqns)"
-proof(cases "(\<forall>i < v. rexp_empty (var_prefix i (eqns!v))) \<and> v < length eqns")
-  case True
-  then show ?thesis sorry
-qed (auto simp add: assms backsubst_assert_holds)
+sorry
 
+(*
+forloop_down_accumulate
+is probably too weak
+
+for every iteration step i we need to be able to assume
+that the previous steps have made the equation at index i trivial
+*)
+text ‹backward substitution turns a triangular system of equations into a trivial one›
 lemma trivial_backsubst:
     assumes "triangular eqns"
     shows "trivial (backsubst eqns)"
@@ -1184,6 +1195,14 @@ proof-
         using trivial_columnwise len by metis
 qed
 
+text ‹
+To prove the solution corect we put everything together
+
+First we prove, that after forward substitution and backward elimination
+the system of equations is trivial
+
+then we prove, that the solution was also valid before the transformations
+›
 
 theorem solve_correct:
 shows "solves (solve eqns) eqns "
@@ -1194,6 +1213,7 @@ proof-
         using trivial_backsubst by auto
     then have "solves (solve eqns) (backsubst (fwd_elim eqns))"
         using solve_trivial by auto
+
     then have "solves (solve eqns) (fwd_elim eqns)"
         using backsubst_preserve by auto
     then show ?thesis using fwd_elim_preserve by auto

@@ -5,12 +5,6 @@ begin
 abbreviation repl :: "'a list \<Rightarrow> nat \<Rightarrow> 'a list" ("_\<^sup>*/_")
   where "xs\<^sup>*n \<equiv> concat (replicate n xs)"
 
-theorem pumping_lemma:
-  assumes "cnf G"
-  shows "\<exists>n. \<forall>word \<in> L G. length word \<ge> n \<longrightarrow>
-     (\<exists>u v w x y. word = u@v@w@x@y \<and> length (v@w@x) \<le> n \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@y \<in> L G))"
-  sorry
-
 (*From ../Philipp/anbncn.thy*)
 abbreviation repl_one :: "'a  \<Rightarrow> nat \<Rightarrow> 'a list" ("_^*_")
   where "xs^*n \<equiv> replicate n xs"
@@ -68,7 +62,7 @@ proof -
   then show ?thesis by auto
 qed  
 
-(* mapping a function on all Nts and related lemmas*)
+subsection "Mapping over Nts + lemmas"
 fun map_Nt :: "('a \<Rightarrow> 'b) \<Rightarrow> ('a, 't) sym \<Rightarrow> ('b, 't) sym" where
   "map_Nt f (Nt A) = Nt (f A)"
 | "map_Nt _ (Tm a) = Tm a"
@@ -127,7 +121,16 @@ proof -
   then show uv_unmap: "map (map_Nt (the_inv f)) (map (map_Nt f) w) = w" by blast
 qed
 
-(* equivalences after mapping an injective function over all Nts (necessary to show closedness of concatenation) *)
+lemma notin_range_imp_notin_map:
+  assumes "x \<notin> range f"
+  shows "Nt x \<notin> set (map (map_Nt f) w)"
+proof -
+  have "Nt x \<notin> range (map_Nt f)" using assms
+    by (smt (verit) image_iff map_Nt.elims rangeI sym.distinct(1) sym.inject(1))
+  then show "Nt x \<notin> set (map (map_Nt f) w)" by auto
+qed
+
+subsubsection "Equivalences after mapping a injective function over all Nts"
 lemma map_derive_equiv:
   assumes "inj f"
   shows "P \<turnstile> u \<Rightarrow> v \<longleftrightarrow> (map_Prods_Nt f P) \<turnstile> map (map_Nt f) u \<Rightarrow> map (map_Nt f) v"
@@ -381,8 +384,6 @@ proof -
   then have L2r_def: "L2 = Lang ?P2r ((None, Some S2))" 
     using L2_def map_Lang_equiv by fastforce
 
-  (*maybe useful for proof? *)
-  (*have D1r: "Ders ?P1r (Some S1, None) = {map (map_Nt ?f1) der |der. der \<in> (Ders P1 S1)}" sorry*)
   have "L ?G = Lconcat"
   proof
     show "L ?G \<subseteq> Lconcat" 
@@ -391,19 +392,90 @@ proof -
       assume "w \<in> L ?G"
       then have "?P \<turnstile> [Nt (None, None)] \<Rightarrow>* map Tm w" using CFG.Lang_def by fastforce
       then obtain \<alpha> where "?P \<turnstile> \<alpha> \<Rightarrow>* map Tm w \<and> ((None, None), \<alpha>) \<in> ?P" using derives_start1 by fast
-      then have "?P \<turnstile> [Nt (Some S1, None), Nt (None, Some S2)] \<Rightarrow>* map Tm w" by auto
-      then have "\<exists>w1 w2. w1 \<in> Ders ?P1r (Some S1, None) \<and> w2 \<in> Ders ?P2r (None, Some S2) \<and> map Tm w = w1@w2"
-      proof(induction rule: rtrancl_derive_induct)
-        case base
-        then show ?case unfolding Ders_def by auto
+      then have dervs: "?P \<turnstile> [Nt (Some S1, None), Nt (None, Some S2)] \<Rightarrow>* map Tm w" by auto
+      then obtain n where "?P \<turnstile> [Nt (Some S1, None), Nt (None, Some S2)] \<Rightarrow>(n) map Tm w" using rtranclp_imp_relpowp by fast
+      then obtain Tmw where Tmw_src: "?P \<turnstile> [Nt (Some S1, None), Nt (None, Some S2)] \<Rightarrow>(n) Tmw \<and> map Tm w = Tmw" by blast
+      then have "?P \<turnstile> [Nt (Some S1, None), Nt (None, Some S2)] \<Rightarrow>(n) Tmw" by simp
+      then have "\<exists>n1 w1 n2 w2. n = n1 + n2 \<and> ?P1r \<turnstile> [Nt (Some S1, None)] \<Rightarrow>(n1) w1 \<and> ?P2r \<turnstile> [Nt (None, Some S2)] \<Rightarrow>(n2) w2 \<and> Tmw = w1@w2"
+      proof(induction n arbitrary: Tmw)
+        case (0 w')
+        then show ?case by simp
       next
-        case (step u A v w)
-        then have "A = (None, None) \<or> (\<exists>A1. A = ?f1 A1) \<or> (\<exists>A2. A = ?f2 A2)" by force
-        have "\<And>v. ?P1r \<turnstile> (map (map_Nt ?f1) [Nt S1]) \<Rightarrow>* v \<Longrightarrow> (\<exists>v1. v = (map (map_Nt ?f1)) v1)"
-          using map_derives_imp_map by blast
-        then show ?case sorry
+        case (Suc n w')
+        then obtain im where im_src: "?P \<turnstile> [Nt (Some S1, None), Nt (None, Some S2)] \<Rightarrow>(n) im \<and> ?P \<turnstile> im \<Rightarrow> w'" by auto
+        then obtain n1 w1 n2 w2 where nw_src: "n = n1 + n2 \<and> ?P1r \<turnstile> map (map_Nt ?f1)[Nt S1] \<Rightarrow>(n1) w1 \<and>
+           ?P2r \<turnstile> map (map_Nt ?f2)[Nt S2] \<Rightarrow>(n2) w2 \<and> im = w1 @ w2" using Suc by fastforce
+        obtain w1o where w1o_src: "w1 = map (map_Nt ?f1) w1o" using nw_src map_derives_imp_map relpowp_imp_rtranclp by meson
+        obtain w2o where w2o_src: "w2 = map (map_Nt ?f2) w2o" using nw_src map_derives_imp_map relpowp_imp_rtranclp by meson
+        have "(None, None) \<notin> range ?f1 \<and> (None, None) \<notin> range ?f2" by blast
+        then have "Nt (None, None) \<notin> set w1 \<and> Nt (None, None) \<notin> set w2" 
+          using notin_range_imp_notin_map w1o_src w2o_src by metis
+        then have notin_im: "Nt (None, None) \<notin> set im" using nw_src by simp
+        have "{((None, None), [Nt (Some S1, None), Nt (None, Some S2)])} \<turnstile> im \<Rightarrow> w' \<or> ?P1r \<turnstile> im \<Rightarrow> w' \<or> ?P2r \<turnstile> im \<Rightarrow> w'"
+          using Un_derive im_src by blast
+        then have "?P1r \<turnstile> im \<Rightarrow> w' \<or> ?P2r \<turnstile> im \<Rightarrow> w'" using notin_im derive.cases by fastforce
+        then have "?P1r \<turnstile> w1@w2 \<Rightarrow> w' \<or> ?P2r \<turnstile> w1@w2 \<Rightarrow> w'" using nw_src by fast
+        then show ?case
+        proof
+          assume "?P1r \<turnstile> w1@w2 \<Rightarrow> w'"
+          then obtain A w u1 u2 where Awu_src: "(A, w) \<in> ?P1r \<and> w1 @ w2 = u1 @ Nt A # u2 \<and> w' = u1 @ w @ u2" 
+            using derive_iff[of ?P1r] by blast
+          then have pre_split: "w1 @ w2 = u1 @ [Nt A] @ u2" by simp
+          then have in_either: "set w1 \<union> set w2 = set (u1 @ [Nt A] @ u2)" using set_append by metis
+          from Awu_src have "A \<notin> range ?f2" by auto
+          then have notin_2: "Nt A \<notin> set w2" using notin_range_imp_notin_map w2o_src by fast
+          then obtain Au21 where Au21_src: "[Nt A] @ u2 = Au21@w2" using pre_split
+            by (smt (verit, ccfv_SIG) append_Cons append_eq_append_conv2 in_set_conv_decomp) 
+          then have "hd Au21 = Nt A" using notin_2
+            by (metis append_Cons hd_append list.sel(1) list.set_sel(1))
+          then obtain u21 where u21_src: "u21 = tl Au21 \<and> u2 = u21@w2" using Au21_src
+            by (metis Cons_eq_appendI list.sel(3) list.set_intros(1) notin_2 self_append_conv2 tl_append2)
+          then have cond4: "w' = u1 @ w @ u21 @ w2" using Awu_src by simp
+          have "w1 = u1 @ [Nt A] @ u21" using u21_src pre_split by simp
+          then have "?P1r \<turnstile> w1 \<Rightarrow> u1 @ w @ u21" using Awu_src derive.intros by fast
+          then have cond2: "?P1r \<turnstile> map (map_Nt ?f1)[Nt S1] \<Rightarrow>(Suc n1) u1 @ w @ u21" using nw_src by auto
+          have "Suc n = Suc n1 + n2" using nw_src by simp  
+          then show ?case using cond4 cond2 nw_src by fastforce
+        next
+          assume "?P2r \<turnstile> w1@w2 \<Rightarrow> w'"
+          then obtain A w u1 u2 where Awu_src: "(A, w) \<in> ?P2r \<and> w1 @ w2 = u1 @ Nt A # u2 \<and> w' = u1 @ w @ u2" 
+            using derive_iff[of ?P2r] by blast
+          then have pre_split: "w1 @ w2 = u1 @ [Nt A] @ u2" by simp
+          then have in_either: "set w1 \<union> set w2 = set (u1 @ [Nt A] @ u2)" using set_append by metis
+          from Awu_src have "A \<notin> range ?f1" by auto
+          then have notin_1: "Nt A \<notin> set w1" using notin_range_imp_notin_map w1o_src by fast
+          then have rev_notin_1: "Nt A \<notin> set (rev w1)" by simp
+          have rev_pre_split: "rev w2 @ rev w1 = rev u2 @ rev [Nt A] @ rev u1" using pre_split
+            by (metis append_assoc rev_append) 
+          then have rev_pre_split: "rev w2 @ rev w1 = rev u2 @ [Nt A] @ rev u1" by simp
+          (*there has to be a better way than reversing the list, but otherwise this proof step does not work*)
+          (*this part of the proof is wanky anyways. It feels really hard reasoning about lists when knowing that something is or is not an element of the list *)
+          obtain u12Ar where u12Ar_src: "[Nt A] @ rev u1 = u12Ar @ rev w1" using rev_notin_1 rev_pre_split 
+            by (smt (verit, ccfv_SIG) append_Cons append_eq_append_conv2 in_set_conv_decomp) 
+          then have "hd u12Ar = Nt A" using rev_notin_1
+            by (metis append_Cons hd_append list.sel(1) list.set_sel(1))
+          then obtain u12r where "u12r = tl u12Ar \<and> rev u1 = u12r @ rev w1" using u12Ar_src
+            by (metis Cons_eq_appendI list.sel(3) list.set_intros(1) rev_notin_1 self_append_conv2 tl_append2)
+          then have u12_src: "u1 = w1 @ rev u12r"
+            by (simp add: rev_eq_append_conv) 
+          then have cond4: "w' = w1 @ (rev u12r) @ w @ u2" using Awu_src by simp
+          have "w2 = rev u12r @ [Nt A] @ u2" using u12_src pre_split by simp
+          then have "?P2r \<turnstile> w2 \<Rightarrow> rev u12r @ w @ u2" using Awu_src derive.intros by fast
+          then have cond2: "?P2r \<turnstile> map (map_Nt ?f2)[Nt S2] \<Rightarrow>(Suc n2) rev u12r @ w @ u2" using nw_src by auto
+          have "Suc n = n1 + Suc n2" using nw_src by simp  
+          then show ?case using cond4 cond2 nw_src by fastforce
+        qed
       qed
-      show "w \<in> Lconcat" sorry
+      then obtain n1 n2 w1 w2 where nw_src: "n = n1 + n2 \<and> ?P1r \<turnstile> [Nt (Some S1, None)] \<Rightarrow>(n1) w1 \<and> ?P2r \<turnstile> [Nt (None, Some S2)] \<Rightarrow>(n2) w2 \<and> Tmw = w1@w2" by fast
+      from nw_src have "map Tm w = w1@w2" using Tmw_src by auto
+      then obtain w1' w2' where w12'_src: "((map Tm w1')::('n option \<times> 'm option, 'a)syms) = w1 \<and> 
+        ((map Tm w2')::('n option \<times> 'm option, 'a)syms) = w2 \<and> w1'@w2' = w"
+        by (metis append_eq_map_conv) 
+      from w12'_src have "?P1r \<turnstile> [Nt (Some S1, None)] \<Rightarrow>* ((map Tm w1')::('n option \<times> 'm option, 'a)syms)" using nw_src relpowp_imp_rtranclp by fast
+      then have "w1' \<in> L1" using CFG.Lang_def by (metis L1r_def mem_Collect_eq)
+      from w12'_src have "?P2r \<turnstile> [Nt (None, Some S2)] \<Rightarrow>* ((map Tm w2')::('n option \<times> 'm option, 'a)syms)" using nw_src relpowp_imp_rtranclp by fast
+      then have "w2' \<in> L2" using CFG.Lang_def by (metis L2r_def mem_Collect_eq)
+      show "w \<in> Lconcat" using \<open>w1' \<in> L1\<close> \<open>w2' \<in> L2\<close> w12'_src assms(3) by blast
     qed
   next
     show "Lconcat \<subseteq> L ?G" 
@@ -430,7 +502,7 @@ proof -
   then show ?thesis unfolding cfl_def by blast
 qed
 
-section "try to formalize goal"
+section "formalize goal"
 
 lemma anbncn_not_cfl: 
   assumes "a\<noteq>b" "b\<noteq>c" "c\<noteq>a"  "(Lan = {word. \<exists>n. word= (a^*n)@ (b^*n) @(c^*n) })"
@@ -473,9 +545,9 @@ proof -
   then show ?thesis by blast
 qed
 
-lemma not_closed: 
+lemma intersection_not_closed: 
   assumes "a\<noteq>b" "b\<noteq>c" "c\<noteq>a"
-  shows "\<exists>(L1::'t list set) L2. cfl TYPE('a option \<times> 'a option) L1 \<and> cfl TYPE('b option \<times> 'b option) L2 \<and> \<not>(\<exists>GI. L GI = (L1 \<inter> L2))"
+  shows "\<exists>L1 L2. cfl TYPE('a option \<times> 'a option) L1 \<and> cfl TYPE('b option \<times> 'b option) L2 \<and> (\<nexists>GI. L GI = (L1 \<inter> L2))"
 proof -
   let ?anbn = "{word. \<exists>n \<ge> 0. word = (a^*n)@(b^*n)}"
   let ?cm = "{word. \<exists>m \<ge> 0. word = (c^*m)}"
@@ -497,13 +569,8 @@ proof -
         cfl TYPE('b option \<times> 'b option) ?anbmcm \<and> 
         (\<nexists>GI. L GI = ?anbncm \<inter> ?anbmcm)" 
     using assms anbncn_not_cfl[of a b c] anbncm anbmcm by auto
-  then have "\<exists>L2. cfl TYPE('a option \<times> 'a option) ?anbncm \<and>
-     cfl TYPE('b option \<times> 'b option) L2 \<and>
-     (\<nexists>GI. CFL_intersection.L GI = ?anbncm \<inter> L2)" by auto
   (* this should be a simple unification, but maybe the TYPE in cfl causes issues*)
-  then show ?thesis using exI[of "\<lambda>L1. \<exists>L2.
-       cfl TYPE('a option \<times> 'a option) L1 \<and>
-       cfl TYPE('b option \<times> 'b option) L2 \<and> (\<nexists>GI. L GI = L1 \<inter> L2)" ?anbncm] sorry
+  then show ?thesis sorry
 qed
 
 end

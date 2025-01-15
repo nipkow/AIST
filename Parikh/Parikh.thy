@@ -110,6 +110,27 @@ lemma vars_subst_upper: "vars (subst f upd) \<subseteq> (\<Union>x. vars (upd x)
   using vars_subst by force
 
 
+lemma eval_vars:
+  assumes "\<forall>i \<in> vars f. s i = s' i"
+  shows "eval f s = eval f s'"
+  using assms by (induction f) auto
+
+lemma eval_vars_subst:
+  assumes "\<forall>i \<in> vars f. s i = eval (upd i) s"
+  shows "eval (subst f upd) s = eval f s"
+proof -
+  let ?s' = "\<lambda>i. if i \<in> vars f then s i else eval (upd i) s"
+  let ?s'' = "\<lambda>i. eval (upd i) s"
+  have s'_s'': "?s' i = ?s'' i" for i using assms by simp
+  then have s_s'': "\<forall>i. ?s'' i = eval (upd i) s" by simp
+
+  from assms have "eval f s = eval f ?s'" using eval_vars[of f] by simp
+  also have "\<dots> = eval (subst f upd) s"
+    using assms substitution_lemma[OF s_s'', of f] by (simp add: eval_vars)
+  finally show ?thesis by simp
+qed
+
+
 (* Continuity of lfun *)
 
 lemma lfun_cont_aux1:
@@ -239,6 +260,12 @@ next
 qed auto
 
 
+lemma subst_reg_fun:
+  assumes "regular_fun f"
+      and "\<forall>x \<in> vars f. regular_fun (upd x)"
+    shows "regular_fun (subst f upd)"
+  using assms by (induction rule: regular_fun.induct) auto
+
 
 section \<open>Parikh image\<close>
 
@@ -315,41 +342,35 @@ proof -
     using parikh_img_conc[of L1] parikh_img_conc[of L2] by auto
 qed
 
+lemma parikh_conc_right_subset: "parikh_img A \<subseteq> parikh_img B \<Longrightarrow> parikh_img (A @@ C) \<subseteq> parikh_img (B @@ C)"
+  by (auto simp add: parikh_img_conc)
+
 lemma parikh_conc_right: "parikh_img A = parikh_img B \<Longrightarrow> parikh_img (A @@ C) = parikh_img (B @@ C)"
   by (auto simp add: parikh_img_conc)
 
 lemma parikh_conc_left: "parikh_img A = parikh_img B \<Longrightarrow> parikh_img (C @@ A) = parikh_img (C @@ B)"
   by (auto simp add: parikh_img_conc)
 
-lemma parikh_pow_distrib: "parikh_img A = parikh_img B \<Longrightarrow> parikh_img (A ^^ n) = parikh_img (B ^^ n)"
+lemma parikh_pow_distrib: "parikh_img A \<subseteq> parikh_img B \<Longrightarrow> parikh_img (A ^^ n) \<subseteq> parikh_img (B ^^ n)"
   by (induction n) (auto simp add: parikh_img_conc)
 
 lemma parikh_star_distrib:
-  assumes "parikh_img A = parikh_img B"
-  shows "parikh_img (star A) = parikh_img (star B)"
+  assumes "parikh_img A \<subseteq> parikh_img B"
+  shows "parikh_img (star A) \<subseteq> parikh_img (star B)"
 proof
-  show "parikh_img (star A) \<subseteq> parikh_img (star B)"
-  proof
-    fix v
-    assume "v \<in> parikh_img (star A)"
-    then obtain w where w_intro: "parikh_vec w = v \<and> w \<in> star A" unfolding parikh_img_def by blast
-    then obtain n where "w \<in> A ^^ n" unfolding star_def by blast
-    then have "v \<in> parikh_img (A ^^ n)" using w_intro unfolding parikh_img_def by blast
-    with assms have "v \<in> parikh_img (B ^^ n)" using parikh_pow_distrib by blast
-    then show "v \<in> parikh_img (star B)" unfolding star_def using parikh_img_UNION by fastforce
-  qed
-  show "parikh_img (star B) \<subseteq> parikh_img (star A)"
-  proof
-    fix v
-    assume "v \<in> parikh_img (star B)"
-    then obtain w where w_intro: "parikh_vec w = v \<and> w \<in> star B" unfolding parikh_img_def by blast
-    then obtain n where "w \<in> B ^^ n" unfolding star_def by blast
-    then have "v \<in> parikh_img (B ^^ n)" using w_intro unfolding parikh_img_def by blast
-    with assms have "v \<in> parikh_img (A ^^ n)" using parikh_pow_distrib by blast
-    then show "v \<in> parikh_img (star A)" unfolding star_def using parikh_img_UNION by fastforce
-  qed
+  fix v
+  assume "v \<in> parikh_img (star A)"
+  then obtain w where w_intro: "parikh_vec w = v \<and> w \<in> star A" unfolding parikh_img_def by blast
+  then obtain n where "w \<in> A ^^ n" unfolding star_def by blast
+  then have "v \<in> parikh_img (A ^^ n)" using w_intro unfolding parikh_img_def by blast
+  with assms have "v \<in> parikh_img (B ^^ n)" using parikh_pow_distrib by blast
+  then show "v \<in> parikh_img (star B)" unfolding star_def using parikh_img_UNION by fastforce
 qed
 
+lemma parikh_star_distrib_eq:
+  assumes "parikh_img A = parikh_img B"
+  shows "parikh_img (star A) = parikh_img (star B)"
+  using parikh_star_distrib by (metis Orderings.order_eq_iff assms)
 
 lemma parikh_img_union_pow_aux1:
   assumes "v \<in> parikh_img ((A \<union> B) ^^ n)"
@@ -452,7 +473,7 @@ lemma parikh_img_star2: "parikh_img (star (star E @@ F)) = parikh_img ({[]} \<un
 
 
 lemma parikh_img_arden_aux:
-  assumes "parikh_img (A @@ X \<union> B) = parikh_img X"
+  assumes "parikh_img (A @@ X \<union> B) \<subseteq> parikh_img X"
   shows "parikh_img (A ^^ n @@ B) \<subseteq> parikh_img X"
 using assms proof (induction n)
   case 0
@@ -468,7 +489,7 @@ next
 qed
 
 lemma parikh_img_arden:
-  assumes "parikh_img (A @@ X \<union> B) = parikh_img X"
+  assumes "parikh_img (A @@ X \<union> B) \<subseteq> parikh_img X"
   shows "parikh_img (star A @@ B) \<subseteq> parikh_img X"
 proof
   fix x
@@ -479,6 +500,75 @@ proof
   then show "x \<in> parikh_img X" using parikh_img_arden_aux[OF assms] by fast
 qed
 
+
+(* Pilling's paper shows "=", but needs an additional assumption and I don't unterstand how
+   the proof should work in the Union case:
+     if f(Y*Z, X\<^sub>1, \<dots>, X\<^sub>m) = g(Y*Z, X\<^sub>1, \<dots>, X\<^sub>m) \<union> h(Y*Z, X\<^sub>1, \<dots>, X\<^sub>m) and g contains Y*Z, but h doesn't,
+     then g(Y*Z, X\<^sub>1, \<dots>, X\<^sub>m) \<union> h(Y*Z, X\<^sub>1, \<dots>, X\<^sub>m) = Y* (g(Z, X\<^sub>1, \<dots>, X\<^sub>m) \<union> h(Z, X\<^sub>1, \<dots>, X\<^sub>m)) seems
+     wrong to me
+ *)
+lemma reg_fun_homogeneous_aux:
+  assumes "regular_fun f"
+      and "s x = star Y @@ Z"
+    shows "eval f s \<subseteq> star Y @@ eval f (s(x := Z))"
+using assms proof (induction rule: regular_fun.induct)
+  case (Variable uu)
+  then show ?case sorry
+next
+  case (Const l)
+  have "eval (N l) s \<subseteq> star Y @@ eval (N l) s" using concI_if_Nil1 by blast
+  then show ?case by simp
+next
+  case (Union2 f g)
+  then show ?case sorry
+next
+  case (Conc f g)
+  then show ?case sorry
+next
+  case (Star f)
+  then show ?case sorry
+qed
+
+lemma reg_fun_homogeneous:
+  assumes "regular_fun f"
+      and "regular_fun y"
+      and "regular_fun z"
+    shows "eval (subst f (\<lambda>a. if a = x then Conc (Star y) z else V a)) s
+      \<subseteq> eval (Conc (Star y) (subst f (\<lambda>a. if a = x then z else V a))) s" (is "?L \<subseteq> ?R")
+proof -
+  let ?s' = "\<lambda>a. if a = x then star (eval y s) @@ eval z s else s a"
+  have "?L = eval f ?s'"
+    using substitution_lemma[of ?s' "\<lambda>a. if a = x then Conc (Star y) z else V a"] by fastforce
+  also have "\<dots> \<subseteq> star (eval y s) @@ eval f (?s'(x := eval z s))"
+    using assms reg_fun_homogeneous_aux[of f ?s'] by simp
+  also have "\<dots> = ?R" using substitution_lemma[of "?s'(x := eval z s)"] by simp
+  finally show ?thesis .
+qed
+
+(* Proof sketch
+
+f(Y*Z, X1, \<dots>, Xm) \<subseteq> Y* f(Z, X1, \<dots>, Xm)
+
+Case f = g \<union> h:
+  if Y*Z \<in> g and h: g(Y*Z, X1, \<dots>, Xm) \<union> h(Y*Z, X1, \<dots>, Xm) = Y* g(Z, X1, \<dots>, Xm) \<union> Y* h(Z, X1, \<dots>, Xm)
+    = Y* f(Z, X1, \<dots>, Xm)
+  if Y*Z \<in> g, but not in h: g(Y*Z, X1, \<dots>, Xm) \<union> h(X1, \<dots>, Xm) = Y* g(Z, X1, \<dots>, Xm) \<union> h(X1, \<dots>, Xm)
+    = 
+
+Case f = g h:
+  if Y*Z \<in> g and h: g(Y*Z, \<dots>) h(Y*Z, \<dots>) = Y* g(Z, \<dots>) Y* h(Z, \<dots>) = Y* f(Z, \<dots>)
+  if Y*Z \<in> g, but not in h: g(Y*Z) h(\<dots>) = Y* g(Z) h(\<dots>) = Y* f(Z, \<dots>)
+
+Case f = Star g
+  g(Y*Z)* = (Y* g(Z))* = Y* g(Z)*
+
+*)
+
+
+lemma parikh_img_subst_mono:
+  assumes "\<forall>i. parikh_img (eval (A i) s) \<subseteq> parikh_img (eval (B i) s)"
+  shows "parikh_img (eval (subst f (\<lambda>i. A i)) s) \<subseteq> parikh_img (eval (subst f (\<lambda>i. B i)) s)"
+  sorry
 
 
 section \<open>systems of equations\<close>
@@ -499,19 +589,65 @@ definition solves_ineq_sys :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow> bo
 definition solves_eq_sys :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow> bool" where
   "solves_eq_sys sys s \<equiv> \<forall>i < length sys. eval (sys ! i) s = s i"
 
+definition solves_ineq_comm :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a state \<Rightarrow> bool" where
+  "solves_ineq_comm x eq s \<equiv> parikh_img (eval eq s) \<subseteq> parikh_img (s x)"
+
 definition solves_ineq_sys_comm :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow> bool" where
-  "solves_ineq_sys_comm sys s \<equiv> \<forall>i < length sys. parikh_img (eval (sys ! i) s) \<subseteq> parikh_img (s i)"
+  "solves_ineq_sys_comm sys s \<equiv> \<forall>i < length sys. solves_ineq_comm i (sys ! i) s"
+
+definition solves_eq_comm :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a state \<Rightarrow> bool" where
+  "solves_eq_comm x eq s \<equiv> parikh_img (eval eq s) = parikh_img (s x)"
 
 definition solves_eq_sys_comm :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow> bool" where
-  "solves_eq_sys_comm sys s \<equiv> \<forall>i < length sys. parikh_img (eval (sys ! i) s) = parikh_img (s i)"
+  "solves_eq_sys_comm sys s \<equiv> \<forall>i < length sys. solves_eq_comm i (sys ! i) s"
 
 definition sys_subst :: "'a eq_sys \<Rightarrow> (nat \<Rightarrow> 'a lfun) \<Rightarrow> 'a eq_sys" where
   "sys_subst sys s \<equiv> map (\<lambda>eq. subst eq s) sys"
 
-definition partial_sol :: "'a eq_sys \<Rightarrow> 'a eq_sys \<Rightarrow> bool" where
-  "partial_sol sys sol \<equiv> length sol = length sys \<and> indep_ub sol (length sys - 1)
-                  \<and> (\<forall>s. solves_eq_sys_comm (sys_subst sys (\<lambda>i. if i < length sys then sol ! i else V i)) s)"
+definition partial_sol_ineq :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a lfun \<Rightarrow> bool" where
+  "partial_sol_ineq x eq sol \<equiv> (\<forall>s.
+    parikh_img (eval (subst eq (\<lambda>i. if i = x then sol else V i)) s) \<subseteq> parikh_img (eval sol s)
+  )"
 
+definition partial_sol_eq :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a lfun \<Rightarrow> bool" where
+  "partial_sol_eq x eq sol \<equiv> (\<forall>s.
+    parikh_img (eval (subst eq (\<lambda>i. if i = x then sol else V i)) s) = parikh_img (eval sol s)
+  )"
+
+(* wrong *)
+definition partial_sol_eq_sys :: "'a eq_sys \<Rightarrow> 'a eq_sys \<Rightarrow> bool" where
+  "partial_sol_eq_sys sys sol \<equiv> length sol = length sys \<and> indep_ub sol (length sys - 1)
+        \<and> (\<forall>s. solves_eq_sys_comm (sys_subst sys (\<lambda>i. if i < length sys then sol ! i else V i)) s)"
+
+
+lemma partial_sol_ineq_solves_ineq_comm:
+  "partial_sol_ineq x eq sol \<longleftrightarrow> (\<forall>s. solves_ineq_comm x eq (s(x := eval sol s)))"
+proof
+  show "partial_sol_ineq x eq sol \<Longrightarrow> \<forall>s. solves_ineq_comm x eq (s(x := eval sol s))"
+  proof
+    fix s
+    assume "partial_sol_ineq x eq sol"
+    then have
+      s_sol: "parikh_img (eval (subst eq (\<lambda>i. if i = x then sol else V i)) s) \<subseteq> parikh_img (eval sol s)"
+      unfolding partial_sol_ineq_def by auto
+    show "solves_ineq_comm x eq (s(x := eval sol s))"
+      unfolding solves_ineq_comm_def using substitution_lemma
+      by (smt (verit) eval.simps(1) fun_upd_other fun_upd_same s_sol)
+  qed
+  show "\<forall>s. solves_ineq_comm x eq (s(x := eval sol s)) \<Longrightarrow> partial_sol_ineq x eq sol"
+  proof -
+    assume as: "\<forall>s. solves_ineq_comm x eq (s(x := eval sol s))"
+    show "partial_sol_ineq x eq sol"
+    unfolding partial_sol_ineq_def proof
+      fix s
+      let ?s' = "s(x := eval sol s)"
+      from as have "parikh_img (eval eq ?s') \<subseteq> parikh_img (?s' x)"
+        unfolding solves_ineq_comm_def by blast
+      then show "parikh_img (eval (subst eq (\<lambda>i. if i = x then sol else V i)) s) \<subseteq> parikh_img (eval sol s)"
+        using substitution_lemma by (smt (verit) eval.simps(1) fun_upd_other fun_upd_same)
+    qed
+  qed
+qed
 
 
 section \<open>The lemma from the paper\<close>
@@ -829,7 +965,7 @@ next
   proof (rule allI)
     fix s
     have "parikh_img (eval (Star f) s) = parikh_img (star (eval p s \<union> eval q s @@ s x))"
-      using f'_intro parikh_star_distrib p_q_intro
+      using f'_intro parikh_star_distrib_eq p_q_intro
       by (metis eval.simps(1) eval.simps(3) eval.simps(5) eval.simps(6))
     also have "\<dots> = parikh_img (star (eval p s) @@ star (eval q s @@ s x))"
       using parikh_img_star by blast
@@ -851,17 +987,115 @@ next
 qed
 
 
+lemma g_star_e_is_sol:
+  assumes p_reg:      "regular_fun p"
+      and q_reg:      "regular_fun q"
+      and x_not_in_p: "x \<notin> vars p"
+    shows             "partial_sol_ineq x (Union2 p (Conc q (V x)))
+      (Conc (Star (subst q (\<lambda>y. if y = x then p else V y))) p)" (is "partial_sol_ineq x ?eq _")
+unfolding partial_sol_ineq_def proof
+  fix s
+  let ?r = "subst q (\<lambda>y. if y = x then p else V y)"
+  let ?sol = "Conc (Star ?r) p"
+  let ?upd = "\<lambda>y. if y = x then ?sol else V y"
+
+  from p_reg q_reg have r_reg: "regular_fun ?r"
+    using subst_reg_fun by (smt (verit, ccfv_threshold) Variable)
+  with p_reg have sol_reg: "regular_fun ?sol" by fast
+
+  have homogeneous_app: "eval (subst q (\<lambda>i. if i = x then ?sol else V i)) s \<subseteq> eval (Conc (Star ?r) ?r) s"
+    using reg_fun_homogeneous[OF q_reg r_reg p_reg] by blast
+
+  from x_not_in_p have "eval (subst p ?upd) s = eval p s" using eval_vars_subst[of p] by simp
+  then have "parikh_img (eval (subst ?eq (\<lambda>i. if i = x then ?sol else V i)) s) =
+      parikh_img (eval p s \<union> eval (subst q (\<lambda>i. if i = x then ?sol else V i)) s @@ eval ?sol s)"
+    by simp
+  also have "\<dots> \<subseteq> parikh_img (eval p s \<union> eval (Conc (Star ?r) ?r) s @@ eval ?sol s)"
+    using homogeneous_app parikh_img_mono by (metis (no_types, lifting) conc_mono order_refl sup.mono)
+  also have "\<dots> = parikh_img (eval p s) \<union>
+      parikh_img (star (eval ?r s) @@ eval ?r s @@ star (eval ?r s) @@ eval p s)"
+    by (simp add: conc_assoc)
+  also have "\<dots> = parikh_img (eval p s) \<union>
+      parikh_img (eval ?r s @@ star (eval ?r s) @@ eval p s)"
+    using parikh_img_commut conc_star_star by (smt (verit, best) conc_assoc conc_star_comm)
+  also have "\<dots> = parikh_img (star (eval ?r s) @@ eval p s)"
+    using star_unfold_left
+    by (smt (verit) conc_Un_distrib(2) conc_assoc conc_epsilon(1) parikh_img_Un sup_commute)
+  finally show "parikh_img (eval (subst ?eq (\<lambda>i. if i = x then ?sol else V i)) s)
+                \<subseteq> parikh_img (eval ?sol s)" by simp
+qed
+
+
+lemma g_star_e_indep:
+  assumes p_reg:      "regular_fun p"
+      and q_reg:      "regular_fun q"
+      and x_not_in_p: "x \<notin> vars p"
+    shows             "x \<notin> vars (Conc (Star (subst q (\<lambda>y. if y = x then p else V y))) p)" (is "x \<notin> vars ?sol")
+proof -
+  let ?r = "subst q (\<lambda>y. if y = x then p else V y)"
+
+  from x_not_in_p have "x \<notin> vars ?r" using vars_subst by (simp add: vars_subst)
+  with x_not_in_p show "x \<notin> vars ?sol" by simp
+qed
+
+
+lemma g_star_e_is_minimal:
+  assumes p_reg:      "regular_fun p"
+      and q_reg:      "regular_fun q"
+      and x_not_in_p: "x \<notin> vars p"
+      and sol_indep:  "x \<notin> vars sol"
+      and is_sol:     "partial_sol_ineq x (Union2 p (Conc q (V x))) sol" (is "partial_sol_ineq x ?eq _")
+    shows             "parikh_img (eval (Conc (Star (subst q (\<lambda>y. if y = x then p else V y))) p) s)
+                       \<subseteq> parikh_img (eval sol s)" (is "parikh_img (eval ?m s) \<subseteq> _")
+proof -
+  let ?upd = "\<lambda>i. if i = x then sol else V i"
+  let ?r = "subst q ?upd"
+
+  from x_not_in_p have "eval (subst p ?upd) s = eval p s" using eval_vars_subst[of p] by simp
+  then have "parikh_img (eval p s \<union> eval ?r s @@ eval sol s) = parikh_img (eval (subst ?eq ?upd) s)"
+    by simp
+  also from is_sol have "\<dots> \<subseteq> parikh_img (eval sol s)" unfolding partial_sol_ineq_def by fast
+  finally have eq': "parikh_img (eval p s \<union> eval ?r s @@ eval sol s) \<subseteq> parikh_img (eval sol s)" .
+  then have star_eq: "parikh_img (star (eval ?r s) @@ eval p s) \<subseteq> parikh_img (eval sol s)"
+    using parikh_img_arden by auto
+
+  from eq' have "parikh_img (eval p s) \<subseteq> parikh_img (eval sol s)" by simp
+  then have "parikh_img (eval (if i = x then p else V i) s) \<subseteq>
+      parikh_img (eval (if i = x then sol else V i) s)" for i by simp
+  then have "parikh_img (eval (subst q (\<lambda>i. if i = x then p else V i)) s) \<subseteq> parikh_img (eval ?r s)"
+    using parikh_img_subst_mono by meson
+  then have "parikh_img (star (eval (subst q (\<lambda>i. if i = x then p else V i)) s)) \<subseteq>
+      parikh_img (star (eval ?r s))" using parikh_star_distrib by blast
+  then have "parikh_img (star (eval (subst q (\<lambda>i. if i = x then p else V i)) s) @@ eval p s)
+      \<subseteq> parikh_img (star (eval ?r s) @@ eval p s)" using parikh_conc_right_subset by blast
+  with star_eq show "parikh_img (eval ?m s) \<subseteq> parikh_img (eval sol s)" by simp
+qed
+
+
+lemma
+  assumes "regular_fun p"
+      and "regular_fun q"
+      and "x \<notin> vars p"
+    shows "\<exists>sol. partial_sol_ineq x (Union2 p (Conc q (V x))) sol \<and> x \<notin> vars sol"
+proof
+  let ?r = "subst q (\<lambda>y. if x = y then p else V y)"
+  let ?sol = "Conc (Star ?r) p"
+  show "partial_sol_ineq x (Union2 p (Conc q (V x))) ?sol \<and> x \<notin> vars ?sol" sorry
+qed
+
+
+(* maybe we also need x \<in> vars f or something like this here? *)
 lemma theorem_paper_aux:
-  assumes "regular_fun f0"
-  shows "\<exists>g0. regular_fun g0 \<and> partial_sol [f0] [g0]
-            \<and> (\<forall>g0'. partial_sol [f0] [g0'] \<longrightarrow>
-                (\<forall>s. parikh_img (eval g0 s) \<subseteq> parikh_img (eval g0' s)))"
+  assumes "regular_fun f"
+  shows "\<exists>h. regular_fun h \<and> partial_sol x f h
+            \<and> (\<forall>h'. partial_sol x f h' \<longrightarrow>
+                (\<forall>s. parikh_img (eval h s) \<subseteq> parikh_img (eval h' s)))"
   sorry
 
 lemma theorem_paper:
   assumes "\<forall>eq \<in> set f_sys. regular_fun eq"
-    shows "\<exists>gs. (\<forall>g \<in> set gs. regular_fun g) \<and> partial_sol f_sys gs
-                  \<and> (\<forall>gs'. partial_sol f_sys gs'
+    shows "\<exists>gs. (\<forall>g \<in> set gs. regular_fun g) \<and> partial_sol_sys f_sys gs
+                  \<and> (\<forall>gs'. partial_sol_sys f_sys gs'
                     \<longrightarrow>(\<forall>s. \<forall>i<length gs. subseteq_comm (eval (gs ! i) s) (eval (gs' ! i) s)))"
   sorry
 

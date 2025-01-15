@@ -122,8 +122,11 @@ next
         unfolding Lang_def by simp
       moreover have "w \<noteq> []"
         using \<open>w \<in> Lang (eps_closure P) A - {[]}\<close> by simp
+
+      (* This is the step relying on the unproven lemma *)
       ultimately have "rm_eps P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
         using derivs_rm_eps_if_derives_eps_closure by auto
+
       then show "w \<in> Lang (rm_eps P) A"
       unfolding Lang_def by auto
     qed

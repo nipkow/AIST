@@ -87,14 +87,18 @@ next
 (* I think this should be provable *)
 lemma derivs_rm_unit_if_derives_unit_closure: 
   "unit_closure P \<turnstile> \<alpha> \<Rightarrow>* map Tm \<beta> \<Longrightarrow> rm_unit P \<turnstile> \<alpha> \<Rightarrow>* map Tm \<beta>"
-proof (induction rule: derives_induct')
-  case base
+(* I think this is the induction rule we needed, although I can't be sure *)
+proof (induction rule: derives_induct' )
+    case base
   then show ?case by simp
 next
   case (step u A v w)
-  then show ?case 
+  show ?case
+  (* I couldn't figure out exactly how to prove this step, potentially could
+  be an induction on (A,w) with the closure_induct rule, although I didn't manage
+  to make that work, and I'm not sure if that was a good path to go down *)
   sorry
-  qed
+qed
 
 text \<open>The main theorem:\<close>
 theorem "Lang (rm_unit P) A = Lang P A"
@@ -108,8 +112,11 @@ next
       assume "w \<in> Lang (unit_closure P) A"
       then have "unit_closure P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
         unfolding Lang_def by auto
+
+      (* This is the step relying on the unproven lemma *)
       then have "rm_unit P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
-        using derivs_rm_unit_if_derives_unit_closure by auto
+        using derivs_rm_unit_if_derives_unit_closure by blast
+
       then show "w \<in> Lang (rm_unit P) A"
       unfolding Lang_def by simp
     qed

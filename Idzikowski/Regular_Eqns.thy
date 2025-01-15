@@ -3,6 +3,13 @@ imports
   "$AFP/Regular-Sets/Regular_Exp"
 begin
 
+(*
+TODO
+there are proofs missing about backwards substitution
+
+we could also generate much smaller solutions by using smart constructors
+*)
+
 text \<open>
 We model equations of the form Xi = r | (r1 X1) | (r2 X2) | ... | (rn Xn)
 
@@ -198,6 +205,9 @@ fun var_subst :: "'a eq_rhs ⇒ nat \<Rightarrow> 'a eq_rhs \<Rightarrow> 'a eq_
     in eq_plus (t,bs) (eq_times (rsum (map fst as) Zero) (f,fs))
 )"
 
+text ‹Example: a X3, X3 = b ⇒ ab›
+value "var_subst (Zero, [(Atom ''a'', 3)]) 3 (Atom ''b'', [])"
+
 text ‹ Substitute sol for v in all eqns after v (with bigger indexes) ›
 fun var_subst_after where
 "var_subst_after v sol eqns = (take (Suc v) eqns) @ map (\<lambda>e. var_subst e v sol) (drop (Suc v) eqns)"
@@ -219,6 +229,7 @@ fun fwd_elim_step :: "nat ⇒ 'a eq_rhs list ⇒ 'a eq_rhs list" where
    ; eqns2 = eqns[v := sol]
    in var_subst_after v sol eqns2
 ) else eqns)"
+
 
 corollary fwd_elim_step_nolet:
 "fwd_elim_step v eqns = var_subst_after v (solve1 v (eqns!v)) (eqns[v := solve1 v (eqns!v)])"
@@ -366,6 +377,7 @@ finally extract values, assuming all equations are of the solved form Xi = r
 fun solve :: "'a eq_rhs list \<Rightarrow> 'a rexp list" where
 "solve eqns = (map fst (backsubst (fwd_elim eqns)))"
 
+
 text ‹Does equation v = (r,rs) hold for the variable assignment s›
 fun eq_holds :: "nat \<Rightarrow> 'a eq_rhs \<Rightarrow> (nat \<Rightarrow> 'a rexp) \<Rightarrow> bool" where
 "eq_holds v (r,rs) s = ((eq_lang (r,rs) s) = lang (s v))"
@@ -373,10 +385,10 @@ fun eq_holds :: "nat \<Rightarrow> 'a eq_rhs \<Rightarrow> (nat \<Rightarrow> 'a
 fun eq_holds_tup where
 "eq_holds_tup (v,es) s = eq_holds v es s"
 
+text ‹when is a list a solution to a system of equations›
+
 definition solves :: "'a rexp list ⇒ ('a eq_rhs) list \<Rightarrow> bool" where
 "solves sols eqns = (length sols = length eqns \<and> (\<forall>i < length sols. eq_holds i (eqns!i) (l2f sols)))"
-definition solves_fn :: "(nat ⇒ 'a rexp) ⇒ ('a eq_rhs) list \<Rightarrow> bool" where
-"solves_fn s eqns = (\<forall>i < length eqns. eq_holds i (eqns!i) s)"
 
 lemma partition_rsum:
     assumes "(as,bs) = partition p rs"
@@ -462,6 +474,10 @@ proof-
         by auto
 qed
 
+text ‹
+a solution after ardens_subst was already a solution
+the variable v no longer depends on itself after ardens_subst
+›
 
 lemma ardens_subst_correct:
     assumes "eq_holds v (ardens_subst v (r,rs)) s"
@@ -983,6 +999,17 @@ they should not exists anyways
 text ‹We call a system of equations trivial if all equations are of the form x = r›
 abbreviation trivial where "trivial eqns \<equiv> (\<forall>i < length eqns.\<forall>v < length eqns. lang (var_prefix v (eqns!i)) = {})"
 
+lemma trivial_lang:
+    assumes "\<forall>i < length s. lang (var_prefix i (r,rs)) = {}"
+    shows "eq_lang (r,rs) (l2f s) = lang r"
+proof-
+    have "\<forall>(x,i) \<in> set rs. i < length s --> lang x = {}"
+        using assms lang_var_prefix[of _ r rs] by auto
+    then show "eq_lang (r,rs) (l2f s) = lang r"
+        apply(induction rs)
+        by auto
+qed
+
 text ‹
 The system of equations becomes trivial column by column during backward substitution
 so we want a column wise definition
@@ -1009,17 +1036,7 @@ proof
 qed
 
 
-lemma trivial_lang:
-    assumes "\<forall>i < length s. lang (var_prefix i (r,rs)) = {}"
-    shows "eq_lang (r,rs) (l2f s) = lang r"
-proof-
-    have "\<forall>(x,i) \<in> set rs. i < length s --> lang x = {}"
-        using assms lang_var_prefix[of _ r rs] by auto
-    then show "eq_lang (r,rs) (l2f s) = lang r"
-        apply(induction rs)
-        by auto
-qed
-
+text ‹extracting the solution from a trivial system of equations is just a (map fst)›
 
 lemma solve_trivial:
     assumes "trivial eqns"

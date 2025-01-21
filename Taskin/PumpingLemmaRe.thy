@@ -5,9 +5,10 @@ begin
 abbreviation repl :: "'a list \<Rightarrow> nat \<Rightarrow> 'a list" ("_\<^sup>*/_")
   where "xs\<^sup>*n \<equiv> concat (replicate n xs)"
 
-(* not provable? *)
-lemma card_set: "A \<in> M \<Longrightarrow> card M \<ge> 1"
-  sorry
+lemma nts_finite: 
+  assumes "finite P" 
+  shows "finite (Nts P)"
+unfolding Nts_def by (simp add: assms case_prod_beta finite_nts_of_syms)
 
 lemma not_distinct:
   assumes "m = card P"
@@ -33,17 +34,63 @@ lemma nts_nxts_ext_shift:
   shows "\<forall>e \<in> nts_nxts_ext P A w. \<exists>e' \<in> nts_nxts P A w. e ! (Suc i) = e' ! i"
   unfolding nts_nxts_ext_def by auto
 
+lemma nts_nxts_pick_nt:
+  assumes "e \<in> nts_nxts P A (a#w)"
+  shows "\<exists>C\<in>nxt_rlin2 P A a. e \<in> (\<lambda>xs. C#xs)`nts_nxts P C w"
+  using assms by auto
+
+lemma nts_nxts_pick_nt2:
+  assumes "e \<in> nts_nxts P A (a#w)"
+  shows "\<exists>C\<in>nxt_rlin2 P A a. \<exists>e' \<in> nts_nxts P C w. e = C#e'"
+  using assms by auto
+
 lemma nts_nxts_ext_len:
   "\<forall>e \<in> nts_nxts_ext P A w. length e = Suc (length w)"
   unfolding nts_nxts_ext_def
   by (induction P A w rule: nts_nxts.induct) auto
 
+lemma nts_nxts_ext_nxt: 
+  assumes "i < length w"
+  shows "\<forall>e \<in> nts_nxts_ext P A w. e!(Suc i) \<in> nxt_rlin2 P (e!i) (w!i)"
+  unfolding nts_nxts_ext_def using assms proof (induction P A w arbitrary: i rule: nts_nxts.induct)
+  case (1 P A)
+  then show ?case by simp
+next
+  case (2 P A a w)
+  then show ?case
+    using less_Suc_eq_0_disj by auto
+qed
+
 lemma nts_nxts_ext_path:
   assumes "i1 \<le> length w"
       and "i2 \<le> length w"
       and "i1 \<le> i2"
-  shows "\<forall>e \<in> nts_nxts_ext P A w. e!i2 \<in> nxts_rlin2_set P {e!i1} (drop i1 (take i2 w))"
-  sorry
+    shows "\<forall>e \<in> nts_nxts_ext P A w. e!i2 \<in> nxts_rlin2_set P {e!i1} (drop i1 (take i2 w))"
+proof
+  fix e
+  assume "e \<in> nts_nxts_ext P A w"
+  with assms show "e ! i2 \<in> nxts_rlin2_set P {e ! i1} (drop i1 (take i2 w))" proof (induction "i2-i1" arbitrary: i2)
+    case 0
+    then show ?case
+      by (simp add: nxts_rlin2_set_def)
+  next
+    case (Suc x)
+      let ?i2' = "i2 - 1"
+      from Suc.hyps(2) have x_def: "x = ?i2' - i1" by simp
+      from Suc.prems(2) have i2'_len: "?i2' \<le> length w" by simp
+      from Suc.prems(3) Suc.hyps(2) have i1_i2': "i1 \<le> ?i2'" by simp
+      have IH: "e ! ?i2' \<in> nxts_rlin2_set P {e ! i1} (drop i1 (take ?i2' w))"
+        using Suc.hyps(1)[of ?i2', OF x_def Suc.prems(1) i2'_len i1_i2' Suc.prems(4)] .
+      from Suc.hyps(2) Suc.prems(2) Suc.prems(4) have "e ! i2 \<in> nxt_rlin2 P (e!(i2-1)) (w!(i2-1))"
+        using nts_nxts_ext_nxt[of ?i2' w P A] by simp
+      hence e_i2: "e ! i2 \<in> nxts_rlin2_set P {e!(i2-1)} [w!(i2-1)]"
+        unfolding nxts_rlin2_set_def nxt_rlin2_set_def by simp
+      have "drop i1 (take (i2 - 1) w) @ [w ! (i2 - 1)] = drop i1 (take i2 w)"
+        by (smt (verit) Cons_nth_drop_Suc Suc.hyps(2) Suc.prems(2) Suc.prems(3) add_Suc drop_drop drop_eq_Nil drop_take i1_i2' i2'_len le_add_diff_inverse2 le_less_Suc_eq nle_le nth_via_drop order.strict_iff_not take_Suc_conv_app_nth x_def)
+      thus ?case 
+        using nxts_trans2[of "e ! (i2 - 1)" P "e ! i1" "drop i1 (take (i2 - 1) w)" "e ! i2" "[w!(i2-1)]", OF IH e_i2] by argo
+  qed
+qed
 
 lemma nts_nxts_ext_path_start:
   assumes "i \<le> length w"
@@ -55,23 +102,31 @@ lemma nts_nxts_ext_path_full:
   using nts_nxts_ext_path_start[of "length w" w P A] nts_nxts_ext_len[of P A w]
   by (metis diff_Suc_1 dual_order.refl last_conv_nth linorder_not_less take_all_iff take_eq_Nil zero_less_Suc)
 
-lemma nxt_rlin2_nts:
-  assumes "B\<in>nxt_rlin2 P A a"
-  shows "B \<in> Nts P"
-  using assms nxt_rlin2_def Nts_def nts_of_syms_def by fastforce
-
 lemma nts_nxts_elem:
   assumes "i < length w"
   shows "\<forall>e \<in> nts_nxts P A w. e ! i \<in> Nts P"
 proof
   fix e
   assume "e \<in> nts_nxts P A w"
-  thus "e ! i \<in> Nts P" using assms proof (induction P A w arbitrary: i rule: nts_nxts.induct)
+  with assms show "e ! i \<in> Nts P" proof (induction P A w arbitrary: i e rule: nts_nxts.induct)
     case (1 P A)
     then show ?case by simp
   next
     case (2 P A a w)
-    then show ?case sorry
+    from 2(3) obtain C e' where C_def: "C \<in> nxt_rlin2 P A a" and e'_def: "e' \<in> nts_nxts P C w" and e_app: "e = C#e'"
+      using nts_nxts_pick_nt2[of e P A a w] by blast
+    show ?case proof (cases "i = 0")
+      case True
+      with e_app C_def show ?thesis
+        using nxt_rlin2_nts by simp
+    next
+      case False
+      from False 2(2) have i_len: "i - 1 < length w" by simp
+      have "e' ! (i - 1) \<in> Nts P" 
+        using "2.IH"[of C "i-1" e', OF C_def i_len e'_def] .
+      with e_app False have "e ! i \<in> Nts P" by simp
+      thus ?thesis .
+    qed
   qed
 qed
 
@@ -101,17 +156,29 @@ qed
 lemma nts_nxts_ext_pick:
   assumes "B \<in> nxts_rlin2_set P {A} w"
   shows "\<exists>e \<in> nts_nxts_ext P A w. last e = B"
-  unfolding nts_nxts_ext_def using assms proof (induction P A w arbitrary: B rule: nts_nxts.induct)
+unfolding nts_nxts_ext_def using assms proof (induction P A w arbitrary: B rule: nts_nxts.induct)
   case (1 P A)
-  then show ?case sorry
+  then show ?case
+    by (simp add: nxts_rlin2_set_def)
 next
   case (2 P A a w)
-  then show ?case sorry
+  from 2(2) obtain C where C_def: "C \<in> nxt_rlin2 P A a" and C_path: "B \<in> nxts_rlin2_set P {C} w"
+    using nxts_rlin2_set_first_step[of B P A a w] by blast
+  have "\<exists>e \<in> nts_nxts_ext P C w. last e = B"
+    using "2.IH"[of C B, OF C_def C_path] by (simp add: nts_nxts_ext_def)
+  then obtain e where e_def: "e \<in> nts_nxts_ext P C w" and e_last: "last e = B" 
+    by blast
+  from e_def C_def have *: "A#e \<in> nts_nxts_ext P A (a#w)"
+    unfolding nts_nxts_ext_def by auto
+  from e_last e_def have **: "last (A#e) = B"
+    using nts_nxts_ext_len[of P C w] by auto
+  from * ** show ?case
+    unfolding nts_nxts_ext_def by blast
 qed
 
-
 lemma nxts_split_cycle:
-  assumes "A \<in> Nts P"
+  assumes "finite P"
+      and "A \<in> Nts P"
       and "m = card (Nts P)"
       and "B \<in> nxts_rlin2_set P {A} w"
       and "length w \<ge> m"
@@ -120,15 +187,17 @@ lemma nxts_split_cycle:
 proof -
   let ?nts = "nts_nxts_ext P A w"
   obtain e where e_def: "e \<in> ?nts" and e_last: "last e = B"
-    using nts_nxts_ext_pick[of B P A w, OF assms(3)] by auto
+    using nts_nxts_ext_pick[of B P A w, OF assms(4)] by auto
   from e_def have e_len: "length e = Suc (length w)"
     using nts_nxts_ext_len[of P A w] by simp
   from e_len e_def have e_elem: "\<forall>i < length e. e!i \<in> Nts P"
-    using nts_nxts_ext_elem[OF assms(1)] by (auto simp: less_Suc_eq_le)
-  from assms(1) assms(2) have m_geq_1: "m \<ge> 1"
-    using card_set[of A "Nts P"] by simp
-  from assms(4) e_len have "\<exists>xs ys zs y. e = xs @ [y] @ ys @ [y] @ zs \<and> length (xs @ [y] @ ys @ [y]) \<le> Suc m"
-    using not_distinct[OF assms(2) m_geq_1 e_elem] by simp
+    using nts_nxts_ext_elem[OF assms(2)] by (auto simp: less_Suc_eq_le)
+  have "finite (Nts P)"
+    using nts_finite[of P, OF assms(1)] .
+  with assms(2) assms(3) have m_geq_1: "m \<ge> 1"
+    using less_eq_Suc_le by fastforce
+  from assms(5) e_len have "\<exists>xs ys zs y. e = xs @ [y] @ ys @ [y] @ zs \<and> length (xs @ [y] @ ys @ [y]) \<le> Suc m"
+    using not_distinct[OF assms(3) m_geq_1 e_elem] by simp
   then obtain xs ys zs C where e_split: "e = xs @ [C] @ ys @ [C] @ zs" and xy_len: "length (xs @ [C] @ ys @ [C]) \<le> Suc m"
     by blast
   let ?e1 = "xs @ [C]" let ?e2 = "ys @ [C]" let ?e3 = zs
@@ -158,40 +227,6 @@ proof -
   from * ** *** **** ***** ****** show ?thesis by blast
 qed
 
-lemma nxts_trans0:
-  assumes "B \<in> nxts_rlin2_set P (nxts_rlin2_set P {A} x) z"
-  shows "B \<in> nxts_rlin2_set P {A} (x@z)"
-  by (metis assms foldl_append nxts_rlin2_set_def)
-
-lemma nxt_mono:
-  assumes "A \<subseteq> B"
-  shows "nxt_rlin2_set P A a \<subseteq> nxt_rlin2_set P B a"
-  unfolding nxt_rlin2_set_def using assms by blast
-
-lemma nxts_mono:
-  assumes "A \<subseteq> B"
-  shows "nxts_rlin2_set P A w \<subseteq> nxts_rlin2_set P B w"
-  unfolding nxts_rlin2_set_def proof (induction w rule:rev_induct)
-  case Nil
-  thus ?case by (simp add: assms)
-next
-  case (snoc x xs)
-  thus  ?case 
-    using nxt_mono[of "foldl (nxt_rlin2_set P) A xs" "foldl (nxt_rlin2_set P) B xs" P x] by simp
-qed
-
-lemma nxts_trans1:
-  assumes "M \<subseteq> nxts_rlin2_set P {A} x"
-      and "B \<in> nxts_rlin2_set P M z"
-  shows "B \<in> nxts_rlin2_set P {A} (x@z)"
-  using assms nxts_trans0[of B P A x z] nxts_mono[of M "nxts_rlin2_set P {A} x" P z, OF assms(1)] by auto
-
-lemma nxts_trans2:
-  assumes "C \<in> nxts_rlin2_set P {A} x"
-      and "B \<in> nxts_rlin2_set P {C} z"
-    shows "B \<in> nxts_rlin2_set P {A} (x@z)"
-  using assms nxts_trans1[of "{C}" P A x B z] by auto 
-
 lemma pump_cycle:
   assumes "B \<in> nxts_rlin2_set P {A} x"
       and "B \<in> nxts_rlin2_set P {B} y"
@@ -209,18 +244,19 @@ next
     by (metis append.right_neutral concat.simps(1) concat.simps(2) concat_append replicate_Suc replicate_append_same)
 qed
 
-lemma pumping_aux:
-  assumes "A \<in> Nts P"
+lemma pumping_re_aux:
+  assumes "finite P"
+      and "A \<in> Nts P"
       and "m = card (Nts P)"
       and "accepted P A w"
       and "length w \<ge> m"
     shows "\<exists>x y z. w = x@y@z \<and> length y \<ge> 1 \<and> length (x@y) \<le> m \<and> (\<forall>i. accepted P A (x@(y\<^sup>*i)@z))"
 proof -
-  from assms(3) obtain Z where Z_in:"Z \<in> nxts_rlin2_set P {A} w" and Z_eps:"(Z,[])\<in>P"
+  from assms(4) obtain Z where Z_in:"Z \<in> nxts_rlin2_set P {A} w" and Z_eps:"(Z,[])\<in>P"
     by (auto simp: accepted_def)
   obtain x y z C where *: "w = x@y@z" and **: "length y \<ge> 1" and ***: "length (x@y) \<le> m" and
               1: "C \<in> nxts_rlin2_set P {A} x" and 2: "C \<in> nxts_rlin2_set P {C} y" and 3: "Z \<in> nxts_rlin2_set P {C} z"
-    using nxts_split_cycle[OF assms(1) assms(2) Z_in assms(4)] by auto
+    using nxts_split_cycle[OF assms(1) assms(2) assms(3) Z_in assms(5)] by auto
   have "\<forall>i. C \<in> nxts_rlin2_set P {A} (x@(y\<^sup>*i))"
     using pump_cycle[OF 1 2] by simp
   with 3 have "\<forall>i. Z \<in> nxts_rlin2_set P {A} (x@(y\<^sup>*i)@z)"
@@ -230,21 +266,23 @@ proof -
   from * ** *** **** show ?thesis by auto
 qed
 
-theorem pumping_lemma_re_aux:
+theorem pumping_lemma_re_nts:
   assumes "rlin2 P"
+      and "finite P"
       and "A \<in> Nts P"
   shows "\<exists>n. \<forall>w \<in> Lang P A. length w \<ge> n \<longrightarrow>
           (\<exists>x y z. w = x@y@z \<and> length y \<ge> 1 \<and> length (x@y) \<le> n \<and> (\<forall>i. x@(y\<^sup>*i)@z \<in> Lang P A))" 
-  using assms(2) pumping_aux[of A P "card (Nts P)"] Lang_iff_accepted_if_rlin2[OF assms(1)] by metis
+  using assms pumping_re_aux[of P A "card (Nts P)"] Lang_iff_accepted_if_rlin2[OF assms(1)] by metis
 
 theorem pumping_lemma_re:
   assumes "rlin2 P"
+      and "finite P"
   shows "\<exists>n. \<forall>w \<in> Lang P A. length w \<ge> n \<longrightarrow>
           (\<exists>x y z. w = x@y@z \<and> length y \<ge> 1 \<and> length (x@y) \<le> n \<and> (\<forall>i. x@(y\<^sup>*i)@z \<in> Lang P A))" 
 proof (cases "A \<in> Nts P")
   case True
   thus ?thesis
-    using pumping_lemma_re_aux[OF assms True] by simp
+    using pumping_lemma_re_nts[OF assms True] by simp
 next
   case False
   hence "Lang P A = {}"

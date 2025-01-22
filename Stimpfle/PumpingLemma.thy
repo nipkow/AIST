@@ -283,12 +283,12 @@ qed
 lemma path_nts: "P \<turnstile> S \<Rightarrow>\<langle>p\<rangle> w \<Longrightarrow> set p \<subseteq> Nts P"
   unfolding Nts_def by (induction rule: path.induct) auto
 
-lemma finite_cnf_Nts: "cnf G \<Longrightarrow> finite (nts (prods G))"
+lemma finite_nts: "finite (nts (prods G))"
 proof -
-  assume "cnf G"
-  have "\<forall>w A. finite (nts_of_syms w \<union> {A})"
-    unfolding nts_of_syms_def 
-    by (metis finite.emptyI finite_Un finite_insert finite_nts_of_syms nts_of_syms_def)
+  have "\<forall>w A. finite (nts_of_syms w) \<and> finite {A}"
+    using finite_nts_of_syms by blast
+  hence "\<forall>w A. finite (nts_of_syms w \<union> {A})"
+    using finite_Un by simp
   thus ?thesis
     unfolding Nts_def by auto
 qed

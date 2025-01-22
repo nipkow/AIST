@@ -8,7 +8,7 @@ abbreviation repl :: "'a list \<Rightarrow> nat \<Rightarrow> 'a list" ("_\<^sup
 lemma nts_finite: 
   assumes "finite P" 
   shows "finite (Nts P)"
-unfolding Nts_def by (simp add: assms case_prod_beta finite_nts_of_syms)
+  unfolding Nts_def by (simp add: assms case_prod_beta finite_nts_of_syms)
 
 lemma not_distinct:
   assumes "m = card P"
@@ -16,7 +16,55 @@ lemma not_distinct:
       and "\<forall>i < length w. w ! i \<in> P"
       and "length w \<ge> Suc m"
     shows "\<exists>xs ys zs y. w = xs @ [y] @ ys @ [y] @ zs \<and> length (xs @ [y] @ ys @ [y]) \<le> Suc m"
-  sorry
+using assms proof (induction w arbitrary: P m rule: length_induct)
+  case (1 aw)
+  from "1.prems"(4) obtain a w where aw_cons[simp]: "aw = a#w" and w_len: "m \<le> length w"
+    using Suc_le_length_iff[of m aw] by blast
+  show ?case proof (cases "a \<in> set w")
+    case True
+    hence "\<not> distinct aw" by simp
+    then obtain xs ys zs y where aw_split: "aw = xs @ [y] @ ys @ [y] @ zs"
+      using not_distinct_decomp by blast
+    show ?thesis proof (cases "length (xs @ [y] @ ys @ [y]) \<le> Suc m")
+      case True
+      with aw_split show ?thesis by blast
+    next
+      case False
+      let ?xsyys = "xs @ [y] @ ys"
+      from False have a4: "length ?xsyys \<ge> Suc m" by simp
+      from aw_split have a5: "length ?xsyys < length aw" by simp
+      with "1.prems"(3) have "\<forall>i<length ?xsyys. aw ! i \<in> P" by simp
+      with aw_split have a3: "\<forall>i < length ?xsyys. ?xsyys ! i \<in> P"
+        by (metis append_assoc nth_append)
+      from "1.prems"(2) "1.prems"(1) a3 a4 a5 have "\<exists>xs' ys' zs' y'. ?xsyys = xs' @ [y'] @ ys' @ [y'] @ zs' \<and> length (xs' @ [y'] @ ys' @ [y']) \<le> Suc m"
+        using "1.IH" by simp
+      then obtain xs' ys' zs' y' where xsyys_split: "?xsyys = xs' @ [y'] @ ys' @ [y'] @ zs'" and xsyys'_len: "length (xs' @ [y'] @ ys' @ [y']) \<le> Suc m" by blast
+      let ?xs = xs' let ?y = y' let ?ys = ys' let ?zs = "zs' @ [y] @ zs" 
+      from xsyys_split aw_split have *: "aw = ?xs @ [?y] @ ?ys @ [?y] @ ?zs" by simp
+      from xsyys'_len have **: "length (?xs @ [?y] @ ?ys @ [?y]) \<le> Suc m" by simp
+      from * ** show ?thesis by blast
+    qed
+  next
+    case False
+    let ?P' = "P - {a}"
+    from "1.prems"(3) have a_in: "a \<in> P" by auto
+    with "1.prems"(1) have a1: "m-1 = card ?P'" by simp
+    from "1.prems"(2) w_len have "w \<noteq> []" by auto
+    with "1.prems"(3) False have b_in: "\<exists>b\<noteq>a. b \<in> P" by force
+    from a_in b_in "1.prems"(2) "1.prems"(1) have "m \<ge> 2"
+      by (metis Suc_1 card_1_singletonE not_less_eq_eq singletonD verit_la_disequality)
+    hence a2: "m-1 \<ge> 1" by simp
+    from False "1.prems"(3) have a3: "\<forall>i<length w. w ! i \<in> ?P'"
+      using DiffD2 by auto
+    from "1.prems"(2) w_len have a4: "Suc (m-1) \<le> length w" by simp
+    from a1 a2 a3 a4 have "\<exists>xs ys zs y. w = xs @ [y] @ ys @ [y] @ zs \<and> length (xs @ [y] @ ys @ [y]) \<le> Suc (m - 1)"
+      using "1.IH" by simp
+    then obtain xs ys zs y where w_split: "w = xs @ [y] @ ys @ [y] @ zs" and xsys_len: "length (xs @ [y] @ ys @ [y]) \<le> m" by auto
+    from w_split have *: "a#w = (a#xs) @ [y] @ ys @ [y] @ zs" by simp
+    from xsys_len have **: "length ((a#xs) @ [y] @ ys @ [y]) \<le> Suc m" by simp
+    from * ** aw_cons show ?thesis by blast
+  qed
+qed
 
 fun nts_nxts :: "('n,'t)Prods \<Rightarrow> 'n \<Rightarrow> 't list \<Rightarrow> 'n list set" where
   "nts_nxts P A [] = {[]}"
@@ -36,11 +84,6 @@ lemma nts_nxts_ext_shift:
 
 lemma nts_nxts_pick_nt:
   assumes "e \<in> nts_nxts P A (a#w)"
-  shows "\<exists>C\<in>nxt_rlin2 P A a. e \<in> (\<lambda>xs. C#xs)`nts_nxts P C w"
-  using assms by auto
-
-lemma nts_nxts_pick_nt2:
-  assumes "e \<in> nts_nxts P A (a#w)"
   shows "\<exists>C\<in>nxt_rlin2 P A a. \<exists>e' \<in> nts_nxts P C w. e = C#e'"
   using assms by auto
 
@@ -54,10 +97,10 @@ lemma nts_nxts_ext_nxt:
   shows "\<forall>e \<in> nts_nxts_ext P A w. e!(Suc i) \<in> nxt_rlin2 P (e!i) (w!i)"
   unfolding nts_nxts_ext_def using assms proof (induction P A w arbitrary: i rule: nts_nxts.induct)
   case (1 P A)
-  then show ?case by simp
+  thus ?case by simp
 next
   case (2 P A a w)
-  then show ?case
+  thus ?case
     using less_Suc_eq_0_disj by auto
 qed
 
@@ -71,7 +114,7 @@ proof
   assume "e \<in> nts_nxts_ext P A w"
   with assms show "e ! i2 \<in> nxts_rlin2_set P {e ! i1} (drop i1 (take i2 w))" proof (induction "i2-i1" arbitrary: i2)
     case 0
-    then show ?case
+    thus ?case
       by (simp add: nxts_rlin2_set_def)
   next
     case (Suc x)
@@ -97,11 +140,6 @@ lemma nts_nxts_ext_path_start:
   shows "\<forall>e \<in> nts_nxts_ext P A w. e ! i \<in> nxts_rlin2_set P {A} (take i w)"
   using assms nts_nxts_ext_path[of 0 w i P A] by (simp add: nts_nxts_ext_def)
 
-lemma nts_nxts_ext_path_full:
-  "\<forall>e \<in> nts_nxts_ext P A w. last e \<in> nxts_rlin2_set P {A} w"
-  using nts_nxts_ext_path_start[of "length w" w P A] nts_nxts_ext_len[of P A w]
-  by (metis diff_Suc_1 dual_order.refl last_conv_nth linorder_not_less take_all_iff take_eq_Nil zero_less_Suc)
-
 lemma nts_nxts_elem:
   assumes "i < length w"
   shows "\<forall>e \<in> nts_nxts P A w. e ! i \<in> Nts P"
@@ -110,11 +148,11 @@ proof
   assume "e \<in> nts_nxts P A w"
   with assms show "e ! i \<in> Nts P" proof (induction P A w arbitrary: i e rule: nts_nxts.induct)
     case (1 P A)
-    then show ?case by simp
+    thus ?case by simp
   next
     case (2 P A a w)
     from 2(3) obtain C e' where C_def: "C \<in> nxt_rlin2 P A a" and e'_def: "e' \<in> nts_nxts P C w" and e_app: "e = C#e'"
-      using nts_nxts_pick_nt2[of e P A a w] by blast
+      using nts_nxts_pick_nt[of e P A a w] by blast
     show ?case proof (cases "i = 0")
       case True
       with e_app C_def show ?thesis
@@ -136,7 +174,7 @@ lemma nts_nxts_ext_elem:
   shows "\<forall>e \<in> nts_nxts_ext P A w. e ! i \<in> Nts P"
 proof (cases "i = 0")
   case True
-  then show ?thesis
+  thus ?thesis
     by (simp add: assms(1) nts_nxts_ext_i0)
 next
   case False
@@ -158,7 +196,7 @@ lemma nts_nxts_ext_pick:
   shows "\<exists>e \<in> nts_nxts_ext P A w. last e = B"
 unfolding nts_nxts_ext_def using assms proof (induction P A w arbitrary: B rule: nts_nxts.induct)
   case (1 P A)
-  then show ?case
+  thus ?case
     by (simp add: nxts_rlin2_set_def)
 next
   case (2 P A a w)

@@ -12,6 +12,93 @@ definition nxt_rlin2_set :: "('n,'t)Prods \<Rightarrow> 'n set \<Rightarrow> 't 
 definition nxts_rlin2_set :: "('n,'t)Prods \<Rightarrow> 'n set \<Rightarrow> 't list \<Rightarrow> 'n set" where
 "nxts_rlin2_set P = foldl (nxt_rlin2_set P)"
 
+lemma nxt_rlin2_nts:
+  assumes "B\<in>nxt_rlin2 P A a"
+  shows "B\<in>Nts P"
+  using assms nxt_rlin2_def Nts_def nts_of_syms_def by fastforce
+
+lemma nxts_rlin2_set_app: 
+  "nxts_rlin2_set P M (x @ y) = nxts_rlin2_set P (nxts_rlin2_set P M x) y"
+  unfolding nxts_rlin2_set_def by simp
+
+lemma nxt_rlin2_set_pick:
+  assumes "B \<in> nxt_rlin2_set P M a"
+  shows   "\<exists>C\<in>M. B \<in> nxt_rlin2_set P {C} a"
+  using assms by (simp add:nxt_rlin2_def nxt_rlin2_set_def)
+
+lemma nxts_rlin2_set_pick:
+  assumes "B \<in> nxts_rlin2_set P M w"
+  shows "\<exists>C\<in>M. B \<in> nxts_rlin2_set P {C} w"
+using assms proof (induction w arbitrary: B rule: rev_induct)
+  case Nil
+  then show ?case
+    by (simp add: nxts_rlin2_set_def)
+next
+  case (snoc x xs)
+  from snoc(2) have B_in: "B \<in> nxts_rlin2_set P (nxts_rlin2_set P M xs) [x]"
+    using nxts_rlin2_set_app[of P M xs "[x]"] by simp
+  hence "B \<in> nxt_rlin2_set P (nxts_rlin2_set P M xs) x"
+    by (simp add: nxts_rlin2_set_def)
+  hence "\<exists>C\<in>(nxts_rlin2_set P M xs). B \<in> nxt_rlin2_set P {C} x"
+    using nxt_rlin2_set_pick[of B P "nxts_rlin2_set P M xs" x] by simp
+  then obtain C where C_def: "C \<in> nxts_rlin2_set P M xs" and C_path: "B \<in> nxt_rlin2_set P {C} x"
+    by blast
+  have "\<exists>Ca\<in>M. C \<in> nxts_rlin2_set P {Ca} xs"
+    using snoc.IH[of C, OF C_def] .
+  then obtain D where *: "D \<in> M" and D_path: "C \<in> nxts_rlin2_set P {D} xs"
+    by blast
+  from C_path D_path have **: "B \<in> nxts_rlin2_set P {D} (xs @ [x])"
+    unfolding nxts_rlin2_set_def nxt_rlin2_set_def by auto
+  from * ** show ?case by blast
+qed
+
+lemma nxts_rlin2_set_first_step:
+  assumes "B \<in> nxts_rlin2_set P {A} (a # w)"
+  shows "\<exists>C \<in> nxt_rlin2 P A a. B \<in> nxts_rlin2_set P {C} w"
+proof -
+  from assms have "B \<in> nxts_rlin2_set P {A} ([a]@w)" by simp
+  hence "B \<in> nxts_rlin2_set P (nxts_rlin2_set P {A} [a]) w" 
+    using nxts_rlin2_set_app[of P "{A}" "[a]" w] by simp
+  hence "B \<in> nxts_rlin2_set P (nxt_rlin2 P A a) w"
+    by (simp add: nxt_rlin2_set_def nxts_rlin2_set_def)
+  thus "\<exists>C \<in> nxt_rlin2 P A a. B \<in> nxts_rlin2_set P {C} w"
+    using nxts_rlin2_set_pick[of B P "nxt_rlin2 P A a" w] by simp
+qed
+
+lemma nxts_trans0:
+  assumes "B \<in> nxts_rlin2_set P (nxts_rlin2_set P {A} x) z"
+  shows "B \<in> nxts_rlin2_set P {A} (x@z)"
+  by (metis assms foldl_append nxts_rlin2_set_def)
+
+lemma nxt_mono:
+  assumes "A \<subseteq> B"
+  shows "nxt_rlin2_set P A a \<subseteq> nxt_rlin2_set P B a"
+  unfolding nxt_rlin2_set_def using assms by blast
+
+lemma nxts_mono:
+  assumes "A \<subseteq> B"
+  shows "nxts_rlin2_set P A w \<subseteq> nxts_rlin2_set P B w"
+  unfolding nxts_rlin2_set_def proof (induction w rule:rev_induct)
+  case Nil
+  thus ?case by (simp add: assms)
+next
+  case (snoc x xs)
+  thus  ?case 
+    using nxt_mono[of "foldl (nxt_rlin2_set P) A xs" "foldl (nxt_rlin2_set P) B xs" P x] by simp
+qed
+
+lemma nxts_trans1:
+  assumes "M \<subseteq> nxts_rlin2_set P {A} x"
+      and "B \<in> nxts_rlin2_set P M z"
+  shows "B \<in> nxts_rlin2_set P {A} (x@z)"
+  using assms nxts_trans0[of B P A x z] nxts_mono[of M "nxts_rlin2_set P {A} x" P z, OF assms(1)] by auto
+
+lemma nxts_trans2:
+  assumes "C \<in> nxts_rlin2_set P {A} x"
+      and "B \<in> nxts_rlin2_set P {C} z"
+    shows "B \<in> nxts_rlin2_set P {A} (x@z)"
+  using assms nxts_trans1[of "{C}" P A x B z] by auto
+
 lemma map_Tm_single_nt:
   assumes "map Tm w @ [Tm a, Nt A] = u1 @ [Nt B] @ u2"
   shows "u1 = map Tm (w @ [a]) \<and> u2 = []"

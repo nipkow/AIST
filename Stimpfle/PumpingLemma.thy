@@ -15,8 +15,8 @@ fun dheight :: "('n, 't) dtree \<Rightarrow> nat" where
 abbreviation repl :: "'a list \<Rightarrow> nat \<Rightarrow> 'a list" ("_\<^sup>*/_")
   where "xs\<^sup>*n \<equiv> concat (replicate n xs)"
 
-lemma repl_length: "length (xs\<^sup>*n) = length (xs) * n"
-  by (induction n) auto
+lemma repl_append: "(x\<^sup>*(Suc i)) = (x\<^sup>*i) @ x"
+  by (induction i) simp_all
 
 (* paths for Prods in CNF form *)
 (* prods \<Rightarrow> Start Nt \<Rightarrow> path \<Rightarrow> word  (path = Nt list, word = Tm list) *)
@@ -203,21 +203,23 @@ next
       using Cons.IH by blast
     hence 1: "\<forall>subst p'. (P \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> subst) \<longrightarrow> P \<turnstile> A \<Rightarrow>\<langle>A#p1@[X]@p'\<rangle> (a@v@subst@x)"
       using \<open>?BC\<close> by (auto intro: path.intros(3))
-    have "length (a@v@x) > 0"
+    obtain v' where "v' = a@v" (is "?v'")
+      by simp
+    hence "length (v'@x) > 0"
       using True no_empty by fast
-    hence "(P \<turnstile> X \<Rightarrow>\<langle>[X]@p2\<rangle> w) \<and> z = a@v@w@x \<and> (\<forall>subst p'.
-          (P \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> subst) \<longrightarrow> P \<turnstile> A \<Rightarrow>\<langle>A#p1@[X]@p'\<rangle> (a@v@subst@x)) \<and>
-          (length (A#p1) > 0 \<longrightarrow> length (a@v@x) >0)"
-      using \<open>?vwx\<close> 1 \<open>?BC\<close> by blast
-    then show ?thesis
-      by (metis 0 append.assoc append_Cons)
+    hence "(P \<turnstile> X \<Rightarrow>\<langle>[X]@p2\<rangle> w) \<and> z = v'@w@x \<and> (\<forall>subst p'.
+          (P \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> subst) \<longrightarrow> P \<turnstile> A \<Rightarrow>\<langle>A#p1@[X]@p'\<rangle> (v'@subst@x)) \<and>
+          (length (A#p1) > 0 \<longrightarrow> length (v'@x) >0)"
+      using \<open>?vwx\<close> 1 \<open>?BC\<close> \<open>?v'\<close> by simp
+    thus ?thesis
+      using 0 by auto
   next
     case False
     then obtain v w x where "(P \<turnstile> X \<Rightarrow>\<langle>[X]@p2\<rangle> w) \<and> a = v@w@x \<and> 
           (\<forall>subst p'. (P \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> subst) \<longrightarrow> P \<turnstile> B \<Rightarrow>\<langle>p1@[X]@p'\<rangle> (v@subst@x))" (is "?vwx")
       using Cons.IH \<open>?BC\<close> by blast
     hence 1: "\<forall>subst p'. (P \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> subst) \<longrightarrow> P \<turnstile> A \<Rightarrow>\<langle>A#p1@[X]@p'\<rangle> (v@subst@x@b)"
-      by (metis \<open>?BC\<close> append.assoc left)
+      using \<open>?BC\<close> left[of A B C P] by fastforce
     hence "(P \<turnstile> X \<Rightarrow>\<langle>[X]@p2\<rangle> w) \<and> z = v@w@x@b \<and> (\<forall>subst p'.
           (P \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> subst) \<longrightarrow> P \<turnstile> A \<Rightarrow>\<langle>A#p1@[X]@p'\<rangle> (v@subst@x@b)) \<and>
           (length (A#p1) > 0 \<longrightarrow> length (a@v@x) >0)"
@@ -238,8 +240,10 @@ using assms proof (induction p1 arbitrary: P A z X p2)
   case Nil
   hence "\<forall>subst p'. (P \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> subst) \<longrightarrow> P \<turnstile> A \<Rightarrow>\<langle>[]@[X]@p'\<rangle> ([]@subst@[])"
     using path_first_step lpath_path by fastforce
-  then show ?case 
-    by (metis append_Cons append_Nil append_Nil2 list.inject local.Nil lpath_path path_first_step)
+  moreover have "(P \<turnstile> X \<Rightarrow>\<llangle>[X]@p2\<rrangle> z) \<and> z = []@z@[]"
+    using Nil lpath.cases[of P A \<open>[X] @ p2\<close> z] by auto
+  ultimately show ?case 
+    by blast
 next
   case (Cons A p1 P Y)
   hence 0: "A = Y"
@@ -272,11 +276,13 @@ next
     then obtain v w x where "(P \<turnstile> X \<Rightarrow>\<llangle>[X]@p2\<rrangle> w) \<and> b = v@w@x \<and> 
           (\<forall>subst p'. (P \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> subst) \<longrightarrow> P \<turnstile> C \<Rightarrow>\<langle>p1@[X]@p'\<rangle> (v@subst@x))" (is "?vwx")
       using Cons.IH by blast
-    hence "(P \<turnstile> X \<Rightarrow>\<llangle>[X]@p2\<rrangle> w) \<and> z = a@v@w@x \<and>
-       (\<forall>subst p'. (P \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> subst) \<longrightarrow> P \<turnstile> A \<Rightarrow>\<langle>A#p1@[X]@p'\<rangle> (a@v@subst@x))"
-      using \<open>?BC\<close> lpath_path[of P] path.intros(3)[of A B C P] by blast
+    then obtain v' where "v' = a@v" (is "?v'")
+      by simp
+    hence "(P \<turnstile> X \<Rightarrow>\<llangle>[X]@p2\<rrangle> w) \<and> z = v'@w@x \<and>
+       (\<forall>subst p'. (P \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> subst) \<longrightarrow> P \<turnstile> A \<Rightarrow>\<langle>A#p1@[X]@p'\<rangle> (v'@subst@x))"
+      using \<open>?BC\<close> lpath_path[of P] path.intros(3)[of A B C P] \<open>?vwx\<close> by fastforce
     then show ?thesis
-      by (metis "0" append.assoc append_Cons)
+      using 0 by auto
   qed
 qed
 
@@ -329,12 +335,12 @@ lemma inner_aux:
   then show ?case by simp
 next
   case (Suc i)
-  hence "P \<turnstile> A \<Rightarrow>\<langle>[A]@p2@ (([A] @ p2)\<^sup>*i) @ [A]@p3\<rangle> ((v\<^sup>*(i+1)) @ w @ (x\<^sup>*(i + 1)))"
+  hence 1: "P \<turnstile> A \<Rightarrow>\<langle>[A]@p2@ (([A] @ p2)\<^sup>*i) @ [A]@p3\<rangle> (v\<^sup>*(Suc i)) @ w @ (x\<^sup>*(Suc i))"
     by simp
-  hence "P \<turnstile> A \<Rightarrow>\<langle>[A]@p2@[A]@p2@(([A]@p2)\<^sup>*i) @ [A]@p3\<rangle> (v@(v\<^sup>*(i+1)) @ w @ x@(x\<^sup>*(i+1)))"
-    by (metis append.assoc append.right_neutral assms concat.simps(2) 
-          concat_append replicate_append_same same_append_eq)
-  then show ?case by simp
+  hence "P \<turnstile> A \<Rightarrow>\<langle>[A] @ p2 @ [A] @ p2@ (([A] @ p2)\<^sup>*i) @ [A]@p3\<rangle> v @ (v\<^sup>*(Suc i)) @ w @ (x\<^sup>*(Suc i)) @ x"
+    using assms by fastforce
+  thus ?case 
+    using repl_append[of \<open>Suc i\<close> x] by simp
 qed
 
 lemma inner_pumping: 
@@ -353,12 +359,18 @@ proof -
   hence 1: "set pg \<subseteq> Nts P"
     using lpath_path[of P] path_nts[of P] by blast
   have "length pg > m"
-    using \<open>?pg\<close> lpath_length[of P S pg z] assms(4)
-    by (metis less_add_one less_exp order_less_le_trans power_one_right power_strict_increasing_iff)
+  proof -
+    have "(2^(m+1)::nat) \<le> 2^length pg"
+      using \<open>?pg\<close> lpath_length[of P S pg z] assms(4) le_trans by blast
+    hence "m+1 \<le> length pg" 
+      using power_le_imp_le_exp[of 2 \<open>m+1\<close> \<open>length pg\<close>] by auto
+    thus ?thesis
+      by simp
+  qed
   then obtain g p where "pg = g@p \<and> length p = m+1" (is "?gp")
     using less_Suc_eq by (induction pg) fastforce+
   hence "set g \<subseteq> Nts P \<and> set p \<subseteq> Nts P \<and> finite (Nts P)"
-    using 1 finite_cnf_Nts[of G] assms(1) \<open>?SP\<close> by auto
+    using 1 finite_nts[of G] assms(1) \<open>?SP\<close> by auto
   hence "card (set p) < length p"
     using \<open>?gp\<close> assms(2) card_mono[of \<open>Nts P\<close> \<open>set p\<close>] \<open>?SP\<close> by simp
   then obtain A p1 p2 p3 where "p = p1@[A]@p2@[A]@p3" (is "?Ap")
@@ -367,27 +379,29 @@ proof -
         (\<forall>subst p'. ((P \<turnstile> A \<Rightarrow>\<langle>[A]@p'\<rangle> subst) \<longrightarrow> P \<turnstile> S \<Rightarrow>\<langle>g@p1@[A]@p'\<rangle> u@subst@y)))" (is "?uy")
     using substitution_lp[of P S \<open>g@p1\<close> A \<open>p2@[A]@p3\<close> z] \<open>?pg\<close> \<open>?gp\<close> by auto
   hence "length vwx \<le> 2^(m+1)"
-    by (smt (verit, best) Groups.add_ac(2) \<open>?Ap\<close> \<open>?gp\<close> le_add1 le_trans length_append lpath_length one_le_numeral power_increasing)
+    using \<open>?Ap\<close> \<open>?gp\<close> lpath_length[of P A \<open>[A] @ p2 @ [A] @ p3\<close> vwx] order_subst1 by fastforce
   then obtain v w x where "(P \<turnstile> A \<Rightarrow>\<langle>[A]@p3\<rangle> w) \<and> vwx = v@w@x \<and>
         (\<forall>subst p'. ((P \<turnstile> A \<Rightarrow>\<langle>[A]@p'\<rangle> subst) \<longrightarrow> P \<turnstile> A \<Rightarrow>\<langle>[A]@p2@[A]@p'\<rangle> v@subst@x)) \<and>
         (length ([A]@p2) > 0 \<longrightarrow> length (v@x) > 0)" (is "?vwx")
-    using substitution[of P A \<open>[A]@p2\<close> A p3 vwx] by (metis \<open>?uy\<close> append.assoc lpath_path)
-  hence 2: "\<forall>i. P \<turnstile> A \<Rightarrow>\<langle>repl ([A]@p2) (Suc i) @ [A]@p3\<rangle> (repl v (Suc i) @ w @ repl x (Suc i))"
-    using inner_aux[of P A] by blast
-  hence "P \<turnstile> A \<Rightarrow>\<langle>(([A]@p2)\<^sup>*0) @[A]@p3\<rangle> ((v\<^sup>*0) @ w @ (x\<^sup>*0))"
-    using \<open>?vwx\<close> by simp
-  hence 3: "\<forall>i \<ge> 0. P \<turnstile> A \<Rightarrow>\<langle>(([A]@p2)\<^sup>*i) @ [A]@p3\<rangle> ((v\<^sup>*i) @ w @ (x\<^sup>*i))"
-    using \<open>?vwx\<close> 2 not0_implies_Suc by metis
-  hence "\<forall>i \<ge> 0. P \<turnstile> S \<Rightarrow>\<langle>g@p1@(([A]@p2)\<^sup>*(Suc i)) @[A]@p3\<rangle> (u@ (v\<^sup>*(Suc i)) @ w @ (x\<^sup>*(Suc i)) @y)"
-    using 2 \<open>?uy\<close> by fastforce
-  hence "\<forall>i \<ge> 0. P \<turnstile> S \<Rightarrow>\<langle>g@p1@ (([A]@p2)\<^sup>*i) @[A]@p3\<rangle> (u@(v\<^sup>*i)@w@(x\<^sup>*i)@y)"
-    using \<open>?uy\<close> 3 by (smt (verit, ccfv_SIG) append.assoc path_first_step)
-  hence 4: "\<forall>i \<ge> 0. (u@(v\<^sup>*i)@w@(x\<^sup>*i)@y) \<in> L G"
+    using substitution[of P A \<open>[A]@p2\<close> A p3 vwx] \<open>?uy\<close> lpath_path[of P A] by auto
+  have "\<forall>i \<ge> 0. P \<turnstile> S \<Rightarrow>\<langle>g@p1@ (([A]@p2)\<^sup>*i) @[A]@p3\<rangle> (u@(v\<^sup>*i)@w@(x\<^sup>*i)@y)"
+  proof 
+    fix i
+    have "\<forall>i. P \<turnstile> A \<Rightarrow>\<langle>repl ([A]@p2) (Suc i) @ [A]@p3\<rangle> (repl v (Suc i) @ w @ repl x (Suc i))"
+      using \<open>?vwx\<close> inner_aux[of P A] by blast
+    hence "\<forall>i \<ge> 0. P \<turnstile> S \<Rightarrow>\<langle>g@p1@(([A]@p2)\<^sup>*(Suc i)) @[A]@p3\<rangle> (u@ (v\<^sup>*(Suc i)) @ w @ (x\<^sup>*(Suc i)) @y)"
+      using \<open>?uy\<close> by fastforce
+    moreover have "P \<turnstile> S \<Rightarrow>\<langle>g@p1@(([A]@p2)\<^sup>*0) @[A]@p3\<rangle> (u@ (v\<^sup>*0) @ w @ (x\<^sup>*0) @y)"
+      using \<open>?vwx\<close> \<open>?uy\<close> by auto
+    ultimately show "i \<ge> 0 \<longrightarrow> P \<turnstile> S \<Rightarrow>\<langle>g@p1@ (([A]@p2)\<^sup>*i) @[A]@p3\<rangle> (u@(v\<^sup>*i)@w@(x\<^sup>*i)@y)"
+      by (induction i) simp_all
+  qed
+  hence "\<forall>i \<ge> 0. (u@(v\<^sup>*i)@w@(x\<^sup>*i)@y) \<in> L G"
     unfolding Lang_def using assms(1) assms(2) \<open>?SP\<close> derives_if_path[of P S] by blast
-  hence "z = u@v@w@x@y \<and> length (v@w@x) \<le> 2^(m+1) \<and> 0 < length (v@x) \<and> (\<forall> i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@ y \<in> L G)"
-    using \<open>?vwx\<close> \<open>?uy\<close> \<open>length vwx \<le> 2 ^ (m + 1)\<close> by auto
+  hence "z = u@v@w@x@y \<and> length (v@w@x) \<le> 2^(m+1) \<and> 1 \<le> length (v@x) \<and> (\<forall> i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@ y \<in> L G)"
+    using \<open>?vwx\<close> \<open>?uy\<close> \<open>length vwx \<le> 2 ^ (m + 1)\<close> by (simp add: Suc_leI)
   then show ?thesis
-    by (metis Suc_eq_plus1 Suc_leI add_0)
+    by blast
 qed
 
 theorem pumping_lemma:

@@ -1,3 +1,5 @@
+(* Author: Tobias Nipkow *)
+
 theory Closure
 imports
   "HOL-Library.While_Combinator" (* later for executability *)
@@ -85,4 +87,13 @@ next
   show ?case by auto
 qed
 
+(* Potentially useful
+
+lemma closure_lowerbound: "F A \<le> A \<Longrightarrow> closure F A \<le> A"
+unfolding closure_def using lfp_lowerbound by (metis le_sup_iff order_refl)
+
+lemma closed_iff_closure_id: "mono F \<Longrightarrow> F S \<le> S \<longleftrightarrow> closure F S = S"
+using closure_incr closure_lowerbound closure_closed
+by (metis order_antisym_conv)
+*)
 end

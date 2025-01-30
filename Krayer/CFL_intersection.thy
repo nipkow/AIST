@@ -545,9 +545,11 @@ proof -
   then show ?thesis by blast
 qed
 
-lemma intersection_not_closed: 
+lemma intersection_not_closed:
+  fixes a b c :: 't
   assumes "a\<noteq>b" "b\<noteq>c" "c\<noteq>a"
-  shows "\<exists>L1 L2. cfl TYPE('a option \<times> 'a option) L1 \<and> cfl TYPE('b option \<times> 'b option) L2 \<and> (\<nexists>GI. L GI = (L1 \<inter> L2))"
+  shows "\<exists>L1 L2 :: 't list set. cfl TYPE('a option \<times> 'a option) L1 \<and> cfl TYPE('b option \<times> 'b option) L2
+ \<and> (\<nexists>GI::('x,'t)Cfg. L GI = (L1 \<inter> L2))"
 proof -
   let ?anbn = "{word. \<exists>n \<ge> 0. word = (a^*n)@(b^*n)}"
   let ?cm = "{word. \<exists>m \<ge> 0. word = (c^*m)}"
@@ -567,10 +569,9 @@ proof -
     using assms intersection_anbncn by fast
   then have "cfl TYPE('a option \<times> 'a option) ?anbncm \<and> 
         cfl TYPE('b option \<times> 'b option) ?anbmcm \<and> 
-        (\<nexists>GI. L GI = ?anbncm \<inter> ?anbmcm)" 
-    using assms anbncn_not_cfl[of a b c] anbncm anbmcm by auto
-  (* this should be a simple unification, but maybe the TYPE in cfl causes issues*)
-  then show ?thesis sorry
+        (\<nexists>GI::('x,'t)Cfg. L GI = ?anbncm \<inter> ?anbmcm)" 
+    using assms anbncn_not_cfl[of a b c, where 'b = 'x] anbncm anbmcm by auto
+  then show ?thesis by auto
 qed
 
 end

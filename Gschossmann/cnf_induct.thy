@@ -3,6 +3,7 @@ theory cnf_induct
 begin
 
 (* custom induction rule for leftmost derivations in CNF *)
+(* currently unused *)
 lemma cnf_derivels_induct[consumes 2, case_names base step_nt_nt step_tm]:
   assumes "P \<turnstile> xs \<Rightarrow>l* ys"
   and cnf: "CNF P"
@@ -16,10 +17,8 @@ proof (induction rule: converse_rtranclp_induct)
   then show ?case using Base by fast
 next
   case (step y z)
-  then have "(\<exists> (A,w) \<in> P. \<exists>u1 u2. y = map Tm u1 @ Nt A # u2 \<and> z = map Tm u1 @ w @ u2)"
-    by (simp only: derivel_iff)
   then obtain A w u1 u2 where split: "(A,w) \<in> P \<and> y = map Tm u1 @ Nt A # u2 \<and> z = map Tm u1 @ w @ u2"
-    by fast
+    unfolding derivel_iff by fast
   with cnf have "(\<exists>B C. w = [Nt B, Nt C]) \<or> (\<exists>t. w = [Tm t])" unfolding CNF_def by fast
   then show ?case
   proof (elim disjE)

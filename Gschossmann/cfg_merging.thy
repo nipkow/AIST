@@ -19,13 +19,11 @@ proof
   fix x
   assume asm: "x \<in> nts_of_syms v"
 
-  from assms(1) have "(\<exists>(A, w)\<in>P. \<exists>u1 u2. u = map Tm u1 @ Nt A # u2 \<and> v = map Tm u1 @ w @ u2)"
-    by (simp only: derivel_iff)
-  then obtain A w u1 u2
+  from assms obtain A w u1 u2
       where "(A,w) \<in> P"
         and u: "u = map Tm u1 @ Nt A # u2"
         and v: "v = map Tm u1 @ w @ u2"
-    by fast
+    unfolding derivel_iff by fast
 
   then show "x \<in> Nts P \<union> nts_of_syms u"
   proof (cases "x \<in> nts_of_syms w")
@@ -50,13 +48,11 @@ proof
   fix x
   assume asm: "x \<in> nts_of_syms v"
 
-  from assms(1) have "(\<exists>(A, w)\<in>P. \<exists>u1 u2. u = u1 @ Nt A # u2 \<and> v = u1 @ w @ u2)"
-    by (simp only: derive_iff)
-  then obtain A w u1 u2
+  from assms(1) obtain A w u1 u2
       where "(A,w) \<in> P"
         and u: "u = u1 @ Nt A # u2"
         and v: "v = u1 @ w @ u2"
-    by fast
+    unfolding derive_iff by fast
 
   then show "x \<in> Nts P \<union> nts_of_syms u"
   proof (cases "x \<in> nts_of_syms w")
@@ -135,14 +131,11 @@ lemma append_unreachable_productions_derivel:
       and "nts_of_syms u \<inter> Lhss new = {}"
     shows "old \<turnstile> u \<Rightarrow>l v \<and> nts_of_syms v \<inter> Lhss new = {}"
 proof -
-  thm derivel_iff
-  from assms(1) have "(\<exists>(A, w)\<in>(old \<union> new). \<exists>u1 u2. u = map Tm u1 @ Nt A # u2 \<and> v = map Tm u1 @ w @ u2)"
-    by (simp only: derivel_iff)
-  then obtain A w u' v' where
+  from assms(1) obtain A w u' v' where
         A_w: "(A, w)\<in>(old \<union> new)"
       and u: "u = map Tm u' @ Nt A # v'"
       and v: "v = map Tm u' @ w @ v'"
-    by fast
+    unfolding derivel_iff by fast
   then have "(A,w) \<in> old \<or> (A,w) \<in> new" by simp
   then show ?thesis
   proof (elim disjE)
@@ -187,14 +180,11 @@ lemma append_unreachable_productions_derive:
       and "nts_of_syms u \<inter> Lhss new = {}"
     shows "old \<turnstile> u \<Rightarrow> v \<and> nts_of_syms v \<inter> Lhss new = {}"
 proof -
-  thm derivel_iff
-  from assms(1) have "(\<exists>(A, w)\<in>(old \<union> new). \<exists>u1 u2. u = u1 @ Nt A # u2 \<and> v = u1 @ w @ u2)"
-    by (simp only: derive_iff)
-  then obtain A w u' v' where
+  from assms(1) obtain A w u' v' where
         A_w: "(A, w)\<in>(old \<union> new)"
       and u: "u = u' @ Nt A # v'"
       and v: "v = u' @ w @ v'"
-    by fast
+    unfolding derive_iff by fast
   then have "(A,w) \<in> old \<or> (A,w) \<in> new" by simp
   then show ?thesis
   proof (elim disjE)

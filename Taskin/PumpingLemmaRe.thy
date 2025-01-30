@@ -68,10 +68,10 @@ qed
 
 fun nts_nxts :: "('n,'t)Prods \<Rightarrow> 'n \<Rightarrow> 't list \<Rightarrow> 'n list set" where
   "nts_nxts P A [] = {[]}"
-| "nts_nxts P A (a#w) = (\<Union>B\<in>nxt_rlin2 P A a. (\<lambda>xs. B#xs)`nts_nxts P B w)"
+| "nts_nxts P A (a#w) = (\<Union>B\<in>nxt_rlin2 P A a. (Cons B)`nts_nxts P B w)"
 
 definition nts_nxts_ext where
-"nts_nxts_ext P A w \<equiv> (\<lambda>xs. A#xs)`nts_nxts P A w"
+"nts_nxts_ext P A w \<equiv> (Cons A)`nts_nxts P A w"
 
 lemma nts_nxts_ext_i0:
   "\<forall>e \<in> nts_nxts_ext P A w. e!0 = A"

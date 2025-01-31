@@ -26,7 +26,7 @@ proof -
     where in_P: "(A,w) \<in> P"
       and u: "u = map Tm u1 @ Nt A # u2"
       and v: "v = map Tm u1 @ w @ u2"
-    by (auto simp add: derivel_iff)
+    unfolding derivel_iff by fast
 
   from invariant obtain utms unts where usplit: "u = map Tm utms @ map Nt unts"
     unfolding left_tms_then_nts_def by auto
@@ -375,7 +375,7 @@ proof -
   qed
 qed
 
-
+(* currently unused *)
 lemma CNF_derivls_first_tm:
   assumes derivls: "P \<turnstile> map Nt u \<Rightarrow>l* Tm t # v"
   and cnf: "CNF P"

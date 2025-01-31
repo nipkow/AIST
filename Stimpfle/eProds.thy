@@ -20,14 +20,19 @@ proof(induction arbitrary: a rule: rtranclp.induct)
   then show ?case by simp
 next
   case (rtrancl_into_rtrancl u v w)
-  from \<open>set P \<turnstile> v \<Rightarrow> w\<close> \<open>nullables P w\<close> have "nullables P v"
-    by (smt (verit, del_insts) Un_iff nullable.simps self_append_conv2 set_ConsD set_append
-        derive.cases)
+  from \<open>set P \<turnstile> v \<Rightarrow> w\<close> obtain A \<alpha> l r where "v = l @ [Nt A] @ r \<and> w = l @ \<alpha> @ r \<and> (A, \<alpha>) \<in> set P" (is "?A\<alpha>")
+    by (auto simp: derive.simps)
+  from this \<open>nullables P w\<close> have "nullables P \<alpha> \<and> nullables P l \<and> nullables P r"
+    by simp
+  hence "nullables P [Nt A]"
+    using \<open>?A\<alpha>\<close> nullable.simps by auto
+  from this \<open>nullables P \<alpha> \<and> nullables P l \<and> nullables P r\<close> have "nullables P v"
+    using \<open>?A\<alpha>\<close> by auto
   thus ?case
     using rtrancl_into_rtrancl.IH rtrancl_into_rtrancl.prems(1) by blast
 qed
 
-corollary nullable_if: "set P \<turnstile> [a] \<Rightarrow>* [] \<Longrightarrow> nullable P a"
+lemma nullable_if: "set P \<turnstile> [a] \<Rightarrow>* [] \<Longrightarrow> nullable P a"
   using nullables_if[of P "[a]" "[]" a] by simp
 
 lemma nullable_aux: "\<forall>s\<in>set gamma. nullable P s \<and> set P \<turnstile> [s] \<Rightarrow>* [] \<Longrightarrow> set P \<turnstile> gamma \<Rightarrow>* []"
@@ -101,20 +106,17 @@ lemma nepr_exists: "\<forall>P. \<exists>P'. nepr P P'"
   unfolding nepr_def by (simp add: finite_list finiteneprProds)
 
 
-definition no_rhs :: "('n, 't) prods \<Rightarrow> ('n, 't) syms \<Rightarrow> ('n, 't) syms \<Rightarrow> bool" where
-  "no_rhs P l1 l2 = (l2 \<in> set (munge0 P l1))"
-
 lemma no_rhs_nullable: 
-  assumes "no_rhs P r []"
+  assumes "[] \<in> set (munge0 P r)"
   shows "nullables P r"
-  using assms unfolding no_rhs_def 
+  using assms
 proof (induction rule: munge0.induct)
   case (1 P)
   then show ?case by (simp)
 next
   case (2 P s sl)
   then show ?case
-    by (smt (verit, ccfv_threshold) Un_iff imageE list.set_map list.simps(3) munge0.simps(2) set_ConsD
+    by (smt (verit, ccfv_threshold) Un_iff imageE list.set_map list.simps(3) munge0.simps(2) set_ConsD (*TODO*)
         set_append) 
 qed
 
@@ -175,7 +177,7 @@ lemma nepr_r3:
   assumes "nepr P P'"
     and "set P' \<turnstile> u \<Rightarrow>* v"
   shows "set P \<turnstile> u \<Rightarrow>* v"
-  using assms by (smt (verit, del_insts) nepr_r2 rtranclp.rtrancl_refl rtranclp_induct rtranclp_trans)
+  using assms by (smt (verit, del_insts) nepr_r2 rtranclp.rtrancl_refl rtranclp_induct rtranclp_trans) (*TODO*)
 
 lemma nepr_r4:
   assumes "(l,r) \<in> set P"
@@ -190,15 +192,15 @@ lemma nepr_r5: "r \<in> set (munge0 P r)"
 lemma nepr_r6: 
   assumes "(l,r) \<in> set P"
     and "r' \<noteq> []"
-    and "no_rhs P r r'"
+    and "r' \<in> set (munge0 P r)"
     and "nepr P P'"
   shows "(l,r') \<in> set P'"
-  using assms nepr_r4 unfolding no_rhs_def by fast
+  using assms nepr_r4 by fast
 
 lemma nepr_r7: 
   assumes "nepr P P'"
     and "set P \<turnstile> [Nt A] \<Rightarrow> v"
-    and "no_rhs P v v' \<and> (v' \<noteq> [])"
+    and "v' \<in> set (munge0 P v) \<and> (v' \<noteq> [])"
   shows "set P' \<turnstile> [Nt A] \<Rightarrow> v'"
 proof -
   have "(A,v) \<in> set P" 
@@ -210,51 +212,37 @@ proof -
 qed
 
 lemma nepr_r12a: 
-  assumes "no_rhs P r1 r1'"
-    and "no_rhs P r2 r2'"
-  shows "no_rhs P (r1@r2) (r1'@r2')"
-  using assms unfolding no_rhs_def 
-  apply (induction r1 arbitrary: r1' r2 r2' rule: munge0.induct) by auto
+  assumes "r1' \<in> set (munge0 P r1)"
+    and "r2' \<in> set (munge0 P r2)"
+  shows "(r1'@r2') \<in> set (munge0 P (r1@r2))"
+  using assms by (induction r1 arbitrary: r1' r2 r2' rule: munge0.induct) auto
 
 lemma nepr_r12b:
-  assumes "no_rhs P r1 r1'"
-    and "no_rhs P r2 r2'"
-    and "no_rhs P r3 r3'"
-  shows "no_rhs P (r1@r2@r3) (r1'@r2'@r3')"
-  using assms unfolding no_rhs_def 
-  apply (induction r1 arbitrary: r1' r2 r2' r3 r3' rule: munge0.induct) 
-   apply auto 
-  using nepr_r12a no_rhs_def by blast
+  assumes "r1' \<in> set (munge0 P r1)"
+    and "r2' \<in> set (munge0 P r2)"
+    and "r3' \<in> set (munge0 P r3)"
+  shows "(r1'@r2'@r3') \<in> set (munge0 P (r1@r2@r3))"
+  using assms 
+  by (induction r1 arbitrary: r1' r2 r2' r3 r3' rule: munge0.induct) (auto simp: nepr_r12a)
 
 lemma nepr_r14:
-  assumes "no_rhs P (r1@r2) r'"
-  shows "(\<exists>r1' r2'. (r'=r1'@r2') \<and> no_rhs P r1 r1' \<and> no_rhs P r2 r2')"
-  using assms unfolding no_rhs_def 
+  assumes "r' \<in> set (munge0 P (r1@r2))"
+  shows "(\<exists>r1' r2'. (r'=r1'@r2') \<and> r1' \<in> set (munge0 P r1) \<and> r2' \<in> set (munge0 P r2))"
+  using assms
   apply (induction r1 arbitrary: r2 r' rule: munge0.induct) 
-   apply auto 
+   apply auto
   by (metis append_Cons imageI)+    
 
-
 lemma nepr_r15:
-  assumes "set P \<turnstile> r \<Rightarrow>* rf"
+  assumes "set P \<turnstile> [S] \<Rightarrow>* rf"
     and "nepr P P'"
-    and "r = [S]"
-    and "no_rhs P rf rf' \<and> (rf' \<noteq> [])"
-  shows "set P' \<turnstile> r \<Rightarrow>* rf'"
+    and "rf' \<in> set (munge0 P rf) \<and> (rf' \<noteq> [])"
+  shows "set P' \<turnstile> [S] \<Rightarrow>* rf'"
   using assms
 proof (induction arbitrary: rf')
   case base
   then show ?case 
-  proof (cases "nullables P r")
-    case True
-    then show ?thesis 
-      by (smt (verit, del_insts) Un_iff append.left_neutral base.prems(2) base.prems(3) concat.simps(1) concat.simps(2) concat_eq_Nil_conv munge0.simps(1) munge0.simps(2) nepr_r1 no_rhs_def set_append) 
-  next
-    case False
-    then show ?thesis
-      by (metis (no_types, lifting) base.prems(1,2,3) empty_iff empty_set munge0.simps(1,2) nepr_r1 nepr_r3
-          no_rhs_def nullable nullable_if set_ConsD)
-  qed
+    by (cases "nullable P S") auto
 next
   case (step b c)
   then show ?case 
@@ -265,29 +253,29 @@ next
   next
     case False
     obtain r1 rhs r2 lhs where "b = (r1@[Nt lhs]@r2) \<and> c = (r1@rhs@r2) \<and> (lhs, rhs) \<in> set P" (is "?bc")
-      using False step by (meson derive.cases)
+      using False step by (auto simp: derive.simps)
     from this obtain r1' rhs' r2' where 
-      "(rf' = (r1'@rhs'@r2')) \<and> no_rhs P r1 r1' \<and> no_rhs P rhs rhs' \<and> no_rhs P r2 r2'" (is "?rf'")
+      "(rf' = (r1'@rhs'@r2')) \<and> r1' \<in> set (munge0 P r1) \<and> rhs' \<in> set (munge0 P rhs) \<and> r2' \<in> set (munge0 P r2)" (is "?rf'")
       using step nepr_r14 by metis
     then show ?thesis 
     proof (cases "rhs' = []")
       case True
         hence "rf' = r1'@r2'" 
           using \<open>?rf'\<close> by simp 
-        have "no_rhs P rhs []"
+        have "[] \<in> set (munge0 P rhs)"
           using True \<open>?rf'\<close> by simp
         hence "nullables P rhs"
           using no_rhs_nullable by blast
-        hence "no_rhs P [Nt lhs] []" 
-          unfolding no_rhs_def using \<open>?bc\<close> NullableSym by fastforce
-        hence "no_rhs P (r1@[Nt lhs]@r2) (r1'@r2')"
-          using nepr_r12b[of P r1 r1' "[Nt lhs]" "[]" r2 r2'] \<open>?rf'\<close> by simp
+        hence "[] \<in> set (munge0 P [Nt lhs])" 
+          using \<open>?bc\<close> NullableSym by fastforce
+        hence "(r1'@r2') \<in> set (munge0 P (r1@[Nt lhs]@r2))"
+          using nepr_r12b[of r1' P r1 \<open>[]\<close> \<open>[Nt lhs]\<close> r2' r2] \<open>?rf'\<close> by simp
         then show ?thesis 
           using \<open>?bc\<close> \<open>rf' = r1' @ r2'\<close> step by blast
     next
       case False
-        have "no_rhs P (r1@[Nt lhs]@r2) (r1'@[Nt lhs]@r2')"
-          using nepr_r12b[of P r1 r1' \<open>[Nt lhs]\<close> \<open>[Nt lhs]\<close> r2 r2'] nepr_r5[of \<open>[Nt lhs]\<close> P] no_rhs_def \<open>?rf'\<close> by blast
+        have "(r1'@[Nt lhs]@r2') \<in> set (munge0 P (r1@[Nt lhs]@r2)) "
+          using nepr_r12b[of r1' P r1 \<open>[Nt lhs]\<close> \<open>[Nt lhs]\<close> r2' r2] nepr_r5[of \<open>[Nt lhs]\<close> P] \<open>?rf'\<close> by blast
         hence 1: "set P' \<turnstile> [S] \<Rightarrow>* (r1'@[Nt lhs]@r2')" 
           using \<open>?bc\<close> step by blast
         have "set P \<turnstile> [Nt lhs] \<Rightarrow> rhs" 
@@ -302,43 +290,6 @@ next
   qed
 qed
 
-(* Proof that Aditis definition of L G is the same as Lang (Prods G) (Start G). This part has become obsolete 
-definition "isWord w \<longleftrightarrow> (\<nexists>A. Nt A \<in> set w)"   
-definition "L G = {w. Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* w \<and> isWord w}"
-
-lemma L_eq_Lang1: "(map Tm) ` Lang (Prods G) (Start G) \<subseteq> L G"
-proof -
-  have "\<forall>w \<in> Lang (Prods G) (Start G). isWord (map Tm w)"
-    unfolding isWord_def by auto
-  moreover have "\<forall>w \<in> Lang (Prods G) (Start G). (Prods G) \<turnstile> [Nt (Start G)] \<Rightarrow>* (map Tm w)"
-    unfolding Lang_def by simp
-  ultimately show ?thesis
-    using L_def by blast
-qed
-
-lemma L_eq_Lang2: "L G \<subseteq> (map Tm) ` Lang (Prods G) (Start G)"
-proof 
-  fix w
-  assume "w \<in> L G"
-  hence 1: "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* w \<and> isWord w"
-    using L_def by blast
-  obtain w' where "w = map Tm w'"
-    by (metis 1 ex_map_conv isWord_def sym.exhaust)
-  hence "w' \<in> {w'. Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* map Tm w'}"
-    using 1 by blast
-  hence "w \<in> (map Tm) ` {w'. Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* map Tm w'}"
-    using \<open>w = map Tm w'\<close> by blast
-  thus "w \<in> (map Tm) ` Lang (Prods G) (Start G)"
-    by (simp add: Lang_def)
-qed
-
-lemma L_eq_Lang: "L G = (map Tm) ` Lang (Prods G) (Start G)"
-  using L_eq_Lang1 L_eq_Lang2 by blast
-
-lemma L_Lang: "L G = L G' \<longleftrightarrow> Lang (Prods G) (Start G) = Lang (Prods G') (Start G')"
-  using L_eq_Lang by (metis (mono_tags, lifting) Collect_cong L_def Lang_def image_eqI mem_Collect_eq)
-*)
-
 theorem nepr_eq_if_noe:
   assumes "nepr P P'"
     and "[] \<notin> lang P S"
@@ -350,10 +301,10 @@ proof
     assume "x \<in> lang P S"
     have "\<forall>x. set P \<turnstile> [Nt S] \<Rightarrow>* x \<longrightarrow> x \<noteq> []" (is "?x")
       using assms Lang_def by fastforce
-    hence 1: "no_rhs P (map Tm x) (map Tm x)" 
-      unfolding no_rhs_def using nepr_r5 by auto
+    hence 1: "(map Tm x) \<in> set (munge0 P (map Tm x))" 
+      using nepr_r5 by auto
     hence "set P' \<turnstile> [Nt S] \<Rightarrow>* (map Tm x)"
-      using 1 assms \<open>x \<in> lang P S\<close> by (smt (verit, best) Lang_def \<open>?x\<close> mem_Collect_eq nepr_r15)
+      using 1 assms \<open>x \<in> lang P S\<close> by (smt (verit, best) Lang_def \<open>?x\<close> mem_Collect_eq nepr_r15) (*TODO*)
     thus "x \<in> lang P' S"
       using Lang_def \<open>x \<in> lang P S\<close> by fast 
   qed
@@ -373,6 +324,11 @@ lemma noe_Prods_nepr:
   shows "\<nexists>p. p \<in> set P' \<and> snd p = []"
   using assms unfolding nepr_def munge_def by simp
 
+lemma noe_lang_nepr_aux: 
+  assumes "P \<turnstile> [Nt S] \<Rightarrow>* w" "w = []"  
+  shows "\<exists>A. P \<turnstile> [Nt S] \<Rightarrow>* [Nt A] \<and> (A, w) \<in> P"
+  using assms by (induction w rule: rtranclp_induct) (auto simp: derive.simps)
+
 lemma noe_lang_nepr:
   assumes "nepr P P'"
   shows "[] \<notin> lang P' S"
@@ -383,7 +339,7 @@ proof (rule ccontr)
   hence "set P' \<turnstile> [Nt S] \<Rightarrow>* []"
     by simp
   hence "\<exists>A. set P' \<turnstile> [Nt S] \<Rightarrow>* [Nt A] \<and> (A, []) \<in> set P'"
-    by (smt (verit, best) append.left_neutral append_is_Nil_conv append_self_conv derive.cases list.distinct(1) rtranclp.cases)
+    using noe_lang_nepr_aux[of \<open>set P'\<close>] by blast
   thus False 
     using assms unfolding nepr_def munge_def by blast 
 qed
@@ -410,10 +366,10 @@ next
       by simp
     have 2: "set P \<turnstile> [Nt S] \<Rightarrow>* (map Tm w)"
       using \<open>w \<in> lang P S - {[]}\<close> Lang_def by fast
-    have "no_rhs P (map Tm w) (map Tm w)"
-      using \<open>w \<in> lang P S - {[]}\<close> nepr_r5 no_rhs_def by blast
+    have "(map Tm w) \<in> set (munge0 P (map Tm w)) "
+      using \<open>w \<in> lang P S - {[]}\<close> nepr_r5 by blast
     hence "set P' \<turnstile> [Nt S] \<Rightarrow>* (map Tm w)"
-      using 1 2 nepr_r15[of P \<open>[Nt S]\<close> \<open>map Tm w\<close> P' \<open>Nt S\<close> \<open>map Tm w\<close>] assms by simp
+      using 1 2 nepr_r15[of P]  assms by simp
     thus "w \<in> lang P' S"
       by (simp add: Lang_def)
   qed

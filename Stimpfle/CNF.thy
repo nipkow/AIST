@@ -11,20 +11,14 @@ definition isNt :: "('n, 't) sym \<Rightarrow> bool" where
 definition Unit_free :: "('n, 't) Prods \<Rightarrow> bool" where
   "Unit_free P = (\<nexists>l A. (l,[Nt A]) \<in> P)"
 
-lemma negrImpEps_free: 
-  assumes "nepr P P'"
-  shows "Eps_free (set P')"
-  using assms unfolding nepr_def munge_def Eps_free_def by blast
+lemma negrImpEps_free: "nepr P P' \<Longrightarrow> Eps_free (set P')"
+  unfolding nepr_def munge_def Eps_free_def by blast
 
-lemma upgrImpUnit_free:
-  assumes "uppr P P'"
-  shows "Unit_free (set P')" 
-  using assms 
+lemma upgrImpUnit_free: "uppr P P' \<Longrightarrow> Unit_free (set P')" 
   unfolding uppr_def uppr_rules_def nonUnitProds_def newProds_def unitProds_def Unit_free_def by simp
 
 lemma upgr_Eps_free:
-  assumes "Eps_free (set P)"
-    and "uppr P P'"
+  assumes "Eps_free (set P)" "uppr P P'"
   shows "Eps_free (set P')"
   using assms 
   unfolding uppr_def Eps_free_def uppr_rules_def nonUnitProds_def unitProds_def newProds_def by auto

@@ -117,7 +117,7 @@ next
     using Cons Un_iff by auto
 qed
 
-lemma nepr_r1: "(r' \<in> set (munge0 P r) \<Longrightarrow> set P \<turnstile> r \<Rightarrow>* r')"
+lemma nepr_r1: "r' \<in> set (munge0 P r) \<Longrightarrow> set P \<turnstile> r \<Rightarrow>* r'"
 proof (induction r arbitrary: r')
   case (Cons a r)
   then show ?case 
@@ -224,7 +224,7 @@ lemma nepr_r12b:
 
 lemma nepr_r14:
   assumes "r' \<in> set (munge0 P (r1@r2))"
-  shows "(\<exists>r1' r2'. (r'=r1'@r2') \<and> r1' \<in> set (munge0 P r1) \<and> r2' \<in> set (munge0 P r2))"
+  shows "\<exists>r1' r2'. (r'=r1'@r2') \<and> r1' \<in> set (munge0 P r1) \<and> r2' \<in> set (munge0 P r2)"
   using assms
   apply (induction r1 arbitrary: r2 r' rule: munge0.induct) 
    apply auto
@@ -316,11 +316,6 @@ next
 qed
 
 (* correctness *)
-lemma noe_Prods_nepr:
-  assumes "nepr P P'"
-  shows "\<nexists>p. p \<in> set P' \<and> snd p = []"
-  using assms unfolding nepr_def munge_def by simp
-
 lemma noe_lang_nepr_aux: 
   assumes "P \<turnstile> [Nt S] \<Rightarrow>* w" "w = []"  
   shows "\<exists>A. P \<turnstile> [Nt S] \<Rightarrow>* [Nt A] \<and> (A, w) \<in> P"

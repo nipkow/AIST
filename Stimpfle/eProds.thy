@@ -105,19 +105,16 @@ qed
 lemma nepr_exists: "\<forall>P. \<exists>P'. nepr P P'"
   unfolding nepr_def by (simp add: finite_list finiteneprProds)
 
-
-lemma no_rhs_nullable: 
-  assumes "[] \<in> set (munge0 P r)"
-  shows "nullables P r"
-  using assms
-proof (induction rule: munge0.induct)
-  case (1 P)
-  then show ?case by (simp)
+lemma munge0_nullable:  "[] \<in> set (munge0 P r) \<Longrightarrow> nullables P r"
+proof (induction r)
+  case Nil
+  then show ?case by simp
 next
-  case (2 P s sl)
-  then show ?case
-    by (smt (verit, ccfv_threshold) Un_iff imageE list.set_map list.simps(3) munge0.simps(2) set_ConsD (*TODO*)
-        set_append) 
+  case (Cons a r)
+  hence "nullable P a"
+    using image_iff[of \<open>[]\<close> \<open>munge0 P\<close> \<open>{a#r}\<close>] by auto
+  then show ?case 
+    using Cons Un_iff by auto
 qed
 
 lemma nepr_r1: "(r' \<in> set (munge0 P r) \<Longrightarrow> set P \<turnstile> r \<Rightarrow>* r')"
@@ -152,15 +149,15 @@ proof (induction r arbitrary: r')
 qed simp
 
 lemma nepr_r2: 
-  assumes "nepr P P'"
-    and "set P' \<turnstile> u \<Rightarrow> v"
+  assumes "set P' \<turnstile> u \<Rightarrow> v"
+    and "nepr P P'" 
   shows "set P \<turnstile> u \<Rightarrow>* v"
   using assms 
 proof -
   obtain A \<alpha> r1 r2 where "(A, \<alpha>) \<in> set P' \<and> u = r1 @ [Nt A] @ r2 \<and> v = r1 @ \<alpha> @ r2" (is "?A")
     using assms derive.cases by meson
   hence 1: "(A, \<alpha>) \<in> {(l,r'). \<exists>r. (l,r) \<in> set P \<and> r' \<in> set (munge0 P r) \<and> (r' \<noteq> [])}"
-    using assms(1) unfolding nepr_def munge_def by simp
+    using assms(2) unfolding nepr_def munge_def by simp
   obtain r where "(A, r) \<in> set P \<and> \<alpha> \<in> set (munge0 P r)" (is "?r")
     using 1 by blast
   hence "set P \<turnstile> r \<Rightarrow>* \<alpha>" 
@@ -174,17 +171,17 @@ proof -
 qed
 
 lemma nepr_r3:
-  assumes "nepr P P'"
-    and "set P' \<turnstile> u \<Rightarrow>* v"
+  assumes "set P' \<turnstile> u \<Rightarrow>* v"
+    and "nepr P P'" 
   shows "set P \<turnstile> u \<Rightarrow>* v"
-  using assms by (smt (verit, del_insts) nepr_r2 rtranclp.rtrancl_refl rtranclp_induct rtranclp_trans) (*TODO*)
+  using assms by (induction v rule: rtranclp_induct) (auto simp: nepr_r2 rtranclp_trans)
 
 lemma nepr_r4:
   assumes "(l,r) \<in> set P"
     and "nepr P P'"
     and "r' \<in> set (munge0 P r) \<and> (r' \<noteq> [])"
   shows "(l,r') \<in> set P'"
-  using assms by (smt (verit) case_prod_conv mem_Collect_eq munge_def nepr_def)
+  using assms unfolding nepr_def munge_def by blast
 
 lemma nepr_r5: "r \<in> set (munge0 P r)" 
   by (induction r) auto
@@ -265,7 +262,7 @@ next
         have "[] \<in> set (munge0 P rhs)"
           using True \<open>?rf'\<close> by simp
         hence "nullables P rhs"
-          using no_rhs_nullable by blast
+          using munge0_nullable by blast
         hence "[] \<in> set (munge0 P [Nt lhs])" 
           using \<open>?bc\<close> NullableSym by fastforce
         hence "(r1'@r2') \<in> set (munge0 P (r1@[Nt lhs]@r2))"
@@ -301,10 +298,10 @@ proof
     assume "x \<in> lang P S"
     have "\<forall>x. set P \<turnstile> [Nt S] \<Rightarrow>* x \<longrightarrow> x \<noteq> []" (is "?x")
       using assms Lang_def by fastforce
-    hence 1: "(map Tm x) \<in> set (munge0 P (map Tm x))" 
+    hence "(map Tm x) \<in> set (munge0 P (map Tm x))" 
       using nepr_r5 by auto
     hence "set P' \<turnstile> [Nt S] \<Rightarrow>* (map Tm x)"
-      using 1 assms \<open>x \<in> lang P S\<close> by (smt (verit, best) Lang_def \<open>?x\<close> mem_Collect_eq nepr_r15) (*TODO*)
+      using assms \<open>x \<in> lang P S\<close> Lang_def nepr_r15[of P \<open>Nt S\<close> \<open>map Tm x\<close>] by fast
     thus "x \<in> lang P' S"
       using Lang_def \<open>x \<in> lang P S\<close> by fast 
   qed
@@ -314,7 +311,7 @@ next
     fix x'
     assume "x' \<in> lang P' S"
     show "x' \<in> lang P S" 
-      using assms by (metis Lang_def \<open>x' \<in> lang P' S\<close> mem_Collect_eq nepr_r3)
+      using assms Lang_def \<open>x' \<in> lang P' S\<close> nepr_r3[of P' \<open>[Nt S]\<close> \<open>map Tm x'\<close> P] by fast
   qed
 qed
 
@@ -355,7 +352,7 @@ proof
     hence "w \<in> lang P' S - {[]}"
       using assms noe_lang_nepr by fastforce
     thus "w \<in> lang P S - {[]}"
-      using assms by (simp add: Lang_def nepr_r3)
+      using assms by (auto simp: Lang_def nepr_r3)
   qed
 next
   show "lang P S - {[]} \<subseteq> lang P' S"

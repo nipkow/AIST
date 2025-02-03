@@ -62,14 +62,14 @@ corollary nullable_iff: "nullable P a \<longleftrightarrow> set P \<turnstile> [
 fun eps_closure :: "('n, 't) prods \<Rightarrow> ('n, 't) syms \<Rightarrow> ('n, 't) syms list" where
   "eps_closure P [] = [[]]" |
   "eps_closure P (s#sl) = (
-    if nullable P s then ((map ((#) s) (eps_closure P sl)) @ eps_closure P sl) 
-    else (map ((#) s) (eps_closure P sl)))"
+    if nullable P s then (map ((#) s) (eps_closure P sl)) @ eps_closure P sl 
+    else map ((#) s) (eps_closure P sl))"
 
 definition eps_elim :: "('n, 't) prods \<Rightarrow> ('n, 't) Prods" where
-"eps_elim P = {(l,r'). \<exists>r. (l,r) \<in> set P \<and> r' \<in> set (eps_closure P r) \<and> (r' \<noteq> [])}"
+"eps_elim P \<equiv> {(l,r'). \<exists>r. (l,r) \<in> set P \<and> r' \<in> set (eps_closure P r) \<and> (r' \<noteq> [])}"
 
 definition \<N> :: "('n,'t) prods \<Rightarrow> ('n,'t) prods \<Rightarrow> bool" where 
-  "\<N> P P' = (set P' = eps_elim P)"
+  "\<N> P P' \<equiv> set P' = eps_elim P"
 
 (* auxiliary function to prove finiteness *)
 definition eps_elim_fun :: "('n, 't) prods \<Rightarrow> ('n, 't) prod \<Rightarrow> ('n, 't) Prods" where 

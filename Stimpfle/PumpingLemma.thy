@@ -23,14 +23,14 @@ lemma repl_append: "(x\<^sup>*(Suc i)) = (x\<^sup>*i) @ x"
 inductive path :: "('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> 'n list \<Rightarrow> 't list \<Rightarrow> bool" 
    ("(2_ \<turnstile>/ (_/ \<Rightarrow>'\<langle>_'\<rangle>/ _))" [50, 0, 50] 50) where
 terminal:  "(A, [Tm a]) \<in> P \<Longrightarrow> P \<turnstile> A \<Rightarrow>\<langle>[A]\<rangle> [a]" |
-left:  "(A, [Nt B, Nt C]) \<in> P \<Longrightarrow> (P \<turnstile> B \<Rightarrow>\<langle>p\<rangle> w) \<Longrightarrow> (P \<turnstile> C \<Rightarrow>\<langle>q\<rangle> v) \<Longrightarrow> P \<turnstile> A \<Rightarrow>\<langle>A#p\<rangle> (w@v)" |
-right:  "(A, [Nt B, Nt C]) \<in> P \<Longrightarrow> (P \<turnstile> B \<Rightarrow>\<langle>p\<rangle> w) \<Longrightarrow> (P \<turnstile> C \<Rightarrow>\<langle>q\<rangle> v) \<Longrightarrow> P \<turnstile> A \<Rightarrow>\<langle>A#q\<rangle> (w@v)"
+left:  "\<lbrakk>(A, [Nt B, Nt C]) \<in> P \<and> (P \<turnstile> B \<Rightarrow>\<langle>p\<rangle> w) \<and> (P \<turnstile> C \<Rightarrow>\<langle>q\<rangle> v)\<rbrakk> \<Longrightarrow> P \<turnstile> A \<Rightarrow>\<langle>A#p\<rangle> (w@v)" |
+right:  "\<lbrakk>(A, [Nt B, Nt C]) \<in> P \<and> (P \<turnstile> B \<Rightarrow>\<langle>p\<rangle> w) \<and> (P \<turnstile> C \<Rightarrow>\<langle>q\<rangle> v)\<rbrakk> \<Longrightarrow> P \<turnstile> A \<Rightarrow>\<langle>A#q\<rangle> (w@v)"
 
 (* rules for derivations of words if the grammar is in cnf *)
 inductive cnf_derives :: "('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> 't list \<Rightarrow> bool"
   ("(2_ \<turnstile>/ (_/ \<Rightarrow>cnf/ _))" [50, 0, 50] 50) where
 step:  "(A, [Tm a]) \<in> P \<Longrightarrow> P \<turnstile> A \<Rightarrow>cnf [a]"|
-trans:  "(A, [Nt B, Nt C]) \<in> P \<Longrightarrow> P \<turnstile> B \<Rightarrow>cnf w \<Longrightarrow> P \<turnstile> C \<Rightarrow>cnf v \<Longrightarrow> P \<turnstile> A \<Rightarrow>cnf (w@v)"
+trans:  "\<lbrakk>(A, [Nt B, Nt C]) \<in> P \<and> P \<turnstile> B \<Rightarrow>cnf w \<and> P \<turnstile> C \<Rightarrow>cnf v\<rbrakk> \<Longrightarrow> P \<turnstile> A \<Rightarrow>cnf (w@v)"
 
 lemma path_if_cnf_derives:
   "P \<turnstile> S \<Rightarrow>cnf w \<Longrightarrow> \<exists>p. P \<turnstile> S \<Rightarrow>\<langle>p\<rangle> w"
@@ -109,7 +109,7 @@ lemma derives_if_path:
 inductive lpath :: "('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> 'n list \<Rightarrow> 't list \<Rightarrow> bool" 
    ("(2_ \<turnstile>/ (_/ \<Rightarrow>'\<llangle>_'\<rrangle>/ _))" [50, 0, 50] 50) where
 terminal:  "(A, [Tm a]) \<in> P \<Longrightarrow> P \<turnstile> A \<Rightarrow>\<llangle>[A]\<rrangle> [a]" |
-nonTerminals:  "(A, [Nt B, Nt C]) \<in> P \<Longrightarrow> (P \<turnstile> B \<Rightarrow>\<llangle>p\<rrangle> w) \<Longrightarrow> (P \<turnstile> C \<Rightarrow>\<llangle>q\<rrangle> v) \<Longrightarrow> 
+nonTerminals:  "\<lbrakk>(A, [Nt B, Nt C]) \<in> P \<and> (P \<turnstile> B \<Rightarrow>\<llangle>p\<rrangle> w) \<and> (P \<turnstile> C \<Rightarrow>\<llangle>q\<rrangle> v)\<rbrakk> \<Longrightarrow> 
                 P \<turnstile> A \<Rightarrow>\<llangle>A#(if length p \<ge> length q then p else q)\<rrangle> (w@v)" 
 
 lemma path_lpath: "P \<turnstile> S \<Rightarrow>\<langle>p\<rangle> w \<Longrightarrow> \<exists>p'. (P \<turnstile> S \<Rightarrow>\<llangle>p'\<rrangle> w) \<and> length p' \<ge> length p"
@@ -129,7 +129,7 @@ next
   proof (cases "length p \<ge> length q")
     case True
     hence "length v \<le> 2^length p"
-      using nonTerminals(5) order_subst1[of \<open>length v\<close> \<open>\<lambda>x. 2^x\<close> \<open>length q\<close> \<open>length p\<close>] by simp
+      using nonTerminals order_subst1[of \<open>length v\<close> \<open>\<lambda>x. 2^x\<close> \<open>length q\<close> \<open>length p\<close>] by simp
     hence "length w +length v \<le> 2*2^length p"
       by (simp add: nonTerminals.IH(1) add_le_mono mult_2)
     then show ?thesis
@@ -137,9 +137,9 @@ next
   next
     case False
     hence "length w \<le> 2^length q"
-      using nonTerminals(4) order_subst1[of \<open>length w\<close> \<open>\<lambda>x. 2^x\<close> \<open>length p\<close> \<open>length q\<close>] by simp 
+      using nonTerminals order_subst1[of \<open>length w\<close> \<open>\<lambda>x. 2^x\<close> \<open>length p\<close> \<open>length q\<close>] by simp 
     hence "length w +length v \<le> 2*2^length q"
-      by (simp add: nonTerminals.IH(2) add_le_mono mult_2)
+      by (simp add: nonTerminals.IH add_le_mono mult_2)
     then show ?thesis
       by (simp add: False)
   qed
@@ -167,7 +167,7 @@ lemma path_first_step: "P \<turnstile> A \<Rightarrow>\<langle>p\<rangle> w \<Lo
 lemma no_empty: "P \<turnstile> A \<Rightarrow>\<langle>p\<rangle> w \<Longrightarrow> length w > 0"
   by (induction rule: path.induct) simp_all
 
-(*if A\<rightarrow>*z using p1Xp2 then z can be decomposed into v w x where X\<rightarrow>*w and if X\<rightarrow>*w' then A\<rightarrow>*vw'x.
+(*if A\<Rightarrow>*z using p1Xp2 then z can be decomposed into v w x where X\<rightarrow>*w and if X\<rightarrow>*w' then A\<rightarrow>*vw'x.
 v and x are universal, i.e. they are independent from arbitrary w'.
 If the front part p1 is not empty then v or x is not empty.*)
 lemma substitution: 

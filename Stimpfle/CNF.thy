@@ -11,23 +11,17 @@ definition isNt :: "('n, 't) sym \<Rightarrow> bool" where
 definition Unit_free :: "('n, 't) Prods \<Rightarrow> bool" where
   "Unit_free P = (\<nexists>l A. (l,[Nt A]) \<in> P)"
 
-lemma negrImpEps_free: 
-  assumes "nepr P P'"
-  shows "Eps_free (set P')"
-  using assms unfolding nepr_def munge_def Eps_free_def by blast
+lemma negrImpEps_free: "\<N> P P' \<Longrightarrow> Eps_free (set P')"
+  unfolding \<N>_def eps_elim_def Eps_free_def by blast
 
-lemma upgrImpUnit_free:
-  assumes "uppr P P'"
-  shows "Unit_free (set P')" 
-  using assms 
-  unfolding uppr_def uppr_rules_def nonUnitProds_def newProds_def unitProds_def Unit_free_def by simp
+lemma upgrImpUnit_free: "\<U> P P' \<Longrightarrow> Unit_free (set P')" 
+  unfolding \<U>_def \<U>_rules_def unit_elim_def new_prods_def unit_prods_def Unit_free_def by simp
 
 lemma upgr_Eps_free:
-  assumes "Eps_free (set P)"
-    and "uppr P P'"
+  assumes "Eps_free (set P)" "\<U> P P'"
   shows "Eps_free (set P')"
   using assms 
-  unfolding uppr_def Eps_free_def uppr_rules_def nonUnitProds_def unitProds_def newProds_def by auto
+  unfolding \<U>_def Eps_free_def \<U>_rules_def unit_elim_def unit_prods_def new_prods_def by auto
 
 lemma Nts_correct: "A \<notin> Nts P \<Longrightarrow> (\<nexists>S \<alpha>. (S, \<alpha>) \<in> P \<and> (Nt A \<in> {Nt S} \<union> set \<alpha>))"
 unfolding Nts_def nts_of_syms_def by auto
@@ -1091,16 +1085,16 @@ theorem cnf_exists:
   shows "\<forall>G::('n::infinite,'t) cfg. \<exists>G'::('n,'t) cfg. (cnf G') \<and> (L G' = L G - {[]})"
 proof
   fix G::"('n,'t)cfg"
-  obtain P\<^sub>0 where "nepr (prods G) P\<^sub>0" (is "?P\<^sub>0")
-    using nepr_exists by blast
-  obtain P\<^sub>u where "uppr P\<^sub>0 P\<^sub>u" (is "?P\<^sub>u")
-    using uppr_exists by blast
+  obtain P\<^sub>0 where "\<N> (prods G) P\<^sub>0" (is "?P\<^sub>0")
+    using \<N>_exists by blast
+  obtain P\<^sub>u where "\<U> P\<^sub>0 P\<^sub>u" (is "?P\<^sub>u")
+    using \<U>_exists by blast
   obtain G\<^sub>u where "G\<^sub>u = cfg P\<^sub>u (start G)" (is "?G\<^sub>u")
     by simp
   hence 1: "Eps_free (set (prods G\<^sub>u)) \<and> Unit_free (set (prods G\<^sub>u))"
     using \<open>?P\<^sub>0\<close> \<open>?P\<^sub>u\<close> negrImpEps_free upgrImpUnit_free upgr_Eps_free by fastforce
   have 2: "L G\<^sub>u = L G - {[]}"
-    using \<open>?P\<^sub>0\<close> \<open>?P\<^sub>u\<close> \<open>?G\<^sub>u\<close> nepr_uppr_lang_eq[of \<open>prods G\<close> P\<^sub>0 P\<^sub>u \<open>start G\<close>] by (simp add: nepr_lang_eq)
+    using \<open>?P\<^sub>0\<close> \<open>?P\<^sub>u\<close> \<open>?G\<^sub>u\<close> \<N>_\<U>_lang_eq[of \<open>prods G\<close> P\<^sub>0 P\<^sub>u \<open>start G\<close>] by (simp add: \<N>_lang_eq)
   obtain G'::"('n,'t) cfg" where "uniform (set (prods G')) \<and> binary (set (prods G')) \<and> L G\<^sub>u = L G' \<and> Eps_free (set (prods G')) \<and> Unit_free (set (prods G'))" (is "?G'")
     using 1 cnf_noe_nou by blast
   hence "cnf G'" 

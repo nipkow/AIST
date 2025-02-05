@@ -39,23 +39,23 @@ qed
 
 lemma uppr_rlin2:
   assumes rlinbin: "rlin_bin (set ps')"
-    and uppr_ps': "uppr ps' ps"
+    and uppr_ps': "\<U> ps' ps"
   shows "rlin2 (set ps)"
 proof - 
   from rlinbin have "rlin2 (set ps' - {(A,w) \<in> set ps'. \<exists>B. w = [Nt B]})"
     using rlin2_def rlin_bin_def by fastforce
-  hence "rlin2 (set ps' - (unitProds ps'))"
-    by (simp add: unitProds_def)
-  hence 1: "rlin2 (nonUnitProds ps')"
-    by (simp add: nonUnitProds_def)
-  hence 2: "rlin2 (newProds ps')"
-    unfolding newProds_def rlin2_def by fastforce
-  from 1 2 have "rlin2 (nonUnitProds ps' \<union> newProds ps')"
+  hence "rlin2 (set ps' - (unit_prods ps'))"
+    by (simp add: unit_prods_def)
+  hence 1: "rlin2 (unit_elim ps')"
+    by (simp add: unit_elim_def)
+  hence 2: "rlin2 (new_prods ps')"
+    unfolding new_prods_def rlin2_def by fastforce
+  from 1 2 have "rlin2 (unit_elim ps' \<union> new_prods ps')"
     unfolding rlin2_def by auto
-  hence "rlin2 (uppr_rules ps')"
-    by (simp add: uppr_rules_def)
+  hence "rlin2 (\<U>_rules ps')"
+    by (simp add: \<U>_rules_def)
   with uppr_ps' have "rlin2 (set ps)"
-    by (simp add: uppr_def)
+    by (simp add: \<U>_def)
   thus ?thesis .
 qed
 
@@ -456,13 +456,13 @@ proof -
 qed
 
 axiomatization uRemove :: "('n,'t) prods \<Rightarrow> ('n,'t) prods" where
-  uRemove: "uppr ps (uRemove ps)"
+  uRemove: "\<U> ps (uRemove ps)"
 
 definition clean :: "('n,'t) prods \<Rightarrow> ('n,'t)prods" where 
  "clean ps = uRemove ps"
 
 lemma lang_clean: "lang ps A  = lang (clean ps) A"
-  by (simp add: clean_def uppr_lang_eq uRemove)
+  by (simp add: clean_def \<U>_lang_eq uRemove)
 
 definition rlin2_of_rlin :: "('n::infinite,'t) prods \<Rightarrow> ('n,'t)prods" where
   "rlin2_of_rlin ps = clean (binarize (finalize ps))"

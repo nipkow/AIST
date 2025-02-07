@@ -96,7 +96,7 @@ next
   qed
 qed
 
-lemma finite\<N>Prods: "finite (eps_elim P)" 
+lemma finite_eps_elim: "finite (eps_elim P)" 
 proof -
   have "\<forall>p \<in> set P. finite (eps_elim_fun P p)"
     unfolding eps_elim_fun_def by auto
@@ -106,7 +106,7 @@ proof -
 qed
 
 lemma \<N>_exists: "\<forall>P. \<exists>P'. \<N> P P'"
-  unfolding \<N>_def by (simp add: finite_list finite\<N>Prods)
+  unfolding \<N>_def by (simp add: finite_list finite_eps_elim)
 
 lemma eps_closure_nullable:  "[] \<in> set (eps_closure P r) \<Longrightarrow> nullables P r"
 proof (induction r)
@@ -339,20 +339,20 @@ proof (rule ccontr)
     using assms unfolding \<N>_def eps_elim_def by blast 
 qed
 
-theorem \<N>_lang_eq:
-  assumes "\<N> P P'"
-  shows "lang P' S = lang P S - {[]}"
+theorem \<N>_lang_eq: "\<N> P P' \<Longrightarrow> lang P' S = lang P S - {[]}"
 proof 
+  assume "\<N> P P'"
   show "lang P' S \<subseteq> lang P S - {[]}"
   proof 
     fix w
     assume "w \<in> lang P' S"
     hence "w \<in> lang P' S - {[]}"
-      using assms noe_lang_\<N> by fastforce
+      using noe_lang_\<N>[of P] \<open>\<N> P P'\<close> by simp
     thus "w \<in> lang P S - {[]}"
-      using assms by (auto simp: Lang_def \<N>_r3)
+      using \<open>\<N> P P'\<close> by (auto simp: Lang_def \<N>_r3)
   qed
 next
+  assume "\<N> P P'"
   show "lang P S - {[]} \<subseteq> lang P' S"
   proof 
     fix w
@@ -364,7 +364,7 @@ next
     have "(map Tm w) \<in> set (eps_closure P (map Tm w)) "
       using \<open>w \<in> lang P S - {[]}\<close> \<N>_r5 by blast
     hence "set P' \<turnstile> [Nt S] \<Rightarrow>* (map Tm w)"
-      using 1 2 \<N>_r15[of P]  assms by simp
+      using 1 2 \<N>_r15[of P] \<open>\<N> P P'\<close> by simp
     thus "w \<in> lang P' S"
       by (simp add: Lang_def)
   qed

@@ -26,14 +26,6 @@ lemma upgr_Eps_free:
 lemma Nts_correct: "A \<notin> Nts P \<Longrightarrow> (\<nexists>S \<alpha>. (S, \<alpha>) \<in> P \<and> (Nt A \<in> {Nt S} \<union> set \<alpha>))"
 unfolding Nts_def nts_of_syms_def by auto
 
-(* subsumed by lemma Lang_empty_if_notin_Lhss
-lemma not_in_lang: 
-  assumes "S \<notin> Nts P"  
-  shows "Lang P S = {}"
-  using assms Nts_correct 
-  by (metis Lang_def all_not_in_conv deriven_start1 insert_is_Un list.set_intros(1) list.simps(15) mem_Collect_eq rtranclp_power)
-*)
-
 (* Chomsky Normal Form *)
 
 axiomatization fresh :: "('n::infinite,'t) cfg \<Rightarrow> 'n" where
@@ -213,39 +205,43 @@ lemma binarizeNt_aux1:
   shows "A \<noteq> B\<^sub>1 \<and> A \<noteq> B\<^sub>2"
   using assms fresh unfolding binarizeNt_def Nts_def nts_of_syms_def by fastforce
 
+lemma derives_sub:
+  assumes "P \<turnstile> [Nt A] \<Rightarrow> u" and "P \<turnstile> xs \<Rightarrow> p @ [Nt A] @ s"
+  shows "P \<turnstile> xs \<Rightarrow>* p @ u @ s"
+proof -
+  have "P \<turnstile> p @ [Nt A] @ s \<Rightarrow>* p @ u @ s"
+    using assms derive_append derive_prepend by blast
+  thus ?thesis
+    using assms(2) by simp
+qed
+
 lemma cnf_r1Tm: 
   assumes "uniformize A t G G'"
     and "set (prods G) \<turnstile> lhs \<Rightarrow> rhs"
   shows "set (prods G') \<turnstile> lhs \<Rightarrow>* rhs"
 proof -
-  obtain p' s' u v where "lhs = p'@[Nt u]@s' \<and> rhs = p'@v@s' \<and> (u,v) \<in> set (prods G)" (is "?uv")
-    using assms(2) derive.cases by meson
+  obtain p' s' B v where "lhs = p'@[Nt B]@s' \<and> rhs = p'@v@s' \<and> (B,v) \<in> set (prods G)" (is "?Bv")
+    using derive.cases[OF assms(2)] by fastforce
   obtain l r p s where "(l,r) \<in> set (prods G) \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set (prods G)))
       \<and> set (prods G') = ((set (prods G) - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})" (is "?lrps")
     using assms(1) set_removeAll fresh unfolding uniformize_def by fastforce
-  thus ?thesis 
-  proof (cases "u = l")
+  thus ?thesis
+  proof (cases "(B, v) \<in> set (prods G')")
     case True
     then show ?thesis
-    proof (cases "v = p@[Tm t]@s")
-      case True
-      have 1: "(set (prods G')) \<turnstile> [Nt l] \<Rightarrow> p@[Nt A]@s"
-        using \<open>?lrps\<close> by (simp add: derive_singleton)
-      have "(set (prods G')) \<turnstile> [Nt A] \<Rightarrow> [Tm t]"
-        using \<open>?lrps\<close> by (simp add: derive_singleton)
-      hence "(set (prods G')) \<turnstile> [Nt l] \<Rightarrow>* p@[Tm t]@s"
-        using 1 by (meson converse_rtranclp_into_rtranclp r_into_rtranclp derive_append derive_prepend)
-      thus ?thesis 
-        using True \<open>u = l\<close> \<open>?uv\<close> derives_append derives_prepend by blast
-    next
-      case False
-      then show ?thesis
-        by (metis Pair_inject UnI2 Un_commute \<open>?lrps\<close> \<open>?uv\<close> insert_Diff insert_iff r_into_rtranclp derive.intros)
-    qed
+      using derive.intros[of B v] \<open>?Bv\<close> by blast
   next
     case False
+    hence "B = l \<and> v = p@[Tm t]@s"
+      by (simp add: \<open>?lrps\<close> \<open>?Bv\<close>) 
+    have 1: "(set (prods G')) \<turnstile> [Nt l] \<Rightarrow> p@[Nt A]@s"
+      using \<open>?lrps\<close> by (simp add: derive_singleton)
+    have "(set (prods G')) \<turnstile> [Nt A] \<Rightarrow> [Tm t]"
+      using \<open>?lrps\<close> by (simp add: derive_singleton)
+    hence "(set (prods G')) \<turnstile> [Nt l] \<Rightarrow>* p@[Tm t]@s"
+      using 1 derives_sub[of \<open>set (prods G')\<close>] by blast
     then show ?thesis 
-      by (metis Pair_inject UnI2 Un_commute \<open>?lrps\<close> \<open>?uv\<close> insert_Diff insert_iff r_into_rtranclp derive.intros) 
+      using False \<open>B = l \<and> v = p@[Tm t]@s\<close> \<open>?Bv\<close> derives_append derives_prepend by blast
   qed
 qed
 
@@ -254,34 +250,28 @@ lemma cnf_r1Nt:
     and "(set (prods G)) \<turnstile> lhs \<Rightarrow> rhs"
   shows "(set (prods G')) \<turnstile> lhs \<Rightarrow>* rhs"
 proof -
-  obtain p' s' u v where "lhs = p'@[Nt u]@s' \<and> rhs = p'@v@s' \<and> (u,v) \<in> set (prods G)" (is "?uv")
-    using assms(2) derive.cases by meson
+  obtain p' s' C v where "lhs = p'@[Nt C]@s' \<and> rhs = p'@v@s' \<and> (C,v) \<in> set (prods G)" (is "?Cv")
+    using derive.cases[OF assms(2)] by fastforce
   obtain l r p s where "(l,r) \<in> set (prods G) \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set (prods G)))
     \<and> (set (prods G') = ((set (prods G) - {(l,r)}) \<union> {(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)}))" (is "?lrps")
     using assms(1) set_removeAll fresh unfolding binarizeNt_def by fastforce
   thus ?thesis
-  proof (cases "u = l")
+  proof (cases "(C, v) \<in> set (prods G')")
     case True
-    then show ?thesis 
-    proof (cases "v = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s")
-      case True
-      have 1: "set (prods G') \<turnstile> [Nt l] \<Rightarrow> p@[Nt A]@s"
-        using \<open>?lrps\<close> by (simp add: derive_singleton)
-      have "set (prods G') \<turnstile> [Nt A] \<Rightarrow> [Nt B\<^sub>1,Nt B\<^sub>2]"
-        using \<open>?lrps\<close> by (simp add: derive_singleton)
-      hence "set (prods G') \<turnstile> [Nt l] \<Rightarrow>* p@[Nt B\<^sub>1,Nt B\<^sub>2]@s" 
-        using 1 by (meson converse_rtranclp_into_rtranclp derives_append derives_prepend r_into_rtranclp) 
-      thus ?thesis 
-        using True \<open>u = l\<close> \<open>?uv\<close> derives_append derives_prepend by blast
-    next
-      case False
-      then show ?thesis 
-        by (metis UnCI \<open>?lrps\<close> \<open>?uv\<close> insertE insert_Diff prod.inject r_into_rtranclp derive.intros) 
-    qed
+    then show ?thesis
+      using derive.intros[of C v] \<open>?Cv\<close> by blast
   next
     case False
-    then show ?thesis 
-      using \<open>?lrps\<close> \<open>?uv\<close> derive.simps by fastforce
+    hence "C = l \<and> v = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s"
+      by (simp add: \<open>?lrps\<close> \<open>?Cv\<close>)
+    have 1: "set (prods G') \<turnstile> [Nt l] \<Rightarrow> p@[Nt A]@s"
+      using \<open>?lrps\<close> by (simp add: derive_singleton)
+    have "set (prods G') \<turnstile> [Nt A] \<Rightarrow> [Nt B\<^sub>1,Nt B\<^sub>2]"
+      using \<open>?lrps\<close> by (simp add: derive_singleton)
+    hence "set (prods G') \<turnstile> [Nt l] \<Rightarrow>* p@[Nt B\<^sub>1,Nt B\<^sub>2]@s" 
+      using 1 derives_sub[of \<open>set (prods G')\<close>] by blast
+    thus ?thesis 
+      using False \<open>C = l \<and> v = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s\<close> \<open>?Cv\<close> derives_append derives_prepend by blast
   qed
 qed
 
@@ -377,7 +367,7 @@ proof -
       \<and> set (prods G') = ((set (prods G) - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})" (is "?lrps")
     using assms(1) set_removeAll fresh unfolding uniformize_def by fastforce
   obtain p' s' u v where "lhs = p'@[Nt u]@s' \<and> rhs = p'@v@s' \<and> (u,v) \<in> set (prods G')" (is "?uv")
-    using assms(2) derive.cases by meson
+    using derive.cases[OF assms(2)] by fastforce
   thus ?thesis
   proof (cases "u = A")
     case True
@@ -448,7 +438,7 @@ proof -
     \<and> (set (prods G') = ((set (prods G) - {(l,r)}) \<union> {(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)}))" (is "?lrps")
     using assms(1) set_removeAll fresh unfolding binarizeNt_def by fastforce
   obtain p' s' u v where "lhs = p'@[Nt u]@s' \<and> rhs = p'@v@s' \<and> (u,v) \<in> set (prods G')" (is "?uv")
-    using assms(2) derive.cases by meson
+    using derive.cases[OF assms(2)] by fastforce
   thus ?thesis
   proof (cases "u = A")
     case True
@@ -1178,4 +1168,4 @@ proof -
     using \<open>?AB\<close> append_eq_map_conv[of u v Tm w] list.simps(8)[of Tm] by fastforce
 qed
 
-end
+end 

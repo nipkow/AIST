@@ -12,39 +12,10 @@ lemma Tms_un:
   "Tm ` Tms (a \<union> as) = Tm ` (Tms a) \<union> Tm ` (Tms as)"
   unfolding Tms_def by blast
 
-(* CFG? unused
-lemma symS_un: "Syms (a \<union> as) = Syms a \<union> Syms as"
-  unfolding Syms_def by (simp add: Nts_un sup_assoc sup_left_commute Tms_un)
-*)
 (* CFG? *)
 lemma nt_tm: "Nt ` nts_of_syms u \<union> Tm ` tms_of_syms u = set u"
 unfolding nts_of_syms_def tms_of_syms_def by (auto simp:image_iff) (metis sym.exhaust)
 
-(* CFG? 
-lemma Syms_one: "Syms {(A,u)} = {Nt A} \<union> set u"
-  unfolding Syms_def Nts_def Tms_def using nt_tm by auto
-*)
-(* CFG? 
-lemma syms_Syms_eq:
-"set (syms ps) = Syms (set ps)"
-proof (induction ps)
-  case Nil
-  then show ?case by (simp add: Nts_def Syms_def Tms_def)
-next
-  case (Cons a ps)
-  let ?A = "fst a" let ?u = "snd a"
-  have "set (syms (a # ps)) = set (Nt ?A # ?u @ syms ps)"
-    by (metis prod.collapse syms.simps(2))
-  also have "... = {Nt ?A} \<union> set ?u \<union> set (syms ps)" by simp
-  also from Cons.IH have "... = {Nt ?A} \<union> set ?u \<union> Syms (set ps)" by simp
-  also have "... = Syms {a} \<union> Syms (set ps)"
-    using Syms_one by (metis prod.collapse)
-  also have "... = Syms ({a} \<union> set ps)"
-    using symS_un by blast
-  also have "... = Syms (set (a # ps))" by simp
-  finally show ?case by simp
-qed
-*)
 (* CFG? *)
 lemma lhss_eq: "lhss ((A,u) # ps) = lhss ((A,s) # ps)"
   by (auto simp: Lhss_def)

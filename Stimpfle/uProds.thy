@@ -16,11 +16,8 @@ definition unit_elim :: "('n, 't) prods \<Rightarrow> ('n, 't) Prods" where
 definition new_prods :: "('n, 't) prods \<Rightarrow> ('n, 't) Prods" where 
   "new_prods ps = {(a,r). \<exists>b. (b,r) \<in> (unit_elim ps) \<and> (a, b) \<in> rec_unit_prods (unit_prods ps)}"
 
-definition \<U>_rules :: "('n, 't) prods \<Rightarrow> ('n, 't) Prods" where
-  "\<U>_rules ps = (unit_elim ps \<union> new_prods ps)"
-
 definition \<U> :: "('n, 't) prods \<Rightarrow> ('n, 't) prods \<Rightarrow> bool" where
-  "\<U> ps ps' = (set ps' = \<U>_rules ps)"
+  "\<U> ps ps' \<equiv> set ps' = (unit_elim ps \<union> new_prods ps)"
 
 (* psroofs *)
 (* Finiteness & Existence *)
@@ -55,26 +52,26 @@ proof -
 qed
 
 (* finiteness for new_prods *)
-definition npslambda :: "('n, 't) Prods \<Rightarrow> ('n \<times> 'n) \<Rightarrow> ('n, 't) Prods" where
-  "npslambda ps d = {fst d} \<times> {r. (snd d, r) \<in> ps}"
+definition nPSlambda :: "('n, 't) Prods \<Rightarrow> ('n \<times> 'n) \<Rightarrow> ('n, 't) Prods" where
+  "nPSlambda Ps d = {fst d} \<times> {r. (snd d, r) \<in> Ps}"
 
-lemma npsImage: "\<Union>((npslambda (unit_elim ps)) ` (rec_unit_prods (unit_prods ps))) = new_prods ps"
-  unfolding new_prods_def npslambda_def by fastforce
+lemma npsImage: "\<Union>((nPSlambda (unit_elim ps)) ` (rec_unit_prods (unit_prods ps))) = new_prods ps"
+  unfolding new_prods_def nPSlambda_def by fastforce
 
-lemma finitenpslambda:
-  assumes "finite ps" 
-  shows "finite (npslambda ps d)"
+lemma finitenPSlambda:
+  assumes "finite Ps" 
+  shows "finite (nPSlambda Ps d)"
 proof -
-  have "{(B, r). (B, r) \<in> ps \<and> B = snd d} \<subseteq> ps" 
+  have "{(B, r). (B, r) \<in> Ps \<and> B = snd d} \<subseteq> Ps" 
     by blast
-  hence "finite {(B, r). (B, r) \<in> ps \<and> B = snd d}"
+  hence "finite {(B, r). (B, r) \<in> Ps \<and> B = snd d}"
     using assms finite_subset by blast
-  hence "finite (snd ` {(B, r). (B, r) \<in> ps \<and> B = snd d})" 
+  hence "finite (snd ` {(B, r). (B, r) \<in> Ps \<and> B = snd d})" 
     by simp
-  moreover have "{r. (snd d, r) \<in> ps} = (snd ` {(B, r). (B, r) \<in> ps \<and> B = snd d})"
+  moreover have "{r. (snd d, r) \<in> Ps} = (snd ` {(B, r). (B, r) \<in> Ps \<and> B = snd d})"
     by force
   ultimately show ?thesis
-    using assms unfolding npslambda_def by simp
+    using assms unfolding nPSlambda_def by simp
 qed
 
 lemma finitenew_prods: "finite (new_prods ps)"
@@ -84,23 +81,22 @@ proof -
   moreover have "finite (rec_unit_prods (unit_prods ps))"
     using finiteunit_prods finiterec_unit_prods by blast
   ultimately show ?thesis
-    using npsImage finitenpslambda finite_UN by metis
+    using npsImage finitenPSlambda finite_UN by metis
 qed
 
 (* finiteness \<U>_rules *)
-lemma finite\<U>Rules: "finite (\<U>_rules ps)"
+lemma finite\<U>Rules: "finite (unit_elim ps \<union> new_prods ps)"
 proof -
   have "finite (unit_elim ps)"
     unfolding unit_elim_def using finiteunit_prods by blast
   moreover have "finite (new_prods ps)"
     using finitenew_prods by blast
-  ultimately show ?thesis
-    unfolding \<U>_rules_def by blast
+  ultimately show ?thesis by blast
 qed
 
 (* \<U> Existence *)
 lemma \<U>_exists: "\<forall>ps. \<exists>ps'. \<U> ps ps'"
-  unfolding \<U>_def using finite\<U>Rules finite_list by blast
+  unfolding \<U>_def using finite_list[OF finite\<U>Rules] by blast
 
 (* towards theorem 4.4 *)
 
@@ -138,7 +134,7 @@ proof -
   obtain A \<alpha> r1 r2 where "(A, \<alpha>) \<in> set ps' \<and> u = r1 @ [Nt A] @ r2 \<and> v = r1 @ \<alpha> @ r2" (is "?A")
     using assms derive.cases by meson
   hence "(A, \<alpha>) \<in> unit_elim ps \<or> (A, \<alpha>) \<in> new_prods ps"
-    using assms(1) unfolding \<U>_def \<U>_rules_def by simp
+    using assms(1) unfolding \<U>_def by simp
   thus ?thesis
   proof
     assume "(A, \<alpha>) \<in> unit_elim ps"
@@ -191,7 +187,7 @@ qed
 lemma \<U>_r12: 
   assumes "\<U> ps ps'" "(A, \<alpha>) \<in> set ps'"
   shows "(A, \<alpha>) \<notin> unit_prods ps"
-  using assms unfolding \<U>_def \<U>_rules_def unit_elim_def unit_prods_def new_prods_def by blast
+  using assms unfolding \<U>_def unit_elim_def unit_prods_def new_prods_def by blast
 
 lemma \<U>_r14: 
   assumes "\<U> ps ps'" 
@@ -208,11 +204,11 @@ proof -
     hence "(B, v) \<in> unit_elim ps"
       unfolding unit_elim_def using assms(1) assms(3) \<U>_r12[of ps ps' B v] by (simp add: derive_singleton)
     then show ?thesis
-    using 1 assms(1) unfolding \<U>_def \<U>_rules_def new_prods_def derive_singleton by blast
+    using 1 assms(1) unfolding \<U>_def new_prods_def derive_singleton by blast
   next
     case False
     hence "(B, v) \<in> new_prods ps"
-      using assms(1) 2 unfolding unit_elim_def \<U>_def \<U>_rules_def by simp
+      using assms(1) 2 unfolding unit_elim_def \<U>_def  by simp
     from this obtain C where "(C, v) \<in> unit_elim ps \<and> (B, C) \<in> rec_unit_prods (unit_prods ps)" (is "?C")
       unfolding new_prods_def by blast
     hence "unit_prods ps \<turnstile> [Nt A] \<Rightarrow>* [Nt C]"
@@ -222,19 +218,19 @@ proof -
     hence "(A, v) \<in> new_prods ps"
       unfolding new_prods_def using \<open>?C\<close> by blast
     hence "(A, v) \<in> set ps'"
-      using assms(1) unfolding \<U>_def \<U>_rules_def by blast
+      using assms(1) unfolding \<U>_def  by blast
     thus ?thesis by (simp add: derive_singleton)
   qed
 qed
 
 lemma \<U>_r20_aux:
-  assumes "set ps \<turnstile> l @ [Nt A] @ r \<Rightarrow>* v" "\<forall>a \<in> set v. \<exists>t. a = Tm t"
-  shows "\<exists>\<alpha>. set ps \<turnstile> l @ [Nt A] @ r \<Rightarrow> l @ \<alpha> @ r \<and> set ps \<turnstile> l @ \<alpha> @ r \<Rightarrow>* v \<and> (A, \<alpha>) \<in> set ps"
+  assumes "set ps \<turnstile> l @ [Nt A] @ r \<Rightarrow>* map Tm v" 
+  shows "\<exists>\<alpha>. set ps \<turnstile> l @ [Nt A] @ r \<Rightarrow> l @ \<alpha> @ r \<and> set ps \<turnstile> l @ \<alpha> @ r \<Rightarrow>* map Tm v \<and> (A, \<alpha>) \<in> set ps"
 proof -
-  obtain l' w r' where "set ps \<turnstile> l \<Rightarrow>* l'  \<and> set ps \<turnstile> [Nt A] \<Rightarrow>* w \<and>  set ps \<turnstile> r \<Rightarrow>* r' \<and> v = l' @ w @ r'" (is "?w")
+  obtain l' w r' where "set ps \<turnstile> l \<Rightarrow>* l'  \<and> set ps \<turnstile> [Nt A] \<Rightarrow>* w \<and>  set ps \<turnstile> r \<Rightarrow>* r' \<and> map Tm v = l' @ w @ r'" (is "?w")
     using assms(1) by (metis derives_append_decomp)
-  have "Nt A \<notin> set v" 
-    using assms(2) by blast
+  have "Nt A \<notin> set (map Tm v)" 
+    using assms(1) by auto
   hence "[Nt A] \<noteq> w" 
     using \<open>?w\<close> by auto
   from this obtain \<alpha> where "set ps \<turnstile> [Nt A] \<Rightarrow> \<alpha> \<and> set ps \<turnstile> \<alpha> \<Rightarrow>* w" (is "?\<alpha>")
@@ -245,9 +241,8 @@ proof -
 qed
 
 lemma \<U>_r20: 
-  assumes "set ps \<turnstile> u \<Rightarrow>* v"
-    and "\<U> ps ps'" "\<forall>a \<in> set v. \<exists>t. a = Tm t"
-  shows "set ps' \<turnstile> u \<Rightarrow>* v"
+  assumes "set ps \<turnstile> u \<Rightarrow>* map Tm v" "\<U> ps ps'"
+  shows "set ps' \<turnstile> u \<Rightarrow>* map Tm v"
   using assms proof (induction rule: derives_induct')
   case base
   then show ?case by blast
@@ -258,10 +253,10 @@ next
     case True
     from this obtain B where "w = [Nt B]" (is "?B")
       unfolding unit_prods_def by blast
-    have "set ps' \<turnstile> l @ w @ r \<Rightarrow>* v \<and> Nt B \<notin> set v"
-      using step.IH assms(2) assms(3) by blast
-    obtain \<alpha> where "set ps' \<turnstile> l @ [Nt B] @ r \<Rightarrow> l @ \<alpha> @ r \<and> set ps' \<turnstile> l @ \<alpha> @ r \<Rightarrow>* v \<and> (B, \<alpha>) \<in> set ps'" (is "?\<alpha>")
-      using assms(2) assms(3) step.IH \<open>?B\<close>  \<U>_r20_aux[of ps' l B r v] by blast
+    have "set ps' \<turnstile> l @ w @ r \<Rightarrow>* map Tm v \<and> Nt B \<notin> set (map Tm v)"
+      using step.IH assms(2) by auto
+    obtain \<alpha> where "set ps' \<turnstile> l @ [Nt B] @ r \<Rightarrow> l @ \<alpha> @ r \<and> set ps' \<turnstile> l @ \<alpha> @ r \<Rightarrow>* map Tm v \<and> (B, \<alpha>) \<in> set ps'" (is "?\<alpha>")
+      using assms(2) step.IH \<open>?B\<close>  \<U>_r20_aux[of ps' l B r v] by blast
     hence "(A, \<alpha>) \<in> set ps'"
       using assms(2) step.hyps(2) \<open>?B\<close> \<U>_r14[of ps ps' A B \<alpha>] by (simp add: derive_singleton)
     hence "set ps' \<turnstile> l @ [Nt A] @ r \<Rightarrow>* l @ \<alpha> @ r"
@@ -273,7 +268,7 @@ next
     hence "(A, w) \<in> unit_elim ps"
       unfolding unit_elim_def using step.hyps(2) by blast
     hence "(A, w) \<in> set ps'"
-      using assms(2) unfolding \<U>_def \<U>_rules_def by simp
+      using assms(2) unfolding \<U>_def  by simp
     hence "set ps' \<turnstile> l @ [Nt A] @ r \<Rightarrow> l @ w @ r"
       by (auto simp: derive.simps)
     then show ?thesis
@@ -281,14 +276,11 @@ next
   qed
 qed
 
-theorem \<U>_lang_eq: 
-  assumes "\<U> ps ps'"
-  shows "lang ps S = lang ps' S"
-  unfolding Lang_def using assms \<U>_r4 \<U>_r20 ex_map_conv by meson
+theorem \<U>_lang_eq: "\<U> ps ps' \<Longrightarrow> lang ps S = lang ps' S"
+  unfolding Lang_def using \<U>_r4 \<U>_r20 by blast
 
 theorem \<N>_\<U>_lang_eq:
-  assumes "\<N> ps ps\<^sub>0"
-    and "\<U> ps\<^sub>0 ps'"
+  assumes "\<N> ps ps\<^sub>0" and "\<U> ps\<^sub>0 ps'"
   shows "lang ps' S = lang ps\<^sub>0 S - {[]}"
   using assms \<N>_lang_eq[of ps ps\<^sub>0 S] \<U>_lang_eq[of ps\<^sub>0 ps' S] by blast
 

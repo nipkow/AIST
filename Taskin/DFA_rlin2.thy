@@ -231,7 +231,7 @@ proof -
   qed simp
 qed
 
-lemma mult_derive_to_nxts:
+lemma mult_derive_to_nxts':
   assumes "rlin2 P"
   shows "(\<exists>A\<in>M. P \<turnstile> [Nt A] \<Rightarrow>* map Tm w @ [Nt B]) \<Longrightarrow> B \<in> nxts_rlin2_set P M w"
 unfolding nxts_rlin2_set_def using assms proof (induction w arbitrary: B rule: rev_induct)
@@ -248,6 +248,25 @@ next
   with snoc.prems(2) obtain C where C_der: "P \<turnstile> [Nt A] \<Rightarrow>* map Tm xs @ [Nt C]"
                                 and C_prods: "(C,[Tm x, Nt B]) \<in> P" using rlin2_introduce_tm[of P A xs x B] by fast
   from A_in C_der snoc.prems(2) have "C \<in> foldl (nxt_rlin2_set P) M xs"
+    using snoc.IH[of C] by auto
+  with C_prods show ?case
+    unfolding nxt_rlin2_set_def nxt_rlin2_def by auto
+qed
+
+lemma mult_derive_to_nxts:
+  assumes "rlin2 P"
+  shows "A\<in>M \<Longrightarrow> P \<turnstile> [Nt A] \<Rightarrow>* map Tm w @ [Nt B] \<Longrightarrow> B \<in> nxts_rlin2_set P M w"
+unfolding nxts_rlin2_set_def proof (induction w arbitrary: B rule: rev_induct)
+  case Nil
+  with assms have "A = B"
+    using rlin2_nts_derive_eq[of P A B] by simp
+  with Nil.prems(1) show ?case by simp
+next
+  case (snoc x xs)
+  from snoc.prems(2) have "P \<turnstile> [Nt A] \<Rightarrow>* map Tm xs @ [Tm x,Nt B]" by simp
+  with assms obtain C where C_der: "P \<turnstile> [Nt A] \<Rightarrow>* map Tm xs @ [Nt C]"
+                        and C_prods: "(C,[Tm x, Nt B]) \<in> P" using rlin2_introduce_tm[of P A xs x B] by fast
+  from \<open>A \<in> M\<close> C_der have "C \<in> foldl (nxt_rlin2_set P) M xs"
     using snoc.IH[of C] by auto
   with C_prods show ?case
     unfolding nxt_rlin2_set_def nxt_rlin2_def by auto

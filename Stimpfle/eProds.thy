@@ -108,8 +108,8 @@ qed
 lemma \<N>_exists: "\<forall>ps. \<exists>ps'. \<N> ps ps'"
   unfolding \<N>_def by (simp add: finite_list finite_eps_elim)
 
-lemma eps_closure_nullable:  "[] \<in> set (eps_closure ps r) \<Longrightarrow> nullables ps r"
-proof (induction r)
+lemma eps_closure_nullable:  "[] \<in> set (eps_closure ps w) \<Longrightarrow> nullables ps w"
+proof (induction w)
   case Nil
   then show ?case by simp
 next
@@ -174,7 +174,7 @@ proof -
 qed
 
 lemma \<N>_r3:
-  assumes "set ps'\<turnstile> u \<Rightarrow>* v"
+  assumes "set ps' \<turnstile> u \<Rightarrow>* v"
     and "\<N> ps ps'" 
   shows "set ps \<turnstile> u \<Rightarrow>* v"
   using assms by (induction v rule: rtranclp_induct) (auto simp: \<N>_r2 rtranclp_trans)
@@ -369,5 +369,7 @@ next
       by (simp add: Lang_def)
   qed
 qed
+
+unused_thms
 
 end

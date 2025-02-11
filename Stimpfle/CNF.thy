@@ -15,13 +15,13 @@ lemma negrImpEps_free: "\<N> ps ps' \<Longrightarrow> Eps_free (set ps')"
   unfolding \<N>_def eps_elim_def Eps_free_def by blast
 
 lemma upgrImpUnit_free: "\<U> ps ps' \<Longrightarrow> Unit_free (set ps')" 
-  unfolding \<U>_def \<U>_rules_def unit_elim_def new_prods_def unit_prods_def Unit_free_def by simp
+  unfolding \<U>_def unit_elim_def new_prods_def unit_prods_def Unit_free_def by simp
 
 lemma upgr_Eps_free:
-  assumes "Eps_free (set ps)" "\<U> ps ps'"
+  assumes "Eps_free (set ps)" and "\<U> ps ps'"
   shows "Eps_free (set ps')"
   using assms 
-  unfolding \<U>_def Eps_free_def \<U>_rules_def unit_elim_def unit_prods_def new_prods_def by auto
+  unfolding \<U>_def Eps_free_def unit_elim_def unit_prods_def new_prods_def by auto
 
 lemma Nts_correct: "A \<notin> Nts Ps \<Longrightarrow> (\<nexists>S \<alpha>. (S, \<alpha>) \<in> Ps \<and> (Nt A \<in> {Nt S} \<union> set \<alpha>))"
 unfolding Nts_def nts_of_syms_def by auto
@@ -72,6 +72,8 @@ definition prodTms :: "('n,'t) prod \<Rightarrow> nat" where
 definition prodNts :: "('n,'t) prod \<Rightarrow> nat" where
   "prodNts p \<equiv> (if length (snd p) \<le> 2 then 0 else length (filter (isNt) (snd p)))"
 
+(* This definition can be reduced to badTmsCount ps \<equiv> fold (+) (map prodTms ps) 0. 
+   However, the proofs turned out to be much nicer with this version  *)
 fun badTmsCount :: "('n,'t) prods \<Rightarrow> nat" where
   "badTmsCount [] = 0" |
   "badTmsCount (p#ps) = (prodTms p) + badTmsCount ps"
@@ -610,39 +612,32 @@ proof
     using assms slemma5_1Nt Lang_def by fast
 qed 
 
-lemma cnf_lemma1: 
-  assumes "uniformize A t g g'"
-  shows "L g = L g'"
-  using assms lemma4 lemma5 by fast
+lemma cnf_lemma1: "uniformize A t g g' \<Longrightarrow> L g = L g'"
+  using lemma4 lemma5 by fast
 
-lemma cnf_lemma1Nt: 
-  assumes "binarizeNt A B\<^sub>1 B\<^sub>2 g g'"
-  shows "L g = L g'"
-  using assms lemma4Nt lemma5Nt by fast
-
-definition eqLang :: "('n,'t) cfg \<Rightarrow> ('n,'t) cfg \<Rightarrow> bool" where
-  "eqLang g g' \<longleftrightarrow> L g = L g'"
+lemma cnf_lemma1Nt: "binarizeNt A B\<^sub>1 B\<^sub>2 g g' \<Longrightarrow> L g = L g'"
+  using lemma4Nt lemma5Nt by fast
 
 lemma uniformizeRtc_Eps_free: 
-  assumes "((\<lambda>x y. \<exists>A t. uniformize A t x y) ^**) g g'"
+  assumes "(\<lambda>x y. \<exists>A t. uniformize A t x y)^** g g'"
     and "Eps_free (set (prods g))"
   shows "Eps_free (set (prods g'))"
   using assms by (induction) (auto simp: uniformize_Eps_free)
 
 lemma binarizeNtRtc_Eps_free:
-  assumes "((\<lambda>x y. \<exists>A t B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y) ^**) g g'"
+  assumes "(\<lambda>x y. \<exists>A t B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y)^** g g'"
     and "Eps_free (set (prods g))"
   shows "Eps_free (set (prods g'))"
   using assms by (induction) (auto simp: binarizeNt_Eps_free)
 
 lemma uniformizeRtc_Unit_free: 
-  assumes "((\<lambda>x y. \<exists>A t. uniformize A t x y) ^**) g g'"
+  assumes "(\<lambda>x y. \<exists>A t. uniformize A t x y)^** g g'"
     and "Unit_free (set (prods g))"
   shows "Unit_free (set (prods g'))"
   using assms by (induction) (auto simp: uniformize_Unit_free)
 
 lemma binarizeNtRtc_Unit_free:
-  assumes "((\<lambda>x y. \<exists>A t B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y) ^**) g g'"
+  assumes "(\<lambda>x y. \<exists>A t B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y)^** g g'"
     and "Unit_free (set (prods g))"
   shows "Unit_free (set (prods g'))"
   using assms by (induction) (auto simp: binarizeNt_Unit_free)
@@ -676,9 +671,9 @@ proof -
 qed  
 
 lemma uniformizeRtc_Nts: 
-  assumes "((\<lambda>x y. \<exists>A t. uniformize A t x y) ^**) g g'" "S \<in> Nts (set (prods g))"
+  assumes "(\<lambda>x y. \<exists>A t. uniformize A t x y)^** g g'" "S \<in> Nts (set (prods g))"
   shows "S \<in> Nts (set (prods g'))"
-  using assms by (induction rule: rtranclp.induct) (auto simp: uniformize_Nts)
+  using assms by (induction rule: rtranclp_induct) (auto simp: uniformize_Nts)
 
 lemma binarizeNt_Nts: 
   assumes "binarizeNt A B\<^sub>1 B\<^sub>2 g g'" "S \<in> Nts (set (prods g))"
@@ -705,29 +700,29 @@ proof -
 qed  
 
 lemma binarizeNtRtc_Nts: 
-  assumes "((\<lambda>x y. \<exists>A t B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y) ^**) g g'" "S \<in> Nts (set (prods g))"
+  assumes "(\<lambda>x y. \<exists>A t B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y)^** g g'" "S \<in> Nts (set (prods g))"
   shows "S \<in> Nts (set (prods g'))"
-  using assms by (induction rule: rtranclp.induct) (auto simp: binarizeNt_Nts)
+  using assms by (induction rule: rtranclp_induct) (auto simp: binarizeNt_Nts)
 
 (* Termination *)
 
 theorem cnf_lemma2: 
-  assumes "((\<lambda>x y. \<exists>A t. uniformize A t x y) ^**) g g'"
+  assumes "(\<lambda>x y. \<exists>A t. uniformize A t x y)^** g g'"
   shows "L g = L g'"
-  using assms by (induction rule: rtranclp.induct) (fastforce simp: cnf_lemma1)+ 
+  using assms by (induction rule: rtranclp_induct) (fastforce simp: cnf_lemma1)+ 
 
 theorem cnf_lemma2Nt: 
-  assumes "((\<lambda>x y. \<exists>A t B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y) ^**) g g'"
+  assumes "(\<lambda>x y. \<exists>A t B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y)^** g g'"
   shows "L g = L g'"
-  using assms by (induction rule: rtranclp.induct) (fastforce simp: cnf_lemma1Nt)+
+  using assms by (induction rule: rtranclp_induct) (fastforce simp: cnf_lemma1Nt)+
 
 theorem cnf_lemma: 
-  assumes "((\<lambda>x y. \<exists>A t. uniformize A t x y) ^**) g g'"
-    and "((\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y) ^**) g' g''"
+  assumes "(\<lambda>x y. \<exists>A t. uniformize A t x y)^** g g'"
+    and "(\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y)^** g' g''"
   shows "L g = L g''"
   using assms cnf_lemma2 cnf_lemma2Nt uniformizeRtc_Nts by fastforce
 
-(* Psart 2 *)
+(* Part 2 *)
 lemma badTmsCount_append: "badTmsCount (Ps@Ps') = badTmsCount Ps + badTmsCount Ps'"
   by (induction Ps) auto
 
@@ -754,13 +749,12 @@ lemma badNtsCount_removeAll2:
   shows "badNtsCount (removeAll p Ps) + prodNts p' < badNtsCount Ps"
   using assms by (induction Ps) fastforce+
 
-lemma lemma6_a: 
-  assumes "uniformize A t g g'" 
-  shows "badTmsCount (prods g') < badTmsCount (prods g)"
+lemma lemma6_a: "uniformize A t g g' \<Longrightarrow> badTmsCount (prods g') < badTmsCount (prods g)"
 proof -
-  obtain l r p s where "(l,r) \<in> set (prods g) \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set (prods g))) 
+  assume "uniformize A t g g'"
+  then obtain l r p s where "(l,r) \<in> set (prods g) \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set (prods g))) 
       \<and> prods g' = ((removeAll (l,r) (prods g)) @ [(A,[Tm t]), (l, p@[Nt A]@s)])" (is "?lrps")
-    using assms fresh unfolding uniformize_def by auto
+    using fresh unfolding uniformize_def by auto
   hence "prodTms (l,p@[Tm t]@s) = length (filter (isTm) (p@[Tm t]@s))"
     unfolding prodTms_def by auto
   hence 1: "prodTms (l,p@[Tm t]@s) = Suc (length (filter (isTm) (p@s)))"
@@ -789,13 +783,12 @@ proof -
   qed
 qed
 
-lemma lemma6_b: 
-  assumes "binarizeNt A B\<^sub>1 B\<^sub>2 g g'"
-  shows "badNtsCount (prods g') < badNtsCount (prods g)"
+lemma lemma6_b: "binarizeNt A B\<^sub>1 B\<^sub>2 g g' \<Longrightarrow> badNtsCount (prods g') < badNtsCount (prods g)"
 proof -
-  obtain l r p s where "(l,r) \<in> set (prods g) \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set (prods g)))
+  assume "binarizeNt A B\<^sub>1 B\<^sub>2 g g'"
+  then obtain l r p s where "(l,r) \<in> set (prods g) \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set (prods g)))
     \<and> prods g' = ((removeAll (l,r) (prods g)) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)])" (is "?lrps")
-    using assms(1) fresh unfolding binarizeNt_def by auto
+    using fresh unfolding binarizeNt_def by auto
   hence "prodNts (l,p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) = length (filter (isNt) (p@[Nt B\<^sub>1,Nt B\<^sub>2]@s))"
     unfolding prodNts_def by auto
   hence 1: "prodNts (l,p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) = Suc (Suc (length (filter (isNt) (p@s))))"
@@ -851,7 +844,7 @@ proof -
 qed
 
 lemma lemma15_a:
-  assumes "((\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y) ^**) g g'"
+  assumes "(\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y)^** g g'"
     and "badTmsCount (prods g) = 0"
   shows "badTmsCount (prods g') = 0"
   using assms by (induction) (auto simp: slemma15_a)
@@ -917,7 +910,6 @@ proof -
   thus ?thesis by blast
 qed
 
-thm binarizeNt_def
 lemma lemma8_b:
   assumes "badTmsCount (prods g) = 0"
     and "badNtsCount (prods g) > 0"
@@ -940,7 +932,7 @@ proof -
   thus ?thesis by blast
 qed
 
-lemma uniformize_2: "\<exists>g'. ((\<lambda>x y. \<exists>A t. uniformize A t x y) ^**) g g' \<and> (badTmsCount (prods g') = 0)"
+lemma uniformize_2: "\<exists>g'. (\<lambda>x y. \<exists>A t. uniformize A t x y)^** g g' \<and> (badTmsCount (prods g') = 0)"
 proof (induction "badTmsCount (prods g)" arbitrary: g rule: less_induct)
   case less
   then show ?case
@@ -959,7 +951,7 @@ qed
 
 lemma binarizeNt_2: 
   assumes "badTmsCount (prods g) = 0"
-    shows "\<exists>g'. ((\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y) ^**) g g' \<and> (badNtsCount (prods g') = 0)"
+    shows "\<exists>g'. (\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y)^** g g' \<and> (badNtsCount (prods g') = 0)"
 using assms proof (induction "badNtsCount (prods g)" arbitrary: g rule: less_induct)
   case less
   then show ?case 
@@ -979,9 +971,9 @@ qed
 theorem uni_bin_exists: "\<forall>g::('n::infinite,'t) cfg. \<exists>g'::('n,'t)cfg. uniform (set (prods g')) \<and> binary (set (prods g')) \<and> L g = L g'"
 proof 
   fix g::"('n::infinite,'t) cfg"
-  obtain g' where "((\<lambda>x y. \<exists>A t. uniformize A t x y) ^**) g g' \<and> (badTmsCount (prods g') = 0)" (is "?g'")
+  obtain g' where "(\<lambda>x y. \<exists>A t. uniformize A t x y)^** g g' \<and> (badTmsCount (prods g') = 0)" (is "?g'")
     using uniformize_2 by blast
-  obtain g'' where "((\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y) ^**) g' g'' \<and> (badNtsCount (prods g'') = 0) \<and> (badTmsCount (prods g'') = 0)" (is "?g''")
+  obtain g'' where "(\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y)^** g' g'' \<and> (badNtsCount (prods g'') = 0) \<and> (badTmsCount (prods g'') = 0)" (is "?g''")
     using \<open>?g'\<close> binarizeNt_2 lemma15_a by blast
   hence "uniform (set (prods g'')) \<and> binary (set (prods g''))"
     using count_bin_un by blast
@@ -992,12 +984,12 @@ proof
 qed
 
 theorem cnf_noe_nou: 
-  assumes "Eps_free (set (prods (g::('n::infinite,'t) cfg)))" "Unit_free (set (prods g))"
+  assumes "Eps_free (set (prods (g::('n::infinite,'t) cfg)))" and "Unit_free (set (prods g))"
   shows "\<exists>g'::('n,'t) cfg. (uniform (set (prods g')) \<and> binary (set (prods g'))) \<and> (L g = L g') \<and> Eps_free (set (prods g')) \<and> Unit_free (set (prods g'))"
 proof -
-  obtain g' where "((\<lambda>x y. \<exists>A t. uniformize A t x y) ^**) g g' \<and> (badTmsCount (prods g') = 0) \<and> Eps_free (set (prods g')) \<and> Unit_free (set (prods g'))" (is "?g'")
+  obtain g' where "(\<lambda>x y. \<exists>A t. uniformize A t x y)^** g g' \<and> (badTmsCount (prods g') = 0) \<and> Eps_free (set (prods g')) \<and> Unit_free (set (prods g'))" (is "?g'")
     using assms uniformize_2 uniformizeRtc_Eps_free uniformizeRtc_Unit_free by blast
-  obtain g'' where "((\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y) ^**) g' g'' \<and> (badNtsCount (prods g'') = 0) \<and> (badTmsCount (prods g'') = 0)" (is "?g''")
+  obtain g'' where "(\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y)^** g' g'' \<and> (badNtsCount (prods g'') = 0) \<and> (badTmsCount (prods g'') = 0)" (is "?g''")
     using \<open>?g'\<close> binarizeNt_2 lemma15_a by blast
   hence "uniform (set (prods g'')) \<and> binary (set (prods g'')) \<and> Eps_free (set (prods g'')) \<and> Unit_free (set (prods g''))"
     using \<open>?g'\<close> count_bin_un binarizeNtRtc_Eps_free binarizeNtRtc_Unit_free by fastforce
@@ -1071,8 +1063,7 @@ next
 qed
 
 (* Main Theorem: existence of cnf for all cfg with the same Language except for the empty word [] *)
-theorem cnf_exists: 
-  shows "\<forall>g::('n::infinite,'t) cfg. \<exists>g'::('n,'t) cfg. (cnf g') \<and> (L g' = L g - {[]})"
+theorem cnf_exists: "\<forall>g::('n::infinite,'t) cfg. \<exists>g'::('n,'t) cfg. (cnf g') \<and> (L g' = L g - {[]})"
 proof
   fix g::"('n,'t)cfg"
   obtain Ps\<^sub>0 where "\<N> (prods g) Ps\<^sub>0" (is "?Ps\<^sub>0")

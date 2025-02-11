@@ -23,6 +23,9 @@ using assms by (smt (verit) append_assoc append_eq_append_conv concat_append le_
 lemma repl_count: "count_list ([x]\<^sup>*n) x = n"
   by (induction n) auto
 
+lemma repl_app: "(x\<^sup>*2) = x @x"
+  by (metis One_nat_def Suc_1 append_Nil2 concat.simps(1) concat.simps(2) replicate_0 replicate_Suc)
+
 lemma repl_dist: 
   assumes "x\<noteq>y"
       and "([x]\<^sup>*n) @ ([y]\<^sup>*m) = ([x]\<^sup>*k) @ ([y]\<^sup>*l)"

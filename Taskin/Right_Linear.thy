@@ -52,8 +52,6 @@ proof -
     unfolding new_prods_def rlin2_def by fastforce
   from 1 2 have "rlin2 (unit_elim ps' \<union> new_prods ps')"
     unfolding rlin2_def by auto
-  hence "rlin2 (\<U>_rules ps')"
-    by (simp add: \<U>_rules_def)
   with uppr_ps' have "rlin2 (set ps)"
     by (simp add: \<U>_def)
   thus ?thesis .

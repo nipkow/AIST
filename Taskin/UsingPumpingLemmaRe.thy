@@ -2,9 +2,11 @@ theory UsingPumpingLemmaRe
   imports PumpingLemmaRe
 begin
 
+(* CFG? *)
 lemma repl_len: "length (xs\<^sup>*n) = length xs * n"
   by (simp add: length_concat sum_list_replicate)
 
+(* CFG? *)
 lemma repl_mul: "((xs\<^sup>*n)\<^sup>*m) = (xs\<^sup>*(n*m))"
   by (induction m) (auto simp: replicate_add)
 
@@ -14,16 +16,17 @@ lemma repl_elem: "i < n \<Longrightarrow> ([y]\<^sup>*n)!i = y"
 lemma elem_repl: "\<forall>i<length xs. xs!i = x \<Longrightarrow> xs = ([x]\<^sup>*(length xs))"
   by (simp add: nth_equalityI repl_elem repl_len)
 
+(* CFG? *)
 lemma repl_rest:
   assumes "(x\<^sup>*n) @ y = (x\<^sup>*m) @ z"
       and "n \<ge> m"
     shows "z = (x\<^sup>*(n-m)) @ y"
-using assms by (smt (verit) append_assoc append_eq_append_conv concat_append le_add_diff_inverse replicate_add)
+using assms replicate_add[of m "n-m" x] by simp
 
 lemma repl_count: "count_list ([x]\<^sup>*n) x = n"
   by (induction n) auto
 
-lemma repl_app: "(x\<^sup>*2) = x @x"
+lemma repl_app: "(x\<^sup>*2) = x@x"
   by (metis One_nat_def Suc_1 append_Nil2 concat.simps(1) concat.simps(2) replicate_0 replicate_Suc)
 
 lemma repl_dist: 
@@ -69,14 +72,7 @@ proof -
         let ?w = "([Tm a]\<^sup>*n)@([Tm b]\<^sup>*n)"
         have *: "n \<le> length ?w" 
           by (simp add: repl_len)
-        have **: "\<forall>x y z. ?w = x @ y @ z \<and> 1 \<le> length y \<and> length (x @ y) \<le> n \<longrightarrow> (\<exists>i. x @ (y\<^sup>*i) @ z \<notin> Lang P A)" proof 
-          fix x
-          show "\<forall>y z. ([Tm a]\<^sup>*n) @ ([Tm b]\<^sup>*n) = x @ y @ z \<and> 1 \<le> length y \<and> length (x @ y) \<le> n \<longrightarrow> (\<exists>i. x @ (y\<^sup>*i) @ z \<notin> Lang P A)" proof
-            fix y
-            show "\<forall>z. ([Tm a]\<^sup>*n) @ ([Tm b]\<^sup>*n) = x @ y @ z \<and> 1 \<le> length y \<and> length (x @ y) \<le> n \<longrightarrow> (\<exists>i. x @ (y\<^sup>*i) @ z \<notin> Lang P A)" proof 
-              fix z
-              show "([Tm a]\<^sup>*n) @ ([Tm b]\<^sup>*n) = x @ y @ z \<and> 1 \<le> length y \<and> length (x @ y) \<le> n \<longrightarrow> (\<exists>i. x @ (y\<^sup>*i)@ z \<notin> Lang P A)" proof 
-                assume asm: "([Tm a]\<^sup>*n) @ ([Tm b]\<^sup>*n) = x @ y @ z \<and> 1 \<le> length y \<and> length (x @ y) \<le> n"
+        have **: "(\<exists>i. x @ (y\<^sup>*i) @ z \<notin> Lang P A)" if asm : "?w = x @ y @ z \<and> 1 \<le> length y \<and> length (x @ y) \<le> n" for x y z proof
                 from asm have asm1: "([Tm a]\<^sup>*n) @ ([Tm b]\<^sup>*n) = x @ y @ z" by blast
                 from asm have asm2: "1 \<le> length y" by blast
                 from asm have asm3: "length (x @ y) \<le> n" by blast
@@ -114,12 +110,9 @@ proof -
                from asm2 have "([Tm a]\<^sup>*(n + ?ky)) @ ([Tm b]\<^sup>*n) \<notin> {([Tm a]\<^sup>*n)@([Tm b]\<^sup>*n)|n. n\<in>\<nat>}" 
                  using repl_dist[OF Tm_neq, of "n+?ky" n] by force
                with wit have "x @ (y\<^sup>*2) @ z \<notin> {([Tm a]\<^sup>*n)@([Tm b]\<^sup>*n)|n. n\<in>\<nat>}" by simp
-               thus "\<exists>i. x @ (y\<^sup>*i) @ z \<notin> Lang P A" 
+               thus "x @ (y\<^sup>*2) @ z \<notin> Lang P A" 
                  using assms(1) by blast
-              qed
-            qed
-          qed
-        qed
+             qed
         from * ** show "n \<le> length ?w \<and> (\<forall>x y z. ?w = x @ y @ z \<and> 1 \<le> length y \<and> length (x @ y) \<le> n \<longrightarrow> (\<exists>i. x @ (y\<^sup>*i) @ z \<notin> Lang P A))" by simp
       next
         have "n \<in> \<nat>" 

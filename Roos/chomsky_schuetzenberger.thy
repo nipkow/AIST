@@ -199,9 +199,12 @@ have \<open>\<exists>P S::'n. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule 
 then obtain P and S::'n where \<open>L = Lang P S\<close> and \<open>(\<forall>p \<in> P. CNF_rule p)\<close> by blast
 
 let ?\<Gamma> = \<open>P \<times> {1::nat,2}\<close>
+(*define \<Gamma> where "\<Gamma> = (2::nat)" *)
 let ?P' = \<open>image transform_production P\<close>
 let ?L' = \<open>Lang ?P' S\<close>
 let ?h = \<open>h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list \<Rightarrow> 't list\<close>
+
+
 
 have \<open>?L' \<subseteq> dyck_language ?\<Gamma>\<close> sorry (* This might not be needed (but it was listed in the book). Leave this for last *)
 

@@ -284,6 +284,16 @@ lemma derives_append_decomp:
   "P \<turnstile> u @ v \<Rightarrow>* w \<longleftrightarrow> (\<exists>u' v'. P \<turnstile> u \<Rightarrow>* u' \<and> P \<turnstile> v \<Rightarrow>* v' \<and> w = u' @ v')"
   by (auto simp: rtranclp_power deriven_append_decomp)
 
+lemma derives_concat:
+  "\<forall>i < n. P \<turnstile> f i \<Rightarrow>* g i \<Longrightarrow> P \<turnstile> concat(map f [0..<n]) \<Rightarrow>* concat(map g [0..<n])"
+proof(induction n)
+  case 0
+  then show ?case by auto
+next
+  case (Suc n)
+  thus ?case by(auto simp: derives_append_decomp less_Suc_eq)
+qed
+
 lemma derive_Cons:
 "P \<turnstile> u \<Rightarrow> v \<Longrightarrow> P \<turnstile> a#u \<Rightarrow> a#v"
   using derive_prepend[of P u v "[a]"] by auto
@@ -452,6 +462,7 @@ qed
 
 
 subsubsection "Customized Induction Principles"
+(* TODO: Need canonical naming schema! *)
 
 lemma deriven_induct[consumes 1, case_names 0 Suc]:
   assumes "P \<turnstile> xs \<Rightarrow>(n) ys"
@@ -493,6 +504,17 @@ lemma derives_induct'[consumes 1, case_names base step]:
   using assms(1)
   apply (induction rule: converse_rtranclp_induct)
   by (auto elim!: derive.cases intro!: Base Step intro: derives_rule)
+
+
+lemma derives_NilD: "P \<turnstile> w \<Rightarrow>* [] \<Longrightarrow> s \<in> set w \<Longrightarrow> P \<turnstile> [s] \<Rightarrow>* []"
+proof(induction arbitrary: s rule: derives_induct')
+  case base
+  then show ?case by simp
+next
+  case (step u A v w)
+  then show ?case using derives_append_decomp[where u="[Nt A]" and v=v]
+    by (auto simp: derives_append_decomp)
+qed
 
 
 text \<open>Bottom-up definition of \<open>\<Rightarrow>*\<close>. Single definition yields more compact inductions.

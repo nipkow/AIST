@@ -100,9 +100,72 @@ definition Prods_dfa :: "(hf, 'a) Prods" where
 "Prods_dfa =
   (\<Union>q \<in> dfa.states M. \<Union>x. {(q,[Tm x, Nt(dfa.nxt M q x)])}) \<union> (\<Union>q \<in> dfa.final M. {(q,[])})"
 
+lemma rlin2_prods_dfa: "rlin2 (Prods_dfa)"
+  unfolding rlin2_def Prods_dfa_def by blast
+
+lemma mult_derive_to_nxtl:
+  "Prods_dfa \<turnstile> [Nt A] \<Rightarrow>* map Tm w @ [Nt B] \<Longrightarrow> nextl A w = B"
+proof (induction w arbitrary: B rule: rev_induct)
+  case Nil
+  thus ?case
+    using rlin2_nts_derive_eq[OF rlin2_prods_dfa, of A B] by simp
+next
+  case (snoc x xs)
+  from snoc.prems have "Prods_dfa \<turnstile> [Nt A] \<Rightarrow>* map Tm xs @ [Tm x,Nt B]" by simp
+  then obtain C where C_der: "Prods_dfa \<turnstile> [Nt A] \<Rightarrow>* map Tm xs @ [Nt C]"
+               and C_prods: "(C,[Tm x, Nt B]) \<in> Prods_dfa" using rlin2_introduce_tm[OF rlin2_prods_dfa, of A xs x B] by auto 
+  have 1: "nextl A xs = C"
+    using snoc.IH[OF C_der] .
+  from C_prods have 2: "B = dfa.nxt M C x"
+    unfolding Prods_dfa_def by blast
+  from 1 2 show ?case by simp
+qed
+
+lemma nxtl_to_mult_derive:
+  assumes "A \<in> dfa.states M"
+    shows "Prods_dfa \<turnstile> [Nt A] \<Rightarrow>* map Tm w @ [Nt (nextl A w)]"
+proof (induction w rule: rev_induct)
+  case (snoc x xs)
+  let ?B = "nextl A xs"
+  have "?B \<in> dfa.states M" 
+    using nextl_state[OF assms, of xs] .
+  hence "(?B, [Tm x, Nt (dfa.nxt M ?B x)]) \<in> Prods_dfa"
+    unfolding Prods_dfa_def by blast
+  hence "Prods_dfa \<turnstile> [Nt ?B] \<Rightarrow> [Tm x] @ [Nt (dfa.nxt M ?B x)]"
+    by (simp add: derive_singleton)
+  hence "Prods_dfa \<turnstile> [Nt A] \<Rightarrow>* map Tm xs @ ([Tm x] @ [Nt (dfa.nxt M ?B x)])"
+    using snoc.IH by (meson derive_prepend rtranclp.simps)
+  thus ?case by auto
+qed simp
+
 lemma Prods_dfa_iff_dfa:
   "q \<in> dfa.states M \<Longrightarrow> Prods_dfa \<turnstile> [Nt q] \<Rightarrow>* map Tm w \<longleftrightarrow> nextl q w \<in> dfa.final M"
-sorry
+proof
+  show "Prods_dfa \<turnstile> [Nt q] \<Rightarrow>* map Tm w \<Longrightarrow> nextl q w \<in> dfa.final M"
+  proof -
+    assume asm: "Prods_dfa \<turnstile> [Nt q] \<Rightarrow>* map Tm w"
+    obtain B where q_der: "Prods_dfa \<turnstile> [Nt q] \<Rightarrow>* map Tm w @ [Nt B]" and B_in: "(B,[]) \<in> Prods_dfa" 
+      unfolding Lang_def using rlin2_tms_eps[OF rlin2_prods_dfa asm] by auto
+    have 1: "nextl q w = B"
+      using mult_derive_to_nxtl[OF q_der] .
+    from B_in have 2: "B \<in> dfa.final M"
+      unfolding Prods_dfa_def by blast
+    from 1 2 show ?thesis by simp
+  qed
+next
+  assume asm1: "q \<in> dfa.states M"
+  show "nextl q w \<in> dfa.final M \<Longrightarrow> Prods_dfa \<turnstile> [Nt q] \<Rightarrow>* map Tm w"
+  proof -
+    assume asm2: "nextl q w \<in> dfa.final M"
+    let ?Z = "nextl q w"
+    from asm2 have Z_eps: "(?Z,[]) \<in> Prods_dfa"
+      unfolding Prods_dfa_def by blast
+    have "Prods_dfa \<turnstile> [Nt q] \<Rightarrow>* map Tm w @ [Nt ?Z]"
+      using nxtl_to_mult_derive[OF asm1, of w] .
+    with Z_eps show ?thesis
+      by (metis derives_rule rtranclp.rtrancl_refl self_append_conv)
+  qed
+qed
 
 lemma "dfa.language M = Lang Prods_dfa (dfa.init M)"
 unfolding language_def Lang_def by (simp add: Prods_dfa_iff_dfa)

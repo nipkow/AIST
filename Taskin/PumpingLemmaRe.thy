@@ -5,6 +5,7 @@ begin
 abbreviation repl :: "'a list \<Rightarrow> nat \<Rightarrow> 'a list" ("_\<^sup>*/_")
   where "xs\<^sup>*n \<equiv> concat (replicate n xs)"
 
+(* CFG? *)
 lemma nts_finite: 
   assumes "finite P" 
   shows "finite (Nts P)"

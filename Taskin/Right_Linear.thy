@@ -2,6 +2,14 @@ theory Right_Linear
 imports "../Stimpfle/uProds" Binarize
 begin
 
+text
+\<open>In a right linear grammar every production has at most one non-terminal on the right-hand side, which should also occur as the
+ rightmost symbol. The definition of such a grammar is given by \<open>rlin\<close>. Our aim is to show that every right linear grammar can
+ be converted to its binary counterpart \<open>rlin2\<close>, where every production is of the form \<open>A,[]\<close> or \<open>A, [Tm a, Nt B]\<close>. We will
+ also define the function \<open>rlin2_of_rlin\<close> that transforms a production set satisfying \<open>rlin\<close> to a production set satisfying 
+ \<open>rlin2\<close>, without changing the language of the grammar. To this end, we define two intermediate predicates for production sets
+ \<open>rlin_noterm\<close> and \<open>rlin_bin\<close>\<close>
+
 definition rlin :: "('n, 't) Prods \<Rightarrow> bool" where
   "rlin ps = (\<forall>(A,w) \<in> ps. \<exists>u. w = map Tm u \<or> (\<exists>B. w = map Tm u @ [Nt B]))"
 
@@ -13,6 +21,9 @@ definition rlin_bin :: "('n, 't) Prods \<Rightarrow> bool" where
 
 definition rlin2 :: "('a, 't) Prods \<Rightarrow> bool" where
   "rlin2 ps = (\<forall>(A,w) \<in> ps. w = [] \<or> (\<exists>a B. w = [Tm a, Nt B]))"
+
+text
+\<open>A straightforward property of \<open>rlin\<close> and \<open>rlin2\<close>\<close>
 
 lemma rlin2_to_rlin: 
   "rlin2 ps \<Longrightarrow> rlin ps"
@@ -37,25 +48,13 @@ proof -
   thus ?thesis .
 qed
 
-lemma uppr_rlin2:
-  assumes rlinbin: "rlin_bin (set ps')"
-    and uppr_ps': "\<U> ps' ps"
-  shows "rlin2 (set ps)"
-proof - 
-  from rlinbin have "rlin2 (set ps' - {(A,w) \<in> set ps'. \<exists>B. w = [Nt B]})"
-    using rlin2_def rlin_bin_def by fastforce
-  hence "rlin2 (set ps' - (unit_prods ps'))"
-    by (simp add: unit_prods_def)
-  hence 1: "rlin2 (unit_elim ps')"
-    by (simp add: unit_elim_def)
-  hence 2: "rlin2 (new_prods ps')"
-    unfolding new_prods_def rlin2_def by fastforce
-  from 1 2 have "rlin2 (unit_elim ps' \<union> new_prods ps')"
-    unfolding rlin2_def by auto
-  with uppr_ps' have "rlin2 (set ps)"
-    by (simp add: \<U>_def)
-  thus ?thesis .
-qed
+text
+\<open>The \<open>finalize\<close> function is responsible of the transformation of a production list from \<open>rlin\<close> to \<open>rlin_noterm\<close>, while 
+ preserving the language. We make use of fixpoint iteration and define the function \<open>finalize1\<close> that adds a 
+ fresh non-terminal \<open>B\<close> at the end of every production that consists only of terminals and has at least length one. The
+ function also introduces the new production \<open>(B,[])\<close> in the production list. The step function of the fixpoint iteration is
+ then the auxiliary function \<open>finalize'\<close>. We also define the count function as \<open>countfin\<close> which counts the the productions that
+ consists only of terminal and has at least length one\<close>
 
 fun finalize1 :: "('n :: infinite, 't) prods \<Rightarrow> ('n, 't) prods \<Rightarrow> ('n, 't) prods" where
   "finalize1 ps' [] = []"
@@ -73,6 +72,9 @@ fun countfin :: "('n::infinite, 't) prods \<Rightarrow> nat" where
 
 definition finalize :: "('n::infinite, 't) prods \<Rightarrow> ('n, 't) prods" where
   "finalize ps = (finalize' ^^ (countfin ps)) ps"
+
+text
+\<open>Firstly we show that \<open>finalize\<close> indeed does the intended transformation\<close>
 
 lemma countfin_dec1:
   assumes "finalize1 ps' ps \<noteq> ps" 
@@ -181,6 +183,9 @@ proof -
     by (simp add: finalize_def)
   thus ?thesis .
 qed
+
+text
+\<open>Now proving the language preservation property of \<open>finalize\<close>, similarly to \<open>binarize\<close>\<close>
 
 lemma finalize1_cases:
   "finalize1 ps' ps = ps \<or> (\<exists>A w ps'' B. set ps = {(A, w)} \<union> set ps'' \<and> set (finalize1 ps' ps) = {(A,w @ [Nt B]),(B,[])} \<union> set ps'' \<and> Nt B \<notin> syms ps')"
@@ -361,6 +366,10 @@ next
     using assms finalize_lhss_nts Lang_empty_if_notin_Lhss by fast
 qed
 
+text
+\<open>Next step is to define the transformation from \<open>rlin_noterm\<close> to \<open>rlin_bin\<close>. For this we use the function \<open>binarize\<close>.
+ The language preservation property of \<open>binarize\<close> is already proven\<close>
+
 lemma binarize_rlinbin1: 
   assumes "rlin_noterm (set ps)"
       and "ps = binarize1 ps' ps"
@@ -453,17 +462,46 @@ proof -
   thus ?thesis .
 qed
 
+text
+\<open>The last transformation takes a production set from \<open>rlin_bin\<close> and converts it to \<open>rlin2\<close>. That is, we need to remove unit
+ productions of the from \<open>(A, [Nt B])\<close>. In \<open>uProds.thy\<close> is the predicate \<open>\<U> ps' ps\<close> defined that is satisfied if \<open>ps\<close> is the
+ same production set as \<open>ps'\<close> without the unit productions. The language preservation property is already given\<close>
+
+lemma uppr_rlin2:
+  assumes rlinbin: "rlin_bin (set ps')"
+    and uppr_ps': "\<U> ps' ps"
+  shows "rlin2 (set ps)"
+proof - 
+  from rlinbin have "rlin2 (set ps' - {(A,w) \<in> set ps'. \<exists>B. w = [Nt B]})"
+    using rlin2_def rlin_bin_def by fastforce
+  hence "rlin2 (set ps' - (unit_prods ps'))"
+    by (simp add: unit_prods_def)
+  hence 1: "rlin2 (unit_elim ps')"
+    by (simp add: unit_elim_def)
+  hence 2: "rlin2 (new_prods ps')"
+    unfolding new_prods_def rlin2_def by fastforce
+  from 1 2 have "rlin2 (unit_elim ps' \<union> new_prods ps')"
+    unfolding rlin2_def by auto
+  with uppr_ps' have "rlin2 (set ps)"
+    by (simp add: \<U>_def)
+  thus ?thesis .
+qed
+
+text
+\<open>For now we assume that the function \<open>uRemove\<close> removes the unit productions from the production set \<open>ps\<close>, such that the predicate below holds\<close>
+
 axiomatization uRemove :: "('n,'t) prods \<Rightarrow> ('n,'t) prods" where
   uRemove: "\<U> ps (uRemove ps)"
 
-definition clean :: "('n,'t) prods \<Rightarrow> ('n,'t)prods" where 
- "clean ps = uRemove ps"
+lemma lang_uRemove: "lang ps A  = lang (uRemove ps) A"
+  by (simp add: \<U>_lang_eq uRemove)
 
-lemma lang_clean: "lang ps A  = lang (clean ps) A"
-  by (simp add: clean_def \<U>_lang_eq uRemove)
+text
+\<open>The transformation \<open>rlin2_of_rlin\<close> applies the presented functions in the right order. At the end, we show that \<open>rlin2_of_rlin\<close>
+ converts a production set from \<open>rlin\<close> to a production set from \<open>rlin2\<close>, without changing the language\<close>
 
 definition rlin2_of_rlin :: "('n::infinite,'t) prods \<Rightarrow> ('n,'t)prods" where
-  "rlin2_of_rlin ps = clean (binarize (finalize ps))"
+  "rlin2_of_rlin ps = uRemove (binarize (finalize ps))"
 
 lemma rlin_to_rlin2: 
   assumes "rlin (set ps)" 
@@ -477,7 +515,7 @@ using assms proof -
   hence "rlin2 (set (uRemove (binarize (finalize ps))))"
     by (simp add: uRemove uppr_rlin2)
   thus "rlin2 (set (rlin2_of_rlin ps))"
-    by (simp add: clean_def rlin2_of_rlin_def)
+    by (simp add: rlin2_of_rlin_def)
 qed
 
 lemma lang_rlin2_of_rlin:
@@ -488,11 +526,157 @@ proof -
     using lang_finalize by blast
   also have "... = lang (binarize (finalize ps)) A"
     using lang_binarize assms finalize_nts by blast
-  also  have "... = lang (clean (binarize (finalize ps))) A"
-    using lang_clean assms finalize_nts binarize_nts by fast
+  also  have "... = lang (uRemove (binarize (finalize ps))) A"
+    using lang_uRemove assms finalize_nts binarize_nts by fast
   also have "... = lang (rlin2_of_rlin ps) A"
     by (simp add: rlin2_of_rlin_def)
   finally show ?thesis .
+qed
+
+text
+\<open>In the following we present some properties for list of symbols that are derived from a production set satisfying \<open>rlin2\<close>\<close>
+
+lemma map_Tm_single_nt:
+  assumes "map Tm w @ [Tm a, Nt A] = u1 @ [Nt B] @ u2"
+  shows "u1 = map Tm (w @ [a]) \<and> u2 = []"
+proof -
+  from assms have *: "map Tm (w @ [a]) @ [Nt A] = u1 @ [Nt B] @ u2" by simp
+  have 1: "Nt B \<notin> set (map Tm (w @ [a]))" by auto
+  have 2: "Nt B \<in> set (u1 @ [Nt B] @ u2)" by simp
+  from * 1 2 have "Nt B \<in> set ([Nt A])"
+    by (metis list.set_intros(1) rotate1.simps(2) set_ConsD set_rotate1 sym.inject(1))
+  hence "[Nt B] = [Nt A]" by simp
+  with 1 * show ?thesis
+    by (metis append_Cons append_Cons_eq_iff append_self_conv emptyE empty_set)
+qed
+
+text
+\<open>A non-terminal can only occur as the rightmost symbol\<close>
+
+lemma rlin2_derive:
+  assumes "P \<turnstile> v1 \<Rightarrow>* v2" 
+      and "v1 = [Nt A]"
+      and "v2 = u1 @ [Nt B] @ u2" 
+      and "rlin2 P"
+    shows "\<exists>w. u1 = map Tm w \<and> u2 = []"
+using assms proof (induction arbitrary: u1 B u2 rule: rtrancl_derive_induct)
+  case base
+  then show ?case
+    by (simp add: append_eq_Cons_conv)
+next
+  case (step u C v w)
+  from step.prems(1) step.prems(3) have "\<exists>w. u = map Tm w \<and> v = []" 
+    using step.IH[of u C v] by simp
+  then obtain wh where u_def: "u = map Tm wh" by blast
+  have v_eps: "v = []"
+    using \<open>\<exists>w. u = map Tm w \<and> v = []\<close> by simp
+  from step.hyps(2) step.prems(3) have w_cases: "w = [] \<or> (\<exists>d D. w = [Tm d, Nt D])"
+    unfolding rlin2_def by auto
+  then show ?case proof cases
+    assume "w=[]"
+    with v_eps step.prems(2) have "u = u1 @ [Nt B] @ u2" by simp
+    with u_def show ?thesis by simp (metis ex_map_conv in_set_conv_decomp sym.distinct(1))
+  next
+    assume "\<not>w=[]"
+    then obtain d D where "w = [Tm d, Nt D]" 
+      using w_cases by blast
+    with u_def v_eps step.prems(2) have "u1 = map Tm (wh @ [d]) \<and> u2 = []"
+      using map_Tm_single_nt[of wh d D u1 B u2] by simp
+    thus ?thesis by blast
+  qed
+qed
+
+text
+\<open>A new terminal is introduced by a production of the form \<open>(C, [Tm x, Nt B])\<close>\<close>
+
+lemma rlin2_introduce_tm:
+  assumes "rlin2 P"
+      and "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w @ [Tm x, Nt B]"
+    shows "\<exists>C. P \<turnstile> [Nt A] \<Rightarrow>* map Tm w @ [Nt C] \<and> (C,[Tm x, Nt B]) \<in> P"
+proof -
+  from assms(2) have "\<exists>v. P \<turnstile> [Nt A] \<Rightarrow>* v \<and> P \<turnstile> v \<Rightarrow> map Tm w @ [Tm x, Nt B]"
+    using rtranclp.cases by fastforce
+  then obtain v where v_star: "P \<turnstile> [Nt A] \<Rightarrow>* v" and v_step: "P \<turnstile> v \<Rightarrow> map Tm w @ [Tm x, Nt B]" by blast
+  from v_step have "\<exists>u1 u2 C \<alpha>. v = u1 @ [Nt C] @ u2 \<and> map Tm w @ [Tm x, Nt B] = u1 @ \<alpha> @ u2 \<and> (C,\<alpha>) \<in> P"
+    using derive.cases by fastforce
+  then obtain u1 u2 C \<alpha> where v_def: "v = u1 @ [Nt C] @ u2" and w_def: "map Tm w @ [Tm x, Nt B] = u1 @ \<alpha> @ u2" 
+                          and C_prod: "(C,\<alpha>) \<in> P" by blast
+  from assms(1) v_star v_def have u2_eps: "u2 = []"
+    using rlin2_derive[of P "[Nt A]"] by simp
+  from assms(1) v_star v_def obtain wa where u1_def: "u1 = map Tm wa"
+    using rlin2_derive[of P "[Nt A]" "u1 @ [Nt C] @ u2" A u1] by auto
+  from w_def u2_eps u1_def have "map Tm w @ [Tm x, Nt B] = map Tm wa @ \<alpha>" by simp
+  then have "map Tm (w @ [x]) @ [Nt B] = map Tm wa @ \<alpha>" by simp
+  then have "\<alpha> \<noteq> []" 
+    by (metis append.assoc append.right_neutral list.distinct(1) map_Tm_single_nt)
+  with assms(1) C_prod obtain d D where "\<alpha> = [Tm d, Nt D]"
+    using rlin2_def by fastforce
+  from w_def u2_eps have x_d: "x = d" 
+    using \<open>\<alpha> = [Tm d, Nt D]\<close> by simp
+  from w_def u2_eps have B_D: "B = D"
+    using \<open>\<alpha> = [Tm d, Nt D]\<close> by simp
+  from x_d B_D have alpha_def: "\<alpha> = [Tm x, Nt B]"
+    using \<open>\<alpha> = [Tm d, Nt D]\<close> by simp
+  from w_def u2_eps alpha_def have "map Tm w = u1" by simp
+  with u1_def have w_eq_wa: "w = wa"
+    by (metis list.inj_map_strong sym.inject(2))
+  from v_def u1_def w_eq_wa u2_eps have "v = map Tm w @ [Nt C]" by simp
+  with v_star have 1: "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w @ [Nt C]" by simp
+  from C_prod alpha_def have 2: "(C,[Tm x, Nt B]) \<in> P" by simp
+  from 1 2 show ?thesis by auto
+qed
+
+lemma rlin2_nts_derive_eq: 
+  assumes "rlin2 P"
+      and "P \<turnstile> [Nt A] \<Rightarrow>* [Nt B]"
+    shows "A = B"
+proof -
+  from assms(2) have star_cases: "[Nt A] = [Nt B] \<or> (\<exists>w. P \<turnstile> [Nt A] \<Rightarrow> w \<and> P \<turnstile> w \<Rightarrow>* [Nt B])"
+    using converse_rtranclpE by force
+  show ?thesis proof cases
+    assume "\<not>[Nt A] = [Nt B]"
+    then obtain w where w_step: "P \<turnstile> [Nt A] \<Rightarrow> w" and w_star: "P \<turnstile> w \<Rightarrow>* [Nt B]"
+      using star_cases by auto
+    from assms(1) w_step have w_cases: "w = [] \<or> (\<exists>a C. w = [Tm a, Nt C])"
+      unfolding rlin2_def using derive_singleton[of P "Nt A" w] by auto
+    show ?thesis proof cases
+      assume "w = []"
+      with w_star show ?thesis by simp
+    next
+      assume "\<not>w = []"
+      with w_cases obtain a C where "w = [Tm a, Nt C]" by blast
+      with w_star show ?thesis
+        using derives_T_Cons[of P a "[Nt C]" "[Nt B]"] by simp
+    qed
+  qed simp
+qed
+
+text
+\<open>If the list of symbols consists only of terminals, the last production used is of the form \<open>B,[]\<close>\<close>
+
+lemma rlin2_tms_eps:
+  assumes "rlin2 P"
+      and "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
+    shows "\<exists>B. P \<turnstile> [Nt A] \<Rightarrow>* map Tm w @ [Nt B] \<and> (B,[]) \<in> P"
+proof -
+  from assms(2) have "\<exists>v. P \<turnstile> [Nt A] \<Rightarrow>* v \<and> P \<turnstile> v \<Rightarrow> map Tm w"
+    using rtranclp.cases by force
+  then obtain v where v_star: "P \<turnstile> [Nt A] \<Rightarrow>* v" and v_step: "P \<turnstile> v \<Rightarrow> map Tm w" by blast
+  from v_step have "\<exists>u1 u2 C \<alpha>. v = u1 @ [Nt C] @ u2 \<and> map Tm w = u1 @ \<alpha> @ u2 \<and> (C,\<alpha>) \<in> P"
+    using derive.cases by fastforce
+  then obtain u1 u2 C \<alpha> where v_def: "v = u1 @ [Nt C] @ u2" and w_def: "map Tm w = u1 @ \<alpha> @ u2" and C_prod: "(C,\<alpha>) \<in> P" by blast
+  have "\<nexists>A. Nt A \<in> set (map Tm w)" by auto
+  with w_def have "\<nexists>A. Nt A \<in> set \<alpha>" 
+    by (metis Un_iff set_append)
+  then have "\<nexists>a A. \<alpha> = [Tm a, Nt A]" by auto
+  with assms(1) C_prod have alpha_eps: "\<alpha> = []"
+    using rlin2_def by force
+  from v_star assms(1) v_def have u2_eps: "u2 = []"
+    using rlin2_derive[of P "[Nt A]"] by simp
+  from w_def alpha_eps u2_eps have u1_def: "u1 = map Tm w" by simp
+  from v_star v_def u1_def u2_eps have 1: "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w @ [Nt C]" by simp
+  from alpha_eps C_prod have 2: "(C,[]) \<in> P"  by simp
+  from 1 2 show ?thesis by auto
 qed
 
 end

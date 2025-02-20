@@ -2,6 +2,11 @@ theory detProds
 imports "../CFG"
 begin
 
+text 
+\<open>We call a non-terminal \<open>A\<close> deterministic if the grammar contains a single production of \<open>A\<close> and the form of this production is 
+ \<open>(A,w)\<close>. In this case we could replace every occurrence of \<open>A\<close> with \<open>w\<close> on the right-hand sides of the productions and the 
+ language of the grammar would be preserved\<close>
+
 (* CFG? *)
 lemma Nts_un: 
   "Nt ` Nts (a \<union> as) = Nt ` (Nts a) \<union> Nt ` (Nts as)"
@@ -97,11 +102,14 @@ lemma fresh_syms: "B \<notin> Nts P \<Longrightarrow> Nt B \<notin> Syms P"
 lemma syms_Lhss_not_eq: "Nt B \<notin> Syms P \<Longrightarrow> A \<in> Lhss P \<Longrightarrow> A \<noteq> B"
   using syms_Lhss by force
 
+text 
+\<open>\<open>substW xs y ys\<close> replaces every occurrence of the element \<open>y\<close> with the list of elements \<open>ys\<close> in the given list \<open>xs\<close>\<close>
+
 fun substW :: "'a list \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
   "substW [] _ _ = []"
 | "substW (x#xs) y ys = (if x = y then ys @ substW xs y ys else x # substW xs y ys)"
 
-(* lemmas about substW *)
+subsection \<open>Properties of \<open>substW\<close>\<close>
 
 lemma substW_split: "substW (xs @ xs') y ys = substW xs y ys @ substW xs' y ys"
   by (induction xs) auto
@@ -126,10 +134,13 @@ next
     by (metis (no_types, lifting) derivel_Nt_Cons derivel_imp_derive derives_Cons rtranclp.rtrancl_into_rtrancl substW.simps(2))
 qed
 
+text
+\<open>\<open>substP ps s u\<close> replaces every occurrence of the symbol \<open>s\<close> with the list of symbols \<open>u\<close> on the right-hand sides of the production list \<open>ps\<close>\<close>
+
 definition substP :: "('n, 't) prods \<Rightarrow>  ('n, 't) sym \<Rightarrow>  ('n, 't) syms \<Rightarrow> ('n, 't) prods" where
   "substP ps s u = map (\<lambda>(A,v). (A, substW v s u)) ps"
 
-(* lemmas about substP*)
+subsection \<open>Properties of \<open>substP\<close>\<close>
 
 lemma substP_split: "substP (ps @ ps') s u = substP ps s u @ substP ps' s u"
   by (simp add: substP_def)
@@ -187,6 +198,11 @@ proof -
   from path1 path2 show ?thesis by simp
 qed
 
+text
+\<open>In order to prove that the elimination of deterministic non-terminals preserves the language, we prove that a word can be derived if and
+ only if the word can be derived after the procedure of elimination. We first show the simpler implication, namely that the list of symbols
+ \<open>u\<close> can be derived before the procedure, if \<open>u\<close> can be derived after the procedure\<close>
+
 lemma if_part:
   "set (substP ps (Nt B) v) \<turnstile> [Nt A] \<Rightarrow>* u \<Longrightarrow> set ((B,v) # ps) \<turnstile> [Nt A] \<Rightarrow>* u"
 proof (induction rule: rtrancl_derive_induct)
@@ -194,6 +210,11 @@ proof (induction rule: rtrancl_derive_induct)
   then show ?case 
     by simp (metis (no_types, lifting) derives_append derives_prepend list.simps(15) rtranclp_trans step.IH substP_der)
 qed simp
+
+text
+\<open>For the other implication we first show that the list of symbols \<open>u\<close>, where the occurrences of the non-terminal \<open>B\<close> is replaced by the 
+ list of symbols \<open>v\<close>, can be derived in the transformed production set if \<open>u\<close> can be derived in the original set of productions extended with
+ the production \<open>(B,v)\<close>, under the following assumptions:\<close>
 
 lemma substPW_der:
   assumes prem: "set ((B,v)#ps) \<turnstile> [Nt A] \<Rightarrow>* u"
@@ -226,6 +247,9 @@ next
   qed
 qed
 
+text
+\<open>With the assumption that the non-terminal \<open>B\<close> is not in the list of symbols \<open>u\<close>, \<open>substW u (Nt B) v\<close> reduces to \<open>u\<close>\<close>
+
 lemma only_if_part: 
   assumes "set ((B,v)#ps) \<turnstile> [Nt A] \<Rightarrow>* u"
       and A_B_noteq: "A \<noteq> B"
@@ -234,6 +258,9 @@ lemma only_if_part:
       and B_notin_u: "Nt B \<notin> set u"
     shows "set (substP ps (Nt B) v) \<turnstile> [Nt A] \<Rightarrow>* u"
   by (metis assms substW_skip substPW_der)
+
+text
+\<open>Combining the two implications gives us the desired property of language preservation\<close>
 
 lemma substP_lang: 
   assumes "B \<notin> lhss ps" and

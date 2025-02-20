@@ -2,6 +2,8 @@ theory PumpingLemmaRe
   imports DFA_rlin2
 begin
 
+subsection \<open>Pumping lemma for regular languages\<close>
+
 abbreviation repl :: "'a list \<Rightarrow> nat \<Rightarrow> 'a list" ("_\<^sup>*/_")
   where "xs\<^sup>*n \<equiv> concat (replicate n xs)"
 
@@ -67,12 +69,18 @@ using assms proof (induction w arbitrary: P m rule: length_induct)
   qed
 qed
 
+text
+\<open>We define the function \<open>nts_nxts P a w\<close> that collects all paths traversing the word \<open>w\<close> starting from the non-terminal \<open>A\<close> in the 
+ production set \<open>P\<close>. \<open>nts_nxts_ext\<close> appends the non-terminal \<open>A\<close> in front of every list produced by \<open>nts_nxts\<close>\<close>
+
 fun nts_nxts :: "('n,'t)Prods \<Rightarrow> 'n \<Rightarrow> 't list \<Rightarrow> 'n list set" where
   "nts_nxts P A [] = {[]}"
 | "nts_nxts P A (a#w) = (\<Union>B\<in>nxt_rlin2 P A a. (Cons B)`nts_nxts P B w)"
 
 definition nts_nxts_ext where
 "nts_nxts_ext P A w \<equiv> (Cons A)`nts_nxts P A w"
+
+subsection \<open>Properties of \<open>nts_nxts\<close> and \<open>nts_nxts_ext\<close>\<close>
 
 lemma nts_nxts_ext_i0:
   "\<forall>e \<in> nts_nxts_ext P A w. e!0 = A"
@@ -215,6 +223,10 @@ next
     unfolding nts_nxts_ext_def by blast
 qed
 
+text
+\<open>The following lemma states that in the automata level there exists a cycle occurring in the first \<open>m\<close> symbols where \<open>m\<close> is the cardinality 
+ of the non-terminals set, under the following assumptions\<close>
+
 lemma nxts_split_cycle:
   assumes "finite P"
       and "A \<in> Nts P"
@@ -266,6 +278,9 @@ proof -
   from * ** *** **** ***** ****** show ?thesis by blast
 qed
 
+text
+\<open>We also show that a cycle can be pumped in the automata level\<close>
+
 lemma pump_cycle:
   assumes "B \<in> nxts_rlin2_set P {A} x"
       and "B \<in> nxts_rlin2_set P {B} y"
@@ -282,6 +297,10 @@ next
   thus ?case
     by (metis append.right_neutral concat.simps(1) concat.simps(2) concat_append replicate_Suc replicate_append_same)
 qed
+
+text
+\<open>Combining the previous lemmas we can prove the pumping lemma where the starting non-terminal is in the production set. We simply extend the
+ lemma for non-terminals that are not part of the production set, as these non-terminals will produce the empty language\<close>
 
 lemma pumping_re_aux:
   assumes "finite P"

@@ -96,12 +96,20 @@ subsection \<open>From DFA to Right-Linear Grammar\<close>
 context dfa
 begin
 (* at the end: \<open>hf \<rightarrow> 'n::finitary\<close>, add \<open>hf_of \<dots>\<close> where needed *)
+
+text
+\<open>We define \<open>Prods_dfa\<close> that collects the production set from the deterministic finite automata \<open>M\<close>\<close>
+
 definition Prods_dfa :: "(hf, 'a) Prods" where
 "Prods_dfa =
   (\<Union>q \<in> dfa.states M. \<Union>x. {(q,[Tm x, Nt(dfa.nxt M q x)])}) \<union> (\<Union>q \<in> dfa.final M. {(q,[])})"
 
 lemma rlin2_prods_dfa: "rlin2 (Prods_dfa)"
   unfolding rlin2_def Prods_dfa_def by blast
+
+text
+\<open>We show that a word can be derived from the production set \<open>Prods_dfa\<close> if and only if traversing the word in the deterministic finite 
+ automata \<open>M\<close> ends in a final state. The proofs are very similar to those in \<open>DFA_rlin2.thy\<close>\<close>
 
 lemma mult_derive_to_nxtl:
   "Prods_dfa \<turnstile> [Nt A] \<Rightarrow>* map Tm w @ [Nt B] \<Longrightarrow> nextl A w = B"

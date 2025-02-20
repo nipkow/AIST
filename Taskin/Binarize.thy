@@ -33,6 +33,13 @@ proof -
   from this[of "m x"] show ?thesis using assms[of "(f ^^ m x) x"] by auto
 qed
 
+text
+\<open>In a binary grammar, every right-hand side consists of at most two symbols. The \<open>binarize\<close> function should convert an
+ arbitrary production list into a binary production list, without changing the language of the grammar. For this we make use
+ of fixpoint iteration and define the function \<open>binarize1\<close> for splitting a production, whose right-hand side exceeds the
+ maximum number of symbols 2, into two productions. The step function is then defined as the auxiliary function \<open>binarize'\<close>.
+ We also define the count function \<open>count\<close> that counts the right-hand sides whose length is more than or equal to 2\<close>
+
 fun binarize1 :: "('n :: infinite, 't) prods \<Rightarrow> ('n, 't) prods \<Rightarrow> ('n, 't) prods" where
   "binarize1 ps' [] = []"
 | "binarize1 ps' ((A, []) # ps) = (A, []) # binarize1 ps' ps"
@@ -49,6 +56,9 @@ fun count :: "('n::infinite, 't) prods \<Rightarrow> nat" where
 
 definition binarize :: "('n::infinite, 't) prods \<Rightarrow> ('n, 't) prods" where
   "binarize ps = (binarize' ^^ (count ps)) ps"
+
+text
+\<open>Firstly we show that the \<open>binarize\<close> function transforms a production list into a binary production list\<close>
 
 lemma count_dec1:
   assumes "binarize1 ps' ps \<noteq> ps" 
@@ -110,6 +120,9 @@ lemma binarize_binary':
 lemma binarize_binary: "(A,w) \<in> set(binarize ps) \<Longrightarrow> length w \<le> 2"
   unfolding binarize_def using binarize_ffpi binarize_binary' by metis
 
+text
+\<open>Now we prove the property of language preservation\<close>
+
 lemma binarize1_cases:
   "binarize1 ps' ps = ps \<or> (\<exists>A ps'' B u s. set ps = {(A, s#u)} \<union> set ps'' \<and> set (binarize1 ps' ps) = {(A,[s,Nt B]),(B,u)} \<union> set ps'' \<and> Nt B \<notin> syms ps')"
 proof (induction ps' ps rule: binarize1.induct)
@@ -148,6 +161,11 @@ next
     then show ?thesis by simp (metis fresh fresh_syms list.simps(15))
   qed
 qed simp
+
+text
+\<open>We show that a list of terminals \<open>map Tm x\<close> can be derived from the original production set \<open>ps\<close> if and only if \<open>map Tm x\<close>
+ can be derived after the transformation of the step function \<open>binarize'\<close>, under the assumption that the starting symbol \<open>A\<close>
+ occurs in a left-hand side of at least one production in \<open>ps\<close>. We can then extend this property to the \<open>binarize\<close> function\<close>
 
 lemma binarize_der':
   assumes "A \<in> lhss ps"
@@ -228,7 +246,9 @@ lemma lang_binarize_lhss:
   shows "lang ps A = lang (binarize ps) A"
   using binarize_der[OF assms] Lang_eqI_derives by metis
 
-(* Extending assumption from domain to arbitrary non-terminal *)
+text
+\<open>As a last step, we generalize the language preservation property to also include non-terminals which only occur at right-hand
+ sides of the production set\<close>
 
 lemma binarize_syms1:
   assumes  "Nt A \<in> syms ps"

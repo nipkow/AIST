@@ -120,7 +120,7 @@ next
     using Cons Un_iff by auto
 qed
 
-lemma \<N>_r1: "r' \<in> set (eps_closure ps r) \<Longrightarrow> set ps \<turnstile> r \<Rightarrow>* r'"
+lemma \<N>_1: "r' \<in> set (eps_closure ps r) \<Longrightarrow> set ps \<turnstile> r \<Rightarrow>* r'"
 proof (induction r arbitrary: r')
   case (Cons a r)
   then show ?case 
@@ -152,141 +152,122 @@ proof (induction r arbitrary: r')
 qed simp
 
 lemma \<N>_r2: 
-  assumes "set ps'\<turnstile> u \<Rightarrow> v"
-    and "\<N> ps ps'" 
+  assumes "set ps' \<turnstile> u \<Rightarrow> v" and "\<N> ps ps'" 
   shows "set ps \<turnstile> u \<Rightarrow>* v"
   using assms 
 proof -
-  obtain A \<alpha> r1 r2 where "(A, \<alpha>) \<in> set ps'\<and> u = r1 @ [Nt A] @ r2 \<and> v = r1 @ \<alpha> @ r2" (is "?A")
+  obtain A \<alpha> x y where "(A, \<alpha>) \<in> set ps'\<and> u = x @ [Nt A] @ y \<and> v = x @ \<alpha> @ y" (is "?A")
     using assms derive.cases by meson
   hence 1: "(A, \<alpha>) \<in> {(l,r'). \<exists>r. (l,r) \<in> set ps \<and> r' \<in> set (eps_closure ps r) \<and> (r' \<noteq> [])}"
     using assms(2) unfolding \<N>_def eps_elim_def by simp
   obtain r where "(A, r) \<in> set ps \<and> \<alpha> \<in> set (eps_closure ps r)" (is "?r")
     using 1 by blast
   hence "set ps \<turnstile> r \<Rightarrow>* \<alpha>" 
-    using \<N>_r1 by blast
-  hence 2: "set ps \<turnstile> r1 @ r @ r2 \<Rightarrow>* r1 @ \<alpha> @ r2"
+    using \<N>_1 by blast
+  hence 2: "set ps \<turnstile> x @ r @ y \<Rightarrow>* x @ \<alpha> @ y"
     using \<open>?r\<close> derives_prepend derives_append by blast
-  hence "set ps \<turnstile> r1 @ [Nt A] @ r2 \<Rightarrow> r1 @ r @ r2" 
+  hence "set ps \<turnstile> x @ [Nt A] @ y \<Rightarrow> x @ r @ y" 
     using \<open>?r\<close> derive.simps by fast
   thus ?thesis 
     using 2 by (simp add: \<open>?A\<close>)
 qed
 
 lemma \<N>_r3:
-  assumes "set ps' \<turnstile> u \<Rightarrow>* v"
-    and "\<N> ps ps'" 
+  assumes "set ps' \<turnstile> u \<Rightarrow>* v" and "\<N> ps ps'" 
   shows "set ps \<turnstile> u \<Rightarrow>* v"
-  using assms by (induction v rule: rtranclp_induct) (auto simp: \<N>_r2 rtranclp_trans)
-
-lemma \<N>_r4:
-  assumes "(l,r) \<in> set ps"
-    and "\<N> ps ps'"
-    and "r' \<in> set (eps_closure ps r) \<and> (r' \<noteq> [])"
-  shows "(l,r') \<in> set ps'"
-  using assms unfolding \<N>_def eps_elim_def by blast
+    using assms by (induction v rule: rtranclp_induct) (auto simp: \<N>_r2 rtranclp_trans)
 
 lemma \<N>_r5: "r \<in> set (eps_closure ps r)" 
   by (induction r) auto
 
-lemma \<N>_r6: 
+lemma \<N>_r4:
   assumes "(l,r) \<in> set ps"
-    and "r' \<noteq> []"
-    and "r' \<in> set (eps_closure ps r)"
     and "\<N> ps ps'"
+    and "(r' \<noteq> [])" 
+    and "r' \<in> set (eps_closure ps r)"
   shows "(l,r') \<in> set ps'"
-  using assms \<N>_r4 by fast
+  using assms unfolding \<N>_def eps_elim_def by blast
 
 lemma \<N>_r7: 
   assumes "\<N> ps ps'"
     and "set ps \<turnstile> [Nt A] \<Rightarrow> v"
     and "v' \<in> set (eps_closure ps v) \<and> (v' \<noteq> [])"
-  shows "set ps'\<turnstile> [Nt A] \<Rightarrow> v'"
+  shows "set ps' \<turnstile> [Nt A] \<Rightarrow> v'"
 proof -
   have "(A,v) \<in> set ps" 
     using assms(2) by (simp add: derive_singleton)
   hence "(A,v') \<in> set ps'" 
-    using assms \<N>_r6 conjE by fastforce
+    using assms \<N>_r4 conjE by fastforce
   thus ?thesis 
     using derive_singleton by fast
 qed
 
 lemma \<N>_r12a: 
-  assumes "r1' \<in> set (eps_closure ps r1)"
-    and "r2' \<in> set (eps_closure ps r2)"
-  shows "(r1'@r2') \<in> set (eps_closure ps (r1@r2))"
-  using assms by (induction r1 arbitrary: r1' r2 r2' rule: eps_closure.induct) auto
+  assumes "x' \<in> set (eps_closure ps x)"
+    and "y' \<in> set (eps_closure ps y)"
+  shows "(x'@y') \<in> set (eps_closure ps (x@y))"
+  using assms by (induction x arbitrary: x' y y' rule: eps_closure.induct) auto
 
 lemma \<N>_r12b:
-  assumes "r1' \<in> set (eps_closure ps r1)"
-    and "r2' \<in> set (eps_closure ps r2)"
-    and "r3' \<in> set (eps_closure ps r3)"
-  shows "(r1'@r2'@r3') \<in> set (eps_closure ps (r1@r2@r3))"
+  assumes "x' \<in> set (eps_closure ps x)"
+    and "y' \<in> set (eps_closure ps y)"
+    and "z' \<in> set (eps_closure ps z)"
+  shows "(x'@y'@z') \<in> set (eps_closure ps (x@y@z))"
   using assms 
-  by (induction r1 arbitrary: r1' r2 r2' r3 r3' rule: eps_closure.induct) (auto simp: \<N>_r12a)
+  by (induction x arbitrary: x' y y' z z' rule: eps_closure.induct) (auto simp: \<N>_r12a)
 
 lemma \<N>_r14:
-  assumes "r' \<in> set (eps_closure ps (r1@r2))"
-  shows "\<exists>r1' r2'. (r'=r1'@r2') \<and> r1' \<in> set (eps_closure ps r1) \<and> r2' \<in> set (eps_closure ps r2)"
+  assumes "r' \<in> set (eps_closure ps (x@y))"
+  shows "\<exists>x' y'. (r'=x'@y') \<and> x' \<in> set (eps_closure ps x) \<and> y' \<in> set (eps_closure ps y)"
   using assms
-  apply (induction r1 arbitrary: r2 r' rule: eps_closure.induct) 
+  apply (induction x arbitrary: y r' rule: eps_closure.induct) 
    apply auto
-  by (metis append_Cons imageI)+    
+  by (metis append_Cons imageI)+ 
 
 lemma \<N>_r15:
-  assumes "set ps \<turnstile> [S] \<Rightarrow>* rf"
+  assumes "set ps \<turnstile> [Nt S] \<Rightarrow>* u"
     and "\<N> ps ps'"
-    and "rf' \<in> set (eps_closure ps rf) \<and> (rf' \<noteq> [])"
-  shows "set ps'\<turnstile> [S] \<Rightarrow>* rf'"
+    and "v \<in> set (eps_closure ps u) \<and> (v \<noteq> [])"
+  shows "set ps' \<turnstile> [Nt S] \<Rightarrow>* v"
   using assms
-proof (induction arbitrary: rf')
+proof (induction u arbitrary: v rule: rtrancl_derive_induct)
   case base
-  then show ?case 
-    by (cases "nullable ps S") auto
+  then show ?case
+    by (cases "nullable ps (Nt S)") auto
 next
-  case (step b c)
-  then show ?case 
-  proof (cases "b = []")
+  case (step x A y w)
+  then obtain x' w' y' where 
+    "(v = (x'@w'@y')) \<and> x' \<in> set (eps_closure ps x) \<and> w' \<in> set (eps_closure ps w) \<and> y' \<in> set (eps_closure ps y)" (is "?v")
+    using step \<N>_r14 by metis
+  then show ?case
+  proof (cases "w' = []")
     case True
-    then show ?thesis 
-      using step derive_from_empty by blast
+      hence "v = x'@y'" 
+        using \<open>?v\<close> by simp 
+      have "[] \<in> set (eps_closure ps w)"
+        using True \<open>?v\<close> by simp
+      hence "nullables ps w"
+        using eps_closure_nullable by blast
+      hence "[] \<in> set (eps_closure ps [Nt A])" 
+        using step(2) NullableSym by fastforce
+      hence "(x'@y') \<in> set (eps_closure ps (x@[Nt A]@y))"
+        using \<N>_r12b[of x' ps x \<open>[]\<close> \<open>[Nt A]\<close> y' y] \<open>?v\<close> by simp
+      then show ?thesis 
+        using \<open>v = x' @ y'\<close> step by blast
   next
     case False
-    obtain r1 rhs r2 lhs where "b = (r1@[Nt lhs]@r2) \<and> c = (r1@rhs@r2) \<and> (lhs, rhs) \<in> set ps" (is "?bc")
-      using False step by (auto simp: derive.simps)
-    from this obtain r1' rhs' r2' where 
-      "(rf' = (r1'@rhs'@r2')) \<and> r1' \<in> set (eps_closure ps r1) \<and> rhs' \<in> set (eps_closure ps rhs) \<and> r2' \<in> set (eps_closure ps r2)" (is "?rf'")
-      using step \<N>_r14 by metis
-    then show ?thesis 
-    proof (cases "rhs' = []")
-      case True
-        hence "rf' = r1'@r2'" 
-          using \<open>?rf'\<close> by simp 
-        have "[] \<in> set (eps_closure ps rhs)"
-          using True \<open>?rf'\<close> by simp
-        hence "nullables ps rhs"
-          using eps_closure_nullable by blast
-        hence "[] \<in> set (eps_closure ps [Nt lhs])" 
-          using \<open>?bc\<close> NullableSym by fastforce
-        hence "(r1'@r2') \<in> set (eps_closure ps (r1@[Nt lhs]@r2))"
-          using \<N>_r12b[of r1' ps r1 \<open>[]\<close> \<open>[Nt lhs]\<close> r2' r2] \<open>?rf'\<close> by simp
-        then show ?thesis 
-          using \<open>?bc\<close> \<open>rf' = r1' @ r2'\<close> step by blast
-    next
-      case False
-        have "(r1'@[Nt lhs]@r2') \<in> set (eps_closure ps (r1@[Nt lhs]@r2)) "
-          using \<N>_r12b[of r1' ps r1 \<open>[Nt lhs]\<close> \<open>[Nt lhs]\<close> r2' r2] \<N>_r5[of \<open>[Nt lhs]\<close> ps] \<open>?rf'\<close> by blast
-        hence 1: "set ps'\<turnstile> [S] \<Rightarrow>* (r1'@[Nt lhs]@r2')" 
-          using \<open>?bc\<close> step by blast
-        have "set ps \<turnstile> [Nt lhs] \<Rightarrow> rhs" 
-          using \<open>?bc\<close> step(2) derive_singleton by blast
-        hence "set ps'\<turnstile> [Nt lhs] \<Rightarrow> rhs'"
-          using \<N>_r7[of ps ps' lhs rhs rhs'] False step \<open>?rf'\<close> by blast
-        hence "set ps'\<turnstile> (r1'@[Nt lhs]@r2') \<Rightarrow> (r1'@rhs'@r2')" 
-          using derive_append derive_prepend by blast
-        thus ?thesis using 1
-        by (simp add: \<open>?rf'\<close> step.prems(2))
-    qed
+      have "(x'@[Nt A]@y') \<in> set (eps_closure ps (x@[Nt A]@y)) "
+        using \<N>_r12b[of x' ps x \<open>[Nt A]\<close> \<open>[Nt A]\<close> y' y] \<N>_r5[of \<open>[Nt A]\<close> ps] \<open>?v\<close> by blast
+      hence 1: "set ps' \<turnstile> [Nt S] \<Rightarrow>* (x'@[Nt A]@y')" 
+        using step by blast
+      have "set ps \<turnstile> [Nt A] \<Rightarrow> w" 
+        using step(2) derive_singleton by blast
+      hence "set ps' \<turnstile> [Nt A] \<Rightarrow> w'"
+        using \<N>_r7[of ps ps' A w w'] False step \<open>?v\<close> by blast
+      hence "set ps' \<turnstile> (x'@[Nt A]@y') \<Rightarrow> (x'@w'@y')" 
+        using derive_append derive_prepend by blast
+      thus ?thesis using 1
+      by (simp add: \<open>?v\<close> step.prems(2))
   qed
 qed
 
@@ -303,8 +284,8 @@ proof
       using assms Lang_def by fastforce
     hence "(map Tm x) \<in> set (eps_closure ps (map Tm x))" 
       using \<N>_r5 by auto
-    hence "set ps'\<turnstile> [Nt S] \<Rightarrow>* (map Tm x)"
-      using assms \<open>x \<in> lang ps S\<close> Lang_def \<N>_r15[of ps \<open>Nt S\<close> \<open>map Tm x\<close>] by fast
+    hence "set ps' \<turnstile> [Nt S] \<Rightarrow>* (map Tm x)"
+      using assms \<open>x \<in> lang ps S\<close> Lang_def \<N>_r15[of ps S \<open>map Tm x\<close>] by fast
     thus "x \<in> lang ps' S"
       using Lang_def \<open>x \<in> lang ps S\<close> by fast 
   qed
@@ -314,7 +295,7 @@ next
     fix x'
     assume "x' \<in> lang ps' S"
     show "x' \<in> lang ps S" 
-      using assms Lang_def \<open>x' \<in> lang ps' S\<close> \<N>_r3[of ps'\<open>[Nt S]\<close> \<open>map Tm x'\<close> ps] by fast
+      using assms Lang_def \<open>x' \<in> lang ps' S\<close> \<N>_r3[of ps' \<open>[Nt S]\<close> \<open>map Tm x'\<close> ps] by fast
   qed
 qed
 
@@ -324,19 +305,17 @@ lemma noe_lang_\<N>_aux:
   shows "\<exists>A. ps \<turnstile> [Nt S] \<Rightarrow>* [Nt A] \<and> (A, w) \<in> ps"
   using assms by (induction w rule: rtranclp_induct) (auto simp: derive.simps)
 
-lemma noe_lang_\<N>:
-  assumes "\<N> ps ps'"
-  shows "[] \<notin> lang ps' S"
+lemma noe_lang_\<N>: "\<N> ps ps' \<Longrightarrow> [] \<notin> lang ps' S"
 proof (rule ccontr)
-  assume "\<not>([] \<notin> lang ps' S)"
-  hence "set ps'\<turnstile> [Nt S] \<Rightarrow>* map Tm []"
+  assume "\<N> ps ps'" "\<not>([] \<notin> lang ps' S)"
+  hence "set ps' \<turnstile> [Nt S] \<Rightarrow>* map Tm []"
     using Lang_def by fast
-  hence "set ps'\<turnstile> [Nt S] \<Rightarrow>* []"
+  hence "set ps' \<turnstile> [Nt S] \<Rightarrow>* []"
     by simp
-  hence "\<exists>A. set ps'\<turnstile> [Nt S] \<Rightarrow>* [Nt A] \<and> (A, []) \<in> set ps'"
+  hence "\<exists>A. set ps' \<turnstile> [Nt S] \<Rightarrow>* [Nt A] \<and> (A, []) \<in> set ps'"
     using noe_lang_\<N>_aux[of \<open>set ps'\<close>] by blast
   thus False 
-    using assms unfolding \<N>_def eps_elim_def by blast 
+    using \<open>\<N> ps ps'\<close> unfolding \<N>_def eps_elim_def by blast
 qed
 
 theorem \<N>_lang_eq: "\<N> ps ps'\<Longrightarrow> lang ps' S = lang ps S - {[]}"
@@ -363,13 +342,11 @@ next
       using \<open>w \<in> lang ps S - {[]}\<close> Lang_def by fast
     have "(map Tm w) \<in> set (eps_closure ps (map Tm w)) "
       using \<open>w \<in> lang ps S - {[]}\<close> \<N>_r5 by blast
-    hence "set ps'\<turnstile> [Nt S] \<Rightarrow>* (map Tm w)"
+    hence "set ps' \<turnstile> [Nt S] \<Rightarrow>* (map Tm w)"
       using 1 2 \<N>_r15[of ps] \<open>\<N> ps ps'\<close> by simp
     thus "w \<in> lang ps' S"
       by (simp add: Lang_def)
   qed
 qed
-
-unused_thms
 
 end

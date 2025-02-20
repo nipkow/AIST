@@ -175,7 +175,7 @@ lemma substitution:
   shows "\<exists>v w x. (Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p2\<rangle> w) \<and> z = v@w@x \<and>
         (\<forall>subst p'. ((Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> subst) \<longrightarrow> Ps \<turnstile> A \<Rightarrow>\<langle>p1@[X]@p'\<rangle> v@subst@x)) \<and>
         (length p1 > 0 \<longrightarrow> length (v@x) > 0)"
-using assms proof (induction p1 arbitrary: Ps A z X p2)
+using assms proof (induction p1 arbitrary: Ps A z)
   case Nil
   hence "\<forall>subst p'. ((Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p2\<rangle> z) \<and> z = []@z@[] \<and>
         ((Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> subst) \<longrightarrow> Ps \<turnstile> A \<Rightarrow>\<langle>[]@[X]@p'\<rangle> ([]@subst@[])) \<and>
@@ -236,7 +236,7 @@ lemma substitution_lp:
   assumes "Ps \<turnstile> A \<Rightarrow>\<llangle>p1@[X]@p2\<rrangle> z"
   shows "\<exists>v w x. ((Ps \<turnstile> X \<Rightarrow>\<llangle>[X]@p2\<rrangle> w) \<and> z = v@w@x \<and>
         (\<forall>subst p'. ((Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> subst) \<longrightarrow> Ps \<turnstile> A \<Rightarrow>\<langle>p1@[X]@p'\<rangle> v@subst@x)))"
-using assms proof (induction p1 arbitrary: Ps A z X p2)
+using assms proof (induction p1 arbitrary: Ps A z)
   case Nil
   hence "\<forall>subst p'. (Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> subst) \<longrightarrow> Ps \<turnstile> A \<Rightarrow>\<langle>[]@[X]@p'\<rangle> ([]@subst@[])"
     using path_first_step lpath_path by fastforce
@@ -288,6 +288,17 @@ qed
 
 lemma path_nts: "Ps \<turnstile> S \<Rightarrow>\<langle>p\<rangle> w \<Longrightarrow> set p \<subseteq> Nts Ps"
   unfolding Nts_def by (induction rule: path.induct) auto
+
+lemma finite_Nts: "finite (Prods G) \<Longrightarrow> finite (Nts (Prods G))"
+proof -
+  assume "finite (Prods G)"
+  have "\<forall>w A. finite (nts_of_syms w) \<and> finite {A}"
+    using finite_nts_of_syms by blast
+  hence "\<forall>w A. finite (nts_of_syms w \<union> {A})"
+    using finite_Un by simp
+  thus "finite (Nts (Prods G))"
+    unfolding Nts_def using \<open>finite (Prods G)\<close> by auto
+qed
 
 lemma finite_nts: "finite (nts (prods G))"
 proof -

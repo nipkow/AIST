@@ -2,7 +2,7 @@ theory Binarize
 imports "../CFG" detProds
 begin
 
-(* FFPI *)
+(* FFPI *) 
 lemma funpow_fix: fixes f :: "'a \<Rightarrow> 'a" and m :: "'a \<Rightarrow> nat"
 assumes "\<And>x. m(f x) < m x \<or> f x = x"
 shows "f((f ^^ m x) x) = (f ^^ m x) x"

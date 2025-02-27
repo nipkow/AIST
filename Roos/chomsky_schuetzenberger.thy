@@ -160,8 +160,8 @@ definition hom :: \<open>('c list \<Rightarrow> 'd list) \<Rightarrow> bool\<clo
 
 
 text\<open>helper function for the definition of \<open>h\<close>\<close>
-fun he :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) \<Rightarrow> 'b list\<close> where
-\<open>he (br, (p, i)) = 
+fun the_hom_helper :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) \<Rightarrow> 'b list\<close> where
+\<open>the_hom_helper (br, (p, i)) = 
     (case p of 
     (A, [Nt B, Nt C]) \<Rightarrow> [] | 
     (A, [Tm a]) \<Rightarrow> (if br = Op \<and> i=One then [a] else []) | 
@@ -171,29 +171,29 @@ fun he :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> vers
 
 
 text\<open>helper function for the definition of the extended \<open>h_ext\<close>\<close>
-fun he_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version ) sym \<Rightarrow> ('a,'b) sym list\<close> where
-\<open>he_ext (Tm (br, (p, i))) = 
+fun the_hom_ext_helper :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version ) sym \<Rightarrow> ('a,'b) sym list\<close> where
+\<open>the_hom_ext_helper (Tm (br, (p, i))) = 
     (case p of 
     (A, [Nt B, Nt C]) \<Rightarrow> [] | 
     (A, [Tm a]) \<Rightarrow> (if br = Op \<and> i=One then [Tm a] else []) | 
     _ \<Rightarrow> []
     )\<close> | 
-\<open>he_ext (Nt A) = [Nt A]\<close>
+\<open>the_hom_ext_helper (Nt A) = [Nt A]\<close>
 
 
 
 text\<open>The needed homomorphism in the proof\<close>
 fun the_hom :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> 'b list \<close> where
-\<open>the_hom l = concat (map he l)\<close>
+\<open>the_hom l = concat (map the_hom_helper l)\<close>
 
 text\<open>The needed homomorphism in the proof, but extended on Variables\<close>
 fun the_hom_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version ) sym list \<Rightarrow> ('a,'b) sym list \<close> where
-\<open>the_hom_ext l = concat (map he_ext l)\<close>
+\<open>the_hom_ext l = concat (map the_hom_ext_helper l)\<close>
 
 
 text\<open>helper for showing the next lemma\<close>
-lemma helper: \<open>he_ext (Tm x) = map Tm (he x)\<close>
-apply(induction x rule: he.induct)
+lemma helper: \<open>the_hom_ext_helper (Tm x) = map Tm (the_hom_helper x)\<close>
+apply(induction x rule: the_hom_helper.induct)
 by(auto split: list.splits sym.splits)
 
 text\<open>Show that the extension really is an extension in some sense.\<close>
@@ -201,6 +201,7 @@ lemma \<open>the_hom_ext (map Tm x) = map Tm (the_hom x)\<close>
 apply(induction x)
 apply(simp)
 using helper by fastforce
+
 
 
 

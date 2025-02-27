@@ -67,7 +67,23 @@ datatype version = One | Two
 
 
 
-text\<open>definition of what it means to be a balanced string\<close>
+abbreviation open_bracket1 :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version" ("[\<^sub>_\<^sup>1 ") where
+  "[\<^sub>p\<^sup>1  \<equiv> (Op, (p, One))"
+
+abbreviation close_bracket1 :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version" ("]\<^sub>_\<^sup>1") where
+  "]\<^sub>p\<^sup>1 \<equiv> (Cl, (p, One))"
+
+abbreviation open_bracket2 :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version" ("[\<^sub>_\<^sup>2") where
+  "[\<^sub>p\<^sup>2 \<equiv> (Op, (p, Two))"
+
+abbreviation close_bracket2 :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version" ("]\<^sub>_\<^sup>2") where
+  "]\<^sub>p\<^sup>2 \<equiv> (Cl, (p, Two))"
+
+
+
+
+
+text\<open>definition of what it means to be a balanced string with letters of type \<open>bracket \<times> ('a)\<close> \<close>
 inductive balanced :: "(bracket  \<times> ('a)) list \<Rightarrow> bool" where
   empty[intro]: "balanced []" |
   pair[intro]: "balanced xs \<Longrightarrow> balanced ((Op, g) # xs @ [(Cl, g)])" |
@@ -76,7 +92,8 @@ inductive balanced :: "(bracket  \<times> ('a)) list \<Rightarrow> bool" where
 text\<open>The bracket language over a set R. Every element r \<in> R will get a Closing and an Opening version of itself, via pairing with the type bracket. We later need D := dyck_language ((Prods G) \<times> {1,2})\<close>
 
 definition dyck_language :: "'a set \<Rightarrow> (bracket  \<times> ('a)) list set" where
-  "dyck_language R = {l. (balanced l) \<and> (\<forall>(br,r) \<in> (set l). r \<in> R)}"
+  "dyck_language R = {w. (balanced w) \<and> (\<forall>(br,r) \<in> (set w). r \<in> R)}"
+
 
 
 text\<open>The transformation of old productions to new productions used in the proof.\<close>
@@ -85,9 +102,9 @@ definition transform_production :: "('n, 't) prod \<Rightarrow>
   "transform_production p = (
     case p of
       (A, [Nt B, Nt C]) \<Rightarrow> 
-        (A, [ Tm (Op, (p, One)), Nt B, Tm (Cl, (p, One)), Tm (Op, (p, Two)), Nt C, Tm (Cl, (p, Two))  ]) | 
+        (A, [ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ]) | 
       (A, [Tm a]) \<Rightarrow>   
-        (A, [ Tm (Op, (p,One)),       Tm (Cl, (p, One)), Tm (Op, (p, Two)),       Tm (Cl, (p, Two))  ]) 
+        (A, [ Tm (Op, (p,One)),       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ]) 
 )"
 
 
@@ -104,17 +121,17 @@ sorry
 text\<open> (Directly) After each (Cl,p,1) always comes a (Op,p,2) \<close>
 definition P1 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> bool\<close> where
 \<open>P1 P x = (\<forall>p \<in> P. \<forall> i < length x.
-  x ! i = (Cl, (p, One)) \<longrightarrow> ( i+1 < length x \<and> x ! (i+1) = (Op, (p, Two))))\<close>
+  x ! i = ]\<^sub>p\<^sup>1  \<longrightarrow> ( i+1 < length x \<and> x ! (i+1) = [\<^sub>p\<^sup>2 ))\<close>
 
 text\<open>After any (Cl,pi,2) there never comes an (Op,...)\<close>
 definition P2 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> bool\<close> where
-\<open>P2 P x = (\<forall>p \<in> P. \<forall>r. (\<forall>i j. i < length x \<and> j < length x \<and> i < j \<and> x ! i = (Cl, (p, Two)) \<longrightarrow> x ! j \<noteq> (Op, r)))\<close>
+\<open>P2 P x = (\<forall>p \<in> P. \<forall>r. (\<forall>i j. i < length x \<and> j < length x \<and> i < j \<and> x ! i = ]\<^sub>p\<^sup>2  \<longrightarrow> x ! j \<noteq> (Op, r)))\<close>
 
 text\<open>If pi = A\<rightarrow>BC, then after each (Op,pi,1) always comes a (Op,p,1) where B = lhs of p And after each (Op,pi,2) always comes a (Op,sigma,1) where C = lhs of sigma\<close>
 definition P3 :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> bool\<close> where
 \<open>P3 x = (\<forall>i < length x. 
        (\<exists>A B C. x ! i = (Op, ((A, [Nt B, Nt C]), One)) \<longrightarrow> 
-          ((i+1) < length x \<and> (\<exists>p l. x ! (i+1) = (Op, (p, One)) \<and> p = (B, l)))) \<and>
+          ((i+1) < length x \<and> (\<exists>p l. x ! (i+1) = [\<^sub>p\<^sup>1  \<and> p = (B, l)))) \<and>
        (\<exists>A B C. x ! i = (Op, ((A, [Nt B, Nt C]), Two)) \<longrightarrow> 
           ((i+1) < length x \<and> (\<exists>\<sigma> l. x ! (i+1) = (Op, (\<sigma>, One)) \<and> \<sigma> = (C, l)))))\<close>
 

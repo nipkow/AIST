@@ -183,18 +183,13 @@ fun he_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version ) sym \
 
 
 text\<open>The needed homomorphism in the proof\<close>
-fun h :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> 'b list \<close> where
-\<open>h l = concat (map he l)\<close>
+fun the_hom :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> 'b list \<close> where
+\<open>the_hom l = concat (map he l)\<close>
 
 text\<open>The needed homomorphism in the proof, but extended on Variables\<close>
-fun h_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version ) sym list \<Rightarrow> ('a,'b) sym list \<close> where
-\<open>h_ext l = concat (map he_ext l)\<close>
+fun the_hom_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version ) sym list \<Rightarrow> ('a,'b) sym list \<close> where
+\<open>the_hom_ext l = concat (map he_ext l)\<close>
 
-text\<open>by defining h on D we get a homomorphism on D* by extending it homomorphically - this is not quite what is going on here, since we want to define some stuff to map to \<open>\<epsilon>\<close>, but that's the idea. Turns out we dont need the lemma for our \<open>h\<close>, since simp can do it alone. \<close>
-lemma extending_gives_hom :
-fixes h:: \<open>'a \<Rightarrow> 'b list\<close>
-shows \<open>hom (\<lambda>x. (concat (map h x)))\<close>
-unfolding hom_def by simp
 
 text\<open>helper for showing the next lemma\<close>
 lemma helper: \<open>he_ext (Tm x) = map Tm (he x)\<close>
@@ -202,7 +197,7 @@ apply(induction x rule: he.induct)
 by(auto split: list.splits sym.splits)
 
 text\<open>Show that the extension really is an extension in some sense.\<close>
-lemma \<open>h_ext (map Tm x) = map Tm (h x)\<close>
+lemma \<open>the_hom_ext (map Tm x) = map Tm (the_hom x)\<close>
 apply(induction x)
 apply(simp)
 using helper by fastforce
@@ -213,34 +208,31 @@ text\<open>The chomsky-scheutzenberger theorem that we want to prove.\<close>
 lemma chomsky_schuetzenberger :
 fixes L::\<open>'t list set\<close>
 assumes \<open>CFL.cfl TYPE('n) L\<close> 
-
 shows \<open>\<exists>(R::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set) h \<Gamma>. (reg TYPE('n) R) \<and> (L = image h (R \<inter> dyck_language \<Gamma>)) \<and> hom h\<close>
 proof -
 have \<open>\<exists>P S::'n. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> using \<open>cfl TYPE('n) L\<close> CNF_existence by auto
 then obtain P and S::'n where \<open>L = Lang P S\<close> and \<open>(\<forall>p \<in> P. CNF_rule p)\<close> by blast
 
-let ?\<Gamma> = \<open>P \<times> {One, Two}\<close>
-(*define \<Gamma> where "\<Gamma> = (2::nat)" *)
-let ?P' = \<open>image transform_production P\<close>
-let ?L' = \<open>Lang ?P' S\<close>
-let ?h = \<open>h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list \<Rightarrow> 't list\<close>
+define \<Gamma> where \<open>\<Gamma> = P \<times> {One, Two}\<close>
+define P' where \<open>P' = image transform_production P\<close>
+define L' where \<open>L' = Lang P' S\<close>
+define h where \<open>h = (the_hom::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list \<Rightarrow> 't list)\<close>
 
 
+have \<open>L' \<subseteq> dyck_language \<Gamma>\<close> sorry (* This might not be needed (but it was listed in the book). Leave this for last *)
 
-have \<open>?L' \<subseteq> dyck_language ?\<Gamma>\<close> sorry (* This might not be needed (but it was listed in the book). Leave this for last *)
-
-have \<open>\<forall>A. \<forall>x::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list. 
-(image transform_production P) \<turnstile> [Nt S] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (dyck_language ?\<Gamma>) \<inter> (Re P A)\<close> sorry (* This is the hard part of the proof - the local lemma in the textbook *)
-then have \<open>?L' = (dyck_language ?\<Gamma>) \<inter> (Re P S)\<close> by (metis (no_types, lifting) CFG.Lang_def mem_Collect_eq subsetI subset_antisym)
-then have \<open>image h ((dyck_language ?\<Gamma>) \<inter> (Re P S)) =  image h ?L'\<close> by simp
+have \<open>\<forall>A. \<forall>x. 
+(image transform_production P) \<turnstile> [Nt S] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (dyck_language \<Gamma>) \<inter> (Re P A)\<close> sorry (* This is the hard part of the proof - the local lemma in the textbook *)
+then have \<open>L' = (dyck_language \<Gamma>) \<inter> (Re P S)\<close> by (metis CFL_Lang_eq_CFG_Lang CFL_Lang_if_derives L'_def P'_def derives_if_CFL_Lang inf_absorb2 inf_commute subsetI)
+then have \<open>image h ((dyck_language \<Gamma>) \<inter> (Re P S)) =  image h L'\<close> by simp
 also have \<open>... = Lang P S\<close> sorry (* For this h_ext should be used. *)
 
 also have \<open>... = L\<close> by (simp add: \<open>L = Lang P S\<close>)
-finally have \<open>image h ((dyck_language ?\<Gamma>) \<inter> (Re P S)) = L\<close> by auto
+finally have \<open>image h ((dyck_language \<Gamma>) \<inter> (Re P S)) = L\<close> by auto
 
-moreover have hom: \<open>hom (h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list \<Rightarrow> 't list)\<close> by (simp add: hom_def)
+moreover have hom: \<open>hom h\<close> by (simp add: h_def hom_def)
 moreover have \<open>reg TYPE('n) (Re P S)\<close> sorry
-ultimately have \<open>reg TYPE('n) (Re P S) \<and> L = image h ((Re P S) \<inter> (dyck_language ?\<Gamma>)) \<and> hom (h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list \<Rightarrow> 't list)\<close> by blast 
+ultimately have \<open>reg TYPE('n) (Re P S) \<and> L = image h ((Re P S) \<inter> (dyck_language \<Gamma>)) \<and> hom h\<close> by blast 
 then show ?thesis by blast
 
 qed

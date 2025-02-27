@@ -63,6 +63,10 @@ definition reg :: "'n itself \<Rightarrow> 't list set \<Rightarrow> bool" where
 text\<open>A type of brackets. Will be combined with other types.\<close>
 datatype bracket = Op | Cl
 
+datatype version = One | Two
+
+
+
 text\<open>definition of what it means to be a balanced string\<close>
 inductive balanced :: "(bracket  \<times> ('a)) list \<Rightarrow> bool" where
   empty[intro]: "balanced []" |
@@ -77,13 +81,13 @@ definition dyck_language :: "'a set \<Rightarrow> (bracket  \<times> ('a)) list 
 
 text\<open>The transformation of old productions to new productions used in the proof.\<close>
 definition transform_production :: "('n, 't) prod \<Rightarrow> 
-('n, bracket \<times> ('n,'t) prod \<times> nat ) prod" where
+('n, bracket \<times> ('n,'t) prod \<times> version) prod" where
   "transform_production p = (
     case p of
       (A, [Nt B, Nt C]) \<Rightarrow> 
-        (A, [ Tm (Op, (p,1)), Nt B, Tm (Cl, (p,1)), Tm (Op, (p,2)), Nt C, Tm (Cl, (p,2))  ]) | 
+        (A, [ Tm (Op, (p, One)), Nt B, Tm (Cl, (p, One)), Tm (Op, (p, Two)), Nt C, Tm (Cl, (p, Two))  ]) | 
       (A, [Tm a]) \<Rightarrow>   
-        (A, [ Tm (Op, (p,1)),       Tm (Cl, (p,1)), Tm (Op, (p,2)),       Tm (Cl, (p,2))  ]) 
+        (A, [ Tm (Op, (p,One)),       Tm (Cl, (p, One)), Tm (Op, (p, Two)),       Tm (Cl, (p, Two))  ]) 
 )"
 
 
@@ -98,37 +102,37 @@ shows \<open>\<exists>P S::'a. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule
 sorry
 
 text\<open> (Directly) After each (Cl,p,1) always comes a (Op,p,2) \<close>
-definition P1 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list \<Rightarrow> bool\<close> where
+definition P1 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> bool\<close> where
 \<open>P1 P x = (\<forall>p \<in> P. \<forall> i < length x.
-  x ! i = (Cl, (p, 1)) \<longrightarrow> ( i+1 < length x \<and> x ! (i+1) = (Op, (p, 2))))\<close>
+  x ! i = (Cl, (p, One)) \<longrightarrow> ( i+1 < length x \<and> x ! (i+1) = (Op, (p, Two))))\<close>
 
 text\<open>After any (Cl,pi,2) there never comes an (Op,...)\<close>
-definition P2 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list \<Rightarrow> bool\<close> where
-\<open>P2 P x = (\<forall>p \<in> P. \<forall>r. (\<forall>i j. i < length x \<and> j < length x \<and> i < j \<and> x ! i = (Cl, (p, 2)) \<longrightarrow> x ! j \<noteq> (Op, r)))\<close>
+definition P2 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> bool\<close> where
+\<open>P2 P x = (\<forall>p \<in> P. \<forall>r. (\<forall>i j. i < length x \<and> j < length x \<and> i < j \<and> x ! i = (Cl, (p, Two)) \<longrightarrow> x ! j \<noteq> (Op, r)))\<close>
 
 text\<open>If pi = A\<rightarrow>BC, then after each (Op,pi,1) always comes a (Op,p,1) where B = lhs of p And after each (Op,pi,2) always comes a (Op,sigma,1) where C = lhs of sigma\<close>
-definition P3 :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list \<Rightarrow> bool\<close> where
+definition P3 :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> bool\<close> where
 \<open>P3 x = (\<forall>i < length x. 
-       (\<exists>A B C. x ! i = (Op, ((A, [Nt B, Nt C]), 1)) \<longrightarrow> 
-          ((i+1) < length x \<and> (\<exists>p l. x ! (i+1) = (Op, (p, 1)) \<and> p = (B, l)))) \<and>
-       (\<exists>A B C. x ! i = (Op, ((A, [Nt B, Nt C]), 2)) \<longrightarrow> 
-          ((i+1) < length x \<and> (\<exists>\<sigma> l. x ! (i+1) = (Op, (\<sigma>, 1)) \<and> \<sigma> = (C, l)))))\<close>
+       (\<exists>A B C. x ! i = (Op, ((A, [Nt B, Nt C]), One)) \<longrightarrow> 
+          ((i+1) < length x \<and> (\<exists>p l. x ! (i+1) = (Op, (p, One)) \<and> p = (B, l)))) \<and>
+       (\<exists>A B C. x ! i = (Op, ((A, [Nt B, Nt C]), Two)) \<longrightarrow> 
+          ((i+1) < length x \<and> (\<exists>\<sigma> l. x ! (i+1) = (Op, (\<sigma>, One)) \<and> \<sigma> = (C, l)))))\<close>
 
 
 text\<open>If pi = A\<rightarrow>a then after each (Op,pi,1) comes a (Cl,pi,1) and after each (Op,pi,2) comes a (Cl,pi,2)\<close>
-definition P4 :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list \<Rightarrow> bool\<close> where
+definition P4 :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> bool\<close> where
 \<open>P4 x = ((\<forall>i < length x - 1. 
-        (\<exists>A a. x ! i = (Op, ((A, [Tm a]), 1)) \<longrightarrow> x ! (i + 1) = (Cl, ((A, [Tm a]), 1))) \<and>
-        (\<exists>A a. x ! i = (Op, ((A, [Tm a]), 2)) \<longrightarrow> x ! (i + 1) = (Cl, ((A, [Tm a]), 2)))))\<close>
+        (\<exists>A a. x ! i = (Op, ((A, [Tm a]), One)) \<longrightarrow> x ! (i + 1) = (Cl, ((A, [Tm a]), One))) \<and>
+        (\<exists>A a. x ! i = (Op, ((A, [Tm a]), Two)) \<longrightarrow> x ! (i + 1) = (Cl, ((A, [Tm a]), Two)))))\<close>
 
 text\<open>For all A, if A produces x under P', then there eists some pi \<in> P with lhs A such that x begins with (Op,pi,1)\<close>
-definition P5 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> 'a \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list \<Rightarrow> bool\<close> where
+definition P5 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> 'a \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> bool\<close> where
 \<open>P5 P A x = (( (\<forall>w. derives (image transform_production P) [Nt A] w) \<longrightarrow> 
-       (\<exists>\<pi> l. \<pi> \<in> P \<and> \<pi> = (A, l) \<and> x \<noteq> [] \<and> x ! 0 = (Op, \<pi>, 1))))\<close>
+       (\<exists>\<pi> l. \<pi> \<in> P \<and> \<pi> = (A, l) \<and> x \<noteq> [] \<and> x ! 0 = (Op, \<pi>, One))))\<close>
 
 text\<open>This is the regular language, where one takes the Start symbol as a parameter, and then has the searched for \<open>R := R\<^sub>A\<close>\<close>
-definition Re :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> 'a \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list set\<close> where
-\<open>Re P A = {x::(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list. 
+definition Re :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> 'a \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list set\<close> where
+\<open>Re P A = {x::(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list. 
 (P1 P x) \<and> (P2 P x) \<and> (P3 x) \<and> (P4 x) \<and> (P5 P A x)}\<close>
 
 
@@ -139,22 +143,22 @@ definition hom :: \<open>('c list \<Rightarrow> 'd list) \<Rightarrow> bool\<clo
 
 
 text\<open>helper function for the definition of \<open>h\<close>\<close>
-fun he :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) \<Rightarrow> 'b list\<close> where
+fun he :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) \<Rightarrow> 'b list\<close> where
 \<open>he (br, (p, i)) = 
     (case p of 
     (A, [Nt B, Nt C]) \<Rightarrow> [] | 
-    (A, [Tm a]) \<Rightarrow> (if br = Op \<and> i=1 then [a] else []) | 
+    (A, [Tm a]) \<Rightarrow> (if br = Op \<and> i=One then [a] else []) | 
     _ \<Rightarrow> []
     )
 \<close>
 
 
 text\<open>helper function for the definition of the extended \<open>h_ext\<close>\<close>
-fun he_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> nat ) sym \<Rightarrow> ('a,'b) sym list\<close> where
+fun he_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version ) sym \<Rightarrow> ('a,'b) sym list\<close> where
 \<open>he_ext (Tm (br, (p, i))) = 
     (case p of 
     (A, [Nt B, Nt C]) \<Rightarrow> [] | 
-    (A, [Tm a]) \<Rightarrow> (if br = Op \<and> i=1 then [Tm a] else []) | 
+    (A, [Tm a]) \<Rightarrow> (if br = Op \<and> i=One then [Tm a] else []) | 
     _ \<Rightarrow> []
     )\<close> | 
 \<open>he_ext (Nt A) = [Nt A]\<close>
@@ -162,11 +166,11 @@ fun he_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> nat ) sym \<Rig
 
 
 text\<open>The needed homomorphism in the proof\<close>
-fun h :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> nat) list \<Rightarrow> 'b list \<close> where
+fun h :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> 'b list \<close> where
 \<open>h l = concat (map he l)\<close>
 
 text\<open>The needed homomorphism in the proof, but extended on Variables\<close>
-fun h_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> nat ) sym list \<Rightarrow> ('a,'b) sym list \<close> where
+fun h_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version ) sym list \<Rightarrow> ('a,'b) sym list \<close> where
 \<open>h_ext l = concat (map he_ext l)\<close>
 
 text\<open>by defining h on D we get a homomorphism on D* by extending it homomorphically - this is not quite what is going on here, since we want to define some stuff to map to \<open>\<epsilon>\<close>, but that's the idea. Turns out we dont need the lemma for our \<open>h\<close>, since simp can do it alone. \<close>
@@ -193,22 +197,22 @@ lemma chomsky_schuetzenberger :
 fixes L::\<open>'t list set\<close>
 assumes \<open>CFL.cfl TYPE('n) L\<close> 
 
-shows \<open>\<exists>(R::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list set) h \<Gamma>. (reg TYPE('n) R) \<and> (L = image h (R \<inter> dyck_language \<Gamma>)) \<and> hom h\<close>
+shows \<open>\<exists>(R::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set) h \<Gamma>. (reg TYPE('n) R) \<and> (L = image h (R \<inter> dyck_language \<Gamma>)) \<and> hom h\<close>
 proof -
 have \<open>\<exists>P S::'n. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> using \<open>cfl TYPE('n) L\<close> CNF_existence by auto
 then obtain P and S::'n where \<open>L = Lang P S\<close> and \<open>(\<forall>p \<in> P. CNF_rule p)\<close> by blast
 
-let ?\<Gamma> = \<open>P \<times> {1::nat,2}\<close>
+let ?\<Gamma> = \<open>P \<times> {One, Two}\<close>
 (*define \<Gamma> where "\<Gamma> = (2::nat)" *)
 let ?P' = \<open>image transform_production P\<close>
 let ?L' = \<open>Lang ?P' S\<close>
-let ?h = \<open>h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list \<Rightarrow> 't list\<close>
+let ?h = \<open>h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list \<Rightarrow> 't list\<close>
 
 
 
 have \<open>?L' \<subseteq> dyck_language ?\<Gamma>\<close> sorry (* This might not be needed (but it was listed in the book). Leave this for last *)
 
-have \<open>\<forall>A. \<forall>x::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list. 
+have \<open>\<forall>A. \<forall>x::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list. 
 (image transform_production P) \<turnstile> [Nt S] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (dyck_language ?\<Gamma>) \<inter> (Re P A)\<close> sorry (* This is the hard part of the proof - the local lemma in the textbook *)
 then have \<open>?L' = (dyck_language ?\<Gamma>) \<inter> (Re P S)\<close> by (metis (no_types, lifting) CFG.Lang_def mem_Collect_eq subsetI subset_antisym)
 then have \<open>image h ((dyck_language ?\<Gamma>) \<inter> (Re P S)) =  image h ?L'\<close> by simp
@@ -217,9 +221,9 @@ also have \<open>... = Lang P S\<close> sorry (* For this h_ext should be used. 
 also have \<open>... = L\<close> by (simp add: \<open>L = Lang P S\<close>)
 finally have \<open>image h ((dyck_language ?\<Gamma>) \<inter> (Re P S)) = L\<close> by auto
 
-moreover have hom: \<open>hom (h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list \<Rightarrow> 't list)\<close> by (simp add: hom_def)
+moreover have hom: \<open>hom (h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list \<Rightarrow> 't list)\<close> by (simp add: hom_def)
 moreover have \<open>reg TYPE('n) (Re P S)\<close> sorry
-ultimately have \<open>reg TYPE('n) (Re P S) \<and> L = image h ((Re P S) \<inter> (dyck_language ?\<Gamma>)) \<and> hom (h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> nat) list \<Rightarrow> 't list)\<close> by blast 
+ultimately have \<open>reg TYPE('n) (Re P S) \<and> L = image h ((Re P S) \<inter> (dyck_language ?\<Gamma>)) \<and> hom (h::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list \<Rightarrow> 't list)\<close> by blast 
 then show ?thesis by blast
 
 qed

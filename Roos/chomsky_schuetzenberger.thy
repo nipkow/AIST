@@ -240,7 +240,6 @@ lemma hom_ext_inv[simp]: \<open>CNF_rule \<pi> \<Longrightarrow> the_hom_ext (sn
 by auto
 
 
-inductive_cases derive_bw: "P \<turnstile>u @ a @ v \<Rightarrow> w"
 
 text\<open>The chomsky-scheutzenberger theorem that we want to prove.\<close>
 lemma chomsky_schuetzenberger :
@@ -318,11 +317,14 @@ next
     ultimately show ?case by simp  
   next
     case (Suc n)
-    obtain u v A where \<open>P \<turnstile> [Nt S] \<Rightarrow>(n) u @ [Nt A] @ v\<close> and \<open>P \<turnstile> u @ [Nt A] @ v \<Rightarrow> w\<close> using local.Suc.prems by (metis (mono_tags, lifting) CFG.derive.simps relpowp_Suc_E)
-    obtain x where \<open>u @ x @ v = w\<close> apply(rule derive_bw[OF \<open>P \<turnstile> u @ [Nt A] @ v \<Rightarrow> w\<close>]) sorry 
-    then obtain w' where \<open>w'\<in> Ders P' S\<close> and \<open>P' \<turnstile> [Nt S] \<Rightarrow>(n) w' \<and> \<alpha> = h_ext w'\<close> using local.Suc.IH by blast
+    obtain \<alpha> where \<open>P \<turnstile> [Nt S] \<Rightarrow>(n) \<alpha>\<close> and \<open>P \<turnstile> \<alpha> \<Rightarrow> w\<close> using local.Suc.prems by auto
+    then obtain u A v x where \<open>\<alpha> = u @ [Nt A] @ v\<close> and \<open>w = u @ x @ v\<close> and \<open>(A,x) \<in> P\<close> by (meson CFG.derive.simps)
 
-    with Suc show ?case
+    obtain w' where \<open>w'\<in> Ders P' S\<close> and \<open>P' \<turnstile> [Nt S] \<Rightarrow>(n) w' \<and> \<alpha> = h_ext w'\<close> using local.Suc.IH \<open>P \<turnstile> [Nt S] \<Rightarrow>(n) \<alpha>\<close> by blast
+
+    have \<open>{(A,x)} \<turnstile> \<alpha> \<Rightarrow> w\<close> using CFG.derive.intros \<open>\<alpha> = u @ [Nt A] @ v\<close> \<open>w = u @ x @ v\<close> by fastforce
+    
+    with Suc show \<open>\<exists>w'\<in>Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>(Suc n) w' \<and> w = h_ext w'\<close> sorry
   qed
     
   then show \<open>\<exists>w'\<in>L'. w = h w'\<close> sorry

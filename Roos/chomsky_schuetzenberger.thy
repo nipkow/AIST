@@ -55,6 +55,14 @@ The Lemma (***) is missing. This is the main mathematics of the proof, it invole
 
 declare [[names_short]]
 
+
+fun strip_tm :: "('a, 'b) sym  \<Rightarrow> 'b" where 
+\<open>strip_tm (Tm t) = t\<close> | 
+\<open>strip_tm (Nt A) = undefined\<close>
+
+
+
+
 definition reg :: "'n itself \<Rightarrow> 't list set \<Rightarrow> bool" where
 "reg (TYPE('n)) L = (\<exists>P S::'n. L = Lang P S \<and> True) " (*TODO add type 3 stuff here*)               
    
@@ -105,7 +113,22 @@ fun transform_production :: "('n, 't) prod \<Rightarrow>
  \<open> transform_production (A, [Tm a])  = 
  (A, [ Tm (Op, ((A, [Tm a]),One)),       Tm (Cl, ((A, [Tm a]), One)), Tm (Op, ((A, [Tm a]), Two)),       Tm (Cl, ((A, [Tm a]), Two))  ]) \<close> | 
  \<open>transform_production (A, _) = (A, [])\<close>
-      
+
+
+lemma transform_production_induct:
+\<open>\<lbrakk>\<And>B C. P ([Nt B, Nt C]); 
+\<And>a. P ([Tm a]); P ([]); 
+\<And>vb v vc. P (Tm vb # v # vc); 
+\<And>va. P ([Nt va]); 
+\<And>v vd vc. P (v # Tm vd # vc); 
+\<And>v vb vd ve. P (v # vb # vd # ve)\<rbrakk> 
+\<Longrightarrow> P a0\<close>
+by (metis CFG.sym.exhaust List.list.exhaust)
+
+
+lemma fst_transform_production[simp]: \<open>fst (transform_production (A, w)) = A\<close>
+by(induction rule: transform_production_induct;auto)    
+
 (* 
 text\<open>The transformation of old productions to new productions used in the proof.\<close>
 definition transform_production :: "('n, 't) prod \<Rightarrow> 
@@ -133,12 +156,15 @@ lemma transform_production_CNF2: \<open>CNF_rule p \<Longrightarrow> transform_p
 unfolding CNF_rule_def by auto
 
 
-lemma transform_production_induct:
+
+
+lemma transform_production_induct_cnf:
 assumes \<open>CNF_rule p\<close>
 and \<open>\<And>A B C. Q (transform_production (A, [Nt B, Nt C])) (A, [Nt B, Nt C])\<close>
 and \<open>\<And>A a. Q (transform_production (A, [Tm a])) (A, [Tm a])\<close>
 shows \<open>Q (transform_production p) p\<close>
 using assms CNF_rule_def by metis
+
 
 
 
@@ -189,27 +215,18 @@ definition hom :: \<open>('c list \<Rightarrow> 'd list) \<Rightarrow> bool\<clo
 \<open>hom h = (\<forall>a b. h (a@b) = (h a) @ h (b))\<close>
 
 
-
 text\<open>helper function for the definition of \<open>h\<close>\<close>
 fun the_hom_helper :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) \<Rightarrow> 'b list\<close> where
-\<open>the_hom_helper (br, (p, i)) = 
-    (case p of 
-    (A, [Nt B, Nt C]) \<Rightarrow> [] | 
-    (A, [Tm a]) \<Rightarrow> (if br = Op \<and> i=One then [a] else []) | 
-    _ \<Rightarrow> []
-    )
-\<close>
+\<open>the_hom_helper (Op, ((A, [Tm a]), One)) = [a]\<close> | 
+\<open>the_hom_helper _ = []\<close> 
+
 
 
 text\<open>helper function for the definition of the extended \<open>h_ext\<close>\<close>
 fun the_hom_ext_helper :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version ) sym \<Rightarrow> ('a,'b) sym list\<close> where
-\<open>the_hom_ext_helper (Tm (br, (p, i))) = 
-    (case p of 
-    (A, [Nt B, Nt C]) \<Rightarrow> [] | 
-    (A, [Tm a]) \<Rightarrow> (if br = Op \<and> i=One then [Tm a] else []) | 
-    _ \<Rightarrow> []
-    )\<close> | 
-\<open>the_hom_ext_helper (Nt A) = [Nt A]\<close>
+\<open>the_hom_ext_helper (Tm (Op, ((A, [Tm a]), One))) = [Tm a]\<close> | 
+\<open>the_hom_ext_helper (Nt A) = [Nt A]\<close> | 
+\<open>the_hom_ext_helper _ = []\<close>
 
 
 
@@ -217,9 +234,114 @@ text\<open>The needed homomorphism in the proof\<close>
 fun the_hom :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> 'b list \<close> where
 \<open>the_hom l = concat (map the_hom_helper l)\<close>
 
+
 text\<open>The needed homomorphism in the proof, but extended on Variables\<close>
 fun the_hom_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version ) sym list \<Rightarrow> ('a,'b) sym list \<close> where
 \<open>the_hom_ext l = concat (map the_hom_ext_helper l)\<close>
+
+
+
+lemma the_hom_ext_hom[simp]: \<open>the_hom_ext (l1 @ l2) = the_hom_ext l1 @ the_hom_ext l2\<close>
+by simp
+
+lemma the_hom_ext_keep_var[simp] : \<open>the_hom_ext [(Nt A)] = [Nt A]\<close> by simp 
+
+lemma the_hom_ext_helper_var_inj: \<open>the_hom_ext_helper r = [Nt A] \<Longrightarrow> r = Nt A\<close> 
+by(induction r rule: the_hom_ext_helper.induct;auto)
+
+lemma the_hom_ext_var_inj: \<open>the_hom_ext [r] = [Nt A] \<Longrightarrow> r = Nt A\<close>
+using the_hom_ext_helper_var_inj by fastforce
+
+lemma [simp]: \<open>Nt A \<in> set (the_hom_ext [a]) \<Longrightarrow> a = Nt A\<close>
+by(induction a rule:the_hom_ext_helper.induct; auto)
+
+
+
+lemma nt_in_hom_ext_var: 
+assumes eq: \<open>u @ [Nt A] @ v = the_hom_ext w'\<close>
+shows \<open>Nt A \<in> set w'\<close>
+proof-
+from eq have "Nt A \<in> set (the_hom_ext w')" by (metis append_Cons in_set_conv_decomp)
+  then have "Nt A \<in> set (concat (map the_hom_ext_helper w'))" by simp
+  then obtain x where x_in: "x \<in> set w'" and in_img: "Nt A \<in> set (the_hom_ext_helper x)" by auto
+  from in_img x_in show "Nt A \<in> set w'" by(induction x rule: the_hom_ext_helper.induct;auto)
+qed
+
+
+lemma the_hom_ext_var_split: \<open>u @ [Nt A] @ v = the_hom_ext w' \<Longrightarrow> \<exists> u' v'. w' = u' @ [Nt A] @ v'\<close>
+proof-
+assume \<open>u @ [Nt A] @ v = the_hom_ext w'\<close>
+then have \<open>Nt A \<in> set w'\<close> using nt_in_hom_ext_var by metis
+then show ?thesis by (simp add: split_list)
+qed
+
+
+lemma prefix_unique:
+  assumes "xs @ [x] @ zs = ys @ [x] @ ws"
+    and "x \<notin> set xs" and "x \<notin> set ys"
+  shows "xs = ys"
+proof (rule ccontr)
+  assume "xs \<noteq> ys"
+  from assms(1) have "length (xs @ [x] @ zs) = length (ys @ [x] @ ws)" by simp
+  hence "length xs + 1 + length zs = length ys + 1 + length ws" by simp
+  hence length_eq: "length xs + length zs = length ys + length ws" by simp
+
+  show False
+  proof (cases "length xs < length ys")
+    case True
+    then obtain k where k: "length ys = length xs + k" and "k > 0" by (metis less_imp_add_positive)
+
+    then have \<open>x = (xs @ [x] @ ws) ! (length xs)\<close> by (metis append_Cons nth_append_length)
+    also have \<open>... = (ys @ [x] @ ws) ! (length xs)\<close> using assms(1) by (metis Cons_eq_appendI nth_append_length) 
+    also have \<open>... = (ys @ [x] @ ws) ! (length ys - k)\<close> by (simp add: k)
+    finally have \<open>x = (ys @ [x] @ ws) ! (length ys - k)\<close> .
+    then have \<open>x \<in> set ys\<close> by (metis True add_diff_cancel_right' k nth_append nth_mem)
+    thus False by (simp add: assms(3))
+
+  next
+    case False
+    
+    then obtain k where k: "length xs = length ys + k" by (metis add_diff_inverse)
+    then have \<open>k \<noteq> 0\<close> using \<open>xs \<noteq> ys\<close> by (metis Nat.add_0_right append_eq_append_conv assms(1))
+    then have \<open>k > 0\<close> by simp
+
+    then have \<open>x = (ys @ [x] @ ws) ! (length ys)\<close> by (metis append_Cons nth_append_length)
+    also have \<open>... = (xs @ [x] @ ws) ! (length ys)\<close> using assms(1) by (metis \<open>0 < k\<close> k less_add_same_cancel1 nth_append_left)
+    thus \<open>False\<close> by (metis \<open>(ys @ [x] @ ws) ! length ys = (xs @ [x] @ ws) ! length ys\<close> \<open>0 < k\<close> \<open>x = (ys @ [x] @ ws) ! length ys\<close> assms(2) in_set_conv_nth k less_add_same_cancel1 nth_append_left)
+    
+  qed
+qed
+
+lemma the_hom_ext_helper_Tm_explicit:
+  "the_hom_ext_helper (Tm (a,(aa,b),ba)) =
+   (if (a=Op \<and> ba=One \<and> (\<exists>r. b = [Tm r]))
+    then b
+    else [])"
+apply(cases a; cases ba; cases b rule: list.exhaust)
+apply auto
+apply (metis CFG.sym.exhaust chomsky_schuetzenberger.the_hom_ext_helper.simps(5))
+by (metis List.remdups_adj.cases chomsky_schuetzenberger.the_hom_ext_helper.simps(6))
+
+
+
+lemma \<open>the_hom_ext_helper (Tm (a, (aa, b), ba)) = [] \<or> the_hom_ext_helper (Tm (a, (aa, b), ba)) = b\<close>
+using the_hom_ext_helper_Tm_explicit by metis
+
+
+lemma Nt_the_hom_ext_helper: \<open>Nt A \<in> set (the_hom_ext_helper (Tm (a, (aa, b), ba))) \<Longrightarrow> False\<close>
+using the_hom_ext_helper_Tm_explicit by (metis CFG.sym.distinct(1) append_is_Nil_conv set_ConsD split_list_cycles)
+
+
+lemma same_prefix:
+assumes eq:\<open>map Tm u @ [Nt A] @ v  =  (the_hom_ext (map Tm u')) @ [Nt A] @ (the_hom_ext v')\<close>
+shows \<open>(map Tm u) = (the_hom_ext (map Tm u'))\<close>
+proof -
+  have "Nt A \<notin> set (map Tm u)" by auto
+  moreover have "Nt A \<notin> set (the_hom_ext (map Tm u'))" using Nt_the_hom_ext_helper by fastforce
+  ultimately show ?thesis
+    using eq prefix_unique by metis
+qed
+
 
 
 
@@ -235,9 +357,61 @@ apply(simp)
 using helper by fastforce
 
 
+lemma \<open>the_hom_ext w' = map Tm (the_hom (map strip_tm w'))\<close>
+oops
+
+
+lemma the_hom_helper_strip: \<open>map Tm w = (the_hom_ext_helper x') \<Longrightarrow> w = the_hom_helper (strip_tm x')\<close>
+by(induction x' rule: the_hom_ext_helper.induct; auto)
+
+
+lemma the_hom_helper_strip2: \<open>map Tm w = concat (map the_hom_ext_helper w') \<Longrightarrow> w = concat (map (the_hom_helper \<circ> strip_tm) w')\<close>
+using the_hom_helper_strip apply(induction w'; auto) sorry
+
+
+lemma h_eq_h_ext2:
+assumes \<open>(map Tm w) = the_hom_ext w'\<close> 
+shows \<open>w = the_hom (map strip_tm w')\<close>
+using assms apply simp
+apply(induction w';auto) 
+by (smt (verit, ccfv_SIG) map_eq_append_conv the_hom_helper_strip the_hom_helper_strip2)
+
+
 lemma hom_ext_inv[simp]: \<open>CNF_rule \<pi> \<Longrightarrow> the_hom_ext (snd (transform_production \<pi>)) = snd \<pi>\<close>
- apply(rule transform_production_induct )
+ apply(rule transform_production_induct_cnf )
 by auto
+
+
+lemma rtrancl_derivel_induct
+  [consumes 1, case_names base step]:
+  assumes "P \<turnstile> xs \<Rightarrow>l* ys"
+      and "Q xs"
+      and "\<And>u A v w. \<lbrakk> P \<turnstile> xs \<Rightarrow>l* (map Tm u @ [Nt A] @ v)
+                   ; Q (map Tm u @ [Nt A] @ v)
+                   ; (A,w) \<in> P \<rbrakk>
+               \<Longrightarrow> Q (map Tm u @ w @ v)"
+  shows "Q ys"
+  using assms
+proof (induction rule: rtranclp_induct)
+  case base
+  from this(1) show ?case by simp
+next
+  case (step x y)
+  \<comment> \<open>Here we know one step of derivation x \<Rightarrow>ˡ y plus xs \<Rightarrow>ˡ* x.\<close>
+  from \<open>P \<turnstile> x \<Rightarrow>l y\<close> obtain A \<alpha> u v
+    where \<open>x = map Tm u @ [Nt A] @ v\<close>
+      and \<open>y = map Tm u @ \<alpha> @ v\<close>
+      and \<open>(A, \<alpha>) \<in> P\<close>
+    by (auto elim: derivel.cases)
+  with step show ?case by simp
+qed
+
+
+
+
+
+
+
 
 
 
@@ -302,34 +476,59 @@ also have \<open>... = Lang P S\<close> (* For this h_ext should be used. *)
 next
   have \<open>\<And>w. (w  \<in> Lang P S \<Longrightarrow> \<exists>w' \<in> L'. w = h w')\<close> 
   proof-
-  fix w
-  assume \<open>w \<in> Ders P S\<close>
-  then have \<open>P \<turnstile> [Nt S] \<Rightarrow>* w\<close> by (simp add: DersD)
-  then obtain n where \<open>P \<turnstile> [Nt S] \<Rightarrow>(n) w\<close> by (meson rtranclp_imp_relpowp)
-  then have \<open>\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>(n) w'  \<and>  w = h_ext w'\<close>
-  proof(induction n arbitrary: w)
-    case 0
-    then have \<open>w = [Nt S]\<close> by simp
-    define w' where \<open>(w'::('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym list) = [Nt S]\<close>
-    then have \<open>w' \<in> Ders P' S\<close> by (simp add: DersI)
-    moreover have \<open>P' \<turnstile> [Nt S] \<Rightarrow>(0) w'\<close> by (simp add: w'_def)
-    moreover have \<open>w = h_ext w'\<close> unfolding h_ext_def by (simp add: \<open>w = [Nt S]\<close> w'_def)
-    ultimately show ?case by simp  
-  next
-    case (Suc n)
-    obtain \<alpha> where \<open>P \<turnstile> [Nt S] \<Rightarrow>(n) \<alpha>\<close> and \<open>P \<turnstile> \<alpha> \<Rightarrow> w\<close> using local.Suc.prems by auto
-    then obtain u A v x where \<open>\<alpha> = u @ [Nt A] @ v\<close> and \<open>w = u @ x @ v\<close> and \<open>(A,x) \<in> P\<close> by (meson CFG.derive.simps)
+  have \<open>\<And>w. (w \<in> Ders P S \<Longrightarrow> \<exists>w'. w = h_ext w')\<close>
+    proof-
+    fix w
+    assume \<open>w \<in> Ders P S\<close>
+    then have \<open>P \<turnstile> [Nt S] \<Rightarrow>*  w\<close> by (simp add: DersD)
+    then have \<open>P \<turnstile> [Nt S] \<Rightarrow>l*  w\<close> using derivels_iff_derives sorry
+    then have \<open>\<exists>w'. P' \<turnstile> [Nt S] \<Rightarrow>l*  w'  \<and>  w = h_ext w'\<close>
+    proof(induction rule: rtrancl_derivel_induct)
+      case base
+      define w' where \<open>(w'::('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym list) = [Nt S]\<close>
+      then have \<open>w' \<in> Ders P' S\<close> by (simp add: DersI)
+      moreover have \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* w'\<close> by (simp add: w'_def)
+      moreover have \<open>[Nt S] = h_ext w'\<close> unfolding h_ext_def w'_def by simp
+      ultimately show ?case by auto
+    next
+      case (step u A v w)
+      have \<open>CNF_rule (A,w)\<close> using P_CNF \<open>(A,w) \<in> P\<close> by auto
+      obtain w' where w'_derive: \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* w' \<and> map Tm u @ [Nt A] @ v = h_ext w'\<close> using local.step.IH by blast
+      then have w_split_h: \<open>map Tm u @ [Nt A] @ v = h_ext w'\<close> by auto
+      obtain r where \<open>(A, r) = transform_production (A, w)\<close> by (metis fst_eqD fst_transform_production surj_pair)
+      then have \<open>(A,r) \<in> P'\<close> using P'_def local.step.hyps(2) by auto
+      from \<open>(A, r) = transform_production (A, w)\<close> have \<open>h_ext r = w\<close> using hom_ext_inv \<open>CNF_rule (A,w)\<close> by (metis h_ext_def snd_conv)
 
-    obtain w' where \<open>w'\<in> Ders P' S\<close> and \<open>P' \<turnstile> [Nt S] \<Rightarrow>(n) w' \<and> \<alpha> = h_ext w'\<close> using local.Suc.IH \<open>P \<turnstile> [Nt S] \<Rightarrow>(n) \<alpha>\<close> by blast
+      from w_split_h obtain u' v' where u'_v'_def: \<open>w' = map Tm u' @ [Nt A] @ v'\<close> using the_hom_ext_var_split h_ext_def sorry
 
-    have \<open>{(A,x)} \<turnstile> \<alpha> \<Rightarrow> w\<close> using CFG.derive.intros \<open>\<alpha> = u @ [Nt A] @ v\<close> \<open>w = u @ x @ v\<close> by fastforce
+      have \<open>map Tm u @ [Nt A] @ v = h_ext w'\<close> using w_split_h by simp
+      also have \<open>... = h_ext (map Tm u' @ [Nt A] @ v')\<close> using u'_v'_def by simp
+      also have \<open>... = (h_ext (map Tm u')) @ [(Nt A)] @ (h_ext v')\<close> using h_ext_def by simp
+      finally have \<open>map Tm u @ [Nt A] @ v  =  (h_ext (map Tm u')) @ [(Nt A)] @ (h_ext v')\<close> .
+
+      moreover then have \<open>map Tm u = h_ext (map Tm u')\<close> using h_ext_def same_prefix by fastforce
+      ultimately have \<open>v = (h_ext v')\<close> by simp
+
+      then have \<open>h_ext (map Tm u' @ r @ v') = map Tm u @ w @ v\<close> using \<open>h_ext r = w\<close> \<open>map Tm u = h_ext (map Tm u')\<close> h_ext_def by auto
     
-    with Suc show \<open>\<exists>w'\<in>Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>(Suc n) w' \<and> w = h_ext w'\<close> sorry
+      then have \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* map Tm u' @ [Nt A] @ v'\<close> using w'_derive using u'_v'_def by blast
+      then have \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* map Tm u' @ r @ v'\<close> using \<open>(A,r) \<in> P'\<close> by (simp add: CFG.derivel.intros Transitive_Closure.rtranclp.rtrancl_into_rtrancl)
+      
+      then show ?case using \<open>h_ext (map Tm u' @ r @ v') = map Tm u @ w @ v\<close> by auto
+    qed
+  then show \<open>\<exists>w'. w = h_ext w'\<close> by auto
   qed
-    
-  then show \<open>\<exists>w'\<in>L'. w = h w'\<close> sorry
-
-  qed
+  
+  then show \<open>\<And>w. (w  \<in> Lang P S \<Longrightarrow> \<exists>w' \<in> L'. w = h w')\<close>
+    proof(goal_cases)
+      case (1 w)
+      then have \<open>(map Tm w) \<in> Ders P S\<close> by (meson Lang_Ders imageI rev_contra_hsubsetD)
+      then obtain w' where \<open>(map Tm w) = h_ext w'\<close> using \<open>\<And>w. w \<in> Ders P S \<Longrightarrow> \<exists>w'. w = h_ext w'\<close> by auto
+      then have \<open>w = h (map strip_tm w')\<close> using h_eq_h_ext2 using h_def h_ext_def by blast
+      moreover have \<open>map strip_tm w' \<in> L'\<close> sorry
+      ultimately show ?case by auto
+    qed
+    qed
   then show \<open>Lang P S \<subseteq> h ` L'\<close> by auto 
   qed
 

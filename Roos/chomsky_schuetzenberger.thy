@@ -532,9 +532,9 @@ next
 qed
 
 
-
-
-
+lemma deriveln_iff_deriven_no_tm:
+  "P \<turnstile> u \<Rightarrow>l(n) v \<longleftrightarrow> P \<turnstile> u \<Rightarrow>(n) v"
+sorry
 
 
 
@@ -561,7 +561,7 @@ have \<open>\<forall>A. \<forall>x.
 (image transform_production P) \<turnstile> [Nt S] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (dyck_language \<Gamma>) \<inter> (Re P A)\<close> sorry (* This is the hard part of the proof - the local lemma in the textbook *)
 then have \<open>L' = (dyck_language \<Gamma>) \<inter> (Re P S)\<close> by (metis CFL_Lang_eq_CFG_Lang CFL_Lang_if_derives L'_def P'_def derives_if_CFL_Lang inf_absorb2 inf_commute subsetI)
 then have \<open>image h ((dyck_language \<Gamma>) \<inter> (Re P S)) =  image h L'\<close> by simp
-also have \<open>... = Lang P S\<close> (* For this h_ext should be used. *)
+also have \<open>... = Lang P S\<close>
   proof(standard)
   have \<open>\<And>w'. (w'  \<in> L' \<Longrightarrow> h w' \<in> Lang P S)\<close>
   proof-
@@ -601,13 +601,13 @@ also have \<open>... = Lang P S\<close> (* For this h_ext should be used. *)
 next
   have \<open>\<And>w. (w  \<in> Lang P S \<Longrightarrow> \<exists>w' \<in> L'. w = h w')\<close> 
   proof-
-  have \<open>\<And>w. (w \<in> Ders P S \<Longrightarrow> \<exists>w'. w = h_ext w')\<close>
+  have \<open>\<And>w. (w \<in> Ders P S \<Longrightarrow> \<exists>w' \<in> Ders P' S. w = h_ext w')\<close>
     proof-
     fix w
     assume \<open>w \<in> Ders P S\<close>
     then have \<open>P \<turnstile> [Nt S] \<Rightarrow>*  w\<close> by (simp add: DersD)
-    then have \<open>P \<turnstile> [Nt S] \<Rightarrow>l*  w\<close> using derivels_iff_derives sorry
-    then have \<open>\<exists>w'. P' \<turnstile> [Nt S] \<Rightarrow>l*  w'  \<and>  w = h_ext w'\<close>
+    then have \<open>P \<turnstile> [Nt S] \<Rightarrow>l*  w\<close> using deriveln_iff_deriven_no_tm rtranclp_power by meson
+    then have \<open>\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>l*  w'  \<and>  w = h_ext w'\<close>
     proof(induction rule: rtrancl_derivel_induct)
       case base
       define w' where \<open>(w'::('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym list) = [Nt S]\<close>
@@ -618,7 +618,7 @@ next
     next
       case (step u A v w)
       have \<open>CNF_rule (A,w)\<close> using P_CNF \<open>(A,w) \<in> P\<close> by auto
-      obtain w' where w'_derive: \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* w' \<and> map Tm u @ [Nt A] @ v = h_ext w'\<close> using local.step.IH by blast
+      obtain w' where w'_derive: \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* w' \<and> map Tm u @ [Nt A] @ v = h_ext w'\<close> and w'_Ders: \<open>w' \<in> Ders P' S\<close>using local.step.IH by blast
       then have w_split_h: \<open>map Tm u @ [Nt A] @ v = h_ext w'\<close> by auto
       obtain r where \<open>(A, r) = transform_production (A, w)\<close> by (metis fst_eqD fst_transform_production surj_pair)
       then have \<open>(A,r) \<in> P'\<close> using P'_def local.step.hyps(2) by auto
@@ -638,19 +638,20 @@ next
     
       then have \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* map Tm u' @ [Nt A] @ v'\<close> using w'_derive using u'_v'_def by blast
       then have \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* map Tm u' @ r @ v'\<close> using \<open>(A,r) \<in> P'\<close> by (simp add: CFG.derivel.intros Transitive_Closure.rtranclp.rtrancl_into_rtrancl)
-      
-      then show ?case using \<open>h_ext (map Tm u' @ r @ v') = map Tm u @ w @ v\<close> by auto
+
+      then show ?case using \<open>h_ext (map Tm u' @ r @ v') = map Tm u @ w @ v\<close> w'_Ders using Ders_def derivels_imp_derives by fastforce
     qed
-  then show \<open>\<exists>w'. w = h_ext w'\<close> by auto
+  then show \<open>\<exists>w' \<in> Ders P' S. w = h_ext w'\<close> by auto
   qed
   
   then show \<open>\<And>w. (w  \<in> Lang P S \<Longrightarrow> \<exists>w' \<in> L'. w = h w')\<close>
     proof(goal_cases)
       case (1 w)
       then have \<open>(map Tm w) \<in> Ders P S\<close> using Lang_Ders imageI by fastforce
-      then obtain w' where \<open>(map Tm w) = h_ext w'\<close> using \<open>\<And>w. w \<in> Ders P S \<Longrightarrow> \<exists>w'. w = h_ext w'\<close> by auto
-      then have \<open>w = h (map strip_tm w')\<close> using h_eq_h_ext2 using h_def h_ext_def by blast
-      moreover have \<open>map strip_tm w' \<in> L'\<close> 
+      then obtain w' where w'_def: \<open>w' \<in> Ders P' S\<close> \<open>(map Tm w) = h_ext w'\<close> using \<open>\<And>w. w \<in> Ders P S \<Longrightarrow> \<exists>w'\<in> Ders P' S. w = h_ext w'\<close> by auto
+      moreover obtain w'' where \<open>w' = map Tm w''\<close> using w'_def by (metis h_ext_def the_hom_ext_tms_inj)
+      then have \<open>w = h w''\<close> using h_eq_h_ext2 h_def h_ext_def by (metis h_eq_h_ext w'_def(2))
+      moreover have \<open>w'' \<in> L'\<close> using \<open>w' \<in> Ders P' S\<close> by (metis DersD P'_def \<open>L' = dyck_language \<Gamma> \<inter> Re P S\<close> \<open>\<forall>A x. (transform_production ` P \<turnstile> [Nt S] \<Rightarrow>* map Tm x) = (x \<in> dyck_language \<Gamma> \<inter> Re P A)\<close> \<open>w' = map Tm w''\<close>)
       ultimately show ?case by auto
     qed
     qed

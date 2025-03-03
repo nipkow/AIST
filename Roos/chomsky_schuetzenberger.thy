@@ -331,7 +331,7 @@ qed
 
 
 
-(* need # letters deleted until the_hom_ext has produced i symbols, implemented via Minimum *)
+(* need how for one needs to go in the input to get n output tokens from the_hom_ext, implemented via LEAST *)
 definition letters_needed_until_produced :: "nat \<Rightarrow> ('a, bracket \<times> ('a,'b) prod \<times> version ) sym list \<Rightarrow> nat" where
 \<open>letters_needed_until_produced n w' = (if n \<le> length (the_hom_ext w') then LEAST k. n = length (the_hom_ext (take k w')) else 0)\<close>
 
@@ -473,9 +473,6 @@ apply(induction x)
 apply(simp)
 using helper by fastforce
 
-
-lemma \<open>the_hom_ext w' = map Tm (the_hom (map strip_tm w'))\<close>
-oops
 
 
 lemma the_hom_helper_strip: \<open>map Tm w = (the_hom_ext_helper x') \<Longrightarrow> w = the_hom_helper (strip_tm x')\<close>

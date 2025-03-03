@@ -57,15 +57,15 @@ declare [[names_short]]
 
 
 fun strip_tm :: "('a, 'b) sym  \<Rightarrow> 'b" where 
-\<open>strip_tm (Tm t) = t\<close> | 
-\<open>strip_tm (Nt A) = undefined\<close>
+  \<open>strip_tm (Tm t) = t\<close> | 
+  \<open>strip_tm (Nt A) = undefined\<close>
 
 
 
 
 definition reg :: "'n itself \<Rightarrow> 't list set \<Rightarrow> bool" where
-"reg (TYPE('n)) L = (\<exists>P S::'n. L = Lang P S \<and> True) " (*TODO add type 3 stuff here*)               
-   
+  "reg (TYPE('n)) L = (\<exists>P S::'n. L = Lang P S \<and> True) " (*TODO add type 3 stuff here*)               
+
 
 
 text\<open>A type of brackets. Will be combined with other types.\<close>
@@ -107,27 +107,27 @@ definition dyck_language :: "'a set \<Rightarrow> (bracket  \<times> ('a)) list 
 text\<open>The transformation of old productions to new productions used in the proof.\<close>
 fun transform_production :: "('n, 't) prod \<Rightarrow> 
 ('n, bracket \<times> ('n,'t) prod \<times> version) prod" where
-\<open>  transform_production (A, [Nt B, Nt C]) =    
+  \<open>  transform_production (A, [Nt B, Nt C]) =    
         (A, [ Tm (Op, ((A, [Nt B, Nt C]), One)), Nt B, Tm (Cl, ((A, [Nt B, Nt C]), One)), Tm (Op, ((A, [Nt B, Nt C]), Two)), Nt C, Tm (Cl, ((A, [Nt B, Nt C]), Two))  ])\<close> | 
-       
- \<open> transform_production (A, [Tm a])  = 
+
+\<open> transform_production (A, [Tm a])  = 
  (A, [ Tm (Op, ((A, [Tm a]),One)),       Tm (Cl, ((A, [Tm a]), One)), Tm (Op, ((A, [Tm a]), Two)),       Tm (Cl, ((A, [Tm a]), Two))  ]) \<close> | 
- \<open>transform_production (A, _) = (A, [])\<close>
+\<open>transform_production (A, _) = (A, [])\<close>
 
 
 lemma transform_production_induct:
-\<open>\<lbrakk>\<And>B C. P ([Nt B, Nt C]); 
+  \<open>\<lbrakk>\<And>B C. P ([Nt B, Nt C]); 
 \<And>a. P ([Tm a]); P ([]); 
 \<And>vb v vc. P (Tm vb # v # vc); 
 \<And>va. P ([Nt va]); 
 \<And>v vd vc. P (v # Tm vd # vc); 
 \<And>v vb vd ve. P (v # vb # vd # ve)\<rbrakk> 
 \<Longrightarrow> P a0\<close>
-by (metis CFG.sym.exhaust List.list.exhaust)
+  by (metis CFG.sym.exhaust List.list.exhaust)
 
 
 lemma fst_transform_production[simp]: \<open>fst (transform_production (A, w)) = A\<close>
-by(induction rule: transform_production_induct;auto)    
+  by(induction rule: transform_production_induct;auto)    
 
 (* 
 text\<open>The transformation of old productions to new productions used in the proof.\<close>
@@ -146,24 +146,24 @@ definition transform_production :: "('n, 't) prod \<Rightarrow>
 
 text\<open>Definition of what it means to be a chomksy-form rule.\<close>
 definition CNF_rule :: "('c \<times> ('c, 'b) sym list) \<Rightarrow> bool" where
-\<open>CNF_rule p \<equiv>  (\<exists>(A::'c) B C. (p = (A,[Nt B, Nt C]))) \<or> (\<exists>A a. p= (A, [Tm a]))\<close>
+  \<open>CNF_rule p \<equiv>  (\<exists>(A::'c) B C. (p = (A,[Nt B, Nt C]))) \<or> (\<exists>A a. p= (A, [Tm a]))\<close>
 
 
 lemma transform_production_CNF: \<open>CNF_rule p \<Longrightarrow> (\<exists>A B C. transform_production p = (A, [ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ]) ) \<or> (\<exists>A a. transform_production p = (A, [ Tm (Op, (p,One)),       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ]))\<close>
-unfolding CNF_rule_def by auto
+  unfolding CNF_rule_def by auto
 
 lemma transform_production_CNF2: \<open>CNF_rule p \<Longrightarrow> transform_production p = (x, []) \<Longrightarrow> False\<close>
-unfolding CNF_rule_def by auto
+  unfolding CNF_rule_def by auto
 
 
 
 
 lemma transform_production_induct_cnf:
-assumes \<open>CNF_rule p\<close>
-and \<open>\<And>A B C. Q (transform_production (A, [Nt B, Nt C])) (A, [Nt B, Nt C])\<close>
-and \<open>\<And>A a. Q (transform_production (A, [Tm a])) (A, [Tm a])\<close>
-shows \<open>Q (transform_production p) p\<close>
-using assms CNF_rule_def by metis
+  assumes \<open>CNF_rule p\<close>
+    and \<open>\<And>A B C. Q (transform_production (A, [Nt B, Nt C])) (A, [Nt B, Nt C])\<close>
+    and \<open>\<And>A a. Q (transform_production (A, [Tm a])) (A, [Tm a])\<close>
+  shows \<open>Q (transform_production p) p\<close>
+  using assms CNF_rule_def by metis
 
 
 
@@ -171,22 +171,22 @@ using assms CNF_rule_def by metis
 
 text\<open>Existence of chomsky normal form. Doesn't forbid the start symbol on the right though, so it's techinally even weaker.\<close>
 lemma CNF_existence :
-assumes \<open>CFL.cfl TYPE('a) L\<close>
-shows \<open>\<exists>P S::'a. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> (* TODO start symbol not on the right side*)
-sorry
+  assumes \<open>CFL.cfl TYPE('a) L\<close>
+  shows \<open>\<exists>P S::'a. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> (* TODO start symbol not on the right side*)
+  sorry
 
 text\<open> (Directly) After each (Cl,p,1) always comes a (Op,p,2) \<close>
 definition P1 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> bool\<close> where
-\<open>P1 P x = (\<forall>p \<in> P. \<forall> i < length x.
+  \<open>P1 P x = (\<forall>p \<in> P. \<forall> i < length x.
   x ! i = ]\<^sub>p\<^sup>1  \<longrightarrow> ( i+1 < length x \<and> x ! (i+1) = [\<^sub>p\<^sup>2 ))\<close>
 
 text\<open>After any (Cl,pi,2) there never comes an (Op,...)\<close>
 definition P2 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> bool\<close> where
-\<open>P2 P x = (\<forall>p \<in> P. \<forall>r. (\<forall>i j. i < length x \<and> j < length x \<and> i < j \<and> x ! i = ]\<^sub>p\<^sup>2  \<longrightarrow> x ! j \<noteq> (Op, r)))\<close>
+  \<open>P2 P x = (\<forall>p \<in> P. \<forall>r. (\<forall>i j. i < length x \<and> j < length x \<and> i < j \<and> x ! i = ]\<^sub>p\<^sup>2  \<longrightarrow> x ! j \<noteq> (Op, r)))\<close>
 
 text\<open>If pi = A\<rightarrow>BC, then after each (Op,pi,1) always comes a (Op,p,1) where B = lhs of p And after each (Op,pi,2) always comes a (Op,sigma,1) where C = lhs of sigma\<close>
 definition P3 :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> bool\<close> where
-\<open>P3 x = (\<forall>i < length x. 
+  \<open>P3 x = (\<forall>i < length x. 
        (\<exists>A B C. x ! i = (Op, ((A, [Nt B, Nt C]), One)) \<longrightarrow> 
           ((i+1) < length x \<and> (\<exists>p l. x ! (i+1) = [\<^sub>p\<^sup>1  \<and> p = (B, l)))) \<and>
        (\<exists>A B C. x ! i = (Op, ((A, [Nt B, Nt C]), Two)) \<longrightarrow> 
@@ -195,62 +195,62 @@ definition P3 :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<time
 
 text\<open>If pi = A\<rightarrow>a then after each (Op,pi,1) comes a (Cl,pi,1) and after each (Op,pi,2) comes a (Cl,pi,2)\<close>
 definition P4 :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> bool\<close> where
-\<open>P4 x = ((\<forall>i < length x - 1. 
+  \<open>P4 x = ((\<forall>i < length x - 1. 
         (\<exists>A a. x ! i = (Op, ((A, [Tm a]), One)) \<longrightarrow> x ! (i + 1) = (Cl, ((A, [Tm a]), One))) \<and>
         (\<exists>A a. x ! i = (Op, ((A, [Tm a]), Two)) \<longrightarrow> x ! (i + 1) = (Cl, ((A, [Tm a]), Two)))))\<close>
 
 text\<open>For all A, if A produces x under P', then there eists some pi \<in> P with lhs A such that x begins with (Op,pi,1)\<close>
 definition P5 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> 'a \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> bool\<close> where
-\<open>P5 P A x = (( (\<forall>w. derives (image transform_production P) [Nt A] w) \<longrightarrow> 
+  \<open>P5 P A x = (( (\<forall>w. derives (image transform_production P) [Nt A] w) \<longrightarrow> 
        (\<exists>\<pi> l. \<pi> \<in> P \<and> \<pi> = (A, l) \<and> x \<noteq> [] \<and> x ! 0 = (Op, \<pi>, One))))\<close>
 
 text\<open>This is the regular language, where one takes the Start symbol as a parameter, and then has the searched for \<open>R := R\<^sub>A\<close>\<close>
 definition Re :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> 'a \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list set\<close> where
-\<open>Re P A = {x::(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list. 
+  \<open>Re P A = {x::(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list. 
 (P1 P x) \<and> (P2 P x) \<and> (P3 x) \<and> (P4 x) \<and> (P5 P A x)}\<close>
 
 
 text\<open>Definition of monoid-homomorphism where multiplication is that of words.\<close>
 definition hom :: \<open>('c list \<Rightarrow> 'd list) \<Rightarrow> bool\<close> where
-\<open>hom h = (\<forall>a b. h (a@b) = (h a) @ h (b))\<close>
+  \<open>hom h = (\<forall>a b. h (a@b) = (h a) @ h (b))\<close>
 
 
 text\<open>helper function for the definition of \<open>h\<close>\<close>
 fun the_hom_helper :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) \<Rightarrow> 'b list\<close> where
-\<open>the_hom_helper (Op, ((A, [Tm a]), One)) = [a]\<close> | 
-\<open>the_hom_helper _ = []\<close> 
+  \<open>the_hom_helper (Op, ((A, [Tm a]), One)) = [a]\<close> | 
+  \<open>the_hom_helper _ = []\<close> 
 
 
 
 text\<open>helper function for the definition of the extended \<open>h_ext\<close>\<close>
 fun the_hom_ext_helper :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version ) sym \<Rightarrow> ('a,'b) sym list\<close> where
-\<open>the_hom_ext_helper (Tm (Op, ((A, [Tm a]), One))) = [Tm a]\<close> | 
-\<open>the_hom_ext_helper (Nt A) = [Nt A]\<close> | 
-\<open>the_hom_ext_helper _ = []\<close>
+  \<open>the_hom_ext_helper (Tm (Op, ((A, [Tm a]), One))) = [Tm a]\<close> | 
+  \<open>the_hom_ext_helper (Nt A) = [Nt A]\<close> | 
+  \<open>the_hom_ext_helper _ = []\<close>
 
 
 
 text\<open>The needed homomorphism in the proof\<close>
 fun the_hom :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> 'b list \<close> where
-\<open>the_hom l = concat (map the_hom_helper l)\<close>
+  \<open>the_hom l = concat (map the_hom_helper l)\<close>
 
 
 text\<open>The needed homomorphism in the proof, but extended on Variables\<close>
 fun the_hom_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version ) sym list \<Rightarrow> ('a,'b) sym list \<close> where
-\<open>the_hom_ext l = concat (map the_hom_ext_helper l)\<close>
+  \<open>the_hom_ext l = concat (map the_hom_ext_helper l)\<close>
 
 
 
 lemma the_hom_ext_hom[simp]: \<open>the_hom_ext (l1 @ l2) = the_hom_ext l1 @ the_hom_ext l2\<close>
-by simp
+  by simp
 
 lemma the_hom_ext_keep_var[simp] : \<open>the_hom_ext [(Nt A)] = [Nt A]\<close> by simp 
 
 lemma the_hom_ext_helper_var_inj: \<open>the_hom_ext_helper r = [Nt A] \<Longrightarrow> r = Nt A\<close> 
-by(induction r rule: the_hom_ext_helper.induct;auto)
+  by(induction r rule: the_hom_ext_helper.induct;auto)
 
 lemma the_hom_ext_var_inj: \<open>the_hom_ext [r] = [Nt A] \<Longrightarrow> r = Nt A\<close>
-using the_hom_ext_helper_var_inj by fastforce
+  using the_hom_ext_helper_var_inj by fastforce
 
 lemma the_hom_ext_tm_inj: \<open>the_hom_ext [r] = [Tm m ]\<Longrightarrow> \<exists>x. r = Tm x\<close> by (metis CFG.sym.distinct(1) CFG.sym.exhaust List.list.inject the_hom_ext_keep_var)
 
@@ -274,34 +274,34 @@ qed
 
 
 lemma length_the_hom_ext_helper: \<open>length (the_hom_ext_helper w') \<le> 1\<close>
-apply simp
-by(induction w' rule: the_hom_ext_helper.induct;auto)
+  apply simp
+  by(induction w' rule: the_hom_ext_helper.induct;auto)
 
 lemma length_the_hom_ext: \<open>length (the_hom_ext [x]) \<le> 1\<close>
-using length_the_hom_ext_helper by auto
+  using length_the_hom_ext_helper by auto
 
 lemma length_the_hom_ext_leq: \<open>length (the_hom_ext w') \<le> length w'\<close>
-using length_the_hom_ext apply(induction w';auto ) by (smt (verit) One_nat_def add_Suc add_mono gen_length_def length_code length_the_hom_ext_helper)
+  using length_the_hom_ext apply(induction w';auto ) by (smt (verit) One_nat_def add_Suc add_mono gen_length_def length_code length_the_hom_ext_helper)
 
 
 
 lemma [simp]: \<open>Nt A \<in> set (the_hom_ext [a]) \<Longrightarrow> a = Nt A\<close>
-by(induction a rule:the_hom_ext_helper.induct; auto)
+  by(induction a rule:the_hom_ext_helper.induct; auto)
 
 
 
 
 
 lemma the_hom_ext_length_mono: \<open>k'' \<ge> k' \<Longrightarrow> length (the_hom_ext (take k'' w')) \<ge> length (the_hom_ext (take k' w'))\<close>
-using the_hom_ext_hom by (smt (verit, ccfv_threshold) Lattices.linorder_class.min.absorb_iff2 Lattices.linorder_class.min.bounded_iff append_eq_append_conv_if append_eq_conv_conj append_take_drop_id length_take nat_le_linear) 
+  using the_hom_ext_hom by (smt (verit, ccfv_threshold) Lattices.linorder_class.min.absorb_iff2 Lattices.linorder_class.min.bounded_iff append_eq_append_conv_if append_eq_conv_conj append_take_drop_id length_take nat_le_linear) 
 
 
 lemma the_hom_ext_length_mono_inv: \<open>length (the_hom_ext (take k'' w')) > length (the_hom_ext (take k' w')) \<Longrightarrow> k'' > k'\<close>
-using the_hom_ext_length_mono by (metis linorder_not_le)
+  using the_hom_ext_length_mono by (metis linorder_not_le)
 
 
 lemma take_append_split: \<open>k''\<ge> k' + r \<Longrightarrow> take k'' w' = (take k' w') @ diff \<Longrightarrow> take (k'+r) w' = take k' w' @ take r diff\<close> 
-by (smt (verit, ccfv_SIG) Groups.ordered_cancel_comm_monoid_diff_class.add_diff_inverse Lattices.linorder_class.min.absorb_iff2 append_eq_conv_conj length_take nat_le_linear take_add take_all_iff)
+  by (smt (verit, ccfv_SIG) Groups.ordered_cancel_comm_monoid_diff_class.add_diff_inverse Lattices.linorder_class.min.absorb_iff2 append_eq_conv_conj length_take nat_le_linear take_add take_all_iff)
 
 
 lemma letters_needed_until_produced_ex: \<open>n \<le> length (the_hom_ext w') \<Longrightarrow> \<exists>k. n = length (the_hom_ext (take k w'))\<close>
@@ -333,32 +333,32 @@ qed
 
 (* need how for one needs to go in the input to get n output tokens from the_hom_ext, implemented via LEAST *)
 definition letters_needed_until_produced :: "nat \<Rightarrow> ('a, bracket \<times> ('a,'b) prod \<times> version ) sym list \<Rightarrow> nat" where
-\<open>letters_needed_until_produced n w' = (if n \<le> length (the_hom_ext w') then LEAST k. n = length (the_hom_ext (take k w')) else 0)\<close>
+  \<open>letters_needed_until_produced n w' = (if n \<le> length (the_hom_ext w') then LEAST k. n = length (the_hom_ext (take k w')) else 0)\<close>
 
 lemma letters_needed_until_produced_if_n[simp]: \<open>n \<le> length (the_hom_ext w') \<Longrightarrow> letters_needed_until_produced n w' = (LEAST k. n = length (the_hom_ext (take k w')))\<close> by (simp add: letters_needed_until_produced_def)
 
 lemma letters_needed_until_produced_minimal: \<open>n \<le> length (the_hom_ext w') \<Longrightarrow> n = length (the_hom_ext (take k w')) \<Longrightarrow> letters_needed_until_produced n w' \<le> k\<close>
-unfolding letters_needed_until_produced_def by (simp add: Least_le)
+  unfolding letters_needed_until_produced_def by (simp add: Least_le)
 
 lemma letters_needed_until_produced_correct: \<open>n \<le> length (the_hom_ext w') \<Longrightarrow> take n (the_hom_ext w') = the_hom_ext (take (letters_needed_until_produced n w') w')\<close>
 proof-
-assume n_leq: \<open>n \<le> length (the_hom_ext w')\<close>
-define k where k_def: \<open>k = letters_needed_until_produced n w'\<close>
-have \<open>n = length (the_hom_ext (take k w'))\<close> unfolding letters_needed_until_produced_def using LeastI_ex[where P = \<open>\<lambda>k. n = length (the_hom_ext (take k w'))\<close>] letters_needed_until_produced_ex n_leq k_def by auto
-thus ?thesis by (metis append_eq_conv_conj append_take_drop_id k_def the_hom_ext_hom)
+  assume n_leq: \<open>n \<le> length (the_hom_ext w')\<close>
+  define k where k_def: \<open>k = letters_needed_until_produced n w'\<close>
+  have \<open>n = length (the_hom_ext (take k w'))\<close> unfolding letters_needed_until_produced_def using LeastI_ex[where P = \<open>\<lambda>k. n = length (the_hom_ext (take k w'))\<close>] letters_needed_until_produced_ex n_leq k_def by auto
+  thus ?thesis by (metis append_eq_conv_conj append_take_drop_id k_def the_hom_ext_hom)
 qed
 
 lemma letters_needed_until_produced_pre: \<open>n + 1 \<le> length (the_hom_ext w') \<Longrightarrow> take n (the_hom_ext w')  = the_hom_ext (take ((letters_needed_until_produced (n+1) w') - 1) w')\<close>
 proof-
-assume sucn_leq: \<open>n + 1 \<le> length (the_hom_ext w')\<close>
-then have n_leq: \<open>n \<le> length (the_hom_ext w')\<close> by simp
-define k where \<open>k = (letters_needed_until_produced (n+1) w')\<close>
-define k' where \<open>k' = (letters_needed_until_produced n w')\<close>
-then have \<open>take n (the_hom_ext w')  = the_hom_ext (take k' w')\<close> using letters_needed_until_produced_correct n_leq by blast
-then have \<open>k' \<le> k - 1\<close> by (metis (no_types, lifting) Groups.ordered_cancel_comm_monoid_diff_class.add_diff_inverse Lattices.linorder_class.min.absorb_iff2 Suc_eq_plus1 add_diff_cancel_left' diff_le_self k_def length_take letters_needed_until_produced_correct nat_le_linear not_less_eq_eq plus_1_eq_Suc sucn_leq the_hom_ext_length_mono)
-moreover have \<open>k - 1 < k\<close> by (metis Lattices.linorder_class.min.absorb_iff2 Nat.bot_nat_0.not_eq_extremum One_nat_def Suc_eq_plus1 \<open>take n (the_hom_ext w') = the_hom_ext (take k' w')\<close> calculation diff_Suc_less diff_is_0_eq diff_zero k_def length_take lessI letters_needed_until_produced_correct n_leq nat_less_le sucn_leq)
-ultimately have \<open>take n (the_hom_ext w')  = the_hom_ext (take (k-1) w')\<close> using k_def k'_def by (smt (verit, ccfv_threshold) Lattices.linorder_class.min.absorb_iff2 Suc_eq_plus1 append_eq_append_conv_if append_take_drop_id length_take letters_needed_until_produced_correct letters_needed_until_produced_minimal nat_less_le nle_le not_less_eq_eq sucn_leq the_hom_ext_hom the_hom_ext_length_mono)
-thus ?thesis using k_def by blast
+  assume sucn_leq: \<open>n + 1 \<le> length (the_hom_ext w')\<close>
+  then have n_leq: \<open>n \<le> length (the_hom_ext w')\<close> by simp
+  define k where \<open>k = (letters_needed_until_produced (n+1) w')\<close>
+  define k' where \<open>k' = (letters_needed_until_produced n w')\<close>
+  then have \<open>take n (the_hom_ext w')  = the_hom_ext (take k' w')\<close> using letters_needed_until_produced_correct n_leq by blast
+  then have \<open>k' \<le> k - 1\<close> by (metis (no_types, lifting) Groups.ordered_cancel_comm_monoid_diff_class.add_diff_inverse Lattices.linorder_class.min.absorb_iff2 Suc_eq_plus1 add_diff_cancel_left' diff_le_self k_def length_take letters_needed_until_produced_correct nat_le_linear not_less_eq_eq plus_1_eq_Suc sucn_leq the_hom_ext_length_mono)
+  moreover have \<open>k - 1 < k\<close> by (metis Lattices.linorder_class.min.absorb_iff2 Nat.bot_nat_0.not_eq_extremum One_nat_def Suc_eq_plus1 \<open>take n (the_hom_ext w') = the_hom_ext (take k' w')\<close> calculation diff_Suc_less diff_is_0_eq diff_zero k_def length_take lessI letters_needed_until_produced_correct n_leq nat_less_le sucn_leq)
+  ultimately have \<open>take n (the_hom_ext w')  = the_hom_ext (take (k-1) w')\<close> using k_def k'_def by (smt (verit, ccfv_threshold) Lattices.linorder_class.min.absorb_iff2 Suc_eq_plus1 append_eq_append_conv_if append_take_drop_id length_take letters_needed_until_produced_correct letters_needed_until_produced_minimal nat_less_le nle_le not_less_eq_eq sucn_leq the_hom_ext_hom the_hom_ext_length_mono)
+  thus ?thesis using k_def by blast
 qed
 
 term \<open>([]::nat list) ! 1\<close>
@@ -368,28 +368,28 @@ lemma [simp]: \<open>k + 1 \<le> length w' \<Longrightarrow> (take k w') @ [w' !
 
 lemma the_hom_ext_var_split: \<open>(map Tm u @ [Nt A] @ v) = the_hom_ext w' \<Longrightarrow> \<exists> u' v'. w' = map Tm u' @ [Nt A] @ v'\<close>
 proof-
-define k where \<open>k = letters_needed_until_produced (length (map Tm u) + 1) w'\<close>
-define km where \<open>km = letters_needed_until_produced (length (map Tm u)) w'\<close>
-assume split: \<open>map Tm u @ [Nt A] @ v = (the_hom_ext w')\<close>
-then have \<open>length (map Tm u @ [Nt A] @ v) = length (the_hom_ext w')\<close> using split by simp
-then have length_u_leq: \<open>length (map Tm u) + 1 \<le> length (the_hom_ext w')\<close> by simp
+  define k where \<open>k = letters_needed_until_produced (length (map Tm u) + 1) w'\<close>
+  define km where \<open>km = letters_needed_until_produced (length (map Tm u)) w'\<close>
+  assume split: \<open>map Tm u @ [Nt A] @ v = (the_hom_ext w')\<close>
+  then have \<open>length (map Tm u @ [Nt A] @ v) = length (the_hom_ext w')\<close> using split by simp
+  then have length_u_leq: \<open>length (map Tm u) + 1 \<le> length (the_hom_ext w')\<close> by simp
 
-then have \<open>map Tm u = take (length (map Tm u)) (map Tm u @ [Nt A] @ v)\<close> by (simp add: append_eq_conv_conj)
-also have \<open>take (length (map Tm u)) (map Tm u @ [Nt A] @ v) = take (length (map Tm u)) (the_hom_ext w')\<close> using split by simp
-also have \<open>take (length (map Tm u)) (the_hom_ext w') =  the_hom_ext (take (k-1) w')\<close> using letters_needed_until_produced_pre[of \<open>length (map Tm u)\<close> \<open>w'\<close>] length_u_leq by (metis calculation k_def)
-finally have u_take: \<open>the_hom_ext (take (k-1) w') = map Tm u\<close> by simp
+  then have \<open>map Tm u = take (length (map Tm u)) (map Tm u @ [Nt A] @ v)\<close> by (simp add: append_eq_conv_conj)
+  also have \<open>take (length (map Tm u)) (map Tm u @ [Nt A] @ v) = take (length (map Tm u)) (the_hom_ext w')\<close> using split by simp
+  also have \<open>take (length (map Tm u)) (the_hom_ext w') =  the_hom_ext (take (k-1) w')\<close> using letters_needed_until_produced_pre[of \<open>length (map Tm u)\<close> \<open>w'\<close>] length_u_leq by (metis calculation k_def)
+  finally have u_take: \<open>the_hom_ext (take (k-1) w') = map Tm u\<close> by simp
 
 
-then have \<open>map Tm u @ [Nt A] = take (length (map Tm u) + 1) (map Tm u @ [Nt A] @ v)\<close> by (simp add: append_eq_conv_conj)
-also have \<open>take (length (map Tm u) + 1) (map Tm u @ [Nt A] @ v) = take (length (map Tm u) + 1) (the_hom_ext w')\<close> using split by simp
-also have \<open>take (length (map Tm u) + 1) (the_hom_ext w') =  the_hom_ext (take k w')\<close>  using letters_needed_until_produced_correct[of \<open>length (map Tm u) + 1\<close> \<open>w'\<close>] length_u_leq  by (simp add: k_def)
-finally have uA_take: \<open>the_hom_ext (take k w') = map Tm u @ [Nt A]\<close> by simp
+  then have \<open>map Tm u @ [Nt A] = take (length (map Tm u) + 1) (map Tm u @ [Nt A] @ v)\<close> by (simp add: append_eq_conv_conj)
+  also have \<open>take (length (map Tm u) + 1) (map Tm u @ [Nt A] @ v) = take (length (map Tm u) + 1) (the_hom_ext w')\<close> using split by simp
+  also have \<open>take (length (map Tm u) + 1) (the_hom_ext w') =  the_hom_ext (take k w')\<close>  using letters_needed_until_produced_correct[of \<open>length (map Tm u) + 1\<close> \<open>w'\<close>] length_u_leq  by (simp add: k_def)
+  finally have uA_take: \<open>the_hom_ext (take k w') = map Tm u @ [Nt A]\<close> by simp
 
-have split2: \<open>take k w' = (take (k-1) w') @ [w' ! (k-1)]\<close> by (metis List.list.distinct(1) Suc_pred' append_self_conv gr0I less_imp_diff_less linorder_not_le take_Suc_conv_app_nth take_all uA_take u_take zero_diff)
-then have Nt: \<open>the_hom_ext ([w' ! (k-1)]) = [Nt A]\<close> using u_take uA_take the_hom_ext_hom the_hom_ext_var_inj by auto
+  have split2: \<open>take k w' = (take (k-1) w') @ [w' ! (k-1)]\<close> by (metis List.list.distinct(1) Suc_pred' append_self_conv gr0I less_imp_diff_less linorder_not_le take_Suc_conv_app_nth take_all uA_take u_take zero_diff)
+  then have Nt: \<open>the_hom_ext ([w' ! (k-1)]) = [Nt A]\<close> using u_take uA_take the_hom_ext_hom the_hom_ext_var_inj by auto
 
-thus ?thesis using u_take Nt split2 
-by (metis (no_types, lifting) append_assoc append_take_drop_id the_hom_ext_tms_inj the_hom_ext_var_inj)
+  thus ?thesis using u_take Nt split2 
+    by (metis (no_types, lifting) append_assoc append_take_drop_id the_hom_ext_tms_inj the_hom_ext_var_inj)
 qed
 
 
@@ -417,7 +417,7 @@ proof (rule ccontr)
 
   next
     case False
-    
+
     then obtain k where k: "length xs = length ys + k" by (metis add_diff_inverse)
     then have \<open>k \<noteq> 0\<close> using \<open>xs \<noteq> ys\<close> by (metis Nat.add_0_right append_eq_append_conv assms(1))
     then have \<open>k > 0\<close> by simp
@@ -425,7 +425,7 @@ proof (rule ccontr)
     then have \<open>x = (ys @ [x] @ ws) ! (length ys)\<close> by (metis append_Cons nth_append_length)
     also have \<open>... = (xs @ [x] @ ws) ! (length ys)\<close> using assms(1) by (metis \<open>0 < k\<close> k less_add_same_cancel1 nth_append_left)
     thus \<open>False\<close> by (metis \<open>(ys @ [x] @ ws) ! length ys = (xs @ [x] @ ws) ! length ys\<close> \<open>0 < k\<close> \<open>x = (ys @ [x] @ ws) ! length ys\<close> assms(2) in_set_conv_nth k less_add_same_cancel1 nth_append_left)
-    
+
   qed
 qed
 
@@ -434,24 +434,24 @@ lemma the_hom_ext_helper_Tm_explicit:
    (if (a=Op \<and> ba=One \<and> (\<exists>r. b = [Tm r]))
     then b
     else [])"
-apply(cases a; cases ba; cases b rule: list.exhaust)
-apply auto
-apply (metis CFG.sym.exhaust chomsky_schuetzenberger.the_hom_ext_helper.simps(5))
-by (metis List.remdups_adj.cases chomsky_schuetzenberger.the_hom_ext_helper.simps(6))
+  apply(cases a; cases ba; cases b rule: list.exhaust)
+         apply auto
+   apply (metis CFG.sym.exhaust chomsky_schuetzenberger.the_hom_ext_helper.simps(5))
+  by (metis List.remdups_adj.cases chomsky_schuetzenberger.the_hom_ext_helper.simps(6))
 
 
 
 lemma \<open>the_hom_ext_helper (Tm (a, (aa, b), ba)) = [] \<or> the_hom_ext_helper (Tm (a, (aa, b), ba)) = b\<close>
-using the_hom_ext_helper_Tm_explicit by metis
+  using the_hom_ext_helper_Tm_explicit by metis
 
 
 lemma Nt_the_hom_ext_helper: \<open>Nt A \<in> set (the_hom_ext_helper (Tm (a, (aa, b), ba))) \<Longrightarrow> False\<close>
-using the_hom_ext_helper_Tm_explicit by (metis CFG.sym.distinct(1) append_is_Nil_conv set_ConsD split_list_cycles)
+  using the_hom_ext_helper_Tm_explicit by (metis CFG.sym.distinct(1) append_is_Nil_conv set_ConsD split_list_cycles)
 
 
 lemma same_prefix:
-assumes eq:\<open>map Tm u @ [Nt A] @ v  =  (the_hom_ext (map Tm u')) @ [Nt A] @ (the_hom_ext v')\<close>
-shows \<open>(map Tm u) = (the_hom_ext (map Tm u'))\<close>
+  assumes eq:\<open>map Tm u @ [Nt A] @ v  =  (the_hom_ext (map Tm u')) @ [Nt A] @ (the_hom_ext v')\<close>
+  shows \<open>(map Tm u) = (the_hom_ext (map Tm u'))\<close>
 proof -
   have "Nt A \<notin> set (map Tm u)" by auto
   moreover have "Nt A \<notin> set (the_hom_ext (map Tm u'))" using Nt_the_hom_ext_helper by fastforce
@@ -464,19 +464,19 @@ qed
 
 text\<open>helper for showing the next lemma\<close>
 lemma helper: \<open>the_hom_ext_helper (Tm x) = map Tm (the_hom_helper x)\<close>
-apply(induction x rule: the_hom_helper.induct)
-by(auto split: list.splits sym.splits)
+  apply(induction x rule: the_hom_helper.induct)
+  by(auto split: list.splits sym.splits)
 
 text\<open>Show that the extension really is an extension in some sense.\<close>
 lemma h_eq_h_ext: \<open>the_hom_ext (map Tm x) = map Tm (the_hom x)\<close>
-apply(induction x)
-apply(simp)
-using helper by fastforce
+  apply(induction x)
+   apply(simp)
+  using helper by fastforce
 
 
 
 lemma the_hom_helper_strip: \<open>map Tm w = (the_hom_ext_helper x') \<Longrightarrow> w = the_hom_helper (strip_tm x')\<close>
-by(induction x' rule: the_hom_ext_helper.induct; auto)
+  by(induction x' rule: the_hom_ext_helper.induct; auto)
 
 lemma concat_map_cons[simp]: \<open>concat (map f (a # w')) = f a @ concat ( map f w')\<close> by auto
 
@@ -492,23 +492,23 @@ qed
 
 
 lemma h_eq_h_ext2:
-assumes \<open>(map Tm w) = the_hom_ext w'\<close> 
-shows \<open>w = the_hom (map strip_tm w')\<close>
-using assms apply simp
-apply(induction w';auto) 
-by (smt (verit, ccfv_SIG) map_eq_append_conv the_hom_helper_strip the_hom_helper_strip2)
+  assumes \<open>(map Tm w) = the_hom_ext w'\<close> 
+  shows \<open>w = the_hom (map strip_tm w')\<close>
+  using assms apply simp
+  apply(induction w';auto) 
+  by (smt (verit, ccfv_SIG) map_eq_append_conv the_hom_helper_strip the_hom_helper_strip2)
 
 
 lemma hom_ext_inv[simp]: \<open>CNF_rule \<pi> \<Longrightarrow> the_hom_ext (snd (transform_production \<pi>)) = snd \<pi>\<close>
- apply(rule transform_production_induct_cnf )
-by auto
+  apply(rule transform_production_induct_cnf )
+  by auto
 
 
 lemma rtrancl_derivel_induct
   [consumes 1, case_names base step]:
   assumes "P \<turnstile> xs \<Rightarrow>l* ys"
-      and "Q xs"
-      and "\<And>u A v w. \<lbrakk> P \<turnstile> xs \<Rightarrow>l* (map Tm u @ [Nt A] @ v)
+    and "Q xs"
+    and "\<And>u A v w. \<lbrakk> P \<turnstile> xs \<Rightarrow>l* (map Tm u @ [Nt A] @ v)
                    ; Q (map Tm u @ [Nt A] @ v)
                    ; (A,w) \<in> P \<rbrakk>
                \<Longrightarrow> Q (map Tm u @ w @ v)"
@@ -519,7 +519,7 @@ proof (induction rule: rtranclp_induct)
   from this(1) show ?case by simp
 next
   case (step x y)
-  \<comment> \<open>Here we know one step of derivation x \<Rightarrow>ˡ y plus xs \<Rightarrow>ˡ* x.\<close>
+    \<comment> \<open>Here we know one step of derivation x \<Rightarrow>ˡ y plus xs \<Rightarrow>ˡ* x.\<close>
   from \<open>P \<turnstile> x \<Rightarrow>l y\<close> obtain A \<alpha> u v
     where \<open>x = map Tm u @ [Nt A] @ v\<close>
       and \<open>y = map Tm u @ \<alpha> @ v\<close>
@@ -531,7 +531,7 @@ qed
 
 lemma deriveln_iff_deriven_no_tm:
   "P \<turnstile> u \<Rightarrow>l(n) v \<longleftrightarrow> P \<turnstile> u \<Rightarrow>(n) v"
-sorry
+  sorry
 
 
 
@@ -539,129 +539,128 @@ sorry
 
 text\<open>The chomsky-scheutzenberger theorem that we want to prove.\<close>
 lemma chomsky_schuetzenberger :
-fixes L::\<open>'t list set\<close>
-assumes \<open>CFL.cfl TYPE('n) L\<close> 
-shows \<open>\<exists>(R::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set) h \<Gamma>. (reg TYPE('n) R) \<and> (L = image h (R \<inter> dyck_language \<Gamma>)) \<and> hom h\<close>
+  fixes L::\<open>'t list set\<close>
+  assumes \<open>CFL.cfl TYPE('n) L\<close> 
+  shows \<open>\<exists>(R::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set) h \<Gamma>. (reg TYPE('n) R) \<and> (L = image h (R \<inter> dyck_language \<Gamma>)) \<and> hom h\<close>
 proof -
-have \<open>\<exists>P S::'n. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> using \<open>cfl TYPE('n) L\<close> CNF_existence by auto
-then obtain P and S::'n where \<open>L = Lang P S\<close> and P_CNF: \<open>(\<forall>p \<in> P. CNF_rule p)\<close> by blast
+  have \<open>\<exists>P S::'n. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> using \<open>cfl TYPE('n) L\<close> CNF_existence by auto
+  then obtain P and S::'n where \<open>L = Lang P S\<close> and P_CNF: \<open>(\<forall>p \<in> P. CNF_rule p)\<close> by blast
 
-define \<Gamma> where \<open>\<Gamma> = P \<times> {One, Two}\<close>
-define P' where \<open>P' = image transform_production P\<close>
-define L' where \<open>L' = Lang P' S\<close>
-define h where \<open>h = (the_hom::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list \<Rightarrow> 't list)\<close>
-define h_ext where \<open>h_ext = (the_hom_ext::('n, bracket \<times> ('n,'t) prod \<times> version ) sym list \<Rightarrow> ('n,'t) sym list)\<close>
+  define \<Gamma> where \<open>\<Gamma> = P \<times> {One, Two}\<close>
+  define P' where \<open>P' = image transform_production P\<close>
+  define L' where \<open>L' = Lang P' S\<close>
+  define h where \<open>h = (the_hom::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list \<Rightarrow> 't list)\<close>
+  define h_ext where \<open>h_ext = (the_hom_ext::('n, bracket \<times> ('n,'t) prod \<times> version ) sym list \<Rightarrow> ('n,'t) sym list)\<close>
 
-have \<open>L' \<subseteq> dyck_language \<Gamma>\<close> sorry (* This might not be needed (but it was listed in the book). Leave this for last *)
+  have \<open>L' \<subseteq> dyck_language \<Gamma>\<close> sorry (* This might not be needed (but it was listed in the book). Leave this for last *)
 
-have \<open>\<forall>A. \<forall>x. 
+  have \<open>\<forall>A. \<forall>x. 
 (image transform_production P) \<turnstile> [Nt S] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (dyck_language \<Gamma>) \<inter> (Re P A)\<close> sorry (* This is the hard part of the proof - the local lemma in the textbook *)
-then have \<open>L' = (dyck_language \<Gamma>) \<inter> (Re P S)\<close> by (metis CFL_Lang_eq_CFG_Lang CFL_Lang_if_derives L'_def P'_def derives_if_CFL_Lang inf_absorb2 inf_commute subsetI)
-then have \<open>image h ((dyck_language \<Gamma>) \<inter> (Re P S)) =  image h L'\<close> by simp
-also have \<open>... = Lang P S\<close>
+  then have \<open>L' = (dyck_language \<Gamma>) \<inter> (Re P S)\<close> by (metis CFL_Lang_eq_CFG_Lang CFL_Lang_if_derives L'_def P'_def derives_if_CFL_Lang inf_absorb2 inf_commute subsetI)
+  then have \<open>image h ((dyck_language \<Gamma>) \<inter> (Re P S)) =  image h L'\<close> by simp
+  also have \<open>... = Lang P S\<close>
   proof(standard)
-  have \<open>\<And>w'. (w'  \<in> L' \<Longrightarrow> h w' \<in> Lang P S)\<close>
-  proof-
-  fix w'
-  assume \<open>w' \<in> L'\<close>
-  with L'_def have \<open>w' \<in> Lang P' S\<close> by simp
-  then have \<open>P' \<turnstile> [Nt S] \<Rightarrow>* map Tm w'\<close> by (simp add: CFL_Lang_eq_CFG_Lang derives_if_CFL_Lang)
-  then obtain n where \<open>P' \<turnstile> [Nt S] \<Rightarrow>(n) map Tm w'\<close> by (metis rtranclp_power)
-  then have \<open>P \<turnstile> [Nt S] \<Rightarrow>* h_ext (map Tm w')\<close> 
-  proof(induction rule: deriven_induct)
-    case 0
-    then show ?case unfolding h_ext_def the_hom_ext.simps by simp
-  next
-    case (Suc n u A v x')
-    from \<open>(A, x') \<in> P'\<close> obtain \<pi> where \<open>\<pi> \<in> P\<close> and transf_\<pi>_def: \<open>(transform_production \<pi>) = (A, x')\<close> using P'_def by auto
-    moreover have \<open>CNF_rule \<pi>\<close> using P_CNF \<open>\<pi> \<in> P\<close> by auto
-    ultimately obtain x where \<pi>_def: \<open>\<pi> = (A, x)\<close> using transform_production_CNF by (smt (verit, del_insts) CNF_rule_def Pair_inject chomsky_schuetzenberger.transform_production.simps(1,2))
-    have \<open>hom h_ext\<close> unfolding hom_def h_ext_def the_hom_ext.simps by simp
-    then have \<open>h_ext (u @ [Nt A] @ v) = h_ext u @ h_ext [Nt A] @ h_ext v\<close> using hom_def by (metis (no_types, lifting))
-    then have \<open> P \<turnstile> [Nt S] \<Rightarrow>* h_ext u @ h_ext [Nt A] @ h_ext v\<close> using local.Suc.IH by auto
-    then have \<open> P \<turnstile> [Nt S] \<Rightarrow>* h_ext u @ [Nt A] @ h_ext v\<close> unfolding h_ext_def by simp
-    then have \<open> P \<turnstile> [Nt S] \<Rightarrow>* h_ext u @ x @ h_ext v\<close> using \<pi>_def \<open>\<pi> \<in> P\<close> derive.intros by (metis Transitive_Closure.rtranclp.rtrancl_into_rtrancl)
-
-    have \<open>h_ext x' = h_ext (snd (transform_production \<pi>))\<close> by (simp add: transf_\<pi>_def)
-    also have \<open>... = snd \<pi>\<close> using \<open>CNF_rule \<pi>\<close> h_ext_def hom_ext_inv by blast
-    also have \<open>... = x\<close> by (simp add: \<pi>_def)
-    finally have \<open>h_ext x' = x\<close> by simp
-
-    with \<open> P \<turnstile> [Nt S] \<Rightarrow>* h_ext u @ x @ h_ext v\<close> have \<open> P \<turnstile> [Nt S] \<Rightarrow>* h_ext u @ h_ext x' @ h_ext v\<close> by simp
-    then show ?case by (metis \<open>hom h_ext\<close> hom_def)
-  qed
-
-  then show \<open>h w' \<in> Lang P S\<close> using h_eq_h_ext h_ext_def by (metis CFL_Lang_eq_CFG_Lang CFL_Lang_if_derives h_def)
-  qed
-  then show \<open> h ` L' \<subseteq> Lang P S\<close> by (simp add: image_subsetI)
-
-next
-  have \<open>\<And>w. (w  \<in> Lang P S \<Longrightarrow> \<exists>w' \<in> L'. w = h w')\<close> 
-  proof-
-  have \<open>\<And>w. (w \<in> Ders P S \<Longrightarrow> \<exists>w' \<in> Ders P' S. w = h_ext w')\<close>
+    have \<open>\<And>w'. (w'  \<in> L' \<Longrightarrow> h w' \<in> Lang P S)\<close>
     proof-
-    fix w
-    assume \<open>w \<in> Ders P S\<close>
-    then have \<open>P \<turnstile> [Nt S] \<Rightarrow>*  w\<close> by (simp add: DersD)
-    then have \<open>P \<turnstile> [Nt S] \<Rightarrow>l*  w\<close> using deriveln_iff_deriven_no_tm rtranclp_power by meson
-    then have \<open>\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>l*  w'  \<and>  w = h_ext w'\<close>
-    proof(induction rule: rtrancl_derivel_induct)
-      case base
-      define w' where \<open>(w'::('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym list) = [Nt S]\<close>
-      then have \<open>w' \<in> Ders P' S\<close> by (simp add: DersI)
-      moreover have \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* w'\<close> by (simp add: w'_def)
-      moreover have \<open>[Nt S] = h_ext w'\<close> unfolding h_ext_def w'_def by simp
-      ultimately show ?case by auto
-    next
-      case (step u A v w)
-      have \<open>CNF_rule (A,w)\<close> using P_CNF \<open>(A,w) \<in> P\<close> by auto
-      obtain w' where w'_derive: \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* w' \<and> map Tm u @ [Nt A] @ v = h_ext w'\<close> and w'_Ders: \<open>w' \<in> Ders P' S\<close>using local.step.IH by blast
-      then have w_split_h: \<open>map Tm u @ [Nt A] @ v = h_ext w'\<close> by auto
-      obtain r where \<open>(A, r) = transform_production (A, w)\<close> by (metis fst_eqD fst_transform_production surj_pair)
-      then have \<open>(A,r) \<in> P'\<close> using P'_def local.step.hyps(2) by auto
-      from \<open>(A, r) = transform_production (A, w)\<close> have \<open>h_ext r = w\<close> using hom_ext_inv \<open>CNF_rule (A,w)\<close> by (metis h_ext_def snd_conv)
+      fix w'
+      assume \<open>w' \<in> L'\<close>
+      with L'_def have \<open>w' \<in> Lang P' S\<close> by simp
+      then have \<open>P' \<turnstile> [Nt S] \<Rightarrow>* map Tm w'\<close> by (simp add: CFL_Lang_eq_CFG_Lang derives_if_CFL_Lang)
+      then obtain n where \<open>P' \<turnstile> [Nt S] \<Rightarrow>(n) map Tm w'\<close> by (metis rtranclp_power)
+      then have \<open>P \<turnstile> [Nt S] \<Rightarrow>* h_ext (map Tm w')\<close> 
+      proof(induction rule: deriven_induct)
+        case 0
+        then show ?case unfolding h_ext_def the_hom_ext.simps by simp
+      next
+        case (Suc n u A v x')
+        from \<open>(A, x') \<in> P'\<close> obtain \<pi> where \<open>\<pi> \<in> P\<close> and transf_\<pi>_def: \<open>(transform_production \<pi>) = (A, x')\<close> using P'_def by auto
+        moreover have \<open>CNF_rule \<pi>\<close> using P_CNF \<open>\<pi> \<in> P\<close> by auto
+        ultimately obtain x where \<pi>_def: \<open>\<pi> = (A, x)\<close> using transform_production_CNF by (smt (verit, del_insts) CNF_rule_def Pair_inject chomsky_schuetzenberger.transform_production.simps(1,2))
+        have \<open>hom h_ext\<close> unfolding hom_def h_ext_def the_hom_ext.simps by simp
+        then have \<open>h_ext (u @ [Nt A] @ v) = h_ext u @ h_ext [Nt A] @ h_ext v\<close> using hom_def by (metis (no_types, lifting))
+        then have \<open> P \<turnstile> [Nt S] \<Rightarrow>* h_ext u @ h_ext [Nt A] @ h_ext v\<close> using local.Suc.IH by auto
+        then have \<open> P \<turnstile> [Nt S] \<Rightarrow>* h_ext u @ [Nt A] @ h_ext v\<close> unfolding h_ext_def by simp
+        then have \<open> P \<turnstile> [Nt S] \<Rightarrow>* h_ext u @ x @ h_ext v\<close> using \<pi>_def \<open>\<pi> \<in> P\<close> derive.intros by (metis Transitive_Closure.rtranclp.rtrancl_into_rtrancl)
 
-      from w_split_h obtain u' v' where u'_v'_def: \<open>w' = map Tm u' @ [Nt A] @ v'\<close> using the_hom_ext_var_split h_ext_def by metis
+        have \<open>h_ext x' = h_ext (snd (transform_production \<pi>))\<close> by (simp add: transf_\<pi>_def)
+        also have \<open>... = snd \<pi>\<close> using \<open>CNF_rule \<pi>\<close> h_ext_def hom_ext_inv by blast
+        also have \<open>... = x\<close> by (simp add: \<pi>_def)
+        finally have \<open>h_ext x' = x\<close> by simp
 
-      have \<open>map Tm u @ [Nt A] @ v = h_ext w'\<close> using w_split_h by simp
-      also have \<open>... = h_ext (map Tm u' @ [Nt A] @ v')\<close> using u'_v'_def by simp
-      also have \<open>... = (h_ext (map Tm u')) @ [(Nt A)] @ (h_ext v')\<close> using h_ext_def by simp
-      finally have \<open>map Tm u @ [Nt A] @ v  =  (h_ext (map Tm u')) @ [(Nt A)] @ (h_ext v')\<close> .
-
-      moreover then have \<open>map Tm u = h_ext (map Tm u')\<close> using h_ext_def same_prefix by fastforce
-      ultimately have \<open>v = (h_ext v')\<close> by simp
-
-      then have \<open>h_ext (map Tm u' @ r @ v') = map Tm u @ w @ v\<close> using \<open>h_ext r = w\<close> \<open>map Tm u = h_ext (map Tm u')\<close> h_ext_def by auto
-    
-      then have \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* map Tm u' @ [Nt A] @ v'\<close> using w'_derive using u'_v'_def by blast
-      then have \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* map Tm u' @ r @ v'\<close> using \<open>(A,r) \<in> P'\<close> by (simp add: CFG.derivel.intros Transitive_Closure.rtranclp.rtrancl_into_rtrancl)
-
-      then show ?case using \<open>h_ext (map Tm u' @ r @ v') = map Tm u @ w @ v\<close> w'_Ders using Ders_def derivels_imp_derives by fastforce
+        with \<open> P \<turnstile> [Nt S] \<Rightarrow>* h_ext u @ x @ h_ext v\<close> have \<open> P \<turnstile> [Nt S] \<Rightarrow>* h_ext u @ h_ext x' @ h_ext v\<close> by simp
+        then show ?case by (metis \<open>hom h_ext\<close> hom_def)
+      qed
+      then show \<open>h w' \<in> Lang P S\<close> using h_eq_h_ext h_ext_def by (metis CFL_Lang_eq_CFG_Lang CFL_Lang_if_derives h_def)
     qed
-  then show \<open>\<exists>w' \<in> Ders P' S. w = h_ext w'\<close> by auto
+    then show \<open> h ` L' \<subseteq> Lang P S\<close> by (simp add: image_subsetI)
+
+  next
+    have \<open>\<And>w. (w  \<in> Lang P S \<Longrightarrow> \<exists>w' \<in> L'. w = h w')\<close> 
+    proof-
+      have \<open>\<And>w. (w \<in> Ders P S \<Longrightarrow> \<exists>w' \<in> Ders P' S. w = h_ext w')\<close>
+      proof-
+        fix w
+        assume \<open>w \<in> Ders P S\<close>
+        then have \<open>P \<turnstile> [Nt S] \<Rightarrow>*  w\<close> by (simp add: DersD)
+        then have \<open>P \<turnstile> [Nt S] \<Rightarrow>l*  w\<close> using deriveln_iff_deriven_no_tm rtranclp_power by meson
+        then have \<open>\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>l*  w'  \<and>  w = h_ext w'\<close>
+        proof(induction rule: rtrancl_derivel_induct)
+          case base
+          define w' where \<open>(w'::('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym list) = [Nt S]\<close>
+          then have \<open>w' \<in> Ders P' S\<close> by (simp add: DersI)
+          moreover have \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* w'\<close> by (simp add: w'_def)
+          moreover have \<open>[Nt S] = h_ext w'\<close> unfolding h_ext_def w'_def by simp
+          ultimately show ?case by auto
+        next
+          case (step u A v w)
+          have \<open>CNF_rule (A,w)\<close> using P_CNF \<open>(A,w) \<in> P\<close> by auto
+          obtain w' where w'_derive: \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* w' \<and> map Tm u @ [Nt A] @ v = h_ext w'\<close> and w'_Ders: \<open>w' \<in> Ders P' S\<close>using local.step.IH by blast
+          then have w_split_h: \<open>map Tm u @ [Nt A] @ v = h_ext w'\<close> by auto
+          obtain r where \<open>(A, r) = transform_production (A, w)\<close> by (metis fst_eqD fst_transform_production surj_pair)
+          then have \<open>(A,r) \<in> P'\<close> using P'_def local.step.hyps(2) by auto
+          from \<open>(A, r) = transform_production (A, w)\<close> have \<open>h_ext r = w\<close> using hom_ext_inv \<open>CNF_rule (A,w)\<close> by (metis h_ext_def snd_conv)
+
+          from w_split_h obtain u' v' where u'_v'_def: \<open>w' = map Tm u' @ [Nt A] @ v'\<close> using the_hom_ext_var_split h_ext_def by metis
+
+          have \<open>map Tm u @ [Nt A] @ v = h_ext w'\<close> using w_split_h by simp
+          also have \<open>... = h_ext (map Tm u' @ [Nt A] @ v')\<close> using u'_v'_def by simp
+          also have \<open>... = (h_ext (map Tm u')) @ [(Nt A)] @ (h_ext v')\<close> using h_ext_def by simp
+          finally have \<open>map Tm u @ [Nt A] @ v  =  (h_ext (map Tm u')) @ [(Nt A)] @ (h_ext v')\<close> .
+
+          moreover then have \<open>map Tm u = h_ext (map Tm u')\<close> using h_ext_def same_prefix by fastforce
+          ultimately have \<open>v = (h_ext v')\<close> by simp
+
+          then have \<open>h_ext (map Tm u' @ r @ v') = map Tm u @ w @ v\<close> using \<open>h_ext r = w\<close> \<open>map Tm u = h_ext (map Tm u')\<close> h_ext_def by auto
+
+          then have \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* map Tm u' @ [Nt A] @ v'\<close> using w'_derive using u'_v'_def by blast
+          then have \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* map Tm u' @ r @ v'\<close> using \<open>(A,r) \<in> P'\<close> by (simp add: CFG.derivel.intros Transitive_Closure.rtranclp.rtrancl_into_rtrancl)
+
+          then show ?case using \<open>h_ext (map Tm u' @ r @ v') = map Tm u @ w @ v\<close> w'_Ders using Ders_def derivels_imp_derives by fastforce
+        qed
+        then show \<open>\<exists>w' \<in> Ders P' S. w = h_ext w'\<close> by auto
+      qed
+
+      then show \<open>\<And>w. (w  \<in> Lang P S \<Longrightarrow> \<exists>w' \<in> L'. w = h w')\<close>
+      proof(goal_cases)
+        case (1 w)
+        then have \<open>(map Tm w) \<in> Ders P S\<close> using Lang_Ders imageI by fastforce
+        then obtain w' where w'_def: \<open>w' \<in> Ders P' S\<close> \<open>(map Tm w) = h_ext w'\<close> using \<open>\<And>w. w \<in> Ders P S \<Longrightarrow> \<exists>w'\<in> Ders P' S. w = h_ext w'\<close> by auto
+        moreover obtain w'' where \<open>w' = map Tm w''\<close> using w'_def by (metis h_ext_def the_hom_ext_tms_inj)
+        then have \<open>w = h w''\<close> using h_eq_h_ext2 h_def h_ext_def by (metis h_eq_h_ext w'_def(2))
+        moreover have \<open>w'' \<in> L'\<close> using \<open>w' \<in> Ders P' S\<close> by (metis DersD P'_def \<open>L' = dyck_language \<Gamma> \<inter> Re P S\<close> \<open>\<forall>A x. (transform_production ` P \<turnstile> [Nt S] \<Rightarrow>* map Tm x) = (x \<in> dyck_language \<Gamma> \<inter> Re P A)\<close> \<open>w' = map Tm w''\<close>)
+        ultimately show ?case by auto
+      qed
+    qed
+    then show \<open>Lang P S \<subseteq> h ` L'\<close> by auto 
   qed
-  
-  then show \<open>\<And>w. (w  \<in> Lang P S \<Longrightarrow> \<exists>w' \<in> L'. w = h w')\<close>
-    proof(goal_cases)
-      case (1 w)
-      then have \<open>(map Tm w) \<in> Ders P S\<close> using Lang_Ders imageI by fastforce
-      then obtain w' where w'_def: \<open>w' \<in> Ders P' S\<close> \<open>(map Tm w) = h_ext w'\<close> using \<open>\<And>w. w \<in> Ders P S \<Longrightarrow> \<exists>w'\<in> Ders P' S. w = h_ext w'\<close> by auto
-      moreover obtain w'' where \<open>w' = map Tm w''\<close> using w'_def by (metis h_ext_def the_hom_ext_tms_inj)
-      then have \<open>w = h w''\<close> using h_eq_h_ext2 h_def h_ext_def by (metis h_eq_h_ext w'_def(2))
-      moreover have \<open>w'' \<in> L'\<close> using \<open>w' \<in> Ders P' S\<close> by (metis DersD P'_def \<open>L' = dyck_language \<Gamma> \<inter> Re P S\<close> \<open>\<forall>A x. (transform_production ` P \<turnstile> [Nt S] \<Rightarrow>* map Tm x) = (x \<in> dyck_language \<Gamma> \<inter> Re P A)\<close> \<open>w' = map Tm w''\<close>)
-      ultimately show ?case by auto
-    qed
-    qed
-  then show \<open>Lang P S \<subseteq> h ` L'\<close> by auto 
-  qed
 
-also have \<open>... = L\<close> by (simp add: \<open>L = Lang P S\<close>)
-finally have \<open>image h ((dyck_language \<Gamma>) \<inter> (Re P S)) = L\<close> by auto
+  also have \<open>... = L\<close> by (simp add: \<open>L = Lang P S\<close>)
+  finally have \<open>image h ((dyck_language \<Gamma>) \<inter> (Re P S)) = L\<close> by auto
 
-moreover have hom: \<open>hom h\<close> by (simp add: h_def hom_def)
-moreover have \<open>reg TYPE('n) (Re P S)\<close> sorry
-ultimately have \<open>reg TYPE('n) (Re P S) \<and> L = image h ((Re P S) \<inter> (dyck_language \<Gamma>)) \<and> hom h\<close> by blast 
-then show ?thesis by blast
+  moreover have hom: \<open>hom h\<close> by (simp add: h_def hom_def)
+  moreover have \<open>reg TYPE('n) (Re P S)\<close> sorry
+  ultimately have \<open>reg TYPE('n) (Re P S) \<and> L = image h ((Re P S) \<inter> (dyck_language \<Gamma>)) \<and> hom h\<close> by blast 
+  then show ?thesis by blast
 
 qed
 

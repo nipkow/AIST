@@ -1,5 +1,5 @@
 theory chomsky_schuetzenberger
-  imports Finite_Automata_HF.Finite_Automata_HF HOL.Nat "../CFG" "../CFL"
+  imports  "../CFG" "../CFL"
 begin
 
 text \<open>This file contains all the constructions needed for the chomsky-schuetzenberger theorem.
@@ -252,27 +252,144 @@ by(induction r rule: the_hom_ext_helper.induct;auto)
 lemma the_hom_ext_var_inj: \<open>the_hom_ext [r] = [Nt A] \<Longrightarrow> r = Nt A\<close>
 using the_hom_ext_helper_var_inj by fastforce
 
+lemma the_hom_ext_tm_inj: \<open>the_hom_ext [r] = [Tm m ]\<Longrightarrow> \<exists>x. r = Tm x\<close> by (metis CFG.sym.distinct(1) CFG.sym.exhaust List.list.inject the_hom_ext_keep_var)
+
+lemma the_hom_ext_tms_inj: \<open>the_hom_ext w = map Tm m \<Longrightarrow> \<exists>w'. w = map Tm w'\<close> 
+proof(induction w arbitrary: m)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a w)
+  then obtain w' where \<open>w = map Tm w'\<close> by (metis (no_types, opaque_lifting) append_Cons append_Nil map_eq_append_conv the_hom_ext_hom)
+  then obtain a' where \<open>a = Tm a'\<close>
+  proof -
+    assume a1: "\<And>a'. a = Tm a' \<Longrightarrow> thesis"
+    have f2: "\<forall>ss s. [s::('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym] @ ss = s # ss" by auto
+    have "\<forall>ss s. (s::('a, 'b) sym) # ss = [s] @ ss" by simp
+    then show ?thesis using f2 a1 by (metis CFG.sym.exhaust CFG.sym.simps(4) local.Cons.prems map_eq_Cons_D the_hom_ext_hom the_hom_ext_keep_var)
+  qed
+  then show \<open>\<exists>w'. a # w = map Tm w'\<close> by (metis List.list.simps(9) \<open>w = map Tm w'\<close>)
+qed
+
+
+
+lemma length_the_hom_ext_helper: \<open>length (the_hom_ext_helper w') \<le> 1\<close>
+apply simp
+by(induction w' rule: the_hom_ext_helper.induct;auto)
+
+lemma length_the_hom_ext: \<open>length (the_hom_ext [x]) \<le> 1\<close>
+using length_the_hom_ext_helper by auto
+
+lemma length_the_hom_ext_leq: \<open>length (the_hom_ext w') \<le> length w'\<close>
+using length_the_hom_ext apply(induction w';auto ) by (smt (verit) One_nat_def add_Suc add_mono gen_length_def length_code length_the_hom_ext_helper)
+
+
+
 lemma [simp]: \<open>Nt A \<in> set (the_hom_ext [a]) \<Longrightarrow> a = Nt A\<close>
 by(induction a rule:the_hom_ext_helper.induct; auto)
 
 
 
-lemma nt_in_hom_ext_var: 
-assumes eq: \<open>u @ [Nt A] @ v = the_hom_ext w'\<close>
-shows \<open>Nt A \<in> set w'\<close>
-proof-
-from eq have "Nt A \<in> set (the_hom_ext w')" by (metis append_Cons in_set_conv_decomp)
-  then have "Nt A \<in> set (concat (map the_hom_ext_helper w'))" by simp
-  then obtain x where x_in: "x \<in> set w'" and in_img: "Nt A \<in> set (the_hom_ext_helper x)" by auto
-  from in_img x_in show "Nt A \<in> set w'" by(induction x rule: the_hom_ext_helper.induct;auto)
+
+
+lemma the_hom_ext_length_mono: \<open>k'' \<ge> k' \<Longrightarrow> length (the_hom_ext (take k'' w')) \<ge> length (the_hom_ext (take k' w'))\<close>
+using the_hom_ext_hom by (smt (verit, ccfv_threshold) Lattices.linorder_class.min.absorb_iff2 Lattices.linorder_class.min.bounded_iff append_eq_append_conv_if append_eq_conv_conj append_take_drop_id length_take nat_le_linear) 
+
+
+lemma the_hom_ext_length_mono_inv: \<open>length (the_hom_ext (take k'' w')) > length (the_hom_ext (take k' w')) \<Longrightarrow> k'' > k'\<close>
+using the_hom_ext_length_mono by (metis linorder_not_le)
+
+
+lemma take_append_split: \<open>k''\<ge> k' + r \<Longrightarrow> take k'' w' = (take k' w') @ diff \<Longrightarrow> take (k'+r) w' = take k' w' @ take r diff\<close> 
+by (smt (verit, ccfv_SIG) Groups.ordered_cancel_comm_monoid_diff_class.add_diff_inverse Lattices.linorder_class.min.absorb_iff2 append_eq_conv_conj length_take nat_le_linear take_add take_all_iff)
+
+
+lemma letters_needed_until_produced_ex: \<open>n \<le> length (the_hom_ext w') \<Longrightarrow> \<exists>k. n = length (the_hom_ext (take k w'))\<close>
+proof(induction w' arbitrary: n)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a w')
+  then show \<open>\<exists>k. n = length (the_hom_ext (take k (a # w')))\<close>
+  proof(cases \<open>length (the_hom_ext [a]) = 0\<close>)
+    case True
+    then have \<open>the_hom_ext (a # w') = the_hom_ext w'\<close> by simp
+    then show ?thesis by (metis List.append.simps(1,2) Nat.bot_nat_0.not_eq_extremum True length_greater_0_conv local.Cons.IH local.Cons.prems take_Suc_Cons the_hom_ext_hom)
+  next
+    case False
+    then have len_a: \<open>length (the_hom_ext [a]) = 1\<close> using length_the_hom_ext using le_neq_implies_less by blast
+    then have \<open>n-1 \<le> length (the_hom_ext w')\<close> using local.Cons.prems by simp
+    with Cons obtain k' where k'_def: \<open>n-1 = length (the_hom_ext (take k' w'))\<close> by auto
+
+    then have \<open>the_hom_ext (take (k' + 1) (a # w')) = the_hom_ext [a] @ the_hom_ext (take k' w')\<close> using the_hom_ext_hom by simp
+    moreover have \<open>length (the_hom_ext [a] @ the_hom_ext (take k' w')) \<ge>  1 + n-1\<close> using len_a k'_def by simp
+
+    ultimately show \<open>\<exists>k. n = length (the_hom_ext (take k (a # w')))\<close> by (metis (no_types, lifting) add_diff_assoc add_diff_cancel_left' diff_is_0_eq k'_def le_neq_implies_less len_a length_0_conv length_append less_one nat_le_linear take_eq_Nil2 the_hom_ext_hom)
+  qed
 qed
 
 
-lemma the_hom_ext_var_split: \<open>u @ [Nt A] @ v = the_hom_ext w' \<Longrightarrow> \<exists> u' v'. w' = u' @ [Nt A] @ v'\<close>
+
+
+(* need # letters deleted until the_hom_ext has produced i symbols, implemented via Minimum *)
+definition letters_needed_until_produced :: "nat \<Rightarrow> ('a, bracket \<times> ('a,'b) prod \<times> version ) sym list \<Rightarrow> nat" where
+\<open>letters_needed_until_produced n w' = (if n \<le> length (the_hom_ext w') then LEAST k. n = length (the_hom_ext (take k w')) else 0)\<close>
+
+lemma letters_needed_until_produced_if_n[simp]: \<open>n \<le> length (the_hom_ext w') \<Longrightarrow> letters_needed_until_produced n w' = (LEAST k. n = length (the_hom_ext (take k w')))\<close> by (simp add: letters_needed_until_produced_def)
+
+lemma letters_needed_until_produced_minimal: \<open>n \<le> length (the_hom_ext w') \<Longrightarrow> n = length (the_hom_ext (take k w')) \<Longrightarrow> letters_needed_until_produced n w' \<le> k\<close>
+unfolding letters_needed_until_produced_def by (simp add: Least_le)
+
+lemma letters_needed_until_produced_correct: \<open>n \<le> length (the_hom_ext w') \<Longrightarrow> take n (the_hom_ext w') = the_hom_ext (take (letters_needed_until_produced n w') w')\<close>
 proof-
-assume \<open>u @ [Nt A] @ v = the_hom_ext w'\<close>
-then have \<open>Nt A \<in> set w'\<close> using nt_in_hom_ext_var by metis
-then show ?thesis by (simp add: split_list)
+assume n_leq: \<open>n \<le> length (the_hom_ext w')\<close>
+define k where k_def: \<open>k = letters_needed_until_produced n w'\<close>
+have \<open>n = length (the_hom_ext (take k w'))\<close> unfolding letters_needed_until_produced_def using LeastI_ex[where P = \<open>\<lambda>k. n = length (the_hom_ext (take k w'))\<close>] letters_needed_until_produced_ex n_leq k_def by auto
+thus ?thesis by (metis append_eq_conv_conj append_take_drop_id k_def the_hom_ext_hom)
+qed
+
+lemma letters_needed_until_produced_pre: \<open>n + 1 \<le> length (the_hom_ext w') \<Longrightarrow> take n (the_hom_ext w')  = the_hom_ext (take ((letters_needed_until_produced (n+1) w') - 1) w')\<close>
+proof-
+assume sucn_leq: \<open>n + 1 \<le> length (the_hom_ext w')\<close>
+then have n_leq: \<open>n \<le> length (the_hom_ext w')\<close> by simp
+define k where \<open>k = (letters_needed_until_produced (n+1) w')\<close>
+define k' where \<open>k' = (letters_needed_until_produced n w')\<close>
+then have \<open>take n (the_hom_ext w')  = the_hom_ext (take k' w')\<close> using letters_needed_until_produced_correct n_leq by blast
+then have \<open>k' \<le> k - 1\<close> by (metis (no_types, lifting) Groups.ordered_cancel_comm_monoid_diff_class.add_diff_inverse Lattices.linorder_class.min.absorb_iff2 Suc_eq_plus1 add_diff_cancel_left' diff_le_self k_def length_take letters_needed_until_produced_correct nat_le_linear not_less_eq_eq plus_1_eq_Suc sucn_leq the_hom_ext_length_mono)
+moreover have \<open>k - 1 < k\<close> by (metis Lattices.linorder_class.min.absorb_iff2 Nat.bot_nat_0.not_eq_extremum One_nat_def Suc_eq_plus1 \<open>take n (the_hom_ext w') = the_hom_ext (take k' w')\<close> calculation diff_Suc_less diff_is_0_eq diff_zero k_def length_take lessI letters_needed_until_produced_correct n_leq nat_less_le sucn_leq)
+ultimately have \<open>take n (the_hom_ext w')  = the_hom_ext (take (k-1) w')\<close> using k_def k'_def by (smt (verit, ccfv_threshold) Lattices.linorder_class.min.absorb_iff2 Suc_eq_plus1 append_eq_append_conv_if append_take_drop_id length_take letters_needed_until_produced_correct letters_needed_until_produced_minimal nat_less_le nle_le not_less_eq_eq sucn_leq the_hom_ext_hom the_hom_ext_length_mono)
+thus ?thesis using k_def by blast
+qed
+
+term \<open>([]::nat list) ! 1\<close>
+
+lemma [simp]: \<open>k + 1 \<le> length w' \<Longrightarrow> (take k w') @ [w' ! k] = take (Suc k) w'\<close> by (simp add: take_Suc_conv_app_nth)
+
+
+lemma the_hom_ext_var_split: \<open>(map Tm u @ [Nt A] @ v) = the_hom_ext w' \<Longrightarrow> \<exists> u' v'. w' = map Tm u' @ [Nt A] @ v'\<close>
+proof-
+define k where \<open>k = letters_needed_until_produced (length (map Tm u) + 1) w'\<close>
+define km where \<open>km = letters_needed_until_produced (length (map Tm u)) w'\<close>
+assume split: \<open>map Tm u @ [Nt A] @ v = (the_hom_ext w')\<close>
+then have \<open>length (map Tm u @ [Nt A] @ v) = length (the_hom_ext w')\<close> using split by simp
+then have length_u_leq: \<open>length (map Tm u) + 1 \<le> length (the_hom_ext w')\<close> by simp
+
+then have \<open>map Tm u = take (length (map Tm u)) (map Tm u @ [Nt A] @ v)\<close> by (simp add: append_eq_conv_conj)
+also have \<open>take (length (map Tm u)) (map Tm u @ [Nt A] @ v) = take (length (map Tm u)) (the_hom_ext w')\<close> using split by simp
+also have \<open>take (length (map Tm u)) (the_hom_ext w') =  the_hom_ext (take (k-1) w')\<close> using letters_needed_until_produced_pre[of \<open>length (map Tm u)\<close> \<open>w'\<close>] length_u_leq by (metis calculation k_def)
+finally have u_take: \<open>the_hom_ext (take (k-1) w') = map Tm u\<close> by simp
+
+
+then have \<open>map Tm u @ [Nt A] = take (length (map Tm u) + 1) (map Tm u @ [Nt A] @ v)\<close> by (simp add: append_eq_conv_conj)
+also have \<open>take (length (map Tm u) + 1) (map Tm u @ [Nt A] @ v) = take (length (map Tm u) + 1) (the_hom_ext w')\<close> using split by simp
+also have \<open>take (length (map Tm u) + 1) (the_hom_ext w') =  the_hom_ext (take k w')\<close>  using letters_needed_until_produced_correct[of \<open>length (map Tm u) + 1\<close> \<open>w'\<close>] length_u_leq  by (simp add: k_def)
+finally have uA_take: \<open>the_hom_ext (take k w') = map Tm u @ [Nt A]\<close> by simp
+
+have split2: \<open>take k w' = (take (k-1) w') @ [w' ! (k-1)]\<close> by (metis List.list.distinct(1) Suc_pred' append_self_conv gr0I less_imp_diff_less linorder_not_le take_Suc_conv_app_nth take_all uA_take u_take zero_diff)
+then have Nt: \<open>the_hom_ext ([w' ! (k-1)]) = [Nt A]\<close> using u_take uA_take the_hom_ext_hom the_hom_ext_var_inj by auto
+
+thus ?thesis using u_take Nt split2 
+by (metis (no_types, lifting) append_assoc append_take_drop_id the_hom_ext_tms_inj the_hom_ext_var_inj)
 qed
 
 
@@ -364,9 +481,17 @@ oops
 lemma the_hom_helper_strip: \<open>map Tm w = (the_hom_ext_helper x') \<Longrightarrow> w = the_hom_helper (strip_tm x')\<close>
 by(induction x' rule: the_hom_ext_helper.induct; auto)
 
+lemma concat_map_cons[simp]: \<open>concat (map f (a # w')) = f a @ concat ( map f w')\<close> by auto
 
 lemma the_hom_helper_strip2: \<open>map Tm w = concat (map the_hom_ext_helper w') \<Longrightarrow> w = concat (map (the_hom_helper \<circ> strip_tm) w')\<close>
-using the_hom_helper_strip apply(induction w'; auto) sorry
+proof(induction w' arbitrary: w)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a w')
+  then show ?case by (smt (verit, ccfv_threshold) comp_apply concat_map_cons map_eq_append_conv the_hom_helper_strip)
+qed
+
 
 
 lemma h_eq_h_ext2:
@@ -499,7 +624,7 @@ next
       then have \<open>(A,r) \<in> P'\<close> using P'_def local.step.hyps(2) by auto
       from \<open>(A, r) = transform_production (A, w)\<close> have \<open>h_ext r = w\<close> using hom_ext_inv \<open>CNF_rule (A,w)\<close> by (metis h_ext_def snd_conv)
 
-      from w_split_h obtain u' v' where u'_v'_def: \<open>w' = map Tm u' @ [Nt A] @ v'\<close> using the_hom_ext_var_split h_ext_def sorry
+      from w_split_h obtain u' v' where u'_v'_def: \<open>w' = map Tm u' @ [Nt A] @ v'\<close> using the_hom_ext_var_split h_ext_def by metis
 
       have \<open>map Tm u @ [Nt A] @ v = h_ext w'\<close> using w_split_h by simp
       also have \<open>... = h_ext (map Tm u' @ [Nt A] @ v')\<close> using u'_v'_def by simp
@@ -522,10 +647,10 @@ next
   then show \<open>\<And>w. (w  \<in> Lang P S \<Longrightarrow> \<exists>w' \<in> L'. w = h w')\<close>
     proof(goal_cases)
       case (1 w)
-      then have \<open>(map Tm w) \<in> Ders P S\<close> by (meson Lang_Ders imageI rev_contra_hsubsetD)
+      then have \<open>(map Tm w) \<in> Ders P S\<close> using Lang_Ders imageI by fastforce
       then obtain w' where \<open>(map Tm w) = h_ext w'\<close> using \<open>\<And>w. w \<in> Ders P S \<Longrightarrow> \<exists>w'. w = h_ext w'\<close> by auto
       then have \<open>w = h (map strip_tm w')\<close> using h_eq_h_ext2 using h_def h_ext_def by blast
-      moreover have \<open>map strip_tm w' \<in> L'\<close> sorry
+      moreover have \<open>map strip_tm w' \<in> L'\<close> 
       ultimately show ?case by auto
     qed
     qed

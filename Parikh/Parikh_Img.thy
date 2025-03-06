@@ -1,54 +1,26 @@
 theory Parikh_Img
   imports 
-    "../CFG"
-    "../CFL"
     "./Lfun"
-    "$AFP/Regular-Sets/Regular_Set"
-    "$AFP/Regular-Sets/Regular_Exp"
+    "HOL-Library.Multiset"
 begin
-
-
-section \<open>Parikh vector\<close>
-
-(* a Parikh vector is represented as a functions which maps each letter to
-   its number of occurrences
-*)
-
-(* compute Parikh vector for given word *)
-definition parikh_vec :: "'t list \<Rightarrow> ('t \<Rightarrow> nat)" where
-  "parikh_vec xs c = length (filter (\<lambda>x. c = x) xs)"
-
-
-lemma parikh_vec_concat: "parikh_vec (u@v) = (\<lambda>c. parikh_vec u c + parikh_vec v c)"
-  by (auto simp add: parikh_vec_def)
-
-lemma parikh_vec_commut: "parikh_vec (u@v) = parikh_vec (v@u)"
-  by (auto simp add: parikh_vec_def)
-
-lemma parikh_vec_left_conc: "parikh_vec u = parikh_vec u' \<Longrightarrow> parikh_vec (u@v) = parikh_vec (u'@v)"
-  unfolding parikh_vec_def by (metis filter_append replicate_length_filter)
-
-lemma parikh_vec_right_conc: "parikh_vec u = parikh_vec u' \<Longrightarrow> parikh_vec (v@u) = parikh_vec (v@u')"
-  unfolding parikh_vec_def by (metis filter_append replicate_length_filter)
-
 
 
 section \<open>Parikh image\<close>
 
+(* a Parikh vector is represented as a multiset *)
+
+(* compute Parikh vector for given word *)
+abbreviation parikh_vec where
+  "parikh_vec \<equiv> mset"
+
 (* Parikh image for a given language *)
-definition parikh_img :: "'t lang \<Rightarrow> ('t \<Rightarrow> nat) set" where
-  "parikh_img L = { parikh_vec w | w. w \<in> L }"
+definition parikh_img :: "'a lang \<Rightarrow> 'a multiset set" where
+  "parikh_img L \<equiv> { parikh_vec w | w. w \<in> L }"
 
 (* TODO: really necessary? *)
 definition subseteq_comm :: "'t lang \<Rightarrow> 't lang \<Rightarrow> bool" where
   "subseteq_comm L1 L2 \<equiv> parikh_img L1 \<subseteq> parikh_img L2"
 
-
-lemma "w \<in> L \<Longrightarrow> parikh_vec w \<in> parikh_img L"
-  unfolding parikh_img_def by auto
-
-lemma "parikh_vec w \<in> parikh_img L \<Longrightarrow> \<exists>w'. parikh_vec w = parikh_vec w' \<and> w' \<in> L"
-  unfolding parikh_img_def by blast
 
 lemma parikh_img_Un [simp]: "parikh_img (L1 \<union> L2) = parikh_img L1 \<union> parikh_img L2"
   by (auto simp add: parikh_img_def)
@@ -60,32 +32,13 @@ lemma parikh_img_mono: "A \<subseteq> B \<Longrightarrow> parikh_img A \<subsete
   unfolding parikh_img_def by fast
 
 
-lemma parikh_img_conc: "parikh_img (L1 @@ L2) =
-    { (\<lambda>c. v1 c + v2 c) | v1 v2. v1 \<in> parikh_img L1 \<and> v2 \<in> parikh_img L2 }" (is "_ = ?R")
-proof -
-  have "parikh_img (L1 @@ L2) = { parikh_vec (u@v) | u v. u \<in> L1 \<and> v \<in> L2 }" (is "_ = ?M")
-    using parikh_img_def[of "L1 @@ L2"] conc_def by blast
-  moreover have "?M \<subseteq> ?R"
-    using parikh_vec_concat parikh_img_def by blast
-  moreover have "?R \<subseteq> ?M"
-  proof
-    fix x
-    assume "x \<in> ?R"
-    then obtain v1 v2 where v1_v2: "v1 \<in> parikh_img L1 \<and> v2 \<in> parikh_img L2 \<and> x = (\<lambda>c. v1 c + v2 c)"
-      by auto
-    then obtain u1 u2 where "u1 \<in> L1" "parikh_vec u1 = v1" "u2 \<in> L2" "parikh_vec u2 = v2"
-      using parikh_img_def by (smt (verit) mem_Collect_eq)
-    then show "x \<in> ?M"
-      using parikh_vec_concat[of u1 u2] v1_v2 by force
-  qed
-  ultimately show ?thesis by auto
-qed
-
+lemma parikh_img_conc: "parikh_img (L1 @@ L2) = { v1 + v2 | v1 v2. v1 \<in> parikh_img L1 \<and> v2 \<in> parikh_img L2 }"
+  unfolding parikh_img_def by force
 
 lemma parikh_img_commut: "parikh_img (L1 @@ L2) = parikh_img (L2 @@ L1)"
 proof -
-  have "{ (\<lambda>c. v1 c + v2 c) | v1 v2. v1 \<in> parikh_img L1 \<and> v2 \<in> parikh_img L2 } =
-        { (\<lambda>c. v1 c + v2 c) | v1 v2. v1 \<in> parikh_img L2 \<and> v2 \<in> parikh_img L1 }"
+  have "{ v1 + v2 | v1 v2. v1 \<in> parikh_img L1 \<and> v2 \<in> parikh_img L2 } = 
+        { v2 + v1 | v1 v2. v1 \<in> parikh_img L1 \<and> v2 \<in> parikh_img L2 }"
     using add.commute by blast
   then show ?thesis
     using parikh_img_conc[of L1] parikh_img_conc[of L2] by auto
@@ -104,12 +57,10 @@ lemma parikh_conc_right: "parikh_img A = parikh_img B \<Longrightarrow> parikh_i
 lemma parikh_conc_left: "parikh_img A = parikh_img B \<Longrightarrow> parikh_img (C @@ A) = parikh_img (C @@ B)"
   by (auto simp add: parikh_img_conc)
 
-(* TODO: rename *)
-lemma parikh_pow_distrib: "parikh_img A \<subseteq> parikh_img B \<Longrightarrow> parikh_img (A ^^ n) \<subseteq> parikh_img (B ^^ n)"
+lemma parikh_pow_mono: "parikh_img A \<subseteq> parikh_img B \<Longrightarrow> parikh_img (A ^^ n) \<subseteq> parikh_img (B ^^ n)"
   by (induction n) (auto simp add: parikh_img_conc)
 
-(* TODO: rename *)
-lemma parikh_star_distrib:
+lemma parikh_star_mono:
   assumes "parikh_img A \<subseteq> parikh_img B"
   shows "parikh_img (star A) \<subseteq> parikh_img (star B)"
 proof
@@ -118,15 +69,14 @@ proof
   then obtain w where w_intro: "parikh_vec w = v \<and> w \<in> star A" unfolding parikh_img_def by blast
   then obtain n where "w \<in> A ^^ n" unfolding star_def by blast
   then have "v \<in> parikh_img (A ^^ n)" using w_intro unfolding parikh_img_def by blast
-  with assms have "v \<in> parikh_img (B ^^ n)" using parikh_pow_distrib by blast
+  with assms have "v \<in> parikh_img (B ^^ n)" using parikh_pow_mono by blast
   then show "v \<in> parikh_img (star B)" unfolding star_def using parikh_img_UNION by fastforce
 qed
 
-(* TODO: rename *)
-lemma parikh_star_distrib_eq:
+lemma parikh_star_mono_eq:
   assumes "parikh_img A = parikh_img B"
   shows "parikh_img (star A) = parikh_img (star B)"
-  using parikh_star_distrib by (metis Orderings.order_eq_iff assms)
+  using parikh_star_mono by (metis Orderings.order_eq_iff assms)
 
 
 lemma parikh_img_subst_mono:
@@ -163,14 +113,14 @@ next
   then obtain i where i_intro: "i \<le> n \<and> w2' \<in> A ^^ i @@ B ^^ (n-i)" by blast
 
   from w1_w2_intro w2'_intro have "parikh_vec w = parikh_vec (w1@w2')"
-    using parikh_vec_right_conc by metis
+    by simp
   moreover have "parikh_vec (w1@w2') \<in> parikh_img (\<Union>i \<le> Suc n. A ^^ i @@ B ^^ (Suc n-i))"
   proof (cases "w1 \<in> A")
     case True
     with i_intro have Suc_i_valid: "Suc i \<le> Suc n" and "w1@w2' \<in> A ^^ (Suc i) @@ B ^^ (Suc n - Suc i)"
       by (auto simp add: conc_assoc)
     then have "parikh_vec (w1@w2') \<in> parikh_img (A ^^ (Suc i) @@ B ^^ (Suc n - Suc i))"
-      unfolding parikh_img_def by auto
+      unfolding parikh_img_def by blast
     with Suc_i_valid parikh_img_UNION show ?thesis by fast
   next
     case False

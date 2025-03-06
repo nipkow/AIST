@@ -425,7 +425,7 @@ next
   proof (rule allI)
     fix s
     have "parikh_img (eval (Star f) s) = parikh_img (star (eval p s \<union> eval q s @@ s x))"
-      using f'_intro parikh_star_distrib_eq p_q_intro
+      using f'_intro parikh_star_mono_eq p_q_intro
       by (metis eval.simps(1) eval.simps(3) eval.simps(5) eval.simps(6))
     also have "\<dots> = parikh_img (star (eval p s) @@ star (eval q s @@ s x))"
       using parikh_img_star by blast
@@ -546,7 +546,7 @@ proof -
   then have "parikh_img (eval (subst q (\<lambda>i. if i = x then p else V i)) s) \<subseteq> parikh_img (eval ?r s)"
     using parikh_img_subst_mono by meson
   then have "parikh_img (star (eval (subst q (\<lambda>i. if i = x then p else V i)) s)) \<subseteq>
-      parikh_img (star (eval ?r s))" using parikh_star_distrib by blast
+      parikh_img (star (eval ?r s))" using parikh_star_mono by blast
   then have "parikh_img (star (eval (subst q (\<lambda>i. if i = x then p else V i)) s) @@ eval p s)
       \<subseteq> parikh_img (star (eval ?r s) @@ eval p s)" using parikh_conc_right_subset by blast
   with star_eq show "parikh_img (eval ?m s) \<subseteq> parikh_img (eval sol s)" by simp

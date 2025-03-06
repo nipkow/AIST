@@ -7,8 +7,8 @@ We follow closely Automata and Computability @1997 pp 198–200 by Dexter C. Koz
 
 This theorem roughly states, that each type 2 language \<open>L\<close> can be written as 
 \<open>h(R \<inter> dyck_lang(\<Gamma>))\<close> for suitable alphabet Gamma, a regular language R, and a monoid-homomorphism h.
-a
-a
+
+
 The dyck language over some set \<open>\<Gamma>\<close> (also called bracket language) is defined as follows:  
 The symbols of Gamma are thought of as opening brackets. 
 For each symbol a closing bracket is added.

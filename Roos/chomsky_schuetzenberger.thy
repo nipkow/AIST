@@ -16,8 +16,8 @@ The dyck language over Gamma then is the language of correctly bracketed terms.
 
 We implement this cloning of Gamma, by pairing each element \<open>g \<in> \<Gamma>\<close> either with an Element from
 \<open>datatype bracket = Op | Cl\<close>, as in \<open>Cl, g\<close>.
-
-
+aa
+aaaa
 A (very) rough proof overview of chomsky-schuetzenberger is as follows:
 Take some type 2 Grammar for \<open>L\<close> with Productions \<open>P\<close>, assume it in Chomsky normal form.
 From the old Productions \<open>P\<close> define new Productions \<open>P'\<close> using \<open>transform_production\<close>: 

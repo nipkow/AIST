@@ -99,6 +99,56 @@ proof
 qed
 
 
+lemma same_min_reg_sol_if_same_parikh_img:
+  assumes same_parikh_img: "\<forall>s. parikh_img (eval f s) = parikh_img (eval g s)"
+      and minimal_reg_sol: "partial_min_reg_sol_eq x f sol"
+    shows                  "partial_min_reg_sol_eq x g sol"
+proof -
+  from minimal_reg_sol have "regular_fun sol \<and> x \<notin> vars sol"
+    unfolding partial_min_reg_sol_eq_def by blast
+
+  moreover have "partial_sol_eq x g sol"
+  unfolding partial_sol_eq_def proof
+    fix s
+    let ?upd = "\<lambda>i. if i = x then sol else V i"
+    let ?s' = "\<lambda>i. if i = x then eval sol s else s i"
+    have "parikh_img (eval (subst g ?upd) s) = parikh_img (eval g ?s')"
+      using substitution_lemma[of ?s' ?upd] by fastforce
+    also have "\<dots> = parikh_img (eval f ?s')" using same_parikh_img by auto
+    also have "\<dots> = parikh_img (eval (subst f ?upd) s)"
+      using substitution_lemma[of ?s' ?upd] by fastforce
+    finally show "parikh_img (eval (subst g ?upd) s) = parikh_img (eval sol s)"
+      using minimal_reg_sol unfolding partial_min_reg_sol_eq_def partial_sol_eq_def by blast
+  qed
+
+  moreover have "x \<notin> vars sol' \<and> partial_sol_ineq x g sol'
+            \<longrightarrow> (\<forall>s. parikh_img (eval sol s) \<subseteq> parikh_img (eval sol' s))" for sol'
+  proof
+    fix sol'
+    assume as: "x \<notin> vars sol' \<and> partial_sol_ineq x g sol'"
+
+    have "partial_sol_ineq x f sol'"
+    unfolding partial_sol_ineq_def proof
+      fix s
+      let ?upd = "\<lambda>i. if i = x then sol' else V i"
+      let ?s' = "\<lambda>i. if i = x then eval sol' s else s i"
+      have "parikh_img (eval (subst f ?upd) s) = parikh_img (eval f ?s')"
+        using substitution_lemma[of ?s' ?upd] by fastforce
+      also have "\<dots> = parikh_img (eval g ?s')" using same_parikh_img by auto
+      also have "\<dots> = parikh_img (eval (subst g ?upd) s)"
+        using substitution_lemma[of ?s' ?upd] by fastforce
+      finally show "parikh_img (eval (subst f ?upd) s) \<subseteq> parikh_img (eval sol' s)"
+        using as unfolding partial_sol_ineq_def by blast
+    qed
+
+    with minimal_reg_sol as show "\<forall>s. parikh_img (eval sol s) \<subseteq> parikh_img (eval sol' s)"
+      unfolding partial_min_reg_sol_eq_def by blast
+  qed
+
+  ultimately show ?thesis unfolding partial_min_reg_sol_eq_def by fast
+qed
+
+
 
 section \<open>The lemma from Pilling's paper\<close>
 
@@ -452,44 +502,46 @@ subsection \<open>Minimal solution\<close>
 
 (* We show that F(E)*E (in the following q(p)*p is a minimal solution) *)
 
-(* F(E)*E is a regular function *)
-lemma g_star_e_is_reg:
+locale of_form_regular_fun' =
+  fixes x :: "nat"
+  fixes p :: "'a lfun"
+  fixes q :: "'a lfun"
   assumes p_reg:      "regular_fun p"
-      and q_reg:      "regular_fun q"
-      and x_not_in_p: "x \<notin> vars p"
-    shows             "regular_fun (Conc (Star (subst q (\<lambda>y. if y = x then p else V y))) p)"
-proof -
-  let ?r = "subst q (\<lambda>y. if y = x then p else V y)"
-  let ?sol = "Conc (Star ?r) p"
+  assumes q_reg:      "regular_fun q"
+  assumes x_not_in_p: "x \<notin> vars p"
+begin
 
-  from p_reg q_reg have r_reg: "regular_fun ?r"
+abbreviation "eq \<equiv> Union2 p (Conc q (V x))"
+abbreviation "sol \<equiv> Conc (Star (subst q (\<lambda>y. if y = x then p else V y))) p"
+
+
+(* F(E)*E is a regular function *)
+lemma sol_is_reg: "regular_fun sol"
+proof -
+  from p_reg q_reg have r_reg: "regular_fun (subst q (\<lambda>y. if y = x then p else V y))"
     using subst_reg_fun by (smt (verit, ccfv_threshold) Variable)
-  with p_reg show "regular_fun ?sol" by fast
+  with p_reg show "regular_fun sol" by fast
 qed
 
 
 (* F(E)*E is a solution of equation (3) from the paper (with \<supseteq> instead of =) *)
-lemma g_star_e_is_sol_ineq:
-  assumes p_reg:      "regular_fun p"
-      and q_reg:      "regular_fun q"
-      and x_not_in_p: "x \<notin> vars p"
-    shows             "partial_sol_ineq x (Union2 p (Conc q (V x)))
-      (Conc (Star (subst q (\<lambda>y. if y = x then p else V y))) p)" (is "partial_sol_ineq x ?eq _")
+lemma sol_is_sol_ineq: "partial_sol_ineq x eq sol"
 unfolding partial_sol_ineq_def proof
   fix s
-  let ?r = "subst q (\<lambda>y. if y = x then p else V y)"
-  let ?sol = "Conc (Star ?r) p"
-  let ?upd = "\<lambda>y. if y = x then ?sol else V y"
 
-  from g_star_e_is_reg[OF assms] have r_reg: "regular_fun ?r" by blast
-  have homogeneous_app: "eval (subst q (\<lambda>i. if i = x then ?sol else V i)) s \<subseteq> eval (Conc (Star ?r) ?r) s"
+  let ?r = "subst q (\<lambda>i. if i = x then p else V i)"
+  let ?upd = "\<lambda>i. if i = x then sol else V i"
+  let ?q_subst = "subst q ?upd"
+  let ?eq_subst = "subst eq ?upd"
+
+  from sol_is_reg have r_reg: "regular_fun ?r" by blast
+  have homogeneous_app: "eval ?q_subst s \<subseteq> eval (Conc (Star ?r) ?r) s"
     using reg_fun_homogeneous[OF q_reg r_reg p_reg] by blast
 
   from x_not_in_p have "eval (subst p ?upd) s = eval p s" using eval_vars_subst[of p] by simp
-  then have "parikh_img (eval (subst ?eq (\<lambda>i. if i = x then ?sol else V i)) s) =
-      parikh_img (eval p s \<union> eval (subst q (\<lambda>i. if i = x then ?sol else V i)) s @@ eval ?sol s)"
+  then have "parikh_img (eval ?eq_subst s) = parikh_img (eval p s \<union> eval ?q_subst s @@ eval sol s)"
     by simp
-  also have "\<dots> \<subseteq> parikh_img (eval p s \<union> eval (Conc (Star ?r) ?r) s @@ eval ?sol s)"
+  also have "\<dots> \<subseteq> parikh_img (eval p s \<union> eval (Conc (Star ?r) ?r) s @@ eval sol s)"
     using homogeneous_app parikh_img_mono by (metis (no_types, lifting) conc_mono order_refl sup.mono)
   also have "\<dots> = parikh_img (eval p s) \<union>
       parikh_img (star (eval ?r s) @@ eval ?r s @@ star (eval ?r s) @@ eval p s)"
@@ -500,127 +552,92 @@ unfolding partial_sol_ineq_def proof
   also have "\<dots> = parikh_img (star (eval ?r s) @@ eval p s)"
     using star_unfold_left
     by (smt (verit) conc_Un_distrib(2) conc_assoc conc_epsilon(1) parikh_img_Un sup_commute)
-  finally show "parikh_img (eval (subst ?eq (\<lambda>i. if i = x then ?sol else V i)) s)
-                \<subseteq> parikh_img (eval ?sol s)" by simp
+  finally show "parikh_img (eval ?eq_subst s) \<subseteq> parikh_img (eval sol s)" by simp
 qed
 
 
 (* F(E)*E does not contain the variable x *)
-lemma g_star_e_indep:
-  assumes p_reg:      "regular_fun p"
-      and q_reg:      "regular_fun q"
-      and x_not_in_p: "x \<notin> vars p"
-    shows             "x \<notin> vars (Conc (Star (subst q (\<lambda>y. if y = x then p else V y))) p)" (is "x \<notin> vars ?sol")
+lemma sol_indep_of_x: "x \<notin> vars sol"
 proof -
-  let ?r = "subst q (\<lambda>y. if y = x then p else V y)"
-
-  from x_not_in_p have "x \<notin> vars ?r" by (simp add: vars_subst)
-  with x_not_in_p show "x \<notin> vars ?sol" by simp
+  from x_not_in_p have "x \<notin> vars (subst q (\<lambda>y. if y = x then p else V y))" by (simp add: vars_subst)
+  with x_not_in_p show "x \<notin> vars sol" by simp
 qed
 
 
 (* F(E)*E is the minimal solution *)
-lemma g_star_e_is_minimal:
-  assumes p_reg:      "regular_fun p"
-      and q_reg:      "regular_fun q"
-      and x_not_in_p: "x \<notin> vars p"
-      and sol_indep:  "x \<notin> vars sol"
-      and is_sol:     "partial_sol_ineq x (Union2 p (Conc q (V x))) sol" (is "partial_sol_ineq x ?eq _")
-    shows             "parikh_img (eval (Conc (Star (subst q (\<lambda>y. if y = x then p else V y))) p) s)
-                       \<subseteq> parikh_img (eval sol s)" (is "parikh_img (eval ?m s) \<subseteq> _")
+lemma sol_is_minimal:
+  assumes sol_indep:  "x \<notin> vars sol'"
+      and is_sol:     "partial_sol_ineq x eq sol'"
+    shows             "parikh_img (eval sol s) \<subseteq> parikh_img (eval sol' s)"
 proof -
-  let ?upd = "\<lambda>i. if i = x then sol else V i"
+  let ?upd = "\<lambda>i. if i = x then sol' else V i"
   let ?r = "subst q ?upd"
+  let ?q_subst = "subst q (\<lambda>i. if i = x then p else V i)"
 
   from x_not_in_p have "eval (subst p ?upd) s = eval p s" using eval_vars_subst[of p] by simp
-  then have "parikh_img (eval p s \<union> eval ?r s @@ eval sol s) = parikh_img (eval (subst ?eq ?upd) s)"
+  then have "parikh_img (eval p s \<union> eval ?r s @@ eval sol' s) = parikh_img (eval (subst eq ?upd) s)"
     by simp
-  also from is_sol have "\<dots> \<subseteq> parikh_img (eval sol s)" unfolding partial_sol_ineq_def by fast
-  finally have eq': "parikh_img (eval p s \<union> eval ?r s @@ eval sol s) \<subseteq> parikh_img (eval sol s)" .
-  then have star_eq: "parikh_img (star (eval ?r s) @@ eval p s) \<subseteq> parikh_img (eval sol s)"
+  also from is_sol have "\<dots> \<subseteq> parikh_img (eval sol' s)" unfolding partial_sol_ineq_def by fast
+  finally have eq': "parikh_img (eval p s \<union> eval ?r s @@ eval sol' s) \<subseteq> parikh_img (eval sol' s)" .
+  then have star_eq: "parikh_img (star (eval ?r s) @@ eval p s) \<subseteq> parikh_img (eval sol' s)"
     using parikh_img_arden by auto
 
-  from eq' have "parikh_img (eval p s) \<subseteq> parikh_img (eval sol s)" by simp
+  from eq' have "parikh_img (eval p s) \<subseteq> parikh_img (eval sol' s)" by simp
   then have "parikh_img (eval (if i = x then p else V i) s) \<subseteq>
-      parikh_img (eval (if i = x then sol else V i) s)" for i by simp
-  then have "parikh_img (eval (subst q (\<lambda>i. if i = x then p else V i)) s) \<subseteq> parikh_img (eval ?r s)"
+      parikh_img (eval (if i = x then sol' else V i) s)" for i by simp
+  then have "parikh_img (eval ?q_subst s) \<subseteq> parikh_img (eval ?r s)"
     using parikh_img_subst_mono by meson
-  then have "parikh_img (star (eval (subst q (\<lambda>i. if i = x then p else V i)) s)) \<subseteq>
-      parikh_img (star (eval ?r s))" using parikh_star_mono by blast
-  then have "parikh_img (star (eval (subst q (\<lambda>i. if i = x then p else V i)) s) @@ eval p s)
-      \<subseteq> parikh_img (star (eval ?r s) @@ eval p s)" using parikh_conc_right_subset by blast
-  with star_eq show "parikh_img (eval ?m s) \<subseteq> parikh_img (eval sol s)" by simp
+  then have "parikh_img (star (eval ?q_subst s)) \<subseteq> parikh_img (star (eval ?r s))"
+    using parikh_star_mono by blast
+  then have "parikh_img (star (eval ?q_subst s) @@ eval p s) \<subseteq> parikh_img (star (eval ?r s) @@ eval p s)"
+    using parikh_conc_right_subset by blast
+  with star_eq show "parikh_img (eval sol s) \<subseteq> parikh_img (eval sol' s)" by simp
 qed
 
 
 (* F(E)*E solves equation (3) from the paper (this time with =) *)
-lemma g_star_e_is_sol_eq:
-  assumes p_reg:      "regular_fun p"
-      and q_reg:      "regular_fun q"
-      and x_not_in_p: "x \<notin> vars p"
-    shows             "partial_sol_eq x (Union2 p (Conc q (V x)))
-      (Conc (Star (subst q (\<lambda>y. if y = x then p else V y))) p)" (is "partial_sol_eq x ?eq _")
+lemma sol_is_sol_eq: "partial_sol_eq x eq sol"
 unfolding partial_sol_eq_def proof
   fix s
+
   let ?r = "subst q (\<lambda>y. if y = x then p else V y)"
-  let ?sol = "Conc (Star ?r) p"
-  let ?upd = "\<lambda>y. if y = x then ?sol else V y"
+  let ?upd = "\<lambda>y. if y = x then sol else V y"
+  let ?upd_subst = "\<lambda>y. if y = x then subst eq ?upd else V y"
 
-  from g_star_e_indep[OF p_reg q_reg x_not_in_p] have "x \<notin> vars ?sol" by simp
-  with x_not_in_p have sol_indep: "x \<notin> vars (subst ?eq ?upd)" using vars_subst[of ?eq ?upd] by auto
+  from sol_indep_of_x x_not_in_p have sol_indep: "x \<notin> vars (subst eq ?upd)"
+    using vars_subst[of eq ?upd] by auto
 
-  have "parikh_img (eval (subst ?eq (\<lambda>y. if y = x then subst ?eq ?upd else V y)) s) \<subseteq> 
-        parikh_img (eval (subst ?eq ?upd) s)" for s
+  have "parikh_img (eval (subst eq ?upd_subst) s) \<subseteq> parikh_img (eval (subst eq ?upd) s)" for s
   proof -
     fix s
-    from g_star_e_is_sol_ineq[OF p_reg q_reg x_not_in_p]
-    have "parikh_img (eval (subst ?eq ?upd) s) \<subseteq> parikh_img (eval ?sol s)"
+    from sol_is_sol_ineq have "parikh_img (eval (subst eq ?upd) s) \<subseteq> parikh_img (eval sol s)"
       unfolding partial_sol_ineq_def by blast
-    then show "parikh_img (eval (subst ?eq (\<lambda>y. if y = x then subst ?eq ?upd else V y)) s) \<subseteq> 
-        parikh_img (eval (subst ?eq ?upd) s)"
-      using parikh_img_subst_mono[of "\<lambda>y. if y = x then subst ?eq ?upd else V y" s ?upd ?eq]
-      by auto
+    then show "parikh_img (eval (subst eq ?upd_subst) s) \<subseteq> parikh_img (eval (subst eq ?upd) s)"
+      using parikh_img_subst_mono[of ?upd_subst s ?upd eq] by auto
   qed
-  then have "partial_sol_ineq x ?eq (subst ?eq ?upd)" unfolding partial_sol_ineq_def by auto
-  then have "parikh_img (eval ?sol s) \<subseteq> parikh_img (eval (subst ?eq ?upd) s)"
-    using g_star_e_is_minimal[OF p_reg q_reg x_not_in_p sol_indep] by blast
-  with g_star_e_is_sol_ineq[OF p_reg q_reg x_not_in_p]
-    show "parikh_img (eval (subst ?eq ?upd) s) = parikh_img (eval ?sol s)"
+  then have "partial_sol_ineq x eq (subst eq ?upd)" unfolding partial_sol_ineq_def by auto
+  then have "parikh_img (eval sol s) \<subseteq> parikh_img (eval (subst eq ?upd) s)"
+    using sol_is_minimal[OF sol_indep] by blast
+  with sol_is_sol_ineq show "parikh_img (eval (subst eq ?upd) s) = parikh_img (eval sol s)"
     unfolding partial_sol_ineq_def by blast
 qed
 
 
-(* Given equation (3), there exists a regular minimal solution *)
-lemma exists_minimal_reg_sol_aux:
-  assumes p_reg: "regular_fun p"
-      and q_reg: "regular_fun q"
-      and x_not_in_p: "x \<notin> vars p"
-    shows "\<exists>sol. partial_min_reg_sol_eq x (Union2 p (Conc q (V x))) sol"
-unfolding partial_min_reg_sol_eq_def proof
-  let ?r = "subst q (\<lambda>y. if y = x then p else V y)"
-  let ?sol = "Conc (Star ?r) p"
-  let ?eq = "Union2 p (Conc q (V x))"
+(* F(E)*E is the regular minimal solution of (3) *)
+lemma sol_is_minimal_reg_sol: "partial_min_reg_sol_eq x eq sol"
+  unfolding partial_min_reg_sol_eq_def
+  using sol_is_reg sol_indep_of_x sol_is_sol_eq sol_is_minimal
+  by blast
 
-  from g_star_e_is_reg[OF assms] have "regular_fun ?sol" by simp
-  moreover from g_star_e_indep[OF assms] have "x \<notin> vars ?sol" by simp
-  moreover from g_star_e_is_sol_eq[OF assms] have "partial_sol_eq x ?eq ?sol" by simp
-  moreover from g_star_e_is_minimal[OF assms]
-    have "x \<notin> vars sol' \<and> partial_sol_ineq x (Union2 p (Conc q (V x))) sol' \<longrightarrow>
-      (\<forall>s. parikh_img (eval ?sol s) \<subseteq> parikh_img (eval sol' s))" for sol'
-    by simp
-  ultimately show "regular_fun ?sol \<and> x \<notin> vars ?sol \<and> partial_sol_eq x (Union2 p (Conc q (V x))) ?sol
-            \<and> (\<forall>sol'. x \<notin> vars sol' \<and> partial_sol_ineq x (Union2 p (Conc q (V x))) sol'
-                      \<longrightarrow> (\<forall>s. parikh_img (eval ?sol s) \<subseteq> parikh_img (eval sol' s)))" by blast
-qed
+
+end
+
 
 
 (* Given equation (2), there exists a regular minimal solution *)
 lemma exists_minimal_reg_sol:
   assumes f_reg: "regular_fun f"
   shows "\<exists>sol. partial_min_reg_sol_eq x f sol"
-(*  shows "\<exists>sol. regular_fun sol \<and> x \<notin> vars sol \<and> partial_sol_eq x f sol
-            \<and> (\<forall>sol'. x \<notin> vars sol' \<and> partial_sol_ineq x f sol'
-                      \<longrightarrow> (\<forall>s. parikh_img (eval sol s) \<subseteq> parikh_img (eval sol' s)))"*)
 proof -
   from regular_fun_regular_fun'[OF f_reg] obtain f'
     where f'_intro: "regular_fun' x f' \<and> (\<forall>s. parikh_img (eval f s) = parikh_img (eval f' s))"
@@ -628,52 +645,13 @@ proof -
   then obtain p q
     where p_q_intro: "regular_fun p \<and> regular_fun q \<and> f' = Union2 p (Conc q (V x)) \<and> x \<notin> vars p"
     unfolding regular_fun'_def by blast
-  then obtain sol where sol_intro: "regular_fun sol \<and> x \<notin> vars sol \<and> partial_sol_eq x f' sol
-            \<and> (\<forall>sol'. x \<notin> vars sol' \<and> partial_sol_ineq x f' sol'
-                      \<longrightarrow> (\<forall>s. parikh_img (eval sol s) \<subseteq> parikh_img (eval sol' s)))"
-    using exists_minimal_reg_sol_aux unfolding partial_min_reg_sol_eq_def by metis
 
-  have "partial_sol_eq x f sol"
-  unfolding partial_sol_eq_def proof
-    fix s
-    let ?s' = "\<lambda>i. if i = x then eval sol s else s i"
-    have "parikh_img (eval (subst f (\<lambda>i. if i = x then sol else V i)) s) = parikh_img (eval f ?s')"
-      using substitution_lemma[of ?s' "\<lambda>i. if i = x then sol else V i"] by fastforce
-    also have "\<dots> = parikh_img (eval f' ?s')" using f'_intro by auto
-    also have "\<dots> = parikh_img (eval (subst f' (\<lambda>i. if i = x then sol else V i)) s)"
-      using substitution_lemma[of ?s' "\<lambda>i. if i = x then sol else V i"] by fastforce
-    finally show "parikh_img (eval (subst f (\<lambda>i. if i = x then sol else V i)) s)
-        = parikh_img (eval sol s)" using sol_intro unfolding partial_sol_eq_def by blast
-  qed
-
-  moreover have "x \<notin> vars sol' \<and> partial_sol_ineq x f sol'
-            \<longrightarrow> (\<forall>s. parikh_img (eval sol s) \<subseteq> parikh_img (eval sol' s))" for sol'
-  proof
-    fix sol'
-    assume as: "x \<notin> vars sol' \<and> partial_sol_ineq x f sol'"
-
-    have "partial_sol_ineq x f' sol'"
-    unfolding partial_sol_ineq_def proof
-      fix s
-      let ?s' = "\<lambda>i. if i = x then eval sol' s else s i"
-      have "parikh_img (eval (subst f' (\<lambda>i. if i = x then sol' else V i)) s) = parikh_img (eval f' ?s')"
-        using substitution_lemma[of ?s' "\<lambda>i. if i = x then sol' else V i"] by fastforce
-      also have "\<dots> = parikh_img (eval f ?s')" using f'_intro by auto
-      also have "\<dots> = parikh_img (eval (subst f (\<lambda>i. if i = x then sol' else V i)) s)"
-        using substitution_lemma[of ?s' "\<lambda>i. if i = x then sol' else V i"] by fastforce
-      finally show "parikh_img (eval (subst f' (\<lambda>i. if i = x then sol' else V i)) s)
-          \<subseteq> parikh_img (eval sol' s)" using sol_intro as unfolding partial_sol_ineq_def by blast
-    qed
-
-    with sol_intro as show "\<forall>s. parikh_img (eval sol s) \<subseteq> parikh_img (eval sol' s)" by blast
-  qed
-
-  ultimately have "regular_fun sol \<and> x \<notin> vars sol \<and> partial_sol_eq x f sol \<and>
-    (\<forall>sol'. x \<notin> vars sol' \<and> partial_sol_ineq x f sol'
-            \<longrightarrow> (\<forall>s. parikh_img (eval sol s) \<subseteq> parikh_img (eval sol' s)))"
-    using sol_intro by blast
-  then show ?thesis unfolding partial_min_reg_sol_eq_def by blast
+  let ?sol = "Conc (Star (subst q (\<lambda>y. if y = x then p else V y))) p"
+  from p_q_intro have sol_prop: "partial_min_reg_sol_eq x f' ?sol"
+    using of_form_regular_fun'.sol_is_minimal_reg_sol unfolding of_form_regular_fun'_def by blast
+  with f'_intro show ?thesis using same_min_reg_sol_if_same_parikh_img by blast
 qed
+
 
 
 (* Unfortunately, the proof is incomplete

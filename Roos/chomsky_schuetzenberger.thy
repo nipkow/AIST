@@ -504,6 +504,7 @@ lemma hom_ext_inv[simp]: \<open>CNF_rule \<pi> \<Longrightarrow> the_hom_ext (sn
   by auto
 
 
+text\<open>rtrancl_derive_induct but for left derivation\<close>
 lemma rtrancl_derivel_induct
   [consumes 1, case_names base step]:
   assumes "P \<turnstile> xs \<Rightarrow>l* ys"
@@ -529,12 +530,8 @@ next
 qed
 
 
-lemma deriveln_iff_deriven_no_tm:
-  "P \<turnstile> u \<Rightarrow>l(n) v \<longleftrightarrow> P \<turnstile> u \<Rightarrow>(n) v"
-  sorry
-
-
-
+lemma derivels_iff_derives_no_tm: \<open>P \<turnstile> u \<Rightarrow>*  v \<longleftrightarrow> P \<turnstile> u \<Rightarrow>l*  v\<close>
+sorry
 
 
 text\<open>The chomsky-scheutzenberger theorem that we want to prove.\<close>
@@ -602,7 +599,7 @@ proof -
         fix w
         assume \<open>w \<in> Ders P S\<close>
         then have \<open>P \<turnstile> [Nt S] \<Rightarrow>*  w\<close> by (simp add: DersD)
-        then have \<open>P \<turnstile> [Nt S] \<Rightarrow>l*  w\<close> using deriveln_iff_deriven_no_tm rtranclp_power by meson
+        then have \<open>P \<turnstile> [Nt S] \<Rightarrow>l*  w\<close> using derivels_iff_derives_no_tm by meson
         then have \<open>\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>l*  w'  \<and>  w = h_ext w'\<close>
         proof(induction rule: rtrancl_derivel_induct)
           case base

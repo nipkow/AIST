@@ -1,2 +1,2 @@
 *.thy diff=isabelle
-*.ml diff=isabelle
+*.ML diff=isabelle

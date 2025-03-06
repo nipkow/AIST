@@ -16,8 +16,8 @@ The dyck language over Gamma then is the language of correctly bracketed terms.
 
 We implement this cloning of Gamma, by pairing each element \<open>g \<in> \<Gamma>\<close> either with an Element from
 \<open>datatype bracket = Op | Cl\<close>, as in \<open>Cl, g\<close>.
-
-
+aa
+aaaa
 A (very) rough proof overview of chomsky-schuetzenberger is as follows:
 Take some type 2 Grammar for \<open>L\<close> with Productions \<open>P\<close>, assume it in Chomsky normal form.
 From the old Productions \<open>P\<close> define new Productions \<open>P'\<close> using \<open>transform_production\<close>: 
@@ -504,6 +504,7 @@ lemma hom_ext_inv[simp]: \<open>CNF_rule \<pi> \<Longrightarrow> the_hom_ext (sn
   by auto
 
 
+text\<open>rtrancl_derive_induct but for left derivation\<close>
 lemma rtrancl_derivel_induct
   [consumes 1, case_names base step]:
   assumes "P \<turnstile> xs \<Rightarrow>l* ys"
@@ -529,12 +530,8 @@ next
 qed
 
 
-lemma deriveln_iff_deriven_no_tm:
-  "P \<turnstile> u \<Rightarrow>l(n) v \<longleftrightarrow> P \<turnstile> u \<Rightarrow>(n) v"
-  sorry
-
-
-
+lemma derivels_iff_derives_no_tm: \<open>P \<turnstile> u \<Rightarrow>*  v \<longleftrightarrow> P \<turnstile> u \<Rightarrow>l*  v\<close>
+sorry
 
 
 text\<open>The chomsky-scheutzenberger theorem that we want to prove.\<close>
@@ -555,7 +552,18 @@ proof -
   have \<open>L' \<subseteq> dyck_language \<Gamma>\<close> sorry (* This might not be needed (but it was listed in the book). Leave this for last *)
 
   have \<open>\<forall>A. \<forall>x. 
-(image transform_production P) \<turnstile> [Nt S] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (dyck_language \<Gamma>) \<inter> (Re P A)\<close> sorry (* This is the hard part of the proof - the local lemma in the textbook *)
+(image transform_production P) \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (dyck_language \<Gamma>) \<inter> (Re P A)\<close> (* This is the hard part of the proof - the local lemma in the textbook *)
+    proof-
+    
+
+
+
+
+    show ?thesis sorry
+    qed
+
+
+
   then have \<open>L' = (dyck_language \<Gamma>) \<inter> (Re P S)\<close> by (metis CFL_Lang_eq_CFG_Lang CFL_Lang_if_derives L'_def P'_def derives_if_CFL_Lang inf_absorb2 inf_commute subsetI)
   then have \<open>image h ((dyck_language \<Gamma>) \<inter> (Re P S)) =  image h L'\<close> by simp
   also have \<open>... = Lang P S\<close>
@@ -602,7 +610,7 @@ proof -
         fix w
         assume \<open>w \<in> Ders P S\<close>
         then have \<open>P \<turnstile> [Nt S] \<Rightarrow>*  w\<close> by (simp add: DersD)
-        then have \<open>P \<turnstile> [Nt S] \<Rightarrow>l*  w\<close> using deriveln_iff_deriven_no_tm rtranclp_power by meson
+        then have \<open>P \<turnstile> [Nt S] \<Rightarrow>l*  w\<close> using derivels_iff_derives_no_tm by meson
         then have \<open>\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>l*  w'  \<and>  w = h_ext w'\<close>
         proof(induction rule: rtrancl_derivel_induct)
           case base

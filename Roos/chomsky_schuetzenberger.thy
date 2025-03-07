@@ -541,225 +541,839 @@ qed
 section \<open>Derivation Witnesses\<close>
 
 
-type_synonym ('n,'t) derivation =  "('n,'t) syms list"
 
-text\<open>Defines the set of derivation sequences\<close>
-definition DerSeqs :: \<open>('n,'t)Prods \<Rightarrow> ('n,'t)syms list set \<close> where
-\<open>DerSeqs P = {deriv. ( \<forall>i < length deriv - 1.  P \<turnstile> deriv!i \<Rightarrow> deriv!(i+1) ) \<and> deriv \<noteq> []}\<close>
+section \<open>Derivation Witnesses with Records\<close>
+(* Record for a single derivation step *)
+record ('n,'t) derivation_step =
+  before :: "('n,'t) syms"       \<comment> \<open>the string before applying the step\<close>
+  after :: "('n,'t) syms"        
+  prod :: "('n,'t) prod"         \<comment> \<open>the production used in the step\<close>
+  prefix :: "('n,'t) syms"       \<comment> \<open>in order to track where the production is used: before = prefix @ [Nt (fst prod)] @ suffix  (in a valid Derivation Sequence)\<close>
+  suffix :: "('n,'t) syms"       
 
-lemma DerSeqsI[intro]:
-  assumes "( \<forall>i < length deriv - 1.  P \<turnstile> deriv!i \<Rightarrow> deriv!(i+1) )" and \<open>deriv \<noteq> []\<close> shows "deriv \<in> DerSeqs P"
-  using assms by (auto simp: DerSeqs_def)
+
+type_synonym ('n,'t) derivation = "('n,'t) derivation_step list"
+
+(* The set of consistent derivations in P *)
+definition DerSeqs :: "('n,'t) Prods \<Rightarrow> ('n,'t) derivation set" where
+"DerSeqs P = 
+  {steps |steps.   
+    (\<forall>i < length steps.
+      let stepi = steps ! i in
+      prod stepi \<in> P \<and>
+      (i > 0 \<longrightarrow> before stepi = after (steps ! (i-1))) \<and>
+      before stepi = prefix stepi @ [Nt (fst (prod stepi))] @ suffix stepi \<and>
+      after stepi = prefix stepi @ snd (prod stepi) @ suffix stepi)
+  }"
+
+
+(* The set of derivation witnesses between u v in P *)
+definition DerWits :: "('n,'t) Prods \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t) derivation set" where
+"DerWits P u v = 
+  {steps \<in> DerSeqs P. 
+    (steps = [] \<and> u = v) \<or>  
+    (steps \<noteq> [] \<and> before (hd steps) = u \<and> after (last steps) = v)}"
+
+
+
+
+
+value \<open>(0::nat)-1\<close>
+
+
+lemma DerSeqsI[intro]: 
+assumes \<open>\<And>i. i < length steps \<Longrightarrow> (prod (steps ! i) \<in> P) 
+\<and> (i > 0 \<longrightarrow> before (steps ! i) = after (steps ! (i-1)))
+\<and> (before (steps ! i) = prefix (steps ! i) @ [Nt (fst (prod (steps ! i)))] @ suffix (steps ! i)) 
+\<and> (after (steps ! i) = prefix (steps ! i) @ snd (prod (steps ! i)) @ suffix (steps ! i))
+\<close>
+shows \<open>steps \<in> DerSeqs P\<close> unfolding DerSeqs_def by (simp add: assms)
+
+
 
 lemma DerSeqsD[dest]:
-  assumes "deriv \<in> DerSeqs P" shows consistent: "( \<forall>i < length deriv - 1.  P \<turnstile> deriv!i \<Rightarrow> deriv!(i+1) )" and DerSeq_not_empty: \<open>deriv \<noteq> []\<close>
-  using assms by (auto simp: DerSeqs_def)
+  assumes "steps \<in> DerSeqs P"
+  and \<open>i < length steps\<close>
+    shows in_prods: \<open>prod (steps ! i) \<in> P\<close> 
+    and before_eq_next_after: \<open>i > 0 \<longrightarrow> before (steps ! i) = after (steps ! (i-1))\<close> 
+    and before_splits: \<open>before (steps ! i) = prefix (steps ! i) @ [Nt (fst (prod (steps ! i)))] @ suffix (steps ! i)\<close> 
+    and after_splits: \<open>after (steps ! i) = prefix (steps ! i) @ snd (prod (steps ! i)) @ suffix (steps ! i)\<close>
+proof-
+have \<open>\<And>i. i < length steps \<Longrightarrow> (prod (steps ! i) \<in> P) 
+\<and> (i > 0 \<longrightarrow> before (steps ! i) = after (steps ! (i-1)))
+\<and> (before (steps ! i) = prefix (steps ! i) @ [Nt (fst (prod (steps ! i)))] @ suffix (steps ! i)) 
+\<and> (after (steps ! i) = prefix (steps ! i) @ snd (prod (steps ! i)) @ suffix (steps ! i))
+\<close> using assms unfolding DerSeqs_def mem_Collect_eq by meson
+
+then have 1:\<open>(prod (steps ! i) \<in> P) 
+\<and> (i > 0 \<longrightarrow> before (steps ! i) = after (steps ! (i-1)))
+\<and> (before (steps ! i) = prefix (steps ! i) @ [Nt (fst (prod (steps ! i)))] @ suffix (steps ! i)) 
+\<and> (after (steps ! i) = prefix (steps ! i) @ snd (prod (steps ! i)) @ suffix (steps ! i))\<close> using assms(2) by blast
+
+from 1 show \<open>prod (steps ! i) \<in> P\<close> by simp
+from 1 show \<open>0 < i \<longrightarrow> before (steps ! i) = after (steps ! (i - 1))\<close> by auto
+from 1 show \<open>before (steps ! i) = prefix (steps ! i) @ [Nt (fst (prod (steps ! i)))] @ suffix (steps ! i)\<close> by simp
+from 1 show \<open>after (steps ! i) = prefix (steps ! i) @ snd (prod (steps ! i)) @ suffix (steps ! i)\<close> by simp
+qed
+
 
 lemmas DerSeqsE = DerSeqsD[elim_format]
 
 
 
-text\<open>Defines the set of derivation witnesses. This allows for the empty derivation as a witness for undefined\<close>
-definition DerWits:: \<open>('n,'t)Prods \<Rightarrow> ('n, 't) syms \<Rightarrow> ('n, 't) syms \<Rightarrow> ('n,'t)syms list set \<close> where
-\<open>DerWits P u v = {deriv. deriv \<in> DerSeqs P \<and> (hd deriv = u) \<and> (last deriv = v)}\<close>
+(* Empty derivation is a derivation *)
+lemma DerSeqs_emptyI[simp]:
+  shows "[] \<in> DerSeqs P"
+  by (simp add: DerSeqs_def)
+
+(* A 1 step derivation is always a derivation *)
+lemma DerSeqs_singleI[intro]:
+  assumes "prod_rule \<in> P"
+  and "u = prefix_str @ [Nt (fst prod_rule)] @ suffix_str"
+  and "v = prefix_str @ snd prod_rule @ suffix_str"
+  shows "[\<lparr>before = u, after = v, prod = prod_rule, 
+          prefix = prefix_str, suffix = suffix_str\<rparr>] \<in> DerSeqs P"
+  using assms by (auto simp: DerSeqs_def)
 
 
-lemma DerWitsI[intro]:
-  assumes "deriv \<in> DerSeqs P" and \<open>hd deriv = u\<close> and \<open>last deriv = v\<close> shows "deriv \<in> DerWits P u v"
-  using assms by (auto simp: DerWits_def)
-
-lemma DerWitsD[dest]:
-  assumes "deriv \<in> DerWits P u v" shows deriv_DerSeq: "deriv \<in> DerSeqs P" and hd_deriv: \<open>hd deriv = u\<close> and last_deriv: \<open>last deriv = v\<close> and DerWit_not_empty: \<open>deriv \<noteq> []\<close>
-  using assms by (auto simp add: DerWits_def) 
-
-lemmas DerWitsE = DerWitsD[elim_format]
 
 
 
-
-lemma DerSeqs_stepD:
-  assumes "deriv \<in> DerSeqs P" and "i < length deriv - 1"
-  shows "P \<turnstile> deriv!i \<Rightarrow> deriv!(i+1)"
-  using assms by auto
-
-lemmas DerSeqs_stepE = DerSeqs_stepD[elim_format]
-
-lemma DerSeqs_singleton[simp]: "([u]) \<in> DerSeqs P"
-  by auto
-
-lemma DerWits_singleton[simp]: "([u]) \<in> DerWits P u u"
-  by auto
-
-
-lemma DerWits_empty[simp, dest!]: \<open>[] \<in> DerWits P u v' \<Longrightarrow> False\<close>
-by auto
-
-
-lemma DerSeqs_append_one:
-  assumes "deriv @ [v'] \<in> DerSeqs P"
-  and "P \<turnstile> v' \<Rightarrow> v"
-  shows "deriv @ [v', v] \<in> DerSeqs P"
-proof (auto simp: DerSeqs_def, goal_cases)
-  case (1 i)
-  then have assm: "i < Suc (length deriv)" .
-  have step: "\<And>i. i < length (deriv @ [v']) - 1 \<Longrightarrow> P \<turnstile> (deriv @ [v'])!i \<Rightarrow> (deriv @ [v'])!(i+1)"
-    using assms(1) by (auto simp: DerSeqs_def)
+(* Extending a derivation with another one *)
+lemma DerSeqs_appendI:
+  assumes "steps1 \<in> DerSeqs P" "steps2 \<in> DerSeqs P"
+  assumes "steps1 = [] \<or> steps2 = [] \<or> after (last steps1) = before (hd steps2)"
+  shows "steps1 @ steps2 \<in> DerSeqs P"
+proof (cases "steps1 = [] \<or> steps2 = []")
+  case True
+  then show ?thesis using assms(1,2) by fastforce
+next
+  case False
+  then have "steps1 \<noteq> []" "steps2 \<noteq> []" by auto
+  with assms(3) have connection: "after (last steps1) = before (hd steps2)" by simp
   
-  show ?case
-  proof (cases "i < length (deriv @ [v']) - 1")
-    case True
-    then show ?thesis using step[OF True]
-      by (metis Groups.ab_semigroup_add_class.add.commute add_diff_cancel_left' 
-              length_append_singleton not_less_eq not_less_iff_gr_or_eq 
-              nth_append nth_append_length plus_1_eq_Suc)
-  next
-    case False
-    then have li: "i = length deriv" using assm by simp
-    then have "(deriv @ [v', v]) ! i = v'" by simp
-    moreover have "(deriv @ [v', v]) ! (Suc i) = v" 
-      by (metis One_nat_def Suc_eq_plus1_left li
-              add_diff_cancel_right' le_add2 nth_Cons_0 nth_Cons_Suc nth_append_right)
-    ultimately show ?thesis by (simp add: assms(2))
-
-  qed
-qed
-
-
-lemma DerSeqs_append:
-  assumes "deriv \<in> DerSeqs P"
-  and "deriv' \<in> DerSeqs P"
-  and \<open>P \<turnstile> last deriv \<Rightarrow> hd deriv'\<close>
-  shows "deriv @ deriv' \<in> DerSeqs P"
-proof(standard, intro allI impI)
+  show ?thesis
+  proof (intro DerSeqsI)
     fix i
-    assume i_less: \<open>i < length (deriv @ deriv') - 1\<close>
-    have deriv_not_empty: \<open>deriv \<noteq> []\<close> using assms(1) by auto
-    have deriv'_not_empty: \<open>deriv' \<noteq> []\<close> using assms(2) by auto
-    then show \<open>P \<turnstile> (deriv @ deriv') ! i \<Rightarrow> (deriv @ deriv') ! (i + 1)\<close>
-    proof(cases \<open>i < length deriv -1\<close>)
+    assume i_lt: "i < length (steps1 @ steps2)"
+    
+    show "(prod ((steps1 @ steps2) ! i) \<in> P) \<and>
+          (i > 0 \<longrightarrow> before ((steps1 @ steps2) ! i) = after ((steps1 @ steps2) ! (i - 1))) \<and>
+          (before ((steps1 @ steps2) ! i) = prefix ((steps1 @ steps2) ! i) @ 
+            [Nt (fst (prod ((steps1 @ steps2) ! i)))] @ suffix ((steps1 @ steps2) ! i)) \<and>
+          (after ((steps1 @ steps2) ! i) = prefix ((steps1 @ steps2) ! i) @ 
+            snd (prod ((steps1 @ steps2) ! i)) @ suffix ((steps1 @ steps2) ! i))"
+    proof (cases "i < length steps1")
       case True
-      then show ?thesis by (metis DerSeqs_stepD add_lessD1 assms(1) less_diff_conv nth_append)
+      then have idx: "(steps1 @ steps2) ! i = steps1 ! i" by (simp add: nth_append_left)
+      
+      from assms(1) True have properties:
+        "prod (steps1 ! i) \<in> P \<and>
+         (i > 0 \<longrightarrow> before (steps1 ! i) = after (steps1 ! (i - 1))) \<and>
+         before (steps1 ! i) = prefix (steps1 ! i) @ [Nt (fst (prod (steps1 ! i)))] @ suffix (steps1 ! i) \<and>
+         after (steps1 ! i) = prefix (steps1 ! i) @ snd (prod (steps1 ! i)) @ suffix (steps1 ! i)"
+        using DerSeqsD by blast
+      
+      have consistency:
+        "i > 0 \<longrightarrow> before ((steps1 @ steps2) ! i) = after ((steps1 @ steps2) ! (i - 1))"
+      proof (cases "i > 0")
+        case True
+        then have "i - 1 < length steps1" using `i < length steps1` by auto
+        then have "(steps1 @ steps2) ! (i - 1) = steps1 ! (i - 1)" by (simp add: nth_append_left)
+        with idx show ?thesis using properties by argo
+      qed simp
+  
+      show ?thesis using idx properties consistency by simp
     next
       case False
-      then have i_geq: \<open>\<not> i < length deriv - 1\<close> by simp
-      then show ?thesis
-      proof(cases \<open>i = length deriv -1\<close>)
+      with i_lt have "i \<ge> length steps1" "i < length steps1 + length steps2" by auto
+      then have idx: "(steps1 @ steps2) ! i = steps2 ! (i - length steps1)" by (simp add: nth_append_right)
+      
+      from assms(2) have steps2_properties:
+        "\<And>j. j < length steps2 \<Longrightarrow>
+         prod (steps2 ! j) \<in> P \<and>
+         (j > 0 \<longrightarrow> before (steps2 ! j) = after (steps2 ! (j - 1))) \<and>
+         before (steps2 ! j) = prefix (steps2 ! j) @ [Nt (fst (prod (steps2 ! j)))] @ suffix (steps2 ! j) \<and>
+         after (steps2 ! j) = prefix (steps2 ! j) @ snd (prod (steps2 ! j)) @ suffix (steps2 ! j)"
+        using DerSeqsD by blast
+      
+      let ?j = "i - length steps1"
+      have j_valid: "?j < length steps2" using `i < length steps1 + length steps2` by (simp add: \<open>length steps1 \<le> i\<close> less_diff_conv2)
+      
+      have consistency:
+        "i > 0 \<longrightarrow> before ((steps1 @ steps2) ! i) = after ((steps1 @ steps2) ! (i - 1))"
+      proof (cases "i = length steps1")
         case True
-        then have \<open>(deriv) ! i = last deriv\<close> using deriv_not_empty by (simp add: last_conv_nth)
-        moreover have hd: \<open>(deriv @ deriv') ! (i + 1) = hd deriv'\<close>  using deriv'_not_empty by (simp add: True deriv_not_empty hd_conv_nth nth_append)
-        ultimately show ?thesis using assms(3) by (simp add: True deriv_not_empty nth_append)
+        then have "?j = 0" by simp
+        have "before ((steps1 @ steps2) ! i) = before (steps2 ! 0)" using True idx by simp
+        also have "... = before (hd steps2)" using `steps2 \<noteq> []` by (simp add: hd_conv_nth)
+        also have "... = after (last steps1)" using connection by simp
+        also have "... = after (steps1 ! (length steps1 - 1))" 
+          using `steps1 \<noteq> []` by (simp add: last_conv_nth)
+        also have "... = after ((steps1 @ steps2) ! (i - 1))" using True by (simp add: \<open>steps1 \<noteq> []\<close> nth_append_left)
+        finally show ?thesis by simp
       next
         case False
-        then have i_bounds: \<open>i > length deriv - 1 \<close> \<open>i < length (deriv @ deriv') - 1\<close> using False i_geq i_less by simp+
-        from \<open>deriv' \<in> DerSeqs P\<close> have deriv': \<open>\<And>i. i < length (deriv') - 1 \<Longrightarrow> P \<turnstile> (deriv') ! i \<Rightarrow> (deriv') ! (i + 1)\<close> by auto
-        define i' where \<open>i' = i - length deriv\<close>
-        then have  \<open>(deriv @ deriv') ! i = deriv' ! i'\<close> using i_bounds deriv_not_empty deriv'_not_empty by (metis Suc_diff_1 length_greater_0_conv not_less_eq nth_append)
-        moreover have \<open>(deriv @ deriv') ! (i + 1) = deriv' ! (i' + 1)\<close> using i'_def deriv_not_empty deriv'_not_empty by (metis Suc_diff_1 Suc_leI add_diff_assoc2 i_bounds(1) i_geq length_greater_0_conv less_diff_conv nth_append)
-        moreover have \<open>i' < length deriv' - 1\<close> using i'_def using i_bounds by auto
+        with `i \<ge> length steps1` have "i > length steps1" by simp
+        then have "i - 1 \<ge> length steps1" by simp
+        then have prev_idx: "(steps1 @ steps2) ! (i - 1) = steps2 ! (i - 1 - length steps1)" by (simp add: nth_append_right)
+                
+        have "?j > 0" using \<open>i > length steps1\<close> by simp
+        
+        have "before ((steps1 @ steps2) ! i) = before (steps2 ! ?j)" using idx by simp
+        moreover have "after ((steps1 @ steps2) ! (i - 1)) = after (steps2 ! (?j - 1))" 
+          using prev_idx by simp
+        moreover have "before (steps2 ! ?j) = after (steps2 ! (?j - 1))"
+          using steps2_properties j_valid `?j > 0` by blast
+        ultimately show ?thesis by presburger
 
-        ultimately show ?thesis using deriv'[of i'] by auto
       qed
+      
+      have "prod ((steps1 @ steps2) ! i) \<in> P \<and>
+            before ((steps1 @ steps2) ! i) = prefix ((steps1 @ steps2) ! i) @ 
+              [Nt (fst (prod ((steps1 @ steps2) ! i)))] @ suffix ((steps1 @ steps2) ! i) \<and>
+            after ((steps1 @ steps2) ! i) = prefix ((steps1 @ steps2) ! i) @ 
+              snd (prod ((steps1 @ steps2) ! i)) @ suffix ((steps1 @ steps2) ! i)"
+        using steps2_properties[OF j_valid] idx by auto
+        
+      then show ?thesis using consistency by simp
     qed
-  next
-    show \<open>deriv @ deriv' \<noteq> []\<close> using assms(1) by auto
-    qed
-
-
-
-
-corollary DerWits_append_one:
-  assumes "deriv \<in> DerWits P u v'"
-  and "P \<turnstile> v' \<Rightarrow> v"
-  shows "deriv @ [v] \<in> DerWits P u v"
-proof -
-  have "deriv \<noteq> []" using assms(1) by auto
-  then obtain beg where beg_def: "deriv = beg @ [v']" by (metis DerWitsD(3) assms(1) snoc_eq_iff_butlast)
-  then have "beg @ [v'] \<in> DerSeqs P" using assms(1) by (auto simp: DerWits_def)
-  then have "beg @ [v', v] \<in> DerSeqs P" using DerSeqs_append[of beg P \<open>[v', v]\<close>] by (simp add: DerSeqs_append_one assms(2))
-  moreover have "hd (beg @ [v', v]) = hd deriv" using beg_def by (simp add: hd_append)  
-  moreover have "last (beg @ [v', v]) = v" by simp
-  ultimately show ?thesis using assms(1) beg_def by (auto simp: DerWits_def)
-qed
-
-
-lemma last_append_deriv[simp]:
-assumes \<open>deriv \<in> DerWits P u v\<close>
-shows \<open>last (deriv' @ deriv) = v\<close>
-using assms last_appendR by blast
-
-lemma hd_deriv_append[simp]:
-assumes \<open>deriv \<in> DerWits P u v\<close>
-shows \<open>hd (deriv @ deriv') = u\<close>
-using assms by (simp add: DerWitsD(2,4))
-
-
-
-corollary DerWits_append:
-  assumes "deriv \<in> DerWits P u v"
-  and "deriv' \<in> DerWits P v' v''"
-  and \<open>P \<turnstile> v \<Rightarrow> v'\<close>
-  shows "deriv @ deriv' \<in> DerWits P u v''"
-  apply(rule DerWitsI)
-apply(rule DerSeqs_append[of deriv P deriv']) 
-using assms by auto
-
-
-
-
-lemma DerWits_imp_deriven:
-  assumes "deriv \<in> DerWits P u v"
-  shows "P \<turnstile> u \<Rightarrow>(length deriv - 1) v"
-proof -
-  from assms have "deriv \<in> DerSeqs P" and "hd deriv = u" and "last deriv = v" by (auto simp: DerWits_def)
-  then have not_empty: "deriv \<noteq> []" and step: "\<And>i. i < length deriv - 1 \<Longrightarrow> P \<turnstile> deriv!i \<Rightarrow> deriv!(i+1)" apply (simp add: DerSeq_not_empty) using \<open>deriv \<in> DerSeqs P\<close> by blast
-  have ind: "i < (length deriv) \<Longrightarrow> P \<turnstile> deriv!0 \<Rightarrow>(i) deriv!i" for i
-  proof (induction i)
-    case 0
-    then show ?case by simp
-  next
-    case (Suc i)
-    have "P \<turnstile> deriv ! 0 \<Rightarrow>(i) deriv ! i" using Suc_lessD local.Suc.IH local.Suc.prems by blast
-    moreover have "P \<turnstile> deriv ! i \<Rightarrow> deriv ! (Suc i)" using step not_empty using Suc_eq_plus1 less_diff_conv local.Suc.prems by presburger
-    ultimately show ?case by auto
   qed
+qed
 
-  have l: "length deriv - 1 < length deriv" using not_empty by simp
-  have "u = deriv ! 0" using \<open>hd deriv = u\<close> hd_conv_nth not_empty by auto
-  moreover have "v = deriv ! (length deriv - 1)" using \<open>last deriv = v\<close> last_conv_nth not_empty by auto
-  ultimately show ?thesis using ind[OF l] by simp
+
+
+lemma DerWitsEmptyI[intro]:
+  shows "[] \<in> DerWits P u u"
+unfolding DerWits_def by simp
+
+lemma DerWitsI[intro]:
+  assumes "steps \<in> DerSeqs P"
+    and \<open>steps \<noteq> []\<close>
+    and \<open>before (hd steps) = u\<close>
+    and \<open>after (last steps) = v\<close>
+  shows "steps \<in> DerWits P u v"
+  using assms unfolding DerWits_def by auto
+
+
+lemma DerWitsEmptyD[dest]:
+  assumes "[] \<in> DerWits P u v"
+  shows "[] \<in> DerSeqs P" and \<open>u = v\<close>
+  using assms unfolding DerWits_def by auto
+
+
+lemma DerWitsNonemptyD[dest]:
+  assumes "steps \<in> DerWits P u v" and "steps \<noteq> []"
+  shows is_DerSeq: "steps \<in> DerSeqs P"  and before_hd_eq: "before (hd steps) = u" and after_last_eq: "after (last steps) = v"
+  using assms unfolding DerWits_def by auto
+
+lemmas DerWitsNonemptyE = DerWitsNonemptyD[elim_format]
+lemmas DerWitsEmptyE = DerWitsEmptyD[elim_format]
+
+
+
+lemma DerWits_singleI[intro]:
+  assumes "prod_rule \<in> P"
+  and "u = prefix_str @ [Nt (fst prod_rule)] @ suffix_str"
+  and "v = prefix_str @ snd prod_rule @ suffix_str"
+  shows "[\<lparr>before = u, after = v, prod = prod_rule, 
+          prefix = prefix_str, suffix = suffix_str\<rparr>] \<in> DerWits P u v"
+proof -
+  have step_in_derseqs: "[\<lparr>before = u, after = v, prod = prod_rule, 
+                          prefix = prefix_str, suffix = suffix_str\<rparr>] \<in> DerSeqs P" using assms by (auto simp: DerSeqs_def)
+    
+  have "before (hd [\<lparr>before = u, after = v, prod = prod_rule, 
+                    prefix = prefix_str, suffix = suffix_str\<rparr>]) = u" by simp
+    
+  moreover have "after (last [\<lparr>before = u, after = v, prod = prod_rule, 
+                              prefix = prefix_str, suffix = suffix_str\<rparr>]) = v" by simp
+    
+  ultimately show ?thesis
+    using step_in_derseqs by (auto simp: DerWits_def)
 qed
 
 
 
 
-lemma deriven_imp_DerWits:
-  assumes "P \<turnstile> u \<Rightarrow>(i) v"
-  shows "\<exists>deriv. (deriv \<in> DerWits P u v \<and> length deriv = (i+1))"
-using assms proof (induction "i" arbitrary: v)
-  case 0
-  then have "u = v" by simp
-  then have "([u]) \<in> DerSeqs P" by simp
-  then have "([u]) \<in> DerWits P u v" by (simp add: \<open>u = v\<close>)
-  then show ?case by auto
+
+
+
+
+
+
+
+
+lemma DerWits_appendI:
+  assumes "steps1 \<in> DerWits P u w" "steps2 \<in> DerWits P w v"
+  shows "steps1 @ steps2 \<in> DerWits P u v"
+proof (cases "steps1 = []")
+  case True
+  then have "u = w" using assms(1) by auto
+  then show ?thesis using assms(2) by (simp add: True)
 next
-  case (Suc i)
-  from \<open>P \<turnstile> u \<Rightarrow>(Suc i) v\<close> obtain v' where "P \<turnstile> u \<Rightarrow>(i) v'" "P \<turnstile> v' \<Rightarrow> v" by auto
-  from Suc.IH obtain deriv where "deriv \<in> DerWits P u v' \<and> length deriv = i + 1" using \<open>P \<turnstile> u \<Rightarrow>(i) v'\<close> by auto
-  then have "deriv @ [v] \<in> DerWits P u v" by (metis DerWits_append_one \<open>P \<turnstile> v' \<Rightarrow> v\<close>)
-  then show ?case by (metis Suc_eq_plus1 \<open>deriv \<in> DerWits P u v' \<and> length deriv = i + 1\<close> length_append_singleton)
+  case False
+  show ?thesis
+  proof (cases "steps2 = []")
+    case True
+    then have "w = v" using assms(2) by auto
+    then show ?thesis using assms(1) by (simp add: True)
+  next
+    case False
+    have "steps1 \<in> DerSeqs P" "steps2 \<in> DerSeqs P" 
+      using assms by auto
+    
+    have "after (last steps1) = w" "before (hd steps2) = w"
+      using assms(1,2) \<open>steps1 \<noteq> []\<close> \<open>steps2 \<noteq> []\<close> by auto
+    
+    have "steps1 @ steps2 \<in> DerSeqs P"
+      using \<open>steps1 \<in> DerSeqs P\<close> \<open>steps2 \<in> DerSeqs P\<close> by (simp add: DerSeqs_appendI \<open>after (last steps1) = w\<close> \<open>before (hd steps2) = w\<close>)
+
+    
+    moreover have "before (hd (steps1 @ steps2)) = u"
+      using \<open>steps1 \<noteq> []\<close> assms(1) by auto
+    
+    moreover have "after (last (steps1 @ steps2)) = v"
+      using \<open>steps2 \<noteq> []\<close> assms(2) by auto
+
+    ultimately show ?thesis using False by blast
+  qed
 qed
 
 
 
 
-corollary deriven_iff_DerWits:
-  "P \<turnstile> u \<Rightarrow>(i) v \<longleftrightarrow> (\<exists>deriv. (deriv \<in> DerWits P u v \<and> length deriv = (i+1)))"
-  using deriven_imp_DerWits DerWits_imp_deriven by (metis add_diff_cancel_right')
+
+lemma take_DerSeqs:
+  assumes "steps \<in> DerSeqs P" "n \<le> length steps"
+  shows "take n steps \<in> DerSeqs P"
+proof (intro DerSeqsI)
+  fix i
+  assume "i < length (take n steps)"
+  then have "i < n" by simp
+  also have "n \<le> length steps" using assms(2) .
+  finally have "i < length steps" .
+  
+  have "prod (take n steps ! i) = prod (steps ! i)"
+    using \<open>i < n\<close> by (simp )
+    
+  moreover have "before (take n steps ! i) = before (steps ! i)"
+    "prefix (take n steps ! i) = prefix (steps ! i)"
+    "suffix (take n steps ! i) = suffix (steps ! i)"
+    "after (take n steps ! i) = after (steps ! i)"
+    using \<open>i < n\<close> by (auto )
+    
+  moreover have "prod (steps ! i) \<in> P" 
+    "before (steps ! i) = prefix (steps ! i) @ [Nt (fst (prod (steps ! i)))] @ suffix (steps ! i)"
+    "after (steps ! i) = prefix (steps ! i) @ snd (prod (steps ! i)) @ suffix (steps ! i)"
+    using \<open>i < length steps\<close> assms(1) by (auto )
+    
+  moreover have "(i > 0 \<longrightarrow> before (steps ! i) = after (steps ! (i - 1)))"
+    using \<open>i < length steps\<close> assms(1) by (auto )
+    
+  ultimately show "prod (take n steps ! i) \<in> P \<and>
+                 (i > 0 \<longrightarrow> before (take n steps ! i) = after (take n steps ! (i - 1))) \<and>
+                 before (take n steps ! i) = prefix (take n steps ! i) @ [Nt (fst (prod (take n steps ! i)))] @ suffix (take n steps ! i) \<and>
+                 after (take n steps ! i) = prefix (take n steps ! i) @ snd (prod (take n steps ! i)) @ suffix (take n steps ! i)"
+   by (simp add: \<open>i < n\<close> less_imp_diff_less)
+
+qed
+
+
+
+
+lemma take_DerWits:
+  assumes "steps \<in> DerWits P u v" "0 < n" "n \<le> length steps"
+  shows "take n steps \<in> DerWits P u (after (last (take n steps)))"
+proof -
+  have steps_nonempty: "steps \<noteq> []" using assms(2,3) by auto
+  
+  have "take n steps \<in> DerSeqs P"
+    using assms(1,3) take_DerSeqs by (auto simp: DerWits_def)
+    
+  have "before (hd steps) = u"
+    using assms(1) steps_nonempty by auto
+    
+  have take_nonempty: "take n steps \<noteq> []" 
+    using \<open>0 < n\<close> using steps_nonempty by auto
+        
+  have "before (hd (take n steps)) = before (hd steps)"
+    using take_nonempty by simp
+    
+  have "take n steps \<in> DerWits P u (after (last (take n steps)))"
+    using \<open>take n steps \<in> DerSeqs P\<close> \<open>before (hd (take n steps)) = before (hd steps)\<close> \<open>before (hd steps) = u\<close>
+    using take_nonempty by blast
+
+  thus ?thesis .
+qed
+
+
+
+lemma drop_DerSeqs:
+  assumes "steps \<in> DerSeqs P"
+  shows "drop n steps \<in> DerSeqs P"
+proof(cases \<open>n < length steps\<close>)
+  case True
+  then have 2: \<open>n < length steps\<close> by simp
+  then show ?thesis
+  
+proof (intro DerSeqsI)
+  fix i
+  assume "i < length (drop n steps)"
+  then have "i + n < length steps" by simp
+  
+  have "prod (drop n steps ! i) = prod (steps ! (i + n))"
+    by (simp add: Groups.ab_semigroup_add_class.add.commute 2 less_or_eq_imp_le)
+
+    
+  moreover have "before (drop n steps ! i) = before (steps ! (i + n))"
+    "prefix (drop n steps ! i) = prefix (steps ! (i + n))"
+    "suffix (drop n steps ! i) = suffix (steps ! (i + n))"
+    "after (drop n steps ! i) = after (steps ! (i + n))"
+    by (auto simp add: Groups.ab_semigroup_add_class.add.commute 2 less_or_eq_imp_le)
+    
+    
+  moreover have "prod (steps ! (i + n)) \<in> P" 
+    "before (steps ! (i + n)) = prefix (steps ! (i + n)) @ [Nt (fst (prod (steps ! (i + n))))] @ suffix (steps ! (i + n))"
+    "after (steps ! (i + n)) = prefix (steps ! (i + n)) @ snd (prod (steps ! (i + n))) @ suffix (steps ! (i + n))"
+    using \<open>i + n < length steps\<close> assms(1) by (auto simp add: Groups.ab_semigroup_add_class.add.commute 2 less_or_eq_imp_le)
+
+
+    
+  moreover have "i > 0 \<longrightarrow> before (steps ! (i + n)) = after (steps ! (i + n - 1))"
+    using \<open>i + n < length steps\<close> assms(1) by (simp add: before_eq_next_after)
+
+    
+  ultimately show "prod (drop n steps ! i) \<in> P \<and>
+                 (i > 0 \<longrightarrow> before (drop n steps ! i) = after (drop n steps ! (i - 1))) \<and>
+                 before (drop n steps ! i) = prefix (drop n steps ! i) @ 
+                   [Nt (fst (prod (drop n steps ! i)))] @ suffix (drop n steps ! i) \<and>
+                 after (drop n steps ! i) = prefix (drop n steps ! i) @ 
+                   snd (prod (drop n steps ! i)) @ suffix (drop n steps ! i)"
+    using Groups.ab_semigroup_add_class.add.commute \<open>i + n < length steps\<close> add_0 add_diff_assoc2 after_splits assms(1) 2 before_splits nth_drop less_iff_succ_less_eq less_or_eq_imp_le by (smt (verit)  in_prods  )
+qed
+next
+  case False
+  then show ?thesis by simp
+qed
+
+
+
+
+lemma drop_DerWits:
+  assumes "steps \<in> DerWits P u v" "n < length steps"
+  shows "drop n steps \<in> DerWits P (before (steps ! n)) v"
+proof -
+  have steps_nonempty: "steps \<noteq> []" using assms(2) by auto
+  
+  have "drop n steps \<in> DerSeqs P"
+    using assms(1,2) drop_DerSeqs by (auto simp: DerWits_def)
+    
+  have "after (last steps) = v"
+    using assms(1) steps_nonempty by auto
+    
+  have drop_nonempty: "drop n steps \<noteq> []" 
+    using assms(2) by auto
+    
+  have "before (hd (drop n steps)) = before (steps ! n)"
+    using drop_nonempty assms(2) by (simp add: hd_drop_conv_nth)
+    
+    
+  have "after (last (drop n steps)) = after (last steps)"
+    using drop_nonempty by simp
+    
+  have "drop n steps \<in> DerWits P (before (steps ! n)) v"
+    using \<open>drop n steps \<in> DerSeqs P\<close> \<open>before (hd (drop n steps)) = before (steps ! n)\<close> 
+          \<open>after (last (drop n steps)) = after (last steps)\<close> \<open>after (last steps) = v\<close>
+    using drop_nonempty by blast
+
+  thus ?thesis .
+qed
+
+
+
+
+
+
+lemma append_DerWits:
+  assumes "(l1 @ l2) \<in> DerWits P u v"
+  shows "l1 \<in> DerWits P u (if l1 = [] then u else after (last l1))" and 
+        "l2 \<in> DerWits P (if l1 = [] then u else after (last l1)) v"
+proof -
+  let ?steps = \<open>l1 @ l2\<close>
+  let ?w = "if l1 = [] then u else after (last l1)"
+  
+  show "l1 \<in> DerWits P u ?w"
+  proof (cases "l1 = []")
+    case True
+    then show ?thesis by auto
+  next
+    case False
+    have "?steps \<in> DerSeqs P" using assms(1) by auto
+    
+    have "l1 \<in> DerSeqs P"
+    proof (intro DerSeqsI)
+      fix i
+      assume "i < length l1"
+      then have "i < length ?steps" using assms(1) by simp
+      
+      have "prod (l1 ! i) = prod (?steps ! i)"
+        using \<open>i < length l1\<close> by (simp add: assms(1) nth_append_left)
+
+        
+      moreover have "before (l1 ! i) = before (?steps ! i)"
+        "prefix (l1 ! i) = prefix (?steps ! i)"
+        "suffix (l1 ! i) = suffix (?steps ! i)"
+        "after (l1 ! i) = after (?steps ! i)"
+        using \<open>i < length l1\<close> by (auto simp add: \<open>i < length l1\<close> assms(1) nth_append_left)
+
+
+
+        
+      moreover have "prod (?steps ! i) \<in> P"
+        "before (?steps ! i) = prefix (?steps ! i) @ [Nt (fst (prod (?steps ! i)))] @ suffix (?steps ! i)"
+        "after (?steps ! i) = prefix (?steps ! i) @ snd (prod (?steps ! i)) @ suffix (?steps ! i)"
+        using \<open>i < length ?steps\<close> \<open>?steps \<in> DerSeqs P\<close> by auto
+        
+      moreover have "i > 0 \<longrightarrow> before (?steps ! i) = after (?steps ! (i - 1))"
+        using \<open>i < length ?steps\<close> \<open>?steps \<in> DerSeqs P\<close> by auto
+        
+      ultimately show "prod (l1 ! i) \<in> P \<and>
+                     (i > 0 \<longrightarrow> before (l1 ! i) = after (l1 ! (i - 1))) \<and>
+                     before (l1 ! i) = prefix (l1 ! i) @ [Nt (fst (prod (l1 ! i)))] @ suffix (l1 ! i) \<and>
+                     after (l1 ! i) = prefix (l1 ! i) @ snd (prod (l1 ! i)) @ suffix (l1 ! i)"
+        by (simp add: \<open>i < length l1\<close> assms(1) less_imp_diff_less nth_append_left)
+
+    qed
+    
+    moreover have "before (hd l1) = u"
+      using assms False by fastforce
+
+      
+    ultimately show ?thesis
+      using False by auto
+  qed
+  
+  show "l2 \<in> DerWits P ?w v"
+  proof (cases "l2 = []")
+    case True
+    from assms(1) have "?steps \<in> DerWits P u v" by simp
+    from True assms(1) have "?steps = l1" by simp
+    
+    have "v = (if l1 = [] then u else after (last l1))"
+    proof (cases "l1 = []")
+      case True
+      then have "?steps = []" using \<open>?steps = l1\<close> by simp
+      then have "u = v" using \<open>?steps \<in> DerWits P u v\<close> by auto
+      then show ?thesis using True by simp
+    next
+      case False
+      then have "?steps \<noteq> []" using \<open>?steps = l1\<close> by simp
+      then have "after (last ?steps) = v" using \<open>?steps \<in> DerWits P u v\<close> by auto
+      then show ?thesis using False \<open>?steps = l1\<close> by simp
+    qed
+    
+    then show ?thesis using True by auto
+  next
+    case False
+    then have l2_not_empty: \<open>l2 \<noteq> []\<close> by simp
+    have "?steps \<in> DerSeqs P" using assms(1) by auto
+    
+    have "l2 \<in> DerSeqs P"
+    proof (intro DerSeqsI)
+      fix i
+      assume "i < length l2"
+      then have "i + length l1 < length ?steps" using assms(1) by simp
+      
+      have "prod (l2 ! i) = prod (?steps ! (i + length l1))"
+        using \<open>i < length l2\<close> by (metis Groups.ab_semigroup_add_class.add.commute assms(1) nth_append_length_plus)
+
+        
+      moreover have "before (l2 ! i) = before (?steps ! (i + length l1))"
+        "prefix (l2 ! i) = prefix (?steps ! (i + length l1))"
+        "suffix (l2 ! i) = suffix (?steps ! (i + length l1))"
+        "after (l2 ! i) = after (?steps ! (i + length l1))"
+        using \<open>i < length l2\<close> by (auto simp add: assms(1) nth_append)
+
+        
+      moreover have "prod (?steps ! (i + length l1)) \<in> P"
+        "before (?steps ! (i + length l1)) = prefix (?steps ! (i + length l1)) @ 
+          [Nt (fst (prod (?steps ! (i + length l1))))] @ suffix (?steps ! (i + length l1))"
+        "after (?steps ! (i + length l1)) = prefix (?steps ! (i + length l1)) @ 
+          snd (prod (?steps ! (i + length l1))) @ suffix (?steps ! (i + length l1))"
+        using \<open>i + length l1 < length ?steps\<close> \<open>?steps \<in> DerSeqs P\<close> apply (simp add: in_prods)
+        using \<open>i + length l1 < length (l1 @ l2)\<close> \<open>l1 @ l2 \<in> DerSeqs P\<close> apply blast
+        using \<open>i + length l1 < length (l1 @ l2)\<close> \<open>l1 @ l2 \<in> DerSeqs P\<close> by blast
+        
+        
+      moreover have "i > 0 \<longrightarrow> before (l2 ! i) = after (l2 ! (i - 1))"
+      proof (cases "i > 0")
+        case True
+        then have "i - 1 < length l2" using \<open>i < length l2\<close> by auto
+        then have "(i - 1) + length l1 < length ?steps" using assms(1) by simp
+        
+        have "before (?steps ! (i + length l1)) = after (?steps ! (i + length l1 - 1))"
+          using \<open>i + length l1 < length ?steps\<close> \<open>?steps \<in> DerSeqs P\<close> \<open>i > 0\<close> by blast
+
+          
+        have "after (l2 ! (i - 1)) = after (?steps ! (i - 1 + length l1))"
+          using \<open>i - 1 < length l2\<close> by (simp add: assms(1) nth_append)
+          
+          
+        have "i + length l1 - 1 = i - 1 + length l1" using True by auto
+
+        
+        then show ?thesis 
+          using \<open>before (l2 ! i) = before (?steps ! (i + length l1))\<close> 
+                \<open>before (?steps ! (i + length l1)) = after (?steps ! (i + length l1 - 1))\<close>
+                \<open>after (l2 ! (i - 1)) = after (?steps ! (i - 1 + length l1))\<close>
+          by presburger
+      qed simp
+      
+      ultimately show "prod (l2 ! i) \<in> P \<and>
+                     (i > 0 \<longrightarrow> before (l2 ! i) = after (l2 ! (i - 1))) \<and>
+                     before (l2 ! i) = prefix (l2 ! i) @ [Nt (fst (prod (l2 ! i)))] @ suffix (l2 ! i) \<and>
+                     after (l2 ! i) = prefix (l2 ! i) @ snd (prod (l2 ! i)) @ suffix (l2 ! i)"
+        by auto
+    qed
+    
+    have "before (hd l2) = ?w"
+    proof (cases "l1 = []")
+      case True
+      then have "?steps = l2" using assms(1) by simp
+      then have "before (hd ?steps) = u" using assms(1) False by auto
+      then show ?thesis using True \<open>?steps = l2\<close> by simp
+    next
+      case False
+      then have "length l1 > 0" by simp
+     
+      then have "hd l2 = l2 ! 0" using hd_conv_nth l2_not_empty by blast
+      have "?steps ! length l1 = l2 ! 0"
+      proof -
+        have "length l1 < length ?steps" using False assms(1) \<open>l2 \<noteq> []\<close> by auto
+        then have "?steps ! length l1 = (l1 @ l2) ! length l1" using assms(1) by simp
+        also have "... = l2 ! 0" 
+          by (simp add: nth_append)
+
+        finally show ?thesis by (simp add: \<open>(l1 @ l2) ! length l1 = l2 ! 0\<close>)
+
+      qed
+      
+      then have "before (hd l2) = before (l2 ! 0)" by (simp add: \<open>hd l2 = l2 ! 0\<close>)
+      also have "... = before (?steps ! length l1)" by (simp add: \<open>?steps ! length l1 = l2 ! 0\<close>)
+      finally have "before (hd l2) = before (?steps ! length l1)" .
+        
+
+      moreover have "before (?steps ! length l1) = after (?steps ! (length l1 - 1))"
+        using \<open>length l1 > 0\<close> \<open>?steps \<in> DerSeqs P\<close> 
+        by (simp add: assms(1) before_eq_next_after l2_not_empty)
+
+        
+      moreover have "after (?steps ! (length l1 - 1)) = after (l1 ! (length l1 - 1))"
+        using \<open>length l1 > 0\<close> by (simp add: assms(1) nth_append_left)
+
+        
+      moreover have "after (l1 ! (length l1 - 1)) = after (last l1)"
+        using \<open>length l1 > 0\<close> by (simp add: last_conv_nth)
+        
+      ultimately show ?thesis using False by simp
+    qed
+    
+    moreover have "after (last l2) = v"
+    proof -
+      have "last l2 = last ?steps" using assms(1) False by (simp add: last_append)
+      then have "after (last l2) = after (last ?steps)" by simp
+      moreover have "after (last ?steps) = v" using assms(1) by (simp add: DerWits_def False assms(1))
+
+      ultimately show ?thesis by simp
+    qed
+    
+    ultimately show ?thesis using False by (simp add: DerWitsI \<open>l2 \<in> DerSeqs P\<close>)
+
+  qed
+qed
+
+
+
+
+
+
+
+theorem DerWits_iff_derive:
+  "P \<turnstile> u \<Rightarrow> v \<longleftrightarrow> (\<exists>steps \<in> DerWits P u v. length steps = 1)"
+proof
+  assume "P \<turnstile> u \<Rightarrow> v"
+  then obtain A \<alpha> prefix suffix where
+    "(A, \<alpha>) \<in> P" and "u = prefix @ [Nt A] @ suffix" and "v = prefix @ \<alpha> @ suffix"
+    by (auto simp: derive_iff)
+    
+  define step where "step = \<lparr>before = u, after = v, prod = (A, \<alpha>), 
+                      prefix = prefix, suffix = suffix\<rparr>"
+                      
+  have "[step] \<in> DerSeqs P"
+    using \<open>(A, \<alpha>) \<in> P\<close> \<open>u = prefix @ [Nt A] @ suffix\<close> \<open>v = prefix @ \<alpha> @ suffix\<close>
+    by (simp add: DerSeqs_singleI step_def)
+    
+  moreover have "before (hd [step]) = u" and "after (last [step]) = v"
+    by (auto simp: step_def)
+    
+  ultimately have "[step] \<in> DerWits P u v"
+    by (simp add: DerWitsI)
+
+    
+  thus "\<exists>steps \<in> DerWits P u v. length steps = 1"
+    by (metis List.list.size(3) One_nat_def length_Cons)
+
+next
+  assume "\<exists>steps \<in> DerWits P u v. length steps = 1"
+  then obtain step where "[step] \<in> DerWits P u v"
+    by (metis One_nat_def Suc_length_conv length_0_conv)
+
+    
+  then have "prod step \<in> P" and 
+    "before step = prefix step @ [Nt (fst (prod step))] @ suffix step" and
+    "after step = prefix step @ snd (prod step) @ suffix step" and
+    "before step = u" and "after step = v"
+    by (auto simp: DerWits_def DerSeqs_def)
+    
+  have "u = prefix step @ [Nt (fst (prod step))] @ suffix step"
+    using \<open>before step = u\<close> \<open>before step = prefix step @ [Nt (fst (prod step))] @ suffix step\<close>
+    by simp
+    
+  moreover have "v = prefix step @ snd (prod step) @ suffix step"
+    using \<open>after step = v\<close> \<open>after step = prefix step @ snd (prod step) @ suffix step\<close>
+    by simp
+    
+  ultimately show "P \<turnstile> u \<Rightarrow> v"
+    using \<open>prod step \<in> P\<close> 
+    by (metis CFG.derive.intros surjective_pairing)
+
+qed
+
+
+
+
+
+
+
+theorem DerWits_iff_deriven:
+  "P \<turnstile> u \<Rightarrow>(n) v \<longleftrightarrow> (\<exists>steps \<in> DerWits P u v. length steps = n)"
+proof
+assume "P \<turnstile> u \<Rightarrow>(n) v"
+  then show "\<exists>steps \<in> DerWits P u v. length steps = n"
+  proof (induction n arbitrary: v)
+    case 0
+    then have "u = v" by simp
+    then show \<open>\<exists>steps\<in>DerWits P u v. length steps = 0\<close> by auto
+  next
+    case (Suc n)
+    from \<open>P \<turnstile> u \<Rightarrow>(Suc n) v\<close> obtain w where "P \<turnstile> u \<Rightarrow>(n) w" "P \<turnstile> w \<Rightarrow> v"
+      by (auto simp: relpowp_Suc_left)
+      
+    from Suc.IH[OF this(1)] obtain steps where "steps \<in> DerWits P u w" "length steps = n" 
+      by blast
+    
+    from \<open>P \<turnstile> w \<Rightarrow> v\<close> obtain A \<alpha> prefix suffix where split_defs:
+      "(A, \<alpha>) \<in> P" "w = prefix @ [Nt A] @ suffix" "v = prefix @ \<alpha> @ suffix"
+      by (auto simp: derive_iff)
+    
+    define step where "step = \<lparr>before = w, after = v, prod = (A, \<alpha>), 
+                        prefix = prefix, suffix = suffix\<rparr>"
+                        
+    have "[step] \<in> DerSeqs P"
+      using \<open>(A, \<alpha>) \<in> P\<close> \<open>w = prefix @ [Nt A] @ suffix\<close> \<open>v = prefix @ \<alpha> @ suffix\<close> by (simp add: DerSeqs_singleI step_def)
+
+
+    have "[step] \<in> DerWits P w v" unfolding step_def apply(rule DerWits_singleI) using split_defs by auto 
+  
+      
+    have "steps @ [step] \<in> DerWits P u v"
+      using \<open>steps \<in> DerWits P u w\<close> \<open>[step] \<in> DerWits P w v\<close>
+      by (rule DerWits_appendI)
+      
+    moreover have "length (steps @ [step]) = Suc n"
+      using \<open>length steps = n\<close> by auto
+      
+    ultimately show ?case by blast
+  qed
+next
+  assume "\<exists>steps \<in> DerWits P u v. length steps = n"
+  then obtain steps where steps_def: "steps \<in> DerWits P u v" "length steps = n" by blast
+  show "P \<turnstile> u \<Rightarrow>(n) v"
+  proof (cases "steps = []")
+    case True
+    then have "n = 0" using \<open>length steps = n\<close> by auto
+    moreover from True \<open>steps \<in> DerWits P u v\<close> have "u = v" by auto
+    ultimately show ?thesis by auto
+  next
+    case False
+    from steps_def show ?thesis
+    proof (induction n arbitrary: u v steps)
+      case 0
+      then show ?case by (simp add: DerWitsEmptyD(2))
+    next
+      case (Suc n)
+      from \<open>steps \<in> DerWits P u v\<close> False have "steps \<in> DerSeqs P" 
+        by auto
+        
+      have "length steps > 0" using False by (simp add: local.Suc.prems(2))
+
+      then obtain first_step rest where rest_def: "steps = first_step # rest"
+        by (meson length_Suc_conv local.Suc.prems(2))
+
+      then have \<open>[first_step] \<in> DerSeqs P\<close> by (metis \<open>0 < length steps\<close> \<open>steps \<in> DerSeqs P\<close> hd_drop_conv_nth less_eq_Suc_le nth_Cons_0 self_append_conv2 take0 take_DerSeqs take_hd_drop)
+      have \<open>rest \<in> DerSeqs P\<close> by (metis \<open>steps = first_step # rest\<close> \<open>steps \<in> DerSeqs P\<close> drop0 drop_DerSeqs drop_Suc_Cons)
+        
+      have "before first_step = u"
+        using  \<open>steps \<in> DerWits P u v\<close> \<open>steps = first_step # rest\<close> by auto
+        
+      define w where "w = after first_step"
+      
+      have "[first_step] \<in> DerWits P u w"
+      proof (intro DerWitsI)
+        show "[first_step] \<in> DerSeqs P" using \<open>[first_step] \<in> DerSeqs P\<close> by auto
+        show "[first_step] \<noteq> []" by simp
+        show "before (hd [first_step]) = u" by (simp add: \<open>before first_step = u\<close>)
+        show "after (last [first_step]) = w" by (simp add: w_def)
+      qed
+      
+      from DerWits_iff_derive have "P \<turnstile> u \<Rightarrow> w"
+        using \<open>[first_step] \<in> DerWits P u w\<close> by (metis List.list.size(3) One_nat_def length_Cons)
+
+        
+      have "rest \<in> DerWits P w v" 
+      proof (cases "rest = []")
+        case True
+        then have "w = v" using \<open>steps \<in> DerWits P u v\<close> \<open>steps = first_step # rest\<close> using w_def by fastforce
+        then show ?thesis by (simp add: DerWitsEmptyI True)
+      next
+        case False
+        then have \<open>steps = [first_step] @ rest\<close> using rest_def by simp
+        then show ?thesis using append_DerWits rest_def steps_def by (metis \<open>[first_step] \<in> DerWits P u w\<close> after_last_eq local.Suc.prems(1) not_Cons_self2)
+      qed
+      
+      have "length rest = n"
+        using \<open>length steps = Suc n\<close> \<open>steps = first_step # rest\<close> by auto
+        
+      from Suc.IH[OF \<open>rest \<in> DerWits P w v\<close> \<open>length rest = n\<close>] 
+      have "P \<turnstile> w \<Rightarrow>(n) v" .
+      
+      with \<open>P \<turnstile> u \<Rightarrow> w\<close> show "P \<turnstile> u \<Rightarrow>(Suc n) v"
+        by (meson relpowp_Suc_I2)
+
+    qed
+  qed
+qed
+
+
+
+
+
+
 
 corollary derives_iff_DerWits:
   "P \<turnstile> u \<Rightarrow>* v \<longleftrightarrow> (\<exists>deriv. (deriv \<in> DerWits P u v))"
-  using deriven_iff_DerWits by (metis DerWits_imp_deriven relpowp_imp_rtranclp rtranclp_imp_relpowp)
-
+  using DerWits_iff_deriven by (metis rtranclp_power) 
+  
 (*end section derivation Witnesses*)
 
 
@@ -890,14 +1504,38 @@ proof -
         term Q 
         *)
 
-        thm derives_bu.cases
-        print_statement derives_bu.induct
-        print_statement derives_bu.induct[where Pa = \<open>(\<lambda>\<alpha> x2. \<alpha> = [Nt S] \<longrightarrow> (\<exists>w'. (P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> x2 = h_ext w')))\<close> and ?x1.0 = \<open>[Nt S]\<close> and ?x2.0 = \<open>w\<close>]
-        
 
         then have \<open>P \<turnstile> [Nt S] \<Rightarrow>*  w\<close> by (simp add: DersD)
-        then have \<open>P \<turnstile> [Nt S] \<Rightarrow>bu  w\<close> by (simp add: derives_bu_if)
-        have \<open>([Nt S]::('n, 't) sym list) = [Nt S] \<longrightarrow> (\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> w = h_ext w')\<close> (* das sollte eigentlich mit derives_bu.induct[where Pa = \<open>Q\<close>] gezeigt werden, aber das geht nicht? *)
+        then have \<open>\<exists>derw. derw \<in> DerWits P [Nt S] w\<close> by (simp add: derives_iff_DerWits) (* have \<open>([Nt S]::('n, 't) sym list) = [Nt S] \<longrightarrow> (\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> w = h_ext w')\<close>  *)
+        then obtain derw where \<open>derw \<in> DerWits P [Nt S] w\<close> by blast
+        then have \<open>\<exists>w' derw'.  (derw' \<in> DerWits P' [Nt S] w') \<and>  (\<forall>i < length derw' -1. derw ! i = h_ext (derw' ! i))\<close>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        (* das sollte eigentlich mit derives_bu.induct[where Pa = \<open>Q\<close>] gezeigt werden, aber das geht nicht? *)
          proof(rule derives_bu.induct[where Pa = \<open>(\<lambda>\<alpha> x2. \<alpha> = [Nt S] \<longrightarrow> (\<exists>w' \<in> Ders P' S. (P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> x2 = h_ext w')))\<close> and ?x1.0 = \<open>[Nt S]\<close> and ?x2.0 = \<open>w\<close> and ?P = \<open>P\<close>], goal_cases)
            case 1
            then show ?case by (simp add: \<open>P \<turnstile> [Nt S] \<Rightarrow>bu w\<close>)

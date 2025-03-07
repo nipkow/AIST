@@ -530,8 +530,268 @@ next
 qed
 
 
-lemma derivels_iff_derives_no_tm: \<open>P \<turnstile> u \<Rightarrow>*  v \<longleftrightarrow> P \<turnstile> u \<Rightarrow>l*  v\<close>
-sorry
+
+
+
+
+
+
+
+
+section \<open>Derivation Witnesses\<close>
+
+
+type_synonym ('n,'t) derivation =  "('n,'t) syms list"
+
+text\<open>Defines the set of derivation sequences\<close>
+definition DerSeqs :: \<open>('n,'t)Prods \<Rightarrow> ('n,'t)syms list set \<close> where
+\<open>DerSeqs P = {deriv. ( \<forall>i < length deriv - 1.  P \<turnstile> deriv!i \<Rightarrow> deriv!(i+1) ) \<and> deriv \<noteq> []}\<close>
+
+lemma DerSeqsI[intro]:
+  assumes "( \<forall>i < length deriv - 1.  P \<turnstile> deriv!i \<Rightarrow> deriv!(i+1) )" and \<open>deriv \<noteq> []\<close> shows "deriv \<in> DerSeqs P"
+  using assms by (auto simp: DerSeqs_def)
+
+lemma DerSeqsD[dest]:
+  assumes "deriv \<in> DerSeqs P" shows consistent: "( \<forall>i < length deriv - 1.  P \<turnstile> deriv!i \<Rightarrow> deriv!(i+1) )" and DerSeq_not_empty: \<open>deriv \<noteq> []\<close>
+  using assms by (auto simp: DerSeqs_def)
+
+lemmas DerSeqsE = DerSeqsD[elim_format]
+
+
+
+text\<open>Defines the set of derivation witnesses. This allows for the empty derivation as a witness for undefined\<close>
+definition DerWits:: \<open>('n,'t)Prods \<Rightarrow> ('n, 't) syms \<Rightarrow> ('n, 't) syms \<Rightarrow> ('n,'t)syms list set \<close> where
+\<open>DerWits P u v = {deriv. deriv \<in> DerSeqs P \<and> (hd deriv = u) \<and> (last deriv = v)}\<close>
+
+
+lemma DerWitsI[intro]:
+  assumes "deriv \<in> DerSeqs P" and \<open>hd deriv = u\<close> and \<open>last deriv = v\<close> shows "deriv \<in> DerWits P u v"
+  using assms by (auto simp: DerWits_def)
+
+lemma DerWitsD[dest]:
+  assumes "deriv \<in> DerWits P u v" shows deriv_DerSeq: "deriv \<in> DerSeqs P" and hd_deriv: \<open>hd deriv = u\<close> and last_deriv: \<open>last deriv = v\<close> and DerWit_not_empty: \<open>deriv \<noteq> []\<close>
+  using assms by (auto simp add: DerWits_def) 
+
+lemmas DerWitsE = DerWitsD[elim_format]
+
+
+
+
+lemma DerSeqs_stepD:
+  assumes "deriv \<in> DerSeqs P" and "i < length deriv - 1"
+  shows "P \<turnstile> deriv!i \<Rightarrow> deriv!(i+1)"
+  using assms by auto
+
+lemmas DerSeqs_stepE = DerSeqs_stepD[elim_format]
+
+lemma DerSeqs_singleton[simp]: "([u]) \<in> DerSeqs P"
+  by auto
+
+lemma DerWits_singleton[simp]: "([u]) \<in> DerWits P u u"
+  by auto
+
+
+lemma DerWits_empty[simp, dest!]: \<open>[] \<in> DerWits P u v' \<Longrightarrow> False\<close>
+by auto
+
+
+lemma DerSeqs_append_one:
+  assumes "deriv @ [v'] \<in> DerSeqs P"
+  and "P \<turnstile> v' \<Rightarrow> v"
+  shows "deriv @ [v', v] \<in> DerSeqs P"
+proof (auto simp: DerSeqs_def, goal_cases)
+  case (1 i)
+  then have assm: "i < Suc (length deriv)" .
+  have step: "\<And>i. i < length (deriv @ [v']) - 1 \<Longrightarrow> P \<turnstile> (deriv @ [v'])!i \<Rightarrow> (deriv @ [v'])!(i+1)"
+    using assms(1) by (auto simp: DerSeqs_def)
+  
+  show ?case
+  proof (cases "i < length (deriv @ [v']) - 1")
+    case True
+    then show ?thesis using step[OF True]
+      by (metis Groups.ab_semigroup_add_class.add.commute add_diff_cancel_left' 
+              length_append_singleton not_less_eq not_less_iff_gr_or_eq 
+              nth_append nth_append_length plus_1_eq_Suc)
+  next
+    case False
+    then have li: "i = length deriv" using assm by simp
+    then have "(deriv @ [v', v]) ! i = v'" by simp
+    moreover have "(deriv @ [v', v]) ! (Suc i) = v" 
+      by (metis One_nat_def Suc_eq_plus1_left li
+              add_diff_cancel_right' le_add2 nth_Cons_0 nth_Cons_Suc nth_append_right)
+    ultimately show ?thesis by (simp add: assms(2))
+
+  qed
+qed
+
+
+lemma DerSeqs_append:
+  assumes "deriv \<in> DerSeqs P"
+  and "deriv' \<in> DerSeqs P"
+  and \<open>P \<turnstile> last deriv \<Rightarrow> hd deriv'\<close>
+  shows "deriv @ deriv' \<in> DerSeqs P"
+proof(standard, intro allI impI)
+    fix i
+    assume i_less: \<open>i < length (deriv @ deriv') - 1\<close>
+    have deriv_not_empty: \<open>deriv \<noteq> []\<close> using assms(1) by auto
+    have deriv'_not_empty: \<open>deriv' \<noteq> []\<close> using assms(2) by auto
+    then show \<open>P \<turnstile> (deriv @ deriv') ! i \<Rightarrow> (deriv @ deriv') ! (i + 1)\<close>
+    proof(cases \<open>i < length deriv -1\<close>)
+      case True
+      then show ?thesis by (metis DerSeqs_stepD add_lessD1 assms(1) less_diff_conv nth_append)
+    next
+      case False
+      then have i_geq: \<open>\<not> i < length deriv - 1\<close> by simp
+      then show ?thesis
+      proof(cases \<open>i = length deriv -1\<close>)
+        case True
+        then have \<open>(deriv) ! i = last deriv\<close> using deriv_not_empty by (simp add: last_conv_nth)
+        moreover have hd: \<open>(deriv @ deriv') ! (i + 1) = hd deriv'\<close>  using deriv'_not_empty by (simp add: True deriv_not_empty hd_conv_nth nth_append)
+        ultimately show ?thesis using assms(3) by (simp add: True deriv_not_empty nth_append)
+      next
+        case False
+        then have i_bounds: \<open>i > length deriv - 1 \<close> \<open>i < length (deriv @ deriv') - 1\<close> using False i_geq i_less by simp+
+        from \<open>deriv' \<in> DerSeqs P\<close> have deriv': \<open>\<And>i. i < length (deriv') - 1 \<Longrightarrow> P \<turnstile> (deriv') ! i \<Rightarrow> (deriv') ! (i + 1)\<close> by auto
+        define i' where \<open>i' = i - length deriv\<close>
+        then have  \<open>(deriv @ deriv') ! i = deriv' ! i'\<close> using i_bounds deriv_not_empty deriv'_not_empty by (metis Suc_diff_1 length_greater_0_conv not_less_eq nth_append)
+        moreover have \<open>(deriv @ deriv') ! (i + 1) = deriv' ! (i' + 1)\<close> using i'_def deriv_not_empty deriv'_not_empty by (metis Suc_diff_1 Suc_leI add_diff_assoc2 i_bounds(1) i_geq length_greater_0_conv less_diff_conv nth_append)
+        moreover have \<open>i' < length deriv' - 1\<close> using i'_def using i_bounds by auto
+
+        ultimately show ?thesis using deriv'[of i'] by auto
+      qed
+    qed
+  next
+    show \<open>deriv @ deriv' \<noteq> []\<close> using assms(1) by auto
+    qed
+
+
+
+
+corollary DerWits_append_one:
+  assumes "deriv \<in> DerWits P u v'"
+  and "P \<turnstile> v' \<Rightarrow> v"
+  shows "deriv @ [v] \<in> DerWits P u v"
+proof -
+  have "deriv \<noteq> []" using assms(1) by auto
+  then obtain beg where beg_def: "deriv = beg @ [v']" by (metis DerWitsD(3) assms(1) snoc_eq_iff_butlast)
+  then have "beg @ [v'] \<in> DerSeqs P" using assms(1) by (auto simp: DerWits_def)
+  then have "beg @ [v', v] \<in> DerSeqs P" using DerSeqs_append[of beg P \<open>[v', v]\<close>] by (simp add: DerSeqs_append_one assms(2))
+  moreover have "hd (beg @ [v', v]) = hd deriv" using beg_def by (simp add: hd_append)  
+  moreover have "last (beg @ [v', v]) = v" by simp
+  ultimately show ?thesis using assms(1) beg_def by (auto simp: DerWits_def)
+qed
+
+
+lemma last_append_deriv[simp]:
+assumes \<open>deriv \<in> DerWits P u v\<close>
+shows \<open>last (deriv' @ deriv) = v\<close>
+using assms last_appendR by blast
+
+lemma hd_deriv_append[simp]:
+assumes \<open>deriv \<in> DerWits P u v\<close>
+shows \<open>hd (deriv @ deriv') = u\<close>
+using assms by (simp add: DerWitsD(2,4))
+
+
+
+corollary DerWits_append:
+  assumes "deriv \<in> DerWits P u v"
+  and "deriv' \<in> DerWits P v' v''"
+  and \<open>P \<turnstile> v \<Rightarrow> v'\<close>
+  shows "deriv @ deriv' \<in> DerWits P u v''"
+  apply(rule DerWitsI)
+apply(rule DerSeqs_append[of deriv P deriv']) 
+using assms by auto
+
+
+
+
+lemma DerWits_imp_deriven:
+  assumes "deriv \<in> DerWits P u v"
+  shows "P \<turnstile> u \<Rightarrow>(length deriv - 1) v"
+proof -
+  from assms have "deriv \<in> DerSeqs P" and "hd deriv = u" and "last deriv = v" by (auto simp: DerWits_def)
+  then have not_empty: "deriv \<noteq> []" and step: "\<And>i. i < length deriv - 1 \<Longrightarrow> P \<turnstile> deriv!i \<Rightarrow> deriv!(i+1)" apply (simp add: DerSeq_not_empty) using \<open>deriv \<in> DerSeqs P\<close> by blast
+  have ind: "i < (length deriv) \<Longrightarrow> P \<turnstile> deriv!0 \<Rightarrow>(i) deriv!i" for i
+  proof (induction i)
+    case 0
+    then show ?case by simp
+  next
+    case (Suc i)
+    have "P \<turnstile> deriv ! 0 \<Rightarrow>(i) deriv ! i" using Suc_lessD local.Suc.IH local.Suc.prems by blast
+    moreover have "P \<turnstile> deriv ! i \<Rightarrow> deriv ! (Suc i)" using step not_empty using Suc_eq_plus1 less_diff_conv local.Suc.prems by presburger
+    ultimately show ?case by auto
+  qed
+
+  have l: "length deriv - 1 < length deriv" using not_empty by simp
+  have "u = deriv ! 0" using \<open>hd deriv = u\<close> hd_conv_nth not_empty by auto
+  moreover have "v = deriv ! (length deriv - 1)" using \<open>last deriv = v\<close> last_conv_nth not_empty by auto
+  ultimately show ?thesis using ind[OF l] by simp
+qed
+
+
+
+
+lemma deriven_imp_DerWits:
+  assumes "P \<turnstile> u \<Rightarrow>(i) v"
+  shows "\<exists>deriv. (deriv \<in> DerWits P u v \<and> length deriv = (i+1))"
+using assms proof (induction "i" arbitrary: v)
+  case 0
+  then have "u = v" by simp
+  then have "([u]) \<in> DerSeqs P" by simp
+  then have "([u]) \<in> DerWits P u v" by (simp add: \<open>u = v\<close>)
+  then show ?case by auto
+next
+  case (Suc i)
+  from \<open>P \<turnstile> u \<Rightarrow>(Suc i) v\<close> obtain v' where "P \<turnstile> u \<Rightarrow>(i) v'" "P \<turnstile> v' \<Rightarrow> v" by auto
+  from Suc.IH obtain deriv where "deriv \<in> DerWits P u v' \<and> length deriv = i + 1" using \<open>P \<turnstile> u \<Rightarrow>(i) v'\<close> by auto
+  then have "deriv @ [v] \<in> DerWits P u v" by (metis DerWits_append_one \<open>P \<turnstile> v' \<Rightarrow> v\<close>)
+  then show ?case by (metis Suc_eq_plus1 \<open>deriv \<in> DerWits P u v' \<and> length deriv = i + 1\<close> length_append_singleton)
+qed
+
+
+
+
+corollary deriven_iff_DerWits:
+  "P \<turnstile> u \<Rightarrow>(i) v \<longleftrightarrow> (\<exists>deriv. (deriv \<in> DerWits P u v \<and> length deriv = (i+1)))"
+  using deriven_imp_DerWits DerWits_imp_deriven by (metis add_diff_cancel_right')
+
+corollary derives_iff_DerWits:
+  "P \<turnstile> u \<Rightarrow>* v \<longleftrightarrow> (\<exists>deriv. (deriv \<in> DerWits P u v))"
+  using deriven_iff_DerWits by (metis DerWits_imp_deriven relpowp_imp_rtranclp rtranclp_imp_relpowp)
+
+(*end section derivation Witnesses*)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+lemma transform_production_one_step:
+assumes \<open>CNF_rule (S,w)\<close>
+and \<open>(S,w) \<in> P\<close>
+shows \<open>(transform_production ` P) \<turnstile> [Nt S] \<Rightarrow> snd (transform_production (S,w))\<close>
+proof-
+obtain w' where \<open>transform_production (S,w) = (S, w')\<close> by (metis fst_eqD fst_transform_production surj_pair)
+then have \<open>(S, w') \<in> transform_production ` P\<close> using assms(2) by force
+then show ?thesis by (simp add: \<open>transform_production (S, w) = (S, w')\<close> derive_singleton)
+qed
+
+lemma transform_production_one_step_bu:
+assumes \<open>CNF_rule (S,w)\<close>
+and \<open>(S,w) \<in> P\<close>
+shows \<open>(transform_production ` P) \<turnstile> [Nt S] \<Rightarrow>bu snd (transform_production (S,w))\<close>
+by (metis assms(2) bu_prod fst_transform_production image_eqI surjective_pairing)
 
 
 text\<open>The chomsky-scheutzenberger theorem that we want to prove.\<close>
@@ -551,11 +811,24 @@ proof -
 
   have \<open>L' \<subseteq> dyck_language \<Gamma>\<close> sorry (* This might not be needed (but it was listed in the book). Leave this for last *)
 
-  have \<open>\<forall>A. \<forall>x. 
-(image transform_production P) \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (dyck_language \<Gamma>) \<inter> (Re P A)\<close> (* This is the hard part of the proof - the local lemma in the textbook *)
+  have \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (dyck_language \<Gamma>) \<inter> (Re P A)\<close> (* This is the hard part of the proof - the local lemma in the textbook *)
     proof-
-    
+    (*
+    have \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* x \<Longrightarrow> (strip_tm_kill_Nt x) \<in> (dyck_language \<Gamma>)\<close>
+    proof-
+    fix A x
+    assume \<open>P' \<turnstile> [Nt A] \<Rightarrow>* x\<close>
+    then show \<open>(map strip_tm x) \<in> (dyck_language \<Gamma>)\<close>
+    proof(induction  rule: rtrancl_derive_induct)
+      case base
+      then show ?case sorry
+    next
+      case (step u A v w)
+      then show ?case sorry
+    qed
 
+    qed *)
+      
 
 
 
@@ -609,10 +882,96 @@ proof -
       proof-
         fix w
         assume \<open>w \<in> Ders P S\<close>
+        thm derives_bu.induct[where ?x1.0 = \<open>[Nt S]\<close> and ?x2.0 = \<open>w\<close> and ?Pa = \<open>\<lambda>x1 x2. x1 = [Nt S] \<longrightarrow> (\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> x2 = h_ext w')\<close>]
+        
+        
+        (*
+        define Q :: "('n, 't) sym list \<Rightarrow> ('n, 't) sym list \<Rightarrow> bool" where \<open>Q = (\<lambda>\<alpha> x2. \<alpha> = [Nt S] \<and> (\<exists>w'. (P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> x2 = h_ext w')))\<close>
+        term Q 
+        *)
+
+        thm derives_bu.cases
+        print_statement derives_bu.induct
+        print_statement derives_bu.induct[where Pa = \<open>(\<lambda>\<alpha> x2. \<alpha> = [Nt S] \<longrightarrow> (\<exists>w'. (P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> x2 = h_ext w')))\<close> and ?x1.0 = \<open>[Nt S]\<close> and ?x2.0 = \<open>w\<close>]
+        
+
         then have \<open>P \<turnstile> [Nt S] \<Rightarrow>*  w\<close> by (simp add: DersD)
-        then have \<open>P \<turnstile> [Nt S] \<Rightarrow>l*  w\<close> using derivels_iff_derives_no_tm by meson
-        then have \<open>\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>l*  w'  \<and>  w = h_ext w'\<close>
-        proof(induction rule: rtrancl_derivel_induct)
+        then have \<open>P \<turnstile> [Nt S] \<Rightarrow>bu  w\<close> by (simp add: derives_bu_if)
+        have \<open>([Nt S]::('n, 't) sym list) = [Nt S] \<longrightarrow> (\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> w = h_ext w')\<close> (* das sollte eigentlich mit derives_bu.induct[where Pa = \<open>Q\<close>] gezeigt werden, aber das geht nicht? *)
+         proof(rule derives_bu.induct[where Pa = \<open>(\<lambda>\<alpha> x2. \<alpha> = [Nt S] \<longrightarrow> (\<exists>w' \<in> Ders P' S. (P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> x2 = h_ext w')))\<close> and ?x1.0 = \<open>[Nt S]\<close> and ?x2.0 = \<open>w\<close> and ?P = \<open>P\<close>], goal_cases)
+           case 1
+           then show ?case by (simp add: \<open>P \<turnstile> [Nt S] \<Rightarrow>bu w\<close>)
+         next
+           case (2 \<alpha>)
+           define w'::\<open>('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym list\<close> where \<open>w' = [Nt S]\<close>
+           then show ?case
+           proof(clarify)
+            have \<open>[Nt S] = h_ext w'\<close> by (simp add: h_ext_def w'_def)
+            then show \<open>\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> [Nt S] = h_ext w'\<close> using bu_refl w'_def by (metis DersI derives_if_bu)
+           qed
+
+         next
+           case (3 A \<alpha>)
+           then show ?case
+           proof(clarify)
+            assume \<open>(S,\<alpha>) \<in> P\<close>
+            and \<open>A = S\<close>
+
+            then have \<open>CNF_rule (S, \<alpha>)\<close> using P_CNF by simp
+            define \<alpha>' where \<open>\<alpha>' = (snd (transform_production (S,\<alpha>))) \<close>
+            then have \<open>h_ext \<alpha>' = \<alpha>\<close> using h_ext_def hom_ext_inv \<open>CNF_rule (S, \<alpha>)\<close> unfolding \<alpha>'_def by fastforce
+            then have \<open>P' \<turnstile> [Nt S] \<Rightarrow>bu \<alpha>'\<close> using transform_production_one_step_bu \<alpha>'_def by (metis P'_def P_CNF \<open>(S, \<alpha>) \<in> P\<close>)
+            moreover have \<open>\<alpha>' \<in> Ders P' S\<close> by (simp add: DersI calculation derives_if_bu)
+            ultimately show \<open>\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> \<alpha> = h_ext w'\<close> by (metis \<open>h_ext \<alpha>' = \<alpha>\<close>)
+           qed
+         next
+           case (4 \<alpha> \<alpha>\<^sub>1 \<alpha>\<^sub>2 \<alpha>\<^sub>3 \<beta>)
+           then show ?case
+           proof(clarify)
+            assume 1:\<open>P \<turnstile> [Nt S] \<Rightarrow>bu \<alpha>\<^sub>1 @ \<alpha>\<^sub>2 @ \<alpha>\<^sub>3\<close>
+            and 2:\<open>[Nt S] = [Nt S] \<longrightarrow> (\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> \<alpha>\<^sub>1 @ \<alpha>\<^sub>2 @ \<alpha>\<^sub>3 = h_ext w')\<close>
+            and 3:\<open>P \<turnstile> \<alpha>\<^sub>2 \<Rightarrow>bu \<beta>\<close>
+            and 4:\<open>\<alpha>\<^sub>2 = [Nt S] \<longrightarrow> (\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> \<beta> = h_ext w')\<close>
+            and 5:\<open>\<alpha> = [Nt S]\<close>
+
+            have \<open>\<exists>\<alpha>' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu \<alpha>' \<and> \<alpha>\<^sub>1 @ \<alpha>\<^sub>2 @ \<alpha>\<^sub>3 = h_ext \<alpha>'\<close> using 2 by simp
+            have \<open>\<exists>\<beta>' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu \<beta>' \<and> \<beta> = h_ext \<beta>'\<close> using 4 sorry
+            
+            have \<open>\<exists>w'\<in>Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> (\<alpha>\<^sub>1 @ \<beta> @ \<alpha>\<^sub>3) = h_ext w'\<close> sorry
+
+
+
+            then show \<open>\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> \<alpha>\<^sub>1 @ \<beta> @ \<alpha>\<^sub>3 = h_ext w'\<close> sorry
+           qed
+           
+           
+         qed
+        
+       
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           case base
           define w' where \<open>(w'::('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym list) = [Nt S]\<close>
           then have \<open>w' \<in> Ders P' S\<close> by (simp add: DersI)

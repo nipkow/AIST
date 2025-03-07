@@ -1508,7 +1508,15 @@ proof -
         then have \<open>P \<turnstile> [Nt S] \<Rightarrow>*  w\<close> by (simp add: DersD)
         then have \<open>\<exists>derw. derw \<in> DerWits P [Nt S] w\<close> by (simp add: derives_iff_DerWits) (* have \<open>([Nt S]::('n, 't) sym list) = [Nt S] \<longrightarrow> (\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> w = h_ext w')\<close>  *)
         then obtain derw where \<open>derw \<in> DerWits P [Nt S] w\<close> by blast
-        then have \<open>\<exists>w' derw'.  (derw' \<in> DerWits P' [Nt S] w') \<and>  (\<forall>i < length derw' -1. derw ! i = h_ext (derw' ! i))\<close>
+        then have \<open>\<exists>w' derw'.  
+                  (derw' \<in> DerWits P' [Nt S] w') 
+              \<and>  (\<forall>i < length derw' -1. 
+                      (transform_production (prod (derw ! i)) = (prod (derw' ! i)))
+                    \<and> ( after (derw ! i) = h_ext (after (derw' ! i)) )
+                    \<and> ( before (derw ! i) = h_ext (before (derw' ! i)) )
+                    \<and> ( prefix (derw ! i) = h_ext (prefix (derw' ! i)) )
+                    \<and> ( suffix (derw ! i) = h_ext (suffix (derw' ! i)) )
+              )\<close>
         
         
         

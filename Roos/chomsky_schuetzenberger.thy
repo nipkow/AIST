@@ -16,8 +16,8 @@ The dyck language over Gamma then is the language of correctly bracketed terms.
 
 We implement this cloning of Gamma, by pairing each element \<open>g \<in> \<Gamma>\<close> either with an Element from
 \<open>datatype bracket = Op | Cl\<close>, as in \<open>Cl, g\<close>.
-aa
-aaaa
+
+
 A (very) rough proof overview of chomsky-schuetzenberger is as follows:
 Take some type 2 Grammar for \<open>L\<close> with Productions \<open>P\<close>, assume it in Chomsky normal form.
 From the old Productions \<open>P\<close> define new Productions \<open>P'\<close> using \<open>transform_production\<close>: 
@@ -1106,7 +1106,7 @@ proof -
       then have "i + length l1 < length ?steps" using assms(1) by simp
 
       have "prod (l2 ! i) = prod (?steps ! (i + length l1))"
-        using \<open>i < length l2\<close> by (metis Groups.ab_semigroup_add_class.add.commute assms(1) nth_append_length_plus)
+        using \<open>i < length l2\<close> by (metis Groups.ab_semigroup_add_class.add.commute nth_append_length_plus)
 
 
       moreover have "before (l2 ! i) = before (?steps ! (i + length l1))"
@@ -1488,7 +1488,7 @@ proof -
 
 
 
-  then have \<open>L' = (dyck_language \<Gamma>) \<inter> (Re P S)\<close> by (metis CFL_Lang_eq_CFG_Lang CFL_Lang_if_derives L'_def P'_def derives_if_CFL_Lang inf_absorb2 inf_commute subsetI)
+  then have \<open>L' = (dyck_language \<Gamma>) \<inter> (Re P S)\<close> by (metis CFL_Lang_eq_CFG_Lang CFL_Lang_if_derives L'_def derives_if_CFL_Lang inf_absorb2 inf_commute subsetI)
   then have \<open>image h ((dyck_language \<Gamma>) \<inter> (Re P S)) =  image h L'\<close> by simp
   also have \<open>... = Lang P S\<close>
   proof(standard)

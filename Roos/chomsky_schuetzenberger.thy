@@ -363,7 +363,13 @@ qed
 
 term \<open>([]::nat list) ! 1\<close>
 
-lemma [simp]: \<open>k + 1 \<le> length w' \<Longrightarrow> (take k w') @ [w' ! k] = take (Suc k) w'\<close> by (simp add: take_Suc_conv_app_nth)
+lemma take_append_one[simp]: \<open>k + 1 \<le> length w' \<Longrightarrow> (take k w') @ [w' ! k] = take (Suc k) w'\<close> by (simp add: take_Suc_conv_app_nth)
+
+
+lemma split_into_take: \<open>k \<le> length w' \<Longrightarrow> \<exists>r. w' = take (k) w' @ r\<close>
+by (metis append_take_drop_id)
+
+
 
 
 lemma the_hom_ext_var_split: \<open>(map Tm u @ [Nt A] @ v) = the_hom_ext w' \<Longrightarrow> \<exists> u' v'. w' = map Tm u' @ [Nt A] @ v'\<close>
@@ -617,8 +623,17 @@ from 1 show \<open>after (steps ! i) = prefix (steps ! i) @ snd (prod (steps ! i
 qed
 
 
-lemmas DerSeqsE = DerSeqsD[elim_format]
+lemma DerSeqsOneD[dest]:
+  assumes "[step] \<in> DerSeqs P"
+    shows in_prods_one: \<open>prod (step) \<in> P\<close> 
+    and before_splits_one: \<open>before (step) = prefix (step) @ [Nt (fst (prod (step)))] @ suffix (step)\<close> 
+    and after_splits_one: \<open>after (step) = prefix (step) @ snd (prod (step)) @ suffix (step)\<close>
+using DerSeqsD assms by fastforce+
 
+
+
+lemmas DerSeqsE = DerSeqsD[elim_format]
+lemmas DerSeqsOneE = DerSeqsOneD[elim_format]
 
 
 (* Empty derivation is a derivation *)
@@ -767,9 +782,15 @@ lemma DerWitsNonemptyD[dest]:
   shows is_DerSeq: "steps \<in> DerSeqs P"  and before_hd_eq: "before (hd steps) = u" and after_last_eq: "after (last steps) = v"
   using assms unfolding DerWits_def by auto
 
+lemma DerWitsOneD[dest]:
+assumes "[step] \<in> DerWits P u v"
+shows is_DerSeq_one: "[step] \<in> DerSeqs P"  and before_hd_eq_one: "before (step) = u" and after_last_eq_one: "after (step) = v"
+using assms unfolding DerWits_def by auto
+
+
 lemmas DerWitsNonemptyE = DerWitsNonemptyD[elim_format]
 lemmas DerWitsEmptyE = DerWitsEmptyD[elim_format]
-
+lemmas DerWitsOneE = DerWitsOneD[elim_format]
 
 
 lemma DerWits_singleI[intro]:
@@ -1193,6 +1214,21 @@ proof -
 qed
 
 
+lemma append_DerWits':
+  assumes "(l1 @ l2) \<in> DerWits P u v"
+  and \<open>l1 \<noteq> []\<close>
+  and \<open>l2 \<noteq> []\<close>
+  shows "l1 \<in> DerWits P u (after (last l1))" and 
+        \<open>l1 \<in> DerWits P u (before (hd l2))\<close> and
+        "l2 \<in> DerWits P (after (last l1)) v" and
+        "l2 \<in> DerWits P (before (hd l2)) v"
+
+using append_DerWits assms(1,2) 
+apply blast
+apply (metis append_DerWits(1,2) assms(1,3) before_hd_eq)
+using append_DerWits(2) assms(1,2) apply force
+using append_DerWits(2) assms(1,3) by blast
+
 
 
 
@@ -1378,6 +1414,7 @@ corollary derives_iff_DerWits:
 
 
 
+lemma length_append_one: \<open>length (l1 @ [l]) = (length l1 +1)\<close> by simp
 
 
 
@@ -1496,162 +1533,210 @@ proof -
       proof-
         fix w
         assume \<open>w \<in> Ders P S\<close>
-        thm derives_bu.induct[where ?x1.0 = \<open>[Nt S]\<close> and ?x2.0 = \<open>w\<close> and ?Pa = \<open>\<lambda>x1 x2. x1 = [Nt S] \<longrightarrow> (\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> x2 = h_ext w')\<close>]
-        
-        
-        (*
-        define Q :: "('n, 't) sym list \<Rightarrow> ('n, 't) sym list \<Rightarrow> bool" where \<open>Q = (\<lambda>\<alpha> x2. \<alpha> = [Nt S] \<and> (\<exists>w'. (P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> x2 = h_ext w')))\<close>
-        term Q 
-        *)
-
-
         then have \<open>P \<turnstile> [Nt S] \<Rightarrow>*  w\<close> by (simp add: DersD)
-        then have \<open>\<exists>derw. derw \<in> DerWits P [Nt S] w\<close> by (simp add: derives_iff_DerWits) (* have \<open>([Nt S]::('n, 't) sym list) = [Nt S] \<longrightarrow> (\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> w = h_ext w')\<close>  *)
+        then have \<open>\<exists>derw. derw \<in> DerWits P [Nt S] w\<close> by (simp add: derives_iff_DerWits) 
         then obtain derw where \<open>derw \<in> DerWits P [Nt S] w\<close> by blast
         then have \<open>\<exists>w' derw'.  
                   (derw' \<in> DerWits P' [Nt S] w') 
-              \<and>  (\<forall>i < length derw' -1. 
+              \<and>  (length derw' = length derw)
+              \<and>  (\<forall>i < length derw'. 
                       (transform_production (prod (derw ! i)) = (prod (derw' ! i)))
                     \<and> ( after (derw ! i) = h_ext (after (derw' ! i)) )
                     \<and> ( before (derw ! i) = h_ext (before (derw' ! i)) )
                     \<and> ( prefix (derw ! i) = h_ext (prefix (derw' ! i)) )
                     \<and> ( suffix (derw ! i) = h_ext (suffix (derw' ! i)) )
               )\<close>
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        (* das sollte eigentlich mit derives_bu.induct[where Pa = \<open>Q\<close>] gezeigt werden, aber das geht nicht? *)
-         proof(rule derives_bu.induct[where Pa = \<open>(\<lambda>\<alpha> x2. \<alpha> = [Nt S] \<longrightarrow> (\<exists>w' \<in> Ders P' S. (P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> x2 = h_ext w')))\<close> and ?x1.0 = \<open>[Nt S]\<close> and ?x2.0 = \<open>w\<close> and ?P = \<open>P\<close>], goal_cases)
-           case 1
-           then show ?case by (simp add: \<open>P \<turnstile> [Nt S] \<Rightarrow>bu w\<close>)
-         next
-           case (2 \<alpha>)
-           define w'::\<open>('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym list\<close> where \<open>w' = [Nt S]\<close>
-           then show ?case
-           proof(clarify)
-            have \<open>[Nt S] = h_ext w'\<close> by (simp add: h_ext_def w'_def)
-            then show \<open>\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> [Nt S] = h_ext w'\<close> using bu_refl w'_def by (metis DersI derives_if_bu)
-           qed
-
-         next
-           case (3 A \<alpha>)
-           then show ?case
-           proof(clarify)
-            assume \<open>(S,\<alpha>) \<in> P\<close>
-            and \<open>A = S\<close>
-
-            then have \<open>CNF_rule (S, \<alpha>)\<close> using P_CNF by simp
-            define \<alpha>' where \<open>\<alpha>' = (snd (transform_production (S,\<alpha>))) \<close>
-            then have \<open>h_ext \<alpha>' = \<alpha>\<close> using h_ext_def hom_ext_inv \<open>CNF_rule (S, \<alpha>)\<close> unfolding \<alpha>'_def by fastforce
-            then have \<open>P' \<turnstile> [Nt S] \<Rightarrow>bu \<alpha>'\<close> using transform_production_one_step_bu \<alpha>'_def by (metis P'_def P_CNF \<open>(S, \<alpha>) \<in> P\<close>)
-            moreover have \<open>\<alpha>' \<in> Ders P' S\<close> by (simp add: DersI calculation derives_if_bu)
-            ultimately show \<open>\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> \<alpha> = h_ext w'\<close> by (metis \<open>h_ext \<alpha>' = \<alpha>\<close>)
-           qed
-         next
-           case (4 \<alpha> \<alpha>\<^sub>1 \<alpha>\<^sub>2 \<alpha>\<^sub>3 \<beta>)
-           then show ?case
-           proof(clarify)
-            assume 1:\<open>P \<turnstile> [Nt S] \<Rightarrow>bu \<alpha>\<^sub>1 @ \<alpha>\<^sub>2 @ \<alpha>\<^sub>3\<close>
-            and 2:\<open>[Nt S] = [Nt S] \<longrightarrow> (\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> \<alpha>\<^sub>1 @ \<alpha>\<^sub>2 @ \<alpha>\<^sub>3 = h_ext w')\<close>
-            and 3:\<open>P \<turnstile> \<alpha>\<^sub>2 \<Rightarrow>bu \<beta>\<close>
-            and 4:\<open>\<alpha>\<^sub>2 = [Nt S] \<longrightarrow> (\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> \<beta> = h_ext w')\<close>
-            and 5:\<open>\<alpha> = [Nt S]\<close>
-
-            have \<open>\<exists>\<alpha>' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu \<alpha>' \<and> \<alpha>\<^sub>1 @ \<alpha>\<^sub>2 @ \<alpha>\<^sub>3 = h_ext \<alpha>'\<close> using 2 by simp
-            have \<open>\<exists>\<beta>' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu \<beta>' \<and> \<beta> = h_ext \<beta>'\<close> using 4 sorry
-            
-            have \<open>\<exists>w'\<in>Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> (\<alpha>\<^sub>1 @ \<beta> @ \<alpha>\<^sub>3) = h_ext w'\<close> sorry
-
-
-
-            then show \<open>\<exists>w' \<in> Ders P' S. P' \<turnstile> [Nt S] \<Rightarrow>bu w' \<and> \<alpha>\<^sub>1 @ \<beta> @ \<alpha>\<^sub>3 = h_ext w'\<close> sorry
-           qed
-           
-           
-         qed
-        
-       
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          case base
-          define w' where \<open>(w'::('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym list) = [Nt S]\<close>
-          then have \<open>w' \<in> Ders P' S\<close> by (simp add: DersI)
-          moreover have \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* w'\<close> by (simp add: w'_def)
-          moreover have \<open>[Nt S] = h_ext w'\<close> unfolding h_ext_def w'_def by simp
-          ultimately show ?case by auto
+        proof(induction \<open>length derw\<close> arbitrary: w derw)
+          case 0
+          then show ?case by auto
         next
-          case (step u A v w)
-          have \<open>CNF_rule (A,w)\<close> using P_CNF \<open>(A,w) \<in> P\<close> by auto
-          obtain w' where w'_derive: \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* w' \<and> map Tm u @ [Nt A] @ v = h_ext w'\<close> and w'_Ders: \<open>w' \<in> Ders P' S\<close>using local.step.IH by blast
-          then have w_split_h: \<open>map Tm u @ [Nt A] @ v = h_ext w'\<close> by auto
-          obtain r where \<open>(A, r) = transform_production (A, w)\<close> by (metis fst_eqD fst_transform_production surj_pair)
-          then have \<open>(A,r) \<in> P'\<close> using P'_def local.step.hyps(2) by auto
-          from \<open>(A, r) = transform_production (A, w)\<close> have \<open>h_ext r = w\<close> using hom_ext_inv \<open>CNF_rule (A,w)\<close> by (metis h_ext_def snd_conv)
+          case (Suc n)
 
-          from w_split_h obtain u' v' where u'_v'_def: \<open>w' = map Tm u' @ [Nt A] @ v'\<close> using the_hom_ext_var_split h_ext_def by metis
+          from Suc have derw_DerWits: \<open>derw \<in> DerWits P [Nt S] w\<close> by simp
+          from Suc have length_derw: \<open>length derw = n + 1\<close> by simp
+          from Suc have IH:\<open>\<And>w derw. \<lbrakk>n = length derw; derw \<in> DerWits P [Nt S] w\<rbrakk>
+                      \<Longrightarrow> \<exists>w' derw'. derw' \<in> DerWits P' [Nt S] w' 
+                      \<and> length derw' = length derw 
+                      \<and> (\<forall>i<length derw'. transform_production (prod (derw ! i)) = prod (derw' ! i) 
+                      \<and> after (derw ! i) = h_ext (after (derw' ! i)) 
+                      \<and> before (derw ! i) = h_ext (before (derw' ! i)) 
+                      \<and> prefix (derw ! i) = h_ext (prefix (derw' ! i)) 
+                      \<and> suffix (derw ! i) = h_ext (suffix (derw' ! i)))\<close> by blast
 
-          have \<open>map Tm u @ [Nt A] @ v = h_ext w'\<close> using w_split_h by simp
-          also have \<open>... = h_ext (map Tm u' @ [Nt A] @ v')\<close> using u'_v'_def by simp
-          also have \<open>... = (h_ext (map Tm u')) @ [(Nt A)] @ (h_ext v')\<close> using h_ext_def by simp
-          finally have \<open>map Tm u @ [Nt A] @ v  =  (h_ext (map Tm u')) @ [(Nt A)] @ (h_ext v')\<close> .
 
-          moreover then have \<open>map Tm u = h_ext (map Tm u')\<close> using h_ext_def same_prefix by fastforce
-          ultimately have \<open>v = (h_ext v')\<close> by simp
+          obtain derw_front derw_step where derw_split: \<open>derw = (derw_front @ [derw_step])\<close> by (metis length_Suc_conv_rev local.Suc.hyps(2))
+          then have \<open>n = length derw_front\<close> using local.Suc.hyps(2) by fastforce
 
-          then have \<open>h_ext (map Tm u' @ r @ v') = map Tm u @ w @ v\<close> using \<open>h_ext r = w\<close> \<open>map Tm u = h_ext (map Tm u')\<close> h_ext_def by auto
 
-          then have \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* map Tm u' @ [Nt A] @ v'\<close> using w'_derive using u'_v'_def by blast
-          then have \<open>P' \<turnstile> [Nt S] \<Rightarrow>l* map Tm u' @ r @ v'\<close> using \<open>(A,r) \<in> P'\<close> by (simp add: CFG.derivel.intros Transitive_Closure.rtranclp.rtrancl_into_rtrancl)
+          then show \<open>\<exists>w' derw'. 
+          derw' \<in> DerWits P' [Nt S] w' 
+          \<and> length derw' = length derw 
+          \<and> (\<forall>i<length derw'. 
+              transform_production (prod (derw ! i)) = prod (derw' ! i) 
+              \<and> after (derw ! i) = h_ext (after (derw' ! i)) 
+              \<and> before (derw ! i) = h_ext (before (derw' ! i)) 
+              \<and> prefix (derw ! i) = h_ext (prefix (derw' ! i)) 
+              \<and> suffix (derw ! i) = h_ext (suffix (derw' ! i)) )\<close>
+          proof(cases \<open>n = 0\<close>)
+            case True
+            then have n_eq_0: \<open>n = 0\<close> by simp
+            then have \<open>derw = [derw_step]\<close> by (simp add: \<open>n = length derw_front\<close> derw_split)
+            then have derw_step_DerWits: \<open>[derw_step] \<in> DerWits P [Nt S] w\<close> using derw_DerWits by auto
 
-          then show ?case using \<open>h_ext (map Tm u' @ r @ v') = map Tm u @ w @ v\<close> w'_Ders using Ders_def derivels_imp_derives by fastforce
-        qed
-        then show \<open>\<exists>w' \<in> Ders P' S. w = h_ext w'\<close> by auto
-      qed
+            then have before_split: \<open>before (derw_step) = prefix (derw_step) @ [Nt (fst (prod (derw_step)))] @ suffix (derw_step)\<close> by blast
+
+            then have \<open>fst (prod derw_step) = S\<close> by (metis (no_types, lifting) CFG.sym.inject(1) Cons_eq_append_conv List.list.distinct(1) List.list.sel(1) Nil_is_append_conv before_hd_eq_one derw_step_DerWits)
+            then have \<open>prefix (derw_step) = []\<close> by (metis Cons_eq_append_conv Nil_is_append_conv before_split before_hd_eq_one derw_step_DerWits)
+            then have \<open>suffix (derw_step) = []\<close> using \<open>derw = [derw_step]\<close> before_hd_eq_one before_split derw_DerWits by auto
+            then have \<open>after derw_step = snd (prod derw_step)\<close> by (metis \<open>prefix derw_step = []\<close> after_splits_one derw_step_DerWits is_DerSeq_one self_append_conv self_append_conv2)
+            then have \<open>after (derw ! 0) = snd (prod derw_step)\<close> using \<open>derw = [derw_step]\<close> by auto
+            have \<open>prod (derw_step) \<in> P\<close> using derw_step_DerWits by (simp add: in_prods_one is_DerSeq_one)
+            then have \<open>CNF_rule (prod (derw_step))\<close> using P_CNF by simp
+            define w' where \<open>w' = snd (transform_production (prod derw_step))\<close>
+            define derw' where \<open>derw' = [\<lparr>before = [Nt S], after = w', prod = transform_production (prod derw_step), prefix = [], suffix = []\<rparr>]\<close>
+            have derw'0: \<open>derw' ! 0 = \<lparr>before = [Nt S], after = w', prod = transform_production (prod derw_step), prefix = [], suffix = []\<rparr>\<close> using derw'_def by simp
+            have \<open>derw' \<in> DerWits P' [Nt S] w'\<close> unfolding derw'_def apply(rule DerWits_singleI) 
+                  using P'_def \<open>derw = [derw_step]\<close> derw_DerWits apply auto[1]
+                  apply (metis Product_Type.prod.exhaust_sel \<open>fst (prod derw_step) = S\<close> append_Cons append_Nil fst_transform_production)
+                  by (simp add: w'_def)
+            moreover have \<open>length derw' = length derw\<close> using derw'_def using local.Suc.hyps(2) n_eq_0 by auto
+
+            moreover have \<open>transform_production (prod (derw ! 0)) = prod (derw' ! 0) \<close> using derw'0 by (simp add: \<open>derw = [derw_step]\<close>)
+            moreover have \<open>after (derw ! 0) = h_ext (after (derw' ! 0))\<close> using derw'0 w'_def hom_ext_inv by (metis \<open>CNF_rule (prod derw_step)\<close> \<open>after (derw ! 0) = snd (prod derw_step)\<close> h_ext_def select_convs(2))
+            moreover have \<open>before (derw ! 0) = h_ext (before (derw' ! 0))\<close> using derw'0 using \<open>derw = [derw_step]\<close> derw_step_DerWits h_ext_def by auto
+            moreover have \<open>prefix (derw ! 0) = h_ext (prefix (derw' ! 0)) \<close> using derw'0 by (simp add: \<open>derw = [derw_step]\<close> \<open>prefix derw_step = []\<close> h_ext_def)
+            moreover have \<open>suffix (derw ! 0) = h_ext (suffix (derw' ! 0))\<close> using derw'0 using \<open>derw = [derw_step]\<close> \<open>prefix derw_step = []\<close> \<open>suffix derw_step = []\<close> calculation(6) by auto
+            ultimately have \<open>(\<forall>i<length derw'. 
+              transform_production (prod (derw ! i)) = prod (derw' ! i) 
+              \<and> after (derw ! i) = h_ext (after (derw' ! i)) 
+              \<and> before (derw ! i) = h_ext (before (derw' ! i)) 
+              \<and> prefix (derw ! i) = h_ext (prefix (derw' ! i)) 
+              \<and> suffix (derw ! i) = h_ext (suffix (derw' ! i)) )\<close> using local.Suc.hyps(2) n_eq_0 using less_Suc0 by force
+            then show ?thesis using \<open>derw' \<in> DerWits P' [Nt S] w'\<close> \<open>length derw' = length derw\<close> by blast
+          next
+            case False
+            then have n_geq_1: \<open>n > 0\<close> by simp
+            then have derw_front_not_empty: \<open>derw_front \<noteq> []\<close> by (simp add: \<open>n = length derw_front\<close>)
+            then have \<open>derw_front \<in> DerWits P [Nt S] (before derw_step)\<close> using derw_split derw_DerWits append_DerWits'[of derw_front \<open>[derw_step]\<close> P \<open>[Nt S]\<close> w] by simp
+            with IH[OF \<open>n = length derw_front\<close> \<open>derw_front \<in> DerWits P [Nt S] (before derw_step)\<close>]  obtain wb' derw'_front where 
+            derw'_DerWits: \<open>derw'_front \<in> DerWits P' [Nt S] wb'\<close> and
+            length_derw': \<open>length derw'_front = length derw_front\<close> and
+            front_h_front: \<open> (\<And>i. i<length derw'_front \<Longrightarrow> 
+                transform_production (prod (derw_front ! i)) = prod (derw'_front ! i) 
+                \<and> after (derw_front ! i) = h_ext (after (derw'_front ! i)) 
+                \<and> before (derw_front ! i) = h_ext (before (derw'_front ! i)) 
+                \<and> prefix (derw_front ! i) = h_ext (prefix (derw'_front ! i)) 
+                \<and> suffix (derw_front ! i) = h_ext (suffix (derw'_front ! i)))\<close> by blast
+            
+            have derw_step_DerWit: \<open>[derw_step] \<in> DerWits P (after (last derw_front)) w\<close> using derw_DerWits by (simp add: append_DerWits'(3) derw_front_not_empty derw_split)
+            then have derw_step_DerSeq: \<open>[derw_step] \<in> DerSeqs P\<close> by (simp add: is_DerSeq_one)
+
+            
+            have last_derw'_front_index: \<open>last derw'_front = derw'_front ! (length derw'_front - 1)\<close> by (metis False List.list.size(3) \<open>n = length derw_front\<close> last_conv_nth length_derw')
+            have last_derw_front_index:\<open>last derw_front = derw_front ! (length derw'_front - 1)\<close> using derw_front_not_empty last_conv_nth length_derw' by auto
+
+            have h_after_last: \<open>h_ext (after (last derw'_front)) = after (last derw_front)\<close> using front_h_front[of \<open>(length derw'_front - 1)\<close>] by (metis \<open>n = length derw_front\<close> diff_less last_derw'_front_index last_derw_front_index length_derw' less_numeral_extra(1) n_geq_1)
+            have before_ders_step_split: \<open>before derw_step = prefix derw_step @ [Nt (fst (prod derw_step))] @ suffix derw_step\<close> using before_splits_one derw_step_DerSeq by auto
+
+            have \<open>before derw_step = prefix derw_step @ [Nt (fst (prod derw_step))] @ suffix derw_step\<close> using before_splits_one[of derw_step P] by (simp add: derw_step_DerSeq)
+
+            then have \<open>(length (prefix derw_step)+1) \<le> (length (before derw_step))\<close> by simp
+            also have \<open>... = length (after (last derw_front))\<close> using before_hd_eq_one derw_step_DerWit by auto
+            also have \<open>... = length (h_ext (after (last derw'_front)))\<close> using h_after_last by simp
+            finally have length_prefix_derw_step: \<open>(length (prefix derw_step)+1) \<le> length (h_ext (after (last derw'_front)))\<close> .
+
+            (* now we have to find the right prefix *)
+            define before' where \<open>before' = after (last derw'_front)\<close>
+            define i_prefix' where \<open>i_prefix' = (letters_needed_until_produced (length (prefix derw_step)+1) (after (last derw'_front))) - 1\<close>
+            define prefix' where \<open>prefix' = take i_prefix' (after (last derw'_front))\<close>
+
+            have \<open>take (length (prefix derw_step)) (h_ext (after (last derw'_front))) = h_ext prefix'\<close> using prefix'_def letters_needed_until_produced_pre using h_ext_def i_prefix'_def length_prefix_derw_step by blast
+
+            with h_after_last have \<open>h_ext prefix' = take (length (prefix derw_step)) (after (last derw_front))\<close> by simp
+            also have \<open>... = take (length (prefix derw_step)) (before derw_step)\<close> using before_hd_eq_one derw_step_DerWit by auto
+            also have \<open>... = (prefix derw_step)\<close> using before_ders_step_split by simp
+
+            finally have h_ext_prefix': \<open>h_ext prefix' = prefix derw_step\<close> .
+
+
+            have \<open>take (length (prefix derw_step) +1) (h_ext (after (last derw'_front))) = h_ext (take (i_prefix'+1) (after (last derw'_front)))\<close> using prefix'_def letters_needed_until_produced_correct[of \<open>length (prefix derw_step) +1\<close> \<open>after (last derw'_front)\<close>] using h_ext_def i_prefix'_def length_prefix_derw_step by (smt (z3) List.list.size(3) One_nat_def Suc_pred \<open>take (length (prefix derw_step)) (h_ext (after (last derw'_front))) = h_ext prefix'\<close> add_diff_cancel_right' add_eq_if add_leE butlast_take diff_is_0_eq' le_add1 length_butlast length_greater_0_conv plus_1_eq_Suc take_eq_Nil2)
+            with h_after_last have \<open>h_ext (take (i_prefix'+1) (after (last derw'_front))) = take (length (prefix derw_step) +1) (after (last derw_front))\<close> by simp
+            also have \<open>... = take (length (prefix derw_step) +1) (before derw_step)\<close> using before_hd_eq_one derw_step_DerWit by auto
+            also have \<open>... = prefix derw_step @ [Nt (fst (prod derw_step))]\<close> using before_ders_step_split by simp
+            finally have h_ext_prefix'_: \<open>h_ext (take (i_prefix'+1) (after (last derw'_front))) = prefix derw_step @ [Nt (fst (prod derw_step))]\<close> .
+
+            have i_prefix'_leq: \<open>i_prefix' + 1 \<le> length (after (last derw'_front))\<close> by (metis Suc_eq_plus1 Suc_n_not_le_n h_ext_prefix' leI length_prefix_derw_step less_eq_iff_succ_less prefix'_def take_all_iff)
+            have \<open>take (i_prefix' +1) (after (last derw'_front)) = take i_prefix' (after (last derw'_front)) @ [((after (last derw'_front)) ! i_prefix')]\<close> using take_append_one[of \<open>i_prefix'\<close> \<open>(after (last derw'_front))\<close>] using i_prefix'_leq by fastforce
+            then have \<open>h_ext ( [(after (last derw'_front)) ! i_prefix'] ) = [Nt (fst (prod derw_step))]\<close> using h_ext_prefix'_ h_ext_prefix' by (simp add: h_ext_def prefix'_def)
+            then have \<open>(after (last derw'_front)) ! (i_prefix') = Nt (fst (prod derw_step))\<close> using h_ext_def by simp 
+
+            
+
+            then obtain r where \<open>(after (last derw'_front)) = take i_prefix' (after (last derw'_front)) @ [(after (last derw'_front)) ! (i_prefix')] @ r\<close> using split_into_take[OF i_prefix'_leq] using \<open>take (i_prefix' + 1) (after (last derw'_front)) = take i_prefix' (after (last derw'_front)) @ [after (last derw'_front) ! i_prefix']\<close> by auto 
+            
+            then have split: \<open>(after (last derw'_front)) = prefix' @ [ Nt (fst (prod derw_step))] @ r\<close> by (simp add: \<open>after (last derw'_front) ! i_prefix' = Nt (fst (prod derw_step))\<close> prefix'_def)
+            
+            then have \<open>prefix derw_step @ [ Nt (fst (prod derw_step))] @ h_ext r = h_ext (after (last derw'_front))\<close> using h_ext_def using h_ext_prefix' by auto
+            also have \<open>... = after (last derw_front)\<close> by (simp add: h_after_last)
+            also have \<open>... = before derw_step\<close> using derw_step_DerWit by force
+            also have \<open>... = prefix derw_step @ [Nt (fst (prod derw_step))] @ suffix derw_step\<close> by (simp add: before_ders_step_split)
+            finally have \<open>prefix derw_step @ [ Nt (fst (prod derw_step))] @ h_ext r = prefix derw_step @ [Nt (fst (prod derw_step))] @ suffix derw_step\<close> .
+
+
+            then have h_ext_r: \<open>h_ext r = suffix derw_step\<close> by simp
+            
+
+            define w' where \<open>w' = prefix' @ snd (transform_production (prod derw_step)) @ r\<close>
+            define derw'_step where \<open>derw'_step = \<lparr>before = after (last derw'_front), after = w', prod = transform_production (prod derw_step), prefix = prefix', suffix = r\<rparr>\<close>
+            define derw' where \<open>derw' = derw'_front @ [derw'_step]\<close>
+
+            have \<open>prod derw_step \<in> P\<close> by (simp add: derw_step_DerSeq in_prods_one)
+            have \<open>[derw'_step] \<in> DerSeqs P'\<close> unfolding derw'_step_def apply(rule DerSeqs_singleI)
+                apply auto apply (simp add: P'_def \<open>prod derw_step \<in> P\<close>)
+                apply (metis List.append.left_neutral \<open>after (last derw'_front) ! i_prefix' = Nt (fst (prod derw_step))\<close> \<open>after (last derw'_front) = take i_prefix' (after (last derw'_front)) @ [after (last derw'_front) ! i_prefix'] @ r\<close> append_Cons eq_fst_iff fst_transform_production prefix'_def)
+                by (simp add: w'_def)
+            then have derw'_step_DerWit: \<open>[derw'_step] \<in> DerWits P' wb' w'\<close> using derw'_step_def by (smt (verit, ccfv_SIG) DerWitsEmptyD(2) DerWitsI DerWits_appendI List.last.simps List.list.sel(1) One_nat_def Suc_leI Suc_n_not_le_n \<open>n = length derw_front\<close> add_le_mono1 after_last_eq derw'_DerWits last_appendL length_append length_derw' n_geq_1 not_Cons_self2 plus_1_eq_Suc select_convs(1,2))
+            then have \<open>derw' \<in> DerWits P' [Nt S] w'\<close> unfolding derw'_def by (meson DerWits_appendI derw'_DerWits) 
+            moreover have \<open>length derw' = length derw\<close> by (simp add: derw'_def derw_split length_derw')
+            moreover have \<open>(\<forall>i<length derw'. 
+                            transform_production (prod (derw ! i)) = prod (derw' ! i) 
+                            \<and> after (derw ! i) = h_ext (after (derw' ! i)) 
+                            \<and> before (derw ! i) = h_ext (before (derw' ! i)) 
+                            \<and> prefix (derw ! i) = h_ext (prefix (derw' ! i)) 
+                            \<and> suffix (derw ! i) = h_ext (suffix (derw' ! i)) )\<close>
+            proof(intro allI impI, case_tac \<open>i = length derw' -1\<close>, goal_cases)
+              case (1 i)
+              then have \<open>i = length derw' - 1\<close> by simp
+              then have derwi: \<open>derw ! i = derw_step\<close> by (simp add: calculation(2) derw_split)
+              then have derw'i: \<open>derw' ! i = derw'_step\<close> by (metis "1"(2) \<open>n = length derw_front\<close> calculation(2) derw'_def diff_add_inverse2 length_derw length_derw' nth_append_length)
+
+              have \<open>transform_production (prod (derw ! i)) = prod (derw' ! i)\<close> using derwi derw'i by (simp add: derw'_step_def)
+              moreover have \<open>before (derw ! i) = h_ext (before (derw' ! i))\<close> using derwi derw'i by (simp add: \<open>after (last derw_front) = before derw_step\<close> derw'_step_def h_after_last)
+              moreover have \<open>prefix (derw ! i) = h_ext (prefix (derw' ! i))\<close> using derwi derw'i  by (simp add: derw'_step_def h_ext_prefix')
+              moreover have \<open>suffix (derw ! i) = h_ext (suffix (derw' ! i))\<close> using derwi derw'i using derw'_step_def h_ext_r by auto
+              moreover have \<open>after (derw ! i) = h_ext (after (derw' ! i))\<close> 
+              proof-
+              have \<open>after (derw' ! i) = w'\<close> using derw'i by (simp add: derw'_step_def)
+              moreover have \<open>h_ext (w') = w\<close> using w'_def split by (metis P_CNF \<open>prod derw_step \<in> P\<close> after_last_eq_one after_splits_one derw_step_DerSeq derw_step_DerWit h_ext_def h_ext_prefix' h_ext_r hom_ext_inv the_hom_ext_hom)
+              ultimately have \<open>h_ext (after (derw' ! i)) = w\<close> by simp
+              have \<open>after (derw ! i) = w\<close> using derwi derw_DerWits after_last_eq using derw_step_DerWit by blast
+              with \<open>h_ext (after (derw' ! i)) = w\<close> show ?thesis by simp
+              qed
+
+              ultimately show ?case by simp
+            next
+              case (2 i)
+              then have \<open>i < length derw'_front\<close> using \<open>n = length derw_front\<close> calculation(2) length_derw' local.Suc.hyps(2) by linarith
+              then have \<open>derw ! i = derw_front ! i\<close> by (simp add: derw_split length_derw' nth_append_left)
+              moreover have \<open>derw' ! i = derw'_front ! i\<close> by (simp add: \<open>i < length derw'_front\<close> derw'_def nth_append)
+              ultimately show ?case using front_h_front[OF \<open>i < length derw'_front\<close>] by simp
+            qed
+          ultimately show ?thesis by blast
+          qed
+
+      qed    
+      then show \<open>\<exists>w' \<in> Ders P' S. w = h_ext w'\<close> sorry
+qed
 
       then show \<open>\<And>w. (w  \<in> Lang P S \<Longrightarrow> \<exists>w' \<in> L'. w = h w')\<close>
       proof(goal_cases)
@@ -1660,7 +1745,7 @@ proof -
         then obtain w' where w'_def: \<open>w' \<in> Ders P' S\<close> \<open>(map Tm w) = h_ext w'\<close> using \<open>\<And>w. w \<in> Ders P S \<Longrightarrow> \<exists>w'\<in> Ders P' S. w = h_ext w'\<close> by auto
         moreover obtain w'' where \<open>w' = map Tm w''\<close> using w'_def by (metis h_ext_def the_hom_ext_tms_inj)
         then have \<open>w = h w''\<close> using h_eq_h_ext2 h_def h_ext_def by (metis h_eq_h_ext w'_def(2))
-        moreover have \<open>w'' \<in> L'\<close> using \<open>w' \<in> Ders P' S\<close> by (metis DersD P'_def \<open>L' = dyck_language \<Gamma> \<inter> Re P S\<close> \<open>\<forall>A x. (transform_production ` P \<turnstile> [Nt S] \<Rightarrow>* map Tm x) = (x \<in> dyck_language \<Gamma> \<inter> Re P A)\<close> \<open>w' = map Tm w''\<close>)
+        moreover have \<open>w'' \<in> L'\<close> using \<open>w' \<in> Ders P' S\<close> by (metis DersD \<open>L' = dyck_language \<Gamma> \<inter> Re P S\<close> \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (dyck_language \<Gamma>) \<inter> (Re P A)\<close> \<open>w' = map Tm w''\<close>)
         ultimately show ?case by auto
       qed
     qed

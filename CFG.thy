@@ -352,6 +352,9 @@ lemma derives_T_Cons:
   "P \<turnstile> Tm a # u \<Rightarrow>* v \<longleftrightarrow> (\<exists>w. v = Tm a # w \<and> P \<turnstile> u \<Rightarrow>* w)"
   by (metis deriven_Tm_Cons rtranclp_power)
 
+lemma derives_Tm[simp]: "P \<turnstile> [Tm a] \<Rightarrow>* w \<longleftrightarrow> w = [Tm a]"
+by(simp add: derives_T_Cons)
+
 lemma derive_singleton: "P \<turnstile> [a] \<Rightarrow> u \<longleftrightarrow> (\<exists>A. (A,u) \<in> P \<and> a = Nt A)"
   by (auto simp: derive_iff Cons_eq_append_conv)
 
@@ -462,7 +465,6 @@ qed
 
 
 subsubsection "Customized Induction Principles"
-(* TODO: Need canonical naming schema! *)
 
 lemma deriven_induct[consumes 1, case_names 0 Suc]:
   assumes "P \<turnstile> xs \<Rightarrow>(n) ys"
@@ -496,7 +498,7 @@ next
   from derive.cases[OF step(2)] step(1,3-) show ?case by metis
 qed
 
-lemma converse_drives_induct[consumes 1, case_names base step]:
+lemma converse_derives_induct[consumes 1, case_names base step]:
   assumes "P \<turnstile> xs \<Rightarrow>* ys"
   and Base: "Q ys"
   and Step: "\<And>u A v w. \<lbrakk> P \<turnstile> u @ [Nt A] @ v \<Rightarrow>* ys; Q (u @ w @ v); (A,w) \<in> P \<rbrakk> \<Longrightarrow> Q (u @ [Nt A] @ v)"
@@ -507,13 +509,25 @@ lemma converse_drives_induct[consumes 1, case_names base step]:
 
 
 lemma derives_NilD: "P \<turnstile> w \<Rightarrow>* [] \<Longrightarrow> s \<in> set w \<Longrightarrow> P \<turnstile> [s] \<Rightarrow>* []"
-proof(induction arbitrary: s rule: converse_drives_induct)
+proof(induction arbitrary: s rule: converse_derives_induct)
   case base
   then show ?case by simp
 next
   case (step u A v w)
   then show ?case using derives_append_decomp[where u="[Nt A]" and v=v]
     by (auto simp: derives_append_decomp)
+qed
+
+lemma derives_simul_rules:
+  assumes "\<And>A w. (A,w) \<in> P \<Longrightarrow> P' \<turnstile> [Nt A] \<Rightarrow>* w"
+  shows "P \<turnstile> w \<Rightarrow>* w' \<Longrightarrow> P' \<turnstile> w \<Rightarrow>* w'"
+proof(induction rule: derives_induct)
+  case base
+  then show ?case by simp
+next
+  case (step u A v w)
+  then show ?case
+    by (meson assms derives_append derives_prepend rtranclp_trans)
 qed
 
 
@@ -627,11 +641,10 @@ lemma derivels1_append:
 
 lemma derivel_Tm_Cons:
   "P \<turnstile> Tm a # u \<Rightarrow>l v \<longleftrightarrow> (\<exists>w. v = Tm a # w \<and> P \<turnstile> u \<Rightarrow>l w)"
-  apply (cases v)
-   apply (simp add: derivel_iff)
-  apply (auto simp: derivel.simps Cons_eq_append_conv)
-  apply (metis list.simps(9))
-  done
+apply (cases v)
+ apply (simp add: derivel_iff)
+apply (fastforce simp: derivel.simps Cons_eq_append_conv Cons_eq_map_conv)
+done
 
 lemma deriveln_Tm_Cons:
   "P \<turnstile> Tm a # u \<Rightarrow>l(n) v \<longleftrightarrow> (\<exists>w. v = Tm a # w \<and> P \<turnstile> u \<Rightarrow>l(n) w)"
@@ -829,6 +842,7 @@ lemma derivern_singleton:
   | Suc m \<Rightarrow> \<exists>w. (A,w) \<in> P \<and> P \<turnstile> w \<Rightarrow>r(m) v)"
   using derivern_snoc_Nt[of n P "[]" A v] by (cases n, auto)
 
+
 subsubsection \<open>Epsilon-Freeness\<close>
 
 definition Eps_free where "Eps_free R = (\<forall>(_,r) \<in> R. r \<noteq> [])"
@@ -849,7 +863,7 @@ lemma Eps_free_derives_Nil:
   assumes R: "Eps_free R" shows "R \<turnstile> l \<Rightarrow>* [] \<longleftrightarrow> l = []" (is "?l \<longleftrightarrow> ?r")
 proof
   show "?l \<Longrightarrow> ?r"
-  proof (induction rule: converse_drives_induct)
+  proof (induction rule: converse_derives_induct)
     case base
     show ?case by simp
   next

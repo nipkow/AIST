@@ -77,7 +77,7 @@ lemma isNt_isTm_o_rename_sym: "isTm = isTm o (rename_sym f)"
    (but the nonterminals are renamed accordingly *)
 lemma rename_Prods_derives_dir1:
   shows "P \<turnstile> a \<Rightarrow>* b \<Longrightarrow> (rename_Prods f P) \<turnstile> (rename_syms f a) \<Rightarrow>* (rename_syms f b)"
-proof (induction rule: converse_drives_induct)
+proof (induction rule: converse_derives_induct)
   case base
   then show ?case
     by simp

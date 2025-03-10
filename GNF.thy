@@ -60,7 +60,7 @@ lemma expand_eps_self: "w \<in> expand_eps A w" by (induction w, auto)
 
 lemma expand_eps_complete:
   "R \<turnstile> w \<Rightarrow>* v \<Longrightarrow> (\<exists>w' \<in> expand_eps A w. R \<turnstile> w' \<Rightarrow>* v)"
-proof (induction rule: rtrancl_derive_induct)
+proof (induction rule: derives_induct)
   case base
   show ?case by (auto intro!: bexI[OF _ expand_eps_self])
 next
@@ -73,7 +73,7 @@ lemma expand_eps_sound:
     and "w' \<in> expand_eps A w" and "R \<turnstile> w' \<Rightarrow>* v"
   shows "R \<turnstile> w \<Rightarrow>* v"
   using assms(3,2)
-proof (induction rule: rtrancl_derive_induct)
+proof (induction rule: derives_induct)
   case base
   then show ?case
   proof (induction w arbitrary: w')
@@ -150,7 +150,7 @@ lemma Eps_free_Eps_remove: "Eps_free (Eps_remove R)"
   by (auto simp: Eps_free_def Eps_remove_def)
 
 lemma Eps_remove_derives_sound: "Eps_remove R \<turnstile> x \<Rightarrow>* y \<Longrightarrow> R \<turnstile> x \<Rightarrow>* y"
-proof (induction rule: rtrancl_derive_induct)
+proof (induction rule: derives_induct)
   case base
   then show ?case by auto
 next
@@ -459,7 +459,7 @@ lemma Expand_derives_sound:
   assumes "Expand R S As \<union> S \<turnstile> u \<Rightarrow>* v"
   shows "R \<union> S \<turnstile> u \<Rightarrow>* v"
   using assms(2)
-proof (induction rule: rtrancl_derive_induct)
+proof (induction rule: derives_induct)
   case base
   then show ?case by auto
 next

@@ -242,7 +242,7 @@ qed
 lemma \<U>_r20: 
   assumes "set ps \<turnstile> u \<Rightarrow>* map Tm v" "\<U> ps ps'"
   shows "set ps' \<turnstile> u \<Rightarrow>* map Tm v"
-  using assms proof (induction rule: derives_induct')
+  using assms proof (induction rule: converse_drives_induct)
   case base
   then show ?case by blast
 next

@@ -482,7 +482,7 @@ next
   show ?case by blast
 qed
 
-lemma rtrancl_derive_induct[consumes 1, case_names base step]:
+lemma derives_induct[consumes 1, case_names base step]:
   assumes "P \<turnstile> xs \<Rightarrow>* ys"
   and "Q xs"
   and "\<And>u A v w. \<lbrakk> P \<turnstile> xs \<Rightarrow>* u @ [Nt A] @ v; Q (u @ [Nt A] @ v); (A,w) \<in> P \<rbrakk> \<Longrightarrow> Q (u @ w @ v)"
@@ -496,7 +496,7 @@ next
   from derive.cases[OF step(2)] step(1,3-) show ?case by metis
 qed
 
-lemma derives_induct'[consumes 1, case_names base step]:
+lemma converse_drives_induct[consumes 1, case_names base step]:
   assumes "P \<turnstile> xs \<Rightarrow>* ys"
   and Base: "Q ys"
   and Step: "\<And>u A v w. \<lbrakk> P \<turnstile> u @ [Nt A] @ v \<Rightarrow>* ys; Q (u @ w @ v); (A,w) \<in> P \<rbrakk> \<Longrightarrow> Q (u @ [Nt A] @ v)"
@@ -507,7 +507,7 @@ lemma derives_induct'[consumes 1, case_names base step]:
 
 
 lemma derives_NilD: "P \<turnstile> w \<Rightarrow>* [] \<Longrightarrow> s \<in> set w \<Longrightarrow> P \<turnstile> [s] \<Rightarrow>* []"
-proof(induction arbitrary: s rule: derives_induct')
+proof(induction arbitrary: s rule: converse_drives_induct)
   case base
   then show ?case by simp
 next
@@ -518,7 +518,7 @@ qed
 
 
 text \<open>Bottom-up definition of \<open>\<Rightarrow>*\<close>. Single definition yields more compact inductions.
-But \<open>rtrancl_derive_induct\<close> may already do the job.\<close>
+But \<open>derives_induct\<close> may already do the job.\<close>
 
 inductive derives_bu :: "('n, 't) Prods \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t) syms \<Rightarrow> bool"
   ("(2_ \<turnstile>/ (_/ \<Rightarrow>bu/ _))" [50, 0, 50] 50) for P :: "('n, 't) Prods"
@@ -538,7 +538,7 @@ next
 qed
 
 lemma derives_bu_if: "P \<turnstile> \<alpha> \<Rightarrow>* \<beta> \<Longrightarrow> P \<turnstile> \<alpha> \<Rightarrow>bu \<beta>"
-proof(induction rule: rtrancl_derive_induct)
+proof(induction rule: derives_induct)
   case base
   then show ?case by (simp add: bu_refl)
 next
@@ -849,7 +849,7 @@ lemma Eps_free_derives_Nil:
   assumes R: "Eps_free R" shows "R \<turnstile> l \<Rightarrow>* [] \<longleftrightarrow> l = []" (is "?l \<longleftrightarrow> ?r")
 proof
   show "?l \<Longrightarrow> ?r"
-  proof (induction rule: derives_induct')
+  proof (induction rule: converse_drives_induct)
     case base
     show ?case by simp
   next

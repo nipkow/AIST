@@ -230,7 +230,7 @@ lemma \<N>_r15:
     and "v \<in> set (eps_closure ps u) \<and> (v \<noteq> [])"
   shows "set ps' \<turnstile> [Nt S] \<Rightarrow>* v"
   using assms
-proof (induction u arbitrary: v rule: rtrancl_derive_induct)
+proof (induction u arbitrary: v rule: derives_induct)
   case base
   then show ?case
     by (cases "nullable ps (Nt S)") auto

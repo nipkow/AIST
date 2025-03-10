@@ -163,7 +163,7 @@ lemma map_derives_imp_map:
   assumes "(map_Prods_Nt f P) \<turnstile> map (map_Nt f) u \<Rightarrow>* fv"
   shows "\<exists>v. fv = map (map_Nt f) v"
   using assms
-proof(induction rule: rtrancl_derive_induct)
+proof(induction rule: derives_induct)
   case base
   then show ?case by auto
 next
@@ -237,7 +237,7 @@ proof  -
       assume "w \<in> L ?G"
       then have "P \<turnstile> [Nt X] \<Rightarrow>* map Tm w" using CFG.Lang_def by fastforce
       then have "\<exists>n. map Tm w = ([Tm a]\<^sup>*n) @ [Nt X] \<or> (map Tm w::('n, 'a)syms) = ([Tm a]\<^sup>*n)"
-      proof(induction rule: rtrancl_derive_induct)
+      proof(induction rule: derives_induct)
         case base
         then show ?case by auto
       next
@@ -255,7 +255,7 @@ proof  -
         then show ?case
         proof
           assume "w' = [Tm a, Nt X]"
-          then have "u @ w' @ v = ([Tm a]\<^sup>*(Suc n)) @ [Nt X]" using uv_eq by (simp add: repl_append2) 
+          then have "u @ w' @ v = ([Tm a]\<^sup>*(Suc n)) @ [Nt X]" using uv_eq by (simp add: replicate_append_same)
           then show ?case by blast
         next
           assume "w' = []"
@@ -301,7 +301,7 @@ proof  -
       assume "w \<in> L ?G"
       then have "P \<turnstile> [Nt X] \<Rightarrow>* map Tm w" using CFG.Lang_def by fastforce
       then have "\<exists>n. map Tm w = ([Tm a]\<^sup>*n) @ [Nt X] @ ([Tm b]\<^sup>*n) \<or> (map Tm w::('n, 'a)syms) = ([Tm a]\<^sup>*n) @ ([Tm b]\<^sup>*n)"
-      proof(induction rule: rtrancl_derive_induct)
+      proof(induction rule: derives_induct)
         case base
         have "[Nt X] = ([Tm a]\<^sup>*0) @ [Nt X] @ ([Tm b]\<^sup>*0)" by auto
         then show ?case by fast

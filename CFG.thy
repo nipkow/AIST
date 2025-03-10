@@ -104,11 +104,22 @@ fresh: "fresh ps \<notin> Nts(set ps)"
 lemma inj_Nt: "inj Nt"
 by (simp add: inj_def)
 
+lemma map_Nt_eq_map_Nt_iff[simp]: "map Nt u = map Nt v \<longleftrightarrow> u = v"
+by(rule inj_map_eq_map[OF inj_Nt])
+
+lemma map_Nt_eq_map_Tm_iff[simp]: "map Nt u = map Tm v \<longleftrightarrow> u = [] \<and> v = []"
+by (cases u) auto
+
+lemmas map_Tm_eq_map_Nt_iff[simp] = eq_iff_swap[OF map_Nt_eq_map_Tm_iff]
+
 lemma nts_of_syms_Cons: "nts_of_syms (a#v) = (case a of Nt A \<Rightarrow> {A} | _ \<Rightarrow> {}) \<union> nts_of_syms v"
 by (auto simp: nts_of_syms_def split: sym.split)
 
 lemma nts_of_syms_append[simp]: "nts_of_syms (u @ v) = nts_of_syms u \<union> nts_of_syms v"
 by (auto simp: nts_of_syms_def)
+
+lemma nts_of_syms_map_Nt[simp]: "nts_of_syms (map Nt ns) = set ns"
+unfolding nts_of_syms_def by auto
 
 lemma Syms_simps[simp]:
   "Syms {} = {}"
@@ -688,6 +699,47 @@ lemma derivels_map_Tm_append:
   "P \<turnstile> map Tm w @ u \<Rightarrow>l* v \<longleftrightarrow> (\<exists>x. v = map Tm w @ x \<and> P \<turnstile> u \<Rightarrow>l* x)"
   by (metis deriveln_map_Tm_append rtranclp_power)
 
+lemma derivel_not_elim_Tm:
+  assumes "P \<turnstile> xs \<Rightarrow>l map Nt w"
+  shows "\<exists>v. xs = map Nt v"
+proof -
+  from assms obtain A \<alpha> u xs' where
+         A_w: "(A, \<alpha>)\<in>P"
+      and xs: "xs = map Tm u @ Nt A # xs'"
+      and ys: "map Nt w = map Tm u @ \<alpha> @ xs'"
+    unfolding derivel_iff by fast
+
+  from ys have u1: "u = []"
+    by (metis Nil_is_append_conv Nil_is_map_conv hd_append list.map_sel(1) sym.simps(4))
+  moreover from ys obtain u' where "xs' = map Nt u'"
+    by (metis append_eq_map_conv)
+
+  ultimately have "xs = map Nt (A # u')"
+    by (simp add: xs)
+  then show ?thesis by blast
+qed
+
+lemma deriveln_not_elim_Tm:
+  assumes "P \<turnstile> xs \<Rightarrow>l(n) map Nt w"
+  shows "\<exists>v. xs = map Nt v"
+using assms
+proof (induction n arbitrary: xs)
+  case 0
+  then show ?case by auto
+next
+  case (Suc n)
+  then obtain z where "P \<turnstile> xs \<Rightarrow>l z" and "P \<turnstile> z \<Rightarrow>l(n) map Nt w"
+    using relpowp_Suc_E2 by metis
+  with Suc show ?case using derivel_not_elim_Tm
+    by blast
+qed
+
+lemma decomp_derivel_map_Nts:
+  assumes "P \<turnstile> map Nt Xs \<Rightarrow>l map Nt Zs"
+  shows "\<exists>X Xs' Ys. Xs = X # Xs' \<and> P \<turnstile> [Nt X] \<Rightarrow>l map Nt Ys \<and> Zs = Ys @ Xs'"
+using assms unfolding derivel_iff
+by (fastforce simp: map_eq_append_conv split: prod.splits)
+
 lemma derivel_imp_derive: "P \<turnstile> u \<Rightarrow>l v \<Longrightarrow> P \<turnstile> u \<Rightarrow> v"
   using derive.simps derivel.cases self_append_conv2 by fastforce
 
@@ -871,5 +923,33 @@ proof
     then show ?case by (auto simp: Eps_free_Nil[OF R])
   qed
 qed auto
+
+lemma Eps_free_derivels_Nil: "Eps_free R \<Longrightarrow> R \<turnstile> l \<Rightarrow>l* [] \<longleftrightarrow> l = []"
+by (meson Eps_free_derives_Nil derivels_from_empty derivels_imp_derives)
+
+lemma Eps_free_deriveln_Nil: "Eps_free R \<Longrightarrow> R \<turnstile> l \<Rightarrow>l(n) [] \<Longrightarrow> l = []"
+by (metis Eps_free_derivels_Nil relpowp_imp_rtranclp)
+
+lemma decomp_deriveln_map_Nts:
+  assumes "Eps_free P"
+  shows "P \<turnstile> Nt X # map Nt Xs \<Rightarrow>l(n) map Nt Zs \<Longrightarrow>
+     \<exists>Ys'. Ys' @ Xs = Zs \<and> P \<turnstile> [Nt X] \<Rightarrow>l(n) map Nt Ys'"
+proof (induction n arbitrary: Zs)
+  case 0
+  then show ?case
+    by (auto)
+next
+  case (Suc n)
+  then obtain ys where n: "P \<turnstile> Nt X # map Nt Xs \<Rightarrow>l(n) ys" and "P \<turnstile> ys \<Rightarrow>l map Nt Zs"
+    using relpowp_Suc_E by metis
+  from \<open>P \<turnstile> ys \<Rightarrow>l map Nt Zs\<close> obtain Ys where "ys = map Nt Ys"
+    using derivel_not_elim_Tm by blast
+  from Suc.IH[of Ys] this n
+  obtain Ys' where "Ys = Ys' @ Xs \<and> P \<turnstile> [Nt X] \<Rightarrow>l(n) map Nt Ys'" by auto
+  moreover from \<open>ys = _\<close> \<open>P \<turnstile> ys \<Rightarrow>l map Nt Zs\<close> decomp_derivel_map_Nts[of P Ys Zs]
+  obtain Y Xs' Ysa where "Ys = Y # Xs' \<and> P \<turnstile> [Nt Y] \<Rightarrow>l map Nt Ysa \<and> Zs = Ysa @ Xs'" by auto
+  ultimately show ?case using Eps_free_deriveln_Nil[OF assms, of n "[Nt X]"]
+    by (auto simp: Cons_eq_append_conv derivel_Nt_Cons relpowp_Suc_I)
+qed
 
 end

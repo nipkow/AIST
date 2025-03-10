@@ -37,7 +37,7 @@ theorem "Lang (rm_unproductive P) A = Lang P A"
             (* should follow from A \<in> productive P, but I couldn't figure it out *)
             then have "rm_unproductive P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
               using \<open>A \<in> productive P\<close>
-              proof (induction rule: rtrancl_derive_induct)
+              proof (induction rule: derives_induct)
                 case base
                 then show ?case by simp
               next

@@ -53,7 +53,7 @@ qed
 
 (* This direction is slightly more interesting *)
 theorem derivs_if_derives_eps_closure: "eps_closure P \<turnstile> \<alpha> \<Rightarrow>* \<beta> \<Longrightarrow> P \<turnstile> \<alpha> \<Rightarrow>* \<beta>"
-proof (induction rule: rtrancl_derive_induct)
+proof (induction rule: derives_induct)
   case base
   then show ?case
     by simp
@@ -90,7 +90,7 @@ the main theorem below, commented out, which may be of some use (but may also
 be wastes of time) *)
 lemma derivs_rm_eps_if_derives_eps_closure: 
   "\<lbrakk>eps_closure P \<turnstile> \<alpha> \<Rightarrow>* \<beta> ; \<beta> \<noteq> []\<rbrakk> \<Longrightarrow> (rm_eps P \<turnstile> \<alpha> \<Rightarrow>* \<beta>)"
-proof (induction rule: rtrancl_derive_induct)
+proof (induction rule: derives_induct)
   case base
   then show ?case by simp
 next
@@ -145,7 +145,7 @@ qed
       moreover have "map Tm w \<noteq> []"
         using \<open>w \<in> Lang P A - {[]}\<close> by blast
       ultimately have "rm_eps P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
-        proof (induction rule: rtrancl_derive_induct)
+        proof (induction rule: derives_induct)
           case base
           then show ?case by simp
         next
@@ -197,7 +197,7 @@ qed
       then have "eps_closure P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
         by (metis (no_types, lifting) Collect_mono_iff Lang_def Lang_eps_closure_incr)
       then have "rm_eps P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
-        proof (induction rule: rtrancl_derive_induct)
+        proof (induction rule: derives_induct)
           case base
           then show ?case by simp
         next

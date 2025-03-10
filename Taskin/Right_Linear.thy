@@ -559,7 +559,7 @@ lemma rlin2_derive:
       and "v2 = u1 @ [Nt B] @ u2" 
       and "rlin2 P"
     shows "\<exists>w. u1 = map Tm w \<and> u2 = []"
-using assms proof (induction arbitrary: u1 B u2 rule: rtrancl_derive_induct)
+using assms proof (induction arbitrary: u1 B u2 rule: derives_induct)
   case base
   then show ?case
     by (simp add: append_eq_Cons_conv)

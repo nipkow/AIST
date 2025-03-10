@@ -47,7 +47,7 @@ qed
 
 (* This direction is slightly more interesting *)
 theorem derivs_if_derives_unit_closure: "unit_closure P \<turnstile> \<alpha> \<Rightarrow>* \<beta> \<Longrightarrow> P \<turnstile> \<alpha> \<Rightarrow>* \<beta>"
-proof (induction rule: rtrancl_derive_induct)
+proof (induction rule: derives_induct)
   case base
   then show ?case
     by simp
@@ -158,7 +158,7 @@ by (meson deriven_rm_unit_if_unit_closure rtranclp_power)
 lemma derivs_rm_unit_if_derives_unit_closure: 
   "unit_closure P \<turnstile> \<alpha> \<Rightarrow>* map Tm \<beta> \<Longrightarrow> rm_unit P \<turnstile> \<alpha> \<Rightarrow>* map Tm \<beta>"
 (* I think this is the induction rule we needed, although I can't be sure *)
-proof (induction rule: derives_induct' )
+proof (induction rule: converse_drives_induct )
     case base
   then show ?case by simp
 next

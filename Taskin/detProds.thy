@@ -205,7 +205,7 @@ text
 
 lemma if_part:
   "set (substP ps (Nt B) v) \<turnstile> [Nt A] \<Rightarrow>* u \<Longrightarrow> set ((B,v) # ps) \<turnstile> [Nt A] \<Rightarrow>* u"
-proof (induction rule: rtrancl_derive_induct)
+proof (induction rule: derives_induct)
   case (step u A v w)
   then show ?case 
     by simp (metis (no_types, lifting) derives_append derives_prepend list.simps(15) rtranclp_trans step.IH substP_der)
@@ -222,7 +222,7 @@ lemma substPW_der:
       and B_notin_dom: "B \<notin> lhss ps"
       and B_notin_v: "Nt B \<notin> set v"
     shows "set (substP ps (Nt B) v) \<turnstile> [Nt A] \<Rightarrow>* substW u (Nt B) v"
-using assms(1) proof (induction rule: rtrancl_derive_induct)
+using assms(1) proof (induction rule: derives_induct)
   case base
   then show ?case using assms(2) by simp
 next

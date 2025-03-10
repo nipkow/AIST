@@ -545,10 +545,10 @@ qed
 
 
 section \<open>Derivation Witnesses\<close>
+ (* TODO mv ? *)
 
 
 
-section \<open>Derivation Witnesses with Records\<close>
   (* Record for a single derivation step *)
 record ('n,'t) derivation_step =
   before :: "('n,'t) syms"       \<comment> \<open>the string before applying the step\<close>
@@ -584,7 +584,7 @@ definition DerWits :: "('n,'t) Prods \<Rightarrow> ('n,'t) syms \<Rightarrow> ('
 
 
 
-value \<open>(0::nat)-1\<close>
+
 
 
 lemma DerSeqsI[intro]: 
@@ -1414,14 +1414,47 @@ corollary derives_iff_DerWits:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 lemma length_append_one: \<open>length (l1 @ [l]) = (length l1 +1)\<close> by simp
-
-
-
-
-
-
-
 
 
 

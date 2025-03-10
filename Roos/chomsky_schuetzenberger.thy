@@ -1678,7 +1678,7 @@ proof -
             also have \<open>... = length (h_ext (after (last derw'_front)))\<close> using h_after_last by simp
             finally have length_prefix_derw_step: \<open>(length (prefix derw_step)+1) \<le> length (h_ext (after (last derw'_front)))\<close> .
 
-(* now we have to find the right prefix *)
+            (* now we have to find the right prefix *)
             define before' where \<open>before' = after (last derw'_front)\<close>
             define i_prefix' where \<open>i_prefix' = (letters_needed_until_produced (length (prefix derw_step)+1) (after (last derw'_front))) - 1\<close>
             define prefix' where \<open>prefix' = take i_prefix' (after (last derw'_front))\<close>

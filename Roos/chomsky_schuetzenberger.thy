@@ -102,6 +102,378 @@ text\<open>The bracket language over a set R. Every element r \<in> R will get a
 definition dyck_language :: "'a set \<Rightarrow> (bracket  \<times> ('a)) list set" where
   "dyck_language R = {w. (balanced w) \<and> (\<forall>(br,r) \<in> (set w). r \<in> R)}"
 
+inductive balanced_terminals :: "('n, bracket  \<times> ('a)) syms \<Rightarrow> bool" where
+  empty[intro]: "balanced_terminals []" |
+  Nt[intro]: "balanced_terminals [Nt A]" |
+  pair[intro]: "balanced_terminals xs \<Longrightarrow> balanced_terminals (Tm (Op, g) # xs @ [Tm (Cl, g)])" |
+  concat[intro]: "balanced_terminals xs \<Longrightarrow> balanced_terminals ys \<Longrightarrow> balanced_terminals (xs @ ys)"
+
+
+
+
+
+
+print_statement balanced_terminals.induct[where x = \<open>map Tm xs\<close>]
+
+lemma map_Tm_inject: "map Tm xs = map Tm ys \<Longrightarrow> xs = ys"
+  by (induction xs arbitrary: ys; auto)
+
+
+lemma split_tm_append: \<open>xs @ ys = map Tm zs \<Longrightarrow> \<exists> xs' ys'. (xs' @ ys' = zs) \<and> (xs = map Tm xs') \<and> (ys = map Tm ys')\<close>
+by (metis append_eq_map_conv)
+
+
+lemma balanced_imp_balanced_terminals: \<open>balanced xs \<Longrightarrow> balanced_terminals (map Tm xs)\<close>
+by(induction xs rule: balanced.induct; auto)
+
+
+lemma balanced_terminals_imp_balanced_for_tms: \<open>balanced_terminals (map Tm xs') \<Longrightarrow> balanced xs'\<close>
+proof-
+assume assm: \<open>balanced_terminals (map Tm xs':: ('a, bracket \<times> 'b) sym list)\<close>
+define xs::\<open>('a, bracket \<times> 'b) sym list\<close> where \<open>xs = map Tm xs'\<close> \<comment> \<open>need to enforce the same non-terminal type for xs as for map Tm xs' ...\<close>
+then have \<open>balanced_terminals xs\<close> using xs_def assm by simp
+
+from \<open>balanced_terminals xs\<close> \<open>xs = map Tm xs'\<close> show ?thesis
+proof(induction xs arbitrary: xs' rule: balanced_terminals.induct)
+  case (pair xs g)
+  obtain xs'' where \<open>xs = map Tm xs''\<close> and \<open>xs' = ((Op, g) # (xs'') @ [(Cl, g)])\<close> using split_tm_append local.pair.prems by blast
+  then have \<open>balanced xs''\<close> by (simp add: local.pair.IH)
+  then have \<open>balanced ((Op, g) # (xs'') @ [(Cl, g)])\<close> by auto
+  then show ?case by (simp add: \<open>xs' = (Op, g) # xs'' @ [(Cl, g)]\<close>)
+next
+  case (concat xs ys)
+  then show ?case by (metis chomsky_schuetzenberger.balanced.concat split_tm_append)
+qed auto
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+section\<open>Definition of a stack machine using an inductive relation\<close>
+
+
+text\<open>takes input symbol and stack, gives the next stack\<close>
+inductive stack_derive :: "('n, bracket \<times> 'a) sym \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> bool" 
+  ("_ \<turnstile> _ \<rightarrow> _" [50, 0, 50] 50) where
+  op_bracket: "Tm (Op, g) \<turnstile> stack \<rightarrow> g # stack" |
+  cl_bracket: "Tm (Cl, g) \<turnstile> g # stack \<rightarrow> stack" |
+  nt_skip: "Nt A \<turnstile> stack \<rightarrow> stack"
+
+
+inductive stack_derives :: "('n, bracket \<times> 'a) syms \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> bool" 
+  ("_ \<turnstile> _ \<rightarrow>* _" [50, 0, 50] 50) where
+  empty: "[] \<turnstile> stack \<rightarrow>* stack" |
+  step: "x \<turnstile> stack \<rightarrow> mid  \<Longrightarrow>  xs \<turnstile> mid \<rightarrow>* final \<Longrightarrow> (x # xs) \<turnstile> stack \<rightarrow>* final"
+
+
+declare stack_derive.intros [intro]
+declare stack_derives.intros [intro]
+
+
+inductive_cases [elim]: "(Tm (Op, g)) \<turnstile> stack \<rightarrow> stack'"
+inductive_cases [elim]: "(Tm (Cl, g)) \<turnstile> h # stack \<rightarrow> stack'"
+inductive_cases [elim]: "(Nt A) \<turnstile> stack \<rightarrow> stack'"
+
+
+inductive_cases [elim]: "x # xs \<turnstile> stack \<rightarrow>* stack'"
+inductive_cases [elim]: "[] \<turnstile> stack \<rightarrow>* stack'"
+
+
+
+definition accepts :: "('n, bracket \<times> 'a) syms \<Rightarrow> bool" where
+  "accepts w \<equiv>  w \<turnstile> [] \<rightarrow>* []"
+
+
+
+
+lemma stack_derive_append:
+assumes \<open>xs \<turnstile> stack \<rightarrow>* stack'\<close>
+and \<open>ys \<turnstile> stack' \<rightarrow>* stack''\<close>
+shows \<open>xs @ ys \<turnstile> stack \<rightarrow>* stack''\<close>
+using assms by(induction rule: stack_derives.induct; auto)
+
+
+
+lemma stack_derives_empty[iff]: \<open>([] \<turnstile> stack1 \<rightarrow>* stack2) = (stack1 = stack2)\<close> using stack_derives.simps[of "[]", simplified] by metis
+
+lemma stack_derives_one[iff]: \<open>([a] \<turnstile> [] \<rightarrow>* stack) = (a \<turnstile> [] \<rightarrow> stack)\<close> using stack_derives.simps[of \<open>[a]\<close> "[]" "stack" , simplified] by simp
+
+lemma stack_derive_one[iff]: \<open>(a \<turnstile> [] \<rightarrow> stack) = ((\<exists>g. a = Tm (Op, g) \<and> stack = [g]) \<or> (\<exists>A. a = Nt A) \<and> stack = [])\<close> using stack_derive.simps[of \<open>a\<close> \<open>[]\<close> stack, simplified] by simp
+
+
+
+
+
+
+
+
+
+
+
+
+lemma stack_derive_append_stack:
+  assumes "xs \<turnstile> start \<rightarrow>* stack'"
+  and \<open>\<forall>xss. suffix xss xs \<Longrightarrow> xss \<turnstile> \<close>
+  shows "xs \<turnstile> s \<rightarrow>* stack' @ s"
+using assms proof(induction xs \<open>[]::'b list\<close> stack' arbitrary: s rule: stack_derives.induct)
+  case empty
+  then show ?case by auto
+next
+  case (step x mid xs final)
+  then show ?case
+qed
+
+
+
+
+
+
+
+
+
+
+lemma
+assumes \<open>xs \<turnstile>[] \<rightarrow> stack'\<close>
+shows \<open>xs \<turnstile>s' \<rightarrow> stack' @ s'\<close>
+using assms proof(induction s')
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a s')
+  then have \<open>xs \<turnstile>s' \<rightarrow> stack' @ s'\<close> by simp
+  show      \<open>xs \<turnstile>a # s' \<rightarrow> stack' @ a # s'\<close>
+  proof(cases a)
+    
+    
+qed
+
+
+
+
+
+lemma 
+assumes \<open>xs \<turnstile> [] \<rightarrow> l\<close>
+shows \<open>xs \<turnstile> s' \<rightarrow> l @ s'\<close>
+using assms proof(induction xs \<open>[]::'b list\<close> \<open>l\<close> rule: stack_derive.induct)
+  case empty
+  then show ?case by auto
+next
+  case (op_bracket xs g stack')
+
+  then have \<open>Tm (Op, g) # xs \<turnstile>[] \<rightarrow> stack'\<close> using stack_derive.op_bracket[where ?xs = \<open>xs\<close> and ?stack = \<open>[]\<close> and stack' = \<open>stack'\<close>] by auto
+  then show ?case 
+next
+  case cl_bracket
+  then show ?case sorry
+next
+  case (nt_skip xs stack' A)
+  then show ?case sorry
+qed
+
+
+
+lemma balanced_terminals_imp_accepts:
+  "balanced_terminals w \<Longrightarrow> accepts w"
+proof (induction w rule: balanced_terminals.induct)
+  case empty
+  then show ?case unfolding accepts_def by auto
+next
+  case (Nt A)
+  then show ?case unfolding accepts_def by auto
+next
+  case (pair xs g)
+  then have \<open>xs \<turnstile> [] \<rightarrow> []\<close> using accepts_def by auto
+  then have \<open>xs \<turnstile> [g] \<rightarrow> [g]\<close> sorry
+  then have \<open>(Tm (Op, g) # xs) \<turnstile> [] \<rightarrow> [g]\<close> by blast
+  then have \<open>(Tm (Op, g) # xs @ [Tm (Cl, g)]) \<turnstile> [] \<rightarrow> []\<close> by (metis (mono_tags, lifting) append_Cons cl_bracket empty stack_derive_append)
+  thus ?case by (simp add: accepts_def)
+next
+  case (concat xs ys)
+  then show ?case unfolding accepts_def by (simp add: stack_derive_append)
+qed
+
+
+
+
+print_statement stack_derive.induct[of w \<open>[]\<close> \<open>[]\<close>]
+
+lemma accepts_imp_balanced_terminals:
+  "accepts w \<Longrightarrow> balanced_terminals w"
+proof -
+  assume "accepts w"
+  then have "w \<turnstile> [] \<rightarrow> []" by (simp add: accepts_def)
+  then show "balanced_terminals w"
+  proof (induction w \<open>[]\<close> \<open>[]\<close> rule: stack_derive.induct)
+    case (empty stack)
+    then show ?case by auto
+  next
+    case (op_bracket xs g stack stack')
+    then show ?case sorry
+  next
+    case (cl_bracket xs stack stack' g)
+    then show ?case sorry
+  next
+    case (nt_skip xs stack stack' A)
+    then show ?case sorry
+  qed
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+lemma \<open>balanced_terminals (xs@ys) \<Longrightarrow> balanced_terminals xs \<Longrightarrow> balanced_terminals ys\<close>
+proof(induction \<open>xs@ys\<close> rule: balanced_terminals.induct)
+  case empty
+  then show ?case by auto
+next
+  case (Nt A)
+  then show ?case by (metis (no_types, lifting) Cons_eq_append_conv append_is_Nil_conv chomsky_schuetzenberger.balanced_terminals.Nt empty)
+next
+  case (pair xs' g)
+  then have \<open>balanced_terminals (xs @ ys)\<close> by (metis chomsky_schuetzenberger.balanced_terminals.pair)
+
+  with pair show ?case
+next
+  case (concat xs ys)
+  then show ?case sorry
+qed
+
+
+lemma \<open>balanced_terminals (u @ [Nt A] @ v) \<Longrightarrow> balanced_terminals w \<Longrightarrow> balanced_terminals (u @ w @ v)\<close>
+proof(induction \<open>u @ [Nt A] @ v\<close> arbitrary: u v rule: balanced_terminals.induct)
+  case empty
+  then show ?case by simp
+next
+  case (Nt A)
+  then have \<open>u =  []\<close> and \<open>v = []\<close> apply (simp add: Cons_eq_append_conv) by (metis (no_types, lifting) List.list.distinct(1) Nil_is_append_conv append_eq_Cons_conv local.Nt.hyps)
+  then show ?case by (simp add: local.Nt.prems)
+next
+  case (pair xs g)
+
+  have \<open>length u > 0 \<and> length v > 0\<close> by(rule ccontr, cases \<open>length u = 0\<close>; (use pair in auto))
+  then have \<open>length u > 0\<close> and \<open>length v > 0\<close> by simp+
+  then obtain u' where \<open>[Tm (Op, g)] @ u' = u\<close> by (metis Cons_eq_append_conv eq_Nil_appendI length_0_conv less_irrefl_nat local.pair.hyps(3))
+  define v' where \<open> v' = take (length v -1) v\<close>
+  then have \<open>take (length v -1) v @ [v ! (length v -1)] = v\<close> using \<open>0 < length v\<close> by auto
+  moreover have \<open>v ! (length v -1) = Tm (Cl, g)\<close> by (metis (no_types, lifting) List.last.simps append_is_Nil_conv calculation last_appendR local.pair.hyps(3) not_Cons_self2)
+  ultimately have \<open>v' @ [Tm (Cl, g)] = v\<close> using v'_def by argo
+  then have \<open>xs = u' @ [Nt A] @ v'\<close> using pair(3) using \<open>[Tm (Op, g)] @ u' = u\<close> by force
+  then have \<open>balanced_terminals (u' @ w @ v')\<close> by (simp add: local.pair.hyps(2) local.pair.prems)
+  then have \<open>balanced_terminals ([Tm (Op, g)] @ (u' @ w @ v') @ [Tm (Cl, g)])\<close> using chomsky_schuetzenberger.balanced_terminals.pair by force
+  then show ?case using \<open>[Tm (Op, g)] @ u' = u\<close> \<open>v' @ [Tm (Cl, g)] = v\<close> by force
+next
+  case (concat xs ys)
+  then show ?case
+  proof(cases \<open>length xs \<ge> length u + 1\<close>)
+    case True
+    have \<open>xs @ ys = u @ [Nt A] @ v\<close> using concat by simp
+    with True obtain v' where \<open>xs = (u @ [Nt A]) @ v'\<close> sorry
+    then have \<open>balanced_terminals (u @ w @ v')\<close> using List.append.assoc local.concat.hyps(2) local.concat.prems by blast
+
+    then show ?thesis 
+  next
+    case False
+    then show ?thesis sorry
+  qed
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 text\<open>The transformation of old productions to new productions used in the proof.\<close>
@@ -1478,6 +1850,45 @@ lemma transform_production_one_step_bu:
   by (metis assms(2) bu_prod fst_transform_production image_eqI surjective_pairing)
 
 
+
+
+
+
+
+
+
+lemma P'_balanced:
+assumes \<open>(image transform_production P) \<turnstile> [Nt A] \<Rightarrow>* x\<close>
+and \<open>\<forall>p \<in> P. CNF_rule p\<close>
+shows \<open>balanced_terminals x\<close>
+using assms proof(induction rule: derives_induct)
+  case base
+  then show ?case by (simp add: Nt)
+
+next
+  case (step u A v w)
+  have \<open>balanced_terminals (u @ [Nt A] @ v)\<close> using local.step.IH local.step.prems by auto
+
+  have \<open>balanced_terminals w\<close> sorry
+  then show ?case 
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 text\<open>The chomsky-scheutzenberger theorem that we want to prove.\<close>
 lemma chomsky_schuetzenberger :
   fixes L::\<open>'t list set\<close>
@@ -1497,6 +1908,21 @@ proof -
 
   have \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (dyck_language \<Gamma>) \<inter> (Re P A)\<close> (* This is the hard part of the proof - the local lemma in the textbook *)
   proof-
+
+    have \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* x \<Longrightarrow> balanced_terminals x\<close>
+    proof-
+    fix A x
+    assume \<open>P' \<turnstile> [Nt A] \<Rightarrow>* x\<close>
+    then show \<open>balanced_terminals x\<close>
+    proof(induction rule: derives_induct)
+      case base
+      then show ?case sorry
+    next
+      case (step u A v w)
+      then show ?case sorry
+    qed
+
+    qed
     (*
     have \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* x \<Longrightarrow> (strip_tm_kill_Nt x) \<in> (dyck_language \<Gamma>)\<close>
     proof-

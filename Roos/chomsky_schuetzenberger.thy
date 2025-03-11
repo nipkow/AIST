@@ -102,6 +102,7 @@ text\<open>The bracket language over a set R. Every element r \<in> R will get a
 definition dyck_language :: "'a set \<Rightarrow> (bracket  \<times> ('a)) list set" where
   "dyck_language R = {w. (balanced w) \<and> (\<forall>(br,r) \<in> (set w). r \<in> R)}"
 
+text\<open>balanced strings of brackets that may contain arbitrary interspersion of Nonterminals\<close>
 inductive balanced_terminals :: "('n, bracket  \<times> ('a)) syms \<Rightarrow> bool" where
   empty[intro]: "balanced_terminals []" |
   Nt[intro]: "balanced_terminals [Nt A]" |

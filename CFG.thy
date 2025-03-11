@@ -296,14 +296,18 @@ lemma derives_append_decomp:
   by (auto simp: rtranclp_power deriven_append_decomp)
 
 lemma derives_concat:
-  "\<forall>i < n. P \<turnstile> f i \<Rightarrow>* g i \<Longrightarrow> P \<turnstile> concat(map f [0..<n]) \<Rightarrow>* concat(map g [0..<n])"
-proof(induction n)
-  case 0
+  "\<forall>i \<in> set is. P \<turnstile> f i \<Rightarrow>* g i \<Longrightarrow> P \<turnstile> concat(map f is) \<Rightarrow>* concat(map g is)"
+proof(induction "is")
+  case Nil
   then show ?case by auto
 next
-  case (Suc n)
+  case Cons
   thus ?case by(auto simp: derives_append_decomp less_Suc_eq)
 qed
+
+lemma derives_concat1:
+  "\<forall>i \<in> set is. P \<turnstile> [f i] \<Rightarrow>* g i \<Longrightarrow> P \<turnstile> map f is \<Rightarrow>* concat(map g is)"
+using derives_concat[where f = "\<lambda>i. [f i]"] by auto
 
 lemma derive_Cons:
 "P \<turnstile> u \<Rightarrow> v \<Longrightarrow> P \<turnstile> a#u \<Rightarrow> a#v"

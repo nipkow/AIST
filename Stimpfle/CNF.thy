@@ -9,7 +9,7 @@ definition isNt :: "('n, 't) sym \<Rightarrow> bool" where
   "isNt S = (\<exists>A. S = Nt A)"
 
 definition Unit_free :: "('n, 't) Prods \<Rightarrow> bool" where
-  "Unit_free Ps = (\<nexists>l A. (l,[Nt A]) \<in> Ps)"
+  "Unit_free P = (\<nexists>l A. (l,[Nt A]) \<in> P)"
 
 lemma negrImpEps_free: "\<N> ps ps' \<Longrightarrow> Eps_free (set ps')"
   unfolding \<N>_def eps_elim_def Eps_free_def by blast
@@ -23,7 +23,7 @@ lemma upgr_Eps_free:
   using assms 
   unfolding \<U>_def Eps_free_def unit_elim_def unit_prods_def new_prods_def by auto
 
-lemma Nts_correct: "A \<notin> Nts Ps \<Longrightarrow> (\<nexists>S \<alpha>. (S, \<alpha>) \<in> Ps \<and> (Nt A \<in> {Nt S} \<union> set \<alpha>))"
+lemma Nts_correct: "A \<notin> Nts P \<Longrightarrow> (\<nexists>S \<alpha>. (S, \<alpha>) \<in> P \<and> (Nt A \<in> {Nt S} \<union> set \<alpha>))"
 unfolding Nts_def nts_of_syms_def by auto
 
 (* Chomsky Normal Form *)
@@ -89,7 +89,7 @@ lemma badNtsCountSet: "(\<forall>p \<in> set ps. prodNts p = 0) \<longleftrighta
   by (induction ps) auto
 
 definition uniform :: "('n, 't) Prods \<Rightarrow> bool" where
-  "uniform Ps \<equiv> \<forall>(A, \<alpha>) \<in> Ps. (\<nexists>t. Tm t \<in> set \<alpha>) \<or> (\<exists>t. \<alpha> = [Tm t])"
+  "uniform P \<equiv> \<forall>(A, \<alpha>) \<in> P. (\<nexists>t. Tm t \<in> set \<alpha>) \<or> (\<exists>t. \<alpha> = [Tm t])"
 
 lemma uniform_badTmsCount: 
   "uniform (set ps) \<longleftrightarrow> badTmsCount ps = 0"
@@ -130,7 +130,7 @@ next
 qed
 
 definition binary :: "('n, 't) Prods \<Rightarrow> bool" where
-  "binary Ps \<equiv> \<forall>(A, \<alpha>) \<in> Ps. length \<alpha> \<le> 2"
+  "binary P \<equiv> \<forall>(A, \<alpha>) \<in> P. length \<alpha> \<le> 2"
 
 lemma binary_badNtsCount:
   assumes "uniform (set ps)" "badNtsCount ps = 0"
@@ -208,10 +208,10 @@ lemma binarizeNt_aux1:
   using assms fresh unfolding binarizeNt_def Nts_def nts_of_syms_def by fastforce
 
 lemma derives_sub:
-  assumes "Ps \<turnstile> [Nt A] \<Rightarrow> u" and "Ps \<turnstile> xs \<Rightarrow> p @ [Nt A] @ s"
-  shows "Ps \<turnstile> xs \<Rightarrow>* p @ u @ s"
+  assumes "P \<turnstile> [Nt A] \<Rightarrow> u" and "P \<turnstile> xs \<Rightarrow> p @ [Nt A] @ s"
+  shows "P \<turnstile> xs \<Rightarrow>* p @ u @ s"
 proof -
-  have "Ps \<turnstile> p @ [Nt A] @ s \<Rightarrow>* p @ u @ s"
+  have "P \<turnstile> p @ [Nt A] @ s \<Rightarrow>* p @ u @ s"
     using assms derive_append derive_prepend by blast
   thus ?thesis
     using assms(2) by simp
@@ -642,7 +642,7 @@ lemma binarizeNtRtc_Unit_free:
 
 (* proofs about Nts *)
 
-lemma Nts_aux1: "Nts (Ps \<union> Ps') = Nts Ps \<union> Nts Ps'"
+lemma Nts_aux1: "Nts (P \<union> P') = Nts P \<union> Nts P'"
   unfolding Nts_def by simp
 
 lemma uniformize_Nts: 
@@ -721,31 +721,31 @@ theorem cnf_lemma:
   using assms cnf_lemma2 cnf_lemma2Nt uniformizeRtc_Nts by fastforce
 
 (* Part 2 *)
-lemma badTmsCount_append: "badTmsCount (Ps@Ps') = badTmsCount Ps + badTmsCount Ps'"
-  by (induction Ps) auto
+lemma badTmsCount_append: "badTmsCount (ps@ps') = badTmsCount ps + badTmsCount ps'"
+  by (induction ps) auto
 
-lemma badNtsCount_append: "badNtsCount (Ps@Ps') = badNtsCount Ps + badNtsCount Ps'"
-  by (induction Ps) auto
+lemma badNtsCount_append: "badNtsCount (ps@ps') = badNtsCount ps + badNtsCount ps'"
+  by (induction ps) auto
 
 lemma badTmsCount_removeAll: 
-  assumes "prodTms p > 0" "p \<in> set Ps"
-  shows "badTmsCount (removeAll p Ps) < badTmsCount Ps"
-  using assms by (induction Ps) fastforce+
+  assumes "prodTms p > 0" "p \<in> set ps"
+  shows "badTmsCount (removeAll p ps) < badTmsCount ps"
+  using assms by (induction ps) fastforce+
 
 lemma badNtsCount_removeAll: 
-  assumes "prodNts p > 0" "p \<in> set Ps"
-  shows "badNtsCount (removeAll p Ps) < badNtsCount Ps"
-  using assms by (induction Ps) fastforce+
+  assumes "prodNts p > 0" "p \<in> set ps"
+  shows "badNtsCount (removeAll p ps) < badNtsCount ps"
+  using assms by (induction ps) fastforce+
 
 lemma badTmsCount_removeAll2:
-  assumes "prodTms p > 0" "p \<in> set Ps" "prodTms p' < prodTms p"
-  shows "badTmsCount (removeAll p Ps) + prodTms p' < badTmsCount Ps"
-  using assms by (induction Ps) fastforce+
+  assumes "prodTms p > 0" "p \<in> set ps" "prodTms p' < prodTms p"
+  shows "badTmsCount (removeAll p ps) + prodTms p' < badTmsCount ps"
+  using assms by (induction ps) fastforce+
 
 lemma badNtsCount_removeAll2:
-  assumes "prodNts p > 0" "p \<in> set Ps" "prodNts p' < prodNts p"
-  shows "badNtsCount (removeAll p Ps) + prodNts p' < badNtsCount Ps"
-  using assms by (induction Ps) fastforce+
+  assumes "prodNts p > 0" "p \<in> set ps" "prodNts p' < prodNts p"
+  shows "badNtsCount (removeAll p ps) + prodNts p' < badNtsCount ps"
+  using assms by (induction ps) fastforce+
 
 lemma lemma6_a: "uniformize A t g g' \<Longrightarrow> badTmsCount (prods g') < badTmsCount (prods g)"
 proof -
@@ -815,8 +815,8 @@ proof -
   qed
 qed
 
-lemma badTmsCount0_removeAll: "badTmsCount Ps = 0 \<Longrightarrow> badTmsCount (removeAll (l,r) Ps) = 0" 
-  by (induction Ps) auto 
+lemma badTmsCount0_removeAll: "badTmsCount ps = 0 \<Longrightarrow> badTmsCount (removeAll (l,r) ps) = 0" 
+  by (induction ps) auto 
 
 lemma slemma15_a:
   assumes "binarizeNt A B\<^sub>1 B\<^sub>2 g g'"
@@ -996,39 +996,39 @@ proof -
 qed
 
 definition CNF :: "('n, 't) Prods \<Rightarrow> bool" where
-  "CNF Ps \<equiv> (\<forall>(A,\<alpha>) \<in> Ps. (\<exists>B C. \<alpha> = [Nt B, Nt C]) \<or> (\<exists>t. \<alpha> = [Tm t]))"
+  "CNF P \<equiv> (\<forall>(A,\<alpha>) \<in> P. (\<exists>B C. \<alpha> = [Nt B, Nt C]) \<or> (\<exists>t. \<alpha> = [Tm t]))"
 
 abbreviation cnf :: "('n, 't) cfg \<Rightarrow> bool" where
   "cnf g \<equiv> CNF (set (prods g))"
 
 (* alternative form more similar to the one Jana Hofmann used *)
-lemma CNF_eq: "CNF Ps \<longleftrightarrow> (uniform Ps \<and> binary Ps \<and> Eps_free Ps \<and> Unit_free Ps)"
+lemma CNF_eq: "CNF P \<longleftrightarrow> (uniform P \<and> binary P \<and> Eps_free P \<and> Unit_free P)"
 proof 
-  assume "CNF Ps" (is "?assm")
-  hence "Eps_free Ps"
+  assume "CNF P" (is "?assm")
+  hence "Eps_free P"
     unfolding CNF_def Eps_free_def by fastforce
-  moreover have "Unit_free Ps"
+  moreover have "Unit_free P"
     using \<open>?assm\<close> unfolding CNF_def Unit_free_def isNt_def isTm_def by fastforce
-  moreover have "uniform Ps"
+  moreover have "uniform P"
   proof -
-    have "\<forall>(A,\<alpha>) \<in> Ps. (\<exists>B C. \<alpha> = [Nt B, Nt C]) \<or> (\<exists>t. \<alpha> = [Tm t])"
+    have "\<forall>(A,\<alpha>) \<in> P. (\<exists>B C. \<alpha> = [Nt B, Nt C]) \<or> (\<exists>t. \<alpha> = [Tm t])"
       using \<open>?assm\<close> unfolding CNF_def.
-    hence "\<forall>(A, \<alpha>) \<in> Ps. (\<forall>N \<in> set \<alpha>. isNt N) \<or> (\<exists>t. \<alpha> = [Tm t])"
+    hence "\<forall>(A, \<alpha>) \<in> P. (\<forall>N \<in> set \<alpha>. isNt N) \<or> (\<exists>t. \<alpha> = [Tm t])"
       unfolding isNt_def by fastforce
-    hence "\<forall>(A, \<alpha>) \<in> Ps. (\<nexists>t. Tm t \<in> set \<alpha>) \<or> (\<exists>t. \<alpha> = [Tm t])"
+    hence "\<forall>(A, \<alpha>) \<in> P. (\<nexists>t. Tm t \<in> set \<alpha>) \<or> (\<exists>t. \<alpha> = [Tm t])"
       by (auto simp: isNt_def)
-    thus "uniform Ps"
+    thus "uniform P"
       unfolding uniform_def.
   qed
-  moreover have "binary Ps"
+  moreover have "binary P"
     using \<open>?assm\<close> unfolding binary_def CNF_def by auto
-  ultimately show "uniform Ps \<and> binary Ps \<and> Eps_free Ps \<and> Unit_free Ps"
+  ultimately show "uniform P \<and> binary P \<and> Eps_free P \<and> Unit_free P"
     by blast
 next 
-  assume "uniform Ps \<and> binary Ps \<and> Eps_free Ps \<and> Unit_free Ps" (is "?assm")
-  have"\<forall>p \<in> Ps. (\<exists>B C. (snd p) = [Nt B, Nt C]) \<or> (\<exists>t. (snd p) = [Tm t])"
+  assume "uniform P \<and> binary P \<and> Eps_free P \<and> Unit_free P" (is "?assm")
+  have"\<forall>p \<in> P. (\<exists>B C. (snd p) = [Nt B, Nt C]) \<or> (\<exists>t. (snd p) = [Tm t])"
   proof
-    fix p assume "p \<in> Ps" (is "?p")
+    fix p assume "p \<in> P" (is "?p")
     obtain A \<alpha> where "(A, \<alpha>) = p" (is "?A\<alpha>")
       by (metis prod.exhaust_sel)
     hence "length \<alpha> = 1 \<or> length \<alpha> = 2"
@@ -1055,23 +1055,23 @@ next
     qed
     thus "(\<exists>B C. (snd p) = [Nt B, Nt C]) \<or> (\<exists>t. (snd p) = [Tm t])" using \<open>?A\<alpha>\<close> by auto
   qed
-  thus "CNF Ps" by (auto simp: CNF_def)
+  thus "CNF P" by (auto simp: CNF_def)
 qed
 
 (* Main Theorem: existence of cnf for all cfg with the same Language except for the empty word [] *)
 theorem cnf_exists: "\<forall>g::('n::infinite,'t) cfg. \<exists>g'::('n,'t) cfg. (cnf g') \<and> (L g' = L g - {[]})"
 proof
   fix g::"('n,'t)cfg"
-  obtain Ps\<^sub>0 where "\<N> (prods g) Ps\<^sub>0" (is "?Ps\<^sub>0")
+  obtain ps\<^sub>0 where "\<N> (prods g) ps\<^sub>0" (is "?ps\<^sub>0")
     using \<N>_exists by blast
-  obtain Ps\<^sub>u where "\<U> Ps\<^sub>0 Ps\<^sub>u" (is "?Ps\<^sub>u")
+  obtain ps\<^sub>u where "\<U> ps\<^sub>0 ps\<^sub>u" (is "?ps\<^sub>u")
     using \<U>_exists by blast
-  obtain g\<^sub>u where "g\<^sub>u = cfg Ps\<^sub>u (start g)" (is "?g\<^sub>u")
+  obtain g\<^sub>u where "g\<^sub>u = cfg ps\<^sub>u (start g)" (is "?g\<^sub>u")
     by simp
   hence 1: "Eps_free (set (prods g\<^sub>u)) \<and> Unit_free (set (prods g\<^sub>u))"
-    using \<open>?Ps\<^sub>0\<close> \<open>?Ps\<^sub>u\<close> negrImpEps_free upgrImpUnit_free upgr_Eps_free by fastforce
+    using \<open>?ps\<^sub>0\<close> \<open>?ps\<^sub>u\<close> negrImpEps_free upgrImpUnit_free upgr_Eps_free by fastforce
   have 2: "L g\<^sub>u = L g - {[]}"
-    using \<open>?Ps\<^sub>0\<close> \<open>?Ps\<^sub>u\<close> \<open>?g\<^sub>u\<close> \<N>_\<U>_lang_eq[of \<open>prods g\<close> Ps\<^sub>0 Ps\<^sub>u \<open>start g\<close>] by (simp add: \<N>_lang_eq)
+    using \<open>?ps\<^sub>0\<close> \<open>?ps\<^sub>u\<close> \<open>?g\<^sub>u\<close> \<N>_\<U>_lang_eq[of \<open>prods g\<close> ps\<^sub>0 ps\<^sub>u \<open>start g\<close>] by (simp add: \<N>_lang_eq)
   obtain g'::"('n,'t) cfg" where "uniform (set (prods g')) \<and> binary (set (prods g')) \<and> L g\<^sub>u = L g' \<and> Eps_free (set (prods g')) \<and> Unit_free (set (prods g'))" (is "?g'")
     using 1 cnf_noe_nou by blast
   hence "cnf g'" 
@@ -1084,36 +1084,36 @@ qed
 
 (* some helpful properties *)
 lemma cnf_length_derive: 
-  assumes "Ps \<turnstile> [Nt S] \<Rightarrow>* \<alpha>" "CNF Ps" 
+  assumes "P \<turnstile> [Nt S] \<Rightarrow>* \<alpha>" "CNF P" 
   shows "length \<alpha> \<ge> 1"
   using assms CNF_eq Eps_free_derives_Nil length_greater_0_conv less_eq_Suc_le by auto
 
 lemma cnf_length_derive2: 
-  assumes "Ps \<turnstile> [Nt A, Nt B] \<Rightarrow>* \<alpha>" "CNF Ps" 
+  assumes "P \<turnstile> [Nt A, Nt B] \<Rightarrow>* \<alpha>" "CNF P" 
   shows "length \<alpha> \<ge> 2"
 proof -
-  obtain u v where "Ps \<turnstile> [Nt A] \<Rightarrow>* u \<and> Ps \<turnstile> [Nt B] \<Rightarrow>* v \<and> \<alpha> = u @ v" (is "?uv")
-    using assms(1) derives_append_decomp[of Ps \<open>[Nt A]\<close> \<open>[Nt B]\<close> \<alpha>] by auto
+  obtain u v where "P \<turnstile> [Nt A] \<Rightarrow>* u \<and> P \<turnstile> [Nt B] \<Rightarrow>* v \<and> \<alpha> = u @ v" (is "?uv")
+    using assms(1) derives_append_decomp[of P \<open>[Nt A]\<close> \<open>[Nt B]\<close> \<alpha>] by auto
   hence "length u \<ge> 1 \<and> length v \<ge> 1" 
-    using assms(2) cnf_length_derive[of Ps] by blast
+    using assms(2) cnf_length_derive[of P] by blast
   thus ?thesis
     using \<open>?uv\<close> by simp
 qed
 
 lemma cnf_single_derive:
-  assumes "Ps \<turnstile> [Nt S] \<Rightarrow>* [Tm t]" "CNF Ps"
-  shows "(S, [Tm t]) \<in> Ps"
+  assumes "P \<turnstile> [Nt S] \<Rightarrow>* [Tm t]" "CNF P"
+  shows "(S, [Tm t]) \<in> P"
 proof -
-  obtain \<alpha> where "Ps \<turnstile> [Nt S] \<Rightarrow> \<alpha> \<and> Ps \<turnstile> \<alpha> \<Rightarrow>* [Tm t]" (is "?\<alpha>")
+  obtain \<alpha> where "P \<turnstile> [Nt S] \<Rightarrow> \<alpha> \<and> P \<turnstile> \<alpha> \<Rightarrow>* [Tm t]" (is "?\<alpha>")
     using assms(1) converse_rtranclpE by force
-  hence 1: "(S, \<alpha>) \<in> Ps" 
+  hence 1: "(S, \<alpha>) \<in> P" 
     by (simp add: derive_singleton)
   have "\<nexists>A B. \<alpha> = [Nt A, Nt B]"
   proof (rule ccontr)
     assume "\<not> (\<nexists>A B. \<alpha> = [Nt A, Nt B])"
     from this obtain A B where "\<alpha> = [Nt A, Nt B]" (is "?AB")
       by blast
-    have "\<forall>w. Ps \<turnstile> [Nt A, Nt B] \<Rightarrow>* w \<longrightarrow> length w \<ge> 2"
+    have "\<forall>w. P \<turnstile> [Nt A, Nt B] \<Rightarrow>* w \<longrightarrow> length w \<ge> 2"
       using cnf_length_derive2 assms(2) by force
     moreover have "length [Tm t] = 1"
       by simp
@@ -1129,30 +1129,30 @@ proof -
 qed
 
 lemma cnf_word:
-  assumes "Ps \<turnstile> [Nt S] \<Rightarrow>* map Tm w" "CNF Ps" 
+  assumes "P \<turnstile> [Nt S] \<Rightarrow>* map Tm w" "CNF P" 
     and "length w \<ge> 2"
-  shows "\<exists>A B u v. (S, [Nt A, Nt B]) \<in> Ps \<and> Ps \<turnstile> [Nt A] \<Rightarrow>* map Tm u \<and> Ps \<turnstile> [Nt B] \<Rightarrow>* map Tm v \<and> u@v = w \<and> u \<noteq> [] \<and> v \<noteq> []"
+  shows "\<exists>A B u v. (S, [Nt A, Nt B]) \<in> P \<and> P \<turnstile> [Nt A] \<Rightarrow>* map Tm u \<and> P \<turnstile> [Nt B] \<Rightarrow>* map Tm v \<and> u@v = w \<and> u \<noteq> [] \<and> v \<noteq> []"
 proof -
-  have 1: "(S, map Tm w) \<notin> Ps"
+  have 1: "(S, map Tm w) \<notin> P"
     using assms(2) assms(3) unfolding CNF_def by auto
-  have "\<exists>\<alpha>. Ps \<turnstile> [Nt S] \<Rightarrow> \<alpha> \<and> Ps \<turnstile> \<alpha> \<Rightarrow>* map Tm w"
+  have "\<exists>\<alpha>. P \<turnstile> [Nt S] \<Rightarrow> \<alpha> \<and> P \<turnstile> \<alpha> \<Rightarrow>* map Tm w"
     using assms(1) converse_rtranclpE by fastforce
-  from this obtain \<alpha> where "(S, \<alpha>) \<in> Ps \<and> Ps \<turnstile> \<alpha> \<Rightarrow>* map Tm w" (is "?\<alpha>")
+  from this obtain \<alpha> where "(S, \<alpha>) \<in> P \<and> P \<turnstile> \<alpha> \<Rightarrow>* map Tm w" (is "?\<alpha>")
     by (auto simp: derive_singleton)
   hence "(\<nexists>t. \<alpha> = [Tm t])"
-    using 1 derives_T_Cons[of Ps] derives_from_empty by auto
-  hence "\<exists>A B. Ps \<turnstile> [Nt S] \<Rightarrow> [Nt A, Nt B] \<and> Ps \<turnstile> [Nt A, Nt B] \<Rightarrow>* map Tm w"
-    using assms(2) \<open>?\<alpha>\<close>  derive_singleton[of Ps \<open>Nt S\<close> \<alpha>] unfolding CNF_def by fast
-  from this obtain A B where "(S, [Nt A, Nt B]) \<in> Ps \<and> Ps \<turnstile> [Nt A, Nt B] \<Rightarrow>* map Tm w" (is "?AB")
-    using derive_singleton[of Ps \<open>Nt S\<close>] by blast
-  hence "\<not>(Ps \<turnstile> [Nt A] \<Rightarrow>* []) \<and> \<not>(Ps \<turnstile> [Nt B] \<Rightarrow>* [])"
+    using 1 derives_T_Cons[of P] derives_from_empty by auto
+  hence "\<exists>A B. P \<turnstile> [Nt S] \<Rightarrow> [Nt A, Nt B] \<and> P \<turnstile> [Nt A, Nt B] \<Rightarrow>* map Tm w"
+    using assms(2) \<open>?\<alpha>\<close>  derive_singleton[of P \<open>Nt S\<close> \<alpha>] unfolding CNF_def by fast
+  from this obtain A B where "(S, [Nt A, Nt B]) \<in> P \<and> P \<turnstile> [Nt A, Nt B] \<Rightarrow>* map Tm w" (is "?AB")
+    using derive_singleton[of P \<open>Nt S\<close>] by blast
+  hence "\<not>(P \<turnstile> [Nt A] \<Rightarrow>* []) \<and> \<not>(P \<turnstile> [Nt B] \<Rightarrow>* [])"
     using assms(2) CNF_eq Eps_free_derives_Nil by blast
-  from this obtain u v where "Ps \<turnstile> [Nt A] \<Rightarrow>* u \<and> Ps \<turnstile> [Nt B] \<Rightarrow>* v \<and> u@v = map Tm w \<and> u \<noteq> [] \<and> v \<noteq> []" (is "?uv")
-    using \<open>?AB\<close> derives_append_decomp[of Ps \<open>[Nt A]\<close> \<open>[Nt B]\<close> \<open>map Tm w\<close>] by force
+  from this obtain u v where "P \<turnstile> [Nt A] \<Rightarrow>* u \<and> P \<turnstile> [Nt B] \<Rightarrow>* v \<and> u@v = map Tm w \<and> u \<noteq> [] \<and> v \<noteq> []" (is "?uv")
+    using \<open>?AB\<close> derives_append_decomp[of P \<open>[Nt A]\<close> \<open>[Nt B]\<close> \<open>map Tm w\<close>] by force
   moreover have "\<exists>u' v'. u = map Tm u' \<and> v = map Tm v'"
     using \<open>?uv\<close> map_eq_append_conv[of Tm w u v] by auto
   ultimately show ?thesis
     using \<open>?AB\<close> append_eq_map_conv[of u v Tm w] list.simps(8)[of Tm] by fastforce
 qed
 
-end 
+end

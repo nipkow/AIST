@@ -110,11 +110,16 @@ inductive balanced_terminals :: "('n, bracket  \<times> ('a)) syms \<Rightarrow>
   concat[intro]: "balanced_terminals xs \<Longrightarrow> balanced_terminals ys \<Longrightarrow> balanced_terminals (xs @ ys)"
 
 
+lemma balanced_terminals_append_Nt[intro]: \<open>balanced_terminals xs \<Longrightarrow> balanced_terminals ([Nt A] @ xs)\<close>
+proof-
+assume xs_balanced: \<open>balanced_terminals xs\<close>
+have \<open>balanced_terminals [Nt A]\<close> by auto
+then show \<open>balanced_terminals ([Nt A] @ xs)\<close> using concat xs_balanced by blast
+qed
 
 
 
 
-print_statement balanced_terminals.induct[where x = \<open>map Tm xs\<close>]
 
 lemma map_Tm_inject: "map Tm xs = map Tm ys \<Longrightarrow> xs = ys"
   by (induction xs arbitrary: ys; auto)
@@ -848,6 +853,149 @@ proof -
   
 
 
+fun stk :: "('n, bracket \<times> 't) syms \<Rightarrow> ('n, bracket \<times> 't) syms \<Rightarrow> (('n, bracket \<times> 't) syms * ('n, bracket \<times> 't) syms)" where
+"stk [] s = ([],s)" |
+"stk (Tm (Op, x) # xs) s = stk xs (Tm (Op, x)#s)" |
+"stk (Tm (Cl, x) # xs) ((Tm (Op, y))#s) = (if x=y then stk xs s else ((Tm (Cl, x) # xs), (Tm (Op, y)#s)))" |
+\<open>stk (Nt A # xs) s = stk xs s\<close> | 
+"stk xs s = (xs,s)"
+
+
+
+lemma stk_append_stk: 
+assumes "stk xs s = ([],s')"
+shows \<open>stk xs (s @ t) = ([],s' @ t)\<close>
+using assms proof(induction xs s rule: stk.induct)
+   case (3 xs s)
+   then show ?case by (auto split: if_splits)
+qed auto
+
+
+lemma stk_append_input:
+assumes \<open>stk xs s = ([], s')\<close>
+shows \<open>stk (xs@ys) s = stk ys s'\<close>
+using assms proof(induction \<open>xs\<close> s rule: stk.induct; auto) qed
+
+
+lemma stk_transitive:
+assumes \<open>stk xs s = (ys, s')\<close>
+and \<open>stk ys s' = (zs, s'')\<close>
+shows \<open>stk xs s = (zs, s'')\<close>
+using assms proof(induction \<open>xs\<close> s rule: stk.induct)
+  case (3 x xs y s)
+  then show ?case by (metis Pair_inject chomsky_schuetzenberger.stk.simps(3))
+qed auto
+
+
+
+
+definition stk_balanced where
+\<open>stk_balanced w \<equiv> stk w [] = ([], []) \<close>
+
+
+lemma stk_balanced_empty[simp]: \<open>stk_balanced []\<close> unfolding stk_balanced_def by simp
+
+lemma stk_balanced_Nt[simp]: \<open>stk_balanced [Nt A]\<close> unfolding stk_balanced_def by simp
+
+lemma stk_balanced_append: 
+assumes \<open>stk_balanced xs\<close> 
+and \<open>stk_balanced ys\<close>
+shows \<open>stk_balanced (xs@ys)\<close>
+using assms unfolding stk_balanced_def by (simp add: stk_append_input)
+
+
+lemma balanced_terminals_imp_stk_balanced:
+  "balanced_terminals w \<Longrightarrow> stk_balanced w"
+proof (induction w rule: balanced_terminals.induct)
+  case empty
+  then show ?case by simp
+next
+  case (Nt A)
+  then show ?case by simp
+next
+  case (pair xs g)
+  have accept_xs: \<open>stk xs [] = ([], [])\<close> using pair by (simp add: stk_balanced_def)
+  then have \<open>stk xs [Tm (Op, g)] = ([], [Tm (Op, g)])\<close> using stk_append_stk by fastforce
+
+  then have \<open>stk (Tm (Op, g) # xs @ [Tm (Cl, g)]) [] = stk (xs @ [Tm (Cl, g)]) [Tm (Op, g)]\<close> by simp
+  also have \<open>... = stk [Tm (Cl, g)] [Tm (Op, g)]\<close> using accept_xs stk_append_input[of xs \<open>[Tm (Op, g)]\<close>] by (simp add: \<open>stk xs [Tm (Op, g)] = ([], [Tm (Op, g)])\<close>)
+  also have \<open>... = ([], [])\<close> by simp
+
+  finally show ?case using stk_balanced_def by blast
+next
+  case (concat xs ys)
+  then show ?case using stk_balanced_append by auto
+qed
+
+
+
+
+lemma
+stk_balanced_split:
+assumes \<open>stk_balanced (xs @ ys)\<close>
+and \<open>stk_balanced ys\<close>
+shows \<open>stk_balanced xs\<close>
+sorry
+
+
+lemma balanced_middle:
+assumes \<open>stk_balanced ((Tm (Op, x)) # w' @ [Tm (Cl, x)])\<close>
+shows \<open> stk_balanced w'\<close>
+sorry
+
+
+lemma ex_take_balanced:
+assumes \<open>stk_balanced w\<close>
+and \<open>w \<noteq> []\<close>
+shows \<open>\<exists>k. k>0 \<and> k \<le> length w \<and> stk_balanced (take k w)\<close>
+using assms using take_all by auto
+
+lemma least_take_balanced_props:
+assumes \<open>stk_balanced w\<close>
+and \<open>w \<noteq> []\<close>
+and \<open>i = (LEAST k. k>0 \<and> k \<le> length w \<and> stk_balanced (take k w))\<close>
+shows \<open>i > 0\<close>
+and \<open>i \<le> length w\<close>
+and \<open>stk_balanced (take i w)\<close>
+and \<open>\<And>j. j>0 \<Longrightarrow> j \<le> length w \<Longrightarrow> stk_balanced (take j w) \<Longrightarrow> i \<le> j\<close>
+proof-
+have 1:\<open> 0 < (LEAST k. 0 < k \<and> k \<le> length w \<and> stk_balanced (take k w)) \<and> (LEAST k. 0 < k \<and> k \<le> length w \<and> stk_balanced (take k w)) \<le> length w \<and> stk_balanced (take (LEAST k. 0 < k \<and> k \<le> length w \<and> stk_balanced (take k w)) w)\<close>
+using LeastI_ex[where ?P = \<open>\<lambda>k. k>0 \<and> k \<le> length w \<and> stk_balanced (take k w)\<close>] ex_take_balanced assms by blast
+
+from 1 assms(3) show \<open>i > 0\<close> by blast
+from 1 assms(3) show \<open>i \<le> length w\<close> by blast
+from 1 assms(3) show \<open>stk_balanced (take i w)\<close> by blast
+
+show 2: \<open>\<And>j. j>0 \<Longrightarrow> j \<le> length w \<Longrightarrow> stk_balanced (take j w) \<Longrightarrow> i \<le> j\<close> using Least_le[where ?P = \<open>\<lambda>k. k>0 \<and> k \<le> length w \<and> stk_balanced (take k w)\<close>] by (simp add: assms(3))
+qed
+
+
+
+lemma 
+assumes \<open>stk_balanced w\<close>
+and \<open>w \<noteq> []\<close>
+and \<open>i = (LEAST k. k>0 \<and> k \<le> length w \<and> stk_balanced (take k w))\<close>
+and \<open>hd w = Tm (Op, x)\<close>
+shows \<open>last (take i w) = Tm (Cl, x)\<close>
+
+
+lemma stk_balanced_imp_balanced_terminals:
+  "stk_balanced w \<Longrightarrow> balanced_terminals w"
+proof(induction \<open>length w\<close> arbitrary: w rule: less_induct)
+  case less
+  from less have IH: \<open>\<And>w'. \<lbrakk>length (w'::('a, bracket \<times> 'b) sym list) < length (w::('a, bracket \<times> 'b) sym list); stk_balanced w'\<rbrakk> \<Longrightarrow> balanced_terminals w'\<close> by simp
+  from less have stk_balanced_w: \<open>stk w [] = ([], [])\<close> using stk_balanced_def by auto
+   show ?case
+  proof(induction rule: stk.cases[of \<open>(w, [])\<close>])
+    case (2 x xs s)
+    then have w_eq: \<open>w = Tm (Op, x) # xs\<close> by simp
+    then have stk_balanced_op_xs: \<open>stk (Tm (Op, x) # xs) [] = ([], [])\<close> using w_eq stk_balanced_w by simp
+
+    have \<open>\<exists>i. i > 0 \<and> i \<le> length w \<and> stk_balanced (take i w)\<close> using stk_balanced_w w_eq using local.less.prems take_all by auto
+    then obtain i where i_bounds: \<open>i > 0\<close> \<open>i \<le> length w\<close> and takei_balanced: \<open>stk_balanced (take i w)\<close> by blast
+    then have \<open>Tm (Cl, x) \<in> set (take i w)\<close> using takei_balanced sledgehammer
+    then show ?thesis
+    proof(cases \<open>i = length w\<close>)
 
 
 
@@ -862,6 +1010,81 @@ proof -
 
 
 
+
+
+    then have \<open>([], []) = stk (Tm (Op, x) # xs) []\<close> by simp
+    also have \<open>... = stk xs [Tm (Op, x)]\<close> by simp
+
+    finally have \<open>stk xs [Tm (Op, x)] = ([], [])\<close> by simp
+    then have \<open>\<exists>ys fr. xs = fr @ ys \<and> stk xs [Tm (Op, x)] = stk (Tm (Cl, x) #ys) ([Tm (Op, x)])\<close> by force
+
+    then obtain ys fr where ys_def1: \<open>xs = fr @ ys\<close> and  ys_def2: \<open>stk xs [Tm (Op, x)] = stk (Tm (Cl, x) #ys) ([Tm (Op, x)])\<close> by blast
+
+
+    then have \<open>stk_balanced ys\<close> using \<open>stk xs [Tm (Op, x)] = ([], [])\<close> by (simp add: stk_balanced_def)
+    moreover have \<open>length ys < length w\<close> using ys_def1 w_eq by simp
+    ultimately have b1: \<open>balanced_terminals ys\<close> using IH by simp
+    
+    then show ?case
+    proof(cases \<open>ys = []\<close>)
+      case True
+      with ys_def2 have \<open>stk xs [Tm (Op, x)] = stk ([Tm (Cl, x)]) ([Tm (Op, x)])\<close> by simp
+      then show ?thesis using ys_def1 ys_def2 w_eq sorry
+    next
+      case False
+      then have \<open>stk_balanced ((Tm (Op, x)) # fr) \<close> using ys_def1 ys_def2 stk_balanced_def stk_balanced_split by (metis Cons_eq_appendI \<open>stk_balanced ys\<close> local.less.prems w_eq)
+      moreover have \<open>length ((Tm (Op, x)) # fr) < length w\<close> using False ys_def1 w_eq by simp
+      ultimately have b2':\<open>balanced_terminals ((Tm (Op, x)) # fr)\<close> using IH by simp
+      then show ?thesis using b1 b2' w_eq by (metis Cons_eq_appendI concat ys_def1)
+    qed
+  next
+    case (4 A xs s)
+    then have \<open>([], []) = stk w []\<close> using stk_balanced_w by simp
+    also have \<open>... = stk (Nt A # xs) s\<close> using 4 by simp
+    also have \<open>... = stk xs s\<close> by simp
+    finally have \<open>stk xs s = ([], [])\<close> by simp
+    moreover have \<open>length xs < length w\<close> using 4 by simp
+    ultimately show ?case using IH using "4" balanced_terminals_append_Nt stk_balanced_def by fastforce
+  qed (use \<open>stk w [] = ([], [])\<close> in auto)
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+lemma stk_balanced_imp_balanced_terminals:
+  "stk_balanced w \<Longrightarrow> balanced_terminals w"
+unfolding stk_balanced_def
+proof (induction w \<open>[]::('a, bracket \<times> 'b) sym list\<close> rule: stk.induct)
+  case 1
+  then show ?case by auto
+next
+  case (2 x xs)
+  then have \<open>([], []) = stk (Tm (Op, x) # xs) []\<close> by simp
+  also have \<open>... = stk xs [Tm (Op, x)]\<close> by simp
+
+  finally have \<open>stk xs [Tm (Op, x)] = ([], [])\<close> by simp
+  then obtain ys where \<open>stk xs [Tm (Op, x)] = stk (Tm (Cl, x) # ys) ([Tm (Op, x)])\<close> sorry
+
+  then have \<open>stk_balanced ys\<close> by (simp add: \<open>stk xs [Tm (Op, x)] = ([], [])\<close> stk_balanced_def)
+
+
+  then show ?case 
+next
+  case (4 A xs)
+  then show ?case using balanced_terminals_append_Nt by fastforce
+qed auto
 
 
 

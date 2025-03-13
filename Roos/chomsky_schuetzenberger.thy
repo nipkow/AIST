@@ -264,7 +264,7 @@ by(induction l; use list_length_1_imp_ex in auto)
 section\<open>Definition of a derivation of a stack machine that is eating balanced_tm words using an inductive relation\<close>
 
 
-
+text\<open>TODO configuration nennen\<close>
 record ('n,'t) machine_state = 
   input :: \<open>('n, bracket \<times> 't) syms\<close> \<comment> \<open>the current input symbols that are still to be eaten by the machine\<close>
   stack :: \<open>'t list\<close> \<comment> \<open>the current stack\<close>
@@ -371,6 +371,56 @@ qed
 using assms apply(induction prog; auto) *)
 
 lemmas progression_forE = progression_forD[elim_format]
+
+
+
+lemma progression_length:
+assumes \<open>i < length prog\<close>
+and \<open>progression_for prog w s s'\<close>
+shows \<open>length (input (prog ! i)) = length prog -1 -i\<close>
+proof-
+from assms(1) have \<open>i \<le> length prog -1\<close> by auto
+then show ?thesis proof(induction i rule: inc_induct)
+  case base
+  have \<open>prog \<noteq> []\<close> using progression_forD[OF assms(2)] by blast
+  then have \<open>prog ! (length prog - Suc 0) = last prog\<close> using last_conv_nth by force
+  then show ?case using progression_forD[OF assms(2)] by simp 
+next
+  case (step n)
+  then have \<open>length (input (prog ! Suc n)) = length prog - 1 - Suc n\<close> by simp
+  then have IH: \<open>1 + length (input (prog ! Suc n)) = length prog - Suc n\<close> by (metis Suc_diff_Suc diff_diff_left local.step.hyps(2) plus_1_eq_Suc)
+
+  from step have n_less: \<open>n < length prog - 1\<close> by simp
+  have prog_valid: \<open>prog \<in> validProgs\<close> using assms(2) by blast
+  then have prog_not_empty: \<open>prog \<noteq> []\<close> by auto
+  from prog_valid have \<open>input (prog ! n) \<noteq> [] \<and> hd (input (prog ! n)) # input (prog ! (n + 1)) = input (prog ! n) \<and> hd (input (prog ! n)) \<turnstile> stack (prog ! n) \<rightarrow> stack (prog ! (n + 1))\<close> using validProgsD[of prog] n_less by simp
+  then have eq1: \<open>hd (input (prog ! n)) # input (prog ! (n + 1)) = input (prog ! n)\<close> by simp
+
+  then have \<open>length prog - Suc n = 1 + length (input (prog ! (n + 1)))\<close> using IH by simp
+  also have \<open>... = length (hd (input (prog ! n)) # input (prog ! (n + 1)))\<close> using prog_not_empty Suc_length_conv by (metis Suc_length_conv plus_1_eq_Suc)
+  also have \<open>... = length (input (prog ! n))\<close> using eq1 by simp
+
+  finally have \<open>length prog - Suc n = length (input (prog ! n))\<close> .
+
+  then show ?case by auto
+qed
+qed
+
+
+corollary progression_length':
+assumes \<open>progression_for prog w s s'\<close>
+shows \<open>length prog = length w + 1\<close>
+proof-
+have l: \<open>0 < length prog\<close> using assms by auto
+then have \<open>length (input (prog ! 0)) = length prog - 1 - 0\<close> using progression_length[of 0] assms by auto
+moreover have \<open>input (prog ! 0) = w\<close> using l progression_forD[of prog w s s', OF assms] hd_conv_nth by fastforce
+ultimately show ?thesis by (metis Suc_diff_1 Suc_eq_plus1 diff_zero l) 
+qed
+
+
+
+
+
 
 lemma input_tail:
 assumes \<open>x # prog \<in> validProgs\<close>
@@ -576,6 +626,41 @@ qed
 
 
 
+corollary ex_prog_imp_stack_derives:  \<open>(progression_for prog w s s') \<Longrightarrow> (w \<turnstile> s \<rightarrow>* s')\<close>
+using progression_length' stack_derives_iff_ex_prog by meson
+
+
+
+
+
+(*declare [[show_types]] *)
+lemma 
+fixes prog:: \<open>('a, 'b) machine_state list\<close> and i::nat
+shows \<open>True\<close>
+proof-
+have \<open>prog \<in> validProgs\<close> sorry
+have i_less: \<open>i < length prog - 1\<close> sorry
+thm validProgsD
+thm validProgsD[OF _ i_less]
+oops
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -659,17 +744,45 @@ qed
  
 
 
-declare [[show_types]]
+(*
 lemma stack_derive_append_stack:
-assumes \<open>xs \<turnstile>[] \<rightarrow>* over\<close>
+assumes \<open>xs \<turnstile>s0 \<rightarrow>* over @ s0\<close>
+shows \<open>xs \<turnstile> s0@s \<rightarrow>* over @ s0 @ s\<close>
+using assms proof(induction xs \<open>s0\<close> \<open>over @ s0\<close> arbitrary: s over)
+  case empty
+  then show ?case by auto
+next
+  case (step x st mid xs)
+  then show ?case
+  proof(cases x)
+    case (op_bracket g)
+    then have \<open>x \<turnstile> st @ s \<rightarrow> mid @ s\<close> by auto
+    from op_bracket step have \<open>xs \<turnstile> g # st \<rightarrow>* over @ st\<close> by simp
+    from op_bracket step obtain over' where \<open>over = over' @ [g]\<close>
+    from op_bracket step obtain over' where \<open>over @ st = over' @ [g] @ st\<close> sorry
+    thm step(3)[where ?s = s]
+    then show ?thesis using step op_bracket
+  next
+    case (cl_bracket g)
+    then show ?thesis sorry
+  next
+    case (nt_skip A)
+    then show ?thesis using step by auto
+  qed
+
+qed
+
+*)
+
+
+lemma stack_derive_append_stack:
+assumes \<open>xs \<turnstile> [] \<rightarrow>* over\<close>
 shows \<open>xs \<turnstile> s \<rightarrow>* over @ s\<close>
 proof-
 obtain prog where prog_def: \<open>progression_for prog xs [] over\<close> using assms stack_derives_iff_ex_prog by blast
 moreover then have \<open>\<And>st. st \<in> set prog \<Longrightarrow> \<exists>st'. stack st = st' @ []\<close> by simp
 ultimately have \<open>progression_for (map (drop_pad_rec ([]::'b list) s) prog) xs s (over @ s)\<close> using progression_append_stack[of prog xs \<open>[]\<close> over s] by simp
-then have \<open>xs \<turnstile> s \<rightarrow>* over @ s\<close> using stack_derives_iff_ex_prog sorry
-(*TODO refactor iff lemmas *)
-
+then have \<open>xs \<turnstile> s \<rightarrow>* over @ s\<close> by (simp add: ex_prog_imp_stack_derives)
 thus ?thesis by simp
 qed
 
@@ -731,7 +844,7 @@ proof -
   next
     case (nt_skip xs stack stack' A)
     then show ?case sorry
-  qed
+  oops
   
 
 

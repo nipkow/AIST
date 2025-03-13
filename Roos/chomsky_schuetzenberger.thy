@@ -201,60 +201,39 @@ qed
 
 
 
+section\<open>Definition of a stack machine eating balanced_tm words using an inductive relation\<close>
 
-
-
-
-
-
-
-
-
-
-
-section\<open>Definition of a stack machine using an inductive relation\<close>
-
-
-text\<open>takes input symbol and stack, gives the next stack\<close>
-inductive stack_derive :: "('n, bracket \<times> 'a) sym \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> bool" 
-  ("_ \<turnstile> _ \<rightarrow> _" [50, 0, 50] 50) where
-  op_bracket: "Tm (Op, g) \<turnstile> stack \<rightarrow> g # stack" |
-  cl_bracket: "Tm (Cl, g) \<turnstile> g # stack \<rightarrow> stack" |
-  nt_skip: "Nt A \<turnstile> stack \<rightarrow> stack"
+text\<open>takes input symbol and stack, gives the next stack\<close> 
+inductive stack_derive :: "('n, bracket \<times> 'a) sym \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> bool" ("_ \<turnstile> _ \<rightarrow> _" [50, 0, 50] 50) where 
+op_bracket: "Tm (Op, g) \<turnstile> stack \<rightarrow> g # stack" | 
+cl_bracket: "Tm (Cl, g) \<turnstile> g # stack \<rightarrow> stack" | 
+nt_skip: "Nt A \<turnstile> stack \<rightarrow> stack"
 
 
 inductive stack_derives :: "('n, bracket \<times> 'a) syms \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> bool" 
   ("_ \<turnstile> _ \<rightarrow>* _" [50, 0, 50] 50) where
-  empty: "[] \<turnstile> stack \<rightarrow>* stack" |
-  step: "x \<turnstile> stack \<rightarrow> mid  \<Longrightarrow>  xs \<turnstile> mid \<rightarrow>* final \<Longrightarrow> (x # xs) \<turnstile> stack \<rightarrow>* final"
+  empty: "[] \<turnstile> st \<rightarrow>* st" |
+  step: "x \<turnstile> st \<rightarrow> mid   \<Longrightarrow>    xs \<turnstile> mid \<rightarrow>* final    \<Longrightarrow>    (x # xs) \<turnstile> st \<rightarrow>* final"
 
 
 declare stack_derive.intros [intro]
 declare stack_derives.intros [intro]
 
 
-inductive_cases [elim]: "(Tm (Op, g)) \<turnstile> stack \<rightarrow> stack'"
-inductive_cases [elim]: "(Tm (Cl, g)) \<turnstile> h # stack \<rightarrow> stack'"
-inductive_cases [elim]: "(Nt A) \<turnstile> stack \<rightarrow> stack'"
+inductive_cases [elim]: "(Tm (Op, g)) \<turnstile> s \<rightarrow> s'"
+inductive_cases [elim]: "(Tm (Cl, g)) \<turnstile> h # s \<rightarrow> s'"
+inductive_cases [elim]: "(Nt A) \<turnstile> s \<rightarrow> s'"
 
 
-inductive_cases [elim]: "x # xs \<turnstile> stack \<rightarrow>* stack'"
-inductive_cases [elim]: "[] \<turnstile> stack \<rightarrow>* stack'"
-
-
-
-definition accepts :: "('n, bracket \<times> 'a) syms \<Rightarrow> bool" where
-  "accepts w \<equiv>  w \<turnstile> [] \<rightarrow>* []"
-
-
+inductive_cases [elim]: "x # xs \<turnstile> s \<rightarrow>* s'"
+inductive_cases [elim]: "[] \<turnstile> s \<rightarrow>* s'"
 
 
 lemma stack_derive_append:
-assumes \<open>xs \<turnstile> stack \<rightarrow>* stack'\<close>
-and \<open>ys \<turnstile> stack' \<rightarrow>* stack''\<close>
-shows \<open>xs @ ys \<turnstile> stack \<rightarrow>* stack''\<close>
+assumes \<open>xs \<turnstile> st \<rightarrow>* st'\<close>
+and \<open>ys \<turnstile> st' \<rightarrow>* st''\<close>
+shows \<open>xs @ ys \<turnstile> st \<rightarrow>* st''\<close>
 using assms by(induction rule: stack_derives.induct; auto)
-
 
 
 lemma stack_derives_empty[iff]: \<open>([] \<turnstile> stack1 \<rightarrow>* stack2) = (stack1 = stack2)\<close> using stack_derives.simps[of "[]", simplified] by metis
@@ -264,6 +243,17 @@ lemma stack_derives_one[iff]: \<open>([a] \<turnstile> [] \<rightarrow>* stack) 
 lemma stack_derive_one[iff]: \<open>(a \<turnstile> [] \<rightarrow> stack) = ((\<exists>g. a = Tm (Op, g) \<and> stack = [g]) \<or> (\<exists>A. a = Nt A) \<and> stack = [])\<close> using stack_derive.simps[of \<open>a\<close> \<open>[]\<close> stack, simplified] by simp
 
 
+lemma stack_underive[iff]: \<open>(a # w \<turnstile> s \<rightarrow>* s') = (\<exists>mid. a \<turnstile> s \<rightarrow> mid \<and> w \<turnstile> mid \<rightarrow>* s')\<close> using stack_derives.simps[of \<open>a#w\<close> s s', simplified] by simp
+
+
+
+
+text\<open>TODO mv?\<close>
+lemma list_length_1_imp_ex: \<open>length l = 1 \<Longrightarrow> \<exists>x. l = [x]\<close> apply auto by (simp add: length_Suc_conv)
+
+
+lemma list_length_2_imp_ex: \<open>length l = 2 \<Longrightarrow> \<exists>x y. l = [x, y]\<close>
+by(induction l; use list_length_1_imp_ex in auto)
 
 
 
@@ -271,19 +261,104 @@ lemma stack_derive_one[iff]: \<open>(a \<turnstile> [] \<rightarrow> stack) = ((
 
 
 
+section\<open>Definition of a derivation of a stack machine that is eating balanced_tm words using an inductive relation\<close>
 
 
 
-lemma stack_derive_append_stack:
-  assumes "xs \<turnstile> start \<rightarrow>* stack'"
-  and \<open>\<forall>xss. suffix xss xs \<Longrightarrow> xss \<turnstile> \<close>
-  shows "xs \<turnstile> s \<rightarrow>* stack' @ s"
-using assms proof(induction xs \<open>[]::'b list\<close> stack' arbitrary: s rule: stack_derives.induct)
-  case empty
-  then show ?case by auto
-next
-  case (step x mid xs final)
-  then show ?case
+record ('n,'t) machine_state = 
+  input :: \<open>('n, bracket \<times> 't) syms\<close> \<comment> \<open>the current input symbols that are still to be eaten by the machine\<close>
+  stack :: \<open>'t list\<close> \<comment> \<open>the current stack\<close>
+
+type_synonym ('n,'t) machine_progression = \<open>('n,'t) machine_state list\<close>
+
+definition validProgs :: \<open>('n,'t) machine_progression set\<close> where
+\<open>validProgs = {
+  prog | prog.
+  prog \<noteq> []
+  \<and> (\<forall>i < length prog -1.
+      input (prog ! i) \<noteq> []
+    \<and>  hd (input (prog ! i)) # input (prog ! (i+1)) = input (prog ! i)
+    \<and>  (hd (input (prog ! i))) \<turnstile> stack (prog ! i) \<rightarrow> stack (prog ! (i+1))
+  )
+}\<close>
+
+
+lemma validProgsI[intro]: 
+assumes \<open>\<And>i. i < length prog -1 \<Longrightarrow> 
+        input (prog ! i) \<noteq> []
+    \<and>  hd (input (prog ! i)) # input (prog ! (i+1)) = input (prog ! i)
+    \<and>  (hd (input (prog ! i))) \<turnstile> stack (prog ! i) \<rightarrow> stack (prog ! (i+1))
+\<close>
+and \<open>prog \<noteq> []\<close>
+shows \<open>prog \<in> validProgs\<close>
+unfolding validProgs_def using assms by simp
+
+
+lemma validProgsTwoI[intro]: 
+assumes \<open> 
+        input (a) \<noteq> []
+    \<and>  hd (input (a)) # input (b) = input (a)
+    \<and>  (hd (input (a))) \<turnstile> stack (a) \<rightarrow> stack (b)
+\<close>
+shows \<open>[a, b] \<in> validProgs\<close>
+unfolding validProgs_def using assms by simp
+
+lemma validProgsD[dest]: 
+assumes \<open>prog \<in> validProgs\<close>
+shows \<open>(\<And>i. i < length prog -1 ==>  
+      input (prog ! i) \<noteq> []
+    \<and>  hd (input (prog ! i)) # input (prog ! (i+1)) = input (prog ! i)
+    \<and>  (hd (input (prog ! i))) \<turnstile> stack (prog ! i) \<rightarrow> stack (prog ! (i+1))
+  )\<close>
+and \<open>prog \<noteq> []\<close>
+using assms using validProgs_def by auto
+
+
+lemmas validProgsE = validProgsD[elim_format]
+
+
+
+
+
+
+definition progression_for :: "('n,'t) machine_progression \<Rightarrow> ('n, bracket \<times> 't) syms \<Rightarrow> 't list \<Rightarrow> 't list \<Rightarrow> bool" where
+  "progression_for prog w s s' \<equiv> prog \<in> validProgs \<and> input (hd prog) = w \<and> stack (hd prog) = s \<and> input (last prog) = [] \<and> stack (last prog) = s'"
+
+
+lemma progression_forI[intro]:
+assumes \<open>prog \<in> validProgs\<close>
+and \<open>input (hd prog) = w\<close>
+and \<open>stack (hd prog) = s\<close>
+and \<open>input (last prog) = []\<close>
+and \<open>stack (last prog) = s'\<close>
+shows \<open>progression_for prog w s s'\<close>
+using assms unfolding progression_for_def by auto
+
+lemma progression_forD[dest]:
+assumes \<open>progression_for prog w s s'\<close>
+shows \<open>prog \<in> validProgs\<close>
+and \<open>input (hd prog) = w\<close>
+and \<open>stack (hd prog) = s\<close>
+and \<open>input (last prog) = []\<close>
+and \<open>stack (last prog) = s'\<close>
+and \<open>prog \<noteq> []\<close>
+using assms unfolding progression_for_def by auto
+
+
+
+
+lemma progression_for_empty_input[dest]:
+assumes \<open>progression_for prog [] s s'\<close> 
+shows \<open>s = s'\<close>
+and \<open>prog = [\<lparr>input = [], stack = s\<rparr>]\<close>
+proof-
+have 1:\<open>s = s'\<close> using assms progression_forD[of prog \<open>[]\<close> s s', simplified] by (metis  hd_conv_nth last_conv_nth not_gr0 validProgsD(1))
+then have \<open>length prog = 1\<close> using assms progression_forD[of prog \<open>[]\<close> s s', simplified] by (metis (no_types, lifting) Nitpick.size_list_simp(2) One_nat_def gr0I hd_conv_nth length_tl validProgsD(1))
+then obtain x where x_def: \<open>prog = [x]\<close> using list_length_1_imp_ex by auto
+then have 2:\<open>x = \<lparr>input = [], stack = s\<rparr>\<close> by (metis (mono_tags, opaque_lifting) List.list.sel(1) Product_Type.old.unit.exhaust assms progression_for_def surjective)
+
+from 1 show \<open>s = s'\<close> by auto
+from 2 x_def show \<open>prog = [\<lparr>input = [], stack = s\<rparr>]\<close> by auto
 qed
 
 
@@ -291,47 +366,325 @@ qed
 
 
 
+(*
+ \<open>\<And>i. i < length prog - 1 \<Longrightarrow> input (prog ! (i+1)) = input (prog ! i)\<close>
+using assms apply(induction prog; auto) *)
+
+lemmas progression_forE = progression_forD[elim_format]
+
+lemma input_tail:
+assumes \<open>x # prog \<in> validProgs\<close>
+and \<open>input (hd (x # prog)) = a # w\<close>
+and \<open>prog \<noteq> []\<close>
+shows \<open>input (hd prog) = w\<close>
+proof-
+have input_x: \<open>input x = a # w\<close> using assms by simp
+have \<open>0 < length (x # prog) - 1 \<close> using assms by simp
+then have \<open>hd (input ((x # prog) ! 0)) # input ((x # prog) ! (1)) = input ((x # prog) ! 0)\<close> using validProgsD[OF assms(1)] by force
+then have \<open>hd (input x) # input (hd prog) = input x\<close> by (simp add: assms(3) hd_conv_nth)
+then have \<open>a # input (hd prog) = a # w\<close> by (simp add: input_x)
+thus ?thesis by simp
+qed
 
 
 
 
-lemma
-assumes \<open>xs \<turnstile>[] \<rightarrow> stack'\<close>
-shows \<open>xs \<turnstile>s' \<rightarrow> stack' @ s'\<close>
-using assms proof(induction s')
+
+lemma stack_derives_empty_iff_ex_prog: \<open>([] \<turnstile> s \<rightarrow>* s') \<longleftrightarrow> (\<exists>prog:: ('n, 't) machine_state list. (progression_for prog [] s s') \<and> length prog = 1)\<close>
+proof(intro iffI)
+assume \<open>[] \<turnstile> s \<rightarrow>* s'\<close>
+then have \<open>s = s'\<close> by simp
+define prog where \<open>(prog ::('n, 't) machine_state list) = [\<lparr>input = [], stack = s\<rparr>]\<close>
+have \<open>progression_for prog [] s s'\<close> apply(rule progression_forI) unfolding prog_def using \<open>s = s'\<close> by auto
+moreover have \<open>length prog = 1\<close> by (simp add: prog_def)
+ultimately show \<open>(\<exists>prog:: ('n, 't) machine_state list. (progression_for prog [] s s') \<and> length prog = 1)\<close> by auto
+
+next
+
+assume \<open>\<exists>prog:: ('n, 't) machine_state list. (progression_for prog [] s s') \<and> length prog = 1\<close>
+then obtain prog where prog_def: \<open>progression_for (prog::('n, 't) machine_state list) [] s s'\<close> and \<open>length prog = 1\<close> by blast
+then obtain x where \<open>prog = [x]\<close> by (metis One_nat_def length_0_conv length_Suc_conv)
+from prog_def have \<open>stack x = s\<close> and \<open>stack x = s'\<close> by (simp add: \<open>prog = [x]\<close> progression_for_def)+
+then have \<open>s = s'\<close> by simp
+thus \<open>([] \<turnstile> s \<rightarrow>* s')\<close> by simp
+qed
+
+
+
+
+lemma stack_derive_iff_ex_prog: \<open>(a \<turnstile> s \<rightarrow> s') \<longleftrightarrow> (\<exists>prog. (progression_for prog [a] s s') \<and> length prog = 2)\<close>
+proof(intro iffI)
+  assume a: \<open>a  \<turnstile> s \<rightarrow> s'\<close>
+  define prog where \<open>prog = [\<lparr>input = [a], stack = s\<rparr>, \<lparr>input = [], stack = s'\<rparr>]\<close>
+  have \<open>prog \<in> validProgs\<close> unfolding prog_def apply(rule validProgsTwoI) using a by auto
+  thus \<open>\<exists>prog. progression_for prog [a] s s' \<and> length prog = 2\<close> by (metis Groups.ab_semigroup_add_class.add.commute List.last.simps List.list.discI List.list.sel(1) List.list.size(3,4) One_nat_def last_ConsR nat_1_add_1 plus_1_eq_Suc prog_def progression_forI select_convs(1,2))
+next
+  assume prog_e: \<open>\<exists>prog. progression_for prog [a] s s' \<and> length prog = 2\<close>
+  then obtain prog where \<open>progression_for prog [a] s s'\<close> and \<open>length prog = 2\<close> by blast
+  then obtain x y where \<open>prog = [x, y]\<close> using list_length_2_imp_ex by blast
+  then have \<open>prog \<in> validProgs\<close> and \<open>input x = [a]\<close> using \<open>progression_for prog [a] s s'\<close> by auto
+  moreover have \<open>stack x = s\<close> and \<open>stack y = s'\<close> using \<open>prog = [x, y]\<close> \<open>progression_for prog [a] s s'\<close> by auto
+  ultimately show \<open>a \<turnstile> s \<rightarrow> s'\<close> using \<open>prog = [x, y]\<close> by force
+qed
+
+
+corollary stack_derive_iff_ex_prog': \<open>(a \<turnstile> s \<rightarrow> s') \<longleftrightarrow> (\<exists>x y. (progression_for [x, y] [a] s s'))\<close>
+using list_length_2_imp_ex stack_derive_iff_ex_prog by (metis List.list.size(3,4) One_nat_def Suc_1 Suc_eq_plus1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+lemma progression_append:
+assumes \<open>progression_for [x, y] [a] s mid\<close>
+and \<open>progression_for prog w mid s'\<close>
+shows \<open>progression_for (\<lparr>input = a # w, stack = s\<rparr> # prog) (a#w) s s'\<close>
+proof(cases \<open>w\<close>)
   case Nil
+  with assms have \<open>mid = s'\<close> and \<open>prog = [\<lparr>input = [], stack = s'\<rparr>]\<close> by auto
+  then have \<open>progression_for [x, y] [a] s s'\<close> using assms(1) by auto
+  then have \<open>progression_for (x # prog) [a] s s'\<close> by (metis (no_types, lifting) ext List.last.simps List.list.discI List.list.sel(1) \<open>prog = [\<lparr>input = [], stack = s'\<rparr>]\<close> assms(2) progression_for_def stack_derive_iff_ex_prog' validProgsTwoI)
+  thus ?thesis by (metis (mono_tags, opaque_lifting) List.list.sel(1) Nil Product_Type.old.unit.exhaust progression_for_def surjective)
+  
+next
+  case (Cons y' list)
+  then have mid_def2: \<open>progression_for prog (y'#list) mid s'\<close> using assms by simp
+  have mid_def1: \<open>progression_for [x, y] [a] s mid\<close> using assms by simp
+  then have prog_valid: \<open>prog \<in> validProgs\<close> using mid_def2 by auto
+
+
+  have \<open>\<lparr>input = a # (y' # list), stack = s\<rparr> # prog \<in> validProgs\<close>
+  proof(rule validProgsI, goal_cases)
+    case (1 i)
+    then have i_less1: \<open>i < length prog\<close> by simp
+    
+    then show ?case
+    proof(cases \<open>i = 0\<close>)
+      case True
+      then show ?thesis apply auto apply (metis hd_conv_nth mid_def2 progression_for_def validProgsD(2))
+      by (metis (mono_tags, opaque_lifting) assms(2) hd_conv_nth mid_def1 progression_forD(6) progression_for_def stack_derive_iff_ex_prog stack_derive_iff_ex_prog')
+    next
+      case False
+      then have i_less2: \<open>(i - Suc 0) < length prog -1\<close> using False i_less1 by simp
+      then have i_eq: \<open>input (prog ! (i-1)) \<noteq> [] \<and> hd (input (prog ! (i-1))) # input (prog ! ((i))) = input (prog ! (i-1)) \<and> hd (input (prog ! (i-1))) \<turnstile> stack (prog ! (i-1)) \<rightarrow> stack (prog ! ((i)))\<close> 
+      using  validProgsD[OF prog_valid] i_less2 by (metis False Groups.ab_semigroup_add_class.add.commute One_nat_def add_diff_inverse_nat less_one)
+      then show ?thesis using False i_eq by auto 
+    qed
+  next
+    case 2
+    then show ?case by simp
+  qed
+  then have \<open>progression_for (\<lparr>input = a # (y' # list), stack = s\<rparr> # prog) (a # (y' # list)) s s'\<close>
+  apply(rule progression_forI) using mid_def2 by auto
+  then show ?thesis using Cons by auto
+qed
+
+
+
+
+
+lemma progression_unappend:
+assumes \<open>progression_for (x#prog) (a # w) s s'\<close>
+shows \<open>progression_for ([\<lparr>input = [a], stack = s\<rparr>, \<lparr>input = [], stack = (stack (hd prog))\<rparr>]) [a] s (stack (hd prog))\<close>
+and \<open>progression_for prog w (stack (hd prog)) s'\<close>
+proof-
+have x_prog_valid: \<open>x#prog \<in> validProgs\<close> using assms by auto
+
+have \<open>[\<lparr>input = [a], stack = s\<rparr>, \<lparr>input = [], stack = stack (hd prog)\<rparr>] \<in> validProgs\<close> 
+proof (rule validProgsI, goal_cases)
+  case (1 i)
+  then have \<open>i = 0\<close> by simp
+  then have \<open>input ([\<lparr>input = [a], stack = s\<rparr>, \<lparr>input = [], stack = stack (hd prog)\<rparr>] ! i) \<noteq> []\<close> by auto
+  moreover have \<open>hd (input ([\<lparr>input = [a], stack = s\<rparr>, \<lparr>input = [], stack = stack (hd prog)\<rparr>] ! i)) # input ([\<lparr>input = [a], stack = s\<rparr>, \<lparr>input = [], stack = stack (hd prog)\<rparr>] ! (i + 1)) = input ([\<lparr>input = [a], stack = s\<rparr>, \<lparr>input = [], stack = stack (hd prog)\<rparr>] ! i)\<close> using \<open>i = 0\<close> by auto
+  moreover have \<open>hd (input ([\<lparr>input = [a], stack = s\<rparr>, \<lparr>input = [], stack = stack (hd prog)\<rparr>] ! i)) \<turnstile> stack ([\<lparr>input = [a], stack = s\<rparr>, \<lparr>input = [], stack = stack (hd prog)\<rparr>] ! i) \<rightarrow> stack ([\<lparr>input = [a], stack = s\<rparr>, \<lparr>input = [], stack = stack (hd prog)\<rparr>] ! (i + 1))\<close> using \<open>i = 0\<close> 
+  apply auto by (metis (no_types, lifting) ext List.last.simps List.list.discI List.list.sel(3) One_nat_def add_0 assms hd_conv_nth length_greater_0_conv length_tl nth_Cons_0 nth_tl progression_for_def validProgsD(1))
+  ultimately show ?case by blast
+next
+  case 2
   then show ?case by simp
+qed
+
+then show \<open>progression_for [\<lparr>input = [a], stack = s\<rparr>, \<lparr>input = [], stack = stack (hd prog)\<rparr>] [a] s (stack (hd prog))\<close> by(rule progression_forI; auto)
+
+have prog_not_empty: \<open>prog \<noteq> []\<close> by (metis assms hd_rev neq_Nil_conv progression_for_def singleton_rev_conv)
+have prog_valid: \<open>prog \<in> validProgs\<close> 
+proof(rule validProgsI, goal_cases)
+  case (1 i)
+  then have ip_less: \<open>i+1 < length (x # prog) - 1\<close> by simp
+  then have i_eq: \<open>input ((x # prog) ! (i+1)) \<noteq> [] \<and> hd (input ((x # prog) ! (i+1))) # input ((x # prog) ! ((i+1) + 1)) = input ((x # prog) ! (i+1)) \<and> hd (input ((x # prog) ! (i+1))) \<turnstile> stack ((x # prog) ! (i+1)) \<rightarrow> stack ((x # prog) ! ((i+1) + 1))\<close> using validProgsD[OF x_prog_valid] ip_less by blast
+  then show ?case using i_eq by simp
 next
-  case (Cons a s')
-  then have \<open>xs \<turnstile>s' \<rightarrow> stack' @ s'\<close> by simp
-  show      \<open>xs \<turnstile>a # s' \<rightarrow> stack' @ a # s'\<close>
-  proof(cases a)
-    
-    
+  case 2
+  then show ?case using prog_not_empty by simp
+qed
+have \<open>input (hd prog)  = w\<close> apply (rule input_tail) using progression_forD[OF assms(1)] by auto
+with prog_valid show \<open>progression_for (prog) w (stack (hd prog)) s'\<close> apply (rule progression_forI) using progression_forD[OF assms(1)] prog_not_empty by auto  
 qed
 
 
 
 
 
-lemma 
-assumes \<open>xs \<turnstile> [] \<rightarrow> l\<close>
-shows \<open>xs \<turnstile> s' \<rightarrow> l @ s'\<close>
-using assms proof(induction xs \<open>[]::'b list\<close> \<open>l\<close> rule: stack_derive.induct)
-  case empty
-  then show ?case by auto
+lemma stack_derives_iff_ex_prog: \<open>(w \<turnstile> s \<rightarrow>* s') \<longleftrightarrow> (\<exists>prog. (progression_for prog w s s') \<and> length prog = length w +1)\<close>
+proof(induction w arbitrary: s)
+  case Nil
+  then show ?case using stack_derives_empty_iff_ex_prog by simp
 next
-  case (op_bracket xs g stack')
+  case (Cons a w)
+  then show ?case
+  proof(intro iffI, goal_cases)
+    case 1
+    then obtain mid where mid_def1: \<open>a \<turnstile> s \<rightarrow> mid\<close> and mid_def2: \<open>w \<turnstile> mid \<rightarrow>* s'\<close> by blast
+    then obtain x y where \<open>progression_for [x, y] [a] s mid\<close> using stack_derive_iff_ex_prog' by blast
+    moreover from Cons.IH mid_def2  obtain prog where prog_def1: \<open>progression_for prog w mid s'\<close> and prog_length: \<open>length prog = length w + 1\<close> by blast
+    ultimately have new_prog: \<open>progression_for (\<lparr>input = a # w, stack = s\<rparr> # prog) (a#w) s s'\<close> using progression_append by metis
 
-  then have \<open>Tm (Op, g) # xs \<turnstile>[] \<rightarrow> stack'\<close> using stack_derive.op_bracket[where ?xs = \<open>xs\<close> and ?stack = \<open>[]\<close> and stack' = \<open>stack'\<close>] by auto
+    have \<open>length (\<lparr>input = a # w, stack = s\<rparr> # prog) = length prog + 1\<close> by simp
+    also have \<open>... = length w + 2\<close> using prog_length by simp
+    also have \<open>... = length (a # w) +1\<close> by simp
+    finally have \<open>length (\<lparr>input = a # w, stack = s\<rparr> # prog) = length (a # w) + 1\<close> .
+
+    with new_prog show ?case by blast 
+  next
+    case 2
+    then obtain prog' where prog': \<open>progression_for prog' (a # w) s s'\<close> and prog'_length: \<open>length prog' = length (a # w) + 1\<close> by blast
+    then obtain x prog where prog: \<open>progression_for (x#prog) (a # w) s s'\<close> and prog_length: \<open>length (x#prog) = length (a # w) + 1\<close> by (metis List.list.exhaust progression_forD(6))
+    from prog have p1: \<open>progression_for ([\<lparr>input = [a], stack = s\<rparr>, \<lparr>input = [], stack = (stack (hd prog))\<rparr>]) [a] s (stack (hd prog))\<close> by(rule progression_unappend[of x]) 
+    from prog have p2: \<open>progression_for prog w (stack (hd prog)) s'\<close> by(rule progression_unappend[of x])
+    then have \<open>length prog = length w + 1\<close> using prog_length by simp
+    with 2(1) p2 have r2: \<open>(w \<turnstile> (stack (hd prog)) \<rightarrow>* s')\<close> by blast
+
+    have \<open>length [\<lparr>input = [a], stack = s\<rparr>, \<lparr>input = [], stack = (stack (hd prog))\<rparr>] = 2\<close> by simp
+    then have r1: \<open>(a \<turnstile> s \<rightarrow> stack (hd prog))\<close> using stack_derive_iff_ex_prog[of a s \<open>stack (hd prog)\<close>] p1 by blast
+    then show ?case using r2 by auto
+  qed
+qed
+
+
+
+
+
+
+fun drop_pad where
+\<open>drop_pad null s st = (take (length st - length null) st)@s\<close>
+
+
+
+lemma drop_pad_correct[simp]:
+assumes \<open>st = st' @ null\<close>
+shows \<open>drop_pad null s st = st'@s\<close>
+using assms by simp
+
+fun drop_pad_rec where
+\<open>drop_pad_rec null s st = \<lparr>input = input st, stack = drop_pad null s (stack st)\<rparr>\<close>
+
+lemma [simp]: \<open>i < length prog \<Longrightarrow> map (drop_pad_rec null s) prog ! i = drop_pad_rec null s (prog ! i)\<close> by simp
+
+lemma [simp]:\<open>input (drop_pad_rec null s (prog ! i)) = input (prog ! i)\<close> by auto
+
+lemma drop_pad_rec_correct[simp]:
+assumes \<open>stack st = st' @ null\<close>
+shows \<open>stack (drop_pad_rec null s st) = st' @ s\<close> using assms by simp
+
+
+
+lemma progression_append_stack:
+assumes \<open>progression_for prog xs null (over @ null)\<close>
+and \<open>\<And>st. st \<in> set prog \<Longrightarrow> \<exists>st'. stack st = st' @ null\<close>
+shows \<open>progression_for (map (drop_pad_rec null s) prog) xs s (over@s)\<close>
+proof(rule progression_forI, goal_cases)
+  case 1
   then show ?case 
+  proof(rule validProgsI, goal_cases)
+    case (1 i)
+    have prog_valid: \<open>prog \<in> validProgs\<close> using assms(1) by blast
+
+    have length_eq: \<open>length (map (drop_pad_rec null s) prog) = length prog\<close> by simp
+    then have length_eq_m1: \<open>length (map (drop_pad_rec null s) prog) -1 = length prog -1\<close> by simp
+    then have i_less: \<open>i < length prog -1\<close> using length_eq_m1 1 by simp
+
+    with prog_valid have i_eq: \<open>input (prog ! i) \<noteq> [] \<and> hd (input (prog ! i)) # input (prog ! (i + 1)) = input (prog ! i) \<and> hd (input (prog ! i)) \<turnstile> stack (prog ! i) \<rightarrow> stack (prog ! (i + 1))\<close> using validProgsD[OF prog_valid] by simp
+
+    have g1: \<open>input (map (drop_pad_rec null s) prog ! i) \<noteq> []\<close> using i_less i_eq by auto
+    have g2: \<open>hd (input (map (drop_pad_rec null s) prog ! i)) # input (map (drop_pad_rec null s) prog ! (i + 1)) = input (map (drop_pad_rec null s) prog ! i)\<close> using i_less i_eq by auto
+
+    obtain sti' where sti'_def: \<open>stack (prog ! i) = sti' @ null\<close> using assms(2)[of \<open>(prog ! i)\<close>] using "1" by auto
+    obtain stii' where stii'_def: \<open>stack (prog ! (i+1)) = stii' @ null\<close> using assms(2)[of \<open>(prog ! (i+1))\<close>] using "1" by auto
+
+    have sti: \<open>stack (drop_pad_rec null s (prog ! i)) = sti' @ s\<close> using drop_pad_rec_correct[OF sti'_def]  by simp
+    have sti': \<open>stack (drop_pad_rec null s (prog ! (i+1))) = stii' @ s\<close> using drop_pad_rec_correct[OF stii'_def]  by simp
+    define inp where \<open>inp = hd (input (prog ! i))\<close>
+
+    have \<open>inp \<turnstile> sti' @ null \<rightarrow> stii' @ null\<close> using i_eq using sti'_def stii'_def inp_def by auto
+   
+    then have \<open>inp \<turnstile> sti' @ s \<rightarrow> stii' @ s\<close> by(cases inp; auto)
+    
+    then have \<open>hd (input (drop_pad_rec null s (prog ! i))) \<turnstile> stack (drop_pad_rec null s (prog ! i)) \<rightarrow> stack (drop_pad_rec null s (prog ! (i+1)))\<close> using sti sti' inp_def by simp
+    then have \<open>hd (input (map (drop_pad_rec null s) prog ! i)) \<turnstile> stack (map (drop_pad_rec null s) prog ! i) \<rightarrow> stack (map (drop_pad_rec null s) prog ! (i + 1))\<close> using i_less i_eq by auto
+    then show ?case using g1 g2 by simp
+  next
+    case 2
+    then show ?case using assms(1) by blast
+  qed
 next
-  case cl_bracket
-  then show ?case sorry
+  case 2
+  then show ?case using assms progression_forD[OF assms(1)] by (simp add: hd_map)
 next
-  case (nt_skip xs stack' A)
-  then show ?case sorry
+  case 3
+  have \<open>stack (hd prog) = null\<close> using assms(1) by auto
+  then show ?case using assms progression_forD[OF assms(1)] hd_map by (metis append_Nil drop_pad_rec_correct)
+next
+  case 4
+  then show ?case using assms progression_forD[OF assms(1)] last_map by (metis drop_pad_rec.elims select_convs(1))
+
+next
+  case 5
+  have \<open>stack (last prog) = over @ null\<close> using assms(1) by auto
+  then show ?case using assms progression_forD[OF assms(1)] last_map by (metis drop_pad_rec_correct)
+qed 
+ 
+
+
+declare [[show_types]]
+lemma stack_derive_append_stack:
+assumes \<open>xs \<turnstile>[] \<rightarrow>* over\<close>
+shows \<open>xs \<turnstile> s \<rightarrow>* over @ s\<close>
+proof-
+obtain prog where prog_def: \<open>progression_for prog xs [] over\<close> using assms stack_derives_iff_ex_prog by blast
+moreover then have \<open>\<And>st. st \<in> set prog \<Longrightarrow> \<exists>st'. stack st = st' @ []\<close> by simp
+ultimately have \<open>progression_for (map (drop_pad_rec ([]::'b list) s) prog) xs s (over @ s)\<close> using progression_append_stack[of prog xs \<open>[]\<close> over s] by simp
+then have \<open>xs \<turnstile> s \<rightarrow>* over @ s\<close> using stack_derives_iff_ex_prog sorry
+(*TODO refactor iff lemmas *)
+
+thus ?thesis by simp
 qed
+
+
+    
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -358,7 +711,7 @@ qed
 
 
 
-print_statement stack_derive.induct[of w \<open>[]\<close> \<open>[]\<close>]
+
 
 lemma accepts_imp_balanced_terminals:
   "accepts w \<Longrightarrow> balanced_terminals w"

@@ -637,7 +637,7 @@ using progression_length' stack_derives_iff_ex_prog by meson
 
 
 
-
+section \<open>unification?\<close>
 (*declare [[show_types]] *)
 lemma 
 fixes prog:: \<open>('a, 'b) machine_state list\<close> and i::nat
@@ -1078,6 +1078,18 @@ show 2: \<open>\<And>j. j>0 \<Longrightarrow> j \<le> length w \<Longrightarrow>
 qed
 
 
+thm append_take_drop_id
+
+lemma 
+assumes \<open>stk_balanced w\<close>
+and \<open>w \<noteq> []\<close>
+and \<open>i = (LEAST k. k>0 \<and> k \<le> length w \<and> stk_balanced (take k w))\<close>
+and \<open>n \<le> i\<close>
+shows \<open>True\<close>
+oops
+
+
+
 
 lemma 
 assumes \<open>stk_balanced w\<close>
@@ -1108,18 +1120,14 @@ lemma balanced_shortest_prefix_matching:
       and "hd w = Tm (Op, x)"
     shows "last (take i w) = Tm (Cl, x)"
 proof -
-  have i_props: "i > 0" "i \<le> length w" "stk_balanced (take i w)"
-    using assms least_take_balanced_props by blast+
+  have i_bounds: "i > 0" "i \<le> length w" and takei_balanced: "stk_balanced (take i w)" and i_minimal: \<open>\<And>j. j>0 \<Longrightarrow> j \<le> length w \<Longrightarrow> stk_balanced (take j w) \<Longrightarrow> i \<le> j\<close>
+    using assms least_take_balanced_props[OF assms(1)] by blast+
     
-  have "take i w \<noteq> []" using i_props(1) by (simp add: assms(2))
-  
-  
-  have "hd (take i w) = Tm (Op, x)" 
-    using assms(4) i_props(1) by auto
+  have takei_not_empty: "take i w \<noteq> []" using i_bounds by (simp add: assms(2))
+    
+  have hd_takei_op: "hd (take i w) = Tm (Op, x)" using assms(4) i_bounds by auto
 
-    
-  have "stk (take i w) [] = ([], [])" 
-    using i_props(3) by (simp add: stk_balanced_def)
+  have stk_takei: "stk (take i w) [] = ([], [])" using takei_balanced by (simp add: stk_balanced_def)
     
   have "\<exists>y. last (take i w) = Tm (Cl, y)"
   proof (rule ccontr)
@@ -1132,102 +1140,33 @@ proof -
 
     then show False
     proof cases
+    
       case a
-      then have "stk (take i w) [] \<noteq> ([], [])"
-        using `hd (take i w) = Tm (Op, x)` by (meson \<open>take i w \<noteq> []\<close> i_props(3) stk_last_not_open)
-
-        
-      then show False using `stk (take i w) [] = ([], [])` by blast
-
+      then show False using stk_last_not_open by (metis \<open>take i w \<noteq> []\<close> takei_balanced)
     next
       case b
-      then have "stk_balanced (take (i-1) w)"
-        using `stk_balanced (take i w)` by (metis \<open>take i w \<noteq> []\<close> append_butlast_last_id butlast_take i_props(2) stk_balanced_Nt stk_balanced_split)
-      then have \<open>i-1 \<le> length w\<close> using i_props(2) by auto
-      then have \<open>i-1 > 0\<close> using assms(4) by (metis CFG.sym.distinct(1) List.list.size(3) Nat.bot_nat_0.not_eq_extremum \<open>hd (take i w) = Tm (Op, x)\<close> \<open>take i w \<noteq> []\<close> append_butlast_last_id b butlast_take hd_conv_nth i_props(2) nth_append_length take_eq_Nil)
-
-      then have "i-1 > 0 \<and> i-1 \<le> length w \<and> stk_balanced (take (i-1) w)"
-        using i_props(1,2) using \<open>i - 1 \<le> length w\<close> \<open>stk_balanced (take (i - 1) w)\<close> by blast
-    
-      then show False
-        using assms(3) i_props(1) Least_le[of "\<lambda>k. k > 0 \<and> k \<le> length w \<and> stk_balanced (take k w)" "i-1"]
-        by linarith
-
+      then have \<open>i \<le> i-1\<close>
+        proof-
+        have \<open>i-1 > 0\<close> using takei_not_empty i_bounds hd_takei_op by (metis CFG.sym.distinct(1) List.list.sel(1) Nat.bot_nat_0.not_eq_extremum append_Nil append_butlast_last_id b butlast_take take0)
+        moreover have \<open>i-1 \<le> length w\<close> using i_bounds by auto
+        moreover have \<open>stk_balanced (take (i-1) w)\<close> by (metis append_butlast_last_id b butlast_take i_bounds(2) stk_balanced_Nt stk_balanced_split takei_balanced takei_not_empty)
+        ultimately show \<open>i \<le> i-1\<close> using i_minimal[of \<open>i-1\<close>] by blast 
+      qed
+      from this show False using i_bounds(1) by linarith
+      qed
     qed
-  qed
   
-  then obtain y where "last (take i w) = Tm (Cl, y)" by blast
-  
-  have "y = x" 
-  proof (rule ccontr)
-    assume "y \<noteq> x"
-    
-    let ?prefix = "take (i-1) w"
-    
-    have "take i w = ?prefix @ [Tm (Cl, y)]"
-      using `last (take i w) = Tm (Cl, y)` `take i w \<noteq> []`
-      by (metis append_butlast_last_id butlast_take i_props(2))
+    then obtain g where "last (take i w) = Tm (Cl, g)" by blast
+    obtain xs where xs_def: \<open>take i w = Tm (Op, x) # xs @ [Tm (Cl, g)]\<close> using \<open>last (take i w) = Tm (Cl, g)\<close> by (metis CFG.sym.inject(2) List.last.simps List.list.exhaust_sel Pair_inject append_butlast_last_id chomsky_schuetzenberger.bracket.simps(2) hd_takei_op takei_not_empty)
 
-      
-    have "stk (take i w) [] = stk (?prefix @ [Tm (Cl, y)]) []" using \<open>take i w = take (i - 1) w @ [Tm (Cl, y)]\<close> by presburger
-    
-    also have "... = stk [Tm (Cl, y)] (snd (stk ?prefix []))" using fst_conv prod.collapse stk_append_input by (metis \<open>stk (take i w) [] = ([], [])\<close> \<open>take i w = take (i - 1) w @ [Tm (Cl, y)]\<close> stk_balanced_imp_prefix_input_empty)
+    from takei_balanced have \<open>stk (Tm (Op, x) # xs) [] = ([], [Tm (Op, g)])\<close> using stk_last_step_cl'[of xs g] xs_def by (metis append_Cons stk_last_step_cl')
 
-
-    
-    also have "stk [Tm (Cl, y)] (snd (stk ?prefix [])) = 
-          (if y = (case (hd (snd (stk ?prefix []))) of Tm (Op, z) \<Rightarrow> z | _ \<Rightarrow> undefined) 
-           then stk [] (tl (snd (stk ?prefix []))) 
-           else ([Tm (Cl, y)], snd (stk ?prefix [])))"
-    proof -
-      have "snd (stk ?prefix []) \<noteq> []" 
-        using \<open>stk (take i w) [] = ([], [])\<close> calculation by auto
-
-      
-      moreover have "hd (snd (stk ?prefix [])) = Tm (Op, x)"
-        sorry
-      
-      ultimately show ?thesis by (cases "snd (stk ?prefix [])" rule: list.exhaust) auto
-    qed
-
-  also have "... = (if y = x then stk [] (tl (snd (stk ?prefix []))) else ([Tm (Cl, y)], snd (stk ?prefix [])))"
-    using \<open>snd (stk ?prefix []) = [Tm (Op, x)]\<close> by simp
-
-  also have "... = (if y = x then ([], []) else ([Tm (Cl, y)], [Tm (Op, x)]))"
-    using \<open>snd (stk ?prefix []) = [Tm (Op, x)]\<close> by simp
-
-
-
-
-
-
-
-
-
-
-    have "fst (stk ?prefix []) = []" 
-      using `stk (take i w) [] = ([], [])` `take i w = ?prefix @ [Tm (Cl, y)]` using stk_balanced_imp_prefix_input_empty by auto
-
-
-      
-    have "snd (stk ?prefix []) = [Tm (Op, x)]"
-      using `hd (take i w) = Tm (Op, x)` `y \<noteq> x` `stk (take i w) [] = ([], [])`
-      using \<open>fst (stk (take (i - 1) w) []) = []\<close> \<open>stk (take (i - 1) w @ [Tm (Cl, y)]) [] = stk [Tm (Cl, y)] (fst (stk (take (i - 1) w) []))\<close> calculation by fastforce
-
-      
-    then have "stk [Tm (Cl, y)] [Tm (Op, x)] = ([], [])"
-      using `stk (take i w) [] = ([], [])` `take i w = ?prefix @ [Tm (Cl, y)]`
-      using \<open>fst (stk (take (i - 1) w) []) = []\<close> \<open>stk (take (i - 1) w @ [Tm (Cl, y)]) [] = stk [Tm (Cl, y)] (fst (stk (take (i - 1) w) []))\<close> by fastforce
-
-      
-    then have "y = x" using `y \<noteq> x` by auto
-    
-    then show False using `y \<noteq> x` by contradiction
-  qed
-  
-  then show ?thesis using `last (take i w) = Tm (Cl, y)` by simp
+    have "g = x" using i_minimal 
+    then show ?thesis sorry
 qed
 
+
+  
 
 
 

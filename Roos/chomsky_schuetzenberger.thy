@@ -853,6 +853,18 @@ proof -
   
 
 
+
+
+
+
+
+
+
+
+
+section \<open>Andere Version von balanced_terminals, diesmal mit einer Funktion.\<close>  
+
+
 fun stk :: "('n, bracket \<times> 't) syms \<Rightarrow> ('n, bracket \<times> 't) syms \<Rightarrow> (('n, bracket \<times> 't) syms * ('n, bracket \<times> 't) syms)" where
 "stk [] s = ([],s)" |
 "stk (Tm (Op, x) # xs) s = stk xs (Tm (Op, x)#s)" |
@@ -860,6 +872,7 @@ fun stk :: "('n, bracket \<times> 't) syms \<Rightarrow> ('n, bracket \<times> '
 \<open>stk (Nt A # xs) s = stk xs s\<close> | 
 "stk xs s = (xs,s)"
 
+print_theorems
 
 
 lemma stk_append_stk: 
@@ -892,6 +905,10 @@ qed auto
 definition stk_balanced where
 \<open>stk_balanced w \<equiv> stk w [] = ([], []) \<close>
 
+lemma stk_balanced_iff:
+  "(stk_balanced w) = (\<forall>s. stk w s = ([], s))" unfolding stk_balanced_def using stk_append_stk by fastforce
+
+
 
 lemma stk_balanced_empty[simp]: \<open>stk_balanced []\<close> unfolding stk_balanced_def by simp
 
@@ -902,6 +919,97 @@ assumes \<open>stk_balanced xs\<close>
 and \<open>stk_balanced ys\<close>
 shows \<open>stk_balanced (xs@ys)\<close>
 using assms unfolding stk_balanced_def by (simp add: stk_append_input)
+
+print_statement stk.pelims[of \<open>xs @ [Tm (Cl, g)]\<close> \<open>[]\<close> \<open>([],[])\<close>, simplified]
+theorem stk_last_step_cl:
+  assumes "stk_balanced (xs @ [Tm (Cl, g)])"
+  shows "(\<exists>g' xs' . xs  = Tm (Op, g') # xs' 
+                    \<and> stk (xs'@ [Tm (Cl, g)]) [Tm (Op, g')] = ([], [])) 
+        \<or>
+                  (\<exists>A xs' . xs  = Nt A # xs'  
+                    \<and> stk (xs'@ [Tm (Cl, g)]) [] = ([], []))"
+using stk.elims[of \<open>xs @ [Tm (Cl, g)]\<close> \<open>[]\<close> \<open>([],[])\<close>, simplified] assms by (smt (verit, best) CFG.sym.inject(2) CFG.sym.simps(4) Cons_eq_append_conv List.list.inject Product_Type.old.prod.inject chomsky_schuetzenberger.bracket.simps(2) stk_balanced_iff)
+
+
+lemma 
+assumes \<open>stk (xs @ [r]) s = ([], s')\<close>
+shows \<open>\<exists>s''. stk xs s = ([], s'')\<close>
+using assms proof(induction \<open>xs\<close> arbitrary: r s)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons x xs)
+  then show ?case using stk.elims[of \<open>((x # xs) @ [r])\<close> s \<open>([], s')\<close>, simplified] by (smt (verit, del_insts) List.list.distinct(1) Product_Type.prod.inject append_Cons chomsky_schuetzenberger.stk.simps(2,3,4))
+qed
+
+
+lemma stk_balanced_imp_prefix_input_empty1:
+assumes \<open>stk (xs @ [r]) s = ([], s')\<close>
+shows \<open>fst (stk xs s) = []\<close>
+using assms proof(induction \<open>xs\<close> arbitrary: r s)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons x xs)
+  then show ?case using stk.elims[of \<open>((x # xs) @ [r])\<close> s \<open>([], s')\<close>, simplified] by (smt (verit, del_insts) List.list.distinct(1) Product_Type.prod.inject append_Cons chomsky_schuetzenberger.stk.simps(2,3,4))
+qed
+
+lemma stk_balanced_imp_prefix_input_empty:
+assumes \<open>stk (xs @ r) s = ([], s')\<close>
+shows \<open>fst (stk xs s) = []\<close>
+using assms proof(induction \<open>length r\<close> arbitrary: r s')
+  case 0
+  then show ?case by simp
+next
+  case (Suc n)
+  then obtain r' rs where r_def: \<open>r = rs @ [r']\<close> by (metis length_Suc_conv_rev)
+  then have \<open>stk ((xs @ rs) @ [r']) s = ([], s')\<close> using Suc r_def by simp
+  then have \<open>fst (stk (xs @ rs) s) = []\<close> using stk_balanced_imp_prefix_input_empty1 by blast
+  then have \<open>fst (stk xs s) = []\<close> by (metis Nat.nat.inject Product_Type.prod.collapse length_append_singleton local.Suc.hyps(1,2) r_def)
+  then show ?case by simp
+qed
+
+
+corollary stk_balanced_imp_prefix_input_empty':
+  "stk_balanced (xs @ r) \<Longrightarrow> fst (stk xs []) = []" unfolding stk_balanced_def using stk_balanced_imp_prefix_input_empty by blast
+
+lemma stk_balanced_imp_prefix_stack:
+assumes \<open>stk (xs @ [Tm (Cl, g)]) s = ([], s')\<close>
+shows \<open>snd (stk xs s) = [Tm (Op, g)] @ s'\<close>
+using assms proof(induction \<open>xs\<close> arbitrary:  s' s)
+  case Nil
+  then show ?case using stk.elims[of \<open>[Tm (Cl, g)]\<close> s \<open>([], s')\<close>, simplified] by (metis List.list.distinct(1) append_Cons chomsky_schuetzenberger.stk.simps(1) self_append_conv2 split_pairs2)
+next
+  case (Cons x xs)
+  then show ?case using stk.elims[of \<open>((x # xs) @ [Tm (Cl, g)])\<close> s \<open>([], s')\<close>, simplified] by (smt (verit, del_insts) List.list.distinct(1) Product_Type.prod.inject append_Cons chomsky_schuetzenberger.stk.simps(2,3,4))
+qed  
+
+
+
+corollary stk_last_step_cl':
+assumes \<open>stk_balanced (xs @ [Tm (Cl, g)])\<close>
+shows \<open>stk xs [] = ([] ,[Tm (Op, g)])\<close>
+unfolding stk_balanced_def using stk_balanced_imp_prefix_input_empty' stk_balanced_imp_prefix_stack assms by (metis List.append.right_neutral split_pairs stk_balanced_def)
+
+
+
+
+
+theorem stk_last_step_op:
+  assumes "stk_balanced (xs @ [Tm (Op, g)])"
+  shows "(\<exists>g' xs'. xs  = Tm (Op, g') # xs' 
+          \<and> stk (xs'@[Tm (Op, g)]) ([Tm (Op, g')]) = ([], [])) 
+      \<or>
+          (\<exists>A xs'. xs  = Nt A # xs'  
+          \<and> stk (xs' @ [Tm (Op, g)]) [] = ([], []))"
+using stk.elims[of \<open>xs @ [Tm (Op, g)]\<close> \<open>[]\<close> \<open>([],[])\<close>, simplified] assms by (smt (verit, best) CFG.sym.simps(4) Cons_eq_append_conv List.list.inject Pair_inject stk_append_input stk_balanced_iff)
+
+
+
+
+
+  
+
 
 
 lemma balanced_terminals_imp_stk_balanced:
@@ -977,6 +1085,170 @@ and \<open>w \<noteq> []\<close>
 and \<open>i = (LEAST k. k>0 \<and> k \<le> length w \<and> stk_balanced (take k w))\<close>
 and \<open>hd w = Tm (Op, x)\<close>
 shows \<open>last (take i w) = Tm (Cl, x)\<close>
+using assms least_take_balanced_props 
+oops
+
+
+
+
+lemma stk_last_not_open:
+  assumes "stk_balanced w"  
+  assumes "w \<noteq> []"
+  shows "last w \<noteq> Tm (Op, x)"
+  using assms by (metis (no_types, opaque_lifting) List.list.simps(3) append_butlast_last_id chomsky_schuetzenberger.stk.simps(1,2) split_pairs2 stk_append_input stk_balanced_iff stk_balanced_imp_prefix_input_empty')
+
+
+
+
+
+lemma balanced_shortest_prefix_matching:
+  assumes "stk_balanced w"
+      and "w \<noteq> []"
+      and "i = (LEAST k. k > 0 \<and> k \<le> length w \<and> stk_balanced (take k w))"
+      and "hd w = Tm (Op, x)"
+    shows "last (take i w) = Tm (Cl, x)"
+proof -
+  have i_props: "i > 0" "i \<le> length w" "stk_balanced (take i w)"
+    using assms least_take_balanced_props by blast+
+    
+  have "take i w \<noteq> []" using i_props(1) by (simp add: assms(2))
+  
+  
+  have "hd (take i w) = Tm (Op, x)" 
+    using assms(4) i_props(1) by auto
+
+    
+  have "stk (take i w) [] = ([], [])" 
+    using i_props(3) by (simp add: stk_balanced_def)
+    
+  have "\<exists>y. last (take i w) = Tm (Cl, y)"
+  proof (rule ccontr)
+    assume "\<not>(\<exists>y. last (take i w) = Tm (Cl, y))"
+    then have last_not_cl: "\<forall>y. last (take i w) \<noteq> Tm (Cl, y)" by simp
+    
+    consider (a) "\<exists>z. last (take i w) = Tm (Op, z)" 
+           | (b) "\<exists>A. last (take i w) = Nt A" 
+      using `take i w \<noteq> []` using last_not_cl sym.exhaust by (metis (mono_tags, opaque_lifting) Product_Type.old.prod.exhaust chomsky_schuetzenberger.bracket.exhaust)
+
+    then show False
+    proof cases
+      case a
+      then have "stk (take i w) [] \<noteq> ([], [])"
+        using `hd (take i w) = Tm (Op, x)` by (meson \<open>take i w \<noteq> []\<close> i_props(3) stk_last_not_open)
+
+        
+      then show False using `stk (take i w) [] = ([], [])` by blast
+
+    next
+      case b
+      then have "stk_balanced (take (i-1) w)"
+        using `stk_balanced (take i w)` by (metis \<open>take i w \<noteq> []\<close> append_butlast_last_id butlast_take i_props(2) stk_balanced_Nt stk_balanced_split)
+      then have \<open>i-1 \<le> length w\<close> using i_props(2) by auto
+      then have \<open>i-1 > 0\<close> using assms(4) by (metis CFG.sym.distinct(1) List.list.size(3) Nat.bot_nat_0.not_eq_extremum \<open>hd (take i w) = Tm (Op, x)\<close> \<open>take i w \<noteq> []\<close> append_butlast_last_id b butlast_take hd_conv_nth i_props(2) nth_append_length take_eq_Nil)
+
+      then have "i-1 > 0 \<and> i-1 \<le> length w \<and> stk_balanced (take (i-1) w)"
+        using i_props(1,2) using \<open>i - 1 \<le> length w\<close> \<open>stk_balanced (take (i - 1) w)\<close> by blast
+    
+      then show False
+        using assms(3) i_props(1) Least_le[of "\<lambda>k. k > 0 \<and> k \<le> length w \<and> stk_balanced (take k w)" "i-1"]
+        by linarith
+
+    qed
+  qed
+  
+  then obtain y where "last (take i w) = Tm (Cl, y)" by blast
+  
+  have "y = x" 
+  proof (rule ccontr)
+    assume "y \<noteq> x"
+    
+    let ?prefix = "take (i-1) w"
+    
+    have "take i w = ?prefix @ [Tm (Cl, y)]"
+      using `last (take i w) = Tm (Cl, y)` `take i w \<noteq> []`
+      by (metis append_butlast_last_id butlast_take i_props(2))
+
+      
+    have "stk (take i w) [] = stk (?prefix @ [Tm (Cl, y)]) []" using \<open>take i w = take (i - 1) w @ [Tm (Cl, y)]\<close> by presburger
+    
+    also have "... = stk [Tm (Cl, y)] (snd (stk ?prefix []))" using fst_conv prod.collapse stk_append_input by (metis \<open>stk (take i w) [] = ([], [])\<close> \<open>take i w = take (i - 1) w @ [Tm (Cl, y)]\<close> stk_balanced_imp_prefix_input_empty)
+
+
+    
+    also have "stk [Tm (Cl, y)] (snd (stk ?prefix [])) = 
+          (if y = (case (hd (snd (stk ?prefix []))) of Tm (Op, z) \<Rightarrow> z | _ \<Rightarrow> undefined) 
+           then stk [] (tl (snd (stk ?prefix []))) 
+           else ([Tm (Cl, y)], snd (stk ?prefix [])))"
+    proof -
+      have "snd (stk ?prefix []) \<noteq> []" 
+        using \<open>stk (take i w) [] = ([], [])\<close> calculation by auto
+
+      
+      moreover have "hd (snd (stk ?prefix [])) = Tm (Op, x)"
+        sorry
+      
+      ultimately show ?thesis by (cases "snd (stk ?prefix [])" rule: list.exhaust) auto
+    qed
+
+  also have "... = (if y = x then stk [] (tl (snd (stk ?prefix []))) else ([Tm (Cl, y)], snd (stk ?prefix [])))"
+    using \<open>snd (stk ?prefix []) = [Tm (Op, x)]\<close> by simp
+
+  also have "... = (if y = x then ([], []) else ([Tm (Cl, y)], [Tm (Op, x)]))"
+    using \<open>snd (stk ?prefix []) = [Tm (Op, x)]\<close> by simp
+
+
+
+
+
+
+
+
+
+
+    have "fst (stk ?prefix []) = []" 
+      using `stk (take i w) [] = ([], [])` `take i w = ?prefix @ [Tm (Cl, y)]` using stk_balanced_imp_prefix_input_empty by auto
+
+
+      
+    have "snd (stk ?prefix []) = [Tm (Op, x)]"
+      using `hd (take i w) = Tm (Op, x)` `y \<noteq> x` `stk (take i w) [] = ([], [])`
+      using \<open>fst (stk (take (i - 1) w) []) = []\<close> \<open>stk (take (i - 1) w @ [Tm (Cl, y)]) [] = stk [Tm (Cl, y)] (fst (stk (take (i - 1) w) []))\<close> calculation by fastforce
+
+      
+    then have "stk [Tm (Cl, y)] [Tm (Op, x)] = ([], [])"
+      using `stk (take i w) [] = ([], [])` `take i w = ?prefix @ [Tm (Cl, y)]`
+      using \<open>fst (stk (take (i - 1) w) []) = []\<close> \<open>stk (take (i - 1) w @ [Tm (Cl, y)]) [] = stk [Tm (Cl, y)] (fst (stk (take (i - 1) w) []))\<close> by fastforce
+
+      
+    then have "y = x" using `y \<noteq> x` by auto
+    
+    then show False using `y \<noteq> x` by contradiction
+  qed
+  
+  then show ?thesis using `last (take i w) = Tm (Cl, y)` by simp
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 lemma stk_balanced_imp_balanced_terminals:
@@ -993,7 +1265,7 @@ proof(induction \<open>length w\<close> arbitrary: w rule: less_induct)
 
     have \<open>\<exists>i. i > 0 \<and> i \<le> length w \<and> stk_balanced (take i w)\<close> using stk_balanced_w w_eq using local.less.prems take_all by auto
     then obtain i where i_bounds: \<open>i > 0\<close> \<open>i \<le> length w\<close> and takei_balanced: \<open>stk_balanced (take i w)\<close> by blast
-    then have \<open>Tm (Cl, x) \<in> set (take i w)\<close> using takei_balanced sledgehammer
+    then have \<open>Tm (Cl, x) \<in> set (take i w)\<close> using takei_balanced sorry
     then show ?thesis
     proof(cases \<open>i = length w\<close>)
 

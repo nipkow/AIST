@@ -1036,13 +1036,17 @@ next
 qed
 
 
-
+lemma
+stk_balanced_drop_Nt:
+assumes \<open>stk_balanced (xs @ [Nt A])\<close>
+shows \<open>stk_balanced xs\<close>
+sorry
 
 lemma
 stk_balanced_split:
 assumes \<open>stk_balanced (xs @ ys)\<close>
-and \<open>stk_balanced ys\<close>
-shows \<open>stk_balanced xs\<close>
+and \<open>stk_balanced xs\<close>
+shows \<open>stk_balanced ys\<close>
 sorry
 
 
@@ -1080,26 +1084,6 @@ qed
 
 thm append_take_drop_id
 
-lemma 
-assumes \<open>stk_balanced w\<close>
-and \<open>w \<noteq> []\<close>
-and \<open>i = (LEAST k. k>0 \<and> k \<le> length w \<and> stk_balanced (take k w))\<close>
-and \<open>n \<le> i\<close>
-shows \<open>True\<close>
-oops
-
-
-
-
-lemma 
-assumes \<open>stk_balanced w\<close>
-and \<open>w \<noteq> []\<close>
-and \<open>i = (LEAST k. k>0 \<and> k \<le> length w \<and> stk_balanced (take k w))\<close>
-and \<open>hd w = Tm (Op, x)\<close>
-shows \<open>last (take i w) = Tm (Cl, x)\<close>
-using assms least_take_balanced_props 
-oops
-
 
 
 
@@ -1111,14 +1095,12 @@ lemma stk_last_not_open:
 
 
 
-
-
-lemma balanced_shortest_prefix_matching:
+lemma balanced_shortest_prefix_last:
   assumes "stk_balanced w"
       and "w \<noteq> []"
       and "i = (LEAST k. k > 0 \<and> k \<le> length w \<and> stk_balanced (take k w))"
       and "hd w = Tm (Op, x)"
-    shows "last (take i w) = Tm (Cl, x)"
+    shows "\<exists>g'. last (take i w) = Tm (Cl, g')"
 proof -
   have i_bounds: "i > 0" "i \<le> length w" and takei_balanced: "stk_balanced (take i w)" and i_minimal: \<open>\<And>j. j>0 \<Longrightarrow> j \<le> length w \<Longrightarrow> stk_balanced (take j w) \<Longrightarrow> i \<le> j\<close>
     using assms least_take_balanced_props[OF assms(1)] by blast+
@@ -1149,7 +1131,7 @@ proof -
         proof-
         have \<open>i-1 > 0\<close> using takei_not_empty i_bounds hd_takei_op by (metis CFG.sym.distinct(1) List.list.sel(1) Nat.bot_nat_0.not_eq_extremum append_Nil append_butlast_last_id b butlast_take take0)
         moreover have \<open>i-1 \<le> length w\<close> using i_bounds by auto
-        moreover have \<open>stk_balanced (take (i-1) w)\<close> by (metis append_butlast_last_id b butlast_take i_bounds(2) stk_balanced_Nt stk_balanced_split takei_balanced takei_not_empty)
+        moreover have \<open>stk_balanced (take (i-1) w)\<close> using stk_balanced_drop_Nt by (metis append_butlast_last_id b butlast_take i_bounds(2) takei_balanced takei_not_empty)
         ultimately show \<open>i \<le> i-1\<close> using i_minimal[of \<open>i-1\<close>] by blast 
       qed
       from this show False using i_bounds(1) by linarith
@@ -1161,32 +1143,85 @@ proof -
 
     from takei_balanced have \<open>stk (Tm (Op, x) # xs) [] = ([], [Tm (Op, g)])\<close> using stk_last_step_cl'[of xs g] xs_def by (metis append_Cons stk_last_step_cl')
 
-    have "g = x" using i_minimal 
-    then show ?thesis sorry
+    
+    then show ?thesis using \<open>last (take i w) = Tm (Cl, g)\<close> by blast
+    
 qed
 
 
-  
 
 
+lemma balanced_hd_last:
+fixes w g
+defines \<open>i \<equiv> (LEAST k. k>0 \<and> k \<le> length w \<and> stk_balanced (take k w) )\<close>
 
+assumes \<open>n \<le> i-1\<close>
+assumes \<open>n \<ge> 1\<close>
+assumes \<open>stk_balanced w\<close>
+assumes \<open>w \<noteq> []\<close>
+assumes \<open>hd w = Tm (Op, g)\<close>
+shows \<open>\<exists>l. stk (take n w) [] = ([], l @ [Tm (Op, g)])\<close>
+proof-
 
+have i_bounds: \<open>i > 0\<close> and \<open>i \<le> length w\<close> and takei_balanced: \<open>stk_balanced (take i w)\<close> and i_minimal: \<open>\<And>j. j>0 \<Longrightarrow> j \<le> length w \<Longrightarrow> stk_balanced (take j w) \<Longrightarrow> i \<le> j\<close> using least_take_balanced_props[of \<open>w\<close> i] using assms by auto
+thm nat_induct_at_least
+from assms(3,2,4,5,6) show ?thesis proof(induction n rule: nat_induct_at_least)
+  case base
+  from assms(6) have \<open>take 1 w = [Tm (Op, g)]\<close> by (simp add: local.base.prems(3) take_Suc)
+  then show \<open>\<exists>l. stk (take 1 w) [] = ([], l @ [Tm (Op, g)])\<close> by auto
+next
+  case (Suc n)
+  then have \<open>\<exists>l. stk (take n w) [] = ([], l @ [Tm (Op, g)])\<close> using Suc_leD by blast
+  then obtain l where stk_take_n: \<open>stk (take n w) [] = ([], l @ [Tm (Op, g)])\<close> by blast
+  then obtain x where x_def: \<open>take n w @ [x] = take (n+1) w\<close> by (metis List.list.distinct(1) Suc_eq_plus1 append_is_Nil_conv assms(4) linorder_not_le snd_conv stk_balanced_def take_Suc_conv_app_nth take_all)
 
+  then have stk_take_n_x: \<open>stk (take n w @ [x]) [] = stk [x] (l @ [Tm (Op, g)])\<close> using stk_append_input[OF stk_take_n, of \<open>[x]\<close>] by blast
+  consider (Nt) \<open>\<exists>A. x = Nt A\<close> | (Op) \<open>\<exists>g'. x = Tm (Op, g')\<close> | (Cl) \<open>\<exists>g'. x = Tm (Cl, g')\<close> by (metis (full_types) CFG.sym.exhaust chomsky_schuetzenberger.bracket.exhaust eq_snd_iff)
+  then show ?case
+  proof(cases)
+    case Nt
+    then show ?thesis using stk_take_n_x x_def by fastforce
+  next
+    case Op
+    then show ?thesis using stk_take_n_x x_def by fastforce
+  next
+    case Cl
+    then show ?thesis
+    proof(cases l)
+      case Nil
+      then show ?thesis using i_minimal i_bounds stk_take_n_x x_def by (metis Cl Suc_diff_1 Suc_eq_plus1 append_self_conv2 append_take_drop_id assms(4) chomsky_schuetzenberger.stk.simps(1,3) fst_conv  local.Suc.prems(1) not_less_eq_eq stk_balanced_def stk_balanced_imp_prefix_input_empty' stk_take_n take_all zero_less_Suc)
+    next
+      case (Cons a list)
+      then show ?thesis using stk_take_n_x x_def apply(cases a) defer apply(case_tac x2) apply(case_tac aa) apply auto
+      apply (metis Cl List.list.distinct(1) append_take_drop_id assms(4) chomsky_schuetzenberger.stk.simps(1,3) fst_conv stk_balanced_imp_prefix_input_empty')
+      apply (metis Cl List.list.distinct(1) append_take_drop_id assms(4) chomsky_schuetzenberger.stk.simps(7) fst_conv stk_balanced_imp_prefix_input_empty')
+      by (metis Cl List.list.distinct(1) append_take_drop_id assms(4) chomsky_schuetzenberger.stk.simps(6) fst_conv stk_balanced_imp_prefix_input_empty')
+    qed
+  qed
+qed
+qed
 
+ 
 
+corollary balanced_hd_last':
+fixes w g
+defines \<open>i \<equiv> (LEAST k. k>0 \<and> k \<le> length w \<and> stk_balanced (take k w) )\<close>
 
+assumes \<open>stk_balanced w\<close>
+assumes \<open>w \<noteq> []\<close>
+assumes \<open>hd w = Tm (Op, g)\<close>
+assumes \<open>i = length w\<close>
+shows \<open>last w = Tm (Cl, g)\<close>
+proof-
+have take_i_w: \<open>w = take i w\<close> using assms by simp
+then have length_w: \<open>i = length w\<close> by (simp add: assms(5))
+have \<open>\<exists>l. stk (take (i-1) w) [] = ([], l @ [Tm (Op, g)])\<close> apply(rule balanced_hd_last) using assms apply auto using hd_conv_nth last_conv_nth not_less_eq_eq stk_last_not_open by fastforce
+then obtain l where \<open>stk (take (i-1) w) [] = ([], l @ [Tm (Op, g)])\<close> by blast
 
-
-
-
-
-
-
-
-
-
-
-
+obtain g' where g'_def: \<open>last w = Tm (Cl, g')\<close> using balanced_shortest_prefix_last[of w i] using i_def take_i_w assms by auto
+have \<open>g = g'\<close> by (metis CFG.sym.inject(2) \<open>last w = Tm (Cl, g')\<close> \<open>stk (take (i - 1) w) [] = ([], l @ [Tm (Op, g)])\<close> append_butlast_last_id assms(2,3) butlast_take last_ConsL last_snoc length_w snd_conv stk_last_step_cl' take_all_iff take_i_w)
+with g'_def show ?thesis by blast
+qed
 
 
 
@@ -1202,51 +1237,22 @@ proof(induction \<open>length w\<close> arbitrary: w rule: less_induct)
     then have w_eq: \<open>w = Tm (Op, x) # xs\<close> by simp
     then have stk_balanced_op_xs: \<open>stk (Tm (Op, x) # xs) [] = ([], [])\<close> using w_eq stk_balanced_w by simp
 
-    have \<open>\<exists>i. i > 0 \<and> i \<le> length w \<and> stk_balanced (take i w)\<close> using stk_balanced_w w_eq using local.less.prems take_all by auto
-    then obtain i where i_bounds: \<open>i > 0\<close> \<open>i \<le> length w\<close> and takei_balanced: \<open>stk_balanced (take i w)\<close> by blast
-    then have \<open>Tm (Cl, x) \<in> set (take i w)\<close> using takei_balanced sorry
+    define i where \<open>i \<equiv> (LEAST k. k>0 \<and> k \<le> length w \<and> stk_balanced (take k w) )\<close>
+    then have i_bounds: \<open>i > 0\<close> and \<open>i \<le> length w\<close> and takei_balanced: \<open>stk_balanced (take i w)\<close> and i_minimal: \<open>\<And>j. j>0 \<Longrightarrow> j \<le> length w \<Longrightarrow> stk_balanced (take j w) \<Longrightarrow> i \<le> j\<close> using least_take_balanced_props[of \<open>w\<close>] using local.less.prems w_eq i_def by blast+
     then show ?thesis
     proof(cases \<open>i = length w\<close>)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    then have \<open>([], []) = stk (Tm (Op, x) # xs) []\<close> by simp
-    also have \<open>... = stk xs [Tm (Op, x)]\<close> by simp
-
-    finally have \<open>stk xs [Tm (Op, x)] = ([], [])\<close> by simp
-    then have \<open>\<exists>ys fr. xs = fr @ ys \<and> stk xs [Tm (Op, x)] = stk (Tm (Cl, x) #ys) ([Tm (Op, x)])\<close> by force
-
-    then obtain ys fr where ys_def1: \<open>xs = fr @ ys\<close> and  ys_def2: \<open>stk xs [Tm (Op, x)] = stk (Tm (Cl, x) #ys) ([Tm (Op, x)])\<close> by blast
-
-
-    then have \<open>stk_balanced ys\<close> using \<open>stk xs [Tm (Op, x)] = ([], [])\<close> by (simp add: stk_balanced_def)
-    moreover have \<open>length ys < length w\<close> using ys_def1 w_eq by simp
-    ultimately have b1: \<open>balanced_terminals ys\<close> using IH by simp
-    
-    then show ?case
-    proof(cases \<open>ys = []\<close>)
       case True
-      with ys_def2 have \<open>stk xs [Tm (Op, x)] = stk ([Tm (Cl, x)]) ([Tm (Op, x)])\<close> by simp
-      then show ?thesis using ys_def1 ys_def2 w_eq sorry
+      then have \<open>last w = Tm (Cl, x)\<close> using w_eq takei_balanced using balanced_hd_last' i_def by fastforce
+      then obtain xs' where \<open>w = [Tm (Op, x)] @  xs' @ [Tm (Cl, x)]\<close> using w_eq by (metis List.last.simps append_Cons append_Nil append_butlast_last_id local.less.prems stk_last_not_open)
+      then have \<open>stk_balanced xs'\<close> using balanced_middle[of x xs'] using local.less.prems by auto
+      then have \<open>balanced_terminals xs'\<close> using IH by (simp add: \<open>w = [Tm (Op, x)] @ xs' @ [Tm (Cl, x)]\<close>)
+      then show \<open>balanced_terminals w\<close> using \<open>w = [Tm (Op, x)] @ xs' @ [Tm (Cl, x)]\<close> by (simp add: pair)
     next
       case False
-      then have \<open>stk_balanced ((Tm (Op, x)) # fr) \<close> using ys_def1 ys_def2 stk_balanced_def stk_balanced_split by (metis Cons_eq_appendI \<open>stk_balanced ys\<close> local.less.prems w_eq)
-      moreover have \<open>length ((Tm (Op, x)) # fr) < length w\<close> using False ys_def1 w_eq by simp
-      ultimately have b2':\<open>balanced_terminals ((Tm (Op, x)) # fr)\<close> using IH by simp
-      then show ?thesis using b1 b2' w_eq by (metis Cons_eq_appendI concat ys_def1)
+      then have \<open>stk_balanced (drop i w)\<close> using \<open>stk_balanced (take i w)\<close> stk_balanced_split[of \<open>take i w\<close> \<open>drop i w\<close>] by (simp add: local.less.prems)
+      then have \<open>balanced_terminals (drop i w)\<close> using IH using \<open>i \<le> length w\<close> i_bounds by auto
+      moreover have \<open>balanced_terminals (take i w)\<close> using False IH \<open>i \<le> length w\<close> takei_balanced by force
+      ultimately show \<open>balanced_terminals w\<close> by (metis append_take_drop_id concat)
     qed
   next
     case (4 A xs s)
@@ -1260,6 +1266,8 @@ proof(induction \<open>length w\<close> arbitrary: w rule: less_induct)
 qed
 
 
+corollary stk_balanced_iff_balanced_terminals[iff]: \<open>stk_balanced w \<longleftrightarrow> balanced_terminals w\<close>
+using stk_balanced_imp_balanced_terminals[of w] balanced_terminals_imp_stk_balanced[of w] by blast
 
 
 
@@ -1268,61 +1276,7 @@ qed
 
 
 
-
-
-
-
-
-
-lemma stk_balanced_imp_balanced_terminals:
-  "stk_balanced w \<Longrightarrow> balanced_terminals w"
-unfolding stk_balanced_def
-proof (induction w \<open>[]::('a, bracket \<times> 'b) sym list\<close> rule: stk.induct)
-  case 1
-  then show ?case by auto
-next
-  case (2 x xs)
-  then have \<open>([], []) = stk (Tm (Op, x) # xs) []\<close> by simp
-  also have \<open>... = stk xs [Tm (Op, x)]\<close> by simp
-
-  finally have \<open>stk xs [Tm (Op, x)] = ([], [])\<close> by simp
-  then obtain ys where \<open>stk xs [Tm (Op, x)] = stk (Tm (Cl, x) # ys) ([Tm (Op, x)])\<close> sorry
-
-  then have \<open>stk_balanced ys\<close> by (simp add: \<open>stk xs [Tm (Op, x)] = ([], [])\<close> stk_balanced_def)
-
-
-  then show ?case 
-next
-  case (4 A xs)
-  then show ?case using balanced_terminals_append_Nt by fastforce
-qed auto
-
-
-
-
-
-
-
-
-
-
-
-lemma \<open>balanced_terminals (xs@ys) \<Longrightarrow> balanced_terminals xs \<Longrightarrow> balanced_terminals ys\<close>
-proof(induction \<open>xs@ys\<close> rule: balanced_terminals.induct)
-  case empty
-  then show ?case by auto
-next
-  case (Nt A)
-  then show ?case by (metis (no_types, lifting) Cons_eq_append_conv append_is_Nil_conv chomsky_schuetzenberger.balanced_terminals.Nt empty)
-next
-  case (pair xs' g)
-  then have \<open>balanced_terminals (xs @ ys)\<close> by (metis chomsky_schuetzenberger.balanced_terminals.pair)
-
-  with pair show ?case
-next
-  case (concat xs ys)
-  then show ?case sorry
-qed
+lemma balanced_terminals_split: \<open>balanced_terminals (xs@ys) \<Longrightarrow> balanced_terminals xs \<Longrightarrow> balanced_terminals ys\<close> using stk_balanced_split by auto
 
 
 lemma \<open>balanced_terminals (u @ [Nt A] @ v) \<Longrightarrow> balanced_terminals w \<Longrightarrow> balanced_terminals (u @ w @ v)\<close>
@@ -1340,7 +1294,8 @@ next
   then have \<open>length u > 0\<close> and \<open>length v > 0\<close> by simp+
   then obtain u' where \<open>[Tm (Op, g)] @ u' = u\<close> by (metis Cons_eq_append_conv eq_Nil_appendI length_0_conv less_irrefl_nat local.pair.hyps(3))
   define v' where \<open> v' = take (length v -1) v\<close>
-  then have \<open>take (length v -1) v @ [v ! (length v -1)] = v\<close> using \<open>0 < length v\<close> by auto
+  then have \<open>take (length v -1) v @ [v ! (length v -1)] = v\<close> using \<open>0 < length v\<close> by (metis Orderings.preorder_class.order.refl Suc_diff_1 lessI take_Suc_conv_app_nth take_all)
+
   moreover have \<open>v ! (length v -1) = Tm (Cl, g)\<close> by (metis (no_types, lifting) List.last.simps append_is_Nil_conv calculation last_appendR local.pair.hyps(3) not_Cons_self2)
   ultimately have \<open>v' @ [Tm (Cl, g)] = v\<close> using v'_def by argo
   then have \<open>xs = u' @ [Nt A] @ v'\<close> using pair(3) using \<open>[Tm (Op, g)] @ u' = u\<close> by force
@@ -1353,10 +1308,9 @@ next
   proof(cases \<open>length xs \<ge> length u + 1\<close>)
     case True
     have \<open>xs @ ys = u @ [Nt A] @ v\<close> using concat by simp
-    with True obtain v' where \<open>xs = (u @ [Nt A]) @ v'\<close> sorry
+    with True obtain v' where \<open>xs = (u @ [Nt A]) @ v'\<close> by (metis List.append.assoc[of u "[Nt A]" "v @ drop (Suc (length u)) xs"] List.append.assoc[of u "[Nt A] @ v" "drop (Suc (length u)) xs"] List.append.assoc[of xs ys "drop (Suc (length u)) xs"] List.append.assoc[of "[Nt A]" v "drop (Suc (length u)) xs"] Suc_eq_plus1[of "length u"] append_eq_append_conv_if[of "u @ [Nt A]" "v @ drop (Suc (length u)) xs" xs "ys @ drop (Suc (length u)) xs"] append_take_drop_id[of "Suc (length u)" xs] length_append_singleton[of u "Nt A"])
     then have \<open>balanced_terminals (u @ w @ v')\<close> using List.append.assoc local.concat.hyps(2) local.concat.prems by blast
-
-    then show ?thesis 
+    then show ?thesis using \<open>xs = (u @ [Nt A]) @ v'\<close> chomsky_schuetzenberger.balanced_terminals.concat local.concat.hyps(3,5) by fastforce
   next
     case False
     then show ?thesis sorry

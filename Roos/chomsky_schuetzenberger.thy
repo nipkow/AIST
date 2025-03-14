@@ -206,49 +206,21 @@ qed
 
 
 
-section\<open>Definition of a stack machine eating balanced_tm words using an inductive relation\<close>
-
-text\<open>takes input symbol and stack, gives the next stack\<close> 
-inductive stack_derive :: "('n, bracket \<times> 'a) sym \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> bool" ("_ \<turnstile> _ \<rightarrow> _" [50, 0, 50] 50) where 
-op_bracket: "Tm (Op, g) \<turnstile> stack \<rightarrow> g # stack" | 
-cl_bracket: "Tm (Cl, g) \<turnstile> g # stack \<rightarrow> stack" | 
-nt_skip: "Nt A \<turnstile> stack \<rightarrow> stack"
 
 
-inductive stack_derives :: "('n, bracket \<times> 'a) syms \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> bool" 
-  ("_ \<turnstile> _ \<rightarrow>* _" [50, 0, 50] 50) where
-  empty: "[] \<turnstile> st \<rightarrow>* st" |
-  step: "x \<turnstile> st \<rightarrow> mid   \<Longrightarrow>    xs \<turnstile> mid \<rightarrow>* final    \<Longrightarrow>    (x # xs) \<turnstile> st \<rightarrow>* final"
 
 
-declare stack_derive.intros [intro]
-declare stack_derives.intros [intro]
 
 
-inductive_cases [elim]: "(Tm (Op, g)) \<turnstile> s \<rightarrow> s'"
-inductive_cases [elim]: "(Tm (Cl, g)) \<turnstile> h # s \<rightarrow> s'"
-inductive_cases [elim]: "(Nt A) \<turnstile> s \<rightarrow> s'"
 
 
-inductive_cases [elim]: "x # xs \<turnstile> s \<rightarrow>* s'"
-inductive_cases [elim]: "[] \<turnstile> s \<rightarrow>* s'"
 
 
-lemma stack_derive_append:
-assumes \<open>xs \<turnstile> st \<rightarrow>* st'\<close>
-and \<open>ys \<turnstile> st' \<rightarrow>* st''\<close>
-shows \<open>xs @ ys \<turnstile> st \<rightarrow>* st''\<close>
-using assms by(induction rule: stack_derives.induct; auto)
 
 
-lemma stack_derives_empty[iff]: \<open>([] \<turnstile> stack1 \<rightarrow>* stack2) = (stack1 = stack2)\<close> using stack_derives.simps[of "[]", simplified] by metis
-
-lemma stack_derives_one[iff]: \<open>([a] \<turnstile> [] \<rightarrow>* stack) = (a \<turnstile> [] \<rightarrow> stack)\<close> using stack_derives.simps[of \<open>[a]\<close> "[]" "stack" , simplified] by simp
-
-lemma stack_derive_one[iff]: \<open>(a \<turnstile> [] \<rightarrow> stack) = ((\<exists>g. a = Tm (Op, g) \<and> stack = [g]) \<or> (\<exists>A. a = Nt A) \<and> stack = [])\<close> using stack_derive.simps[of \<open>a\<close> \<open>[]\<close> stack, simplified] by simp
 
 
-lemma stack_underive[iff]: \<open>(a # w \<turnstile> s \<rightarrow>* s') = (\<exists>mid. a \<turnstile> s \<rightarrow> mid \<and> w \<turnstile> mid \<rightarrow>* s')\<close> using stack_derives.simps[of \<open>a#w\<close> s s', simplified] by simp
+
 
 
 

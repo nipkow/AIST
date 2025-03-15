@@ -92,63 +92,67 @@ abbreviation close_bracket2 :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> br
 
 
 text\<open>definition of what it means to be a balanced string with letters of type \<open>bracket \<times> ('a)\<close> \<close>
-inductive balanced :: "(bracket  \<times> ('a)) list \<Rightarrow> bool" where
-  empty[intro]: "balanced []" |
-  pair[intro]: "balanced xs \<Longrightarrow> balanced ((Op, g) # xs @ [(Cl, g)])" |
-  concat[intro]: "balanced xs \<Longrightarrow> balanced ys \<Longrightarrow> balanced (xs @ ys)"
+inductive bal :: "(bracket  \<times> ('a)) list \<Rightarrow> bool" where
+  "bal []" |
+  "bal xs \<Longrightarrow> bal ys \<Longrightarrow> bal (xs @ ys)" | 
+  "bal xs \<Longrightarrow> bal ((Op, g) # xs @ [(Cl, g)])" 
+
+declare bal.intros(1)[iff] bal.intros(2)[intro,simp] bal.intros(3)[intro!,simp]
 
 text\<open>The bracket language over a set R. Every element r \<in> R will get a Closing and an Opening version of itself, via pairing with the type bracket. We later need D := dyck_language ((Prods G) \<times> {1,2})\<close>
 
 definition dyck_language :: "'a set \<Rightarrow> (bracket  \<times> ('a)) list set" where
-  "dyck_language R = {w. (balanced w) \<and> (\<forall>(br,r) \<in> (set w). r \<in> R)}"
+  "dyck_language R = {w. (bal w) \<and> (\<forall>(br,r) \<in> (set w). r \<in> R)}"
 
 text\<open>balanced strings of brackets that may contain arbitrary interspersion of Nonterminals\<close>
-inductive balanced_terminals :: "('n, bracket  \<times> ('a)) syms \<Rightarrow> bool" where
-  empty[intro]: "balanced_terminals []" |
-  Nt[intro]: "balanced_terminals [Nt A]" |
-  pair[intro]: "balanced_terminals xs \<Longrightarrow> balanced_terminals (Tm (Op, g) # xs @ [Tm (Cl, g)])" |
-  concat[intro]: "balanced_terminals xs \<Longrightarrow> balanced_terminals ys \<Longrightarrow> balanced_terminals (xs @ ys)"
+inductive bal_tm :: "('n, bracket  \<times> ('a)) syms \<Rightarrow> bool" where
+  "bal_tm []" |
+  "bal_tm [Nt A]" |
+  "bal_tm xs \<Longrightarrow> bal_tm ys \<Longrightarrow> bal_tm (xs @ ys)" | 
+  "bal_tm xs \<Longrightarrow> bal_tm (Tm (Op, g) # xs @ [Tm (Cl, g)])"
 
+declare bal_tm.intros(1,2)[iff] bal_tm.intros(3)[intro, simp] bal_tm.intros(4)[intro!, simp]
 
-lemma balanced_terminals_append_Nt[intro]: \<open>balanced_terminals xs \<Longrightarrow> balanced_terminals ([Nt A] @ xs)\<close>
-proof-
-assume xs_balanced: \<open>balanced_terminals xs\<close>
-have \<open>balanced_terminals [Nt A]\<close> by auto
-then show \<open>balanced_terminals ([Nt A] @ xs)\<close> using concat xs_balanced by blast
-qed
+lemma bal_tm_prepend_Nt[intro!, simp]: \<open>bal_tm xs \<Longrightarrow> bal_tm ([Nt A] @ xs)\<close> by blast
 
 
 
 
 
-lemma map_Tm_inject: "map Tm xs = map Tm ys \<Longrightarrow> xs = ys"
+
+
+
+
+
+
+
+lemma map_Tm_inject[dest!, simp]: "map Tm xs = map Tm ys \<Longrightarrow> xs = ys"
   by (induction xs arbitrary: ys; auto)
 
 
-lemma split_tm_append: \<open>xs @ ys = map Tm zs \<Longrightarrow> \<exists> xs' ys'. (xs' @ ys' = zs) \<and> (xs = map Tm xs') \<and> (ys = map Tm ys')\<close>
+lemma split_tm_append: \<open>xs @ ys = map Tm zs \<Longrightarrow> \<exists> xs' ys'. (xs' @ ys' = zs) \<and> (xs = map Tm xs') \<and> (ys = map Tm ys')\<close> 
 by (metis append_eq_map_conv)
 
 
-lemma balanced_imp_balanced_terminals: \<open>balanced xs \<Longrightarrow> balanced_terminals (map Tm xs)\<close>
-by(induction xs rule: balanced.induct; auto)
+lemma bal_imp_bal_tm: \<open>bal xs \<Longrightarrow> bal_tm (map Tm xs)\<close>
+by(induction xs rule: bal.induct; auto)
 
 
-lemma balanced_terminals_imp_balanced_for_tms: \<open>balanced_terminals (map Tm xs') \<Longrightarrow> balanced xs'\<close>
+lemma bal_tm_imp_bal_for_tms: \<open>bal_tm (map Tm xs') \<Longrightarrow> bal xs'\<close>
 proof-
-assume assm: \<open>balanced_terminals (map Tm xs':: ('a, bracket \<times> 'b) sym list)\<close>
+assume assm: \<open>bal_tm (map Tm xs':: ('a, bracket \<times> 'b) sym list)\<close>
 define xs::\<open>('a, bracket \<times> 'b) sym list\<close> where \<open>xs = map Tm xs'\<close> \<comment> \<open>need to enforce the same non-terminal type for xs as for map Tm xs' ...\<close>
-then have \<open>balanced_terminals xs\<close> using xs_def assm by simp
-
-from \<open>balanced_terminals xs\<close> \<open>xs = map Tm xs'\<close> show ?thesis
-proof(induction xs arbitrary: xs' rule: balanced_terminals.induct)
-  case (pair xs g)
-  obtain xs'' where \<open>xs = map Tm xs''\<close> and \<open>xs' = ((Op, g) # (xs'') @ [(Cl, g)])\<close> using split_tm_append local.pair.prems by blast
-  then have \<open>balanced xs''\<close> by (simp add: local.pair.IH)
-  then have \<open>balanced ((Op, g) # (xs'') @ [(Cl, g)])\<close> by auto
+then have \<open>bal_tm xs\<close> using xs_def assm by simp
+from \<open>bal_tm xs\<close> \<open>xs = map Tm xs'\<close> show ?thesis
+proof(induction xs arbitrary: xs' rule: bal_tm.induct)
+  case (4 xs g)
+  then obtain xs'' where \<open>xs = map Tm xs''\<close> and \<open>xs' = ((Op, g) # (xs'') @ [(Cl, g)])\<close> using split_tm_append by blast
+  then have \<open>bal xs''\<close> using "local.4.IH" by blast
+  then have \<open>bal ((Op, g) # (xs'') @ [(Cl, g)])\<close> by auto
   then show ?case by (simp add: \<open>xs' = (Op, g) # xs'' @ [(Cl, g)]\<close>)
 next
-  case (concat xs ys)
-  then show ?case by (metis chomsky_schuetzenberger.balanced.concat split_tm_append)
+  case (3 xs ys)
+  then show ?case using split_tm_append by blast
 qed auto
 qed
 
@@ -257,11 +261,11 @@ by(induction l; use list_length_1_imp_ex in auto)
 
 
 
-lemma balanced_terminals_split: \<open>balanced_terminals (xs@ys) \<Longrightarrow> balanced_terminals xs \<Longrightarrow> balanced_terminals ys\<close> using stk_balanced_split by auto
+lemma bal_tm_split: \<open>bal_tm (xs@ys) \<Longrightarrow> bal_tm xs \<Longrightarrow> bal_tm ys\<close> using stk_bal_split by auto
 
 
-lemma \<open>balanced_terminals (u @ [Nt A] @ v) \<Longrightarrow> balanced_terminals w \<Longrightarrow> balanced_terminals (u @ w @ v)\<close>
-proof(induction \<open>u @ [Nt A] @ v\<close> arbitrary: u v rule: balanced_terminals.induct)
+lemma \<open>bal_tm (u @ [Nt A] @ v) \<Longrightarrow> bal_tm w \<Longrightarrow> bal_tm (u @ w @ v)\<close>
+proof(induction \<open>u @ [Nt A] @ v\<close> arbitrary: u v rule: bal_tm.induct)
   case empty
   then show ?case by simp
 next
@@ -280,8 +284,8 @@ next
   moreover have \<open>v ! (length v -1) = Tm (Cl, g)\<close> by (metis (no_types, lifting) List.last.simps append_is_Nil_conv calculation last_appendR local.pair.hyps(3) not_Cons_self2)
   ultimately have \<open>v' @ [Tm (Cl, g)] = v\<close> using v'_def by argo
   then have \<open>xs = u' @ [Nt A] @ v'\<close> using pair(3) using \<open>[Tm (Op, g)] @ u' = u\<close> by force
-  then have \<open>balanced_terminals (u' @ w @ v')\<close> by (simp add: local.pair.hyps(2) local.pair.prems)
-  then have \<open>balanced_terminals ([Tm (Op, g)] @ (u' @ w @ v') @ [Tm (Cl, g)])\<close> using chomsky_schuetzenberger.balanced_terminals.pair by force
+  then have \<open>bal_tm (u' @ w @ v')\<close> by (simp add: local.pair.hyps(2) local.pair.prems)
+  then have \<open>bal_tm ([Tm (Op, g)] @ (u' @ w @ v') @ [Tm (Cl, g)])\<close> using chomsky_schuetzenberger.bal_tm.pair by force
   then show ?case using \<open>[Tm (Op, g)] @ u' = u\<close> \<open>v' @ [Tm (Cl, g)] = v\<close> by force
 next
   case (concat xs ys)
@@ -290,15 +294,15 @@ next
     case True
     have \<open>xs @ ys = u @ [Nt A] @ v\<close> using concat by simp
     with True obtain v' where \<open>xs = (u @ [Nt A]) @ v'\<close> by (metis List.append.assoc[of u "[Nt A]" "v @ drop (Suc (length u)) xs"] List.append.assoc[of u "[Nt A] @ v" "drop (Suc (length u)) xs"] List.append.assoc[of xs ys "drop (Suc (length u)) xs"] List.append.assoc[of "[Nt A]" v "drop (Suc (length u)) xs"] Suc_eq_plus1[of "length u"] append_eq_append_conv_if[of "u @ [Nt A]" "v @ drop (Suc (length u)) xs" xs "ys @ drop (Suc (length u)) xs"] append_take_drop_id[of "Suc (length u)" xs] length_append_singleton[of u "Nt A"])
-    then have \<open>balanced_terminals (u @ w @ v')\<close> using List.append.assoc local.concat.hyps(2) local.concat.prems by blast
-    then show ?thesis using \<open>xs = (u @ [Nt A]) @ v'\<close> chomsky_schuetzenberger.balanced_terminals.concat local.concat.hyps(3,5) by fastforce
+    then have \<open>bal_tm (u @ w @ v')\<close> using List.append.assoc local.concat.hyps(2) local.concat.prems by blast
+    then show ?thesis using \<open>xs = (u @ [Nt A]) @ v'\<close> chomsky_schuetzenberger.bal_tm.concat local.concat.hyps(3,5) by fastforce
   next
     case False
     then show ?thesis sorry
   qed
 qed
 
-
+oops
 
 
 
@@ -1693,23 +1697,23 @@ lemma transform_production_one_step_bu:
 
 
 
-lemma P'_balanced:
+lemma P'_bal:
 assumes \<open>(image transform_production P) \<turnstile> [Nt A] \<Rightarrow>* x\<close>
 and \<open>\<forall>p \<in> P. CNF_rule p\<close>
-shows \<open>balanced_terminals x\<close>
+shows \<open>bal_tm x\<close>
 using assms proof(induction rule: derives_induct)
   case base
   then show ?case by (simp add: Nt)
 
 next
   case (step u A v w)
-  have \<open>balanced_terminals (u @ [Nt A] @ v)\<close> using local.step.IH local.step.prems by auto
+  have \<open>bal_tm (u @ [Nt A] @ v)\<close> using local.step.IH local.step.prems by auto
 
-  have \<open>balanced_terminals w\<close> sorry
+  have \<open>bal_tm w\<close> sorry
   then show ?case 
 qed
 
-
+oops
 
 
 
@@ -1745,11 +1749,11 @@ proof -
   have \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (dyck_language \<Gamma>) \<inter> (Re P A)\<close> (* This is the hard part of the proof - the local lemma in the textbook *)
   proof-
 
-    have \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* x \<Longrightarrow> balanced_terminals x\<close>
+    have \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* x \<Longrightarrow> bal_tm x\<close>
     proof-
     fix A x
     assume \<open>P' \<turnstile> [Nt A] \<Rightarrow>* x\<close>
-    then show \<open>balanced_terminals x\<close>
+    then show \<open>bal_tm x\<close>
     proof(induction rule: derives_induct)
       case base
       then show ?case sorry

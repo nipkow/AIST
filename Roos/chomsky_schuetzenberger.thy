@@ -327,18 +327,42 @@ qed (auto)
 corollary stk_bal_tm_iff_bal_tm: "stk_bal_tm w [] = ([],[]) \<longleftrightarrow> bal_tm w"
 using stk_bal_if_stk_bal_tm[of w "[]"] stk_bal_tm_if_bal_tm by auto
 
-theorem "bal_tm (u @ v) \<Longrightarrow> bal_tm u \<Longrightarrow> bal_tm v"
+theorem bal_tm_append_inv: "bal_tm (u @ v) \<Longrightarrow> bal_tm u \<Longrightarrow> bal_tm v"
 using stk_bal_tm_append_if stk_bal_tm_iff_bal_tm by metis
 
 
+lemma bal_tm_insert: 
+assumes u: "bal_tm u" 
+and b: \<open>bal_tm b\<close>
+shows "u = v@w \<Longrightarrow> bal_tm (v @ b @ w)" 
+proof-
+assume \<open>u = v@w\<close>
+have \<open>stk_bal_tm (u) [] = ([],[])\<close> using assms stk_bal_tm_iff_bal_tm by blast
+have \<open>stk_bal_tm (b) [] = ([],[])\<close> using assms stk_bal_tm_iff_bal_tm by blast
 
 
+have \<open>stk_bal_tm (v @ b @ w) [] = ([],[])\<close> 
+then show \<open>bal_tm (v @ b @ w)\<close> using stk_bal_tm_iff_bal_tm by blast
+qed
+
+oops
 
 
+lemma bal_tm_del: 
+assumes u: "bal_tm u" 
+and b: \<open>bal_tm b\<close>
+shows "u = v @ b @ w \<Longrightarrow> bal_tm (v @ w)" 
+proof-
+assume \<open>u = v@b @ w\<close>
+have \<open>stk_bal_tm (u) [] = ([],[])\<close> using assms stk_bal_tm_iff_bal_tm by blast
+have \<open>stk_bal_tm (b) [] = ([],[])\<close> using assms stk_bal_tm_iff_bal_tm by blast
 
 
+have \<open>stk_bal_tm (v @  w) [] = ([],[])\<close> sorry
+then show \<open>bal_tm (v @ w)\<close> using stk_bal_tm_iff_bal_tm by blast
+qed
 
-
+oops
 
 
 
@@ -426,12 +450,6 @@ lemma list_length_1_imp_ex: \<open>length l = 1 \<Longrightarrow> \<exists>x. l 
 
 lemma list_length_2_imp_ex: \<open>length l = 2 \<Longrightarrow> \<exists>x y. l = [x, y]\<close>
 by(induction l; use list_length_1_imp_ex in auto)
-
-
-
-
-
-lemma bal_tm_split: \<open>bal_tm (xs@ys) \<Longrightarrow> bal_tm xs \<Longrightarrow> bal_tm ys\<close> using stk_bal_split by auto
 
 
 lemma \<open>bal_tm (u @ [Nt A] @ v) \<Longrightarrow> bal_tm w \<Longrightarrow> bal_tm (u @ w @ v)\<close>

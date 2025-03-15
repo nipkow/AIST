@@ -113,10 +113,12 @@ inductive bal_tm :: "('n, bracket  \<times> ('a)) syms \<Rightarrow> bool" where
 
 declare bal_tm.intros(1,2)[iff] bal_tm.intros(3)[intro, simp] bal_tm.intros(4)[intro!, simp]
 
-lemma bal_tm_prepend_Nt[intro!, simp]: \<open>bal_tm xs \<Longrightarrow> bal_tm ([Nt A] @ xs)\<close> by blast
+lemma bal_tm_prepend_Nt[intro!, simp]: \<open>bal_tm xs \<Longrightarrow> bal_tm (Nt A # xs)\<close> using bal_tm.intros(3) by force
+lemma bal_tm_append_Nt[intro!, simp]: \<open>bal_tm xs \<Longrightarrow> bal_tm (xs@[Nt A])\<close> by blast
 
+lemma bal_tm2[iff]: "bal_tm [Tm (Op,g), Tm (Cl,g)]" using bal_tm.intros(1,4) by fastforce
 
-
+lemma bal_tm2_Nt[iff]: "bal_tm [Tm (Op,g), Tm (Cl,g), Nt A]" using bal_tm.intros(1,3,4) by fastforce
 
 
 
@@ -159,11 +161,174 @@ qed
 
 
 
+section\<open>Function based equivalent description of bal_tm, from T. Nipkow\<close>
+
+text\<open>A stack machine that puts open brackets to the stack, to remember that they must be matched by a closed bracket\<close>
+fun stk_bal_tm :: "('n, bracket \<times> 't) syms \<Rightarrow> 't list \<Rightarrow> ('n, bracket \<times> 't) syms * 't list" where
+"stk_bal_tm [] s = ([],s)" |
+"stk_bal_tm (Tm (Op, g) # xs) s = stk_bal_tm xs (g#s)" |
+"stk_bal_tm (Tm (Cl, g) # xs) (g'#s) = (if g=g' then stk_bal_tm xs s else ((Tm (Cl, g) # xs), g'#s))" | 
+\<open>stk_bal_tm (Nt A # xs) s = stk_bal_tm xs s\<close> | 
+"stk_bal_tm xs s = (xs,s)"
+
+lemma stk_bal_tm_append: "stk_bal_tm (xs @ ys) s1 = (let (xs',s1') = stk_bal_tm xs s1 in
+stk_bal_tm (xs' @ ys) s1')"
+by(induction xs s1 rule:stk_bal_tm.induct) (auto split: if_splits)
+
+lemma stk_bal_tm_append_if[simp]: "stk_bal_tm xs s1 = ([],s2) \<Longrightarrow> stk_bal_tm (xs @ ys) s1 =
+stk_bal_tm ys s2"
+by(simp add: stk_bal_tm_append[of xs])
+
+lemma stk_bal_tm_if_bal_tm:  "bal_tm xs \<Longrightarrow> stk_bal_tm xs s = ([],s)"
+by(induction arbitrary: s rule: bal_tm.induct)(auto split: if_splits)
+
+
+
+lemma bal_tm_insert_AB: assumes u: "bal_tm u" shows "u = v@w \<Longrightarrow> bal_tm (v @ Tm (Op, x) # Tm (Cl, x) # w)" using u
+proof(induction arbitrary: v w)
+   case 1 thus ?case by simp
+next
+  case (2 A v w)
+  then show ?case
+  proof(cases v)
+    case Nil
+    with 2 have \<open>w = [Nt A]\<close> by (metis append_Nil)
+    show ?thesis unfolding Nil \<open>w = [Nt A]\<close> by simp
+  next
+    case (Cons a list)
+    with 2 have \<open>v = [Nt A]\<close> by simp
+    then have \<open>w = []\<close> using "2" by blast
+    then show ?thesis unfolding \<open>v = [Nt A]\<close> \<open>w = []\<close> by simp
+  qed
+next
+   case (4 u y)
+   show ?case
+   proof (cases v)
+     case Nil
+     hence "w = (Tm (Op, y)) # u @ [Tm (Cl, y)]" using "4.prems" by simp
+     hence "bal_tm w" using "4.hyps" by blast
+     hence "bal_tm ([Tm (Op, x), Tm (Cl, x)] @ w)" by blast
+     thus ?thesis using Nil by simp
+   next
+     case (Cons X v')
+     show ?thesis
+     proof (cases w rule:rev_cases)
+       case Nil
+       from "4.hyps" have "bal_tm ((Tm (Op, x) # u @ [Tm (Cl, x)]) @ [Tm (Op, x), Tm (Cl, x)])"
+         using bal.intros(2) by blast
+       thus ?thesis using Nil Cons 4
+         by (metis append_Nil append_Nil2 bal_tm.simps)
+     next
+       case (snoc w' Y)
+       hence u: "u=v'@w'" and [simp]: "X=Tm (Op, y) & Y=Tm (Cl, y)"
+         using Cons "4.prems" apply (smt (verit, ccfv_threshold) List.append.assoc List.list.inject append_Cons append_eq_append_conv last_snoc)
+         by (metis "local.4.prems" Cons List.append.assoc List.list.inject append_Cons last_snoc snoc)
+         \<comment> \<open>this also works by auto, but it takes 4 seconds.\<close>
+       thus ?thesis
+         by (metis "4.IH" append.assoc append_Cons local.Cons bal_tm.intros(4) snoc)
+     qed
+   qed
+next
+   case (3 v' w')
+   then obtain r where "v'=v@r \<and> r@w'=w \<or> v'@r=v \<and>w'=r@w" (is "?A \<or> ?B")
+     by (auto simp:append_eq_append_conv2)
+   thus ?case
+   proof
+     assume A: ?A
+     hence "bal_tm (v @ Tm (Op, x) # Tm (Cl, x) # r)" using "3.IH"(1) by presburger
+     hence "bal_tm ((v @ Tm (Op, x) # Tm (Cl, x)#r) @ w')" using \<open>bal_tm w'\<close> by(rule bal_tm.intros(3))
+     thus ?thesis using A by auto
+   next
+     assume B: ?B
+     hence "bal_tm (r @ Tm (Op, x) # Tm (Cl, x) # w)" using "3.IH"(2) by presburger
+     with \<open>bal_tm v'\<close> have "bal_tm (v'@(r@Tm (Op, x) # Tm (Cl, x)#w))" by(rule bal_tm.intros(3))
+     thus ?thesis using B by force
+   qed 
+qed 
+
+
+lemma bal_tm_insert_Nt: assumes u: "bal_tm u" shows "u = v@w \<Longrightarrow> bal_tm (v @ Nt A # w)" using u
+proof(induction arbitrary: v w)
+  case 1
+  then show ?case by blast
+next
+  case (2 A)
+  then show ?case
+  proof(cases v)
+    case Nil
+    with 2 have \<open>w = [Nt A]\<close> by (metis append_Nil)
+    show ?thesis unfolding Nil \<open>w = [Nt A]\<close> by simp
+  next
+    case (Cons a list)
+    with 2 have \<open>v = [Nt A]\<close> by simp
+    then have \<open>w = []\<close> using "2" by blast
+    then show ?thesis unfolding \<open>v = [Nt A]\<close> \<open>w = []\<close> by simp
+  qed 
+next
+  case (3 v' w')
+  then obtain r where \<open>(v' = v@r) \<and> (r@w' = w) \<or> (w' = r@w) \<and> (v'@r = v)\<close> (is \<open>?A \<or> ?B\<close>) by (meson append_eq_append_conv2)
+  then show ?case
+  proof
+  assume A: ?A
+  then have \<open>bal_tm (v @ Nt A # r)\<close> using "3.IH" by presburger
+  then have \<open>bal_tm (v @ Nt A # r @ w')\<close> using \<open>bal_tm w'\<close> using bal_tm.intros(3) by fastforce 
+  then show ?thesis using A by blast
+next
+  assume B: ?B
+  then have \<open>bal_tm (r @ Nt A # w)\<close> using "3.IH" by presburger
+  then have \<open>bal_tm (v' @ r @ Nt A # w)\<close> using \<open>bal_tm v'\<close> using bal_tm.intros(3) by fastforce 
+  then show ?thesis using B by (metis List.append.assoc)
+  qed
+next
 
+   case (4 u y)
+   show ?case
+   proof (cases v)
+     case Nil
+     hence "w = (Tm (Op, y)) # u @ [Tm (Cl, y)]" using "4.prems" by simp
+     hence "bal_tm w" using "4.hyps" by blast
+     hence "bal_tm ([Nt A] @ w)" by blast
+     thus ?thesis using Nil by simp
+   next
+     case (Cons X v')
+     show ?thesis
+     proof (cases w rule:rev_cases)
+       case Nil
+       from "4.hyps" have "bal_tm ((Tm (Op, x) # u @ [Tm (Cl, x)]) @ [Tm (Op, x), Tm (Cl, x)])"
+         using bal.intros(2) by blast
+       thus ?thesis using Nil Cons 4
+         by (metis append_Nil append_Nil2 bal_tm.simps)
+     next
+       case (snoc w' Y)
+       hence u: "u=v'@w'" and [simp]: "X=Tm (Op, y) & Y=Tm (Cl, y)"
+         using Cons "4.prems" apply (smt (verit, ccfv_threshold) List.append.assoc List.list.inject append_Cons append_eq_append_conv last_snoc)
+         by (metis "local.4.prems" Cons List.append.assoc List.list.inject append_Cons last_snoc snoc)
+         \<comment> \<open>this also works by auto, but it takes 4 seconds.\<close>
+       thus ?thesis
+         by (metis "4.IH" append.assoc append_Cons local.Cons bal_tm.intros(4) snoc)
+     qed
+   qed
+qed
 
 
+lemma stk_bal_if_stk_bal_tm: "stk_bal_tm w s = ([],[]) \<Longrightarrow> bal_tm (rev(map (\<lambda>x. Tm (Op, x)) s) @ w)"
+proof(induction w s rule: stk_bal_tm.induct)
+   case (2 x xs s)
+   then show ?case by simp
+next
+   case (3 x xs y s)
+   then show ?case by (auto simp add: bal_tm_insert_AB split: if_splits)
+next
+  case (4 A xs s)
+  then have \<open>stk_bal_tm xs s = ([], [])\<close> by simp
+  then show ?case by (metis "local.4.IH" bal_tm_insert_Nt)
+qed (auto)
 
+corollary stk_bal_tm_iff_bal_tm: "stk_bal_tm w [] = ([],[]) \<longleftrightarrow> bal_tm w"
+using stk_bal_if_stk_bal_tm[of w "[]"] stk_bal_tm_if_bal_tm by auto
 
+theorem "bal_tm (u @ v) \<Longrightarrow> bal_tm u \<Longrightarrow> bal_tm v"
+using stk_bal_tm_append_if stk_bal_tm_iff_bal_tm by metis
 
 
 
@@ -227,6 +392,32 @@ qed
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+section\<open>props von bal_tm?\<close>
 
 
 text\<open>TODO mv?\<close>
@@ -235,27 +426,6 @@ lemma list_length_1_imp_ex: \<open>length l = 1 \<Longrightarrow> \<exists>x. l 
 
 lemma list_length_2_imp_ex: \<open>length l = 2 \<Longrightarrow> \<exists>x y. l = [x, y]\<close>
 by(induction l; use list_length_1_imp_ex in auto)
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

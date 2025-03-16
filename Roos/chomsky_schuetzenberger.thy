@@ -1,5 +1,5 @@
 theory chomsky_schuetzenberger
-  imports  "../CFG" "../CFL"
+  imports  "../CFG" "../CFL" AdjacentProperties
 begin
 
 text \<open>This file contains all the constructions needed for the chomsky-schuetzenberger theorem.
@@ -88,6 +88,18 @@ abbreviation close_bracket2 :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> br
   "]\<^sub>p\<^sup>2 \<equiv> (Cl, (p, Two))"
 
 
+text\<open>Version for p = (A, w) (multiple letters) with bsub and esub\<close>
+abbreviation open_bracket1' :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version" ("[\<^bsub>_\<^esub>\<^sup>1 ") where
+  "[\<^bsub>p\<^esub>\<^sup>1  \<equiv> (Op, (p, One))"
+
+abbreviation close_bracket1' :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version" ("]\<^bsub>_\<^esub>\<^sup>1") where
+  "]\<^bsub>p\<^esub>\<^sup>1 \<equiv> (Cl, (p, One))"
+
+abbreviation open_bracket2' :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version" ("[\<^bsub>_\<^esub>\<^sup>2") where
+  "[\<^bsub>p\<^esub>\<^sup>2 \<equiv> (Op, (p, Two))"
+
+abbreviation close_bracket2' :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version" ("]\<^bsub>_\<^esub>\<^sup>2 ") where
+  "]\<^bsub>p\<^esub>\<^sup>2 \<equiv> (Cl, (p, Two))"
 
 
 
@@ -550,7 +562,7 @@ definition CNF_rule :: "('n,'t) prod \<Rightarrow> bool" where
   \<open>CNF_rule p \<equiv>  (\<exists>(A::'n) B C. (p = (A,[Nt B, Nt C]))) \<or> (\<exists>A a. p= (A, [Tm a]))\<close>
 
 
-lemma transform_production_CNF: \<open>CNF_rule p \<Longrightarrow> (\<exists>A B C. transform_production p = (A, [ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ]) ) \<or> (\<exists>A .transform_production p = (A, [ Tm (Op, (p,One)),       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ]))\<close>
+lemma transform_production_CNF: \<open>CNF_rule p \<Longrightarrow> (\<exists>A B C. transform_production p = (A, [ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ]) ) \<or> (\<exists>A .transform_production p = (A, [ Tm [\<^sub>p\<^sup>1,       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ]))\<close>
   unfolding CNF_rule_def by auto
 
 lemma transform_production_CNF2: \<open>CNF_rule p \<Longrightarrow> transform_production p = (x, []) \<Longrightarrow> False\<close>
@@ -1272,18 +1284,55 @@ qed
 
 
 
+lemma split2:
+assumes \<open>i < length (u @ w)\<close>
+obtains \<open>i+1 < length u\<close> | \<open>i+1 = length u \<close> |  \<open>i+1 > length u \<and> i+1 < length u + length w\<close> | \<open>i+1 = length u + length w\<close> using assms by fastforce
+
+
+
+lemma split3:
+assumes \<open>i < length (u @ w @ v)\<close>
+obtains \<open>i+1 < length u\<close> | \<open>i+1 = length u \<close> |  \<open>i+1 > length u \<and> i+1 < length u + length w\<close> | \<open>i+1 = length u + length w\<close> |  \<open>i+1 > length u + length w \<and> i < length u + length w + length v\<close> using assms by fastforce
 
 lemma P'_imp_Re:
-  assumes \<open>(image transform_production P) \<turnstile> [Nt A] \<Rightarrow>* x\<close>
+  assumes \<open>(image transform_production P) \<turnstile> [Nt S] \<Rightarrow>* x\<close>
     and \<open>\<forall>p \<in> P. CNF_rule p\<close>
-  shows \<open>True\<close>
- proof-
- term x
+  shows \<open>x \<in> Re_sym P S\<close>
+using assms proof(induction rule: derives_induct)
+    case base
+    show ?case apply(rule Re_symI) by fastforce+
+  next
+    case (step u A v w)
+    have uAv: \<open>u @ [Nt A] @ v \<in> Re_sym P S\<close> using step by blast
+
+    have \<open>(A, w) \<in> transform_production ` P\<close> using step by blast
+    then obtain w' where w'_def: \<open>transform_production (A, w') = (A, w)\<close> and \<open>(A,w') \<in> P\<close> by (metis (no_types, opaque_lifting) Product_Type.old.prod.exhaust fst_conv fst_transform_production imageE)
+    then have Aw'_cnf: \<open>CNF_rule (A,w')\<close> using step by blast
+    then obtain B C where \<open>((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) ) \<or> ((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) )\<close> using transform_production_CNF[of \<open>(A,w')\<close>] w'_def by (metis fst_conv)
+    
+    then show ?case
+    proof
+      assume \<open>(A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2])\<close>
+      then have w_eq: \<open>w = [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]\<close> by blast
+
+      have \<open>P1_sym P (u @ w @ v)\<close>
+      proof(rule P1_symI)
+      fix p i
+      assume p1_assms: \<open>p \<in> P\<close>  \<open>i < length (u @ w @ v)\<close>  \<open>(u @ w @ v) ! i = Tm ]\<^bsub>p\<^esub>\<^sup>1\<close>
+      then consider \<open>i+1 < length u\<close> | \<open>i+1 = length u \<close> |  \<open>i+1 > length u \<and> i+1 < length u + length w\<close> | \<open>i+1 = length u + length w\<close> |  \<open>i+1 > length u + length w \<and> i < length u + length w + length v\<close> using split3 by blast
+      then show \<open>i + 1 < length (u @ w @ v) \<and> (u @ w @ v) ! (i + 1) = Tm [\<^bsub>p\<^esub>\<^sup>2\<close> 
+      qed
+
+      show ?thesis apply(rule Re_symI) using step w_eq sorry
+    next
+      assume \<open>(A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2])\<close>
+      then have w_eq: \<open>w = [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]\<close> by blast
+      show ?thesis sorry
+    qed
+ qed
 
 
 oops
-
-
 
 
 

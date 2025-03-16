@@ -515,8 +515,7 @@ fun transform_production :: "('n, 't) prod \<Rightarrow>
  (A, [ Tm (Op, ((A, [Tm a]),One)),       Tm (Cl, ((A, [Tm a]), One)), Tm (Op, ((A, [Tm a]), Two)),       Tm (Cl, ((A, [Tm a]), Two))  ]) \<close> | 
 \<open>transform_production (A, _) = (A, [])\<close>
 
-text      \<open>'n \<times> ('t, bracket \<times> ('n \<times> ('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym list) \<times> version) sym list\<close>
-text\<open>"'a \<times> ('a, bracket \<times> ('a \<times> ('a, 'b) sym list)                                            \<times> version) sym list"\<close>
+
 lemma transform_production_induct:
   \<open>\<lbrakk>\<And>B C. P ([Nt B, Nt C]); 
 \<And>a. P ([Tm a]); P ([]); 
@@ -577,17 +576,37 @@ lemma CNF_existence :
   shows \<open>\<exists>P S::'a. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> (* TODO start symbol not on the right side*)
   sorry
 
+
+
+
+
+
+
+
+
+
+
+section\<open>Definition of the regular Language\<close>
+
+
 text\<open> (Directly) After each (Cl,p,1) in x always comes a (Op,p,2) \<close>
-definition P1 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> bool\<close> where
+definition P1 :: \<open>('n, 't) Prods \<Rightarrow> (bracket \<times> (('n, 't) prod) \<times> version) list \<Rightarrow> bool\<close> where
   \<open>P1 P x = (\<forall>p \<in> P. \<forall> i < length x.
   x ! i = ]\<^sub>p\<^sup>1  \<longrightarrow> ( i+1 < length x \<and> x ! (i+1) = [\<^sub>p\<^sup>2 ))\<close>
 
+text\<open> Version of P1 for symbols, i.e. strings that may still contain Nt's\<close>
+definition P1_sym :: \<open>('n, 't) Prods \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms \<Rightarrow> bool\<close> where
+  \<open>P1_sym P x = (\<forall>p \<in> P. \<forall> i < length x.
+  x ! i = Tm ]\<^sub>p\<^sup>1  \<longrightarrow> ( i+1 < length x \<and> x ! (i+1) = Tm [\<^sub>p\<^sup>2 ))\<close>
+
+
+
 text\<open>After any (Cl,pi,2) there never comes an (Op,...)\<close>
-definition P2 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> bool\<close> where
+definition P2 :: \<open>('n, 't) Prods \<Rightarrow> (bracket \<times> (('n, 't) prod) \<times> version) list \<Rightarrow> bool\<close> where
   \<open>P2 P x = (\<forall>p \<in> P. \<forall>r. (\<forall>i. i+1 < length x \<and> x ! i = ]\<^sub>p\<^sup>2  \<longrightarrow> x ! (i+1) \<noteq> (Op, r)))\<close>
 
 text\<open>If pi = A\<rightarrow>BC, then after each (Op,pi,1) always comes a (Op,p,1) where B = lhs of p And after each (Op,pi,2) always comes a (Op,sigma,1) where C = lhs of sigma\<close>
-definition P3 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> bool\<close> where
+definition P3 :: \<open>('n, 't) Prods \<Rightarrow> (bracket \<times> (('n, 't) prod) \<times> version) list \<Rightarrow> bool\<close> where
   \<open>P3 P x = (\<forall>i < length x. 
        (\<exists>A B C. x ! i = (Op, ((A, [Nt B, Nt C]), One)) \<longrightarrow> 
           ((i+1) < length x \<and> (\<exists>p l. p \<in> P \<and> x ! (i+1) = [\<^sub>p\<^sup>1  \<and> p = (B, l)))) \<and>
@@ -596,20 +615,19 @@ definition P3 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> (brack
 
 
 text\<open>If pi = A\<rightarrow>a then after each (Op,pi,1) comes a (Cl,pi,1) and after each (Op,pi,2) comes a (Cl,pi,2)\<close>
-definition P4 :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> bool\<close> where
+definition P4 :: \<open>(bracket \<times> (('n, 't) prod) \<times> version) list \<Rightarrow> bool\<close> where
   \<open>P4 x = ((\<forall>i < length x. 
         (\<exists>A a. x ! i = (Op, ((A, [Tm a]), One)) \<longrightarrow> (i+1) < length x \<and> x ! (i + 1) = (Cl, ((A, [Tm a]), One))) 
         \<and>
         (\<exists>A a. x ! i = (Op, ((A, [Tm a]), Two)) \<longrightarrow> (i+1) < length x \<and> x ! (i + 1) = (Cl, ((A, [Tm a]), Two)))))\<close>
 
 text\<open>For all A, if A produces x under P', then there eists some pi \<in> P with lhs A such that x begins with (Op,pi,1)\<close>
-definition P5 :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> 'a \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> bool\<close> where
+definition P5 :: \<open>('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> (bracket \<times> (('n, 't) prod) \<times> version) list \<Rightarrow> bool\<close> where
   \<open>P5 P A x = (\<exists>\<pi> l. \<pi> \<in> P \<and> \<pi> = (A, l) \<and> x \<noteq> [] \<and> x ! 0 = (Op, \<pi>, One) )\<close>
 
 text\<open>This is the regular language, where one takes the Start symbol as a parameter, and then has the searched for \<open>R := R\<^sub>A\<close>\<close>
-definition Re :: \<open>('a \<times> ('a, 'b) sym list) set \<Rightarrow> 'a \<Rightarrow> (bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list set\<close> where
-  \<open>Re P A = {x::(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list. 
-(P1 P x) \<and> (P2 P x) \<and> (P3 P x) \<and> (P4 x) \<and> (P5 P A x)}\<close>
+definition Re :: \<open>('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> (bracket \<times> (('n, 't) prod) \<times> version) list set\<close> where
+  \<open>Re P A = {x. (P1 P x) \<and> (P2 P x) \<and> (P3 P x) \<and> (P4 x) \<and> (P5 P A x) }\<close>
 
 
 text\<open>Definition of monoid-homomorphism where multiplication is that of words.\<close>
@@ -618,14 +636,14 @@ definition hom :: \<open>('c list \<Rightarrow> 'd list) \<Rightarrow> bool\<clo
 
 
 text\<open>helper function for the definition of \<open>h\<close>\<close>
-fun the_hom_helper :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) \<Rightarrow> 'b list\<close> where
+fun the_hom_helper :: \<open>(bracket \<times> (('a, 'b) prod) \<times> version) \<Rightarrow> 'b list\<close> where
   \<open>the_hom_helper (Op, ((A, [Tm a]), One)) = [a]\<close> | 
   \<open>the_hom_helper _ = []\<close> 
 
 
 
 text\<open>helper function for the definition of the extended \<open>h_ext\<close>\<close>
-fun the_hom_ext_helper :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version ) sym \<Rightarrow> ('a,'b) sym list\<close> where
+fun the_hom_ext_helper :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version) sym \<Rightarrow> ('a,'b) sym list\<close> where
   \<open>the_hom_ext_helper (Tm (Op, ((A, [Tm a]), One))) = [Tm a]\<close> | 
   \<open>the_hom_ext_helper (Nt A) = [Nt A]\<close> | 
   \<open>the_hom_ext_helper _ = []\<close>
@@ -633,12 +651,12 @@ fun the_hom_ext_helper :: \<open>('a, bracket \<times> ('a,'b) prod \<times> ver
 
 
 text\<open>The needed homomorphism in the proof\<close>
-fun the_hom :: \<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) list \<Rightarrow> 'b list \<close> where
+fun the_hom :: \<open>(bracket \<times> ('a,'b) prod \<times> version) list \<Rightarrow> 'b list \<close> where
   \<open>the_hom l = concat (map the_hom_helper l)\<close>
 
 
 text\<open>The needed homomorphism in the proof, but extended on Variables\<close>
-fun the_hom_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version ) sym list \<Rightarrow> ('a,'b) sym list \<close> where
+fun the_hom_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version ) syms \<Rightarrow> ('a,'b) syms\<close> where
   \<open>the_hom_ext l = concat (map the_hom_ext_helper l)\<close>
 
 
@@ -1034,9 +1052,15 @@ qed
 
 
 
+lemma P'_imp_Re:
+  assumes \<open>(image transform_production P) \<turnstile> [Nt A] \<Rightarrow>* x\<close>
+    and \<open>\<forall>p \<in> P. CNF_rule p\<close>
+  shows \<open>True\<close>
+ proof-
+ term x
 
 
-
+oops
 
 
 

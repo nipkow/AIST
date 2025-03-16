@@ -605,6 +605,11 @@ text\<open>After any (Cl,pi,2) there never comes an (Op,...)\<close>
 definition P2 :: \<open>('n, 't) Prods \<Rightarrow> (bracket \<times> (('n, 't) prod) \<times> version) list \<Rightarrow> bool\<close> where
   \<open>P2 P x = (\<forall>p \<in> P. \<forall>r. (\<forall>i. i+1 < length x \<and> x ! i = ]\<^sub>p\<^sup>2  \<longrightarrow> x ! (i+1) \<noteq> (Op, r)))\<close>
 
+
+  text\<open>Version of P2 for symbols, i.e. strings that may still contain Nt's\<close>
+definition P2_sym :: \<open>('n, 't) Prods \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms \<Rightarrow> bool\<close> where
+  \<open>P2_sym P x = (\<forall>p \<in> P. \<forall>r. (\<forall>i. i+1 < length x \<and> x ! i = Tm ]\<^sub>p\<^sup>2  \<longrightarrow> x ! (i+1) \<noteq> Tm (Op, r)))\<close>
+
 text\<open>If pi = A\<rightarrow>BC, then after each (Op,pi,1) always comes a (Op,p,1) where B = lhs of p And after each (Op,pi,2) always comes a (Op,sigma,1) where C = lhs of sigma\<close>
 definition P3 :: \<open>('n, 't) Prods \<Rightarrow> (bracket \<times> (('n, 't) prod) \<times> version) list \<Rightarrow> bool\<close> where
   \<open>P3 P x = (\<forall>i < length x. 
@@ -614,6 +619,16 @@ definition P3 :: \<open>('n, 't) Prods \<Rightarrow> (bracket \<times> (('n, 't)
           ((i+1) < length x \<and> (\<exists>\<sigma> l. \<sigma> \<in> P \<and> x ! (i+1) = (Op, (\<sigma>, One)) \<and> \<sigma> = (C, l)))))\<close>
 
 
+text\<open>Version of P3 for symbols, i.e. strings that may still contain Nt's -- here we have to adapt it slightly\<close>
+definition P3_sym :: \<open>('n, 't) Prods \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms \<Rightarrow> bool\<close> where
+  \<open>P3_sym P x = (\<forall>i < length x. 
+       (\<exists>A B C. x ! i = Tm (Op, ((A, [Nt B, Nt C]), One)) \<longrightarrow> 
+          ((i+1) < length x \<and> ( (\<exists>p l. p \<in> P \<and> x ! (i+1) = Tm [\<^sub>p\<^sup>1  \<and> p = (B, l)) \<or> (\<exists>T. x! (i+1) = Nt T)) )) \<and>
+       (\<exists>A B C. x ! i = Tm (Op, ((A, [Nt B, Nt C]), Two)) \<longrightarrow> 
+          ((i+1) < length x \<and> ((\<exists>\<sigma> l. \<sigma> \<in> P \<and> x ! (i+1) = Tm (Op, (\<sigma>, One)) \<and> \<sigma> = (C, l)) \<or> (\<exists>T. x! (i+1) = Nt T)) )))\<close>
+
+
+
 text\<open>If pi = A\<rightarrow>a then after each (Op,pi,1) comes a (Cl,pi,1) and after each (Op,pi,2) comes a (Cl,pi,2)\<close>
 definition P4 :: \<open>(bracket \<times> (('n, 't) prod) \<times> version) list \<Rightarrow> bool\<close> where
   \<open>P4 x = ((\<forall>i < length x. 
@@ -621,13 +636,34 @@ definition P4 :: \<open>(bracket \<times> (('n, 't) prod) \<times> version) list
         \<and>
         (\<exists>A a. x ! i = (Op, ((A, [Tm a]), Two)) \<longrightarrow> (i+1) < length x \<and> x ! (i + 1) = (Cl, ((A, [Tm a]), Two)))))\<close>
 
-text\<open>For all A, if A produces x under P', then there eists some pi \<in> P with lhs A such that x begins with (Op,pi,1)\<close>
+text\<open>Version of P4 for symbols, i.e. strings that may still contain Nt's -- here we have to adapt it slightly\<close>
+definition P4_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) syms \<Rightarrow> bool\<close> where
+  \<open>P4_sym x = (\<forall>i < length x. 
+        (\<exists>A a. x ! i = Tm (Op, ((A, [Tm a]), One)) \<longrightarrow> (i+1) < length x \<and> (x ! (i + 1) = Tm (Cl, ((A, [Tm a]), One)) \<or> (\<exists>T. x! (i+1) = Nt T)) ) 
+        \<and>
+        (\<exists>A a. x ! i = Tm (Op, ((A, [Tm a]), Two)) \<longrightarrow> (i+1) < length x \<and> (x ! (i + 1) = Tm (Cl, ((A, [Tm a]), Two)) \<or> (\<exists>T. x! (i+1) = Nt T)) ) )\<close>
+
+
+
+
+text\<open>For all A, if A produces x under P', then there exists some pi \<in> P with lhs A such that x begins with (Op,pi,1)\<close>
 definition P5 :: \<open>('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> (bracket \<times> (('n, 't) prod) \<times> version) list \<Rightarrow> bool\<close> where
   \<open>P5 P A x = (\<exists>\<pi> l. \<pi> \<in> P \<and> \<pi> = (A, l) \<and> x \<noteq> [] \<and> x ! 0 = (Op, \<pi>, One) )\<close>
+
+text\<open>Version of P4 for symbols, i.e. strings that may still contain Nt's -- here we have to adapt it slightly\<close>
+definition P5_sym :: \<open>('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms \<Rightarrow> bool\<close> where
+  \<open>P5_sym P A x = ( x \<noteq> [] \<and> ((\<exists>\<pi> l. \<pi> \<in> P \<and> \<pi> = (A, l) \<and> x \<noteq> [] \<and> x ! 0 = Tm (Op, \<pi>, One) )  \<or>  (\<exists>T. x ! 0 = Nt T))  )\<close>
+
+
 
 text\<open>This is the regular language, where one takes the Start symbol as a parameter, and then has the searched for \<open>R := R\<^sub>A\<close>\<close>
 definition Re :: \<open>('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> (bracket \<times> (('n, 't) prod) \<times> version) list set\<close> where
   \<open>Re P A = {x. (P1 P x) \<and> (P2 P x) \<and> (P3 P x) \<and> (P4 x) \<and> (P5 P A x) }\<close>
+
+text\<open>Version of Re for symbols, i.e. strings that may still contain Nt's\<close>
+definition Re_sym :: \<open>('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms set\<close> where
+  \<open>Re_sym P A = {x. (P1_sym P x) \<and> (P2_sym P x) \<and> (P3_sym P x) \<and> (P4_sym x) \<and> (P5_sym P A x) }\<close>
+
 
 
 text\<open>Definition of monoid-homomorphism where multiplication is that of words.\<close>

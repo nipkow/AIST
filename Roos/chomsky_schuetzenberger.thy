@@ -594,11 +594,38 @@ definition P1 :: \<open>('n, 't) Prods \<Rightarrow> (bracket \<times> (('n, 't)
   \<open>P1 P x = (\<forall>p \<in> P. \<forall> i < length x.
   x ! i = ]\<^sub>p\<^sup>1  \<longrightarrow> ( i+1 < length x \<and> x ! (i+1) = [\<^sub>p\<^sup>2 ))\<close>
 
+lemma P1I[intro]:
+assumes \<open>\<And>p i. ( p \<in> P \<Longrightarrow> i < length x \<Longrightarrow> x ! i = ]\<^sub>p\<^sup>1 \<Longrightarrow> ( i+1 < length x \<and> x ! (i+1) = [\<^sub>p\<^sup>2 ) )\<close>
+shows \<open>P1 P x\<close>
+using assms unfolding P1_def by simp
+
+lemma P1D[dest]:
+assumes \<open>P1 P x\<close> 
+shows \<open>\<And>p i. ( p \<in> P \<Longrightarrow> i < length x \<Longrightarrow> x ! i = ]\<^sub>p\<^sup>1 \<Longrightarrow> ( i+1 < length x \<and> x ! (i+1) = [\<^sub>p\<^sup>2 ) )\<close>
+using assms unfolding P1_def by simp
+
+lemmas P1E = P1D[elim_format]
+
+
 text\<open> Version of P1 for symbols, i.e. strings that may still contain Nt's\<close>
 definition P1_sym :: \<open>('n, 't) Prods \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms \<Rightarrow> bool\<close> where
   \<open>P1_sym P x = (\<forall>p \<in> P. \<forall> i < length x.
   x ! i = Tm ]\<^sub>p\<^sup>1  \<longrightarrow> ( i+1 < length x \<and> x ! (i+1) = Tm [\<^sub>p\<^sup>2 ))\<close>
 
+lemma P1_symI[intro]:
+assumes \<open>\<And>p i. ( p \<in> P \<Longrightarrow> i < length x \<Longrightarrow> x ! i = Tm ]\<^sub>p\<^sup>1 \<Longrightarrow> ( i+1 < length x \<and> x ! (i+1) = Tm [\<^sub>p\<^sup>2 ) )\<close>
+shows \<open>P1_sym P x\<close>
+using assms unfolding P1_sym_def by simp
+
+lemma P1_symD[dest]:
+assumes \<open>P1_sym P x\<close> 
+shows \<open>\<And>p i. ( p \<in> P \<Longrightarrow> i < length x \<Longrightarrow> x ! i = Tm ]\<^sub>p\<^sup>1 \<Longrightarrow> ( i+1 < length x \<and> x ! (i+1) = Tm [\<^sub>p\<^sup>2 ) )\<close>
+using assms unfolding P1_sym_def by simp
+
+lemmas P1_symE = P1D[elim_format]
+
+
+lemma P1_sym_imp_P1_for_tm[intro, dest]: \<open>P1_sym P (map Tm x) \<Longrightarrow> P1 P x\<close> by fastforce
 
 
 text\<open>After any (Cl,pi,2) there never comes an (Op,...)\<close>
@@ -606,64 +633,222 @@ definition P2 :: \<open>('n, 't) Prods \<Rightarrow> (bracket \<times> (('n, 't)
   \<open>P2 P x = (\<forall>p \<in> P. \<forall>r. (\<forall>i. i+1 < length x \<and> x ! i = ]\<^sub>p\<^sup>2  \<longrightarrow> x ! (i+1) \<noteq> (Op, r)))\<close>
 
 
-  text\<open>Version of P2 for symbols, i.e. strings that may still contain Nt's\<close>
+
+lemma P2I[intro]:
+assumes \<open>\<And>p i r. ( p \<in> P \<Longrightarrow> i+1 < length x \<Longrightarrow> x ! i = ]\<^sub>p\<^sup>2 \<Longrightarrow> ( x ! (i+1) \<noteq> (Op, r)) )\<close>
+shows \<open>P2 P x\<close>
+using assms unfolding P2_def by simp
+
+lemma P2D[dest]:
+assumes \<open>P2 P x\<close> 
+shows \<open>\<And>p i r. ( p \<in> P \<Longrightarrow> i+1 < length x \<Longrightarrow> x ! i = ]\<^sub>p\<^sup>2 \<Longrightarrow> ( x ! (i+1) \<noteq> (Op, r)) )\<close>
+using assms unfolding P2_def by blast
+
+lemmas P2E = P2D[elim_format]
+
+text\<open>Version of P2 for symbols, i.e. strings that may still contain Nt's\<close>
 definition P2_sym :: \<open>('n, 't) Prods \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms \<Rightarrow> bool\<close> where
   \<open>P2_sym P x = (\<forall>p \<in> P. \<forall>r. (\<forall>i. i+1 < length x \<and> x ! i = Tm ]\<^sub>p\<^sup>2  \<longrightarrow> x ! (i+1) \<noteq> Tm (Op, r)))\<close>
+
+lemma P2_symI[intro]:
+assumes \<open>\<And>p i r. ( p \<in> P \<Longrightarrow> i+1 < length x \<Longrightarrow> x ! i = Tm ]\<^sub>p\<^sup>2 \<Longrightarrow> ( x ! (i+1) \<noteq> Tm (Op, r)) )\<close>
+shows \<open>P2_sym P x\<close>
+using assms unfolding P2_sym_def by simp
+
+lemma P2_symD[dest]:
+assumes \<open>P2_sym P x\<close> 
+shows \<open>\<And>p i r. ( p \<in> P \<Longrightarrow> i+1 < length x \<Longrightarrow> x ! i = Tm ]\<^sub>p\<^sup>2 \<Longrightarrow> ( x ! (i+1) \<noteq> Tm (Op, r)) )\<close>
+using assms unfolding P2_sym_def by blast
+
+lemmas P2_symE = P2_symD[elim_format]
+
+
+lemma P2_sym_imp_P2_for_tm[intro, dest]: \<open>P2_sym P (map Tm x) \<Longrightarrow> P2 P x\<close> by fastforce
 
 text\<open>If pi = A\<rightarrow>BC, then after each (Op,pi,1) always comes a (Op,p,1) where B = lhs of p And after each (Op,pi,2) always comes a (Op,sigma,1) where C = lhs of sigma\<close>
 definition P3 :: \<open>('n, 't) Prods \<Rightarrow> (bracket \<times> (('n, 't) prod) \<times> version) list \<Rightarrow> bool\<close> where
   \<open>P3 P x = (\<forall>i < length x. 
-       (\<exists>A B C. x ! i = (Op, ((A, [Nt B, Nt C]), One)) \<longrightarrow> 
+       (\<forall>A B C. x ! i = (Op, ((A, [Nt B, Nt C]), One)) \<longrightarrow> 
           ((i+1) < length x \<and> (\<exists>p l. p \<in> P \<and> x ! (i+1) = [\<^sub>p\<^sup>1  \<and> p = (B, l)))) \<and>
-       (\<exists>A B C. x ! i = (Op, ((A, [Nt B, Nt C]), Two)) \<longrightarrow> 
+       (\<forall>A B C. x ! i = (Op, ((A, [Nt B, Nt C]), Two)) \<longrightarrow> 
           ((i+1) < length x \<and> (\<exists>\<sigma> l. \<sigma> \<in> P \<and> x ! (i+1) = (Op, (\<sigma>, One)) \<and> \<sigma> = (C, l)))))\<close>
 
+lemma P3I[intro]:
+assumes \<open>\<And>i A B C. ( i < length x \<Longrightarrow> x ! i = (Op, ((A, [Nt B, Nt C]), One))  \<Longrightarrow> ((i+1) < length x \<and> (\<exists>p l. p \<in> P \<and> x ! (i+1) = [\<^sub>p\<^sup>1  \<and> p = (B, l))) )\<close>
+and     \<open>\<And>i A B C. ( i < length x \<Longrightarrow> x ! i = (Op, ((A, [Nt B, Nt C]), Two)) \<Longrightarrow> ((i+1) < length x \<and> (\<exists>\<sigma> l. \<sigma> \<in> P \<and> x ! (i+1) = [\<^sub>\<sigma>\<^sup>1  \<and> \<sigma> = (C, l))) )\<close>
+shows \<open>P3 P x\<close>
+using assms unfolding P3_def by presburger
+
+lemma P3D1[dest]:
+assumes \<open>P3 P x\<close>
+and \<open>i < length x\<close>
+and \<open>x ! i = (Op, ((A, [Nt B, Nt C]), One))\<close>
+shows \<open>(i+1) < length x \<and> (\<exists>p l. p \<in> P \<and> x ! (i+1) = [\<^sub>p\<^sup>1  \<and> p = (B, l))\<close> 
+using assms unfolding P3_def by blast 
+
+lemma P3D2[dest]:
+assumes \<open>P3 P x\<close>
+and \<open>i < length x\<close>
+and \<open>x ! i = (Op, ((A, [Nt B, Nt C]), Two))\<close>
+shows \<open>(i+1) < length x \<and> (\<exists>\<sigma> l. \<sigma> \<in> P \<and> x ! (i+1) = [\<^sub>\<sigma>\<^sup>1  \<and> \<sigma> = (C, l))\<close> 
+using assms unfolding P3_def by blast 
+
+lemmas P3E = P3D1[elim_format] P3D2[elim_format]
 
 text\<open>Version of P3 for symbols, i.e. strings that may still contain Nt's -- here we have to adapt it slightly\<close>
 definition P3_sym :: \<open>('n, 't) Prods \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms \<Rightarrow> bool\<close> where
-  \<open>P3_sym P x = (\<forall>i < length x. 
-       (\<exists>A B C. x ! i = Tm (Op, ((A, [Nt B, Nt C]), One)) \<longrightarrow> 
+  \<open>P3_sym P x = (\<forall> i < length x. 
+       (\<forall>A B C. x ! i = Tm (Op, ((A, [Nt B, Nt C]), One)) \<longrightarrow> 
           ((i+1) < length x \<and> ( (\<exists>p l. p \<in> P \<and> x ! (i+1) = Tm [\<^sub>p\<^sup>1  \<and> p = (B, l)) \<or> (\<exists>T. x! (i+1) = Nt T)) )) \<and>
-       (\<exists>A B C. x ! i = Tm (Op, ((A, [Nt B, Nt C]), Two)) \<longrightarrow> 
+       (\<forall>A B C. x ! i = Tm (Op, ((A, [Nt B, Nt C]), Two)) \<longrightarrow> 
           ((i+1) < length x \<and> ((\<exists>\<sigma> l. \<sigma> \<in> P \<and> x ! (i+1) = Tm (Op, (\<sigma>, One)) \<and> \<sigma> = (C, l)) \<or> (\<exists>T. x! (i+1) = Nt T)) )))\<close>
 
+lemma P3_symI[intro]:
+assumes \<open>\<And>i A B C. ( i < length x \<Longrightarrow> x ! i = Tm (Op, ((A, [Nt B, Nt C]), One)) \<Longrightarrow> (i+1) < length x \<and> (( (\<exists>p l. p \<in> P \<and> x ! (i+1) = Tm [\<^sub>p\<^sup>1 \<and> p = (B, l))  \<or>  (\<exists>T. x! (i+1) = Nt T)) ))\<close>
+and     \<open>\<And>i A B C. ( i < length x \<Longrightarrow> x ! i = Tm (Op, ((A, [Nt B, Nt C]), Two)) \<Longrightarrow> (i+1) < length x \<and> ((  \<exists>\<sigma> l. \<sigma> \<in> P \<and> x ! (i+1) = Tm [\<^sub>\<sigma>\<^sup>1 \<and> \<sigma> = (C, l))  \<or>  (\<exists>T. x! (i+1) = Nt T)) )\<close>
+shows \<open>P3_sym P x\<close>
+using assms unfolding P3_sym_def by presburger
+
+
+lemma P3_symD1[dest]:
+assumes \<open>P3_sym P x\<close>
+and \<open>i < length x\<close>
+and \<open>x ! i = Tm (Op, ((A, [Nt B, Nt C]), One))\<close>
+shows \<open>(i+1) < length x \<and> (( (\<exists>p l. p \<in> P \<and> x ! (i+1) = Tm [\<^sub>p\<^sup>1 \<and> p = (B, l))  \<or>  (\<exists>T. x! (i+1) = Nt T)))\<close> using assms unfolding P3_sym_def by blast
+
+lemma P3_symD2[dest]:
+assumes \<open>P3_sym P x\<close>
+and \<open>i < length x\<close>
+and \<open>x ! i = Tm (Op, ((A, [Nt B, Nt C]), Two))\<close>
+shows \<open>(i+1) < length x \<and> ((  \<exists>\<sigma> l. \<sigma> \<in> P \<and> x ! (i+1) = Tm [\<^sub>\<sigma>\<^sup>1 \<and> \<sigma> = (C, l))  \<or>  (\<exists>T. x! (i+1) = Nt T))\<close> using assms unfolding P3_sym_def by blast
+
+lemmas P3_symE = P3_symD1[elim_format] P3_symD2[elim_format]
+
+
+
+lemma P3_sym_imp_P3_for_tm[intro, dest]: \<open>P3_sym P (map Tm x) \<Longrightarrow> P3 P x\<close> by fastforce
 
 
 text\<open>If pi = A\<rightarrow>a then after each (Op,pi,1) comes a (Cl,pi,1) and after each (Op,pi,2) comes a (Cl,pi,2)\<close>
 definition P4 :: \<open>(bracket \<times> (('n, 't) prod) \<times> version) list \<Rightarrow> bool\<close> where
   \<open>P4 x = ((\<forall>i < length x. 
-        (\<exists>A a. x ! i = (Op, ((A, [Tm a]), One)) \<longrightarrow> (i+1) < length x \<and> x ! (i + 1) = (Cl, ((A, [Tm a]), One))) 
+        (\<forall>A a. x ! i = (Op, ((A, [Tm a]), One)) \<longrightarrow> (i+1) < length x \<and> x ! (i + 1) = (Cl, ((A, [Tm a]), One))) 
         \<and>
-        (\<exists>A a. x ! i = (Op, ((A, [Tm a]), Two)) \<longrightarrow> (i+1) < length x \<and> x ! (i + 1) = (Cl, ((A, [Tm a]), Two)))))\<close>
+        (\<forall>A a. x ! i = (Op, ((A, [Tm a]), Two)) \<longrightarrow> (i+1) < length x \<and> x ! (i + 1) = (Cl, ((A, [Tm a]), Two)))))\<close>
+
+lemma P4I[intro]:
+assumes \<open>\<And>i A a. ( i < length x \<Longrightarrow> x ! i = (Op, ((A, [Tm a]), One)) \<Longrightarrow> (i+1) < length x \<and> x ! (i + 1) = (Cl, ((A, [Tm a]), One)))\<close>
+and     \<open>\<And>i A a. ( i < length x \<Longrightarrow> x ! i = (Op, ((A, [Tm a]), Two)) \<Longrightarrow> (i+1) < length x \<and> x ! (i + 1) = (Cl, ((A, [Tm a]), Two)))\<close>
+shows \<open>P4 x\<close>
+using assms unfolding P4_def by blast
+
+
+lemma P4D[dest]:
+assumes \<open>P4 x\<close>
+and \<open>i < length x\<close>
+and \<open>x ! i = (Op, ((A, [Tm a]), v))\<close>
+shows \<open>(i+1) < length x \<and> x ! (i + 1) = (Cl, ((A, [Tm a]), v))\<close> using assms version.exhaust unfolding P4_def by (metis (full_types))
+
+lemmas P4E = P4D[elim_format]
 
 text\<open>Version of P4 for symbols, i.e. strings that may still contain Nt's -- here we have to adapt it slightly\<close>
 definition P4_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) syms \<Rightarrow> bool\<close> where
   \<open>P4_sym x = (\<forall>i < length x. 
-        (\<exists>A a. x ! i = Tm (Op, ((A, [Tm a]), One)) \<longrightarrow> (i+1) < length x \<and> (x ! (i + 1) = Tm (Cl, ((A, [Tm a]), One)) \<or> (\<exists>T. x! (i+1) = Nt T)) ) 
+        (\<forall>A a. x ! i = Tm (Op, ((A, [Tm a]), One)) \<longrightarrow> (i+1) < length x \<and> (x ! (i + 1) = Tm (Cl, ((A, [Tm a]), One)) \<or> (\<exists>T. x! (i+1) = Nt T)) ) 
         \<and>
-        (\<exists>A a. x ! i = Tm (Op, ((A, [Tm a]), Two)) \<longrightarrow> (i+1) < length x \<and> (x ! (i + 1) = Tm (Cl, ((A, [Tm a]), Two)) \<or> (\<exists>T. x! (i+1) = Nt T)) ) )\<close>
+        (\<forall>A a. x ! i = Tm (Op, ((A, [Tm a]), Two)) \<longrightarrow> (i+1) < length x \<and> (x ! (i + 1) = Tm (Cl, ((A, [Tm a]), Two)) \<or> (\<exists>T. x! (i+1) = Nt T)) ) )\<close>
 
+lemma P4I_sym[intro]:
+assumes \<open>\<And>i A a. ( i < length x \<Longrightarrow> x ! i = Tm (Op, ((A, [Tm a]), One)) \<Longrightarrow> (i+1) < length x \<and> (x ! (i + 1) = Tm (Cl, ((A, [Tm a]), One)) \<or> (\<exists>T. x! (i+1) = Nt T)))\<close>
+and     \<open>\<And>i A a. ( i < length x \<Longrightarrow> x ! i = Tm (Op, ((A, [Tm a]), Two)) \<Longrightarrow> (i+1) < length x \<and> (x ! (i + 1) = Tm (Cl, ((A, [Tm a]), Two)) \<or> (\<exists>T. x! (i+1) = Nt T)))\<close>
+shows \<open>P4_sym x\<close>
+using assms unfolding P4_sym_def by blast
 
+lemma P4_symD[dest]:
+assumes \<open>P4_sym x\<close>
+and \<open>i < length x\<close>
+and \<open>x ! i = Tm (Op, ((A, [Tm a]), v))\<close>
+shows \<open>(i+1) < length x \<and> (x ! (i + 1) = Tm (Cl, ((A, [Tm a]), v)) \<or> (\<exists>T. x! (i+1) = Nt T))\<close> using assms version.exhaust unfolding P4_sym_def by (metis (full_types))
+
+lemmas P4_symE = P4_symD[elim_format]
+
+lemma P4_sym_imp_P4_for_tm[intro, dest]: \<open>P4_sym (map Tm x) \<Longrightarrow> P4 x\<close> by fastforce
 
 
 text\<open>For all A, if A produces x under P', then there exists some pi \<in> P with lhs A such that x begins with (Op,pi,1)\<close>
 definition P5 :: \<open>('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> (bracket \<times> (('n, 't) prod) \<times> version) list \<Rightarrow> bool\<close> where
-  \<open>P5 P A x = (\<exists>\<pi> l. \<pi> \<in> P \<and> \<pi> = (A, l) \<and> x \<noteq> [] \<and> x ! 0 = (Op, \<pi>, One) )\<close>
+  \<open>P5 P A x = (x \<noteq> [] \<and> (\<exists>\<pi> l. \<pi> \<in> P \<and> \<pi> = (A, l) \<and> x ! 0 = (Op, \<pi>, One) ))\<close>
+
+lemma P5I[intro]: 
+assumes \<open>(A, l) \<in> P\<close> and \<open>x \<noteq> []\<close> and \<open>x ! 0 = (Op, (A,l), One)\<close>
+shows \<open>P5 P A x\<close>
+using assms unfolding P5_def by blast
+
+lemma P5D[dest]:
+assumes \<open>P5 P A x\<close>
+shows \<open>x \<noteq> [] \<and> (\<exists>l. (A,l) \<in> P \<and> x ! 0 = (Op, (A,l), One))\<close>
+using assms unfolding P5_def by blast
+
+lemmas P5E = P5D[elim_format]
 
 text\<open>Version of P4 for symbols, i.e. strings that may still contain Nt's -- here we have to adapt it slightly\<close>
 definition P5_sym :: \<open>('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms \<Rightarrow> bool\<close> where
   \<open>P5_sym P A x = ( x \<noteq> [] \<and> ((\<exists>\<pi> l. \<pi> \<in> P \<and> \<pi> = (A, l) \<and> x \<noteq> [] \<and> x ! 0 = Tm (Op, \<pi>, One) )  \<or>  (\<exists>T. x ! 0 = Nt T))  )\<close>
 
+lemma P5_symI1[intro]: 
+assumes \<open>x \<noteq> []\<close> and  \<open>(A, l) \<in> P\<close>  \<open>x ! 0 = Tm (Op, (A,l), One)\<close> 
+shows \<open>P5_sym P A x\<close>
+using assms unfolding P5_sym_def by blast
 
+lemma P5_symI2[intro]: 
+assumes \<open>x \<noteq> []\<close> and \<open>\<exists>T. x ! 0 = Nt T\<close>
+shows \<open>P5_sym P A x\<close>
+using assms unfolding P5_sym_def by blast
+
+lemma P5_symD[dest]:
+assumes \<open>P5_sym P A x\<close>
+shows \<open>x \<noteq> [] \<and> ( (\<exists>l. (A,l) \<in> P \<and> x ! 0 = Tm (Op, (A,l), One)) \<or>  (\<exists>T. x ! 0 = Nt T) )\<close>
+using assms unfolding P5_sym_def by blast
+
+lemmas P5_symE = P5_symD[elim_format]
+
+
+lemma P5_sym_imp_P5_for_tm[intro, dest]: \<open>P5_sym P A (map Tm x) \<Longrightarrow> P5 P A x\<close> by fastforce
 
 text\<open>This is the regular language, where one takes the Start symbol as a parameter, and then has the searched for \<open>R := R\<^sub>A\<close>\<close>
 definition Re :: \<open>('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> (bracket \<times> (('n, 't) prod) \<times> version) list set\<close> where
   \<open>Re P A = {x. (P1 P x) \<and> (P2 P x) \<and> (P3 P x) \<and> (P4 x) \<and> (P5 P A x) }\<close>
 
+lemma ReI[intro]:
+assumes \<open>(P1 P x)\<close> and \<open>(P2 P x)\<close> and \<open>(P3 P x)\<close> and \<open>(P4 x)\<close> and \<open>(P5 P A x)\<close>
+shows \<open>x \<in> Re P A\<close>
+using assms unfolding Re_def by blast
+
+lemma ReD[dest]:
+assumes \<open>x \<in> Re P A\<close>
+shows \<open>(P1 P x)\<close> and \<open>(P2 P x)\<close> and \<open>(P3 P x)\<close> and \<open>(P4 x)\<close> and \<open>(P5 P A x)\<close>
+using assms unfolding Re_def by blast+
+
+lemmas ReE = ReD[elim_format]
+
 text\<open>Version of Re for symbols, i.e. strings that may still contain Nt's\<close>
 definition Re_sym :: \<open>('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms set\<close> where
   \<open>Re_sym P A = {x. (P1_sym P x) \<and> (P2_sym P x) \<and> (P3_sym P x) \<and> (P4_sym x) \<and> (P5_sym P A x) }\<close>
 
+lemma Re_symI[intro]:
+assumes \<open>(P1_sym P x)\<close> and \<open>(P2_sym P x)\<close> and \<open>(P3_sym P x)\<close> and \<open>(P4_sym x)\<close> and \<open>(P5_sym P A x)\<close>
+shows \<open>x \<in> Re_sym P A\<close>
+using assms unfolding Re_sym_def by blast
+
+lemma Re_symD[dest]:
+assumes \<open>x \<in> Re_sym P A\<close>
+shows \<open>(P1_sym P x)\<close> and \<open>(P2_sym P x)\<close> and \<open>(P3_sym P x)\<close> and \<open>(P4_sym x)\<close> and \<open>(P5_sym P A x)\<close>
+using assms unfolding Re_sym_def by blast+
+
+lemmas Re_symE = Re_symD[elim_format]
+
+
+lemma Re_sym_imp_Re_for_tm[intro, dest]: \<open>(map Tm x) \<in> Re_sym P A \<Longrightarrow> x \<in> Re P A\<close> apply(rule ReI) by auto 
 
 
 text\<open>Definition of monoid-homomorphism where multiplication is that of words.\<close>

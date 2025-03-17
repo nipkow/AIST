@@ -1187,97 +1187,81 @@ using assms proof(induction rule: derives_induct)
     then obtain w' where w'_def: \<open>transform_production (A, w') = (A, w)\<close> and \<open>(A,w') \<in> P\<close> by (metis (no_types, opaque_lifting) Product_Type.old.prod.exhaust fst_conv fst_transform_production imageE)
     then have Aw'_cnf: \<open>CNF_rule (A,w')\<close> using step by blast
     then obtain B C a where \<open>((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Nt B, Nt C]) \<or> ((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Tm a])\<close> using transform_production_CNF[of \<open>(A,w')\<close>] w'_def by (metis snd_conv)   
-    then show ?case
-    proof
-      assume \<open>(A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Nt B, Nt C]\<close>
+    
+    then have w_eq: \<open>w = [Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2]   \<or>    w = [Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>2, Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2]\<close> (is \<open>w = ?w1 \<or> w = ?w2\<close>) by fastforce
+    then have w_resym: \<open>w \<in> Re_sym A\<close> unfolding w_eq by auto
+    
+    have P5_uAv: \<open>P5_sym S (u @ [Nt A] @ v)\<close> using Re_symD[OF uAv] by blast
 
-      then have w_eq: \<open>w = [Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2]\<close> by blast
-      then have w_resym: \<open>w \<in> Re_sym A\<close> unfolding w_eq by auto
-
-      have left: \<open>chain P1_sym (u@w) \<and> chain P2_sym (u@w) \<and> chain P3_sym (u@w) \<and> chain P4_sym (u@w) \<and> chain P6_sym (u@w) \<and> chain P7_sym (u@w)\<close>
+    have left: \<open>chain P1_sym (u@w) \<and> chain P2_sym (u@w) \<and> chain P3_sym (u@w) \<and> chain P4_sym (u@w) \<and> chain P6_sym (u@w) \<and> chain P7_sym (u@w)\<close>
       proof(cases u rule: rev_cases)
         case Nil
-        show ?thesis unfolding Nil w_eq by simp
+        show ?thesis apply(rule disjE[OF w_eq]) unfolding Nil by auto
       next
         case (snoc ys y)
         then have \<open>chain P6_sym (ys @ [y] @ [Nt A] @ v)\<close> using Re_symD[OF uAv] snoc by auto
         then have \<open>P6_sym y (Nt A)\<close> by fastforce
         then obtain R X Y v' where y_eq: \<open>y = (Tm (Op,(R, [Nt X, Nt Y]), v' ))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> using P6_sym.elims(1) by (smt (z3) CFG.sym.inject(1) P6_sym.simps(3,9) version.distinct(1))
-        then have \<open>P3_sym y (Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1)\<close> apply(cases v') by auto
-        then have \<open>P1_sym y (Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1) \<and> P2_sym y (Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1) \<and> P3_sym y (Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1) \<and> P4_sym y (Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1) \<and> P6_sym y (Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1) \<and> P7_sym y (Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1)\<close> unfolding y_eq by simp
-        hence \<open>P1_sym (last (ys@[y])) (hd w) \<and> P2_sym (last (ys@[y])) (hd w) \<and> P3_sym (last (ys@[y])) (hd w) \<and> P4_sym (last (ys@[y])) (hd w) \<and> P6_sym (last (ys@[y])) (hd w) \<and> P7_sym (last (ys@[y])) (hd w)\<close> unfolding w_eq by simp
+        then have \<open>P3_sym y (hd w)\<close> using w_eq apply(cases \<open>w = ?w1\<close>) apply(cases v') apply force apply force by (smt (verit, best) List.list.sel(1) chomsky_schuetzenberger.P3_sym.simps(1,2) chomsky_schuetzenberger.version.exhaust)
+        hence \<open>P1_sym (last (ys@[y])) (hd w) \<and> P2_sym (last (ys@[y])) (hd w) \<and> P3_sym (last (ys@[y])) (hd w) \<and> P4_sym (last (ys@[y])) (hd w) \<and> P6_sym (last (ys@[y])) (hd w) \<and> P7_sym (last (ys@[y])) (hd w)\<close> unfolding y_eq using w_eq by (metis List.list.sel(1) P1_sym.simps(6) P2_sym.simps(5) P4_sym.simps(5) P6_sym.simps(14) P7_sym.simps(8) last_snoc w_eq)
         with Re_symD[OF uAv] moreover have   \<open>chain P1_sym (ys @ [y]) \<and> chain P2_sym (ys @ [y]) \<and> chain P3_sym (ys @ [y]) \<and> chain P4_sym (ys @ [y]) \<and> chain P6_sym (ys @ [y]) \<and> chain P7_sym (ys @ [y])\<close> unfolding snoc by blast
         ultimately show \<open>chain P1_sym (u@w) \<and> chain P2_sym (u@w) \<and> chain P3_sym (u@w) \<and> chain P4_sym (u@w) \<and> chain P6_sym (u@w) \<and> chain P7_sym (u@w)\<close> unfolding snoc using chain_append[where ?xs = \<open>ys @ [y]\<close> and ?ys = w] Re_symD[OF w_resym] by blast
       qed
 
+
       have right: \<open>chain P1_sym (w@v) \<and> chain P2_sym (w@v) \<and> chain P3_sym (w@v) \<and> chain P4_sym (w@v) \<and> chain P6_sym (w@v) \<and> chain P7_sym (w@v)\<close>
       proof(cases v)
         case Nil
-        show ?thesis unfolding Nil w_eq by simp
+        show ?thesis apply(rule disjE[OF w_eq]) unfolding Nil by auto
       next
         case (Cons y ys)
         then have \<open>chain P7_sym ([Nt A] @ y # ys)\<close> using Re_symD[OF uAv] Cons by auto
         then have \<open>P7_sym (Nt A) y\<close> by fastforce
         then obtain R X Y v' where y_eq: \<open>y = (Tm (Cl,(R, [Nt X, Nt Y]), v' ))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> using P7_sym.elims(1) by (smt (z3) CFG.sym.inject(1) P6_sym.simps(3,9) version.distinct(1))
-        (*then have \<open>P3_sym (Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2) y\<close> apply(cases v') by auto*)
-        have \<open>P1_sym (Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2) y \<and> P2_sym (Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2) y \<and>P3_sym (Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2) y \<and>P4_sym (Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2) y \<and>P6_sym (Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2) y \<and>P6_sym (Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2) y\<close> unfolding y_eq by auto
-        hence \<open>P1_sym (last w) (hd (y#ys)) \<and> P2_sym (last w) (hd (y#ys)) \<and> P3_sym (last w) (hd (y#ys)) \<and> P4_sym (last w) (hd (y#ys)) \<and> P6_sym (last w) (hd (y#ys)) \<and> P7_sym (last w) (hd (y#ys))\<close> unfolding w_eq by simp
+
+        have \<open>P1_sym (last w) (hd (y#ys)) \<and> P2_sym (last w) (hd (y#ys)) \<and> P3_sym (last w) (hd (y#ys)) \<and> P4_sym (last w) (hd (y#ys)) \<and> P6_sym (last w) (hd (y#ys)) \<and> P7_sym (last w) (hd (y#ys))\<close> unfolding y_eq using w_eq apply(cases \<open>w = ?w1\<close>) apply force by simp
         with Re_symD[OF uAv] moreover have \<open>chain P1_sym (y # ys) \<and> chain P2_sym (y # ys) \<and> chain P3_sym (y # ys) \<and> chain P4_sym (y # ys) \<and> chain P6_sym (y # ys) \<and> chain P7_sym (y # ys)\<close> unfolding Cons by blast
-        ultimately show \<open>chain P1_sym (w@v) \<and> chain P2_sym (w@v) \<and> chain P3_sym (w@v) \<and> chain P4_sym (w@v) \<and> chain P6_sym (w@v) \<and> chain P7_sym (w@v)\<close> unfolding Cons  using chain_append[where ?xs = \<open>w\<close> and ?ys = \<open>y#ys\<close>] Re_symD[OF w_resym] by blast
+        ultimately show \<open>chain P1_sym (w@v) \<and> chain P2_sym (w@v) \<and> chain P3_sym (w@v) \<and> chain P4_sym (w@v) \<and> chain P6_sym (w@v) \<and> chain P7_sym (w@v)\<close> unfolding Cons using chain_append[where ?xs = \<open>w\<close> and ?ys = \<open>y#ys\<close>] Re_symD[OF w_resym] by blast
       qed
+
 
       from left right have \<open>chain P1_sym (u@w@v) \<and> chain P2_sym (u@w@v) \<and> chain P3_sym (u@w@v) \<and> chain P4_sym (u@w@v) \<and> chain P6_sym (u@w@v) \<and> chain P7_sym (u@w@v)\<close> using w_eq by blast
-      
-      moreover have \<open>P5_sym S (u@w@v)\<close> using Re_symD[OF uAv] apply(cases u) apply (simp add: w_eq) by (smt (verit, del_insts) List.list.inject append_Cons chomsky_schuetzenberger.P5_sym.elims(1) chomsky_schuetzenberger.P5_sym.simps(2,3))
+
+      moreover have \<open>P5_sym S (u@w@v)\<close> apply(rule disjE[OF w_eq]; cases u) using P5_uAv  apply force apply (smt (verit, best) List.list.sel(1) P5_uAv append_Cons P5_sym.elims(2) P5_sym.simps(2,3))
+      using P5_uAv apply force
+      using P5_uAv by (smt (verit, best) List.list.inject append_Cons chomsky_schuetzenberger.P5_sym.elims(1) chomsky_schuetzenberger.P5_sym.simps(2,3))
+
+ 
 
       ultimately show \<open>(u@w@v) \<in> Re_sym S\<close> by blast 
-    next
-      assume \<open>(A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Tm a]\<close>
-
-      then have w_eq: \<open>w = [Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>2, Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2]\<close> by blast
-      then have w_resym: \<open>w \<in> Re_sym A\<close> unfolding w_eq by auto
-
-      have left: \<open>chain P1_sym (u@w) \<and> chain P2_sym (u@w) \<and> chain P3_sym (u@w) \<and> chain P4_sym (u@w) \<and> chain P6_sym (u@w) \<and> chain P7_sym (u@w)\<close>
-      proof(cases u rule: rev_cases)
-        case Nil
-        show ?thesis unfolding Nil w_eq by simp
-      next
-        case (snoc ys y)
-        then have \<open>chain P6_sym (ys @ [y] @ [Nt A] @ v)\<close> using Re_symD[OF uAv] snoc by auto
-        then have \<open>P6_sym y (Nt A)\<close> by fastforce
-        then obtain R X Y v' where y_eq: \<open>y = (Tm (Op,(R, [Nt X, Nt Y]), v' ))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> using P6_sym.elims(1) by (smt (z3) CFG.sym.inject(1) P6_sym.simps(3,9) version.distinct(1))
-        then have \<open>P3_sym y (Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 )\<close> apply(cases v') by auto
-        then have \<open>P1_sym y (Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 ) \<and> P2_sym y (Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 ) \<and> P3_sym y (Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 ) \<and> P4_sym y (Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1) \<and> P6_sym y (Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 ) \<and> P7_sym y (Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 )\<close> unfolding y_eq by simp
-        hence \<open>P1_sym (last (ys@[y])) (hd w) \<and> P2_sym (last (ys@[y])) (hd w) \<and> P3_sym (last (ys@[y])) (hd w) \<and> P4_sym (last (ys@[y])) (hd w) \<and> P6_sym (last (ys@[y])) (hd w) \<and> P7_sym (last (ys@[y])) (hd w)\<close> unfolding w_eq by simp
-        with Re_symD[OF uAv] moreover have   \<open>chain P1_sym (ys @ [y]) \<and> chain P2_sym (ys @ [y]) \<and> chain P3_sym (ys @ [y]) \<and> chain P4_sym (ys @ [y]) \<and> chain P6_sym (ys @ [y]) \<and> chain P7_sym (ys @ [y])\<close> unfolding snoc by blast
-        ultimately show \<open>chain P1_sym (u@w) \<and> chain P2_sym (u@w) \<and> chain P3_sym (u@w) \<and> chain P4_sym (u@w) \<and> chain P6_sym (u@w) \<and> chain P7_sym (u@w)\<close> unfolding snoc using chain_append[where ?xs = \<open>ys @ [y]\<close> and ?ys = w] Re_symD[OF w_resym] by blast
-      qed
-
-      have right: \<open>chain P1_sym (w@v) \<and> chain P2_sym (w@v) \<and> chain P3_sym (w@v) \<and> chain P4_sym (w@v) \<and> chain P6_sym (w@v) \<and> chain P7_sym (w@v)\<close>
-      proof(cases v)
-        case Nil
-        show ?thesis unfolding Nil w_eq by simp
-      next
-        case (Cons y ys)
-        then have \<open>chain P7_sym ([Nt A] @ y # ys)\<close> using Re_symD[OF uAv] Cons by auto
-        then have \<open>P7_sym (Nt A) y\<close> by fastforce
-        then obtain R X Y v' where y_eq: \<open>y = (Tm (Cl,(R, [Nt X, Nt Y]), v' ))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> using P7_sym.elims(1) by (smt (z3) CFG.sym.inject(1) P6_sym.simps(3,9) version.distinct(1))
-        (*then have \<open>P3_sym (Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2) y\<close> apply(cases v') by auto*)
-        have \<open>P1_sym (Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2) y \<and> P2_sym (Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2) y \<and> P3_sym (Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2) y \<and> P4_sym (Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2) y \<and> P6_sym (Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2) y \<and> P6_sym (Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2) y\<close> unfolding y_eq by auto
-        hence \<open>P1_sym (last w) (hd (y#ys)) \<and> P2_sym (last w) (hd (y#ys)) \<and> P3_sym (last w) (hd (y#ys)) \<and> P4_sym (last w) (hd (y#ys)) \<and> P6_sym (last w) (hd (y#ys)) \<and> P7_sym (last w) (hd (y#ys))\<close> unfolding w_eq by simp
-        with Re_symD[OF uAv] moreover have \<open>chain P1_sym (y # ys) \<and> chain P2_sym (y # ys) \<and> chain P3_sym (y # ys) \<and> chain P4_sym (y # ys) \<and> chain P6_sym (y # ys) \<and> chain P7_sym (y # ys)\<close> unfolding Cons by blast
-        ultimately show \<open>chain P1_sym (w@v) \<and> chain P2_sym (w@v) \<and> chain P3_sym (w@v) \<and> chain P4_sym (w@v) \<and> chain P6_sym (w@v) \<and> chain P7_sym (w@v)\<close> unfolding Cons  using chain_append[where ?xs = \<open>w\<close> and ?ys = \<open>y#ys\<close>] Re_symD[OF w_resym] by blast
-      qed
-
-      from left right have \<open>chain P1_sym (u@w@v) \<and> chain P2_sym (u@w@v) \<and> chain P3_sym (u@w@v) \<and> chain P4_sym (u@w@v) \<and> chain P6_sym (u@w@v) \<and> chain P7_sym (u@w@v)\<close> using w_eq by blast
-      
-      moreover have \<open>P5_sym S (u@w@v)\<close> using Re_symD[OF uAv] apply(cases u) apply (simp add: w_eq) by (smt (verit, del_insts) List.list.inject append_Cons chomsky_schuetzenberger.P5_sym.elims(1) chomsky_schuetzenberger.P5_sym.simps(2,3))
+   qed 
 
 
 
-      ultimately show \<open>(u@w@v) \<in> Re_sym S\<close> by blast 
-    qed
- qed
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

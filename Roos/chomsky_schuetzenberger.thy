@@ -562,7 +562,7 @@ definition CNF_rule :: "('n,'t) prod \<Rightarrow> bool" where
   \<open>CNF_rule p \<equiv>  (\<exists>(A::'n) B C. (p = (A,[Nt B, Nt C]))) \<or> (\<exists>A a. p= (A, [Tm a]))\<close>
 
 
-lemma transform_production_CNF: \<open>CNF_rule p \<Longrightarrow> (\<exists>A B C. transform_production p = (A, [ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ]) ) \<or> (\<exists>A .transform_production p = (A, [ Tm [\<^sub>p\<^sup>1,       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ]))\<close>
+lemma transform_production_CNF: \<open>CNF_rule p \<Longrightarrow> (\<exists>A B C. transform_production p = (A, [ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ]) \<and> p = (A, [Nt B, Nt C])) \<or> (\<exists>A a. transform_production p = (A, [ Tm [\<^sub>p\<^sup>1,       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ]) \<and> p = (A, [Tm a]) )\<close>
   unfolding CNF_rule_def by auto
 
 lemma transform_production_CNF2: \<open>CNF_rule p \<Longrightarrow> transform_production p = (x, []) \<Longrightarrow> False\<close>
@@ -682,11 +682,31 @@ fun P5 :: \<open>'n \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> versio
 \<open>P5 A ((Op, (X,y), One) # xs) = (X = A)\<close> | 
 \<open>P5 A (x # xs) = False\<close>
 
+text\<open>there exists some y, such that x begins with (Op,(A,y),1) or it begins with Nt A\<close>
 fun P5_sym :: \<open>'n \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms \<Rightarrow> bool\<close> where
 \<open>P5_sym A [] = False\<close> | 
 \<open>P5_sym A (Tm (Op, (X,y), One) # xs) = (X = A)\<close> | 
+\<open>P5_sym A ((Nt X) # xs) = (X = A)\<close> | 
 \<open>P5_sym A (x # xs) = False\<close>
 
+(*
+text\<open>there exists some y, such that x ends with (Op,(A,y),2) or it ends with Nt A\<close>
+fun P6 :: \<open>'n \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) list \<Rightarrow> bool\<close> where
+\<open>P6 A [] = False\<close> | 
+\<open>P6 A [] ((Cl, (X,y), Two) # xs) = (X = A)\<close> | 
+\<open>P6 A (x#y#zs) = P6 A (y#zs)\<close> *)
+
+text\<open>Before a Nt Y there always comes a (Op, A\<rightarrow>YC, 1) or a (Op, A\<rightarrow>BY, 2)\<close>
+fun P6_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
+\<open>P6_sym (Tm (b,(A, [Nt B, Nt C]), v )) (Nt Y) = (b = Op \<and> ((Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
+\<open>P6_sym x (Nt Y) = False\<close> | 
+\<open>P6_sym x y = True\<close>
+
+text\<open>After a Nt Y there always comes a (Cl, A\<rightarrow>YC, 1) or a (Cl, A\<rightarrow>BY, 2)\<close>
+fun P7_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
+\<open>P7_sym (Nt Y) (Tm (b,(A, [Nt B, Nt C]), v ))  = (b = Cl \<and> ( (Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
+\<open>P7_sym (Nt Y) x = False\<close> | 
+\<open>P7_sym x y = True\<close>
 
 
 lemma P5_sym_imp_P5_for_tm[intro, dest]: \<open>P5_sym A (map Tm x) \<Longrightarrow> P5 A x\<close>
@@ -709,18 +729,19 @@ using assms unfolding Re_def by blast+
 
 lemmas ReE = ReD[elim_format]
 
-text\<open>Version of Re for symbols, i.e. strings that may still contain Nt's\<close>
+text\<open>Version of Re for symbols, i.e. strings that may still contain Nt's. 
+It has 2 more Properties P6 and P7 that vanish for pure terminal strings\<close>
 definition Re_sym :: \<open>'n \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms set\<close> where
-  \<open>Re_sym A = {x. (chain P1_sym x) \<and> (chain P2_sym x) \<and> (chain P3_sym x) \<and> (chain P4_sym x) \<and> (P5_sym A x) }\<close>
+  \<open>Re_sym A = {x. (chain P1_sym x) \<and> (chain P2_sym x) \<and> (chain P3_sym x) \<and> (chain P4_sym x) \<and> (P5_sym A x) \<and> (chain P6_sym x) \<and> (chain P7_sym x)}\<close>
 
 lemma Re_symI[intro]:
-assumes \<open>chain P1_sym x\<close> and \<open>chain P2_sym x\<close> and \<open>chain P3_sym x\<close> and \<open>chain P4_sym x\<close> and \<open>P5_sym A x\<close>
+assumes \<open>chain P1_sym x\<close> and \<open>chain P2_sym x\<close> and \<open>chain P3_sym x\<close> and \<open>chain P4_sym x\<close> and \<open>P5_sym A x\<close> and \<open>(chain P6_sym x)\<close> and \<open>(chain P7_sym x)\<close>
 shows \<open>x \<in> Re_sym A\<close>
 using assms unfolding Re_sym_def by blast
 
 lemma Re_symD[dest]:
 assumes \<open>x \<in> Re_sym A\<close>
-shows \<open>chain P1_sym x\<close> and \<open>chain P2_sym x\<close> and \<open>chain P3_sym x\<close> and \<open>chain P4_sym x\<close> and \<open>P5_sym A x\<close>
+shows \<open>chain P1_sym x\<close> and \<open>chain P2_sym x\<close> and \<open>chain P3_sym x\<close> and \<open>chain P4_sym x\<close> and \<open>P5_sym A x\<close> and \<open>(chain P6_sym x)\<close> and \<open>(chain P7_sym x)\<close>
 using assms unfolding Re_sym_def by blast+
 
 lemmas Re_symE = Re_symD[elim_format]
@@ -1097,7 +1118,8 @@ lemma prod_bal_tm[intro!]:
     and \<open>CNF_rule p\<close>
   shows \<open>bal_tm (snd (transform_production p)) \<and> rhs_in_if (snd (transform_production p)) (P \<times> {One, Two})\<close> 
 proof-
-  have \<open>(\<exists>A B C. transform_production p = (A, [ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ]) ) \<or> (\<exists>A. transform_production p = (A, [ Tm (Op, (p,One)),       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ]))\<close> ( is \<open>?A1 \<or> ?A2\<close>) using transform_production_CNF[OF assms(2)] by presburger
+  have \<open>(\<exists>A B C. transform_production p = (A, [ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ]) ) \<or> (\<exists>A. transform_production p = (A, [ Tm (Op, (p,One)),       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ]))\<close> ( is \<open>?A1 \<or> ?A2\<close>) using transform_production_CNF[OF assms(2)] by blast
+
   then show ?thesis
   proof
     assume A1: ?A1
@@ -1150,56 +1172,115 @@ qed
 
 
 
-lemma split2:
-assumes \<open>i < length (u @ w)\<close>
-obtains \<open>i+1 < length u\<close> | \<open>i+1 = length u \<close> |  \<open>i+1 > length u \<and> i+1 < length u + length w\<close> | \<open>i+1 = length u + length w\<close> using assms by fastforce
-
-
-
-lemma split3:
-assumes \<open>i < length (u @ w @ v)\<close>
-obtains \<open>i+1 < length u\<close> | \<open>i+1 = length u \<close> |  \<open>i+1 > length u \<and> i+1 < length u + length w\<close> | \<open>i+1 = length u + length w\<close> |  \<open>i+1 > length u + length w \<and> i < length u + length w + length v\<close> using assms by fastforce
-
 lemma P'_imp_Re:
   assumes \<open>(image transform_production P) \<turnstile> [Nt S] \<Rightarrow>* x\<close>
     and \<open>\<forall>p \<in> P. CNF_rule p\<close>
-  shows \<open>x \<in> Re_sym P S\<close>
+  shows \<open>x \<in> Re_sym S\<close>
 using assms proof(induction rule: derives_induct)
     case base
-    show ?case apply(rule Re_symI) by fastforce+
+    show ?case apply(rule Re_symI) by simp+
   next
     case (step u A v w)
-    have uAv: \<open>u @ [Nt A] @ v \<in> Re_sym P S\<close> using step by blast
+    have uAv: \<open>u @ [Nt A] @ v \<in> Re_sym S\<close> using step by blast
 
     have \<open>(A, w) \<in> transform_production ` P\<close> using step by blast
     then obtain w' where w'_def: \<open>transform_production (A, w') = (A, w)\<close> and \<open>(A,w') \<in> P\<close> by (metis (no_types, opaque_lifting) Product_Type.old.prod.exhaust fst_conv fst_transform_production imageE)
     then have Aw'_cnf: \<open>CNF_rule (A,w')\<close> using step by blast
-    then obtain B C where \<open>((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) ) \<or> ((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) )\<close> using transform_production_CNF[of \<open>(A,w')\<close>] w'_def by (metis fst_conv)
-    
+    then obtain B C a where \<open>((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Nt B, Nt C]) \<or> ((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Tm a])\<close> using transform_production_CNF[of \<open>(A,w')\<close>] w'_def by (metis snd_conv)   
     then show ?case
     proof
-      assume \<open>(A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2])\<close>
-      then have w_eq: \<open>w = [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]\<close> by blast
+      assume \<open>(A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Nt B, Nt C]\<close>
 
-      have \<open>P1_sym P (u @ w @ v)\<close> 
-      proof-
-      have \<open>P1_sym P u\<close> using Re_symD[OF uAv] by (meson p1_sym.drop_right)
-      moreover have \<open>P1_sym P v\<close> using Re_symD[OF uAv] by (meson p1_sym.drop_left)
-      moreover have \<open>P1_sym P w\<close> using w_eq P1_sym_def sorry
-      
+      then have w_eq: \<open>w = [Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2]\<close> by blast
+      then have w_resym: \<open>w \<in> Re_sym A\<close> unfolding w_eq by auto
+
+      have left: \<open>chain P1_sym (u@w) \<and> chain P2_sym (u@w) \<and> chain P3_sym (u@w) \<and> chain P4_sym (u@w) \<and> chain P6_sym (u@w) \<and> chain P7_sym (u@w)\<close>
+      proof(cases u rule: rev_cases)
+        case Nil
+        show ?thesis unfolding Nil w_eq by simp
+      next
+        case (snoc ys y)
+        then have \<open>chain P6_sym (ys @ [y] @ [Nt A] @ v)\<close> using Re_symD[OF uAv] snoc by auto
+        then have \<open>P6_sym y (Nt A)\<close> by fastforce
+        then obtain R X Y v' where y_eq: \<open>y = (Tm (Op,(R, [Nt X, Nt Y]), v' ))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> using P6_sym.elims(1) by (smt (z3) CFG.sym.inject(1) P6_sym.simps(3,9) version.distinct(1))
+        then have \<open>P3_sym y (Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1)\<close> apply(cases v') by auto
+        then have \<open>P1_sym y (Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1) \<and> P2_sym y (Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1) \<and> P3_sym y (Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1) \<and> P4_sym y (Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1) \<and> P6_sym y (Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1) \<and> P7_sym y (Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1)\<close> unfolding y_eq by simp
+        hence \<open>P1_sym (last (ys@[y])) (hd w) \<and> P2_sym (last (ys@[y])) (hd w) \<and> P3_sym (last (ys@[y])) (hd w) \<and> P4_sym (last (ys@[y])) (hd w) \<and> P6_sym (last (ys@[y])) (hd w) \<and> P7_sym (last (ys@[y])) (hd w)\<close> unfolding w_eq by simp
+        with Re_symD[OF uAv] moreover have   \<open>chain P1_sym (ys @ [y]) \<and> chain P2_sym (ys @ [y]) \<and> chain P3_sym (ys @ [y]) \<and> chain P4_sym (ys @ [y]) \<and> chain P6_sym (ys @ [y]) \<and> chain P7_sym (ys @ [y])\<close> unfolding snoc by blast
+        ultimately show \<open>chain P1_sym (u@w) \<and> chain P2_sym (u@w) \<and> chain P3_sym (u@w) \<and> chain P4_sym (u@w) \<and> chain P6_sym (u@w) \<and> chain P7_sym (u@w)\<close> unfolding snoc using chain_append[where ?xs = \<open>ys @ [y]\<close> and ?ys = w] Re_symD[OF w_resym] by blast
       qed
-      
 
-      show ?thesis apply(rule Re_symI) using step w_eq sorry
+      have right: \<open>chain P1_sym (w@v) \<and> chain P2_sym (w@v) \<and> chain P3_sym (w@v) \<and> chain P4_sym (w@v) \<and> chain P6_sym (w@v) \<and> chain P7_sym (w@v)\<close>
+      proof(cases v)
+        case Nil
+        show ?thesis unfolding Nil w_eq by simp
+      next
+        case (Cons y ys)
+        then have \<open>chain P7_sym ([Nt A] @ y # ys)\<close> using Re_symD[OF uAv] Cons by auto
+        then have \<open>P7_sym (Nt A) y\<close> by fastforce
+        then obtain R X Y v' where y_eq: \<open>y = (Tm (Cl,(R, [Nt X, Nt Y]), v' ))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> using P7_sym.elims(1) by (smt (z3) CFG.sym.inject(1) P6_sym.simps(3,9) version.distinct(1))
+        (*then have \<open>P3_sym (Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2) y\<close> apply(cases v') by auto*)
+        have \<open>P1_sym (Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2) y \<and> P2_sym (Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2) y \<and>P3_sym (Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2) y \<and>P4_sym (Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2) y \<and>P6_sym (Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2) y \<and>P6_sym (Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2) y\<close> unfolding y_eq by auto
+        hence \<open>P1_sym (last w) (hd (y#ys)) \<and> P2_sym (last w) (hd (y#ys)) \<and> P3_sym (last w) (hd (y#ys)) \<and> P4_sym (last w) (hd (y#ys)) \<and> P6_sym (last w) (hd (y#ys)) \<and> P7_sym (last w) (hd (y#ys))\<close> unfolding w_eq by simp
+        with Re_symD[OF uAv] moreover have \<open>chain P1_sym (y # ys) \<and> chain P2_sym (y # ys) \<and> chain P3_sym (y # ys) \<and> chain P4_sym (y # ys) \<and> chain P6_sym (y # ys) \<and> chain P7_sym (y # ys)\<close> unfolding Cons by blast
+        ultimately show \<open>chain P1_sym (w@v) \<and> chain P2_sym (w@v) \<and> chain P3_sym (w@v) \<and> chain P4_sym (w@v) \<and> chain P6_sym (w@v) \<and> chain P7_sym (w@v)\<close> unfolding Cons  using chain_append[where ?xs = \<open>w\<close> and ?ys = \<open>y#ys\<close>] Re_symD[OF w_resym] by blast
+      qed
+
+      from left right have \<open>chain P1_sym (u@w@v) \<and> chain P2_sym (u@w@v) \<and> chain P3_sym (u@w@v) \<and> chain P4_sym (u@w@v) \<and> chain P6_sym (u@w@v) \<and> chain P7_sym (u@w@v)\<close> using w_eq by blast
+      
+      moreover have \<open>P5_sym S (u@w@v)\<close> using Re_symD[OF uAv] apply(cases u) apply (simp add: w_eq) by (smt (verit, del_insts) List.list.inject append_Cons chomsky_schuetzenberger.P5_sym.elims(1) chomsky_schuetzenberger.P5_sym.simps(2,3))
+
+      ultimately show \<open>(u@w@v) \<in> Re_sym S\<close> by blast 
     next
-      assume \<open>(A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2])\<close>
-      then have w_eq: \<open>w = [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]\<close> by blast
-      show ?thesis sorry
+      assume \<open>(A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Tm a]\<close>
+
+      then have w_eq: \<open>w = [Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>2, Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2]\<close> by blast
+      then have w_resym: \<open>w \<in> Re_sym A\<close> unfolding w_eq by auto
+
+      have left: \<open>chain P1_sym (u@w) \<and> chain P2_sym (u@w) \<and> chain P3_sym (u@w) \<and> chain P4_sym (u@w) \<and> chain P6_sym (u@w) \<and> chain P7_sym (u@w)\<close>
+      proof(cases u rule: rev_cases)
+        case Nil
+        show ?thesis unfolding Nil w_eq by simp
+      next
+        case (snoc ys y)
+        then have \<open>chain P6_sym (ys @ [y] @ [Nt A] @ v)\<close> using Re_symD[OF uAv] snoc by auto
+        then have \<open>P6_sym y (Nt A)\<close> by fastforce
+        then obtain R X Y v' where y_eq: \<open>y = (Tm (Op,(R, [Nt X, Nt Y]), v' ))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> using P6_sym.elims(1) by (smt (z3) CFG.sym.inject(1) P6_sym.simps(3,9) version.distinct(1))
+        then have \<open>P3_sym y (Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 )\<close> apply(cases v') by auto
+        then have \<open>P1_sym y (Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 ) \<and> P2_sym y (Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 ) \<and> P3_sym y (Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 ) \<and> P4_sym y (Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1) \<and> P6_sym y (Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 ) \<and> P7_sym y (Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 )\<close> unfolding y_eq by simp
+        hence \<open>P1_sym (last (ys@[y])) (hd w) \<and> P2_sym (last (ys@[y])) (hd w) \<and> P3_sym (last (ys@[y])) (hd w) \<and> P4_sym (last (ys@[y])) (hd w) \<and> P6_sym (last (ys@[y])) (hd w) \<and> P7_sym (last (ys@[y])) (hd w)\<close> unfolding w_eq by simp
+        with Re_symD[OF uAv] moreover have   \<open>chain P1_sym (ys @ [y]) \<and> chain P2_sym (ys @ [y]) \<and> chain P3_sym (ys @ [y]) \<and> chain P4_sym (ys @ [y]) \<and> chain P6_sym (ys @ [y]) \<and> chain P7_sym (ys @ [y])\<close> unfolding snoc by blast
+        ultimately show \<open>chain P1_sym (u@w) \<and> chain P2_sym (u@w) \<and> chain P3_sym (u@w) \<and> chain P4_sym (u@w) \<and> chain P6_sym (u@w) \<and> chain P7_sym (u@w)\<close> unfolding snoc using chain_append[where ?xs = \<open>ys @ [y]\<close> and ?ys = w] Re_symD[OF w_resym] by blast
+      qed
+
+      have right: \<open>chain P1_sym (w@v) \<and> chain P2_sym (w@v) \<and> chain P3_sym (w@v) \<and> chain P4_sym (w@v) \<and> chain P6_sym (w@v) \<and> chain P7_sym (w@v)\<close>
+      proof(cases v)
+        case Nil
+        show ?thesis unfolding Nil w_eq by simp
+      next
+        case (Cons y ys)
+        then have \<open>chain P7_sym ([Nt A] @ y # ys)\<close> using Re_symD[OF uAv] Cons by auto
+        then have \<open>P7_sym (Nt A) y\<close> by fastforce
+        then obtain R X Y v' where y_eq: \<open>y = (Tm (Cl,(R, [Nt X, Nt Y]), v' ))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> using P7_sym.elims(1) by (smt (z3) CFG.sym.inject(1) P6_sym.simps(3,9) version.distinct(1))
+        (*then have \<open>P3_sym (Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2) y\<close> apply(cases v') by auto*)
+        have \<open>P1_sym (Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2) y \<and> P2_sym (Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2) y \<and> P3_sym (Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2) y \<and> P4_sym (Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2) y \<and> P6_sym (Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2) y \<and> P6_sym (Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2) y\<close> unfolding y_eq by auto
+        hence \<open>P1_sym (last w) (hd (y#ys)) \<and> P2_sym (last w) (hd (y#ys)) \<and> P3_sym (last w) (hd (y#ys)) \<and> P4_sym (last w) (hd (y#ys)) \<and> P6_sym (last w) (hd (y#ys)) \<and> P7_sym (last w) (hd (y#ys))\<close> unfolding w_eq by simp
+        with Re_symD[OF uAv] moreover have \<open>chain P1_sym (y # ys) \<and> chain P2_sym (y # ys) \<and> chain P3_sym (y # ys) \<and> chain P4_sym (y # ys) \<and> chain P6_sym (y # ys) \<and> chain P7_sym (y # ys)\<close> unfolding Cons by blast
+        ultimately show \<open>chain P1_sym (w@v) \<and> chain P2_sym (w@v) \<and> chain P3_sym (w@v) \<and> chain P4_sym (w@v) \<and> chain P6_sym (w@v) \<and> chain P7_sym (w@v)\<close> unfolding Cons  using chain_append[where ?xs = \<open>w\<close> and ?ys = \<open>y#ys\<close>] Re_symD[OF w_resym] by blast
+      qed
+
+      from left right have \<open>chain P1_sym (u@w@v) \<and> chain P2_sym (u@w@v) \<and> chain P3_sym (u@w@v) \<and> chain P4_sym (u@w@v) \<and> chain P6_sym (u@w@v) \<and> chain P7_sym (u@w@v)\<close> using w_eq by blast
+      
+      moreover have \<open>P5_sym S (u@w@v)\<close> using Re_symD[OF uAv] apply(cases u) apply (simp add: w_eq) by (smt (verit, del_insts) List.list.inject append_Cons chomsky_schuetzenberger.P5_sym.elims(1) chomsky_schuetzenberger.P5_sym.simps(2,3))
+
+
+
+      ultimately show \<open>(u@w@v) \<in> Re_sym S\<close> by blast 
     qed
  qed
 
 
-oops
+
 
 
 

@@ -43,7 +43,30 @@ qed auto
 lemma chain_iff: \<open>(chain R xs) =  (\<forall>(a,b) \<in> set (zip xs (tl xs)). R a b )\<close>
 apply(induction R xs rule: chain.induct) by auto
 
+lemma chain_bridge_one[intro]: \<open>chain R (xs @ [x]) \<Longrightarrow> chain R (x # ys) \<Longrightarrow> chain R (xs @ x # ys)\<close>
+apply(induction R xs rule: chain.induct) by auto
 
+lemma chain_bridge[intro]: \<open>w \<noteq> [] \<Longrightarrow> chain R w \<Longrightarrow> chain R (xs@w) \<Longrightarrow> chain R (w@ys) \<Longrightarrow> chain R (xs@w@ys)\<close>
+proof(induction w arbitrary: xs)
+  case Nil
+  then show ?case sorry
+next
+  case (Cons a w)
+  then show ?case
+  proof(cases \<open>w = []\<close>)
+    case True
+    then show ?thesis using Cons by auto
+  next
+    case False
+    have \<open>chain R (w @ ys)\<close> and \<open>chain R w\<close> using Cons.prems(4) chain_drop_left_cons by fastforce+
+    then show \<open>chain R (xs @ (a # w) @ ys)\<close> using Cons.IH Cons.prems(3) False by (metis append.assoc append_Cons append_Nil)
+  qed
+qed
+ 
+lemma chainE[elim]: 
+assumes \<open>chain R (xs@x#[y]@ys)\<close>
+obtains \<open>R x y\<close>
+using assms by auto
 
 
 

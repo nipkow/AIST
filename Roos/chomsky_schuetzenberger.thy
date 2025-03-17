@@ -634,25 +634,21 @@ lemma P2_sym_imp_P2_for_tm[intro, dest]: \<open>chain P2_sym (map Tm x) \<Longri
 apply(induction x rule: induct_list012) apply simp apply simp apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P2_sym.cases) by auto
 
 
+
+
 text\<open>After each (Op,A\<rightarrow>BC,1), always comes a (Op,(B, _),1),  And after each (Op,A\<rightarrow>BC,2), always comes a (Op,(C, _),1)\<close>
 fun P3 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
-\<open>P3 (Op, ((A, [Nt B, Nt C]), One)) (Op, ((X,y), One)) = (X = B)\<close> | 
-\<open>P3 (Op, ((A, [Nt B, Nt C]), One)) in2  = False\<close> | 
-
-\<open>P3 (Op, ((A, [Nt B, Nt C]), Two)) (Op, ((X,y), One)) = (X = C)\<close> | 
-\<open>P3 (Op, ((A, [Nt B, Nt C]), Two)) in2 = False\<close> | 
-
+\<open>P3 (Op, ((A, [Nt B, Nt C]), One)) (p, ((X,y), t)) = (p = Op \<and> t = One \<and> X = B)\<close> |
+\<open>P3 (Op, ((A, [Nt B, Nt C]), Two)) (p, ((X,y), t)) = (p = Op \<and> t = One \<and> X = C)\<close> |
 \<open>P3 x y = True\<close>
 
 
+text\<open>After each (Op,A\<rightarrow>BC,1), always comes a (Op,(B, _),1) or a Nt,  And after each (Op,A\<rightarrow>BC,2), always comes a (Op,(C, _),1) or a Nt\<close>
 fun P3_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
-\<open>P3_sym (Tm (Op, ((A, [Nt B, Nt C]), One))) (Tm (Op, ((X,y), One))) = (X = B)\<close> | 
-\<open>P3_sym (Tm (Op, ((A, [Nt B, Nt C]), One))) in2  = False\<close> | 
-
-\<open>P3_sym (Tm (Op, ((A, [Nt B, Nt C]), Two))) (Tm (Op, ((X,y), One))) = (X = C)\<close> | 
-\<open>P3_sym (Tm (Op, ((A, [Nt B, Nt C]), Two))) in2 = False\<close> | 
-
+\<open>P3_sym (Tm (Op, ((A, [Nt B, Nt C]), One))) (Tm (p, ((X,y), t))) = (p = Op \<and> t = One \<and> X = B)\<close> | \<comment> \<open>Not obvious: the case (Tm (Op, ((A, [Nt B, Nt C]), One))) Nt X is set to True with the catch all\<close>
+\<open>P3_sym (Tm (Op, ((A, [Nt B, Nt C]), Two))) (Tm (p, ((X,y), t))) = (p = Op \<and> t = One \<and> X = C)\<close> | 
 \<open>P3_sym x y = True\<close>
+
 
 
 
@@ -664,25 +660,13 @@ apply(induction x rule: induct_list012) apply simp apply simp apply(case_tac \<o
 
 text\<open>after each (Op,A\<rightarrow>a,1) comes a (Cl,A\<rightarrow>a,1) and after each (Op,A\<rightarrow>a,2) comes a (Cl,A\<rightarrow>a,2)\<close>
 fun P4 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
-\<open>P4 (Op, ((A, [Tm a]), One)) (Cl, ((X, [Tm y]), One)) = (X = A \<and> y = a)\<close> | 
-\<open>P4 (Op, ((A, [Tm a]), One)) in2  = False\<close> | 
-
-\<open>P4 (Op, ((A, [Tm a]), Two)) (Cl, ((X, [Tm y]), Two)) = (X = A \<and> y = a)\<close> | 
-\<open>P4 (Op, ((A, [Tm a]), Two)) in2 = False\<close> | 
-
+\<open>P4 (Op, ((A, [Tm a]), s)) (p, ((X, y), t)) = (p = Cl \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> |
 \<open>P4 x y = True\<close>
 
 
 fun P4_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
-\<open>P4_sym (Tm (Op, ((A, [Tm a]), One))) (Tm (Cl, ((X, [Tm y]), One))) = (X = A \<and> y = a)\<close> | 
-\<open>P4_sym (Tm (Op, ((A, [Tm a]), One))) in2  = False\<close> | 
-
-\<open>P4_sym (Tm (Op, ((A, [Tm a]), Two))) (Tm (Cl, ((X, [Tm y]), Two))) = (X = A \<and> y = a)\<close> | 
-\<open>P4_sym (Tm (Op, ((A, [Tm a]), Two))) in2 = False\<close> | 
-
+\<open>P4_sym (Tm (Op, ((A, [Tm a]), s))) (Tm (p, ((X, y), t))) = (p = Cl \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> | \<comment> \<open>Not obvious: the case (Tm (Op, ((A, [Nt B, Nt C]), One))) Nt X is set to True with the catch all\<close>
 \<open>P4_sym x y = True\<close>
-
-
 
 
 

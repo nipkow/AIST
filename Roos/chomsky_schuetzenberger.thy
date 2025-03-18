@@ -856,6 +856,18 @@ fun P1_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<
 \<open>P1_sym (Tm (Cl, (p, One))) y  = False\<close> | 
 \<open>P1_sym x y = True\<close>
 
+lemma P1D[dest]:
+assumes \<open>P1 (Cl, (p, One)) r\<close>
+shows \<open>r = (Op, (p, Two))\<close> 
+using assms apply(induction \<open>(Cl, (p, One))\<close> \<open>r\<close> rule: P1.induct) by auto
+
+lemma P1_symD[dest]:
+assumes \<open>P1_sym (Tm (Cl, (p, One))) r\<close>
+shows \<open>r = Tm (Op, (p, Two))\<close> 
+using assms apply(induction \<open>(Tm (Cl, (p, One)))::('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym\<close> \<open>r\<close> rule: P1_sym.induct) by auto
+
+lemmas P1E = P1D[elim_format]
+lemmas P1_symE = P1_symD[elim_format]
 
 
 lemma P1_sym_imp_P1_for_tm[intro, dest]: \<open>chain P1_sym (map Tm x) \<Longrightarrow> chain P1 x\<close>
@@ -874,6 +886,19 @@ fun P2_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<
 \<open>P2_sym (Tm (Cl, (p, Two))) y  = True\<close> | 
 \<open>P2_sym x y = True\<close>
 
+lemma P2D[dest]:
+assumes \<open>P2 (Cl, (p, Two)) r\<close>
+shows \<open>r \<noteq> (Op, g)\<close> 
+using assms apply(induction \<open>(Cl, (p, Two))\<close> \<open>r\<close> rule: P2.induct) by auto
+
+lemma P2_symD[dest]:
+assumes \<open>P2_sym (Tm (Cl, (p, Two))) r\<close>
+shows \<open>r \<noteq> Tm (Op, g)\<close> 
+using assms apply(induction \<open>Tm (Cl, (p, Two)):: ('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym\<close> \<open>r\<close> rule: P2_sym.induct) by auto
+
+lemmas P2E = P2D[elim_format]
+lemmas P2_symE = P2_symD[elim_format]
+
 
 lemma P2_sym_imp_P2_for_tm[intro, dest]: \<open>chain P2_sym (map Tm x) \<Longrightarrow> chain P2 x\<close>
 apply(induction x rule: induct_list012) apply simp apply simp apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P2_sym.cases) by auto
@@ -888,26 +913,49 @@ fun P3 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> 
 \<open>P3 x y = True\<close>
 
 
-text\<open>After each (Op,A\<rightarrow>BC,1), always comes a (Op,(B, _),1) or a Nt,  And after each (Op,A\<rightarrow>BC,2), always comes a (Op,(C, _),1) or a Nt\<close>
+text\<open>After each (Op,A\<rightarrow>BC,1), always comes a (Op,(B, _),1) or a Nt B,  And after each (Op,A\<rightarrow>BC,2), always comes a (Op,(C, _),1) or a Nt C\<close>
 fun P3_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
 \<open>P3_sym (Tm (Op, ((A, [Nt B, Nt C]), One))) (Tm (p, ((X,y), t))) = (p = Op \<and> t = One \<and> X = B)\<close> | \<comment> \<open>Not obvious: the case (Tm (Op, ((A, [Nt B, Nt C]), One))) Nt X is set to True with the catch all\<close>
+\<open>P3_sym (Tm (Op, ((A, [Nt B, Nt C]), One))) (Nt X) = (X = B)\<close> | 
+
 \<open>P3_sym (Tm (Op, ((A, [Nt B, Nt C]), Two))) (Tm (p, ((X,y), t))) = (p = Op \<and> t = One \<and> X = C)\<close> | 
+\<open>P3_sym (Tm (Op, ((A, [Nt B, Nt C]), Two))) (Nt X) = (X = C)\<close> | 
 \<open>P3_sym x y = True\<close>
 
-
-
-
-lemma P3_sym_imp_P3_for_tm[intro, dest]: \<open>chain P3_sym (map Tm x) \<Longrightarrow> chain P3 x\<close>
-apply(induction x rule: induct_list012) apply simp apply simp apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P3_sym.cases) by auto
-
-
-thm P3.induct[where ?a0.0 = \<open>(Op, ((A, [Nt B, Nt C]), One))\<close> and ?a1.0 = \<open>r\<close>]
-
-lemma P3E:
+lemma P3D1[dest]:
 fixes r::\<open>(bracket \<times> ('n,'t) prod \<times> version)\<close>
 assumes \<open>P3 (Op, ((A, [Nt B, Nt C]), One)) r\<close>
 shows \<open>\<exists>l. r = (Op, (B, l), One)\<close>
 using assms apply(induction \<open>(Op, ((A, [Nt B, Nt C]), One)):: bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version\<close> \<open>r:: bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version\<close> rule: P3.induct) by auto 
+
+lemma P3D2[dest]:
+fixes r::\<open>(bracket \<times> ('n,'t) prod \<times> version)\<close>
+assumes \<open>P3 (Op, ((A, [Nt B, Nt C]), Two)) r\<close>
+shows \<open>\<exists>l. r = (Op, (C, l), One)\<close>
+using assms apply(induction \<open>(Op, ((A, [Nt B, Nt C]), One)):: bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version\<close> \<open>r:: bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version\<close> rule: P3.induct) by auto 
+
+
+lemma P3_symD1[dest]:
+fixes r::\<open>('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym\<close>
+assumes \<open>P3_sym (Tm (Op, ((A, [Nt B, Nt C]), One))) r\<close>
+shows \<open>(\<exists>l. r = Tm (Op, (B, l), One)) \<or> (r = Nt B)\<close>
+using assms apply(induction \<open>Tm (Op, ((A, [Nt B, Nt C]), One)):: ('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym\<close> \<open>r:: ('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym\<close> rule: P3_sym.induct) by auto 
+
+lemma P3_symD2[dest]:
+fixes r::\<open>('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym\<close>
+assumes \<open>P3_sym (Tm (Op, ((A, [Nt B, Nt C]), Two))) r\<close>
+shows \<open>(\<exists>l. r = Tm (Op, (C, l), One)) \<or> (r = Nt C)\<close>
+using assms apply(induction \<open>Tm (Op, ((A, [Nt B, Nt C]), Two)):: ('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym\<close> \<open>r:: ('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym\<close> rule: P3_sym.induct) by auto
+
+
+lemmas P3E1 = P3D1[elim_format]
+lemmas P3E2 = P3D2[elim_format]
+lemmas P3_symE1 = P3_symD1[elim_format]
+lemmas P3_symE2 = P3_symD2[elim_format]
+
+lemma P3_sym_imp_P3_for_tm[intro, dest]: \<open>chain P3_sym (map Tm x) \<Longrightarrow> chain P3 x\<close>
+apply(induction x rule: induct_list012) apply simp apply simp apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P3_sym.cases) by auto
+
 
 
 
@@ -916,22 +964,31 @@ fun P4 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> 
 \<open>P4 (Op, ((A, [Tm a]), s)) (p, ((X, y), t)) = (p = Cl \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> |
 \<open>P4 x y = True\<close>
 
-
+text\<open>after each (Op,A\<rightarrow>a,1) comes a (Cl,A\<rightarrow>a,1) and after each (Op,A\<rightarrow>a,2) comes a (Cl,A\<rightarrow>a,2)\<close>
 fun P4_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
-\<open>P4_sym (Tm (Op, ((A, [Tm a]), s))) (Tm (p, ((X, y), t))) = (p = Cl \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> | \<comment> \<open>Not obvious: the case (Tm (Op, ((A, [Nt B, Nt C]), One))) Nt X is set to True with the catch all\<close>
+\<open>P4_sym (Tm (Op, ((A, [Tm a]), s))) (Tm (p, ((X, y), t))) = (p = Cl \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> | 
+\<open>P4_sym (Tm (Op, ((A, [Tm a]), s))) (Nt X) = False\<close> | 
 \<open>P4_sym x y = True\<close>
 
 
-
-lemma P4_sym_imp_P4_for_tm[intro, dest]: \<open>chain P4_sym (map Tm x) \<Longrightarrow> chain P4 x\<close>
-apply(induction x rule: induct_list012) apply simp apply simp apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P4_sym.cases) by auto
-
-lemma P4E:
+lemma P4D[dest]:
 fixes r::\<open>(bracket \<times> ('n,'t) prod \<times> version)\<close>
 assumes \<open>P4 (Op, ((A, [Tm a]), v)) r\<close>
 shows \<open>r = (Cl, (A, [Tm a]), v)\<close> 
 using assms apply(induction \<open>(Op, ((A, [Tm a]), v))::(bracket \<times> ('n,'t) prod \<times> version)\<close> \<open>r::(bracket \<times> ('n,'t) prod \<times> version)\<close> rule: P4.induct) by auto
 
+lemma P4_symD[dest]:
+fixes r::\<open>('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym\<close>
+assumes \<open>P4_sym (Tm (Op, ((A, [Tm a]), v))) r\<close>
+shows \<open>r = Tm (Cl, (A, [Tm a]), v)\<close> 
+using assms apply(induction \<open>Tm (Op, ((A, [Tm a]), v)):: ('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym\<close> \<open>r::('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym\<close> rule: P4_sym.induct) by auto
+
+lemmas P4E = P4D[elim_format]
+lemmas P4_symE = P4_symD[elim_format]
+
+
+lemma P4_sym_imp_P4_for_tm[intro, dest]: \<open>chain P4_sym (map Tm x) \<Longrightarrow> chain P4 x\<close>
+apply(induction x rule: induct_list012) apply simp apply simp apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P4_sym.cases) by auto
 
 
 text\<open>there exists some y, such that x begins with (Op,(A,y),1)\<close>
@@ -947,42 +1004,105 @@ fun P5_sym :: \<open>'n \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times
 \<open>P5_sym A ((Nt X) # xs) = (X = A)\<close> | 
 \<open>P5_sym A (x # xs) = False\<close>
 
-(*
-text\<open>there exists some y, such that x ends with (Op,(A,y),2) or it ends with Nt A\<close>
-fun P6 :: \<open>'n \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) list \<Rightarrow> bool\<close> where
-\<open>P6 A [] = False\<close> | 
-\<open>P6 A [] ((Cl, (X,y), Two) # xs) = (X = A)\<close> | 
-\<open>P6 A (x#y#zs) = P6 A (y#zs)\<close> *)
+lemma P5D[dest]: 
+assumes \<open>P5 A x\<close>
+shows \<open>\<exists>y. (hd x = (Op, (A,y), One))\<close>
+using assms apply(induction A x rule: P5.induct) by auto
 
-text\<open>Before a Nt Y there always comes a (Op, A\<rightarrow>YC, 1) or a (Op, A\<rightarrow>BY, 2)\<close>
-fun P6_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
-\<open>P6_sym (Tm (b,(A, [Nt B, Nt C]), v )) (Nt Y) = (b = Op \<and> ((Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
-\<open>P6_sym x (Nt Y) = False\<close> | 
-\<open>P6_sym x y = True\<close>
+lemma P5_symD[dest]: 
+assumes \<open>P5_sym A x\<close>
+shows \<open>(\<exists>y. hd x = Tm (Op, (A,y), One)) \<or> (hd x = Nt A)\<close>
+using assms apply(induction A x rule: P5_sym.induct) by auto
 
-text\<open>After a Nt Y there always comes a (Cl, A\<rightarrow>YC, 1) or a (Cl, A\<rightarrow>BY, 2)\<close>
+lemmas P5E = P5D[elim_format]
+lemmas P5_symE = P5_symD[elim_format]
+
+lemma P5_sym_imp_P5_for_tm[intro, dest]: \<open>P5_sym A (map Tm x) \<Longrightarrow> P5 A x\<close>
+apply(induction x) by auto
+
+
+text\<open>there exists some p, such that x ends with (Cl,p,2)\<close>
+fun P6 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) list \<Rightarrow> bool\<close> where
+\<open>P6 [] = False\<close> | 
+\<open>P6 [(b, p, v)] = (b = Cl \<and> v = Two)\<close> | 
+\<open>P6 (x#y#zs) = P6 (y#zs)\<close> 
+
+text\<open>there exists some p, such that x ends with (Cl,p,2) or it ends with some Nt X\<close>
+fun P6_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) syms \<Rightarrow> bool\<close> where
+\<open>P6_sym [] = False\<close> | 
+\<open>P6_sym [Tm (b, p, v)] = (b = Cl \<and>  v = Two)\<close> | 
+\<open>P6_sym [Nt X] = True\<close> | 
+\<open>P6_sym (x#y#zs) = P6_sym (y#zs)\<close> 
+
+lemma P6D[dest]: 
+assumes \<open>P6 x\<close>
+shows \<open>\<exists>p. (last x = (Cl, p, Two))\<close>
+using assms apply(induction x rule: P6.induct) by auto
+
+lemma P6_symI1[intro]:
+assumes \<open>w \<noteq> []\<close>
+and \<open>last w = Tm (Cl, p, Two)\<close>
+shows \<open>P6_sym w\<close>
+proof-
+from assms obtain x xs where \<open>w = xs @ [x]\<close> using rev_exhaust by blast
+then have \<open>x = Tm (Cl, p, Two)\<close> using assms by (metis last_snoc)
+then have \<open>P6_sym (xs@[x])\<close> 
+qed
+
+lemma P6_symD[dest]: 
+assumes \<open>P6_sym x\<close>
+shows \<open>(\<exists>p. last x = Tm (Cl, p, Two)) \<or> (\<exists>X. last x = Nt X)\<close>
+using assms apply(induction x rule: P6_sym.induct) by auto
+
+lemmas P6E = P6D[elim_format]
+lemmas P6_symE = P6_symD[elim_format]
+
+lemma P6_sym_imp_P6_for_tm[intro, dest]: \<open>P6_sym (map Tm x) \<Longrightarrow> P6 x\<close>
+apply(induction x rule: induct_list012) by auto
+
+
+
+text\<open>Before a Nt Y there always comes a Tm (Op, A\<rightarrow>YC, 1) or a Tm (Op, A\<rightarrow>BY, 2)\<close>
 fun P7_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
-\<open>P7_sym (Nt Y) (Tm (b,(A, [Nt B, Nt C]), v ))  = (b = Cl \<and> ( (Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
-\<open>P7_sym (Nt Y) x = False\<close> | 
+\<open>P7_sym (Tm (b,(A, [Nt B, Nt C]), v )) (Nt Y) = (b = Op \<and> ((Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
+\<open>P7_sym x (Nt Y) = False\<close> | 
 \<open>P7_sym x y = True\<close>
 
 
-lemma P5_sym_imp_P5_for_tm[intro, dest]: \<open>P5_sym A (map Tm x) \<Longrightarrow> P5 A x\<close>
-apply(induction x) apply auto by (metis (full_types) P5.simps(2) P5_sym.simps(2,4,5) bracket.exhaust version.exhaust)+
+lemma P7_symD[dest]: 
+fixes x:: \<open>('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym\<close>
+assumes \<open>P7_sym x (Nt Y)\<close>
+shows \<open>(\<exists>A C. x = Tm (Op, (A,[Nt Y, Nt C]), One)) \<or> (\<exists>A B. x = Tm (Op, (A,[Nt B, Nt Y]), Two))\<close>
+using assms apply(induction x \<open>Nt Y::('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym\<close> rule: P7_sym.induct) by auto
 
+lemmas P7_symE = P7_symD[elim_format]
+
+text\<open>After a Nt Y there always comes a (Cl, A\<rightarrow>YC, 1) or a (Cl, A\<rightarrow>BY, 2)\<close>
+fun P8_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
+\<open>P8_sym (Nt Y) (Tm (b,(A, [Nt B, Nt C]), v ))  = (b = Cl \<and> ( (Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
+\<open>P8_sym (Nt Y) x = False\<close> | 
+\<open>P8_sym x y = True\<close>
+
+lemma P8_symD[dest]: 
+fixes x:: \<open>('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym\<close>
+assumes \<open>P8_sym (Nt Y) x\<close>
+shows \<open>(\<exists>A C. x = Tm (Cl, (A,[Nt Y, Nt C]), One)) \<or> (\<exists>A B. x = Tm (Cl, (A,[Nt B, Nt Y]), Two))\<close>
+using assms apply(induction \<open>Nt Y::('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym\<close> x rule: P8_sym.induct) by auto
+
+lemmas P8_symE = P8_symD[elim_format]
 
 text\<open>This is the regular language, where one takes the Start symbol as a parameter, and then has the searched for \<open>R := R\<^sub>A\<close>\<close>
 definition Re :: \<open>'n \<Rightarrow> (bracket \<times> (('n, 't) prod) \<times> version) list set\<close> where
-  \<open>Re A = {x. (chain P1 x) \<and> (chain P2 x) \<and> (chain P3 x) \<and> (chain P4 x) \<and> (P5 A x) }\<close>
+  \<open>Re A = {x. (chain P1 x) \<and> (chain P2 x) \<and> (chain P3 x) \<and> (chain P4 x) \<and> (P5 A x) \<and> (P6 x)}\<close>
 
 lemma ReI[intro]:
-assumes \<open>(chain P1 x)\<close> and \<open>(chain P2 x)\<close> and \<open>(chain P3 x)\<close> and \<open>(chain P4 x)\<close> and \<open>(P5 A x)\<close>
+assumes \<open>(chain P1 x)\<close> and \<open>(chain P2 x)\<close> and \<open>(chain P3 x)\<close> and \<open>(chain P4 x)\<close> and \<open>(P5 A x)\<close> and \<open>(P6 x)\<close>
 shows \<open>x \<in> Re A\<close>
 using assms unfolding Re_def by blast
 
 lemma ReD[dest]:
 assumes \<open>x \<in> Re A\<close>
-shows \<open>(chain P1 x)\<close> and \<open>(chain P2 x)\<close> and \<open>(chain P3 x)\<close> and \<open>(chain P4 x)\<close> and \<open>(P5 A x)\<close>
+shows \<open>(chain P1 x)\<close> and \<open>(chain P2 x)\<close> and \<open>(chain P3 x)\<close> and \<open>(chain P4 x)\<close> and \<open>(P5 A x)\<close> and \<open>(P6 x)\<close>
 using assms unfolding Re_def by blast+
 
 lemmas ReE = ReD[elim_format]
@@ -990,16 +1110,16 @@ lemmas ReE = ReD[elim_format]
 text\<open>Version of Re for symbols, i.e. strings that may still contain Nt's. 
 It has 2 more Properties P6 and P7 that vanish for pure terminal strings\<close>
 definition Re_sym :: \<open>'n \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms set\<close> where
-  \<open>Re_sym A = {x. (chain P1_sym x) \<and> (chain P2_sym x) \<and> (chain P3_sym x) \<and> (chain P4_sym x) \<and> (P5_sym A x) \<and> (chain P6_sym x) \<and> (chain P7_sym x)}\<close>
+  \<open>Re_sym A = {x. (chain P1_sym x) \<and> (chain P2_sym x) \<and> (chain P3_sym x) \<and> (chain P4_sym x) \<and> (P5_sym A x) \<and> (P6_sym x) \<and> (chain P7_sym x) \<and> (chain P8_sym x)}\<close>
 
 lemma Re_symI[intro]:
-assumes \<open>chain P1_sym x\<close> and \<open>chain P2_sym x\<close> and \<open>chain P3_sym x\<close> and \<open>chain P4_sym x\<close> and \<open>P5_sym A x\<close> and \<open>(chain P6_sym x)\<close> and \<open>(chain P7_sym x)\<close>
+assumes \<open>chain P1_sym x\<close> and \<open>chain P2_sym x\<close> and \<open>chain P3_sym x\<close> and \<open>chain P4_sym x\<close> and \<open>P5_sym A x\<close> and \<open>P6_sym x\<close> and \<open>(chain P7_sym x)\<close> and \<open>(chain P8_sym x)\<close>
 shows \<open>x \<in> Re_sym A\<close>
 using assms unfolding Re_sym_def by blast
 
 lemma Re_symD[dest]:
 assumes \<open>x \<in> Re_sym A\<close>
-shows \<open>chain P1_sym x\<close> and \<open>chain P2_sym x\<close> and \<open>chain P3_sym x\<close> and \<open>chain P4_sym x\<close> and \<open>P5_sym A x\<close> and \<open>(chain P6_sym x)\<close> and \<open>(chain P7_sym x)\<close>
+shows \<open>chain P1_sym x\<close> and \<open>chain P2_sym x\<close> and \<open>chain P3_sym x\<close> and \<open>chain P4_sym x\<close> and \<open>P5_sym A x\<close> and \<open>P6_sym x\<close> and \<open>(chain P7_sym x)\<close> and \<open>(chain P8_sym x)\<close>
 using assms unfolding Re_sym_def by blast+
 
 lemmas Re_symE = Re_symD[elim_format]
@@ -1450,49 +1570,84 @@ using assms proof(induction rule: derives_induct)
     then have w_resym: \<open>w \<in> Re_sym A\<close> unfolding w_eq by auto
     
     have P5_uAv: \<open>P5_sym S (u @ [Nt A] @ v)\<close> using Re_symD[OF uAv] by blast
+    have P6_uAv: \<open>P6_sym (u @ [Nt A] @ v)\<close> using Re_symD[OF uAv] by blast
 
-    have left: \<open>chain P1_sym (u@w) \<and> chain P2_sym (u@w) \<and> chain P3_sym (u@w) \<and> chain P4_sym (u@w) \<and> chain P6_sym (u@w) \<and> chain P7_sym (u@w)\<close>
+    have left: \<open>chain P1_sym (u@w) \<and> chain P2_sym (u@w) \<and> chain P3_sym (u@w) \<and> chain P4_sym (u@w) \<and> chain P7_sym (u@w) \<and> chain P8_sym (u@w)\<close>
       proof(cases u rule: rev_cases)
         case Nil
         show ?thesis apply(rule disjE[OF w_eq]) unfolding Nil by auto
       next
         case (snoc ys y)
-        then have \<open>chain P6_sym (ys @ [y] @ [Nt A] @ v)\<close> using Re_symD[OF uAv] snoc by auto
-        then have \<open>P6_sym y (Nt A)\<close> by fastforce
-        then obtain R X Y v' where y_eq: \<open>y = (Tm (Op,(R, [Nt X, Nt Y]), v' ))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> using P6_sym.elims(1) by (smt (z3) CFG.sym.inject(1) P6_sym.simps(3,9) version.distinct(1))
-        then have \<open>P3_sym y (hd w)\<close> using w_eq apply(cases \<open>w = ?w1\<close>) apply(cases v') apply force apply force by (smt (verit, best) List.list.sel(1) chomsky_schuetzenberger.P3_sym.simps(1,2) chomsky_schuetzenberger.version.exhaust)
-        hence \<open>P1_sym (last (ys@[y])) (hd w) \<and> P2_sym (last (ys@[y])) (hd w) \<and> P3_sym (last (ys@[y])) (hd w) \<and> P4_sym (last (ys@[y])) (hd w) \<and> P6_sym (last (ys@[y])) (hd w) \<and> P7_sym (last (ys@[y])) (hd w)\<close> unfolding y_eq using w_eq by (metis List.list.sel(1) P1_sym.simps(6) P2_sym.simps(5) P4_sym.simps(5) P6_sym.simps(14) P7_sym.simps(8) last_snoc w_eq)
-        with Re_symD[OF uAv] moreover have   \<open>chain P1_sym (ys @ [y]) \<and> chain P2_sym (ys @ [y]) \<and> chain P3_sym (ys @ [y]) \<and> chain P4_sym (ys @ [y]) \<and> chain P6_sym (ys @ [y]) \<and> chain P7_sym (ys @ [y])\<close> unfolding snoc by blast
-        ultimately show \<open>chain P1_sym (u@w) \<and> chain P2_sym (u@w) \<and> chain P3_sym (u@w) \<and> chain P4_sym (u@w) \<and> chain P6_sym (u@w) \<and> chain P7_sym (u@w)\<close> unfolding snoc using chain_append[where ?xs = \<open>ys @ [y]\<close> and ?ys = w] Re_symD[OF w_resym] by blast
+        
+        then have \<open>chain P7_sym (ys @ [y] @ [Nt A] @ v)\<close> using Re_symD[OF uAv] snoc by auto
+        then have \<open>P7_sym y (Nt A)\<close> by fastforce
+        then obtain R X Y v' where y_eq: \<open>y = (Tm (Op,(R, [Nt X, Nt Y]), v' ))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> by blast
+        then have \<open>P3_sym y (hd w)\<close> using w_eq apply(cases \<open>w = ?w1\<close>) apply(cases v') apply force apply force by (smt (verit, best) List.list.sel(1) chomsky_schuetzenberger.P3_sym.simps(1,3) chomsky_schuetzenberger.version.exhaust) 
+        
+        hence \<open>P1_sym (last (ys@[y])) (hd w) \<and> P2_sym (last (ys@[y])) (hd w) \<and> P3_sym (last (ys@[y])) (hd w) \<and> P4_sym (last (ys@[y])) (hd w) \<and> P7_sym (last (ys@[y])) (hd w) \<and> P8_sym (last (ys@[y])) (hd w)\<close> unfolding y_eq using w_eq by (metis List.list.sel(1) chomsky_schuetzenberger.P1_sym.simps(6) chomsky_schuetzenberger.P2_sym.simps(5) chomsky_schuetzenberger.P4_sym.simps(6) chomsky_schuetzenberger.P7_sym.simps(14) chomsky_schuetzenberger.P8_sym.simps(8) last_snoc)
+        with Re_symD[OF uAv] moreover have   \<open>chain P1_sym (ys @ [y]) \<and> chain P2_sym (ys @ [y]) \<and> chain P3_sym (ys @ [y]) \<and> chain P4_sym (ys @ [y]) \<and> chain P7_sym (ys @ [y]) \<and> chain P8_sym (ys @ [y])\<close> unfolding snoc by blast
+        ultimately show \<open>chain P1_sym (u@w) \<and> chain P2_sym (u@w) \<and> chain P3_sym (u@w) \<and> chain P4_sym (u@w) \<and> chain P7_sym (u@w) \<and> chain P8_sym (u@w)\<close> unfolding snoc using chain_append[where ?xs = \<open>ys @ [y]\<close> and ?ys = w] Re_symD[OF w_resym] by blast
       qed
 
 
-      have right: \<open>chain P1_sym (w@v) \<and> chain P2_sym (w@v) \<and> chain P3_sym (w@v) \<and> chain P4_sym (w@v) \<and> chain P6_sym (w@v) \<and> chain P7_sym (w@v)\<close>
+      have right: \<open>chain P1_sym (w@v) \<and> chain P2_sym (w@v) \<and> chain P3_sym (w@v) \<and> chain P4_sym (w@v) \<and> chain P7_sym (w@v) \<and> chain P8_sym (w@v)\<close>
       proof(cases v)
         case Nil
         show ?thesis apply(rule disjE[OF w_eq]) unfolding Nil by auto
       next
         case (Cons y ys)
-        then have \<open>chain P7_sym ([Nt A] @ y # ys)\<close> using Re_symD[OF uAv] Cons by auto
-        then have \<open>P7_sym (Nt A) y\<close> by fastforce
-        then obtain R X Y v' where y_eq: \<open>y = (Tm (Cl,(R, [Nt X, Nt Y]), v' ))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> using P7_sym.elims(1) by (smt (z3) CFG.sym.inject(1) P6_sym.simps(3,9) version.distinct(1))
-
-        have \<open>P1_sym (last w) (hd (y#ys)) \<and> P2_sym (last w) (hd (y#ys)) \<and> P3_sym (last w) (hd (y#ys)) \<and> P4_sym (last w) (hd (y#ys)) \<and> P6_sym (last w) (hd (y#ys)) \<and> P7_sym (last w) (hd (y#ys))\<close> unfolding y_eq using w_eq apply(cases \<open>w = ?w1\<close>) apply force by simp
-        with Re_symD[OF uAv] moreover have \<open>chain P1_sym (y # ys) \<and> chain P2_sym (y # ys) \<and> chain P3_sym (y # ys) \<and> chain P4_sym (y # ys) \<and> chain P6_sym (y # ys) \<and> chain P7_sym (y # ys)\<close> unfolding Cons by blast
-        ultimately show \<open>chain P1_sym (w@v) \<and> chain P2_sym (w@v) \<and> chain P3_sym (w@v) \<and> chain P4_sym (w@v) \<and> chain P6_sym (w@v) \<and> chain P7_sym (w@v)\<close> unfolding Cons using chain_append[where ?xs = \<open>w\<close> and ?ys = \<open>y#ys\<close>] Re_symD[OF w_resym] by blast
+        then have \<open>chain P8_sym ([Nt A] @ y # ys)\<close> using Re_symD[OF uAv] Cons by blast
+        then have \<open>P8_sym (Nt A) y\<close> by fastforce
+        then obtain R X Y v' where y_eq: \<open>y = (Tm (Cl,(R, [Nt X, Nt Y]), v' ))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> by blast
+        have \<open>P1_sym (last w) (hd (y#ys)) \<and> P2_sym (last w) (hd (y#ys)) \<and> P3_sym (last w) (hd (y#ys)) \<and> P4_sym (last w) (hd (y#ys)) \<and> P7_sym (last w) (hd (y#ys)) \<and> P8_sym (last w) (hd (y#ys))\<close> unfolding y_eq using w_eq apply(cases \<open>w = ?w1\<close>) apply force by simp
+        with Re_symD[OF uAv] moreover have \<open>chain P1_sym (y # ys) \<and> chain P2_sym (y # ys) \<and> chain P3_sym (y # ys) \<and> chain P4_sym (y # ys) \<and> chain P7_sym (y # ys) \<and> chain P8_sym (y # ys)\<close> unfolding Cons by blast
+        ultimately show \<open>chain P1_sym (w@v) \<and> chain P2_sym (w@v) \<and> chain P3_sym (w@v) \<and> chain P4_sym (w@v) \<and> chain P7_sym (w@v) \<and> chain P8_sym (w@v)\<close> unfolding Cons using chain_append[where ?xs = \<open>w\<close> and ?ys = \<open>y#ys\<close>] Re_symD[OF w_resym] by blast
       qed
 
 
-      from left right have \<open>chain P1_sym (u@w@v) \<and> chain P2_sym (u@w@v) \<and> chain P3_sym (u@w@v) \<and> chain P4_sym (u@w@v) \<and> chain P6_sym (u@w@v) \<and> chain P7_sym (u@w@v)\<close> using w_eq by blast
+      from left right have \<open>chain P1_sym (u@w@v) \<and> chain P2_sym (u@w@v) \<and> chain P3_sym (u@w@v) \<and> chain P4_sym (u@w@v) \<and> chain P7_sym (u@w@v) \<and> chain P8_sym (u@w@v)\<close> using w_eq by blast
 
-      moreover have \<open>P5_sym S (u@w@v)\<close> apply(rule disjE[OF w_eq]; cases u) using P5_uAv  apply force apply (smt (verit, best) List.list.sel(1) P5_uAv append_Cons P5_sym.elims(2) P5_sym.simps(2,3))
-      using P5_uAv apply force
-      using P5_uAv by (smt (verit, best) List.list.inject append_Cons chomsky_schuetzenberger.P5_sym.elims(1) chomsky_schuetzenberger.P5_sym.simps(2,3))
+      moreover have \<open>P5_sym S (u@w@v)\<close> apply(rule disjE[OF w_eq]; cases u) 
+        using P5_uAv apply force
+        using P5_uAv apply (metis List.list.sel(1) P5_symD append_Cons chomsky_schuetzenberger.P5_sym.simps(2,3))
+        using P5_uAv apply force 
+        using P5_uAv by (metis List.list.sel(1) P5_symD append_Cons chomsky_schuetzenberger.P5_sym.simps(2,3))
+
+      moreover have \<open>P6_sym (u@w@v)\<close> apply(rule disjE[OF w_eq]; cases v) using P6_uAv 
 
  
 
       ultimately show \<open>(u@w@v) \<in> Re_sym S\<close> by blast 
    qed 
+
+
+
+lemma P'_imp_last_not_Cl_1:
+assumes \<open>(image transform_production P) \<turnstile> [Nt A] \<Rightarrow>* x\<close>
+    and \<open>\<forall>p \<in> P. CNF_rule p\<close>
+shows \<open>last x \<noteq> Tm (Cl,p,One)\<close>
+using assms proof(induction rule: derives_induct)
+  case base
+  then show ?case by simp
+next
+  case (step u A v w)
+  then show ?case
+  proof(cases v)
+    case Nil
+    have \<open>(A, w) \<in> transform_production ` P\<close> using step by blast
+    then obtain w' where w'_def: \<open>transform_production (A, w') = (A, w)\<close> and \<open>(A,w') \<in> P\<close> by (metis (no_types, opaque_lifting) Product_Type.old.prod.exhaust fst_conv fst_transform_production imageE)
+    
+    then have Aw'_cnf: \<open>CNF_rule (A,w')\<close> using step by blast
+    then obtain B C a where \<open>((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Nt B, Nt C]) \<or> ((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Tm a])\<close> using transform_production_CNF[of \<open>(A,w')\<close>] w'_def by (metis snd_conv)   
+    
+    then have w_eq: \<open>w = [Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2]   \<or>    w = [Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>2, Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2]\<close> (is \<open>w = ?w1 \<or> w = ?w2\<close>) by fastforce
+    then show ?thesis using step using Nil by fastforce
+  next
+    case (Cons a list)
+    then show ?thesis using step by simp
+  qed
+qed
+
 
 
 
@@ -1516,7 +1671,19 @@ using assms proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule
 
   then obtain y r1 where \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1  # tl x   =   [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1 # r1\<close> and bal_y: \<open>bal y\<close> and bal_r1: \<open>bal r1\<close> by blast
   then have split1: \<open>x = [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1 # r1\<close> using hd_x by (metis List.list.exhaust_sel List.list.set(1) \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1 \<in> set x\<close> empty_iff)
-  have r1_not_empty: \<open>r1 \<noteq> []\<close> sorry \<comment> \<open>prove that no P' string stops with Cl pi 1\<close>
+  have r1_not_empty: \<open>r1 \<noteq> []\<close> 
+  proof(rule ccontr)
+  assume \<open>r1 = []\<close>
+  then have \<open>last x = ]\<^bsub>\<pi>\<^esub>\<^sup>1 \<close> using split1 by (metis List.list.distinct(1) Nil_is_append_conv last_ConsR last_snoc)
+  then have \<open>last (map Tm x) = Tm ]\<^bsub>\<pi>\<^esub>\<^sup>1\<close> by (metis List.list.discI last_map split1)
+
+  then have \<open>False\<close> using P'_imp_last_not_Cl_1[of P A \<open>map Tm x\<close> \<open>\<pi>\<close>] 
+
+  qed
+  
+  apply(rule ccontr) using P'_imp_last_not_Cl_1[of P A \<open>map Tm x\<close>] unfolding split1 
+  
+   \<comment> \<open>prove that no P' string stops with Cl pi 1\<close>
   from p1x have hd_r1: \<open>hd r1 = [\<^bsub>\<pi>\<^esub>\<^sup>2\<close> using split1 r1_not_empty chainE_hd[of P1 \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1  # y\<close> \<open>]\<^bsub>\<pi>\<^esub>\<^sup>1\<close> r1 \<open>[]\<close>] by (smt (z3) Cons_eq_appendI Product_Type.prod.inject chomsky_schuetzenberger.P1.elims(1) chomsky_schuetzenberger.P1.simps(1,3) chomsky_schuetzenberger.bracket.distinct(1) self_append_conv)
   
   from bal_r1 have \<open>\<exists>z r2. bal z \<and> bal r2 \<and> [\<^bsub>\<pi>\<^esub>\<^sup>2 # tl r1 = [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @ ]\<^bsub>\<pi>\<^esub>\<^sup>2  # r2\<close> using bal_Op_split[of \<open>[\<^bsub>\<pi>\<^esub>\<^sup>2\<close> \<open>tl r1\<close>] by (metis List.list.exhaust_sel List.list.sel(1) Product_Type.prod.inject hd_r1 r1_not_empty) 

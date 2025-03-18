@@ -399,12 +399,46 @@ corollary bal_iff_insert[iff]:
   using bal_del bal_insert by (metis assms)
 
 
-lemma bal_Op_split: \<open>bal ((Op, g) # xs) \<Longrightarrow> \<exists>y r. bal y \<and> bal r \<and> (Op, g) # xs = (Op, g) # y @ (Cl, g) # r\<close> 
-proof(induction \<open>length ((Op, g) # xs)\<close> arbitrary: xs rule: less_induct)
+lemma bal_start_Op: \<open>bal (x#xs) \<Longrightarrow>\<exists>g. x = (Op,g)\<close> 
+proof(induction \<open>length (x#xs)\<close> arbitrary: x xs rule: less_induct)
+  case less
+  have IH: \<open>\<And>w (ws:: (bracket \<times> 'a) list). \<lbrakk>length (w # ws) < length (x # xs); bal (w # ws)\<rbrakk> \<Longrightarrow> \<exists>g. w = (Op, g)\<close> using less by blast
+  from less have \<open>bal (x # xs)\<close> by simp
+  then show ?case
+  proof(induction \<open>x#xs\<close> rule:bal.induct)
+  case (2 as bs)
+  consider (as_empty)  \<open>as = []\<close> | (bs_empty)\<open>bs = []\<close> | (both_not_empty)\<open>as \<noteq> [] \<and> bs \<noteq> []\<close> by blast
+  then show ?case
+  proof(cases)
+    case as_empty
+    then show ?thesis using "local.2.hyps"(4,5) eq_Nil_appendI by blast
+  next
+    case bs_empty
+    then show ?thesis by (metis "local.2.hyps"(2,5) List.append.right_neutral)
+  next
+    case both_not_empty
+    then have \<open>length as < length (x#xs)\<close> by (metis "local.2.hyps"(5) List.append.right_neutral append_eq_conv_conj linorder_not_le take_all_iff)
+    moreover have \<open>bal as\<close> by (simp add: "local.2.hyps"(1))
+    ultimately have \<open>\<exists>g. hd as = (Op, g)\<close> using IH[of \<open>hd as\<close> \<open>tl as\<close>] using both_not_empty by auto
+    moreover have \<open>x = hd as\<close> using both_not_empty by (metis "local.2.hyps"(5) List.list.sel(1) hd_append2)
+    ultimately show ?thesis by blast
+  qed
+  qed auto
+qed
+
+
+
+
+lemma bal_Op_split: \<open>bal (x # xs) \<Longrightarrow> \<exists>y r g. bal y \<and> bal r \<and> (x # xs) = (Op, g) # y @ (Cl, g) # r\<close>
+proof-
+assume bal_x_xs: \<open>bal (x # xs)\<close>
+then obtain g where x_def: \<open>x = (Op, g)\<close> using bal_start_Op by blast
+then have \<open>bal ((Op, g) # xs) \<Longrightarrow> \<exists>y r. bal y \<and> bal r \<and> (x # xs) = (Op, g) # y @ (Cl, g) # r\<close>
+proof(induction \<open>length (x # xs)\<close> arbitrary: xs rule: less_induct)
   case less
   have IH: \<open>\<And>w. \<lbrakk>length ((Op, g) # w) < length ((Op, g) # xs); bal ((Op, g) # w)\<rbrakk> \<Longrightarrow> \<exists>y r. bal y \<and> bal r \<and> (Op, g) # w = (Op, g) # y @ (Cl, g) # r\<close> using less by blast
-  have \<open>bal ((Op, g) # xs)\<close> using less by simp
-  then show ?case 
+  have \<open>bal ((Op, g) # xs)\<close> using less bal_x_xs by blast
+  then show ?case
   proof(induction \<open>(Op,g) # xs\<close> rule: bal.induct)
     case (2 as bs)
     consider (as_empty)  \<open>as = []\<close> | (bs_empty)\<open>bs = []\<close> | (both_not_empty)\<open>as \<noteq> [] \<and> bs \<noteq> []\<close> by blast
@@ -423,11 +457,12 @@ proof(induction \<open>length ((Op, g) # xs)\<close> arbitrary: xs rule: less_in
 
       then have \<open>(Op, g) # xs = (Op, g) # y @ (Cl, g) # r @ bs\<close> using as'_def by (metis "local.2.hyps"(5) List.append.assoc append_Cons)
       moreover have \<open>bal y\<close> and \<open>bal (r@bs)\<close> using yr_def apply blast by (simp add: "local.2.hyps"(3) yr_def)
-      ultimately show ?thesis by blast
+      ultimately show ?thesis using x_def by blast
     qed
-  qed blast
+  qed (use x_def in auto)
 qed
-
+then show ?thesis using x_def using bal_x_xs by blast
+qed
 
 
 
@@ -871,8 +906,8 @@ thm P3.induct[where ?a0.0 = \<open>(Op, ((A, [Nt B, Nt C]), One))\<close> and ?a
 lemma P3E:
 fixes r::\<open>(bracket \<times> ('n,'t) prod \<times> version)\<close>
 assumes \<open>P3 (Op, ((A, [Nt B, Nt C]), One)) r\<close>
-shows \<open>\<exists>l. r = (Op, (B, l), One)\<close> 
-using assms apply(cases r; case_tac a; case_tac b; case_tac c) by auto \<comment> \<open>Why does induction fail to infer types? TODO\<close>
+shows \<open>\<exists>l. r = (Op, (B, l), One)\<close>
+using assms apply(induction \<open>(Op, ((A, [Nt B, Nt C]), One)):: bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version\<close> \<open>r:: bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version\<close> rule: P3.induct) by auto 
 
 
 
@@ -891,6 +926,11 @@ fun P4_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<
 lemma P4_sym_imp_P4_for_tm[intro, dest]: \<open>chain P4_sym (map Tm x) \<Longrightarrow> chain P4 x\<close>
 apply(induction x rule: induct_list012) apply simp apply simp apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P4_sym.cases) by auto
 
+lemma P4E:
+fixes r::\<open>(bracket \<times> ('n,'t) prod \<times> version)\<close>
+assumes \<open>P4 (Op, ((A, [Tm a]), v)) r\<close>
+shows \<open>r = (Cl, (A, [Tm a]), v)\<close> 
+using assms apply(induction \<open>(Op, ((A, [Tm a]), v))::(bracket \<times> ('n,'t) prod \<times> version)\<close> \<open>r::(bracket \<times> ('n,'t) prod \<times> version)\<close> rule: P4.induct) by auto
 
 
 
@@ -1472,13 +1512,15 @@ using assms proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule
   then have pi_in_P: \<open>\<pi> \<in> P\<close> using xDL by auto
 
   have bal_x: \<open>bal x\<close> using xDL by blast
-  then have \<open>\<exists>y r. bal y \<and> bal r \<and> [\<^bsub>\<pi>\<^esub>\<^sup>1  # tl x = [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1 # r\<close> using hd_x bal_x bal_Op_split[where ?g = \<open>(\<pi>, One)\<close> and ?xs = \<open>tl x\<close>]  by (metis List.list.exhaust_sel List.list.set_cases List.list.simps(3) \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1 \<in> set x\<close>)
+  then have \<open>\<exists>y r. bal y \<and> bal r \<and> [\<^bsub>\<pi>\<^esub>\<^sup>1  # tl x = [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1 # r\<close> using hd_x bal_x bal_Op_split[of \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1 \<close>, where ?xs = \<open>tl x\<close>]  by (metis (no_types, lifting) List.list.exhaust_sel List.list.inject Product_Type.prod.inject chomsky_schuetzenberger.P5.simps(1) p5x)
+
   then obtain y r1 where \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1  # tl x   =   [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1 # r1\<close> and bal_y: \<open>bal y\<close> and bal_r1: \<open>bal r1\<close> by blast
   then have split1: \<open>x = [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1 # r1\<close> using hd_x by (metis List.list.exhaust_sel List.list.set(1) \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1 \<in> set x\<close> empty_iff)
   have r1_not_empty: \<open>r1 \<noteq> []\<close> sorry \<comment> \<open>prove that no P' string stops with Cl pi 1\<close>
   from p1x have hd_r1: \<open>hd r1 = [\<^bsub>\<pi>\<^esub>\<^sup>2\<close> using split1 r1_not_empty chainE_hd[of P1 \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1  # y\<close> \<open>]\<^bsub>\<pi>\<^esub>\<^sup>1\<close> r1 \<open>[]\<close>] by (smt (z3) Cons_eq_appendI Product_Type.prod.inject chomsky_schuetzenberger.P1.elims(1) chomsky_schuetzenberger.P1.simps(1,3) chomsky_schuetzenberger.bracket.distinct(1) self_append_conv)
   
-  from bal_r1 have \<open>\<exists>z r2. bal z \<and> bal r2 \<and> [\<^bsub>\<pi>\<^esub>\<^sup>2 # tl r1 = [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @ ]\<^bsub>\<pi>\<^esub>\<^sup>2  # r2\<close> using bal_Op_split[of \<open>(\<pi>,Two)\<close> \<open>tl r1\<close>] by (metis List.list.exhaust_sel hd_r1 r1_not_empty)
+  from bal_r1 have \<open>\<exists>z r2. bal z \<and> bal r2 \<and> [\<^bsub>\<pi>\<^esub>\<^sup>2 # tl r1 = [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @ ]\<^bsub>\<pi>\<^esub>\<^sup>2  # r2\<close> using bal_Op_split[of \<open>[\<^bsub>\<pi>\<^esub>\<^sup>2\<close> \<open>tl r1\<close>] by (metis List.list.exhaust_sel List.list.sel(1) Product_Type.prod.inject hd_r1 r1_not_empty) 
+
   then obtain z r2 where split2': \<open>[\<^bsub>\<pi>\<^esub>\<^sup>2 # tl r1   =   [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @ ]\<^bsub>\<pi>\<^esub>\<^sup>2  # r2\<close> and bal_z: \<open>bal z\<close> and bal_r2: \<open>bal r2\<close> by blast+
 
   then have split2: \<open>x  =   [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1  # [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @ ]\<^bsub>\<pi>\<^esub>\<^sup>2  # r2\<close> by (metis List.list.exhaust_sel hd_r1 r1_not_empty split1)
@@ -1544,8 +1586,25 @@ using assms proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule
   next
     case a
     then obtain a where pi_eq: \<open>\<pi> = (A, [Tm a])\<close> by blast
-    have \<open>y = []\<close> using p4x bal_y split3 sorry
-    have \<open>z = []\<close> sorry
+    have \<open>y = []\<close>
+    proof(cases y)
+      case (Cons y' ys')
+      have \<open>P4 [\<^bsub>\<pi>\<^esub>\<^sup>1 y'\<close> by (metis Chain.chain.simps(3) Cons append_Cons p4x split3)
+      then have \<open>y' = (Cl, \<pi>, One)\<close> using P4E by (metis pi_eq)
+      moreover obtain g where \<open>y' = (Op, g)\<close> using Cons bal_not_empty bal_y by blast
+      ultimately have \<open>False\<close> by blast
+      then show ?thesis by blast
+    qed blast
+    
+    have \<open>z = []\<close>
+    proof(cases z)
+      case (Cons z' zs')
+      have \<open>P4 [\<^bsub>\<pi>\<^esub>\<^sup>2 z'\<close> using p4x split3 by (simp add: Cons \<open>y = []\<close>)
+      then have \<open>z' = (Cl, \<pi>, One)\<close> using P4E by (metis Cons bal_not_empty bal_z chomsky_schuetzenberger.bracket.simps(2) fst_eqD pi_eq)
+      moreover obtain g where \<open>z' = (Op, g)\<close> using Cons bal_not_empty bal_z by blast
+      ultimately have \<open>False\<close> by blast
+      then show ?thesis by blast
+    qed blast
 
     have \<open>transform_production ` P \<turnstile> [Nt A] \<Rightarrow>* [ Tm [\<^sub>\<pi>\<^sup>1,       Tm ]\<^sub>\<pi>\<^sup>1 , Tm [\<^sub>\<pi>\<^sup>2 ,       Tm ]\<^sub>\<pi>\<^sup>2   ]\<close> by (metis \<open>\<And>thesis. (\<And>a. \<pi> = (A, [Tm a]) \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> chomsky_schuetzenberger.transform_production.simps(2) local.less.prems(2) pi_in_P r_into_rtranclp snd_eqD transform_production_one_step)
 

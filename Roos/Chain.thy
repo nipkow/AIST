@@ -68,6 +68,9 @@ assumes \<open>chain R (xs@x#[y]@ys)\<close>
 obtains \<open>R x y\<close>
 using assms by auto
 
-
-
+lemma chainE_hd[elim]:
+assumes \<open>chain R (xs@x#y@ys)\<close>
+and \<open>y \<noteq> []\<close>
+obtains \<open>R x (hd y)\<close>
+using assms by (metis Cons_eq_appendI chain.simps(3) chain_drop_left list.exhaust_sel)
 end

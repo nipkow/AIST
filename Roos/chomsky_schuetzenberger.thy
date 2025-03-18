@@ -111,6 +111,11 @@ inductive bal :: "(bracket  \<times> ('a)) list \<Rightarrow> bool" where
 
 declare bal.intros(1)[iff] bal.intros(2)[intro,simp] bal.intros(3)[intro!,simp]
 
+lemma bal2[iff]: "bal [(Op,g), (Cl,g)]" using bal.intros(1,3) by fastforce
+
+
+
+
 text\<open>The bracket language over a set R. Every element r \<in> R will get a Closing and an Opening version of itself, via pairing with the type bracket. We later need D := dyck_language ((Prods G) \<times> {1,2})\<close>
 
 
@@ -174,7 +179,12 @@ lemma dyck_languageD[dest]:
 
 lemmas dyck_languageE = dyck_languageD[elim_format]
 
-
+lemma dyck_language_substring[intro]: \<open>bal w \<Longrightarrow> (xs@w@ys) \<in> dyck_language \<Gamma> \<Longrightarrow> w \<in> dyck_language \<Gamma>\<close>
+proof-
+assume assms: \<open>bal w\<close> and \<open>(xs@w@ys) \<in> dyck_language \<Gamma>\<close>
+have \<open>set w \<subseteq> set (xs@w@ys)\<close> by (simp add: subsetI)
+then show ?thesis using \<open>bal w\<close> \<open>xs @ w @ ys \<in> dyck_language \<Gamma>\<close> by blast
+qed
 
 
 text\<open>balanced strings of brackets that may contain arbitrary interspersion of Nonterminals\<close>
@@ -230,6 +240,206 @@ proof-
     then show ?case using split_tm_append by blast
   qed auto
 qed
+
+
+
+
+section\<open>Function based equivalent description of bal, from T. Nipkow\<close>
+
+text\<open>A stack machine that puts open brackets to the stack, to remember that they must be matched by a closed bracket\<close>
+fun stk_bal :: "(bracket \<times> 't) list \<Rightarrow> 't list \<Rightarrow> ((bracket \<times> 't) list) * 't list" where
+  "stk_bal [] s = ([],s)" |
+  "stk_bal ((Op, g) # xs) s = stk_bal xs (g#s)" |
+  "stk_bal ((Cl, g) # xs) (g'#s) = (if g=g' then stk_bal xs s else ((Cl, g) # xs, g' # s))" | 
+  "stk_bal xs s = (xs,s)"
+
+lemma stk_bal_append: "stk_bal (xs @ ys) s1 = (let (xs',s1') = stk_bal xs s1 in
+stk_bal (xs' @ ys) s1')"
+  by(induction xs s1 rule:stk_bal.induct) (auto split: if_splits)
+
+lemma stk_bal_append_if[simp]: "stk_bal xs s1 = ([],s2) \<Longrightarrow> stk_bal (xs @ ys) s1 =
+stk_bal ys s2"
+  by(simp add: stk_bal_append[of xs])
+
+lemma stk_bal_if_bal:  "bal xs \<Longrightarrow> stk_bal xs s = ([],s)"
+  by(induction arbitrary: s rule: bal.induct)(auto split: if_splits)
+
+
+
+lemma bal_insert_AB: assumes u: "bal u" shows "u = v@w \<Longrightarrow> bal (v @ (Op, x) # (Cl, x) # w)" using u
+proof(induction arbitrary: v w)
+  case 1 thus ?case by blast
+next
+  case (3 u y)
+  show ?case
+  proof (cases v)
+    case Nil
+    hence "w = ((Op, y)) # u @ [(Cl, y)]" using "3.prems" by simp
+    hence "bal w" using "3.hyps" by blast
+    hence "bal ([(Op, x), (Cl, x)] @ w)" by blast
+    thus ?thesis using Nil by simp
+  next
+    case (Cons X v')
+    show ?thesis
+    proof (cases w rule:rev_cases)
+      case Nil
+      from "3.hyps" have "bal (((Op, x) # u @ [(Cl, x)]) @ [(Op, x), (Cl, x)])"
+        using bal.intros(2) by blast
+      thus ?thesis using Nil Cons 3
+        by (metis append_Nil append_Nil2 bal.simps)
+    next
+      case (snoc w' Y)
+      hence u: "u=v'@w'" and [simp]: "X=(Op, y) & Y=(Cl, y)"
+        using Cons "3.prems" apply (smt (verit, ccfv_threshold) List.append.assoc List.list.inject append_Cons append_eq_append_conv last_snoc)
+        by (metis "local.3.prems" Cons List.append.assoc List.list.inject append_Cons last_snoc snoc)
+          \<comment> \<open>this also works by auto, but it takes 4 seconds.\<close>
+      thus ?thesis
+        by (metis "3.IH" append.assoc append_Cons local.Cons bal.intros(3) snoc)
+    qed
+  qed
+next
+  case (2 v' w')
+  then obtain r where "v'=v@r \<and> r@w'=w \<or> v'@r=v \<and>w'=r@w" (is "?A \<or> ?B")
+    by (auto simp:append_eq_append_conv2)
+  thus ?case
+  proof
+    assume A: ?A
+    hence "bal (v @ (Op, x) # (Cl, x) # r)" using "2.IH"(1) by presburger
+    hence "bal ((v @ (Op, x) # (Cl, x)#r) @ w')" using \<open>bal w'\<close> by(rule bal.intros(2))
+    thus ?thesis using A by auto
+  next
+    assume B: ?B
+    hence "bal (r @ (Op, x) # (Cl, x) # w)" using "2.IH"(2) by presburger
+    with \<open>bal v'\<close> have "bal (v'@(r@(Op, x) # (Cl, x)#w))" by(rule bal.intros(2))
+    thus ?thesis using B by force
+  qed 
+qed 
+
+
+
+lemma stk_bal_if_stk_bal: "stk_bal w s = ([],[]) \<Longrightarrow> bal (rev(map (\<lambda>x. (Op, x)) s) @ w)"
+proof(induction w s rule: stk_bal.induct)
+  case (2 x xs s)
+  then show ?case by simp
+next
+  case (3 x xs y s)
+  then show ?case by (auto simp add: bal_insert_AB split: if_splits) 
+qed (auto)
+
+
+corollary stk_bal_iff_bal: "stk_bal w [] = ([],[]) \<longleftrightarrow> bal w"
+  using stk_bal_if_stk_bal[of w "[]"] stk_bal_if_bal by auto
+
+theorem bal_append_inv: "bal (u @ v) \<Longrightarrow> bal u \<Longrightarrow> bal v"
+  using stk_bal_append_if stk_bal_iff_bal by metis
+
+
+lemma stk_bal_append_inv: \<open>stk_bal (xs@ys) s1 = ([], s') \<Longrightarrow> (let (xs', s1') = stk_bal xs s1 in stk_bal xs s1 = ([], s1'))\<close>
+proof(induction xs s1 arbitrary: ys rule: stk_bal.induct)
+  case (1 s)
+  then show ?case by auto
+next
+  case (2 g xs s)
+  then show ?case by(auto split: prod.splits)
+next
+  case (3 g xs g' s)
+  then show ?case apply simp by (metis List.list.distinct(1) Product_Type.prod.inject)
+next
+  case (4 A xs s)
+  then show ?case by(auto split: prod.splits)
+qed
+
+
+lemma bal_insert: 
+  assumes u: "bal u" 
+    and b: \<open>bal b\<close>
+  shows "u = v@w \<Longrightarrow> bal (v @ b @ w)" 
+proof-
+  assume uvw: \<open>u = v@w\<close>
+  have \<open>stk_bal (b) [] = ([],[])\<close> using assms stk_bal_iff_bal by blast
+  have \<open>stk_bal (u) [] = ([],[])\<close> using assms stk_bal_iff_bal by blast
+
+  then obtain s1' where s1'_def: \<open>stk_bal v [] = ([], s1')\<close> by (metis (full_types, lifting) uvw case_prodE stk_bal_append_inv)
+  then obtain s' where s'_def: \<open>stk_bal (v @ w) [] = stk_bal (w) s'\<close> using stk_bal_append_if by blast
+
+  then have \<open>([],[]) = stk_bal (v @ w) []\<close> using uvw using \<open>stk_bal u [] = ([], [])\<close> by presburger
+  also have \<open>... = stk_bal (w) s'\<close> using s'_def by simp
+  also have \<open>... = stk_bal (b@w) s'\<close> by (metis b stk_bal_append_if stk_bal_if_bal)
+
+  finally have \<open>stk_bal (b@w) s' = ([],[])\<close> by simp
+
+  then have \<open>stk_bal (v @ b @ w) [] = ([],[])\<close> using s1'_def by (metis b s'_def stk_bal_append_if stk_bal_if_bal)
+
+  then show \<open>bal (v @ b @ w)\<close> using stk_bal_iff_bal by blast
+qed
+
+
+
+
+lemma bal_del: 
+  assumes u: "bal u" 
+    and b: \<open>bal b\<close>
+  shows "u = v @ b @ w \<Longrightarrow> bal (v @ w)" 
+proof-
+  assume uvbw: \<open>u = v @ b @ w\<close>
+  have stk_bal_b: \<open>stk_bal (b) [] = ([],[])\<close> using assms stk_bal_iff_bal by blast
+  have stk_bal_vbw: \<open>stk_bal (v @ b @ w) [] = ([],[])\<close> using uvbw assms stk_bal_iff_bal by blast
+
+  then obtain s1' where s1'_def: \<open>stk_bal v [] = ([], s1')\<close> by (metis (full_types, lifting) case_prodE stk_bal_append_inv)
+
+  then have \<open>stk_bal (v@b) [] = ([], s1')\<close> by (metis b stk_bal_append_if stk_bal_if_bal)
+  then have \<open>stk_bal (v @  w) [] = ([],[])\<close> using stk_bal_vbw s1'_def by (metis stk_bal_append_if)
+  then show \<open>bal (v @ w)\<close> using stk_bal_iff_bal by blast
+qed
+
+
+corollary bal_iff_insert[iff]:
+  assumes \<open>bal b\<close>
+  shows \<open>bal (v @ b @ w) = bal (v @ w)\<close>
+  using bal_del bal_insert by (metis assms)
+
+
+lemma bal_Op_split: \<open>bal ((Op, g) # xs) \<Longrightarrow> \<exists>y r. bal y \<and> bal r \<and> (Op, g) # xs = (Op, g) # y @ (Cl, g) # r\<close> 
+proof(induction \<open>length ((Op, g) # xs)\<close> arbitrary: xs rule: less_induct)
+  case less
+  have IH: \<open>\<And>w. \<lbrakk>length ((Op, g) # w) < length ((Op, g) # xs); bal ((Op, g) # w)\<rbrakk> \<Longrightarrow> \<exists>y r. bal y \<and> bal r \<and> (Op, g) # w = (Op, g) # y @ (Cl, g) # r\<close> using less by blast
+  have \<open>bal ((Op, g) # xs)\<close> using less by simp
+  then show ?case 
+  proof(induction \<open>(Op,g) # xs\<close> rule: bal.induct)
+    case (2 as bs)
+    consider (as_empty)  \<open>as = []\<close> | (bs_empty)\<open>bs = []\<close> | (both_not_empty)\<open>as \<noteq> [] \<and> bs \<noteq> []\<close> by blast
+    then show ?case
+    proof(cases)
+      case as_empty
+      then show ?thesis using 2 by (metis append_Nil)
+    next
+      case bs_empty
+      then show ?thesis using 2 by (metis append_self_conv)
+    next
+      case both_not_empty
+      then obtain as' where as'_def: \<open>(Op, g) # as' = as\<close> using 2 by (metis append_eq_Cons_conv)
+      then have \<open>length ((Op, g) # as') < length ((Op, g) # xs)\<close> by (metis "local.2.hyps"(5) List.append.right_neutral append_eq_conv_conj both_not_empty linorder_not_le take_all_iff)
+      with IH \<open>bal as\<close> obtain y r where yr_def: \<open>bal y \<and> bal r \<and> (Op, g) # as' = (Op, g) # y @ (Cl, g) # r\<close> using as'_def by meson
+
+      then have \<open>(Op, g) # xs = (Op, g) # y @ (Cl, g) # r @ bs\<close> using as'_def by (metis "local.2.hyps"(5) List.append.assoc append_Cons)
+      moreover have \<open>bal y\<close> and \<open>bal (r@bs)\<close> using yr_def apply blast by (simp add: "local.2.hyps"(3) yr_def)
+      ultimately show ?thesis by blast
+    qed
+  qed blast
+qed
+
+
+
+
+
+lemma bal_not_empty:  
+assumes \<open>bal (x#xs)\<close>
+shows \<open>\<exists>g. x = (Op, g)\<close>
+using assms by (metis (full_types) List.list.distinct(1) List.listrel.simps Product_Type.prod.exhaust_sel bracket.exhaust stk_bal.simps(4) stk_bal_if_bal)
+
+
+
+
 
 
 
@@ -655,6 +865,14 @@ fun P3_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<
 lemma P3_sym_imp_P3_for_tm[intro, dest]: \<open>chain P3_sym (map Tm x) \<Longrightarrow> chain P3 x\<close>
 apply(induction x rule: induct_list012) apply simp apply simp apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P3_sym.cases) by auto
 
+
+thm P3.induct[where ?a0.0 = \<open>(Op, ((A, [Nt B, Nt C]), One))\<close> and ?a1.0 = \<open>r\<close>]
+
+lemma P3E:
+fixes r::\<open>(bracket \<times> ('n,'t) prod \<times> version)\<close>
+assumes \<open>P3 (Op, ((A, [Nt B, Nt C]), One)) r\<close>
+shows \<open>\<exists>l. r = (Op, (B, l), One)\<close> 
+using assms apply(cases r; case_tac a; case_tac b; case_tac c) by auto \<comment> \<open>Why does induction fail to infer types? TODO\<close>
 
 
 
@@ -1238,9 +1456,103 @@ using assms proof(induction rule: derives_induct)
 
 
 
+lemma Re_imp_P':
+assumes \<open>x \<in> (Re A \<inter> (dyck_language (P \<times> {One, Two})))\<close>
+and \<open>\<forall>p \<in> P. CNF_rule p\<close>
+shows \<open>(image transform_production P) \<turnstile> [Nt A] \<Rightarrow>* map Tm x\<close>
+using assms proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induct)
+  case less
+  then have IH: \<open>\<And>w H. \<lbrakk>length (map Tm w) < length (map Tm x);  w \<in> Re H \<inter> dyck_language (P \<times> {One, Two})\<rbrakk> \<Longrightarrow> transform_production ` P \<turnstile> [Nt H] \<Rightarrow>* map Tm w\<close> using less by simp
+  have xRe: \<open>x \<in> Re A\<close> and xDL: \<open>x \<in> dyck_language (P \<times> {One, Two})\<close> using less by blast+
+
+  have p1x: \<open>chain P1 x\<close> and p2x: \<open>chain P2 x\<close> and p3x: \<open>chain P3 x\<close> and p4x: \<open>chain P4 x\<close> and p5x: \<open>P5 A x\<close> using ReD[OF xRe] by blast+
+  
+  from p5x obtain \<pi> t where hd_x: \<open>hd x = (Op, \<pi>, One)\<close>  and pi_def: \<open>\<pi> = (A, t)\<close> by (metis List.list.sel(1) P5.elims(2))
+  with xRe have \<open>(Op, \<pi>, One) \<in> set x\<close> by (metis List.list.sel(1) List.list.set_intros(1) ReD(5) chomsky_schuetzenberger.P5.elims(2))
+  then have pi_in_P: \<open>\<pi> \<in> P\<close> using xDL by auto
+
+  have bal_x: \<open>bal x\<close> using xDL by blast
+  then have \<open>\<exists>y r. bal y \<and> bal r \<and> [\<^bsub>\<pi>\<^esub>\<^sup>1  # tl x = [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1 # r\<close> using hd_x bal_x bal_Op_split[where ?g = \<open>(\<pi>, One)\<close> and ?xs = \<open>tl x\<close>]  by (metis List.list.exhaust_sel List.list.set_cases List.list.simps(3) \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1 \<in> set x\<close>)
+  then obtain y r1 where \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1  # tl x   =   [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1 # r1\<close> and bal_y: \<open>bal y\<close> and bal_r1: \<open>bal r1\<close> by blast
+  then have split1: \<open>x = [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1 # r1\<close> using hd_x by (metis List.list.exhaust_sel List.list.set(1) \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1 \<in> set x\<close> empty_iff)
+  have r1_not_empty: \<open>r1 \<noteq> []\<close> sorry \<comment> \<open>prove that no P' string stops with Cl pi 1\<close>
+  from p1x have hd_r1: \<open>hd r1 = [\<^bsub>\<pi>\<^esub>\<^sup>2\<close> using split1 r1_not_empty chainE_hd[of P1 \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1  # y\<close> \<open>]\<^bsub>\<pi>\<^esub>\<^sup>1\<close> r1 \<open>[]\<close>] by (smt (z3) Cons_eq_appendI Product_Type.prod.inject chomsky_schuetzenberger.P1.elims(1) chomsky_schuetzenberger.P1.simps(1,3) chomsky_schuetzenberger.bracket.distinct(1) self_append_conv)
+  
+  from bal_r1 have \<open>\<exists>z r2. bal z \<and> bal r2 \<and> [\<^bsub>\<pi>\<^esub>\<^sup>2 # tl r1 = [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @ ]\<^bsub>\<pi>\<^esub>\<^sup>2  # r2\<close> using bal_Op_split[of \<open>(\<pi>,Two)\<close> \<open>tl r1\<close>] by (metis List.list.exhaust_sel hd_r1 r1_not_empty)
+  then obtain z r2 where split2': \<open>[\<^bsub>\<pi>\<^esub>\<^sup>2 # tl r1   =   [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @ ]\<^bsub>\<pi>\<^esub>\<^sup>2  # r2\<close> and bal_z: \<open>bal z\<close> and bal_r2: \<open>bal r2\<close> by blast+
+
+  then have split2: \<open>x  =   [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1  # [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @ ]\<^bsub>\<pi>\<^esub>\<^sup>2  # r2\<close> by (metis List.list.exhaust_sel hd_r1 r1_not_empty split1)
+
+  have r2_empty: \<open>r2 = []\<close>  \<comment> \<open>prove that if r2 notempty, it would need to start with an open bracket, else it cant be balanced. But this cant be with P2.\<close>
+  proof(cases r2)
+    case (Cons r2' r2's)
+    from bal_r2 obtain g where r2_begin_op: \<open>r2 = (Op, g) # r2's\<close> using bal_not_empty[of r2' r2's] using Cons by blast
+    have \<open>P2 ]\<^bsub>\<pi>\<^esub>\<^sup>2 (hd r2)\<close> using Cons split2 by (metis Chain.chain.simps(3) List.list.sel(1) chain_drop_left chain_drop_left_cons p2x)
+    with r2_begin_op have \<open>False\<close> by (metis List.list.sel(1) chomsky_schuetzenberger.P2.simps(1) split_pairs)
+    then show ?thesis by blast
+  qed blast
+
+  then have split3: \<open>x  =   [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1  # [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @[   ]\<^bsub>\<pi>\<^esub>\<^sup>2   ]\<close> using split2 by blast
+
+  consider (BC) \<open>\<exists>B C. \<pi> = (A, [Nt B, Nt C])\<close> | (a) \<open>\<exists>a. \<pi> = (A, [Tm a])\<close> using assms pi_in_P by (metis CNF_rule_def fst_conv pi_def)
+  then show \<open>transform_production ` P \<turnstile> [Nt A] \<Rightarrow>* map Tm x\<close>
+  proof(cases)
+    case BC
+    then obtain B C where pi_eq: \<open>\<pi> = (A, [Nt B, Nt C])\<close> by blast
+
+    from split3 have y_chains: \<open>chain P1 y \<and> chain P2 y \<and> chain P3 y \<and> chain P4 y\<close> by (metis chain_drop_left_cons chain_drop_right p1x p2x p3x p4x)
+    have \<open>y \<noteq> []\<close> using p3x pi_eq split1 by fastforce
+    with p3x pi_eq have \<open>\<exists>g. hd y = (Op, (B,g), One)\<close> using split3 chainE_hd[of P3, where ?x = \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1\<close> and ?y = y and ?xs = \<open>[]\<close> and ?ys = \<open>]\<^bsub>\<pi>\<^esub>\<^sup>1  # [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @[   ]\<^bsub>\<pi>\<^esub>\<^sup>2   ]\<close>] by (metis append_Nil P3.simps(1) split_pairs)
+    then have \<open>P5 B y\<close> by (metis \<open>y \<noteq> []\<close> chomsky_schuetzenberger.P5.simps(2) hd_Cons_tl)
+
+    with y_chains have \<open>y \<in> Re B\<close> by blast
+    moreover have \<open>y \<in> dyck_language (P \<times> {One, Two})\<close> using split3 bal_y dyck_language_substring by (metis append_Cons append_Nil hd_x split1 xDL)
+    ultimately have \<open>y \<in> Re B \<inter> dyck_language (P \<times> {One, Two})\<close> by force
+
+    moreover have \<open>length (map Tm y) < length (map Tm x)\<close> using length_append length_map lessI split3 by fastforce
+    ultimately have der_y: \<open>transform_production ` P \<turnstile> [Nt B] \<Rightarrow>* map Tm y\<close> using IH[of y B] split3  by blast
 
 
+    
 
+    from split3 have z_chains: \<open>chain P1 z \<and> chain P2 z \<and> chain P3 z \<and> chain P4 z\<close> by (metis chain_drop_left chain_drop_left_cons chain_drop_right p1x p2x p3x p4x)
+    then have chain_P3: \<open>chain P3 (([\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ [ ]\<^bsub>\<pi>\<^esub>\<^sup>1]) @ [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @ [ ]\<^bsub>\<pi>\<^esub>\<^sup>2 ])\<close> using split3 p3x by (metis List.append.assoc append_Cons append_Nil)
+
+    have \<open>z \<noteq> []\<close> using p3x pi_eq split1 by (metis Chain.chain.simps(3) append_self_conv2 chain_drop_left chain_drop_left_cons P3.simps(2) version.distinct(1) hd_Cons_tl hd_r1 r1_not_empty split2')
+    then have \<open>P3 [\<^bsub>\<pi>\<^esub>\<^sup>2 (hd z)\<close> using chainE_hd[OF chain_P3 \<open>z\<noteq>[]\<close>] by blast
+    with p3x pi_eq have \<open>\<exists>g. hd z = (Op, (C,g), One)\<close> using split_pairs by (metis chomsky_schuetzenberger.P3.simps(2))
+    then have \<open>P5 C z\<close> by (metis List.list.exhaust_sel \<open>z \<noteq> []\<close> chomsky_schuetzenberger.P5.simps(2)) 
+
+    with z_chains have \<open>z \<in> Re C\<close> by blast
+    moreover have \<open>z \<in> dyck_language (P \<times> {One, Two})\<close> using split3 bal_z dyck_language_substring by (smt (z3) List.append.assoc append_Cons self_append_conv2 xDL)
+
+    ultimately have \<open>z \<in> Re C \<inter> dyck_language (P \<times> {One, Two})\<close> by force
+
+    moreover have \<open>length (map Tm z) < length (map Tm x)\<close> using length_append length_map lessI split3 by fastforce
+    ultimately have der_z: \<open>transform_production ` P \<turnstile> [Nt C] \<Rightarrow>* map Tm z\<close> using IH[of z C] split3  by blast
+
+
+    have \<open>transform_production ` P \<turnstile> [Nt A] \<Rightarrow>* [ Tm [\<^bsub>\<pi>\<^esub>\<^sup>1 ] @ [(Nt B)] @ [Tm ]\<^bsub>\<pi>\<^esub>\<^sup>1  , Tm [\<^bsub>\<pi>\<^esub>\<^sup>2 ] @  [(Nt C)] @ [   Tm ]\<^bsub>\<pi>\<^esub>\<^sup>2   ]\<close> by (metis List.append.left_neutral append_Cons bu_prod chomsky_schuetzenberger.transform_production.simps(1) derives_if_bu image_eqI pi_eq pi_in_P)
+
+    also have \<open>transform_production ` P \<turnstile> [ Tm [\<^bsub>\<pi>\<^esub>\<^sup>1 ] @ [(Nt B)] @ [Tm ]\<^bsub>\<pi>\<^esub>\<^sup>1  , Tm [\<^bsub>\<pi>\<^esub>\<^sup>2 ] @  [(Nt C)] @ [   Tm ]\<^bsub>\<pi>\<^esub>\<^sup>2   ]    \<Rightarrow>*    [ Tm [\<^bsub>\<pi>\<^esub>\<^sup>1 ] @ map Tm y @ [Tm ]\<^bsub>\<pi>\<^esub>\<^sup>1  , Tm [\<^bsub>\<pi>\<^esub>\<^sup>2 ] @  [(Nt C)] @ [   Tm ]\<^bsub>\<pi>\<^esub>\<^sup>2   ]\<close> using der_y using derives_append derives_prepend by blast
+
+    also have \<open>transform_production ` P \<turnstile> [ Tm [\<^bsub>\<pi>\<^esub>\<^sup>1 ] @ map Tm y @ [Tm ]\<^bsub>\<pi>\<^esub>\<^sup>1  , Tm [\<^bsub>\<pi>\<^esub>\<^sup>2 ] @  [(Nt C)] @ [   Tm ]\<^bsub>\<pi>\<^esub>\<^sup>2   ]    \<Rightarrow>*    [ Tm [\<^bsub>\<pi>\<^esub>\<^sup>1 ] @ map Tm y @ [Tm ]\<^bsub>\<pi>\<^esub>\<^sup>1  , Tm [\<^bsub>\<pi>\<^esub>\<^sup>2 ] @  (map Tm z) @ [   Tm ]\<^bsub>\<pi>\<^esub>\<^sup>2   ]\<close> using der_z by (meson derives_append derives_prepend)
+
+    finally have \<open>transform_production ` P \<turnstile> [Nt A] \<Rightarrow>* [ Tm [\<^bsub>\<pi>\<^esub>\<^sup>1 ] @ map Tm y @ [Tm ]\<^bsub>\<pi>\<^esub>\<^sup>1  , Tm [\<^bsub>\<pi>\<^esub>\<^sup>2 ] @  (map Tm z) @ [   Tm ]\<^bsub>\<pi>\<^esub>\<^sup>2   ]\<close> by blast
+
+    then show ?thesis using split3 by simp
+  next
+    case a
+    then obtain a where pi_eq: \<open>\<pi> = (A, [Tm a])\<close> by blast
+    have \<open>y = []\<close> using p4x bal_y split3 sorry
+    have \<open>z = []\<close> sorry
+
+    have \<open>transform_production ` P \<turnstile> [Nt A] \<Rightarrow>* [ Tm [\<^sub>\<pi>\<^sup>1,       Tm ]\<^sub>\<pi>\<^sup>1 , Tm [\<^sub>\<pi>\<^sup>2 ,       Tm ]\<^sub>\<pi>\<^sup>2   ]\<close> by (metis \<open>\<And>thesis. (\<And>a. \<pi> = (A, [Tm a]) \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> chomsky_schuetzenberger.transform_production.simps(2) local.less.prems(2) pi_in_P r_into_rtranclp snd_eqD transform_production_one_step)
+
+    then show ?thesis using \<open>y = []\<close> \<open>z = []\<close> by (simp add: split3)
+    
+  qed
+qed
 
 
 
@@ -2241,13 +2553,14 @@ lemma chomsky_schuetzenberger :
 proof -
   have \<open>\<exists>P S::'n. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> using \<open>cfl TYPE('n) L\<close> CNF_existence by auto
   then obtain P and S::'n where \<open>L = Lang P S\<close> and P_CNF: \<open>(\<forall>p \<in> P. CNF_rule p)\<close> by blast
-
+  
   define \<Gamma> where \<open>\<Gamma> = P \<times> {One, Two}\<close>
   define P' where \<open>P' = image transform_production P\<close>
   define L' where \<open>L' = Lang P' S\<close>
   define h where \<open>h = (the_hom::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list \<Rightarrow> 't list)\<close>
   define h_ext where \<open>h_ext = (the_hom_ext::('n, bracket \<times> ('n,'t) prod \<times> version ) sym list \<Rightarrow> ('n,'t) sym list)\<close>
 
+  term P
   have \<open>L' \<subseteq> dyck_language \<Gamma>\<close> sorry (* This might not be needed (but it was listed in the book). Leave this for last *)
 
   have \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (dyck_language \<Gamma>) \<inter> (Re A)\<close> (* This is the hard part of the proof - the local lemma in the textbook *)
@@ -2255,6 +2568,9 @@ proof -
 
     have \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* x \<Longrightarrow> bal_tm x \<and> rhs_in_if x (P \<times> {One, Two})\<close> by (simp add: P'_bal P'_def P_CNF)
     then have \<open>\<And>A x. (P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<Longrightarrow> x \<in> dyck_language \<Gamma>)\<close> using \<Gamma>_def by auto
+
+    have \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* x \<Longrightarrow> x \<in> Re_sym A\<close> using P'_imp_Re using P'_def P_CNF by fastforce
+    then have \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* map Tm x \<Longrightarrow> x \<in> Re A\<close> by blast
 
 
 

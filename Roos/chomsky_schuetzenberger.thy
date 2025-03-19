@@ -2330,7 +2330,7 @@ and \<open>w \<in> Ders P S\<close>
 shows \<open>\<exists>w' \<in> Ders (transform_production ` P) S. w = the_hom_ext w'\<close>
 proof-
 
-from assms obtain t where t_def: \<open>parse_tree P t \<and> fringe t = w \<and> root t = Nt S\<close> using parse_tree_if_derives DersD sorry
+from assms obtain t where t_def: \<open>parse_tree P t \<and> fringe t = w \<and> root t = Nt S\<close> using parse_tree_if_derives DersD by meson
 then have root_tr: \<open>root (transform_tree t) = Nt S\<close> by blast
 from t_def have \<open>parse_tree (transform_production ` P) (transform_tree t)  \<and>  the_hom_ext (fringe (transform_tree t)) = w\<close> using transform_tree_correct assms by blast
 with root_tr have \<open>fringe (transform_tree t) \<in> Ders (transform_production ` P) S \<and> w = the_hom_ext (fringe (transform_tree t))\<close> using fringe_steps_if_parse_tree by (metis DersI)

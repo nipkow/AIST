@@ -3250,8 +3250,24 @@ proof -
             ultimately show ?thesis by blast
           qed
 
-        qed    
-        then show \<open>\<exists>w' \<in> Ders P' S. w = h_ext w'\<close> sorry
+        qed 
+        then obtain w' derw' where w'_def: \<open>derw' \<in> DerWits P' [Nt S] w'\<close> \<open>length derw' = length derw\<close>  and i_prop: \<open>(\<forall>i<length derw'. transform_production (prod (derw ! i)) = prod (derw' ! i) \<and> after (derw ! i) = h_ext (after (derw' ! i)) \<and> before (derw ! i) = h_ext (before (derw' ! i)) \<and> prefix (derw ! i) = h_ext (prefix (derw' ! i)) \<and> suffix (derw ! i) = h_ext (suffix (derw' ! i)))\<close> by blast
+        then have \<open>w' \<in> Ders P' S\<close> by (meson DersI derives_iff_DerWits)
+        have len_eq: \<open>length derw' = length derw\<close> using w'_def by blast
+
+        then have i_prop': \<open>\<And>i. i < length derw' \<Longrightarrow> after (derw ! i) = h_ext (after (derw' ! i))\<close> using i_prop by blast
+        then show  \<open>\<exists>w' \<in> Ders P' S. w = h_ext w'\<close> 
+        proof(cases derw)
+          case Nil
+          then show ?thesis by (metis DerWitsEmptyD(2) DersI Transitive_Closure.rtranclp.rtrancl_refl \<open>derw \<in> DerWits P [Nt S] w\<close> h_ext_def the_hom_ext_keep_var)
+        next
+          case (Cons a list)
+          then have \<open>length derw' -1 < length derw'\<close> using len_eq by (metis List.list.distinct(1) Suc_diff_1 length_greater_0_conv lessI)
+          then have \<open>after (derw ! (length derw' -1)) = h_ext (after (derw' ! (length derw' -1)))\<close> using i_prop'[of \<open>length derw' - 1\<close>] by argo
+
+          then show ?thesis by (metis Cons List.list.simps(3) \<open>derw \<in> DerWits P [Nt S] w\<close> \<open>w' \<in> Ders P' S\<close> after_last_eq last_conv_nth len_eq length_0_conv w'_def(1))
+
+        qed
       qed
 
       then show \<open>\<And>w. (w  \<in> Lang P S \<Longrightarrow> \<exists>w' \<in> L'. w = h w')\<close>
@@ -3275,17 +3291,12 @@ proof -
     proof
       show \<open>dyck_language \<Gamma> \<inter> (star (brackets P) \<inter> Re S) \<subseteq> dyck_language \<Gamma> \<inter> Re S\<close> by blast
     next
-      fix x
-      assume \<open>x \<in> (dyck_language \<Gamma> \<inter> Re S)\<close>
-      then have \<open>x \<in> dyck_language \<Gamma>\<close> by blast
-      then have \<open>x \<in> star (brackets P)\<close> unfolding dyck_language_def brackets_def 
-
-
+      show \<open>dyck_language \<Gamma> \<inter> Re S \<subseteq> dyck_language \<Gamma> \<inter> (star (brackets P) \<inter> Re S)\<close> using \<Gamma>_def dyck_lang_imp_star_brackets by auto
+    qed
   moreover have hom: \<open>hom h\<close> by (simp add: h_def hom_def)
-  moreover have \<open>reg TYPE('n) (Re S)\<close> sorry
-  ultimately have \<open>reg TYPE('n) (Re S) \<and> L = image h ((Re S) \<inter> (dyck_language \<Gamma>)) \<and> hom h\<close> by blast 
+  moreover have \<open>reg TYPE('n) (star (brackets P) \<inter> Re S)\<close> sorry
+  ultimately have \<open>reg TYPE('n) (star (brackets P) \<inter> Re S) \<and> L = image h ((star (brackets P) \<inter> Re S) \<inter> (dyck_language \<Gamma>)) \<and> hom h\<close> by blast 
   then show ?thesis by blast
-
 qed
 
 

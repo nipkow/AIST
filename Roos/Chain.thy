@@ -49,7 +49,7 @@ apply(induction R xs rule: chain.induct) by auto
 lemma chain_bridge[intro]: \<open>w \<noteq> [] \<Longrightarrow> chain R w \<Longrightarrow> chain R (xs@w) \<Longrightarrow> chain R (w@ys) \<Longrightarrow> chain R (xs@w@ys)\<close>
 proof(induction w arbitrary: xs)
   case Nil
-  then show ?case sorry
+  then show ?case by blast
 next
   case (Cons a w)
   then show ?case

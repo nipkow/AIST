@@ -1,5 +1,5 @@
 theory chomsky_schuetzenberger
-  imports  "../CFG" "../CFL" Chain
+  imports  "../CFG" "../CFL" Chain "$AFP/Regular-Sets/Regexp_Constructions" "$AFP/Regular-Sets/Regular_Set"
 begin
 
 text \<open>This file contains all the constructions needed for the chomsky-schuetzenberger theorem.
@@ -715,6 +715,139 @@ corollary bal_tm_iff_insert[iff]:
   assumes \<open>bal_tm b\<close>
   shows \<open>bal_tm (v @ b @ w) = bal_tm (v @ w)\<close>
   using bal_tm_del bal_tm_insert by (metis assms)
+
+
+
+
+
+
+
+
+
+section\<open>Regexp stuff TODO mv?\<close>
+
+lemma regular_lang_Union:
+  assumes "finite LS" 
+  assumes "\<forall>L\<in>LS. regular_lang L"
+  shows "regular_lang (\<Union>LS)"
+using assms proof (induct LS rule: finite_induct)
+  case empty
+  show ?case apply auto using Regular_Exp.lang.simps(1) by blast
+next
+  case (insert L LS)
+  have eq: "\<Union>(insert L LS) = L \<union> (\<Union>LS)"
+    by auto
+  moreover have "regular_lang L" 
+    using insert.prems by simp
+  moreover have "regular_lang (\<Union>LS)" 
+    using insert by blast
+  ultimately have \<open>regular_lang (L \<union> (\<Union>LS))\<close> using Regular_Exp.lang.simps(4) by metis
+  then show ?case unfolding eq by simp
+qed
+
+
+lemma \<open>finite L \<Longrightarrow> regular_lang L\<close>
+proof-
+assume \<open>finite L\<close>
+have eq: \<open>L = \<Union>{ {a} | a. a \<in> L}\<close> by blast
+from \<open>finite L\<close> have \<open>finite { {a} | a. a \<in> L}\<close> by auto
+moreover have \<open>\<forall>k \<in> { {a} | a. a \<in> L}. (regular_lang k)\<close>  using lang_rexp_of_word by blast
+ultimately have \<open>regular_lang (\<Union>{ {a} | a. a \<in> L})\<close> using regular_lang_Union by blast
+then show ?thesis using eq by simp
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+text\<open>All brackets in P\<close>
+definition brackets::\<open>('n,'t) Prods \<Rightarrow> (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set\<close> where
+\<open>brackets P = { [(br,(p,v))] |br p v. p \<in> P}\<close>
+
+
+lemma dyck_lang_imp_star_brackets: \<open>dyck_language (P \<times> {One, Two}) \<subseteq> star (brackets P)\<close>
+proof
+fix x
+assume \<open>x \<in> dyck_language (P \<times> {One, Two})\<close>
+
+then show \<open>x \<in> star (brackets P)\<close> unfolding dyck_language_def brackets_def sorry
+qed
+
+
+
+text\<open>All closing brackets, not neccesarily in P\<close>
+definition CL::\<open>(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set\<close> where
+\<open>CL = { [(Cl,(p,v))] | p v. True }\<close>
+
+text\<open>All opening brackets, not neccesarily in P\<close>
+definition OP::\<open>(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set\<close> where
+\<open>OP = { [(Op,(p,v))] | p v. True }\<close>
+
+text\<open>All closing brackets with a 2, not neccesarily in P\<close>
+definition CL2::\<open>(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set\<close> where
+\<open>CL2 = { [(Cl,(p,Two))] | p. True }\<close>
+
+text\<open>All closing brackets with a 2, not neccesarily in P\<close>
+definition nCL2::\<open>(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set\<close> where
+\<open>nCL2 = UNIV - { [(Cl,(p,Two))] | p. True }\<close>
+
+
+
+lemma Pbrackets_finite[intro, simp]:
+assumes \<open>finite P\<close>
+shows \<open>finite (brackets P)\<close>
+proof -
+  have "brackets P = { [(br, (p, v))] | br p v. p \<in> P}"
+    by (simp add: brackets_def)
+  also have "... = (\<Union>p\<in>P. { [(br, (p, v))] | br v. True})"
+    by blast
+  also have "finite ..." using assms 
+  proof -
+    have "\<forall>p\<in>P. finite { [((br::bracket), (p, (v::version)))] | br v. True}"
+    proof
+      fix p assume "p \<in> P"
+      have eq: \<open>{ [(br, (p, v))] | br v. True} = { [(Op, (p, One))], [(Op, (p, Two))], [(Cl, (p, One))], [(Cl, (p, Two))]}\<close> using bracket.exhaust version.exhaust by auto
+      have \<open>finite ...\<close> by blast
+      then show "finite { [((br::bracket), (p, (v::version)))] | br v. True}" using eq by auto
+    qed
+    
+    with assms show ?thesis using finite_UN by blast
+  qed
+  finally show "finite (brackets P)" .
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2830,7 +2963,6 @@ corollary derives_iff_DerWits:
 
 
 
-
 section\<open>The Theorem\<close>
 
 
@@ -3138,6 +3270,16 @@ proof -
 
   also have \<open>... = L\<close> by (simp add: \<open>L = Lang P S\<close>)
   finally have \<open>image h ((dyck_language \<Gamma>) \<inter> (Re S)) = L\<close> by auto
+
+  moreover have \<open>((dyck_language \<Gamma>) \<inter> (star (brackets P) \<inter> Re S)) = ((dyck_language \<Gamma>) \<inter> (Re S))\<close>
+    proof
+      show \<open>dyck_language \<Gamma> \<inter> (star (brackets P) \<inter> Re S) \<subseteq> dyck_language \<Gamma> \<inter> Re S\<close> by blast
+    next
+      fix x
+      assume \<open>x \<in> (dyck_language \<Gamma> \<inter> Re S)\<close>
+      then have \<open>x \<in> dyck_language \<Gamma>\<close> by blast
+      then have \<open>x \<in> star (brackets P)\<close> unfolding dyck_language_def brackets_def 
+
 
   moreover have hom: \<open>hom h\<close> by (simp add: h_def hom_def)
   moreover have \<open>reg TYPE('n) (Re S)\<close> sorry

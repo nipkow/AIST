@@ -82,20 +82,21 @@ next
   then show ?case by(auto simp add: nth_append Let_def)
 qed auto
 
-lemma parse_tree_if_derives: "P \<turnstile> [Nt A] \<Rightarrow>* w \<Longrightarrow> \<exists>t. parse_tree P t \<and> fringe t = w"
+lemma parse_tree_if_derives: "P \<turnstile> [Nt A] \<Rightarrow>* w \<Longrightarrow> \<exists>t. parse_tree P t \<and> fringe t = w \<and> root t = Nt A"
 proof(induction rule: derives_induct)
   case base
   then show ?case
-    by (metis fringe.simps(1) parse_tree.simps(1))
+    using fringe.simps(1) parse_tree.simps(1) root.simps(1) by blast
 next
-  case (step u A v w)
-  then obtain t where *: "parse_tree P t" and **: "fringe t = u @ [Nt A] @ v" by blast
-  let ?t' = "Prod A (map Sym w)"
+  case (step u A' v w)
+  then obtain t where *: "parse_tree P t" and **: "fringe t = u @ [Nt A'] @ v" and \<open>root t = Nt A\<close> by blast
+  let ?t' = "Prod A' (map Sym w)"
   let ?t = "subst_pt ?t' (length u) t"
   have "fringe ?t = u @ w @ v"
     using ** fringe_subst_pt[of "length u" t ?t'] by(simp add: o_def)
   moreover have "parse_tree P ?t"
     using parse_tree_subst_pt[OF *, of "length u"] step.hyps(2) ** by(simp add: o_def)
+  moreover have \<open>root ?t = Nt A\<close> by (simp add: "**" \<open>Parse_Tree.root t = Nt A\<close> root_subst_pt)
   ultimately show ?case by blast
 qed
 

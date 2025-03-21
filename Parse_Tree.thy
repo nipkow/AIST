@@ -89,14 +89,15 @@ proof(induction rule: derives_induct)
     using fringe.simps(1) parse_tree.simps(1) root.simps(1) by blast
 next
   case (step u A' v w)
-  then obtain t where *: "parse_tree P t" and **: "fringe t = u @ [Nt A'] @ v" and \<open>root t = Nt A\<close> by blast
+  then obtain t where 1: "parse_tree P t" and 2: "fringe t = u @ [Nt A'] @ v" and 3: \<open>root t = Nt A\<close>
+    by blast
   let ?t' = "Prod A' (map Sym w)"
   let ?t = "subst_pt ?t' (length u) t"
   have "fringe ?t = u @ w @ v"
-    using ** fringe_subst_pt[of "length u" t ?t'] by(simp add: o_def)
+    using 2 fringe_subst_pt[of "length u" t ?t'] by(simp add: o_def)
   moreover have "parse_tree P ?t"
-    using parse_tree_subst_pt[OF *, of "length u"] step.hyps(2) ** by(simp add: o_def)
-  moreover have \<open>root ?t = Nt A\<close> by (simp add: "**" \<open>Parse_Tree.root t = Nt A\<close> root_subst_pt)
+    using parse_tree_subst_pt[OF 1, of "length u"] step.hyps(2) 2 by(simp add: o_def)
+  moreover have \<open>root ?t = Nt A\<close> by (simp add: 2 3 root_subst_pt)
   ultimately show ?case by blast
 qed
 

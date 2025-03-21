@@ -1,46 +1,10 @@
+(* Authors: Tobias Nipkow, Akihisa Yamada *)
+
 section "Context-Free Grammars"
 
 theory CFG
 imports "HOL-Library.Infinite_Typeclass"
 begin
-
-(* TODO: these lemmas are in devel, remove after release *)
-
-(* AY: predicate version of trancl_unfold_left *)
-lemma tranclp_unfold_left: "r^++ = r OO r^**"
-  using trancl_unfold_left[of "relation_of r UNIV"]
-  by (auto intro!: ext simp: trancl_def rtrancl_def relcomp_def set_eq_iff relation_of_def)
-
-(* AY: following the above, this one should be ``left'' *)
-lemma relpowp_Suc_left: "R ^^ Suc n = R OO (R ^^ n)"
-  by (simp add: relpowp_commute)
-
-lemma relpowp_1[simp]: "(R :: 'a \<Rightarrow> 'a \<Rightarrow> bool) ^^ Suc 0 = R"
-  by auto
-
-declare relpowp_Suc_I[trans]
-declare relpowp_Suc_I2[trans]
-
-lemma relpowp_mono:
-  fixes x y :: 'a
-  shows "(\<And>x y. R x y \<Longrightarrow> S x y) \<Longrightarrow> (R ^^ n) x y \<Longrightarrow> (S ^^ n) x y"
-  apply (induction n arbitrary: y) by auto
-
-lemmas relpowp_Suc_right = relpowp.simps(2)
-
-lemma rev_eq_append_conv: "rev xs = ys @ zs \<longleftrightarrow> xs = rev zs @ rev ys"(* done *)
-  by (metis rev_append rev_rev_ident)
-
-lemma append_eq_rev_conv: "xs @ ys = rev zs \<longleftrightarrow> rev ys @ rev xs = zs"(* done *)
-  using rev_eq_append_conv[of zs xs ys]
-  by auto
-
-(* AY: variant of rev_eq_Cons_iff *)
-lemma Cons_eq_rev_iff: "x # xs = rev ys \<longleftrightarrow> ys = rev xs @ [x]"(* done *)
-  using append_eq_rev_conv[of "[x]"]
-  by auto
-
-(* end of TODO *)
 
 declare relpowp.simps(2)[simp del]
 

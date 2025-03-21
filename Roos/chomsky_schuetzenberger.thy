@@ -3042,7 +3042,7 @@ prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [P
     also have \<open>... = w\<close> using fr unfolding ts_eq by auto
     finally have \<open>the_hom_ext (fringe (transform_tree (Prod A ts))) = w\<close> .
 
-    moreover have \<open>parse_tree (P') (transform_tree (Prod A [Sym (Tm a)]))\<close> using pt prod_rhs unfolding P'_def by force 
+    moreover have \<open>parse_tree (P') (transform_tree (Prod A [Sym (Tm a)]))\<close> using pt prod_rhs unfolding P'_def apply auto by (metis chomsky_schuetzenberger.transform_production.simps(2) imageI) 
     ultimately show ?thesis unfolding ts_eq P'_def by blast
   next
     case Nt_Nt
@@ -3052,7 +3052,7 @@ prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [P
     also have \<open>... = w\<close> using fr unfolding ts_eq by auto
     finally have \<open>the_hom_ext (fringe (transform_tree (Prod A ts))) = w\<close> .
 
-    moreover have \<open>parse_tree (P') (transform_tree (Prod A [Sym (Nt B), Sym (Nt C)]))\<close> using pt prod_rhs unfolding P'_def by force
+    moreover have \<open>parse_tree (P') (transform_tree (Prod A [Sym (Nt B), Sym (Nt C)]))\<close> using pt prod_rhs unfolding P'_def apply auto by (metis chomsky_schuetzenberger.transform_production.simps(1) imageI)
     ultimately show ?thesis unfolding ts_eq by blast
   next
     case Prod_Nt
@@ -3307,7 +3307,7 @@ text\<open>The chomsky-scheutzenberger theorem that we want to prove.\<close>
 lemma chomsky_schuetzenberger :
   fixes L::\<open>'t list set\<close>
   assumes \<open>CFL.cfl TYPE('n) L\<close> 
-  shows \<open>\<exists>(R::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set) h \<Gamma>. (reg TYPE('n) R) \<and> (L = image h (R \<inter> dyck_language \<Gamma>)) \<and> hom h\<close>
+  shows \<open>\<exists>(R::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set) h \<Gamma>. (regular_lang R) \<and> (L = image h (R \<inter> dyck_language \<Gamma>)) \<and> hom h\<close>
 proof -
   have \<open>\<exists>P S::'n. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> using \<open>cfl TYPE('n) L\<close> CNF_existence by auto
   then obtain P and S::'n where \<open>L = Lang P S\<close> and P_CNF: \<open>(\<forall>p \<in> P. CNF_rule p)\<close> by blast
@@ -3405,7 +3405,7 @@ proof -
   qed
   moreover have hom: \<open>hom h\<close> by (simp add: h_def hom_def)
   moreover have \<open>regular_lang (star (brackets P) \<inter> Re S)\<close> sorry
-  ultimately have \<open>regular_lang (star (brackets P) \<inter> Re S) \<and> L = image h ((star (brackets P) \<inter> Re S) \<inter> (dyck_language \<Gamma>)) \<and> hom h\<close> by blast 
+  ultimately have \<open>regular_lang (star (brackets P) \<inter> Re S) \<and> L = image h ((star (brackets P) \<inter> Re S) \<inter> (dyck_language \<Gamma>)) \<and> hom h\<close> by (simp add: inf_commute)
   then show ?thesis by blast
 qed
 

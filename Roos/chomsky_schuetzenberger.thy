@@ -63,8 +63,7 @@ fun strip_tm :: "('a, 'b) sym  \<Rightarrow> 'b" where
 
 
 
-definition reg :: "'n itself \<Rightarrow> 't list set \<Rightarrow> bool" where
-  "reg (TYPE('n)) L = (\<exists>P S::'n. L = Lang P S \<and> True) " (*TODO add type 3 stuff here*)               
+             
 
 
 
@@ -3405,8 +3404,8 @@ proof -
     show \<open>dyck_language \<Gamma> \<inter> Re S \<subseteq> dyck_language \<Gamma> \<inter> (star (brackets P) \<inter> Re S)\<close> using \<Gamma>_def dyck_lang_imp_star_brackets by auto
   qed
   moreover have hom: \<open>hom h\<close> by (simp add: h_def hom_def)
-  moreover have \<open>reg TYPE('n) (star (brackets P) \<inter> Re S)\<close> sorry
-  ultimately have \<open>reg TYPE('n) (star (brackets P) \<inter> Re S) \<and> L = image h ((star (brackets P) \<inter> Re S) \<inter> (dyck_language \<Gamma>)) \<and> hom h\<close> by blast 
+  moreover have \<open>regular_lang (star (brackets P) \<inter> Re S)\<close> sorry
+  ultimately have \<open>regular_lang (star (brackets P) \<inter> Re S) \<and> L = image h ((star (brackets P) \<inter> Re S) \<inter> (dyck_language \<Gamma>)) \<and> hom h\<close> by blast 
   then show ?thesis by blast
 qed
 

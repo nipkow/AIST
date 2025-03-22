@@ -2201,6 +2201,15 @@ qed
 
 
 
+lemma reg_inter_reg: \<open>regular_lang A \<Longrightarrow> regular_lang B \<Longrightarrow> regular_lang (A\<inter>B)\<close> sorry
+
+
+
+
+
+
+
+
 
 
 
@@ -2905,8 +2914,45 @@ qed
 
 
 
+section\<open>show P3 regular.\<close>
+
+text\<open>P3 says: After each (Op,A\<rightarrow>BC,1), always comes a (Op,(B, _),1),  And after each (Op,A\<rightarrow>BC,2), always comes a (Op,(C, _),1)\<close>
 
 
+
+lemma \<open>successively P x = ( x \<in> star {[a,b] | a b. P a b} \<union> singletons ` UNIV )\<close> sorry
+
+
+
+
+
+
+
+
+
+
+definition P3_pairs where
+\<open>P3_pairs \<equiv> {[a,b] | a b. P3 a b}\<close>
+
+
+lemma \<open>(successively P3 x) = (x \<in> star(P3_pairs) \<union> singletons ` UNIV)\<close>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+lemma P3_iff: \<open>successively P3 x = (x \<in> star( nCL2 \<union> (star1 CL2 )@@CL1 ) @@ (star CL2)  \<and> x \<in> CL2                )\<close>
 
 
 

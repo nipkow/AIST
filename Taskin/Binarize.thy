@@ -45,7 +45,7 @@ fun binarize1 :: "('n :: infinite, 't) prods \<Rightarrow> ('n, 't) prods \<Righ
 | "binarize1 ps' ((A, []) # ps) = (A, []) # binarize1 ps' ps"
 | "binarize1 ps' ((A, s0 # u) # ps) =
  (if length u \<le> 1 then (A, s0 # u) # binarize1 ps' ps
-  else let B = fresh ps' in (A,[s0, Nt B]) # (B, u) # ps)"
+  else let B = fresh (nts ps') in (A,[s0, Nt B]) # (B, u) # ps)"
 
 definition binarize' :: "('n::infinite, 't) prods \<Rightarrow> ('n, 't) prods" where
   "binarize' ps = binarize1 ps ps"
@@ -73,7 +73,7 @@ using assms proof (induction ps' ps rule: binarize1.induct)
     with True show ?thesis by simp
   next
     case False
-    let ?B = "fresh ps'"
+    let ?B = "fresh(nts ps')"
     from False have "count (binarize1 ps' ((A, s0 # u) # ps)) = count ((A,[s0, Nt ?B]) # (?B, u) # ps)"
       by (metis binarize1.simps(3))
     also have "... = count ((?B, u) # ps)" by simp
@@ -158,7 +158,9 @@ next
     qed
    next
     case False
-    then show ?thesis by simp (metis fresh fresh_syms list.simps(15))
+    then show ?thesis
+      using fresh_nts in_Nts_iff_in_Syms[of "fresh (nts ps')" "set ps'"]
+      by (fastforce simp add: Let_def)
   qed
 qed simp
 
@@ -174,21 +176,21 @@ lemma binarize_der':
   case False
   then obtain C ps'' B u s where defs: "set ps = {(C, s # u)} \<union> set ps'' \<and> set (binarize1 ps ps) = {(C, [s, Nt B]), (B, u)} \<union> set ps'' \<and> Nt B \<notin> syms ps"
     by (meson binarize1_cases)
-  from defs have a_not_b: "C \<noteq> B" using syms_not_eq by fast
-  from defs assms have a1: "A \<noteq> B" using syms_Lhss_not_eq by fastforce
+  from defs have a_not_b: "C \<noteq> B" unfolding Syms_def by fast
+  from defs assms have a1: "A \<noteq> B" unfolding Lhss_def Syms_def by auto
   from defs have a2: "Nt B \<notin> set (map Tm x)" by auto
-  from defs have a3: "Nt B \<notin> set u" using syms_not_set by fastforce
+  from defs have a3: "Nt B \<notin> set u" unfolding Syms_def by fastforce
   from defs have "set ps = set ((C, s # u) # ps'')" by simp
-  with defs a_not_b have a4: "B \<notin> lhss ((C, [s, Nt B]) # ps'')" using syms_Lhss by fastforce
+  with defs a_not_b have a4: "B \<notin> lhss ((C, [s, Nt B]) # ps'')" unfolding Lhss_def Syms_def by auto
   from defs have notB: "Nt B \<notin> syms ps''" by fastforce
-  then have 1: "set ps = set (substP ((C, [s, Nt B]) # ps'') (Nt B) u)" proof -
+  then have 1: "set ps = set (substP (Nt B) u ((C, [s, Nt B]) # ps''))" proof -
     from defs have "set ps = {(C, s # u)} \<union> set ps''" by simp
     also have "... = set ((C, s#u) # ps'')" by simp
     also have "... = set ([(C, s#u)] @ ps'')" by simp
-    also from defs have "... = set ([(C,substW [s, Nt B] (Nt B) u)] @ ps'')" using syms_set by fastforce
-    also have "... = set ((substP [(C, [s, Nt B])] (Nt B) u) @ ps'')" by (simp add: substP_def)
-    also have "... = set ((substP [(C, [s, Nt B])] (Nt B) u) @ substP ps'' (Nt B) u)" using notB by (simp add: substP_skip2)
-    also have "... = set (substP ((C, [s, Nt B]) # ps'') (Nt B) u)" by (simp add: substP_def)
+    also from defs have "... = set ([(C,substW (Nt B) u [s, Nt B])] @ ps'')" unfolding Syms_def by fastforce
+    also have "... = set ((substP (Nt B) u [(C, [s, Nt B])]) @ ps'')" by (simp add: substP_def)
+    also have "... = set ((substP (Nt B) u [(C, [s, Nt B])]) @ substP (Nt B) u ps'')" using notB by (simp add: substP_skip2)
+    also have "... = set (substP (Nt B) u ((C, [s, Nt B]) # ps''))" by (simp add: substP_def)
     finally show ?thesis .
   qed
   from defs have 2: "set (binarize1 ps ps) = set ((C, [s, Nt B]) # (B, u) # ps'')" by auto
@@ -205,7 +207,7 @@ proof (induction ps' ps rule: binarize1.induct)
     with 3 show ?thesis by auto
   next
     case False
-    let ?B = "fresh ps'"
+    let ?B = "fresh(nts ps')"
     have "lhss ((A, s0 # u) # ps) = {A} \<union> lhss ps" by simp
     also have "... \<subseteq> {A} \<union> {?B} \<union> lhss ps" by blast
     also have "... = lhss ((A,[s0, Nt ?B]) # (?B, u) # ps)" by simp
@@ -260,7 +262,7 @@ using assms proof (induction ps' ps rule: binarize1.induct)
     with 3 show ?thesis by auto
   next
     case False
-    with 3 show ?thesis by simp (meson list.set_intros(1) set_subset_Cons syms_not_eq syms_set syms_subset)
+    with 3 show ?thesis by (auto simp: Syms_def Let_def)
   qed
 qed auto
 
@@ -275,7 +277,7 @@ lemma binarize_lhss_nts1:
     with 3 show ?thesis by auto
   next
     case False
-    with 3 show ?thesis by (auto simp add: Let_def fresh)
+    with 3 show ?thesis by (auto simp add: Let_def fresh_nts)
   qed
 qed simp_all
 
@@ -286,7 +288,7 @@ lemma binarize_lhss_nts'n:
 using assms proof (induction n)
   case (Suc n)
   thus ?case 
-    unfolding binarize'_def by (simp add: binarize_lhss_nts1 binarize_syms1 Nts_syms_equI)
+    unfolding binarize'_def by (simp add: binarize_lhss_nts1 binarize_syms1 in_Nts_iff_in_Syms)
 qed simp
 
 lemma binarize_lhss_nts:
@@ -301,7 +303,7 @@ lemma binarize_nts'n:
 using assms proof (induction n)
   case (Suc n)
   thus ?case 
-    unfolding binarize'_def by (simp add: binarize_syms1 Nts_syms_equI)
+    unfolding binarize'_def by (simp add: binarize_syms1 in_Nts_iff_in_Syms)
 qed simp
 
 lemma binarize_nts:

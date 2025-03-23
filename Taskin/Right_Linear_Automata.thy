@@ -27,7 +27,7 @@ next
   then show ?case by(auto simp add: nxt_rlin2_nts)
 next
   case 4
-  then show ?case by (simp add: Nts_def finite_nts_of_syms split_def)
+  then show ?case by (simp add: Nts_def finite_nts_syms split_def)
 qed
 print_theorems
 
@@ -80,11 +80,11 @@ proof -
     set ps \<turnstile> [Nt S] \<Rightarrow>* map Tm xs"
     using nxts_to_mult_derive by (metis (no_types, opaque_lifting) append.right_neutral derive.intros
       r_into_rtranclp rtranclp_trans singletonD)
- have 2: "\<And>xs. rlin2 (set ps) \<Longrightarrow> set ps \<turnstile> [Nt S] \<Rightarrow>* map Tm xs \<Longrightarrow>
+  have "\<And>A B. Nt B \<notin> syms ps \<Longrightarrow> (A, []) \<in> set ps \<Longrightarrow> A \<noteq> B" by(auto simp: Syms_def)
+  hence 2: "\<And>xs. rlin2 (set ps) \<Longrightarrow> set ps \<turnstile> [Nt S] \<Rightarrow>* map Tm xs \<Longrightarrow>
           nxts_rlin2_set (set ps) {S} xs \<inter> {A \<in> nts ps. (A, []) \<in> set ps}  \<noteq> {}"
-   using mult_derive_to_nxts rlin2_tms_eps
-   by (metis (no_types, lifting) Nts_syms_equI disjoint_iff_not_equal mem_Collect_eq
-      singletonI syms_not_eq)
+   using in_Nts_iff_in_Syms mult_derive_to_nxts rlin2_tms_eps
+   by (metis (no_types, lifting) Int_Collect empty_iff singletonI)
   show ?thesis
     unfolding NFA_rlin2.language_def Lang_def nfa_init_nfa_rlin2 nfa_final_nfa_rlin2
       nfa_nextl_nfa_rlin2[OF Un_upper1]

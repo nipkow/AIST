@@ -7,12 +7,6 @@ subsection \<open>Pumping lemma for regular languages\<close>
 abbreviation repl :: "'a list \<Rightarrow> nat \<Rightarrow> 'a list" ("_\<^sup>*/_")
   where "xs\<^sup>*n \<equiv> concat (replicate n xs)"
 
-(* CFG? *)
-lemma nts_finite: 
-  assumes "finite P" 
-  shows "finite (Nts P)"
-  unfolding Nts_def by (simp add: assms case_prod_beta finite_nts_of_syms)
-
 lemma not_distinct:
   assumes "m = card P"
       and "m \<ge> 1"
@@ -244,7 +238,7 @@ proof -
   from e_len e_def have e_elem: "\<forall>i < length e. e!i \<in> Nts P"
     using nts_nxts_ext_elem[OF assms(2)] by (auto simp: less_Suc_eq_le)
   have "finite (Nts P)"
-    using nts_finite[of P, OF assms(1)] .
+    using finite_Nts[of P, OF assms(1)] .
   with assms(2) assms(3) have m_geq_1: "m \<ge> 1"
     using less_eq_Suc_le by fastforce
   from assms(5) e_len have "\<exists>xs ys zs y. e = xs @ [y] @ ys @ [y] @ zs \<and> length (xs @ [y] @ ys @ [y]) \<le> Suc m"
@@ -344,7 +338,7 @@ proof (cases "A \<in> Nts P")
 next
   case False
   hence "Lang P A = {}"
-    by (simp add: Lang_empty_if_notin_Lhss fresh_Lhss)
+    by (auto intro!: Lang_empty_if_notin_Lhss simp add: Lhss_def Nts_def)
   thus ?thesis by simp
 qed
 

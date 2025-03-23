@@ -287,9 +287,9 @@ lemma path_nts: "Ps \<turnstile> S \<Rightarrow>\<langle>p\<rangle> w \<Longrigh
 lemma finite_Nts: "finite (Prods G) \<Longrightarrow> finite (Nts (Prods G))"
 proof -
   assume "finite (Prods G)"
-  have "\<forall>w A. finite (nts_of_syms w) \<and> finite {A}"
-    using finite_nts_of_syms by blast
-  hence "\<forall>w A. finite (nts_of_syms w \<union> {A})"
+  have "\<forall>w A. finite (nts_syms w) \<and> finite {A}"
+    using finite_nts_syms by blast
+  hence "\<forall>w A. finite (nts_syms w \<union> {A})"
     using finite_Un by simp
   thus "finite (Nts (Prods G))"
     unfolding Nts_def using \<open>finite (Prods G)\<close> by auto
@@ -297,9 +297,9 @@ qed
 
 lemma finite_nts: "finite (nts (prods G))"
 proof -
-  have "\<forall>w A. finite (nts_of_syms w) \<and> finite {A}"
-    using finite_nts_of_syms by blast
-  hence "\<forall>w A. finite (nts_of_syms w \<union> {A})"
+  have "\<forall>w A. finite (nts_syms w) \<and> finite {A}"
+    using finite_nts_syms by blast
+  hence "\<forall>w A. finite (nts_syms w \<union> {A})"
     using finite_Un by simp
   thus ?thesis
     unfolding Nts_def by auto

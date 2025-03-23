@@ -107,7 +107,7 @@ proof -
                 qed
                from splitted have "x @ (y\<^sup>*2) @ z = ([Tm a]\<^sup>*?kx) @ (([Tm a]\<^sup>*?ky)\<^sup>*2) @ ([Tm a]\<^sup>*(n - ?kx - ?ky)) @ ([Tm b]\<^sup>*n)" by simp
                also have "... = ([Tm a]\<^sup>*?kx) @ ([Tm a]\<^sup>*(?ky*2)) @ ([Tm a]\<^sup>*(n - ?kx - ?ky)) @ ([Tm b]\<^sup>*n)"
-                 using repl_mul by auto
+                 using repl_mul by (simp add: mult_2_right repl_app replicate_add)
                also have "... = ([Tm a]\<^sup>*(?kx + ?ky*2 + (n - ?kx - ?ky))) @ ([Tm b]\<^sup>*n)"
                  using replicate_add append.assoc concat_append by metis
                also from asm3 have "... = ([Tm a]\<^sup>*(n+?ky)) @ ([Tm b]\<^sup>*n)"

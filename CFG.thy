@@ -6,6 +6,12 @@ theory CFG
 imports "HOL-Library.Infinite_Typeclass"
 begin
 
+definition fresh :: "('n::infinite) set \<Rightarrow> 'n" where
+"fresh A = (SOME x. x \<notin> A)"
+
+lemma fresh_finite: "finite A \<Longrightarrow> fresh A \<notin> A"
+unfolding fresh_def by (metis arb_element someI)
+
 declare relpowp.simps(2)[simp del]
 
 lemma bex_pair_conv: "(\<exists>(x,y) \<in> R. P x y) \<longleftrightarrow> (\<exists>x y. (x,y) \<in> R \<and> P x y)"
@@ -62,9 +68,6 @@ abbreviation lhss :: "('n, 't) prods \<Rightarrow> 'n set" where
 definition Rhss :: "('n \<times> 'a) set \<Rightarrow> 'n \<Rightarrow> 'a set" where
 "Rhss P A = {w. (A,w) \<in> P}"
 
-axiomatization fresh :: "('n::infinite,'t) prods \<Rightarrow> 'n" where
-fresh: "fresh ps \<notin> Nts(set ps)"
-
 lemma inj_Nt: "inj Nt"
 by (simp add: inj_def)
 
@@ -91,6 +94,9 @@ unfolding nts_syms_def by auto
 lemma nts_syms_map_Tm[simp]: "nts_syms (map Tm w) = {}"
 unfolding nts_syms_def by auto
 
+lemma in_Nts_iff_in_Syms: "B \<in> Nts P \<longleftrightarrow> Nt B \<in> Syms P"
+unfolding Nts_def Syms_def nts_syms_def by (auto)
+
 lemma Syms_simps[simp]:
   "Syms {} = {}"
   "Syms(insert (A,w) P) = {Nt A} \<union> set w \<union> Syms P"
@@ -109,6 +115,21 @@ proof -
   from finite_inverse_image[OF _ inj_Nt]
   show ?thesis unfolding nts_syms_def using finite_inverse_image[OF _ inj_Nt] by auto
 qed
+
+lemma finite_nts: "finite(nts ps)"
+unfolding Nts_def by (simp add: finite_nts_syms split_def)
+
+lemma fresh_nts: "fresh(nts ps) \<notin> nts ps"
+by(fact fresh_finite[OF finite_nts])
+
+lemma finite_nts_prods_start: "finite(nts(prods g) \<union> {start g})"
+unfolding Nts_def by (simp add: finite_nts_syms split_def)
+
+lemma fresh_nts_prods_start: "fresh(nts(prods g) \<union> {start g}) \<notin> nts(prods g) \<union> {start g}"
+by(fact fresh_finite[OF finite_nts_prods_start])
+
+lemma finite_Nts: "finite P \<Longrightarrow> finite (Nts P)"
+unfolding Nts_def by (simp add: case_prod_beta finite_nts_syms)
 
 subsection "Derivations"
 

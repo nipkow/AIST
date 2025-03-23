@@ -28,16 +28,13 @@ unfolding Nts_def nts_syms_def by auto
 
 (* Chomsky Normal Form *)
 
-axiomatization fresh :: "('n::infinite,'t) cfg \<Rightarrow> 'n" where
-fresh: "fresh g \<notin> Nts(set (prods g)) \<union> {start g}"
-
 abbreviation L :: "('n,'t) cfg \<Rightarrow> 't list set" where
   "L g \<equiv> Lang (set (prods g)) (start g)"
 
 definition uniformize :: "'n::infinite \<Rightarrow> 't \<Rightarrow> ('n, 't) cfg \<Rightarrow> ('n, 't) cfg \<Rightarrow> bool" where 
       "uniformize A t g g' \<equiv> (
     \<exists> l r p s. (l,r) \<in> set (prods g) \<and> (r = p@[Tm t]@s) 
-    \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A = fresh g)
+    \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> A = fresh(nts(prods g) \<union> {start g})
     \<and> prods g' = ((removeAll (l,r) (prods g)) @ [(A,[Tm t]), (l, p@[Nt A]@s)]) 
     \<and> start g' = start g)"
 
@@ -173,7 +170,7 @@ qed
 definition binarizeNt :: "'n::infinite \<Rightarrow> 'n \<Rightarrow> 'n \<Rightarrow> ('n,'t) cfg \<Rightarrow> ('n,'t) cfg \<Rightarrow> bool" where
       "binarizeNt A B\<^sub>1 B\<^sub>2 g g' \<equiv> (
     \<exists>l r p s. (l,r) \<in> set (prods g) \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s)
-    \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A = fresh g)
+    \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A = fresh(nts(prods g) \<union> {start g}))
     \<and> prods g' = ((removeAll (l,r) (prods g)) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)])
     \<and> start g' = start g)"
 
@@ -205,7 +202,7 @@ qed
 lemma binarizeNt_aux1:
   assumes "binarizeNt A B\<^sub>1 B\<^sub>2 g g'"
   shows "A \<noteq> B\<^sub>1 \<and> A \<noteq> B\<^sub>2"
-  using assms fresh unfolding binarizeNt_def Nts_def nts_syms_def by fastforce
+  using assms fresh_nts_prods_start unfolding binarizeNt_def Nts_def nts_syms_def by fastforce
 
 lemma derives_sub:
   assumes "P \<turnstile> [Nt A] \<Rightarrow> u" and "P \<turnstile> xs \<Rightarrow> p @ [Nt A] @ s"
@@ -226,7 +223,7 @@ proof -
     using derive.cases[OF assms(2)] by fastforce
   obtain l r p s where "(l,r) \<in> set (prods g) \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set (prods g)))
       \<and> set (prods g') = ((set (prods g) - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})" (is "?lrps")
-    using assms(1) set_removeAll fresh unfolding uniformize_def by fastforce
+    using assms(1) set_removeAll fresh_nts_prods_start unfolding uniformize_def by fastforce
   thus ?thesis
   proof (cases "(B, v) \<in> set (prods g')")
     case True
@@ -256,7 +253,7 @@ proof -
     using derive.cases[OF assms(2)] by fastforce
   obtain l r p s where "(l,r) \<in> set (prods g) \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set (prods g)))
     \<and> (set (prods g') = ((set (prods g) - {(l,r)}) \<union> {(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)}))" (is "?lrps")
-    using assms(1) set_removeAll fresh unfolding binarizeNt_def by fastforce
+    using assms(1) set_removeAll fresh_nts_prods_start unfolding binarizeNt_def by fastforce
   thus ?thesis
   proof (cases "(C, v) \<in> set (prods g')")
     case True
@@ -288,7 +285,7 @@ lemma slemma1_1:
   shows "\<alpha> = [Tm t]"
 proof -
   have "A \<notin> Nts (set (prods g))"
-    using assms(1) fresh unfolding uniformize_def by blast
+    using assms(1) fresh_nts_prods_start unfolding uniformize_def by blast
   hence "\<nexists>\<alpha>. (A, \<alpha>) \<in> set (prods g)"
     unfolding Nts_def by auto
   hence "\<nexists>\<alpha>. \<alpha> \<noteq> [Tm t] \<and> (A, \<alpha>) \<in> set (prods g')"
@@ -303,7 +300,7 @@ lemma slemma1_1Nt:
   shows "\<alpha> = [Nt B\<^sub>1,Nt B\<^sub>2]"
 proof -
   have "A \<notin> Nts (set (prods g))"
-    using assms(1) fresh unfolding binarizeNt_def by blast
+    using assms(1) fresh_nts_prods_start unfolding binarizeNt_def by blast
   hence "\<nexists>\<alpha>. (A, \<alpha>) \<in> set (prods g)"
     unfolding Nts_def  by auto
   hence "\<nexists>\<alpha>. \<alpha> \<noteq> [Nt B\<^sub>1,Nt B\<^sub>2] \<and> (A, \<alpha>) \<in> set (prods g')"
@@ -339,7 +336,7 @@ lemma slemma4_4:
   shows "(Nt A) \<notin> set r"
 proof -
   have "A \<notin> Nts (set (prods g))"
-    using assms(1) fresh unfolding uniformize_def by blast
+    using assms(1) fresh_nts_prods_start unfolding uniformize_def by blast
   hence "\<nexists>S \<alpha>. (S, \<alpha>) \<in> set (prods g) \<and> (Nt A \<in> {Nt S} \<union> set \<alpha>)"
     using Nts_correct[of A \<open>set (prods g)\<close>] by blast
   thus ?thesis 
@@ -352,7 +349,7 @@ lemma slemma4_4Nt:
   shows "(Nt A) \<notin> set r"
 proof -
   have "A \<notin> Nts (set (prods g))"
-    using assms(1) fresh unfolding binarizeNt_def by blast
+    using assms(1) fresh_nts_prods_start unfolding binarizeNt_def by blast
   hence "\<nexists>S \<alpha>. (S, \<alpha>) \<in> set (prods g) \<and> (Nt A \<in> {Nt S} \<union> set \<alpha>)"
     using Nts_correct[of A \<open>set (prods g)\<close>] by blast
   thus ?thesis 
@@ -367,7 +364,7 @@ lemma lemma1:
 proof -
   obtain l r p s where "(l,r) \<in> set (prods g) \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set (prods g))) 
       \<and> set (prods g') = ((set (prods g) - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})" (is "?lrps")
-    using assms(1) set_removeAll fresh unfolding uniformize_def by fastforce
+    using assms(1) set_removeAll fresh_nts_prods_start unfolding uniformize_def by fastforce
   obtain p' s' u v where "lhs = p'@[Nt u]@s' \<and> rhs = p'@v@s' \<and> (u,v) \<in> set (prods g')" (is "?uv")
     using derive.cases[OF assms(2)] by fastforce
   thus ?thesis
@@ -438,7 +435,7 @@ lemma lemma1Nt:
 proof -
   obtain l r p s where "(l,r) \<in> set (prods g) \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set (prods g)))
     \<and> (set (prods g') = ((set (prods g) - {(l,r)}) \<union> {(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)}))" (is "?lrps")
-    using assms(1) set_removeAll fresh unfolding binarizeNt_def by fastforce
+    using assms(1) set_removeAll fresh_nts_prods_start unfolding binarizeNt_def by fastforce
   obtain p' s' u v where "lhs = p'@[Nt u]@s' \<and> rhs = p'@v@s' \<and> (u,v) \<in> set (prods g')" (is "?uv")
     using derive.cases[OF assms(2)] by fastforce
   thus ?thesis
@@ -545,7 +542,7 @@ proof
   hence "set (prods g) \<turnstile> update (A, [Tm t]) [Nt (start g)] \<Rightarrow>*  update (A, [Tm t]) (map Tm w)"
     using assms lemma3[of g' \<open>[Nt (start g)]\<close> \<open>map Tm w\<close> A t g] by blast
   moreover have "update (A, [Tm t]) [Nt (start g)] = [Nt (start g)]"
-    using assms fresh unfolding uniformize_def 
+    using assms fresh_nts_prods_start unfolding uniformize_def 
     by (metis Un_iff singletonI slemma4_2_0 slemma4_2_1) 
   moreover have "update (A, [Tm t]) (map Tm w) = map Tm w" 
     using \<open>w \<in> L g'\<close> slemma4_7 by metis
@@ -566,7 +563,7 @@ proof
   hence "set (prods g) \<turnstile> update (A, [Nt B\<^sub>1, Nt B\<^sub>2]) [Nt (start g)] \<Rightarrow>*  update (A, [Nt B\<^sub>1, Nt B\<^sub>2]) (map Tm w)"
     using assms lemma3Nt[of g' \<open>[Nt (start g)]\<close> \<open>map Tm w\<close> A B\<^sub>1 B\<^sub>2 g] by blast
   moreover have "update (A, [Nt B\<^sub>1, Nt B\<^sub>2]) [Nt (start g)] = [Nt (start g)]"
-    using assms fresh unfolding binarizeNt_def 
+    using assms fresh_nts_prods_start unfolding binarizeNt_def 
     by (metis UnCI singletonI slemma4_2_0 slemma4_2_1)
   moreover have "update (A, [Nt B\<^sub>1, Nt B\<^sub>2]) (map Tm w) = map Tm w" 
     using \<open>w \<in> L g'\<close> slemma4_7 by metis
@@ -651,7 +648,7 @@ lemma uniformize_Nts:
 proof -
   obtain l r p s where "(l,r) \<in> set (prods g) \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set (prods g))) 
       \<and> set (prods g') = ((set (prods g) - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})" (is "?lrps")
-    using assms(1) set_removeAll fresh unfolding uniformize_def by fastforce
+    using assms(1) set_removeAll fresh_nts_prods_start unfolding uniformize_def by fastforce
   thus ?thesis
   proof (cases "S \<in> Nts {(l,r)}")
     case True
@@ -679,7 +676,7 @@ lemma binarizeNt_Nts:
 proof -
   obtain l r p s where "(l,r) \<in> set (prods g) \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set (prods g)))
     \<and> (set (prods g') = ((set (prods g) - {(l,r)}) \<union> {(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)}))" (is "?lrps")
-    using assms(1) set_removeAll fresh unfolding binarizeNt_def by fastforce
+    using assms(1) set_removeAll fresh_nts_prods_start unfolding binarizeNt_def by fastforce
     thus ?thesis
   proof (cases "S \<in> Nts {(l,r)}")
     case True
@@ -752,7 +749,7 @@ proof -
   assume "uniformize A t g g'"
   then obtain l r p s where "(l,r) \<in> set (prods g) \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set (prods g))) 
       \<and> prods g' = ((removeAll (l,r) (prods g)) @ [(A,[Tm t]), (l, p@[Nt A]@s)])" (is "?lrps")
-    using fresh unfolding uniformize_def by auto
+    using fresh_nts_prods_start unfolding uniformize_def by auto
   hence "prodTms (l,p@[Tm t]@s) = length (filter (isTm) (p@[Tm t]@s))"
     unfolding prodTms_def by auto
   hence 1: "prodTms (l,p@[Tm t]@s) = Suc (length (filter (isTm) (p@s)))"
@@ -786,7 +783,7 @@ proof -
   assume "binarizeNt A B\<^sub>1 B\<^sub>2 g g'"
   then obtain l r p s where "(l,r) \<in> set (prods g) \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set (prods g)))
     \<and> prods g' = ((removeAll (l,r) (prods g)) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)])" (is "?lrps")
-    using fresh unfolding binarizeNt_def by auto
+    using fresh_nts_prods_start unfolding binarizeNt_def by auto
   hence "prodNts (l,p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) = length (filter (isNt) (p@[Nt B\<^sub>1,Nt B\<^sub>2]@s))"
     unfolding prodNts_def by auto
   hence 1: "prodNts (l,p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) = Suc (Suc (length (filter (isNt) (p@s))))"
@@ -825,7 +822,7 @@ lemma slemma15_a:
 proof -
   obtain l r p s where "(l,r) \<in> set (prods g) \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set (prods g)))
     \<and> (prods g' = ((removeAll (l,r) (prods g)) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)]))" (is "?lrps")
-    using assms(1) fresh unfolding binarizeNt_def by auto
+    using assms(1) fresh_nts_prods_start unfolding binarizeNt_def by auto
   hence "badTmsCount (prods g') = badTmsCount (removeAll (l,r) (prods g)) + badTmsCount [(l, (p@[Nt A]@s))]"
     by (auto simp: badTmsCount_append prodTms_def isTm_def)
   moreover have "badTmsCount (removeAll (l,r) (prods g)) = 0"
@@ -900,7 +897,7 @@ proof -
     using badTmsCountNot0 by blast
   from this obtain p s where "r = p@[Tm t]@s \<and> (p \<noteq> [] \<or> s \<noteq> [])" (is "?ps")
     unfolding isTm_def using \<open>?lr\<close> list_longer2[of r] by blast
-  from this obtain A g' where "A = fresh g \<and> g' = cfg (removeAll (l, r) (prods g) @ [(A, [Tm t]), (l, p @ [Nt A] @ s)]) (start g)" 
+  from this obtain A g' where "A = fresh(nts(prods g) \<union> {start g}) \<and> g' = cfg (removeAll (l, r) (prods g) @ [(A, [Tm t]), (l, p @ [Nt A] @ s)]) (start g)" 
     by auto
   hence "uniformize A t g g'"
     unfolding uniformize_def using \<open>?lr\<close>  \<open>?ps\<close> by auto
@@ -921,7 +918,7 @@ proof -
     using isNt_def \<open>?psXY\<close> by fastforce
   hence "(r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> [])" (is "?B")
     using \<open>?psXY\<close> by auto
-  from this obtain A g' where "A = fresh g \<and> g' = cfg (removeAll (l, r) (prods g) @ [(A, [Nt B\<^sub>1, Nt B\<^sub>2]), (l, p @ [Nt A] @ s)]) (start g)"
+  from this obtain A g' where "A = fresh(nts(prods g) \<union> {start g}) \<and> g' = cfg (removeAll (l, r) (prods g) @ [(A, [Nt B\<^sub>1, Nt B\<^sub>2]), (l, p @ [Nt A] @ s)]) (start g)"
     by simp
   hence "binarizeNt A B\<^sub>1 B\<^sub>2 g g'"
     unfolding binarizeNt_def using \<open>?lr\<close> \<open>?B\<close> by auto

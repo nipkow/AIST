@@ -60,7 +60,7 @@ fun finalize1 :: "('n :: infinite, 't) prods \<Rightarrow> ('n, 't) prods \<Righ
   "finalize1 ps' [] = []"
 | "finalize1 ps' ((A,[])#ps) = (A,[]) # finalize1 ps' ps"
 | "finalize1 ps' ((A,w)#ps) = 
-    (if \<exists>u. w = map Tm u then let B = fresh ps' in (A,w @ [Nt B])#(B,[])#ps else (A,w) # finalize1 ps' ps)"
+    (if \<exists>u. w = map Tm u then let B = fresh(nts ps') in (A,w @ [Nt B])#(B,[])#ps else (A,w) # finalize1 ps' ps)"
 
 definition finalize' :: "('n::infinite, 't) prods \<Rightarrow> ('n, 't) prods" where
   "finalize' ps = finalize1 ps ps"
@@ -83,7 +83,7 @@ using assms proof (induction ps' ps rule: finalize1.induct)
   case (3 ps' A v va ps)
   thus ?case proof (cases "\<exists>u. v # va = map Tm u")
     case True
-    let ?B = "fresh ps'"
+    let ?B = "fresh(nts ps')"
     have not_tm: "\<nexists>u. v # va @ [Nt ?B] = map Tm u"
       by (simp add: ex_map_conv)
     from True have "countfin (finalize1 ps' ((A, v # va) # ps)) = countfin ((A,v#va @ [Nt ?B])#(?B,[])#ps)"
@@ -204,7 +204,8 @@ next
   case (3 ps' C v va ps)
   thus ?case proof (cases "\<exists>u. v#va = map Tm u")
     case True
-    thus ?thesis by simp (metis append_Cons fresh fresh_syms list.simps(15))
+    thus ?thesis using fresh_nts in_Nts_iff_in_Syms
+      by (simp add: Let_def) fastforce
   next
     case false1: False
     thus ?thesis proof (cases "finalize1 ps' ps = ps")
@@ -226,26 +227,26 @@ lemma finalize_der':
   case False
   then obtain C w ps'' B where defs: "set ps = {(C, w)} \<union> set ps'' \<and> set (finalize1 ps ps) = {(C, w @ [Nt B]), (B, [])} \<union> set ps'' \<and> Nt B \<notin> syms ps"
     by (meson finalize1_cases)
-  from defs have a_not_b: "C \<noteq> B" using syms_not_eq by fast
-  from defs assms have a1: "A \<noteq> B" using syms_Lhss_not_eq by fastforce
+  from defs have a_not_b: "C \<noteq> B" unfolding Syms_def by fast
+  from defs assms have a1: "A \<noteq> B" unfolding Lhss_def Syms_def by auto
   from defs have a2: "Nt B \<notin> set (map Tm x)" by auto
   from defs have a3: "Nt B \<notin> set []" by simp
   from defs have "set ps = set ((C, w) # ps'')" by simp
   with defs a_not_b have a4: "B \<notin> lhss ((C, w @ [Nt B]) # ps'')"
-    unfolding Lhss_def by auto (meson insert_iff syms_inv)
+    unfolding Lhss_def Syms_def by auto
   from defs have notB: "Nt B \<notin> syms ps''" unfolding Syms_def by blast
-  then have 1: "set ps = set (substP ((C, w @ [Nt B]) # ps'') (Nt B) [])" proof -
+  then have 1: "set ps = set (substP (Nt B) [] ((C, w @ [Nt B]) # ps''))" proof -
     from defs have s1: "Nt B \<notin> syms ps" unfolding Syms_def by meson
     from defs have s2: "(C,w) \<in> set ps" by blast
-    from s1 s2 have b_notin_w: "Nt B \<notin> set w" using syms_not_set by fastforce
+    from s1 s2 have b_notin_w: "Nt B \<notin> set w" unfolding Syms_def by fastforce
     from defs have "set ps = {(C, w)} \<union> set ps''" by simp
     also have "... = set ((C, w) # ps'')" by simp
     also have "... = set ([(C, w)] @ ps'')" by simp
-    also from defs have "... = set ([(C,substW (w @ [Nt B]) (Nt B) [])] @ ps'')" using b_notin_w
+    also from defs have "... = set ([(C,substW (Nt B) [] (w @ [Nt B]))] @ ps'')" using b_notin_w
       by (simp add: substW_skip substW_split)
-    also have "... = set ((substP [(C, w @ [Nt B])] (Nt B) []) @ ps'')" by (simp add: substP_def)
-    also have "... = set ((substP [(C, w @ [Nt B])] (Nt B) []) @ substP ps'' (Nt B) [])" using notB by (simp add: substP_skip2)
-    also have "... = set (substP ((C, w @ [Nt B]) # ps'') (Nt B) [])" by (simp add: substP_def)
+    also have "... = set ((substP (Nt B) [] [(C, w @ [Nt B])]) @ ps'')" by (simp add: substP_def)
+    also have "... = set ((substP (Nt B) [] [(C, w @ [Nt B])]) @ substP (Nt B) [] ps'')" using notB by (simp add: substP_skip2)
+    also have "... = set (substP (Nt B) [] ((C, w @ [Nt B]) # ps''))" by (simp add: substP_def)
     finally show ?thesis .
   qed
   from defs have 2: "set (finalize1 ps ps) = set ((C, w @ [Nt B]) # (B, []) # ps'')" by auto
@@ -314,7 +315,7 @@ lemma finalize_nts'n:
   using assms proof (induction n)
   case (Suc n)
   thus ?case
-    unfolding finalize'_def by (simp add: finalize_syms1 Nts_syms_equI)
+    unfolding finalize'_def by (simp add: finalize_syms1 in_Nts_iff_in_Syms)
 qed simp
 
 lemma finalize_nts:
@@ -330,7 +331,7 @@ using assms proof (induction ps' ps rule: finalize1.induct)
   case (3 ps' A v va ps)
   thus ?case proof (cases "\<exists>u. v#va = map Tm u")
     case True
-    with 3 show ?thesis unfolding Lhss_def by (auto simp: Let_def fresh)
+    with 3 show ?thesis unfolding Lhss_def by (auto simp: Let_def fresh_nts)
   next
     case False
     with 3 show ?thesis unfolding Lhss_def by (auto simp: Let_def)
@@ -344,7 +345,7 @@ lemma finalize_lhss_nts'n:
   using assms proof (induction n)
   case (Suc n)
   thus ?case
-    unfolding finalize'_def by (simp add: finalize_lhss_nts1 finalize_syms1 Nts_syms_equI)
+    unfolding finalize'_def by (simp add: finalize_lhss_nts1 finalize_syms1 in_Nts_iff_in_Syms)
 qed simp
 
 lemma finalize_lhss_nts:
@@ -419,7 +420,7 @@ next
       by (simp add: rlin_noterm_def)
   next
     case False
-    let ?B = "fresh ps'"
+    let ?B = "fresh(nts ps')"
     from "3.prems" have a1: "rlin_noterm (set ps)"
       by (simp add: rlin_noterm_def)
     from "3.prems" have ex: "\<exists>v B. s0 # u = map Tm v @ [Nt B]"

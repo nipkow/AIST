@@ -24,7 +24,7 @@ lemma upgr_Eps_free:
   unfolding \<U>_def Eps_free_def unit_elim_def unit_prods_def new_prods_def by auto
 
 lemma Nts_correct: "A \<notin> Nts P \<Longrightarrow> (\<nexists>S \<alpha>. (S, \<alpha>) \<in> P \<and> (Nt A \<in> {Nt S} \<union> set \<alpha>))"
-unfolding Nts_def nts_of_syms_def by auto
+unfolding Nts_def nts_syms_def by auto
 
 (* Chomsky Normal Form *)
 
@@ -205,7 +205,7 @@ qed
 lemma binarizeNt_aux1:
   assumes "binarizeNt A B\<^sub>1 B\<^sub>2 g g'"
   shows "A \<noteq> B\<^sub>1 \<and> A \<noteq> B\<^sub>2"
-  using assms fresh unfolding binarizeNt_def Nts_def nts_of_syms_def by fastforce
+  using assms fresh unfolding binarizeNt_def Nts_def nts_syms_def by fastforce
 
 lemma derives_sub:
   assumes "P \<turnstile> [Nt A] \<Rightarrow> u" and "P \<turnstile> xs \<Rightarrow> p @ [Nt A] @ s"
@@ -656,7 +656,7 @@ proof -
   proof (cases "S \<in> Nts {(l,r)}")
     case True
     hence "S \<in> Nts {(A,[Tm t]), (l, p@[Nt A]@s)}"
-      unfolding Nts_def nts_of_syms_def using \<open>?lrps\<close> by auto
+      unfolding Nts_def nts_syms_def using \<open>?lrps\<close> by auto
     then show ?thesis using  \<open>?lrps\<close> Nts_aux1 by (metis UnCI)
   next
     case False
@@ -684,7 +684,7 @@ proof -
   proof (cases "S \<in> Nts {(l,r)}")
     case True
     hence "S \<in> Nts {(A,[Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)}"
-      unfolding Nts_def nts_of_syms_def using \<open>?lrps\<close> by auto
+      unfolding Nts_def nts_syms_def using \<open>?lrps\<close> by auto
     then show ?thesis 
       using  \<open>?lrps\<close> Nts_aux1 by (metis UnCI)
   next

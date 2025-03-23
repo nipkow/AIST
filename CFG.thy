@@ -29,17 +29,17 @@ type_synonym ('n,'t) Prods = "('n,'t) prod set"
 datatype ('n,'t) cfg = cfg (prods : "('n,'t) prods") (start : "'n")
 datatype ('n,'t) Cfg = Cfg (Prods : "('n,'t) Prods") (Start : "'n")
 
-definition nts_of_syms :: "('n,'t)syms \<Rightarrow> 'n set" where
-"nts_of_syms w = {A. Nt A \<in> set w}"
+definition nts_syms :: "('n,'t)syms \<Rightarrow> 'n set" where
+"nts_syms w = {A. Nt A \<in> set w}"
 
-definition tms_of_syms :: "('n,'t)syms \<Rightarrow> 't set" where
-"tms_of_syms w = {a. Tm a \<in> set w}"
+definition tms_syms :: "('n,'t)syms \<Rightarrow> 't set" where
+"tms_syms w = {a. Tm a \<in> set w}"
 
 definition Nts :: "('n,'t)Prods \<Rightarrow> 'n set" where
-  "Nts P = (\<Union>(A,w)\<in>P. {A} \<union> nts_of_syms w)"
+  "Nts P = (\<Union>(A,w)\<in>P. {A} \<union> nts_syms w)"
 
 definition Tms :: "('n,'t)Prods \<Rightarrow> 't set" where 
-  "Tms P = (\<Union>(A,w)\<in>P. tms_of_syms w)"
+  "Tms P = (\<Union>(A,w)\<in>P. tms_syms w)"
 
 abbreviation nts :: "('n,'t) prods \<Rightarrow> 'n set" where
   "nts P \<equiv> Nts (set P)"
@@ -76,14 +76,20 @@ by (cases u) auto
 
 lemmas map_Tm_eq_map_Nt_iff[simp] = eq_iff_swap[OF map_Nt_eq_map_Tm_iff]
 
-lemma nts_of_syms_Cons: "nts_of_syms (a#v) = (case a of Nt A \<Rightarrow> {A} | _ \<Rightarrow> {}) \<union> nts_of_syms v"
-by (auto simp: nts_of_syms_def split: sym.split)
+lemma nts_syms_Nil[simp]: "nts_syms [] = {}"
+unfolding nts_syms_def by auto
 
-lemma nts_of_syms_append[simp]: "nts_of_syms (u @ v) = nts_of_syms u \<union> nts_of_syms v"
-by (auto simp: nts_of_syms_def)
+lemma nts_syms_Cons[simp]: "nts_syms (a#v) = (case a of Nt A \<Rightarrow> {A} | _ \<Rightarrow> {}) \<union> nts_syms v"
+by (auto simp: nts_syms_def split: sym.split)
 
-lemma nts_of_syms_map_Nt[simp]: "nts_of_syms (map Nt ns) = set ns"
-unfolding nts_of_syms_def by auto
+lemma nts_syms_append[simp]: "nts_syms (u @ v) = nts_syms u \<union> nts_syms v"
+by (auto simp: nts_syms_def)
+
+lemma nts_syms_map_Nt[simp]: "nts_syms (map Nt w) = set w"
+unfolding nts_syms_def by auto
+
+lemma nts_syms_map_Tm[simp]: "nts_syms (map Tm w) = {}"
+unfolding nts_syms_def by auto
 
 lemma Syms_simps[simp]:
   "Syms {} = {}"
@@ -97,11 +103,11 @@ lemma Lhss_simps[simp]:
   "Lhss(P \<union> P') = Lhss P \<union> Lhss P'"
 by(auto simp: Lhss_def)
 
-lemma finite_nts_of_syms: "finite (nts_of_syms w)"
+lemma finite_nts_syms: "finite (nts_syms w)"
 proof -
   have "Nt ` {A. Nt A \<in> set w} \<subseteq> set w" by auto
   from finite_inverse_image[OF _ inj_Nt]
-  show ?thesis unfolding nts_of_syms_def using finite_inverse_image[OF _ inj_Nt] by auto
+  show ?thesis unfolding nts_syms_def using finite_inverse_image[OF _ inj_Nt] by auto
 qed
 
 subsection "Derivations"
@@ -155,6 +161,67 @@ lemma derive_iff: "R \<turnstile> u \<Rightarrow> v \<longleftrightarrow> (\<exi
 lemma Un_derive: "R \<union> S \<turnstile> y \<Rightarrow> z \<longleftrightarrow> R \<turnstile> y \<Rightarrow> z \<or> S \<turnstile> y \<Rightarrow> z"
   by (fastforce simp: derive_iff)
 
+lemma derives_rule:
+  assumes 2: "(A,w) \<in> R" and 1: "R \<turnstile> x \<Rightarrow>* y @ Nt A # z" and 3: "R \<turnstile> y@w@z \<Rightarrow>* v"
+  shows "R \<turnstile> x \<Rightarrow>* v"
+proof-
+  note 1
+  also have "R \<turnstile> y @ Nt A # z \<Rightarrow> y @ w @ z"
+    using derive.intros[OF 2] by simp
+  also note 3
+  finally show ?thesis.
+qed
+
+lemma derives_Cons_rule:
+  assumes 1: "(A,w) \<in> R" and 2: "R \<turnstile> w @ u \<Rightarrow>* v" shows "R \<turnstile> Nt A # u \<Rightarrow>* v"
+  using derives_rule[OF 1, of "Nt A # u" "[]" u v] 2 by auto
+
+subsubsection "Customized Induction Principles"
+
+lemma deriven_induct[consumes 1, case_names 0 Suc]:
+  assumes "P \<turnstile> xs \<Rightarrow>(n) ys"
+  and "Q 0 xs"
+  and "\<And>n u A v w. \<lbrakk> P \<turnstile> xs \<Rightarrow>(n) u @ [Nt A] @ v; Q n (u @ [Nt A] @ v); (A,w) \<in> P \<rbrakk> \<Longrightarrow> Q (Suc n) (u @ w @ v)"
+  shows "Q n ys"
+using assms(1) proof (induction n arbitrary: ys)
+  case 0
+  thus ?case using assms(2) by auto
+next
+  case (Suc n)
+  from relpowp_Suc_E[OF Suc.prems]
+  obtain xs' where n: "P \<turnstile> xs \<Rightarrow>(n) xs'" and 1: "P \<turnstile> xs' \<Rightarrow> ys" by auto
+  from derive.cases[OF 1] obtain u A v w where "xs' = u @ [Nt A] @ v" "(A,w) \<in> P" "ys = u @ w @ v"
+    by metis
+  with Suc.IH[OF n] assms(3) n
+  show ?case by blast
+qed
+
+lemma derives_induct[consumes 1, case_names base step]:
+  assumes "P \<turnstile> xs \<Rightarrow>* ys"
+  and "Q xs"
+  and "\<And>u A v w. \<lbrakk> P \<turnstile> xs \<Rightarrow>* u @ [Nt A] @ v; Q (u @ [Nt A] @ v); (A,w) \<in> P \<rbrakk> \<Longrightarrow> Q (u @ w @ v)"
+  shows "Q ys"
+using assms
+proof (induction rule: rtranclp_induct)
+  case base
+  from this(1) show ?case .
+next
+  case step
+  from derive.cases[OF step(2)] step(1,3-) show ?case by metis
+qed
+
+lemma converse_derives_induct[consumes 1, case_names base step]:
+  assumes "P \<turnstile> xs \<Rightarrow>* ys"
+  and Base: "Q ys"
+  and Step: "\<And>u A v w. \<lbrakk> P \<turnstile> u @ [Nt A] @ v \<Rightarrow>* ys; Q (u @ w @ v); (A,w) \<in> P \<rbrakk> \<Longrightarrow> Q (u @ [Nt A] @ v)"
+  shows "Q xs"
+  using assms(1)
+  apply (induction rule: converse_rtranclp_induct)
+  by (auto elim!: derive.cases intro!: Base Step intro: derives_rule)
+
+
+subsubsection "Lemmas: \<open>\<turnstile> \<Rightarrow>\<close>, \<open>(@)\<close> etc"
+
 lemma derive_append:
   "\<G> \<turnstile> u \<Rightarrow> v \<Longrightarrow> \<G> \<turnstile> u@w \<Rightarrow> v@w"
 apply(erule derive.cases)
@@ -184,21 +251,6 @@ lemma derives_append:
 lemma derives_prepend:
   "P \<turnstile> u \<Rightarrow>* v \<Longrightarrow> P \<turnstile> w@u \<Rightarrow>* w@v"
   by (metis deriven_prepend rtranclp_power)
-
-lemma derives_rule:
-  assumes 2: "(A,w) \<in> R" and 1: "R \<turnstile> x \<Rightarrow>* y @ Nt A # z" and 3: "R \<turnstile> y@w@z \<Rightarrow>* v"
-  shows "R \<turnstile> x \<Rightarrow>* v"
-proof-
-  note 1
-  also have "R \<turnstile> y @ Nt A # z \<Rightarrow> y @ w @ z"
-    using derive.intros[OF 2] by simp
-  also note 3
-  finally show ?thesis.
-qed
-
-lemma derives_Cons_rule:
-  assumes 1: "(A,w) \<in> R" and 2: "R \<turnstile> w @ u \<Rightarrow>* v" shows "R \<turnstile> Nt A # u \<Rightarrow>* v"
-  using derives_rule[OF 1, of "Nt A # u" "[]" u v] 2 by auto
 
 lemma derive_append_decomp:
   "P \<turnstile> u@v \<Rightarrow> w \<longleftrightarrow>
@@ -443,50 +495,6 @@ proof
 qed
 
 
-subsubsection "Customized Induction Principles"
-
-lemma deriven_induct[consumes 1, case_names 0 Suc]:
-  assumes "P \<turnstile> xs \<Rightarrow>(n) ys"
-  and "Q 0 xs"
-  and "\<And>n u A v w. \<lbrakk> P \<turnstile> xs \<Rightarrow>(n) u @ [Nt A] @ v; Q n (u @ [Nt A] @ v); (A,w) \<in> P \<rbrakk> \<Longrightarrow> Q (Suc n) (u @ w @ v)"
-  shows "Q n ys"
-using assms(1) proof (induction n arbitrary: ys)
-  case 0
-  thus ?case using assms(2) by auto
-next
-  case (Suc n)
-  from relpowp_Suc_E[OF Suc.prems]
-  obtain xs' where n: "P \<turnstile> xs \<Rightarrow>(n) xs'" and 1: "P \<turnstile> xs' \<Rightarrow> ys" by auto
-  from derive.cases[OF 1] obtain u A v w where "xs' = u @ [Nt A] @ v" "(A,w) \<in> P" "ys = u @ w @ v"
-    by metis
-  with Suc.IH[OF n] assms(3) n
-  show ?case by blast
-qed
-
-lemma derives_induct[consumes 1, case_names base step]:
-  assumes "P \<turnstile> xs \<Rightarrow>* ys"
-  and "Q xs"
-  and "\<And>u A v w. \<lbrakk> P \<turnstile> xs \<Rightarrow>* u @ [Nt A] @ v; Q (u @ [Nt A] @ v); (A,w) \<in> P \<rbrakk> \<Longrightarrow> Q (u @ w @ v)"
-  shows "Q ys"
-using assms
-proof (induction rule: rtranclp_induct)
-  case base
-  from this(1) show ?case .
-next
-  case step
-  from derive.cases[OF step(2)] step(1,3-) show ?case by metis
-qed
-
-lemma converse_derives_induct[consumes 1, case_names base step]:
-  assumes "P \<turnstile> xs \<Rightarrow>* ys"
-  and Base: "Q ys"
-  and Step: "\<And>u A v w. \<lbrakk> P \<turnstile> u @ [Nt A] @ v \<Rightarrow>* ys; Q (u @ w @ v); (A,w) \<in> P \<rbrakk> \<Longrightarrow> Q (u @ [Nt A] @ v)"
-  shows "Q xs"
-  using assms(1)
-  apply (induction rule: converse_rtranclp_induct)
-  by (auto elim!: derive.cases intro!: Base Step intro: derives_rule)
-
-
 lemma derives_NilD: "P \<turnstile> w \<Rightarrow>* [] \<Longrightarrow> s \<in> set w \<Longrightarrow> P \<turnstile> [s] \<Rightarrow>* []"
 proof(induction arbitrary: s rule: converse_derives_induct)
   case base
@@ -507,6 +515,26 @@ next
   case (step u A v w)
   then show ?case
     by (meson assms derives_append derives_prepend rtranclp_trans)
+qed
+
+lemma derives_set_subset:
+  "P \<turnstile> u \<Rightarrow>* v \<Longrightarrow> set v \<subseteq> set u \<union> Syms P"
+proof (induction rule: derives_induct)
+  case base
+  then show ?case by simp
+next
+  case (step u A v w)
+  then show ?case unfolding Syms_def by (auto)
+qed
+
+lemma derives_nts_syms_subset:
+  "P \<turnstile> u \<Rightarrow>* v \<Longrightarrow> nts_syms v \<subseteq> nts_syms u \<union> Nts P"
+proof (induction rule: derives_induct)
+  case base
+  then show ?case by simp
+next
+  case (step u A v w)
+  then show ?case unfolding Nts_def nts_syms_def by (auto)
 qed
 
 

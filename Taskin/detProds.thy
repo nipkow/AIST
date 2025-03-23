@@ -18,8 +18,8 @@ lemma Tms_un:
   unfolding Tms_def by blast
 
 (* CFG? *)
-lemma nt_tm: "Nt ` nts_of_syms u \<union> Tm ` tms_of_syms u = set u"
-unfolding nts_of_syms_def tms_of_syms_def by (auto simp:image_iff) (metis sym.exhaust)
+lemma nt_tm: "Nt ` nts_syms u \<union> Tm ` tms_of_syms u = set u"
+unfolding nts_syms_def tms_of_syms_def by (auto simp:image_iff) (metis sym.exhaust)
 
 (* CFG? *)
 lemma lhss_eq: "lhss ((A,u) # ps) = lhss ((A,s) # ps)"
@@ -35,26 +35,26 @@ lemma fresh_Lhss: "B \<notin> Nts P \<Longrightarrow> B \<notin> Lhss P"
 by (auto simp: Lhss_def Nts_def)
 
 (* CFG? *)
-lemma nts_of_syms_set1: "B \<notin> nts_of_syms u \<Longrightarrow> Nt B \<notin> set u"
-  by (simp add: nts_of_syms_def)
+lemma nts_syms_set1: "B \<notin> nts_syms u \<Longrightarrow> Nt B \<notin> set u"
+  by (simp add: nts_syms_def)
 
 (* CFG? *)
-lemma nts_of_syms_set2: "Nt B \<notin> set u \<Longrightarrow> B \<notin> nts_of_syms u"
-  by (simp add: nts_of_syms_def)
+lemma nts_syms_set2: "Nt B \<notin> set u \<Longrightarrow> B \<notin> nts_syms u"
+  by (simp add: nts_syms_def)
 
 (* CFG? *)
 lemma Nts_to_syms: "B \<in> Nts P \<Longrightarrow> Nt B \<in> Syms P"
 unfolding Nts_def Syms_def
 apply (auto split: prod.splits)
  apply blast
-using nts_of_syms_set2 by fastforce
+using nts_syms_set2 by fastforce
 
 (* CFG? *)
 lemma syms_to_Nts: "Nt B \<in> Syms P \<Longrightarrow> B \<in> Nts P"
 unfolding Nts_def Syms_def
 apply (auto split: prod.splits)
  apply blast
-using nts_of_syms_set1 by fastforce
+using nts_syms_set1 by fastforce
 
 (* CFG? *)
 lemma Nts_syms_equI: "B \<in> Nts P \<longleftrightarrow> Nt B \<in> Syms P"
@@ -62,7 +62,7 @@ lemma Nts_syms_equI: "B \<in> Nts P \<longleftrightarrow> Nt B \<in> Syms P"
 
 (* CFG? *)
 lemma fresh_set: "B \<notin> Nts P \<Longrightarrow> (A,u) \<in> P \<Longrightarrow> Nt B \<notin> set u"
-unfolding Nts_def using nts_of_syms_set1 by fastforce
+unfolding Nts_def using nts_syms_set1 by fastforce
 
 (* CFG? *)
 lemma syms_inv:

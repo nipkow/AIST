@@ -2455,11 +2455,25 @@ proof-
 qed
 
 
+lemma P3_regular:
+fixes P::\<open>('n,'t) Prods\<close>
+shows \<open>finite P \<Longrightarrow> regular {xs. successively P3 xs \<and>  xs \<in> brackets P} \<close>
+proof-
+  assume finite_P: \<open>finite P\<close>
+  interpret successivelyConstruction P3 P apply(unfold_locales) using finite_P by blast 
+  show ?thesis using regular_successively_inter_brackets by blast
+qed
 
 
 
-
-
+lemma P4_regular:
+fixes P::\<open>('n,'t) Prods\<close>
+shows \<open>finite P \<Longrightarrow> regular {xs. successively P4 xs \<and>  xs \<in> brackets P} \<close>
+proof-
+  assume finite_P: \<open>finite P\<close>
+  interpret successivelyConstruction P4 P apply(unfold_locales) using finite_P by blast 
+  show ?thesis using regular_successively_inter_brackets by blast
+qed
 
 
 

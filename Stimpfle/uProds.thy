@@ -1,5 +1,5 @@
 theory uProds
-  imports eProds
+  imports "../CFG"
 begin
 
 (* Rules of the form A\<rightarrow>B, where A and B are in nonterminals ps *)
@@ -130,7 +130,7 @@ lemma \<U>_r3:
   assumes "\<U> ps ps'" and "set ps' \<turnstile> u \<Rightarrow> v"
   shows "set ps \<turnstile> u \<Rightarrow>* v"
 proof -
-  obtain A \<alpha> r1 r2 where "(A, \<alpha>) \<in> set ps' \<and> u = r1 @ [Nt A] @ r2 \<and> v = r1 @ \<alpha> @ r2" (is "?A")
+  obtain A \<alpha> r1 r2 where A: "(A, \<alpha>) \<in> set ps' \<and> u = r1 @ [Nt A] @ r2 \<and> v = r1 @ \<alpha> @ r2"
     using assms derive.cases by meson
   hence "(A, \<alpha>) \<in> unit_elim ps \<or> (A, \<alpha>) \<in> new_prods ps"
     using assms(1) unfolding \<U>_def by simp
@@ -141,10 +141,10 @@ proof -
       using inNonUnitProds by blast
     hence "set ps \<turnstile> r1 @ [Nt A] @ r2 \<Rightarrow> r1 @ \<alpha> @ r2"
       by (auto simp: derive.simps)
-    thus ?thesis using \<open>?A\<close> by simp
+    thus ?thesis using A by simp
   next 
     assume "(A, \<alpha>) \<in> new_prods ps"
-    from this obtain B where "(B, \<alpha>) \<in> unit_elim ps \<and> (A, B) \<in> unit_rtc (unit_prods ps)" (is "?B")
+    from this obtain B where B: "(B, \<alpha>) \<in> unit_elim ps \<and> (A, B) \<in> unit_rtc (unit_prods ps)"
       unfolding new_prods_def by blast
     hence "unit_prods ps \<turnstile> [Nt A] \<Rightarrow>* [Nt B]"
       unfolding unit_rtc_def by simp
@@ -153,11 +153,11 @@ proof -
     hence 1: "set ps \<turnstile> r1 @ [Nt A] @ r2 \<Rightarrow>* r1 @ [Nt B] @ r2"
       using derives_append derives_prepend by blast
     have "(B, \<alpha>) \<in> set ps"
-      using \<open>?B\<close> inNonUnitProds by blast
+      using B inNonUnitProds by blast
     hence "set ps \<turnstile> r1 @ [Nt B] @ r2 \<Rightarrow> r1 @ \<alpha> @ r2"
       by (auto simp: derive.simps)
     thus ?thesis 
-      using 1 \<open>?A\<close> by simp
+      using 1 A by simp
   qed
 qed
 
@@ -208,14 +208,14 @@ proof -
     case False
     hence "(B, v) \<in> new_prods ps"
       using assms(1) 2 unfolding unit_elim_def \<U>_def  by simp
-    from this obtain C where "(C, v) \<in> unit_elim ps \<and> (B, C) \<in> unit_rtc (unit_prods ps)" (is "?C")
+    from this obtain C where C: "(C, v) \<in> unit_elim ps \<and> (B, C) \<in> unit_rtc (unit_prods ps)"
       unfolding new_prods_def by blast
     hence "unit_prods ps \<turnstile> [Nt A] \<Rightarrow>* [Nt C]"
       using 1 unfolding unit_rtc_def by auto
     hence "(A, C) \<in> unit_rtc (unit_prods ps)"
-      unfolding unit_rtc_def using "1" \<open>?C\<close> unit_rtc_def by fastforce
+      unfolding unit_rtc_def using 1 C unit_rtc_def by fastforce
     hence "(A, v) \<in> new_prods ps"
-      unfolding new_prods_def using \<open>?C\<close> by blast
+      unfolding new_prods_def using C by blast
     hence "(A, v) \<in> set ps'"
       using assms(1) unfolding \<U>_def  by blast
     thus ?thesis by (simp add: derive_singleton)
@@ -226,17 +226,17 @@ lemma \<U>_r20_aux:
   assumes "set ps \<turnstile> l @ [Nt A] @ r \<Rightarrow>* map Tm v" 
   shows "\<exists>\<alpha>. set ps \<turnstile> l @ [Nt A] @ r \<Rightarrow> l @ \<alpha> @ r \<and> set ps \<turnstile> l @ \<alpha> @ r \<Rightarrow>* map Tm v \<and> (A, \<alpha>) \<in> set ps"
 proof -
-  obtain l' w r' where "set ps \<turnstile> l \<Rightarrow>* l'  \<and> set ps \<turnstile> [Nt A] \<Rightarrow>* w \<and>  set ps \<turnstile> r \<Rightarrow>* r' \<and> map Tm v = l' @ w @ r'" (is "?w")
+  obtain l' w r' where w: "set ps \<turnstile> l \<Rightarrow>* l'  \<and> set ps \<turnstile> [Nt A] \<Rightarrow>* w \<and>  set ps \<turnstile> r \<Rightarrow>* r' \<and> map Tm v = l' @ w @ r'"
     using assms(1) by (metis derives_append_decomp)
   have "Nt A \<notin> set (map Tm v)" 
     using assms(1) by auto
   hence "[Nt A] \<noteq> w" 
-    using \<open>?w\<close> by auto
-  from this obtain \<alpha> where "set ps \<turnstile> [Nt A] \<Rightarrow> \<alpha> \<and> set ps \<turnstile> \<alpha> \<Rightarrow>* w" (is "?\<alpha>")
-    by (metis \<open>?w\<close> converse_rtranclpE)
+    using w by auto
+  from this obtain \<alpha> where \<alpha>: "set ps \<turnstile> [Nt A] \<Rightarrow> \<alpha> \<and> set ps \<turnstile> \<alpha> \<Rightarrow>* w"
+    by (metis w converse_rtranclpE)
   hence "(A, \<alpha>) \<in> set ps" 
     by (simp add: derive_singleton)
-  thus ?thesis by (metis \<open>?\<alpha>\<close> \<open>?w\<close> derive.intros derives_append_decomp) 
+  thus ?thesis by (metis \<alpha> w derive.intros derives_append_decomp) 
 qed
 
 lemma \<U>_r20: 
@@ -250,18 +250,18 @@ next
   then show ?case 
   proof (cases "(A, w) \<in> unit_prods ps")
     case True
-    from this obtain B where "w = [Nt B]" (is "?B")
+    from this obtain B where "w = [Nt B]"
       unfolding unit_prods_def by blast
     have "set ps' \<turnstile> l @ w @ r \<Rightarrow>* map Tm v \<and> Nt B \<notin> set (map Tm v)"
       using step.IH assms(2) by auto
-    obtain \<alpha> where "set ps' \<turnstile> l @ [Nt B] @ r \<Rightarrow> l @ \<alpha> @ r \<and> set ps' \<turnstile> l @ \<alpha> @ r \<Rightarrow>* map Tm v \<and> (B, \<alpha>) \<in> set ps'" (is "?\<alpha>")
-      using assms(2) step.IH \<open>?B\<close>  \<U>_r20_aux[of ps' l B r v] by blast
+    obtain \<alpha> where \<alpha>: "set ps' \<turnstile> l @ [Nt B] @ r \<Rightarrow> l @ \<alpha> @ r \<and> set ps' \<turnstile> l @ \<alpha> @ r \<Rightarrow>* map Tm v \<and> (B, \<alpha>) \<in> set ps'"
+      using assms(2) step.IH \<open>w=_\<close>  \<U>_r20_aux[of ps' l B r v] by blast
     hence "(A, \<alpha>) \<in> set ps'"
-      using assms(2) step.hyps(2) \<open>?B\<close> \<U>_r14[of ps ps' A B \<alpha>] by (simp add: derive_singleton)
+      using assms(2) step.hyps(2) \<open>w=_\<close> \<U>_r14[of ps ps' A B \<alpha>] by (simp add: derive_singleton)
     hence "set ps' \<turnstile> l @ [Nt A] @ r \<Rightarrow>* l @ \<alpha> @ r"
       using derive.simps by fastforce
     then show ?thesis 
-      using \<open>?\<alpha>\<close> by auto
+      using \<alpha> by auto
   next
     case False
     hence "(A, w) \<in> unit_elim ps"
@@ -277,11 +277,6 @@ qed
 
 theorem \<U>_lang_eq: "\<U> ps ps' \<Longrightarrow> lang ps S = lang ps' S"
   unfolding Lang_def using \<U>_r4 \<U>_r20 by blast
-
-theorem \<N>_\<U>_lang_eq:
-  assumes "\<N> ps ps\<^sub>0" and "\<U> ps\<^sub>0 ps'"
-  shows "lang ps' S = lang ps\<^sub>0 S - {[]}"
-  using assms \<N>_lang_eq[of ps ps\<^sub>0 S] \<U>_lang_eq[of ps\<^sub>0 ps' S] by blast
 
 unused_thms
 end

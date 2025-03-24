@@ -1,4 +1,7 @@
-(* Authors: Tobias Nipkow, Akihisa Yamada *)
+(* Authors: Tobias Nipkow, Akihisa Yamada
+
+TODO: make function fresh executable
+*)
 
 section "Context-Free Grammars"
 

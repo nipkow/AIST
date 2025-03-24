@@ -2,15 +2,6 @@ theory PumpingLemma
   imports "../CFG" CNF
 begin
 
-(* some ideas for derivation trees *)
-datatype ('n, 't) dtree =
-  Leaf ("nonTerminal": 'n) ("terminal": 't) ("(\<langle>_,/ _,\<rangle>)") |
-  Node ("nonTerminal": 'n) "('n, 't) dtree" "('n, 't) dtree" ("(1\<langle>_,/ _,/ _\<rangle>)")
-
-fun dheight :: "('n, 't) dtree \<Rightarrow> nat" where 
-  "dheight (Leaf N t) = 1" |
-  "dheight (Node N l r) = Suc (max (dheight l) (dheight r))"
-
 (* earliest version is due to Thomas Ammer *)
 abbreviation repl :: "'a list \<Rightarrow> nat \<Rightarrow> 'a list" ("_\<^sup>*/_")
   where "xs\<^sup>*n \<equiv> concat (replicate n xs)"
@@ -57,22 +48,22 @@ using assms proof (induction w arbitrary: S rule: length_induct)
     case True
     hence "length w = 1"
       using 2 by linarith
-    then obtain t where "w = [t]" (is "?t")
+    then obtain t where "w = [t]"
       using length_Suc_conv[of w 0] by auto 
     hence "(S, [Tm t]) \<in> Ps"
       using 1 assms(2) cnf_single_derive[of Ps S t] by simp
     thus ?thesis
-      by (simp add: \<open>?t\<close> cnf_derives.intros(1))
+      by (simp add: \<open>w = _\<close> cnf_derives.intros(1))
   next
     case False 
-    obtain A B u v where "(S, [Nt A, Nt B]) \<in> Ps \<and> Ps \<turnstile> [Nt A] \<Rightarrow>* map Tm u \<and> Ps \<turnstile> [Nt B] \<Rightarrow>* map Tm v \<and> u@v = w \<and> u \<noteq> [] \<and> v \<noteq> []" (is "?ABuv")
+    obtain A B u v where ABuv: "(S, [Nt A, Nt B]) \<in> Ps \<and> Ps \<turnstile> [Nt A] \<Rightarrow>* map Tm u \<and> Ps \<turnstile> [Nt B] \<Rightarrow>* map Tm v \<and> u@v = w \<and> u \<noteq> [] \<and> v \<noteq> []"
       using False assms(2) 1 cnf_word[of Ps S w] by auto
     have "length u < length w \<and> length v < length w"
-      using \<open>?ABuv\<close> by auto
+      using ABuv by auto
     hence "cnf_derives Ps A u \<and> cnf_derives Ps B v"
-      using 1 \<open>?ABuv\<close> by blast
+      using 1 ABuv by blast
     thus ?thesis
-      using \<open>?ABuv\<close> cnf_derives.intros(2)[of S A B Ps u v] by blast
+      using ABuv cnf_derives.intros(2)[of S A B Ps u v] by blast
   qed
 qed
 
@@ -188,40 +179,40 @@ next
   hence "\<exists>B C a b q. (A, [Nt B, Nt C]) \<in> Ps \<and> a@b = z \<and> 
         (((Ps \<turnstile> B \<Rightarrow>\<langle>q\<rangle> a) \<and> Ps \<turnstile> C \<Rightarrow>\<langle>p1@[X]@p2\<rangle> b) \<or> ((Ps \<turnstile> B \<Rightarrow>\<langle>p1@[X]@p2\<rangle> a) \<and> Ps \<turnstile> C \<Rightarrow>\<langle>q\<rangle> b))"
     using Cons.prems path_first_step step_decomp by fastforce
-  then obtain B C a b q where "(A, [Nt B, Nt C]) \<in> Ps \<and> a@b = z \<and> 
-        (((Ps \<turnstile> B \<Rightarrow>\<langle>q\<rangle> a) \<and> Ps \<turnstile> C \<Rightarrow>\<langle>p1@[X]@p2\<rangle> b) \<or> ((Ps \<turnstile> B \<Rightarrow>\<langle>p1@[X]@p2\<rangle> a) \<and> Ps \<turnstile> C \<Rightarrow>\<langle>q\<rangle> b))" (is "?BC")
+  then obtain B C a b q where BC: "(A, [Nt B, Nt C]) \<in> Ps \<and> a@b = z \<and> 
+        (((Ps \<turnstile> B \<Rightarrow>\<langle>q\<rangle> a) \<and> Ps \<turnstile> C \<Rightarrow>\<langle>p1@[X]@p2\<rangle> b) \<or> ((Ps \<turnstile> B \<Rightarrow>\<langle>p1@[X]@p2\<rangle> a) \<and> Ps \<turnstile> C \<Rightarrow>\<langle>q\<rangle> b))"
     by blast
   then show ?case
   proof (cases "((Ps \<turnstile> B \<Rightarrow>\<langle>q\<rangle> a) \<and> Ps \<turnstile> C \<Rightarrow>\<langle>p1@[X]@p2\<rangle> b)")
     case True
-    then obtain v w x where "(Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p2\<rangle> w) \<and> b = v@w@x \<and> 
-          (\<forall>w' p'. (Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> w') \<longrightarrow> Ps \<turnstile> C \<Rightarrow>\<langle>p1@[X]@p'\<rangle> (v@w'@x))" (is "?vwx")
+    then obtain v w x where vwx: "(Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p2\<rangle> w) \<and> b = v@w@x \<and> 
+          (\<forall>w' p'. (Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> w') \<longrightarrow> Ps \<turnstile> C \<Rightarrow>\<langle>p1@[X]@p'\<rangle> (v@w'@x))"
       using Cons.IH by blast
     hence 1: "\<forall>w' p'. (Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> w') \<longrightarrow> Ps \<turnstile> A \<Rightarrow>\<langle>A#p1@[X]@p'\<rangle> (a@v@w'@x)"
-      using \<open>?BC\<close> by (auto intro: path.intros(3))
-    obtain v' where "v' = a@v" (is "?v'")
+      using BC by (auto intro: path.intros(3))
+    obtain v' where "v' = a@v"
       by simp
     hence "length (v'@x) > 0"
       using True no_empty by fast
     hence "(Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p2\<rangle> w) \<and> z = v'@w@x \<and> (\<forall>w' p'.
           (Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> w') \<longrightarrow> Ps \<turnstile> A \<Rightarrow>\<langle>A#p1@[X]@p'\<rangle> (v'@w'@x)) \<and>
           (length (A#p1) > 0 \<longrightarrow> length (v'@x) >0)"
-      using \<open>?vwx\<close> 1 \<open>?BC\<close> \<open>?v'\<close> by simp
+      using vwx 1 BC \<open>v' = _\<close> by simp
     thus ?thesis
       using 0 by auto
   next
     case False
-    then obtain v w x where "(Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p2\<rangle> w) \<and> a = v@w@x \<and> 
-          (\<forall>w' p'. (Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> w') \<longrightarrow> Ps \<turnstile> B \<Rightarrow>\<langle>p1@[X]@p'\<rangle> (v@w'@x))" (is "?vwx")
-      using Cons.IH \<open>?BC\<close> by blast
+    then obtain v w x where vwx: "(Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p2\<rangle> w) \<and> a = v@w@x \<and> 
+          (\<forall>w' p'. (Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> w') \<longrightarrow> Ps \<turnstile> B \<Rightarrow>\<langle>p1@[X]@p'\<rangle> (v@w'@x))"
+      using Cons.IH BC by blast
     hence 1: "\<forall>w' p'. (Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> w') \<longrightarrow> Ps \<turnstile> A \<Rightarrow>\<langle>A#p1@[X]@p'\<rangle> (v@w'@x@b)"
-      using \<open>?BC\<close> left[of A B C Ps] by fastforce
+      using BC left[of A B C Ps] by fastforce
     hence "(Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p2\<rangle> w) \<and> z = v@w@x@b \<and> (\<forall>w' p'.
           (Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> w') \<longrightarrow> Ps \<turnstile> A \<Rightarrow>\<langle>A#p1@[X]@p'\<rangle> (v@w'@x@b)) \<and>
           (length (A#p1) > 0 \<longrightarrow> length (a@v@x) >0)"
-      using \<open>?vwx\<close> \<open>?BC\<close> no_empty by fastforce
+      using vwx BC no_empty by fastforce
     moreover have "length (v@x@b) > 0"
-      using no_empty \<open>?BC\<close> by fast
+      using no_empty BC by fast
     ultimately show ?thesis
     using 0 by auto
   qed
@@ -249,33 +240,33 @@ next
         (((Ps \<turnstile> B \<Rightarrow>\<llangle>p1@[X]@p2\<rrangle> a) \<and> (Ps \<turnstile> C \<Rightarrow>\<llangle>p'\<rrangle> b) \<and> length (p1@[X]@p2) \<ge> length p') \<or> 
         ((Ps \<turnstile> B \<Rightarrow>\<llangle>p'\<rrangle> a) \<and> (Ps \<turnstile> C \<Rightarrow>\<llangle>p1@[X]@p2\<rrangle> b) \<and> length (p1@[X]@p2) \<ge> length p'))"
     using steplp_decomp[of Ps A \<open>p1@[X]@p2\<close> z] 0 Cons by simp
-  then obtain B C p' a b where "(A, [Nt B, Nt C]) \<in> Ps \<and> z = a@b \<and> 
+  then obtain B C p' a b where BC: "(A, [Nt B, Nt C]) \<in> Ps \<and> z = a@b \<and> 
         (((Ps \<turnstile> B \<Rightarrow>\<llangle>p1@[X]@p2\<rrangle> a) \<and> (Ps \<turnstile> C \<Rightarrow>\<llangle>p'\<rrangle> b) \<and> length (p1@[X]@p2) \<ge> length p') \<or> 
-        ((Ps \<turnstile> B \<Rightarrow>\<llangle>p'\<rrangle> a) \<and> (Ps \<turnstile> C \<Rightarrow>\<llangle>p1@[X]@p2\<rrangle> b) \<and> length (p1@[X]@p2) \<ge> length p'))" (is "?BC")
+        ((Ps \<turnstile> B \<Rightarrow>\<llangle>p'\<rrangle> a) \<and> (Ps \<turnstile> C \<Rightarrow>\<llangle>p1@[X]@p2\<rrangle> b) \<and> length (p1@[X]@p2) \<ge> length p'))"
     by blast
   then show ?case
   proof (cases "(Ps \<turnstile> B \<Rightarrow>\<llangle>p1@[X]@p2\<rrangle> a) \<and> (Ps \<turnstile> C \<Rightarrow>\<llangle>p'\<rrangle> b) \<and> length (p1@[X]@p2) \<ge> length p'")
     case True
-    then obtain v w x where "(Ps \<turnstile> X \<Rightarrow>\<llangle>[X]@p2\<rrangle> w) \<and> a = v@w@x \<and> 
-          (\<forall>w' p'. (Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> w') \<longrightarrow> Ps \<turnstile> B \<Rightarrow>\<langle>p1@[X]@p'\<rangle> (v@w'@x))" (is "?vwx")
+    then obtain v w x where vwx: "(Ps \<turnstile> X \<Rightarrow>\<llangle>[X]@p2\<rrangle> w) \<and> a = v@w@x \<and> 
+          (\<forall>w' p'. (Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> w') \<longrightarrow> Ps \<turnstile> B \<Rightarrow>\<langle>p1@[X]@p'\<rangle> (v@w'@x))"
       using Cons.IH by blast
     hence "(Ps \<turnstile> X \<Rightarrow>\<llangle>[X]@p2\<rrangle> w) \<and> z = v@w@x@b \<and>
        (\<forall>w' p'. (Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> w') \<longrightarrow> Ps \<turnstile> A \<Rightarrow>\<langle>A#p1@[X]@p'\<rangle> (v@w'@x@b))"
-      using \<open>?BC\<close> lpath_path[of Ps] path.intros(2)[of A B C Ps] by fastforce
+      using BC lpath_path[of Ps] path.intros(2)[of A B C Ps] by fastforce
     then show ?thesis
       using 0 by auto
   next
     case False
     hence "((Ps \<turnstile> B \<Rightarrow>\<llangle>p'\<rrangle> a) \<and> (Ps \<turnstile> C \<Rightarrow>\<llangle>p1@[X]@p2\<rrangle> b) \<and> length (p1@[X]@p2) \<ge> length p')"
-      using \<open>?BC\<close> by blast
-    then obtain v w x where "(Ps \<turnstile> X \<Rightarrow>\<llangle>[X]@p2\<rrangle> w) \<and> b = v@w@x \<and> 
-          (\<forall>w' p'. (Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> w') \<longrightarrow> Ps \<turnstile> C \<Rightarrow>\<langle>p1@[X]@p'\<rangle> (v@w'@x))" (is "?vwx")
+      using BC by blast
+    then obtain v w x where vwx: "(Ps \<turnstile> X \<Rightarrow>\<llangle>[X]@p2\<rrangle> w) \<and> b = v@w@x \<and> 
+          (\<forall>w' p'. (Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> w') \<longrightarrow> Ps \<turnstile> C \<Rightarrow>\<langle>p1@[X]@p'\<rangle> (v@w'@x))"
       using Cons.IH by blast
-    then obtain v' where "v' = a@v" (is "?v'")
+    then obtain v' where "v' = a@v"
       by simp
     hence "(Ps \<turnstile> X \<Rightarrow>\<llangle>[X]@p2\<rrangle> w) \<and> z = v'@w@x \<and>
        (\<forall>w' p'. (Ps \<turnstile> X \<Rightarrow>\<langle>[X]@p'\<rangle> w') \<longrightarrow> Ps \<turnstile> A \<Rightarrow>\<langle>A#p1@[X]@p'\<rangle> (v'@w'@x))"
-      using \<open>?BC\<close> lpath_path[of Ps] path.intros(3)[of A B C Ps] \<open>?vwx\<close> by fastforce
+      using BC lpath_path[of Ps] path.intros(3)[of A B C Ps] vwx by fastforce
     then show ?thesis
       using 0 by auto
   qed
@@ -356,56 +347,56 @@ lemma inner_pumping:
     and "length z \<ge> 2^(m+1)"
   shows "\<exists>u v w x y . z = u@v@w@x@y \<and> length (v@w@x) \<le> 2^(m+1) \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@y \<in> L g)"
 proof -
-  obtain S Ps where "S = start g \<and> Ps = set (prods g)" (is "?SPs")
+  obtain S Ps where SPs: "S = start g \<and> Ps = set (prods g)"
     by simp
-  then obtain p' where "Ps \<turnstile> S \<Rightarrow>\<langle>p'\<rangle> z" (is "?p'")
+  then obtain p' where p': "Ps \<turnstile> S \<Rightarrow>\<langle>p'\<rangle> z"
     using assms Lang_def[of Ps S] path_if_derives[of Ps S] by blast
-  then obtain lp where "Ps \<turnstile> S \<Rightarrow>\<llangle>lp\<rrangle> z" (is "?lp")
+  then obtain lp where lp: "Ps \<turnstile> S \<Rightarrow>\<llangle>lp\<rrangle> z"
     using path_lpath[of Ps] by blast
   hence 1: "set lp \<subseteq> Nts Ps"
     using lpath_path[of Ps] path_nts[of Ps] by blast
   have "length lp > m"
   proof -
     have "(2^(m+1)::nat) \<le> 2^length lp"
-      using \<open>?lp\<close> lpath_length[of Ps S lp z] assms(4) le_trans by blast
+      using lp lpath_length[of Ps S lp z] assms(4) le_trans by blast
     hence "m+1 \<le> length lp" 
       using power_le_imp_le_exp[of 2 \<open>m+1\<close> \<open>length lp\<close>] by auto
     thus ?thesis
       by simp
   qed
-  then obtain l p where "lp = l@p \<and> length p = m+1" (is "?p")
+  then obtain l p where p: "lp = l@p \<and> length p = m+1"
     using less_Suc_eq by (induction lp) fastforce+
   hence "set l \<subseteq> Nts Ps \<and> set p \<subseteq> Nts Ps \<and> finite (Nts Ps)"
-    using 1 finite_nts[of g] assms(1) \<open>?SPs\<close> by auto
+    using 1 finite_nts[of g] assms(1) SPs by auto
   hence "card (set p) < length p"
-    using \<open>?p\<close> assms(2) card_mono[of \<open>Nts Ps\<close> \<open>set p\<close>] \<open>?SPs\<close> by simp
-  then obtain A p1 p2 p3 where "p = p1@[A]@p2@[A]@p3" (is "?Ap")
+    using p assms(2) card_mono[of \<open>Nts Ps\<close> \<open>set p\<close>] SPs by simp
+  then obtain A p1 p2 p3 where "p = p1@[A]@p2@[A]@p3"
     using card_split by blast
-  then obtain u vwx y where "((Ps \<turnstile> A \<Rightarrow>\<llangle>[A]@p2@[A]@p3\<rrangle> vwx) \<and> z = u@vwx@y \<and>
-        (\<forall>w' p'. ((Ps \<turnstile> A \<Rightarrow>\<langle>[A]@p'\<rangle> w') \<longrightarrow> Ps \<turnstile> S \<Rightarrow>\<langle>l@p1@[A]@p'\<rangle> u@w'@y)))" (is "?uy")
-    using substitution_lp[of Ps S \<open>l@p1\<close> A \<open>p2@[A]@p3\<close> z] \<open>?lp\<close> \<open>?p\<close> by auto
+  then obtain u vwx y where uy: "((Ps \<turnstile> A \<Rightarrow>\<llangle>[A]@p2@[A]@p3\<rrangle> vwx) \<and> z = u@vwx@y \<and>
+        (\<forall>w' p'. ((Ps \<turnstile> A \<Rightarrow>\<langle>[A]@p'\<rangle> w') \<longrightarrow> Ps \<turnstile> S \<Rightarrow>\<langle>l@p1@[A]@p'\<rangle> u@w'@y)))"
+    using substitution_lp[of Ps S \<open>l@p1\<close> A \<open>p2@[A]@p3\<close> z] lp p by auto
   hence "length vwx \<le> 2^(m+1)"
-    using \<open>?Ap\<close> \<open>?p\<close> lpath_length[of Ps A \<open>[A] @ p2 @ [A] @ p3\<close> vwx] order_subst1 by fastforce
-  then obtain v w x where "(Ps \<turnstile> A \<Rightarrow>\<langle>[A]@p3\<rangle> w) \<and> vwx = v@w@x \<and>
+    using \<open>p = _\<close> p lpath_length[of Ps A \<open>[A] @ p2 @ [A] @ p3\<close> vwx] order_subst1 by fastforce
+  then obtain v w x where vwx: "(Ps \<turnstile> A \<Rightarrow>\<langle>[A]@p3\<rangle> w) \<and> vwx = v@w@x \<and>
         (\<forall>w' p'. ((Ps \<turnstile> A \<Rightarrow>\<langle>[A]@p'\<rangle> w') \<longrightarrow> Ps \<turnstile> A \<Rightarrow>\<langle>[A]@p2@[A]@p'\<rangle> v@w'@x)) \<and>
-        (length ([A]@p2) > 0 \<longrightarrow> length (v@x) > 0)" (is "?vwx")
-    using substitution[of Ps A \<open>[A]@p2\<close> A p3 vwx] \<open>?uy\<close> lpath_path[of Ps A] by auto
+        (length ([A]@p2) > 0 \<longrightarrow> length (v@x) > 0)"
+    using substitution[of Ps A \<open>[A]@p2\<close> A p3 vwx] uy lpath_path[of Ps A] by auto
   have "\<forall>i \<ge> 0. Ps \<turnstile> S \<Rightarrow>\<langle>l@p1@ (([A]@p2)\<^sup>*i) @[A]@p3\<rangle> (u@(v\<^sup>*i)@w@(x\<^sup>*i)@y)"
   proof 
     fix i
     have "\<forall>i. Ps \<turnstile> A \<Rightarrow>\<langle>repl ([A]@p2) (Suc i) @ [A]@p3\<rangle> (repl v (Suc i) @ w @ repl x (Suc i))"
-      using \<open>?vwx\<close> inner_aux[of Ps A] by blast
+      using vwx inner_aux[of Ps A] by blast
     hence "\<forall>i \<ge> 0. Ps \<turnstile> S \<Rightarrow>\<langle>l@p1@(([A]@p2)\<^sup>*(Suc i)) @[A]@p3\<rangle> (u@ (v\<^sup>*(Suc i)) @ w @ (x\<^sup>*(Suc i)) @y)"
-      using \<open>?uy\<close> by fastforce
+      using uy by fastforce
     moreover have "Ps \<turnstile> S \<Rightarrow>\<langle>l@p1@(([A]@p2)\<^sup>*0) @[A]@p3\<rangle> (u@ (v\<^sup>*0) @ w @ (x\<^sup>*0) @y)"
-      using \<open>?vwx\<close> \<open>?uy\<close> by auto
+      using vwx uy by auto
     ultimately show "i \<ge> 0 \<longrightarrow> Ps \<turnstile> S \<Rightarrow>\<langle>l@p1@ (([A]@p2)\<^sup>*i) @[A]@p3\<rangle> (u@(v\<^sup>*i)@w@(x\<^sup>*i)@y)"
       by (induction i) simp_all
   qed
   hence "\<forall>i \<ge> 0. (u@(v\<^sup>*i)@w@(x\<^sup>*i)@y) \<in> L g"
-    unfolding Lang_def using assms(1) assms(2) \<open>?SPs\<close> derives_if_path[of Ps S] by blast
+    unfolding Lang_def using assms(1) assms(2) SPs derives_if_path[of Ps S] by blast
   hence "z = u@v@w@x@y \<and> length (v@w@x) \<le> 2^(m+1) \<and> 1 \<le> length (v@x) \<and> (\<forall> i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@ y \<in> L g)"
-    using \<open>?vwx\<close> \<open>?uy\<close> \<open>length vwx \<le> 2 ^ (m + 1)\<close> by (simp add: Suc_leI)
+    using vwx uy \<open>length vwx \<le> 2 ^ (m + 1)\<close> by (simp add: Suc_leI)
   then show ?thesis
     by blast
 qed

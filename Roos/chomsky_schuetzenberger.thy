@@ -834,17 +834,6 @@ lemma transform_production_induct:
 lemma fst_transform_production[simp]: \<open>fst (transform_production (A, w)) = A\<close>
   by(induction rule: transform_production_induct;auto)    
 
-(* 
-text\<open>The transformation of old productions to new productions used in the proof.\<close>
-definition transform_production :: "('n, 't) prod \<Rightarrow> 
-('n, bracket \<times> ('n,'t) prod \<times> version) prod" where
-  "transform_production p = (
-    case p of
-      (A, [Nt B, Nt C]) \<Rightarrow> 
-        (A, [ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ]) | 
-      (A, [Tm a]) \<Rightarrow>   
-        (A, [ Tm (Op, (p,One)),       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ]) 
-)"*)
 
 
 
@@ -1331,7 +1320,7 @@ proof(induction w arbitrary: m)
 next
   case (Cons a w)
   then obtain w' where \<open>w = map Tm w'\<close> by (metis (no_types, opaque_lifting) append_Cons append_Nil map_eq_append_conv the_hom_ext_hom)
-  then obtain a' where \<open>a = Tm a'\<close>
+  then obtain a' where \<open>a = Tm a'\<close> 
   proof -
     assume a1: "\<And>a'. a = Tm a' \<Longrightarrow> thesis"
     have f2: "\<forall>ss s. [s::('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym] @ ss = s # ss" by auto
@@ -1407,20 +1396,10 @@ proof-
   then show ?thesis by (simp add: \<open>transform_production (S, w) = (S, w')\<close> derive_singleton)
 qed
 
-lemma transform_production_one_step_bu:
-  assumes \<open>CNF_rule (S,w)\<close>
-    and \<open>(S,w) \<in> P\<close>
-  shows \<open>(transform_production ` P) \<turnstile> [Nt S] \<Rightarrow>bu snd (transform_production (S,w))\<close>
-  by (metis assms(2) bu_prod fst_transform_production image_eqI surjective_pairing)
-
 
 lemma [iff]: \<open>bal_tm ([ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ])\<close> using stk_bal_tm_iff_bal_tm by fastforce
 
 lemma [iff]: \<open>bal_tm ([ Tm (Op, (p,One)),       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ])\<close> using stk_bal_tm_iff_bal_tm by fastforce
-
-
-
-
 
 lemma \<open>rhs_in_if [Nt A] \<Gamma>\<close> by auto
 
@@ -1789,216 +1768,14 @@ qed
 
 
 
-fun singletons :: \<open>'a \<Rightarrow> 'a list\<close> where
-  \<open>singletons x = [x]\<close>
 
 
-lemma image_singletonsI[intro]: \<open>x \<in> X \<Longrightarrow>  [x] \<in> singletons ` X\<close> by simp
 
-lemma image_singletonsD[dest]: \<open>[a] \<in> singletons ` X \<Longrightarrow> a \<in> X\<close> by fastforce
-lemmas image_singletonsE[elim!] = image_singletonsD[elim_format]
 
-lemma image_singletons_eq: \<open>singletons ` X = {[x] | x. x \<in> X}\<close> by (metis (no_types, lifting) ext Setcompr_eq_image singletons.simps)
 
-lemma image_singletonsD'[dest]: 
-  assumes \<open>a \<in> singletons ` X\<close>
-  shows \<open>\<exists>x. (x \<in> X \<and> a = [x])\<close> and \<open>length a = 1\<close>
-   apply (metis assms chomsky_schuetzenberger.singletons.elims image_iff)
-  by (metis List.list.size(3,4) Nat.nat_arith.rule0 One_nat_def add_Suc_right assms chomsky_schuetzenberger.singletons.elims image_iff)
 
-lemma image_singletonsE'[elim!]: 
-  assumes \<open>a \<in> singletons ` X\<close>
-  shows \<open>(\<And>x. \<lbrakk>a \<in> singletons ` X; a = [x]; x \<in> X; length a = 1\<rbrakk> \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> by (metis assms image_singletonsD'(1,2))
 
-lemma image_singletons_union_length[simp, intro]: \<open>x \<in> (singletons ` A1' @@ singletons ` A2') \<Longrightarrow> length x = 2\<close> by (metis concE image_singletonsD'(2) length_append one_add_one)
 
-lemma image_singletons_concD:
-  assumes \<open>[x, y] \<in> (singletons ` A) @@ (singletons ` B)\<close>
-  shows \<open>x \<in> A\<close>  \<open>y \<in> B\<close>
-  using assms apply (metis List.list.distinct(1) List.list.sel(1) concE hd_append image_singletonsD'(1))
-  using assms by (metis List.last.simps List.list.distinct(1) concE image_singletonsD'(1) last_snoc)
-
-lemma image_singletons_concE[elim!]:
-  assumes \<open>[x, y] \<in> (singletons ` A) @@ (singletons ` B)\<close>
-  shows \<open>(\<lbrakk>[x, y] \<in> (singletons ` A) @@ (singletons ` B); x \<in> A; y \<in> B\<rbrakk> \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> using assms by auto
-
-lemma 
-  image_singletons_concE_helper:
-  assumes \<open>a \<in> (singletons ` A) @@ (singletons ` B)\<close>
-  shows \<open>\<exists>x y. a = [x, y]\<close> using assms by (meson image_singletons_union_length list_length_2_imp_ex)
-
-lemma image_singletons_concE'[elim]:
-  assumes \<open>a \<in> (singletons ` A) @@ (singletons ` B)\<close>
-  shows \<open>(\<And>x y. \<lbrakk>a = [x,y]; [x, y] \<in> (singletons ` A) @@ (singletons ` B); x \<in> A; y \<in> B\<rbrakk> \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> using image_singletons_concE_helper[OF assms] by (metis assms image_singletons_concE)
-
-
-
-
-
-
-
-
-
-text\<open>helper lemma\<close>
-lemma star_singletons_iff: \<open>w \<in> star( singletons ` X) = (\<forall>x \<in> set w. x \<in> X)\<close>
-proof(standard, goal_cases)
-  case 1
-  then show ?case
-  proof(induction rule: star_induct)
-    case Nil
-    then show ?case by auto
-  next
-    case (append u v)
-    from \<open>u \<in> singletons ` X\<close> obtain u' where \<open>u = [u']\<close> \<open>u' \<in> X\<close> by (meson image_singletonsD'(1))
-    moreover have \<open>set (u@v) = insert u' (set v)\<close> by (simp add: calculation(1))
-    ultimately show ?case by (metis insertE local.append.IH) 
-  qed
-next
-  case 2
-  then show ?case
-  proof(induction w)
-    case Nil
-    then show ?case by blast
-  next
-    case (Cons a w)
-    from Cons have \<open>w \<in> star (singletons ` X)\<close> by (meson List.list.set_intros(2))
-    moreover have \<open>a \<in> X\<close> using Cons by (meson List.list.set_intros(1))
-    ultimately show ?case by (metis append_Cons append_Nil append_in_starI chomsky_schuetzenberger.singletons.simps imageI star_if_lang) 
-  qed
-qed
-
-
-lemma star_ones_twos_imp:
-  assumes \<open>x # y # zs \<in> star (A1 \<union> A2)\<close>
-    and \<open>\<And>x. x \<in> A1 \<Longrightarrow> length x = 1\<close>
-    and \<open>\<And>x. x \<in> A2 \<Longrightarrow> length x = 2\<close>
-  shows \<open>[x] \<in> A1 \<and> (y#zs) \<in> star(A1 \<union> A2)   \<or>   ([x, y]) \<in> A2 \<and> zs \<in> star(A1 \<union> A2)\<close>
-proof-
-  from assms(1) star_decom obtain a b where 
-    split: \<open>x#y#zs = a@b\<close> and a_not_empty: \<open>a\<noteq>[]\<close> and a_in_Un: \<open>a \<in> (A1 \<union> A2)\<close> and b_in_star: \<open>b \<in> star(A1 \<union> A2)\<close> by blast
-
-  then consider (A1) \<open>a \<in> A1\<close> | (A2) \<open>a \<in> A2 \<close> by blast 
-  then show ?thesis
-  proof(cases)
-    case A1
-    then have \<open>length a = 1\<close> using assms(2) by blast
-    then obtain x' where x'_def: \<open>a = [x']\<close> by (meson list_length_1_imp_ex)
-    then have x'_eq_x: \<open>x' = x\<close> using split unfolding x'_def by (metis List.list.sel(1) append_Cons) 
-    hence \<open>x#y#zs = [x]@b\<close> using split unfolding x'_def x'_eq_x by blast 
-    then have \<open>a = [x]\<close> and \<open>b = y#zs\<close> using x'_def x'_eq_x apply blast by (metis List.list.sel(3) \<open>x # y # zs = [x] @ b\<close> append_Cons append_Nil)
-    then show ?thesis using b_in_star A1 by blast
-  next
-    case A2
-    then have \<open>length a = 2\<close> using assms(3) by blast
-    then obtain x' y' where x'_def: \<open>a = [x', y']\<close> by (meson list_length_2_imp_ex)
-    then have x'_y'_eq_x_y: \<open>x' = x\<close> \<open>y' = y\<close> using split unfolding x'_def apply (metis List.list.sel(1) a_not_empty hd_append x'_def) using split unfolding x'_def  by (metis List.list.inject append_Cons)
-    hence \<open>x#y#zs = [x, y]@b\<close> using split unfolding x'_y'_eq_x_y x'_def by blast
-    then have \<open>a = [x, y]\<close> and \<open>b = zs\<close> using x'_def x'_y'_eq_x_y apply blast using x'_def x'_y'_eq_x_y by (metis List.list.sel(3) \<open>x # y # zs = [x, y] @ b\<close> append_Cons append_Nil)
-    then show ?thesis using b_in_star A2 by blast
-  qed
-qed
-
-
-corollary star_ones_twos[simp, intro]:
-  assumes \<open>\<And>x. x \<in> A1 \<Longrightarrow> length x = 1\<close>
-    and \<open>\<And>x. x \<in> A2 \<Longrightarrow> length x = 2\<close>
-  shows \<open>x # y # zs \<in> star (A1 \<union> A2) = ([x] \<in> A1 \<and> (y#zs) \<in> star(A1 \<union> A2)   \<or>   ([x, y]) \<in> A2 \<and> zs \<in> star(A1 \<union> A2))\<close>
-proof
-  assume \<open>x # y # zs \<in> star (A1 \<union> A2)\<close>
-  then show \<open>[x] \<in> A1 \<and> y # zs \<in> star (A1 \<union> A2) \<or> [x, y] \<in> A2 \<and> zs \<in> star (A1 \<union> A2)\<close> using star_ones_twos_imp by (metis assms(1,2)) 
-next
-  assume \<open>[x] \<in> A1 \<and> y # zs \<in> star (A1 \<union> A2) \<or> [x, y] \<in> A2 \<and> zs \<in> star (A1 \<union> A2)\<close>
-  then show \<open>x # y # zs \<in> star (A1 \<union> A2)\<close> by (metis UnCI append_Cons append_Nil append_in_starI star_if_lang)
-qed
-
-
-corollary star_ones_twos'[intro]:
-  assumes \<open>x # y # zs \<in> star (A1 \<union> A2)\<close>
-    and \<open>\<And>x. x \<in> A1 \<Longrightarrow> length x = 1\<close>
-    and \<open>\<And>x. x \<in> A2 \<Longrightarrow> length x = 2\<close>
-  obtains \<open>[x] \<in> A1 \<and> (y#zs) \<in> star(A1 \<union> A2)\<close>   |    \<open>([x, y]) \<in> A2 \<and> zs \<in> star(A1 \<union> A2)\<close>
-  using star_ones_twos[OF assms(2) assms(3)] using assms(1) by blast 
-
-
-corollary star_ones_twos''[elim!]:
-  fixes A1' A2' A3'
-  defines \<open>A1 \<equiv> singletons ` A1'\<close>
-  defines \<open>A2 \<equiv> singletons ` A2' @@ singletons ` A3'\<close>
-  assumes \<open>x # y # zs \<in> star (A1 \<union> A2)\<close>
-  obtains \<open>[x] \<in> A1 \<and> (y#zs) \<in> star(A1 \<union> A2)\<close>   |    \<open>([x, y]) \<in> A2 \<and> zs \<in> star(A1 \<union> A2)\<close>
-  using star_ones_twos' by (metis A1_def A2_def assms(3) image_singletonsD'(2) image_singletons_union_length)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-section\<open>Proving regularity\<close>
-
-
-
-section\<open>Important Regexp lemmas that don't exist yet? TODO mv?\<close>
-
-lemma regular_lang_Union:
-  assumes "finite LS" 
-  assumes "\<forall>L\<in>LS. regular_lang L"
-  shows "regular_lang (\<Union>LS)"
-  using assms proof (induct LS rule: finite_induct)
-  case empty
-  show ?case apply auto using Regular_Exp.lang.simps(1) by blast
-next
-  case (insert L LS)
-  have eq: "\<Union>(insert L LS) = L \<union> (\<Union>LS)"
-    by auto
-  moreover have "regular_lang L" 
-    using insert.prems by simp
-  moreover have "regular_lang (\<Union>LS)" 
-    using insert by blast
-  ultimately have \<open>regular_lang (L \<union> (\<Union>LS))\<close> using Regular_Exp.lang.simps(4) by metis
-  then show ?case unfolding eq by simp
-qed
-
-
-lemma finite_imp_regular: \<open>finite L \<Longrightarrow> regular_lang L\<close>
-proof-
-  assume \<open>finite L\<close>
-  have eq: \<open>L = \<Union>{ {a} | a. a \<in> L}\<close> by blast
-  from \<open>finite L\<close> have \<open>finite { {a} | a. a \<in> L}\<close> by auto
-  moreover have \<open>\<forall>k \<in> { {a} | a. a \<in> L}. (regular_lang k)\<close>  using lang_rexp_of_word by blast
-  ultimately have \<open>regular_lang (\<Union>{ {a} | a. a \<in> L})\<close> using regular_lang_Union by blast
-  then show ?thesis using eq by simp
-qed
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-section\<open>Sets of letters (not as lists)\<close>
 
 
 
@@ -2137,7 +1914,7 @@ lemma drop_right: \<open>xs@ys \<in> aut.language \<Longrightarrow> xs \<in> aut
 proof(induction ys)
   case (Cons a ys)
   then have \<open>xs @ [a] \<in> aut.language\<close> using local.aut.language_def local.aut.nextl_app by fastforce
-  then have \<open>xs \<in> aut.language\<close> using local.aut.language_def by auto
+  then have \<open>xs \<in> aut.language\<close> using local.aut.language_def by force
   then show ?case by blast
 qed auto
 
@@ -2648,7 +2425,7 @@ qed
 
 
 
-text\<open>FIXME\<close>
+
 lemma dyck_lang_imp_star_brackets: \<open>dyck_language (P \<times> {One, Two}) \<subseteq> (brackets P)\<close>
 proof
   fix x
@@ -2885,7 +2662,7 @@ lemma root_of_transform_tree[intro]: \<open>root t = Nt X \<Longrightarrow> root
 
 lemma transform_tree_correct:
   fixes P
-  defines \<open>P' == transform_production ` P\<close>
+  defines \<open>P' \<equiv> transform_production ` P\<close>
   assumes \<open>parse_tree P t \<and> fringe t = w\<close>
     and \<open>\<And>p. p \<in> P \<Longrightarrow> CNF_rule p\<close>
   shows \<open>parse_tree P' (transform_tree t)  \<and>  the_hom_ext (fringe (transform_tree t)) = w\<close>

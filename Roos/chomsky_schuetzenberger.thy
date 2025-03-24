@@ -1,5 +1,5 @@
 theory chomsky_schuetzenberger
-  imports "../CFG" "../CFL" "../Parse_Tree" "dfa2" "$AFP/Regular-Sets/Regexp_Constructions" "$AFP/Regular-Sets/Regular_Set" 
+  imports "../CFG" "../CFL" "../Parse_Tree" "dfa2" "$AFP/Regular-Sets/Regexp_Constructions"
 begin
 
 text \<open>This file contains all the constructions needed for the chomsky-schuetzenberger theorem.
@@ -889,11 +889,7 @@ lemma transform_production_induct_cnf:
 
 
 
-text\<open>Existence of chomsky normal form. Doesn't forbid the start symbol on the right though, so it's techinally even weaker.\<close>
-lemma CNF_existence :
-  assumes \<open>CFL.cfl TYPE('a) L\<close>
-  shows \<open>\<exists>P S::'a. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> (* TODO start symbol not on the right side*)
-  sorry
+
 
 
 
@@ -2201,7 +2197,7 @@ qed
 
 
 
-lemma reg_inter_reg: \<open>regular_lang A \<Longrightarrow> regular_lang B \<Longrightarrow> regular_lang (A\<inter>B)\<close> sorry
+
 
 
 
@@ -2820,207 +2816,55 @@ proof-
 qed
 
 
+corollary regular_Re_inter: \<open>finite P \<Longrightarrow> regular ((brackets P) \<inter> Re A)\<close>
+proof-
+assume finite_P: \<open>finite P\<close>
 
+then have regs: \<open>regular {xs. P1 xs \<and> xs \<in> brackets P}\<close>  \<open>regular {xs. successively P2 xs \<and>  xs \<in> brackets P}\<close> \<open>regular {xs. successively P3 xs \<and>  xs \<in> brackets P}\<close> \<open>regular {xs. successively P4 xs \<and>  xs \<in> brackets P}\<close> \<open>regular {xs. P5 A xs \<and> xs \<in> brackets P}\<close>
+using P1_regular[OF \<open>finite P\<close>] P2_regular[OF \<open>finite P\<close>] P3_regular[OF \<open>finite P\<close>] P4_regular[OF \<open>finite P\<close>] P5_regular[OF \<open>finite P\<close>] by blast+ 
 
+hence \<open>regular ({xs. P1 xs \<and> xs \<in> brackets P}\<inter>{xs. successively P2 xs \<and>  xs \<in> brackets P}\<inter>{xs. successively P3 xs \<and>  xs \<in> brackets P}\<inter>{xs. successively P4 xs \<and>  xs \<in> brackets P}\<inter>{xs. P5 A xs \<and> xs \<in> brackets P})\<close> by (meson regular_Int)
 
+moreover have set_eq: \<open>{xs. P1 xs \<and> xs \<in> brackets P}\<inter>{xs. successively P2 xs \<and>  xs \<in> brackets P}\<inter>{xs. successively P3 xs \<and>  xs \<in> brackets P}\<inter>{xs. successively P4 xs \<and>  xs \<in> brackets P}\<inter>{xs. P5 A xs \<and> xs \<in> brackets P} = brackets P \<inter> Re A\<close> by auto 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-text\<open>All closing brackets, not neccesarily in P\<close>
-definition CL'::\<open>(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) set\<close> where
-  \<open>CL' = { (Cl,(p,v)) | p v. True }\<close>
-
-text\<open>All opening brackets, not neccesarily in P\<close>
-definition OP'::\<open>(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) set\<close> where
-  \<open>OP' = { (Op,(p,v)) | p v. True }\<close>
-
-text\<open>All closing brackets with a 2, not neccesarily in P\<close>
-definition CL2'::\<open>(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) set\<close> where
-  \<open>CL2' = { (Cl,(p,Two)) | p. True }\<close>
-
-
-text\<open>All closing brackets with a 2, not neccesarily in P\<close>
-definition nCL2'::\<open>(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) set\<close> where
-  \<open>nCL2' = UNIV - { (Cl,(p,Two)) | p. True }\<close>
-
-text\<open>All closing brackets with a 1, not neccesarily in P\<close>
-definition CL1'::\<open>(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) set\<close> where
-  \<open>CL1' = { (Cl,(p,One)) | p. True }\<close>
-
-
-
-
-
-
-text\<open>All closing brackets, not neccesarily in P\<close>
-abbreviation CL::\<open>(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set\<close> where
-  \<open>CL \<equiv> singletons ` CL'\<close>
-
-
-text\<open>All opening brackets, not neccesarily in P\<close>
-abbreviation OP::\<open>(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set\<close> where
-  \<open>OP \<equiv> singletons ` OP'\<close>
-
-
-text\<open>All closing brackets with a 2, not neccesarily in P\<close>
-abbreviation CL2::\<open>(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set\<close> where
-  \<open>CL2 \<equiv> singletons ` CL2'\<close>
-
-
-text\<open>All closing brackets with a 2, not neccesarily in P\<close>
-abbreviation nCL2::\<open>(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set\<close> where
-  \<open>nCL2 \<equiv> singletons ` nCL2'\<close>
-
-
-text\<open>All closing brackets with a 2, not neccesarily in P\<close>
-abbreviation CL1::\<open>(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set\<close> where
-  \<open>CL1 \<equiv> singletons ` CL1'\<close>
-
-
-
-
-
-
-
-section\<open>intros, dests and elims for letter sets.\<close>
-
-lemma CL'I[intro]: \<open>\<exists>p v. x = (Cl, (p,v)) \<Longrightarrow> x \<in> CL'\<close> unfolding CL'_def by simp
-lemma CL'D[dest]: \<open>x \<in> CL' \<Longrightarrow> \<exists>p v. x = (Cl, (p,v))\<close> unfolding CL'_def by simp
-lemma CL'E[elim]: 
-  assumes \<open>x \<in> CL'\<close>
-  shows \<open>(\<And>p v. \<lbrakk>x \<in> CL'; x = (Cl, (p,v))\<rbrakk> \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> using assms by blast
-
-
-lemma OP'I[intro]: \<open>\<exists>p v. x = (Op, (p,v)) \<Longrightarrow> x \<in> OP'\<close> unfolding OP'_def by simp
-lemma OP'D[dest]: \<open>x \<in> OP' \<Longrightarrow> \<exists>p v. x = (Op, (p,v))\<close> unfolding OP'_def by simp
-lemma OP'E[elim]: 
-  assumes \<open>x \<in> OP'\<close>
-  shows \<open>(\<And>p v. \<lbrakk>x \<in> OP'; x = (Op, (p,v))\<rbrakk> \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> using assms by blast
-
-
-
-
-
-
-
-
-
-
-
-
-
-lemma CL2'I[intro]: \<open>\<exists>p. x = (Cl, (p,Two)) \<Longrightarrow> x \<in> CL2'\<close> unfolding CL2'_def by simp
-lemma CL2'I2[intro]: \<open>x = (Cl, (p,Two)) \<Longrightarrow> x \<in> CL2'\<close> unfolding CL2'_def by simp
-lemma CL2'D[dest]: \<open>x \<in> CL2' \<Longrightarrow> \<exists>p. x = (Cl, (p, Two))\<close> unfolding CL2'_def by simp
-lemma CL2'E[elim]: 
-  assumes \<open>x \<in> CL2'\<close>
-  shows \<open>(\<And>p. \<lbrakk>x \<in> CL2'; x = (Cl, (p, Two))\<rbrakk> \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> using assms by blast
-
-
-
-
-
-
-lemma nCL2'I[intro]: \<open>(\<And>p. x \<noteq> (Cl, (p,Two))) \<Longrightarrow> x \<in> nCL2'\<close> unfolding nCL2'_def by blast
-lemma nCL2'D[dest]: \<open>x \<in> nCL2' \<Longrightarrow> (\<And>p. x \<noteq> (Cl, (p,Two)))\<close> unfolding nCL2'_def by fast
-lemma nCL2'E[elim]: 
-  assumes \<open>x \<in> nCL2'\<close>
-  shows \<open>(\<And>p v. \<lbrakk>x \<in> nCL2'; x = (Op, (p, v))\<rbrakk> \<Longrightarrow> thesis) \<Longrightarrow> (\<And>p b. \<lbrakk>x \<in> nCL2'; x = (b, (p, One))\<rbrakk> \<Longrightarrow> thesis)  \<Longrightarrow> thesis\<close> 
-  using assms by (smt (verit) chomsky_schuetzenberger.bracket.exhaust chomsky_schuetzenberger.version.exhaust nCL2'D prod_cases3)
-
-
-
-
-
-lemma CL1'I[intro]: \<open>\<exists>p. x = (Cl, (p,One)) \<Longrightarrow> x \<in> CL1'\<close> unfolding CL1'_def by simp
-lemma CL1'I2[intro]: \<open>x = (Cl, (p,One)) \<Longrightarrow> x \<in> CL1'\<close> unfolding CL1'_def by simp
-lemma CL1'D[dest]: \<open>x \<in> CL1' \<Longrightarrow> \<exists>p. x = (Cl, (p, One))\<close> unfolding CL1'_def by simp
-lemma CL1'E[elim]: 
-  assumes \<open>x \<in> CL1'\<close>
-  shows \<open>(\<And>p. \<lbrakk>x \<in> CL1'; x = (Cl, (p, One))\<rbrakk> \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> using assms by blast
-
-
-
-
-
-
-
-
-lemma OP'_eq_NOT_CL': \<open>OP' = UNIV - CL'\<close> 
-proof(standard;standard)
-  fix x::\<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version)\<close>
-  assume \<open>x \<in> OP'\<close>
-  then show \<open>x \<in> UNIV - CL'\<close> by blast
-next
-  fix x::\<open>(bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version)\<close>
-  assume assm: \<open>x \<in> UNIV- CL'\<close>
-  then obtain b p v where x_def: \<open>x = (b,(p,v))\<close> using prod_cases3 by blast
-  then have b_def: \<open>b = Op\<close> using bracket.exhaust assm unfolding CL'_def by auto
-  then have \<open>x = (Op, (p, v))\<close>  using x_def unfolding b_def by blast
-  then show \<open> x \<in> OP'\<close> unfolding OP'_def by blast
+ultimately show ?thesis by argo
 qed
 
 
 
 
-lemma finite_brackets[intro, simp]:
-  assumes \<open>finite P\<close>
-  shows \<open>finite (brackets P)\<close>
-proof -
-  have "brackets P = { [(br, (p, v))] | br p v. p \<in> P}"
-    unfolding brackets'_def by (smt (verit, best) Collect_cong chomsky_schuetzenberger.singletons.simps setcompr_eq_image)
-  also have "... = (\<Union>p\<in>P. { [(br, (p, v))] | br v. True})"
-    by blast
-  also have "finite ..." using assms 
-  proof -
-    have "\<forall>p\<in>P. finite { [((br::bracket), (p, (v::version)))] | br v. True}"
-    proof
-      fix p assume "p \<in> P"
-      have eq: \<open>{ [(br, (p, v))] | br v. True} = { [(Op, (p, One))], [(Op, (p, Two))], [(Cl, (p, One))], [(Cl, (p, Two))]}\<close> using bracket.exhaust version.exhaust by auto
-      have \<open>finite ...\<close> by blast
-      then show "finite { [((br::bracket), (p, (v::version)))] | br v. True}" using eq by auto
-    qed
-
-    with assms show ?thesis using finite_UN by blast
-  qed
-  finally show "finite (brackets P)" .
-qed
 
 
 
-lemma dyck_lang_imp_star_brackets: \<open>dyck_language (P \<times> {One, Two}) \<subseteq> star (brackets P)\<close>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+text\<open>FIXME\<close>
+lemma dyck_lang_imp_star_brackets: \<open>dyck_language (P \<times> {One, Two}) \<subseteq> (brackets P)\<close>
 proof
   fix x
   assume \<open>x \<in> dyck_language (P \<times> {One, Two})\<close>
@@ -3030,37 +2874,8 @@ proof
     then have \<open>((A, r), v) \<in> P \<times> {One, Two}\<close> unfolding dyck_language_def by fastforce
     then show ?case unfolding brackets'_def dyck_language_def by blast
   qed
-  then show \<open>x \<in> star (brackets P)\<close> unfolding star_singletons_iff[of x \<open>brackets' P\<close>] by blast
+  then show \<open>x \<in> (brackets P)\<close> by (simp add: Ball_set_list_all)
 qed
-
-
-
-abbreviation CLb :: \<open>('n,'t) Prods \<Rightarrow> (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set\<close> where \<open>CLb P \<equiv> CL \<inter> brackets P\<close>
-abbreviation OPb :: \<open>('n,'t) Prods \<Rightarrow> (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set\<close> where \<open>OPb P \<equiv> OP \<inter> brackets P\<close>
-abbreviation CL2b :: \<open>('n,'t) Prods \<Rightarrow> (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set\<close> where \<open>CL2b P \<equiv> CL2 \<inter> brackets P\<close>
-abbreviation nCL2b :: \<open>('n,'t) Prods \<Rightarrow> (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set\<close> where \<open>nCL2b P \<equiv> nCL2 \<inter> brackets P\<close>
-abbreviation CL1b :: \<open>('n,'t) Prods \<Rightarrow> (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set\<close> where \<open>CL1b P \<equiv> CL1 \<inter> brackets P\<close>
-
-lemma finite_CLb: \<open>finite P \<Longrightarrow> finite (CLb P)\<close> by blast
-lemma finite_OPb: \<open>finite P \<Longrightarrow> finite (OPb P)\<close> by blast
-lemma finite_CL2b: \<open>finite P \<Longrightarrow> finite (CL2b P)\<close> by blast
-lemma finite_nCL2b: \<open>finite P \<Longrightarrow> finite (nCL2b P)\<close> by blast
-lemma finite_CL1b: \<open>finite P \<Longrightarrow> finite (CL1b P)\<close> by blast
-
-lemma reg_CL_inter: \<open>finite P \<Longrightarrow> regular_lang (CL \<inter> brackets P)\<close> using finite_imp_regular finite_CLb by blast
-lemma reg_OP_inter: \<open>finite P \<Longrightarrow> regular_lang (OP \<inter> brackets P)\<close> using finite_imp_regular finite_OPb by blast
-lemma reg_CL2_inter: \<open>finite P \<Longrightarrow> regular_lang (CL2 \<inter> brackets P)\<close> using finite_imp_regular finite_CL2b by blast
-lemma reg_nCL2_inter: \<open>finite P \<Longrightarrow> regular_lang (nCL2 \<inter> brackets P)\<close> using finite_imp_regular finite_nCL2b by blast
-lemma reg_CL1_inter: \<open>finite P \<Longrightarrow> regular_lang (CL1 \<inter> brackets P)\<close> using finite_imp_regular finite_CL1b by blast
-
-lemmas reg_singletons = reg_CL_inter reg_OP_inter reg_CL2_inter reg_nCL2_inter reg_CL1_inter
-
-
-lemma CL_length[intro]:  \<open>x \<in> CL \<Longrightarrow> length x = 1\<close> by force
-lemma OP_length[intro]: \<open>x \<in> OP \<Longrightarrow> length x = 1\<close> by force
-lemma CL2_length[intro]: \<open>x \<in> CL2 \<Longrightarrow> length x = 1\<close> by force
-lemma nCL2_length[intro]: \<open>x \<in> nCL2 \<Longrightarrow> length x = 1\<close> by force
-
 
 
 
@@ -3186,369 +3001,15 @@ qed
 
 
 
-section\<open>Lemmas relating star and successively\<close>
 
-lemma star_imp_successively:
-  fixes A2'
-  defines \<open>A2 \<equiv> singletons ` A2'\<close>
-  assumes \<open>u \<in> (star A2)\<close>
-    and \<open>\<And>a2 a2'. a2 \<in> A2' \<Longrightarrow> a2' \<in> A2' \<Longrightarrow>  P a2 a2'\<close>
-  shows \<open>successively P u\<close>
-  using assms(2) proof(induction u)
-  case (append u v)
-  from append have successively_v: \<open>successively P v\<close> by simp
-  from append obtain u' where u'_def: \<open>u = [u']\<close> \<open>u' \<in> A2'\<close> unfolding A2_def by (metis image_singletonsD'(1)) 
-  then show ?case
-  proof(cases v)
-    case (Cons hdv tlv)
-    have \<open>P u' hdv\<close> using assms u'_def by (metis Cons List.list.discI List.list.sel(1) Regular_Set.star_decom hd_append image_singletonsD'(1) local.append.hyps(2))
-    then show ?thesis using successively_v last_ConsL u'_def(1) by (metis Cons List.list.sel(1) List.successively.simps(2) successively_append_iff)
-  qed simp
-qed simp
 
 
 
 
 
 
-lemma star_conc_imp_successively:
-  fixes A2'
-  defines \<open>A2 \<equiv> singletons ` A2'\<close>
-  assumes \<open>u \<in> star1 A2\<close>
-    and \<open>\<And>a2 a2'. a2 \<in> A2' \<Longrightarrow> a2' \<in> A2' \<Longrightarrow>  P a2 a2'\<close>
-  shows \<open>successively P u\<close>
-  using assms star_imp_successively by (metis UnCI star_unfold_left)
 
 
-
-
-
-
-
-
-
-lemma star_imp_successively_if:
-  fixes A1' A2' A3'
-  defines \<open>A1 \<equiv> singletons ` A1'\<close>
-  defines \<open>A2 \<equiv> (singletons ` A2')\<close>
-  defines \<open>A3 \<equiv> singletons ` A3'\<close>
-  assumes \<open>x \<in> star (A1 \<union> (((star A2)@@A2) @@ A3))\<close>
-  assumes \<open>\<And>a1 a1'. a1 \<in> A1' \<Longrightarrow> a1' \<in> A1' \<Longrightarrow> P a1 a1'\<close>
-  assumes \<open>\<And>a1 a2. a1 \<in> A1' \<Longrightarrow> a2 \<in> A2' \<Longrightarrow> P a1 a2\<close>
-  assumes \<open>\<And>a2 a3. a2 \<in> A2' \<Longrightarrow> a3 \<in> A3' \<Longrightarrow> P a2 a3\<close>
-  assumes \<open>\<And>a3 a2. a3 \<in> A3' \<Longrightarrow> a2 \<in> A2' \<Longrightarrow> P a3 a2\<close>
-  assumes \<open>\<And>a3 a1. a3 \<in> A3' \<Longrightarrow> a1 \<in> A1' \<Longrightarrow> P a3 a1\<close>
-  assumes \<open>\<And>a2 a2'. a2 \<in> A2' \<Longrightarrow> a2' \<in> A2' \<Longrightarrow> P a2 a2'\<close>
-  shows \<open>successively P x\<close>
-  using assms(4) proof(induction rule: star_induct)
-  case (append u v)
-  consider \<open>u \<in> A1\<close> |  \<open>u \<in> ((star A2)@@A2) @@ A3\<close> using append by blast 
-  then show ?case
-  proof(cases)
-    case 1
-    then obtain u' where u'_def: \<open>u = [u']\<close> \<open>u' \<in> A1'\<close> unfolding A1_def by (metis image_singletonsD'(1))
-    then show ?thesis
-    proof(cases \<open>v = []\<close>)
-      case True
-      then show ?thesis using u'_def(1) by (metis List.append.right_neutral List.successively.simps(2))
-    next
-      case False
-      then obtain a b where ab_def: \<open>v = a @ b\<close> \<open>a \<noteq> []\<close> \<open>a \<in> A1 \<union> (((star A2)@@A2) @@ A3)\<close> \<open>b \<in> star (A1 \<union> (((star A2)@@A2) @@ A3))\<close> using star_decom[of v \<open>A1 \<union> (((star A2)@@A2) @@ A3)\<close>] using local.append.hyps(2)  by blast
-
-      then consider \<open>a \<in> A1\<close> | \<open>a \<in> (((star A2)@@A2) @@ A3)\<close> by blast
-      then show ?thesis
-      proof(cases)
-        case 1
-        then obtain v' where v'_def: \<open>v = [v'] @ tl v\<close> \<open>v' \<in> A1'\<close> by (metis A1_def List.list.sel(3) ab_def(1,2) image_singletonsD'(1) self_append_conv2 tl_append2) 
-        then have \<open>P u' v'\<close> using assms u'_def by blast
-        moreover have \<open>successively P u\<close> using u'_def by (meson successively_Cons)
-        ultimately show ?thesis using append v'_def  u'_def(1) by (metis List.successively.simps(3) append_Cons append_Nil)
-      next
-        case 2
-        then obtain v' v'' where v'_def: \<open>a = [v'] @ v''\<close> \<open>v' \<in> A2'\<close> unfolding A2_def A3_def by (smt (verit) List.append.assoc concE image_singletonsD'(1) self_append_conv2 star_decom)
-        then have \<open>P u' v'\<close> using assms u'_def by blast
-        moreover have \<open>successively P u\<close> using u'_def by (metis List.successively.simps(2))
-        ultimately show ?thesis using append v'_def u'_def(1) ab_def(1) by (metis List.list.sel(1) append_Cons last_ConsL successively_append_iff)
-      qed
-    qed
-  next
-    case 2
-    then obtain u' u'' where u'_def: \<open>u = u' @ [u'']\<close> \<open>u' \<in> ((star A2)@@A2)\<close> \<open>u'' \<in> A3'\<close> unfolding A2_def A3_def by (metis concE image_singletonsD'(1))
-    from \<open>u' \<in> ((star A2)@@A2)\<close> have successively_u': \<open>successively P u'\<close> by (simp add: A2_def assms(10) conc_star_comm star_conc_imp_successively)
-    then have successively_u: \<open>successively P u\<close> using assms u'_def(1,2,3) by (metis List.list.sel(1) List.successively.simps(2) concE image_singletonsD'(1) last_snoc successively_append_iff)
-    then show ?thesis
-    proof(cases \<open>v = []\<close>)
-      case True
-      then show ?thesis using successively_u by fastforce
-    next
-      case False
-      then obtain a b where ab_def: \<open>v = a @ b\<close> \<open>a \<noteq> []\<close> \<open>a \<in> A1 \<union> (((star A2)@@A2) @@ A3)\<close> \<open>b \<in> star (A1 \<union> (((star A2)@@A2) @@ A3))\<close> using star_decom[of v \<open>A1 \<union> (((star A2)@@A2) @@ A3)\<close>] using local.append.hyps(2)  by blast
-      then consider \<open>a \<in> A1\<close> | \<open>a \<in> (((star A2)@@A2) @@ A3)\<close> by blast
-      then show ?thesis
-      proof(cases)
-        case 1
-        then obtain v' where v'_def: \<open>v = [v'] @ tl v\<close> \<open>v' \<in> A1'\<close> by (metis A1_def List.list.sel(3) ab_def(1,2) image_singletonsD'(1) self_append_conv2 tl_append2) 
-        then have \<open>P u'' v'\<close> using assms u'_def by presburger
-        then show ?thesis using append v'_def successively_u u'_def by (metis List.list.distinct(1) List.list.sel(1) hd_append last_snoc successively_append_iff)
-      next
-        case 2
-        then obtain v' v'' where v'_def: \<open>a = [v'] @ v''\<close> \<open>v' \<in> A2'\<close> unfolding A2_def A3_def by (smt (verit) List.append.assoc concE image_singletonsD'(1) self_append_conv2 star_decom)
-        then have \<open>P u'' v'\<close> using assms u'_def by presburger
-        then show ?thesis using append v'_def u'_def successively_u by (metis List.list.sel(1) ab_def(1) append_Cons last_snoc successively_append_iff)
-      qed
-    qed
-  qed
-qed auto
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-section\<open>Simplification Lemmas we need to push out/in the \<open>\<Gamma>\<^sup>*\<close> with which we intersect all the sets like OP, CL2 etc. \<close>
-
-
-
-text\<open>0. \<close>
-lemma mk_star: \<open>singletons ` \<Sigma> \<inter> singletons ` \<Gamma> = singletons ` \<Sigma> \<inter> star( singletons ` \<Gamma>)\<close> apply auto by (metis List.append.right_neutral List.list.distinct(1) List.list.sel(3) Nil_is_append_conv star_decom tl_append2)
-
-
-text\<open>1.\<close>
-lemma push_inter_conc: \<open>(X \<inter> star( singletons ` \<Gamma>)) @@ (Y \<inter> star( singletons ` \<Gamma>)) = (X@@Y) \<inter> star( singletons ` \<Gamma>)\<close>
-proof(safe, goal_cases)
-  case (1 x)
-  then show ?case by auto
-next
-  case (2 x)
-  then show ?case by auto
-next
-  case (3 xy)
-  then obtain x y where xy_eq: \<open>xy = x @ y\<close>  \<open>x \<in> X\<close> \<open>y \<in> Y\<close> by blast
-  moreover have \<open>x \<in> star (singletons ` \<Gamma>)\<close> using 3(2) xy_eq(1) by (metis Un_iff set_append star_singletons_iff)
-  moreover have \<open>y \<in> star (singletons ` \<Gamma>)\<close> using 3(2) xy_eq(1) by (metis Un_iff set_append star_singletons_iff)
-  moreover have \<open>x \<in> (X \<inter> star (singletons ` \<Gamma>))\<close> \<open>y \<in> (Y \<inter> star (singletons ` \<Gamma>))\<close> using calculation xy_eq by blast+ 
-  ultimately show ?case by blast 
-qed
-
-text\<open>2. pure logic\<close>
-lemma push_inter_inter: \<open>(X \<inter> star( singletons ` \<Gamma>)) \<inter> (Y \<inter> star( singletons ` \<Gamma>)) = (X\<inter>Y) \<inter> star( singletons ` \<Gamma>)\<close> by blast
-
-text\<open>3. pure logic\<close>
-lemma push_inter_union:\<open>(X \<inter> star( singletons ` \<Gamma>)) \<union> (Y \<inter> star( singletons ` \<Gamma>)) = (X\<union>Y) \<inter> star( singletons ` \<Gamma>)\<close> by blast
-
-
-text\<open>4\<close>
-lemma push_inter_star: \<open>star (X \<inter> star( singletons ` \<Gamma>)) = star X \<inter> star( singletons ` \<Gamma>)\<close>
-proof(safe, goal_cases)
-  case (1 x)
-  then show ?case by (meson inf_le1 star_mono subsetD)
-
-next
-  case (2 x)
-  then show ?case by (metis inf_le2 star_idemp star_mono subsetD) 
-next
-  case (3 x)
-  then show ?case
-  proof(induction)
-    case Nil
-    then show ?case by blast
-  next
-    case (append u v)
-    from \<open>u @ v \<in> star (singletons ` \<Gamma>)\<close> have \<open>v \<in> star (singletons ` \<Gamma>)\<close> by (metis Un_iff set_append star_singletons_iff)
-    then have *: \<open>v \<in> star (X \<inter> star (singletons ` \<Gamma>))\<close> using append by blast
-
-    from \<open>u @ v \<in> star (singletons ` \<Gamma>)\<close> have \<open>u  \<in> star (singletons ` \<Gamma>)\<close> by (metis Un_iff set_append star_singletons_iff)
-    with \<open>u \<in> X\<close> have **: \<open>u \<in> star (X \<inter> star (singletons ` \<Gamma>))\<close> by (meson Int_iff star_if_lang)
-    from * ** show ?case by (meson append_in_starI)
-  qed
-qed
-
-
-lemmas push_inter = mk_star push_inter_conc push_inter_inter push_inter_union push_inter_star
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-section\<open>Show that \<open>P2 \<inter> brackets P\<close> is regular (if P is finite).\<close>
-
-lemma nCL2_imp_P2[intro]: \<open>x \<in> nCL2' \<Longrightarrow> P2 x y\<close> unfolding nCL2'_def apply(induction x y rule: P2.induct) by auto
-lemma CL2_CL_imp_P2[intro]: \<open>x \<in> CL2' \<Longrightarrow> y \<in> CL' \<Longrightarrow> P2 x y\<close> unfolding CL2'_def CL'_def  apply(induction x y rule: P2.induct) by auto 
-
-
-lemma star_imp_P2_helper [intro]: 
-  assumes \<open>x \<in> star (nCL2 \<union> ((star CL2 @@ CL2)@@CL1))\<close>
-  shows \<open>successively P2 x\<close> 
-  using assms apply(rule star_imp_successively_if, goal_cases) using CL2'D by blast+
-
-
-
-
-lemma P2_iff: \<open>successively P2 x = (x \<in> star( nCL2 \<union> (star1 CL2 )@@CL1 ) @@ (star CL2))\<close>
-proof(standard, goal_cases)
-  case (1)
-  then show ?case
-  proof(induction x rule: induct_list012)
-    case 1
-    then show ?case by simp
-  next
-    case (2 x)
-    then show ?case by (metis CL2'I Nil_in_star Un_iff concI_if_Nil1 concI_if_Nil2 image_singletonsI nCL2'I star_empty star_unfold_left)
-  next
-    case (3 x y zs)
-    then show ?case proof(induction rule: P2.induct)
-      case (2 p va)
-      from 2 have zs_in: \<open>zs \<in> star (nCL2 \<union> star1 CL2 @@ CL1) @@ star CL2\<close> by (metis List.successively.simps(1) successively_Cons)
-      from 2 have \<open>(Cl, va) # zs \<in> star (nCL2 \<union> (star1 CL2 ) @@ CL1) @@ star CL2\<close> by simp
-      then obtain zs' r where zs_eq: \<open>(Cl, va) # zs = zs' @ r\<close> \<open>zs' \<in> star (nCL2 \<union> (star1 CL2) @@ CL1)\<close> \<open>r \<in> star CL2\<close> using 3 concE by metis
-      then consider \<open>zs' \<in> star( (star1 CL2) @@ CL1 )\<close> |  \<open>(\<exists>bs a zs'a. zs' = bs @ a @ zs'a \<and> bs \<in> star ((star1 CL2) @@ CL1) \<and> a \<in> nCL2 \<and> zs'a \<in> star (nCL2 \<union> (star1 CL2) @@ CL1))\<close> using split_star_union[OF \<open>zs' \<in> star (nCL2 \<union> (star1 CL2) @@ CL1)\<close>] by blast
-      then show ?case
-      proof(cases)
-        case 1
-        then show ?thesis
-        proof(cases \<open>zs' = []\<close>)
-          case True
-          then show ?thesis by (metis CL2'I Nil_in_star append_Cons append_in_starI chomsky_schuetzenberger.singletons.simps concI_if_Nil1 imageI star_if_lang zs_eq(1,3))
-        next
-          case False
-          then have zs'_not_empty: \<open>zs' \<noteq> []\<close> by simp
-          then obtain a b where zs'_decom: \<open>zs' = a @ b \<and> a \<noteq> [] \<and> a \<in> star1 CL2 @@ CL1 \<and> b \<in> star (star1 CL2 @@ CL1)\<close> using star_decom[OF \<open>zs' \<in> star( (star1 CL2) @@ CL1 )\<close> zs'_not_empty] by presburger
-          then have \<open>[ ]\<^bsub>p\<^esub>\<^sup>2 ] @ a \<in> star1 CL2 @@ CL1\<close> by (metis (no_types, lifting) Arden_star_is_sol CL2'I Un_iff concI conc_assoc image_singletonsI)
-          then have \<open>[ ]\<^bsub>p\<^esub>\<^sup>2 ] @ a @ b \<in>  star (star1 CL2 @@ CL1)\<close> using zs'_decom by (metis append_assoc append_in_starI star_if_lang)
-          then have \<open>[ ]\<^bsub>p\<^esub>\<^sup>2 ] @ zs'  \<in> star (star1 CL2 @@ CL1)\<close> using zs'_decom by blast
-          then have \<open>[ ]\<^bsub>p\<^esub>\<^sup>2 ] @ zs'  \<in> star (nCL2 \<union> star1 CL2 @@ CL1)\<close> using star_mono by blast
-          have \<open>[ ]\<^bsub>p\<^esub>\<^sup>2 ] @ zs' @ r \<in> star (nCL2 \<union> (star1 CL2 ) @@ CL1) @@ star CL2 \<close> using concI[OF \<open>[ ]\<^bsub>p\<^esub>\<^sup>2 ] @ zs'  \<in> star (nCL2 \<union> star1 CL2 @@ CL1)\<close>  \<open>r \<in> star CL2\<close>] by simp
-          then show ?thesis by (simp add: zs_eq(1))
-        qed
-
-      next
-        case 2
-        then obtain bs a zs'a where zs'_eq: \<open>zs' = bs @ a @ zs'a\<close> \<open>bs \<in> star (star1 CL2 @@ CL1)\<close> \<open>a \<in> nCL2\<close> \<open>zs'a \<in> star (nCL2 \<union> star1 CL2 @@ CL1)\<close> by metis
-        then have \<open>zs' \<noteq> []\<close> by (metis Nil_is_append_conv image_singletonsD'(1) neq_Nil_conv)
-        then show ?thesis
-        proof(cases \<open>bs = []\<close>)
-          case True
-          then have \<open>zs' = a @ zs'a\<close> using zs_eq zs'_eq unfolding True by blast 
-          then have a_eq: \<open>a = [(Cl, va)]\<close> using zs_eq by (metis List.list.discI List.list.sel(1) \<open>zs' \<noteq> []\<close> hd_append image_singletonsD'(1) zs'_eq(3)) 
-          then obtain p' where  va_eq: \<open>va = (p', One)\<close> using \<open>a \<in> nCL2\<close> unfolding \<open>a = [(Cl, va)]\<close> by (meson Product_Type.prod.inject chomsky_schuetzenberger.bracket.simps(2) image_singletonsD nCL2'E)
-          then have \<open>[ ]\<^bsub>p\<^esub>\<^sup>2 , (Cl, va)] \<in> star1 CL2 @@ CL1\<close> unfolding va_eq using concI[of \<open>[ ]\<^bsub>p\<^esub>\<^sup>2  ]\<close> \<open>star1 CL2\<close> \<open>[(Cl, va)]\<close> CL1] by (simp add: CL1'I CL2'I concI_if_Nil2 va_eq)
-          then have \<open>[ ]\<^bsub>p\<^esub>\<^sup>2 , (Cl, va)]  \<in> star( nCL2 \<union> (star1 CL2 )@@CL1 )\<close> using star_mono by auto
-          then have \<open>[ ]\<^bsub>p\<^esub>\<^sup>2 , (Cl, va)] @ zs\<in> star (nCL2 \<union> star1 CL2 @@ CL1) @@ star CL2\<close> using zs_in by (metis \<open>zs' = a @ zs'a\<close> a_eq append_Cons append_Nil append_in_starI concI zs'_eq(4) zs_eq(1,3))
-          moreover have \<open>[ ]\<^bsub>p\<^esub>\<^sup>2 , (Cl, va)] @ zs = ]\<^bsub>p\<^esub>\<^sup>2  # (Cl, va) # zs\<close> using zs_eq zs'_eq unfolding a_eq va_eq True  by (metis append_Cons append_Nil)
-          ultimately show ?thesis by argo
-        next
-          case False
-          then have \<open>[ ]\<^bsub>p\<^esub>\<^sup>2 ] @ bs \<in> star (star1 CL2 @@ CL1) \<close> using append_star_star1_conc[of bs CL2 CL1 \<open>[ ]\<^bsub>p\<^esub>\<^sup>2 ]\<close>] using zs'_eq(2) by blast
-          then have \<open>[ ]\<^bsub>p\<^esub>\<^sup>2 ] @ bs \<in> star (nCL2 \<union> star1 CL2 @@ CL1) \<close> using star_mono by blast
-          then have \<open>[ ]\<^bsub>p\<^esub>\<^sup>2 ] @ bs @ a \<in> star (nCL2 \<union> star1 CL2 @@ CL1)\<close> using zs'_eq by (metis UnI1 append_eq_appendI append_in_starI star_if_lang)
-          then have \<open>[ ]\<^bsub>p\<^esub>\<^sup>2 ] @ bs @ a @ zs'a \<in> star (nCL2 \<union> (star1 CL2) @@ CL1)\<close> using zs'_eq by (metis List.append.assoc append_in_starI)
-          then have \<open>[ ]\<^bsub>p\<^esub>\<^sup>2 ] @ zs' \<in> star (nCL2 \<union> (star1 CL2) @@ CL1)\<close> using zs'_eq(1) by blast
-          then show ?thesis using zs_eq by (metis append_Cons append_Nil concI) 
-        qed
-      qed
-
-
-
-    next
-      case ("3_1" va y)
-      then have \<open>y # zs \<in> star (nCL2 \<union> (star1 CL2 ) @@ CL1) @@ star CL2\<close> by (simp add: conc_star_comm)
-      moreover have \<open>[(Op, va)] \<in> (star (nCL2 \<union> ((star1 CL2)@@CL1))) \<close> by (simp add: concI_if_Nil2 nCL2'I)
-      ultimately show ?case by (metis (no_types, opaque_lifting) Cons_eq_appendI concI conc_assoc conc_star_star eq_Nil_appendI)
-    next
-      case ("3_2" v vb y)
-      then have \<open>y # zs \<in> star (nCL2 \<union> (star1 CL2 ) @@ CL1) @@ star CL2\<close> by (simp add: conc_star_comm)
-      moreover have \<open>[(v, vb, One)] \<in> (star (nCL2 \<union> ((star1 CL2)@@CL1))) \<close> by (simp add: concI_if_Nil2 nCL2'I)
-      ultimately show ?case by (metis (no_types, opaque_lifting) Cons_eq_appendI concI conc_assoc conc_star_star eq_Nil_appendI)
-    next
-      case ("3_3" vb va)
-      then have \<open>(Cl, va) # zs \<in> star (nCL2 \<union> star1 CL2 @@ CL1) @@ star CL2\<close> by (simp add: conc_star_comm)
-      moreover have \<open>[(Op, vb)] \<in> (star (nCL2 \<union> ((star1 CL2)@@CL1))) \<close> by (simp add: concI_if_Nil2 nCL2'I)
-      ultimately show ?case by (metis (no_types, opaque_lifting) Cons_eq_appendI concI conc_assoc conc_star_star eq_Nil_appendI)
-    next
-      case ("3_4" v vc va)
-      then have \<open>(Cl, va) # zs \<in> star (nCL2 \<union> star1 CL2 @@ CL1) @@ star CL2\<close> by (simp add: conc_star_comm)
-      moreover have \<open>[(v, vc, One)] \<in> (star (nCL2 \<union> ((star1 CL2)@@CL1))) \<close> by (simp add: concI_if_Nil2 nCL2'I)
-      ultimately show ?case by (metis (no_types, opaque_lifting) Cons_eq_appendI concI conc_assoc conc_star_star eq_Nil_appendI)
-    qed simp
-  qed
-next
-  case 2
-  then show ?case
-  proof(standard, goal_cases)
-    case (1 x' r)
-    then have x_eq: \<open>x = x' @ r\<close> by simp
-    from 1 have successively_x': \<open>successively P2 x'\<close> using star_imp_P2_helper by (metis conc_star_comm)
-    have \<open>successively P2 r\<close> by (metis "1"(2) CL2'D chomsky_schuetzenberger.P2.simps(2) star_imp_successively)
-
-    then show ?thesis
-    proof(cases \<open>r = []\<close>)
-      case True
-      then show ?thesis by (metis List.append.right_neutral successively_x' x_eq)
-    next
-      case False
-      then show ?thesis using 1  unfolding x_eq by (metis CL2'D List.list.sel(1) \<open>successively P2 r\<close> chomsky_schuetzenberger.P2.elims(3) chomsky_schuetzenberger.P2.simps(2) hd_append image_singletonsD'(1) star_decom successively_append_iff successively_x')
-    qed
-  qed
-qed
-
-
-
-
-
-lemma P2_push: \<open>(star( nCL2 \<union> (star1 CL2 )@@CL1 ) @@ (star CL2)) \<inter> star (brackets P) = (star( nCL2b P \<union> (star1 (CL2b P) )@@(CL1b P) ) @@ (star (CL2b P))) \<close> 
-  by(simp only: push_inter)
-
-
-lemma P2_inter_reg: \<open>finite P \<Longrightarrow> regular_lang ({x. successively P2 x} \<inter> star (brackets P))\<close>
-proof-
-  assume \<open>finite P\<close>
-  have eq: \<open>{x. successively P2 x} = star( nCL2 \<union> (star1 CL2 )@@CL1 ) @@ (star CL2)\<close> using P2_iff by blast
-  then show ?thesis unfolding eq P2_push using reg_singletons[OF \<open>finite P\<close>] by (metis Regular_Exp.lang.simps(4,5,6))
-qed
-
-
-
-
-
-
-
-
-section\<open>show P3 regular.\<close>
-
-text\<open>P3 says: After each (Op,A\<rightarrow>BC,1), always comes a (Op,(B, _),1),  And after each (Op,A\<rightarrow>BC,2), always comes a (Op,(C, _),1)\<close>
 
 
 
@@ -3952,11 +3413,15 @@ qed
 
 
 
+(* 
+text\<open>TODO: only assume Type 2 for L and finite productions somehow, then obtain a finite CNF grammar in the proof. Use (and adapt CNF_existence).\<close>
+text\<open>Existence of chomsky normal form. Doesn't forbid the start symbol on the right though, so it's techinally even weaker.\<close>
+lemma CNF_existence :
+  assumes \<open>CFL.cfl TYPE('a) L\<close>
+  shows \<open>\<exists>P S::'a. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> (* TODO start symbol not on the right side*)
+  sorry
 
-
-
-
-
+*)
 
 
 section\<open>The Theorem\<close>
@@ -3965,12 +3430,12 @@ section\<open>The Theorem\<close>
 
 text\<open>The chomsky-scheutzenberger theorem that we want to prove.\<close>
 lemma chomsky_schuetzenberger :
-  fixes L::\<open>'t list set\<close>
-  assumes \<open>CFL.cfl TYPE('n) L\<close> 
-  shows \<open>\<exists>(R::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set) h \<Gamma>. (regular_lang R) \<and> (L = image h (R \<inter> dyck_language \<Gamma>)) \<and> hom h\<close>
+  fixes L::\<open>'t list set\<close> and  P :: \<open>('n, 't) Prods\<close>
+  assumes \<open>L = Lang P S\<close> and P_CNF: \<open>(\<forall>p \<in> P. CNF_rule p)\<close> and \<open>finite P\<close> \<comment> \<open> TODO: only assume Type 2 for L and finite productions somehow, then obtain a finite CNF grammar in the proof. Use (and adapt CNF_existence). \<close>
+  shows \<open>\<exists>(R::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set) h \<Gamma>. (regular R) \<and> (L = image h (R \<inter> dyck_language \<Gamma>)) \<and> hom h\<close>
 proof -
-  have \<open>\<exists>P S::'n. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> using \<open>cfl TYPE('n) L\<close> CNF_existence by auto
-  then obtain P and S::'n where \<open>L = Lang P S\<close> and P_CNF: \<open>(\<forall>p \<in> P. CNF_rule p)\<close> by blast
+  (* have \<open>\<exists>P S::'n. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> using \<open>cfl TYPE('n) L\<close> CNF_existence by auto
+  then obtain P and S::'n where \<open>L = Lang P S\<close> and P_CNF: \<open>(\<forall>p \<in> P. CNF_rule p)\<close> by blast *)
 
   define \<Gamma> where \<open>\<Gamma> = P \<times> {One, Two}\<close>
   define P' where \<open>P' = image transform_production P\<close>
@@ -4057,15 +3522,15 @@ proof -
   also have \<open>... = L\<close> by (simp add: \<open>L = Lang P S\<close>)
   finally have \<open>image h ((dyck_language \<Gamma>) \<inter> (Re S)) = L\<close> by auto
 
-  moreover have \<open>((dyck_language \<Gamma>) \<inter> (star (brackets P) \<inter> Re S)) = ((dyck_language \<Gamma>) \<inter> (Re S))\<close>
-  proof
-    show \<open>dyck_language \<Gamma> \<inter> (star (brackets P) \<inter> Re S) \<subseteq> dyck_language \<Gamma> \<inter> Re S\<close> by blast
-  next
-    show \<open>dyck_language \<Gamma> \<inter> Re S \<subseteq> dyck_language \<Gamma> \<inter> (star (brackets P) \<inter> Re S)\<close> using \<Gamma>_def dyck_lang_imp_star_brackets by auto
-  qed
+  moreover have \<open>((dyck_language \<Gamma>) \<inter> ((brackets P) \<inter> Re S)) = ((dyck_language \<Gamma>) \<inter> (Re S))\<close>
+    proof
+      show \<open>dyck_language \<Gamma> \<inter> ((brackets P) \<inter> Re S) \<subseteq> dyck_language \<Gamma> \<inter> Re S\<close> by blast
+    next
+      show \<open>dyck_language \<Gamma> \<inter> Re S \<subseteq> dyck_language \<Gamma> \<inter> ((brackets P) \<inter> Re S)\<close> using \<Gamma>_def dyck_lang_imp_star_brackets by auto
+    qed
   moreover have hom: \<open>hom h\<close> by (simp add: h_def hom_def)
-  moreover have \<open>regular_lang (star (brackets P) \<inter> Re S)\<close> sorry
-  ultimately have \<open>regular_lang (star (brackets P) \<inter> Re S) \<and> L = image h ((star (brackets P) \<inter> Re S) \<inter> (dyck_language \<Gamma>)) \<and> hom h\<close> by (simp add: inf_commute)
+  moreover from \<open>finite P\<close> have \<open>regular ((brackets P) \<inter> Re S)\<close> using regular_Re_inter by fast
+  ultimately have \<open>regular ((brackets P) \<inter> Re S) \<and> L = image h (((brackets P) \<inter> Re S) \<inter> (dyck_language \<Gamma>)) \<and> hom h\<close> by (simp add: inf_commute)
   then show ?thesis by blast
 qed
 

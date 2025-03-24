@@ -2499,6 +2499,180 @@ qed
 
 
 
+section\<open>Construction of an automaton for P1. More Precisely, for the "if not empty, then doesnt end in (Cl,_,1)" part. Then use the other construction for P1' to get P1 regular.\<close>
+
+locale P1Construction = 
+fixes P :: "('n,'t) Prods"
+
+assumes finite_P: \<open>finite P\<close>
+
+begin
+
+datatype P1_State = last_ok | last_bad | garbage 
+
+text\<open>The good ending letters, are those that are not of the form (Cl, _ , 1)\<close>
+fun good where
+\<open>good (Cl, p, One)  = False\<close> | 
+\<open>good (br, p, v) = True\<close>
+
+
+fun nxt :: \<open>P1_State \<Rightarrow> (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) \<Rightarrow> P1_State\<close> where 
+\<open>nxt garbage _ = garbage\<close> | 
+\<open>nxt last_ok  (br, p, v) = (if p \<notin> P then garbage else (if good (br, p, v) then last_ok else last_bad))\<close> | 
+\<open>nxt last_bad (br, p, v) = (if p \<notin> P then garbage else (if good (br, p, v) then last_ok else last_bad))\<close>
+
+print_statement nxt.induct
+
+theorem nxt_induct[case_names garbage startp startnp letterQ letternQ]:
+    fixes R :: "P1_State \<Rightarrow> bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version \<Rightarrow> bool"
+    fixes a0 :: "P1_State"
+    and a1 :: "bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version"
+  assumes "\<And>u. R garbage u"
+    and "\<And>br p v. p \<notin> P \<Longrightarrow> R last_ok (br, p, v)"
+    and "\<And>br p v. p \<in> P \<and> good (br, p, v) \<Longrightarrow> R last_ok (br, p, v)"
+    and "\<And>br p v. p \<in> P \<and> \<not>(good (br, p, v)) \<Longrightarrow> R last_ok (br, p, v)"
+    and "\<And>br p v. p \<notin> P \<Longrightarrow> R last_bad (br, p, v)"
+    and "\<And>br p v. p \<in> P \<and> good (br, p, v) \<Longrightarrow> R last_bad (br, p, v)"
+    and "\<And>br p v. p \<in> P \<and> \<not>(good (br, p, v)) \<Longrightarrow> R last_bad (br, p, v)"
+  shows "R a0 a1"
+apply(induction rule: nxt.induct) 
+using assms apply simp 
+apply(case_tac \<open>p \<notin> P\<close>)
+using assms apply simp
+apply(case_tac \<open>good (br, p, v)\<close>)
+using assms apply simp 
+using assms apply simp
+apply(case_tac \<open>p \<notin> P\<close>)
+using assms apply simp
+apply(case_tac \<open>good (br, p, v)\<close>)
+using assms apply simp 
+using assms by simp 
+
+
+abbreviation p1_aut  where \<open>p1_aut \<equiv> \<lparr>dfa'.states = {last_ok, last_bad, garbage},
+                     init  = last_ok,
+                     final = {last_ok},
+                     nxt   = nxt\<rparr>\<close>
+
+
+interpretation p1_aut : dfa' p1_aut
+proof(unfold_locales, goal_cases)
+  case 1
+  then show ?case by simp 
+next
+  case 2
+  then show ?case by simp
+next
+  case (3 q x)
+  then show ?case apply simp apply(induction rule: nxt_induct[of _ q x]) by auto
+next
+  case 4
+  then show ?case by simp
+qed
+
+
+corollary dfa_p1_aut: "dfa' p1_aut"
+  by unfold_locales
+
+
+lemma empty_in_aut[simp]: \<open>[] \<in> p1_aut.language\<close> unfolding p1_aut.language_def by auto
+
+lemma singleton_in_aut_iff: \<open>[(br, p, v)] \<in> p1_aut.language \<longleftrightarrow> (good (br, p, v) \<and> p \<in> P)\<close>
+unfolding p1_aut.language_def apply(induction \<open>(br,p,v)\<close> rule: good.induct) by auto
+
+lemma nextl_garbage_iff[simp]:\<open>p1_aut.nextl last_ok xs = garbage \<longleftrightarrow> \<not>(xs \<in> brackets P)\<close>
+apply(induction xs rule: rev_induct) apply simp apply auto 
+sorry
+
+
+lemma lang_descr_full: \<open>(p1_aut.nextl last_ok xs = last_ok \<longleftrightarrow> (xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P))) \<and> (p1_aut.nextl last_ok xs = last_bad \<longleftrightarrow> ((xs \<noteq> [] \<and> \<not>good (last xs) \<and> xs \<in> brackets P)))\<close>
+proof(induction xs rule: rev_induct)
+  case Nil
+  then show ?case by auto
+next
+  case (snoc x xs)
+  then show ?case using nextl_garbage_iff sorry
+qed
+
+
+
+lemma lang_descr: \<open>xs \<in> p1_aut.language \<longleftrightarrow> (xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P))\<close>
+unfolding p1_aut.language_def using lang_descr_full by auto
+
+
+lemma good_iff[simp]:\<open>(\<forall>a b. last xs \<noteq> ]\<^bsub>(a, b)\<^esub>\<^sup>1) = good (last xs)\<close> apply auto by (metis local.good.elims(3) split_pairs)
+
+
+lemma in_P1_iff: \<open>(P1 xs \<and> xs \<in> brackets P ) \<longleftrightarrow>  (xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P)) \<and> successively P1' xs \<and>  xs \<in> brackets P\<close> using good_iff by auto
+
+corollary P1_eq: \<open>{xs. P1 xs \<and> xs \<in> brackets P}  =   {xs. successively P1' xs \<and>  xs \<in> brackets P}   \<inter>   {xs. xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P)}\<close> using in_P1_iff by blast
+
+
+lemma P1'_regular:
+shows \<open>regular {xs. successively P1' xs \<and>  xs \<in> brackets P} \<close>
+proof-
+  interpret successivelyConstruction P1' P apply(unfold_locales) using finite_P by blast 
+  show ?thesis using regular_successively_inter_brackets by blast
+qed
+
+lemma aut_language_reg: \<open>regular p1_aut.language\<close> by (metis dfa_p1_aut ex_hf_M regular_def)
+
+corollary aux_regular: \<open>regular {xs. xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P)}\<close> using lang_descr aut_language_reg p1_aut.language_def by simp
+
+
+corollary regular_P1: \<open>regular {xs. P1 xs \<and> xs \<in> brackets P}\<close> unfolding P1_eq using P1'_regular aux_regular using regular_Int by blast
+
+
+end
+
+
+
+
+lemma P1_regular:
+fixes P::\<open>('n,'t) Prods\<close>
+shows \<open>finite P \<Longrightarrow> regular {xs. P1 xs \<and> xs \<in> brackets P} \<close>
+proof-
+  assume finite_P: \<open>finite P\<close>
+  interpret P1Construction P apply(unfold_locales) using finite_P by blast 
+  show ?thesis using regular_P1 by blast
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+text\<open>for given A, there exists some y, such that x begins with (Op,(A,y),1)\<close>
+fun P55 :: \<open>'n \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) list \<Rightarrow> bool\<close> where
+  \<open>P55 A [] = False\<close> | 
+  \<open>P55 A ((Op, (X,y), One) # xs) = (X = A)\<close> | 
+  \<open>P55 A (x # xs) = False\<close>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -2581,8 +2581,17 @@ lemma singleton_in_aut_iff: \<open>[(br, p, v)] \<in> p1_aut.language \<longleft
 unfolding p1_aut.language_def apply(induction \<open>(br,p,v)\<close> rule: good.induct) by auto
 
 lemma nextl_garbage_iff[simp]:\<open>p1_aut.nextl last_ok xs = garbage \<longleftrightarrow> \<not>(xs \<in> brackets P)\<close>
-apply(induction xs rule: rev_induct) apply simp apply auto 
-sorry
+proof(induction xs rule: rev_induct)
+  case Nil
+  then show ?case by simp 
+next
+  case (snoc x xs)
+  then have \<open>(xs @ [x] \<notin> brackets P) \<longleftrightarrow> (xs \<notin> brackets P \<or> [x] \<notin> brackets P)\<close> by auto
+  moreover have \<open>(p1_aut.nextl last_ok (xs@[x]) = garbage) \<longleftrightarrow> (p1_aut.nextl last_ok xs = garbage) \<or> ((p1_aut.nextl last_ok (xs @ [x]) = garbage) \<and> (p1_aut.nextl last_ok (xs) \<noteq> garbage))\<close> by auto
+  ultimately show ?case using snoc by (smt (verit, del_insts) brackets'E2 brackets'I list_all_simps(1,2) local.P1_State.exhaust local.P1_State.simps(3,5) local.nxt.simps(2,3) local.p1_aut.nextl_snoc mem_Collect_eq prod_cases3 select_convs(4)) 
+  qed
+
+
 
 
 lemma lang_descr_full: \<open>(p1_aut.nextl last_ok xs = last_ok \<longleftrightarrow> (xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P))) \<and> (p1_aut.nextl last_ok xs = last_bad \<longleftrightarrow> ((xs \<noteq> [] \<and> \<not>good (last xs) \<and> xs \<in> brackets P)))\<close>
@@ -2591,7 +2600,23 @@ proof(induction xs rule: rev_induct)
   then show ?case by auto
 next
   case (snoc x xs)
-  then show ?case using nextl_garbage_iff sorry
+  then show ?case
+  proof(cases \<open>p1_aut.nextl last_ok (xs@[x]) = garbage\<close>)
+    case True
+    then show ?thesis using nextl_garbage_iff by (metis local.P1_State.distinct(4,6) local.p1_aut.nextl.simps(1))
+  next
+    case False
+    then have br: \<open>xs \<in> brackets P\<close> \<open>[x] \<in> brackets P\<close> by (metis list_all_append mem_Collect_eq nextl_garbage_iff)+
+    with snoc consider \<open>(p1_aut.nextl last_ok xs = last_ok)\<close> | \<open>(p1_aut.nextl last_ok xs = last_bad)\<close> using nextl_garbage_iff by blast
+    then show ?thesis
+    proof(cases)
+      case 1
+      then show ?thesis using br apply(cases \<open>good x\<close>) by auto 
+    next
+      case 2
+      then show ?thesis using br apply(cases \<open>good x\<close>) by auto 
+    qed
+  qed
 qed
 
 
@@ -2646,25 +2671,153 @@ qed
 
 
 
+locale P5Construction = 
+fixes P :: "('n,'t) Prods"
+and A :: 'n
+assumes finite_P: \<open>finite P\<close>
 
+begin
 
-text\<open>for given A, there exists some y, such that x begins with (Op,(A,y),1)\<close>
-fun P55 :: \<open>'n \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) list \<Rightarrow> bool\<close> where
-  \<open>P55 A [] = False\<close> | 
-  \<open>P55 A ((Op, (X,y), One) # xs) = (X = A)\<close> | 
-  \<open>P55 A (x # xs) = False\<close>
+datatype P5_State = start | first_ok | garbage 
 
-
-
-
-
-
-
-
-
+text\<open>The good ending letters, are those that are not of the form (Cl, _ , 1)\<close>
+fun ok where
+\<open>ok (Op, (X, _), One) = (X = A)\<close> | 
+\<open>ok _ = False\<close>
 
 
 
+fun nxt :: \<open>P5_State \<Rightarrow> (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) \<Rightarrow> P5_State\<close> where 
+\<open>nxt garbage _ = garbage\<close> | 
+\<open>nxt start  (br, (X, r), v) = (if (X,r) \<notin> P then garbage else (if ok (br, (X, r), v) then first_ok else garbage))\<close> | 
+\<open>nxt first_ok (br, p, v) = (if p \<notin> P then garbage else first_ok)\<close>
+
+
+
+theorem nxt_induct[case_names garbage startnp start_p_ok start_p_nok first_ok_np first_ok_p]:
+    fixes R :: "P5_State \<Rightarrow> bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version \<Rightarrow> bool"
+    fixes a0 :: "P5_State"
+    and a1 :: "bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version"
+  assumes "\<And>u. R garbage u"
+    and "\<And>br p v. p \<notin> P \<Longrightarrow> R start (br, p, v)"
+    and "\<And>br X r v. (X, r) \<in> P \<and> ok (br, (X, r), v) \<Longrightarrow> R start (br, (X, r), v)"
+    and "\<And>br X r v. (X, r) \<in> P \<and> \<not>ok (br, (X, r), v) \<Longrightarrow> R start (br, (X, r), v)"
+    and "\<And>br X r v. (X, r) \<notin> P  \<Longrightarrow> R first_ok (br, (X, r), v)"
+    and "\<And>br X r v. (X, r) \<in> P  \<Longrightarrow> R first_ok (br, (X, r), v)"
+  shows "R a0 a1"
+apply(induction rule: nxt.induct) 
+using assms apply simp 
+apply(case_tac \<open>(X, r) \<notin> P\<close>; case_tac \<open>ok (br, (X, r), v)\<close>)
+using assms apply simp
+using assms apply simp
+using assms apply simp
+using assms apply simp
+apply(case_tac \<open>p \<notin> P\<close>)
+using assms by fast+
+
+
+abbreviation p5_aut  where \<open>p5_aut \<equiv> \<lparr>dfa'.states = {start, first_ok, garbage},
+                     init  = start,
+                     final = {first_ok},
+                     nxt   = nxt\<rparr>\<close>
+
+
+interpretation p5_aut : dfa' p5_aut
+proof(unfold_locales, goal_cases)
+  case 1
+  then show ?case by simp 
+next
+  case 2
+  then show ?case by simp
+next
+  case (3 q x)
+  then show ?case apply simp apply(induction rule: nxt_induct[of _ q x]) by auto
+next
+  case 4
+  then show ?case by simp
+qed
+
+
+corollary dfa_p5_aut: "dfa' p5_aut"
+  by unfold_locales
+
+
+
+corollary nxt_start_ok_iff: \<open>ok x \<and> x \<in> brackets' P \<longleftrightarrow> nxt start x = first_ok\<close> apply(cases x) apply(rename_tac br p v) apply(case_tac br; case_tac v; case_tac \<open>p \<in> P\<close>) by (auto split: if_splits)
+
+lemma empty_not_in_lang[simp]:\<open>[] \<notin> p5_aut.language\<close> unfolding p5_aut.language_def by auto 
+
+lemma singleton_in_lang_iff: \<open>[x] \<in> p5_aut.language \<longleftrightarrow> ok (hd [x]) \<and> [x] \<in> brackets P\<close> unfolding p5_aut.language_def using nxt_start_ok_iff by auto
+
+lemma singleton_first_ok_iff: \<open>p5_aut.nextl start ([x]) = first_ok \<or> p5_aut.nextl start ([x]) = garbage\<close> apply(cases x) apply(rename_tac br p v) apply(case_tac br; case_tac v; case_tac \<open>p \<in> P\<close>) by (auto split: if_splits)
+
+lemma first_ok_iff: \<open>xs\<noteq> [] \<Longrightarrow> p5_aut.nextl start xs = first_ok \<or> p5_aut.nextl start xs = garbage\<close>
+proof(induction xs rule: rev_induct)
+  case Nil
+  then show ?case by blast
+next
+  case (snoc x xs)
+  then show ?case
+  proof(cases \<open>xs = []\<close>)
+    case True
+    then show ?thesis unfolding True using singleton_first_ok_iff by auto
+  next
+    case False
+    with snoc have \<open>p5_aut.nextl start xs = first_ok \<or> p5_aut.nextl start xs = garbage\<close> by blast
+    then show ?thesis apply(cases x) apply(rename_tac br p v) apply(case_tac br; case_tac v; case_tac \<open>p \<in> P\<close>) by (auto split: if_splits)
+  qed
+qed
+
+lemma lang_descr: \<open>xs \<in> p5_aut.language \<longleftrightarrow> (xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets P)\<close>
+proof(induction xs rule: rev_induct)
+  case (snoc x xs)
+  then have IH: \<open>(xs \<in> p5_aut.language) = (xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets P)\<close> by blast
+  then show ?case
+  proof(cases xs)
+    case Nil
+    then show ?thesis using singleton_in_lang_iff by auto
+  next
+    case (Cons y ys)
+    then have xs_eq: \<open>xs = y # ys\<close> by blast
+    then show ?thesis
+    proof(cases \<open>xs \<in> p5_aut.language\<close>)
+      case True
+      then have \<open>(xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets P)\<close> using IH by blast
+      then show ?thesis apply(cases x) apply(rename_tac br p v) using local.p5_aut.language_def snoc by auto
+    next
+      case False
+      then have \<open>p5_aut.nextl start xs = garbage\<close> unfolding p5_aut.language_def using first_ok_iff[of xs] Cons by auto
+      then have \<open>p5_aut.nextl start (xs@[x]) = garbage\<close> by simp
+      then show ?thesis using IH unfolding xs_eq by (metis Cons_eq_appendI False List.list.distinct(1) List.list.sel(1) list_all_append local.P5_State.simps(6) local.p5_aut.language_def mem_Collect_eq select_convs(2,3) singleton_iff xs_eq) 
+      qed
+    qed
+  qed simp
+
+lemma in_P5_iff: \<open>P5 A xs \<and> xs \<in> brackets P \<longleftrightarrow> (xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets P)\<close> apply auto by (metis List.list.exhaust_sel chomsky_schuetzenberger.P5.simps(2) local.ok.elims(2))
+
+lemma aut_language_reg: \<open>regular p5_aut.language\<close> by (metis dfa_p5_aut ex_hf_M regular_def)
+
+corollary aux_regular: \<open>regular {xs. xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets P}\<close> using lang_descr aut_language_reg p5_aut.language_def by simp
+
+lemma regular_P5:\<open>regular {xs. P5 A xs \<and> xs \<in> brackets P}\<close> using in_P5_iff aux_regular by presburger
+
+end
+
+
+
+
+
+
+
+lemma P5_regular:
+fixes P::\<open>('n,'t) Prods\<close>
+and A:: 'n
+shows \<open>finite P \<Longrightarrow> regular {xs. P5 A xs \<and> xs \<in> brackets P} \<close>
+proof-
+  assume finite_P: \<open>finite P\<close>
+  interpret P5Construction P A apply(unfold_locales) using finite_P by blast 
+  show ?thesis using regular_P5 by blast
+qed
 
 
 
@@ -2691,7 +2844,18 @@ fun P55 :: \<open>'n \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> versi
 
 
 
-(*
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 text\<open>All closing brackets, not neccesarily in P\<close>
@@ -3905,6 +4069,6 @@ proof -
   then show ?thesis by blast
 qed
 
-*)
+
 
 end

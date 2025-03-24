@@ -50,7 +50,53 @@ The definition of what it means to be a regular language is a placeholder - it's
 
 The Lemma (***) is missing. This is the main mathematics of the proof, it involes one easy direction and one hard. This is the only part where one needs the definitions of the regular languages. In the textbook this is a (local) lemma.\<close>
 
+lemma strict_inc_induct' [consumes 1, case_names base step]:
+  assumes less: "i < j"
+    and base: "\<And>i. j = Suc i \<Longrightarrow> P i"
+    and step: "\<And>i. i < j \<Longrightarrow> P (Suc i) \<Longrightarrow> P i"
+  shows "P i"
+using less proof (induct "j - i - 1" arbitrary: i)
+  case (0 i)
+  from \<open>i < j\<close> obtain n where "j = i + n" and "n > 0"
+    by (auto dest!: less_imp_Suc_add)
+  with 0 have "j = Suc i"
+    by (auto intro: order_antisym simp add: Suc_le_eq)
+  with base show ?case by simp
+next
+  case (Suc d i)
+  from \<open>Suc d = j - i - 1\<close> have *: "Suc d = j - Suc i"
+    by (simp add: diff_diff_add)
+  then have "Suc d - 1 = j - Suc i - 1" by simp
+  then have "d = j - Suc i - 1" by simp
+  moreover from * have "j - Suc i \<noteq> 0" by auto
+  then have "Suc i < j" by (simp add: not_le)
+  ultimately have "P (Suc i)" by (rule Suc.hyps)
+  with \<open>i < j\<close> show "P i" by (rule step)
+qed
 
+lemma strict_inc_induct'' [consumes 1, case_names base step]:
+  assumes less: "i < j"
+    and base: "\<And>i. j = Suc i \<Longrightarrow> P i" \<comment> \<open>j-1 = i         P (j-1)\<close>
+    and step: "\<And>i. (Suc i < j \<Longrightarrow> P (Suc i) \<Longrightarrow> P i)" \<comment> \<open>\<close>
+  shows "P i"
+using less proof (induct "j - i - 1" arbitrary: i)
+  case (0 i)
+  from \<open>i < j\<close> obtain n where "j = i + n" and "n > 0"
+    by (auto dest!: less_imp_Suc_add)
+  with 0 have "j = Suc i"
+    by (auto intro: order_antisym simp add: Suc_le_eq)
+  with base show ?case by simp
+next
+  case (Suc d i)
+  from \<open>Suc d = j - i - 1\<close> have *: "Suc d = j - Suc i"
+    by (simp add: diff_diff_add)
+  then have "Suc d - 1 = j - Suc i - 1" by simp
+  then have "d = j - Suc i - 1" by simp
+  moreover from * have "j - Suc i \<noteq> 0" by auto
+  then have "Suc i < j" by (simp add: not_le)
+  ultimately have "P (Suc i)" by (rule Suc.hyps)
+  with \<open>Suc i < j\<close> show "P i" by (rule step)
+qed
 
 
 declare [[names_short]]
@@ -299,7 +345,8 @@ next
 next
   case (2 v' w')
   then obtain r where "v'=v@r \<and> r@w'=w \<or> v'@r=v \<and>w'=r@w" (is "?A \<or> ?B")
-    by (auto simp:append_eq_append_conv2)
+    by (meson append_eq_append_conv2)
+
   thus ?case
   proof
     assume A: ?A
@@ -458,7 +505,10 @@ proof-
         moreover have \<open>bal y\<close> and \<open>bal (r@bs)\<close> using yr_def apply blast by (simp add: "local.2.hyps"(3) yr_def)
         ultimately show ?thesis using x_def by blast
       qed
-    qed (use x_def in auto)
+    next
+      case (3 xs)
+      then show ?case using x_def by blast    
+    qed
   qed
   then show ?thesis using x_def using bal_x_xs by blast
 qed
@@ -548,7 +598,7 @@ next
 next
   case (3 v' w')
   then obtain r where "v'=v@r \<and> r@w'=w \<or> v'@r=v \<and>w'=r@w" (is "?A \<or> ?B")
-    by (auto simp:append_eq_append_conv2)
+    by (meson append_eq_append_conv2)
   thus ?case
   proof
     assume A: ?A
@@ -793,14 +843,6 @@ corollary bal_tm_iff_insert[iff]:
 
 
 
-text\<open>TODO mv?\<close>
-lemma list_length_1_imp_ex: \<open>length l = 1 \<Longrightarrow> \<exists>x. l = [x]\<close> apply auto by (simp add: length_Suc_conv)
-
-
-lemma list_length_2_imp_ex: \<open>length l = 2 \<Longrightarrow> \<exists>x y. l = [x, y]\<close>
-  by(induction l; use list_length_1_imp_ex in auto)
-
-lemma length_append_one: \<open>length (l1 @ [l]) = (length l1 +1)\<close> by simp
 
 
 
@@ -996,7 +1038,18 @@ fun P1_sym where
 
 
 lemma P1_sym_imp_P1_for_tm[intro, dest]: \<open>P1_sym (map Tm x) \<Longrightarrow> P1 x\<close>
-  apply(induction x rule: induct_list012) defer defer apply simp apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P1'_sym.cases) by auto
+proof(induction x rule: induct_list012)
+  case 1
+  then show ?case by simp
+next
+  case (2 x)
+  then show ?case by simp
+next
+  case (3 x y zs)
+  then show ?case apply simp apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P1'_sym.cases) by auto  
+qed
+
+
 
 lemma P1I[intro]: 
   assumes \<open>successively P1' xs\<close>
@@ -1013,7 +1066,14 @@ qed
 lemma P1_symI[intro]: 
   assumes \<open>successively P1'_sym xs\<close>
     and \<open>\<nexists>p. last xs = Tm (Cl, (p, One))\<close>
-  shows \<open>P1_sym xs\<close> apply(cases xs rule: rev_cases) defer apply(case_tac y) using assms by auto
+  shows \<open>P1_sym xs\<close> 
+  proof(cases xs rule: rev_cases)
+    case Nil
+    then show ?thesis by auto
+  next
+    case (snoc ys y)
+    then show ?thesis apply (cases y) using assms unfolding P1_sym.simps by argo+
+  qed
 
 
 lemma P1D[dest]: \<open>P1 xs \<Longrightarrow> successively P1' xs\<close> by simp
@@ -1342,9 +1402,14 @@ lemma helper: \<open>the_hom_ext_helper (Tm x) = map Tm (the_hom_helper x)\<clos
 
 text\<open>Show that the extension really is an extension in some sense.\<close>
 lemma h_eq_h_ext: \<open>the_hom_ext (map Tm x) = map Tm (the_hom x)\<close>
-  apply(induction x)
-   apply(simp)
-  using helper by fastforce
+  proof(induction x)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a x)
+    then show ?case using helper[of a] by simp
+  qed
+
 
 
 
@@ -1368,7 +1433,8 @@ lemma h_eq_h_ext2:
   assumes \<open>(map Tm w) = the_hom_ext w'\<close> 
   shows \<open>w = the_hom (map strip_tm w')\<close>
   using assms apply simp
-  apply(induction w';auto) 
+  apply(induction w') 
+  apply simp
   by (smt (verit, ccfv_SIG) map_eq_append_conv the_hom_helper_strip the_hom_helper_strip2)
 
 
@@ -1440,14 +1506,15 @@ lemma P'_bal:
 next
   case (step u A v w)
   have \<open>bal_tm (u @ [Nt A] @ v)\<close> and \<open>rhs_in_if (u @ [Nt A] @ v) (P \<times> {One, Two})\<close> using local.step.IH local.step.prems by auto
-  have \<open>bal_tm w\<close> by (metis imageE local.step.hyps(2) local.step.prems prod_bal_tm snd_conv)
-  then have \<open>bal_tm (u @ w @ v)\<close> using \<open>bal_tm (u @ [Nt A] @ v)\<close> by blast
+  obtain w' where w'_def: \<open>(A, w) = transform_production (A, w')\<close> and A_w'_in_P: \<open>(A,w') \<in> P\<close> by (metis (no_types, opaque_lifting) Product_Type.prod.collapse fst_transform_production imageE local.step.hyps(2))
+  then have \<open>CNF_rule (A,w')\<close> using assms by blast
+  have bal_tm_w: \<open>bal_tm w\<close> and rhs_in_if_w: \<open>rhs_in_if w (P \<times> {One, Two})\<close> using prod_bal_tm[OF \<open>(A,w') \<in> P\<close> \<open>CNF_rule (A,w')\<close>] w'_def by (metis split_pairs)+
 
-  obtain w' where \<open>(A, w) = transform_production (A, w')\<close> by (metis (no_types, opaque_lifting) Product_Type.prod.collapse fst_transform_production imageE local.step.hyps(2))
-  then have \<open>rhs_in_if w (P \<times> {One, Two})\<close> using prod_bal_tm[of \<open>(A, w')\<close> P] by (smt (verit, best) image_iff local.step.hyps(2) local.step.prems prod_bal_tm snd_conv)
-  then have \<open>rhs_in_if (u @ w @ v) (P \<times> {One, Two})\<close> using \<open>rhs_in_if (u @ [Nt A] @ v) (P \<times> {One, Two})\<close> by (metis rhs_in_if_append rhs_in_if_del_left rhs_in_if_del_right)
+  then have \<open>bal_tm (u @ w @ v)\<close> using \<open>bal_tm (u @ [Nt A] @ v)\<close> by blast 
+ 
+  moreover from rhs_in_if_w have \<open>rhs_in_if (u @ w @ v) (P \<times> {One, Two})\<close> using \<open>rhs_in_if (u @ [Nt A] @ v) (P \<times> {One, Two})\<close> by (metis rhs_in_if_append rhs_in_if_del_left rhs_in_if_del_right)
 
-  then show ?case using \<open>bal_tm (u @ w @ v)\<close> by blast
+  ultimately show ?case using \<open>bal_tm (u @ w @ v)\<close> by blast
 qed
 
 
@@ -1463,7 +1530,7 @@ proof-
 qed
 
 
-
+thm Re_symI
 
 lemma P'_imp_Re:
   assumes \<open>(image transform_production P) \<turnstile> [Nt S] \<Rightarrow>* x\<close>
@@ -1482,7 +1549,7 @@ next
   then obtain B C a where \<open>((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Nt B, Nt C]) \<or> ((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Tm a])\<close> using transform_production_CNF[of \<open>(A,w')\<close>] w'_def by (metis snd_conv)   
 
   then have w_eq: \<open>w = [Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2]   \<or>    w = [Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>2, Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2]\<close> (is \<open>w = ?w1 \<or> w = ?w2\<close>) by fastforce
-  then have w_resym: \<open>w \<in> Re_sym A\<close> unfolding w_eq by auto
+  have w_resym: \<open>w \<in> Re_sym A\<close> apply(rule disjE[OF w_eq]; rule Re_symI) by auto 
 
   have P5_uAv: \<open>P5_sym S (u @ [Nt A] @ v)\<close> using Re_symD[OF uAv] by blast
   have P1_uAv: \<open>P1_sym (u @ [Nt A] @ v)\<close> using Re_symD[OF uAv] by blast
@@ -1568,7 +1635,9 @@ next
     then show ?thesis using step using Nil by fastforce
   next
     case (Cons a list)
-    then show ?thesis using step by simp
+    then have \<open>v \<noteq> []\<close> by blast
+    moreover from step have \<open>last (u @ [Nt A] @ v) \<noteq> Tm ]\<^bsub>p\<^esub>\<^sup>1\<close> by blast
+    ultimately show ?thesis by auto
   qed
 qed
 
@@ -1904,7 +1973,7 @@ corollary dfa_aut: "dfa' aut"
 
 
 lemma nextl_in_allStates[intro]: \<open>q \<in> allStates P \<Longrightarrow> aut.nextl q ys \<in> allStates P\<close>
-apply(induction ys arbitrary: q) apply auto using local.aut.nxt by auto
+apply(induction ys arbitrary: q) using local.aut.nxt by auto
 
 corollary nextl_in_allStates_from_start[simp]: \<open>aut.nextl start ys \<in> allStates P\<close> using nextl_in_allStates by auto
 
@@ -2656,7 +2725,7 @@ fun transform_tree :: \<open>('n,'t) tree \<Rightarrow> ('n, bracket \<times> ('
   \<open>transform_tree (Prod A [Prod B tB, Prod C tC]) =   (Prod A [Sym (Tm (Op, (A, [Nt B, Nt C]), One)), transform_tree (Prod B tB), Sym (Tm (Cl, ((A, [Nt B, Nt C]), One))), Sym (Tm (Op, (A, [Nt B, Nt C]), Two)), transform_tree (Prod C tC), Sym (Tm (Cl, (A, [Nt B, Nt C]), Two))  ])\<close> | 
   \<open>transform_tree (Prod A y) = (Prod A [])\<close>
 
-lemma root_of_transform_tree[intro]: \<open>root t = Nt X \<Longrightarrow> root (transform_tree t) = Nt X\<close>
+lemma root_of_transform_tree[intro, simp]: \<open>root t = Nt X \<Longrightarrow> root (transform_tree t) = Nt X\<close>
   apply(induction t rule: transform_tree.induct) by auto 
 
 
@@ -2725,7 +2794,7 @@ prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [P
     also have \<open>... = w\<close> using fr unfolding ts_eq by auto
     finally have \<open>the_hom_ext (fringe (transform_tree (Prod A ts))) = w\<close> .
 
-    moreover have \<open>parse_tree (P') (transform_tree (Prod A [Sym (Tm a)]))\<close> using pt prod_rhs unfolding P'_def apply auto by (metis chomsky_schuetzenberger.transform_production.simps(2) imageI) 
+    moreover have \<open>parse_tree (P') (transform_tree (Prod A [Sym (Tm a)]))\<close> using pt prod_rhs unfolding P'_def apply simp by (metis chomsky_schuetzenberger.transform_production.simps(2) imageI) 
     ultimately show ?thesis unfolding ts_eq P'_def by blast
   next
     case Nt_Nt
@@ -2735,7 +2804,7 @@ prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [P
     also have \<open>... = w\<close> using fr unfolding ts_eq by auto
     finally have \<open>the_hom_ext (fringe (transform_tree (Prod A ts))) = w\<close> .
 
-    moreover have \<open>parse_tree (P') (transform_tree (Prod A [Sym (Nt B), Sym (Nt C)]))\<close> using pt prod_rhs unfolding P'_def apply auto by (metis chomsky_schuetzenberger.transform_production.simps(1) imageI)
+    moreover have \<open>parse_tree (P') (transform_tree (Prod A [Sym (Nt B), Sym (Nt C)]))\<close> using pt prod_rhs unfolding P'_def apply simp by (metis chomsky_schuetzenberger.transform_production.simps(1) imageI)
     ultimately show ?thesis unfolding ts_eq by blast
   next
     case Prod_Nt
@@ -2761,12 +2830,11 @@ prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [P
 
     have \<open>parse_tree (P') (transform_tree (Prod B tB)) \<and> (A, map root ts) \<in> P\<close> 
       by (simp add: \<open>(A, prod_rhs ts) \<in> P\<close> ptB(1)) 
-    moreover have \<open>root (transform_tree (Prod B tB)) = Nt B\<close> 
-      apply(induction \<open>(Prod B tB)\<close> rule: transform_tree.induct) by auto
+    moreover have \<open>root (transform_tree (Prod B tB)) = Nt B\<close> by simp
     moreover have \<open>transform_production (A, prod_rhs ts) \<in> P'\<close> 
       by (simp add: P'_def \<open>(A, prod_rhs ts) \<in> P\<close>)
     ultimately have \<open>parse_tree (P') (transform_tree (Prod A ts))\<close> 
-      unfolding transf_ts ts_eq P'_def using ptB parse_tree.simps prod_rhs def by auto
+      unfolding ts_eq by auto
 
     then show ?thesis using fin by blast
 
@@ -2795,12 +2863,12 @@ prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [P
 
     have \<open>parse_tree (P') (transform_tree (Prod C tC)) \<and> (A, map root ts) \<in> P\<close> 
       by (simp add: \<open>(A, prod_rhs ts) \<in> P\<close> ptC(1)) 
-    moreover have \<open>root (transform_tree (Prod C tC)) = Nt C\<close> 
-      apply(induction \<open>(Prod C tC)\<close> rule: transform_tree.induct) by auto
+    moreover have \<open>root (transform_tree (Prod C tC)) = Nt C\<close> by simp
+
     moreover have \<open>transform_production (A, prod_rhs ts) \<in> P'\<close> 
       by (simp add: P'_def \<open>(A, prod_rhs ts) \<in> P\<close>)
     ultimately have \<open>parse_tree (P') (transform_tree (Prod A ts))\<close> 
-      unfolding transf_ts ts_eq P'_def using ptC parse_tree.simps prod_rhs def by auto
+      unfolding ts_eq by auto
 
     then show ?thesis using fin by blast
   next
@@ -2832,18 +2900,16 @@ prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [P
 
     have \<open>parse_tree (P') (transform_tree (Prod B tB)) \<and> (A, map root ts) \<in> P\<close> 
       by (simp add: \<open>(A, prod_rhs ts) \<in> P\<close> ptB(1)) 
-    moreover have \<open>root (transform_tree (Prod B tB)) = Nt B\<close> 
-      apply(induction \<open>(Prod B tB)\<close> rule: transform_tree.induct) by auto
+    moreover have \<open>root (transform_tree (Prod B tB)) = Nt B\<close>  by simp
     moreover have \<open>transform_production (A, prod_rhs ts) \<in> P'\<close> 
       by (simp add: P'_def \<open>(A, prod_rhs ts) \<in> P\<close>)
     moreover have \<open>parse_tree (P') (transform_tree (Prod C tC)) \<and> (A, map root ts) \<in> P\<close> 
       by (simp add: \<open>(A, prod_rhs ts) \<in> P\<close> ptC(1)) 
-    moreover have \<open>root (transform_tree (Prod C tC)) = Nt C\<close> 
-      apply(induction \<open>(Prod C tC)\<close> rule: transform_tree.induct) by auto
+    moreover have \<open>root (transform_tree (Prod C tC)) = Nt C\<close> by simp
     moreover have \<open>transform_production (A, prod_rhs ts) \<in> P'\<close> 
       by (simp add: P'_def \<open>(A, prod_rhs ts) \<in> P\<close>)
     ultimately have \<open>parse_tree (P') (transform_tree (Prod A ts))\<close> 
-      unfolding transf_ts ts_eq P'_def using ptB parse_tree.simps prod_rhs def by auto
+      unfolding ts_eq by auto
 
     then show ?thesis using fin by blast
   qed  

@@ -55,15 +55,6 @@ proof (rule ccontr)
 qed
 
 text
-\<open>Most of the time pumping lemma is used in the contrapositive form if it is used to prove that a production set cannot be right linear\<close>
-
-theorem pumping_lemma_re_contr:
-  assumes "finite P"
-      and "\<forall>n. \<exists>w \<in> Lang P A. length w \<ge> n \<and> (\<forall>x y z. w = x@y@z \<and> length y \<ge> 1 \<and> length (x@y) \<le> n \<longrightarrow> (\<exists>i. x@(y\<^sup>*i)@z \<notin> Lang P A))" 
-    shows "\<not>rlin2 P"
-using assms pumping_lemma_re[of P A] by metis
-
-text
 \<open>The following theorem proves that the language \<open>a^nb^n\<close> cannot be produced by a right linear production set, using the contrapositive form 
  of the pumping lemma\<close>
 
@@ -130,7 +121,7 @@ proof -
       qed
    qed
   thus ?thesis 
-    using pumping_lemma_re_contr[OF assms(3), of A] by simp
+    using pumping_lemma_regular_contr[OF assms(3)] by simp
 qed
 
 end

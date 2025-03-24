@@ -3,12 +3,13 @@ imports "../Stimpfle/uProds" Binarize
 begin
 
 text
-\<open>In a right linear grammar every production has at most one non-terminal on the right-hand side, which should also occur as the
- rightmost symbol. The definition of such a grammar is given by \<open>rlin\<close>. Our aim is to show that every right linear grammar can
- be converted to its binary counterpart \<open>rlin2\<close>, where every production is of the form \<open>A,[]\<close> or \<open>A, [Tm a, Nt B]\<close>. We will
- also define the function \<open>rlin2_of_rlin\<close> that transforms a production set satisfying \<open>rlin\<close> to a production set satisfying 
- \<open>rlin2\<close>, without changing the language of the grammar. To this end, we define two intermediate predicates for production sets
- \<open>rlin_noterm\<close> and \<open>rlin_bin\<close>\<close>
+\<open>In a right linear grammar every production has at most one non-terminal on the right-hand side,
+which should also occur as the rightmost symbol. The definition of such a grammar is given by \<open>rlin\<close>.
+This theory proves that every right linear grammar can be converted into a strongly right-linear one,
+defined as \<open>rlin2\<close>, where every production is of the form \<open>A,[]\<close> or \<open>A, [Tm a, Nt B]\<close>. We will
+define the function \<open>rlin2_of_rlin\<close> that transforms a production set satisfying \<open>rlin\<close>
+to a production set satisfying \<open>rlin2\<close>, without changing the language of the grammar.
+To this end, we define two intermediate predicates for production sets \<open>rlin_noterm\<close> and \<open>rlin_bin.\<close>\<close>
 
 definition rlin :: "('n, 't) Prods \<Rightarrow> bool" where
   "rlin ps = (\<forall>(A,w) \<in> ps. \<exists>u. w = map Tm u \<or> (\<exists>B. w = map Tm u @ [Nt B]))"
@@ -22,10 +23,9 @@ definition rlin_bin :: "('n, 't) Prods \<Rightarrow> bool" where
 definition rlin2 :: "('a, 't) Prods \<Rightarrow> bool" where
   "rlin2 ps = (\<forall>(A,w) \<in> ps. w = [] \<or> (\<exists>a B. w = [Tm a, Nt B]))"
 
-text
-\<open>A straightforward property of \<open>rlin\<close> and \<open>rlin2\<close>\<close>
+text\<open>A straightforward property:\<close>
 
-lemma rlin2_to_rlin: 
+lemma rlin_if_rlin2: 
   "rlin2 ps \<Longrightarrow> rlin ps"
   unfolding rlin_def rlin2_def
   by (auto split: prod.splits) (metis (no_types, lifting) append_eq_Cons_conv map_eq_Cons_conv map_is_Nil_conv)
@@ -242,8 +242,8 @@ lemma finalize_der':
     from defs have "set ps = {(C, w)} \<union> set ps''" by simp
     also have "... = set ((C, w) # ps'')" by simp
     also have "... = set ([(C, w)] @ ps'')" by simp
-    also from defs have "... = set ([(C,substW (Nt B) [] (w @ [Nt B]))] @ ps'')" using b_notin_w
-      by (simp add: substW_skip substW_split)
+    also from defs have "... = set ([(C,substsNt B [] (w @ [Nt B]))] @ ps'')" using b_notin_w
+      by (simp add: substs_skip)
     also have "... = set ((substP (Nt B) [] [(C, w @ [Nt B])]) @ ps'')" by (simp add: substP_def)
     also have "... = set ((substP (Nt B) [] [(C, w @ [Nt B])]) @ substP (Nt B) [] ps'')" using notB by (simp add: substP_skip2)
     also have "... = set (substP (Nt B) [] ((C, w @ [Nt B]) # ps''))" by (simp add: substP_def)

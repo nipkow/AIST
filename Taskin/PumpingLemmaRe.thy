@@ -326,7 +326,7 @@ theorem pumping_lemma_re_nts:
           (\<exists>x y z. w = x@y@z \<and> length y \<ge> 1 \<and> length (x@y) \<le> n \<and> (\<forall>i. x@(y\<^sup>*i)@z \<in> Lang P A))" 
   using assms pumping_re_aux[of P A "card (Nts P)"] Lang_iff_accepted_if_rlin2[OF assms(1)] by metis
 
-theorem pumping_lemma_re:
+theorem pumping_lemma_regular:
   assumes "rlin2 P"
       and "finite P"
   shows "\<exists>n. \<forall>w \<in> Lang P A. length w \<ge> n \<longrightarrow>
@@ -341,5 +341,14 @@ next
     by (auto intro!: Lang_empty_if_notin_Lhss simp add: Lhss_def Nts_def)
   thus ?thesis by simp
 qed
+
+text \<open>Most of the time pumping lemma is used in the contrapositive form
+to prove that no right-linear set of productions exists.\<close>
+
+corollary pumping_lemma_regular_contr:
+  assumes "finite P"
+      and "\<forall>n. \<exists>w \<in> Lang P A. length w \<ge> n \<and> (\<forall>x y z. w = x@y@z \<and> length y \<ge> 1 \<and> length (x@y) \<le> n \<longrightarrow> (\<exists>i. x@(y\<^sup>*i)@z \<notin> Lang P A))" 
+    shows "\<not>rlin2 P"
+using assms pumping_lemma_regular[of P A] by metis
 
 end

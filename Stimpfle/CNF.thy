@@ -2,12 +2,6 @@ theory CNF
   imports uProds eProds
 begin
 
-definition isTm :: "('n, 't) sym \<Rightarrow> bool" where 
-  "isTm S = (\<exists>a. S = Tm a)"
-
-definition isNt :: "('n, 't) sym \<Rightarrow> bool" where 
-  "isNt S = (\<exists>A. S = Nt A)"
-
 definition Unit_free :: "('n, 't) Prods \<Rightarrow> bool" where
   "Unit_free P = (\<nexists>l A. (l,[Nt A]) \<in> P)"
 
@@ -27,9 +21,6 @@ lemma Nts_correct: "A \<notin> Nts P \<Longrightarrow> (\<nexists>S \<alpha>. (S
 unfolding Nts_def nts_syms_def by auto
 
 (* Chomsky Normal Form *)
-
-abbreviation L :: "('n,'t) cfg \<Rightarrow> 't list set" where
-  "L g \<equiv> Lang (set (prods g)) (start g)"
 
 definition uniformize :: "'n::infinite \<Rightarrow> 't \<Rightarrow> ('n, 't) cfg \<Rightarrow> ('n, 't) cfg \<Rightarrow> bool" where 
       "uniformize A t g g' \<equiv> (
@@ -275,10 +266,11 @@ proof -
 qed
 
 (* p = (A, [Tm t]): Replace the fresh Nt A in rhs by \<alpha> *)
+(*
 fun update :: "('n, 't) prod \<Rightarrow> ('n, 't) syms \<Rightarrow> ('n, 't) syms"  where
   "update _ [] = []" |
   "update (A,\<alpha>) (r#rhs) = (if r = Nt A then \<alpha>@(update (A,\<alpha>) rhs) else r#(update (A,\<alpha>) rhs))"
-
+*)
 lemma slemma1_1: 
   assumes "uniformize A t g g'"
     and "(A, \<alpha>) \<in> set (prods g')"
@@ -309,31 +301,25 @@ proof -
     using assms(2) by blast
 qed
 
-lemma slemma4_0: "update (A, \<alpha>) (u@v)  = update (A, \<alpha>) u @ update (A, \<alpha>) v"
-  by (induction u) simp_all
-
-lemma slemma4_2_0: "(lhs = A) \<longleftrightarrow> (Nt lhs = Nt A)" 
-  by simp
-
 lemma slemma4_2_1: 
-  assumes "h \<noteq> (Nt A)"
-  shows "[h] = update (A, \<alpha>) [h]"
+  assumes "h \<noteq> Nt A"
+  shows "[h] = substsNt A \<alpha> [h]"
   using assms by simp
 
 lemma slemma4_1:
-  assumes "(Nt A) \<notin> set rhs"
-  shows "\<forall>\<alpha>. rhs = update (A, \<alpha>) rhs"
-  using assms by (induction rhs arbitrary: A) auto
+  assumes "Nt A \<notin> set rhs"
+  shows "\<forall>\<alpha>. rhs = substsNt A \<alpha> rhs"
+  using assms by (simp add: substs_skip)
 
 lemma slemma4_3_1:
   assumes "lhs = A"
-  shows "(\<alpha> = update (A, \<alpha>) [Nt lhs])"
+  shows "\<alpha> = substsNt A \<alpha> [Nt lhs]"
   using assms by simp
 
 lemma slemma4_4:
   assumes "uniformize A t g g'"
     and "(l,r) \<in> set (prods g)"
-  shows "(Nt A) \<notin> set r"
+  shows "Nt A \<notin> set r"
 proof -
   have "A \<notin> Nts (set (prods g))"
     using assms(1) fresh_nts_prods_start unfolding uniformize_def by blast
@@ -360,7 +346,8 @@ qed
 lemma lemma1:
   assumes "uniformize A t g g'"
     and "set (prods g') \<turnstile> lhs \<Rightarrow> rhs"
-  shows "(update (A, [Tm t]) lhs = update (A, [Tm t]) rhs) \<or> (set (prods g) \<turnstile> (update (A, [Tm t]) lhs) \<Rightarrow> (update (A, [Tm t]) rhs))"
+  shows "substsNt A [Tm t] lhs = substsNt A [Tm t] rhs
+    \<or> set(prods g) \<turnstile> substsNt A [Tm t] lhs \<Rightarrow> substsNt A [Tm t] rhs"
 proof -
   obtain l r p s where lrps: "(l,r) \<in> set (prods g) \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set (prods g))) 
       \<and> set (prods g') = ((set (prods g) - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})"
@@ -373,12 +360,12 @@ proof -
     then show ?thesis 
     proof (cases "v = [Tm t]")
       case True
-      have "update (A, [Tm t]) lhs = update (A, [Tm t]) p' @ update (A, [Tm t]) ([Nt A]@s')"
-        using uv \<open>u = A\<close> slemma4_0 by fast
-      hence "update (A, [Tm t]) lhs = update (A, [Tm t]) p' @ [Tm t] @ update (A, [Tm t]) s'"
+      have "substsNt A [Tm t] lhs = substsNt A [Tm t] p' @ substsNt A [Tm t] ([Nt A]@s')"
+        using uv \<open>u = A\<close> substs_split by simp
+      hence "substsNt A [Tm t] lhs = substsNt A [Tm t] p' @ [Tm t] @ substsNt A [Tm t] s'"
         by simp
       then show ?thesis
-        by (simp add: True uv slemma4_0) 
+        by (simp add: True uv) 
     next
       case False
       then show ?thesis 
@@ -391,35 +378,35 @@ proof -
       case True
       hence 1: "v = p@[Nt A]@s \<and> Nt A \<notin> set p \<and> Nt A \<notin> set s" 
         using lrps uv assms slemma4_4 by fastforce
-      hence "update (A, [Tm t]) v = update (A, [Tm t]) p @ update (A, [Tm t]) ([Nt A]@s)"
-        using slemma4_0 by fast
-      hence "update (A, [Tm t]) v = p @ [Tm t] @ s"
-        using 1 slemma4_0 slemma4_1 slemma4_3_1 by metis
-      hence 2: "(u, update (A, [Tm t]) v) \<in> set (prods g)" using lrps
+      hence "substsNt A [Tm t] v = substsNt A [Tm t] p @ substsNt A [Tm t] ([Nt A]@s)"
+        by simp
+      hence "substsNt A [Tm t] v = p @ [Tm t] @ s"
+        using 1 substs_split slemma4_1 slemma4_3_1 by metis
+      hence 2: "(u, substsNt A [Tm t] v) \<in> set (prods g)" using lrps
         using True uv assms(1) slemma4_4 by fastforce
-      have "update (A, [Tm t]) lhs = update (A, [Tm t]) p' @ update (A, [Tm t]) ([Nt u]@s')"
-        using uv slemma4_0 by fast
-      hence 3: "update (A, [Tm t]) lhs = update (A, [Tm t]) p' @ [Nt u] @ update (A, [Tm t]) s'" 
+      have "substsNt A [Tm t] lhs = substsNt A [Tm t] p' @ substsNt A [Tm t] ([Nt u]@s')"
+        using uv by simp
+      hence 3: "substsNt A [Tm t] lhs = substsNt A [Tm t] p' @ [Nt u] @ substsNt A [Tm t] s'" 
         using \<open>u \<noteq> A\<close> by simp
-      have "update (A, [Tm t]) rhs = update (A, [Tm t]) p' @ update (A, [Tm t]) (v@s')"
-        using uv slemma4_0 by fast
-      hence "update (A, [Tm t]) rhs = update (A, [Tm t]) p' @ update (A, [Tm t]) v @ update (A, [Tm t]) s'"
-        using slemma4_0 by fastforce
+      have "substsNt A [Tm t] rhs = substsNt A [Tm t] p' @ substsNt A [Tm t] (v@s')"
+        using uv by simp
+      hence "substsNt A [Tm t] rhs = substsNt A [Tm t] p' @ substsNt A [Tm t] v @ substsNt A [Tm t] s'"
+        by simp
       then show ?thesis 
         using 2 3 assms(2) uv derive.simps by fast
     next
       case False
       hence 1: "(u, v) \<in> set (prods g)" 
         using assms(1) uv \<open>u \<noteq> A\<close> lrps by (simp add: in_set_conv_decomp)
-       have "update (A, [Tm t]) lhs = update (A, [Tm t]) p' @ update (A, [Tm t]) ([Nt u]@s')"
-         using uv slemma4_0 by fast
-       hence 2: "update (A, [Tm t]) lhs = update (A, [Tm t]) p' @ [Nt u] @ update (A, [Tm t]) s'"
+       have "substsNt A [Tm t] lhs = substsNt A [Tm t] p' @ substsNt A [Tm t] ([Nt u]@s')"
+         using uv by simp
+       hence 2: "substsNt A [Tm t] lhs = substsNt A [Tm t] p' @ [Nt u] @ substsNt A [Tm t] s'"
          using \<open>u \<noteq> A\<close> by simp
-       have "update (A, [Tm t]) rhs = update (A, [Tm t]) p' @ update (A, [Tm t]) (v@s')"
-         using uv slemma4_0 by fast
-       hence "update (A, [Tm t]) rhs = update (A, [Tm t]) p' @ update (A, [Tm t]) v @ update (A, [Tm t]) s'"
-         using slemma4_0 by fastforce
-       hence "update (A, [Tm t]) rhs = update (A, [Tm t]) p' @ v @ update (A, [Tm t]) s'"
+       have "substsNt A [Tm t] rhs = substsNt A [Tm t] p' @ substsNt A [Tm t] (v@s')"
+         using uv by simp
+       hence "substsNt A [Tm t] rhs = substsNt A [Tm t] p' @ substsNt A [Tm t] v @ substsNt A [Tm t] s'"
+         by simp
+       hence "substsNt A [Tm t] rhs = substsNt A [Tm t] p' @ v @ substsNt A [Tm t] s'"
          using False slemma4_1 by fastforce
        thus ?thesis 
          using 1 2 assms(2) uv derive.simps by fast
@@ -430,8 +417,8 @@ qed
 lemma lemma1Nt: 
   assumes "binarizeNt A B\<^sub>1 B\<^sub>2 g g'"
     and "set (prods g') \<turnstile> lhs \<Rightarrow> rhs"
-  shows "(update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) lhs = update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) rhs) 
-          \<or> ((set (prods g)) \<turnstile> (update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) lhs) \<Rightarrow> update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) rhs)"
+  shows "(substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] lhs = substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] rhs) 
+          \<or> ((set (prods g)) \<turnstile> (substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] lhs) \<Rightarrow> substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] rhs)"
 proof -
   obtain l r p s where lrps: "(l,r) \<in> set (prods g) \<and> (r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts (set (prods g)))
     \<and> (set (prods g') = ((set (prods g) - {(l,r)}) \<union> {(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, p@[Nt A]@s)}))"
@@ -444,13 +431,13 @@ proof -
     then show ?thesis 
     proof (cases "v = [Nt B\<^sub>1,Nt B\<^sub>2]")
       case True
-      have "update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) lhs = update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) p' @ update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) ([Nt A]@s')"
-        using uv \<open>u = A\<close> slemma4_0 by fast
-      hence 1: "update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) lhs = update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) p' @ [Nt B\<^sub>1,Nt B\<^sub>2] @ update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) s'"
+      have "substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] lhs = substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] p' @ substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] ([Nt A]@s')"
+        using uv \<open>u = A\<close> by simp
+      hence 1: "substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] lhs = substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] p' @ [Nt B\<^sub>1,Nt B\<^sub>2] @ substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] s'"
         by simp
-      have "update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) rhs = update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) p' @ update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) ([Nt B\<^sub>1,Nt B\<^sub>2]@s')"
-        using uv \<open>u = A\<close> slemma4_0 True by fast
-      hence "update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) rhs = update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) p' @ [Nt B\<^sub>1,Nt B\<^sub>2] @ update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) s'"
+      have "substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] rhs = substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] p' @ substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] ([Nt B\<^sub>1,Nt B\<^sub>2]@s')"
+        using uv \<open>u = A\<close> True by simp
+      hence "substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] rhs = substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] p' @ [Nt B\<^sub>1,Nt B\<^sub>2] @ substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] s'"
         using assms(1) binarizeNt_aux1[of A B\<^sub>1 B\<^sub>2 g g'] by fastforce 
       then show ?thesis
         using 1 by simp
@@ -468,35 +455,35 @@ proof -
         using lrps assms(1) by (metis UnI1 UnI2 set_append slemma4_4Nt)
       hence 1: "v = p@[Nt A]@s \<and> Nt A \<notin> set p \<and> Nt A \<notin> set s" 
         using True lrps uv assms slemma4_4Nt[of A B\<^sub>1 B\<^sub>2 g g'] binarizeNt_aux1[of A B\<^sub>1 B\<^sub>2 g g'] by auto
-      hence "update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) v = update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) p @ update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) ([Nt A]@s)"
-        using slemma4_0 by fast
-      hence "update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) v = p @ [Nt B\<^sub>1,Nt B\<^sub>2] @ s"
-        using 1 slemma4_0 slemma4_1 slemma4_3_1 by metis
-      hence 2: "(u, update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) v) \<in> set (prods g)" 
+      hence "substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] v = substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] p @ substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] ([Nt A]@s)"
+        by simp
+      hence "substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] v = p @ [Nt B\<^sub>1,Nt B\<^sub>2] @ s"
+        using 1 substs_split slemma4_1 slemma4_3_1 by metis
+      hence 2: "(u, substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] v) \<in> set (prods g)" 
         using True lrps uv assms(1) slemma4_4Nt by fastforce
-      have "update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) lhs = update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) p' @ update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) ([Nt u]@s')"
-        using uv slemma4_0 by fast
-      hence 3: "update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) lhs = update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) p' @ [Nt u] @ update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) s'" 
+      have "substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] lhs = substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] p' @ substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] ([Nt u]@s')"
+        using uv by simp
+      hence 3: "substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] lhs = substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] p' @ [Nt u] @ substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] s'" 
         using \<open>u \<noteq> A\<close> by simp
-      have "update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) rhs = update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) p' @ update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) (v@s')"
-        using uv slemma4_0 by fast
-      hence "update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) rhs = update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) p' @ update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) v @ update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) s'"
-        using slemma4_0 by fastforce
+      have "substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] rhs = substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] p' @ substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] (v@s')"
+        using uv by simp
+      hence "substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] rhs = substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] p' @ substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] v @ substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] s'"
+        by simp
       then show ?thesis 
         using 2 3 assms(2) uv derive.simps by fast
     next
       case False
       hence 1: "(u, v) \<in> set (prods g)" 
         using assms(1) uv \<open>u \<noteq> A\<close> lrps by (simp add: in_set_conv_decomp)
-       have "update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) lhs = update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) p' @ update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) ([Nt u]@s')"
-         using uv slemma4_0 by fast
-       hence 2: "update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) lhs = update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) p' @ [Nt u] @ update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) s'"
+       have "substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] lhs = substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] p' @ substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] ([Nt u]@s')"
+         using uv by simp
+       hence 2: "substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] lhs = substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] p' @ [Nt u] @ substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] s'"
          using \<open>u \<noteq> A\<close> by simp
-       have "update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) rhs = update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) p' @ update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) (v@s')"
-         using uv slemma4_0 by fast
-       hence "update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) rhs = update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) p' @ update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) v @ update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) s'"
-         using slemma4_0 by fastforce
-       hence "update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) rhs = update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) p' @ v @ update (A, [Nt B\<^sub>1,Nt B\<^sub>2]) s'"
+       have "substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] rhs = substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] p' @ substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] (v@s')"
+         using uv by simp
+       hence "substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] rhs = substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] p' @ substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] v @ substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] s'"
+         by simp
+       hence "substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] rhs = substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] p' @ v @ substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] s'"
          using False slemma4_1 by fastforce
        thus ?thesis 
          using 1 2 assms(2) uv derive.simps by fast
@@ -507,7 +494,7 @@ qed
 lemma lemma3:
   assumes "set (prods g') \<turnstile> lhs \<Rightarrow>* rhs"
     and "uniformize A t g g'"
-  shows "set (prods g) \<turnstile> (update (A, [Tm t]) lhs) \<Rightarrow>* (update (A, [Tm t]) rhs)"
+  shows "set (prods g) \<turnstile> (substsNt A [Tm t] lhs) \<Rightarrow>* (substsNt A [Tm t] rhs)"
   using assms
 proof (induction rhs rule: rtranclp_induct)
   case (step y z)
@@ -518,7 +505,7 @@ qed simp
 lemma lemma3Nt:
   assumes "set (prods g') \<turnstile> lhs \<Rightarrow>* rhs"
     and "binarizeNt A B\<^sub>1 B\<^sub>2 g g'"
-  shows "set (prods g) \<turnstile> (update (A, [Nt B\<^sub>1, Nt B\<^sub>2]) lhs) \<Rightarrow>* (update (A, [Nt B\<^sub>1, Nt B\<^sub>2]) rhs)"
+  shows "set (prods g) \<turnstile> (substsNt A [Nt B\<^sub>1, Nt B\<^sub>2] lhs) \<Rightarrow>* (substsNt A [Nt B\<^sub>1, Nt B\<^sub>2] rhs)"
   using assms 
 proof (induction rhs rule: rtranclp_induct)
   case (step y z)
@@ -526,48 +513,48 @@ proof (induction rhs rule: rtranclp_induct)
     using lemma1Nt[of A B\<^sub>1 B\<^sub>2 g g' y z] by auto
 qed simp
 
-lemma slemma4_7: "map Tm w = update (A, \<alpha>) (map Tm w)"
+lemma slemma4_7: "map Tm w = substsNt A \<alpha> (map Tm w)"
   by (induction w) auto
 
 lemma lemma4:
   assumes "uniformize A t g g'" 
-  shows "L g' \<subseteq> L g"
+  shows "langS g' \<subseteq> langS g"
 proof 
   fix w
-  assume "w \<in> L g'"
+  assume "w \<in> langS g'"
   hence "set (prods g') \<turnstile> [Nt (start g')] \<Rightarrow>* map Tm w"
     unfolding Lang_def by simp
   hence "set (prods g') \<turnstile> [Nt (start g)] \<Rightarrow>* map Tm w"
     using assms unfolding uniformize_def by auto
-  hence "set (prods g) \<turnstile> update (A, [Tm t]) [Nt (start g)] \<Rightarrow>*  update (A, [Tm t]) (map Tm w)"
+  hence "set (prods g) \<turnstile> substsNt A [Tm t] [Nt (start g)] \<Rightarrow>*  substsNt A [Tm t] (map Tm w)"
     using assms lemma3[of g' \<open>[Nt (start g)]\<close> \<open>map Tm w\<close> A t g] by blast
-  moreover have "update (A, [Tm t]) [Nt (start g)] = [Nt (start g)]"
+  moreover have "substsNt A [Tm t] [Nt (start g)] = [Nt (start g)]"
     using assms fresh_nts_prods_start unfolding uniformize_def 
-    by (metis Un_iff singletonI slemma4_2_0 slemma4_2_1) 
-  moreover have "update (A, [Tm t]) (map Tm w) = map Tm w" 
-    using \<open>w \<in> L g'\<close> slemma4_7 by metis
-  ultimately show "w \<in> L g" 
-    using  \<open>w \<in> L g'\<close> by (simp add: Lang_def)
+    by (metis Un_iff singletonI sym.inject(1) slemma4_2_1) 
+  moreover have "substsNt A [Tm t] (map Tm w) = map Tm w" 
+    using \<open>w \<in> langS g'\<close> slemma4_7 by metis
+  ultimately show "w \<in> langS g" 
+    using  \<open>w \<in> langS g'\<close> by (simp add: Lang_def)
 qed
 
 lemma lemma4Nt:
   assumes "binarizeNt A B\<^sub>1 B\<^sub>2 g g'"
-  shows "L g' \<subseteq> L g"
+  shows "langS g' \<subseteq> langS g"
 proof
   fix w
-  assume "w \<in> L g'"
+  assume "w \<in> langS g'"
   hence "set (prods g') \<turnstile> [Nt (start g')] \<Rightarrow>* map Tm w"
     by (simp add: Lang_def)
   hence "set (prods g') \<turnstile> [Nt (start g)] \<Rightarrow>* map Tm w"
     using assms unfolding binarizeNt_def by auto
-  hence "set (prods g) \<turnstile> update (A, [Nt B\<^sub>1, Nt B\<^sub>2]) [Nt (start g)] \<Rightarrow>*  update (A, [Nt B\<^sub>1, Nt B\<^sub>2]) (map Tm w)"
+  hence "set (prods g) \<turnstile> substsNt A [Nt B\<^sub>1, Nt B\<^sub>2] [Nt (start g)] \<Rightarrow>*  substsNt A [Nt B\<^sub>1, Nt B\<^sub>2] (map Tm w)"
     using assms lemma3Nt[of g' \<open>[Nt (start g)]\<close> \<open>map Tm w\<close> A B\<^sub>1 B\<^sub>2 g] by blast
-  moreover have "update (A, [Nt B\<^sub>1, Nt B\<^sub>2]) [Nt (start g)] = [Nt (start g)]"
+  moreover have "substsNt A [Nt B\<^sub>1, Nt B\<^sub>2] [Nt (start g)] = [Nt (start g)]"
     using assms fresh_nts_prods_start unfolding binarizeNt_def 
-    by (metis UnCI singletonI slemma4_2_0 slemma4_2_1)
-  moreover have "update (A, [Nt B\<^sub>1, Nt B\<^sub>2]) (map Tm w) = map Tm w" 
-    using \<open>w \<in> L g'\<close> slemma4_7 by metis
-  ultimately show "w \<in> L g" using Lang_def \<open>w \<in> L g'\<close> 
+    by (metis UnCI singletonI sym.inject(1) slemma4_2_1)
+  moreover have "substsNt A [Nt B\<^sub>1, Nt B\<^sub>2] (map Tm w) = map Tm w" 
+    using \<open>w \<in> langS g'\<close> slemma4_7 by metis
+  ultimately show "w \<in> langS g" using Lang_def \<open>w \<in> langS g'\<close> 
     by (metis (no_types, lifting) mem_Collect_eq)
 qed
 
@@ -585,32 +572,32 @@ lemma slemma5_1Nt:
 
 lemma lemma5: 
   assumes "uniformize A t g g'"
-  shows "L g \<subseteq> L g'"
+  shows "langS g \<subseteq> langS g'"
 proof 
   fix w
-  assume "w \<in> L g"
+  assume "w \<in> langS g"
   hence "set (prods g) \<turnstile> [Nt (start g')] \<Rightarrow>* map Tm w"
     using assms unfolding Lang_def uniformize_def by auto 
-  thus "w \<in> L g'" 
+  thus "w \<in> langS g'" 
     using assms slemma5_1 Lang_def by fastforce
 qed 
 
 lemma lemma5Nt: 
   assumes "binarizeNt A B\<^sub>1 B\<^sub>2 g g'"
-  shows "L g \<subseteq> L g'"
+  shows "langS g \<subseteq> langS g'"
 proof 
   fix w
-  assume "w \<in> L g"
+  assume "w \<in> langS g"
   hence "set (prods g) \<turnstile> [Nt (start g')] \<Rightarrow>* map Tm w"
     using assms unfolding Lang_def binarizeNt_def by auto 
-  thus "w \<in> L g'" 
+  thus "w \<in> langS g'" 
     using assms slemma5_1Nt Lang_def by fast
 qed 
 
-lemma cnf_lemma1: "uniformize A t g g' \<Longrightarrow> L g = L g'"
+lemma cnf_lemma1: "uniformize A t g g' \<Longrightarrow> langS g = langS g'"
   using lemma4 lemma5 by fast
 
-lemma cnf_lemma1Nt: "binarizeNt A B\<^sub>1 B\<^sub>2 g g' \<Longrightarrow> L g = L g'"
+lemma cnf_lemma1Nt: "binarizeNt A B\<^sub>1 B\<^sub>2 g g' \<Longrightarrow> langS g = langS g'"
   using lemma4Nt lemma5Nt by fast
 
 lemma uniformizeRtc_Eps_free: 
@@ -703,18 +690,18 @@ lemma binarizeNtRtc_Nts:
 
 theorem cnf_lemma2: 
   assumes "(\<lambda>x y. \<exists>A t. uniformize A t x y)^** g g'"
-  shows "L g = L g'"
+  shows "langS g = langS g'"
   using assms by (induction rule: rtranclp_induct) (fastforce simp: cnf_lemma1)+ 
 
 theorem cnf_lemma2Nt: 
   assumes "(\<lambda>x y. \<exists>A t B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y)^** g g'"
-  shows "L g = L g'"
+  shows "langS g = langS g'"
   using assms by (induction rule: rtranclp_induct) (fastforce simp: cnf_lemma1Nt)+
 
 theorem cnf_lemma: 
   assumes "(\<lambda>x y. \<exists>A t. uniformize A t x y)^** g g'"
     and "(\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 x y)^** g' g''"
-  shows "L g = L g''"
+  shows "langS g = langS g''"
   using assms cnf_lemma2 cnf_lemma2Nt uniformizeRtc_Nts by fastforce
 
 (* Part 2 *)
@@ -961,7 +948,7 @@ using assms proof (induction "badNtsCount (prods g)" arbitrary: g rule: less_ind
   qed blast
 qed
 
-theorem uni_bin_exists: "\<forall>g::('n::infinite,'t) cfg. \<exists>g'::('n,'t)cfg. uniform (set (prods g')) \<and> binary (set (prods g')) \<and> L g = L g'"
+theorem uni_bin_exists: "\<forall>g::('n::infinite,'t) cfg. \<exists>g'::('n,'t)cfg. uniform (set (prods g')) \<and> binary (set (prods g')) \<and> langS g = langS g'"
 proof 
   fix g::"('n::infinite,'t) cfg"
   obtain g' where g': "(\<lambda>x y. \<exists>A t. uniformize A t x y)^** g g' \<and> (badTmsCount (prods g') = 0)"
@@ -970,15 +957,15 @@ proof
     using g' binarizeNt_2 lemma15_a by blast
   hence "uniform (set (prods g'')) \<and> binary (set (prods g''))"
     using count_bin_un by blast
-  moreover have "L g = L g''"
+  moreover have "langS g = langS g''"
     using g' g'' cnf_lemma by blast
-  ultimately show "\<exists>g'::('n,'t)cfg. uniform (set (prods g')) \<and> binary (set (prods g')) \<and> L g = L g'"
+  ultimately show "\<exists>g'::('n,'t)cfg. uniform (set (prods g')) \<and> binary (set (prods g')) \<and> langS g = langS g'"
     by blast
 qed
 
 theorem cnf_noe_nou: 
   assumes "Eps_free (set (prods (g::('n::infinite,'t) cfg)))" and "Unit_free (set (prods g))"
-  shows "\<exists>g'::('n,'t) cfg. (uniform (set (prods g')) \<and> binary (set (prods g'))) \<and> (L g = L g') \<and> Eps_free (set (prods g')) \<and> Unit_free (set (prods g'))"
+  shows "\<exists>g'::('n,'t) cfg. (uniform (set (prods g')) \<and> binary (set (prods g'))) \<and> (langS g = langS g') \<and> Eps_free (set (prods g')) \<and> Unit_free (set (prods g'))"
 proof -
   obtain g' where g': "(\<lambda>x y. \<exists>A t. uniformize A t x y)^** g g' \<and> (badTmsCount (prods g') = 0) \<and> Eps_free (set (prods g')) \<and> Unit_free (set (prods g'))"
     using assms uniformize_2 uniformizeRtc_Eps_free uniformizeRtc_Unit_free by blast
@@ -986,7 +973,7 @@ proof -
     using g' binarizeNt_2 lemma15_a by blast
   hence "uniform (set (prods g'')) \<and> binary (set (prods g'')) \<and> Eps_free (set (prods g'')) \<and> Unit_free (set (prods g''))"
     using g' count_bin_un binarizeNtRtc_Eps_free binarizeNtRtc_Unit_free by fastforce
-  moreover have "L g = L g''"
+  moreover have "langS g = langS g''"
     using g' g'' cnf_lemma by blast
   ultimately show ?thesis
     using g' g'' assms(1) by blast
@@ -1056,7 +1043,7 @@ next
 qed
 
 (* Main Theorem: existence of cnf for all cfg with the same Language except for the empty word [] *)
-theorem cnf_exists: "\<forall>g::('n::infinite,'t) cfg. \<exists>g'::('n,'t) cfg. (cnf g') \<and> (L g' = L g - {[]})"
+theorem cnf_exists: "\<forall>g::('n::infinite,'t) cfg. \<exists>g'::('n,'t) cfg. (cnf g') \<and> (langS g' = langS g - {[]})"
 proof
   fix g::"('n,'t)cfg"
   obtain ps\<^sub>0 where ps\<^sub>0: "\<N> (prods g) ps\<^sub>0"
@@ -1067,15 +1054,15 @@ proof
     by simp
   hence 1: "Eps_free (set (prods g\<^sub>u)) \<and> Unit_free (set (prods g\<^sub>u))"
     using ps\<^sub>0 ps\<^sub>u negrImpEps_free upgrImpUnit_free upgr_Eps_free by fastforce
-  have 2: "L g\<^sub>u = L g - {[]}"
+  have 2: "langS g\<^sub>u = langS g - {[]}"
     using g\<^sub>u \<N>_lang_eq[OF ps\<^sub>0] \<U>_lang_eq[OF ps\<^sub>u] by (simp add: \<N>_lang_eq)
-  obtain g'::"('n,'t) cfg" where g': "uniform (set (prods g')) \<and> binary (set (prods g')) \<and> L g\<^sub>u = L g' \<and> Eps_free (set (prods g')) \<and> Unit_free (set (prods g'))"
+  obtain g'::"('n,'t) cfg" where g': "uniform (set (prods g')) \<and> binary (set (prods g')) \<and> langS g\<^sub>u = langS g' \<and> Eps_free (set (prods g')) \<and> Unit_free (set (prods g'))"
     using 1 cnf_noe_nou by blast
   hence "cnf g'" 
     using g' CNF_eq by blast
-  moreover have "L g' = L g - {[]}"
+  moreover have "langS g' = langS g - {[]}"
     using 2 g' by blast
-  ultimately show "\<exists>g'::('n,'t) cfg. (cnf g') \<and> (L g' = L g - {[]})" by blast
+  ultimately show "\<exists>g'::('n,'t) cfg. (cnf g') \<and> (langS g' = langS g - {[]})" by blast
 qed
 
 

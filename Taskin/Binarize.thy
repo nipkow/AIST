@@ -187,7 +187,7 @@ lemma binarize_der':
     from defs have "set ps = {(C, s # u)} \<union> set ps''" by simp
     also have "... = set ((C, s#u) # ps'')" by simp
     also have "... = set ([(C, s#u)] @ ps'')" by simp
-    also from defs have "... = set ([(C,substW (Nt B) u [s, Nt B])] @ ps'')" unfolding Syms_def by fastforce
+    also from defs have "... = set ([(C,substs (Nt B) u [s, Nt B])] @ ps'')" unfolding Syms_def by fastforce
     also have "... = set ((substP (Nt B) u [(C, [s, Nt B])]) @ ps'')" by (simp add: substP_def)
     also have "... = set ((substP (Nt B) u [(C, [s, Nt B])]) @ substP (Nt B) u ps'')" using notB by (simp add: substP_skip2)
     also have "... = set (substP (Nt B) u ((C, [s, Nt B]) # ps''))" by (simp add: substP_def)

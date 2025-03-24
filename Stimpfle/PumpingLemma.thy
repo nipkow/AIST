@@ -343,9 +343,9 @@ qed
 lemma inner_pumping: 
   assumes "cnf g"
     and "m = card (nts (prods g))"
-    and "z \<in> L g"
+    and "z \<in> langS g"
     and "length z \<ge> 2^(m+1)"
-  shows "\<exists>u v w x y . z = u@v@w@x@y \<and> length (v@w@x) \<le> 2^(m+1) \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@y \<in> L g)"
+  shows "\<exists>u v w x y . z = u@v@w@x@y \<and> length (v@w@x) \<le> 2^(m+1) \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@y \<in> langS g)"
 proof -
   obtain S Ps where SPs: "S = start g \<and> Ps = set (prods g)"
     by simp
@@ -393,9 +393,9 @@ proof -
     ultimately show "i \<ge> 0 \<longrightarrow> Ps \<turnstile> S \<Rightarrow>\<langle>l@p1@ (([A]@p2)\<^sup>*i) @[A]@p3\<rangle> (u@(v\<^sup>*i)@w@(x\<^sup>*i)@y)"
       by (induction i) simp_all
   qed
-  hence "\<forall>i \<ge> 0. (u@(v\<^sup>*i)@w@(x\<^sup>*i)@y) \<in> L g"
+  hence "\<forall>i \<ge> 0. (u@(v\<^sup>*i)@w@(x\<^sup>*i)@y) \<in> langS g"
     unfolding Lang_def using assms(1) assms(2) SPs derives_if_path[of Ps S] by blast
-  hence "z = u@v@w@x@y \<and> length (v@w@x) \<le> 2^(m+1) \<and> 1 \<le> length (v@x) \<and> (\<forall> i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@ y \<in> L g)"
+  hence "z = u@v@w@x@y \<and> length (v@w@x) \<le> 2^(m+1) \<and> 1 \<le> length (v@x) \<and> (\<forall> i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@ y \<in> langS g)"
     using vwx uy \<open>length vwx \<le> 2 ^ (m + 1)\<close> by (simp add: Suc_leI)
   then show ?thesis
     by blast
@@ -403,8 +403,8 @@ qed
 
 theorem pumping_lemma:
   assumes "cnf g"
-  shows "\<exists>n. \<forall>z \<in> L g. length z \<ge> n \<longrightarrow>
-     (\<exists>u v w x y. z = u@v@w@x@y \<and> length (v@w@x) \<le> n \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@y \<in> L g))"
+  shows "\<exists>n. \<forall>z \<in> langS g. length z \<ge> n \<longrightarrow>
+     (\<exists>u v w x y. z = u@v@w@x@y \<and> length (v@w@x) \<le> n \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v\<^sup>*i)@w@(x\<^sup>*i)@y \<in> langS g))"
   using assms inner_pumping[of g \<open>card (nts (prods g))\<close>] by blast
 
 end

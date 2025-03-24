@@ -38,6 +38,12 @@ type_synonym ('n,'t) Prods = "('n,'t) prod set"
 datatype ('n,'t) cfg = cfg (prods : "('n,'t) prods") (start : "'n")
 datatype ('n,'t) Cfg = Cfg (Prods : "('n,'t) Prods") (Start : "'n")
 
+definition isTm :: "('n, 't) sym \<Rightarrow> bool" where 
+"isTm S = (\<exists>a. S = Tm a)"
+
+definition isNt :: "('n, 't) sym \<Rightarrow> bool" where 
+"isNt S = (\<exists>A. S = Nt A)"
+
 definition nts_syms :: "('n,'t)syms \<Rightarrow> 'n set" where
 "nts_syms w = {A. Nt A \<in> set w}"
 
@@ -167,6 +173,9 @@ definition Lang :: "('n,'t)Prods \<Rightarrow> 'n \<Rightarrow> 't list set" whe
 
 abbreviation lang :: "('n,'t)prods \<Rightarrow> 'n \<Rightarrow> 't list set" where
 "lang ps A \<equiv> Lang (set ps) A"
+
+abbreviation langS :: "('n,'t) cfg \<Rightarrow> 't list set" where
+"langS g \<equiv> lang (prods g) (start g)"
 
 lemma Lang_Ders: "map Tm ` (Lang P A) \<subseteq> Ders P A"
 unfolding Lang_def Ders_def by auto
@@ -915,7 +924,47 @@ lemma derivern_singleton:
   using derivern_snoc_Nt[of n P "[]" A v] by (cases n, auto)
 
 
-subsubsection \<open>Epsilon-Freeness\<close>
+subsection \<open>Substitution\<close>
+
+subsection \<open>Substitution in Lists\<close>
+
+text \<open>\<open>substs y ys xs y\<close> replaces every occurrence of \<open>y\<close> in \<open>xs\<close> with the list \<open>ys\<close>\<close>
+
+fun substs :: "'a \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+"substs y ys[]  = []" |
+"substs y ys (x#xs) = (if x = y then ys @ substs y ys xs else x # substs y ys xs)"
+
+(* Alternative, but apparently no simpler to use: 
+definition "substs y ys xs = concat (map (\<lambda>x. if x=y then ys else [x]) xs)"
+*)
+
+abbreviation "substsNt A \<equiv> substs (Nt A)"
+
+lemma substs_split[simp]: "substs y ys (xs @ xs') = substs y ys xs @ substs y ys xs'"
+by (induction xs) auto
+
+lemma substs_skip: "y \<notin> set xs \<Longrightarrow> substs y ys xs = xs"
+by (induction xs) auto
+
+lemma substs_len: "length (substs y [y'] xs) = length xs"
+by (induction xs) auto
+
+lemma substs_rev: "y' \<notin> set xs \<Longrightarrow> substs y' [y] (substs y [y'] xs) = xs"
+by (induction xs) auto
+
+lemma substs_der:
+  "(B,v) \<in> P \<Longrightarrow> P \<turnstile> u \<Rightarrow>* substs (Nt B) v u"
+proof (induction u)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a u)
+  then show ?case
+    by (auto simp add: derives_Cons_rule derives_prepend derives_Cons)
+qed
+
+
+subsection \<open>Epsilon-Freeness\<close>
 
 definition Eps_free where "Eps_free R = (\<forall>(_,r) \<in> R. r \<noteq> [])"
 

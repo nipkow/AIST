@@ -3431,7 +3431,8 @@ section\<open>The Theorem\<close>
 text\<open>The chomsky-scheutzenberger theorem that we want to prove.\<close>
 lemma chomsky_schuetzenberger :
   fixes L::\<open>'t list set\<close> and  P :: \<open>('n, 't) Prods\<close>
-  assumes \<open>L = Lang P S\<close> and P_CNF: \<open>(\<forall>p \<in> P. CNF_rule p)\<close> and \<open>finite P\<close> \<comment> \<open> TODO: only assume Type 2 for L and finite productions somehow, then obtain a finite CNF grammar in the proof. Use (and adapt CNF_existence). \<close>
+  assumes \<open>L = Lang P S\<close> and P_CNF: \<open>(\<forall>p \<in> P. CNF_rule p)\<close> and \<open>finite P\<close> \<comment> \<open> TODO: only assume Type 2 for L and finite productions somehow, then obtain a finite CNF grammar in the proof. Use (and adapt CNF_existence).  \<close>
+  \<comment> \<open>TODO2, with cnf stuff we need to wrap the proof for Languages containing \<epsilon>.\<close>
   shows \<open>\<exists>(R::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set) h \<Gamma>. (regular R) \<and> (L = image h (R \<inter> dyck_language \<Gamma>)) \<and> hom h\<close>
 proof -
   (* have \<open>\<exists>P S::'n. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> using \<open>cfl TYPE('n) L\<close> CNF_existence by auto

@@ -129,7 +129,7 @@ lemma rhs_in_ifI[intro]:
 lemma rhs_in_ifD[dest]:
   assumes \<open>rhs_in_if x \<Gamma>\<close>
   shows \<open>\<And>r br. Tm (br, r) \<in> set x \<Longrightarrow> r \<in> \<Gamma>\<close>
-  using assms unfolding rhs_in_if_def by (metis (full_types) chomsky_schuetzenberger.bracket.exhaust)
+  using assms unfolding rhs_in_if_def by (metis (full_types) Chomsky_Schuetzenberger.bracket.exhaust)
 
 lemmas rhs_in_ifE = rhs_in_ifD[elim_format]
 
@@ -1050,7 +1050,7 @@ lemma P1_symD_not_empty'[dest]:
   shows \<open>last xs \<noteq> Tm (Cl, p, One)\<close>
 proof-
   obtain x xs' where x_eq: \<open>xs = x# xs'\<close> using assms using List.list.exhaust_sel by blast
-  with assms have \<open>successively P1'_sym xs\<close> \<open>\<nexists>p. last xs = Tm (Cl, (p, One))\<close> using P1_sym.simps apply blast using P1.simps x_eq by (metis assms(1,2) chomsky_schuetzenberger.P1_sym.elims(2))
+  with assms have \<open>successively P1'_sym xs\<close> \<open>\<nexists>p. last xs = Tm (Cl, (p, One))\<close> using P1_sym.simps apply blast using P1.simps x_eq by (metis assms(1,2) Chomsky_Schuetzenberger.P1_sym.elims(2))
   then show ?thesis by blast
 qed
 
@@ -1519,7 +1519,7 @@ next
     then have \<open>P7_sym y (Nt A)\<close> by (simp add: successively_append_iff)
 
     then obtain R X Y v' where y_eq: \<open>y = (Tm (Op,(R, [Nt X, Nt Y]), v' ))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> by blast
-    then have \<open>P3_sym y (hd w)\<close> using w_eq apply(cases \<open>w = ?w1\<close>) apply(cases v') apply force apply force by (smt (verit, best) List.list.sel(1) chomsky_schuetzenberger.P3_sym.simps(1,3) chomsky_schuetzenberger.version.exhaust) 
+    then have \<open>P3_sym y (hd w)\<close> using w_eq apply(cases \<open>w = ?w1\<close>) apply(cases v') apply force apply force by (smt (verit, best) List.list.sel(1) Chomsky_Schuetzenberger.P3_sym.simps(1,3) Chomsky_Schuetzenberger.version.exhaust) 
 
     hence \<open>P1'_sym (last (ys@[y])) (hd w) \<and> P2_sym (last (ys@[y])) (hd w) \<and> P3_sym (last (ys@[y])) (hd w) \<and> P4_sym (last (ys@[y])) (hd w) \<and> P7_sym (last (ys@[y])) (hd w) \<and> P8_sym (last (ys@[y])) (hd w)\<close> unfolding y_eq using w_eq apply(cases \<open>w = ?w1\<close>) apply force by simp
     with Re_symD[OF uAv] moreover have   \<open>successively P1'_sym (ys @ [y]) \<and> successively P2_sym (ys @ [y]) \<and> successively P3_sym (ys @ [y]) \<and> successively P4_sym (ys @ [y]) \<and> successively P7_sym (ys @ [y]) \<and> successively P8_sym (ys @ [y])\<close> unfolding snoc using successively_append_iff by blast
@@ -1546,9 +1546,9 @@ next
 
   moreover have \<open>P5_sym S (u@w@v)\<close> apply(rule disjE[OF w_eq]; cases u) 
     using P5_uAv apply force
-    using P5_uAv apply (metis List.list.sel(1) P5_symD append_Cons chomsky_schuetzenberger.P5_sym.simps(2,3))
+    using P5_uAv apply (metis List.list.sel(1) P5_symD append_Cons Chomsky_Schuetzenberger.P5_sym.simps(2,3))
     using P5_uAv apply force 
-    using P5_uAv by (metis List.list.sel(1) P5_symD append_Cons chomsky_schuetzenberger.P5_sym.simps(2,3))
+    using P5_uAv by (metis List.list.sel(1) P5_symD append_Cons Chomsky_Schuetzenberger.P5_sym.simps(2,3))
 
   moreover have \<open>P1_sym (u@w@v)\<close> 
   proof(cases v rule: rev_cases)
@@ -1610,11 +1610,11 @@ lemma Re_imp_P':
   have p1x: \<open>P1 x\<close> and p2x: \<open>successively P2 x\<close> and p3x: \<open>successively P3 x\<close> and p4x: \<open>successively P4 x\<close> and p5x: \<open>P5 A x\<close> using ReD[OF xRe] by blast+
 
   from p5x obtain \<pi> t where hd_x: \<open>hd x = (Op, \<pi>, One)\<close>  and pi_def: \<open>\<pi> = (A, t)\<close> by (metis List.list.sel(1) P5.elims(2))
-  with xRe have \<open>(Op, \<pi>, One) \<in> set x\<close> by (metis List.list.sel(1) List.list.set_intros(1) ReD(5) chomsky_schuetzenberger.P5.elims(2))
+  with xRe have \<open>(Op, \<pi>, One) \<in> set x\<close> by (metis List.list.sel(1) List.list.set_intros(1) ReD(5) Chomsky_Schuetzenberger.P5.elims(2))
   then have pi_in_P: \<open>\<pi> \<in> P\<close> using xDL by auto
 
   have bal_x: \<open>bal x\<close> using xDL by blast
-  then have \<open>\<exists>y r. bal y \<and> bal r \<and> [\<^bsub>\<pi>\<^esub>\<^sup>1  # tl x = [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1 # r\<close> using hd_x bal_x bal_Op_split[of \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1 \<close>, where ?xs = \<open>tl x\<close>]  by (metis (no_types, lifting) List.list.exhaust_sel List.list.inject Product_Type.prod.inject chomsky_schuetzenberger.P5.simps(1) p5x)
+  then have \<open>\<exists>y r. bal y \<and> bal r \<and> [\<^bsub>\<pi>\<^esub>\<^sup>1  # tl x = [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1 # r\<close> using hd_x bal_x bal_Op_split[of \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1 \<close>, where ?xs = \<open>tl x\<close>]  by (metis (no_types, lifting) List.list.exhaust_sel List.list.inject Product_Type.prod.inject Chomsky_Schuetzenberger.P5.simps(1) p5x)
 
   then obtain y r1 where \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1  # tl x   =   [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1 # r1\<close> and bal_y: \<open>bal y\<close> and bal_r1: \<open>bal r1\<close> by blast
   then have split1: \<open>x = [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1 # r1\<close> using hd_x by (metis List.list.exhaust_sel List.list.set(1) \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1 \<in> set x\<close> empty_iff)
@@ -1640,7 +1640,7 @@ lemma Re_imp_P':
     with bal_r2 obtain g where r2_begin_op: \<open>r2' = (Op, g)\<close> using bal_not_empty[of r2' r2's] using Cons by blast
     have \<open>successively P2 ( ]\<^bsub>\<pi>\<^esub>\<^sup>2  # r2' # r2's)\<close> using p2x  unfolding split2 Cons successively_append_iff by (metis append_Cons successively_append_iff)
     then have \<open>P2 ]\<^bsub>\<pi>\<^esub>\<^sup>2 (r2')\<close> by fastforce
-    with r2_begin_op have \<open>False\<close> by (metis chomsky_schuetzenberger.P2.simps(1) split_pairs)
+    with r2_begin_op have \<open>False\<close> by (metis Chomsky_Schuetzenberger.P2.simps(1) split_pairs)
     then show ?thesis by blast
   qed blast
 
@@ -1672,7 +1672,7 @@ lemma Re_imp_P':
 
     with p3x pi_eq have \<open>\<exists>g. hd y = (Op, (B,g), One)\<close> using y_not_empty split3 by (metis (no_types, lifting) P3D1 append_is_Nil_conv hd_append2 successively_Cons)
 
-    then have \<open>P5 B y\<close> by (metis \<open>y \<noteq> []\<close> chomsky_schuetzenberger.P5.simps(2) hd_Cons_tl)
+    then have \<open>P5 B y\<close> by (metis \<open>y \<noteq> []\<close> Chomsky_Schuetzenberger.P5.simps(2) hd_Cons_tl)
 
 
     with y_successivelys P1y have \<open>y \<in> Re B\<close> by blast
@@ -1688,11 +1688,11 @@ lemma Re_imp_P':
     from split3 have z_successivelys: \<open>successively P1' z \<and> successively P2 z \<and> successively P3 z \<and> successively P4 z\<close> using P1.simps p1x p2x p3x p4x by (metis List.list.simps(3) Nil_is_append_conv successively_Cons successively_append_iff)
     then have successively_P3: \<open>successively P3 (([\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ [ ]\<^bsub>\<pi>\<^esub>\<^sup>1]) @ [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @ [ ]\<^bsub>\<pi>\<^esub>\<^sup>2 ])\<close> using split3 p3x by (metis List.append.assoc append_Cons append_Nil)
 
-    have z_not_empty: \<open>z \<noteq> []\<close> using p3x pi_eq split1 successively_P3 by (metis List.list.distinct(1) List.list.sel(1) append_Nil chomsky_schuetzenberger.P3.simps(2) chomsky_schuetzenberger.bracket.simps(2) successively_Cons successively_append_iff)
+    have z_not_empty: \<open>z \<noteq> []\<close> using p3x pi_eq split1 successively_P3 by (metis List.list.distinct(1) List.list.sel(1) append_Nil Chomsky_Schuetzenberger.P3.simps(2) Chomsky_Schuetzenberger.bracket.simps(2) successively_Cons successively_append_iff)
 
     then have \<open>P3 [\<^bsub>\<pi>\<^esub>\<^sup>2 (hd z)\<close> by (metis append_is_Nil_conv hd_append2 successively_Cons successively_P3 successively_append_iff)
-    with p3x pi_eq have \<open>\<exists>g. hd z = (Op, (C,g), One)\<close> using split_pairs by (metis chomsky_schuetzenberger.P3.simps(2))
-    then have \<open>P5 C z\<close> by (metis List.list.exhaust_sel \<open>z \<noteq> []\<close> chomsky_schuetzenberger.P5.simps(2)) 
+    with p3x pi_eq have \<open>\<exists>g. hd z = (Op, (C,g), One)\<close> using split_pairs by (metis Chomsky_Schuetzenberger.P3.simps(2))
+    then have \<open>P5 C z\<close> by (metis List.list.exhaust_sel \<open>z \<noteq> []\<close> Chomsky_Schuetzenberger.P5.simps(2)) 
     moreover have \<open>P1 z\<close>
     proof-
       have \<open>\<nexists>p. last z = ]\<^bsub>p\<^esub>\<^sup>1\<close> 
@@ -1722,7 +1722,7 @@ lemma Re_imp_P':
     ultimately have der_z: \<open>transform_production ` P \<turnstile> [Nt C] \<Rightarrow>* map Tm z\<close> using IH[of z C] split3  by blast
 
 
-    have \<open>transform_production ` P \<turnstile> [Nt A] \<Rightarrow>* [ Tm [\<^bsub>\<pi>\<^esub>\<^sup>1 ] @ [(Nt B)] @ [Tm ]\<^bsub>\<pi>\<^esub>\<^sup>1  , Tm [\<^bsub>\<pi>\<^esub>\<^sup>2 ] @  [(Nt C)] @ [   Tm ]\<^bsub>\<pi>\<^esub>\<^sup>2   ]\<close> by (metis List.append.left_neutral append_Cons bu_prod chomsky_schuetzenberger.transform_production.simps(1) derives_if_bu image_eqI pi_eq pi_in_P)
+    have \<open>transform_production ` P \<turnstile> [Nt A] \<Rightarrow>* [ Tm [\<^bsub>\<pi>\<^esub>\<^sup>1 ] @ [(Nt B)] @ [Tm ]\<^bsub>\<pi>\<^esub>\<^sup>1  , Tm [\<^bsub>\<pi>\<^esub>\<^sup>2 ] @  [(Nt C)] @ [   Tm ]\<^bsub>\<pi>\<^esub>\<^sup>2   ]\<close> by (metis List.append.left_neutral append_Cons bu_prod Chomsky_Schuetzenberger.transform_production.simps(1) derives_if_bu image_eqI pi_eq pi_in_P)
 
     also have \<open>transform_production ` P \<turnstile> [ Tm [\<^bsub>\<pi>\<^esub>\<^sup>1 ] @ [(Nt B)] @ [Tm ]\<^bsub>\<pi>\<^esub>\<^sup>1  , Tm [\<^bsub>\<pi>\<^esub>\<^sup>2 ] @  [(Nt C)] @ [   Tm ]\<^bsub>\<pi>\<^esub>\<^sup>2   ]    \<Rightarrow>*    [ Tm [\<^bsub>\<pi>\<^esub>\<^sup>1 ] @ map Tm y @ [Tm ]\<^bsub>\<pi>\<^esub>\<^sup>1  , Tm [\<^bsub>\<pi>\<^esub>\<^sup>2 ] @  [(Nt C)] @ [   Tm ]\<^bsub>\<pi>\<^esub>\<^sup>2   ]\<close> using der_y using derives_append derives_prepend by blast
 
@@ -1748,13 +1748,13 @@ lemma Re_imp_P':
     proof(cases z)
       case (Cons z' zs')
       have \<open>P4 [\<^bsub>\<pi>\<^esub>\<^sup>2 z'\<close> using p4x split3 by (simp add: Cons \<open>y = []\<close>)
-      then have \<open>z' = (Cl, \<pi>, One)\<close> using P4E by (metis Cons bal_not_empty bal_z chomsky_schuetzenberger.bracket.simps(2) fst_eqD pi_eq)
+      then have \<open>z' = (Cl, \<pi>, One)\<close> using P4E by (metis Cons bal_not_empty bal_z Chomsky_Schuetzenberger.bracket.simps(2) fst_eqD pi_eq)
       moreover obtain g where \<open>z' = (Op, g)\<close> using Cons bal_not_empty bal_z by blast
       ultimately have \<open>False\<close> by blast
       then show ?thesis by blast
     qed blast
 
-    have \<open>transform_production ` P \<turnstile> [Nt A] \<Rightarrow>* [ Tm [\<^sub>\<pi>\<^sup>1,       Tm ]\<^sub>\<pi>\<^sup>1 , Tm [\<^sub>\<pi>\<^sup>2 ,       Tm ]\<^sub>\<pi>\<^sup>2   ]\<close> by (metis \<open>\<And>thesis. (\<And>a. \<pi> = (A, [Tm a]) \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> chomsky_schuetzenberger.transform_production.simps(2) local.less.prems(2) pi_in_P r_into_rtranclp snd_eqD transform_production_one_step)
+    have \<open>transform_production ` P \<turnstile> [Nt A] \<Rightarrow>* [ Tm [\<^sub>\<pi>\<^sup>1,       Tm ]\<^sub>\<pi>\<^sup>1 , Tm [\<^sub>\<pi>\<^sup>2 ,       Tm ]\<^sub>\<pi>\<^sup>2   ]\<close> by (metis \<open>\<And>thesis. (\<And>a. \<pi> = (A, [Tm a]) \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> Chomsky_Schuetzenberger.transform_production.simps(2) local.less.prems(2) pi_in_P r_into_rtranclp snd_eqD transform_production_one_step)
 
     then show ?thesis using \<open>y = []\<close> \<open>z = []\<close> by (simp add: split3)
 
@@ -2373,7 +2373,7 @@ proof(induction xs rule: rev_induct)
   qed
 qed simp
 
-lemma in_P5_iff: \<open>P5 A xs \<and> xs \<in> brackets P \<longleftrightarrow> (xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets P)\<close> apply auto by (metis List.list.exhaust_sel chomsky_schuetzenberger.P5.simps(2) local.ok.elims(2))
+lemma in_P5_iff: \<open>P5 A xs \<and> xs \<in> brackets P \<longleftrightarrow> (xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets P)\<close> apply auto by (metis List.list.exhaust_sel Chomsky_Schuetzenberger.P5.simps(2) local.ok.elims(2))
 
 lemma aut_language_reg: \<open>regular p5_aut.language\<close> by (metis dfa_p5_aut ex_hf_M regular_def)
 
@@ -2747,7 +2747,7 @@ prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [P
     also have \<open>... = w\<close> using fr unfolding ts_eq by auto
     finally have \<open>the_hom_ext (fringe (transform_tree (Prod A ts))) = w\<close> .
 
-    moreover have \<open>parse_tree (P') (transform_tree (Prod A [Sym (Tm a)]))\<close> using pt prod_rhs unfolding P'_def apply simp by (metis chomsky_schuetzenberger.transform_production.simps(2) imageI) 
+    moreover have \<open>parse_tree (P') (transform_tree (Prod A [Sym (Tm a)]))\<close> using pt prod_rhs unfolding P'_def apply simp by (metis Chomsky_Schuetzenberger.transform_production.simps(2) imageI) 
     ultimately show ?thesis unfolding ts_eq P'_def by blast
   next
     case Nt_Nt
@@ -2757,7 +2757,7 @@ prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [P
     also have \<open>... = w\<close> using fr unfolding ts_eq by auto
     finally have \<open>the_hom_ext (fringe (transform_tree (Prod A ts))) = w\<close> .
 
-    moreover have \<open>parse_tree (P') (transform_tree (Prod A [Sym (Nt B), Sym (Nt C)]))\<close> using pt prod_rhs unfolding P'_def apply simp by (metis chomsky_schuetzenberger.transform_production.simps(1) imageI)
+    moreover have \<open>parse_tree (P') (transform_tree (Prod A [Sym (Nt B), Sym (Nt C)]))\<close> using pt prod_rhs unfolding P'_def apply simp by (metis Chomsky_Schuetzenberger.transform_production.simps(1) imageI)
     ultimately show ?thesis unfolding ts_eq by blast
   next
     case Prod_Nt
@@ -3064,7 +3064,7 @@ proof -
         case (Suc n u A v x')
         from \<open>(A, x') \<in> P'\<close> obtain \<pi> where \<open>\<pi> \<in> P\<close> and transf_\<pi>_def: \<open>(transform_production \<pi>) = (A, x')\<close> using P'_def by auto
         moreover have \<open>CNF_rule \<pi>\<close> using P_CNF \<open>\<pi> \<in> P\<close> by auto
-        ultimately obtain x where \<pi>_def: \<open>\<pi> = (A, x)\<close> using transform_production_CNF by (smt (verit, del_insts) CNF_rule_def Pair_inject chomsky_schuetzenberger.transform_production.simps(1,2))
+        ultimately obtain x where \<pi>_def: \<open>\<pi> = (A, x)\<close> using transform_production_CNF by (smt (verit, del_insts) CNF_rule_def Pair_inject Chomsky_Schuetzenberger.transform_production.simps(1,2))
         have \<open>hom h_ext\<close> unfolding hom_def h_ext_def the_hom_ext.simps by simp
         then have \<open>h_ext (u @ [Nt A] @ v) = h_ext u @ h_ext [Nt A] @ h_ext v\<close> using hom_def by (metis (no_types, lifting))
         then have \<open> P \<turnstile> [Nt S] \<Rightarrow>* h_ext u @ h_ext [Nt A] @ h_ext v\<close> using local.Suc.IH by auto

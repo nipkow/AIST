@@ -3,7 +3,15 @@ imports Main HereditarilyFinite.Ordinal "$AFP/Finite_Automata_HF/Finite_Automata
 begin
 
 
+text\<open>This file contains a version of the dfa and nfa definition from Finite_Automata_Hf 
+but with \<open>'b set\<close> as states set, instead of forcing \<open>hf set\<close>. 
+It is intended to be used for easier constructions of explicitly given languages,
+not for abstract constructions such as the intersection of 2 automaton languages.
+The locale below adds a converter from this dfa to the hf version dfa, to show that regularity also
+holds for the language of this dfa.
 
+Todo: add converter for nfa.
+TODO: rename locales.\<close>
 
 
 text\<open>First, the record for DFAs\<close>

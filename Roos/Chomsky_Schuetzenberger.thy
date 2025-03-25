@@ -1,5 +1,5 @@
-theory chomsky_schuetzenberger
-  imports "../CFG" "../CFL" "../Parse_Tree" "dfa2" "$AFP/Regular-Sets/Regexp_Constructions"
+theory Chomsky_Schuetzenberger
+  imports "../CFG" "../CFL" "../Parse_Tree" "Finite_Automata_Not_HF" "$AFP/Regular-Sets/Regexp_Constructions"
 begin
 
 text \<open>This file contains all the constructions needed for the chomsky-schuetzenberger theorem.

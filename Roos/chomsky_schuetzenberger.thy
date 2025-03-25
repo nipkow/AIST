@@ -2339,7 +2339,6 @@ theorem nxt_induct[case_names garbage startnp start_p_ok start_p_nok first_ok_np
   using assms apply simp
   using assms apply simp
   using assms apply simp
-  apply(case_tac \<open>p \<notin> P\<close>)
   using assms by fast+
 
 

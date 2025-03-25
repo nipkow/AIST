@@ -1,11 +1,11 @@
-theory detProds
+theory Inlining1Prod
 imports "../CFG"
 begin
 
 text 
-\<open>We call a non-terminal \<open>A\<close> deterministic if the grammar contains a single production of \<open>A\<close> and the form of this production is 
- \<open>(A,w)\<close>. In this case we could replace every occurrence of \<open>A\<close> with \<open>w\<close> on the right-hand sides of the productions and the 
- language of the grammar would be preserved\<close>
+\<open>A single production of \<open>(A,\<alpha>)\<close> can be removed from \<open>ps\<close> by inlining
+(= replacing \<open>Nt A\<close> by \<open>\<alpha>\<close> everywhere in \<open>ps\<close>) without changing the language
+if \<open>Nt A \<notin> set \<alpha>\<close> and \<open>A \<notin> lhss ps\<close>.\<close>
 
 text
 \<open>\<open>substP ps s u\<close> replaces every occurrence of the symbol \<open>s\<close> with the list of symbols \<open>u\<close> on the right-hand sides of the production list \<open>ps\<close>\<close>
@@ -48,10 +48,6 @@ next
   finally show ?case .
 qed
 
-lemma substP_lhss:
-  "lhss ps = lhss (substP s u ps)"
-by (auto simp add: Lhss_def substP_def)
-
 lemma if_set_map:
   "x' \<in> set (map f l) \<Longrightarrow> (\<exists>x. x \<in> set l \<and> f x = x')"
   by auto
@@ -71,10 +67,7 @@ proof -
   from path1 path2 show ?thesis by simp
 qed
 
-text
-\<open>In order to prove that the elimination of deterministic non-terminals preserves the language, we prove that a word can be derived if and
- only if the word can be derived after the procedure of elimination. We first show the simpler implication, namely that the list of symbols
- \<open>u\<close> can be derived before the procedure, if \<open>u\<close> can be derived after the procedure\<close>
+text\<open>A list of symbols \<open>u\<close> can be derived before inlining if \<open>u\<close> can be derived after inlining.\<close>
 
 lemma if_part:
   "set (substP (Nt B) v ps) \<turnstile> [Nt A] \<Rightarrow>* u \<Longrightarrow> set ((B,v) # ps) \<turnstile> [Nt A] \<Rightarrow>* u"
@@ -85,28 +78,26 @@ proof (induction rule: derives_induct)
 qed simp
 
 text
-\<open>For the other implication we first show that the list of symbols \<open>u\<close>, where the occurrences of the non-terminal \<open>B\<close> is replaced by the 
- list of symbols \<open>v\<close>, can be derived in the transformed production set if \<open>u\<close> can be derived in the original set of productions extended with
- the production \<open>(B,v)\<close>, under the following assumptions:\<close>
+\<open>For the other implication we need to take care that \<open>B\<close> can be derived in the original \<open>ps\<close>.
+Thus, after inlining, \<open>B\<close> must also be substituted in the derived sentence \<open>u\<close>:\<close>
 
-lemma substPW_der:
-  assumes prem: "set ((B,v)#ps) \<turnstile> [Nt A] \<Rightarrow>* u"
-      and A_B_noteq: "A \<noteq> B"
-      and B_notin_dom: "B \<notin> lhss ps"
-      and B_notin_v: "Nt B \<notin> set v"
-    shows "set (substP (Nt B) v ps) \<turnstile> [Nt A] \<Rightarrow>* substsNt B v u"
-using assms(1) proof (induction rule: derives_induct)
+lemma only_if_lemma:
+assumes "A \<noteq> B"
+    and "B \<notin> lhss ps"
+    and "Nt B \<notin> set v"
+shows "set ((B,v)#ps) \<turnstile> [Nt A] \<Rightarrow>* u \<Longrightarrow> set (substP (Nt B) v ps) \<turnstile> [Nt A] \<Rightarrow>* substsNt B v u"
+proof (induction rule: derives_induct)
   case base
-  then show ?case using assms(2) by simp
+  then show ?case using assms(1) by simp
 next
   case (step s B' w v')
   then show ?case
   proof (cases "B = B'")
     case True
     then have "v = v'" 
-      using B_notin_dom step.hyps unfolding Lhss_def by auto
+      using \<open>B \<notin> lhss ps\<close> step.hyps unfolding Lhss_def by auto
     then have "substsNt B v (s @ [Nt B'] @ w) = substsNt B v (s @ v' @ w)" 
-      using step.prems B_notin_v True by (simp add: substs_skip substs_split)
+      using step.prems \<open>Nt B \<notin> set v\<close> True by (simp add: substs_skip)
     then show ?thesis
       using step.IH by argo
   next
@@ -115,32 +106,31 @@ next
       using step by auto
     then have "(B', substsNt B v v') \<in> set (substP (Nt B) v ps)"
       by (metis (no_types, lifting) list.set_map pair_imageI substP_def)
-    with rtrancl_into_rtrancl show ?thesis
-      by (smt (verit, ccfv_threshold) False step.IH step.prems derive.simps rtranclp.simps substs.simps substs_split sym.inject(1))
+    from derives_rule[OF this _ rtranclp.rtrancl_refl] step.IH False show ?thesis
+      by simp
   qed
 qed
 
 text
 \<open>With the assumption that the non-terminal \<open>B\<close> is not in the list of symbols \<open>u\<close>, \<open>substs u (Nt B) v\<close> reduces to \<open>u\<close>\<close>
 
-lemma only_if_part: 
-  assumes "set ((B,v)#ps) \<turnstile> [Nt A] \<Rightarrow>* u"
-      and A_B_noteq: "A \<noteq> B"
-      and B_notin_dom: "B \<notin> lhss ps"
-      and B_notin_v: "Nt B \<notin> set v"
-      and B_notin_u: "Nt B \<notin> set u"
-    shows "set (substP (Nt B) v ps) \<turnstile> [Nt A] \<Rightarrow>* u"
-  by (metis assms substs_skip substPW_der)
+corollary only_if_part: 
+assumes "A \<noteq> B"
+    and "B \<notin> lhss ps"
+    and "Nt B \<notin> set v"
+    and "Nt B \<notin> set u"
+shows "set ((B,v)#ps) \<turnstile> [Nt A] \<Rightarrow>* u \<Longrightarrow> set (substP (Nt B) v ps) \<turnstile> [Nt A] \<Rightarrow>* u"
+by (metis assms substs_skip only_if_lemma)
 
 text
 \<open>Combining the two implications gives us the desired property of language preservation\<close>
 
-lemma substP_lang: 
-  assumes "B \<notin> lhss ps" and
-          "Nt B \<notin> set v" and
-          "Nt B \<notin> set u" and
-          "A \<noteq> B"
-        shows "set (substP (Nt B) v ps) \<turnstile> [Nt A] \<Rightarrow>* u \<longleftrightarrow> set ((B,v) # ps) \<turnstile> [Nt A] \<Rightarrow>* u"
-  using assms if_part only_if_part by metis
+lemma derives_inlining: 
+assumes "B \<notin> lhss ps" and
+        "Nt B \<notin> set v" and
+        "Nt B \<notin> set u" and
+        "A \<noteq> B"
+shows "set (substP (Nt B) v ps) \<turnstile> [Nt A] \<Rightarrow>* u \<longleftrightarrow> set ((B,v) # ps) \<turnstile> [Nt A] \<Rightarrow>* u"
+using assms if_part only_if_part by metis
 
 end

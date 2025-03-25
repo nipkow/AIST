@@ -251,7 +251,7 @@ lemma finalize_der':
   qed
   from defs have 2: "set (finalize1 ps ps) = set ((C, w @ [Nt B]) # (B, []) # ps'')" by auto
   with 1 2 a1 a2 a3 a4 show "set ps \<turnstile> [Nt A] \<Rightarrow>* map Tm x \<longleftrightarrow> set (finalize1 ps ps) \<turnstile> [Nt A] \<Rightarrow>* map Tm x"
-    by (simp add: substP_lang insert_commute)
+    by (simp add: derives_inlining insert_commute)
 qed simp
 
 lemma lhss_finalize1:

@@ -1,12 +1,19 @@
-theory DFA_rlin2
+(* Authors: Kaan Taskin, Tobias Nipkow *)
+
+section \<open>Strongly Right-Linear Grammars as a Nondeterministic Automaton\<close>
+
+theory NDA_rlin2
 imports
   Right_Linear
 begin
 
 text
-\<open>We define \<open>nxts_rlin2_set P M w\<close> that traverses the terminals list \<open>w\<close> starting from the set of non-terminals \<open>M\<close> according to
- the production set \<open>P\<close>. At the end it gives the reachable non-terminals set. The definition is very similar to a 
- nondeterministic finite automata\<close>
+\<open>We define what is essentially the extended transition function of a nondeterministic automaton
+but is driven by a set of strongly right-linear productions \<open>P\<close>, which are of course
+just another representation of the transitions of a nondeterministic automaton.
+Function \<open>nxts_rlin2_set P M w\<close> traverses the terminals list \<open>w\<close>
+starting from the set of non-terminals \<open>M\<close> according to the productions of \<open>P\<close>.
+At the end it returns the reachable non-terminals.\<close>
 
 definition nxt_rlin2 :: "('n,'t)Prods \<Rightarrow> 'n \<Rightarrow> 't \<Rightarrow> 'n set" where
 "nxt_rlin2 P A a = {B. (A, [Tm a, Nt B]) \<in> P}"
@@ -16,8 +23,6 @@ definition nxt_rlin2_set :: "('n,'t)Prods \<Rightarrow> 'n set \<Rightarrow> 't 
 
 definition nxts_rlin2_set :: "('n,'t)Prods \<Rightarrow> 'n set \<Rightarrow> 't list \<Rightarrow> 'n set" where
 "nxts_rlin2_set P = foldl (nxt_rlin2_set P)"
-
-subsection \<open>Properties of \<open>nxts_rlin2_set\<close>\<close>
 
 lemma nxt_rlin2_nts:
   assumes "B\<in>nxt_rlin2 P A a"
@@ -149,9 +154,10 @@ next
 qed
 
 text
-\<open>\<open>accepted P A w\<close> is defined as following and checks whether there exists a reachable non-terminal \<open>Z\<close> such that \<open>(Z,[])\<close> is in the
- production set \<open>P\<close>. In the automata level this corresponds a reachable final state and therefore the name \<open>accepted\<close>. We show that
- a word \<open>w\<close>, starting from the non-terminal \<open>A\<close>, is in the language of \<open>P\<close> if and only if \<open>accepted P A w\<close>\<close>
+\<open>Acceptance of a word \<open>w\<close> w.r.t. \<open>P\<close> (starting from \<open>A\<close>), \<open>accepted P A w\<close>, means that we can reach
+an ``accepting'' nonterminal \<open>Z\<close>, i.e. one with a production \<open>(Z,[])\<close>.
+On the automaton level \<open>Z\<close> reachable final state.
+We show that \<open>accepted P A w\<close> iff \<open>w\<close> is in the language of \<open>A\<close> w.r.t. \<open>P\<close>.\<close>
 
 definition "accepted P A w = (\<exists>Z \<in> nxts_rlin2_set P {A} w. (Z,[]) \<in> P)"
 

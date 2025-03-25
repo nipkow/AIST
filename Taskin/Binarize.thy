@@ -1,5 +1,5 @@
 theory Binarize
-imports "../CFG" detProds
+imports "../CFG" Inlining1Prod
 begin
 
 (* FFPI *) 
@@ -195,7 +195,7 @@ lemma binarize_der':
   qed
   from defs have 2: "set (binarize1 ps ps) = set ((C, [s, Nt B]) # (B, u) # ps'')" by auto
   with 1 2 a1 a2 a3 a4 show "(set ps \<turnstile> [Nt A] \<Rightarrow>* map Tm x) = (set (binarize1 ps ps) \<turnstile> [Nt A] \<Rightarrow>* map Tm x)"
-    by (simp add: substP_lang insert_commute)
+    by (simp add: derives_inlining insert_commute)
 qed simp
 
 lemma lhss_binarize1:

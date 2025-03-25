@@ -940,7 +940,7 @@ definition "substs y ys xs = concat (map (\<lambda>x. if x=y then ys else [x]) x
 
 abbreviation "substsNt A \<equiv> substs (Nt A)"
 
-lemma substs_split[simp]: "substs y ys (xs @ xs') = substs y ys xs @ substs y ys xs'"
+lemma substs_append[simp]: "substs y ys (xs @ xs') = substs y ys xs @ substs y ys xs'"
 by (induction xs) auto
 
 lemma substs_skip: "y \<notin> set xs \<Longrightarrow> substs y ys xs = xs"

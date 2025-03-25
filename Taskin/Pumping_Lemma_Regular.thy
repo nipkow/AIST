@@ -1,8 +1,8 @@
-theory PumpingLemmaRe
-  imports DFA_rlin2
-begin
+subsection \<open>Pumping lemma for strongly right-linear grammars\<close>
 
-subsection \<open>Pumping lemma for regular languages\<close>
+theory Pumping_Lemma_Regular
+imports NDA_rlin2
+begin
 
 abbreviation repl :: "'a list \<Rightarrow> nat \<Rightarrow> 'a list" ("_\<^sup>*/_")
   where "xs\<^sup>*n \<equiv> concat (replicate n xs)"

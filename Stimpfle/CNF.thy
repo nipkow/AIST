@@ -265,12 +265,6 @@ proof -
   qed
 qed
 
-(* p = (A, [Tm t]): Replace the fresh Nt A in rhs by \<alpha> *)
-(*
-fun update :: "('n, 't) prod \<Rightarrow> ('n, 't) syms \<Rightarrow> ('n, 't) syms"  where
-  "update _ [] = []" |
-  "update (A,\<alpha>) (r#rhs) = (if r = Nt A then \<alpha>@(update (A,\<alpha>) rhs) else r#(update (A,\<alpha>) rhs))"
-*)
 lemma slemma1_1: 
   assumes "uniformize A t g g'"
     and "(A, \<alpha>) \<in> set (prods g')"
@@ -1068,28 +1062,28 @@ qed
 
 (* some helpful properties *)
 lemma cnf_length_derive: 
-  assumes "P \<turnstile> [Nt S] \<Rightarrow>* \<alpha>" "CNF P" 
+  assumes "CNF P" "P \<turnstile> [Nt S] \<Rightarrow>* \<alpha>"
   shows "length \<alpha> \<ge> 1"
   using assms CNF_eq Eps_free_derives_Nil length_greater_0_conv less_eq_Suc_le by auto
 
 lemma cnf_length_derive2: 
-  assumes "P \<turnstile> [Nt A, Nt B] \<Rightarrow>* \<alpha>" "CNF P" 
+  assumes "CNF P" "P \<turnstile> [Nt A, Nt B] \<Rightarrow>* \<alpha>"
   shows "length \<alpha> \<ge> 2"
 proof -
   obtain u v where uv: "P \<turnstile> [Nt A] \<Rightarrow>* u \<and> P \<turnstile> [Nt B] \<Rightarrow>* v \<and> \<alpha> = u @ v"
-    using assms(1) derives_append_decomp[of P \<open>[Nt A]\<close> \<open>[Nt B]\<close> \<alpha>] by auto
+    using assms(2) derives_append_decomp[of P \<open>[Nt A]\<close> \<open>[Nt B]\<close> \<alpha>] by auto
   hence "length u \<ge> 1 \<and> length v \<ge> 1" 
-    using assms(2) cnf_length_derive[of P] by blast
+    using cnf_length_derive[OF assms(1)] by blast
   thus ?thesis
     using uv by simp
 qed
 
 lemma cnf_single_derive:
-  assumes "P \<turnstile> [Nt S] \<Rightarrow>* [Tm t]" "CNF P"
+  assumes "CNF P" "P \<turnstile> [Nt S] \<Rightarrow>* [Tm t]"
   shows "(S, [Tm t]) \<in> P"
 proof -
   obtain \<alpha> where \<alpha>: "P \<turnstile> [Nt S] \<Rightarrow> \<alpha> \<and> P \<turnstile> \<alpha> \<Rightarrow>* [Tm t]"
-    using assms(1) converse_rtranclpE by force
+    using converse_rtranclpE[OF assms(2)] by auto
   hence 1: "(S, \<alpha>) \<in> P" 
     by (simp add: derive_singleton)
   have "\<nexists>A B. \<alpha> = [Nt A, Nt B]"
@@ -1098,14 +1092,14 @@ proof -
     from this obtain A B where AB: "\<alpha> = [Nt A, Nt B]"
       by blast
     have "\<forall>w. P \<turnstile> [Nt A, Nt B] \<Rightarrow>* w \<longrightarrow> length w \<ge> 2"
-      using cnf_length_derive2 assms(2) by force
+      using cnf_length_derive2[OF assms(1)] by simp
     moreover have "length [Tm t] = 1"
       by simp
     ultimately show False
       using \<alpha> AB by auto
   qed
   from this obtain a where "\<alpha> = [Tm a]"
-    using 1 assms(2) unfolding CNF_def by auto
+    using 1 assms(1) unfolding CNF_def by auto
   hence "t = a"
     using \<alpha> by (simp add: derives_T_Cons)
   thus ?thesis 
@@ -1113,24 +1107,24 @@ proof -
 qed
 
 lemma cnf_word:
-  assumes "P \<turnstile> [Nt S] \<Rightarrow>* map Tm w" "CNF P" 
+  assumes "CNF P" "P \<turnstile> [Nt S] \<Rightarrow>* map Tm w"
     and "length w \<ge> 2"
   shows "\<exists>A B u v. (S, [Nt A, Nt B]) \<in> P \<and> P \<turnstile> [Nt A] \<Rightarrow>* map Tm u \<and> P \<turnstile> [Nt B] \<Rightarrow>* map Tm v \<and> u@v = w \<and> u \<noteq> [] \<and> v \<noteq> []"
 proof -
   have 1: "(S, map Tm w) \<notin> P"
-    using assms(2) assms(3) unfolding CNF_def by auto
+    using assms(1) assms(3) unfolding CNF_def by auto
   have "\<exists>\<alpha>. P \<turnstile> [Nt S] \<Rightarrow> \<alpha> \<and> P \<turnstile> \<alpha> \<Rightarrow>* map Tm w"
-    using assms(1) converse_rtranclpE by fastforce
+    using converse_rtranclpE[OF assms(2)] by auto
   from this obtain \<alpha> where \<alpha>: "(S, \<alpha>) \<in> P \<and> P \<turnstile> \<alpha> \<Rightarrow>* map Tm w"
     by (auto simp: derive_singleton)
   hence "(\<nexists>t. \<alpha> = [Tm t])"
     using 1 derives_T_Cons[of P] derives_from_empty by auto
   hence "\<exists>A B. P \<turnstile> [Nt S] \<Rightarrow> [Nt A, Nt B] \<and> P \<turnstile> [Nt A, Nt B] \<Rightarrow>* map Tm w"
-    using assms(2) \<alpha> derive_singleton[of P \<open>Nt S\<close> \<alpha>] unfolding CNF_def by fast
+    using assms(1) \<alpha> derive_singleton[of P \<open>Nt S\<close> \<alpha>] unfolding CNF_def by fast
   from this obtain A B where AB: "(S, [Nt A, Nt B]) \<in> P \<and> P \<turnstile> [Nt A, Nt B] \<Rightarrow>* map Tm w"
     using derive_singleton[of P \<open>Nt S\<close>] by blast
   hence "\<not>(P \<turnstile> [Nt A] \<Rightarrow>* []) \<and> \<not>(P \<turnstile> [Nt B] \<Rightarrow>* [])"
-    using assms(2) CNF_eq Eps_free_derives_Nil by blast
+    using assms(1) CNF_eq Eps_free_derives_Nil by blast
   from this obtain u v where uv: "P \<turnstile> [Nt A] \<Rightarrow>* u \<and> P \<turnstile> [Nt B] \<Rightarrow>* v \<and> u@v = map Tm w \<and> u \<noteq> [] \<and> v \<noteq> []"
     using AB derives_append_decomp[of P \<open>[Nt A]\<close> \<open>[Nt B]\<close> \<open>map Tm w\<close>] by force
   moreover have "\<exists>u' v'. u = map Tm u' \<and> v = map Tm v'"

@@ -50,53 +50,7 @@ The definition of what it means to be a regular language is a placeholder - it's
 
 The Lemma (***) is missing. This is the main mathematics of the proof, it involes one easy direction and one hard. This is the only part where one needs the definitions of the regular languages. In the textbook this is a (local) lemma.\<close>
 
-lemma strict_inc_induct' [consumes 1, case_names base step]:
-  assumes less: "i < j"
-    and base: "\<And>i. j = Suc i \<Longrightarrow> P i"
-    and step: "\<And>i. i < j \<Longrightarrow> P (Suc i) \<Longrightarrow> P i"
-  shows "P i"
-  using less proof (induct "j - i - 1" arbitrary: i)
-  case (0 i)
-  from \<open>i < j\<close> obtain n where "j = i + n" and "n > 0"
-    by (auto dest!: less_imp_Suc_add)
-  with 0 have "j = Suc i"
-    by (auto intro: order_antisym simp add: Suc_le_eq)
-  with base show ?case by simp
-next
-  case (Suc d i)
-  from \<open>Suc d = j - i - 1\<close> have *: "Suc d = j - Suc i"
-    by (simp add: diff_diff_add)
-  then have "Suc d - 1 = j - Suc i - 1" by simp
-  then have "d = j - Suc i - 1" by simp
-  moreover from * have "j - Suc i \<noteq> 0" by auto
-  then have "Suc i < j" by (simp add: not_le)
-  ultimately have "P (Suc i)" by (rule Suc.hyps)
-  with \<open>i < j\<close> show "P i" by (rule step)
-qed
 
-lemma strict_inc_induct'' [consumes 1, case_names base step]:
-  assumes less: "i < j"
-    and base: "\<And>i. j = Suc i \<Longrightarrow> P i" \<comment> \<open>j-1 = i         P (j-1)\<close>
-    and step: "\<And>i. (Suc i < j \<Longrightarrow> P (Suc i) \<Longrightarrow> P i)" \<comment> \<open>\<close>
-  shows "P i"
-  using less proof (induct "j - i - 1" arbitrary: i)
-  case (0 i)
-  from \<open>i < j\<close> obtain n where "j = i + n" and "n > 0"
-    by (auto dest!: less_imp_Suc_add)
-  with 0 have "j = Suc i"
-    by (auto intro: order_antisym simp add: Suc_le_eq)
-  with base show ?case by simp
-next
-  case (Suc d i)
-  from \<open>Suc d = j - i - 1\<close> have *: "Suc d = j - Suc i"
-    by (simp add: diff_diff_add)
-  then have "Suc d - 1 = j - Suc i - 1" by simp
-  then have "d = j - Suc i - 1" by simp
-  moreover from * have "j - Suc i \<noteq> 0" by auto
-  then have "Suc i < j" by (simp add: not_le)
-  ultimately have "P (Suc i)" by (rule Suc.hyps)
-  with \<open>Suc i < j\<close> show "P i" by (rule step)
-qed
 
 
 declare [[names_short]]

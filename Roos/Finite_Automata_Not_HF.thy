@@ -1,4 +1,4 @@
-theory dfa2
+theory Finite_Automata_Not_HF
 imports Main HereditarilyFinite.Ordinal "$AFP/Finite_Automata_HF/Finite_Automata_HF"
 begin
 

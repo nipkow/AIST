@@ -355,7 +355,7 @@ proof -
     proof (cases "v = [Tm t]")
       case True
       have "substsNt A [Tm t] lhs = substsNt A [Tm t] p' @ substsNt A [Tm t] ([Nt A]@s')"
-        using uv \<open>u = A\<close> substs_split by simp
+        using uv \<open>u = A\<close> by simp
       hence "substsNt A [Tm t] lhs = substsNt A [Tm t] p' @ [Tm t] @ substsNt A [Tm t] s'"
         by simp
       then show ?thesis
@@ -375,7 +375,7 @@ proof -
       hence "substsNt A [Tm t] v = substsNt A [Tm t] p @ substsNt A [Tm t] ([Nt A]@s)"
         by simp
       hence "substsNt A [Tm t] v = p @ [Tm t] @ s"
-        using 1 substs_split slemma4_1 slemma4_3_1 by metis
+        using 1 substs_append slemma4_1 slemma4_3_1 by metis
       hence 2: "(u, substsNt A [Tm t] v) \<in> set (prods g)" using lrps
         using True uv assms(1) slemma4_4 by fastforce
       have "substsNt A [Tm t] lhs = substsNt A [Tm t] p' @ substsNt A [Tm t] ([Nt u]@s')"
@@ -452,7 +452,7 @@ proof -
       hence "substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] v = substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] p @ substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] ([Nt A]@s)"
         by simp
       hence "substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] v = p @ [Nt B\<^sub>1,Nt B\<^sub>2] @ s"
-        using 1 substs_split slemma4_1 slemma4_3_1 by metis
+        using 1 substs_append slemma4_1 slemma4_3_1 by metis
       hence 2: "(u, substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] v) \<in> set (prods g)" 
         using True lrps uv assms(1) slemma4_4Nt by fastforce
       have "substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] lhs = substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] p' @ substsNt A [Nt B\<^sub>1,Nt B\<^sub>2] ([Nt u]@s')"

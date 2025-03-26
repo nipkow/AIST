@@ -8,6 +8,21 @@ abbreviation repl :: "'a list \<Rightarrow> nat \<Rightarrow> 'a list" ("_\<^sup
   where "xs\<^sup>*n \<equiv> concat (replicate n xs)"
 
 lemma not_distinct:
+  assumes "length w > card(set w)"
+    shows "\<exists>xs ys zs y. w = xs @ [y] @ ys @ [y] @ zs"
+  using pigeonhole[of "nth w" "{0..<length w}"] assms
+  apply (auto simp add:nth_image inj_on_def)
+  by (metis append.assoc append_Cons distinct_card not_distinct_conv_prefix order_less_irrefl
+      split_list)
+
+lemma not_distinct:
+  assumes "length w > card(set w)"
+    shows "\<exists>i<length w. \<exists>j < length w. i \<noteq> j \<and> w!i = w!j"
+  using pigeonhole[of "nth w" "{0..<length w}"] assms
+  apply (auto simp add:nth_image inj_on_def)
+  by blast
+
+lemma not_distinct:
   assumes "m = card P"
       and "m \<ge> 1"
       and "\<forall>i < length w. w ! i \<in> P"

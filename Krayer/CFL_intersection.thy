@@ -151,8 +151,7 @@ next
   then show "P \<turnstile> u \<Rightarrow> v" using assms map_inv_syms map_inv_Prods by metis
 qed
 
-(* similar to CFG.relpowp_mono - necessary for map_derives_equiv *)
-thm CFG.relpowp_mono
+(* similar to relpowp_mono - necessary for map_derives_equiv *)
 lemma relpowp_mono_fun: 
   fixes x y :: 'a
   shows "(\<And>x y. R x y \<Longrightarrow> S (f x) (f y)) \<Longrightarrow> (R ^^ n) x y \<Longrightarrow> (S ^^ n) (f x) (f y)"

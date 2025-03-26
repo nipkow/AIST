@@ -1,26 +1,8 @@
 subsection \<open>Pumping lemma for strongly right-linear grammars\<close>
 
 theory Pumping_Lemma_Regular
-imports NDA_rlin2
+imports NDA_rlin2 "$AFP/List_Power/List_Power"
 begin
-
-abbreviation repl :: "'a list \<Rightarrow> nat \<Rightarrow> 'a list" ("_\<^sup>*/_")
-  where "xs\<^sup>*n \<equiv> concat (replicate n xs)"
-
-lemma not_distinct:
-  assumes "length w > card(set w)"
-    shows "\<exists>xs ys zs y. w = xs @ [y] @ ys @ [y] @ zs"
-  using pigeonhole[of "nth w" "{0..<length w}"] assms
-  apply (auto simp add:nth_image inj_on_def)
-  by (metis append.assoc append_Cons distinct_card not_distinct_conv_prefix order_less_irrefl
-      split_list)
-
-lemma not_distinct:
-  assumes "length w > card(set w)"
-    shows "\<exists>i<length w. \<exists>j < length w. i \<noteq> j \<and> w!i = w!j"
-  using pigeonhole[of "nth w" "{0..<length w}"] assms
-  apply (auto simp add:nth_image inj_on_def)
-  by blast
 
 lemma not_distinct:
   assumes "m = card P"
@@ -293,18 +275,18 @@ text
 lemma pump_cycle:
   assumes "B \<in> nxts_rlin2_set P {A} x"
       and "B \<in> nxts_rlin2_set P {B} y"
-    shows "B \<in> nxts_rlin2_set P {A} (x@(y\<^sup>*i))"
+    shows "B \<in> nxts_rlin2_set P {A} (x@(y^^i))"
 using assms proof (induction i)
   case 0
   thus ?case by (simp add: assms(1))
 next
   case (Suc i)
-  have "B \<in> nxts_rlin2_set P {A} (x@(y\<^sup>*i))"
+  have "B \<in> nxts_rlin2_set P {A} (x@(y^^i))"
     using Suc.IH[OF assms] .
-  with assms(2) have "B \<in> nxts_rlin2_set P {A} (x@(y\<^sup>*i)@y)"
-    using nxts_trans2[of B P A "x@(y\<^sup>*i)" B y] by simp
+  with assms(2) have "B \<in> nxts_rlin2_set P {A} (x@(y^^i)@y)"
+    using nxts_trans2[of B P A "x@(y^^i)" B y] by simp
   thus ?case
-    by (metis append.right_neutral concat.simps(1) concat.simps(2) concat_append replicate_Suc replicate_append_same)
+    by (simp add: pow_list_comm)
 qed
 
 text
@@ -317,18 +299,18 @@ lemma pumping_re_aux:
       and "m = card (Nts P)"
       and "accepted P A w"
       and "length w \<ge> m"
-    shows "\<exists>x y z. w = x@y@z \<and> length y \<ge> 1 \<and> length (x@y) \<le> m \<and> (\<forall>i. accepted P A (x@(y\<^sup>*i)@z))"
+    shows "\<exists>x y z. w = x@y@z \<and> length y \<ge> 1 \<and> length (x@y) \<le> m \<and> (\<forall>i. accepted P A (x@(y^^i)@z))"
 proof -
   from assms(4) obtain Z where Z_in:"Z \<in> nxts_rlin2_set P {A} w" and Z_eps:"(Z,[])\<in>P"
     by (auto simp: accepted_def)
   obtain x y z C where *: "w = x@y@z" and **: "length y \<ge> 1" and ***: "length (x@y) \<le> m" and
               1: "C \<in> nxts_rlin2_set P {A} x" and 2: "C \<in> nxts_rlin2_set P {C} y" and 3: "Z \<in> nxts_rlin2_set P {C} z"
     using nxts_split_cycle[OF assms(1) assms(2) assms(3) Z_in assms(5)] by auto
-  have "\<forall>i. C \<in> nxts_rlin2_set P {A} (x@(y\<^sup>*i))"
+  have "\<forall>i. C \<in> nxts_rlin2_set P {A} (x@(y^^i))"
     using pump_cycle[OF 1 2] by simp
-  with 3 have "\<forall>i. Z \<in> nxts_rlin2_set P {A} (x@(y\<^sup>*i)@z)"
+  with 3 have "\<forall>i. Z \<in> nxts_rlin2_set P {A} (x@(y^^i)@z)"
     using nxts_trans2[of C P A] by fastforce
-  with Z_eps have ****: "(\<forall>i. accepted P A (x@(y\<^sup>*i)@z))"
+  with Z_eps have ****: "(\<forall>i. accepted P A (x@(y^^i)@z))"
     by (auto simp: accepted_def)
   from * ** *** **** show ?thesis by auto
 qed
@@ -338,14 +320,13 @@ theorem pumping_lemma_re_nts:
       and "finite P"
       and "A \<in> Nts P"
   shows "\<exists>n. \<forall>w \<in> Lang P A. length w \<ge> n \<longrightarrow>
-          (\<exists>x y z. w = x@y@z \<and> length y \<ge> 1 \<and> length (x@y) \<le> n \<and> (\<forall>i. x@(y\<^sup>*i)@z \<in> Lang P A))" 
+          (\<exists>x y z. w = x@y@z \<and> length y \<ge> 1 \<and> length (x@y) \<le> n \<and> (\<forall>i. x@(y^^i)@z \<in> Lang P A))" 
   using assms pumping_re_aux[of P A "card (Nts P)"] Lang_iff_accepted_if_rlin2[OF assms(1)] by metis
 
 theorem pumping_lemma_regular:
-  assumes "rlin2 P"
-      and "finite P"
+  assumes "rlin2 P" and "finite P"
   shows "\<exists>n. \<forall>w \<in> Lang P A. length w \<ge> n \<longrightarrow>
-          (\<exists>x y z. w = x@y@z \<and> length y \<ge> 1 \<and> length (x@y) \<le> n \<and> (\<forall>i. x@(y\<^sup>*i)@z \<in> Lang P A))" 
+          (\<exists>x y z. w = x@y@z \<and> length y \<ge> 1 \<and> length (x@y) \<le> n \<and> (\<forall>i. x@(y^^i)@z \<in> Lang P A))" 
 proof (cases "A \<in> Nts P")
   case True
   thus ?thesis
@@ -362,7 +343,7 @@ to prove that no right-linear set of productions exists.\<close>
 
 corollary pumping_lemma_regular_contr:
   assumes "finite P"
-      and "\<forall>n. \<exists>w \<in> Lang P A. length w \<ge> n \<and> (\<forall>x y z. w = x@y@z \<and> length y \<ge> 1 \<and> length (x@y) \<le> n \<longrightarrow> (\<exists>i. x@(y\<^sup>*i)@z \<notin> Lang P A))" 
+      and "\<forall>n. \<exists>w \<in> Lang P A. length w \<ge> n \<and> (\<forall>x y z. w = x@y@z \<and> length y \<ge> 1 \<and> length (x@y) \<le> n \<longrightarrow> (\<exists>i. x@(y^^i)@z \<notin> Lang P A))" 
     shows "\<not>rlin2 P"
 using assms pumping_lemma_regular[of P A] by metis
 

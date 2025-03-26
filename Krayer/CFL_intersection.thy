@@ -1,5 +1,5 @@
 theory CFL_intersection
-  imports  "../CFL" "../Stimpfle/CNF" HOL.Fun
+  imports  "../CFL" "../Stimpfle/CNF"
 begin
 
 abbreviation repl :: "'a list \<Rightarrow> nat \<Rightarrow> 'a list" ("_\<^sup>*/_")

@@ -292,23 +292,22 @@ next
 qed
 
 lemma inner_pumping: 
-  assumes "CNF (set ps)"
-    and "m = card (nts ps)"
-    and "z \<in> lang ps S"
+  assumes "CNF P" "finite P"
+    and "m = card (Nts P)"
+    and "z \<in> Lang P S"
     and "length z \<ge> 2^(m+1)"
-  shows "\<exists>u v w x y . z = u@v@w@x@y \<and> length (v@w@x) \<le> 2^(m+1) \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v^^i)@w@(x^^i)@y \<in> lang ps S)"
+  shows "\<exists>u v w x y . z = u@v@w@x@y \<and> length (v@w@x) \<le> 2^(m+1) \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v^^i)@w@(x^^i)@y \<in> Lang P S)"
 proof -
-  let ?P = "set ps"
-  obtain p' where p': "?P \<turnstile> S \<Rightarrow>\<langle>p'\<rangle> z"
-    using assms Lang_def[of ?P S] path_if_derives[of ?P S] by blast
-  then obtain lp where lp: "?P \<turnstile> S \<Rightarrow>\<llangle>lp\<rrangle> z"
-    using path_lpath[of ?P] by blast
-  hence 1: "set lp \<subseteq> Nts ?P"
-    using lpath_path[of ?P] path_nts[of ?P] by blast
+  obtain p' where p': "P \<turnstile> S \<Rightarrow>\<langle>p'\<rangle> z"
+    using assms Lang_def[of P S] path_if_derives[of P S] by blast
+  then obtain lp where lp: "P \<turnstile> S \<Rightarrow>\<llangle>lp\<rrangle> z"
+    using path_lpath[of P] by blast
+  hence 1: "set lp \<subseteq> Nts P"
+    using lpath_path[of P] path_nts[of P] by blast
   have "length lp > m"
   proof -
     have "(2^(m+1)::nat) \<le> 2^length lp"
-      using lp lpath_length[of ?P S lp z] assms(4) le_trans by blast
+      using lp lpath_length[of P S lp z] assms(5) le_trans by blast
     hence "m+1 \<le> length lp" 
       using power_le_imp_le_exp[of 2 \<open>m+1\<close> \<open>length lp\<close>] by auto
     thus ?thesis
@@ -316,46 +315,46 @@ proof -
   qed
   then obtain l p where p: "lp = l@p \<and> length p = m+1"
     using less_Suc_eq by (induction lp) fastforce+
-  hence "set l \<subseteq> Nts ?P \<and> set p \<subseteq> Nts ?P \<and> finite (Nts ?P)"
-    using 1 finite_nts[of ps] assms(1) by auto
+  hence "set l \<subseteq> Nts P \<and> set p \<subseteq> Nts P \<and> finite (Nts P)"
+    using \<open>finite P\<close> 1 finite_Nts[of P] assms(1) by auto
   hence "card (set p) < length p"
-    using p assms(2) card_mono[of \<open>Nts ?P\<close> \<open>set p\<close>] by simp
+    using p assms(3) card_mono[of \<open>Nts P\<close> \<open>set p\<close>] by simp
   then obtain A p1 p2 p3 where "p = p1@[A]@p2@[A]@p3"
     by (metis distinct_card nat_neq_iff not_distinct_decomp)
-  then obtain u vwx y where uy: "((?P \<turnstile> A \<Rightarrow>\<llangle>[A]@p2@[A]@p3\<rrangle> vwx) \<and> z = u@vwx@y \<and>
-        (\<forall>w' p'. ((?P \<turnstile> A \<Rightarrow>\<langle>[A]@p'\<rangle> w') \<longrightarrow> ?P \<turnstile> S \<Rightarrow>\<langle>l@p1@[A]@p'\<rangle> u@w'@y)))"
-    using substitution_lp[of ?P S \<open>l@p1\<close> A \<open>p2@[A]@p3\<close> z] lp p by auto
+  then obtain u vwx y where uy: "((P \<turnstile> A \<Rightarrow>\<llangle>[A]@p2@[A]@p3\<rrangle> vwx) \<and> z = u@vwx@y \<and>
+        (\<forall>w' p'. ((P \<turnstile> A \<Rightarrow>\<langle>[A]@p'\<rangle> w') \<longrightarrow> P \<turnstile> S \<Rightarrow>\<langle>l@p1@[A]@p'\<rangle> u@w'@y)))"
+    using substitution_lp[of P S \<open>l@p1\<close> A \<open>p2@[A]@p3\<close> z] lp p by auto
   hence "length vwx \<le> 2^(m+1)"
-    using \<open>p = _\<close> p lpath_length[of ?P A \<open>[A] @ p2 @ [A] @ p3\<close> vwx] order_subst1 by fastforce
-  then obtain v w x where vwx: "(?P \<turnstile> A \<Rightarrow>\<langle>[A]@p3\<rangle> w) \<and> vwx = v@w@x \<and>
-        (\<forall>w' p'. ((?P \<turnstile> A \<Rightarrow>\<langle>[A]@p'\<rangle> w') \<longrightarrow> ?P \<turnstile> A \<Rightarrow>\<langle>[A]@p2@[A]@p'\<rangle> v@w'@x)) \<and>
+    using \<open>p = _\<close> p lpath_length[of P A \<open>[A] @ p2 @ [A] @ p3\<close> vwx] order_subst1 by fastforce
+  then obtain v w x where vwx: "(P \<turnstile> A \<Rightarrow>\<langle>[A]@p3\<rangle> w) \<and> vwx = v@w@x \<and>
+        (\<forall>w' p'. ((P \<turnstile> A \<Rightarrow>\<langle>[A]@p'\<rangle> w') \<longrightarrow> P \<turnstile> A \<Rightarrow>\<langle>[A]@p2@[A]@p'\<rangle> v@w'@x)) \<and>
         (length ([A]@p2) > 0 \<longrightarrow> length (v@x) > 0)"
-    using substitution[of ?P A \<open>[A]@p2\<close> A p3 vwx] uy lpath_path[of ?P A] by auto
-  have "\<forall>i. ?P \<turnstile> S \<Rightarrow>\<langle>l@p1@ (([A]@p2)^^i) @[A]@p3\<rangle> u@(v^^i)@w@(x^^i)@y"
+    using substitution[of P A \<open>[A]@p2\<close> A p3 vwx] uy lpath_path[of P A] by auto
+  have "\<forall>i. P \<turnstile> S \<Rightarrow>\<langle>l@p1@ (([A]@p2)^^i) @[A]@p3\<rangle> u@(v^^i)@w@(x^^i)@y"
   proof 
     fix i
-    have "\<forall>i. ?P \<turnstile> A \<Rightarrow>\<langle>([A]@p2)^^(Suc i) @ [A]@p3\<rangle> v^^(Suc i) @ w @ x^^(Suc i)"
-      using vwx inner_aux[of ?P A] by blast
-    hence "\<forall>i. ?P \<turnstile> S \<Rightarrow>\<langle>l@p1@(([A]@p2)^^(Suc i)) @[A]@p3\<rangle> u@ (v^^(Suc i)) @ w @ (x^^(Suc i)) @y"
+    have "\<forall>i. P \<turnstile> A \<Rightarrow>\<langle>([A]@p2)^^(Suc i) @ [A]@p3\<rangle> v^^(Suc i) @ w @ x^^(Suc i)"
+      using vwx inner_aux[of P A] by blast
+    hence "\<forall>i. P \<turnstile> S \<Rightarrow>\<langle>l@p1@(([A]@p2)^^(Suc i)) @[A]@p3\<rangle> u@ (v^^(Suc i)) @ w @ (x^^(Suc i)) @y"
       using uy by fastforce
-    moreover have "?P \<turnstile> S \<Rightarrow>\<langle>l@p1@(([A]@p2)^^0) @[A]@p3\<rangle> u@ (v^^0) @ w @ (x^^0) @y"
+    moreover have "P \<turnstile> S \<Rightarrow>\<langle>l@p1@(([A]@p2)^^0) @[A]@p3\<rangle> u@ (v^^0) @ w @ (x^^0) @y"
       using vwx uy by auto
-    ultimately show "?P \<turnstile> S \<Rightarrow>\<langle>l@p1@ (([A]@p2)^^i) @[A]@p3\<rangle> u@(v^^i)@w@(x^^i)@y"
+    ultimately show "P \<turnstile> S \<Rightarrow>\<langle>l@p1@ (([A]@p2)^^i) @[A]@p3\<rangle> u@(v^^i)@w@(x^^i)@y"
       by (induction i) simp_all
   qed
-  hence "\<forall>i. u@(v^^i)@w@(x^^i)@y \<in> lang ps S"
-    unfolding Lang_def using assms(1) assms(2) derives_if_path[of ?P S] by blast
-  hence "z = u@v@w@x@y \<and> length (v@w@x) \<le> 2^(m+1) \<and> 1 \<le> length (v@x) \<and> (\<forall> i. u@(v^^i)@w@(x^^i)@ y \<in> lang ps S)"
+  hence "\<forall>i. u@(v^^i)@w@(x^^i)@y \<in> Lang P S"
+    unfolding Lang_def using assms(1) assms(2) derives_if_path[of P S] by blast
+  hence "z = u@v@w@x@y \<and> length (v@w@x) \<le> 2^(m+1) \<and> 1 \<le> length (v@x) \<and> (\<forall> i. u@(v^^i)@w@(x^^i)@ y \<in> Lang P S)"
     using vwx uy \<open>length vwx \<le> 2 ^ (m + 1)\<close> by (simp add: Suc_leI)
   then show ?thesis
     by blast
 qed
 
 theorem pumping_lemma:
-  assumes "CNF(set ps)"
-  shows "\<exists>n. \<forall>z \<in> lang ps S. length z \<ge> n \<longrightarrow>
-     (\<exists>u v w x y. z = u@v@w@x@y \<and> length (v@w@x) \<le> n \<and> length (v@x) \<ge> 1
-        \<and> (\<forall>i. u@(v^^i)@w@(x^^i)@y \<in> lang ps S))"
-  using inner_pumping[OF assms, of \<open>card (nts ps)\<close>] by blast
+  assumes "CNF P" "finite P"
+  shows "\<exists>n. \<forall>z \<in> Lang P S. length z \<ge> n \<longrightarrow>
+     (\<exists>u v w x y. z = u @ v @ w @ x @ y \<and> length (v@w@x) \<le> n \<and> length (v@x) \<ge> 1
+        \<and> (\<forall>i. u @ v^^i @ w @ x^^i @ y \<in> Lang P S))"
+  using inner_pumping[OF assms, of \<open>card (Nts P)\<close>] by blast
 
 end

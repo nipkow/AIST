@@ -1,3 +1,5 @@
+(* Authors: Kaan Taskin *)
+
 subsection \<open>Pumping lemma for strongly right-linear grammars\<close>
 
 theory Pumping_Lemma_Regular

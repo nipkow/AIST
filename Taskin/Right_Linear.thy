@@ -1,3 +1,5 @@
+(* Author: Kaan Taskin *)
+
 theory Right_Linear
 imports "../Stimpfle/uProds" Binarize
 begin

@@ -1037,9 +1037,10 @@ next
 qed
 
 (* Main Theorem: existence of cnf for all cfg with the same Language except for the empty word [] *)
-theorem cnf_exists: "\<forall>g::('n::infinite,'t) cfg. \<exists>g'::('n,'t) cfg. (cnf g') \<and> (langS g' = langS g - {[]})"
-proof
-  fix g::"('n,'t)cfg"
+theorem cnf_exists:
+  fixes g :: "('n::infinite,'t) cfg"
+  shows "\<exists>g'::('n,'t) cfg. (cnf g') \<and> (langS g' = langS g - {[]})"
+proof -
   obtain ps\<^sub>0 where ps\<^sub>0: "\<N> (prods g) ps\<^sub>0"
     using \<N>_exists by blast
   obtain ps\<^sub>u where ps\<^sub>u: "\<U> ps\<^sub>0 ps\<^sub>u"
@@ -1056,7 +1057,7 @@ proof
     using g' CNF_eq by blast
   moreover have "langS g' = langS g - {[]}"
     using 2 g' by blast
-  ultimately show "\<exists>g'::('n,'t) cfg. (cnf g') \<and> (langS g' = langS g - {[]})" by blast
+  ultimately show ?thesis by blast
 qed
 
 

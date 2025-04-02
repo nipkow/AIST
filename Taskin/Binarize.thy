@@ -1,3 +1,5 @@
+(* Authors: Kaan Taskin *)
+
 theory Binarize
 imports "../CFG" Inlining1Prod
 begin

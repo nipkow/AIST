@@ -1,3 +1,5 @@
+(* Author: August Martin Stimpfle *)
+
 theory eProds
   imports "../CFG"
 begin

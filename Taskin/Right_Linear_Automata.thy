@@ -1,3 +1,5 @@
+(* Authors: Kaan Taskin, Tobias Nipkow *)
+
 subsection \<open>Relating Strongly Right-Linear Grammars and Automata\<close>
 
 theory Right_Linear_Automata

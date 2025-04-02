@@ -1,3 +1,5 @@
+(* Authors: Kaan Taskin, Tobias Nipkow *)
+
 theory Inlining1Prod
 imports "../CFG"
 begin

@@ -74,6 +74,9 @@ definition Lhss :: "('n, 't) Prods \<Rightarrow> 'n set" where
 abbreviation lhss :: "('n, 't) prods \<Rightarrow> 'n set" where
 "lhss ps \<equiv> Lhss(set ps)"
 
+definition Rhs_Nts :: "('n, 't) Prods \<Rightarrow> 'n set" where
+"Rhs_Nts P = (\<Union>(_,w)\<in>P. nts_syms w)"
+
 definition Rhss :: "('n \<times> 'a) set \<Rightarrow> 'n \<Rightarrow> 'a set" where
 "Rhss P A = {w. (A,w) \<in> P}"
 
@@ -105,6 +108,12 @@ unfolding nts_syms_def by auto
 
 lemma in_Nts_iff_in_Syms: "B \<in> Nts P \<longleftrightarrow> Nt B \<in> Syms P"
 unfolding Nts_def Syms_def nts_syms_def by (auto)
+
+lemma Nts_Un: "Nts (P1 \<union> P2) = Nts P1 \<union> Nts P2"
+by (simp add: Nts_def)
+
+lemma Nts_Lhss_Rhs_Nts: "Nts P = Lhss P \<union> Rhs_Nts P"
+unfolding Nts_def Lhss_def Rhs_Nts_def by auto
 
 lemma Syms_simps[simp]:
   "Syms {} = {}"
@@ -174,6 +183,9 @@ definition Lang :: "('n,'t)Prods \<Rightarrow> 'n \<Rightarrow> 't list set" whe
 abbreviation lang :: "('n,'t)prods \<Rightarrow> 'n \<Rightarrow> 't list set" where
 "lang ps A \<equiv> Lang (set ps) A"
 
+abbreviation LangS :: "('n,'t) Cfg \<Rightarrow> 't list set" where
+"LangS G \<equiv> Lang (Prods G) (Start G)"
+
 abbreviation langS :: "('n,'t) cfg \<Rightarrow> 't list set" where
 "langS g \<equiv> lang (prods g) (start g)"
 
@@ -208,6 +220,16 @@ qed
 lemma derives_Cons_rule:
   assumes 1: "(A,w) \<in> R" and 2: "R \<turnstile> w @ u \<Rightarrow>* v" shows "R \<turnstile> Nt A # u \<Rightarrow>* v"
   using derives_rule[OF 1, of "Nt A # u" "[]" u v] 2 by auto
+
+lemma deriven_mono: "P \<subseteq> P' \<Longrightarrow> P \<turnstile> u \<Rightarrow>(n) v \<Longrightarrow> P' \<turnstile> u \<Rightarrow>(n) v"
+by (metis Un_derive relpowp_mono subset_Un_eq)
+
+lemma derives_mono: "P \<subseteq> P' \<Longrightarrow> P \<turnstile> u \<Rightarrow>* v \<Longrightarrow> P' \<turnstile> u \<Rightarrow>* v"
+by (meson deriven_mono rtranclp_power)
+
+lemma Lang_mono: "P \<subseteq> P' \<Longrightarrow> Lang P A \<subseteq> Lang P' A"
+by (auto simp: Lang_def derives_mono)
+
 
 subsubsection "Customized Induction Principles"
 

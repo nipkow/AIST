@@ -1,3 +1,5 @@
+(* Author: August Martin Stimpfle *)
+
 theory uProds
   imports "../CFG"
 begin

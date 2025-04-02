@@ -5,7 +5,7 @@ subsection \<open>Relating Strongly Right-Linear Grammars and Automata\<close>
 theory Right_Linear_Automata
 imports
   NDA_rlin2
-  "$AFP/Finite_Automata_HF/Finite_Automata_HF"
+  "Finite_Automata_HF.Finite_Automata_HF"
   HereditarilyFinite.Finitary
 begin
 

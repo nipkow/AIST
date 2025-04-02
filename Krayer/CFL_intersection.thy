@@ -4,7 +4,7 @@ section "CFL Not Closed Under Intersection"
 
 theory CFL_intersection
 imports
-  "$AFP/List_Power/List_Power"
+  "List_Power.List_Power"
   "../CFL"
   "../Stimpfle/CNF"
   "../AFP/CFG_Renaming"

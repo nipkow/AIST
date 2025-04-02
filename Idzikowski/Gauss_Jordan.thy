@@ -1,5 +1,5 @@
 theory Gauss_Jordan
-imports "$AFP/Regular-Sets/Regular_Exp"
+imports "Regular-Sets.Regular_Exp"
 
 begin
 

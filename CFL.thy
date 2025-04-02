@@ -4,7 +4,7 @@ section "Context-Free Languages"
 
 theory CFL
 imports
-  "$AFP/Regular-Sets/Regular_Set"
+  "Regular-Sets.Regular_Set"
   CFG
   "AFP/CFG_Renaming"
   "AFP/CFG_Disjoint_Union"

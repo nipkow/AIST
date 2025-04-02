@@ -3,7 +3,7 @@
 subsection \<open>Pumping lemma for strongly right-linear grammars\<close>
 
 theory Pumping_Lemma_Regular
-imports NDA_rlin2 "$AFP/List_Power/List_Power"
+imports NDA_rlin2 "List_Power.List_Power"
 begin
 
 lemma not_distinct:

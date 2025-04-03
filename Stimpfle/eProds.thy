@@ -1,4 +1,7 @@
-(* Author: August Martin Stimpfle *)
+(*
+Author: August Martin Stimpfle
+Based on HOL4 theories by Aditi Barthwal
+*)
 
 theory eProds
   imports "../CFG"

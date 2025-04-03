@@ -416,7 +416,10 @@ next
   thus ?thesis using *(2) Suc by auto
 qed
 
-lemma Lang_empty_if_notin_Lhss: "A \<notin> Lhss P \<Longrightarrow> Lang P A = {}" 
+lemma derives_start1: "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w  \<Longrightarrow>  \<exists>\<alpha>. P \<turnstile> \<alpha> \<Rightarrow>* map Tm w \<and> (A,\<alpha>) \<in> P"
+using deriven_start1 by (metis rtranclp_power)
+
+lemma Lang_empty_if_notin_Lhss: "A \<notin> Lhss P \<Longrightarrow> Lang P A = {}"
 unfolding Lhss_def Lang_def
 by auto (metis case_prod_conv deriven_start1 insertI1 rtranclp_power)
 
@@ -967,6 +970,9 @@ by (induction xs) auto
 
 lemma substs_skip: "y \<notin> set xs \<Longrightarrow> substs y ys xs = xs"
 by (induction xs) auto
+
+lemma susbstsNT_map_Tm[simp]: "substsNt A \<alpha> (map Tm w) = map Tm w"
+by(rule substs_skip) auto
 
 lemma substs_len: "length (substs y [y'] xs) = length xs"
 by (induction xs) auto

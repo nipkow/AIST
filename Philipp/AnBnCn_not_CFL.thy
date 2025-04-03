@@ -5,8 +5,9 @@ Author:     Tobias Nipkow
 
 section \<open>\<open>a^n b^n c^n\<close> is not context-free\<close>
 
-theory AnBnCn
-imports "../Stimpfle/Pumping_Lemma_CFG" "HOL-Library.Sublist"
+theory AnBnCn_not_CFL
+imports
+  "../Stimpfle/Pumping_Lemma_CFG"
 begin                           
 
 text \<open>This theory proves that the language @{term "\<Union>n. {[a]^^n @ [b]^^n @ [c]^^n}"}
@@ -18,26 +19,12 @@ leaving out a lot of case analysis.
 This is achieved through defining the language via the amount of different letters
 instead of the concrete structure of the word and a smart way of proving that the subword contains either \<open>a\<close> or \<open>c\<close> \<close>
 
-subsection "Preliminaries"
-
 declare count_list_pow_list[simp]
-
-lemma in_set_one_not0:
-  assumes "v\<noteq>[]" "sublist v x"
-  shows "\<exists>a \<in> set x. count_list v a \<noteq> 0"
-proof -
-  have "set v \<subseteq> set x" 
-    by (simp add: assms(2) set_mono_sublist)
-  then show ?thesis using assms(1) apply simp
-    by (meson count_list_0_iff gr_zeroI in_mono length_greater_0_conv nth_mem)
-qed
 
 context
   fixes a b c
   assumes neq: "a\<noteq>b" "b\<noteq>c" "c\<noteq>a"
 begin
-
-subsection "count and words"
 
 lemma  c_greater_count0:
   assumes "x@y = [a]^^n @ [b]^^n @ [c]^^n" "length y\<ge>n"
@@ -91,7 +78,7 @@ proof -
 qed
 
 lemma a_or_b_zero:
-  assumes "u@w@y = [a]^^n @ [b]^^n @ [c]^^n" "length w \<le> n"
+  assumes "u@w@y = [a]^^n @ [b]^^n @ [c]^^n" "length w \<le> n" (* neq not used *)
   shows "count_list w a = 0 \<or> count_list w c = 0"
   text \<open>This lemma uses @{term "count_list w a = 0 \<or> count_list w c = 0"} similar to all following proofs, focusing on the number of \<open>a\<close> and \<open>c\<close> found in \<open>w\<close> rather than the concrete structure.
         It is also the merge of the two previous lemmas to make the final proof shorter\<close>
@@ -120,19 +107,15 @@ proof-
 qed
 
 lemma count_vx_not_zero:
-  assumes "u@v@w@x@y = [a]^^n @ [b]^^n @ [c]^^n" "v@x \<noteq> []" (* neq not needed *)
+  assumes "u@v@w@x@y = [a]^^n @ [b]^^n @ [c]^^n" "v@x \<noteq> []"
   shows "count_list (v@x) a \<noteq> 0 \<or> count_list (v@x) b \<noteq> 0 \<or> count_list (v@x) c \<noteq> 0"
 proof -
-  have sublist_v: "sublist v ([a]^^n @ [b]^^n @ [c]^^n)" using assms 
-    by (metis sublist_appendI)
-  have sublist_x: "sublist x ([a]^^n @ [b]^^n @ [c]^^n)" using assms 
-    by (metis append.assoc sublist_appendI)
   have set: "set ([a]^^n @ [b]^^n @ [c]^^n) = {a,b,c}" using assms pow_list_single_Nil_iff
     by (fastforce simp add: pow_list_single)
   show ?thesis proof (cases  "v\<noteq>[]")
     case True
-    then  have "\<exists>d\<in>set([a]^^n @ [b]^^n @ [c]^^n). count_list v d \<noteq> 0"
-      using set in_set_one_not0 sublist_v by blast
+    then have "\<exists>d\<in>set([a]^^n @ [b]^^n @ [c]^^n). count_list v d \<noteq> 0"
+      using assms(1) by(auto simp: neq_Nil_conv) (metis in_set_conv_decomp set_append)
     then have "count_list v a \<noteq> 0 \<or> count_list v b \<noteq> 0 \<or> count_list v c \<noteq>0"
       using set by simp
     then show ?thesis 
@@ -142,7 +125,7 @@ proof -
     then have "x\<noteq>[]" using assms 
       by fast
     then  have "\<exists>d\<in>set ([a]^^n @ [b]^^n @ [c]^^n). count_list x d \<noteq> 0"
-       using set in_set_one_not0 sublist_x by blast
+      using assms(1) by(auto simp: neq_Nil_conv) (metis Un_iff in_set_conv_decomp set_append) 
      then have "count_list x a \<noteq> 0 \<or> count_list x b \<noteq> 0 \<or> count_list x c \<noteq> 0"
        using set by simp
     then show ?thesis 
@@ -150,9 +133,7 @@ proof -
    qed
 qed
 
-subsection "Language definition via count"
-
-lemma  not_ex_y_count:
+lemma not_ex_y_count:
   assumes "i\<noteq>k \<or> k\<noteq>j \<or> i\<noteq>j" "count_list w a = i" "count_list w b = k" "count_list w c = j"
   shows "\<not>(EX y. w = [a]^^y @ [b]^^y @ [c]^^y)"
  proof 
@@ -184,7 +165,10 @@ lemma not_in_count:
 
 subsection "a^n b^n c^n is not context-free"
 
-lemma  pumping_application:
+text \<open>This is the central and only case analysis, which follows the textbook proofs.
+The Coq proof by Ramos is considerably more involved and ends up with a total of 24 cases\<close>
+
+lemma pumping_application:
   assumes "u@v@w@x@y = [a]^^n @ [b]^^n @ [c]^^n" "count_list (v@w@x) a = 0 \<or> count_list (v@w@x) c = 0" "v@x\<noteq>[]"
   shows "u@w@y \<notin> (\<Union>n. {[a]^^n @ [b]^^n @ [c]^^n})"
   text \<open>In this lemma it is proven that a word @{term "u @ v^^0 @ w @ x^^0 @ y"}
@@ -201,11 +185,6 @@ proof-
     using count_vx_not_zero[of u v w x y n] assms(1,3) by simp  
   consider "count_list (v@w@x) a=0" | "count_list (v@w@x) c=0"
     using assms by argo
-    text \<open>in comparison to the proof in coq this is the only case analysis we are performing for the final proof.
-         in the coq proof this split is done like @{term "sublist (v@w@x) (([a]^^n)@([b]^^n))\<or>sublist (v@w@x) (([b]^^n)@([c]^^n))"}. 
-         the two definitions split the same, but it is easier to argue with our defintion, and it was also easier to proof @{thm count_vx_not_zero} than something similar with sublist 
-         the coq proof then uses another case analysis before ending up on their third level of case analysis now looking at the amount 
-         of each letter in \<open>v\<close> and \<open>x\<close> seperatley ending up with a total of 24 cases\<close>
   then show ?thesis proof (cases)
     case 1
     then have  vx_b_or_c_not0: "(count_list (v@x) b\<noteq>0) \<or> (count_list (v@x) c \<noteq> 0)" using count_non_zero
@@ -237,12 +216,12 @@ proof-
   qed
 qed
 
-theorem anbncn_not_cnf:
-  assumes "CNF P" "finite P"
+theorem anbncn_not_cfl:
+  assumes "finite (P :: ('n::infinite,'a)Prods)"
   shows "Lang P S \<noteq> (\<Union>n. {[a]^^n @ [b]^^n @ [c]^^n})" (is "\<not> ?E")
 proof
   assume "?E"
-  from pumping_lemma[OF \<open>CNF P\<close> \<open>finite P\<close>, of S] obtain n where
+  from Pumping_Lemma[OF \<open>finite P\<close>, of S] obtain n where
     pump: "\<forall>word \<in> Lang P S. length word \<ge> n \<longrightarrow>
      (\<exists>u v w x y. word = u@v@w@x@y \<and> length (v@w@x) \<le> n \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v^^i)@w@(x^^i)@y \<in> Lang P S))" 
     by blast
@@ -254,8 +233,6 @@ proof
   then obtain u v w x y where uvwxy: "?word = u@v@w@x@y \<and> length (v@w@x) \<le> n \<and> length (v@x) \<ge> 1 \<and> (\<forall>i. u@(v^^i)@w@(x^^i)@y \<in> Lang P S)"
     using pump wInLg by metis
   let ?vwx= "v@w@x"
-  have "sublist ?vwx ?word"  
-    by (metis append.assoc sublist_appendI uvwxy)
   have "(count_list ?vwx  a=0 ) \<or> (count_list ?vwx c=0)" using  uvwxy a_or_b_zero assms 
     by (metis (no_types, lifting) append.assoc)
   text \<open>This theorem follows the texbook proof closely, we are choosing the \<open>?word\<close>  based on the pumping lemma number \<open>n\<close> 

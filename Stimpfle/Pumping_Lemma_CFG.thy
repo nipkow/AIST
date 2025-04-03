@@ -350,11 +350,31 @@ proof -
     by blast
 qed
 
-theorem pumping_lemma:
+abbreviation "pumping_property L n \<equiv> \<forall>z \<in> L. length z \<ge> n \<longrightarrow>
+  (\<exists>u v w x y. z = u @ v @ w @ x @ y \<and> length (v@w@x) \<le> n \<and> length (v@x) \<ge> 1
+        \<and> (\<forall>i. u @ v^^i @ w @ x^^i @ y \<in> L))"
+
+theorem Pumping_Lemma_CNF:
   assumes "CNF P" "finite P"
-  shows "\<exists>n. \<forall>z \<in> Lang P S. length z \<ge> n \<longrightarrow>
-     (\<exists>u v w x y. z = u @ v @ w @ x @ y \<and> length (v@w@x) \<le> n \<and> length (v@x) \<ge> 1
-        \<and> (\<forall>i. u @ v^^i @ w @ x^^i @ y \<in> Lang P S))"
-  using inner_pumping[OF assms, of \<open>card (Nts P)\<close>] by blast
+  shows "\<exists>n. pumping_property (Lang P S) n"
+using inner_pumping[OF assms, of \<open>card (Nts P)\<close>] by blast
+
+theorem Pumping_Lemma:
+  assumes "finite (P :: ('n::infinite,'t)Prods)"
+  shows "\<exists>n. pumping_property (Lang P S) n"
+proof -
+  obtain ps where "set ps = P" using finite_list[OF assms] by blast
+  obtain ps' :: "('n,'t)prods" where ps': "CNF(set ps')" "lang ps' S= lang ps S - {[]}"
+    using cnf_exists[of S ps] by auto
+  let ?P' = "set ps'"
+  have P': "CNF ?P'" "finite ?P'" using ps'(1) by auto
+  from Pumping_Lemma_CNF[OF P', of S] obtain n where
+    pump: "pumping_property (Lang ?P' S) n" by blast
+  then have "pumping_property (Lang ?P' S) (Suc n)"
+    by (metis Suc_leD nle_le)
+  then have "pumping_property (Lang P S) (Suc n)"
+    using ps'(2) \<open>set ps = P\<close> by (metis Diff_iff list.size(3) not_less_eq_eq singletonD zero_le)
+  then show ?thesis by blast
+qed
 
 end

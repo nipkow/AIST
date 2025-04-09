@@ -210,17 +210,27 @@ by (auto simp add: inst_def le_fun_def subset_iff split: sym.splits)
 lemma foldr_conc_map_inst:
   assumes "omega_chain L"
   shows "foldr (@@) (map (\<lambda>s. \<Union>i. inst (L i) s) xs) Ls = (\<Union>i. foldr (@@) (map (inst (L i)) xs) Ls)"
-apply(induction xs)
- apply(auto elim!: concE)
-  apply(rule_tac x = "max xa xb" in exI)
-  apply(cut_tac i=xa and j="max xa xb" in omega_chain_mono[OF assms])
-  apply simp
-  apply(cut_tac i=xb and j="max xa xb" in omega_chain_mono[OF assms])
-   apply simp
-  apply(rule concI)
-  using inst_mono apply blast
-  using foldr_map_mono inst_mono
-  by (metis (no_types, opaque_lifting) le_funI subsetD)
+proof(induction xs)
+  case Nil
+  then show ?case by simp 
+next
+  case (Cons a xs)
+  show ?case (is "?l = ?r")
+  proof
+    show "?l \<subseteq> ?r"
+    proof
+      fix w assume "w \<in> ?l"
+      with Cons obtain u v i j
+        where "w = u @ v" "u \<in> inst (L i) a" "v \<in> foldr (@@) (map (inst (L j)) xs) Ls" by(auto)
+      then show "w \<in> ?r"
+        using omega_chain_mono[OF assms, of i "max i j"] omega_chain_mono[OF assms, of j "max i j"]
+          inst_mono foldr_map_mono[of "inst (L j)" "inst (L (max i j))" xs Ls] concI
+        unfolding le_fun_def by(simp) blast
+    qed
+  next
+    show "?r \<subseteq> ?l" using Cons by(fastforce)
+  qed
+qed
 
 lemma omega_cont_CFL_Lang: "omega_cont (subst_lang P)"
 proof (clarsimp simp add: omega_cont_def subst_lang_def)

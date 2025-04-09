@@ -3,6 +3,16 @@ imports "Regular-Sets.Regular_Exp"
 
 begin
 
+text \<open>Solver for a system of linear equations \<open>xi = a0 * x0 + ... + an*xn + b\<close>
+where \<open>+, * :: 'a \<Rightarrow> 'a \<Rightarrow> 'a\<close> are parameters.
+The system is represented in matrix form: \<open>X = A*X + B\<close> where the matrix is of type \<open>'a list list\<close>
+and we work with only a single matrix \<open>A\<close> augmented with the vector \<open>B\<close>.
+In each step, the solver eliminates one variable. This step must be supplied as a parameter
+\<open>solve1\<close> that solves \<open>x = a * x + rest\<close> for \<open>x\<close>. Here, \<open>rest\<close> is of the form \<open>ak*xk + ... + an*xn+b\<close>
+and given as the list \<open>[ak,...,an,b]\<close>.
+The solution is returned in fully substituted, not triangular form.
+The order of the variables/equations is reversed.\<close>
+
 definition "mx m n xss = (length xss = m \<and> (\<forall>xs \<in> set xss. length xs = n))"
 
 locale Gauss =

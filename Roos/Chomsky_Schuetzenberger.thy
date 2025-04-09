@@ -3008,6 +3008,126 @@ lemma CNF_existence :
 section\<open>The Theorem\<close>
 
 
+declare [[show_types]]
+
+text\<open>The chomsky-scheutzenberger theorem that we want to prove.\<close>
+lemma chomsky_schuetzenberger_constr:
+  fixes L::\<open>'t list set\<close> and  P :: \<open>('n, 't) Prods\<close> and S::"'n"
+  assumes \<open>L = Lang P S\<close> and P_CNF: \<open>(\<forall>p \<in> P. CNF_rule p)\<close> and \<open>finite P\<close>
+  shows \<open>regular ((brackets P) \<inter> Re S) \<and> L = image the_hom( ( (brackets P) \<inter> Re S) \<inter> (dyck_language(P \<times> {One, Two}) ) ) \<and> hom (the_hom:: (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list
+   \<Rightarrow> 't list)\<close>
+proof -
+  (* have \<open>\<exists>P S::'n. L = Lang P S \<and> (\<forall>p \<in> P. CNF_rule p)\<close> using \<open>cfl TYPE('n) L\<close> CNF_existence by auto
+  then obtain P and S::'n where \<open>L = Lang P S\<close> and P_CNF: \<open>(\<forall>p \<in> P. CNF_rule p)\<close> by blast *)
+
+  define \<Gamma> where \<open>\<Gamma> = P \<times> {One, Two}\<close>
+  define P' where \<open>P' = image transform_production P\<close>
+  define L' where \<open>L' = Lang P' S\<close>
+  define h where \<open>h = (the_hom::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list \<Rightarrow> 't list)\<close>
+  define h_ext where \<open>h_ext = (the_hom_ext::('n, bracket \<times> ('n,'t) prod \<times> version ) sym list \<Rightarrow> ('n,'t) sym list)\<close>
+
+
+  have \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (dyck_language \<Gamma>) \<inter> (Re A)\<close> (* This is the hard part of the proof - the local lemma in the textbook *)
+  proof-
+
+    have \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* x \<Longrightarrow> bal_tm x \<and> rhs_in_if x (P \<times> {One, Two})\<close> by (simp add: P'_bal P'_def P_CNF)
+    then have hr1: \<open>\<And>A x. (P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<Longrightarrow> x \<in> dyck_language \<Gamma>)\<close> using \<Gamma>_def by (meson dyck_languageI_tm)
+
+
+    have \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* x \<Longrightarrow> x \<in> Re_sym A\<close> using P'_imp_Re using P'_def P_CNF by fastforce
+    then have hr2: \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* map Tm x \<Longrightarrow> x \<in> Re A\<close> by blast
+
+    have rr: \<open>\<And>A x.  x \<in> (dyck_language \<Gamma>) \<inter> (Re A) \<Longrightarrow> (P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x)) \<close> using Re_imp_P' by (metis P'_def P_CNF \<Gamma>_def inf_sup_aci(1))
+
+
+    show ?thesis using hr1 hr2 rr by (meson Int_iff)
+
+  qed
+
+
+
+  then have \<open>L' = (dyck_language \<Gamma>) \<inter> (Re S)\<close> by (metis CFL_Lang_eq_CFG_Lang CFL_Lang_if_derives L'_def derives_if_CFL_Lang inf_absorb2 inf_commute subsetI)
+  then have \<open>image h ((dyck_language \<Gamma>) \<inter> (Re S)) =  image h L'\<close> by simp
+  also have \<open>... = Lang P S\<close>
+  proof(standard)
+    have \<open>\<And>w'. (w'  \<in> L' \<Longrightarrow> h w' \<in> Lang P S)\<close>
+    proof-
+      fix w'
+      assume \<open>w' \<in> L'\<close>
+      with L'_def have \<open>w' \<in> Lang P' S\<close> by simp
+      then have \<open>P' \<turnstile> [Nt S] \<Rightarrow>* map Tm w'\<close> by (simp add: CFL_Lang_eq_CFG_Lang derives_if_CFL_Lang)
+      then obtain n where \<open>P' \<turnstile> [Nt S] \<Rightarrow>(n) map Tm w'\<close> by (metis rtranclp_power)
+      then have \<open>P \<turnstile> [Nt S] \<Rightarrow>* h_ext (map Tm w')\<close> 
+      proof(induction rule: deriven_induct)
+        case 0
+        then show ?case unfolding h_ext_def the_hom_ext.simps by simp
+      next
+        case (Suc n u A v x')
+        from \<open>(A, x') \<in> P'\<close> obtain \<pi> where \<open>\<pi> \<in> P\<close> and transf_\<pi>_def: \<open>(transform_production \<pi>) = (A, x')\<close> using P'_def by auto
+        moreover have \<open>CNF_rule \<pi>\<close> using P_CNF \<open>\<pi> \<in> P\<close> by auto
+        ultimately obtain x where \<pi>_def: \<open>\<pi> = (A, x)\<close> using transform_production_CNF by (smt (verit, del_insts) CNF_rule_def Pair_inject Chomsky_Schuetzenberger.transform_production.simps(1,2))
+        have \<open>hom h_ext\<close> unfolding hom_def h_ext_def the_hom_ext.simps by simp
+        then have \<open>h_ext (u @ [Nt A] @ v) = h_ext u @ h_ext [Nt A] @ h_ext v\<close> using hom_def by (metis (no_types, lifting))
+        then have \<open> P \<turnstile> [Nt S] \<Rightarrow>* h_ext u @ h_ext [Nt A] @ h_ext v\<close> using local.Suc.IH by auto
+        then have \<open> P \<turnstile> [Nt S] \<Rightarrow>* h_ext u @ [Nt A] @ h_ext v\<close> unfolding h_ext_def by simp
+        then have \<open> P \<turnstile> [Nt S] \<Rightarrow>* h_ext u @ x @ h_ext v\<close> using \<pi>_def \<open>\<pi> \<in> P\<close> derive.intros by (metis Transitive_Closure.rtranclp.rtrancl_into_rtrancl)
+
+        have \<open>h_ext x' = h_ext (snd (transform_production \<pi>))\<close> by (simp add: transf_\<pi>_def)
+        also have \<open>... = snd \<pi>\<close> using \<open>CNF_rule \<pi>\<close> h_ext_def hom_ext_inv by blast
+        also have \<open>... = x\<close> by (simp add: \<pi>_def)
+        finally have \<open>h_ext x' = x\<close> by simp
+
+        with \<open> P \<turnstile> [Nt S] \<Rightarrow>* h_ext u @ x @ h_ext v\<close> have \<open> P \<turnstile> [Nt S] \<Rightarrow>* h_ext u @ h_ext x' @ h_ext v\<close> by simp
+        then show ?case by (metis \<open>hom h_ext\<close> hom_def)
+      qed
+      then show \<open>h w' \<in> Lang P S\<close> using h_eq_h_ext h_ext_def by (metis CFL_Lang_eq_CFG_Lang CFL_Lang_if_derives h_def)
+    qed
+    then show \<open> h ` L' \<subseteq> Lang P S\<close> by (simp add: image_subsetI)
+
+  next
+    have \<open>\<And>w. (w  \<in> Lang P S \<Longrightarrow> \<exists>w' \<in> L'. w = h w')\<close> 
+    proof-
+      have \<open>\<And>w. (w \<in> Ders P S \<Longrightarrow> \<exists>w' \<in> Ders P' S. w = h_ext w')\<close> using transfer_parse_tree by (metis P'_def P_CNF h_ext_def)
+      then show \<open>\<And>w. (w  \<in> Lang P S \<Longrightarrow> \<exists>w' \<in> L'. w = h w')\<close>
+      proof(goal_cases)
+        case (1 w)
+        then have \<open>(map Tm w) \<in> Ders P S\<close> using Lang_Ders imageI by fastforce
+        then obtain w' where w'_def: \<open>w' \<in> Ders P' S\<close> \<open>(map Tm w) = h_ext w'\<close> using \<open>\<And>w. w \<in> Ders P S \<Longrightarrow> \<exists>w'\<in> Ders P' S. w = h_ext w'\<close>[of \<open>map Tm w\<close>] by blast 
+        moreover obtain w'' where \<open>w' = map Tm w''\<close> using w'_def by (metis h_ext_def the_hom_ext_tms_inj)
+        then have \<open>w = h w''\<close> using h_eq_h_ext2 h_def h_ext_def by (metis h_eq_h_ext w'_def(2))
+        moreover have \<open>w'' \<in> L'\<close> using \<open>w' \<in> Ders P' S\<close> by (metis DersD \<open>L' = dyck_language \<Gamma> \<inter> Re S\<close> \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (dyck_language \<Gamma>) \<inter> (Re A)\<close> \<open>w' = map Tm w''\<close>)
+        ultimately show ?case by auto
+      qed
+    qed
+    then show \<open>Lang P S \<subseteq> h ` L'\<close> by auto 
+  qed
+
+  also have \<open>... = L\<close> by (simp add: \<open>L = Lang P S\<close>)
+  finally have \<open>image h ((dyck_language \<Gamma>) \<inter> (Re S)) = L\<close> by auto
+
+  moreover have \<open>((dyck_language \<Gamma>) \<inter> ((brackets P) \<inter> Re S)) = ((dyck_language \<Gamma>) \<inter> (Re S))\<close>
+  proof
+    show \<open>dyck_language \<Gamma> \<inter> ((brackets P) \<inter> Re S) \<subseteq> dyck_language \<Gamma> \<inter> Re S\<close> by blast
+  next
+    show \<open>dyck_language \<Gamma> \<inter> Re S \<subseteq> dyck_language \<Gamma> \<inter> ((brackets P) \<inter> Re S)\<close> using \<Gamma>_def dyck_lang_imp_star_brackets by auto
+  qed
+  moreover have hom: \<open>hom h\<close> by (simp add: h_def hom_def)
+  moreover from \<open>finite P\<close> have \<open>regular ((brackets P) \<inter> Re S)\<close> using regular_Re_inter by fast
+  ultimately have \<open>regular ((brackets P) \<inter> Re S) \<and> L = image h (((brackets P) \<inter> Re S) \<inter> (dyck_language \<Gamma>)) \<and> hom h\<close> by (simp add: inf_commute)
+  then show ?thesis unfolding h_def \<Gamma>_def by blast
+qed
+
+
+
+
+
+
+
+
+
+
+
+
 
 text\<open>The chomsky-scheutzenberger theorem that we want to prove.\<close>
 lemma chomsky_schuetzenberger :

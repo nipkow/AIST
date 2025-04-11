@@ -2,23 +2,23 @@ theory Chomsky_Schuetzenberger
   imports "../CFG" "../CFL" "../Parse_Tree" "Finite_Automata_Not_HF" "../Stimpfle/CNF"
 begin
 
-text \<open>This file contains all the constructions needed for the chomsky-schuetzenberger theorem.
+text \<open>This file contains all the constructions needed for the Chomsky-Schuetzenberger theorem.
 We follow closely Automata and Computability @1997 pp 198–200 by Dexter C. Kozen for the proof.
 
 This theorem roughly states, that each type 2 language \<open>L\<close> can be written as 
-\<open>h(R \<inter> dyck_lang(\<Gamma>))\<close> for suitable alphabet Gamma, a regular language R, and a monoid-homomorphism h.
+\<open>h(R \<inter> Dyck_lang(\<Gamma>))\<close> for suitable alphabet Gamma, a regular language R, and a monoid-homomorphism h.
 
 
-The dyck language over some set \<open>\<Gamma>\<close> (also called bracket language) is defined as follows:  
+The Dyck language over some set \<open>\<Gamma>\<close> (also called bracket language) is defined as follows:  
 The symbols of Gamma are thought of as opening brackets. 
 For each symbol a closing bracket is added.
-The dyck language over Gamma then is the language of correctly bracketed terms.
+The Dyck language over Gamma then is the language of correctly bracketed terms.
 
 We implement this cloning of Gamma, by pairing each element \<open>g \<in> \<Gamma>\<close> either with an Element from
 \<open>datatype bracket = Op | Cl\<close>, as in \<open>Cl, g\<close>.
 
 
-A (very) rough proof overview of chomsky-schuetzenberger is as follows:
+A (very) rough proof overview of Chomsky-Schuetzenberger is as follows:
 Take some type 2 Grammar for \<open>L\<close> with Productions \<open>P\<close>, assume it in Chomsky normal form.
 From the old Productions \<open>P\<close> define new Productions \<open>P'\<close> using \<open>transform_production\<close>: 
 if \<open>\<pi> = A \<rightarrow> BC\<close>  let \<open>\<pi>' = A \<rightarrow> [\<^sub>\<pi>\<^sup>1  B  ]\<^sub>p\<^sup>1  [\<^sub>\<pi>\<^sup>2  C  ]\<^sub>p\<^sup>2\<close>
@@ -2428,7 +2428,7 @@ qed
 
 
 
-lemma dyck_lang_imp_star_brackets: \<open>Dyck_language (P \<times> {One, Two}) \<subseteq> (brackets P)\<close>
+lemma Dyck_lang_imp_star_brackets: \<open>Dyck_language (P \<times> {One, Two}) \<subseteq> (brackets P)\<close>
 proof
   fix x
   assume \<open>x \<in> Dyck_language (P \<times> {One, Two})\<close>
@@ -2994,7 +2994,7 @@ proof -
   proof
     show \<open>Dyck_language \<Gamma> \<inter> ((brackets P) \<inter> Re S) \<subseteq> Dyck_language \<Gamma> \<inter> Re S\<close> by blast
   next
-    show \<open>Dyck_language \<Gamma> \<inter> Re S \<subseteq> Dyck_language \<Gamma> \<inter> ((brackets P) \<inter> Re S)\<close> using \<Gamma>_def dyck_lang_imp_star_brackets by auto
+    show \<open>Dyck_language \<Gamma> \<inter> Re S \<subseteq> Dyck_language \<Gamma> \<inter> ((brackets P) \<inter> Re S)\<close> using \<Gamma>_def Dyck_lang_imp_star_brackets by auto
   qed
   moreover have hom: \<open>hom h\<close> by (simp add: h_def hom_def)
   moreover from \<open>finite P\<close> have \<open>regular ((brackets P) \<inter> Re S)\<close> using regular_Re_inter by fast
@@ -3030,7 +3030,7 @@ qed
 
 
 
-text\<open>The chomsky-scheutzenberger theorem that we really want to prove.\<close>
+text\<open>The Chomsky-scheutzenberger theorem that we really want to prove.\<close>
 lemma Chomsky_Schuetzenberger:
   fixes P :: \<open>('n::infinite, 't) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S\<close>

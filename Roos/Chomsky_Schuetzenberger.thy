@@ -1110,13 +1110,17 @@ fun P3 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> 
 
 
 text\<open>After each (Op,A\<rightarrow>BC,1), always comes a (Op,(B, _),1) or a Nt B,  And after each (Op,A\<rightarrow>BC,2), always comes a (Op,(C, _),1) or a Nt C\<close>
-fun P3_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
+text\<open>We use function instead of fun here in a way, that is exactly what fun does but where we replaced \<open>auto\<close> by \<open>fastforce+\<close>, which happens to be a second faster.\<close>
+function (sequential) P3_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
   \<open>P3_sym (Tm (Op, ((A, [Nt B, Nt C]), One))) (Tm (p, ((X,y), t))) = (p = Op \<and> t = One \<and> X = B)\<close> | \<comment> \<open>Not obvious: the case (Tm (Op, ((A, [Nt B, Nt C]), One))) Nt X is set to True with the catch all\<close>
   \<open>P3_sym (Tm (Op, ((A, [Nt B, Nt C]), One))) (Nt X) = (X = B)\<close> | 
 
 \<open>P3_sym (Tm (Op, ((A, [Nt B, Nt C]), Two))) (Tm (p, ((X,y), t))) = (p = Op \<and> t = One \<and> X = C)\<close> | 
 \<open>P3_sym (Tm (Op, ((A, [Nt B, Nt C]), Two))) (Nt X) = (X = C)\<close> | 
 \<open>P3_sym x y = True\<close>
+apply pat_completeness by fastforce+
+termination by lexicographic_order
+
 
 lemma P3D1[dest]:
   fixes r::\<open>(bracket \<times> ('n,'t) prod \<times> version)\<close>
@@ -2564,7 +2568,8 @@ section\<open>Transformation of a parse tree\<close>
 
 abbreviation \<open>prod_rhs ts \<equiv> map root ts\<close>
 
-fun transform_tree :: \<open>('n,'t) tree \<Rightarrow> ('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) tree\<close> where
+text\<open>We use function instead of fun here in a way, that is exactly what fun does but where we replaced \<open>auto\<close> by \<open>blast+\<close>, which happens to be 2.5 seconds faster.\<close>
+function (sequential) transform_tree :: \<open>('n,'t) tree \<Rightarrow> ('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) tree\<close> where
   \<open>transform_tree (Sym (Nt A)) = (Sym (Nt A))\<close> | 
   \<open>transform_tree (Sym (Tm a)) = (Sym (Tm (Op, ((SOME A. True, [Tm a]), One))))\<close> | 
   \<open>transform_tree (Prod A [Sym (Tm a)]) =             (Prod A [ Sym (Tm (Op, (A, [Tm a]),One)),       Sym(Tm (Cl, (A, [Tm a]), One)), Sym (Tm (Op, (A, [Tm a]), Two)),       Sym(Tm (Cl, (A, [Tm a]), Two))  ])\<close> | 
@@ -2573,6 +2578,9 @@ fun transform_tree :: \<open>('n,'t) tree \<Rightarrow> ('n, bracket \<times> ('
   \<open>transform_tree (Prod A [Sym (Nt B), Prod C tC]) =   (Prod A [Sym (Tm (Op, (A, [Nt B, Nt C]), One)), Sym (Nt B), Sym (Tm (Cl, ((A, [Nt B, Nt C]), One))), Sym (Tm (Op, (A, [Nt B, Nt C]), Two)), transform_tree (Prod C tC), Sym (Tm (Cl, (A, [Nt B, Nt C]), Two))  ])\<close> | 
   \<open>transform_tree (Prod A [Prod B tB, Prod C tC]) =   (Prod A [Sym (Tm (Op, (A, [Nt B, Nt C]), One)), transform_tree (Prod B tB), Sym (Tm (Cl, ((A, [Nt B, Nt C]), One))), Sym (Tm (Op, (A, [Nt B, Nt C]), Two)), transform_tree (Prod C tC), Sym (Tm (Cl, (A, [Nt B, Nt C]), Two))  ])\<close> | 
   \<open>transform_tree (Prod A y) = (Prod A [])\<close>
+apply pat_completeness by blast+
+termination by lexicographic_order
+
 
 lemma root_of_transform_tree[intro, simp]: \<open>root t = Nt X \<Longrightarrow> root (transform_tree t) = Nt X\<close>
   apply(induction t rule: transform_tree.induct) by auto 

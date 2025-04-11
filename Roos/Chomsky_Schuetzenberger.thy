@@ -956,6 +956,8 @@ lemma transform_production_induct_cnf:
 
 
 section\<open>Definition of the regular Language\<close>
+
+
 text\<open>Defines a Predicate on neighbouring string elements - Is true iff after a Cl,p,1 there always immediately follows a Op,p,2. That also means, Cl,p,1 can't be the end of the string\<close>
 fun P1' :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
   \<open>P1' ((Cl, (p, One))) ((Op, (p', Two)))  = (p = p')\<close> | 
@@ -1484,7 +1486,7 @@ proof-
 qed
 
 
-thm Re_symI
+
 
 lemma P'_imp_Re:
   assumes \<open>(image transform_production P) \<turnstile> [Nt S] \<Rightarrow>* x\<close>
@@ -1566,34 +1568,6 @@ next
 qed 
 
 
-
-lemma P'_imp_last_not_Cl_1:
-  assumes \<open>(image transform_production P) \<turnstile> [Nt A] \<Rightarrow>* x\<close>
-    and \<open>\<forall>p \<in> P. CNF_rule p\<close>
-  shows \<open>last x \<noteq> Tm (Cl,p,One)\<close>
-  using assms proof(induction rule: derives_induct)
-  case base
-  then show ?case by simp
-next
-  case (step u A v w)
-  then show ?case
-  proof(cases v)
-    case Nil
-    have \<open>(A, w) \<in> transform_production ` P\<close> using step by blast
-    then obtain w' where w'_def: \<open>transform_production (A, w') = (A, w)\<close> and \<open>(A,w') \<in> P\<close> by (metis (no_types, opaque_lifting) Product_Type.old.prod.exhaust fst_conv fst_transform_production imageE)
-
-    then have Aw'_cnf: \<open>CNF_rule (A,w')\<close> using step by blast
-    then obtain B C a where \<open>((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Nt B, Nt C]) \<or> ((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Tm a])\<close> using transform_production_CNF[of \<open>(A,w')\<close>] w'_def by (metis snd_conv)   
-
-    then have w_eq: \<open>w = [Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2]   \<or>    w = [Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>2, Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2]\<close> (is \<open>w = ?w1 \<or> w = ?w2\<close>) by fastforce
-    then show ?thesis using step using Nil by fastforce
-  next
-    case (Cons a list)
-    then have \<open>v \<noteq> []\<close> by blast
-    moreover from step have \<open>last (u @ [Nt A] @ v) \<noteq> Tm ]\<^bsub>p\<^esub>\<^sup>1\<close> by blast
-    ultimately show ?thesis by auto
-  qed
-qed
 
 
 
@@ -2263,7 +2237,7 @@ begin
 
 datatype P5_State = start | first_ok | garbage 
 
-text\<open>The good ending letters, are those that are not of the form (Cl, _ , 1)\<close>
+text\<open>The good/ok ending letters, are those that are not of the form (Cl, _ , 1)\<close>
 fun ok where
   \<open>ok (Op, (X, _), One) = (X = A)\<close> | 
   \<open>ok _ = False\<close>
@@ -2476,7 +2450,7 @@ qed
 
 
 
-section\<open>Lemmas about star and star1\<close>
+section\<open>Lemmas about star\<close>
 
 text\<open>TODO mv?\<close>
 

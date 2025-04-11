@@ -2899,7 +2899,7 @@ section\<open>The Theorem\<close>
 
 
 text\<open>The constructive version of the Theorem, for a grammar already in CNF\<close>
-lemma chomsky_schuetzenberger_constr:
+lemma Chomsky_Schuetzenberger_constr:
   fixes P :: \<open>('n::infinite, 't) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S\<close>
   assumes finite: \<open>finite P\<close> and P_CNF: \<open>CNF P\<close>
@@ -3007,7 +3007,7 @@ qed
 
 
 text\<open>The theorem, but only for languages not containing \<open>\<epsilon>\<close> \<close>
-lemma chomsky_schuetzenberger_not_empty:
+lemma Chomsky_Schuetzenberger_not_empty:
   fixes P :: \<open>('n::infinite, 't) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S - {[]}\<close>
   assumes finite: \<open>finite P\<close>
@@ -3017,7 +3017,7 @@ proof -
   obtain ps where ps_def: \<open>set ps = P\<close> using finite finite_list by auto
   from cnf_exists obtain ps' where ps'_CNF: \<open>CNF(set ps')\<close> and lang_ps_eq_lang_ps': \<open>CFG.lang ps' S = CFG.lang ps S - {[]}\<close> by blast
   then have \<open>finite( set ps')\<close> and \<open>CNF( set ps')\<close> by auto
-  then have \<open>regular (brackets (set ps') \<inter> Re S) \<and> CFG.lang ps' S = h ` (brackets (set ps') \<inter> Re S \<inter> Dyck_language (set ps' \<times> {One, Two})) \<and> hom h\<close> using chomsky_schuetzenberger_constr[OF \<open>finite( set ps')\<close> \<open>CNF( set ps')\<close>, of S] using h_def by fastforce
+  then have \<open>regular (brackets (set ps') \<inter> Re S) \<and> CFG.lang ps' S = h ` (brackets (set ps') \<inter> Re S \<inter> Dyck_language (set ps' \<times> {One, Two})) \<and> hom h\<close> using Chomsky_Schuetzenberger_constr[OF \<open>finite( set ps')\<close> \<open>CNF( set ps')\<close>, of S] using h_def by fastforce
   moreover have  \<open>CFG.lang ps' S = L - {[]}\<close> unfolding lang_ps_eq_lang_ps' using L_def ps_def by blast
   ultimately have eq: \<open>regular (brackets (set ps') \<inter> Re S) \<and> L - {[]} = h ` (brackets (set ps') \<inter> Re S \<inter> Dyck_language (set ps' \<times> {One, Two})) \<and> hom h\<close> by presburger
   then show ?thesis using L_def by auto
@@ -3031,17 +3031,17 @@ qed
 
 
 text\<open>The chomsky-scheutzenberger theorem that we really want to prove.\<close>
-lemma chomsky_schuetzenberger:
+lemma Chomsky_Schuetzenberger:
   fixes P :: \<open>('n::infinite, 't) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S\<close>
   assumes finite: \<open>finite P\<close>
   shows \<open>\<exists>(R::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set) h \<Gamma>.  (regular R) \<and> (L = image h (R \<inter> Dyck_language \<Gamma>)) \<and> hom h\<close>
 proof(cases \<open>[] \<in> L\<close>)
   case False
-  then show ?thesis by (metis Diff_empty Diff_insert0 L_def chomsky_schuetzenberger_not_empty finite)
+  then show ?thesis by (metis Diff_empty Diff_insert0 L_def Chomsky_Schuetzenberger_not_empty finite)
 next
   case True
-  obtain R::\<open>(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set\<close> and h and \<Gamma> where reg_R: \<open>(regular R)\<close> and L_minus_eq: \<open>(L-{[]} = image h (R \<inter> Dyck_language \<Gamma>))\<close> and hom_h: \<open>hom h\<close>  by (metis L_def chomsky_schuetzenberger_not_empty finite)
+  obtain R::\<open>(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set\<close> and h and \<Gamma> where reg_R: \<open>(regular R)\<close> and L_minus_eq: \<open>(L-{[]} = image h (R \<inter> Dyck_language \<Gamma>))\<close> and hom_h: \<open>hom h\<close>  by (metis L_def Chomsky_Schuetzenberger_not_empty finite)
   then have reg_R_union: \<open>regular( R \<union> {[]})\<close> by (meson regular_Un regular_nullstr)
   have \<open>[] = h([])\<close> using hom_def hom_h by metis
   moreover have \<open>[] \<in> Dyck_language \<Gamma>\<close> by fastforce

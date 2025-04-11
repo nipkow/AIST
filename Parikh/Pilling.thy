@@ -8,6 +8,7 @@ theory Pilling
     "$AFP/Regular-Sets/Regular_Exp"
 begin
 
+
 section \<open>systems of equations\<close>
 
 (* We just represent the right hand sides *)
@@ -49,103 +50,94 @@ definition solves_eq_sys_comm :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow>
 definition sys_subst :: "'a eq_sys \<Rightarrow> (nat \<Rightarrow> 'a lfun) \<Rightarrow> 'a eq_sys" where
   "sys_subst sys s \<equiv> map (\<lambda>eq. subst eq s) sys"
 
-(* partial solution with \<subseteq>, only caring about the Parikh image *)
 definition partial_sol_ineq :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a lfun \<Rightarrow> bool" where
-  "partial_sol_ineq x eq sol \<equiv> (\<forall>s.
-    parikh_img (eval (subst eq (\<lambda>i. if i = x then sol else V i)) s) \<subseteq> parikh_img (eval sol s)
-  )"
+  "partial_sol_ineq x eq sol \<equiv> \<forall>s. s x = eval sol s \<longrightarrow> solves_ineq_comm x eq s"
 
-(* partial solution with =, only caring about the Parikh image *)
+definition solution_ineq_sys :: "'a eq_sys \<Rightarrow> (nat \<Rightarrow> 'a lfun) \<Rightarrow> bool" where
+  "solution_ineq_sys sys sols \<equiv> \<forall>s. (\<forall>x. s x = eval (sols x) s) \<longrightarrow> solves_ineq_sys_comm sys s"
+
+definition partial_min_sol_ineq_sys :: "nat \<Rightarrow> 'a eq_sys \<Rightarrow> (nat \<Rightarrow> 'a lfun) \<Rightarrow> bool" where
+  "partial_min_sol_ineq_sys n sys sols \<equiv>
+    solution_ineq_sys (take n sys) sols \<and>
+    (\<forall>i \<ge> n. sols i = V i) \<and>
+    (\<forall>i < n. \<forall>x \<in> vars (sols i). x \<ge> n \<and> x < length sys) \<and>
+    (\<forall>sols' s'. (\<forall>x. s' x = eval (sols' x) s')
+                  \<and> solves_ineq_sys_comm (take n sys) s'
+                  \<longrightarrow> (\<forall>i. parikh_img (eval (sols i) s') \<subseteq> parikh_img (s' i)))"
+
+
+definition partial_min_sol_one_ineq :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a lfun \<Rightarrow> bool" where
+  "partial_min_sol_one_ineq x eq sol \<equiv>
+    partial_sol_ineq x eq sol \<and>
+    vars sol \<subseteq> vars eq - {x} \<and>
+    (\<forall>sol' s'. solves_ineq_comm x eq s' \<and> s' x = eval sol' s'
+               \<longrightarrow> parikh_img (eval sol s') \<subseteq> parikh_img (s' x))"
+
+definition min_sol_ineq_sys :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow> bool" where
+  "min_sol_ineq_sys sys sol \<equiv>
+    solves_ineq_sys_comm sys sol \<and>
+    (\<forall>sol'. solves_ineq_sys_comm sys sol' \<longrightarrow> (\<forall>x. parikh_img (sol x) \<subseteq> parikh_img (sol' x)))"
+
+(* TODO: currently unused *)
 definition partial_sol_eq :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a lfun \<Rightarrow> bool" where
-  "partial_sol_eq x eq sol \<equiv> (\<forall>s.
-    parikh_img (eval (subst eq (\<lambda>i. if i = x then sol else V i)) s) = parikh_img (eval sol s)
-  )"
-
-(* minimal (partial) solution of a single equation with = *)
-definition partial_min_reg_sol_eq :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a lfun \<Rightarrow> bool" where
-  "partial_min_reg_sol_eq x eq sol \<equiv>
-    regular_fun sol \<and> x \<notin> vars sol \<and> partial_sol_eq x eq sol
-      \<and> (\<forall>sol'. x \<notin> vars sol' \<and> partial_sol_ineq x eq sol'
-                \<longrightarrow> (\<forall>s. parikh_img (eval sol s) \<subseteq> parikh_img (eval sol' s)))"
+  "partial_sol_eq x eq sol \<equiv> \<forall>s. s x = eval sol s \<longrightarrow> solves_eq_comm x eq s"
 
 
-lemma partial_sol_ineq_solves_ineq_comm:
-  "partial_sol_ineq x eq sol \<longleftrightarrow> (\<forall>s. solves_ineq_comm x eq (s(x := eval sol s)))"
-proof
-  show "partial_sol_ineq x eq sol \<Longrightarrow> \<forall>s. solves_ineq_comm x eq (s(x := eval sol s))"
-  proof
-    fix s
-    assume "partial_sol_ineq x eq sol"
-    then have
-      s_sol: "parikh_img (eval (subst eq (\<lambda>i. if i = x then sol else V i)) s) \<subseteq> parikh_img (eval sol s)"
-      unfolding partial_sol_ineq_def by auto
-    show "solves_ineq_comm x eq (s(x := eval sol s))"
-      unfolding solves_ineq_comm_def using substitution_lemma
-      by (smt (verit) eval.simps(1) fun_upd_other fun_upd_same s_sol)
-  qed
-  show "\<forall>s. solves_ineq_comm x eq (s(x := eval sol s)) \<Longrightarrow> partial_sol_ineq x eq sol"
-  proof -
-    assume as: "\<forall>s. solves_ineq_comm x eq (s(x := eval sol s))"
-    show "partial_sol_ineq x eq sol"
-    unfolding partial_sol_ineq_def proof
-      fix s
-      let ?s' = "s(x := eval sol s)"
-      from as have "parikh_img (eval eq ?s') \<subseteq> parikh_img (?s' x)"
-        unfolding solves_ineq_comm_def by blast
-      then show "parikh_img (eval (subst eq (\<lambda>i. if i = x then sol else V i)) s) \<subseteq> parikh_img (eval sol s)"
-        using substitution_lemma by (smt (verit) eval.simps(1) fun_upd_other fun_upd_same)
-    qed
-  qed
+lemma partial_sol_ineqI:
+  assumes "\<And>s. s x = eval sol s \<Longrightarrow> parikh_img (eval (subst eq (V(x := sol))) s) \<subseteq> parikh_img (s x)"
+    shows "partial_sol_ineq x eq sol"
+unfolding partial_sol_ineq_def solves_ineq_comm_def proof (rule allI, rule impI)
+  fix s
+  assume x_is_sol: "s x = eval sol s"
+
+  from x_is_sol have "s = s(x := eval sol s)" using fun_upd_triv by metis
+  then have "eval eq s = eval (subst eq (V(x := sol))) s"
+    using substitution_lemma_update[of eq] by simp
+  with assms x_is_sol show "parikh_img (eval eq s) \<subseteq> parikh_img (s x)" by simp
 qed
 
 
-lemma same_min_reg_sol_if_same_parikh_img:
+lemma partial_sol_eqI:
+  assumes "\<And>s. s x = eval sol s \<Longrightarrow> parikh_img (eval (subst eq (V(x := sol))) s) = parikh_img (s x)"
+    shows "partial_sol_eq x eq sol"
+unfolding partial_sol_eq_def solves_eq_comm_def proof (rule allI, rule impI)
+  fix s
+  assume x_is_sol: "s x = eval sol s"
+  
+  from x_is_sol have "s = s(x := eval sol s)" using fun_upd_triv by metis
+  then have "eval eq s = eval (subst eq (V(x := sol))) s"
+    using substitution_lemma_update[of eq] by simp
+  with assms x_is_sol show "parikh_img (eval eq s) = parikh_img (s x)" by simp
+qed
+
+
+lemma sys_subst_subst:
+  assumes "i < length sys"
+  shows "(sys_subst sys s) ! i = subst (sys ! i) s"
+  unfolding sys_subst_def by (simp add: assms)
+
+
+(* TODO: currently unused *)
+lemma sol_Suc_n_sol_n:
+  assumes "solution_ineq_sys (take (Suc n) sys) sols"
+  shows "solution_ineq_sys (take n sys) sols"
+  using assms unfolding solution_ineq_sys_def solves_ineq_sys_comm_def by auto
+
+
+lemma same_min_sol_if_same_parikh_img:
   assumes same_parikh_img: "\<forall>s. parikh_img (eval f s) = parikh_img (eval g s)"
-      and minimal_reg_sol: "partial_min_reg_sol_eq x f sol"
-    shows                  "partial_min_reg_sol_eq x g sol"
+      and same_vars:       "vars f - {x} = vars g - {x}"
+      and minimal_sol:     "partial_min_sol_one_ineq x f sol"
+    shows                  "partial_min_sol_one_ineq x g sol"
 proof -
-  from minimal_reg_sol have "regular_fun sol \<and> x \<notin> vars sol"
-    unfolding partial_min_reg_sol_eq_def by blast
-
-  moreover have "partial_sol_eq x g sol"
-  unfolding partial_sol_eq_def proof
-    fix s
-    let ?upd = "\<lambda>i. if i = x then sol else V i"
-    let ?s' = "\<lambda>i. if i = x then eval sol s else s i"
-    have "parikh_img (eval (subst g ?upd) s) = parikh_img (eval g ?s')"
-      using substitution_lemma[of ?s' ?upd] by fastforce
-    also have "\<dots> = parikh_img (eval f ?s')" using same_parikh_img by auto
-    also have "\<dots> = parikh_img (eval (subst f ?upd) s)"
-      using substitution_lemma[of ?s' ?upd] by fastforce
-    finally show "parikh_img (eval (subst g ?upd) s) = parikh_img (eval sol s)"
-      using minimal_reg_sol unfolding partial_min_reg_sol_eq_def partial_sol_eq_def by blast
-  qed
-
-  moreover have "x \<notin> vars sol' \<and> partial_sol_ineq x g sol'
-            \<longrightarrow> (\<forall>s. parikh_img (eval sol s) \<subseteq> parikh_img (eval sol' s))" for sol'
-  proof
-    fix sol'
-    assume as: "x \<notin> vars sol' \<and> partial_sol_ineq x g sol'"
-
-    have "partial_sol_ineq x f sol'"
-    unfolding partial_sol_ineq_def proof
-      fix s
-      let ?upd = "\<lambda>i. if i = x then sol' else V i"
-      let ?s' = "\<lambda>i. if i = x then eval sol' s else s i"
-      have "parikh_img (eval (subst f ?upd) s) = parikh_img (eval f ?s')"
-        using substitution_lemma[of ?s' ?upd] by fastforce
-      also have "\<dots> = parikh_img (eval g ?s')" using same_parikh_img by auto
-      also have "\<dots> = parikh_img (eval (subst g ?upd) s)"
-        using substitution_lemma[of ?s' ?upd] by fastforce
-      finally show "parikh_img (eval (subst f ?upd) s) \<subseteq> parikh_img (eval sol' s)"
-        using as unfolding partial_sol_ineq_def by blast
-    qed
-
-    with minimal_reg_sol as show "\<forall>s. parikh_img (eval sol s) \<subseteq> parikh_img (eval sol' s)"
-      unfolding partial_min_reg_sol_eq_def by blast
-  qed
-
-  ultimately show ?thesis unfolding partial_min_reg_sol_eq_def by fast
+  from minimal_sol have "vars sol \<subseteq> vars g - {x}"
+    unfolding partial_min_sol_one_ineq_def using same_vars by blast
+  moreover from same_parikh_img minimal_sol have "partial_sol_ineq x g sol"
+    unfolding partial_min_sol_one_ineq_def partial_sol_ineq_def solves_ineq_comm_def by simp
+  moreover from same_parikh_img minimal_sol have "\<forall>sol' s'. solves_ineq_comm x g s' \<and> s' x = eval sol' s'
+               \<longrightarrow> parikh_img (eval sol s') \<subseteq> parikh_img (s' x)"
+    unfolding partial_min_sol_one_ineq_def solves_ineq_comm_def by blast
+  ultimately show ?thesis unfolding partial_min_sol_one_ineq_def by fast
 qed
 
 
@@ -185,7 +177,7 @@ next
   from Suc.IH have s_subseteq_s_Suc: "?s j \<subseteq> ?s_Suc j" for j by auto
 
   have "eval (g_pre f_sys i (Suc n)) s = eval (f_sys ! i) ?s" using g_pre_eval[of f_sys] by auto
-  also have "\<dots> \<subseteq> eval (f_sys ! i) ?s_Suc" using s_subseteq_s_Suc lfun_mono_aux[of ?s ?s_Suc] by auto
+  also have "\<dots> \<subseteq> eval (f_sys ! i) ?s_Suc" using s_subseteq_s_Suc lfun_mono_aux[where s="?s"] by auto
   also have "\<dots> = eval (g_pre f_sys i (Suc (Suc n))) s" using g_pre_eval[of f_sys ?s_Suc] by auto
   finally show ?case .
 qed
@@ -365,18 +357,13 @@ definition regular_fun' :: "nat \<Rightarrow> 'a lfun \<Rightarrow> bool" where
 lemma "regular_fun' x f \<Longrightarrow> regular_fun f"
   unfolding regular_fun'_def by fast
 
-lemma emptyset_regular: "regular_fun (N {})"
-  using lang.simps(1) by blast
-
-lemma epsilon_regular: "regular_fun (N {[]})"
-  using lang.simps(2) by blast
-
 
 (* Every regular function can be represented in form (3),
    as long as we only care for the Parikh image
 *)
 lemma regular_fun_regular_fun': "regular_fun f \<Longrightarrow>
-    \<exists>f'. regular_fun' x f' \<and> (\<forall>s. parikh_img (eval f s) = parikh_img (eval f' s))"
+    \<exists>f'. regular_fun' x f' \<and> vars f' = vars f \<union> {x} \<and>
+         (\<forall>s. parikh_img (eval f s) = parikh_img (eval f' s))"
 proof (induction rule: regular_fun.induct)
   case (Variable y)
   then show ?case
@@ -385,16 +372,16 @@ proof (induction rule: regular_fun.induct)
     case True
     then have "regular_fun' x ?f'"
       unfolding regular_fun'_def by (simp add: emptyset_regular epsilon_regular)
-    moreover have "eval ?f' s = eval (V y) s" for s :: "'a state"
-      using True by simp
+    moreover have "eval ?f' s = eval (V y) s" for s :: "'a state" using True by simp
+    moreover have "vars ?f' = vars (V y) \<union> {x}" using True by simp
     ultimately show ?thesis by metis
   next
     let ?f' = "Union2 (V y) (Conc (N {}) (V x))"
     case False
     then have "regular_fun' x ?f'"
       unfolding regular_fun'_def by (auto simp add: emptyset_regular epsilon_regular)
-    moreover have "eval ?f' s = eval (V y) s" for s :: "'a state"
-      using False by simp
+    moreover have "eval ?f' s = eval (V y) s" for s :: "'a state" using False by simp
+    moreover have "vars ?f' = vars (V y) \<union> {x}" by simp 
     ultimately show ?thesis by metis
   qed
 next
@@ -403,12 +390,14 @@ next
   have "regular_fun' x ?f'"
     unfolding regular_fun'_def using Const by (auto simp add: emptyset_regular)
   moreover have "eval ?f' s = eval (N l) s" for s :: "'a state" by simp
+  moreover have "vars ?f' = vars (N l) \<union> {x}" by simp 
   ultimately show ?case by metis
 next
   case (Union2 f1 f2)
-  then obtain f1' f2' where f1'_intro: "regular_fun' x f1' \<and>
+  then obtain f1' f2' where f1'_intro: "regular_fun' x f1' \<and> vars f1' = vars f1 \<union> {x} \<and>
       (\<forall>s. parikh_img (eval f1 s) = parikh_img (eval f1' s))"
-    and f2'_intro: "regular_fun' x f2' \<and> (\<forall>s. parikh_img (eval f2 s) = parikh_img (eval f2' s))"
+    and f2'_intro: "regular_fun' x f2' \<and> vars f2' = vars f2 \<union> {x} \<and>
+      (\<forall>s. parikh_img (eval f2 s) = parikh_img (eval f2' s))"
     by auto
   then obtain p1 q1 p2 q2 where p1_q1_intro: "regular_fun p1 \<and> regular_fun q1 \<and>
     f1' = Union2 p1 (Conc q1 (V x)) \<and> (\<forall>y \<in> vars p1. y \<noteq> x)"
@@ -420,12 +409,15 @@ next
   moreover have "parikh_img (eval ?f' s) = parikh_img (eval (Union2 f1 f2) s)" for s
     using p1_q1_intro p2_q2_intro f1'_intro f2'_intro
     by (simp add: conc_Un_distrib(2) sup_assoc sup_left_commute)
+  moreover from f1'_intro f2'_intro p1_q1_intro p2_q2_intro
+    have "vars ?f' = vars (Union2 f1 f2) \<union> {x}" by auto
   ultimately show ?case by metis
 next
   case (Conc f1 f2)
-  then obtain f1' f2' where f1'_intro: "regular_fun' x f1' \<and>
+  then obtain f1' f2' where f1'_intro: "regular_fun' x f1' \<and> vars f1' = vars f1 \<union> {x} \<and>
       (\<forall>s. parikh_img (eval f1 s) = parikh_img (eval f1' s))"
-    and f2'_intro: "regular_fun' x f2' \<and> (\<forall>s. parikh_img (eval f2 s) = parikh_img (eval f2' s))"
+    and f2'_intro: "regular_fun' x f2' \<and> vars f2' = vars f2 \<union> {x} \<and>
+      (\<forall>s. parikh_img (eval f2 s) = parikh_img (eval f2' s))"
     by auto
   then obtain p1 q1 p2 q2 where p1_q1_intro: "regular_fun p1 \<and> regular_fun q1 \<and>
     f1' = Union2 p1 (Conc q1 (V x)) \<and> (\<forall>y \<in> vars p1. y \<noteq> x)"
@@ -460,10 +452,12 @@ next
     finally show "parikh_img (eval (Conc f1 f2) s) = parikh_img (eval ?f' s)" .
   qed
   moreover have "regular_fun' x ?f'" unfolding regular_fun'_def using p1_q1_intro p2_q2_intro by auto
+  moreover from f1'_intro f2'_intro p1_q1_intro p2_q2_intro
+    have "vars ?f' = vars (Conc f1 f2) \<union> {x}" by auto
   ultimately show ?case by metis
 next
   case (Star f)
-  then obtain f' where f'_intro: "regular_fun' x f' \<and>
+  then obtain f' where f'_intro: "regular_fun' x f' \<and> vars f' = vars f \<union> {x} \<and>
       (\<forall>s. parikh_img (eval f s) = parikh_img (eval f' s))" by auto
   then obtain p q where p_q_intro: "regular_fun p \<and> regular_fun q \<and>
     f' = Union2 p (Conc q (V x)) \<and> (\<forall>y \<in> vars p. y \<noteq> x)" unfolding regular_fun'_def by auto
@@ -493,6 +487,7 @@ next
     finally show "parikh_img (eval (Star f) s) = parikh_img (eval ?f_new s)" .
   qed
   moreover have "regular_fun' x ?f_new" unfolding regular_fun'_def using p_q_intro by fastforce
+  moreover from f'_intro p_q_intro have "vars ?f_new = vars (Star f) \<union> {x}" by auto
   ultimately show ?case by metis
 qed
 
@@ -512,29 +507,56 @@ locale of_form_regular_fun' =
 begin
 
 abbreviation "eq \<equiv> Union2 p (Conc q (V x))"
-abbreviation "sol \<equiv> Conc (Star (subst q (\<lambda>y. if y = x then p else V y))) p"
+abbreviation "sol \<equiv> Conc (Star (subst q (V(x := p)))) p"
 
 
 (* F(E)*E is a regular function *)
 lemma sol_is_reg: "regular_fun sol"
 proof -
-  from p_reg q_reg have r_reg: "regular_fun (subst q (\<lambda>y. if y = x then p else V y))"
-    using subst_reg_fun by (smt (verit, ccfv_threshold) Variable)
+  from p_reg q_reg have r_reg: "regular_fun (subst q (V(x := p)))"
+    using subst_reg_fun_update by auto
   with p_reg show "regular_fun sol" by fast
+qed
+
+
+(* F(E)*E contains only variables which also appear in the equation, except x *)
+lemma sol_vars: "vars sol \<subseteq> vars eq - {x}"
+proof -
+  let ?upd = "V(x := p)"
+  let ?subst_q = "subst q ?upd"
+  from x_not_in_p have vars_p: "vars p \<subseteq> vars eq - {x}" by fastforce
+
+  have "vars ?subst_q \<subseteq> vars eq - {x}"
+  proof
+    fix y
+    assume y_in_subst_q: "y \<in> vars ?subst_q"
+    with vars_subst obtain y' where y'_in_q: "y' \<in> vars q" and y_in_y': "y \<in> vars (?upd y')"
+      unfolding fun_upd_def by force
+    show "y \<in> vars eq - {x}"
+    proof (cases "y' = x")
+      case True
+      with y_in_y' x_not_in_p show ?thesis by auto
+    next
+      case False
+      with y'_in_q y_in_y' show ?thesis by simp
+    qed
+  qed
+  with x_not_in_p show ?thesis by auto
 qed
 
 
 (* F(E)*E is a solution of equation (3) from the paper (with \<supseteq> instead of =) *)
 lemma sol_is_sol_ineq: "partial_sol_ineq x eq sol"
-unfolding partial_sol_ineq_def proof
+proof (rule partial_sol_ineqI)
   fix s
+  assume x_is_sol: "s x = eval sol s"
 
-  let ?r = "subst q (\<lambda>i. if i = x then p else V i)"
-  let ?upd = "\<lambda>i. if i = x then sol else V i"
+  let ?r = "subst q (V (x := p))"
+  let ?upd = "V(x := sol)"
   let ?q_subst = "subst q ?upd"
   let ?eq_subst = "subst eq ?upd"
 
-  from sol_is_reg have r_reg: "regular_fun ?r" by blast
+  from sol_is_reg have r_reg: "regular_fun ?r" unfolding fun_upd_def by blast
   have homogeneous_app: "eval ?q_subst s \<subseteq> eval (Conc (Star ?r) ?r) s"
     using reg_fun_homogeneous[OF q_reg r_reg p_reg] by blast
 
@@ -552,51 +574,35 @@ unfolding partial_sol_ineq_def proof
   also have "\<dots> = parikh_img (star (eval ?r s) @@ eval p s)"
     using star_unfold_left
     by (smt (verit) conc_Un_distrib(2) conc_assoc conc_epsilon(1) parikh_img_Un sup_commute)
-  finally show "parikh_img (eval ?eq_subst s) \<subseteq> parikh_img (eval sol s)" by simp
+  finally show "parikh_img (eval ?eq_subst s) \<subseteq> parikh_img (s x)" using x_is_sol by simp
 qed
 
 
-(* F(E)*E does not contain the variable x *)
-lemma sol_indep_of_x: "x \<notin> vars sol"
-proof -
-  from x_not_in_p have "x \<notin> vars (subst q (\<lambda>y. if y = x then p else V y))" by (simp add: vars_subst)
-  with x_not_in_p show "x \<notin> vars sol" by simp
-qed
-
-
-(* F(E)*E is the minimal solution *)
 lemma sol_is_minimal:
-  assumes sol_indep:  "x \<notin> vars sol'"
-      and is_sol:     "partial_sol_ineq x eq sol'"
-    shows             "parikh_img (eval sol s) \<subseteq> parikh_img (eval sol' s)"
+  assumes is_sol:    "solves_ineq_comm x eq s"
+      and sol'_s:    "s x = eval sol' s"
+    shows            "parikh_img (eval sol s) \<subseteq> parikh_img (s x)"
 proof -
-  let ?upd = "\<lambda>i. if i = x then sol' else V i"
-  let ?r = "subst q ?upd"
-  let ?q_subst = "subst q (\<lambda>i. if i = x then p else V i)"
-
-  from x_not_in_p have "eval (subst p ?upd) s = eval p s" using eval_vars_subst[of p] by simp
-  then have "parikh_img (eval p s \<union> eval ?r s @@ eval sol' s) = parikh_img (eval (subst eq ?upd) s)"
-    by simp
-  also from is_sol have "\<dots> \<subseteq> parikh_img (eval sol' s)" unfolding partial_sol_ineq_def by fast
-  finally have eq': "parikh_img (eval p s \<union> eval ?r s @@ eval sol' s) \<subseteq> parikh_img (eval sol' s)" .
-  then have star_eq: "parikh_img (star (eval ?r s) @@ eval p s) \<subseteq> parikh_img (eval sol' s)"
+  from is_sol sol'_s have is_sol': "parikh_img (eval q s @@ s x \<union> eval p s) \<subseteq> parikh_img (s x)"
+    unfolding solves_ineq_comm_def by simp
+  then have 1: "parikh_img (eval (Conc (Star q) p) s) \<subseteq> parikh_img (s x)"
     using parikh_img_arden by auto
 
-  from eq' have "parikh_img (eval p s) \<subseteq> parikh_img (eval sol' s)" by simp
-  then have "parikh_img (eval (if i = x then p else V i) s) \<subseteq>
-      parikh_img (eval (if i = x then sol' else V i) s)" for i by simp
-  then have "parikh_img (eval ?q_subst s) \<subseteq> parikh_img (eval ?r s)"
-    using parikh_img_subst_mono by meson
-  then have "parikh_img (star (eval ?q_subst s)) \<subseteq> parikh_img (star (eval ?r s))"
-    using parikh_star_mono by blast
-  then have "parikh_img (star (eval ?q_subst s) @@ eval p s) \<subseteq> parikh_img (star (eval ?r s) @@ eval p s)"
-    using parikh_conc_right_subset by blast
-  with star_eq show "parikh_img (eval sol s) \<subseteq> parikh_img (eval sol' s)" by simp
+  from is_sol' have "parikh_img (eval p s) \<subseteq> parikh_img (eval (V x) s)" by auto
+  then have "parikh_img (eval (subst q (V(x := p))) s) \<subseteq> parikh_img (eval q s)"
+    using parikh_img_subst_mono_upd by (metis fun_upd_triv subst_id)
+  then have "parikh_img (eval (Star (subst q (V(x := p)))) s) \<subseteq> parikh_img (eval (Star q) s)"
+    using parikh_star_mono by auto
+  then have "parikh_img (eval sol s) \<subseteq> parikh_img (eval (Conc (Star q) p) s)"
+    using parikh_conc_right_subset by (metis eval.simps(5))
+
+  with 1 show ?thesis by fast
 qed
 
 
+(* TODO: should not be needed, right? *)
 (* F(E)*E solves equation (3) from the paper (this time with =) *)
-lemma sol_is_sol_eq: "partial_sol_eq x eq sol"
+(*lemma sol_is_sol_eq: "partial_sol_eq x eq sol"
 unfolding partial_sol_eq_def proof
   fix s
 
@@ -604,90 +610,204 @@ unfolding partial_sol_eq_def proof
   let ?upd = "\<lambda>y. if y = x then sol else V y"
   let ?upd_subst = "\<lambda>y. if y = x then subst eq ?upd else V y"
 
-  from sol_indep_of_x x_not_in_p have sol_indep: "x \<notin> vars (subst eq ?upd)"
-    using vars_subst[of eq ?upd] by auto
-
   have "parikh_img (eval (subst eq ?upd_subst) s) \<subseteq> parikh_img (eval (subst eq ?upd) s)" for s
   proof -
     fix s
     from sol_is_sol_ineq have "parikh_img (eval (subst eq ?upd) s) \<subseteq> parikh_img (eval sol s)"
-      unfolding partial_sol_ineq_def by blast
+      unfolding partial_sol_ineq_def sorry (* by blast *)
     then show "parikh_img (eval (subst eq ?upd_subst) s) \<subseteq> parikh_img (eval (subst eq ?upd) s)"
       using parikh_img_subst_mono[of ?upd_subst s ?upd eq] by auto
   qed
   then have "partial_sol_ineq x eq (subst eq ?upd)" unfolding partial_sol_ineq_def by auto
   then have "parikh_img (eval sol s) \<subseteq> parikh_img (eval (subst eq ?upd) s)"
-    using sol_is_minimal[OF sol_indep] by blast
+    using sol_is_minimal by blast
   with sol_is_sol_ineq show "parikh_img (eval (subst eq ?upd) s) = parikh_img (eval sol s)"
     unfolding partial_sol_ineq_def by blast
-qed
+qed*)
 
 
-(* F(E)*E is the regular minimal solution of (3) *)
-lemma sol_is_minimal_reg_sol: "partial_min_reg_sol_eq x eq sol"
-  unfolding partial_min_reg_sol_eq_def
-  using sol_is_reg sol_indep_of_x sol_is_sol_eq sol_is_minimal
+lemma sol_is_minimal_reg_sol:
+  "regular_fun sol \<and> partial_min_sol_one_ineq x eq sol"
+  unfolding partial_min_sol_one_ineq_def
+  using sol_is_reg sol_vars sol_is_sol_ineq sol_is_minimal
   by blast
-
 
 end
 
 
-
 (* Given equation (2), there exists a regular minimal solution *)
 lemma exists_minimal_reg_sol:
-  assumes f_reg: "regular_fun f"
-  shows "\<exists>sol. partial_min_reg_sol_eq x f sol"
+  assumes eq_reg: "regular_fun eq"
+  shows "\<exists>sol. regular_fun sol \<and> partial_min_sol_one_ineq x eq sol"
 proof -
-  from regular_fun_regular_fun'[OF f_reg] obtain f'
-    where f'_intro: "regular_fun' x f' \<and> (\<forall>s. parikh_img (eval f s) = parikh_img (eval f' s))"
-    by blast
+  from regular_fun_regular_fun'[OF eq_reg] obtain eq'
+    where eq'_intro: "regular_fun' x eq' \<and> vars eq' = vars eq \<union> {x} \<and>
+                    (\<forall>s. parikh_img (eval eq s) = parikh_img (eval eq' s))" by blast
   then obtain p q
-    where p_q_intro: "regular_fun p \<and> regular_fun q \<and> f' = Union2 p (Conc q (V x)) \<and> x \<notin> vars p"
+    where p_q_intro: "regular_fun p \<and> regular_fun q \<and> eq' = Union2 p (Conc q (V x)) \<and> x \<notin> vars p"
     unfolding regular_fun'_def by blast
 
-  let ?sol = "Conc (Star (subst q (\<lambda>y. if y = x then p else V y))) p"
-  from p_q_intro have sol_prop: "partial_min_reg_sol_eq x f' ?sol"
+  let ?sol = "Conc (Star (subst q (V(x := p)))) p"
+  from p_q_intro have sol_prop: "regular_fun ?sol \<and> partial_min_sol_one_ineq x eq' ?sol"
     using of_form_regular_fun'.sol_is_minimal_reg_sol unfolding of_form_regular_fun'_def by blast
-  with f'_intro show ?thesis using same_min_reg_sol_if_same_parikh_img by blast
+  with eq'_intro have "partial_min_sol_one_ineq x eq ?sol"
+    using same_min_sol_if_same_parikh_img by blast
+  with sol_prop show ?thesis by blast
 qed
 
 
-
-(* Unfortunately, the proof is incomplete
-   An proof by induction will prove the theorem in Pilling's paper
-*)
-
-(* solve each equation step by step, reducing the variables one by one *)
 lemma exists_minimal_reg_sol_sys:
-  assumes eqs_reg:    "\<forall>eq \<in> set sys. regular_fun eq"
-      and r_valid:    "r \<le> length sys"
-    shows             "\<exists>sols. (\<forall>i<r. partial_min_reg_sol_eq i (sys ! i) (sols i)
-                              \<and> (\<forall>i\<ge>r. sols i = V i) \<and> (\<forall>y \<in> vars (sols i). y \<ge> r))"
+  assumes eqs_reg:   "\<forall>eq \<in> set sys. regular_fun eq"
+      and sys_valid: "\<forall>eq \<in> set sys. \<forall>x \<in> vars eq. x < length sys"
+      and r_valid:   "r \<le> length sys"   
+    shows            "\<exists>sols. partial_min_sol_ineq_sys r sys sols \<and> (\<forall>i. regular_fun (sols i))"
 using assms proof (induction r)
+  case 0
+  have "solution_ineq_sys (take 0 sys) V"
+    unfolding solution_ineq_sys_def solves_ineq_sys_comm_def by simp
+  then show ?case unfolding partial_min_sol_ineq_sys_def by auto
+next
   case (Suc r)
-  then obtain sols where sols_intro: "(\<forall>i<r. partial_min_reg_sol_eq i (sys ! i) (sols i)
-       \<and> (\<forall>i\<ge>r. sols i = V i) \<and> (\<forall>y \<in> vars (sols i). y \<ge> r))" by auto
+  then obtain sols where sols_intro: "partial_min_sol_ineq_sys r sys sols \<and> (\<forall>i. regular_fun (sols i))"
+    by auto
+  then have sols_r_V: "sols r = V r" unfolding partial_min_sol_ineq_sys_def by fast
+  then have sols_r_upd: "subst (sols r) (V(r := r')) = r'" for r' by fastforce
 
-  from sols_intro have sols_reg: "regular_fun (sols i)" for i sorry
+  let ?sys' = "sys_subst sys sols"
 
-  have "\<exists>sol_r. partial_min_reg_sol_eq r (sys ! r) sol_r \<and> (\<forall>y\<in>vars sol_r. y \<ge> Suc r)"
+  from eqs_reg Suc.prems have "regular_fun (sys ! r)" by simp
+  with sols_intro Suc.prems have sys_r_reg: "regular_fun (?sys' ! r)"
+    using subst_reg_fun[of "sys ! r"] sys_subst_subst[of r sys] by simp
+
+  then obtain sol_r where sol_r_intro:
+    "regular_fun sol_r \<and> partial_min_sol_one_ineq r (?sys' ! r) sol_r"
+    using exists_minimal_reg_sol by blast
+
+  let ?sols' = "\<lambda>i. subst (sols i) (V(r := sol_r))"
+  from sols_intro have sols'_r: "?sols' r = sol_r" unfolding partial_min_sol_ineq_sys_def by simp
+
+  from sol_r_intro sols_intro have "\<forall>i. regular_fun (?sols' i)"
+    using subst_reg_fun_update by fast
+
+  moreover have "partial_min_sol_ineq_sys (Suc r) sys ?sols'"
   proof -
-    let ?eq' = "subst (sys ! r) sols"
-    from sols_reg Suc.prems(2) have "regular_fun ?eq'"
-      by (simp add: Suc_le_lessD eqs_reg subst_reg_fun)
-    show "\<exists>sol_r. partial_min_reg_sol_eq r (sys ! r) sol_r \<and> (\<forall>y\<in>vars sol_r. y \<ge> Suc r)" sorry
+    have 1: "solution_ineq_sys (take (Suc r) sys) ?sols'"
+    unfolding solution_ineq_sys_def proof (rule allI, rule impI)
+      fix s
+      assume s_sols': "\<forall>x. s x = eval (?sols' x) s"
+
+      (* Proof sketch:
+         We know s x = eval (?sols' x) s, in particular s r = eval sol_r s
+         For x < r: s x = eval (?sols' x) s = eval (subst (sols x) V(r := sol_r)) s
+                        = eval (sols x) s(r := eval sol_r s) = eval (sols x) s(r := s r)
+                        = eval (sols x) s
+         by IH f.a. x < r: eval (sys ! x) s \<subseteq> s x
+         for r: s r \<supseteq> eval (?sys' ! r) s = eval (subst (sys ! r) sols) s
+                    = eval (sys ! r) (\<lambda>x. eval (sols x) s) = eval (sys ! r) s
+         thus ?sols' is a solution   q.e.d.
+      *)
+
+      from sols'_r s_sols' have s_r_sol_r: "s r = eval sol_r s" by simp
+      with s_sols' have s_sols: "s x = eval (sols x) s" for x
+        using substitution_lemma_update[of "sols x"] by (auto simp add: fun_upd_idem)
+      with sols_intro have solves_r_sys: "solves_ineq_sys_comm (take r sys) s"
+        unfolding partial_min_sol_ineq_sys_def solution_ineq_sys_def by meson
+      
+      have "eval (sys ! r) (\<lambda>y. eval (sols y) s) = eval (?sys' ! r) s"
+        using substitution_lemma[of "\<lambda>y. eval (sols y) s"]
+        by (simp add: Suc.prems(3) Suc_le_lessD sys_subst_subst)
+      with s_sols have "eval (sys ! r) s = eval (?sys' ! r) s"
+        by (metis (mono_tags, lifting) eval_vars)
+      with sol_r_intro s_r_sol_r have "parikh_img (eval (sys ! r) s) \<subseteq> parikh_img (s r)"
+        unfolding partial_min_sol_one_ineq_def partial_sol_ineq_def solves_ineq_comm_def by simp
+      with solves_r_sys show "solves_ineq_sys_comm (take (Suc r) sys) s"
+        unfolding solves_ineq_sys_comm_def solves_ineq_comm_def by (auto simp add: less_Suc_eq)
+    qed
+
+    have 2: "\<forall>sols2 s2. (\<forall>x. s2 x = eval (sols2 x) s2)
+                  \<and> solves_ineq_sys_comm (take (Suc r) sys) s2
+                  \<longrightarrow> (\<forall>i. parikh_img (eval (?sols' i) s2) \<subseteq> parikh_img (s2 i))"
+    proof (rule allI | rule impI)+
+      fix sols2 s2 i
+
+      (* Proof sketch
+         Assume solution_ineq_sys (take (Suc r) sys) sols2 (As.1) and
+            \<forall>i. \<forall>x \<in> vars (sols2 i). x > r \<and> x < length sys (As.2) and
+            \<forall>x. s' x = eval (sols2 x) s' (As.4) and
+         To show: \<forall>i \<le> r. eval (?sols' i) s' \<subseteq> s' i
+
+           From As.2 \<forall>i. \<forall>x \<in> vars (sols2 i). x \<ge> r \<and> x < length sys (1) follows immediately
+           We now show solution_ineq_sys (take r sys) sols2 (2):
+             Fix s' s.t. \<forall>x. s' x = eval (sols2 x) s'
+             By As.1 we have solves_ineq_sys_comm (take (Suc r) sys) sols2
+             i.e. f.a. i \<le> r: eval (sys ! i) s' \<subseteq> s' i
+             \<Longrightarrow> solves_ineq_sys_comm (take r sys) sols2
+           From As.4 s' x = eval (sols2 x) s' (4)
+           (1), (2) and (4) yield (by IH) \<forall>i < r. eval (sols i) s' \<subseteq> s' i
+           With \<forall>i \<ge> r. eval (sols i) s' = eval (V i) s' = s' i we have
+             \<forall>i. eval (sols i) s' \<subseteq> s' i (tmp)
+
+           We show eval solves_ineq_comm x (?sys' ! r) s'
+             From As.1 and As.4 we know eval (sys ! r) s' \<subseteq> s' r
+             Furthermore eval (?sys' ! r) s' = eval (subst (sys ! r) sols) s'
+               = eval (sys ! r) (\<lambda>i. eval (sols i) s') \<subseteq> (tmp) eval (sys ! r) s'
+             Thus eval (?sys' ! r) s' \<subseteq> s' r
+           with (As.4) we have by (sol_r_intro) eval sol_r s' \<subseteq> s' r (R)
+
+           Finally: \<forall>i. eval (?sols' i) s' = eval (subst (sols i) V(r := sol_r)) s'
+             = eval (sols i) s'(r := eval sol_r s') \<subseteq> (R) eval (sols i) s' \<subseteq> (tmp) s' i
+      *)
+
+      assume as: "(\<forall>x. s2 x = eval (sols2 x) s2) \<and> solves_ineq_sys_comm (take (Suc r) sys) s2"
+      then have "solves_ineq_sys_comm (take r sys) s2" unfolding solves_ineq_sys_comm_def by fastforce
+      with as sols_intro have sols_s2: "parikh_img (eval (sols i) s2) \<subseteq> parikh_img (s2 i)" for i
+        unfolding partial_min_sol_ineq_sys_def by auto
+
+      have "eval (?sys' ! r) s2 = eval (sys ! r) (\<lambda>i. eval (sols i) s2)"
+        unfolding sys_subst_def using substitution_lemma[where f="sys ! r"]
+        by (simp add: Suc.prems(3) Suc_le_lessD)
+      with sols_s2 have "parikh_img (eval (?sys' ! r) s2) \<subseteq> parikh_img (eval (sys ! r) s2)"
+        using lfun_mono_parikh[of "sys ! r"] by auto
+      with as have "solves_ineq_comm r (?sys' ! r) s2"
+        unfolding solves_ineq_sys_comm_def solves_ineq_comm_def using Suc.prems(3) by force
+      with as sol_r_intro have sol_r_min: "parikh_img (eval sol_r s2) \<subseteq> parikh_img (s2 r)"
+        unfolding partial_min_sol_one_ineq_def by blast
+
+      let ?s' = "s2(r := eval sol_r s2)"
+      from sol_r_min have "parikh_img (?s' i) \<subseteq> parikh_img (s2 i)" for i by simp
+      with sols_s2 show "parikh_img (eval (?sols' i) s2) \<subseteq> parikh_img (s2 i)"
+        using substitution_lemma_update[of "sols i"] lfun_mono_parikh[of "sols i" ?s' s2] by force
+    qed
+
+    from sols_intro have 3: "\<forall>i \<ge> Suc r. ?sols' i = V i"
+      unfolding partial_min_sol_ineq_sys_def by auto
+
+    from sols_intro have "\<forall>i < r. \<forall>x \<in> vars (sols i). x \<ge> r \<and> x < length sys"
+      unfolding partial_min_sol_ineq_sys_def by simp
+    with sols_intro have vars_sols: "\<forall>i < length sys. \<forall>x \<in> vars (sols i). x \<ge> r \<and> x < length sys"
+      unfolding partial_min_sol_ineq_sys_def by (metis empty_iff insert_iff leI vars.simps(1))
+    with sys_valid have "\<forall>x \<in> vars (subst (sys ! i) sols). x \<ge> r \<and> x < length sys" if "i < length sys" for i
+      using vars_subst[of "sys ! i" sols] that by (metis UN_E nth_mem)
+    then have "\<forall>x \<in> vars (?sys' ! i). x \<ge> r \<and> x < length sys" if "i < length sys" for i
+      unfolding sys_subst_def using Suc.prems(3) that by auto
+    moreover from sol_r_intro have "vars (sol_r) \<subseteq> vars (?sys' ! r) - {r}"
+      unfolding partial_min_sol_one_ineq_def by simp
+    ultimately have vars_sol_r: "\<forall>x \<in> vars sol_r. x > r \<and> x < length sys"
+      unfolding partial_min_sol_one_ineq_def using Suc.prems(3)
+      by (metis DiffE Suc_le_lessD insertCI nat_less_le subsetD)
+    moreover have "vars (?sols' i) \<subseteq> vars (sols i) - {r} \<union> vars sol_r" if "i < length sys" for i
+      using vars_subst_upd_upper by meson
+    ultimately have "\<forall>x \<in> vars (?sols' i). x > r \<and> x < length sys" if "i < length sys" for i
+      using vars_sols that by fastforce
+    with r_valid have 4: "\<forall>i < Suc r. \<forall>x \<in> vars (?sols' i). x \<ge> Suc r \<and> x < length sys"
+      by (meson Suc.prems(3) Suc_le_eq dual_order.strict_trans1)
+
+    from 1 2 3 4 show "partial_min_sol_ineq_sys (Suc r) sys ?sols'"
+      unfolding partial_min_sol_ineq_sys_def by blast
   qed
-
-  then show ?case sorry
-qed simp
-
-
-(* Now, the partial solutions must be substituted, this time backwards.
-   Unfortunately, this part is missing.
-   The connections to CFGs and the actual Parikh theorem is also missing
- *)
-
+ 
+  ultimately show ?case by blast
+qed
 
 
 end

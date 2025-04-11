@@ -81,14 +81,41 @@ lemma parikh_star_mono_eq:
 
 lemma parikh_img_subst_mono:
   assumes "\<forall>i. parikh_img (eval (A i) s) \<subseteq> parikh_img (eval (B i) s)"
-  shows "parikh_img (eval (subst f (\<lambda>i. A i)) s) \<subseteq> parikh_img (eval (subst f (\<lambda>i. B i)) s)"
+  shows "parikh_img (eval (subst f A) s) \<subseteq> parikh_img (eval (subst f B) s)"
   sorry
+
+lemma parikh_img_subst_mono_upd:
+  assumes "parikh_img (eval A s) \<subseteq> parikh_img (eval B s)"
+  shows "parikh_img (eval (subst f (V(x := A))) s) \<subseteq> parikh_img (eval (subst f (V(x := B))) s)"
+  using parikh_img_subst_mono[of "V(x := A)" s "V(x := B)"] assms by auto
 
 lemma parikh_img_subst_mono_eq:
   assumes "\<forall>i. parikh_img (eval (A i) s) = parikh_img (eval (B i) s)"
   shows "parikh_img (eval (subst f (\<lambda>i. A i)) s) = parikh_img (eval (subst f (\<lambda>i. B i)) s)"
   using parikh_img_subst_mono assms by blast
 
+lemma lfun_mono_parikh:
+  assumes "\<forall>i \<in> vars f. parikh_img (s i) \<subseteq> parikh_img (s' i)"
+  shows "parikh_img (eval f s) \<subseteq> parikh_img (eval f s')"
+  using assms proof (induction rule: lfun.induct)
+  case (V x)
+  then show ?case by auto
+next
+  case (N x)
+  then show ?case by auto
+next
+  case (Union2 x1a x2a)
+  then show ?case by auto
+next
+  case (UnionC x)
+  then show ?case sorry
+next
+  case (Conc x1a x2a)
+  then show ?case sorry
+next
+  case (Star x)
+  then show ?case sorry
+qed
 
 
 section \<open>(E\<union>F)* and E*F* have the same Parikh image\<close>

@@ -1949,7 +1949,7 @@ proof(induction ys arbitrary: q x)
   then show ?case by simp
 next
   case (Cons a ys)
-  then show ?case using nextl_garbage by (smt (verit, ccfv_threshold) local.aut.nextl.simps(2) local.succNext.elims local.succNext.simps(2) select_convs(4))
+  then show ?case using nextl_garbage by (smt (verit) Chomsky_Schuetzenberger.successivelyConstruction.succNext.elims Finite_Automata_Not_HF.dfa'.select_convs(4) local.aut.nextl.simps(2) local.succNext.simps(2) successivelyConstruction_axioms)
 qed
 
 
@@ -2016,7 +2016,8 @@ qed
 
 
 
-lemma aut_language_reg: \<open>regular aut.language\<close> using dfa_aut regular_dfa'_lang by auto
+lemma aut_language_reg: \<open>regular aut.language\<close> using dfa'_imp_regular dfa_aut by blast
+
 
 
 corollary regular_successively_inter_brackets: \<open>regular {xs. successively Q xs \<and>  xs \<in> brackets P}\<close> using aut_language_reg aut_lang_iff_succ_Q by auto
@@ -2169,7 +2170,7 @@ next
   case (snoc x xs)
   then have \<open>(xs @ [x] \<notin> brackets P) \<longleftrightarrow> (xs \<notin> brackets P \<or> [x] \<notin> brackets P)\<close> by auto
   moreover have \<open>(p1_aut.nextl last_ok (xs@[x]) = garbage) \<longleftrightarrow> (p1_aut.nextl last_ok xs = garbage) \<or> ((p1_aut.nextl last_ok (xs @ [x]) = garbage) \<and> (p1_aut.nextl last_ok (xs) \<noteq> garbage))\<close> by auto
-  ultimately show ?case using snoc by (smt (verit, del_insts) brackets'E2 brackets'I list_all_simps(1,2) local.P1_State.exhaust local.P1_State.simps(3,5) local.nxt.simps(2,3) local.p1_aut.nextl_snoc mem_Collect_eq prod_cases3 select_convs(4)) 
+  ultimately show ?case using snoc by (smt (verit, del_insts) Chomsky_Schuetzenberger.P1Construction.nxt.elims Finite_Automata_Not_HF.dfa'.select_convs(4) P1Construction_axioms brackets'D1 brackets'I list_all_simps(1,2) local.P1_State.distinct(4,6) local.p1_aut.nextl_snoc mem_Collect_eq)
 qed
 
 
@@ -2221,7 +2222,7 @@ proof-
   show ?thesis using regular_successively_inter_brackets by blast
 qed
 
-lemma aut_language_reg: \<open>regular p1_aut.language\<close> using dfa_p1_aut regular_dfa'_lang by blast
+lemma aut_language_reg: \<open>regular p1_aut.language\<close> using dfa'_imp_regular dfa_p1_aut by blast
 
 
 corollary aux_regular: \<open>regular {xs. xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P)}\<close> using lang_descr aut_language_reg p1_aut.language_def by simp
@@ -2369,14 +2370,14 @@ proof(induction xs rule: rev_induct)
       case False
       then have \<open>p5_aut.nextl start xs = garbage\<close> unfolding p5_aut.language_def using first_ok_iff[of xs] Cons by auto
       then have \<open>p5_aut.nextl start (xs@[x]) = garbage\<close> by simp
-      then show ?thesis using IH unfolding xs_eq by (metis Cons_eq_appendI False List.list.distinct(1) List.list.sel(1) list_all_append local.P5_State.simps(6) local.p5_aut.language_def mem_Collect_eq select_convs(2,3) singleton_iff xs_eq) 
+      then show ?thesis using IH unfolding xs_eq by (smt (verit, ccfv_threshold) Cons_eq_append_conv False Finite_Automata_Not_HF.dfa'.select_convs(2,3) List.list.sel(1) list_all_append local.P5_State.simps(5) local.p5_aut.language_def mem_Collect_eq neq_Nil_conv singleton_conv2 singleton_iff xs_eq)
     qed
   qed
 qed simp
 
 lemma in_P5_iff: \<open>P5 A xs \<and> xs \<in> brackets P \<longleftrightarrow> (xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets P)\<close> apply auto by (metis List.list.exhaust_sel Chomsky_Schuetzenberger.P5.simps(2) local.ok.elims(2))
 
-lemma aut_language_reg: \<open>regular p5_aut.language\<close> using dfa_p5_aut regular_dfa'_lang by blast
+lemma aut_language_reg: \<open>regular p5_aut.language\<close> using dfa'_imp_regular dfa_p5_aut by blast
 
 corollary aux_regular: \<open>regular {xs. xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets P}\<close> using lang_descr aut_language_reg p5_aut.language_def by simp
 

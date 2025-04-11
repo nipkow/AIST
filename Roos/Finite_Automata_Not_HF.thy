@@ -216,7 +216,7 @@ proof-
 qed
 
 
-corollary
+corollary regular_dfa'_lang:
 fixes M' :: \<open>('a, 'b) dfa'\<close>
 assumes dfa'_M': \<open>dfa' M'\<close>
 shows \<open>regular (dfa'.language M')\<close> using ex_hf_M using dfa'_M' regular_def by fastforce

@@ -2016,7 +2016,7 @@ qed
 
 
 
-lemma aut_language_reg: \<open>regular aut.language\<close> by (metis dfa_aut ex_hf_M regular_def)
+lemma aut_language_reg: \<open>regular aut.language\<close> using dfa_aut regular_dfa'_lang by auto
 
 
 corollary regular_successively_inter_brackets: \<open>regular {xs. successively Q xs \<and>  xs \<in> brackets P}\<close> using aut_language_reg aut_lang_iff_succ_Q by auto
@@ -2221,7 +2221,8 @@ proof-
   show ?thesis using regular_successively_inter_brackets by blast
 qed
 
-lemma aut_language_reg: \<open>regular p1_aut.language\<close> by (metis dfa_p1_aut ex_hf_M regular_def)
+lemma aut_language_reg: \<open>regular p1_aut.language\<close> using dfa_p1_aut regular_dfa'_lang by blast
+
 
 corollary aux_regular: \<open>regular {xs. xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P)}\<close> using lang_descr aut_language_reg p1_aut.language_def by simp
 
@@ -2375,7 +2376,7 @@ qed simp
 
 lemma in_P5_iff: \<open>P5 A xs \<and> xs \<in> brackets P \<longleftrightarrow> (xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets P)\<close> apply auto by (metis List.list.exhaust_sel Chomsky_Schuetzenberger.P5.simps(2) local.ok.elims(2))
 
-lemma aut_language_reg: \<open>regular p5_aut.language\<close> by (metis dfa_p5_aut ex_hf_M regular_def)
+lemma aut_language_reg: \<open>regular p5_aut.language\<close> using dfa_p5_aut regular_dfa'_lang by blast
 
 corollary aux_regular: \<open>regular {xs. xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets P}\<close> using lang_descr aut_language_reg p5_aut.language_def by simp
 

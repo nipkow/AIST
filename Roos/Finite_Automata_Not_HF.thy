@@ -1,5 +1,5 @@
 theory Finite_Automata_Not_HF
-imports Main HereditarilyFinite.Ordinal "$AFP/Finite_Automata_HF/Finite_Automata_HF"
+  imports Main HereditarilyFinite.Ordinal "$AFP/Finite_Automata_HF/Finite_Automata_HF"
 begin
 
 
@@ -16,16 +16,16 @@ TODO: rename locales.\<close>
 
 text\<open>First, the record for DFAs\<close>
 record ('a, 'b) dfa' = states :: "'b set"
-                init   :: "'b"
-                final  :: "'b set"
-                nxt    :: "'b \<Rightarrow> 'a \<Rightarrow> 'b"
+  init   :: "'b"
+  final  :: "'b set"
+  nxt    :: "'b \<Rightarrow> 'a \<Rightarrow> 'b"
 
 locale dfa' =
   fixes M :: "('a, 'b) dfa'"
   assumes init [simp]: "init M \<in> states M"
-      and final:       "final M \<subseteq> states M"
-      and nxt:         "\<And>q x. q \<in> states M \<Longrightarrow> nxt M q x \<in> states M"
-      and finite:      "finite (states M)"
+    and final:       "final M \<subseteq> states M"
+    and nxt:         "\<And>q x. q \<in> states M \<Longrightarrow> nxt M q x \<in> states M"
+    and finite:      "finite (states M)"
 
 begin
 
@@ -34,8 +34,8 @@ lemma finite_final [simp]: "finite (final M)"
 
 text\<open>Transition function for a given starting state and word.\<close>
 primrec nextl :: "['b, 'a list] \<Rightarrow> 'b" where
-    "nextl q []     = q"
-  | "nextl q (x#xs) = nextl (nxt M q x) xs"
+  "nextl q []     = q"
+| "nextl q (x#xs) = nextl (nxt M q x) xs"
 
 definition language :: "'a list set"  where
   "language \<equiv> {xs. nextl (init M) xs \<in> final M}"
@@ -93,14 +93,14 @@ end
 
 
 lemma embed_finite_to_hf:
-fixes B::\<open>'b set\<close>
-assumes \<open>finite B\<close>
-shows \<open>\<exists>(f:: 'b \<Rightarrow> hf).  inj_on f B  \<close>
+  fixes B::\<open>'b set\<close>
+  assumes \<open>finite B\<close>
+  shows \<open>\<exists>(f:: 'b \<Rightarrow> hf).  inj_on f B  \<close>
 proof-
-from \<open>finite B\<close> obtain f_inv1::\<open>nat \<Rightarrow> 'b\<close> and n::nat where \<open>B = f_inv1 ` {i. i < n} \<and> inj_on f_inv1 {i. i < n}\<close>  using finite_imp_nat_seg_image_inj_on by fastforce
-then obtain f1::\<open>'b \<Rightarrow> nat\<close> where \<open>(\<forall>x \<in> B. f_inv1 (f1 x) = x) \<and> (\<forall>x \<in> (f1 ` B). f1 (f_inv1 x) = x)\<close> by (metis (lifting) f_the_inv_into_f the_inv_into_f_f the_inv_into_onto)
-then have \<open>inj_on (ord_of o f1) B\<close> by (metis comp_inj_on inj_on_def inj_ord_of)
-then show ?thesis by blast
+  from \<open>finite B\<close> obtain f_inv1::\<open>nat \<Rightarrow> 'b\<close> and n::nat where \<open>B = f_inv1 ` {i. i < n} \<and> inj_on f_inv1 {i. i < n}\<close>  using finite_imp_nat_seg_image_inj_on by fastforce
+  then obtain f1::\<open>'b \<Rightarrow> nat\<close> where \<open>(\<forall>x \<in> B. f_inv1 (f1 x) = x) \<and> (\<forall>x \<in> (f1 ` B). f1 (f_inv1 x) = x)\<close> by (metis (lifting) f_the_inv_into_f the_inv_into_f_f the_inv_into_onto)
+  then have \<open>inj_on (ord_of o f1) B\<close> by (metis comp_inj_on inj_on_def inj_ord_of)
+  then show ?thesis by blast
 qed
 
 
@@ -108,11 +108,11 @@ qed
 
 
 locale embed_dfa = 
-fixes M' :: \<open>('a, 'b) dfa'\<close>
-and f:: \<open>'b \<Rightarrow> hf\<close>
+  fixes M' :: \<open>('a, 'b) dfa'\<close>
+    and f:: \<open>'b \<Rightarrow> hf\<close>
 
 assumes dfa'_M': \<open>dfa' M'\<close>
-and \<open>inj_on f (states M')\<close>
+  and \<open>inj_on f (states M')\<close>
 
 begin
 
@@ -120,10 +120,10 @@ begin
 
 
 abbreviation f_inv where 
-\<open>f_inv \<equiv> the_inv_into (states M') f\<close>
+  \<open>f_inv \<equiv> the_inv_into (states M') f\<close>
 
 abbreviation hf_M' where
-\<open>hf_M' \<equiv>  \<lparr>dfa.states = f ` (states M'),
+  \<open>hf_M' \<equiv>  \<lparr>dfa.states = f ` (states M'),
                 init  = f (init M'),
                 final = f ` (final M'),
                 nxt   = \<lambda>q x. f( nxt M' (f_inv q) x) \<rparr>\<close>
@@ -190,7 +190,7 @@ qed
 
 
 lemma M'_lang_eq_hf_M'_lang: \<open>M'.language = hf_M'.language\<close>
-unfolding M'.language_def hf_M'.language_def by (metis M'.init dfa.select_convs(2) f_in_final f_inv_f_init f_inv_in_final hf_M'.init nextl_M'_f_inv nextl_hf_M'_f)
+  unfolding M'.language_def hf_M'.language_def by (metis M'.init dfa.select_convs(2) f_in_final f_inv_f_init f_inv_in_final hf_M'.init nextl_M'_f_inv nextl_hf_M'_f)
 
 
 end
@@ -198,9 +198,9 @@ end
 
 
 corollary ex_hf_M:
-fixes M' :: \<open>('a, 'b) dfa'\<close>
-assumes dfa'_M': \<open>dfa' M'\<close>
-shows \<open>\<exists>hf_M'. dfa hf_M' \<and> dfa'.language M' = dfa.language hf_M'\<close> 
+  fixes M' :: \<open>('a, 'b) dfa'\<close>
+  assumes dfa'_M': \<open>dfa' M'\<close>
+  shows \<open>\<exists>hf_M'. dfa hf_M' \<and> dfa'.language M' = dfa.language hf_M'\<close> 
 proof-
   interpret M': dfa' M' using dfa'_M' by simp
   have \<open>finite (dfa'.states M')\<close> by (simp add: M'.finite) 
@@ -217,9 +217,9 @@ qed
 
 
 corollary regular_dfa'_lang:
-fixes M' :: \<open>('a, 'b) dfa'\<close>
-assumes dfa'_M': \<open>dfa' M'\<close>
-shows \<open>regular (dfa'.language M')\<close> using ex_hf_M using dfa'_M' regular_def by fastforce
+  fixes M' :: \<open>('a, 'b) dfa'\<close>
+  assumes dfa'_M': \<open>dfa' M'\<close>
+  shows \<open>regular (dfa'.language M')\<close> using ex_hf_M using dfa'_M' regular_def by fastforce
 
 
 

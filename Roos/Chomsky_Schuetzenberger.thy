@@ -103,7 +103,7 @@ abbreviation close_bracket2' :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> b
 
 
 text\<open>definition of what it means to be a balanced string with letters of type \<open>bracket \<times> ('a)\<close> \<close>
-inductive bal :: "(bracket  \<times> ('a)) list \<Rightarrow> bool" where
+inductive bal :: "(bracket  \<times> 'a) list \<Rightarrow> bool" where
   "bal []" |
   "bal xs \<Longrightarrow> bal ys \<Longrightarrow> bal (xs @ ys)" | 
   "bal xs \<Longrightarrow> bal ((Op, g) # xs @ [(Cl, g)])" 

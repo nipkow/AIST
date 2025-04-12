@@ -1,7 +1,7 @@
 theory Lfun
   imports 
-    "$AFP/Regular-Sets/Regular_Set"
-    "$AFP/Regular-Sets/Regular_Exp"
+    "Regular-Sets.Regular_Set"
+    "Regular-Sets.Regular_Exp"
 begin
 
 
@@ -161,7 +161,7 @@ proof -
   from assms(2) obtain n where n_intro: "w \<in> eval f (s n)" by auto
   have "s n x \<subseteq> (\<Union>i. s i x)" for x by auto
   with n_intro show "?thesis"
-    using lfun_mono_aux[of "s n" "\<lambda>x. \<Union>i. s i x"] by auto
+    using lfun_mono_aux[where s="s n" and s'="\<lambda>x. \<Union>i. s i x"] by auto
 qed
 
 lemma langpow_Union_eval:

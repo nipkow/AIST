@@ -4,8 +4,8 @@ theory Pilling
     "../CFL"
     "./Lfun"
     "./Parikh_Img"
-    "$AFP/Regular-Sets/Regular_Set"
-    "$AFP/Regular-Sets/Regular_Exp"
+    "Regular-Sets.Regular_Set"
+    "Regular-Sets.Regular_Exp"
 begin
 
 

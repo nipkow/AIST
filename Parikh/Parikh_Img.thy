@@ -15,7 +15,7 @@ abbreviation parikh_vec where
 
 (* Parikh image for a given language *)
 definition parikh_img :: "'a lang \<Rightarrow> 'a multiset set" where
-  "parikh_img L \<equiv> { parikh_vec w | w. w \<in> L }"
+  "parikh_img L \<equiv> parikh_vec ` L"
 
 (* TODO: really necessary? *)
 definition subseteq_comm :: "'t lang \<Rightarrow> 't lang \<Rightarrow> bool" where

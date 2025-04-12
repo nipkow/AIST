@@ -290,6 +290,7 @@ lemma subst_reg_fun_update:
   using assms subst_reg_fun fun_upd_def by (metis Variable)
 
 
+(* TODO: this lemma should include parikh_img, shouldn't it? *)
 (* f(Y*Z, X\<^sub>1, \<dots>, X\<^sub>m) = Y* f(Z, X\<^sub>1, \<dots>, X\<^sub>m) if f is a regular function
 
   Pilling's paper shows "=", but needs an additional assumption and I don't unterstand how
@@ -321,6 +322,7 @@ next
 qed
 
 
+(* TODO: this lemma should include parikh_img, shouldn't it? *)
 lemma reg_fun_homogeneous:
   assumes "regular_fun f"
       and "regular_fun y"
@@ -336,6 +338,7 @@ proof -
   finally show ?thesis .
 qed
 
+(* TODO: this lemma should include parikh_img, shouldn't it? *)
 (* reformulate previous lemma with regular functions as arguments instead of languages *)
 lemma reg_fun_homogeneous2:
   assumes "regular_fun f"
@@ -353,5 +356,22 @@ proof -
   finally show ?thesis .
 qed
 
+
+section \<open>Constant functions\<close>
+
+abbreviation const_fun :: "'a lfun \<Rightarrow> bool" where
+  "const_fun f \<equiv> vars f = {}"
+
+lemma const_fun_lang: "const_fun f \<Longrightarrow> \<exists>l. \<forall>s. eval f s = l"
+proof (induction f)
+  case (UnionC x)
+  then show ?case by (metis emptyE eval_vars)
+qed auto
+
+lemma const_fun_regular_lang:
+  assumes "const_fun f"
+      and "regular_fun f"
+    shows "\<exists>l. regular_lang l \<and> (\<forall>s. eval f s = l)"
+  using assms const_fun_lang regular_fun_regular by fastforce
 
 end

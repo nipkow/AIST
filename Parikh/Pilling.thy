@@ -4,142 +4,10 @@ theory Pilling
     "../CFL"
     "./Lfun"
     "./Parikh_Img"
+    "./Eq_Sys"
     "Regular-Sets.Regular_Set"
     "Regular-Sets.Regular_Exp"
 begin
-
-
-section \<open>systems of equations\<close>
-
-(* We just represent the right hand sides *)
-type_synonym 'a eq_sys = "'a lfun list"
-
-(* sys independent on variables \<le> n *)
-definition indep_ub :: "'a eq_sys \<Rightarrow> nat \<Rightarrow> bool" where
-  "indep_ub sys n \<equiv> \<forall>eq \<in> set sys. \<forall>x \<in> vars eq. x > n"
-
-(* sys independent on variables \<ge> n *)
-definition indep_lb :: "'a eq_sys \<Rightarrow> nat \<Rightarrow> bool" where
-  "indep_lb sys n \<equiv> \<forall>eq \<in> set sys. \<forall>x \<in> vars eq. x < n"
-
-(* solves equation with \<subseteq> *)
-definition solves_ineq_sys :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow> bool" where
-  "solves_ineq_sys sys s \<equiv> \<forall>i < length sys. eval (sys ! i) s \<subseteq> s i"
-
-(* solves equation with = *)
-definition solves_eq_sys :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow> bool" where
-  "solves_eq_sys sys s \<equiv> \<forall>i < length sys. eval (sys ! i) s = s i"
-
-(* solves equation with \<subseteq>, only caring about the Parikh image *)
-definition solves_ineq_comm :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a state \<Rightarrow> bool" where
-  "solves_ineq_comm x eq s \<equiv> parikh_img (eval eq s) \<subseteq> parikh_img (s x)"
-
-(* solves equation system with \<subseteq>, only caring about the Parikh image *)
-definition solves_ineq_sys_comm :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow> bool" where
-  "solves_ineq_sys_comm sys s \<equiv> \<forall>i < length sys. solves_ineq_comm i (sys ! i) s"
-
-(* solves equation with =, only caring about the Parikh image*)
-definition solves_eq_comm :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a state \<Rightarrow> bool" where
-  "solves_eq_comm x eq s \<equiv> parikh_img (eval eq s) = parikh_img (s x)"
-
-(* solves equation system with =, only caring about the Parikh image *)
-definition solves_eq_sys_comm :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow> bool" where
-  "solves_eq_sys_comm sys s \<equiv> \<forall>i < length sys. solves_eq_comm i (sys ! i) s"
-
-(* Substituion into each equation of a system *)
-definition sys_subst :: "'a eq_sys \<Rightarrow> (nat \<Rightarrow> 'a lfun) \<Rightarrow> 'a eq_sys" where
-  "sys_subst sys s \<equiv> map (\<lambda>eq. subst eq s) sys"
-
-definition partial_sol_ineq :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a lfun \<Rightarrow> bool" where
-  "partial_sol_ineq x eq sol \<equiv> \<forall>s. s x = eval sol s \<longrightarrow> solves_ineq_comm x eq s"
-
-definition solution_ineq_sys :: "'a eq_sys \<Rightarrow> (nat \<Rightarrow> 'a lfun) \<Rightarrow> bool" where
-  "solution_ineq_sys sys sols \<equiv> \<forall>s. (\<forall>x. s x = eval (sols x) s) \<longrightarrow> solves_ineq_sys_comm sys s"
-
-definition partial_min_sol_ineq_sys :: "nat \<Rightarrow> 'a eq_sys \<Rightarrow> (nat \<Rightarrow> 'a lfun) \<Rightarrow> bool" where
-  "partial_min_sol_ineq_sys n sys sols \<equiv>
-    solution_ineq_sys (take n sys) sols \<and>
-    (\<forall>i \<ge> n. sols i = V i) \<and>
-    (\<forall>i < n. \<forall>x \<in> vars (sols i). x \<ge> n \<and> x < length sys) \<and>
-    (\<forall>sols' s'. (\<forall>x. s' x = eval (sols' x) s')
-                  \<and> solves_ineq_sys_comm (take n sys) s'
-                  \<longrightarrow> (\<forall>i. parikh_img (eval (sols i) s') \<subseteq> parikh_img (s' i)))"
-
-
-definition partial_min_sol_one_ineq :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a lfun \<Rightarrow> bool" where
-  "partial_min_sol_one_ineq x eq sol \<equiv>
-    partial_sol_ineq x eq sol \<and>
-    vars sol \<subseteq> vars eq - {x} \<and>
-    (\<forall>sol' s'. solves_ineq_comm x eq s' \<and> s' x = eval sol' s'
-               \<longrightarrow> parikh_img (eval sol s') \<subseteq> parikh_img (s' x))"
-
-definition min_sol_ineq_sys :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow> bool" where
-  "min_sol_ineq_sys sys sol \<equiv>
-    solves_ineq_sys_comm sys sol \<and>
-    (\<forall>sol'. solves_ineq_sys_comm sys sol' \<longrightarrow> (\<forall>x. parikh_img (sol x) \<subseteq> parikh_img (sol' x)))"
-
-(* TODO: currently unused *)
-definition partial_sol_eq :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a lfun \<Rightarrow> bool" where
-  "partial_sol_eq x eq sol \<equiv> \<forall>s. s x = eval sol s \<longrightarrow> solves_eq_comm x eq s"
-
-
-lemma partial_sol_ineqI:
-  assumes "\<And>s. s x = eval sol s \<Longrightarrow> parikh_img (eval (subst eq (V(x := sol))) s) \<subseteq> parikh_img (s x)"
-    shows "partial_sol_ineq x eq sol"
-unfolding partial_sol_ineq_def solves_ineq_comm_def proof (rule allI, rule impI)
-  fix s
-  assume x_is_sol: "s x = eval sol s"
-
-  from x_is_sol have "s = s(x := eval sol s)" using fun_upd_triv by metis
-  then have "eval eq s = eval (subst eq (V(x := sol))) s"
-    using substitution_lemma_update[of eq] by simp
-  with assms x_is_sol show "parikh_img (eval eq s) \<subseteq> parikh_img (s x)" by simp
-qed
-
-
-lemma partial_sol_eqI:
-  assumes "\<And>s. s x = eval sol s \<Longrightarrow> parikh_img (eval (subst eq (V(x := sol))) s) = parikh_img (s x)"
-    shows "partial_sol_eq x eq sol"
-unfolding partial_sol_eq_def solves_eq_comm_def proof (rule allI, rule impI)
-  fix s
-  assume x_is_sol: "s x = eval sol s"
-  
-  from x_is_sol have "s = s(x := eval sol s)" using fun_upd_triv by metis
-  then have "eval eq s = eval (subst eq (V(x := sol))) s"
-    using substitution_lemma_update[of eq] by simp
-  with assms x_is_sol show "parikh_img (eval eq s) = parikh_img (s x)" by simp
-qed
-
-
-lemma sys_subst_subst:
-  assumes "i < length sys"
-  shows "(sys_subst sys s) ! i = subst (sys ! i) s"
-  unfolding sys_subst_def by (simp add: assms)
-
-
-(* TODO: currently unused *)
-lemma sol_Suc_n_sol_n:
-  assumes "solution_ineq_sys (take (Suc n) sys) sols"
-  shows "solution_ineq_sys (take n sys) sols"
-  using assms unfolding solution_ineq_sys_def solves_ineq_sys_comm_def by auto
-
-
-lemma same_min_sol_if_same_parikh_img:
-  assumes same_parikh_img: "\<forall>s. parikh_img (eval f s) = parikh_img (eval g s)"
-      and same_vars:       "vars f - {x} = vars g - {x}"
-      and minimal_sol:     "partial_min_sol_one_ineq x f sol"
-    shows                  "partial_min_sol_one_ineq x g sol"
-proof -
-  from minimal_sol have "vars sol \<subseteq> vars g - {x}"
-    unfolding partial_min_sol_one_ineq_def using same_vars by blast
-  moreover from same_parikh_img minimal_sol have "partial_sol_ineq x g sol"
-    unfolding partial_min_sol_one_ineq_def partial_sol_ineq_def solves_ineq_comm_def by simp
-  moreover from same_parikh_img minimal_sol have "\<forall>sol' s'. solves_ineq_comm x g s' \<and> s' x = eval sol' s'
-               \<longrightarrow> parikh_img (eval sol s') \<subseteq> parikh_img (s' x)"
-    unfolding partial_min_sol_one_ineq_def solves_ineq_comm_def by blast
-  ultimately show ?thesis unfolding partial_min_sol_one_ineq_def by fast
-qed
-
 
 
 section \<open>The lemma from Pilling's paper\<close>
@@ -316,14 +184,14 @@ qed
 (* The lemma from Pilling's paper *)
 lemma lemma_paper:
   assumes "\<forall>eq \<in> set f_sys. regular_fun eq"
-    shows "\<exists>g_sys. length g_sys = length f_sys \<and> indep_ub g_sys (length f_sys - 1)
+    shows "\<exists>g_sys. length g_sys = length f_sys \<and> indep_leq g_sys (length f_sys - 1)
                 \<and> (\<forall>s. solves_ineq_sys f_sys s \<longrightarrow> solves_ineq_sys g_sys s)
                 \<and> (\<forall>s. solves_eq_sys g_sys s \<longrightarrow> solves_eq_sys f_sys s)"
 proof -
   let ?g_sys = "map (\<lambda>i. g f_sys i) [0..<length f_sys]"
   have length_g_sys: "length ?g_sys = length f_sys" by auto
-  have indep_g_sys: "indep_ub ?g_sys (length f_sys - 1)"
-    unfolding indep_ub_def using g_indep by fastforce
+  have indep_g_sys: "indep_leq ?g_sys (length f_sys - 1)"
+    unfolding indep_leq_def using g_indep by fastforce
 
   have "\<lbrakk> i < length f_sys; solves_ineq_sys f_sys s \<rbrakk> \<Longrightarrow> eval (?g_sys ! i) s \<subseteq> s i" for s i
     using solves_g_if_solves_f_ineq solves_ineq_sys_def by fastforce
@@ -656,7 +524,7 @@ proof -
 qed
 
 
-lemma exists_minimal_reg_sol_sys:
+lemma exists_minimal_reg_sol_sys_aux:
   assumes eqs_reg:   "\<forall>eq \<in> set sys. regular_fun eq"
       and sys_valid: "\<forall>eq \<in> set sys. \<forall>x \<in> vars eq. x < length sys"
       and r_valid:   "r \<le> length sys"   
@@ -807,6 +675,50 @@ next
   qed
  
   ultimately show ?case by blast
+qed
+
+
+lemma exists_minimal_reg_sol_sys:
+  assumes eqs_reg:   "\<forall>eq \<in> set sys. regular_fun eq"
+      and sys_valid: "\<forall>eq \<in> set sys. \<forall>x \<in> vars eq. x < length sys"
+    shows            "\<exists>sols. min_sol_ineq_sys sys sols \<and> (\<forall>i. regular_lang (sols i))"
+proof -
+  from eqs_reg sys_valid have
+    "\<exists>sols. partial_min_sol_ineq_sys (length sys) sys sols \<and> (\<forall>i. regular_fun (sols i))"
+    using exists_minimal_reg_sol_sys_aux by blast
+  then obtain sols where
+    sols_intro: "partial_min_sol_ineq_sys (length sys) sys sols \<and> (\<forall>i. regular_fun (sols i))"
+    by blast
+  then have "const_fun (sols i)" if "i < length sys" for i
+    using that unfolding partial_min_sol_ineq_sys_def by (meson equals0I leD)
+  with sols_intro have "\<exists>l. regular_lang l \<and> (\<forall>s. eval (sols i) s = l)" if "i < length sys" for i
+    using that const_fun_regular_lang by metis
+  then obtain ls where ls_intro: "\<forall>i < length sys. regular_lang (ls i) \<and> (\<forall>s. eval (sols i) s = ls i)"
+    by metis
+
+  let ?ls' = "\<lambda>i. if i < length sys then ls i else {}"
+  from ls_intro have ls'_intro:
+    "(\<forall>i < length sys. regular_lang (?ls' i) \<and> (\<forall>s. eval (sols i) s = ?ls' i))
+     \<and> (\<forall>i \<ge> length sys. ?ls' i = {})" by force
+  then have ls'_regular: "regular_lang (?ls' i)" for i by (meson lang.simps(1))
+
+  from ls'_intro sols_intro have "solves_ineq_sys_comm sys ?ls'"
+    unfolding partial_min_sol_ineq_sys_def solution_ineq_sys_def
+    by (smt (verit) eval.simps(1) linorder_not_less nless_le take_all_iff)
+  moreover have "\<forall>sol'. solves_ineq_sys_comm sys sol' \<longrightarrow> (\<forall>x. parikh_img (?ls' x) \<subseteq> parikh_img (sol' x))"
+  proof (rule allI, rule impI)
+    fix sol' x
+    assume as: "solves_ineq_sys_comm sys sol'"
+
+    let ?sol_funs = "\<lambda>i. N (sol' i)"
+    from as have "solves_ineq_sys_comm (take (length sys) sys) sol'" by simp
+    moreover have "sol' x = eval (?sol_funs x) sol'" for x by simp
+    ultimately show "\<forall>x. parikh_img (?ls' x) \<subseteq> parikh_img (sol' x)"
+      using sols_intro unfolding partial_min_sol_ineq_sys_def
+      by (smt (verit) empty_subsetI eval.simps(1) ls'_intro parikh_img_mono)
+  qed
+  ultimately have "min_sol_ineq_sys sys ?ls'" unfolding min_sol_ineq_sys_def by blast
+  with ls'_regular show ?thesis by blast
 qed
 
 

@@ -66,6 +66,10 @@ definition partial_min_sol_one_ineq :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 
 
 definition min_sol_ineq_sys :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow> bool" where
   "min_sol_ineq_sys sys sol \<equiv>
+    solves_ineq_sys sys sol \<and> (\<forall>sol'. solves_ineq_sys sys sol' \<longrightarrow> (\<forall>x. sol x \<subseteq> sol' x))"
+
+definition min_sol_ineq_sys_comm :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow> bool" where
+  "min_sol_ineq_sys_comm sys sol \<equiv>
     solves_ineq_sys_comm sys sol \<and>
     (\<forall>sol'. solves_ineq_sys_comm sys sol' \<longrightarrow> (\<forall>x. parikh_img (sol x) \<subseteq> parikh_img (sol' x)))"
 
@@ -130,5 +134,69 @@ proof -
     unfolding partial_min_sol_one_ineq_def solves_ineq_comm_def by blast
   ultimately show ?thesis unfolding partial_min_sol_one_ineq_def by fast
 qed
+
+
+
+section \<open>Relationship between equation system with and without commutivity\<close>
+
+lemma sol_comm_sol:
+  assumes sol_is_sol_comm: "solves_ineq_sys_comm sys sol"
+  shows   "\<exists>sol'. (\<forall>x. parikh_img (sol x) = parikh_img (sol' x)) \<and> solves_ineq_sys sys sol'"
+proof
+  let ?sol' = "\<lambda>x. \<Union>(parikh_img_eq_class (sol x))"
+
+  have sol'_sol: "\<forall>x. parikh_img (?sol' x) = parikh_img (sol x)"
+      using parikh_img_Union_class by metis
+
+  moreover have "solves_ineq_sys sys ?sol'"
+  unfolding solves_ineq_sys_def proof (rule allI, rule impI)
+    fix i
+    assume "i < length sys"
+    with sol_is_sol_comm have "parikh_img (eval (sys ! i) sol) \<subseteq> parikh_img (sol i)"
+      unfolding solves_ineq_sys_comm_def solves_ineq_comm_def by blast
+    moreover from sol'_sol have "parikh_img (eval (sys ! i) ?sol') = parikh_img (eval (sys ! i) sol)"
+      using lfun_mono_parikh_eq by meson
+    ultimately have "parikh_img (eval (sys ! i) ?sol') \<subseteq> parikh_img (sol i)" by simp
+    then show "eval (sys ! i) ?sol' \<subseteq> ?sol' i" using subseteq_comm_subseteq by metis
+  qed
+
+  ultimately show "(\<forall>x. parikh_img (sol x) = parikh_img (?sol' x)) \<and> solves_ineq_sys sys ?sol'"
+    by simp
+qed
+
+
+lemma min_sol_min_sol_comm:
+  assumes "min_sol_ineq_sys sys sol"
+    shows "min_sol_ineq_sys_comm sys sol"
+unfolding min_sol_ineq_sys_comm_def proof
+  from assms show "solves_ineq_sys_comm sys sol"
+    unfolding min_sol_ineq_sys_def min_sol_ineq_sys_comm_def solves_ineq_sys_def
+      solves_ineq_sys_comm_def solves_ineq_comm_def by (simp add: parikh_img_mono)
+
+  show " \<forall>sol'. solves_ineq_sys_comm sys sol' \<longrightarrow> (\<forall>x. parikh_img (sol x) \<subseteq> parikh_img (sol' x))"
+  proof (rule allI, rule impI)
+    fix sol'
+    assume "solves_ineq_sys_comm sys sol'"
+    with sol_comm_sol obtain sol'' where sol''_intro:
+      "(\<forall>x. parikh_img (sol' x) = parikh_img (sol'' x)) \<and> solves_ineq_sys sys sol''" by meson
+    with assms have "\<forall>x. sol x \<subseteq> sol'' x" unfolding min_sol_ineq_sys_def by auto
+    with sol''_intro show "\<forall>x. parikh_img (sol x) \<subseteq> parikh_img (sol' x)"
+      using parikh_img_mono by metis
+  qed
+qed
+
+
+lemma min_sol_comm_unique:
+  assumes sol1_is_min_sol: "min_sol_ineq_sys_comm sys sol1"
+      and sol2_is_min_sol: "min_sol_ineq_sys_comm sys sol2"
+    shows                  "\<forall>x. parikh_img (sol1 x) = parikh_img (sol2 x)"
+proof -
+  from sol1_is_min_sol sol2_is_min_sol have "\<forall>x. parikh_img (sol1 x) \<subseteq> parikh_img (sol2 x)"
+    unfolding min_sol_ineq_sys_comm_def by simp
+  moreover from sol1_is_min_sol sol2_is_min_sol have "\<forall>x. parikh_img (sol2 x) \<subseteq> parikh_img (sol1 x)"
+    unfolding min_sol_ineq_sys_comm_def by simp
+  ultimately show ?thesis by blast
+qed
+
 
 end

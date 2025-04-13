@@ -118,6 +118,13 @@ next
 qed
 
 
+lemma lfun_mono_parikh_eq:
+  assumes "\<forall>i \<in> vars f. parikh_img (s i) = parikh_img (s' i)"
+  shows "parikh_img (eval f s) = parikh_img (eval f s')"
+  using assms lfun_mono_parikh by blast
+
+
+
 section \<open>(E\<union>F)* and E*F* have the same Parikh image\<close>
 
 lemma parikh_img_union_pow_aux1:
@@ -242,6 +249,49 @@ proof
   then show "x \<in> parikh_img X" using parikh_img_arden_aux[OF assms] by fast
 qed
 
+
+section \<open>Equivalence class of languages with same Parikh image\<close>
+
+definition parikh_img_eq_class :: "'a lang \<Rightarrow> 'a lang set" where
+  "parikh_img_eq_class L \<equiv> {L'. parikh_img L' = parikh_img L}"
+
+
+lemma parikh_img_Union_class: "parikh_img A = parikh_img (\<Union>(parikh_img_eq_class A))"
+proof
+  let ?A' = "\<Union>(parikh_img_eq_class A)"
+  show "parikh_img A \<subseteq> parikh_img ?A'"
+    unfolding parikh_img_eq_class_def by (simp add: Union_upper parikh_img_mono)
+
+  show "parikh_img ?A' \<subseteq> parikh_img A"
+  proof
+    fix v
+    assume "v \<in> parikh_img ?A'"
+    then obtain a where a_intro: "parikh_vec a = v \<and> a \<in> ?A'"
+      unfolding parikh_img_def by blast
+    then obtain L where L_intro: "a \<in> L \<and> L \<in> parikh_img_eq_class A"
+      unfolding parikh_img_eq_class_def by blast
+    then have "parikh_img L = parikh_img A" unfolding parikh_img_eq_class_def by fastforce
+    with a_intro L_intro show "v \<in> parikh_img A" unfolding parikh_img_def by blast
+  qed
+qed
+
+
+lemma subseteq_comm_subseteq:
+  assumes "parikh_img A \<subseteq> parikh_img B"
+  shows "A \<subseteq> \<Union>(parikh_img_eq_class B)" (is "A \<subseteq> ?B'")
+proof
+  fix a
+  assume a_in_A: "a \<in> A"
+  from assms have "parikh_img A \<subseteq> parikh_img ?B'"
+    using parikh_img_Union_class by blast
+  with a_in_A have vec_a_in_B': "parikh_vec a \<in> parikh_img ?B'" unfolding parikh_img_def by fast
+  then have "\<exists>b. parikh_vec b = parikh_vec a \<and> b \<in> ?B'"
+    unfolding parikh_img_def by fastforce
+  then obtain b where b_intro: "parikh_vec b = parikh_vec a \<and> b \<in> ?B'" by blast
+  with vec_a_in_B' have "parikh_img (?B' \<union> {a}) = parikh_img ?B'"unfolding parikh_img_def by blast
+  with parikh_img_Union_class have "parikh_img (?B' \<union> {a}) = parikh_img B" by blast
+  then show "a \<in> ?B'" unfolding parikh_img_eq_class_def by blast
+qed
 
 
 end

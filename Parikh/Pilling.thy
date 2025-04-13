@@ -681,7 +681,7 @@ qed
 lemma exists_minimal_reg_sol_sys:
   assumes eqs_reg:   "\<forall>eq \<in> set sys. regular_fun eq"
       and sys_valid: "\<forall>eq \<in> set sys. \<forall>x \<in> vars eq. x < length sys"
-    shows            "\<exists>sols. min_sol_ineq_sys sys sols \<and> (\<forall>i. regular_lang (sols i))"
+    shows            "\<exists>sols. min_sol_ineq_sys_comm sys sols \<and> (\<forall>i. regular_lang (sols i))"
 proof -
   from eqs_reg sys_valid have
     "\<exists>sols. partial_min_sol_ineq_sys (length sys) sys sols \<and> (\<forall>i. regular_fun (sols i))"
@@ -717,7 +717,7 @@ proof -
       using sols_intro unfolding partial_min_sol_ineq_sys_def
       by (smt (verit) empty_subsetI eval.simps(1) ls'_intro parikh_img_mono)
   qed
-  ultimately have "min_sol_ineq_sys sys ?ls'" unfolding min_sol_ineq_sys_def by blast
+  ultimately have "min_sol_ineq_sys_comm sys ?ls'" unfolding min_sol_ineq_sys_comm_def by blast
   with ls'_regular show ?thesis by blast
 qed
 

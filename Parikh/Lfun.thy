@@ -1,7 +1,7 @@
 theory Lfun
   imports 
-    "$AFP/Regular-Sets/Regular_Set"
-    "$AFP/Regular-Sets/Regular_Exp"
+    "Regular-Sets.Regular_Set"
+    "Regular-Sets.Regular_Exp"
 begin
 
 
@@ -57,6 +57,13 @@ lemma substitution_lemma:
   shows "eval (subst f upd) s = eval f s'"
   using assms by (induction rule: lfun.induct) auto
 
+lemma substitution_lemma_update:
+  "eval (subst f (V(x := f'))) s = eval f (s(x := eval f' s))"
+  using substitution_lemma[of "s(x := eval f' s)"] by force
+
+lemma subst_id: "eval (subst f V) s = eval f s"
+  using substitution_lemma[of s] by simp
+
 
 lemma vars_subst: "vars (subst f upd) = (\<Union>x \<in> vars f. vars (upd x))"
   by (induction f) auto
@@ -64,6 +71,38 @@ lemma vars_subst: "vars (subst f upd) = (\<Union>x \<in> vars f. vars (upd x))"
 lemma vars_subst_upper: "vars (subst f upd) \<subseteq> (\<Union>x. vars (upd x))"
   using vars_subst by force
 
+
+lemma vars_subst_upd_upper: "vars (subst f (V(x := fx))) \<subseteq> vars f - {x} \<union> vars fx"
+proof
+  fix y
+  let ?upd = "V(x := fx)"
+  assume "y \<in> vars (subst f ?upd)"
+  then obtain y' where "y' \<in> vars f \<and> y \<in> vars (?upd y')" using vars_subst by blast
+  then show "y \<in> vars f - {x} \<union> vars fx" by (cases "x = y'") auto
+qed
+
+lemma vars_subst_upd_aux:
+  assumes "x \<in> vars f"
+  shows   "vars f - {x} \<union> vars fx \<subseteq> vars (subst f (V(x := fx)))"
+proof
+  fix y
+  let ?upd = "V(x := fx)"
+  assume as: "y \<in> vars f - {x} \<union> vars fx"
+  then show "y \<in> vars (subst f ?upd)"
+  proof (cases "y \<in> vars f - {x}")
+    case True
+    then show ?thesis using vars_subst by fastforce
+  next
+    case False
+    with as have "y \<in> vars fx" by blast
+    with assms show ?thesis using vars_subst by fastforce
+  qed
+qed
+
+lemma vars_subst_upd:
+  assumes "x \<in> vars f"
+  shows   "vars (subst f (V(x := fx))) = vars f - {x} \<union> vars fx"
+  using assms vars_subst_upd_upper vars_subst_upd_aux by blast
 
 lemma eval_vars:
   assumes "\<forall>i \<in> vars f. s i = s' i"
@@ -90,16 +129,13 @@ qed
 section \<open>Monotonicity of language functions\<close>
 
 lemma lfun_mono_aux:
-  assumes "\<forall>i. s i \<subseteq> s' i"
-    shows "eval f s \<subseteq> eval f s'"
+  assumes "\<forall>i \<in> vars f. s i \<subseteq> s' i"
+  shows "eval f s \<subseteq> eval f s'"
 using assms proof (induction rule: lfun.induct)
-  case (Conc x1a x2a)
-  then show ?case by fastforce
-next
-  case (Star f)
+  case (Star x)
   then show ?case
-    by (smt (verit, best) eval.simps(6) in_star_iff_concat order_trans subsetI)
-qed auto
+    by (smt (verit, best) eval.simps(6) in_star_iff_concat order_trans subsetI vars.simps(6))
+qed fastforce+
 
 lemma lfun_mono:
   fixes f :: "'a lfun"
@@ -125,7 +161,7 @@ proof -
   from assms(2) obtain n where n_intro: "w \<in> eval f (s n)" by auto
   have "s n x \<subseteq> (\<Union>i. s i x)" for x by auto
   with n_intro show "?thesis"
-    using lfun_mono_aux[of "s n" "\<lambda>x. \<Union>i. s i x"] by auto
+    using lfun_mono_aux[where s="s n" and s'="\<lambda>x. \<Union>i. s i x"] by auto
 qed
 
 lemma langpow_Union_eval:
@@ -209,6 +245,13 @@ inductive_cases ConcE [elim]:        "regular_fun (Conc f g)"
 inductive_cases StarE [elim]:        "regular_fun (Star f)"
 
 
+lemma emptyset_regular: "regular_fun (N {})"
+  using lang.simps(1) by blast
+
+lemma epsilon_regular: "regular_fun (N {[]})"
+  using lang.simps(2) by blast
+
+
 (* If all arguments are regular, a regular function evaluates to a regular language *)
 lemma regular_fun_regular:
   assumes "regular_fun f"
@@ -240,6 +283,14 @@ lemma subst_reg_fun:
   using assms by (induction rule: regular_fun.induct) auto
 
 
+lemma subst_reg_fun_update:
+  assumes "regular_fun f"
+      and "regular_fun g"
+    shows "regular_fun (subst f (V(x := g)))"
+  using assms subst_reg_fun fun_upd_def by (metis Variable)
+
+
+(* TODO: this lemma should include parikh_img, shouldn't it? *)
 (* f(Y*Z, X\<^sub>1, \<dots>, X\<^sub>m) = Y* f(Z, X\<^sub>1, \<dots>, X\<^sub>m) if f is a regular function
 
   Pilling's paper shows "=", but needs an additional assumption and I don't unterstand how
@@ -271,11 +322,28 @@ next
 qed
 
 
-(* reformulate previous lemma with regular functions as arguments instead of languages *)
+(* TODO: this lemma should include parikh_img, shouldn't it? *)
 lemma reg_fun_homogeneous:
   assumes "regular_fun f"
       and "regular_fun y"
       and "regular_fun z"
+    shows "eval (subst f (V(x := Conc (Star y) z))) s \<subseteq> eval (Conc (Star y) (subst f (V(x := z)))) s"
+          (is "?L \<subseteq> ?R")
+proof -
+  let ?s' = "s(x := star (eval y s) @@ eval z s)"
+  have "?L = eval f ?s'" using substitution_lemma_update by force
+  also have "\<dots> \<subseteq> star (eval y s) @@ eval f (?s'(x := eval z s))"
+    using assms reg_fun_homogeneous_aux[of f ?s'] unfolding fun_upd_def by auto
+  also have "\<dots> = ?R" using substitution_lemma[of "s(x := eval z s)"] by simp
+  finally show ?thesis .
+qed
+
+(* TODO: this lemma should include parikh_img, shouldn't it? *)
+(* reformulate previous lemma with regular functions as arguments instead of languages *)
+lemma reg_fun_homogeneous2:
+  assumes "regular_fun f"
+      and "regular_fun y"
+      and "regular_fun z"                                                          
     shows "eval (subst f (\<lambda>a. if a = x then Conc (Star y) z else V a)) s
       \<subseteq> eval (Conc (Star y) (subst f (\<lambda>a. if a = x then z else V a))) s" (is "?L \<subseteq> ?R")
 proof -
@@ -288,5 +356,22 @@ proof -
   finally show ?thesis .
 qed
 
+
+section \<open>Constant functions\<close>
+
+abbreviation const_fun :: "'a lfun \<Rightarrow> bool" where
+  "const_fun f \<equiv> vars f = {}"
+
+lemma const_fun_lang: "const_fun f \<Longrightarrow> \<exists>l. \<forall>s. eval f s = l"
+proof (induction f)
+  case (UnionC x)
+  then show ?case by (metis emptyE eval_vars)
+qed auto
+
+lemma const_fun_regular_lang:
+  assumes "const_fun f"
+      and "regular_fun f"
+    shows "\<exists>l. regular_lang l \<and> (\<forall>s. eval f s = l)"
+  using assms const_fun_lang regular_fun_regular by fastforce
 
 end

@@ -203,6 +203,15 @@ lemma derive_iff: "R \<turnstile> u \<Rightarrow> v \<longleftrightarrow> (\<exi
    apply (fastforce)
   using derive.intros by fastforce 
 
+lemma not_derive_from_Tms: "\<not> P \<turnstile> map Tm as \<Rightarrow> w"
+by(auto simp add: derive_iff map_eq_append_conv)
+
+lemma deriven_from_TmsD: "P \<turnstile> map Tm as \<Rightarrow>(n) w \<Longrightarrow> w = map Tm as"
+by (metis not_derive_from_Tms relpowp_E2)
+ 
+lemma derives_from_Tms_iff: "P \<turnstile> map Tm as \<Rightarrow>* w \<longleftrightarrow> w = map Tm as"
+by (meson deriven_from_TmsD rtranclp.rtrancl_refl rtranclp_power)
+
 lemma Un_derive: "R \<union> S \<turnstile> y \<Rightarrow> z \<longleftrightarrow> R \<turnstile> y \<Rightarrow> z \<or> S \<turnstile> y \<Rightarrow> z"
   by (fastforce simp: derive_iff)
 
@@ -523,6 +532,16 @@ next
     finally
     show ?thesis by simp
   qed
+qed
+
+lemma derives_Cons_decomp:
+  "P \<turnstile> s # u \<Rightarrow>* v \<longleftrightarrow>
+  (\<exists>v2. v = s#v2 \<and> P \<turnstile> u \<Rightarrow>* v2) \<or>
+  (\<exists>A w v1 v2. v = v1 @ v2 \<and> s = Nt A \<and> (A,w) \<in> P \<and> P \<turnstile> w \<Rightarrow>* v1 \<and> P \<turnstile> u \<Rightarrow>* v2)" (is "?L \<longleftrightarrow> ?R")
+proof
+  assume ?L thus ?R using deriven_Cons_decomp[of _ P s u v] by (metis rtranclp_power)
+next
+  assume ?R thus ?L by (meson derives_Cons derives_Cons_rule derives_append_decomp)
 qed
 
 lemma deriven_Suc_decomp_left:

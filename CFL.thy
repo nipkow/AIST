@@ -334,6 +334,64 @@ lemma derives_if_CFL_Lang: "w \<in> CFL.Lang P A \<Longrightarrow> P \<turnstile
 lemma CFL_Lang_subset_CFG_Lang: "CFL.Lang P A \<subseteq> Lang P A"
 unfolding CFG.Lang_def by(blast intro:derives_if_CFL_Lang)
 
+(* Other direction *)
+
+(* needed/useful? *)
+lemma decomp_syms_splice: "\<exists>(nts::'n list) (tms::'a list list).
+  \<alpha> = concat (splice (map (map Tm) tms) (map (\<lambda>A. [Nt A]) nts))"
+proof (induction \<alpha>)
+  case Nil
+  then show ?case
+    by (metis concat.simps(1) list.simps(8) splice_Nil2)
+next
+  let ?ftm = "(map Tm)" let ?fnt = "(\<lambda>A. [Nt A])"
+  case (Cons s \<alpha>)
+  then obtain nts tms where "\<alpha> = concat (splice (map ?ftm tms) (map ?fnt nts))" by blast
+  show ?case
+  proof (cases s)
+    case [simp]: (Nt A)
+    let ?tms = "[] # tms" let ?nts = "A # nts"
+    have "s # \<alpha> = concat (splice (map ?ftm ?tms) (map ?fnt ?nts))" using \<open>\<alpha> = _\<close> by simp
+    then show ?thesis by blast
+  next
+    case [simp]: (Tm a)
+    let ?tms = "case tms of [] \<Rightarrow> [[a]] | as#ass \<Rightarrow> (a#as) # ass"
+    have "s # \<alpha> = concat (splice (map ?ftm ?tms) (map ?fnt nts))"
+      using \<open>\<alpha> = _\<close> by (simp split: list.split)
+    then show ?thesis by blast
+  qed
+qed
+
+(* really neded: with \<Rightarrow>(n) ! *)
+lemma "P \<turnstile> \<alpha> \<Rightarrow>* \<beta> \<Longrightarrow>
+  \<exists>\<beta>s. \<beta> = concat \<beta>s \<and> length \<alpha> = length \<beta>s \<and> (\<forall>i < length \<beta>s. P \<turnstile> [\<alpha> ! i] \<Rightarrow>* \<beta>s ! i)"
+proof (induction \<alpha> arbitrary: \<beta>)
+next
+  case (Cons s \<alpha>)
+  from derives_Cons_decomp[THEN iffD1, OF Cons.prems]
+  show ?case
+  proof (elim disjE exE conjE)
+    fix \<gamma> assume "\<beta> = s # \<gamma>" "P \<turnstile> \<alpha> \<Rightarrow>* \<gamma>"
+    from Cons.IH[OF this(2)] obtain \<beta>s
+      where *: "\<gamma> = concat \<beta>s \<and> length \<alpha> = length \<beta>s \<and> (\<forall>i<length \<beta>s. P \<turnstile> [\<alpha> ! i] \<Rightarrow>* \<beta>s ! i)"
+      by blast
+    let ?\<beta>s = "[s]#\<beta>s"
+    have "\<beta> = concat ?\<beta>s \<and> length(s#\<alpha>) = length ?\<beta>s \<and> (\<forall>i < length ?\<beta>s. P \<turnstile> [(s#\<alpha>) ! i] \<Rightarrow>* ?\<beta>s ! i)"
+      using \<open>\<beta> = _\<close> * by (auto simp: nth_Cons')
+    then show ?thesis by blast
+  next
+    fix A w \<beta>1 \<beta>2
+    assume *: "\<beta> = \<beta>1 @ \<beta>2" "s = Nt A" "(A, w) \<in> P" "P \<turnstile> w \<Rightarrow>* \<beta>1" "P \<turnstile> \<alpha> \<Rightarrow>* \<beta>2"
+    from Cons.IH[OF this(5)] obtain \<beta>s
+      where **: "\<beta>2 = concat \<beta>s \<and> length \<alpha> = length \<beta>s \<and> (\<forall>i<length \<beta>s. P \<turnstile> [\<alpha> ! i] \<Rightarrow>* \<beta>s ! i)"
+      by blast
+    let ?\<beta>s = "\<beta>1#\<beta>s"
+    have "\<beta> = concat ?\<beta>s \<and> length(s#\<alpha>) = length ?\<beta>s \<and> (\<forall>i < length ?\<beta>s. P \<turnstile> [(s#\<alpha>) ! i] \<Rightarrow>* ?\<beta>s ! i)"
+      using * ** by (auto simp: nth_Cons' derives_Cons_rule)
+    then show ?thesis by blast
+  qed
+qed simp
+
 (*
 lemma CFL_Lang_if_derives: "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w \<Longrightarrow> w \<in> CFL.Lang P A"
 sorry

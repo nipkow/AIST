@@ -2,9 +2,13 @@ theory Triangle
 imports CFG
 begin
 
-(* The algorithm and an initial part of the proof. So far I have only tried to show that
-the result is of the right form (triangular). I have not tried to show that the language stays
-unchanged. That will be harder.*)
+(* The algorithms and an initial part of the proof. So far I have only tried to show that
+the result is of the right form (triangular). The first important result you should try to prove
+is lemma triangular_solve_tri (below).
+I have not tried to show that the language stays unchanged. That will be harder.
+
+Warning: until everything is proved, there may still be problems in the algorithms!
+*)
 
 (* The "real" functions are on sets, but there is often a list version as well.
 The list version is intended for quickcheck test only (because quickcheck cannot deal with set comprehension {x. ...}.

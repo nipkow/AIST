@@ -7,7 +7,7 @@ section \<open>\<open>a^n b^n c^n\<close> is not context-free\<close>
 
 theory AnBnCn_not_CFL
 imports
-  "../Stimpfle/Pumping_Lemma_CFG"
+  "CNF.Pumping_Lemma_CFG"
 begin                           
 
 text \<open>This theory proves that the language @{term "\<Union>n. {[a]^^n @ [b]^^n @ [c]^^n}"}

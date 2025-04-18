@@ -5,10 +5,10 @@ section "CFLs not Closed Under Intersection"
 theory CFL_Not_Intersection_Closed
 imports
   "List_Power.List_Power"
-  "../CFL"
-  "../Stimpfle/CNF"
-  "../AFP/CFG_Renaming"
-  "../Philipp/AnBnCn_not_CFL"
+  "CFG.CFL"
+  "CNF.Pumping_Lemma_CFG"
+  "CFG.CFG_Renaming"
+  "AnBnCn_not_CFL.AnBnCn_not_CFL"
 begin
 
 text "Some lemmas:"

@@ -5,7 +5,7 @@
 section "Pumping Lemma for Context Free Grammars in CNF"
 
 theory Pumping_Lemma_CFG
-  imports "../CFG" CNF "$AFP/List_Power/List_Power"
+  imports CNF "List_Power.List_Power"
 begin
 
 (* paths for Prods in CNF form *)

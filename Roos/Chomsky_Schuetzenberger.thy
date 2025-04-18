@@ -1,9 +1,16 @@
+(*
+Opening it:
+isabelle jedit -d .. -d ../Stimpfle -d . Chomsky_Schuetzenberger.thy
+
+Building it:
+isabelle build -d .. -d ../Stimpfle -D .
+*)
 theory Chomsky_Schuetzenberger
-  imports "../CFG" "../CFL" "../Parse_Tree" "Finite_Automata_Not_HF" "../Stimpfle/CNF"
+  imports CNF.CNF CFG.CFG "Finite_Automata_Not_HF" CFG.Parse_Tree
 begin
 
 text \<open>This file contains all the constructions needed for the Chomsky-Schuetzenberger theorem.
-We follow closely Automata and Computability @1997 pp 198–200 by Dexter C. Kozen for the proof.
+We follow Kozen \<^cite>\<open>Kozen\<close> closely for the proof.
 
 This theorem roughly states, that each type 2 language \<open>L\<close> can be written as 
 \<open>h(R \<inter> Dyck_lang(\<Gamma>))\<close> for suitable alphabet Gamma, a regular language R, and a monoid-homomorphism h.
@@ -2572,12 +2579,12 @@ text\<open>We use function instead of fun here in a way, that is exactly what fu
 function (sequential) transform_tree :: \<open>('n,'t) tree \<Rightarrow> ('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) tree\<close> where
   \<open>transform_tree (Sym (Nt A)) = (Sym (Nt A))\<close> | 
   \<open>transform_tree (Sym (Tm a)) = (Sym (Tm (Op, ((SOME A. True, [Tm a]), One))))\<close> | 
-  \<open>transform_tree (Prod A [Sym (Tm a)]) =             (Prod A [ Sym (Tm (Op, (A, [Tm a]),One)),       Sym(Tm (Cl, (A, [Tm a]), One)), Sym (Tm (Op, (A, [Tm a]), Two)),       Sym(Tm (Cl, (A, [Tm a]), Two))  ])\<close> | 
-  \<open>transform_tree (Prod A [Sym (Nt B), Sym (Nt C)]) =  (Prod A [Sym (Tm (Op, (A, [Nt B, Nt C]), One)), Sym (Nt B), Sym (Tm (Cl, ((A, [Nt B, Nt C]), One))), Sym (Tm (Op, (A, [Nt B, Nt C]), Two)), Sym (Nt C), Sym (Tm (Cl, (A, [Nt B, Nt C]), Two))  ])\<close> | 
-  \<open>transform_tree (Prod A [Prod B tB, Sym (Nt C)]) =   (Prod A [Sym (Tm (Op, (A, [Nt B, Nt C]), One)), transform_tree (Prod B tB), Sym (Tm (Cl, ((A, [Nt B, Nt C]), One))), Sym (Tm (Op, (A, [Nt B, Nt C]), Two)), Sym (Nt C), Sym (Tm (Cl, (A, [Nt B, Nt C]), Two))  ])  \<close> | 
-  \<open>transform_tree (Prod A [Sym (Nt B), Prod C tC]) =   (Prod A [Sym (Tm (Op, (A, [Nt B, Nt C]), One)), Sym (Nt B), Sym (Tm (Cl, ((A, [Nt B, Nt C]), One))), Sym (Tm (Op, (A, [Nt B, Nt C]), Two)), transform_tree (Prod C tC), Sym (Tm (Cl, (A, [Nt B, Nt C]), Two))  ])\<close> | 
-  \<open>transform_tree (Prod A [Prod B tB, Prod C tC]) =   (Prod A [Sym (Tm (Op, (A, [Nt B, Nt C]), One)), transform_tree (Prod B tB), Sym (Tm (Cl, ((A, [Nt B, Nt C]), One))), Sym (Tm (Op, (A, [Nt B, Nt C]), Two)), transform_tree (Prod C tC), Sym (Tm (Cl, (A, [Nt B, Nt C]), Two))  ])\<close> | 
-  \<open>transform_tree (Prod A y) = (Prod A [])\<close>
+  \<open>transform_tree (Rule A [Sym (Tm a)]) =             (Rule A [ Sym (Tm (Op, (A, [Tm a]),One)),       Sym(Tm (Cl, (A, [Tm a]), One)), Sym (Tm (Op, (A, [Tm a]), Two)),       Sym(Tm (Cl, (A, [Tm a]), Two))  ])\<close> | 
+  \<open>transform_tree (Rule A [Sym (Nt B), Sym (Nt C)]) =  (Rule A [Sym (Tm (Op, (A, [Nt B, Nt C]), One)), Sym (Nt B), Sym (Tm (Cl, ((A, [Nt B, Nt C]), One))), Sym (Tm (Op, (A, [Nt B, Nt C]), Two)), Sym (Nt C), Sym (Tm (Cl, (A, [Nt B, Nt C]), Two))  ])\<close> | 
+  \<open>transform_tree (Rule A [Rule B tB, Sym (Nt C)]) =   (Rule A [Sym (Tm (Op, (A, [Nt B, Nt C]), One)), transform_tree (Rule B tB), Sym (Tm (Cl, ((A, [Nt B, Nt C]), One))), Sym (Tm (Op, (A, [Nt B, Nt C]), Two)), Sym (Nt C), Sym (Tm (Cl, (A, [Nt B, Nt C]), Two))  ])  \<close> | 
+  \<open>transform_tree (Rule A [Sym (Nt B), Rule C tC]) =   (Rule A [Sym (Tm (Op, (A, [Nt B, Nt C]), One)), Sym (Nt B), Sym (Tm (Cl, ((A, [Nt B, Nt C]), One))), Sym (Tm (Op, (A, [Nt B, Nt C]), Two)), transform_tree (Rule C tC), Sym (Tm (Cl, (A, [Nt B, Nt C]), Two))  ])\<close> | 
+  \<open>transform_tree (Rule A [Rule B tB, Rule C tC]) =   (Rule A [Sym (Tm (Op, (A, [Nt B, Nt C]), One)), transform_tree (Rule B tB), Sym (Tm (Cl, ((A, [Nt B, Nt C]), One))), Sym (Tm (Op, (A, [Nt B, Nt C]), Two)), transform_tree (Rule C tC), Sym (Tm (Cl, (A, [Nt B, Nt C]), Two))  ])\<close> | 
+  \<open>transform_tree (Rule A y) = (Rule A [])\<close>
 apply pat_completeness by blast+
 termination by lexicographic_order
 
@@ -2610,12 +2617,12 @@ lemma transform_tree_correct:
     then show ?thesis  using Sym by (metis Parse_Tree.parse_tree.simps(1) \<open>fringe (Sym (Tm [\<^bsub>(SOME A. True, [Tm a])\<^esub>\<^sup>1 )) = [Tm [\<^bsub>(SOME A. True, [Tm a])\<^esub>\<^sup>1 ]\<close> \<open>the_hom_ext [Tm [\<^bsub>(SOME A. True, [Tm a])\<^esub>\<^sup>1 ] = [Tm a]\<close> \<open>transform_tree (Sym x) = Sym (Tm [\<^bsub>(SOME A. True, [Tm a])\<^esub>\<^sup>1 )\<close>)
   qed
 next
-  case (Prod A ts)
-  from Prod have pt: \<open>parse_tree P (Prod A ts)\<close> and fr: \<open>fringe (Prod A ts) = w\<close> by blast+
-  from Prod have IH: \<open>\<And>x2a w'. \<lbrakk>x2a \<in> set ts; parse_tree P x2a \<and> fringe x2a = w'\<rbrakk> \<Longrightarrow> parse_tree P' (transform_tree x2a) \<and> the_hom_ext (fringe (transform_tree x2a)) = w'\<close> using P'_def by blast
+  case (Rule A ts)
+  from Rule have pt: \<open>parse_tree P (Rule A ts)\<close> and fr: \<open>fringe (Rule A ts) = w\<close> by blast+
+  from Rule have IH: \<open>\<And>x2a w'. \<lbrakk>x2a \<in> set ts; parse_tree P x2a \<and> fringe x2a = w'\<rbrakk> \<Longrightarrow> parse_tree P' (transform_tree x2a) \<and> the_hom_ext (fringe (transform_tree x2a)) = w'\<close> using P'_def by blast
 
   from pt have \<open>(A, map root ts) \<in> P\<close> by simp
-  then have \<open>CNF_rule (A, map root ts)\<close> using Prod.prems(2) by blast
+  then have \<open>CNF_rule (A, map root ts)\<close> using Rule.prems(2) by blast
 
   then obtain B C a where 
     def: \<open>(A, prod_rhs ts) = (A, [Nt B, Nt C]) \<and> transform_production (A, prod_rhs ts) = (A, [Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2 ]) 
@@ -2625,13 +2632,13 @@ next
   obtain tB tC where 
     \<open>(ts = [Sym (Tm a)] \<and> prod_rhs ts = [Tm a]) 
 \<or> 
-prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [Prod B tB, Sym (Nt C)] \<or> ts = [Sym (Nt B), Prod C tC] \<or> ts = [Prod B tB, Prod C tC])\<close>
+prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [Rule B tB, Sym (Nt C)] \<or> ts = [Sym (Nt B), Rule C tC] \<or> ts = [Rule B tB, Rule C tC])\<close>
     apply(rule disjE[OF def]) 
     using root.elims root.simps \<open>CNF_rule (A, prod_rhs ts)\<close> apply (smt (verit, ccfv_threshold) CFG.sym.inject(1) Cons_eq_map_D Product_Type.prod.inject map_is_Nil_conv)
     using root.elims root.simps \<open>CNF_rule (A, prod_rhs ts)\<close> 
   proof -
     assume a1: "(A, prod_rhs ts) = (A, [Tm a]) \<and> transform_production (A, prod_rhs ts) = (A, [Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>2, Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2 ])"
-    assume a2: "\<And>tB tC. ts = [Sym (Tm a)] \<and> prod_rhs ts = [Tm a] \<or> prod_rhs ts = [Nt B, Nt C] \<and> (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [Prod B tB, Sym (Nt C)] \<or> ts = [Sym (Nt B), Prod C tC] \<or> ts = [Prod B tB, Prod C tC]) \<Longrightarrow> thesis"
+    assume a2: "\<And>tB tC. ts = [Sym (Tm a)] \<and> prod_rhs ts = [Tm a] \<or> prod_rhs ts = [Nt B, Nt C] \<and> (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [Rule B tB, Sym (Nt C)] \<or> ts = [Sym (Nt B), Rule C tC] \<or> ts = [Rule B tB, Rule C tC]) \<Longrightarrow> thesis"
     have f3: "prod_rhs [] = []"
       by force
     have "[] \<noteq> ts"
@@ -2641,131 +2648,131 @@ prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [P
   qed
 
 
-  then consider (Tm) \<open>ts = [Sym (Tm a)] \<and> prod_rhs ts = [Tm a]\<close> | (Nt_Nt) \<open>prod_rhs ts = [Nt B, Nt C] \<and> ts = [Sym (Nt B), Sym (Nt C)]\<close> | (Prod_Nt) \<open>prod_rhs ts = [Nt B, Nt C] \<and> ts = [Prod B tB, Sym (Nt C)]\<close> | (Nt_Prod) \<open>prod_rhs ts = [Nt B, Nt C] \<and> ts = [Sym (Nt B), Prod C tC]\<close> | (Prod_Prod) \<open>prod_rhs ts = [Nt B, Nt C] \<and> ts = [Prod B tB, Prod C tC]\<close> by argo
+  then consider (Tm) \<open>ts = [Sym (Tm a)] \<and> prod_rhs ts = [Tm a]\<close> | (Nt_Nt) \<open>prod_rhs ts = [Nt B, Nt C] \<and> ts = [Sym (Nt B), Sym (Nt C)]\<close> | (Rule_Nt) \<open>prod_rhs ts = [Nt B, Nt C] \<and> ts = [Rule B tB, Sym (Nt C)]\<close> | (Nt_Rule) \<open>prod_rhs ts = [Nt B, Nt C] \<and> ts = [Sym (Nt B), Rule C tC]\<close> | (Rule_Rule) \<open>prod_rhs ts = [Nt B, Nt C] \<and> ts = [Rule B tB, Rule C tC]\<close> by argo
   then show ?case
   proof(cases)
     case Tm
     then have ts_eq: \<open>ts = [Sym (Tm a)]\<close> and prod_rhs: \<open>prod_rhs ts = [Tm a]\<close> by blast+
-    then have \<open>transform_tree (Prod A ts) = (Prod A [ Sym (Tm (Op, (A, [Tm a]),One)),       Sym(Tm (Cl, (A, [Tm a]), One)), Sym (Tm (Op, (A, [Tm a]), Two)),       Sym(Tm (Cl, (A, [Tm a]), Two))  ])\<close> by simp
-    then have \<open>the_hom_ext (fringe (transform_tree (Prod A ts))) = [Tm a]\<close> by simp
+    then have \<open>transform_tree (Rule A ts) = (Rule A [ Sym (Tm (Op, (A, [Tm a]),One)),       Sym(Tm (Cl, (A, [Tm a]), One)), Sym (Tm (Op, (A, [Tm a]), Two)),       Sym(Tm (Cl, (A, [Tm a]), Two))  ])\<close> by simp
+    then have \<open>the_hom_ext (fringe (transform_tree (Rule A ts))) = [Tm a]\<close> by simp
     also have \<open>... = w\<close> using fr unfolding ts_eq by auto
-    finally have \<open>the_hom_ext (fringe (transform_tree (Prod A ts))) = w\<close> .
+    finally have \<open>the_hom_ext (fringe (transform_tree (Rule A ts))) = w\<close> .
 
-    moreover have \<open>parse_tree (P') (transform_tree (Prod A [Sym (Tm a)]))\<close> using pt prod_rhs unfolding P'_def apply simp by (metis Chomsky_Schuetzenberger.transform_production.simps(2) imageI) 
+    moreover have \<open>parse_tree (P') (transform_tree (Rule A [Sym (Tm a)]))\<close> using pt prod_rhs unfolding P'_def apply simp by (metis Chomsky_Schuetzenberger.transform_production.simps(2) imageI) 
     ultimately show ?thesis unfolding ts_eq P'_def by blast
   next
     case Nt_Nt
     then have ts_eq: \<open>ts = [Sym (Nt B), Sym (Nt C)]\<close>  and prod_rhs: \<open>prod_rhs ts = [Nt B, Nt C]\<close> by blast+
-    then have \<open>transform_tree (Prod A ts) = (Prod A [Sym (Tm (Op, (A, [Nt B, Nt C]), One)), Sym (Nt B), Sym (Tm (Cl, ((A, [Nt B, Nt C]), One))), Sym (Tm (Op, (A, [Nt B, Nt C]), Two)), Sym (Nt C), Sym (Tm (Cl, (A, [Nt B, Nt C]), Two))  ])\<close> by simp
-    then have \<open>the_hom_ext (fringe (transform_tree (Prod A ts))) = [ Nt B, Nt C  ]\<close> by simp
+    then have \<open>transform_tree (Rule A ts) = (Rule A [Sym (Tm (Op, (A, [Nt B, Nt C]), One)), Sym (Nt B), Sym (Tm (Cl, ((A, [Nt B, Nt C]), One))), Sym (Tm (Op, (A, [Nt B, Nt C]), Two)), Sym (Nt C), Sym (Tm (Cl, (A, [Nt B, Nt C]), Two))  ])\<close> by simp
+    then have \<open>the_hom_ext (fringe (transform_tree (Rule A ts))) = [ Nt B, Nt C  ]\<close> by simp
     also have \<open>... = w\<close> using fr unfolding ts_eq by auto
-    finally have \<open>the_hom_ext (fringe (transform_tree (Prod A ts))) = w\<close> .
+    finally have \<open>the_hom_ext (fringe (transform_tree (Rule A ts))) = w\<close> .
 
-    moreover have \<open>parse_tree (P') (transform_tree (Prod A [Sym (Nt B), Sym (Nt C)]))\<close> using pt prod_rhs unfolding P'_def apply simp by (metis Chomsky_Schuetzenberger.transform_production.simps(1) imageI)
+    moreover have \<open>parse_tree (P') (transform_tree (Rule A [Sym (Nt B), Sym (Nt C)]))\<close> using pt prod_rhs unfolding P'_def apply simp by (metis Chomsky_Schuetzenberger.transform_production.simps(1) imageI)
     ultimately show ?thesis unfolding ts_eq by blast
   next
-    case Prod_Nt
-    then have ts_eq: \<open>ts = [Prod B tB, Sym (Nt C)]\<close>  and prod_rhs: \<open>prod_rhs ts = [Nt B, Nt C]\<close> by blast+
-    then have transf_ts: \<open>transform_tree (Prod A ts) = (Prod A   [  Sym (Tm (Op, (A, [Nt B, Nt C]), One)),  transform_tree (Prod B tB),  Sym (Tm (Cl, ((A, [Nt B, Nt C]), One))),  Sym (Tm (Op, (A, [Nt B, Nt C]), Two)),   Sym (Nt C),   Sym (Tm (Cl, (A, [Nt B, Nt C]), Two))    ] )\<close> by simp
+    case Rule_Nt
+    then have ts_eq: \<open>ts = [Rule B tB, Sym (Nt C)]\<close>  and prod_rhs: \<open>prod_rhs ts = [Nt B, Nt C]\<close> by blast+
+    then have transf_ts: \<open>transform_tree (Rule A ts) = (Rule A   [  Sym (Tm (Op, (A, [Nt B, Nt C]), One)),  transform_tree (Rule B tB),  Sym (Tm (Cl, ((A, [Nt B, Nt C]), One))),  Sym (Tm (Op, (A, [Nt B, Nt C]), Two)),   Sym (Nt C),   Sym (Tm (Cl, (A, [Nt B, Nt C]), Two))    ] )\<close> by simp
 
-    then have frA: \<open>the_hom_ext (fringe (transform_tree (Prod A ts))) = the_hom_ext (fringe (transform_tree (Prod B tB))) @ [  Nt C  ]\<close> by simp
+    then have frA: \<open>the_hom_ext (fringe (transform_tree (Rule A ts))) = the_hom_ext (fringe (transform_tree (Rule B tB))) @ [  Nt C  ]\<close> by simp
 
-    have ptB: \<open>parse_tree P (Prod B tB)\<close> using pt ts_eq by (meson List.list.set_intros(1) Parse_Tree.parse_tree.simps(2))
-    then have ptB: \<open>parse_tree (P') (transform_tree (Prod B tB))\<close> \<open>the_hom_ext (fringe (transform_tree (Prod B tB))) = fringe (Prod B tB)\<close>
-      using IH[of \<open>Prod B tB\<close> \<open>fringe (Prod B tB)\<close>] by (metis List.list.set_intros(1) assms(2) ts_eq)+
+    have ptB: \<open>parse_tree P (Rule B tB)\<close> using pt ts_eq by (meson List.list.set_intros(1) Parse_Tree.parse_tree.simps(2))
+    then have ptB: \<open>parse_tree (P') (transform_tree (Rule B tB))\<close> \<open>the_hom_ext (fringe (transform_tree (Rule B tB))) = fringe (Rule B tB)\<close>
+      using IH[of \<open>Rule B tB\<close> \<open>fringe (Rule B tB)\<close>] by (metis List.list.set_intros(1) assms(2) ts_eq)+
 
-    with frA have \<open>the_hom_ext (fringe (transform_tree (Prod A ts))) = fringe (Prod B tB) @ [Nt C]\<close> 
+    with frA have \<open>the_hom_ext (fringe (transform_tree (Rule A ts))) = fringe (Rule B tB) @ [Nt C]\<close> 
       by presburger
-    also have \<open>... = fringe (Prod A [Prod B tB, Sym (Nt C)])\<close> 
-      using fringe.simps(2)[of A \<open>[Prod B tB, Sym (Nt C)]\<close>] 
+    also have \<open>... = fringe (Rule A [Rule B tB, Sym (Nt C)])\<close> 
+      using fringe.simps(2)[of A \<open>[Rule B tB, Sym (Nt C)]\<close>] 
       by auto
-    also have \<open>... = fringe (Prod A ts)\<close> 
+    also have \<open>... = fringe (Rule A ts)\<close> 
       using ts_eq prod_rhs pt by blast
     also have \<open>... = w\<close> 
       using fr unfolding ts_eq by auto
-    finally have fin: \<open>the_hom_ext (fringe (transform_tree (Prod A ts))) = w\<close> .
+    finally have fin: \<open>the_hom_ext (fringe (transform_tree (Rule A ts))) = w\<close> .
 
-    have \<open>parse_tree (P') (transform_tree (Prod B tB)) \<and> (A, map root ts) \<in> P\<close> 
+    have \<open>parse_tree (P') (transform_tree (Rule B tB)) \<and> (A, map root ts) \<in> P\<close> 
       by (simp add: \<open>(A, prod_rhs ts) \<in> P\<close> ptB(1)) 
-    moreover have \<open>root (transform_tree (Prod B tB)) = Nt B\<close> by simp
+    moreover have \<open>root (transform_tree (Rule B tB)) = Nt B\<close> by simp
     moreover have \<open>transform_production (A, prod_rhs ts) \<in> P'\<close> 
       by (simp add: P'_def \<open>(A, prod_rhs ts) \<in> P\<close>)
-    ultimately have \<open>parse_tree (P') (transform_tree (Prod A ts))\<close> 
+    ultimately have \<open>parse_tree (P') (transform_tree (Rule A ts))\<close> 
       unfolding ts_eq by auto
 
     then show ?thesis using fin by blast
 
   next
-    case Nt_Prod
-    then have ts_eq: \<open>ts = [Sym (Nt B), Prod C tC]\<close>  and prod_rhs: \<open>prod_rhs ts = [Nt B, Nt C]\<close> by blast+
-    then have transf_ts: \<open>transform_tree (Prod A ts) = (Prod A   [  Sym (Tm (Op, (A, [Nt B, Nt C]), One)),  Sym (Nt B),  Sym (Tm (Cl, ((A, [Nt B, Nt C]), One))),  Sym (Tm (Op, (A, [Nt B, Nt C]), Two)),   transform_tree (Prod C tC),   Sym (Tm (Cl, (A, [Nt B, Nt C]), Two))    ] )\<close> by simp
+    case Nt_Rule
+    then have ts_eq: \<open>ts = [Sym (Nt B), Rule C tC]\<close>  and prod_rhs: \<open>prod_rhs ts = [Nt B, Nt C]\<close> by blast+
+    then have transf_ts: \<open>transform_tree (Rule A ts) = (Rule A   [  Sym (Tm (Op, (A, [Nt B, Nt C]), One)),  Sym (Nt B),  Sym (Tm (Cl, ((A, [Nt B, Nt C]), One))),  Sym (Tm (Op, (A, [Nt B, Nt C]), Two)),   transform_tree (Rule C tC),   Sym (Tm (Cl, (A, [Nt B, Nt C]), Two))    ] )\<close> by simp
 
-    then have frA: \<open>the_hom_ext (fringe (transform_tree (Prod A ts))) = the_hom_ext ([  Nt B  ]@fringe (transform_tree (Prod C tC)))\<close> by simp
+    then have frA: \<open>the_hom_ext (fringe (transform_tree (Rule A ts))) = the_hom_ext ([  Nt B  ]@fringe (transform_tree (Rule C tC)))\<close> by simp
 
-    have ptC: \<open>parse_tree P (Prod C tC)\<close> using pt ts_eq by (meson List.list.set_intros(1,2) Parse_Tree.parse_tree.simps(2))
+    have ptC: \<open>parse_tree P (Rule C tC)\<close> using pt ts_eq by (meson List.list.set_intros(1,2) Parse_Tree.parse_tree.simps(2))
 
-    then have ptC: \<open>parse_tree (P') (transform_tree (Prod C tC))\<close> \<open>the_hom_ext (fringe (transform_tree (Prod C tC))) = fringe (Prod C tC)\<close>
-      using IH[of \<open>Prod C tC\<close> \<open>fringe (Prod C tC)\<close>] by (metis List.list.set_intros(1,2) ts_eq)+
+    then have ptC: \<open>parse_tree (P') (transform_tree (Rule C tC))\<close> \<open>the_hom_ext (fringe (transform_tree (Rule C tC))) = fringe (Rule C tC)\<close>
+      using IH[of \<open>Rule C tC\<close> \<open>fringe (Rule C tC)\<close>] by (metis List.list.set_intros(1,2) ts_eq)+
 
 
-    with frA have \<open>the_hom_ext (fringe (transform_tree (Prod A ts))) = [Nt B] @ fringe (Prod C tC)\<close> by (metis the_hom_ext_hom the_hom_ext_keep_var)
-    also have \<open>... = fringe (Prod A [Sym (Nt B), Prod C tC])\<close> 
-      using fringe.simps(2)[of A \<open>[Sym (Nt B), Prod C tC]\<close>] 
+    with frA have \<open>the_hom_ext (fringe (transform_tree (Rule A ts))) = [Nt B] @ fringe (Rule C tC)\<close> by (metis the_hom_ext_hom the_hom_ext_keep_var)
+    also have \<open>... = fringe (Rule A [Sym (Nt B), Rule C tC])\<close> 
+      using fringe.simps(2)[of A \<open>[Sym (Nt B), Rule C tC]\<close>] 
       by auto
-    also have \<open>... = fringe (Prod A ts)\<close> 
+    also have \<open>... = fringe (Rule A ts)\<close> 
       using ts_eq prod_rhs pt by blast
     also have \<open>... = w\<close> 
       using fr unfolding ts_eq by auto
-    finally have fin: \<open>the_hom_ext (fringe (transform_tree (Prod A ts))) = w\<close> .
+    finally have fin: \<open>the_hom_ext (fringe (transform_tree (Rule A ts))) = w\<close> .
 
-    have \<open>parse_tree (P') (transform_tree (Prod C tC)) \<and> (A, map root ts) \<in> P\<close> 
+    have \<open>parse_tree (P') (transform_tree (Rule C tC)) \<and> (A, map root ts) \<in> P\<close> 
       by (simp add: \<open>(A, prod_rhs ts) \<in> P\<close> ptC(1)) 
-    moreover have \<open>root (transform_tree (Prod C tC)) = Nt C\<close> by simp
+    moreover have \<open>root (transform_tree (Rule C tC)) = Nt C\<close> by simp
 
     moreover have \<open>transform_production (A, prod_rhs ts) \<in> P'\<close> 
       by (simp add: P'_def \<open>(A, prod_rhs ts) \<in> P\<close>)
-    ultimately have \<open>parse_tree (P') (transform_tree (Prod A ts))\<close> 
+    ultimately have \<open>parse_tree (P') (transform_tree (Rule A ts))\<close> 
       unfolding ts_eq by auto
 
     then show ?thesis using fin by blast
   next
-    case Prod_Prod
-    then have ts_eq: \<open>ts = [Prod B tB, Prod C tC]\<close>  and prod_rhs: \<open>prod_rhs ts = [Nt B, Nt C]\<close> by blast+
-    then have transf_ts: \<open>transform_tree (Prod A ts) = (Prod A   [  Sym (Tm (Op, (A, [Nt B, Nt C]), One)),  transform_tree (Prod B tB),  Sym (Tm (Cl, ((A, [Nt B, Nt C]), One))),  Sym (Tm (Op, (A, [Nt B, Nt C]), Two)),  transform_tree (Prod C tC),   Sym (Tm (Cl, (A, [Nt B, Nt C]), Two))    ] )\<close> by simp
+    case Rule_Rule
+    then have ts_eq: \<open>ts = [Rule B tB, Rule C tC]\<close>  and prod_rhs: \<open>prod_rhs ts = [Nt B, Nt C]\<close> by blast+
+    then have transf_ts: \<open>transform_tree (Rule A ts) = (Rule A   [  Sym (Tm (Op, (A, [Nt B, Nt C]), One)),  transform_tree (Rule B tB),  Sym (Tm (Cl, ((A, [Nt B, Nt C]), One))),  Sym (Tm (Op, (A, [Nt B, Nt C]), Two)),  transform_tree (Rule C tC),   Sym (Tm (Cl, (A, [Nt B, Nt C]), Two))    ] )\<close> by simp
 
-    then have frA: \<open>the_hom_ext (fringe (transform_tree (Prod A ts))) = the_hom_ext (fringe (transform_tree (Prod B tB))) @ the_hom_ext (fringe (transform_tree (Prod C tC)))\<close> by simp
+    then have frA: \<open>the_hom_ext (fringe (transform_tree (Rule A ts))) = the_hom_ext (fringe (transform_tree (Rule B tB))) @ the_hom_ext (fringe (transform_tree (Rule C tC)))\<close> by simp
 
-    have ptB: \<open>parse_tree P (Prod B tB)\<close> using pt ts_eq by (meson List.list.set_intros(1) Parse_Tree.parse_tree.simps(2))
-    then have ptB: \<open>parse_tree (P') (transform_tree (Prod B tB))\<close> \<open>the_hom_ext (fringe (transform_tree (Prod B tB))) = fringe (Prod B tB)\<close>
-      using IH[of \<open>Prod B tB\<close> \<open>fringe (Prod B tB)\<close>] by (metis List.list.set_intros(1) assms(2) ts_eq)+
+    have ptB: \<open>parse_tree P (Rule B tB)\<close> using pt ts_eq by (meson List.list.set_intros(1) Parse_Tree.parse_tree.simps(2))
+    then have ptB: \<open>parse_tree (P') (transform_tree (Rule B tB))\<close> \<open>the_hom_ext (fringe (transform_tree (Rule B tB))) = fringe (Rule B tB)\<close>
+      using IH[of \<open>Rule B tB\<close> \<open>fringe (Rule B tB)\<close>] by (metis List.list.set_intros(1) assms(2) ts_eq)+
 
-    have ptC: \<open>parse_tree P (Prod C tC)\<close> using pt ts_eq by (meson List.list.set_intros(1,2) Parse_Tree.parse_tree.simps(2))
-    then have ptC: \<open>parse_tree (P') (transform_tree (Prod C tC))\<close> \<open>the_hom_ext (fringe (transform_tree (Prod C tC))) = fringe (Prod C tC)\<close>
-      using IH[of \<open>Prod C tC\<close> \<open>fringe (Prod C tC)\<close>] by (metis List.list.set_intros(1,2) ts_eq)+
+    have ptC: \<open>parse_tree P (Rule C tC)\<close> using pt ts_eq by (meson List.list.set_intros(1,2) Parse_Tree.parse_tree.simps(2))
+    then have ptC: \<open>parse_tree (P') (transform_tree (Rule C tC))\<close> \<open>the_hom_ext (fringe (transform_tree (Rule C tC))) = fringe (Rule C tC)\<close>
+      using IH[of \<open>Rule C tC\<close> \<open>fringe (Rule C tC)\<close>] by (metis List.list.set_intros(1,2) ts_eq)+
 
 
-    from ptC ptB frA have \<open>the_hom_ext (fringe (transform_tree (Prod A ts))) = fringe (Prod B tB) @ fringe (Prod C tC)\<close> 
+    from ptC ptB frA have \<open>the_hom_ext (fringe (transform_tree (Rule A ts))) = fringe (Rule B tB) @ fringe (Rule C tC)\<close> 
       by presburger
-    also have \<open>... = fringe (Prod A [Prod B tB, Prod C tC])\<close> 
-      using fringe.simps(2)[of A \<open>[Prod B tB, Prod C tC]\<close>] 
+    also have \<open>... = fringe (Rule A [Rule B tB, Rule C tC])\<close> 
+      using fringe.simps(2)[of A \<open>[Rule B tB, Rule C tC]\<close>] 
       by auto
-    also have \<open>... = fringe (Prod A ts)\<close> 
+    also have \<open>... = fringe (Rule A ts)\<close> 
       using ts_eq prod_rhs pt by blast
     also have \<open>... = w\<close> 
       using fr unfolding ts_eq by auto
-    finally have fin: \<open>the_hom_ext (fringe (transform_tree (Prod A ts))) = w\<close> .
+    finally have fin: \<open>the_hom_ext (fringe (transform_tree (Rule A ts))) = w\<close> .
 
-    have \<open>parse_tree (P') (transform_tree (Prod B tB)) \<and> (A, map root ts) \<in> P\<close> 
+    have \<open>parse_tree (P') (transform_tree (Rule B tB)) \<and> (A, map root ts) \<in> P\<close> 
       by (simp add: \<open>(A, prod_rhs ts) \<in> P\<close> ptB(1)) 
-    moreover have \<open>root (transform_tree (Prod B tB)) = Nt B\<close>  by simp
+    moreover have \<open>root (transform_tree (Rule B tB)) = Nt B\<close>  by simp
     moreover have \<open>transform_production (A, prod_rhs ts) \<in> P'\<close> 
       by (simp add: P'_def \<open>(A, prod_rhs ts) \<in> P\<close>)
-    moreover have \<open>parse_tree (P') (transform_tree (Prod C tC)) \<and> (A, map root ts) \<in> P\<close> 
+    moreover have \<open>parse_tree (P') (transform_tree (Rule C tC)) \<and> (A, map root ts) \<in> P\<close> 
       by (simp add: \<open>(A, prod_rhs ts) \<in> P\<close> ptC(1)) 
-    moreover have \<open>root (transform_tree (Prod C tC)) = Nt C\<close> by simp
+    moreover have \<open>root (transform_tree (Rule C tC)) = Nt C\<close> by simp
     moreover have \<open>transform_production (A, prod_rhs ts) \<in> P'\<close> 
       by (simp add: P'_def \<open>(A, prod_rhs ts) \<in> P\<close>)
-    ultimately have \<open>parse_tree (P') (transform_tree (Prod A ts))\<close> 
+    ultimately have \<open>parse_tree (P') (transform_tree (Rule A ts))\<close> 
       unfolding ts_eq by auto
 
     then show ?thesis using fin by blast

@@ -6,8 +6,8 @@ theory CFL
 imports
   "Regular-Sets.Regular_Set"
   CFG
-  "AFP/CFG_Renaming"
-  "AFP/CFG_Disjoint_Union"
+  CFG_Renaming
+  CFG_Disjoint_Union
 begin
 
 subsection \<open>Auxiliary: \<open>lfp\<close> as Kleene Fixpoint\<close>

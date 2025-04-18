@@ -2,40 +2,38 @@ theory Parse_Tree
 imports CFG
 begin
 
-hide_const Prod
-
-datatype ('n,'t) tree = Sym "('n,'t) sym"  | Prod 'n "('n,'t) tree list"
+datatype ('n,'t) tree = Sym "('n,'t) sym"  | Rule 'n "('n,'t) tree list"
 datatype_compat tree
 
 fun root :: "('n,'t) tree \<Rightarrow> ('n,'t) sym" where
 "root(Sym s) = s" |
-"root(Prod A _) = Nt A"
+"root(Rule A _) = Nt A"
 
 fun fringe :: "('n,'t) tree \<Rightarrow> ('n,'t) syms" where
 "fringe(Sym s) = [s]" |
-"fringe(Prod _ ts) = concat(map fringe ts)"
+"fringe(Rule _ ts) = concat(map fringe ts)"
 
 abbreviation "fringes ts \<equiv> concat(map fringe ts)"
 
 fun parse_tree :: "('n,'t)Prods \<Rightarrow> ('n,'t) tree \<Rightarrow> bool" where
 "parse_tree P (Sym s) = True" |
-"parse_tree P (Prod A ts) = ((\<forall>t \<in> set ts. parse_tree P t) \<and> (A,map root ts) \<in> P)"
+"parse_tree P (Rule A ts) = ((\<forall>t \<in> set ts. parse_tree P t) \<and> (A,map root ts) \<in> P)"
 
 lemma fringe_steps_if_parse_tree: "parse_tree P t \<Longrightarrow> P \<turnstile> [root t] \<Rightarrow>* fringe t"
 proof(induction t)
   case (Sym s)
   then show ?case by (auto)
 next
-  case (Prod A ts)
+  case (Rule A ts)
   have "P \<turnstile> [Nt A] \<Rightarrow> map root ts"
-    using Prod.prems by (simp add: derive_singleton)
-  with Prod show ?case apply(simp)
+    using Rule.prems by (simp add: derive_singleton)
+  with Rule show ?case apply(simp)
     using derives_concat1 by (metis converse_rtranclp_into_rtranclp)
 qed
 
 fun subst_pt and subst_pts where
 "subst_pt t' 0 (Sym _) = t'" |
-"subst_pt t' m (Prod A ts) = Prod A (subst_pts t' m ts)" |
+"subst_pt t' m (Rule A ts) = Rule A (subst_pts t' m ts)" |
 "subst_pts t' m (t#ts) =
   (let n = length(fringe t) in if m < n then subst_pt t' m t # ts
    else t # subst_pts t' (m-n) ts)"
@@ -91,7 +89,7 @@ next
   case (step u A' v w)
   then obtain t where 1: "parse_tree P t" and 2: "fringe t = u @ [Nt A'] @ v" and 3: \<open>root t = Nt A\<close>
     by blast
-  let ?t' = "Prod A' (map Sym w)"
+  let ?t' = "Rule A' (map Sym w)"
   let ?t = "subst_pt ?t' (length u) t"
   have "fringe ?t = u @ w @ v"
     using 2 fringe_subst_pt[of "length u" t ?t'] by(simp add: o_def)

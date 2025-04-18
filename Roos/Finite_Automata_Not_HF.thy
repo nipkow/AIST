@@ -1,9 +1,9 @@
 theory Finite_Automata_Not_HF
-  imports Main HereditarilyFinite.Ordinal "$AFP/Finite_Automata_HF/Finite_Automata_HF"
+  imports Main HereditarilyFinite.Ordinal "Finite_Automata_HF.Finite_Automata_HF"
 begin
 
 
-text\<open>This file contains a version of the dfa and nfa definition from Finite_Automata_Hf 
+text\<open>This file contains a version of the dfa and nfa definition from \<open>Finite_Automata_Hf\<close>
 but with \<open>'b set\<close> as states set, instead of forcing \<open>hf set\<close>. 
 It is intended to be used for easier constructions of explicitly given languages,
 not for abstract constructions such as the intersection of 2 automaton languages.

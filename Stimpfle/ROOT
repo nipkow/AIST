@@ -1,0 +1,4 @@
+session CNF = CFG +
+  options [document = pdf, document_output = "output"]
+  theories
+    CNF

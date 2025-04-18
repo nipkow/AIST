@@ -1,0 +1,10 @@
+session Roos = CNF +
+  options [document = pdf, document_output = "output"]
+  sessions
+    "HereditarilyFinite"
+    "Finite_Automata_HF"
+  theories
+    Chomsky_Schuetzenberger
+  document_files
+    "root.tex"
+    "root.bib"

@@ -4,7 +4,7 @@ Based on HOL4 theories by Aditi Barthwal
 *)
 
 theory eProds
-  imports "../CFG"
+  imports CFG.CFG
 begin
 
 inductive nullable :: "('n,'t) prods \<Rightarrow> ('n,'t) sym \<Rightarrow> bool"

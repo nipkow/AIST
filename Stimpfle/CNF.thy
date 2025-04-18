@@ -3,6 +3,11 @@ Authors: August Martin Stimpfle, Tobias Nipkow
 Based on HOL4 theories by Aditi Barthwal
 *)
 
+(*
+Opening it:
+isabelle jedit -d . -d .. CNF.thy
+*)
+
 section \<open>Conversion to Chomsky Normal Form\<close>
 
 theory CNF

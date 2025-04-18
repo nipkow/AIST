@@ -4,7 +4,7 @@ Based on HOL4 theories by Aditi Barthwal
 *)
 
 theory uProds
-  imports "../CFG"
+  imports CFG.CFG
 begin
 
 (* Rules of the form A\<rightarrow>B, where A and B are in nonterminals ps *)

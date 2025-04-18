@@ -1,7 +1,7 @@
 (* Authors: Kaan Taskin *)
 
 theory Binarize
-imports "../CFG" Inlining1Prod
+imports Inlining1Prod
 begin
 
 (* FFPI *) 

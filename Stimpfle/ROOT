@@ -1,3 +1,8 @@
+(*
+Open all theories like this:
+isabelle jedit -d .. -d . <filename>
+*)
+
 session CNF = CFG +
   options [document = pdf, document_output = "output"]
   theories

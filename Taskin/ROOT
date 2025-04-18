@@ -1,0 +1,13 @@
+(* Open all theories like this:
+isabelle jedit -d .. -d ../Stimpfle -d . <filename>
+*)
+
+session CFG_Right_Linear = CNF +
+  options [document = pdf, document_output = "output"]
+  sessions
+    List_Power
+    HereditarilyFinite
+    Finite_Automata_HF
+  theories
+    AnBn_Not_Regular
+    Right_Linear_Automata

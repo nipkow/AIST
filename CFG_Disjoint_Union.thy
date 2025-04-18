@@ -5,7 +5,7 @@ section \<open>Disjoint Union of Sets of Productions\<close>
 theory CFG_Disjoint_Union
 imports
   "Regular-Sets.Regular_Set"
-  "../CFG"
+  "CFG"
 begin
 
 text \<open>This theory provides lemmas relevant when combining the productions of two grammars

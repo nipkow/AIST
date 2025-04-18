@@ -1,7 +1,7 @@
 (* Authors: Markus Gschoßmann, Tobias Nipkow *)
 
 theory CFG_Renaming
-imports "../CFG"
+imports "CFG"
 begin
 
 text \<open>This theory provides lemmas that relate derivations w.r.t. some set of productions \<open>P\<close>

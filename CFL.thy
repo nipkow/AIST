@@ -362,8 +362,8 @@ proof (induction \<alpha> arbitrary: \<beta>)
   qed
 qed simp
 
-(* A proof attempt ...
-lemma CFL_Lang_if_derives: "P \<turnstile> [Nt A] \<Rightarrow>(n) map Tm w \<Longrightarrow> w \<in> ((subst_lang P)^^n) (\<lambda>A. {}) A"
+(* A proof attempt ... *)
+lemma CFL_Lang_if_derives_aux: "P \<turnstile> [Nt A] \<Rightarrow>(n) map Tm w \<Longrightarrow> w \<in> ((subst_lang P)^^n) (\<lambda>A. {}) A"
 proof(induction n rule: less_induct)
   case (less n)
   show ?case
@@ -375,15 +375,13 @@ proof(induction n rule: less_induct)
       by (metis deriven_start1 less.prems nat.inject)
     then show ?thesis sorry
   qed
-  then show ?case sorry
 qed
-*)
-(*
+
+
 lemma CFL_Lang_if_derives: "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w \<Longrightarrow> w \<in> CFL.Lang P A"
 sorry
 
 theorem CFL_Lang_eq_CFG_Lang: "CFL.Lang P A = Lang P A"
 unfolding CFG.Lang_def by(blast intro: CFL_Lang_if_derives derives_if_CFL_Lang)
-*)
 
 end

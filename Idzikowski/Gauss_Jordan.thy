@@ -1,6 +1,6 @@
 theory Gauss_Jordan
-imports "Regular-Sets.Regular_Exp"
-
+imports
+  "$AFP/Regular-Sets/Regular_Exp"
 begin
 
 text \<open>Solver for a system of linear equations \<open>xi = a0 * x0 + ... + an*xn + b\<close>
@@ -34,8 +34,58 @@ definition is_sol :: "'a \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarro
 "is_sol a cs sol = eq a (dot cs sol)"
 
 fun is_sols :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list list \<Rightarrow> bool" where
-"is_sols sol (c#cs) (eqn # eqns) = (is_sol c eqn sol \<and> is_sols sol cs eqns)" |
-"is_sols sol _ [] = True"
+"is_sols sol (a#as) (eqn # eqns) = (is_sol a eqn sol \<and> is_sols sol as eqns)" |
+"is_sols sol [] [] = True" |
+"is_sols sol _  [] = False" |
+"is_sols sol []  _ = False"
+
+abbreviation "all \<equiv> foldl (\<and>) True"
+
+lemma all_Cons: "all (x#xs) = (x \<and> all xs)"
+proof(induction xs)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a as)
+  then show ?case by (metis (full_types) foldl_Cons)
+qed
+lemma all_and_foldl: "(x \<and> all xs) = foldl (\<and>) x xs"
+  using all_Cons[of x xs] foldl_Cons[of "(\<and>)"]
+  by simp
+
+
+fun is_sols2 where
+"is_sols2 sol as eqns = (length as = length eqns \<and> all (map2 (λs eq. is_sol s eq sol) as eqns))"
+
+fun is_sols3 where
+"is_sols3 sol eqns = (length sol = length eqns \<and> all (map2 (λs eq. is_sol s eq sol) sol eqns))"
+
+lemma wrong_len_not_sol: "length sol \<noteq> length eqns \<Longrightarrow> \<not>is_sols sol2 sol eqns"
+  apply(induction rule: is_sols.induct)
+  by simp+
+
+
+lemma map2_Cons: "map2 f (a#as) (b#bs) = f a b # (map2 f as bs)"
+  by simp
+
+lemma is_sols2_eqiv: "is_sols sol' sol eqns = is_sols2 sol' sol eqns"
+proof(cases "length sol = length eqns")
+  case True
+  from True show "is_sols sol' sol eqns = is_sols2 sol' sol eqns" proof(induction rule: is_sols.induct)
+    case (1 sol a as eqn eqns)
+    then have len: "length as = length eqns" by simp
+    then have "is_sols sol as eqns = is_sols2 sol as eqns" using 1 by simp
+    have "is_sols2 sol (a # as) (eqn # eqns) = all (map2 (\<lambda>x y. is_sol x y sol) (a # as) (eqn # eqns))"
+      using 1 by simp
+    also have "\<dots> = (is_sol a eqn sol \<and> is_sols2 sol as eqns)"
+      apply (simp add: map2_Cons all_Cons len)
+      using all_and_foldl by simp
+    then show ?case using 1 by simp
+  qed simp+
+qed (simp add: wrong_len_not_sol)
+
+corollary is_sols3_eqiv: "is_sols3 sol eqns = is_sols sol sol eqns"
+  by (simp add: is_sols2_eqiv)
 
 definition mult1 where
 "mult1 = map o mult"

@@ -254,60 +254,33 @@ using lfp_if_omega_cont[OF omega_cont_CFL_Lang] unfolding CFL.Lang_def bot_fun_d
 
 subsection \<open>Connecting Equation Solution and Derivations: \<open>CFL.Lang = Lang\<close>\<close>
 
-text \<open>A parallel reduction step of all Nts in a word:\<close>
-
-abbreviation par_step :: "('n \<Rightarrow> 't lang) \<Rightarrow> ('n,'t)syms \<Rightarrow> 't list \<Rightarrow> bool" where
-"par_step R \<alpha> w \<equiv>
-  (\<exists>g. (\<forall>i < length \<alpha>. case \<alpha>!i of Tm a \<Rightarrow> g i = [a] | Nt A \<Rightarrow> g i \<in> R A)
-       \<and> w = concat (map g [0..<length \<alpha>]))"
-
-lemma par_step_mono: "(\<And>A. R A \<subseteq> R' A) \<Longrightarrow> par_step R \<alpha> w \<Longrightarrow> par_step R' \<alpha> w"
-by (auto split: sym.splits) blast
+lemma insts_mono: "(\<And>A. R A \<subseteq> R' A) \<Longrightarrow> w \<in> insts R \<alpha> \<Longrightarrow> w \<in> insts R' \<alpha>"
+unfolding insts_def concats_def
+by (metis (no_types, lifting) foldr_map_mono in_mono inst_mono le_fun_def)
 
 lemma in_subst_langD_insts: "w \<in> subst_lang P L A \<Longrightarrow> \<exists>\<alpha>. (A,\<alpha>)\<in>P \<and> w \<in> insts L \<alpha>"
 unfolding subst_lang_def insts_def Rhss_def by (auto split: prod.splits)
 
 lemma foldr_conc_conc: "foldr (@@) xs {[]} @@ A = foldr (@@) xs A"
 by (induction xs)(auto simp: conc_assoc)
-  
-lemma par_step_if_insts: "w \<in> insts L \<alpha> \<Longrightarrow> par_step L \<alpha> w"
-  (is "_ \<Longrightarrow> \<exists>g. ?P \<alpha> w g")
-proof (induction \<alpha> arbitrary: w rule: rev_induct)
+
+lemma derives_if_insts:
+  "w \<in> insts (\<lambda>A. {w. P \<turnstile> [Nt A] \<Rightarrow>* map Tm w}) \<alpha> \<Longrightarrow> P \<turnstile> \<alpha> \<Rightarrow>* map Tm w"
+proof (induction \<alpha> arbitrary: w)
   case Nil
-  then show ?case by (auto simp: insts_def concats_def)
+  then show ?case unfolding insts_def concats_def by(auto)
 next
-  case (snoc s \<alpha>)
-  from snoc.prems obtain w1 w2 where "w = w1 @ w2" "w1 \<in> insts L \<alpha>" "w2 \<in> inst L s"
-    unfolding insts_def concats_def by (auto simp add: foldr_conc_conc[where A = "inst L s",symmetric])
-  from snoc.IH[OF \<open>w1 \<in> insts L \<alpha>\<close>] obtain g where IH: "?P \<alpha> w1 g" by blast
+  case (Cons s \<alpha>)
   show ?case
   proof (cases s)
     case (Nt A)
-    let ?g = "\<lambda>i. if i < length \<alpha> then g i else w2"
-    have "map ?g [0..<length \<alpha>] = map g [0..<length \<alpha>]" by(simp)
-    then have "?P (\<alpha> @ [s]) w ?g" using IH \<open>w=_\<close> \<open>s = _\<close> \<open>w2 \<in> _\<close>
-      by (simp add: nth_append inst_def del: map_eq_conv)
-    from exI[of "?P (\<alpha> @ [s]) w", OF this] show ?thesis .
+    then show ?thesis using Cons
+      unfolding insts_def concats_def inst_def by(fastforce simp: derives_Cons_decomp)
   next
     case (Tm a)
-    let ?g = "\<lambda>i. if i < length \<alpha> then g i else [a]"
-    have "map ?g [0..<length \<alpha>] = map g [0..<length \<alpha>]" by(simp)
-    then have "?P (\<alpha> @ [s]) w ?g" using IH \<open>s = _\<close> \<open>w=_\<close> \<open>w2\<in>_\<close>
-      by (simp add: nth_append inst_def del: map_eq_conv)
-    from exI[of "?P (\<alpha> @ [s]) w", OF this] show ?thesis .
+    then show ?thesis using Cons
+      unfolding insts_def concats_def inst_def by(auto simp:derives_T_Cons)
   qed
-qed
-
-lemma derives_if_par_step:
-  assumes "par_step (\<lambda>A. {w. P \<turnstile> [Nt A] \<Rightarrow>* map Tm w}) \<alpha> w" (is "\<exists>g. ?P g")
-  shows "P \<turnstile> \<alpha> \<Rightarrow>* map Tm w"
-proof -
-  from assms obtain g where "?P g" by blast
-  then have "i \<in> {0..<length \<alpha>} \<Longrightarrow> P \<turnstile> [\<alpha> ! i] \<Rightarrow>* map Tm (g i)" for i
-    by(cases "\<alpha>!i")auto
-  with \<open>?P g\<close> show ?thesis
-    using derives_concat[of "[0..<length \<alpha>]" P "\<lambda>i. [\<alpha>!i]" "\<lambda>i. map Tm (g i)"]
-    by(auto simp: map_nth map_concat o_def)
 qed
 
 lemma derives_if_in_subst_lang: "w \<in> ((subst_lang P)^^n) (\<lambda>A. {}) A \<Longrightarrow> P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
@@ -321,9 +294,7 @@ next
     using Suc.IH by blast
   obtain \<alpha> where \<alpha>: "(A,\<alpha>) \<in> P" "w \<in> insts ?L \<alpha>"
     using in_subst_langD_insts[OF Suc.prems[simplified]] by blast
-  have "P \<turnstile> \<alpha> \<Rightarrow>* map Tm w"
-    using par_step_if_insts[OF \<alpha>(2)] derives_if_par_step par_step_mono[OF *, of _ "\<lambda>A. A"] by metis 
-  then show ?case using \<alpha>(1)
+  show ?case using \<alpha>(1) derives_if_insts[OF insts_mono[OF *, of _ "\<lambda>A. A", OF \<alpha>(2)]]
     by (simp add: derives_Cons_rule)
 qed
 
@@ -362,11 +333,10 @@ next
   qed
 qed
 
-(* really neded: with \<Rightarrow>(n) ! *)
+(* needed/useful? *)
 lemma "P \<turnstile> \<alpha> \<Rightarrow>* \<beta> \<Longrightarrow>
   \<exists>\<beta>s. \<beta> = concat \<beta>s \<and> length \<alpha> = length \<beta>s \<and> (\<forall>i < length \<beta>s. P \<turnstile> [\<alpha> ! i] \<Rightarrow>* \<beta>s ! i)"
 proof (induction \<alpha> arbitrary: \<beta>)
-next
   case (Cons s \<alpha>)
   from derives_Cons_decomp[THEN iffD1, OF Cons.prems]
   show ?case
@@ -392,6 +362,22 @@ next
   qed
 qed simp
 
+(* A proof attempt ...
+lemma CFL_Lang_if_derives: "P \<turnstile> [Nt A] \<Rightarrow>(n) map Tm w \<Longrightarrow> w \<in> ((subst_lang P)^^n) (\<lambda>A. {}) A"
+proof(induction n rule: less_induct)
+  case (less n)
+  show ?case
+  proof (cases n)
+    case 0 then show ?thesis using less.prems by auto
+  next
+    case (Suc m)
+    then obtain \<alpha> where "(A,\<alpha>) \<in> P" "P \<turnstile> \<alpha> \<Rightarrow>(m) map Tm w"
+      by (metis deriven_start1 less.prems nat.inject)
+    then show ?thesis sorry
+  qed
+  then show ?case sorry
+qed
+*)
 (*
 lemma CFL_Lang_if_derives: "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w \<Longrightarrow> w \<in> CFL.Lang P A"
 sorry

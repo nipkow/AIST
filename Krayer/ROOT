@@ -1,0 +1,7 @@
+session CFL_Not_Intersection_Closed = AnBnCn_not_CFL +
+  options [document = pdf, document_output = "output"]
+  theories
+    CFL_Not_Intersection_Closed
+(* open with
+isabelle jedit -d .. -d ../Stimpfle -d ../Philipp -d . CFL_Not_Intersection_Closed.thy
+*)

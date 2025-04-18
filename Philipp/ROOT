@@ -1,0 +1,9 @@
+session AnBnCn_not_CFL = CNF +
+  options [document = pdf, document_output = "output"]
+  sessions
+    List_Power
+  theories
+    AnBnCn_not_CFL
+(* open with
+isabelle jedit -d .. -d ../Stimpfle -d . AnBnCn_not_CFL.thy
+*)

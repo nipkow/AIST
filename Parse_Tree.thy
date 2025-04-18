@@ -1,3 +1,5 @@
+(* Author: Tobias Nipkow *)
+
 theory Parse_Tree
 imports CFG
 begin

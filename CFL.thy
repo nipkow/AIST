@@ -334,45 +334,71 @@ next
 qed
 
 (* needed/useful? *)
-lemma "P \<turnstile> \<alpha> \<Rightarrow>* \<beta> \<Longrightarrow>
-  \<exists>\<beta>s. \<beta> = concat \<beta>s \<and> length \<alpha> = length \<beta>s \<and> (\<forall>i < length \<beta>s. P \<turnstile> [\<alpha> ! i] \<Rightarrow>* \<beta>s ! i)"
-proof (induction \<alpha> arbitrary: \<beta>)
+lemma derive_decomp_Tm: "P \<turnstile> \<alpha> \<Rightarrow>(n) map Tm \<beta> \<Longrightarrow>
+  \<exists>\<beta>s ns. \<beta> = concat \<beta>s \<and> length \<alpha> = length \<beta>s \<and> length \<alpha> = length ns \<and> fold (+) ns 0 = n
+          \<and> (\<forall>i < length \<beta>s. P \<turnstile> [\<alpha> ! i] \<Rightarrow>(ns!i) map Tm (\<beta>s ! i))"
+proof (induction \<alpha> arbitrary: \<beta> n)
   case (Cons s \<alpha>)
-  from derives_Cons_decomp[THEN iffD1, OF Cons.prems]
+  from deriven_Cons_decomp[THEN iffD1, OF Cons.prems]
   show ?case
   proof (elim disjE exE conjE)
-    fix \<gamma> assume "\<beta> = s # \<gamma>" "P \<turnstile> \<alpha> \<Rightarrow>* \<gamma>"
-    from Cons.IH[OF this(2)] obtain \<beta>s
-      where *: "\<gamma> = concat \<beta>s \<and> length \<alpha> = length \<beta>s \<and> (\<forall>i<length \<beta>s. P \<turnstile> [\<alpha> ! i] \<Rightarrow>* \<beta>s ! i)"
+    fix \<gamma> assume as: "map Tm \<beta> = s # \<gamma>" "P \<turnstile> \<alpha> \<Rightarrow>(n) \<gamma>"
+    then obtain s' \<gamma>' where "\<beta> = s' # \<gamma>'"  "P \<turnstile> \<alpha> \<Rightarrow>(n) map Tm \<gamma>'" "s = Tm s'" by force
+    from Cons.IH[OF this(2)] obtain \<beta>s ns
+      where *: "\<gamma>' = concat \<beta>s \<and> length \<alpha> = length \<beta>s \<and> length \<alpha> = length ns \<and> fold (+) ns 0 = n
+                \<and> (\<forall>i<length \<beta>s. P \<turnstile> [\<alpha> ! i] \<Rightarrow>(ns!i) map Tm (\<beta>s ! i))"
       by blast
-    let ?\<beta>s = "[s]#\<beta>s"
-    have "\<beta> = concat ?\<beta>s \<and> length(s#\<alpha>) = length ?\<beta>s \<and> (\<forall>i < length ?\<beta>s. P \<turnstile> [(s#\<alpha>) ! i] \<Rightarrow>* ?\<beta>s ! i)"
-      using \<open>\<beta> = _\<close> * by (auto simp: nth_Cons')
+    let ?\<beta>s = "[s']#\<beta>s"
+    let ?ns = "0#ns"
+    have "\<beta> = concat ?\<beta>s \<and> length (s#\<alpha>) = length ?\<beta>s \<and> length (s#\<alpha>) = length ?ns
+          \<and> fold (+) ?ns 0 = n \<and> (\<forall>i < length ?\<beta>s. P \<turnstile> [(s#\<alpha>) ! i] \<Rightarrow>(?ns!i) map Tm (?\<beta>s ! i))"
+      using \<open>\<beta> = _\<close> as * using nth_Cons' by (auto simp: nth_Cons')
     then show ?thesis by blast
   next
-    fix A w \<beta>1 \<beta>2
-    assume *: "\<beta> = \<beta>1 @ \<beta>2" "s = Nt A" "(A, w) \<in> P" "P \<turnstile> w \<Rightarrow>* \<beta>1" "P \<turnstile> \<alpha> \<Rightarrow>* \<beta>2"
-    from Cons.IH[OF this(5)] obtain \<beta>s
-      where **: "\<beta>2 = concat \<beta>s \<and> length \<alpha> = length \<beta>s \<and> (\<forall>i<length \<beta>s. P \<turnstile> [\<alpha> ! i] \<Rightarrow>* \<beta>s ! i)"
+    fix n1 n2 A w \<beta>1 \<beta>2
+    assume *: "n = Suc (n1 + n2)" "map Tm \<beta> = \<beta>1 @ \<beta>2" "s = Nt A" "(A, w) \<in> P" "P \<turnstile> w \<Rightarrow>(n1) \<beta>1" "P \<turnstile> \<alpha> \<Rightarrow>(n2) \<beta>2"
+    then obtain \<beta>1' \<beta>2' where **: "\<beta> = \<beta>1' @ \<beta>2'" "P \<turnstile> w \<Rightarrow>(n1) map Tm \<beta>1'" "P \<turnstile> \<alpha> \<Rightarrow>(n2) map Tm \<beta>2'"
+      by (metis (no_types, lifting) append_eq_map_conv)
+    from Cons.IH[OF this(3)] obtain \<beta>s ns
+      where ***: "\<beta>2' = concat \<beta>s \<and> length \<alpha> = length \<beta>s \<and> length \<alpha> = length ns
+                  \<and> fold (+) ns 0 = n2 \<and> (\<forall>i<length \<beta>s. P \<turnstile> [\<alpha> ! i] \<Rightarrow>(ns ! i) map Tm (\<beta>s ! i))"
       by blast
-    let ?\<beta>s = "\<beta>1#\<beta>s"
-    have "\<beta> = concat ?\<beta>s \<and> length(s#\<alpha>) = length ?\<beta>s \<and> (\<forall>i < length ?\<beta>s. P \<turnstile> [(s#\<alpha>) ! i] \<Rightarrow>* ?\<beta>s ! i)"
-      using * ** by (auto simp: nth_Cons' derives_Cons_rule)
+    let ?\<beta>s = "\<beta>1'#\<beta>s"
+    let ?ns = "Suc n1 # ns"
+    from * ** have "P \<turnstile> [(s#\<alpha>) ! 0] \<Rightarrow>(?ns ! 0) map Tm (?\<beta>s ! 0)"
+      by (metis derive_singleton nth_Cons_0 relpowp_Suc_I2)
+    then have "\<beta> = concat ?\<beta>s \<and> length(s#\<alpha>) = length ?\<beta>s \<and> length(s#\<alpha>) = length ?ns
+              \<and> fold (+) ?ns 0 = n \<and> (\<forall>i < length ?\<beta>s. P \<turnstile> [(s#\<alpha>) ! i] \<Rightarrow>(?ns ! i) map Tm (?\<beta>s ! i))"
+      using * ** *** by (auto simp add: nth_Cons' derives_Cons_rule fold_plus_sum_list_rev)
     then show ?thesis by blast
   qed
 qed simp
 
+
 (* A proof attempt ... *)
 lemma CFL_Lang_if_derives_aux: "P \<turnstile> [Nt A] \<Rightarrow>(n) map Tm w \<Longrightarrow> w \<in> ((subst_lang P)^^n) (\<lambda>A. {}) A"
-proof(induction n rule: less_induct)
+proof(induction n arbitrary: w A rule: less_induct)
   case (less n)
   show ?case
   proof (cases n)
     case 0 then show ?thesis using less.prems by auto
   next
     case (Suc m)
-    then obtain \<alpha> where "(A,\<alpha>) \<in> P" "P \<turnstile> \<alpha> \<Rightarrow>(m) map Tm w"
+    then obtain \<alpha> where \<alpha>_intro: "(A,\<alpha>) \<in> P" "P \<turnstile> \<alpha> \<Rightarrow>(m) map Tm w"
       by (metis deriven_start1 less.prems nat.inject)
+    then obtain ws ms where *:
+      "w = concat ws \<and> length \<alpha> = length ws \<and> length \<alpha> = length ms
+        \<and> fold (+) ms 0 = m \<and> (\<forall>i < length ws. P \<turnstile> [\<alpha> ! i] \<Rightarrow>(ms ! i) map Tm (ws ! i))"
+      using derive_decomp_Tm by (metis rtranclp_power)
+    have "\<forall>i < length ws. \<forall>B. \<alpha> ! i = Nt B \<longrightarrow> ws ! i \<in> ((subst_lang P)^^(ms ! i)) (\<lambda>B. {}) B"
+    proof (rule allI | rule impI)+
+      fix i B
+      assume as: "i < length ws" "\<alpha> ! i = Nt B"
+      then have "ms ! i \<le> m" sorry
+      with Suc have "ms ! i < n" by force
+      from less.IH[OF this, of B "ws ! i"] as *
+        show "ws ! i \<in> (subst_lang P ^^ (ms ! i)) (\<lambda>B. {}) B" by fastforce
+    qed
     then show ?thesis sorry
   qed
 qed

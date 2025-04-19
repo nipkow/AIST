@@ -333,7 +333,7 @@ next
   qed
 qed
 
-(* needed/useful? *)
+
 lemma derive_decomp_Tm: "P \<turnstile> \<alpha> \<Rightarrow>(n) map Tm \<beta> \<Longrightarrow>
   \<exists>\<beta>s ns. \<beta> = concat \<beta>s \<and> length \<alpha> = length \<beta>s \<and> length \<alpha> = length ns \<and> fold (+) ns 0 = n
           \<and> (\<forall>i < length \<beta>s. P \<turnstile> [\<alpha> ! i] \<Rightarrow>(ns!i) map Tm (\<beta>s ! i))"
@@ -352,7 +352,7 @@ proof (induction \<alpha> arbitrary: \<beta> n)
     let ?ns = "0#ns"
     have "\<beta> = concat ?\<beta>s \<and> length (s#\<alpha>) = length ?\<beta>s \<and> length (s#\<alpha>) = length ?ns
           \<and> fold (+) ?ns 0 = n \<and> (\<forall>i < length ?\<beta>s. P \<turnstile> [(s#\<alpha>) ! i] \<Rightarrow>(?ns!i) map Tm (?\<beta>s ! i))"
-      using \<open>\<beta> = _\<close> as * using nth_Cons' by (auto simp: nth_Cons')
+      using \<open>\<beta> = _\<close> as * by (auto simp: nth_Cons')
     then show ?thesis by blast
   next
     fix n1 n2 A w \<beta>1 \<beta>2
@@ -375,7 +375,36 @@ proof (induction \<alpha> arbitrary: \<beta> n)
 qed simp
 
 
-(* A proof attempt ... *)
+lemma insts_decomp:
+  assumes "\<forall>i < length ws. ws ! i \<in> inst L (\<alpha> ! i)"
+          "length \<alpha> = length ws"
+    shows "concat ws \<in> insts L \<alpha>"
+using assms proof (induction ws arbitrary: \<alpha>)
+  case Nil
+  then show ?case unfolding insts_def concats_def by simp
+next
+  case (Cons w ws)
+  then obtain \<alpha>1 \<alpha>r where *: "\<alpha> = \<alpha>1 # \<alpha>r" by (metis Suc_length_conv)
+  with Cons.prems(2) have "length \<alpha>r = length ws" by simp
+  moreover from Cons.prems * have "\<forall>i<length ws. ws ! i \<in> inst L (\<alpha>r ! i)"
+    by (metis calculation length_Cons list.sel(3) not_less_eq nth_tl)
+  ultimately have "concat ws \<in> insts L \<alpha>r" using Cons.IH by blast
+  moreover from Cons.prems * have "w \<in> inst L \<alpha>1" by fastforce
+  ultimately  show ?case unfolding insts_def concats_def using * by force
+qed
+
+
+lemma omega_cont_CFL_Lang_iterates: "omega_chain (\<lambda>n. ((subst_lang P)^^n) (\<lambda>A. {}))"
+  using omega_chain_iterates[OF mono_if_omega_cont, OF omega_cont_CFL_Lang]
+  unfolding bot_fun_def by blast
+
+
+lemma upper_bound_in_nat_list_sum:
+  fixes xs :: "nat list"
+  shows "x \<in> set xs \<Longrightarrow> x \<le> fold (+) xs 0"
+  by (simp add: canonically_ordered_monoid_add_class.member_le_sum_list fold_plus_sum_list_rev)
+
+
 lemma CFL_Lang_if_derives_aux: "P \<turnstile> [Nt A] \<Rightarrow>(n) map Tm w \<Longrightarrow> w \<in> ((subst_lang P)^^n) (\<lambda>A. {}) A"
 proof(induction n arbitrary: w A rule: less_induct)
   case (less n)
@@ -389,23 +418,44 @@ proof(induction n arbitrary: w A rule: less_induct)
     then obtain ws ms where *:
       "w = concat ws \<and> length \<alpha> = length ws \<and> length \<alpha> = length ms
         \<and> fold (+) ms 0 = m \<and> (\<forall>i < length ws. P \<turnstile> [\<alpha> ! i] \<Rightarrow>(ms ! i) map Tm (ws ! i))"
-      using derive_decomp_Tm by (metis rtranclp_power)
-    have "\<forall>i < length ws. \<forall>B. \<alpha> ! i = Nt B \<longrightarrow> ws ! i \<in> ((subst_lang P)^^(ms ! i)) (\<lambda>B. {}) B"
+      using derive_decomp_Tm by metis
+
+    have "\<forall>i < length ws. ws ! i \<in> inst (\<lambda>A. ((subst_lang P)^^m) (\<lambda>A. {}) A) (\<alpha> ! i)"
     proof (rule allI | rule impI)+
-      fix i B
-      assume as: "i < length ws" "\<alpha> ! i = Nt B"
-      then have "ms ! i \<le> m" sorry
-      with Suc have "ms ! i < n" by force
-      from less.IH[OF this, of B "ws ! i"] as *
-        show "ws ! i \<in> (subst_lang P ^^ (ms ! i)) (\<lambda>B. {}) B" by fastforce
+      fix i
+      show "i < length ws \<Longrightarrow> ws ! i \<in> inst ((subst_lang P ^^ m) (\<lambda>A. {})) (\<alpha> ! i)"
+      unfolding inst_def proof (induction "\<alpha> ! i")
+        case (Nt B)
+        with * upper_bound_in_nat_list_sum have **: "ms ! i \<le> m" by force
+        with Suc have "ms ! i < n" by force
+        from less.IH[OF this, of B "ws ! i"] Nt *
+          have "ws ! i \<in> (subst_lang P ^^ (ms ! i)) (\<lambda>A. {}) B" by fastforce
+        with omega_chain_mono[OF omega_cont_CFL_Lang_iterates, OF **]
+          have "ws ! i \<in> (subst_lang P ^^ m) (\<lambda>A. {}) B" by (metis le_funD subset_iff)
+        with Nt show ?case by (metis sym.simps(5))
+      next
+        case (Tm a)
+        with * have "P \<turnstile> map Tm [a] \<Rightarrow>(ms ! i) map Tm (ws ! i)" by fastforce
+        then have "ws ! i \<in> {[a]}" using deriven_from_TmsD by fastforce
+        with Tm show ?case by (metis sym.simps(6))
+      qed
     qed
-    then show ?thesis sorry
+
+    from insts_decomp[OF this] * have "w \<in> insts ((subst_lang P ^^ m) (\<lambda>A. {})) \<alpha>" by argo
+    with \<alpha>_intro have "w \<in> (subst_lang P) (\<lambda>A. (subst_lang P ^^ m) (\<lambda>A. {}) A) A"
+      unfolding subst_lang_def Rhss_def by force
+    with Suc show ?thesis by force
   qed
 qed
 
 
 lemma CFL_Lang_if_derives: "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w \<Longrightarrow> w \<in> CFL.Lang P A"
-sorry
+proof -
+  assume "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
+  then obtain n where "P \<turnstile> [Nt A] \<Rightarrow>(n) map Tm w" by (meson rtranclp_power)
+  from CFL_Lang_if_derives_aux[OF this] have "w \<in> ((subst_lang P)^^n) (\<lambda>A. {}) A" by argo
+  with CFL_Lang_SUP show "w \<in> CFL.Lang P A" by (metis (mono_tags, lifting) SUP_apply UNIV_I UN_iff)
+qed
 
 theorem CFL_Lang_eq_CFG_Lang: "CFL.Lang P A = Lang P A"
 unfolding CFG.Lang_def by(blast intro: CFL_Lang_if_derives derives_if_CFL_Lang)

@@ -446,12 +446,12 @@ next
   then show ?case by (force simp: derive_Tm_Cons relpowp_Suc_left OO_def)
 qed
 
-lemma derives_T_Cons:
+lemma derives_Tm_Cons:
   "P \<turnstile> Tm a # u \<Rightarrow>* v \<longleftrightarrow> (\<exists>w. v = Tm a # w \<and> P \<turnstile> u \<Rightarrow>* w)"
   by (metis deriven_Tm_Cons rtranclp_power)
 
 lemma derives_Tm[simp]: "P \<turnstile> [Tm a] \<Rightarrow>* w \<longleftrightarrow> w = [Tm a]"
-by(simp add: derives_T_Cons)
+by(simp add: derives_Tm_Cons)
 
 lemma derive_singleton: "P \<turnstile> [a] \<Rightarrow> u \<longleftrightarrow> (\<exists>A. (A,u) \<in> P \<and> a = Nt A)"
   by (auto simp: derive_iff Cons_eq_append_conv)
@@ -867,13 +867,23 @@ lemma derivers_imp_derives: "R \<turnstile> u \<Rightarrow>r* v \<Longrightarrow
   by (metis deriver_imp_derive mono_rtranclp)
 
 lemma deriver_iff_rev_derivel:
-  "P \<turnstile> u \<Rightarrow>r v \<longleftrightarrow> map_prod id rev ` P \<turnstile> rev u \<Rightarrow>l rev v"
-  apply (auto simp: derivel_iff deriver.simps rev_map rev_eq_append_conv split: prod.splits)
-   apply (rule_tac x="(A,\<alpha>)" in bexI)
-    apply auto
-  apply (rule_tac x="rev va" in exI)
-  apply (rule_tac x="rev ua" in exI)
-  by auto
+  "P \<turnstile> u \<Rightarrow>r v \<longleftrightarrow> map_prod id rev ` P \<turnstile> rev u \<Rightarrow>l rev v" (is "?l \<longleftrightarrow> ?r")
+proof
+  assume ?l
+  then obtain A w u1 u2 where Aw: "(A,w) \<in> P"
+    and u: "u = u1 @ Nt A # map Tm u2"
+    and v: "v = u1 @ w @ map Tm u2" by (auto simp: deriver.simps)
+  from bexI[OF _ Aw] have "(A, rev w) \<in> map_prod id rev ` P" by (auto simp: image_def)
+  from derivel.intros[OF this, of "rev u2" "rev u1"] u v
+  show ?r by (simp add: rev_map)
+next
+  assume ?r
+  then obtain A w u1 u2 where Aw: "(A,w) \<in> P"
+    and u: "u = u1 @ Nt A # map Tm u2"
+    and v: "v = u1 @ w @ map Tm u2"
+    by (auto simp: derivel_iff rev_eq_append_conv rev_map)
+  then show ?l by (auto simp: deriver_iff)
+qed
 
 lemma rev_deriver_iff_derivel:
   "map_prod id rev ` P \<turnstile> u \<Rightarrow>r v \<longleftrightarrow> P \<turnstile> rev u \<Rightarrow>l rev v"
@@ -886,8 +896,9 @@ proof (induction n arbitrary: u)
   show ?case by simp
 next
   case (Suc n)
-  then show ?case
-    apply (auto simp: relpowp_Suc_left deriver_iff_rev_derivel OO_def id_def)
+  show ?case
+    apply (unfold relpowp_Suc_left OO_def)
+    apply (unfold Suc deriver_iff_rev_derivel)
     by (metis rev_rev_ident)
 qed
 
@@ -975,7 +986,7 @@ subsection \<open>Substitution in Lists\<close>
 text \<open>\<open>substs y ys xs y\<close> replaces every occurrence of \<open>y\<close> in \<open>xs\<close> with the list \<open>ys\<close>\<close>
 
 fun substs :: "'a \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> 'a list" where
-"substs y ys[]  = []" |
+"substs y ys [] = []" |
 "substs y ys (x#xs) = (if x = y then ys @ substs y ys xs else x # substs y ys xs)"
 
 (* Alternative, but apparently no simpler to use: 

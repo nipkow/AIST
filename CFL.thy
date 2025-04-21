@@ -279,7 +279,7 @@ next
   next
     case (Tm a)
     then show ?thesis using Cons
-      unfolding insts_def concats_def inst_def by(auto simp:derives_T_Cons)
+      unfolding insts_def concats_def inst_def by(auto simp:derives_Tm_Cons)
   qed
 qed
 

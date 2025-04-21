@@ -649,7 +649,7 @@ proof -
       assume "\<not>w = []"
       with w_cases obtain a C where "w = [Tm a, Nt C]" by blast
       with w_star show ?thesis
-        using derives_T_Cons[of P a "[Nt C]" "[Nt B]"] by simp
+        using derives_Tm_Cons[of P a "[Nt C]" "[Nt B]"] by simp
     qed
   qed simp
 qed

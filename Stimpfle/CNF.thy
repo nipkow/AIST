@@ -1047,7 +1047,7 @@ proof -
   from this obtain a where "\<alpha> = [Tm a]"
     using 1 assms(1) unfolding CNF_def by auto
   hence "t = a"
-    using \<alpha> by (simp add: derives_T_Cons)
+    using \<alpha> by (simp add: derives_Tm_Cons)
   thus ?thesis 
     using 1 \<open>\<alpha> = [Tm a]\<close> by blast
 qed
@@ -1064,7 +1064,7 @@ proof -
   from this obtain \<alpha> where \<alpha>: "(S, \<alpha>) \<in> P \<and> P \<turnstile> \<alpha> \<Rightarrow>* map Tm w"
     by (auto simp: derive_singleton)
   hence "(\<nexists>t. \<alpha> = [Tm t])"
-    using 1 derives_T_Cons[of P] derives_from_empty by auto
+    using 1 derives_Tm_Cons[of P] derives_from_empty by auto
   hence "\<exists>A B. P \<turnstile> [Nt S] \<Rightarrow> [Nt A, Nt B] \<and> P \<turnstile> [Nt A, Nt B] \<Rightarrow>* map Tm w"
     using assms(1) \<alpha> derive_singleton[of P \<open>Nt S\<close> \<alpha>] unfolding CNF_def by fast
   from this obtain A B where AB: "(S, [Nt A, Nt B]) \<in> P \<and> P \<turnstile> [Nt A, Nt B] \<Rightarrow>* map Tm w"

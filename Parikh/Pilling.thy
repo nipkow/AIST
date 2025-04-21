@@ -722,4 +722,37 @@ proof -
 qed
 
 
+
+theorem Parikh: "CFL (TYPE('n)) L \<Longrightarrow> \<exists>L'. regular_lang L' \<and> parikh_img L = parikh_img L'"
+proof -
+  assume "CFL (TYPE('n)) L"
+  then obtain P and S::'n where *: "L = Lang P S \<and> finite P" unfolding CFL_def by blast
+  show ?thesis
+  proof (cases "S \<in> Nts P")
+    case True
+    from * finite_Nts exists_mapping obtain \<gamma> \<gamma>' where **: "mapping_Nt_Var (Nts P) \<gamma> \<gamma>'" by metis
+
+    let ?sol = "\<lambda>i. if i < card (Nts P) then CFL.Lang P (\<gamma> i) else {}"
+    from ** True have "\<gamma>' S < card (Nts P)" "\<gamma> (\<gamma>' S) = S"
+      unfolding mapping_Nt_Var_def bij_betw_def by auto
+    with CFL_Lang_eq_CFG_Lang have ***: "Lang P S = ?sol (\<gamma>' S)" by metis
+
+    from * ** CFG_eq_sys.CFL_is_min_sol obtain sys
+      where sys_intro: "(\<forall>eq \<in> set sys. regular_fun eq) \<and> (\<forall>eq \<in> set sys. \<forall>x \<in> vars eq. x < length sys)
+                        \<and> min_sol_ineq_sys sys ?sol"
+      unfolding CFG_eq_sys_def by blast
+    with min_sol_min_sol_comm have sol_is_min_sol: "min_sol_ineq_sys_comm sys ?sol" by fast
+    from sys_intro exists_minimal_reg_sol_sys obtain sol' where
+      sol'_intro: "min_sol_ineq_sys_comm sys sol' \<and> regular_lang (sol' (\<gamma>' S))" by fastforce
+    with sol_is_min_sol min_sol_comm_unique have "parikh_img (?sol (\<gamma>' S)) = parikh_img (sol' (\<gamma>' S))"
+      by blast
+    with * *** sol'_intro show ?thesis by auto
+  next
+    case False
+    with Nts_Lhss_Rhs_Nts have "S \<notin> Lhss P" by fast
+    from Lang_empty_if_notin_Lhss[OF this] * show ?thesis by (metis lang.simps(1))
+  qed
+qed
+
+
 end

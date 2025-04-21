@@ -290,6 +290,28 @@ lemma subst_reg_fun_update:
   using assms subst_reg_fun fun_upd_def by (metis Variable)
 
 
+lemma finite_Union_regular_aux:
+  "\<forall>f \<in> set fs. regular_fun f \<Longrightarrow> \<exists>g. regular_fun g \<and> \<Union>(vars ` set fs) = vars g
+                                      \<and> (\<forall>s. (\<Union>f \<in> set fs. eval f s) = eval g s)"
+proof (induction fs)
+  case Nil
+  then show ?case using emptyset_regular by force
+next
+  case (Cons f1 fs)
+  then obtain g where *: "regular_fun g \<and> \<Union>(vars ` set fs) = vars g
+                          \<and> (\<forall>s. (\<Union>f\<in>set fs. eval f s) = eval g s)" by auto
+  let ?g' = "Union2 f1 g"
+  from Cons.prems * show ?case by auto
+qed
+
+
+lemma finite_Union_regular:
+  assumes "finite F"
+      and "\<forall>f \<in> F. regular_fun f"
+    shows "\<exists>g. regular_fun g \<and> \<Union>(vars ` F) = vars g \<and> (\<forall>s. (\<Union>f\<in>F. eval f s) = eval g s)"
+  using assms finite_Union_regular_aux finite_list by metis
+
+
 (* TODO: this lemma should include parikh_img, shouldn't it? *)
 (* f(Y*Z, X\<^sub>1, \<dots>, X\<^sub>m) = Y* f(Z, X\<^sub>1, \<dots>, X\<^sub>m) if f is a regular function
 

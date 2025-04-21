@@ -779,7 +779,7 @@ lemma derive_Cons_undef:
   by (metis Pair_inject)
 
 lemma derive_append_undef:
-  assumes "nts_of_syms p \<inter> fst ` R = {}"
+  assumes "nts_syms p \<inter> fst ` R = {}"
   shows "R \<turnstile> p @ u \<Rightarrow> v \<longleftrightarrow> (\<exists>v'. v = p @ v' \<and> R \<turnstile> u \<Rightarrow> v')"
   using assms
 proof (induction p arbitrary: u v)
@@ -788,15 +788,15 @@ proof (induction p arbitrary: u v)
 next
   case (Cons a p)
   then have "a \<notin> Nt ` fst ` R"
-    by (fastforce simp: nts_of_syms_def image_iff)
+    by (fastforce simp: nts_syms_def image_iff)
   note * = derive_Cons_undef[OF this]
-  from Cons.prems have "nts_of_syms p \<inter> fst ` R = {}" by (auto simp: nts_of_syms_Cons)
+  from Cons.prems have "nts_syms p \<inter> fst ` R = {}" by auto
   from Cons.IH[OF this]
   show ?case by (auto simp: *)
 qed
 
 lemma deriven_append_undef:
-  assumes "nts_of_syms p \<inter> fst ` R = {}"
+  assumes "nts_syms p \<inter> fst ` R = {}"
   shows "R \<turnstile> p @ u \<Rightarrow>(n) v \<longleftrightarrow> (\<exists>v'. v = p @ v' \<and> R \<turnstile> u \<Rightarrow>(n) v')"
   using derive_append_undef[OF assms]
   by (induction n arbitrary: u; fastforce simp: relpowp_Suc_left relcomppI)
@@ -804,8 +804,8 @@ lemma deriven_append_undef:
 lemma fst_Unwind_new: "fst ` Unwind_new R A A' \<subseteq> {A'}"
   by (auto simp: Unwind_new_def)
 
-lemma Nt_in_set_iff_nts_of_syms: "Nt A \<in> set w \<longleftrightarrow> A \<in> nts_of_syms w"
-  by (auto simp: nts_of_syms_def)
+lemma Nt_in_set_iff_nts_of_syms: "Nt A \<in> set w \<longleftrightarrow> A \<in> nts_syms w"
+  by (auto simp: nts_syms_def)
 
 lemma Unwind_new_only_last:
   assumes A'R: "A' \<notin> Nonterminals R"
@@ -862,7 +862,7 @@ next
       by (auto simp: Unwind_new_def derive_singleton Nonterminals_def split: prod.splits)
     from AAv A'R have A'v: "Nt A' \<notin> set v" by (auto simp: Nonterminals_def)
     with fst_Unwind_new[of R A A']
-    have "nts_of_syms v \<inter> fst ` ?R' = {}" by (auto simp: Nt_in_set_iff_nts_of_syms)
+    have "nts_syms v \<inter> fst ` ?R' = {}" by (auto simp: Nt_in_set_iff_nts_of_syms)
     from yvs[simplified] deriven_append_undef[OF this]
     obtain w where [simp]: "vs = v @ w" and A'w: "?R' \<turnstile> [Nt A'] \<Rightarrow>(n) w"
       by blast

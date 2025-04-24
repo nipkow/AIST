@@ -1,7 +1,7 @@
 (*
 Opening it:
 isabelle jedit -d .. -d ../Stimpfle -d . Chomsky_Schuetzenberger.thy
-
+isabelle vscode -d .. -d ../Stimpfle -d . Chomsky_Schuetzenberger.thy
 Building it:
 isabelle build -d .. -d ../Stimpfle -D .
 *)
@@ -10,52 +10,57 @@ theory Chomsky_Schuetzenberger
 begin
 
 text \<open>This file contains all the constructions needed for the Chomsky-Schuetzenberger theorem.
-We follow Kozen \<^cite>\<open>Kozen\<close> closely for the proof.
-
-This theorem roughly states, that each type 2 language \<open>L\<close> can be written as 
-\<open>h(R \<inter> Dyck_lang(\<Gamma>))\<close> for suitable alphabet Gamma, a regular language R, and a monoid-homomorphism h.
+We follow Kozen \<^cite>\<open>Kozen\<close> closely for the proof.\<close>
 
 
-The Dyck language over some set \<open>\<Gamma>\<close> (also called bracket language) is defined as follows:  
-The symbols of Gamma are thought of as opening brackets. 
-For each symbol a closing bracket is added.
-The Dyck language over Gamma then is the language of correctly bracketed terms.
+text\<open>This theorem states, that each type 2 Language \<^term>\<open>L\<close> 
+can be written as \<^term>\<open>h(R \<inter> Dyck_lang(\<Gamma>))\<close>, for suitable alphabet \<^term>\<open>\<Gamma>\<close>, 
+a regular language \<^term>\<open>R\<close> and a monoid-homomorphism \<^term>\<open>h\<close>. 
 
-We implement this cloning of Gamma, by pairing each element \<open>g \<in> \<Gamma>\<close> either with an Element from
-\<open>datatype bracket = Op | Cl\<close>, as in \<open>Cl, g\<close>.
+The Dyck language over a set \<^term>\<open>\<Gamma>\<close> (also called it's bracket language) is defined as follows:
+The symbols of Gamma are thought of as opening brackets. For each symbol a closing bracket variant is added.
+The Dyck language over \<^term>\<open>\<Gamma>\<close> then is the language of correctly bracketed words.
 
-
-A (very) rough proof overview of Chomsky-Schuetzenberger is as follows:
-Take some type 2 Grammar for \<open>L\<close> with Productions \<open>P\<close>, assume it in Chomsky normal form.
-From the old Productions \<open>P\<close> define new Productions \<open>P'\<close> using \<open>transform_production\<close>: 
-if \<open>\<pi> = A \<rightarrow> BC\<close>  let \<open>\<pi>' = A \<rightarrow> [\<^sub>\<pi>\<^sup>1  B  ]\<^sub>p\<^sup>1  [\<^sub>\<pi>\<^sup>2  C  ]\<^sub>p\<^sup>2\<close>
-elif \<open>\<pi> = A \<rightarrow> a\<close> let \<open>\<pi>' = A \<rightarrow> [\<^sub>\<pi>\<^sup>1     ]\<^sub>p\<^sup>1  [\<^sub>\<pi>\<^sup>2     ]\<^sub>p\<^sup>2\<close>
-\<open>B\<close> and \<open>C\<close> on the right side, are again viewed as Nonterminals,
-the brackets \<open>[\<^sub>\<pi>\<^sup>1\<close> are terminals. This means, we need a second copy of each production, 
-and then pair these with brackets for the non-terminal type - 
-\<open>bracket \<times> (old prod. type \<times> (type of ){1,2})\<close>
-
-This bracketing encodes the parse tree of any old expression in the word-output, and it turns out one can recover the old word by the homomorphism \<open>h\<close>, which sends \<open>[\<^sub>\<pi>\<^sup>1\<close> to \<open>a\<close> if \<open>\<pi> = A \<rightarrow> a\<close>, and sends every other bracket to \<open>\<epsilon>\<close>.
-
-Thus \<open>h(L') = L\<close> (*), so all we need to show is, that L' is of the form \<open>R \<inter> Dyck_language \<Gamma>\<close>.
-
-\<open>R\<^sub>A\<close> is defined via an intersection of 5 regular languages. Each of these is defined via a property of words (actually the fith one has an additional parameter, a variable of the old kind) which is chosen to be the start symbol, so \<open>R := R\<^sub>S\<close> (**).
-
-We take the easiest \<open>\<Gamma>\<close> one can imagine with the right type: \<open>\<Gamma> = P \<times> {1,2}\<close>.
-
-One then shows \<open>A \<rightarrow>\<^sub>G\<^sub>'\<^sup>* x \<longleftrightarrow> x \<in> R\<^sub>A \<inter> Dyck_language \<Gamma>\<close>. (***) This is where the main work of the proof goes into.
-Using this then for the old start symbol S gives the desired equation \<open>L' = R \<inter> Dyck_language \<Gamma>\<close>
+We implement this cloning of \<^term>\<open>\<Gamma>\<close>, by pairing each element \<^prop>\<open>g \<in> \<Gamma>\<close> with an element from the 
+datatype bracket = Op | Cl, as in \<^term>\<open>(Cl, g)\<close>.
 \<close>
 
 
+text\<open>
+  A (very) rough proof overview of Chomsky-Schuetzenberger is as follows:
+  Take some type 2 Grammar for \<^term>\<open>L\<close> with Productions \<^term>\<open>P\<close>, 
+  wlog assume it in Chomsky normal form. 
+  Now define a new Language \<^term>\<open>L'\<close> with Productions \<^term>\<open>P'\<close> in the following way from \<^term>\<open>P\<close>:
 
-text\<open>What is done and what is missing:
 
-The equation in (*) should be an easy induction on the derivation - it's missing. If one looks closer we need an extended version of \<open>h\<close> that can also be applied on variables - we defined this as \<open>h_ext\<close>. We showed that this does basically the same as \<open>h\<close> on the terminals (modulo the Tm operators ...) in \<open>h_ext (map Tm x) = map Tm (h x)\<close>. Presumably one can do the induction with \<open>h_ext\<close> and then reduce this to a result for \<open>h\<close>.
+  If \<open>\<pi> = A \<rightarrow> BC\<close> let \<open>\<pi>' = A \<rightarrow> [\<^sub>\<pi>\<^sup>1  B  ]\<^sub>p\<^sup>1  [\<^sub>\<pi>\<^sup>2  C  ]\<^sub>p\<^sup>2\<close>
+  elif \<open>\<pi> = A \<rightarrow> a\<close> let \<open>\<pi>' = A \<rightarrow> [\<^sub>\<pi>\<^sup>1     ]\<^sub>p\<^sup>1  [\<^sub>\<pi>\<^sup>2     ]\<^sub>p\<^sup>2\<close>,
+  where the brackets are viewed as terminals and the old Variables 
+  \<^term>\<open>A\<close>, \<^term>\<open>B\<close>, \<^term>\<open>C\<close> are again viewed as Nonterminals.
 
-The definition of what it means to be a regular language is a placeholder - it's a straight up copy of the type 2 definition. One needs to show that the intersection of regulars is regular and that the \<open>R\<^sub>A\<close> are regular. This is missing. The textbook says that regular expressions might be a good entry point for this - these are also already formalized in the AFP. Also one should check the formalization of the 5 properties again - these might be right, but i didn't spend any time on them, as they are not really used yet, they are needed for the lemma in the next paragraph. Maybe they also can be formulated with less index-bound checking.
+  This transformation is implemented via the function \<^term>\<open>transform_production\<close>.
+  The versioning with 1 and 2 is implemented via pairing with an element from the
+  datatype version = One | Two.
+  This means the Nonterminals of the transformed production are of type
+  \<^term>\<open>bracket \<times> old_prod_type \<times> version\<close>.
 
-The Lemma (***) is missing. This is the main mathematics of the proof, it involes one easy direction and one hard. This is the only part where one needs the definitions of the regular languages. In the textbook this is a (local) lemma.\<close>
+  This bracketing encodes the parse tree of any old word. 
+  The old word is easily recovered by the homomorphism which sends 
+  \<open>[\<^sub>\<pi>\<^sup>1\<close> to \<open>a\<close> if \<open>\<pi> = A \<rightarrow> a\<close>, and sends every other bracket to \<open>\<epsilon>\<close>.
+  Thus we have \<open>h(L') = L\<close>, so all we need to show is, 
+  that L' is of the form \<open>R \<inter> Dyck_language \<Gamma>\<close>, then we are finished.
+
+For this, \<open>R\<^sub>A\<close> is defined via an intersection of 5 regular languages. 
+Each of these is defined via a property of words 
+(actually the fith one has an additional parameter, a variable of the old kind which is chosen to be the start symbol, so \<open>R := R\<^sub>S\<close>).
+
+We take the easiest \<open>\<Gamma>\<close> one can imagine with the right type: \<open>\<Gamma> = P \<times> {One, Two}\<close>.
+
+One then shows \<open>A \<rightarrow>\<^sub>P\<^sub>'\<^sup>* x  \<longleftrightarrow>  x \<in> R\<^sub>A \<inter> Dyck_language \<Gamma>\<close>. 
+This is where the main work of the proof goes into.
+Using this then for the old start symbol S gives the desired equation \<open>L' = R \<inter> Dyck_language \<Gamma>\<close>
+\<close>
+
 
 
 
@@ -122,7 +127,9 @@ lemma bal2[iff]: "bal [(Op,g), (Cl,g)]" using bal.intros(1,3) by fastforce
 
 
 
-text\<open>The bracket language over a set R. Every element \<^prop>\<open>r \<in> R\<close> will get a Closing and an Opening version of itself, via pairing with the type bracket. We later need D := Dyck_language ((Prods G) \<times> {1,2})\<close>
+text\<open>The bracket language over a set R.  
+Every element \<^prop>\<open>r \<in> R\<close> will get a Closing and an Opening version of itself, via pairing with the type bracket. 
+We later need \<^prop>\<open>Dyck_language (P \<times> {One, Two})\<close>\<close> 
 
 
 definition rhs_in_if :: \<open>('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym list \<Rightarrow> (('a \<times> ('a, 'b) sym list) \<times> version) set \<Rightarrow> bool\<close> where
@@ -250,7 +257,7 @@ qed
 
 
 
-section\<open>Function based equivalent description of bal, from T. Nipkow\<close>
+section\<open>Function based equivalent description of \<^term>\<open>bal\<close>, from T. Nipkow\<close>
 
 text\<open>A stack machine that puts open brackets to the stack, to remember that they must be matched by a closed bracket\<close>
 fun stk_bal :: "(bracket \<times> 't) list \<Rightarrow> 't list \<Rightarrow> ((bracket \<times> 't) list) * 't list" where
@@ -489,7 +496,7 @@ lemma bal_not_empty:
 
 
 
-section\<open>Function based equivalent description of bal_tm, from T. Nipkow\<close>
+section\<open>Function based equivalent description of \<^term>\<open>bal_tm\<close>, from T. Nipkow\<close>
 
 text\<open>A stack machine that puts open brackets to the stack, to remember that they must be matched by a closed bracket\<close>
 fun stk_bal_tm :: "('n, bracket \<times> 't) syms \<Rightarrow> 't list \<Rightarrow> ('n, bracket \<times> 't) syms * 't list" where
@@ -965,7 +972,9 @@ lemma transform_production_induct_cnf:
 section\<open>Definition of the regular Language\<close>
 
 
-text\<open>Defines a Predicate on neighbouring string elements - Is true iff after a Cl,p,1 there always immediately follows a Op,p,2. That also means, Cl,p,1 can't be the end of the string\<close>
+text\<open>Defines a Predicate on neighbouring string elements - 
+Is true iff after a \<open>(Cl,p,1)\<close> there always immediately follows a \<open>(Op, p, 2)\<close>.
+ That also means \<open>(Cl, p, 1)\<close> can't be the end of the string\<close>
 fun P1' :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
   \<open>P1' ((Cl, (p, One))) ((Op, (p', Two)))  = (p = p')\<close> | 
   \<open>P1' ((Cl, (p, One))) y  = False\<close> | 
@@ -1077,7 +1086,7 @@ lemmas P1_symE_not_empty = P1_symD_not_empty[elim_format]
 
 
 
-text\<open>After any (Cl,pi,2) there never comes an (Op,...)\<close>
+text\<open>After any \<open>(Cl,pi,2)\<close> there never comes an \<open>(Op,...)\<close>\<close>
 fun P2 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
   \<open>P2 (Cl, (p, Two)) (Op, (p', v))  = False\<close> | 
   \<open>P2 (Cl, (p, Two)) y  = True\<close> | 
@@ -1109,14 +1118,14 @@ lemma P2_sym_imp_P2_for_tm[intro, dest]: \<open>successively P2_sym (map Tm x) \
 
 
 
-text\<open>After each (Op,A\<rightarrow>BC,1), always comes a (Op,(B, _),1),  And after each (Op,A\<rightarrow>BC,2), always comes a (Op,(C, _),1)\<close>
+text\<open>After each \<open>(Op,A\<rightarrow>BC,1)\<close>, always comes a \<open>(Op,(B, _),1)\<close>,  and after each \<open>(Op,A\<rightarrow>BC,2)\<close> always comes a \<open>(Op,(C, _),1)\<close>\<close>
 fun P3 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
   \<open>P3 (Op, ((A, [Nt B, Nt C]), One)) (p, ((X,y), t)) = (p = Op \<and> t = One \<and> X = B)\<close> |
   \<open>P3 (Op, ((A, [Nt B, Nt C]), Two)) (p, ((X,y), t)) = (p = Op \<and> t = One \<and> X = C)\<close> |
   \<open>P3 x y = True\<close>
 
 
-text\<open>After each (Op,A\<rightarrow>BC,1), always comes a (Op,(B, _),1) or a Nt B,  And after each (Op,A\<rightarrow>BC,2), always comes a (Op,(C, _),1) or a Nt C\<close>
+text\<open>After each \<open>(Op,A\<rightarrow>BC,1)\<close>, always comes a \<open>(Op,(B, _),1)\<close> or a \<open>Nt B\<close>,  And after each \<open>(Op,A\<rightarrow>BC,2)\<close>, always comes a \<open>(Op,(C, _),1)\<close> or a \<open>Nt C\<close>\<close>
 text\<open>We use function instead of fun here in a way, that is exactly what fun does but where we replaced \<open>auto\<close> by \<open>fastforce+\<close>, which happens to be a second faster.\<close>
 function (sequential) P3_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
   \<open>P3_sym (Tm (Op, ((A, [Nt B, Nt C]), One))) (Tm (p, ((X,y), t))) = (p = Op \<and> t = One \<and> X = B)\<close> | \<comment> \<open>Not obvious: the case (Tm (Op, ((A, [Nt B, Nt C]), One))) Nt X is set to True with the catch all\<close>
@@ -1166,12 +1175,12 @@ lemma P3_sym_imp_P3_for_tm[intro, dest]: \<open>successively P3_sym (map Tm x) \
 
 
 
-text\<open>after each (Op,A\<rightarrow>a,1) comes a (Cl,A\<rightarrow>a,1) and after each (Op,A\<rightarrow>a,2) comes a (Cl,A\<rightarrow>a,2)\<close>
+text\<open>after each \<open>(Op,A\<rightarrow>a,1)\<close> comes a \<open>(Cl,A\<rightarrow>a,1)\<close> and after each \<open>(Op,A\<rightarrow>a,2)\<close> comes a \<open>(Cl,A\<rightarrow>a,2)\<close>\<close>
 fun P4 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
   \<open>P4 (Op, ((A, [Tm a]), s)) (p, ((X, y), t)) = (p = Cl \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> |
   \<open>P4 x y = True\<close>
 
-text\<open>after each (Op,A\<rightarrow>a,1) comes a (Cl,A\<rightarrow>a,1) and after each (Op,A\<rightarrow>a,2) comes a (Cl,A\<rightarrow>a,2)\<close>
+text\<open>after each \<open>(Op,A\<rightarrow>a,1)\<close> comes a \<open>(Cl,A\<rightarrow>a,1)\<close> and after each \<open>(Op,A\<rightarrow>a,2)\<close> comes a \<open>(Cl,A\<rightarrow>a,2)\<close>\<close>
 fun P4_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
   \<open>P4_sym (Tm (Op, ((A, [Tm a]), s))) (Tm (p, ((X, y), t))) = (p = Cl \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> | 
   \<open>P4_sym (Tm (Op, ((A, [Tm a]), s))) (Nt X) = False\<close> | 
@@ -1198,13 +1207,13 @@ lemma P4_sym_imp_P4_for_tm[intro, dest]: \<open>successively P4_sym (map Tm x) \
   apply(induction x rule: induct_list012) apply simp apply simp apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P4_sym.cases) by auto
 
 
-text\<open>there exists some y, such that x begins with (Op,(A,y),1)\<close>
+text\<open>there exists some y, such that x begins with \<open>(Op,(A,y),1)\<close>\<close>
 fun P5 :: \<open>'n \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) list \<Rightarrow> bool\<close> where
   \<open>P5 A [] = False\<close> | 
   \<open>P5 A ((Op, (X,y), One) # xs) = (X = A)\<close> | 
   \<open>P5 A (x # xs) = False\<close>
 
-text\<open>there exists some y, such that x begins with (Op,(A,y),1) or it begins with Nt A\<close>
+text\<open>there exists some y, such that x begins with \<open>(Op,(A,y),1)\<close> or it begins with \<open>Nt A\<close>\<close>
 fun P5_sym :: \<open>'n \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms \<Rightarrow> bool\<close> where
   \<open>P5_sym A [] = False\<close> | 
   \<open>P5_sym A (Tm (Op, (X,y), One) # xs) = (X = A)\<close> | 
@@ -1230,7 +1239,7 @@ lemma P5_sym_imp_P5_for_tm[intro, dest]: \<open>P5_sym A (map Tm x) \<Longrighta
 
 
 
-text\<open>Before a Nt Y there always comes a Tm (Op, A\<rightarrow>YC, 1) or a Tm (Op, A\<rightarrow>BY, 2)\<close>
+text\<open>Before a \<open>Nt Y\<close> there always comes a \<open>Tm (Op, A\<rightarrow>YC, 1)\<close> or a \<open>Tm (Op, A\<rightarrow>BY, 2)\<close>\<close>
 fun P7_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
   \<open>P7_sym (Tm (b,(A, [Nt B, Nt C]), v )) (Nt Y) = (b = Op \<and> ((Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
   \<open>P7_sym x (Nt Y) = False\<close> | 
@@ -1245,7 +1254,7 @@ lemma P7_symD[dest]:
 
 lemmas P7_symE = P7_symD[elim_format]
 
-text\<open>After a Nt Y there always comes a (Cl, A\<rightarrow>YC, 1) or a (Cl, A\<rightarrow>BY, 2)\<close>
+text\<open>After a \<open>Nt Y\<close> there always comes a \<open>(Cl, A\<rightarrow>YC, 1)\<close> or a \<open>(Cl, A\<rightarrow>BY, 2)\<close>\<close>
 fun P8_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
   \<open>P8_sym (Nt Y) (Tm (b,(A, [Nt B, Nt C]), v ))  = (b = Cl \<and> ( (Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
   \<open>P8_sym (Nt Y) x = False\<close> | 
@@ -1275,7 +1284,7 @@ lemma ReD[dest]:
 
 lemmas ReE = ReD[elim_format]
 
-text\<open>Version of Re for symbols, i.e. strings that may still contain Nt's. 
+text\<open>Version of \<open>Re\<close> for symbols, i.e. strings that may still contain Nt's. 
 It has 2 more Properties P6 and P7 that vanish for pure terminal strings\<close>
 definition Re_sym :: \<open>'n \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms set\<close> where
   \<open>Re_sym A = {x. (P1_sym x) \<and> (successively P2_sym x) \<and> (successively P3_sym x) \<and> (successively P4_sym x) \<and> (P5_sym A x) \<and> (successively P7_sym x) \<and> (successively P8_sym x)}\<close>
@@ -1296,7 +1305,7 @@ lemmas Re_symE = Re_symD[elim_format]
 lemma Re_sym_imp_Re_for_tm[intro, dest]: \<open>(map Tm x) \<in> Re_sym A \<Longrightarrow> x \<in> Re A\<close> apply(rule ReI) by auto
 
 
-text\<open>Definition of monoid-homomorphism where multiplication is that of words.\<close>
+text\<open>Definition of a monoid-homomorphism where multiplication is that of words.\<close>
 definition hom :: \<open>('c list \<Rightarrow> 'd list) \<Rightarrow> bool\<close> where
   \<open>hom h = ((\<forall>a b. h (a@b) = (h a) @ h (b)) \<and> h [] = [])\<close>
 
@@ -1808,7 +1817,7 @@ lemmas bracketsE[elim!] = bracketsD[elim_format]
 
 
 
-text\<open>This is already part of the construction to show P2,P3,P4 regular, but we might use it again in another construction for P1 or P5?\<close>
+text\<open>This is needed for the construction that shows P2,P3,P4 regular.\<close>
 datatype 'a state = start | garbage |  letter 'a
 
 
@@ -2066,7 +2075,9 @@ qed
 
 
 
-section\<open>Construction of an automaton for P1. More Precisely, for the "if not empty, then doesnt end in (Cl,_,1)" part. Then use the other construction for P1' to get P1 regular.\<close>
+section\<open>Construction of an automaton for P1\<close>
+text\<open>More Precisely, for the \<open>if not empty, then doesnt end in (Cl,_,1)\<close> part. 
+Then intersect with the other construction for P1' to get P1 regular.\<close>
 
 locale P1Construction = 
   fixes P :: "('n,'t) Prods"
@@ -2077,7 +2088,7 @@ begin
 
 datatype P1_State = last_ok | last_bad | garbage 
 
-text\<open>The good ending letters, are those that are not of the form (Cl, _ , 1)\<close>
+text\<open>The good ending letters, are those that are not of the form \<open>(Cl, _ , 1)\<close>\<close>
 fun good where
   \<open>good (Cl, p, One)  = False\<close> | 
   \<open>good (br, p, v) = True\<close>
@@ -2088,7 +2099,7 @@ fun nxt :: \<open>P1_State \<Rightarrow> (bracket \<times> ('n \<times> ('n, 't)
   \<open>nxt last_ok  (br, p, v) = (if p \<notin> P then garbage else (if good (br, p, v) then last_ok else last_bad))\<close> | 
   \<open>nxt last_bad (br, p, v) = (if p \<notin> P then garbage else (if good (br, p, v) then last_ok else last_bad))\<close>
 
-print_statement nxt.induct
+
 
 theorem nxt_induct[case_names garbage startp startnp letterQ letternQ]:
   fixes R :: "P1_State \<Rightarrow> bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version \<Rightarrow> bool"
@@ -2248,7 +2259,7 @@ begin
 
 datatype P5_State = start | first_ok | garbage 
 
-text\<open>The good/ok ending letters, are those that are not of the form (Cl, _ , 1)\<close>
+text\<open>The good/ok ending letters, are those that are not of the form \<open>(Cl, _ , 1)\<close>\<close>
 fun ok where
   \<open>ok (Op, (X, _), One) = (X = A)\<close> | 
   \<open>ok _ = False\<close>
@@ -3037,7 +3048,7 @@ qed
 
 
 
-text\<open>The Chomsky-scheutzenberger theorem that we really want to prove.\<close>
+text\<open>The Chomsky-Schuetzenberger theorem that we really want to prove.\<close>
 lemma Chomsky_Schuetzenberger:
   fixes P :: \<open>('n::infinite, 't) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S\<close>

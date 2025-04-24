@@ -122,7 +122,7 @@ lemma bal2[iff]: "bal [(Op,g), (Cl,g)]" using bal.intros(1,3) by fastforce
 
 
 
-text\<open>The bracket language over a set R. Every element r \<in> R will get a Closing and an Opening version of itself, via pairing with the type bracket. We later need D := Dyck_language ((Prods G) \<times> {1,2})\<close>
+text\<open>The bracket language over a set R. Every element \<^prop>\<open>r \<in> R\<close> will get a Closing and an Opening version of itself, via pairing with the type bracket. We later need D := Dyck_language ((Prods G) \<times> {1,2})\<close>
 
 
 definition rhs_in_if :: \<open>('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym list \<Rightarrow> (('a \<times> ('a, 'b) sym list) \<times> version) set \<Rightarrow> bool\<close> where

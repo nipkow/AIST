@@ -1,7 +1,18 @@
 # Fdb version 4
-["pdflatex"] 0 "/Users/moroo/_EigeneDaten/GIT/WS2024/Chomsky_schuetzenberger/AIST/Roos/document/root.tex" "root.pdf" "root" 0 -1
-  "/Users/moroo/_EigeneDaten/GIT/WS2024/Chomsky_schuetzenberger/AIST/Roos/document/root.tex" 0 -1 0 ""
-  "root.aux" 0 -1 0 "pdflatex"
+["pdflatex"] 1745515998.41916 "/Users/moroo/_EigeneDaten/GIT/WS2024/Chomsky_schuetzenberger/AIST/Roos/document/root.tex" "root.pdf" "root" 1745515998.64567 2
+  "/Users/moroo/_EigeneDaten/GIT/WS2024/Chomsky_schuetzenberger/AIST/Roos/document/root.tex" 1745515935.44182 1390 bd4f02f4ace46067a66374389b57df2c ""
+  "/usr/local/texlive/2024/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
+  "/usr/local/texlive/2024/texmf-dist/fonts/tfm/jknappen/ec/ecrm1095.tfm" 1136768653 3584 929cdff2b7a8c11bd4d49fd68cb0ae70 ""
+  "/usr/local/texlive/2024/texmf-dist/fonts/tfm/public/cm/cmr10.tfm" 1136768653 1296 45809c5a464d5f32c8f98ba97c1bb47f ""
+  "/usr/local/texlive/2024/texmf-dist/tex/latex/base/article.cls" 1705352648 20144 147463a6a579f4597269ef9565205cfe ""
+  "/usr/local/texlive/2024/texmf-dist/tex/latex/base/fontenc.sty" 1705352648 5119 a04a8b68ab4f6ce800a41f7f8012a10e ""
+  "/usr/local/texlive/2024/texmf-dist/tex/latex/base/size11.clo" 1705352648 8464 59874a3b0776c73e2a138b025d8473dd ""
+  "/usr/local/texlive/2024/texmf-dist/web2c/texmf.cnf" 1708706663 41649 5d6ae549fbbcb850a863f69aa41f3d10 ""
+  "/usr/local/texlive/2024/texmf-var/web2c/pdftex/pdflatex.fmt" 1733594270 8221428 6bf174a2224ed0ee0dd590777a872cd1 ""
+  "/usr/local/texlive/2024/texmf.cnf" 1710266656 577 e590dabc9e28c5b61546e15f63eebcdf ""
+  "isabelle.sty" 0 -1 0 ""
+  "root.aux" 1745515998.41827 32 3985256e7290058c681f74d7a3565a19 "pdflatex"
+  "root.tex" 1745515935.44182 1390 bd4f02f4ace46067a66374389b57df2c ""
   (generated)
   "root.aux"
   "root.log"

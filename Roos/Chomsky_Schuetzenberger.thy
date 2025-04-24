@@ -632,10 +632,8 @@ next
     show ?thesis
     proof (cases w rule:rev_cases)
       case Nil
-      from "4.hyps" have "bal_tm ((Tm (Op, x) # u @ [Tm (Cl, x)]) @ [Tm (Op, x), Tm (Cl, x)])"
-        using bal.intros(2) by blast
       thus ?thesis using Nil Cons 4
-        by (metis append_Nil append_Nil2 bal_tm.simps)
+        by (metis append_Nil2 bal_tm.simps)
     next
       case (snoc w' Y)
       hence u: "u=v'@w'" and [simp]: "X=Tm (Op, y) & Y=Tm (Cl, y)"
@@ -1071,7 +1069,7 @@ lemma P1_symD_not_empty'[dest]:
   shows \<open>last xs \<noteq> Tm (Cl, p, One)\<close>
 proof-
   obtain x xs' where x_eq: \<open>xs = x# xs'\<close> using assms using List.list.exhaust_sel by blast
-  with assms have \<open>successively P1'_sym xs\<close> \<open>\<nexists>p. last xs = Tm (Cl, (p, One))\<close> using P1_sym.simps apply blast using P1.simps x_eq by (metis assms(1,2) Chomsky_Schuetzenberger.P1_sym.elims(2))
+  with assms have \<open>successively P1'_sym xs\<close> \<open>\<nexists>p. last xs = Tm (Cl, (p, One))\<close> using P1_sym.simps apply blast using x_eq by (metis assms(1,2) Chomsky_Schuetzenberger.P1_sym.elims(2))
   then show ?thesis by blast
 qed
 
@@ -1514,7 +1512,7 @@ lemma Dyck_languageI_tm[intro]: \<open>bal_tm (map Tm xs') \<Longrightarrow> rhs
 proof-
   assume bal: \<open>bal_tm (map Tm xs')\<close> and rhs: \<open>rhs_in_if (map Tm xs') \<Gamma>\<close>
   then have \<open>bal xs'\<close> using bal_tm_imp_bal_for_tms by blast
-  moreover have \<open>\<And>br r. (br, r) \<in> set xs' \<Longrightarrow> r \<in> \<Gamma>\<close> using rhs sym.exhaust by (metis (no_types, lifting) List.list.simps(15,9) insert_iff map_append rhs_in_ifD rhs_in_if_del_left split_list_last)
+  moreover have \<open>\<And>br r. (br, r) \<in> set xs' \<Longrightarrow> r \<in> \<Gamma>\<close> using rhs by (metis (no_types, lifting) List.list.simps(15,9) insert_iff map_append rhs_in_ifD rhs_in_if_del_left split_list_last)
   ultimately show ?thesis using Dyck_languageI[of xs' \<Gamma>] by blast
 qed
 
@@ -2707,7 +2705,7 @@ prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [R
 
     have ptB: \<open>parse_tree P (Rule B tB)\<close> using pt ts_eq by (meson List.list.set_intros(1) Parse_Tree.parse_tree.simps(2))
     then have ptB: \<open>parse_tree (P') (transform_tree (Rule B tB))\<close> \<open>the_hom_ext (fringe (transform_tree (Rule B tB))) = fringe (Rule B tB)\<close>
-      using IH[of \<open>Rule B tB\<close> \<open>fringe (Rule B tB)\<close>] by (metis List.list.set_intros(1) assms(2) ts_eq)+
+      using IH[of \<open>Rule B tB\<close> \<open>fringe (Rule B tB)\<close>] by (metis List.list.set_intros(1) ts_eq)+
 
     with frA have \<open>the_hom_ext (fringe (transform_tree (Rule A ts))) = fringe (Rule B tB) @ [Nt C]\<close> 
       by presburger
@@ -2772,7 +2770,7 @@ prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [R
 
     have ptB: \<open>parse_tree P (Rule B tB)\<close> using pt ts_eq by (meson List.list.set_intros(1) Parse_Tree.parse_tree.simps(2))
     then have ptB: \<open>parse_tree (P') (transform_tree (Rule B tB))\<close> \<open>the_hom_ext (fringe (transform_tree (Rule B tB))) = fringe (Rule B tB)\<close>
-      using IH[of \<open>Rule B tB\<close> \<open>fringe (Rule B tB)\<close>] by (metis List.list.set_intros(1) assms(2) ts_eq)+
+      using IH[of \<open>Rule B tB\<close> \<open>fringe (Rule B tB)\<close>] by (metis List.list.set_intros(1) ts_eq)+
 
     have ptC: \<open>parse_tree P (Rule C tC)\<close> using pt ts_eq by (meson List.list.set_intros(1,2) Parse_Tree.parse_tree.simps(2))
     then have ptC: \<open>parse_tree (P') (transform_tree (Rule C tC))\<close> \<open>the_hom_ext (fringe (transform_tree (Rule C tC))) = fringe (Rule C tC)\<close>

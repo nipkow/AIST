@@ -32,6 +32,14 @@ lemma parikh_img_mono: "A \<subseteq> B \<Longrightarrow> parikh_img A \<subsete
   unfolding parikh_img_def by fast
 
 
+lemma parikh_img_Star_pow: "v \<in> parikh_img (eval (Star f) s) \<Longrightarrow> \<exists>n. v \<in> parikh_img (eval f s ^^ n)"
+proof -
+  assume "v \<in> parikh_img (eval (lfun.Star f) s)"
+  then have "v \<in> parikh_img (star (eval f s))" by simp
+  then show ?thesis unfolding star_def by (simp add: parikh_img_UNION)
+qed
+
+
 lemma parikh_img_conc: "parikh_img (L1 @@ L2) = { v1 + v2 | v1 v2. v1 \<in> parikh_img L1 \<and> v2 \<in> parikh_img L2 }"
   unfolding parikh_img_def by force
 
@@ -50,6 +58,12 @@ lemma parikh_conc_right_subset: "parikh_img A \<subseteq> parikh_img B \<Longrig
 
 lemma parikh_conc_left_subset: "parikh_img A \<subseteq> parikh_img B \<Longrightarrow> parikh_img (C @@ A) \<subseteq> parikh_img (C @@ B)"
   by (auto simp add: parikh_img_conc)
+
+lemma parikh_conc_subset:
+  assumes "parikh_img A \<subseteq> parikh_img C"
+      and "parikh_img B \<subseteq> parikh_img D"
+    shows "parikh_img (A @@ B) \<subseteq> parikh_img (C @@ D)"
+  using assms parikh_conc_right_subset parikh_conc_left_subset by blast
 
 lemma parikh_conc_right: "parikh_img A = parikh_img B \<Longrightarrow> parikh_img (A @@ C) = parikh_img (B @@ C)"
   by (auto simp add: parikh_img_conc)
@@ -82,7 +96,23 @@ lemma parikh_star_mono_eq:
 lemma parikh_img_subst_mono:
   assumes "\<forall>i. parikh_img (eval (A i) s) \<subseteq> parikh_img (eval (B i) s)"
   shows "parikh_img (eval (subst f A) s) \<subseteq> parikh_img (eval (subst f B) s)"
-  sorry
+using assms proof (induction f)
+  case (UnionC f)
+  then have "parikh_img (\<Union>i. eval (subst (f i) A) s) \<subseteq> parikh_img (\<Union>i. eval (subst (f i) B) s)"
+    by (simp add: SUP_mono' parikh_img_UNION)
+  then show ?case by simp
+next
+  case (Conc f1 f2)
+  then have "parikh_img (eval (subst f1 A) s @@ eval (subst f2 A) s)
+              \<subseteq> parikh_img (eval (subst f1 B) s @@ eval (subst f2 B) s)"
+    using parikh_conc_subset by blast
+  then show ?case by simp
+next
+  case (Star f)
+  then have "parikh_img (star (eval (subst f A) s)) \<subseteq> parikh_img (star (eval (subst f B) s))"
+    using parikh_star_mono by blast
+  then show ?case by simp
+qed auto
 
 lemma parikh_img_subst_mono_upd:
   assumes "parikh_img (eval A s) \<subseteq> parikh_img (eval B s)"
@@ -97,25 +127,12 @@ lemma parikh_img_subst_mono_eq:
 lemma lfun_mono_parikh:
   assumes "\<forall>i \<in> vars f. parikh_img (s i) \<subseteq> parikh_img (s' i)"
   shows "parikh_img (eval f s) \<subseteq> parikh_img (eval f s')"
-  using assms proof (induction rule: lfun.induct)
-  case (V x)
-  then show ?case by auto
-next
-  case (N x)
-  then show ?case by auto
-next
-  case (Union2 x1a x2a)
-  then show ?case by auto
-next
-  case (UnionC x)
-  then show ?case sorry
-next
-  case (Conc x1a x2a)
-  then show ?case sorry
-next
-  case (Star x)
-  then show ?case sorry
-qed
+using assms proof (induction rule: lfun.induct)
+case (Conc f1 f2)
+  then have "parikh_img (eval f1 s @@ eval f2 s) \<subseteq> parikh_img (eval f1 s' @@ eval f2 s')"
+    using parikh_conc_subset by (metis UnCI vars.simps(5))
+  then show ?case by simp
+qed (auto simp add: SUP_mono' parikh_img_UNION parikh_star_mono)
 
 
 lemma lfun_mono_parikh_eq:

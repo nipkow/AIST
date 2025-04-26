@@ -425,14 +425,14 @@ proof (rule partial_sol_ineqI)
   let ?eq_subst = "subst eq ?upd"
 
   from sol_is_reg have r_reg: "regular_fun ?r" unfolding fun_upd_def by blast
-  have homogeneous_app: "eval ?q_subst s \<subseteq> eval (Conc (Star ?r) ?r) s"
+  have homogeneous_app: "parikh_img (eval ?q_subst s) \<subseteq> parikh_img (eval (Conc (Star ?r) ?r) s)"
     using reg_fun_homogeneous[OF q_reg r_reg p_reg] by blast
 
   from x_not_in_p have "eval (subst p ?upd) s = eval p s" using eval_vars_subst[of p] by simp
   then have "parikh_img (eval ?eq_subst s) = parikh_img (eval p s \<union> eval ?q_subst s @@ eval sol s)"
     by simp
   also have "\<dots> \<subseteq> parikh_img (eval p s \<union> eval (Conc (Star ?r) ?r) s @@ eval sol s)"
-    using homogeneous_app parikh_img_mono by (metis (no_types, lifting) conc_mono order_refl sup.mono)
+    using homogeneous_app by (metis dual_order.refl parikh_conc_right_subset parikh_img_Un sup.mono)
   also have "\<dots> = parikh_img (eval p s) \<union>
       parikh_img (star (eval ?r s) @@ eval ?r s @@ star (eval ?r s) @@ eval p s)"
     by (simp add: conc_assoc)

@@ -31,6 +31,9 @@ lemma parikh_img_UNION: "parikh_img (\<Union>(L ` I)) = \<Union> ((\<lambda>i. p
 lemma parikh_img_mono: "A \<subseteq> B \<Longrightarrow> parikh_img A \<subseteq> parikh_img B"
   unfolding parikh_img_def by fast
 
+lemma parikh_img_mono_eq: "A = B \<Longrightarrow> parikh_img A = parikh_img B"
+  using parikh_img_mono by blast
+
 
 lemma parikh_img_Star_pow: "v \<in> parikh_img (eval (Star f) s) \<Longrightarrow> \<exists>n. v \<in> parikh_img (eval f s ^^ n)"
 proof -
@@ -231,8 +234,167 @@ qed
 
 section \<open>(E*F)* and {\<epsilon>} \<union> E*F*F have the same Parikh image\<close>
 
+(* It even holds = but this is not necessary *)
+lemma parikh_img_conc_pow: "parikh_img ((A @@ B) ^^ n) \<subseteq> parikh_img (A ^^ n @@ B ^^ n)"
+proof (induction n)
+  case (Suc n)
+  then have "parikh_img ((A @@ B) ^^ n @@ A @@ B) \<subseteq> parikh_img (A ^^ n @@ B ^^ n @@ A @@ B)"
+    using parikh_conc_right_subset conc_assoc by metis
+  also have "\<dots> = parikh_img (A ^^ n @@ A @@ B ^^ n @@ B)"
+    by (metis parikh_img_commut conc_assoc parikh_conc_left)
+  finally show ?case by (simp add: conc_assoc conc_pow_comm)
+qed simp
+
+lemma parikh_img_conc_star: "parikh_img (star (A @@ B)) \<subseteq> parikh_img (star A @@ star B)"
+proof
+  fix v
+  assume "v \<in> parikh_img (star (A @@ B))"
+  then have "\<exists>n. v \<in> parikh_img ((A @@ B) ^^ n)" unfolding star_def by (simp add: parikh_img_UNION)
+  then obtain n where "v \<in> parikh_img ((A @@ B) ^^ n)" by blast
+  with parikh_img_conc_pow have "v \<in> parikh_img (A ^^ n @@ B ^^ n)" by fast
+  then have "v \<in> parikh_img (A ^^ n @@ star B)"
+    unfolding star_def using parikh_conc_left_subset
+    by (metis (no_types, lifting) Sup_upper parikh_img_mono rangeI subset_eq)
+  then show "v \<in> parikh_img (star A @@ star B)"
+    unfolding star_def using parikh_conc_right_subset
+    by (metis (no_types, lifting) Sup_upper parikh_img_mono rangeI subset_eq)
+qed
+
+lemma parikh_img_conc_pow2: "parikh_img ((A @@ B) ^^ Suc n) \<subseteq> parikh_img (star A @@ star B @@ B)"
+proof
+  fix v
+  assume "v \<in> parikh_img ((A @@ B) ^^ Suc n)"
+  with parikh_img_conc_pow have "v \<in> parikh_img (A ^^ Suc n @@ B ^^ n @@ B)"
+    by (metis conc_pow_comm lang_pow.simps(2) subsetD)
+  then have "v \<in> parikh_img (star A @@ B ^^ n @@ B)"
+    unfolding star_def using parikh_conc_right_subset
+    by (metis (no_types, lifting) Sup_upper parikh_img_mono rangeI subset_eq)
+  then show "v \<in> parikh_img (star A @@ star B @@ B)"
+    unfolding star_def using parikh_conc_right_subset parikh_conc_left_subset
+    by (metis (no_types, lifting) Sup_upper parikh_img_mono rangeI subset_eq)
+qed
+
+lemma parikh_img_star2_aux1:
+  "parikh_img (star (star E @@ F)) \<subseteq> parikh_img ({[]} \<union> star E @@ star F @@ F)"
+proof
+  fix v
+  assume "v \<in> parikh_img (star (star E @@ F))"
+  then have "\<exists>n. v \<in> parikh_img ((star E @@ F) ^^ n)"
+    unfolding star_def by (simp add: parikh_img_UNION)
+  then obtain n where v_in_pow_n: "v \<in> parikh_img ((star E @@ F) ^^ n)" by blast
+  show "v \<in> parikh_img ({[]} \<union> star E @@ star F @@ F)"
+  proof (cases n)
+    case 0
+    with v_in_pow_n have "v = parikh_vec []" unfolding parikh_img_def by simp
+    then show ?thesis unfolding parikh_img_def by blast
+  next
+    case (Suc m)
+    with parikh_img_conc_pow2 v_in_pow_n have "v \<in> parikh_img (star (star E) @@ star F @@ F)" by blast
+    then show ?thesis by (metis UnCI parikh_img_Un star_idemp)
+  qed
+qed
+
+lemma parikh_img_star2_aux2: "parikh_img (star E @@ star F @@ F) \<subseteq> parikh_img (star (star E @@ F))"
+proof -
+  have "F \<subseteq> star E @@ F" unfolding star_def using Nil_in_star
+    by (metis concI_if_Nil1 star_def subsetI)
+  then have "parikh_img (star E @@ F @@ star F) \<subseteq> parikh_img (star E @@ F @@ star (star E @@ F))"
+    using parikh_conc_left_subset parikh_img_mono parikh_star_mono by meson
+  also have "\<dots> \<subseteq> parikh_img (star (star E @@ F))"
+    by (metis conc_assoc inf_sup_ord(3) parikh_img_mono star_unfold_left)
+  finally show ?thesis using conc_star_comm by metis
+qed
+
 lemma parikh_img_star2: "parikh_img (star (star E @@ F)) = parikh_img ({[]} \<union> star E @@ star F @@ F)"
-  sorry
+proof
+  from parikh_img_star2_aux1
+    show "parikh_img (star (star E @@ F)) \<subseteq> parikh_img ({[]} \<union> star E @@ star F @@ F)" .
+  from parikh_img_star2_aux2
+    show "parikh_img ({[]} \<union> star E @@ star F @@ F) \<subseteq> parikh_img (star (star E @@ F))"
+    by (metis le_sup_iff parikh_img_Un star_unfold_left sup.cobounded2)
+qed
+
+
+
+section \<open>A homogeneous-like property for regular functions\<close>
+
+lemma reg_fun_homogeneous_aux:
+  assumes "regular_fun f"
+      and "s x = star Y @@ Z"
+    shows "parikh_img (eval f s) \<subseteq> parikh_img (star Y @@ eval f (s(x := Z)))"
+using assms proof (induction rule: regular_fun.induct)
+  case (Variable y)
+  show ?case
+  proof (cases "x = y")
+    case True
+    with Variable show ?thesis by simp
+  next
+    case False
+    have "eval (V y) s \<subseteq> star Y @@ eval (V y) s" by (metis Nil_in_star concI_if_Nil1 subsetI)
+    with False parikh_img_mono show ?thesis by auto
+  qed
+next
+  case (Const l)
+  have "eval (N l) s \<subseteq> star Y @@ eval (N l) s" using concI_if_Nil1 by blast
+  then show ?case by (simp add: parikh_img_mono)
+next
+  case (Union2 f g)
+  then have "parikh_img (eval (Union2 f g) s) \<subseteq> parikh_img (star Y @@ eval f (s(x := Z)) \<union>
+                                                            star Y @@ eval g (s(x := Z)))"
+    by fastforce
+  then show ?case by (metis conc_Un_distrib(1) eval.simps(3))
+next
+  case (Conc f g)
+  then have "parikh_img (eval (Conc f g) s) \<subseteq> parikh_img ((star Y @@ eval f (s(x := Z)))
+                                                          @@ star Y @@ eval g (s(x := Z)))"
+    by (metis eval.simps(5) parikh_conc_subset)
+  also have "\<dots> = parikh_img (star Y @@ star Y @@ eval f (s(x := Z)) @@ eval g (s(x := Z)))"
+    by (metis conc_assoc parikh_conc_right parikh_img_commut)
+  also have "\<dots> = parikh_img (star Y @@ eval f (s(x := Z)) @@ eval g (s(x := Z)))"
+    by (metis conc_assoc conc_star_star)
+  finally show ?case by (metis eval.simps(5))
+next
+  case (Star f)
+  then have "parikh_img (star (eval f s)) \<subseteq> parikh_img (star (star Y @@ eval f (s(x := Z))))"
+    using parikh_star_mono by blast
+  also from parikh_img_conc_star have "\<dots> \<subseteq> parikh_img (star Y @@ star (eval f (s(x := Z))))"
+    by fastforce
+  finally show ?case by (metis eval.simps(6))
+qed
+
+lemma reg_fun_homogeneous:
+  assumes "regular_fun f"
+      and "regular_fun y"
+      and "regular_fun z"
+    shows "parikh_img (eval (subst f (V(x := Conc (Star y) z))) s)
+            \<subseteq> parikh_img (eval (Conc (Star y) (subst f (V(x := z)))) s)"
+            (is "parikh_img ?L \<subseteq> parikh_img ?R")
+proof -
+  let ?s' = "s(x := star (eval y s) @@ eval z s)"
+  have "parikh_img ?L = parikh_img (eval f ?s')" using substitution_lemma_update[of f] by simp
+  also have "\<dots> \<subseteq> parikh_img (star (eval y s) @@ eval f (?s'(x := eval z s)))"
+    using assms reg_fun_homogeneous_aux[of f ?s'] unfolding fun_upd_def by auto
+  also have "\<dots> = parikh_img ?R" using substitution_lemma[of "s(x := eval z s)"] by simp
+  finally show ?thesis .
+qed
+
+(* reformulate previous lemma with regular functions as arguments instead of languages *)
+lemma reg_fun_homogeneous2:
+  assumes "regular_fun f"
+      and "regular_fun y"
+      and "regular_fun z"
+    shows "parikh_img (eval (subst f (V(x := Conc (Star y) z))) s)
+            \<subseteq> parikh_img (eval (Conc (Star y) (subst f (V(x := z)))) s)"
+            (is "parikh_img ?L \<subseteq> parikh_img ?R")
+proof -
+  let ?s' = "s(x := star (eval y s) @@ eval z s)"
+  have "parikh_img ?L = parikh_img (eval f ?s')"
+    using substitution_lemma[of ?s' "V(x := Conc (Star y) z)"] by fastforce
+  also have "\<dots> \<subseteq> parikh_img (star (eval y s) @@ eval f (?s'(x := eval z s)))"
+    using assms reg_fun_homogeneous_aux[of f ?s'] by (meson fun_upd_apply)
+  also have "\<dots> = parikh_img ?R" using substitution_lemma[of "?s'(x := eval z s)"] by simp
+  finally show ?thesis .
+qed
 
 
 

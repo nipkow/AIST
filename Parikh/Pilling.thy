@@ -10,208 +10,7 @@ theory Pilling
 begin
 
 
-section \<open>The lemma from Pilling's paper\<close>
-
-(* In this section, the lemma from Pilling's paper will be proved.
-   For some reason, the lemma will not be needed in the further proof.
-*)
-
-locale pillings_lemma
-begin
-
-subsection \<open>g_pre (in the paper g_{iN} resp. X_{iN}\<close>
-
-fun g_pre :: "'a eq_sys \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a lfun" where
-  "g_pre _ _ 0 = N {}" |
-  "g_pre f_sys i (Suc n) = subst (f_sys ! i) (\<lambda>j. if j < length f_sys then g_pre f_sys j n else V j)"
-
-
-lemma g_pre_eval:
-  assumes "\<forall>j < length f_sys. s' j = eval (g_pre f_sys j n) s"
-      and "\<forall>j \<ge> length f_sys. s' j = s j"
-    shows "eval (g_pre f_sys i (Suc n)) s = eval (f_sys ! i) s'"
-using assms by (simp add: substitution_lemma)
-
-
-lemma g_pre_monotonically_increasing:
-  "eval (g_pre f_sys i n) s \<subseteq> eval (g_pre f_sys i (Suc n)) s"
-proof (induction n arbitrary: i)
-  case 0
-  then show ?case by auto
-next
-  case (Suc n)
-  let ?s = "\<lambda>j. if j < length f_sys then eval (g_pre f_sys j n) s else s j"
-  let ?s_Suc = "\<lambda>j. if j < length f_sys then eval (g_pre f_sys j (Suc n)) s else s j"
-  from Suc.IH have s_subseteq_s_Suc: "?s j \<subseteq> ?s_Suc j" for j by auto
-
-  have "eval (g_pre f_sys i (Suc n)) s = eval (f_sys ! i) ?s" using g_pre_eval[of f_sys] by auto
-  also have "\<dots> \<subseteq> eval (f_sys ! i) ?s_Suc" using s_subseteq_s_Suc lfun_mono_aux[where s="?s"] by auto
-  also have "\<dots> = eval (g_pre f_sys i (Suc (Suc n))) s" using g_pre_eval[of f_sys ?s_Suc] by auto
-  finally show ?case .
-qed
-
-
-lemma g_pre_subseteq_sol:
-  assumes "i < length f_sys"
-      and "solves_ineq_sys f_sys s"
-    shows "eval (g_pre f_sys i n) s \<subseteq> eval (f_sys ! i) s"
-using assms proof (induction n arbitrary: i)
-  case 0
-  then show ?case by auto
-next
-  case (Suc n)
-  let ?s' = "\<lambda>j. if j < length f_sys then eval (g_pre f_sys j n) s else s j"
-
-  have "?s' j \<subseteq> s j" for j
-  proof (cases "j < length f_sys")
-    case True
-    with Suc have "?s' j \<subseteq> eval (f_sys ! j) s" by auto
-    also have "\<dots> \<subseteq> s j" using assms(2) True unfolding solves_ineq_sys_def by auto
-    finally show ?thesis .
-  next
-    case False
-    then show ?thesis by auto
-  qed
-  then have "eval (f_sys ! i) ?s' \<subseteq> eval (f_sys ! i) s" using lfun_mono_aux by meson
-  then show ?case using g_pre_eval[of f_sys ?s'] by auto
-qed
-
-
-lemma g_pre_indep:
-  assumes "i < length f_sys"
-  shows "\<forall>x \<in> vars (g_pre f_sys i n). x \<ge> length f_sys"
-proof (induction n arbitrary: i)
-  case 0
-  then show ?case by auto
-next
-  case (Suc n)
-  let ?upd = "\<lambda>x. if x < length f_sys then g_pre f_sys x n else V x"
-  from vars_subst_upper have "vars (g_pre f_sys i (Suc n)) \<subseteq> (\<Union>x. vars (?upd x))" by simp
-  moreover have "\<forall>y \<in> vars (?upd x). y \<ge> length f_sys" for x using Suc by simp
-  ultimately show ?case by auto
-qed
-
-
-
-subsection \<open>g\<close>
-
-(* This is the only reason why we have included the countable union in the lfun definition *)
-definition g :: "'a eq_sys \<Rightarrow> nat \<Rightarrow> 'a lfun" where
-  "g f_sys i \<equiv> UnionC (\<lambda>n. g_pre f_sys i n)"
-
-
-lemma g_indep:
-  assumes "i < length f_sys"
-  shows "\<forall>x \<in> vars (g f_sys i). x \<ge> length f_sys"
-unfolding g_def using assms g_pre_indep by auto
-
-
-lemma solves_g_if_solves_f_ineq:
-  assumes "i < length f_sys"
-      and "solves_ineq_sys f_sys s"
-    shows "eval (g f_sys i) s \<subseteq> eval (f_sys ! i) s"
-unfolding g_def proof
-  fix x
-  assume "x \<in> eval (UnionC (g_pre f_sys i)) s"
-  then show "x \<in> eval (f_sys ! i) s" using g_pre_subseteq_sol[OF assms] by auto
-qed
-
-
-lemma Union_index_shift: "(\<Union>n. f n) = f 0 \<union> (\<Union>n. f (Suc n))"
-proof
-  show "\<Union> (range f) \<subseteq> f 0 \<union> (\<Union>n. f (Suc n))"
-  proof
-    fix x
-    assume "x \<in> \<Union> (range f)"
-    then obtain n where x_in_f: "n \<ge> 0 \<and> x \<in> f n" by auto
-    show "x \<in> f 0 \<union> (\<Union>n. f (Suc n))"
-    proof (cases "n=0")
-      case True
-      with x_in_f show ?thesis by auto
-    next
-      case False
-      with x_in_f have "\<exists>n'. Suc n' = n" by presburger
-      then obtain n' where "Suc n' = n" by blast
-      with x_in_f show ?thesis by auto
-    qed
-  qed
-  show "f 0 \<union> (\<Union>n. f (Suc n)) \<subseteq> \<Union> (range f)" by auto
-qed
-
-
-lemma g_pre_g_Union: "(\<Union>n. eval (g_pre f_sys i (Suc n)) s) =
-  eval (subst (f_sys ! i) (\<lambda>i. if i < length f_sys then g f_sys i else V i)) s"
-proof -
-  let ?s = "(\<lambda>n j. if j < length f_sys then eval (g_pre f_sys j n) s else s j)"
-  have "?s n j \<subseteq> ?s (Suc n) j" for n j
-    using g_pre_monotonically_increasing by fastforce
-  then have s_monotone: "\<forall>n. ?s n \<le> ?s (Suc n)" by (simp add: le_fun_def)
-
-  have s_Union: "(\<Union>i. if x < length f_sys then eval (g_pre f_sys x i) s else s x) =
-    (if x < length f_sys then eval (g f_sys x) s else s x)" for x
-    unfolding g_def by simp
-
-  have "eval (g_pre f_sys i (Suc n)) s = eval (f_sys ! i) (?s n)" for n
-    using g_pre_eval[of f_sys] by auto
-  then have "(\<Union>n. eval (g_pre f_sys i (Suc n)) s) = (\<Union>n. eval (f_sys ! i) (?s n))" by auto
-  also have "\<dots> = eval (f_sys ! i) (\<lambda>x. \<Union>i. if x < length f_sys then eval (g_pre f_sys x i) s else s x)"
-    using s_monotone lfun_cont[of ?s "f_sys ! i"] by argo
-  also have "\<dots> = eval (f_sys ! i) (\<lambda>x. if x < length f_sys then eval (g f_sys x) s else s x)"
-    using s_Union by simp
-  also have "\<dots> = eval (subst (f_sys ! i) (\<lambda>i. if i < length f_sys then g f_sys i else V i)) s"
-    using substitution_lemma[of "\<lambda>x. if x < length f_sys then eval (g f_sys x) s else s x"
-                                "\<lambda>i. if i < length f_sys then g f_sys i else V i"]
-    by fastforce
-  finally show ?thesis .
-qed
-
-
-lemma solves_f_if_solves_g_eq:
-  assumes "\<forall>i < length f_sys. eval (g f_sys i) s = s i"
-  shows "solves_eq_sys f_sys s"
-unfolding solves_eq_sys_def proof (standard, standard)
-  fix i
-  assume "i < length f_sys"
-  with assms(1) have "s i = (\<Union>n. eval (g_pre f_sys i n) s)" unfolding g_def by auto
-  also have "\<dots> = (\<Union>n. eval (g_pre f_sys i (Suc n)) s)"
-    using Union_index_shift[of "\<lambda>n. eval (g_pre f_sys i n) s"] by auto
-  also have "\<dots> = eval (f_sys ! i) s"
-    using g_pre_g_Union[of f_sys] assms by (simp add: substitution_lemma)
-  finally show "eval (f_sys ! i) s = s i" by auto
-qed
-
-
-(* The lemma from Pilling's paper *)
-lemma lemma_paper:
-  assumes "\<forall>eq \<in> set f_sys. regular_fun eq"
-    shows "\<exists>g_sys. length g_sys = length f_sys \<and> indep_leq g_sys (length f_sys - 1)
-                \<and> (\<forall>s. solves_ineq_sys f_sys s \<longrightarrow> solves_ineq_sys g_sys s)
-                \<and> (\<forall>s. solves_eq_sys g_sys s \<longrightarrow> solves_eq_sys f_sys s)"
-proof -
-  let ?g_sys = "map (\<lambda>i. g f_sys i) [0..<length f_sys]"
-  have length_g_sys: "length ?g_sys = length f_sys" by auto
-  have indep_g_sys: "indep_leq ?g_sys (length f_sys - 1)"
-    unfolding indep_leq_def using g_indep by fastforce
-
-  have "\<lbrakk> i < length f_sys; solves_ineq_sys f_sys s \<rbrakk> \<Longrightarrow> eval (?g_sys ! i) s \<subseteq> s i" for s i
-    using solves_g_if_solves_f_ineq solves_ineq_sys_def by fastforce
-  then have g_sol_of_f: "solves_ineq_sys f_sys s \<longrightarrow> solves_ineq_sys ?g_sys s" for s
-    using solves_ineq_sys_def by (metis length_g_sys)
-
-  have f_sol_of_g: "solves_eq_sys ?g_sys s \<longrightarrow> solves_eq_sys f_sys s" for s
-    using solves_f_if_solves_g_eq solves_eq_sys_def
-    by (metis add_0 diff_zero length_g_sys nth_map_upt)
-
-  from length_g_sys indep_g_sys g_sol_of_f f_sol_of_g show ?thesis by blast
-qed
-
-end
-
-
-
-section \<open>The theorem from the paper\<close>
-
-subsection \<open>Special representation of regular functions\<close>
+section \<open>Special representation of regular functions\<close>
 
 (* We first show that for every regular function f there is a representation of the form
    (3) (see Pilling's paper, we call it regular_fun' in the following)
@@ -226,43 +25,48 @@ lemma "regular_fun' x f \<Longrightarrow> regular_fun f"
   unfolding regular_fun'_def by fast
 
 
-(* Every regular function can be represented in form (3),
-   as long as we only care for the Parikh image
-*)
-lemma regular_fun_regular_fun': "regular_fun f \<Longrightarrow>
-    \<exists>f'. regular_fun' x f' \<and> vars f' = vars f \<union> {x} \<and>
-         (\<forall>s. parikh_img (eval f s) = parikh_img (eval f' s))"
-proof (induction rule: regular_fun.induct)
-  case (Variable y)
-  then show ?case
-  proof (cases "x=y")
-    let ?f' = "Union2 (N {}) (Conc (N {[]}) (V x))"
-    case True
-    then have "regular_fun' x ?f'"
-      unfolding regular_fun'_def by (simp add: emptyset_regular epsilon_regular)
-    moreover have "eval ?f' s = eval (V y) s" for s :: "'a state" using True by simp
-    moreover have "vars ?f' = vars (V y) \<union> {x}" using True by simp
-    ultimately show ?thesis by metis
-  next
-    let ?f' = "Union2 (V y) (Conc (N {}) (V x))"
-    case False
-    then have "regular_fun' x ?f'"
-      unfolding regular_fun'_def by (auto simp add: emptyset_regular epsilon_regular)
-    moreover have "eval ?f' s = eval (V y) s" for s :: "'a state" using False by simp
-    moreover have "vars ?f' = vars (V y) \<union> {x}" by simp 
-    ultimately show ?thesis by metis
-  qed
+lemma regular_fun_regular_fun'_Variable: "\<exists>f'. regular_fun' x f' \<and> vars f' = vars (V y) \<union> {x}
+                                        \<and> (\<forall>s. parikh_img (eval (V y) s) = parikh_img (eval f' s))"
+proof (cases "x = y")
+let ?f' = "Union2 (N {}) (Conc (N {[]}) (V x))"
+  case True
+  then have "regular_fun' x ?f'"
+    unfolding regular_fun'_def by (simp add: emptyset_regular epsilon_regular)
+  moreover have "eval ?f' s = eval (V y) s" for s :: "'a state" using True by simp
+  moreover have "vars ?f' = vars (V y) \<union> {x}" using True by simp
+  ultimately show ?thesis by metis
 next
-  case (Const l)
+  let ?f' = "Union2 (V y) (Conc (N {}) (V x))"
+  case False
+  then have "regular_fun' x ?f'"
+    unfolding regular_fun'_def by (auto simp add: emptyset_regular epsilon_regular)
+  moreover have "eval ?f' s = eval (V y) s" for s :: "'a state" using False by simp
+  moreover have "vars ?f' = vars (V y) \<union> {x}" by simp
+  ultimately show ?thesis by metis
+qed
+
+lemma regular_fun_regular_fun'_Const:
+  assumes "\<exists>r. Regular_Exp.lang r = l"
+    shows "\<exists>f'. regular_fun' x f' \<and> vars f' = vars (N l) \<union> {x}
+                \<and> (\<forall>s. parikh_img (eval (N l) s) = parikh_img (eval f' s))"
+proof -
   let ?f' = "Union2 (N l) (Conc (N {}) (V x))"
   have "regular_fun' x ?f'"
-    unfolding regular_fun'_def using Const by (auto simp add: emptyset_regular)
+    unfolding regular_fun'_def using assms by (auto simp add: emptyset_regular)
   moreover have "eval ?f' s = eval (N l) s" for s :: "'a state" by simp
   moreover have "vars ?f' = vars (N l) \<union> {x}" by simp 
-  ultimately show ?case by metis
-next
-  case (Union2 f1 f2)
-  then obtain f1' f2' where f1'_intro: "regular_fun' x f1' \<and> vars f1' = vars f1 \<union> {x} \<and>
+  ultimately show ?thesis by metis
+qed
+
+lemma regular_fun_regular_fun'_Union2:
+  assumes "\<exists>f'. regular_fun' x f' \<and> vars f' = vars f1 \<union> {x} \<and>
+                (\<forall>s. parikh_img (eval f1 s) = parikh_img (eval f' s))"
+          "\<exists>f'. regular_fun' x f' \<and> vars f' = vars f2 \<union> {x} \<and>
+                (\<forall>s. parikh_img (eval f2 s) = parikh_img (eval f' s))"
+    shows "\<exists>f'. regular_fun' x f' \<and> vars f' = vars (Union2 f1 f2) \<union> {x} \<and>
+                (\<forall>s. parikh_img (eval (Union2 f1 f2) s) = parikh_img (eval f' s))"
+proof -
+  from assms obtain f1' f2' where f1'_intro: "regular_fun' x f1' \<and> vars f1' = vars f1 \<union> {x} \<and>
       (\<forall>s. parikh_img (eval f1 s) = parikh_img (eval f1' s))"
     and f2'_intro: "regular_fun' x f2' \<and> vars f2' = vars f2 \<union> {x} \<and>
       (\<forall>s. parikh_img (eval f2 s) = parikh_img (eval f2' s))"
@@ -279,10 +83,18 @@ next
     by (simp add: conc_Un_distrib(2) sup_assoc sup_left_commute)
   moreover from f1'_intro f2'_intro p1_q1_intro p2_q2_intro
     have "vars ?f' = vars (Union2 f1 f2) \<union> {x}" by auto
-  ultimately show ?case by metis
-next
-  case (Conc f1 f2)
-  then obtain f1' f2' where f1'_intro: "regular_fun' x f1' \<and> vars f1' = vars f1 \<union> {x} \<and>
+  ultimately show ?thesis by metis
+qed
+
+lemma regular_fun_regular_fun'_Conc:
+  assumes "\<exists>f'. regular_fun' x f' \<and> vars f' = vars f1 \<union> {x} \<and>
+                (\<forall>s. parikh_img (eval f1 s) = parikh_img (eval f' s))"
+          "\<exists>f'. regular_fun' x f' \<and> vars f' = vars f2 \<union> {x} \<and>
+                (\<forall>s. parikh_img (eval f2 s) = parikh_img (eval f' s))"
+    shows "\<exists>f'. regular_fun' x f' \<and> vars f' = vars (Conc f1 f2) \<union> {x} \<and>
+                (\<forall>s. parikh_img (eval (Conc f1 f2) s) = parikh_img (eval f' s))"
+proof -
+  from assms obtain f1' f2' where f1'_intro: "regular_fun' x f1' \<and> vars f1' = vars f1 \<union> {x} \<and>
       (\<forall>s. parikh_img (eval f1 s) = parikh_img (eval f1' s))"
     and f2'_intro: "regular_fun' x f2' \<and> vars f2' = vars f2 \<union> {x} \<and>
       (\<forall>s. parikh_img (eval f2 s) = parikh_img (eval f2' s))"
@@ -322,10 +134,16 @@ next
   moreover have "regular_fun' x ?f'" unfolding regular_fun'_def using p1_q1_intro p2_q2_intro by auto
   moreover from f1'_intro f2'_intro p1_q1_intro p2_q2_intro
     have "vars ?f' = vars (Conc f1 f2) \<union> {x}" by auto
-  ultimately show ?case by metis
-next
-  case (Star f)
-  then obtain f' where f'_intro: "regular_fun' x f' \<and> vars f' = vars f \<union> {x} \<and>
+  ultimately show ?thesis by metis
+qed
+
+lemma regular_fun_regular_fun'_Star:
+  assumes "\<exists>f'. regular_fun' x f' \<and> vars f' = vars f \<union> {x}
+                \<and> (\<forall>s. parikh_img (eval f s) = parikh_img (eval f' s))"
+  shows "\<exists>f'. regular_fun' x f' \<and> vars f' = vars (Star f) \<union> {x}
+                \<and> (\<forall>s. parikh_img (eval (Star f) s) = parikh_img (eval f' s))"
+proof -
+  from assms obtain f' where f'_intro: "regular_fun' x f' \<and> vars f' = vars f \<union> {x} \<and>
       (\<forall>s. parikh_img (eval f s) = parikh_img (eval f' s))" by auto
   then obtain p q where p_q_intro: "regular_fun p \<and> regular_fun q \<and>
     f' = Union2 p (Conc q (V x)) \<and> (\<forall>y \<in> vars p. y \<noteq> x)" unfolding regular_fun'_def by auto
@@ -356,12 +174,36 @@ next
   qed
   moreover have "regular_fun' x ?f_new" unfolding regular_fun'_def using p_q_intro by fastforce
   moreover from f'_intro p_q_intro have "vars ?f_new = vars (Star f) \<union> {x}" by auto
-  ultimately show ?case by metis
+  ultimately show ?thesis by metis
+qed
+
+(* Every regular function can be represented in form (3),
+   as long as we only care for the Parikh image
+*)
+lemma regular_fun_regular_fun': "regular_fun f \<Longrightarrow>
+    \<exists>f'. regular_fun' x f' \<and> vars f' = vars f \<union> {x} \<and>
+         (\<forall>s. parikh_img (eval f s) = parikh_img (eval f' s))"
+proof (induction rule: regular_fun.induct)
+  case (Variable uu)
+  from regular_fun_regular_fun'_Variable show ?case by blast
+next
+  case (Const l)
+  from regular_fun_regular_fun'_Const[OF this] show ?case by blast
+next
+  case (Union2 f g)
+  from regular_fun_regular_fun'_Union2[OF this(3,4)] show ?case by blast
+next
+  case (Conc f g)
+  from regular_fun_regular_fun'_Conc[OF this(3,4)] show ?case by blast
+next
+  case (Star f)
+  from regular_fun_regular_fun'_Star[OF this(2)] show ?case by blast
 qed
 
 
+section \<open>Minimal solution\<close>
 
-subsection \<open>Minimal solution\<close>
+subsection \<open>Minimal solution for a single equation\<close>
 
 (* We show that F(E)*E (in the following q(p)*p is a minimal solution) *)
 
@@ -524,6 +366,9 @@ proof -
 qed
 
 
+subsection \<open>Minimal solution of the whole equation system\<close>
+
+(* TODO: beautify *)
 lemma exists_minimal_reg_sol_sys_aux:
   assumes eqs_reg:   "\<forall>eq \<in> set sys. regular_fun eq"
       and sys_valid: "\<forall>eq \<in> set sys. \<forall>x \<in> vars eq. x < length sys"
@@ -722,6 +567,8 @@ proof -
 qed
 
 
+
+section \<open>Parikh's theorem\<close>
 
 theorem Parikh: "CFL (TYPE('n)) L \<Longrightarrow> \<exists>L'. regular_lang L' \<and> parikh_img L = parikh_img L'"
 proof -

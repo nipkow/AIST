@@ -8,6 +8,8 @@ begin
 
 section \<open>systems of equations\<close>
 
+(* TODO: remove unused definitions, more consequent wording *)
+
 (* We just represent the right hand sides *)
 type_synonym 'a eq_sys = "'a lfun list"
 
@@ -80,6 +82,7 @@ definition partial_sol_eq :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a lfun \<
   "partial_sol_eq x eq sol \<equiv> \<forall>s. s x = eval sol s \<longrightarrow> solves_eq_comm x eq s"
 
 
+(* TODO: is this really needed? *)
 lemma partial_sol_ineqI:
   assumes "\<And>s. s x = eval sol s \<Longrightarrow> parikh_img (eval (subst eq (V(x := sol))) s) \<subseteq> parikh_img (s x)"
     shows "partial_sol_ineq x eq sol"
@@ -94,6 +97,7 @@ unfolding partial_sol_ineq_def solves_ineq_comm_def proof (rule allI, rule impI)
 qed
 
 
+(* TODO: is this really needed? *)
 lemma partial_sol_eqI:
   assumes "\<And>s. s x = eval sol s \<Longrightarrow> parikh_img (eval (subst eq (V(x := sol))) s) = parikh_img (s x)"
     shows "partial_sol_eq x eq sol"

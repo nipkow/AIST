@@ -176,14 +176,14 @@ qed
 (* The lemma from Pilling's paper *)
 lemma lemma_paper:
   assumes "\<forall>eq \<in> set f_sys. regular_fun eq"
-    shows "\<exists>g_sys. length g_sys = length f_sys \<and> indep_leq g_sys (length f_sys - 1)
+    shows "\<exists>g_sys. length g_sys = length f_sys \<and> (\<forall>eq \<in> set g_sys. \<forall>x \<in> vars eq. x \<ge> length f_sys)
                 \<and> (\<forall>s. solves_ineq_sys f_sys s \<longrightarrow> solves_ineq_sys g_sys s)
                 \<and> (\<forall>s. solves_eq_sys g_sys s \<longrightarrow> solves_eq_sys f_sys s)"
 proof -
   let ?g_sys = "map (\<lambda>i. g f_sys i) [0..<length f_sys]"
   have length_g_sys: "length ?g_sys = length f_sys" by auto
-  have indep_g_sys: "indep_leq ?g_sys (length f_sys - 1)"
-    unfolding indep_leq_def using g_indep by fastforce
+  have indep_g_sys: "\<forall>eq \<in> set ?g_sys. \<forall>x \<in> vars eq. x \<ge> length f_sys"
+    using g_indep by fastforce
 
   have "\<lbrakk> i < length f_sys; solves_ineq_sys f_sys s \<rbrakk> \<Longrightarrow> eval (?g_sys ! i) s \<subseteq> s i" for s i
     using solves_g_if_solves_f_ineq solves_ineq_sys_def by fastforce

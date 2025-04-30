@@ -13,10 +13,6 @@ section \<open>systems of equations\<close>
 (* We just represent the right hand sides *)
 type_synonym 'a eq_sys = "'a lfun list"
 
-(* sys independent on variables \<le> n *)
-definition indep_leq :: "'a eq_sys \<Rightarrow> nat \<Rightarrow> bool" where
-  "indep_leq sys n \<equiv> \<forall>eq \<in> set sys. \<forall>x \<in> vars eq. x > n"
-
 (* solves equation with \<subseteq> *)
 definition solves_ineq_sys :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow> bool" where
   "solves_ineq_sys sys s \<equiv> \<forall>i < length sys. eval (sys ! i) s \<subseteq> s i"
@@ -80,36 +76,6 @@ definition min_sol_ineq_sys_comm :: "'a eq_sys \<Rightarrow> 'a state \<Rightarr
 (* TODO: currently unused *)
 definition partial_sol_eq :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a lfun \<Rightarrow> bool" where
   "partial_sol_eq x eq sol \<equiv> \<forall>s. s x = eval sol s \<longrightarrow> solves_eq_comm x eq s"
-
-
-(* TODO: is this really needed? *)
-lemma partial_sol_ineqI:
-  assumes "\<And>s. s x = eval sol s \<Longrightarrow> parikh_img (eval (subst eq (V(x := sol))) s) \<subseteq> parikh_img (s x)"
-    shows "partial_sol_ineq x eq sol"
-unfolding partial_sol_ineq_def solves_ineq_comm_def proof (rule allI, rule impI)
-  fix s
-  assume x_is_sol: "s x = eval sol s"
-
-  from x_is_sol have "s = s(x := eval sol s)" using fun_upd_triv by metis
-  then have "eval eq s = eval (subst eq (V(x := sol))) s"
-    using substitution_lemma_update[of eq] by simp
-  with assms x_is_sol show "parikh_img (eval eq s) \<subseteq> parikh_img (s x)" by simp
-qed
-
-
-(* TODO: is this really needed? *)
-lemma partial_sol_eqI:
-  assumes "\<And>s. s x = eval sol s \<Longrightarrow> parikh_img (eval (subst eq (V(x := sol))) s) = parikh_img (s x)"
-    shows "partial_sol_eq x eq sol"
-unfolding partial_sol_eq_def solves_eq_comm_def proof (rule allI, rule impI)
-  fix s
-  assume x_is_sol: "s x = eval sol s"
-  
-  from x_is_sol have "s = s(x := eval sol s)" using fun_upd_triv by metis
-  then have "eval eq s = eval (subst eq (V(x := sol))) s"
-    using substitution_lemma_update[of eq] by simp
-  with assms x_is_sol show "parikh_img (eval eq s) = parikh_img (s x)" by simp
-qed
 
 
 lemma sys_subst_subst:

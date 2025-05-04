@@ -3,7 +3,7 @@ theory Finite_Automata_Not_HF
 begin
 
 
-text\<open>This file contains a version of the dfa and nfa definition from \<open>Finite_Automata_Hf\<close>
+text\<open>This file contains a version of the dfa and nfa definition from Lawrence C. Paulsons \<open>Finite_Automata_Hf\<close>
 but with \<open>'b set\<close> as states set, instead of forcing \<open>hf set\<close>. 
 It is intended to be used for easier constructions of explicitly given languages,
 not for abstract constructions such as the intersection of 2 automaton languages.

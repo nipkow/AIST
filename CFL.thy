@@ -1,4 +1,4 @@
-(* Author: Tobias Nipkow *)
+(* Author: Tobias Nipkow, Fabian Lehr *)
 
 section "Context-Free Languages"
 
@@ -11,6 +11,7 @@ imports
 begin
 
 subsection \<open>Auxiliary: \<open>lfp\<close> as Kleene Fixpoint\<close>
+(* TODO rm after next release *)
 
 definition omega_chain :: "(nat \<Rightarrow> ('a::complete_lattice)) \<Rightarrow> bool" where
 "omega_chain C = (\<forall>i. C i \<le> C(Suc i))"
@@ -27,15 +28,15 @@ lemma mono_if_omega_cont: fixes f :: "('a::complete_lattice) \<Rightarrow> ('b::
 proof
   fix a b :: "'a" assume "a \<le> b"
   let ?C = "\<lambda>n::nat. if n=0 then a else b"
-  have "omega_chain ?C" using \<open>a \<le> b\<close> by(auto simp: omega_chain_def)
-  hence "f(SUP n. ?C n) = (SUP n. f(?C n))"
-    using assms by (simp add: omega_cont_def del: if_image_distrib)
-  moreover have "(SUP n. ?C n) = b"
+  have *: "omega_chain ?C" using \<open>a \<le> b\<close> by(auto simp: omega_chain_def)
+  have "f a \<le> sup (f a) (SUP n. f(?C n))" by(rule sup.cobounded1)
+  also have "\<dots> = sup (f(?C 0)) (SUP n. f(?C n))" by (simp)
+  also have "\<dots> = (SUP n. f (?C n))" using SUP_absorb[OF UNIV_I] .
+  also have "\<dots> = f (SUP n. ?C n)"
+    using assms * by (simp add: omega_cont_def del: if_image_distrib)
+  also have "f (SUP n. ?C n) = f b"
     using \<open>a \<le> b\<close> by (auto simp add: gt_ex sup.absorb2 split: if_splits)
-  moreover have "(SUP n. f(?C n)) = sup (f a) (f b)"
-    by (smt (verit, best) SUP_absorb UNIV_I calculation(1,2))
-  ultimately show "f a \<le> f b"
-    by (metis sup.cobounded1)
+  finally show "f a \<le> f b" .
 qed
 
 lemma omega_chain_iterates: fixes f :: "('a::complete_lattice) \<Rightarrow> 'a"
@@ -50,7 +51,7 @@ proof-
   thus ?thesis by(auto simp: omega_chain_def assms)
 qed
 
-theorem lfp_if_omega_cont:
+theorem Kleene_lfp:
   assumes "omega_cont f" shows "lfp f = (SUP n. (f^^n) bot)" (is "_ = ?U")
 proof(rule Orderings.antisym)
   from assms mono_if_omega_cont
@@ -61,8 +62,7 @@ proof(rule Orderings.antisym)
     have "f ?U = (SUP n. (f^^Suc n) bot)"
       using omega_chain_iterates[OF mono_if_omega_cont[OF assms]] assms
       by(simp add: omega_cont_def)
-    also have "\<dots> = ?U"
-      using mono by (meson SUP_le_iff SUP_mono' Sup_upper antisym rangeI)
+    also have "\<dots> = ?U" using mono by(blast intro: SUP_eq)
     finally show "f ?U \<le> ?U" by simp
   qed
 next
@@ -78,14 +78,14 @@ next
     qed
   qed
   thus "?U \<le> lfp f"
-    using lfp_unfold[OF mono_if_omega_cont[OF assms]] [[metis_instantiate]]
+    using lfp_unfold[OF mono_if_omega_cont[OF assms]]
     by (simp add: SUP_le_iff)
 qed
 
 
 subsection \<open>Basic Definitions\<close>
 
-text \<open>This definition depends on the a type of nonterminals of the grammar.\<close>
+text \<open>This definition depends on the type of nonterminals of the grammar.\<close>
 
 definition CFL :: "'n itself \<Rightarrow> 't list set \<Rightarrow> bool" where
 "CFL (TYPE('n)) L = (\<exists>P S::'n. L = Lang P S \<and> finite P)"
@@ -179,37 +179,39 @@ proof -
 qed
 
 
-subsection \<open>CFG as an Equation System, \<open>Lang\<close> as a Solution\<close>
+subsection \<open>CFG as an Equation System\<close>
 
-definition inst :: "('n \<Rightarrow> 't lang) \<Rightarrow> ('n, 't) sym \<Rightarrow> 't lang" where
-"inst L s = (case s of Tm a \<Rightarrow> {[a]} | Nt A \<Rightarrow> L A)"
+text \<open>A CFG can be viewed as a system of equations. The least solution is denoted by \<open>Lang_lfp\<close>.\<close>
+
+definition inst_sym :: "('n \<Rightarrow> 't lang) \<Rightarrow> ('n, 't) sym \<Rightarrow> 't lang" where
+"inst_sym L s = (case s of Tm a \<Rightarrow> {[a]} | Nt A \<Rightarrow> L A)"
 
 definition concats :: "'a lang list \<Rightarrow> 'a lang" where
 "concats Ls = foldr (@@) Ls {[]}"
 
-definition insts :: "('n \<Rightarrow> 't lang) \<Rightarrow> ('n, 't) syms \<Rightarrow> 't lang" where
-"insts L w = concats (map (inst L) w)"
+definition inst_syms :: "('n \<Rightarrow> 't lang) \<Rightarrow> ('n, 't) syms \<Rightarrow> 't lang" where
+"inst_syms L w = concats (map (inst_sym L) w)"
 
 definition subst_lang :: "('n,'t)Prods \<Rightarrow> ('n \<Rightarrow> 't lang) \<Rightarrow> ('n \<Rightarrow> 't lang)" where
-"subst_lang P L = (\<lambda>A. \<Union>w \<in> Rhss P A. insts L w)"
+"subst_lang P L = (\<lambda>A. \<Union>w \<in> Rhss P A. inst_syms L w)"
 
-definition Lang :: "('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> 't lang" where
-"Lang P = lfp (subst_lang P)"
+definition Lang_lfp :: "('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> 't lang" where
+"Lang_lfp P = lfp (subst_lang P)"
 
-hide_const (open) CFL.Lang
+text \<open>Now we show that this \<open>lfp\<close> is a Kleene fixpoint.\<close>
 
-lemma inst_Sup_range:  "inst (Sup(range F)) = (\<lambda>s. UN i. inst (F i) s)"
-  by(auto simp: inst_def fun_eq_iff split: sym.splits)
+lemma inst_sym_Sup_range:  "inst_sym (Sup(range F)) = (\<lambda>s. UN i. inst_sym (F i) s)"
+  by(auto simp: inst_sym_def fun_eq_iff split: sym.splits)
 
 lemma foldr_map_mono: "F \<le> G \<Longrightarrow> foldr (@@) (map F xs) Ls \<subseteq> foldr (@@) (map G xs) Ls"
 by(induction xs)(auto simp add: le_fun_def subset_eq)
 
-lemma inst_mono: "F \<le> G \<Longrightarrow> inst F s \<subseteq> inst G s"
-by (auto simp add: inst_def le_fun_def subset_iff split: sym.splits)
+lemma inst_sym_mono: "F \<le> G \<Longrightarrow> inst_sym F s \<subseteq> inst_sym G s"
+by (auto simp add: inst_sym_def le_fun_def subset_iff split: sym.splits)
 
-lemma foldr_conc_map_inst:
+lemma foldr_conc_map_inst_sym:
   assumes "omega_chain L"
-  shows "foldr (@@) (map (\<lambda>s. \<Union>i. inst (L i) s) xs) Ls = (\<Union>i. foldr (@@) (map (inst (L i)) xs) Ls)"
+  shows "foldr (@@) (map (\<lambda>s. \<Union>i. inst_sym (L i) s) xs) Ls = (\<Union>i. foldr (@@) (map (inst_sym (L i)) xs) Ls)"
 proof(induction xs)
   case Nil
   then show ?case by simp 
@@ -221,10 +223,10 @@ next
     proof
       fix w assume "w \<in> ?l"
       with Cons obtain u v i j
-        where "w = u @ v" "u \<in> inst (L i) a" "v \<in> foldr (@@) (map (inst (L j)) xs) Ls" by(auto)
+        where "w = u @ v" "u \<in> inst_sym (L i) a" "v \<in> foldr (@@) (map (inst_sym (L j)) xs) Ls" by(auto)
       then show "w \<in> ?r"
         using omega_chain_mono[OF assms, of i "max i j"] omega_chain_mono[OF assms, of j "max i j"]
-          inst_mono foldr_map_mono[of "inst (L j)" "inst (L (max i j))" xs Ls] concI
+          inst_sym_mono foldr_map_mono[of "inst_sym (L j)" "inst_sym (L (max i j))" xs Ls] concI
         unfolding le_fun_def by(simp) blast
     qed
   next
@@ -232,54 +234,61 @@ next
   qed
 qed
 
-lemma omega_cont_CFL_Lang: "omega_cont (subst_lang P)"
+lemma omega_cont_Lang_lfp: "omega_cont (subst_lang P)"
 proof (clarsimp simp add: omega_cont_def subst_lang_def)
   fix L :: "nat \<Rightarrow> 'a \<Rightarrow> 'b lang"
   assume o: "omega_chain L"
-  show "(\<lambda>A. \<Union> (insts (Sup (range L)) ` Rhss P A)) = (SUP i. (\<lambda>A. \<Union> (insts (L i) ` Rhss P A)))"
+  show "(\<lambda>A. \<Union> (inst_syms (Sup (range L)) ` Rhss P A)) = (SUP i. (\<lambda>A. \<Union> (inst_syms (L i) ` Rhss P A)))"
     (is "(\<lambda>A. ?l A) = (\<lambda>A. ?r A)")
   proof
     fix A :: 'a
-    have "?l A = \<Union>(\<Union>i. (insts (L i) ` Rhss P A))"
-      by(auto simp: insts_def inst_Sup_range concats_def foldr_conc_map_inst[OF o])
+    have "?l A = \<Union>(\<Union>i. (inst_syms (L i) ` Rhss P A))"
+      by(auto simp: inst_syms_def inst_sym_Sup_range concats_def foldr_conc_map_inst_sym[OF o])
     also have "\<dots> = ?r A"
       by(auto)
     finally show "?l A = ?r A" .
   qed
 qed
 
-theorem CFL_Lang_SUP: "CFL.Lang P = (SUP n. ((subst_lang P)^^n) (\<lambda>A. {}))"
-using lfp_if_omega_cont[OF omega_cont_CFL_Lang] unfolding CFL.Lang_def bot_fun_def by blast
+theorem Lang_lfp_SUP: "Lang_lfp P = (SUP n. ((subst_lang P)^^n) (\<lambda>A. {}))"
+using Kleene_lfp[OF omega_cont_Lang_lfp] unfolding Lang_lfp_def bot_fun_def by blast
 
 
-subsection \<open>Connecting Equation Solution and Derivations: \<open>CFL.Lang = Lang\<close>\<close>
+subsection \<open>\<open>Lang_lfp = Lang\<close>\<close>
 
-lemma insts_mono: "(\<And>A. R A \<subseteq> R' A) \<Longrightarrow> w \<in> insts R \<alpha> \<Longrightarrow> w \<in> insts R' \<alpha>"
-unfolding insts_def concats_def
-by (metis (no_types, lifting) foldr_map_mono in_mono inst_mono le_fun_def)
+text \<open>We prove that the fixpoint characterization of the language defined by a CFG is equivalent
+to the standard language definition via derivations. Both directions are proved separately\<close>
 
-lemma in_subst_langD_insts: "w \<in> subst_lang P L A \<Longrightarrow> \<exists>\<alpha>. (A,\<alpha>)\<in>P \<and> w \<in> insts L \<alpha>"
-unfolding subst_lang_def insts_def Rhss_def by (auto split: prod.splits)
+lemma inst_syms_mono: "(\<And>A. R A \<subseteq> R' A) \<Longrightarrow> w \<in> inst_syms R \<alpha> \<Longrightarrow> w \<in> inst_syms R' \<alpha>"
+unfolding inst_syms_def concats_def
+by (metis (no_types, lifting) foldr_map_mono in_mono inst_sym_mono le_fun_def)
+
+lemma omega_cont_Lang_lfp_iterates: "omega_chain (\<lambda>n. ((subst_lang P)^^n) (\<lambda>A. {}))"
+  using omega_chain_iterates[OF mono_if_omega_cont, OF omega_cont_Lang_lfp]
+  unfolding bot_fun_def by blast
+
+lemma in_subst_langD_inst_syms: "w \<in> subst_lang P L A \<Longrightarrow> \<exists>\<alpha>. (A,\<alpha>)\<in>P \<and> w \<in> inst_syms L \<alpha>"
+unfolding subst_lang_def inst_syms_def Rhss_def by (auto split: prod.splits)
 
 lemma foldr_conc_conc: "foldr (@@) xs {[]} @@ A = foldr (@@) xs A"
 by (induction xs)(auto simp: conc_assoc)
 
-lemma derives_if_insts:
-  "w \<in> insts (\<lambda>A. {w. P \<turnstile> [Nt A] \<Rightarrow>* map Tm w}) \<alpha> \<Longrightarrow> P \<turnstile> \<alpha> \<Rightarrow>* map Tm w"
+lemma derives_if_inst_syms:
+  "w \<in> inst_syms (\<lambda>A. {w. P \<turnstile> [Nt A] \<Rightarrow>* map Tm w}) \<alpha> \<Longrightarrow> P \<turnstile> \<alpha> \<Rightarrow>* map Tm w"
 proof (induction \<alpha> arbitrary: w)
   case Nil
-  then show ?case unfolding insts_def concats_def by(auto)
+  then show ?case unfolding inst_syms_def concats_def by(auto)
 next
   case (Cons s \<alpha>)
   show ?case
   proof (cases s)
     case (Nt A)
     then show ?thesis using Cons
-      unfolding insts_def concats_def inst_def by(fastforce simp: derives_Cons_decomp)
+      unfolding inst_syms_def concats_def inst_sym_def by(fastforce simp: derives_Cons_decomp)
   next
     case (Tm a)
     then show ?thesis using Cons
-      unfolding insts_def concats_def inst_def by(auto simp:derives_Tm_Cons)
+      unfolding inst_syms_def concats_def inst_sym_def by(auto simp:derives_Tm_Cons)
   qed
 qed
 
@@ -292,120 +301,38 @@ next
   let ?L = "((subst_lang P)^^n) (\<lambda>A. {})"
   have *: "?L A \<subseteq> {w. P \<turnstile> [Nt A] \<Rightarrow>* map Tm w}" for A
     using Suc.IH by blast
-  obtain \<alpha> where \<alpha>: "(A,\<alpha>) \<in> P" "w \<in> insts ?L \<alpha>"
-    using in_subst_langD_insts[OF Suc.prems[simplified]] by blast
-  show ?case using \<alpha>(1) derives_if_insts[OF insts_mono[OF *, of _ "\<lambda>A. A", OF \<alpha>(2)]]
+  obtain \<alpha> where \<alpha>: "(A,\<alpha>) \<in> P" "w \<in> inst_syms ?L \<alpha>"
+    using in_subst_langD_inst_syms[OF Suc.prems[simplified]] by blast
+  show ?case using \<alpha>(1) derives_if_inst_syms[OF inst_syms_mono[OF *, of _ "\<lambda>A. A", OF \<alpha>(2)]]
     by (simp add: derives_Cons_rule)
 qed
 
-lemma derives_if_CFL_Lang: "w \<in> CFL.Lang P A \<Longrightarrow> P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
-  unfolding CFL_Lang_SUP using derives_if_in_subst_lang
+lemma derives_if_Lang_lfp: "w \<in> Lang_lfp P A \<Longrightarrow> P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
+  unfolding Lang_lfp_SUP using derives_if_in_subst_lang
   by (metis (mono_tags, lifting) SUP_apply UN_E)
 
-lemma CFL_Lang_subset_CFG_Lang: "CFL.Lang P A \<subseteq> Lang P A"
-unfolding CFG.Lang_def by(blast intro:derives_if_CFL_Lang)
+lemma Lang_lfp_subset_Lang: "Lang_lfp P A \<subseteq> Lang P A"
+unfolding CFG.Lang_def by(blast intro:derives_if_Lang_lfp)
 
-(* Other direction *)
+text \<open>The other direction:\<close>
 
-(* needed/useful? *)
-lemma decomp_syms_splice: "\<exists>(nts::'n list) (tms::'a list list).
-  \<alpha> = concat (splice (map (map Tm) tms) (map (\<lambda>A. [Nt A]) nts))"
-proof (induction \<alpha>)
+lemma inst_syms_decomp:
+  "\<lbrakk> \<forall>i < length ws. ws ! i \<in> inst_sym L (\<alpha> ! i); length \<alpha> = length ws \<rbrakk>
+  \<Longrightarrow> concat ws \<in> inst_syms L \<alpha>"
+proof (induction ws arbitrary: \<alpha>)
   case Nil
-  then show ?case
-    by (metis concat.simps(1) list.simps(8) splice_Nil2)
-next
-  let ?ftm = "(map Tm)" let ?fnt = "(\<lambda>A. [Nt A])"
-  case (Cons s \<alpha>)
-  then obtain nts tms where "\<alpha> = concat (splice (map ?ftm tms) (map ?fnt nts))" by blast
-  show ?case
-  proof (cases s)
-    case [simp]: (Nt A)
-    let ?tms = "[] # tms" let ?nts = "A # nts"
-    have "s # \<alpha> = concat (splice (map ?ftm ?tms) (map ?fnt ?nts))" using \<open>\<alpha> = _\<close> by simp
-    then show ?thesis by blast
-  next
-    case [simp]: (Tm a)
-    let ?tms = "case tms of [] \<Rightarrow> [[a]] | as#ass \<Rightarrow> (a#as) # ass"
-    have "s # \<alpha> = concat (splice (map ?ftm ?tms) (map ?fnt nts))"
-      using \<open>\<alpha> = _\<close> by (simp split: list.split)
-    then show ?thesis by blast
-  qed
-qed
-
-
-lemma derive_decomp_Tm: "P \<turnstile> \<alpha> \<Rightarrow>(n) map Tm \<beta> \<Longrightarrow>
-  \<exists>\<beta>s ns. \<beta> = concat \<beta>s \<and> length \<alpha> = length \<beta>s \<and> length \<alpha> = length ns \<and> fold (+) ns 0 = n
-          \<and> (\<forall>i < length \<beta>s. P \<turnstile> [\<alpha> ! i] \<Rightarrow>(ns!i) map Tm (\<beta>s ! i))"
-proof (induction \<alpha> arbitrary: \<beta> n)
-  case (Cons s \<alpha>)
-  from deriven_Cons_decomp[THEN iffD1, OF Cons.prems]
-  show ?case
-  proof (elim disjE exE conjE)
-    fix \<gamma> assume as: "map Tm \<beta> = s # \<gamma>" "P \<turnstile> \<alpha> \<Rightarrow>(n) \<gamma>"
-    then obtain s' \<gamma>' where "\<beta> = s' # \<gamma>'"  "P \<turnstile> \<alpha> \<Rightarrow>(n) map Tm \<gamma>'" "s = Tm s'" by force
-    from Cons.IH[OF this(2)] obtain \<beta>s ns
-      where *: "\<gamma>' = concat \<beta>s \<and> length \<alpha> = length \<beta>s \<and> length \<alpha> = length ns \<and> fold (+) ns 0 = n
-                \<and> (\<forall>i<length \<beta>s. P \<turnstile> [\<alpha> ! i] \<Rightarrow>(ns!i) map Tm (\<beta>s ! i))"
-      by blast
-    let ?\<beta>s = "[s']#\<beta>s"
-    let ?ns = "0#ns"
-    have "\<beta> = concat ?\<beta>s \<and> length (s#\<alpha>) = length ?\<beta>s \<and> length (s#\<alpha>) = length ?ns
-          \<and> fold (+) ?ns 0 = n \<and> (\<forall>i < length ?\<beta>s. P \<turnstile> [(s#\<alpha>) ! i] \<Rightarrow>(?ns!i) map Tm (?\<beta>s ! i))"
-      using \<open>\<beta> = _\<close> as * by (auto simp: nth_Cons')
-    then show ?thesis by blast
-  next
-    fix n1 n2 A w \<beta>1 \<beta>2
-    assume *: "n = Suc (n1 + n2)" "map Tm \<beta> = \<beta>1 @ \<beta>2" "s = Nt A" "(A, w) \<in> P" "P \<turnstile> w \<Rightarrow>(n1) \<beta>1" "P \<turnstile> \<alpha> \<Rightarrow>(n2) \<beta>2"
-    then obtain \<beta>1' \<beta>2' where **: "\<beta> = \<beta>1' @ \<beta>2'" "P \<turnstile> w \<Rightarrow>(n1) map Tm \<beta>1'" "P \<turnstile> \<alpha> \<Rightarrow>(n2) map Tm \<beta>2'"
-      by (metis (no_types, lifting) append_eq_map_conv)
-    from Cons.IH[OF this(3)] obtain \<beta>s ns
-      where ***: "\<beta>2' = concat \<beta>s \<and> length \<alpha> = length \<beta>s \<and> length \<alpha> = length ns
-                  \<and> fold (+) ns 0 = n2 \<and> (\<forall>i<length \<beta>s. P \<turnstile> [\<alpha> ! i] \<Rightarrow>(ns ! i) map Tm (\<beta>s ! i))"
-      by blast
-    let ?\<beta>s = "\<beta>1'#\<beta>s"
-    let ?ns = "Suc n1 # ns"
-    from * ** have "P \<turnstile> [(s#\<alpha>) ! 0] \<Rightarrow>(?ns ! 0) map Tm (?\<beta>s ! 0)"
-      by (metis derive_singleton nth_Cons_0 relpowp_Suc_I2)
-    then have "\<beta> = concat ?\<beta>s \<and> length(s#\<alpha>) = length ?\<beta>s \<and> length(s#\<alpha>) = length ?ns
-              \<and> fold (+) ?ns 0 = n \<and> (\<forall>i < length ?\<beta>s. P \<turnstile> [(s#\<alpha>) ! i] \<Rightarrow>(?ns ! i) map Tm (?\<beta>s ! i))"
-      using * ** *** by (auto simp add: nth_Cons' derives_Cons_rule fold_plus_sum_list_rev)
-    then show ?thesis by blast
-  qed
-qed simp
-
-
-lemma insts_decomp:
-  assumes "\<forall>i < length ws. ws ! i \<in> inst L (\<alpha> ! i)"
-          "length \<alpha> = length ws"
-    shows "concat ws \<in> insts L \<alpha>"
-using assms proof (induction ws arbitrary: \<alpha>)
-  case Nil
-  then show ?case unfolding insts_def concats_def by simp
+  then show ?case unfolding inst_syms_def concats_def by simp
 next
   case (Cons w ws)
   then obtain \<alpha>1 \<alpha>r where *: "\<alpha> = \<alpha>1 # \<alpha>r" by (metis Suc_length_conv)
   with Cons.prems(2) have "length \<alpha>r = length ws" by simp
-  moreover from Cons.prems * have "\<forall>i<length ws. ws ! i \<in> inst L (\<alpha>r ! i)"
-    by (metis calculation length_Cons list.sel(3) not_less_eq nth_tl)
-  ultimately have "concat ws \<in> insts L \<alpha>r" using Cons.IH by blast
-  moreover from Cons.prems * have "w \<in> inst L \<alpha>1" by fastforce
-  ultimately  show ?case unfolding insts_def concats_def using * by force
+  moreover from Cons.prems * have "\<forall>i<length ws. ws ! i \<in> inst_sym L (\<alpha>r ! i)" by auto
+  ultimately have "concat ws \<in> inst_syms L \<alpha>r" using Cons.IH by blast
+  moreover from Cons.prems * have "w \<in> inst_sym L \<alpha>1" by fastforce
+  ultimately show ?case unfolding inst_syms_def concats_def using * by force
 qed
 
-
-lemma omega_cont_CFL_Lang_iterates: "omega_chain (\<lambda>n. ((subst_lang P)^^n) (\<lambda>A. {}))"
-  using omega_chain_iterates[OF mono_if_omega_cont, OF omega_cont_CFL_Lang]
-  unfolding bot_fun_def by blast
-
-
-lemma upper_bound_in_nat_list_sum:
-  fixes xs :: "nat list"
-  shows "x \<in> set xs \<Longrightarrow> x \<le> fold (+) xs 0"
-  by (simp add: canonically_ordered_monoid_add_class.member_le_sum_list fold_plus_sum_list_rev)
-
-
-lemma CFL_Lang_if_derives_aux: "P \<turnstile> [Nt A] \<Rightarrow>(n) map Tm w \<Longrightarrow> w \<in> ((subst_lang P)^^n) (\<lambda>A. {}) A"
+lemma Lang_lfp_if_derives_aux: "P \<turnstile> [Nt A] \<Rightarrow>(n) map Tm w \<Longrightarrow> w \<in> ((subst_lang P)^^n) (\<lambda>A. {}) A"
 proof(induction n arbitrary: w A rule: less_induct)
   case (less n)
   show ?case
@@ -417,20 +344,22 @@ proof(induction n arbitrary: w A rule: less_induct)
       by (metis deriven_start1 less.prems nat.inject)
     then obtain ws ms where *:
       "w = concat ws \<and> length \<alpha> = length ws \<and> length \<alpha> = length ms
-        \<and> fold (+) ms 0 = m \<and> (\<forall>i < length ws. P \<turnstile> [\<alpha> ! i] \<Rightarrow>(ms ! i) map Tm (ws ! i))"
+        \<and> sum_list ms = m \<and> (\<forall>i < length ws. P \<turnstile> [\<alpha> ! i] \<Rightarrow>(ms ! i) map Tm (ws ! i))"
       using derive_decomp_Tm by metis
 
-    have "\<forall>i < length ws. ws ! i \<in> inst (\<lambda>A. ((subst_lang P)^^m) (\<lambda>A. {}) A) (\<alpha> ! i)"
+    have "\<forall>i < length ws. ws ! i \<in> inst_sym (\<lambda>A. ((subst_lang P)^^m) (\<lambda>A. {}) A) (\<alpha> ! i)"
     proof (rule allI | rule impI)+
       fix i
-      show "i < length ws \<Longrightarrow> ws ! i \<in> inst ((subst_lang P ^^ m) (\<lambda>A. {})) (\<alpha> ! i)"
-      unfolding inst_def proof (induction "\<alpha> ! i")
+      show "i < length ws \<Longrightarrow> ws ! i \<in> inst_sym ((subst_lang P ^^ m) (\<lambda>A. {})) (\<alpha> ! i)"
+      unfolding inst_sym_def
+      proof (induction "\<alpha> ! i")
         case (Nt B)
-        with * upper_bound_in_nat_list_sum have **: "ms ! i \<le> m" by force
+        with * have **: "ms ! i \<le> m"
+          by (metis elem_le_sum_list)
         with Suc have "ms ! i < n" by force
         from less.IH[OF this, of B "ws ! i"] Nt *
           have "ws ! i \<in> (subst_lang P ^^ (ms ! i)) (\<lambda>A. {}) B" by fastforce
-        with omega_chain_mono[OF omega_cont_CFL_Lang_iterates, OF **]
+        with omega_chain_mono[OF omega_cont_Lang_lfp_iterates, OF **]
           have "ws ! i \<in> (subst_lang P ^^ m) (\<lambda>A. {}) B" by (metis le_funD subset_iff)
         with Nt show ?case by (metis sym.simps(5))
       next
@@ -441,7 +370,7 @@ proof(induction n arbitrary: w A rule: less_induct)
       qed
     qed
 
-    from insts_decomp[OF this] * have "w \<in> insts ((subst_lang P ^^ m) (\<lambda>A. {})) \<alpha>" by argo
+    from inst_syms_decomp[OF this] * have "w \<in> inst_syms ((subst_lang P ^^ m) (\<lambda>A. {})) \<alpha>" by argo
     with \<alpha>_intro have "w \<in> (subst_lang P) (\<lambda>A. (subst_lang P ^^ m) (\<lambda>A. {}) A) A"
       unfolding subst_lang_def Rhss_def by force
     with Suc show ?thesis by force
@@ -449,15 +378,15 @@ proof(induction n arbitrary: w A rule: less_induct)
 qed
 
 
-lemma CFL_Lang_if_derives: "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w \<Longrightarrow> w \<in> CFL.Lang P A"
+lemma Lang_lfp_if_derives: "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w \<Longrightarrow> w \<in> Lang_lfp P A"
 proof -
   assume "P \<turnstile> [Nt A] \<Rightarrow>* map Tm w"
   then obtain n where "P \<turnstile> [Nt A] \<Rightarrow>(n) map Tm w" by (meson rtranclp_power)
-  from CFL_Lang_if_derives_aux[OF this] have "w \<in> ((subst_lang P)^^n) (\<lambda>A. {}) A" by argo
-  with CFL_Lang_SUP show "w \<in> CFL.Lang P A" by (metis (mono_tags, lifting) SUP_apply UNIV_I UN_iff)
+  from Lang_lfp_if_derives_aux[OF this] have "w \<in> ((subst_lang P)^^n) (\<lambda>A. {}) A" by argo
+  with Lang_lfp_SUP show "w \<in> Lang_lfp P A" by (metis (mono_tags, lifting) SUP_apply UNIV_I UN_iff)
 qed
 
-theorem CFL_Lang_eq_CFG_Lang: "CFL.Lang P A = Lang P A"
-unfolding CFG.Lang_def by(blast intro: CFL_Lang_if_derives derives_if_CFL_Lang)
+theorem Lang_lfp_eq_Lang: "Lang_lfp P A = Lang P A"
+unfolding CFG.Lang_def by(blast intro: Lang_lfp_if_derives derives_if_Lang_lfp)
 
 end

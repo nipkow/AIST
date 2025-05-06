@@ -115,6 +115,9 @@ by (simp add: Nts_def)
 lemma Nts_Lhss_Rhs_Nts: "Nts P = Lhss P \<union> Rhs_Nts P"
 unfolding Nts_def Lhss_def Rhs_Nts_def by auto
 
+lemma Nts_nts_syms: "w \<in> Rhss P A \<Longrightarrow> nts_syms w \<subseteq> Nts P"
+unfolding Rhss_def Nts_def by blast
+
 lemma Syms_simps[simp]:
   "Syms {} = {}"
   "Syms(insert (A,w) P) = {Nt A} \<union> set w \<union> Syms P"
@@ -148,6 +151,10 @@ by(fact fresh_finite[OF finite_nts_prods_start])
 
 lemma finite_Nts: "finite P \<Longrightarrow> finite (Nts P)"
 unfolding Nts_def by (simp add: case_prod_beta finite_nts_syms)
+
+lemma finite_Rhss: "finite P \<Longrightarrow> finite (Rhss P A)"
+unfolding Rhss_def by (metis Image_singleton finite_Image)
+
 
 subsection "Derivations"
 

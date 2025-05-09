@@ -75,7 +75,7 @@ proof
   qed     
 qed (induction rule: star.induct, blast+)
 
-lemma unchanged_acc_rej:
+lemma unchanged_final:
   assumes "p = acc M \<or> p = rej M"
   shows   "(u, p, v) \<rightarrow>* (u', q, v') \<Longrightarrow> q = p" 
     by (induction "(u, p, v)" "(u', q, v')" arbitrary: u v rule: star.induct) 

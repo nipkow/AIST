@@ -167,7 +167,7 @@ next
 qed
 
 lemma subst_lang_mono: "mono (subst_lang P)"
-  using mono_if_omega_cont[OF omega_cont_CFL_Lang] by blast
+  using mono_if_omega_cont[OF omega_cont_Lang_lfp] by blast
 
 lemma CFL_Lang_not_in_Prods_aux:
   assumes "A \<notin> Nts P"
@@ -178,8 +178,8 @@ proof (cases n)
   with Suc show ?thesis unfolding subst_lang_def by simp
 qed auto
 
-lemma CFL_Lang_not_in_Prods: "A \<notin> Nts P \<Longrightarrow> CFL.Lang P A = {}"
-  by (simp add: CFL_Lang_eq_CFG_Lang Lang_empty_if_notin_Lhss Nts_Lhss_Rhs_Nts)
+lemma CFL_Lang_not_in_Prods: "A \<notin> Nts P \<Longrightarrow> Lang_lfp P A = {}"
+  by (simp add: Lang_lfp_eq_Lang Lang_empty_if_notin_Lhss Nts_Lhss_Rhs_Nts)
 
 
 locale CFG_eq_sys =
@@ -197,7 +197,7 @@ abbreviation "CFG_sys sys \<equiv>
                         \<and> (\<forall>s L. (\<forall>A \<in> Nts P. s (\<gamma>' A) = L A)
                             \<longrightarrow> eval (sys ! i) s = subst_lang P L (\<gamma> i)))"
 
-abbreviation "sol \<equiv> \<lambda>i. if i < card (Nts P) then CFL.Lang P (\<gamma> i) else {}"
+abbreviation "sol \<equiv> \<lambda>i. if i < card (Nts P) then Lang_lfp P (\<gamma> i) else {}"
 
 lemma inst'_reg: "regular_fun (inst' \<gamma>' s)"
 unfolding inst'_def proof (induction s)
@@ -248,11 +248,11 @@ qed
 
 lemma inst'_inst_Nt:
   assumes "s (\<gamma>' A) = L A"
-    shows "eval (inst' \<gamma>' (Nt A)) s = inst L (Nt A)"
-  using assms unfolding inst'_def inst_def by force
+    shows "eval (inst' \<gamma>' (Nt A)) s = inst_sym L (Nt A)"
+  using assms unfolding inst'_def inst_sym_def by force
 
-lemma inst'_inst_Tm: "eval (inst' \<gamma>' (Tm a)) s = inst L (Tm a)"
-  unfolding inst'_def inst_def by force
+lemma inst'_inst_Tm: "eval (inst' \<gamma>' (Tm a)) s = inst_sym L (Tm a)"
+  unfolding inst'_def inst_sym_def by force
 
 lemma concats'_concats:
   assumes "length fs = length Ls"
@@ -271,13 +271,13 @@ qed
 
 lemma insts'_insts:
   assumes "\<forall>A \<in> nts_syms w. s (\<gamma>' A) = L A"
-    shows "eval (insts' \<gamma>' w) s = insts L w"
+    shows "eval (insts' \<gamma>' w) s = inst_syms L w"
 proof -
-  have "\<forall>i < length w. eval (inst' \<gamma>' (w!i)) s = inst L (w!i)"
+  have "\<forall>i < length w. eval (inst' \<gamma>' (w!i)) s = inst_sym L (w!i)"
   proof (rule allI, rule impI)
     fix i
     assume "i < length w"
-    then show "eval (inst' \<gamma>' (w ! i)) s = inst L (w ! i)"
+    then show "eval (inst' \<gamma>' (w ! i)) s = inst_sym L (w ! i)"
       using assms proof (induction "w!i")
       case (Nt A)
       then have "s (\<gamma>' A) = L A" unfolding nts_syms_def by force
@@ -287,7 +287,7 @@ proof -
       with inst'_inst_Tm show ?case by metis
     qed
   qed
-  then show ?thesis unfolding insts'_def insts_def using concats'_concats
+  then show ?thesis unfolding insts'_def inst_syms_def using concats'_concats
     by (metis (mono_tags, lifting) length_map nth_map)
 qed
 
@@ -318,12 +318,12 @@ proof -
     fix s :: "nat \<Rightarrow> 'a lang" and L :: "'n \<Rightarrow> 'a lang"
     assume state_L: "\<forall>A \<in> Nts P. s (\<gamma>' A) = L A"
 
-    have "\<forall>w \<in> Rhss P A. eval (insts' \<gamma>' w) s = insts L w"
+    have "\<forall>w \<in> Rhss P A. eval (insts' \<gamma>' w) s = inst_syms L w"
     proof
       fix w
       assume "w \<in> Rhss P A"
       with state_L Nts_nts_syms have "\<forall>A \<in> nts_syms w. s (\<gamma>' A) = L A" by fast
-      from insts'_insts[OF this] show "eval (insts' \<gamma>' w) s = insts L w" by blast
+      from insts'_insts[OF this] show "eval (insts' \<gamma>' w) s = inst_syms L w" by blast
     qed
 
     then have "subst_lang P L A = (\<Union>f \<in> ?Insts'. eval f s)" unfolding subst_lang_def by auto
@@ -354,16 +354,16 @@ unfolding solves_ineq_sys_def proof (rule allI, rule impI)
   fix i
   assume "i < length sys"
   with assms have "i < card (Nts P)" by argo
-  from mapping have *: "\<forall>A \<in> Nts P. sol (\<gamma>' A) = CFL.Lang P A"
+  from mapping have *: "\<forall>A \<in> Nts P. sol (\<gamma>' A) = Lang_lfp P A"
     unfolding mapping_Nt_Var_def bij_betw_def by force
-  with \<open>i < card (Nts P)\<close> assms have "eval (sys ! i) sol = subst_lang P (CFL.Lang P) (\<gamma> i)"
+  with \<open>i < card (Nts P)\<close> assms have "eval (sys ! i) sol = subst_lang P (Lang_lfp P) (\<gamma> i)"
     by presburger
-  with lfp_fixpoint[OF subst_lang_mono] have 1: "eval (sys ! i) sol = CFL.Lang P (\<gamma> i)"
-    unfolding CFL.Lang_def by metis
+  with lfp_fixpoint[OF subst_lang_mono] have 1: "eval (sys ! i) sol = Lang_lfp P (\<gamma> i)"
+    unfolding Lang_lfp_def by metis
 
   from \<open>i < card (Nts P)\<close> mapping have "\<gamma> i \<in> Nts P"
     unfolding mapping_Nt_Var_def using bij_betwE by blast
-  with * have "CFL.Lang P (\<gamma> i) = sol (\<gamma>' (\<gamma> i))" by auto
+  with * have "Lang_lfp P (\<gamma> i) = sol (\<gamma>' (\<gamma> i))" by auto
   also have "\<dots> = sol i" using mapping \<open>i < card (Nts P)\<close> unfolding mapping_Nt_Var_def by auto
   finally show "eval (sys ! i) sol \<subseteq> sol i" using 1 by blast
 qed
@@ -371,7 +371,7 @@ qed
 lemma CFG_sys_CFL_is_min_aux:
   assumes "CFG_sys sys"
       and "solves_ineq_sys sys sol'"
-    shows "CFL.Lang P \<le> (\<lambda>A. sol' (\<gamma>' A))" (is "_ \<le> ?L'")
+    shows "Lang_lfp P \<le> (\<lambda>A. sol' (\<gamma>' A))" (is "_ \<le> ?L'")
 proof -
   have "subst_lang P ?L' A \<subseteq> ?L' A" for A
   proof (cases "A \<in> Nts P")
@@ -389,7 +389,7 @@ proof -
     with False show ?thesis unfolding subst_lang_def by simp
   qed
   then have "subst_lang P ?L' \<le> ?L'" by (simp add: le_funI)
-  from lfp_lowerbound[of "subst_lang P", OF this] CFL.Lang_def show ?thesis by metis
+  from lfp_lowerbound[of "subst_lang P", OF this] Lang_lfp_def show ?thesis by metis
 qed
 
 lemma CFG_sys_CFL_is_min:
@@ -398,7 +398,7 @@ lemma CFG_sys_CFL_is_min:
     shows "sol x \<subseteq> sol' x"
 proof (cases "x < card (Nts P)")
   case True
-  then have "sol x = CFL.Lang P (\<gamma> x)" by argo
+  then have "sol x = Lang_lfp P (\<gamma> x)" by argo
   also from CFG_sys_CFL_is_min_aux[OF assms] have "\<dots> \<subseteq> sol' (\<gamma>' (\<gamma> x))" by (simp add: le_fun_def)
   finally show ?thesis using True mapping unfolding mapping_Nt_Var_def by auto
 next

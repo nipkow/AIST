@@ -115,6 +115,9 @@ by (simp add: Nts_def)
 lemma Nts_Lhss_Rhs_Nts: "Nts P = Lhss P \<union> Rhs_Nts P"
 unfolding Nts_def Lhss_def Rhs_Nts_def by auto
 
+lemma Nts_nts_syms: "w \<in> Rhss P A \<Longrightarrow> nts_syms w \<subseteq> Nts P"
+unfolding Rhss_def Nts_def by blast
+
 lemma Syms_simps[simp]:
   "Syms {} = {}"
   "Syms(insert (A,w) P) = {Nt A} \<union> set w \<union> Syms P"
@@ -148,6 +151,10 @@ by(fact fresh_finite[OF finite_nts_prods_start])
 
 lemma finite_Nts: "finite P \<Longrightarrow> finite (Nts P)"
 unfolding Nts_def by (simp add: case_prod_beta finite_nts_syms)
+
+lemma finite_Rhss: "finite P \<Longrightarrow> finite (Rhss P A)"
+unfolding Rhss_def by (metis Image_singleton finite_Image)
+
 
 subsection "Derivations"
 
@@ -571,7 +578,6 @@ proof
   qed
 qed
 
-
 lemma derives_NilD: "P \<turnstile> w \<Rightarrow>* [] \<Longrightarrow> s \<in> set w \<Longrightarrow> P \<turnstile> [s] \<Rightarrow>* []"
 proof(induction arbitrary: s rule: converse_derives_induct)
   case base
@@ -581,6 +587,43 @@ next
   then show ?case using derives_append_decomp[where u="[Nt A]" and v=v]
     by (auto simp: derives_append_decomp)
 qed
+
+lemma derive_decomp_Tm: "P \<turnstile> \<alpha> \<Rightarrow>(n) map Tm \<beta> \<Longrightarrow>
+  \<exists>\<beta>s ns. \<beta> = concat \<beta>s \<and> length \<alpha> = length \<beta>s \<and> length \<alpha> = length ns \<and> sum_list ns = n
+          \<and> (\<forall>i < length \<beta>s. P \<turnstile> [\<alpha> ! i] \<Rightarrow>(ns!i) map Tm (\<beta>s ! i))"
+  (is "_ \<Longrightarrow> \<exists>\<beta>s ns. ?G \<alpha> \<beta> n \<beta>s ns")
+proof (induction \<alpha> arbitrary: \<beta> n)
+  case (Cons s \<alpha>)
+  from deriven_Cons_decomp[THEN iffD1, OF Cons.prems]
+  show ?case
+  proof (elim disjE exE conjE)
+    fix \<gamma> assume as: "map Tm \<beta> = s # \<gamma>" "P \<turnstile> \<alpha> \<Rightarrow>(n) \<gamma>"
+    then obtain s' \<gamma>' where "\<beta> = s' # \<gamma>'"  "P \<turnstile> \<alpha> \<Rightarrow>(n) map Tm \<gamma>'" "s = Tm s'" by force
+    from Cons.IH[OF this(2)] obtain \<beta>s ns where *: "?G \<alpha> \<gamma>' n \<beta>s ns"
+      by blast
+    let ?\<beta>s = "[s']#\<beta>s"
+    let ?ns = "0#ns"
+    have "?G (s#\<alpha>) \<beta> n ?\<beta>s ?ns"
+      using \<open>\<beta> = _\<close> as * by (auto simp: nth_Cons')
+    then show ?thesis by blast
+  next
+    fix n1 n2 A w \<beta>1 \<beta>2
+    assume *: "n = Suc (n1 + n2)" "map Tm \<beta> = \<beta>1 @ \<beta>2" "s = Nt A" "(A, w) \<in> P" "P \<turnstile> w \<Rightarrow>(n1) \<beta>1" "P \<turnstile> \<alpha> \<Rightarrow>(n2) \<beta>2"
+    then obtain \<beta>1' \<beta>2' where **: "\<beta> = \<beta>1' @ \<beta>2'" "P \<turnstile> w \<Rightarrow>(n1) map Tm \<beta>1'" "P \<turnstile> \<alpha> \<Rightarrow>(n2) map Tm \<beta>2'"
+      by (metis (no_types, lifting) append_eq_map_conv)
+    from Cons.IH[OF this(3)] obtain \<beta>s ns
+      where ***: "?G \<alpha> \<beta>2' n2 \<beta>s ns"
+      by blast
+    let ?\<beta>s = "\<beta>1'#\<beta>s"
+    let ?ns = "Suc n1 # ns"
+    from * ** have "P \<turnstile> [(s#\<alpha>) ! 0] \<Rightarrow>(?ns ! 0) map Tm (?\<beta>s ! 0)"
+      by (metis derive_singleton nth_Cons_0 relpowp_Suc_I2)
+    then have "\<beta> = concat ?\<beta>s \<and> length(s#\<alpha>) = length ?\<beta>s \<and> length(s#\<alpha>) = length ?ns
+              \<and> sum_list ?ns = n \<and> (\<forall>i < length ?\<beta>s. P \<turnstile> [(s#\<alpha>) ! i] \<Rightarrow>(?ns ! i) map Tm (?\<beta>s ! i))"
+      using * ** *** by (auto simp add: nth_Cons' derives_Cons_rule fold_plus_sum_list_rev)
+    then show ?thesis by blast
+  qed
+qed simp
 
 lemma derives_simul_rules:
   assumes "\<And>A w. (A,w) \<in> P \<Longrightarrow> P' \<turnstile> [Nt A] \<Rightarrow>* w"

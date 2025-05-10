@@ -22,7 +22,7 @@ definition regular_fun' :: "nat \<Rightarrow> 'a lfun \<Rightarrow> bool" where
     f = Union2 p (Concat q (Var x)) \<and> x \<notin> vars p"
 
 lemma "regular_fun' x f \<Longrightarrow> regular_fun f"
-  unfolding regular_fun'_def by fast
+  unfolding regular_fun'_def by fastforce
 
 
 text \<open>Every regular function can be represented as regular_fun':\<close>
@@ -33,7 +33,7 @@ proof (cases "x = y")
 let ?f' = "Union2 (Const {}) (Concat (Const {[]}) (Var x))"
   case True
   then have "regular_fun' x ?f'"
-    unfolding regular_fun'_def by (simp add: emptyset_regular epsilon_regular)
+    unfolding regular_fun'_def using emptyset_regular epsilon_regular by fastforce
   moreover have "eval ?f' v = eval (Var y) v" for v :: "'a valuation" using True by simp
   moreover have "vars ?f' = vars (Var y) \<union> {x}" using True by simp
   ultimately show ?thesis by metis
@@ -41,20 +41,20 @@ next
   let ?f' = "Union2 (Var y) (Concat (Const {}) (Var x))"
   case False
   then have "regular_fun' x ?f'"
-    unfolding regular_fun'_def by (auto simp add: emptyset_regular epsilon_regular)
+    unfolding regular_fun'_def using emptyset_regular epsilon_regular by fastforce
   moreover have "eval ?f' v = eval (Var y) v" for v :: "'a valuation" using False by simp
   moreover have "vars ?f' = vars (Var y) \<union> {x}" by simp
   ultimately show ?thesis by metis
 qed
 
 lemma regular_fun_regular_fun'_Const:
-  assumes "\<exists>r. Regular_Exp.lang r = l"
+  assumes "regular_lang l"
     shows "\<exists>f'. regular_fun' x f' \<and> vars f' = vars (Const l) \<union> {x}
                 \<and> (\<forall>v. parikh_img (eval (Const l) v) = parikh_img (eval f' v))"
 proof -
   let ?f' = "Union2 (Const l) (Concat (Const {}) (Var x))"
   have "regular_fun' x ?f'"
-    unfolding regular_fun'_def using assms by (auto simp add: emptyset_regular)
+    unfolding regular_fun'_def using assms emptyset_regular by simp
   moreover have "eval ?f' v = eval (Const l) v" for v :: "'a valuation" by simp
   moreover have "vars ?f' = vars (Const l) \<union> {x}" by simp 
   ultimately show ?thesis by metis
@@ -185,22 +185,31 @@ qed
 lemma regular_fun_regular_fun': "regular_fun f \<Longrightarrow>
     \<exists>f'. regular_fun' x f' \<and> vars f' = vars f \<union> {x} \<and>
          (\<forall>s. parikh_img (eval f s) = parikh_img (eval f' s))"
-proof (induction rule: regular_fun.induct)
-  case (Variable uu)
+proof (induction f rule: regular_fun.induct)
+  case (1 uu)
   from regular_fun_regular_fun'_Variable show ?case by blast
 next
-  case (Const l)
+  case (2 l)
+  then have "regular_lang l" by simp
   from regular_fun_regular_fun'_Const[OF this] show ?case by blast
 next
-  case (Union2 f g)
-  from regular_fun_regular_fun'_Union2[OF this(3,4)] show ?case by blast
+  case (3 f g)
+  then have "\<exists>f'. regular_fun' x f' \<and> vars f' = vars f \<union> {x} \<and> (\<forall>v. parikh_img (eval f v) = parikh_img (eval f' v))"
+            "\<exists>f'. regular_fun' x f' \<and> vars f' = vars g \<union> {x} \<and> (\<forall>v. parikh_img (eval g v) = parikh_img (eval f' v))"
+    by auto
+  from regular_fun_regular_fun'_Union2[OF this] show ?case by blast
 next
-  case (Concat f g)
-  from regular_fun_regular_fun'_Concat[OF this(3,4)] show ?case by blast
+  case (4 f g)
+  then have "\<exists>f'. regular_fun' x f' \<and> vars f' = vars f \<union> {x} \<and> (\<forall>v. parikh_img (eval f v) = parikh_img (eval f' v))"
+            "\<exists>f'. regular_fun' x f' \<and> vars f' = vars g \<union> {x} \<and> (\<forall>v. parikh_img (eval g v) = parikh_img (eval f' v))"
+    by auto
+  from regular_fun_regular_fun'_Concat[OF this] show ?case by blast
 next
-  case (Star f)
-  from regular_fun_regular_fun'_Star[OF this(2)] show ?case by blast
-qed
+  case (5 f)
+  then have "\<exists>f'. regular_fun' x f' \<and> vars f' = vars f \<union> {x} \<and> (\<forall>v. parikh_img (eval f v) = parikh_img (eval f' v))"
+    by auto
+  from regular_fun_regular_fun'_Star[OF this] show ?case by blast
+qed simp
 
 
 section \<open>Minimal solution\<close>
@@ -227,7 +236,7 @@ lemma sol_is_reg: "regular_fun sol"
 proof -
   from p_reg q_reg have r_reg: "regular_fun (subst (Var(x := p)) q)"
     using subst_reg_fun_update by auto
-  with p_reg show "regular_fun sol" by fast
+  with p_reg show "regular_fun sol" by auto
 qed
 
 
@@ -268,7 +277,7 @@ unfolding partial_sol_ineq_def proof (rule allI, rule impI)
   let ?q_subst = "subst ?upd q"
   let ?eq_subst = "subst ?upd eq"
 
-  from sol_is_reg have r_reg: "regular_fun ?r" unfolding fun_upd_def by blast
+  from sol_is_reg have r_reg: "regular_fun ?r" unfolding fun_upd_def by fastforce
   have homogeneous_app: "parikh_img (eval ?q_subst v) \<subseteq> parikh_img (eval (Concat (Star ?r) ?r) v)"
     using reg_fun_homogeneous[OF q_reg r_reg p_reg] by blast
 

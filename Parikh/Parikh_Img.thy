@@ -323,43 +323,46 @@ lemma reg_fun_homogeneous_aux:
       and "v x = star Y @@ Z"
     shows "parikh_img (eval f v) \<subseteq> parikh_img (star Y @@ eval f (v(x := Z)))"
 using assms proof (induction rule: regular_fun.induct)
-  case (Variable y)
+  case (1 y)
   show ?case
   proof (cases "x = y")
     case True
-    with Variable show ?thesis by simp
+    with 1 show ?thesis by simp
   next
     case False
     have "eval (Var y) v \<subseteq> star Y @@ eval (Var y) v" by (metis Nil_in_star concI_if_Nil1 subsetI)
     with False parikh_img_mono show ?thesis by auto
   qed
 next
-  case (Const l)
+  case (2 l)
   have "eval (Const l) v \<subseteq> star Y @@ eval (Const l) v" using concI_if_Nil1 by blast
   then show ?case by (simp add: parikh_img_mono)
 next
-  case (Union2 f g)
+  case (3 f g)
   then have "parikh_img (eval (Union2 f g) v) \<subseteq> parikh_img (star Y @@ eval f (v(x := Z)) \<union>
                                                             star Y @@ eval g (v(x := Z)))"
     by fastforce
   then show ?case by (metis conc_Un_distrib(1) eval.simps(3))
 next
-  case (Concat f g)
+  case (4 f g)
   then have "parikh_img (eval (Concat f g) v) \<subseteq> parikh_img ((star Y @@ eval f (v(x := Z)))
                                                           @@ star Y @@ eval g (v(x := Z)))"
-    by (metis eval.simps(5) parikh_conc_subset)
+    by (metis eval.simps(5) parikh_conc_subset regular_fun.simps(4))
   also have "\<dots> = parikh_img (star Y @@ star Y @@ eval f (v(x := Z)) @@ eval g (v(x := Z)))"
     by (metis conc_assoc parikh_conc_right parikh_img_commut)
   also have "\<dots> = parikh_img (star Y @@ eval f (v(x := Z)) @@ eval g (v(x := Z)))"
     by (metis conc_assoc conc_star_star)
   finally show ?case by (metis eval.simps(5))
 next
-  case (Star f)
+  case (5 f)
   then have "parikh_img (star (eval f v)) \<subseteq> parikh_img (star (star Y @@ eval f (v(x := Z))))"
-    using parikh_star_mono by blast
+    using parikh_star_mono regular_fun.simps(5) by metis
   also from parikh_img_conc_star have "\<dots> \<subseteq> parikh_img (star Y @@ star (eval f (v(x := Z))))"
     by fastforce
   finally show ?case by (metis eval.simps(6))
+next
+  case (6 uv)
+  then show ?case by fastforce
 qed
 
 lemma reg_fun_homogeneous:

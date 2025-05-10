@@ -231,25 +231,21 @@ section \<open>Regular functions\<close>
    proof of the lemma in Pilling's paper)
 *)
 
-inductive regular_fun :: "'a lfun \<Rightarrow> bool" where
-  Variable:    "regular_fun (Var _)" |
-  Const:       "regular_lang l \<Longrightarrow> regular_fun (Const l)" |
-  Union2:      "\<lbrakk> regular_fun f; regular_fun g \<rbrakk> \<Longrightarrow> regular_fun (Union2 f g)" |
-  Concat:        "\<lbrakk> regular_fun f; regular_fun g \<rbrakk> \<Longrightarrow> regular_fun (Concat f g)" |
-  Star:        "regular_fun f \<Longrightarrow> regular_fun (Star f)"
-
-declare regular_fun.intros [intro]
-inductive_cases ConstE [elim]:       "regular_fun (Const l)"
-inductive_cases Union2E [elim]:      "regular_fun (Union2 f g)"
-inductive_cases ConcatE [elim]:        "regular_fun (Concat f g)"
-inductive_cases StarE [elim]:        "regular_fun (Star f)"
+fun regular_fun :: "'a lfun \<Rightarrow> bool" where
+  "regular_fun (Var _) \<longleftrightarrow> True" |
+  "regular_fun (Const l) \<longleftrightarrow> regular_lang l" |
+  "regular_fun (Union2 f g) \<longleftrightarrow> regular_fun f \<and> regular_fun g" |
+  "regular_fun (Concat f g) \<longleftrightarrow> regular_fun f \<and> regular_fun g" |
+  "regular_fun (Star f) \<longleftrightarrow> regular_fun f" |
+  (* Might actually be a regular_fun, but in general it is not *)
+  "regular_fun (UnionC _) \<longleftrightarrow> False"
 
 
 lemma emptyset_regular: "regular_fun (Const {})"
-  using lang.simps(1) by blast
+  using lang.simps(1) regular_fun.simps(2) by blast
 
 lemma epsilon_regular: "regular_fun (Const {[]})"
-  using lang.simps(2) by blast
+  using lang.simps(2) regular_fun.simps(2) by blast
 
 
 (* If all arguments are regular, a regular function evaluates to a regular language *)
@@ -258,21 +254,21 @@ lemma regular_fun_regular:
       and "\<And>n. n \<in> vars f \<Longrightarrow> regular_lang (v n)"
     shows "regular_lang (eval f v)"
 using assms proof (induction rule: regular_fun.induct)
-  case (Union2 f g)
+  case (3 f g)
   then obtain r1 r2 where "Regular_Exp.lang r1 = eval f v \<and> Regular_Exp.lang r2 = eval g v" by auto
   then have "Regular_Exp.lang (Plus r1 r2) = eval (Union2 f g) v" by simp
   then show ?case by blast
 next
-  case (Concat f g)
+  case (4 f g)
   then obtain r1 r2 where "Regular_Exp.lang r1 = eval f v \<and> Regular_Exp.lang r2 = eval g v" by auto
   then have "Regular_Exp.lang (Times r1 r2) = eval (Concat f g) v" by simp
   then show ?case by blast
 next
-  case (Star f)
+  case (5 f)
   then obtain r  where "Regular_Exp.lang r = eval f v" by auto
   then have "Regular_Exp.lang (Regular_Exp.Star r) = eval (Star f) v" by simp
   then show ?case by blast
-qed auto
+qed simp_all
 
 
 (* A regular function stays regular if all variables are substituted by regular functions *)
@@ -280,14 +276,14 @@ lemma subst_reg_fun:
   assumes "regular_fun f"
       and "\<forall>x \<in> vars f. regular_fun (upd x)"
     shows "regular_fun (subst upd f)"
-  using assms by (induction rule: regular_fun.induct) auto
+  using assms by (induction f rule: regular_fun.induct) simp_all
 
 
 lemma subst_reg_fun_update:
   assumes "regular_fun f"
       and "regular_fun g"
     shows "regular_fun (subst (Var(x := g)) f)"
-  using assms subst_reg_fun fun_upd_def by (metis Variable)
+  using assms subst_reg_fun fun_upd_def by (metis regular_fun.simps(1))
 
 
 lemma finite_Union_regular_aux:
@@ -295,13 +291,15 @@ lemma finite_Union_regular_aux:
                                       \<and> (\<forall>v. (\<Union>f \<in> set fs. eval f v) = eval g v)"
 proof (induction fs)
   case Nil
-  then show ?case using emptyset_regular by force
+  then show ?case using emptyset_regular by fastforce
 next
   case (Cons f1 fs)
   then obtain g where *: "regular_fun g \<and> \<Union>(vars ` set fs) = vars g
                           \<and> (\<forall>v. (\<Union>f\<in>set fs. eval f v) = eval g v)" by auto
   let ?g' = "Union2 f1 g"
-  from Cons.prems * show ?case by auto
+  from Cons.prems * have "regular_fun ?g' \<and> \<Union> (vars ` set (f1 # fs)) = vars ?g'
+      \<and> (\<forall>v. (\<Union>f\<in>set (f1 # fs). eval f v) = eval ?g' v)" by simp
+  then show ?case by blast
 qed
 
 

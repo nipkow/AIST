@@ -140,19 +140,6 @@ definition lfun_syms :: "('n \<Rightarrow> nat) \<Rightarrow> ('n, 't) syms \<Ri
 
 (* Some auxiliary lemmas *)
 
-lemma exists_list: "\<forall>i<n. \<exists>x. P i x \<Longrightarrow> \<exists>xs. length xs = n \<and> (\<forall>i<n. P i (xs ! i))"
-proof (induction n)
-  case 0
-  then show ?case by blast
-next
-  case (Suc n)
-  then obtain xs where "length xs = n \<and> (\<forall>i<n. P i (xs ! i))" by auto
-  moreover from Suc.prems obtain xn where "P n xn" by blast
-  ultimately have "length (xs@[xn]) = Suc n \<and> (\<forall>i < Suc n. P i ((xs@[xn]) ! i))"
-    by (simp add: less_Suc_eq nth_append)
-  then show ?case by blast
-qed
-
 lemma subst_lang_mono: "mono (subst_lang P)"
   using mono_if_omega_cont[OF omega_cont_Lang_lfp] by blast
 
@@ -331,7 +318,9 @@ proof -
   with mapping * have "\<forall>i < card (Nts P). \<exists>eq. regular_fun eq \<and> (\<forall>x \<in> vars eq. x < card (Nts P))
                     \<and> (\<forall>s L. (\<forall>A \<in> Nts P. s (\<gamma>' A) = L A) \<longrightarrow> eval eq s = subst_lang P L (\<gamma> i))"
     unfolding mapping_Nt_Var_def by metis
-  from exists_list[OF this] show ?thesis by blast
+  with Skolem_list_nth[where P="\<lambda>i eq. regular_fun eq \<and> (\<forall>x \<in> vars eq. x < card (Nts P))
+                       \<and> (\<forall>s L. (\<forall>A \<in> Nts P. s (\<gamma>' A) = L A) \<longrightarrow> eval eq s = subst_lang P L (\<gamma> i))"]
+    show ?thesis by blast
 qed
 
 lemma CFG_sys_CFL_is_sol:

@@ -14,74 +14,74 @@ section \<open>systems of equations\<close>
 type_synonym 'a eq_sys = "'a lfun list"
 
 (* solves equation with \<subseteq> *)
-definition solves_ineq_sys :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow> bool" where
-  "solves_ineq_sys sys s \<equiv> \<forall>i < length sys. eval (sys ! i) s \<subseteq> s i"
+definition solves_ineq_sys :: "'a eq_sys \<Rightarrow> 'a valuation \<Rightarrow> bool" where
+  "solves_ineq_sys sys v \<equiv> \<forall>i < length sys. eval (sys ! i) v \<subseteq> v i"
 
 (* solves equation with = *)
-definition solves_eq_sys :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow> bool" where
-  "solves_eq_sys sys s \<equiv> \<forall>i < length sys. eval (sys ! i) s = s i"
+definition solves_eq_sys :: "'a eq_sys \<Rightarrow> 'a valuation \<Rightarrow> bool" where
+  "solves_eq_sys sys v \<equiv> \<forall>i < length sys. eval (sys ! i) v = v i"
 
 (* solves equation with \<subseteq>, only caring about the Parikh image *)
-definition solves_ineq_comm :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a state \<Rightarrow> bool" where
-  "solves_ineq_comm x eq s \<equiv> parikh_img (eval eq s) \<subseteq> parikh_img (s x)"
+definition solves_ineq_comm :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a valuation \<Rightarrow> bool" where
+  "solves_ineq_comm x eq v \<equiv> parikh_img (eval eq v) \<subseteq> parikh_img (v x)"
 
 (* solves equation system with \<subseteq>, only caring about the Parikh image *)
-definition solves_ineq_sys_comm :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow> bool" where
-  "solves_ineq_sys_comm sys s \<equiv> \<forall>i < length sys. solves_ineq_comm i (sys ! i) s"
+definition solves_ineq_sys_comm :: "'a eq_sys \<Rightarrow> 'a valuation \<Rightarrow> bool" where
+  "solves_ineq_sys_comm sys v \<equiv> \<forall>i < length sys. solves_ineq_comm i (sys ! i) v"
 
 (* solves equation with =, only caring about the Parikh image*)
-definition solves_eq_comm :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a state \<Rightarrow> bool" where
-  "solves_eq_comm x eq s \<equiv> parikh_img (eval eq s) = parikh_img (s x)"
+definition solves_eq_comm :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a valuation \<Rightarrow> bool" where
+  "solves_eq_comm x eq v \<equiv> parikh_img (eval eq v) = parikh_img (v x)"
 
 (* solves equation system with =, only caring about the Parikh image *)
-definition solves_eq_sys_comm :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow> bool" where
-  "solves_eq_sys_comm sys s \<equiv> \<forall>i < length sys. solves_eq_comm i (sys ! i) s"
+definition solves_eq_sys_comm :: "'a eq_sys \<Rightarrow> 'a valuation \<Rightarrow> bool" where
+  "solves_eq_sys_comm sys v \<equiv> \<forall>i < length sys. solves_eq_comm i (sys ! i) v"
 
 (* Substituion into each equation of a system *)
-definition sys_subst :: "'a eq_sys \<Rightarrow> (nat \<Rightarrow> 'a lfun) \<Rightarrow> 'a eq_sys" where
-  "sys_subst sys s \<equiv> map (\<lambda>eq. subst eq s) sys"
+definition subst_sys :: "(nat \<Rightarrow> 'a lfun) \<Rightarrow> 'a eq_sys \<Rightarrow> 'a eq_sys" where
+  "subst_sys \<equiv> map \<circ> subst"
 
 definition partial_sol_ineq :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a lfun \<Rightarrow> bool" where
-  "partial_sol_ineq x eq sol \<equiv> \<forall>s. s x = eval sol s \<longrightarrow> solves_ineq_comm x eq s"
+  "partial_sol_ineq x eq sol \<equiv> \<forall>v. v x = eval sol v \<longrightarrow> solves_ineq_comm x eq v"
 
 definition solution_ineq_sys :: "'a eq_sys \<Rightarrow> (nat \<Rightarrow> 'a lfun) \<Rightarrow> bool" where
-  "solution_ineq_sys sys sols \<equiv> \<forall>s. (\<forall>x. s x = eval (sols x) s) \<longrightarrow> solves_ineq_sys_comm sys s"
+  "solution_ineq_sys sys sols \<equiv> \<forall>v. (\<forall>x. v x = eval (sols x) v) \<longrightarrow> solves_ineq_sys_comm sys v"
 
 definition partial_min_sol_ineq_sys :: "nat \<Rightarrow> 'a eq_sys \<Rightarrow> (nat \<Rightarrow> 'a lfun) \<Rightarrow> bool" where
   "partial_min_sol_ineq_sys n sys sols \<equiv>
     solution_ineq_sys (take n sys) sols \<and>
     (\<forall>i \<ge> n. sols i = Var i) \<and>
     (\<forall>i < n. \<forall>x \<in> vars (sols i). x \<ge> n \<and> x < length sys) \<and>
-    (\<forall>sols' s'. (\<forall>x. s' x = eval (sols' x) s')
-                  \<and> solves_ineq_sys_comm (take n sys) s'
-                  \<longrightarrow> (\<forall>i. parikh_img (eval (sols i) s') \<subseteq> parikh_img (s' i)))"
+    (\<forall>sols' v'. (\<forall>x. v' x = eval (sols' x) v')
+                  \<and> solves_ineq_sys_comm (take n sys) v'
+                  \<longrightarrow> (\<forall>i. parikh_img (eval (sols i) v') \<subseteq> parikh_img (v' i)))"
 
 
 definition partial_min_sol_one_ineq :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a lfun \<Rightarrow> bool" where
   "partial_min_sol_one_ineq x eq sol \<equiv>
     partial_sol_ineq x eq sol \<and>
     vars sol \<subseteq> vars eq - {x} \<and>
-    (\<forall>sol' s'. solves_ineq_comm x eq s' \<and> s' x = eval sol' s'
-               \<longrightarrow> parikh_img (eval sol s') \<subseteq> parikh_img (s' x))"
+    (\<forall>sol' v'. solves_ineq_comm x eq v' \<and> v' x = eval sol' v'
+               \<longrightarrow> parikh_img (eval sol v') \<subseteq> parikh_img (v' x))"
 
-definition min_sol_ineq_sys :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow> bool" where
+definition min_sol_ineq_sys :: "'a eq_sys \<Rightarrow> 'a valuation \<Rightarrow> bool" where
   "min_sol_ineq_sys sys sol \<equiv>
     solves_ineq_sys sys sol \<and> (\<forall>sol'. solves_ineq_sys sys sol' \<longrightarrow> (\<forall>x. sol x \<subseteq> sol' x))"
 
-definition min_sol_ineq_sys_comm :: "'a eq_sys \<Rightarrow> 'a state \<Rightarrow> bool" where
+definition min_sol_ineq_sys_comm :: "'a eq_sys \<Rightarrow> 'a valuation \<Rightarrow> bool" where
   "min_sol_ineq_sys_comm sys sol \<equiv>
     solves_ineq_sys_comm sys sol \<and>
     (\<forall>sol'. solves_ineq_sys_comm sys sol' \<longrightarrow> (\<forall>x. parikh_img (sol x) \<subseteq> parikh_img (sol' x)))"
 
 (* TODO: currently unused *)
 definition partial_sol_eq :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a lfun \<Rightarrow> bool" where
-  "partial_sol_eq x eq sol \<equiv> \<forall>s. s x = eval sol s \<longrightarrow> solves_eq_comm x eq s"
+  "partial_sol_eq x eq sol \<equiv> \<forall>v. v x = eval sol v \<longrightarrow> solves_eq_comm x eq v"
 
 
-lemma sys_subst_subst:
+lemma subst_sys_subst:
   assumes "i < length sys"
-  shows "(sys_subst sys s) ! i = subst (sys ! i) s"
-  unfolding sys_subst_def by (simp add: assms)
+  shows "(subst_sys s sys) ! i = subst s (sys ! i)"
+  unfolding subst_sys_def by (simp add: assms)
 
 
 (* TODO: currently unused *)
@@ -92,7 +92,7 @@ lemma sol_Suc_n_sol_n:
 
 
 lemma same_min_sol_if_same_parikh_img:
-  assumes same_parikh_img: "\<forall>s. parikh_img (eval f s) = parikh_img (eval g s)"
+  assumes same_parikh_img: "\<forall>v. parikh_img (eval f v) = parikh_img (eval g v)"
       and same_vars:       "vars f - {x} = vars g - {x}"
       and minimal_sol:     "partial_min_sol_one_ineq x f sol"
     shows                  "partial_min_sol_one_ineq x g sol"
@@ -101,8 +101,8 @@ proof -
     unfolding partial_min_sol_one_ineq_def using same_vars by blast
   moreover from same_parikh_img minimal_sol have "partial_sol_ineq x g sol"
     unfolding partial_min_sol_one_ineq_def partial_sol_ineq_def solves_ineq_comm_def by simp
-  moreover from same_parikh_img minimal_sol have "\<forall>sol' s'. solves_ineq_comm x g s' \<and> s' x = eval sol' s'
-               \<longrightarrow> parikh_img (eval sol s') \<subseteq> parikh_img (s' x)"
+  moreover from same_parikh_img minimal_sol have "\<forall>sol' v'. solves_ineq_comm x g v' \<and> v' x = eval sol' v'
+               \<longrightarrow> parikh_img (eval sol v') \<subseteq> parikh_img (v' x)"
     unfolding partial_min_sol_one_ineq_def solves_ineq_comm_def by blast
   ultimately show ?thesis unfolding partial_min_sol_one_ineq_def by fast
 qed
@@ -247,40 +247,40 @@ qed
 
 
 lemma inst'_inst_Nt:
-  assumes "s (\<gamma>' A) = L A"
-    shows "eval (inst' \<gamma>' (Nt A)) s = inst_sym L (Nt A)"
+  assumes "v (\<gamma>' A) = L A"
+    shows "eval (inst' \<gamma>' (Nt A)) v = inst_sym L (Nt A)"
   using assms unfolding inst'_def inst_sym_def by force
 
-lemma inst'_inst_Tm: "eval (inst' \<gamma>' (Tm a)) s = inst_sym L (Tm a)"
+lemma inst'_inst_Tm: "eval (inst' \<gamma>' (Tm a)) v = inst_sym L (Tm a)"
   unfolding inst'_def inst_sym_def by force
 
 lemma concats'_concats:
   assumes "length fs = length Ls"
-      and "\<forall>i < length fs. eval (fs ! i) s = Ls ! i"
-    shows "eval (concats' fs) s = concats Ls"
+      and "\<forall>i < length fs. eval (fs ! i) v = Ls ! i"
+    shows "eval (concats' fs) v = concats Ls"
 using assms proof (induction fs arbitrary: Ls)
   case Nil
   then show ?case unfolding concats'_def concats_def by simp
 next
   case (Cons f1 fs)
   then obtain L1 Lr where *: "Ls = L1#Lr" by (metis length_Suc_conv)
-  with Cons have "eval (concats' fs) s = concats Lr" by fastforce
-  moreover from Cons.prems * have "eval f1 s = L1" by force
+  with Cons have "eval (concats' fs) v = concats Lr" by fastforce
+  moreover from Cons.prems * have "eval f1 v = L1" by force
   ultimately show ?case unfolding concats'_def concats_def by (simp add: "*")
 qed
 
 lemma insts'_insts:
-  assumes "\<forall>A \<in> nts_syms w. s (\<gamma>' A) = L A"
-    shows "eval (insts' \<gamma>' w) s = inst_syms L w"
+  assumes "\<forall>A \<in> nts_syms w. v (\<gamma>' A) = L A"
+    shows "eval (insts' \<gamma>' w) v = inst_syms L w"
 proof -
-  have "\<forall>i < length w. eval (inst' \<gamma>' (w!i)) s = inst_sym L (w!i)"
+  have "\<forall>i < length w. eval (inst' \<gamma>' (w!i)) v = inst_sym L (w!i)"
   proof (rule allI, rule impI)
     fix i
     assume "i < length w"
-    then show "eval (inst' \<gamma>' (w ! i)) s = inst_sym L (w ! i)"
+    then show "eval (inst' \<gamma>' (w ! i)) v = inst_sym L (w ! i)"
       using assms proof (induction "w!i")
       case (Nt A)
-      then have "s (\<gamma>' A) = L A" unfolding nts_syms_def by force
+      then have "v (\<gamma>' A) = L A" unfolding nts_syms_def by force
       with inst'_inst_Nt Nt show ?case by metis
     next
       case (Tm x)
@@ -294,13 +294,13 @@ qed
 
 lemma subst_lang_lfun:
   "\<exists>eq. regular_fun eq \<and> vars eq \<subseteq> \<gamma>' ` Nts P
-         \<and> (\<forall>s L. (\<forall>A \<in> Nts P. s (\<gamma>' A) = L A) \<longrightarrow> eval eq s = subst_lang P L A)"
+         \<and> (\<forall>v L. (\<forall>A \<in> Nts P. v (\<gamma>' A) = L A) \<longrightarrow> eval eq v = subst_lang P L A)"
 proof -
   let ?Insts' = "(insts' \<gamma>') ` (Rhss P A)"
   from finite_Rhss[OF finite_P] have "finite ?Insts'" by simp
   moreover from insts'_reg have "\<forall>f \<in> ?Insts'. regular_fun f" by blast
   ultimately obtain eq where *: "regular_fun eq \<and> \<Union>(vars ` ?Insts') = vars eq
-                                  \<and> (\<forall>s. (\<Union>f \<in> ?Insts'. eval f s) = eval eq s)"
+                                  \<and> (\<forall>v. (\<Union>f \<in> ?Insts'. eval f v) = eval eq v)"
     using finite_Union_regular by metis
 
   moreover have "vars eq \<subseteq> \<gamma>' ` Nts P"
@@ -313,21 +313,21 @@ proof -
     with *** show "x \<in> \<gamma>' ` Nts P" unfolding Nts_def Rhss_def by blast
   qed
 
-  moreover have "\<forall>s L. (\<forall>A \<in> Nts P. s (\<gamma>' A) = L A) \<longrightarrow> eval eq s = subst_lang P L A"
+  moreover have "\<forall>v L. (\<forall>A \<in> Nts P. v (\<gamma>' A) = L A) \<longrightarrow> eval eq v = subst_lang P L A"
   proof (rule allI | rule impI)+
-    fix s :: "nat \<Rightarrow> 'a lang" and L :: "'n \<Rightarrow> 'a lang"
-    assume state_L: "\<forall>A \<in> Nts P. s (\<gamma>' A) = L A"
+    fix v :: "nat \<Rightarrow> 'a lang" and L :: "'n \<Rightarrow> 'a lang"
+    assume state_L: "\<forall>A \<in> Nts P. v (\<gamma>' A) = L A"
 
-    have "\<forall>w \<in> Rhss P A. eval (insts' \<gamma>' w) s = inst_syms L w"
+    have "\<forall>w \<in> Rhss P A. eval (insts' \<gamma>' w) v = inst_syms L w"
     proof
       fix w
       assume "w \<in> Rhss P A"
-      with state_L Nts_nts_syms have "\<forall>A \<in> nts_syms w. s (\<gamma>' A) = L A" by fast
-      from insts'_insts[OF this] show "eval (insts' \<gamma>' w) s = inst_syms L w" by blast
+      with state_L Nts_nts_syms have "\<forall>A \<in> nts_syms w. v (\<gamma>' A) = L A" by fast
+      from insts'_insts[OF this] show "eval (insts' \<gamma>' w) v = inst_syms L w" by blast
     qed
 
-    then have "subst_lang P L A = (\<Union>f \<in> ?Insts'. eval f s)" unfolding subst_lang_def by auto
-    with * show "eval eq s = subst_lang P L A" by auto
+    then have "subst_lang P L A = (\<Union>f \<in> ?Insts'. eval f v)" unfolding subst_lang_def by auto
+    with * show "eval eq v = subst_lang P L A" by auto
   qed
 
   ultimately show ?thesis by auto

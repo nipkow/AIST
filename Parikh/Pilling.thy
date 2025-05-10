@@ -585,11 +585,11 @@ proof -
   show ?thesis
   proof (cases "S \<in> Nts P")
     case True
-    from * finite_Nts exists_mapping obtain \<gamma> \<gamma>' where **: "mapping_Nt_Var (Nts P) \<gamma> \<gamma>'" by metis
+    from * finite_Nts exists_bij_Nt_Var obtain \<gamma> \<gamma>' where **: "bij_Nt_Var (Nts P) \<gamma> \<gamma>'" by metis
 
     let ?sol = "\<lambda>i. if i < card (Nts P) then Lang_lfp P (\<gamma> i) else {}"
     from ** True have "\<gamma>' S < card (Nts P)" "\<gamma> (\<gamma>' S) = S"
-      unfolding mapping_Nt_Var_def bij_betw_def by auto
+      unfolding bij_Nt_Var_def bij_betw_def by auto
     with Lang_lfp_eq_Lang have ***: "Lang P S = ?sol (\<gamma>' S)" by metis
 
     from * ** CFG_eq_sys.CFL_is_min_sol obtain sys

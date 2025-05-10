@@ -73,22 +73,11 @@ definition min_sol_ineq_sys_comm :: "'a eq_sys \<Rightarrow> 'a valuation \<Righ
     solves_ineq_sys_comm sys sol \<and>
     (\<forall>sol'. solves_ineq_sys_comm sys sol' \<longrightarrow> (\<forall>x. parikh_img (sol x) \<subseteq> parikh_img (sol' x)))"
 
-(* TODO: currently unused *)
-definition partial_sol_eq :: "nat \<Rightarrow> 'a lfun \<Rightarrow> 'a lfun \<Rightarrow> bool" where
-  "partial_sol_eq x eq sol \<equiv> \<forall>v. v x = eval sol v \<longrightarrow> solves_eq_comm x eq v"
-
 
 lemma subst_sys_subst:
   assumes "i < length sys"
   shows "(subst_sys s sys) ! i = subst s (sys ! i)"
   unfolding subst_sys_def by (simp add: assms)
-
-
-(* TODO: currently unused *)
-lemma sol_Suc_n_sol_n:
-  assumes "solution_ineq_sys (take (Suc n) sys) sols"
-  shows "solution_ineq_sys (take n sys) sols"
-  using assms unfolding solution_ineq_sys_def solves_ineq_sys_comm_def by auto
 
 
 lemma same_min_sol_if_same_parikh_img:
@@ -111,11 +100,11 @@ qed
 
 section \<open>CFL as minimal solution of equation system\<close>
 
-definition mapping_Nt_Var :: "'n set \<Rightarrow> (nat \<Rightarrow> 'n) \<Rightarrow> ('n \<Rightarrow> nat) \<Rightarrow> bool" where
-  "mapping_Nt_Var A \<gamma> \<gamma>' \<equiv> bij_betw \<gamma> {..< card A} A \<and> bij_betw \<gamma>' A {..< card A}
+definition bij_Nt_Var :: "'n set \<Rightarrow> (nat \<Rightarrow> 'n) \<Rightarrow> ('n \<Rightarrow> nat) \<Rightarrow> bool" where
+  "bij_Nt_Var A \<gamma> \<gamma>' \<equiv> bij_betw \<gamma> {..< card A} A \<and> bij_betw \<gamma>' A {..< card A}
                           \<and> (\<forall>x \<in> {..< card A}. \<gamma>' (\<gamma> x) = x) \<and> (\<forall>y \<in> A. \<gamma> (\<gamma>' y) = y)"
 
-lemma exists_mapping: "finite A \<Longrightarrow> \<exists>\<gamma> \<gamma>'. mapping_Nt_Var A \<gamma> \<gamma>'"
+lemma exists_bij_Nt_Var: "finite A \<Longrightarrow> \<exists>\<gamma> \<gamma>'. bij_Nt_Var A \<gamma> \<gamma>'"
 proof -
   assume "finite A"
   then have "\<exists>\<gamma>. bij_betw \<gamma> {..< card A} A" by (simp add: bij_betw_iff_card)
@@ -124,7 +113,7 @@ proof -
   from the_inv_into_f_f 1 have 2: "\<forall>x \<in> {..< card A}. ?\<gamma>' (\<gamma> x) = x" unfolding bij_betw_def by fast
   from bij_betw_the_inv_into[OF 1] have 3: "bij_betw ?\<gamma>' A {..< card A}" by blast
   with 1 f_the_inv_into_f_bij_betw have 4: "\<forall>y \<in> A. \<gamma> (?\<gamma>' y) = y" by metis
-  from 1 2 3 4 show ?thesis unfolding mapping_Nt_Var_def by blast
+  from 1 2 3 4 show ?thesis unfolding bij_Nt_Var_def by blast
 qed
 
 
@@ -162,7 +151,7 @@ locale CFG_eq_sys =
   fixes \<gamma> :: "nat \<Rightarrow> 'n"
   fixes \<gamma>' :: "'n \<Rightarrow> nat"
   assumes finite_P: "finite P"
-  assumes mapping:  "mapping_Nt_Var (Nts P) \<gamma> \<gamma>'"
+  assumes bij_\<gamma>_\<gamma>':  "bij_Nt_Var (Nts P) \<gamma> \<gamma>'"
 begin
 
 abbreviation "CFG_sys sys \<equiv>
@@ -310,14 +299,14 @@ qed
 
 lemma CFG_as_eq_sys: "\<exists>sys. CFG_sys sys"
 proof -
-  from mapping have *: "\<And>eq. vars eq \<subseteq> \<gamma>' ` Nts P \<Longrightarrow> \<forall>x \<in> vars eq. x < card (Nts P)"
-    unfolding mapping_Nt_Var_def bij_betw_def by auto
+  from bij_\<gamma>_\<gamma>' have *: "\<And>eq. vars eq \<subseteq> \<gamma>' ` Nts P \<Longrightarrow> \<forall>x \<in> vars eq. x < card (Nts P)"
+    unfolding bij_Nt_Var_def bij_betw_def by auto
   from subst_lang_lfun have "\<forall>A. \<exists>eq. regular_fun eq \<and> vars eq \<subseteq> \<gamma>' ` Nts P \<and>
                              (\<forall>s L. (\<forall>A \<in> Nts P. s (\<gamma>' A) = L A) \<longrightarrow> eval eq s = subst_lang P L A)"
     by blast
-  with mapping * have "\<forall>i < card (Nts P). \<exists>eq. regular_fun eq \<and> (\<forall>x \<in> vars eq. x < card (Nts P))
+  with bij_\<gamma>_\<gamma>' * have "\<forall>i < card (Nts P). \<exists>eq. regular_fun eq \<and> (\<forall>x \<in> vars eq. x < card (Nts P))
                     \<and> (\<forall>s L. (\<forall>A \<in> Nts P. s (\<gamma>' A) = L A) \<longrightarrow> eval eq s = subst_lang P L (\<gamma> i))"
-    unfolding mapping_Nt_Var_def by metis
+    unfolding bij_Nt_Var_def by metis
   with Skolem_list_nth[where P="\<lambda>i eq. regular_fun eq \<and> (\<forall>x \<in> vars eq. x < card (Nts P))
                        \<and> (\<forall>s L. (\<forall>A \<in> Nts P. s (\<gamma>' A) = L A) \<longrightarrow> eval eq s = subst_lang P L (\<gamma> i))"]
     show ?thesis by blast
@@ -330,17 +319,17 @@ unfolding solves_ineq_sys_def proof (rule allI, rule impI)
   fix i
   assume "i < length sys"
   with assms have "i < card (Nts P)" by argo
-  from mapping have *: "\<forall>A \<in> Nts P. sol (\<gamma>' A) = Lang_lfp P A"
-    unfolding mapping_Nt_Var_def bij_betw_def by force
+  from bij_\<gamma>_\<gamma>' have *: "\<forall>A \<in> Nts P. sol (\<gamma>' A) = Lang_lfp P A"
+    unfolding bij_Nt_Var_def bij_betw_def by force
   with \<open>i < card (Nts P)\<close> assms have "eval (sys ! i) sol = subst_lang P (Lang_lfp P) (\<gamma> i)"
     by presburger
   with lfp_fixpoint[OF subst_lang_mono] have 1: "eval (sys ! i) sol = Lang_lfp P (\<gamma> i)"
     unfolding Lang_lfp_def by metis
 
-  from \<open>i < card (Nts P)\<close> mapping have "\<gamma> i \<in> Nts P"
-    unfolding mapping_Nt_Var_def using bij_betwE by blast
+  from \<open>i < card (Nts P)\<close> bij_\<gamma>_\<gamma>' have "\<gamma> i \<in> Nts P"
+    unfolding bij_Nt_Var_def using bij_betwE by blast
   with * have "Lang_lfp P (\<gamma> i) = sol (\<gamma>' (\<gamma> i))" by auto
-  also have "\<dots> = sol i" using mapping \<open>i < card (Nts P)\<close> unfolding mapping_Nt_Var_def by auto
+  also have "\<dots> = sol i" using bij_\<gamma>_\<gamma>' \<open>i < card (Nts P)\<close> unfolding bij_Nt_Var_def by auto
   finally show "eval (sys ! i) sol \<subseteq> sol i" using 1 by blast
 qed
 
@@ -352,12 +341,12 @@ proof -
   have "subst_lang P ?L' A \<subseteq> ?L' A" for A
   proof (cases "A \<in> Nts P")
     case True
-    with assms(1) mapping have "\<gamma>' A < length sys"
-      unfolding mapping_Nt_Var_def bij_betw_def by fastforce
-    with assms(1) mapping True have "subst_lang P ?L' A = eval (sys ! \<gamma>' A) sol'"
-      unfolding mapping_Nt_Var_def by metis
-    also from True assms(2) \<open>\<gamma>' A < length sys\<close> mapping have "\<dots> \<subseteq> ?L' A"
-      unfolding solves_ineq_sys_def mapping_Nt_Var_def by blast
+    with assms(1) bij_\<gamma>_\<gamma>' have "\<gamma>' A < length sys"
+      unfolding bij_Nt_Var_def bij_betw_def by fastforce
+    with assms(1) bij_\<gamma>_\<gamma>' True have "subst_lang P ?L' A = eval (sys ! \<gamma>' A) sol'"
+      unfolding bij_Nt_Var_def by metis
+    also from True assms(2) \<open>\<gamma>' A < length sys\<close> bij_\<gamma>_\<gamma>' have "\<dots> \<subseteq> ?L' A"
+      unfolding solves_ineq_sys_def bij_Nt_Var_def by blast
     finally show ?thesis .
   next
     case False
@@ -376,7 +365,7 @@ proof (cases "x < card (Nts P)")
   case True
   then have "sol x = Lang_lfp P (\<gamma> x)" by argo
   also from CFG_sys_CFL_is_min_aux[OF assms] have "\<dots> \<subseteq> sol' (\<gamma>' (\<gamma> x))" by (simp add: le_fun_def)
-  finally show ?thesis using True mapping unfolding mapping_Nt_Var_def by auto
+  finally show ?thesis using True bij_\<gamma>_\<gamma>' unfolding bij_Nt_Var_def by auto
 next
   case False
   then show ?thesis by auto

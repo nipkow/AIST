@@ -140,19 +140,6 @@ definition lfun_syms :: "('n \<Rightarrow> nat) \<Rightarrow> ('n, 't) syms \<Ri
 
 (* Some auxiliary lemmas *)
 
-lemma finite_Rhss: "finite P \<Longrightarrow> finite (Rhss P A)"
-proof -
-  assume as: "finite P"
-  let ?P' = "{(A,w) | w. (A,w) \<in> P}"
-  have "?P' \<subseteq> P" by blast
-  with as have "finite ?P'" by (simp add: finite_subset)
-  then have "finite {snd x | x. x \<in> ?P'}" using finite_image_set[of "\<lambda>x. x \<in> ?P'"] by fastforce
-  then show "finite (Rhss P A)" unfolding Rhss_def by simp
-qed
-
-lemma Nts_nts_syms: "w \<in> Rhss P A \<Longrightarrow> nts_syms w \<subseteq> Nts P"
-  unfolding Rhss_def Nts_def by blast
-
 lemma exists_list: "\<forall>i<n. \<exists>x. P i x \<Longrightarrow> \<exists>xs. length xs = n \<and> (\<forall>i<n. P i (xs ! i))"
 proof (induction n)
   case 0
@@ -483,8 +470,6 @@ proof -
     unfolding min_sol_ineq_sys_comm_def by simp
   ultimately show ?thesis by blast
 qed
-
-
 
 
 end

@@ -128,14 +128,14 @@ proof -
 qed
 
 
-definition inst' :: "('n \<Rightarrow> nat) \<Rightarrow> ('n, 't) sym \<Rightarrow> 't lfun" where
-  "inst' \<gamma>' s = (case s of Tm a \<Rightarrow> Const {[a]} | Nt A \<Rightarrow> Var (\<gamma>' A))"
+definition lfun_sym :: "('n \<Rightarrow> nat) \<Rightarrow> ('n, 't) sym \<Rightarrow> 't lfun" where
+  "lfun_sym \<gamma>' s = (case s of Tm a \<Rightarrow> Const {[a]} | Nt A \<Rightarrow> Var (\<gamma>' A))"
 
-definition concats' :: "'a lfun list \<Rightarrow> 'a lfun" where
-  "concats' fs = foldr Concat fs (Const {[]})"
+definition lfun_concats :: "'a lfun list \<Rightarrow> 'a lfun" where
+  "lfun_concats fs = foldr Concat fs (Const {[]})"
 
-definition insts' :: "('n \<Rightarrow> nat) \<Rightarrow> ('n, 't) syms \<Rightarrow> 't lfun" where
-  "insts' \<gamma>' w = concats' (map (inst' \<gamma>') w)"
+definition lfun_syms :: "('n \<Rightarrow> nat) \<Rightarrow> ('n, 't) syms \<Rightarrow> 't lfun" where
+  "lfun_syms \<gamma>' w = lfun_concats (map (lfun_sym \<gamma>') w)"
 
 
 (* Some auxiliary lemmas *)
@@ -199,95 +199,95 @@ abbreviation "CFG_sys sys \<equiv>
 
 abbreviation "sol \<equiv> \<lambda>i. if i < card (Nts P) then Lang_lfp P (\<gamma> i) else {}"
 
-lemma inst'_reg: "regular_fun (inst' \<gamma>' s)"
-unfolding inst'_def proof (induction s)
+lemma lfun_sym_reg: "regular_fun (lfun_sym \<gamma>' s)"
+unfolding lfun_sym_def proof (induction s)
   case (Tm x)
   have "regular_lang {[x]}" by (meson lang.simps(3))
   then show ?case by auto
 qed auto
 
-lemma concats'_reg:
+lemma lfun_concats_reg:
   assumes "\<forall>f \<in> set fs. regular_fun f"
-    shows "regular_fun (concats' fs)"
-  using assms epsilon_regular unfolding concats'_def by (induction fs) auto
+    shows "regular_fun (lfun_concats fs)"
+  using assms epsilon_regular unfolding lfun_concats_def by (induction fs) auto
 
-lemma insts'_reg: "regular_fun (insts' \<gamma>' w)"
+lemma lfun_syms_reg: "regular_fun (lfun_syms \<gamma>' w)"
 proof -
-  from inst'_reg have "\<forall>s \<in> set w. regular_fun (inst' \<gamma>' s)" by blast
-  with concats'_reg show ?thesis unfolding insts'_def
+  from lfun_sym_reg have "\<forall>s \<in> set w. regular_fun (lfun_sym \<gamma>' s)" by blast
+  with lfun_concats_reg show ?thesis unfolding lfun_syms_def
     by (metis (no_types, lifting) image_iff list.set_map)
 qed
 
 
-lemma inst'_vars_Nt:
+lemma lfun_sym_vars_Nt:
   assumes "s (\<gamma>' A) = L A"
-    shows "vars (inst' \<gamma>' (Nt A)) = {\<gamma>' A}"
-  using assms unfolding inst'_def by simp
+    shows "vars (lfun_sym \<gamma>' (Nt A)) = {\<gamma>' A}"
+  using assms unfolding lfun_sym_def by simp
 
-lemma inst'_vars_Tm: "vars (inst' \<gamma>' (Tm x)) = {}"
-  unfolding inst'_def by simp
+lemma lfun_sym_vars_Tm: "vars (lfun_sym \<gamma>' (Tm x)) = {}"
+  unfolding lfun_sym_def by simp
 
-lemma concats'_vars: "vars (concats' fs) = \<Union>(vars ` set fs)"
-  unfolding concats'_def by (induction fs) simp_all
+lemma lfun_concats_vars: "vars (lfun_concats fs) = \<Union>(vars ` set fs)"
+  unfolding lfun_concats_def by (induction fs) simp_all
 
 (* it even holds equality, but we will not need it *)
-lemma insts'_vars: "vars (insts' \<gamma>' w) \<subseteq> \<gamma>' ` nts_syms w"
+lemma insts'_vars: "vars (lfun_syms \<gamma>' w) \<subseteq> \<gamma>' ` nts_syms w"
 proof
   fix x
-  assume "x \<in> vars (insts' \<gamma>' w)"
-  with concats'_vars have "x \<in> \<Union>(vars ` set (map (inst' \<gamma>') w))"
-    unfolding insts'_def by blast
-  then obtain f where *: "f \<in> set (map (inst' \<gamma>') w) \<and> x \<in> vars f" by blast
-  then obtain s where **: "s \<in> set w \<and> inst' \<gamma>' s = f" by auto
-  with * inst'_vars_Tm obtain A where ***: "s = Nt A" by (metis empty_iff sym.exhaust)
+  assume "x \<in> vars (lfun_syms \<gamma>' w)"
+  with lfun_concats_vars have "x \<in> \<Union>(vars ` set (map (lfun_sym \<gamma>') w))"
+    unfolding lfun_syms_def by blast
+  then obtain f where *: "f \<in> set (map (lfun_sym \<gamma>') w) \<and> x \<in> vars f" by blast
+  then obtain s where **: "s \<in> set w \<and> lfun_sym \<gamma>' s = f" by auto
+  with * lfun_sym_vars_Tm obtain A where ***: "s = Nt A" by (metis empty_iff sym.exhaust)
   with ** have ****: "A \<in> nts_syms w" unfolding nts_syms_def by blast
-  with inst'_vars_Nt have "vars (inst' \<gamma>' (Nt A)) = {\<gamma>' A}" by blast
+  with lfun_sym_vars_Nt have "vars (lfun_sym \<gamma>' (Nt A)) = {\<gamma>' A}" by blast
   with * ** *** **** show "x \<in> \<gamma>' ` nts_syms w" by blast
 qed
 
 
-lemma inst'_inst_Nt:
+lemma lfun_sym_inst_Nt:
   assumes "v (\<gamma>' A) = L A"
-    shows "eval (inst' \<gamma>' (Nt A)) v = inst_sym L (Nt A)"
-  using assms unfolding inst'_def inst_sym_def by force
+    shows "eval (lfun_sym \<gamma>' (Nt A)) v = inst_sym L (Nt A)"
+  using assms unfolding lfun_sym_def inst_sym_def by force
 
-lemma inst'_inst_Tm: "eval (inst' \<gamma>' (Tm a)) v = inst_sym L (Tm a)"
-  unfolding inst'_def inst_sym_def by force
+lemma lfun_sym_inst_Tm: "eval (lfun_sym \<gamma>' (Tm a)) v = inst_sym L (Tm a)"
+  unfolding lfun_sym_def inst_sym_def by force
 
-lemma concats'_concats:
+lemma lfun_concats_concats:
   assumes "length fs = length Ls"
       and "\<forall>i < length fs. eval (fs ! i) v = Ls ! i"
-    shows "eval (concats' fs) v = concats Ls"
+    shows "eval (lfun_concats fs) v = concats Ls"
 using assms proof (induction fs arbitrary: Ls)
   case Nil
-  then show ?case unfolding concats'_def concats_def by simp
+  then show ?case unfolding lfun_concats_def concats_def by simp
 next
   case (Cons f1 fs)
   then obtain L1 Lr where *: "Ls = L1#Lr" by (metis length_Suc_conv)
-  with Cons have "eval (concats' fs) v = concats Lr" by fastforce
+  with Cons have "eval (lfun_concats fs) v = concats Lr" by fastforce
   moreover from Cons.prems * have "eval f1 v = L1" by force
-  ultimately show ?case unfolding concats'_def concats_def by (simp add: "*")
+  ultimately show ?case unfolding lfun_concats_def concats_def by (simp add: "*")
 qed
 
-lemma insts'_insts:
+lemma lfun_syms_insts:
   assumes "\<forall>A \<in> nts_syms w. v (\<gamma>' A) = L A"
-    shows "eval (insts' \<gamma>' w) v = inst_syms L w"
+    shows "eval (lfun_syms \<gamma>' w) v = inst_syms L w"
 proof -
-  have "\<forall>i < length w. eval (inst' \<gamma>' (w!i)) v = inst_sym L (w!i)"
+  have "\<forall>i < length w. eval (lfun_sym \<gamma>' (w!i)) v = inst_sym L (w!i)"
   proof (rule allI, rule impI)
     fix i
     assume "i < length w"
-    then show "eval (inst' \<gamma>' (w ! i)) v = inst_sym L (w ! i)"
+    then show "eval (lfun_sym \<gamma>' (w ! i)) v = inst_sym L (w ! i)"
       using assms proof (induction "w!i")
       case (Nt A)
       then have "v (\<gamma>' A) = L A" unfolding nts_syms_def by force
-      with inst'_inst_Nt Nt show ?case by metis
+      with lfun_sym_inst_Nt Nt show ?case by metis
     next
       case (Tm x)
-      with inst'_inst_Tm show ?case by metis
+      with lfun_sym_inst_Tm show ?case by metis
     qed
   qed
-  then show ?thesis unfolding insts'_def inst_syms_def using concats'_concats
+  then show ?thesis unfolding lfun_syms_def inst_syms_def using lfun_concats_concats
     by (metis (mono_tags, lifting) length_map nth_map)
 qed
 
@@ -296,19 +296,19 @@ lemma subst_lang_lfun:
   "\<exists>eq. regular_fun eq \<and> vars eq \<subseteq> \<gamma>' ` Nts P
          \<and> (\<forall>v L. (\<forall>A \<in> Nts P. v (\<gamma>' A) = L A) \<longrightarrow> eval eq v = subst_lang P L A)"
 proof -
-  let ?Insts' = "(insts' \<gamma>') ` (Rhss P A)"
-  from finite_Rhss[OF finite_P] have "finite ?Insts'" by simp
-  moreover from insts'_reg have "\<forall>f \<in> ?Insts'. regular_fun f" by blast
-  ultimately obtain eq where *: "regular_fun eq \<and> \<Union>(vars ` ?Insts') = vars eq
-                                  \<and> (\<forall>v. (\<Union>f \<in> ?Insts'. eval f v) = eval eq v)"
+  let ?Insts = "(lfun_syms \<gamma>') ` (Rhss P A)"
+  from finite_Rhss[OF finite_P] have "finite ?Insts" by simp
+  moreover from lfun_syms_reg have "\<forall>f \<in> ?Insts. regular_fun f" by blast
+  ultimately obtain eq where *: "regular_fun eq \<and> \<Union>(vars ` ?Insts) = vars eq
+                                  \<and> (\<forall>v. (\<Union>f \<in> ?Insts. eval f v) = eval eq v)"
     using finite_Union_regular by metis
 
   moreover have "vars eq \<subseteq> \<gamma>' ` Nts P"
   proof
     fix x
     assume "x \<in> vars eq"
-    with * obtain f where **: "f \<in> ?Insts' \<and> x \<in> vars f" by blast
-    then obtain w where ***: "w \<in> Rhss P A \<and> f = insts' \<gamma>' w" by blast
+    with * obtain f where **: "f \<in> ?Insts \<and> x \<in> vars f" by blast
+    then obtain w where ***: "w \<in> Rhss P A \<and> f = lfun_syms \<gamma>' w" by blast
     with ** insts'_vars have "x \<in> \<gamma>' ` nts_syms w" by auto
     with *** show "x \<in> \<gamma>' ` Nts P" unfolding Nts_def Rhss_def by blast
   qed
@@ -318,15 +318,15 @@ proof -
     fix v :: "nat \<Rightarrow> 'a lang" and L :: "'n \<Rightarrow> 'a lang"
     assume state_L: "\<forall>A \<in> Nts P. v (\<gamma>' A) = L A"
 
-    have "\<forall>w \<in> Rhss P A. eval (insts' \<gamma>' w) v = inst_syms L w"
+    have "\<forall>w \<in> Rhss P A. eval (lfun_syms \<gamma>' w) v = inst_syms L w"
     proof
       fix w
       assume "w \<in> Rhss P A"
       with state_L Nts_nts_syms have "\<forall>A \<in> nts_syms w. v (\<gamma>' A) = L A" by fast
-      from insts'_insts[OF this] show "eval (insts' \<gamma>' w) v = inst_syms L w" by blast
+      from lfun_syms_insts[OF this] show "eval (lfun_syms \<gamma>' w) v = inst_syms L w" by blast
     qed
 
-    then have "subst_lang P L A = (\<Union>f \<in> ?Insts'. eval f v)" unfolding subst_lang_def by auto
+    then have "subst_lang P L A = (\<Union>f \<in> ?Insts. eval f v)" unfolding subst_lang_def by auto
     with * show "eval eq v = subst_lang P L A" by auto
   qed
 

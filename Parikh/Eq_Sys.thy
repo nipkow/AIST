@@ -50,7 +50,7 @@ definition solution_ineq_sys :: "'a eq_sys \<Rightarrow> (nat \<Rightarrow> 'a l
 definition partial_min_sol_ineq_sys :: "nat \<Rightarrow> 'a eq_sys \<Rightarrow> (nat \<Rightarrow> 'a lfun) \<Rightarrow> bool" where
   "partial_min_sol_ineq_sys n sys sols \<equiv>
     solution_ineq_sys (take n sys) sols \<and>
-    (\<forall>i \<ge> n. sols i = V i) \<and>
+    (\<forall>i \<ge> n. sols i = Var i) \<and>
     (\<forall>i < n. \<forall>x \<in> vars (sols i). x \<ge> n \<and> x < length sys) \<and>
     (\<forall>sols' s'. (\<forall>x. s' x = eval (sols' x) s')
                   \<and> solves_ineq_sys_comm (take n sys) s'
@@ -129,10 +129,10 @@ qed
 
 
 definition inst' :: "('n \<Rightarrow> nat) \<Rightarrow> ('n, 't) sym \<Rightarrow> 't lfun" where
-  "inst' \<gamma>' s = (case s of Tm a \<Rightarrow> N {[a]} | Nt A \<Rightarrow> V (\<gamma>' A))"
+  "inst' \<gamma>' s = (case s of Tm a \<Rightarrow> Const {[a]} | Nt A \<Rightarrow> Var (\<gamma>' A))"
 
 definition concats' :: "'a lfun list \<Rightarrow> 'a lfun" where
-  "concats' fs = foldr Conc fs (N {[]})"
+  "concats' fs = foldr Concat fs (Const {[]})"
 
 definition insts' :: "('n \<Rightarrow> nat) \<Rightarrow> ('n, 't) syms \<Rightarrow> 't lfun" where
   "insts' \<gamma>' w = concats' (map (inst' \<gamma>') w)"

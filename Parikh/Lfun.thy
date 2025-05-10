@@ -11,11 +11,11 @@ section \<open>Definition of language functions\<close>
    produce languages.
 *)
 
-datatype 'a lfun = V nat                        (* Variable *)
-                 | N "'a lang"                  (* Constant *)
+datatype 'a lfun = Var nat                        (* Variable *)
+                 | Const "'a lang"                  (* Constant *)
                  | Union2 "'a lfun" "'a lfun"
                  | UnionC "nat \<Rightarrow> 'a lfun"      (* Countable union *)
-                 | Conc "'a lfun" "'a lfun"     (* Concatenation *)
+                 | Concat "'a lfun" "'a lfun"     (* Concatenation *)
                  | Star "'a lfun"
 
 (* instantiate each variable with a language *)
@@ -23,29 +23,29 @@ type_synonym 'a state = "nat \<Rightarrow> 'a lang"
 
 (* evaluate function for a given state, this produces a language *)
 primrec eval :: "'a lfun \<Rightarrow> 'a state \<Rightarrow> 'a lang" where
-  "eval (V n) s = s n" |
-  "eval (N l) _ = l" |
+  "eval (Var n) s = s n" |
+  "eval (Const l) _ = l" |
   "eval (Union2 f g) s = eval f s \<union> eval g s" |
   "eval (UnionC f) s = (\<Union>i. eval (f i) s)" |
-  "eval (Conc f g) s = eval f s @@ eval g s" |
+  "eval (Concat f g) s = eval f s @@ eval g s" |
   "eval (Star f) s = star (eval f s)"
 
 (* all variables occurring in a function *)
 primrec vars :: "'a lfun \<Rightarrow> nat set" where
-  "vars (V n) = {n}" |
-  "vars (N _) = {}" |
+  "vars (Var n) = {n}" |
+  "vars (Const _) = {}" |
   "vars (Union2 f g) = vars f \<union> vars g" |
   "vars (UnionC f) = (\<Union>i. vars (f i))" |
-  "vars (Conc f g) = vars f \<union> vars g" |
+  "vars (Concat f g) = vars f \<union> vars g" |
   "vars (Star f) = vars f"
 
 (* substitute each occurrence of a variable i by the language function s i *)
 primrec subst :: "'a lfun \<Rightarrow> (nat \<Rightarrow> 'a lfun) \<Rightarrow> 'a lfun" where
-  "subst (V n) s = s n" |
-  "subst (N l) _ = N l" |
+  "subst (Var n) s = s n" |
+  "subst (Const l) _ = Const l" |
   "subst (Union2 f g) s = Union2 (subst f s) (subst g s)" |
   "subst (UnionC f) s = UnionC (\<lambda>i. subst (f i) s)" |
-  "subst (Conc f g) s = Conc (subst f s) (subst g s)" |
+  "subst (Concat f g) s = Concat (subst f s) (subst g s)" |
   "subst (Star f) s = Star (subst f s)"
 
 
@@ -58,10 +58,10 @@ lemma substitution_lemma:
   using assms by (induction rule: lfun.induct) auto
 
 lemma substitution_lemma_update:
-  "eval (subst f (V(x := f'))) s = eval f (s(x := eval f' s))"
+  "eval (subst f (Var(x := f'))) s = eval f (s(x := eval f' s))"
   using substitution_lemma[of "s(x := eval f' s)"] by force
 
-lemma subst_id: "eval (subst f V) s = eval f s"
+lemma subst_id: "eval (subst f Var) s = eval f s"
   using substitution_lemma[of s] by simp
 
 
@@ -72,10 +72,10 @@ lemma vars_subst_upper: "vars (subst f upd) \<subseteq> (\<Union>x. vars (upd x)
   using vars_subst by force
 
 
-lemma vars_subst_upd_upper: "vars (subst f (V(x := fx))) \<subseteq> vars f - {x} \<union> vars fx"
+lemma vars_subst_upd_upper: "vars (subst f (Var(x := fx))) \<subseteq> vars f - {x} \<union> vars fx"
 proof
   fix y
-  let ?upd = "V(x := fx)"
+  let ?upd = "Var(x := fx)"
   assume "y \<in> vars (subst f ?upd)"
   then obtain y' where "y' \<in> vars f \<and> y \<in> vars (?upd y')" using vars_subst by blast
   then show "y \<in> vars f - {x} \<union> vars fx" by (cases "x = y'") auto
@@ -83,10 +83,10 @@ qed
 
 lemma vars_subst_upd_aux:
   assumes "x \<in> vars f"
-  shows   "vars f - {x} \<union> vars fx \<subseteq> vars (subst f (V(x := fx)))"
+  shows   "vars f - {x} \<union> vars fx \<subseteq> vars (subst f (Var(x := fx)))"
 proof
   fix y
-  let ?upd = "V(x := fx)"
+  let ?upd = "Var(x := fx)"
   assume as: "y \<in> vars f - {x} \<union> vars fx"
   then show "y \<in> vars (subst f ?upd)"
   proof (cases "y \<in> vars f - {x}")
@@ -101,7 +101,7 @@ qed
 
 lemma vars_subst_upd:
   assumes "x \<in> vars f"
-  shows   "vars (subst f (V(x := fx))) = vars f - {x} \<union> vars fx"
+  shows   "vars (subst f (Var(x := fx))) = vars f - {x} \<union> vars fx"
   using assms vars_subst_upd_upper vars_subst_upd_aux by blast
 
 lemma eval_vars:
@@ -191,15 +191,15 @@ lemma lfun_cont_aux2:
       and "w \<in> eval f (\<lambda>x. \<Union>i. s i x)"
     shows "w \<in> (\<Union>i. eval f (s i))"
 using assms proof (induction arbitrary: w rule: lfun.induct)
-  case (Conc f g)
+  case (Concat f g)
   then obtain u v where w_decomp: "w = u@v"
     and "u \<in> eval f (\<lambda>x. \<Union>i. s i x) \<and> v \<in> eval g (\<lambda>x. \<Union>i. s i x)" by auto
-  with Conc have "u \<in> (\<Union>i. eval f (s i)) \<and> v \<in> (\<Union>i. eval g (s i))" by auto
+  with Concat have "u \<in> (\<Union>i. eval f (s i)) \<and> v \<in> (\<Union>i. eval g (s i))" by auto
   then obtain i j where i_intro: "u \<in> eval f (s i)" and j_intro: "v \<in> eval g (s j)" by blast
   let ?m = "max i j"
-  from i_intro Conc.prems(1) lfun_mono_aux have "u \<in> eval f (s ?m)"
+  from i_intro Concat.prems(1) lfun_mono_aux have "u \<in> eval f (s ?m)"
     by (metis le_fun_def lift_Suc_mono_le max.cobounded1 subset_eq)
-  moreover from j_intro Conc.prems(1) lfun_mono_aux have "v \<in> eval g (s ?m)"
+  moreover from j_intro Concat.prems(1) lfun_mono_aux have "v \<in> eval g (s ?m)"
     by (metis le_fun_def lift_Suc_mono_le max.cobounded2 subset_eq)
   ultimately show ?case using w_decomp by auto
 next
@@ -232,23 +232,23 @@ section \<open>Regular functions\<close>
 *)
 
 inductive regular_fun :: "'a lfun \<Rightarrow> bool" where
-  Variable:    "regular_fun (V _)" |
-  Const:       "regular_lang l \<Longrightarrow> regular_fun (N l)" |
+  Variable:    "regular_fun (Var _)" |
+  Const:       "regular_lang l \<Longrightarrow> regular_fun (Const l)" |
   Union2:      "\<lbrakk> regular_fun f; regular_fun g \<rbrakk> \<Longrightarrow> regular_fun (Union2 f g)" |
-  Conc:        "\<lbrakk> regular_fun f; regular_fun g \<rbrakk> \<Longrightarrow> regular_fun (Conc f g)" |
+  Concat:        "\<lbrakk> regular_fun f; regular_fun g \<rbrakk> \<Longrightarrow> regular_fun (Concat f g)" |
   Star:        "regular_fun f \<Longrightarrow> regular_fun (Star f)"
 
 declare regular_fun.intros [intro]
-inductive_cases ConstE [elim]:       "regular_fun (N l)"
+inductive_cases ConstE [elim]:       "regular_fun (Const l)"
 inductive_cases Union2E [elim]:      "regular_fun (Union2 f g)"
-inductive_cases ConcE [elim]:        "regular_fun (Conc f g)"
+inductive_cases ConcatE [elim]:        "regular_fun (Concat f g)"
 inductive_cases StarE [elim]:        "regular_fun (Star f)"
 
 
-lemma emptyset_regular: "regular_fun (N {})"
+lemma emptyset_regular: "regular_fun (Const {})"
   using lang.simps(1) by blast
 
-lemma epsilon_regular: "regular_fun (N {[]})"
+lemma epsilon_regular: "regular_fun (Const {[]})"
   using lang.simps(2) by blast
 
 
@@ -263,9 +263,9 @@ using assms proof (induction rule: regular_fun.induct)
   then have "Regular_Exp.lang (Plus r1 r2) = eval (Union2 f g) s" by simp
   then show ?case by blast
 next
-  case (Conc f g)
+  case (Concat f g)
   then obtain r1 r2 where "Regular_Exp.lang r1 = eval f s \<and> Regular_Exp.lang r2 = eval g s" by auto
-  then have "Regular_Exp.lang (Times r1 r2) = eval (Conc f g) s" by simp
+  then have "Regular_Exp.lang (Times r1 r2) = eval (Concat f g) s" by simp
   then show ?case by blast
 next
   case (Star f)
@@ -286,7 +286,7 @@ lemma subst_reg_fun:
 lemma subst_reg_fun_update:
   assumes "regular_fun f"
       and "regular_fun g"
-    shows "regular_fun (subst f (V(x := g)))"
+    shows "regular_fun (subst f (Var(x := g)))"
   using assms subst_reg_fun fun_upd_def by (metis Variable)
 
 

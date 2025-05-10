@@ -14,8 +14,8 @@ section \<open>The lemma from Pilling's paper\<close>
 subsection \<open>g_pre (in the paper g_{iN} resp. X_{iN}\<close>
 
 fun g_pre :: "'a eq_sys \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a lfun" where
-  "g_pre _ _ 0 = N {}" |
-  "g_pre f_sys i (Suc n) = subst (f_sys ! i) (\<lambda>j. if j < length f_sys then g_pre f_sys j n else V j)"
+  "g_pre _ _ 0 = Const {}" |
+  "g_pre f_sys i (Suc n) = subst (f_sys ! i) (\<lambda>j. if j < length f_sys then g_pre f_sys j n else Var j)"
 
 
 lemma g_pre_eval:
@@ -77,7 +77,7 @@ proof (induction n arbitrary: i)
   then show ?case by auto
 next
   case (Suc n)
-  let ?upd = "\<lambda>x. if x < length f_sys then g_pre f_sys x n else V x"
+  let ?upd = "\<lambda>x. if x < length f_sys then g_pre f_sys x n else Var x"
   from vars_subst_upper have "vars (g_pre f_sys i (Suc n)) \<subseteq> (\<Union>x. vars (?upd x))" by simp
   moreover have "\<forall>y \<in> vars (?upd x). y \<ge> length f_sys" for x using Suc by simp
   ultimately show ?case by auto
@@ -132,7 +132,7 @@ qed
 
 
 lemma g_pre_g_Union: "(\<Union>n. eval (g_pre f_sys i (Suc n)) s) =
-  eval (subst (f_sys ! i) (\<lambda>i. if i < length f_sys then g f_sys i else V i)) s"
+  eval (subst (f_sys ! i) (\<lambda>i. if i < length f_sys then g f_sys i else Var i)) s"
 proof -
   let ?s = "(\<lambda>n j. if j < length f_sys then eval (g_pre f_sys j n) s else s j)"
   have "?s n j \<subseteq> ?s (Suc n) j" for n j
@@ -150,9 +150,9 @@ proof -
     using s_monotone lfun_cont[of ?s "f_sys ! i"] by argo
   also have "\<dots> = eval (f_sys ! i) (\<lambda>x. if x < length f_sys then eval (g f_sys x) s else s x)"
     using s_Union by simp
-  also have "\<dots> = eval (subst (f_sys ! i) (\<lambda>i. if i < length f_sys then g f_sys i else V i)) s"
+  also have "\<dots> = eval (subst (f_sys ! i) (\<lambda>i. if i < length f_sys then g f_sys i else Var i)) s"
     using substitution_lemma[of "\<lambda>x. if x < length f_sys then eval (g f_sys x) s else s x"
-                                "\<lambda>i. if i < length f_sys then g f_sys i else V i"]
+                                "\<lambda>i. if i < length f_sys then g f_sys i else Var i"]
     by fastforce
   finally show ?thesis .
 qed

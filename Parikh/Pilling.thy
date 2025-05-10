@@ -19,7 +19,7 @@ section \<open>Special representation of regular functions\<close>
 
 definition regular_fun' :: "nat \<Rightarrow> 'a lfun \<Rightarrow> bool" where
   "regular_fun' x f \<equiv> \<exists>p q. regular_fun p \<and> regular_fun q \<and>
-    f = Union2 p (Conc q (V x)) \<and> x \<notin> vars p"
+    f = Union2 p (Concat q (Var x)) \<and> x \<notin> vars p"
 
 lemma "regular_fun' x f \<Longrightarrow> regular_fun f"
   unfolding regular_fun'_def by fast
@@ -27,36 +27,36 @@ lemma "regular_fun' x f \<Longrightarrow> regular_fun f"
 
 text \<open>Every regular function can be represented as regular_fun':\<close>
 
-lemma regular_fun_regular_fun'_Variable: "\<exists>f'. regular_fun' x f' \<and> vars f' = vars (V y) \<union> {x}
-                                        \<and> (\<forall>s. parikh_img (eval (V y) s) = parikh_img (eval f' s))"
+lemma regular_fun_regular_fun'_Variable: "\<exists>f'. regular_fun' x f' \<and> vars f' = vars (Var y) \<union> {x}
+                                        \<and> (\<forall>s. parikh_img (eval (Var y) s) = parikh_img (eval f' s))"
 proof (cases "x = y")
-let ?f' = "Union2 (N {}) (Conc (N {[]}) (V x))"
+let ?f' = "Union2 (Const {}) (Concat (Const {[]}) (Var x))"
   case True
   then have "regular_fun' x ?f'"
     unfolding regular_fun'_def by (simp add: emptyset_regular epsilon_regular)
-  moreover have "eval ?f' s = eval (V y) s" for s :: "'a state" using True by simp
-  moreover have "vars ?f' = vars (V y) \<union> {x}" using True by simp
+  moreover have "eval ?f' s = eval (Var y) s" for s :: "'a state" using True by simp
+  moreover have "vars ?f' = vars (Var y) \<union> {x}" using True by simp
   ultimately show ?thesis by metis
 next
-  let ?f' = "Union2 (V y) (Conc (N {}) (V x))"
+  let ?f' = "Union2 (Var y) (Concat (Const {}) (Var x))"
   case False
   then have "regular_fun' x ?f'"
     unfolding regular_fun'_def by (auto simp add: emptyset_regular epsilon_regular)
-  moreover have "eval ?f' s = eval (V y) s" for s :: "'a state" using False by simp
-  moreover have "vars ?f' = vars (V y) \<union> {x}" by simp
+  moreover have "eval ?f' s = eval (Var y) s" for s :: "'a state" using False by simp
+  moreover have "vars ?f' = vars (Var y) \<union> {x}" by simp
   ultimately show ?thesis by metis
 qed
 
 lemma regular_fun_regular_fun'_Const:
   assumes "\<exists>r. Regular_Exp.lang r = l"
-    shows "\<exists>f'. regular_fun' x f' \<and> vars f' = vars (N l) \<union> {x}
-                \<and> (\<forall>s. parikh_img (eval (N l) s) = parikh_img (eval f' s))"
+    shows "\<exists>f'. regular_fun' x f' \<and> vars f' = vars (Const l) \<union> {x}
+                \<and> (\<forall>s. parikh_img (eval (Const l) s) = parikh_img (eval f' s))"
 proof -
-  let ?f' = "Union2 (N l) (Conc (N {}) (V x))"
+  let ?f' = "Union2 (Const l) (Concat (Const {}) (Var x))"
   have "regular_fun' x ?f'"
     unfolding regular_fun'_def using assms by (auto simp add: emptyset_regular)
-  moreover have "eval ?f' s = eval (N l) s" for s :: "'a state" by simp
-  moreover have "vars ?f' = vars (N l) \<union> {x}" by simp 
+  moreover have "eval ?f' s = eval (Const l) s" for s :: "'a state" by simp
+  moreover have "vars ?f' = vars (Const l) \<union> {x}" by simp 
   ultimately show ?thesis by metis
 qed
 
@@ -74,11 +74,11 @@ proof -
       (\<forall>s. parikh_img (eval f2 s) = parikh_img (eval f2' s))"
     by auto
   then obtain p1 q1 p2 q2 where p1_q1_intro: "regular_fun p1 \<and> regular_fun q1 \<and>
-    f1' = Union2 p1 (Conc q1 (V x)) \<and> (\<forall>y \<in> vars p1. y \<noteq> x)"
-    and p2_q2_intro: "regular_fun p2 \<and> regular_fun q2 \<and> f2' = Union2 p2 (Conc q2 (V x)) \<and>
+    f1' = Union2 p1 (Concat q1 (Var x)) \<and> (\<forall>y \<in> vars p1. y \<noteq> x)"
+    and p2_q2_intro: "regular_fun p2 \<and> regular_fun q2 \<and> f2' = Union2 p2 (Concat q2 (Var x)) \<and>
     (\<forall>y \<in> vars p2. y \<noteq> x)" unfolding regular_fun'_def by auto
 
-  let ?f' = "Union2 (Union2 p1 p2) (Conc (Union2 q1 q2) (V x))"
+  let ?f' = "Union2 (Union2 p1 p2) (Concat (Union2 q1 q2) (Var x))"
   have "regular_fun' x ?f'" unfolding regular_fun'_def using p1_q1_intro p2_q2_intro by auto
   moreover have "parikh_img (eval ?f' s) = parikh_img (eval (Union2 f1 f2) s)" for s
     using p1_q1_intro p2_q2_intro f1'_intro f2'_intro
@@ -88,13 +88,13 @@ proof -
   ultimately show ?thesis by metis
 qed
 
-lemma regular_fun_regular_fun'_Conc:
+lemma regular_fun_regular_fun'_Concat:
   assumes "\<exists>f'. regular_fun' x f' \<and> vars f' = vars f1 \<union> {x} \<and>
                 (\<forall>s. parikh_img (eval f1 s) = parikh_img (eval f' s))"
           "\<exists>f'. regular_fun' x f' \<and> vars f' = vars f2 \<union> {x} \<and>
                 (\<forall>s. parikh_img (eval f2 s) = parikh_img (eval f' s))"
-    shows "\<exists>f'. regular_fun' x f' \<and> vars f' = vars (Conc f1 f2) \<union> {x} \<and>
-                (\<forall>s. parikh_img (eval (Conc f1 f2) s) = parikh_img (eval f' s))"
+    shows "\<exists>f'. regular_fun' x f' \<and> vars f' = vars (Concat f1 f2) \<union> {x} \<and>
+                (\<forall>s. parikh_img (eval (Concat f1 f2) s) = parikh_img (eval f' s))"
 proof -
   from assms obtain f1' f2' where f1'_intro: "regular_fun' x f1' \<and> vars f1' = vars f1 \<union> {x} \<and>
       (\<forall>s. parikh_img (eval f1 s) = parikh_img (eval f1' s))"
@@ -102,20 +102,20 @@ proof -
       (\<forall>s. parikh_img (eval f2 s) = parikh_img (eval f2' s))"
     by auto
   then obtain p1 q1 p2 q2 where p1_q1_intro: "regular_fun p1 \<and> regular_fun q1 \<and>
-    f1' = Union2 p1 (Conc q1 (V x)) \<and> (\<forall>y \<in> vars p1. y \<noteq> x)"
-    and p2_q2_intro: "regular_fun p2 \<and> regular_fun q2 \<and> f2' = Union2 p2 (Conc q2 (V x)) \<and>
+    f1' = Union2 p1 (Concat q1 (Var x)) \<and> (\<forall>y \<in> vars p1. y \<noteq> x)"
+    and p2_q2_intro: "regular_fun p2 \<and> regular_fun q2 \<and> f2' = Union2 p2 (Concat q2 (Var x)) \<and>
     (\<forall>y \<in> vars p2. y \<noteq> x)" unfolding regular_fun'_def by auto
 
-  let ?q' = "Union2 (Conc q1 (Conc (V x) q2)) (Union2 (Conc p1 q2) (Conc q1 p2))"
-  let ?f' = "Union2 (Conc p1 p2) (Conc ?q' (V x))"
+  let ?q' = "Union2 (Concat q1 (Concat (Var x) q2)) (Union2 (Concat p1 q2) (Concat q1 p2))"
+  let ?f' = "Union2 (Concat p1 p2) (Concat ?q' (Var x))"
 
-  have "\<forall>s. (parikh_img (eval (Conc f1 f2) s) = parikh_img (eval ?f' s))"
+  have "\<forall>s. (parikh_img (eval (Concat f1 f2) s) = parikh_img (eval ?f' s))"
   proof (rule allI)
     fix s
     have f2_subst: "parikh_img (eval f2 s) = parikh_img (eval p2 s \<union> eval q2 s @@ s x)"
       using p2_q2_intro f2'_intro by auto
 
-    have "parikh_img (eval (Conc f1 f2) s) = parikh_img ((eval p1 s \<union> eval q1 s @@ s x) @@ eval f2 s)"
+    have "parikh_img (eval (Concat f1 f2) s) = parikh_img ((eval p1 s \<union> eval q1 s @@ s x) @@ eval f2 s)"
       using p1_q1_intro f1'_intro
       by (metis eval.simps(1) eval.simps(3) eval.simps(5) parikh_conc_right)
     also have "\<dots> = parikh_img (eval p1 s @@ eval f2 s \<union> eval q1 s @@ s x @@ eval f2 s)"
@@ -131,11 +131,11 @@ proof -
       by (simp add: conc_Un_distrib(2) conc_assoc)
     also have "\<dots> = parikh_img (eval ?f' s)"
       by (simp add: Un_commute)
-    finally show "parikh_img (eval (Conc f1 f2) s) = parikh_img (eval ?f' s)" .
+    finally show "parikh_img (eval (Concat f1 f2) s) = parikh_img (eval ?f' s)" .
   qed
   moreover have "regular_fun' x ?f'" unfolding regular_fun'_def using p1_q1_intro p2_q2_intro by auto
   moreover from f1'_intro f2'_intro p1_q1_intro p2_q2_intro
-    have "vars ?f' = vars (Conc f1 f2) \<union> {x}" by auto
+    have "vars ?f' = vars (Concat f1 f2) \<union> {x}" by auto
   ultimately show ?thesis by metis
 qed
 
@@ -148,10 +148,10 @@ proof -
   from assms obtain f' where f'_intro: "regular_fun' x f' \<and> vars f' = vars f \<union> {x} \<and>
       (\<forall>s. parikh_img (eval f s) = parikh_img (eval f' s))" by auto
   then obtain p q where p_q_intro: "regular_fun p \<and> regular_fun q \<and>
-    f' = Union2 p (Conc q (V x)) \<and> (\<forall>y \<in> vars p. y \<noteq> x)" unfolding regular_fun'_def by auto
+    f' = Union2 p (Concat q (Var x)) \<and> (\<forall>y \<in> vars p. y \<noteq> x)" unfolding regular_fun'_def by auto
 
-  let ?q_new = "Conc (Star p) (Conc (Star (Conc q (V x))) (Conc (Star (Conc q (V x))) q))"
-  let ?f_new = "Union2 (Star p) (Conc ?q_new (V x))"
+  let ?q_new = "Concat (Star p) (Concat (Star (Concat q (Var x))) (Concat (Star (Concat q (Var x))) q))"
+  let ?f_new = "Union2 (Star p) (Concat ?q_new (Var x))"
 
   have "\<forall>s. (parikh_img (eval (Star f) s) = parikh_img (eval ?f_new s))"
   proof (rule allI)
@@ -195,8 +195,8 @@ next
   case (Union2 f g)
   from regular_fun_regular_fun'_Union2[OF this(3,4)] show ?case by blast
 next
-  case (Conc f g)
-  from regular_fun_regular_fun'_Conc[OF this(3,4)] show ?case by blast
+  case (Concat f g)
+  from regular_fun_regular_fun'_Concat[OF this(3,4)] show ?case by blast
 next
   case (Star f)
   from regular_fun_regular_fun'_Star[OF this(2)] show ?case by blast
@@ -218,14 +218,14 @@ locale of_form_regular_fun' =
   assumes x_not_in_p: "x \<notin> vars p"
 begin
 
-abbreviation "eq \<equiv> Union2 p (Conc q (V x))"
-abbreviation "sol \<equiv> Conc (Star (subst q (V(x := p)))) p"
+abbreviation "eq \<equiv> Union2 p (Concat q (Var x))"
+abbreviation "sol \<equiv> Concat (Star (subst q (Var(x := p)))) p"
 
 
 (* F(E)*E is a regular function *)
 lemma sol_is_reg: "regular_fun sol"
 proof -
-  from p_reg q_reg have r_reg: "regular_fun (subst q (V(x := p)))"
+  from p_reg q_reg have r_reg: "regular_fun (subst q (Var(x := p)))"
     using subst_reg_fun_update by auto
   with p_reg show "regular_fun sol" by fast
 qed
@@ -234,7 +234,7 @@ qed
 (* F(E)*E contains only variables which also appear in the equation, except x *)
 lemma sol_vars: "vars sol \<subseteq> vars eq - {x}"
 proof -
-  let ?upd = "V(x := p)"
+  let ?upd = "Var(x := p)"
   let ?subst_q = "subst q ?upd"
   from x_not_in_p have vars_p: "vars p \<subseteq> vars eq - {x}" by fastforce
 
@@ -263,19 +263,19 @@ unfolding partial_sol_ineq_def proof (rule allI, rule impI)
   fix s
   assume x_is_sol: "s x = eval sol s"
 
-  let ?r = "subst q (V (x := p))"
-  let ?upd = "V(x := sol)"
+  let ?r = "subst q (Var (x := p))"
+  let ?upd = "Var(x := sol)"
   let ?q_subst = "subst q ?upd"
   let ?eq_subst = "subst eq ?upd"
 
   from sol_is_reg have r_reg: "regular_fun ?r" unfolding fun_upd_def by blast
-  have homogeneous_app: "parikh_img (eval ?q_subst s) \<subseteq> parikh_img (eval (Conc (Star ?r) ?r) s)"
+  have homogeneous_app: "parikh_img (eval ?q_subst s) \<subseteq> parikh_img (eval (Concat (Star ?r) ?r) s)"
     using reg_fun_homogeneous[OF q_reg r_reg p_reg] by blast
 
   from x_not_in_p have "eval (subst p ?upd) s = eval p s" using eval_vars_subst[of p] by simp
   then have "parikh_img (eval ?eq_subst s) = parikh_img (eval p s \<union> eval ?q_subst s @@ eval sol s)"
     by simp
-  also have "\<dots> \<subseteq> parikh_img (eval p s \<union> eval (Conc (Star ?r) ?r) s @@ eval sol s)"
+  also have "\<dots> \<subseteq> parikh_img (eval p s \<union> eval (Concat (Star ?r) ?r) s @@ eval sol s)"
     using homogeneous_app by (metis dual_order.refl parikh_conc_right_subset parikh_img_Un sup.mono)
   also have "\<dots> = parikh_img (eval p s) \<union>
       parikh_img (star (eval ?r s) @@ eval ?r s @@ star (eval ?r s) @@ eval p s)"
@@ -289,7 +289,7 @@ unfolding partial_sol_ineq_def proof (rule allI, rule impI)
   finally have *: "parikh_img (eval ?eq_subst s) \<subseteq> parikh_img (s x)" using x_is_sol by simp
 
   from x_is_sol have "s = s(x := eval sol s)" using fun_upd_triv by metis
-  then have "eval eq s = eval (subst eq (V(x := sol))) s"
+  then have "eval eq s = eval (subst eq (Var(x := sol))) s"
     using substitution_lemma_update[of eq] by presburger
   with * show "solves_ineq_comm x eq s" unfolding solves_ineq_comm_def by argo
 qed
@@ -302,15 +302,15 @@ lemma sol_is_minimal:
 proof -
   from is_sol sol'_s have is_sol': "parikh_img (eval q s @@ s x \<union> eval p s) \<subseteq> parikh_img (s x)"
     unfolding solves_ineq_comm_def by simp
-  then have 1: "parikh_img (eval (Conc (Star q) p) s) \<subseteq> parikh_img (s x)"
+  then have 1: "parikh_img (eval (Concat (Star q) p) s) \<subseteq> parikh_img (s x)"
     using parikh_img_arden by auto
 
-  from is_sol' have "parikh_img (eval p s) \<subseteq> parikh_img (eval (V x) s)" by auto
-  then have "parikh_img (eval (subst q (V(x := p))) s) \<subseteq> parikh_img (eval q s)"
+  from is_sol' have "parikh_img (eval p s) \<subseteq> parikh_img (eval (Var x) s)" by auto
+  then have "parikh_img (eval (subst q (Var(x := p))) s) \<subseteq> parikh_img (eval q s)"
     using parikh_img_subst_mono_upd by (metis fun_upd_triv subst_id)
-  then have "parikh_img (eval (Star (subst q (V(x := p)))) s) \<subseteq> parikh_img (eval (Star q) s)"
+  then have "parikh_img (eval (Star (subst q (Var(x := p)))) s) \<subseteq> parikh_img (eval (Star q) s)"
     using parikh_star_mono by auto
-  then have "parikh_img (eval sol s) \<subseteq> parikh_img (eval (Conc (Star q) p) s)"
+  then have "parikh_img (eval sol s) \<subseteq> parikh_img (eval (Concat (Star q) p) s)"
     using parikh_conc_right_subset by (metis eval.simps(5))
 
   with 1 show ?thesis by fast
@@ -361,10 +361,10 @@ proof -
     where eq'_intro: "regular_fun' x eq' \<and> vars eq' = vars eq \<union> {x} \<and>
                     (\<forall>s. parikh_img (eval eq s) = parikh_img (eval eq' s))" by blast
   then obtain p q
-    where p_q_intro: "regular_fun p \<and> regular_fun q \<and> eq' = Union2 p (Conc q (V x)) \<and> x \<notin> vars p"
+    where p_q_intro: "regular_fun p \<and> regular_fun q \<and> eq' = Union2 p (Concat q (Var x)) \<and> x \<notin> vars p"
     unfolding regular_fun'_def by blast
 
-  let ?sol = "Conc (Star (subst q (V(x := p)))) p"
+  let ?sol = "Concat (Star (subst q (Var(x := p)))) p"
   from p_q_intro have sol_prop: "regular_fun ?sol \<and> partial_min_sol_one_ineq x eq' ?sol"
     using of_form_regular_fun'.sol_is_minimal_reg_sol unfolding of_form_regular_fun'_def by blast
   with eq'_intro have "partial_min_sol_one_ineq x eq ?sol"
@@ -391,7 +391,7 @@ begin
 
 
 abbreviation "sys' \<equiv> sys_subst sys sols"
-abbreviation "sols' \<equiv> \<lambda>i. subst (sols i) (V(r := sol_r))"
+abbreviation "sols' \<equiv> \<lambda>i. subst (sols i) (Var(r := sol_r))"
 
 
 lemma sols'_r: "sols' r = sol_r"
@@ -453,7 +453,7 @@ proof (rule allI | rule impI)+
 qed
 
 
-lemma sols'_vars_gt_r: "\<forall>i \<ge> Suc r. sols' i = V i"
+lemma sols'_vars_gt_r: "\<forall>i \<ge> Suc r. sols' i = Var i"
   using sols_is_sol unfolding partial_min_sol_ineq_sys_def by auto
 
 
@@ -471,7 +471,7 @@ proof -
     unfolding partial_min_sol_one_ineq_def by simp
   ultimately have vars_sol_r: "\<forall>x \<in> vars sol_r. x > r \<and> x < length sys"
     unfolding partial_min_sol_one_ineq_def using r_valid
-    by (metis DiffE Suc_le_lessD insertCI nat_less_le subsetD)
+    by (metis DiffE insertCI nat_less_le subsetD)
   moreover have "vars (sols' i) \<subseteq> vars (sols i) - {r} \<union> vars sol_r" if "i < length sys" for i
     using vars_subst_upd_upper by meson
   ultimately have "\<forall>x \<in> vars (sols' i). x > r \<and> x < length sys" if "i < length sys" for i
@@ -500,7 +500,7 @@ lemma exists_minimal_reg_sol_sys_aux:
     shows            "\<exists>sols. partial_min_sol_ineq_sys r sys sols \<and> (\<forall>i. regular_fun (sols i))"
 using assms proof (induction r)
   case 0
-  have "solution_ineq_sys (take 0 sys) V"
+  have "solution_ineq_sys (take 0 sys) Var"
     unfolding solution_ineq_sys_def solves_ineq_sys_comm_def by simp
   then show ?case unfolding partial_min_sol_ineq_sys_def by auto
 next
@@ -554,7 +554,7 @@ proof -
     fix sol' x
     assume as: "solves_ineq_sys_comm sys sol'"
 
-    let ?sol_funs = "\<lambda>i. N (sol' i)"
+    let ?sol_funs = "\<lambda>i. Const (sol' i)"
     from as have "solves_ineq_sys_comm (take (length sys) sys) sol'" by simp
     moreover have "sol' x = eval (?sol_funs x) sol'" for x by simp
     ultimately show "\<forall>x. parikh_img (?ls' x) \<subseteq> parikh_img (sol' x)"

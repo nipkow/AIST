@@ -1,6 +1,6 @@
 theory Parikh_Img
   imports 
-    "./Lfun"
+    "Lfun"
     "HOL-Library.Multiset"
 begin
 
@@ -14,12 +14,13 @@ abbreviation parikh_vec where
   "parikh_vec \<equiv> mset"
 
 (* Parikh image for a given language *)
-definition parikh_img :: "'a lang \<Rightarrow> 'a multiset set" where
+definition parikh_img :: "'a lang \<Rightarrow> 'a multiset set" ("\<Psi>") where
   "parikh_img L \<equiv> parikh_vec ` L"
+
 
 (* TODO: really necessary? *)
 definition subseteq_comm :: "'t lang \<Rightarrow> 't lang \<Rightarrow> bool" where
-  "subseteq_comm L1 L2 \<equiv> parikh_img L1 \<subseteq> parikh_img L2"
+  "subseteq_comm L1 L2 \<equiv> \<Psi> L1 \<subseteq> \<Psi> L2"
 
 
 lemma parikh_img_Un [simp]: "parikh_img (L1 \<union> L2) = parikh_img L1 \<union> parikh_img L2"
@@ -37,7 +38,7 @@ lemma parikh_img_mono_eq: "A = B \<Longrightarrow> parikh_img A = parikh_img B"
 
 lemma parikh_img_Star_pow: "m \<in> parikh_img (eval (Star f) v) \<Longrightarrow> \<exists>n. m \<in> parikh_img (eval f v ^^ n)"
 proof -
-  assume "m \<in> parikh_img (eval (lfun.Star f) v)"
+  assume "m \<in> parikh_img (eval (rlexp.Star f) v)"
   then have "m \<in> parikh_img (star (eval f v))" by simp
   then show ?thesis unfolding star_def by (simp add: parikh_img_UNION)
 qed
@@ -100,11 +101,6 @@ lemma parikh_img_subst_mono:
   assumes "\<forall>i. parikh_img (eval (A i) v) \<subseteq> parikh_img (eval (B i) v)"
   shows "parikh_img (eval (subst A f) v) \<subseteq> parikh_img (eval (subst B f) v)"
 using assms proof (induction f)
-  case (UnionC f)
-  then have "parikh_img (\<Union>i. eval (subst A (f i)) v) \<subseteq> parikh_img (\<Union>i. eval (subst B (f i)) v)"
-    by (simp add: SUP_mono' parikh_img_UNION)
-  then show ?case by simp
-next
   case (Concat f1 f2)
   then have "parikh_img (eval (subst A f1) v @@ eval (subst A f2) v)
               \<subseteq> parikh_img (eval (subst B f1) v @@ eval (subst B f2) v)"
@@ -127,21 +123,21 @@ lemma parikh_img_subst_mono_eq:
   shows "parikh_img (eval (subst (\<lambda>i. A i) f) v) = parikh_img (eval (subst (\<lambda>i. B i) f) v)"
   using parikh_img_subst_mono assms by blast
 
-lemma lfun_mono_parikh:
+lemma rlexp_mono_parikh:
   assumes "\<forall>i \<in> vars f. parikh_img (v i) \<subseteq> parikh_img (v' i)"
   shows "parikh_img (eval f v) \<subseteq> parikh_img (eval f v')"
-using assms proof (induction rule: lfun.induct)
+using assms proof (induction rule: rlexp.induct)
 case (Concat f1 f2)
   then have "parikh_img (eval f1 v @@ eval f2 v) \<subseteq> parikh_img (eval f1 v' @@ eval f2 v')"
-    using parikh_conc_subset by (metis UnCI vars.simps(5))
+    using parikh_conc_subset by (metis UnCI vars.simps(4))
   then show ?case by simp
 qed (auto simp add: SUP_mono' parikh_img_UNION parikh_star_mono)
 
 
-lemma lfun_mono_parikh_eq:
+lemma rlexp_mono_parikh_eq:
   assumes "\<forall>i \<in> vars f. parikh_img (v i) = parikh_img (v' i)"
   shows "parikh_img (eval f v) = parikh_img (eval f v')"
-  using assms lfun_mono_parikh by blast
+  using assms rlexp_mono_parikh by blast
 
 
 
@@ -318,74 +314,63 @@ qed
 
 section \<open>A homogeneous-like property for regular functions\<close>
 
-lemma reg_fun_homogeneous_aux:
-  assumes "regular_fun f"
-      and "v x = star Y @@ Z"
+lemma rlexp_homogeneous_aux:
+  assumes "v x = star Y @@ Z"
     shows "parikh_img (eval f v) \<subseteq> parikh_img (star Y @@ eval f (v(x := Z)))"
-using assms proof (induction rule: regular_fun.induct)
-  case (1 y)
+using assms proof (induction f)
+  case (Var y)
   show ?case
   proof (cases "x = y")
     case True
-    with 1 show ?thesis by simp
+    with Var show ?thesis by simp
   next
     case False
     have "eval (Var y) v \<subseteq> star Y @@ eval (Var y) v" by (metis Nil_in_star concI_if_Nil1 subsetI)
     with False parikh_img_mono show ?thesis by auto
   qed
 next
-  case (2 l)
+  case (Const l)
   have "eval (Const l) v \<subseteq> star Y @@ eval (Const l) v" using concI_if_Nil1 by blast
   then show ?case by (simp add: parikh_img_mono)
 next
-  case (3 f g)
-  then have "parikh_img (eval (Union2 f g) v) \<subseteq> parikh_img (star Y @@ eval f (v(x := Z)) \<union>
+  case (Union f g)
+  then have "parikh_img (eval (Union f g) v) \<subseteq> parikh_img (star Y @@ eval f (v(x := Z)) \<union>
                                                             star Y @@ eval g (v(x := Z)))"
     by fastforce
   then show ?case by (metis conc_Un_distrib(1) eval.simps(3))
 next
-  case (4 f g)
+  case (Concat f g)
   then have "parikh_img (eval (Concat f g) v) \<subseteq> parikh_img ((star Y @@ eval f (v(x := Z)))
                                                           @@ star Y @@ eval g (v(x := Z)))"
-    by (metis eval.simps(5) parikh_conc_subset regular_fun.simps(4))
+    by (metis eval.simps(4) parikh_conc_subset)
   also have "\<dots> = parikh_img (star Y @@ star Y @@ eval f (v(x := Z)) @@ eval g (v(x := Z)))"
     by (metis conc_assoc parikh_conc_right parikh_img_commut)
   also have "\<dots> = parikh_img (star Y @@ eval f (v(x := Z)) @@ eval g (v(x := Z)))"
     by (metis conc_assoc conc_star_star)
-  finally show ?case by (metis eval.simps(5))
+  finally show ?case by (metis eval.simps(4))
 next
-  case (5 f)
+  case (Star f)
   then have "parikh_img (star (eval f v)) \<subseteq> parikh_img (star (star Y @@ eval f (v(x := Z))))"
-    using parikh_star_mono regular_fun.simps(5) by metis
+    using parikh_star_mono by metis
   also from parikh_img_conc_star have "\<dots> \<subseteq> parikh_img (star Y @@ star (eval f (v(x := Z))))"
     by fastforce
-  finally show ?case by (metis eval.simps(6))
-next
-  case (6 uv)
-  then show ?case by fastforce
+  finally show ?case by (metis eval.simps(5))
 qed
 
-lemma reg_fun_homogeneous:
-  assumes "regular_fun f"
-      and "regular_fun y"
-      and "regular_fun z"
-    shows "parikh_img (eval (subst (Var(x := Concat (Star y) z)) f) v)
-            \<subseteq> parikh_img (eval (Concat (Star y) (subst (Var(x := z)) f)) v)"
-            (is "parikh_img ?L \<subseteq> parikh_img ?R")
+lemma rlexp_homogeneous:  "parikh_img (eval (subst (Var(x := Concat (Star y) z)) f) v)
+                          \<subseteq> parikh_img (eval (Concat (Star y) (subst (Var(x := z)) f)) v)"
+                          (is "parikh_img ?L \<subseteq> parikh_img ?R")
 proof -
   let ?v' = "v(x := star (eval y v) @@ eval z v)"
   have "parikh_img ?L = parikh_img (eval f ?v')" using substitution_lemma_update[where f=f] by simp
   also have "\<dots> \<subseteq> parikh_img (star (eval y v) @@ eval f (?v'(x := eval z v)))"
-    using assms reg_fun_homogeneous_aux[of f ?v'] unfolding fun_upd_def by auto
+    using rlexp_homogeneous_aux[of ?v'] unfolding fun_upd_def by auto
   also have "\<dots> = parikh_img ?R" using substitution_lemma[of "v(x := eval z v)"] by simp
   finally show ?thesis .
 qed
 
 (* reformulate previous lemma with regular functions as arguments instead of languages *)
-lemma reg_fun_homogeneous2:
-  assumes "regular_fun f"
-      and "regular_fun y"
-      and "regular_fun z"
+lemma rlexp_homogeneous2:
     shows "parikh_img (eval (subst (Var(x := Concat (Star y) z)) f) v)
             \<subseteq> parikh_img (eval (Concat (Star y) (subst (Var(x := z)) f)) v)"
             (is "parikh_img ?L \<subseteq> parikh_img ?R")
@@ -394,7 +379,7 @@ proof -
   have "parikh_img ?L = parikh_img (eval f ?v')"
     using substitution_lemma[of ?v' "Var(x := Concat (Star y) z)"] by fastforce
   also have "\<dots> \<subseteq> parikh_img (star (eval y v) @@ eval f (?v'(x := eval z v)))"
-    using assms reg_fun_homogeneous_aux[of f ?v'] by (meson fun_upd_apply)
+    using rlexp_homogeneous_aux[of ?v'] by (meson fun_upd_apply)
   also have "\<dots> = parikh_img ?R" using substitution_lemma[of "?v'(x := eval z v)"] by simp
   finally show ?thesis .
 qed

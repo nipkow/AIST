@@ -41,7 +41,8 @@ inductive step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix 
   step_left[intro]:  "nxt M p a = (q, Left) \<Longrightarrow> (x # xs, p, a # ys) \<rightarrow> (xs, q, x # a # ys)" |
   step_right[intro]: "nxt M p a = (q, Right) \<Longrightarrow> (xs, p, a # ys) \<rightarrow> (a # xs, q, ys)"
 
-inductive_cases step_leftE [elim]: "(a#u, q, v) \<rightarrow> (u, p, a#v)"
+inductive_cases step_foldedE[elim]: "a \<rightarrow> b"
+inductive_cases step_leftE [elim]:  "(a#u, q, v) \<rightarrow> (u, p, a#v)"
 inductive_cases step_rightE [elim]: "(u, q, a#v) \<rightarrow> (a#u, p, v)"
 
 abbreviation steps :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>*\<close> 55) where
@@ -81,7 +82,6 @@ lemma unchanged_final:
     by (induction "(u, p, v)" "(u', q, v')" arbitrary: u v rule: star.induct) 
      (simp, (smt (verit) assms final_nxt_l final_nxt_r prod.inject step.simps))
 
-
 lemma unchanged_substrings:
   "(u, q, v) \<rightarrow>* (u', p, v') \<Longrightarrow> rev u @ v = rev u' @ v'"
 proof (induction "(u, q, v)" "(u', p, v')" arbitrary: u q v rule: star.induct)
@@ -108,6 +108,18 @@ qed simp
 corollary unchanged_word:
   "([], init M, w) \<rightarrow>* (u, p, v) \<Longrightarrow> w = rev u @ v"
   using unchanged_substrings by force
+
+lemma steps_app:
+  assumes "(xs, q', v) \<rightarrow>* (ys, p, zs)"
+  shows "(ws, q, u) \<rightarrow>* (xs, q', []) \<Longrightarrow> (ws, q, u @ v) \<rightarrow>* (ys, p, zs)"
+proof (induction "(ws, q, u)" "(xs, q', ([]::'a symbol list))"  arbitrary: ws q u rule: star.induct)
+  case (step y)
+  then obtain ws' q'' u' where y_def: "y = (ws', q'', u')" by auto
+  from step(1) y_def have "(ws, q, u @ v) \<rightarrow> (ws', q'', u' @ v)" by force
+  moreover from step(3)[OF y_def] have "(ws', q'', u' @ v) \<rightarrow>* (ys, p, zs)" .
+  ultimately show ?case by (simp add: star.step)
+qed (use assms in simp)
+ 
  
   
   

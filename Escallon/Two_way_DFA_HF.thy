@@ -1,5 +1,5 @@
 theory Two_way_DFA_HF
-  imports "HereditarilyFinite.Ordinal" "HOL-IMP.Star"
+  imports "Finite_Automata_HF.Finite_Automata_HF" "HOL-IMP.Star"
 begin
 
 datatype dir = Left | Right
@@ -119,9 +119,41 @@ proof (induction "(ws, q, u)" "(xs, q', ([]::'a symbol list))"  arbitrary: ws q 
   moreover from step(3)[OF y_def] have "(ws', q'', u' @ v) \<rightarrow>* (ys, p, zs)" .
   ultimately show ?case by (simp add: star.step)
 qed (use assms in simp)
- 
- 
+
+
+
+theorem 
+  "regular language"
+\<proof>
   
-  
+end
+
+locale dfa2_transition = dfa2 + (*There's probably a better alternative than a separate locale*)
+  fixes x :: "'a symbol list"
+begin 
+
+inductive left_step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L\<close> 55) where
+  "\<lbrakk>(a # xs, q, ys) \<rightarrow> (xs, p, a # ys)\<rbrakk> \<Longrightarrow> left_step (a # xs, q, ys) (xs, p, a # ys)" |
+  "\<lbrakk>(xs, q, a # ys) \<rightarrow> (a # xs, p, ys); a # xs \<noteq> x\<rbrakk> \<Longrightarrow> left_step (xs, q, a # ys) (a # xs, p, ys)"
+
+
+inductive T :: "state option \<Rightarrow> state option \<Rightarrow> bool" where
+  "\<lbrakk>x = a # xs; ([], init M, x @ z) \<rightarrow>\<^sup>L (xs, q, a # z); (xs, q, a # z) \<rightarrow> (x, p, z)\<rbrakk>
+    \<Longrightarrow> T None (Some q)" |
+  "\<lbrakk>x = a # xs;
+    (x, q', z) \<rightarrow> (xs, q, a # z); 
+    (xs, q, a # z) \<rightarrow>\<^sup>L (xs, p, a # z); 
+    (xs, p, a # z) \<rightarrow> (x, q'', z)\<rbrakk> \<Longrightarrow> T (Some q) (Some p)"
+
+notation T ("T _ _")
+
+(*TODO: Check/expand defs*)
+
+end
+
+theorem two_way_dfa_lang_regular:
+  assumes "dfa2 M"
+  shows "regular (dfa2.language M)"
+  \<proof>
 
 end

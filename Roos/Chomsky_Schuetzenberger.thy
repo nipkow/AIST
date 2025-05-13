@@ -8,14 +8,14 @@ Building it:
 isabelle build -d .. -d ../Stimpfle -D .
 *)
 theory Chomsky_Schuetzenberger
-  imports CNF.CNF CFG.CFG "Finite_Automata_Not_HF" CFG.Parse_Tree "Dyck_Language"
+  imports CNF.CNF "Finite_Automata_Not_HF" CFG.Parse_Tree "Dyck_Language"
 begin
 
 text \<open>This file contains all the constructions needed for the Chomsky-Schuetzenberger theorem.
 We closely follow Kozen \<^cite>\<open>Kozen\<close> for the proof.\<close>
 
 
-text\<open>This theorem states, that each type 2 Language \<^term>\<open>L\<close> 
+text\<open>The theorem states, that each type 2 Language \<^term>\<open>L\<close> 
 can be written as \<^term>\<open>h(R \<inter> Dyck_lang(\<Gamma>))\<close>, for suitable alphabet \<^term>\<open>\<Gamma>\<close>, 
 a regular language \<^term>\<open>R\<close> and a monoid-homomorphism \<^term>\<open>h\<close>. 
 
@@ -24,7 +24,8 @@ The symbols of Gamma are thought of as opening brackets. For each symbol a closi
 The Dyck language over \<^term>\<open>\<Gamma>\<close> then is the language of correctly bracketed words.
 
 We implement this cloning of \<^term>\<open>\<Gamma>\<close>, by pairing each element \<^prop>\<open>g \<in> \<Gamma>\<close> with an element from the 
-datatype bracket = Open | Close, as in \<^term>\<open>(Cl, g)\<close>. The construction is done in the theory \<open>Dyck_Language.thy\<close>
+datatype bracket = Open | Close, as in \<^term>\<open>(Cl, g)\<close>. 
+The construction of the Dyck language is done in the theory \<open>Dyck_Language.thy\<close>
 \<close>
 
 section\<open>Proof overview\<close>
@@ -66,9 +67,9 @@ Using this then for the old start symbol S gives the desired equation \<open>L' 
 
 
 
-declare [[names_short]]
 
-(*TODO add destructor to definition of \<open>Tm\<close> ?*)
+
+text\<open>TODO add destructor to definition of \<open>Tm\<close>\<close>
 fun strip_tm :: "('a, 'b) sym  \<Rightarrow> 'b" where 
   \<open>strip_tm (Tm t) = t\<close> | 
   \<open>strip_tm (Nt A) = undefined\<close>
@@ -77,10 +78,10 @@ fun strip_tm :: "('a, 'b) sym  \<Rightarrow> 'b" where
 
 section\<open>Cloning and Abbreviations\<close>
 
+declare [[names_short]]
+
 text\<open>A type with 2 elements, for creating 2 copies as needed in the proof.\<close>
 datatype version = One | Two
-
-
 
 abbreviation open_bracket1 :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version" ("[\<^sub>_\<^sup>1 ") where
   "[\<^sub>p\<^sup>1  \<equiv> (Open, (p, One))"
@@ -808,10 +809,18 @@ text\<open>The transformation of old productions to new productions used in the 
 fun transform_production :: "('n, 't) prod \<Rightarrow> 
 ('n, bracket \<times> ('n,'t) prod \<times> version) prod" where
   \<open>  transform_production (A, [Nt B, Nt C]) =    
-        (A, [ Tm (Open, (A, [Nt B, Nt C]), One), Nt B, Tm (Close, (A, [Nt B, Nt C]), One), Tm (Open, (A, [Nt B, Nt C]), Two), Nt C, Tm (Close, (A, [Nt B, Nt C]), Two)  ])  \<close> | 
+        (A, [ Tm (Open, (A, [Nt B, Nt C]), One), 
+              Nt B, 
+              Tm (Close, (A, [Nt B, Nt C]), One), 
+              Tm (Open, (A, [Nt B, Nt C]), Two), 
+              Nt C, 
+              Tm (Close, (A, [Nt B, Nt C]), Two)  ])  \<close> | 
 
 \<open> transform_production (A, [Tm a])  = 
-        (A, [ Tm (Open, (A, [Tm a]),One),       Tm (Close, (A, [Tm a]), One), Tm (Open, ((A, [Tm a]), Two)),       Tm (Close, (A, [Tm a]), Two)  ]) \<close> | 
+        (A, [ Tm (Open, (A, [Tm a]),One),       
+              Tm (Close, (A, [Tm a]), One), 
+              Tm (Open, ((A, [Tm a]), Two)),       
+              Tm (Close, (A, [Tm a]), Two)  ]) \<close> | 
 
 \<open>transform_production (A, _) = (A, [])\<close>
 
@@ -839,15 +848,26 @@ definition CNF_rule :: "('n,'t) prod \<Rightarrow> bool" where
   \<open>CNF_rule p \<equiv>  (\<exists>(A::'n) B C. (p = (A,[Nt B, Nt C]))) \<or> (\<exists>A a. p= (A, [Tm a]))\<close>
 
 
-lemma transform_production_CNF: \<open>CNF_rule p \<Longrightarrow> (\<exists>A B C. transform_production p = (A, [ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ]) \<and> p = (A, [Nt B, Nt C])) \<or> (\<exists>A a. transform_production p = (A, [ Tm [\<^sub>p\<^sup>1,       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ]) \<and> p = (A, [Tm a]) )\<close>
+lemma transform_production_CNF: \<open>CNF_rule p \<Longrightarrow> 
+(\<exists>A B C. transform_production p = (A, [ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ]) \<and> p = (A, [Nt B, Nt C])) \<or> 
+(\<exists>A a. transform_production p = (A, [ Tm [\<^sub>p\<^sup>1,       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ]) \<and> p = (A, [Tm a]) )\<close>
   unfolding CNF_rule_def by auto
 
 lemma transform_production_when_CNF: 
   assumes \<open>CNF_rule p\<close>
   shows \<open>\<exists>A B C a.    
- p = (A, [Nt B, Nt C]) \<and> transform_production p = (A, [ Tm (Open, (A, [Nt B, Nt C]), One), Nt B, Tm (Close, ((A, [Nt B, Nt C]), One)), Tm (Open, (A, [Nt B, Nt C]), Two), Nt C, Tm (Close, (A, [Nt B, Nt C]), Two)  ])  
+ p = (A, [Nt B, Nt C]) \<and> transform_production p = 
+ (A, [ Tm (Open, (A, [Nt B, Nt C]), One), 
+       Nt B, 
+       Tm (Close, ((A, [Nt B, Nt C]), One)), 
+       Tm (Open, (A, [Nt B, Nt C]), Two), 
+       Nt C, Tm (Close, (A, [Nt B, Nt C]), Two)  ])  
 \<or>
- p = (A, [Tm a])       \<and> transform_production p =   (A, [ Tm (Open, (A, [Tm a]),One),       Tm (Close, (A, [Tm a]), One), Tm (Open, (A, [Tm a]), Two),       Tm (Close, (A, [Tm a]), Two)  ])  
+ p = (A, [Tm a]) \<and> transform_production p =  
+(A, [ Tm (Open, (A, [Tm a]),One),       
+      Tm (Close, (A, [Tm a]), One), 
+      Tm (Open, (A, [Tm a]), Two),       
+      Tm (Close, (A, [Tm a]), Two)  ])  
 \<close>
   using assms unfolding CNF_rule_def by auto
 
@@ -855,9 +875,19 @@ lemma transform_production_when_CNF:
 lemma transform_production_when_CNF':
   assumes \<open>CNF_rule (A,r)\<close>
   shows \<open>\<exists>B C a.    
- (A,r) = (A, [Nt B, Nt C]) \<and> transform_production (A,r) = (A, [ Tm (Open, (A, [Nt B, Nt C]), One), Nt B, Tm (Close, ((A, [Nt B, Nt C]), One)), Tm (Open, (A, [Nt B, Nt C]), Two), Nt C, Tm (Close, (A, [Nt B, Nt C]), Two)  ])  
+ (A,r) = (A, [Nt B, Nt C]) \<and> transform_production (A,r) = 
+ (A, [ Tm (Open, (A, [Nt B, Nt C]), One), 
+       Nt B, 
+       Tm (Close, ((A, [Nt B, Nt C]), One)), 
+       Tm (Open, (A, [Nt B, Nt C]), Two), 
+       Nt C, 
+       Tm (Close, (A, [Nt B, Nt C]), Two)  ])  
 \<or>
- (A,r) = (A, [Tm a])       \<and> transform_production (A,r) =   (A, [ Tm (Open, (A, [Tm a]),One),       Tm (Close, (A, [Tm a]), One), Tm (Open, (A, [Tm a]), Two),       Tm (Close, (A, [Tm a]), Two)  ])  
+ (A,r) = (A, [Tm a])       \<and> transform_production (A,r) =   
+ (A, [ Tm (Open, (A, [Tm a]),One),       
+       Tm (Close, (A, [Tm a]), One), 
+       Tm (Open, (A, [Tm a]), Two),       
+       Tm (Close, (A, [Tm a]), Two)  ])  
 \<close>
   using transform_production_when_CNF fst_transform_production using assms by blast
 
@@ -1507,15 +1537,24 @@ next
   have \<open>(A, w) \<in> transform_production ` P\<close> using step by blast
   then obtain w' where w'_def: \<open>transform_production (A, w') = (A, w)\<close> and \<open>(A,w') \<in> P\<close> by (metis (no_types, opaque_lifting) Product_Type.old.prod.exhaust fst_conv fst_transform_production imageE)
   then have Aw'_cnf: \<open>CNF_rule (A,w')\<close> using step by blast
-  then obtain B C a where \<open>((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Nt B, Nt C]) \<or> ((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Tm a])\<close> using transform_production_CNF[of \<open>(A,w')\<close>] w'_def by (metis snd_conv)   
+  then obtain B C a where 
+  \<open>((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Nt B, Nt C]) \<or> 
+  ((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Tm a])\<close> using transform_production_CNF[of \<open>(A,w')\<close>] w'_def by (metis snd_conv)   
 
-  then have w_eq: \<open>w = [Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2]   \<or>    w = [Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>2, Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2]\<close> (is \<open>w = ?w1 \<or> w = ?w2\<close>) by fastforce
+  then have w_eq: 
+  \<open>w = [Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2]   \<or>   
+   w = [Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>2, Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2]\<close> (is \<open>w = ?w1 \<or> w = ?w2\<close>) by fastforce
   have w_resym: \<open>w \<in> Re_sym A\<close> apply(rule disjE[OF w_eq]; rule Re_symI) by auto 
 
   have P5_uAv: \<open>P5_sym S (u @ [Nt A] @ v)\<close> using Re_symD[OF uAv] by blast
   have P1_uAv: \<open>P1_sym (u @ [Nt A] @ v)\<close> using Re_symD[OF uAv] by blast
 
-  have left: \<open>successively P1'_sym (u@w) \<and> successively P2_sym (u@w) \<and> successively P3_sym (u@w) \<and> successively P4_sym (u@w) \<and> successively P7_sym (u@w) \<and> successively P8_sym (u@w)\<close>
+  have left: \<open>successively P1'_sym (u@w) \<and> 
+              successively P2_sym (u@w) \<and> 
+              successively P3_sym (u@w) \<and> 
+              successively P4_sym (u@w) \<and> 
+              successively P7_sym (u@w) \<and> 
+              successively P8_sym (u@w)\<close>
   proof(cases u rule: rev_cases)
     case Nil
     show ?thesis apply(rule disjE[OF w_eq]) unfolding Nil by auto
@@ -1528,13 +1567,35 @@ next
     then obtain R X Y v' where y_eq: \<open>y = (Tm (Open,(R, [Nt X, Nt Y]), v' ))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> by blast
     then have \<open>P3_sym y (hd w)\<close> using w_eq apply(cases \<open>w = ?w1\<close>) apply(cases v') apply force apply force by (smt (verit, best) List.list.sel(1) Chomsky_Schuetzenberger.P3_sym.simps(1,3) Chomsky_Schuetzenberger.version.exhaust) 
 
-    hence \<open>P1'_sym (last (ys@[y])) (hd w) \<and> P2_sym (last (ys@[y])) (hd w) \<and> P3_sym (last (ys@[y])) (hd w) \<and> P4_sym (last (ys@[y])) (hd w) \<and> P7_sym (last (ys@[y])) (hd w) \<and> P8_sym (last (ys@[y])) (hd w)\<close> unfolding y_eq using w_eq apply(cases \<open>w = ?w1\<close>) apply force by simp
-    with Re_symD[OF uAv] moreover have   \<open>successively P1'_sym (ys @ [y]) \<and> successively P2_sym (ys @ [y]) \<and> successively P3_sym (ys @ [y]) \<and> successively P4_sym (ys @ [y]) \<and> successively P7_sym (ys @ [y]) \<and> successively P8_sym (ys @ [y])\<close> unfolding snoc using successively_append_iff by blast
-    ultimately show \<open>successively P1'_sym (u@w) \<and>successively P2_sym (u@w) \<and> successively P3_sym (u@w) \<and> successively P4_sym (u@w) \<and> successively P7_sym (u@w) \<and> successively P8_sym (u@w)\<close> unfolding snoc using Re_symD[OF w_resym] using successively_append_iff by blast
+    hence \<open>P1'_sym (last (ys@[y])) (hd w) \<and> 
+          P2_sym (last (ys@[y])) (hd w) \<and> 
+          P3_sym (last (ys@[y])) (hd w) \<and> 
+          P4_sym (last (ys@[y])) (hd w) \<and> 
+          P7_sym (last (ys@[y])) (hd w) \<and> 
+          P8_sym (last (ys@[y])) (hd w)\<close> unfolding y_eq using w_eq apply(cases \<open>w = ?w1\<close>) apply force by simp
+    with Re_symD[OF uAv] moreover have 
+    \<open>successively P1'_sym (ys @ [y]) \<and> 
+     successively P2_sym (ys @ [y]) \<and> 
+     successively P3_sym (ys @ [y]) \<and> 
+     successively P4_sym (ys @ [y]) \<and> 
+     successively P7_sym (ys @ [y]) \<and> 
+     successively P8_sym (ys @ [y])\<close> unfolding snoc using successively_append_iff by blast
+    ultimately show 
+    \<open>successively P1'_sym (u@w) \<and> 
+     successively P2_sym (u@w) \<and> 
+     successively P3_sym (u@w) \<and> 
+     successively P4_sym (u@w) \<and> 
+     successively P7_sym (u@w) \<and> 
+     successively P8_sym (u@w)\<close> unfolding snoc using Re_symD[OF w_resym] using successively_append_iff by blast
   qed
 
 
-  have right: \<open>successively P1'_sym (w@v) \<and> successively P2_sym (w@v) \<and> successively P3_sym (w@v) \<and> successively P4_sym (w@v) \<and> successively P7_sym (w@v) \<and> successively P8_sym (w@v)\<close>
+  have right: \<open>successively P1'_sym (w@v) \<and> 
+               successively P2_sym (w@v) \<and> 
+               successively P3_sym (w@v) \<and> 
+               successively P4_sym (w@v) \<and> 
+               successively P7_sym (w@v) \<and> 
+               successively P8_sym (w@v)\<close>
   proof(cases v)
     case Nil
     show ?thesis apply(rule disjE[OF w_eq]) unfolding Nil by auto
@@ -1543,13 +1604,34 @@ next
     then have \<open>successively P8_sym ([Nt A] @ y # ys)\<close> using Re_symD[OF uAv] Cons using successively_append_iff by blast
     then have \<open>P8_sym (Nt A) y\<close> by fastforce
     then obtain R X Y v' where y_eq: \<open>y = (Tm (Close,(R, [Nt X, Nt Y]), v' ))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> by blast
-    have \<open>P1'_sym (last w) (hd (y#ys)) \<and> P2_sym (last w) (hd (y#ys)) \<and> P3_sym (last w) (hd (y#ys)) \<and> P4_sym (last w) (hd (y#ys)) \<and> P7_sym (last w) (hd (y#ys)) \<and> P8_sym (last w) (hd (y#ys))\<close> unfolding y_eq using w_eq apply(cases \<open>w = ?w1\<close>) apply force by simp
-    with Re_symD[OF uAv] moreover have \<open>successively P1'_sym (y # ys) \<and> successively P2_sym (y # ys) \<and> successively P3_sym (y # ys) \<and> successively P4_sym (y # ys) \<and> successively P7_sym (y # ys) \<and> successively P8_sym (y # ys)\<close> unfolding Cons by (metis P1_symD successively_append_iff)
-    ultimately show \<open>successively P1'_sym (w@v) \<and> successively P2_sym (w@v) \<and> successively P3_sym (w@v) \<and> successively P4_sym (w@v) \<and> successively P7_sym (w@v) \<and> successively P8_sym (w@v)\<close> unfolding Cons using Re_symD[OF w_resym] using successively_append_iff by blast
+    have \<open>P1'_sym (last w) (hd (y#ys)) \<and> 
+         P2_sym (last w) (hd (y#ys)) \<and> 
+         P3_sym (last w) (hd (y#ys)) \<and> 
+         P4_sym (last w) (hd (y#ys)) \<and> 
+         P7_sym (last w) (hd (y#ys)) \<and> 
+         P8_sym (last w) (hd (y#ys))\<close> unfolding y_eq using w_eq apply(cases \<open>w = ?w1\<close>) apply force by simp
+    with Re_symD[OF uAv] moreover have 
+    \<open>successively P1'_sym (y # ys) \<and> 
+     successively P2_sym (y # ys) \<and> 
+     successively P3_sym (y # ys) \<and> 
+     successively P4_sym (y # ys) \<and> 
+     successively P7_sym (y # ys) \<and> 
+     successively P8_sym (y # ys)\<close> unfolding Cons by (metis P1_symD successively_append_iff)
+    ultimately show \<open>successively P1'_sym (w@v) \<and> 
+                     successively P2_sym (w@v) \<and> 
+                     successively P3_sym (w@v) \<and> 
+                     successively P4_sym (w@v) \<and> 
+                     successively P7_sym (w@v) \<and> 
+                     successively P8_sym (w@v)\<close> unfolding Cons using Re_symD[OF w_resym] using successively_append_iff by blast
   qed
 
   from left right have P1_uwv: \<open>successively P1'_sym (u@w@v)\<close> using w_eq by (metis (no_types, lifting) List.list.discI hd_append2 successively_append_iff)
-  from left right have ch: \<open>successively P2_sym (u@w@v) \<and> successively P3_sym (u@w@v) \<and> successively P4_sym (u@w@v) \<and> successively P7_sym (u@w@v) \<and> successively P8_sym (u@w@v)\<close> using w_eq by (metis (no_types, lifting) List.list.discI hd_append2 successively_append_iff)
+  from left right have ch: 
+  \<open>successively P2_sym (u@w@v) \<and> 
+   successively P3_sym (u@w@v) \<and> 
+   successively P4_sym (u@w@v) \<and> 
+   successively P7_sym (u@w@v) \<and> 
+   successively P8_sym (u@w@v)\<close> using w_eq by (metis (no_types, lifting) List.list.discI hd_append2 successively_append_iff)
 
   moreover have \<open>P5_sym S (u@w@v)\<close> apply(rule disjE[OF w_eq]; cases u) 
     using P5_uAv apply force
@@ -1631,7 +1713,11 @@ lemma Re_imp_P':
     case BC
     then obtain B C where pi_eq: \<open>\<pi> = (A, [Nt B, Nt C])\<close> by blast
 
-    from split3 have y_successivelys: \<open>successively P1' y \<and> successively P2 y \<and> successively P3 y \<and> successively P4 y\<close> using P1.simps p1x p2x p3x p4x by (metis List.list.simps(3) Nil_is_append_conv successively_Cons successively_append_iff)
+    from split3 have y_successivelys: 
+    \<open>successively P1' y \<and> 
+     successively P2 y \<and> 
+     successively P3 y \<and> 
+     successively P4 y\<close> using P1.simps p1x p2x p3x p4x by (metis List.list.simps(3) Nil_is_append_conv successively_Cons successively_append_iff)
 
     have y_not_empty: \<open>y \<noteq> []\<close> using p3x pi_eq split1 by fastforce
     have \<open>\<nexists>p. last y = (Close, (p, One))\<close>
@@ -1664,7 +1750,11 @@ lemma Re_imp_P':
 
 
 
-    from split3 have z_successivelys: \<open>successively P1' z \<and> successively P2 z \<and> successively P3 z \<and> successively P4 z\<close> using P1.simps p1x p2x p3x p4x by (metis List.list.simps(3) Nil_is_append_conv successively_Cons successively_append_iff)
+    from split3 have z_successivelys: 
+    \<open>successively P1' z \<and> 
+     successively P2 z \<and> 
+     successively P3 z \<and> 
+     successively P4 z\<close> using P1.simps p1x p2x p3x p4x by (metis List.list.simps(3) Nil_is_append_conv successively_Cons successively_append_iff)
     then have successively_P3: \<open>successively P3 (([\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ [ ]\<^bsub>\<pi>\<^esub>\<^sup>1]) @ [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @ [ ]\<^bsub>\<pi>\<^esub>\<^sup>2 ])\<close> using split3 p3x by (metis List.append.assoc append_Cons append_Nil)
 
     have z_not_empty: \<open>z \<noteq> []\<close> using p3x pi_eq split1 successively_P3 by (metis List.list.distinct(1) List.list.sel(1) append_Nil Chomsky_Schuetzenberger.P3.simps(2) Dyck_Language.bracket.simps(2) successively_Cons successively_append_iff)
@@ -2150,14 +2240,17 @@ proof(induction xs rule: rev_induct)
 next
   case (snoc x xs)
   then have \<open>(xs @ [x] \<notin> brackets P) \<longleftrightarrow> (xs \<notin> brackets P \<or> [x] \<notin> brackets P)\<close> by auto
-  moreover have \<open>(p1_aut.nextl last_ok (xs@[x]) = garbage) \<longleftrightarrow> (p1_aut.nextl last_ok xs = garbage) \<or> ((p1_aut.nextl last_ok (xs @ [x]) = garbage) \<and> (p1_aut.nextl last_ok (xs) \<noteq> garbage))\<close> by auto
+  moreover have \<open>(p1_aut.nextl last_ok (xs@[x]) = garbage) \<longleftrightarrow> 
+    (p1_aut.nextl last_ok xs = garbage) \<or> ((p1_aut.nextl last_ok (xs @ [x]) = garbage) \<and> (p1_aut.nextl last_ok (xs) \<noteq> garbage))\<close> by auto
   ultimately show ?case using snoc by (smt (verit, del_insts) Chomsky_Schuetzenberger.P1Construction.nxt.elims Finite_Automata_Not_HF.dfa'.select_convs(4) P1Construction_axioms brackets'D1 brackets'I list_all_simps(1,2) local.P1_State.distinct(4,6) local.p1_aut.nextl_snoc mem_Collect_eq)
 qed
 
 
 
 
-lemma lang_descr_full: \<open>(p1_aut.nextl last_ok xs = last_ok \<longleftrightarrow> (xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P))) \<and> (p1_aut.nextl last_ok xs = last_bad \<longleftrightarrow> ((xs \<noteq> [] \<and> \<not>good (last xs) \<and> xs \<in> brackets P)))\<close>
+lemma lang_descr_full: 
+\<open>(p1_aut.nextl last_ok xs = last_ok \<longleftrightarrow> (xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P))) \<and> 
+ (p1_aut.nextl last_ok xs = last_bad \<longleftrightarrow> ((xs \<noteq> [] \<and> \<not>good (last xs) \<and> xs \<in> brackets P)))\<close>
 proof(induction xs rule: rev_induct)
   case Nil
   then show ?case by auto
@@ -2910,7 +3003,8 @@ lemma Chomsky_Schuetzenberger_constr:
   fixes P :: \<open>('n::infinite, 't) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S\<close>
   assumes finite: \<open>finite P\<close> and P_CNF: \<open>CNF P\<close>
-  shows \<open>regular ((brackets P) \<inter> Re S) \<and> L = image the_hom( ( (brackets P) \<inter> Re S) \<inter> (Dyck_language(P \<times> {One, Two}) ) ) \<and> hom (the_hom:: (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list \<Rightarrow> 't list)\<close>
+  shows \<open>regular ((brackets P) \<inter> Re S) \<and> L = image the_hom( ( (brackets P) \<inter> Re S) \<inter> (Dyck_language(P \<times> {One, Two}) ) ) \<and> 
+    hom (the_hom:: (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list \<Rightarrow> 't list)\<close>
 proof -
   define \<Gamma> where \<open>\<Gamma> = P \<times> {One, Two}\<close>
   define P' where \<open>P' = image transform_production P\<close>

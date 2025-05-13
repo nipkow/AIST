@@ -1,5 +1,6 @@
+(* Author: Moritz Roos *)
 theory Dyck_Language
-imports CNF.CNF CFG.CFG
+imports CFG.CFG
 begin
 
 section\<open>Balancedness\<close>
@@ -72,7 +73,7 @@ qed
 
 
 
-text\<open>The bracket language over a set \<Gamma>.  
+text\<open>The bracket language over a set \<open>\<Gamma>\<close>.  
 Every element \<^prop>\<open>\<gamma> \<in> \<Gamma>\<close> will get a Closing and an Opening version of itself, via pairing with the type bracket.\<close>
 definition Dyck_language :: "'a set \<Rightarrow> (bracket  \<times> ('a)) list set" where
   "Dyck_language \<Gamma> = {w. (bal w) \<and> rhs_in w \<Gamma>}"
@@ -132,7 +133,7 @@ lemma bal_tm2_Nt[iff]: "bal_tm [Tm (Open,g), Tm (Close,g), Nt A]" using bal_tm.i
 
 
 
-text\<open>Relationship of bal and bal_tm\<close>
+text\<open>Relationship of \<^term>\<open>bal\<close> and \<^term>\<open>bal_tm\<close>\<close>
 lemma bal_imp_bal_tm: \<open>bal xs \<Longrightarrow> bal_tm (map Tm xs)\<close>
   by(induction xs rule: bal.induct; auto)
 
@@ -162,7 +163,7 @@ qed
 
 
 subsection\<open>\<^term>\<open>rhs_in_tm\<close>\<close>
-text\<open>Says that all right hand sides of x (here stripped of their Tm) are in \<Gamma>.\<close>
+text\<open>Says that all right hand sides of \<open>x\<close> (here stripped of their \<open>Tm\<close>) are in \<open>\<Gamma>\<close>.\<close>
 definition rhs_in_tm :: \<open>('n, 'a \<times> 'b ) sym list \<Rightarrow> 'b set \<Rightarrow> bool\<close> where
   \<open>rhs_in_tm x \<Gamma> \<equiv> (\<forall>br r. Tm (br, r) \<in> set x \<longrightarrow> r \<in> \<Gamma>)\<close>
 

@@ -24,7 +24,7 @@ The symbols of Gamma are thought of as opening brackets. For each symbol a closi
 The Dyck language over \<^term>\<open>\<Gamma>\<close> then is the language of correctly bracketed words.
 
 We implement this cloning of \<^term>\<open>\<Gamma>\<close>, by pairing each element \<^prop>\<open>g \<in> \<Gamma>\<close> with an element from the 
-datatype bracket = Open | Close, as in \<^term>\<open>(Cl, g)\<close>.
+datatype bracket = Open | Close, as in \<^term>\<open>(Cl, g)\<close>. The construction is done in the theory \<open>Dyck_Language.thy\<close>
 \<close>
 
 section\<open>Proof overview\<close>
@@ -65,23 +65,17 @@ Using this then for the old start symbol S gives the desired equation \<open>L' 
 
 
 
-section\<open>Balanced words - inductively \<close>
 
 declare [[names_short]]
 
-
+(*TODO add destructor to definition of \<open>Tm\<close> ?*)
 fun strip_tm :: "('a, 'b) sym  \<Rightarrow> 'b" where 
   \<open>strip_tm (Tm t) = t\<close> | 
   \<open>strip_tm (Nt A) = undefined\<close>
 
 
 
-
-
-
-
-
-
+section\<open>Cloning and Abbreviations\<close>
 
 text\<open>A type with 2 elements, for creating 2 copies as needed in the proof.\<close>
 datatype version = One | Two

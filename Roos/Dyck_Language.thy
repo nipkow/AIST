@@ -2,11 +2,9 @@ theory Dyck_Language
 imports CNF.CNF CFG.CFG
 begin
 
-
+section\<open>Balancedness\<close>
 text\<open>A type of brackets for creating the \<open>Dyck_language\<close>\<close>
 datatype bracket = Open | Close
-
-
 
 
 text\<open>definition of what it means to be a balanced string with letters of type \<open>bracket \<times> ('a)\<close> \<close>
@@ -20,28 +18,81 @@ declare bal.intros(1)[iff] bal.intros(2)[intro,simp] bal.intros(3)[intro!,simp]
 lemma bal2[iff]: "bal [(Open,g), (Close,g)]" using bal.intros(1,3) by fastforce
 
 
+section\<open>Dyck Language Definition\<close>
+
+text\<open>Says that all right hand sides of letters in \<open>x\<close> are in \<open>\<Gamma>\<close>\<close>
+definition rhs_in :: \<open> ('a  \<times> 'b) list \<Rightarrow> 'b set  \<Rightarrow> bool\<close> where
+  \<open>rhs_in x \<Gamma> \<equiv> (\<forall>br \<gamma>. (br, \<gamma>) \<in> set x \<longrightarrow> \<gamma> \<in> \<Gamma>)\<close>
+
+
+text\<open>Useful Lemmas about this:\<close>
+
+lemma rhs_inI[intro]:
+  assumes \<open>\<And>\<gamma> br. (br, \<gamma>) \<in> set x \<Longrightarrow> \<gamma> \<in> \<Gamma>\<close>
+  shows \<open>rhs_in x \<Gamma>\<close>
+  unfolding rhs_in_def using assms by blast
+
+lemma rhs_inD[dest]:
+  assumes \<open>rhs_in x \<Gamma>\<close>
+  shows \<open>\<And>\<gamma> br. (br, \<gamma>) \<in> set x \<Longrightarrow> \<gamma> \<in> \<Gamma>\<close>
+  using assms unfolding rhs_in_def by blast
+
+lemmas rhs_inE = rhs_inD[elim_format]
+
+
+lemma rhs_in_del_right: \<open>rhs_in (xs@ys) \<Gamma> \<Longrightarrow> rhs_in xs \<Gamma>\<close>
+proof-
+  assume assm: \<open>rhs_in (xs@ys) \<Gamma>\<close>
+  have \<open>set xs \<subseteq> set (xs @ ys)\<close> by simp
+  then show ?thesis using rhs_inD[OF assm] by blast
+qed
+
+lemmas rhs_in_del_rightE = rhs_in_del_right[elim_format]
+
+lemma rhs_in_del_left[dest]: \<open>rhs_in (xs@ys) \<Gamma> \<Longrightarrow> rhs_in ys \<Gamma>\<close>
+proof-
+  assume assm: \<open>rhs_in (xs@ys) \<Gamma>\<close>
+  have \<open>set ys \<subseteq> set (xs @ ys)\<close> by simp
+  then show ?thesis using rhs_inD[OF assm] by blast
+qed
+
+lemmas rhs_in_del_leftE = rhs_in_del_left[elim_format]
+
+lemma rhs_in_append[intro, simp]: \<open>rhs_in (xs) \<Gamma> \<Longrightarrow> rhs_in (ys) \<Gamma> \<Longrightarrow> rhs_in (xs@ys) \<Gamma>\<close>
+proof-
+  assume assm_xs: \<open>rhs_in (xs) \<Gamma>\<close>
+  assume assm_ys: \<open>rhs_in (ys) \<Gamma>\<close>
+  then have \<open>set (xs@ys) \<subseteq> set xs \<union> set ys\<close> by simp
+  then show ?thesis using rhs_inI[of \<open>xs@ys\<close> \<Gamma>] using assm_xs assm_ys by auto
+qed
+
+
+
+
+
+
 
 text\<open>The bracket language over a set \<Gamma>.  
 Every element \<^prop>\<open>\<gamma> \<in> \<Gamma>\<close> will get a Closing and an Opening version of itself, via pairing with the type bracket.\<close>
 definition Dyck_language :: "'a set \<Rightarrow> (bracket  \<times> ('a)) list set" where
-  "Dyck_language \<Gamma> = {w. (bal w) \<and> (\<forall>(br, \<gamma>) \<in> (set w). \<gamma> \<in> \<Gamma>)}"
+  "Dyck_language \<Gamma> = {w. (bal w) \<and> rhs_in w \<Gamma>}"
 
 lemma Dyck_languageI[intro]: 
   assumes \<open>bal w\<close>
-    and \<open>\<And>br \<gamma>. (br, \<gamma>) \<in> set w \<Longrightarrow> \<gamma> \<in> \<Gamma>\<close>
+    and \<open>rhs_in w \<Gamma>\<close>
   shows \<open>w \<in> Dyck_language \<Gamma>\<close>
   using assms unfolding Dyck_language_def by blast
 
 lemma Dyck_languageD[dest]:
   assumes \<open>w \<in> Dyck_language \<Gamma>\<close>
   shows \<open>bal w\<close>
-    and \<open>\<And>br \<gamma>. (br, \<gamma>) \<in> set w \<Longrightarrow> \<gamma> \<in> \<Gamma>\<close>
+    and \<open>rhs_in w \<Gamma>\<close>
   using assms unfolding Dyck_language_def by auto
 
 lemmas Dyck_languageE = Dyck_languageD[elim_format]
 
 text\<open>Balanced subexpressions are again in the Dyck Language.\<close>
-lemma Dyck_language_substring[intro]: \<open>bal w \<Longrightarrow> (xs@w@ys) \<in> Dyck_language \<Gamma> \<Longrightarrow> w \<in> Dyck_language \<Gamma>\<close>
+lemma Dyck_language_substring[intro]: \<open>bal w \<Longrightarrow> (xs@w@ys) \<in> Dyck_language \<Gamma> \<Longrightarrow> w \<in> Dyck_language \<Gamma>\<close> 
 proof-
   assume assms: \<open>bal w\<close> and \<open>(xs@w@ys) \<in> Dyck_language \<Gamma>\<close>
   have \<open>set w \<subseteq> set (xs@w@ys)\<close> by (simp add: subsetI)
@@ -54,6 +105,13 @@ qed
 
 
 
+
+
+
+
+section\<open>\<^term>\<open>bal_tm\<close> and \<^term>\<open>rhs_in_tm\<close>\<close>
+
+subsection\<open>\<^term>\<open>bal_tm\<close>\<close>
 text\<open>balanced strings of brackets that may contain arbitrary interspersion of Nonterminals\<close>
 inductive bal_tm :: "('n, bracket  \<times> ('a)) syms \<Rightarrow> bool" where
   "bal_tm []" |
@@ -69,8 +127,6 @@ lemma bal_tm_append_Nt[intro!, simp]: \<open>bal_tm xs \<Longrightarrow> bal_tm 
 lemma bal_tm2[iff]: "bal_tm [Tm (Open,g), Tm (Close,g)]" using bal_tm.intros(1,4) by fastforce
 
 lemma bal_tm2_Nt[iff]: "bal_tm [Tm (Open,g), Tm (Close,g), Nt A]" using bal_tm.intros(1,3,4) by fastforce
-
-
 
 
 
@@ -105,10 +161,75 @@ qed
 
 
 
+subsection\<open>\<^term>\<open>rhs_in_tm\<close>\<close>
+text\<open>Says that all right hand sides of x (here stripped of their Tm) are in \<Gamma>.\<close>
+definition rhs_in_tm :: \<open>('n, 'a \<times> 'b ) sym list \<Rightarrow> 'b set \<Rightarrow> bool\<close> where
+  \<open>rhs_in_tm x \<Gamma> \<equiv> (\<forall>br r. Tm (br, r) \<in> set x \<longrightarrow> r \<in> \<Gamma>)\<close>
+
+lemma rhs_in_tmI[intro]:
+  assumes \<open>\<And>r br. Tm (br, r) \<in> set x \<Longrightarrow> r \<in> \<Gamma>\<close>
+  shows \<open>rhs_in_tm x \<Gamma>\<close>
+  unfolding rhs_in_tm_def using assms by blast
+
+lemma rhs_in_tmD[dest]:
+  assumes \<open>rhs_in_tm x \<Gamma>\<close>
+  shows \<open>\<And>r br. Tm (br, r) \<in> set x \<Longrightarrow> r \<in> \<Gamma>\<close>
+  using assms unfolding rhs_in_tm_def by blast
+
+lemmas rhs_in_tmE = rhs_in_tmD[elim_format]
+
+
+lemma rhs_in_tm_del_right: \<open>rhs_in_tm (xs@ys) \<Gamma> \<Longrightarrow> rhs_in_tm xs \<Gamma>\<close>
+proof-
+  assume assm: \<open>rhs_in_tm (xs@ys) \<Gamma>\<close>
+  have \<open>set xs \<subseteq> set (xs @ ys)\<close> by simp
+  then show ?thesis using rhs_in_tmD[OF assm] by blast
+qed
+
+lemmas rhs_in_tm_del_rightE = rhs_in_tm_del_right[elim_format]
+
+lemma rhs_in_tm_del_left[dest]: \<open>rhs_in_tm (xs@ys) \<Gamma> \<Longrightarrow> rhs_in_tm ys \<Gamma>\<close>
+proof-
+  assume assm: \<open>rhs_in_tm (xs@ys) \<Gamma>\<close>
+  have \<open>set ys \<subseteq> set (xs @ ys)\<close> by simp
+  then show ?thesis using rhs_in_tmD[OF assm] by blast
+qed
+
+lemmas rhs_in_tm_del_leftE = rhs_in_tm_del_left[elim_format]
+
+lemma rhs_in_tm_append[intro, simp]: \<open>rhs_in_tm (xs) \<Gamma> \<Longrightarrow> rhs_in_tm (ys) \<Gamma> \<Longrightarrow> rhs_in_tm (xs@ys) \<Gamma>\<close>
+proof-
+  assume assm_xs: \<open>rhs_in_tm (xs) \<Gamma>\<close>
+  assume assm_ys: \<open>rhs_in_tm (ys) \<Gamma>\<close>
+  then have \<open>set (xs@ys) \<subseteq> set xs \<union> set ys\<close> by simp
+  then show ?thesis using rhs_in_tmI[of \<open>xs@ys\<close> \<Gamma>] using assm_xs assm_ys by auto
+qed
+
+
+text\<open>Relationship between \<^term>\<open>bal_tm\<close>, \<^term>\<open>rhs_in_tm\<close> and \<open>Dyck_Language\<close>\<close>
+lemma Dyck_languageI_tm[intro]: \<open>bal_tm (map Tm xs') \<Longrightarrow> rhs_in_tm (map Tm xs') \<Gamma> \<Longrightarrow> xs' \<in> Dyck_language \<Gamma>\<close>
+proof-
+  assume bal: \<open>bal_tm (map Tm xs')\<close> and rhs: \<open>rhs_in_tm (map Tm xs') \<Gamma>\<close>
+  then have \<open>bal xs'\<close> using bal_tm_imp_bal_for_tms by blast
+  moreover have \<open>\<And>br r. (br, r) \<in> set xs' \<Longrightarrow> r \<in> \<Gamma>\<close> using rhs by (metis (no_types, lifting) List.list.simps(15,9) insert_iff map_append rhs_in_tmD rhs_in_tm_del_left split_list_last)
+  ultimately show ?thesis using Dyck_languageI[of xs' \<Gamma>] by blast
+qed
+
+
+
+
+
+
+
+
+
+
+
+
 
 section\<open>Function based equivalent description of \<^term>\<open>bal\<close> and \<^term>\<open>bal_tm\<close>, from T. Nipkow\<close>
 
-subsection\<open>bal\<close>
+subsection\<open>\<^term>\<open>bal\<close>\<close>
 
 text\<open>A stack machine that puts open brackets to the stack, to remember that they must be matched by a closed bracket\<close>
 fun stk_bal :: "(bracket \<times> 't) list \<Rightarrow> 't list \<Rightarrow> ((bracket \<times> 't) list) * 't list" where

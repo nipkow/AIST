@@ -8,7 +8,7 @@ Building it:
 isabelle build -d .. -d ../Stimpfle -D .
 *)
 theory Chomsky_Schuetzenberger
-  imports CNF.CNF CFG.CFG "Finite_Automata_Not_HF" CFG.Parse_Tree
+  imports CNF.CNF CFG.CFG "Finite_Automata_Not_HF" CFG.Parse_Tree "Dyck_Language"
 begin
 
 text \<open>This file contains all the constructions needed for the Chomsky-Schuetzenberger theorem.
@@ -81,8 +81,7 @@ fun strip_tm :: "('a, 'b) sym  \<Rightarrow> 'b" where
 
 
 
-text\<open>A type of brackets for creating the \<open>Dyck_language\<close>\<close>
-datatype bracket = Open | Close
+
 
 text\<open>A type with 2 elements, for creating 2 copies as needed in the proof.\<close>
 datatype version = One | Two
@@ -117,22 +116,11 @@ abbreviation close_bracket2' :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> b
 
 
 
-text\<open>definition of what it means to be a balanced string with letters of type \<open>bracket \<times> ('a)\<close> \<close>
-inductive bal :: "(bracket  \<times> 'a) list \<Rightarrow> bool" where
-  "bal []" |
-  "bal xs \<Longrightarrow> bal ys \<Longrightarrow> bal (xs @ ys)" | 
-  "bal xs \<Longrightarrow> bal ((Open, g) # xs @ [(Close, g)])" 
-
-declare bal.intros(1)[iff] bal.intros(2)[intro,simp] bal.intros(3)[intro!,simp]
-
-lemma bal2[iff]: "bal [(Open,g), (Close,g)]" using bal.intros(1,3) by fastforce
 
 
 
 
-text\<open>The bracket language over a set R.  
-Every element \<^prop>\<open>r \<in> R\<close> will get a Closing and an Opening version of itself, via pairing with the type bracket. 
-We later need \<^prop>\<open>Dyck_language (P \<times> {One, Two})\<close>\<close> 
+
 
 
 definition rhs_in_if :: \<open>('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym list \<Rightarrow> (('a \<times> ('a, 'b) sym list) \<times> version) set \<Rightarrow> bool\<close> where
@@ -146,7 +134,7 @@ lemma rhs_in_ifI[intro]:
 lemma rhs_in_ifD[dest]:
   assumes \<open>rhs_in_if x \<Gamma>\<close>
   shows \<open>\<And>r br. Tm (br, r) \<in> set x \<Longrightarrow> r \<in> \<Gamma>\<close>
-  using assms unfolding rhs_in_if_def by (metis (full_types) Chomsky_Schuetzenberger.bracket.exhaust)
+  using assms unfolding rhs_in_if_def by (metis (full_types) Dyck_Language.bracket.exhaust)
 
 lemmas rhs_in_ifE = rhs_in_ifD[elim_format]
 
@@ -219,11 +207,17 @@ lemma bal_tm2[iff]: "bal_tm [Tm (Open,g), Tm (Close,g)]" using bal_tm.intros(1,4
 
 lemma bal_tm2_Nt[iff]: "bal_tm [Tm (Open,g), Tm (Close,g), Nt A]" using bal_tm.intros(1,3,4) by fastforce
 
-(* TODO: mv to CFG *)
-lemma map_Tm_inject[dest!]: "map Tm xs = map Tm ys \<Longrightarrow> xs = ys"
-by (metis sym.inject(2) list.inj_map_strong)
-lemma map_Tm_inject_iff[simp]: "(map Tm xs = map Tm ys) = (xs = ys)"
-by blast
+
+
+
+
+
+
+
+
+lemma map_Tm_inject[dest!, simp]: "map Tm xs = map Tm ys \<Longrightarrow> xs = ys"
+  by (induction xs arbitrary: ys; auto)
+
 
 lemma split_tm_append: \<open>xs @ ys = map Tm zs \<Longrightarrow> \<exists> xs' ys'. (xs' @ ys' = zs) \<and> (xs = map Tm xs') \<and> (ys = map Tm ys')\<close> 
   by (metis append_eq_map_conv)
@@ -1687,7 +1681,7 @@ lemma Re_imp_P':
     from split3 have z_successivelys: \<open>successively P1' z \<and> successively P2 z \<and> successively P3 z \<and> successively P4 z\<close> using P1.simps p1x p2x p3x p4x by (metis List.list.simps(3) Nil_is_append_conv successively_Cons successively_append_iff)
     then have successively_P3: \<open>successively P3 (([\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ [ ]\<^bsub>\<pi>\<^esub>\<^sup>1]) @ [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @ [ ]\<^bsub>\<pi>\<^esub>\<^sup>2 ])\<close> using split3 p3x by (metis List.append.assoc append_Cons append_Nil)
 
-    have z_not_empty: \<open>z \<noteq> []\<close> using p3x pi_eq split1 successively_P3 by (metis List.list.distinct(1) List.list.sel(1) append_Nil Chomsky_Schuetzenberger.P3.simps(2) Chomsky_Schuetzenberger.bracket.simps(2) successively_Cons successively_append_iff)
+    have z_not_empty: \<open>z \<noteq> []\<close> using p3x pi_eq split1 successively_P3 by (metis List.list.distinct(1) List.list.sel(1) append_Nil Chomsky_Schuetzenberger.P3.simps(2) Dyck_Language.bracket.simps(2) successively_Cons successively_append_iff)
 
     then have \<open>P3 [\<^bsub>\<pi>\<^esub>\<^sup>2 (hd z)\<close> by (metis append_is_Nil_conv hd_append2 successively_Cons successively_P3 successively_append_iff)
     with p3x pi_eq have \<open>\<exists>g. hd z = (Open, (C,g), One)\<close> using split_pairs by (metis Chomsky_Schuetzenberger.P3.simps(2))
@@ -1747,7 +1741,7 @@ lemma Re_imp_P':
     proof(cases z)
       case (Cons z' zs')
       have \<open>P4 [\<^bsub>\<pi>\<^esub>\<^sup>2 z'\<close> using p4x split3 by (simp add: Cons \<open>y = []\<close>)
-      then have \<open>z' = (Close, \<pi>, One)\<close> using P4E by (metis Cons bal_not_empty bal_z Chomsky_Schuetzenberger.bracket.simps(2) fst_eqD pi_eq)
+      then have \<open>z' = (Close, \<pi>, One)\<close> using P4E by (metis Cons bal_not_empty bal_z Dyck_Language.bracket.simps(2) fst_eqD pi_eq)
       moreover obtain g where \<open>z' = (Open, g)\<close> using Cons bal_not_empty bal_z by blast
       ultimately have \<open>False\<close> by blast
       then show ?thesis by blast

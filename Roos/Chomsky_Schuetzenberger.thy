@@ -7,6 +7,8 @@ isabelle vscode -d .. -d ../Stimpfle -d . Chomsky_Schuetzenberger.thy
 Building it:
 isabelle build -d .. -d ../Stimpfle -D .
 *)
+
+
 theory Chomsky_Schuetzenberger
   imports CNF.CNF "Finite_Automata_Not_HF" CFG.Parse_Tree "Dyck_Language"
 begin

@@ -3,6 +3,8 @@ session Roos = CNF +
   sessions
     "HereditarilyFinite"
     "Finite_Automata_HF"
+  theories [document = false]
+    "Finite_Automata_Not_HF" CFG.CFG CFG.Parse_Tree CNF.CNF
   theories
     Chomsky_Schuetzenberger
   document_files

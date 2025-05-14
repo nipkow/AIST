@@ -1,10 +1,11 @@
 theory Two_way_DFA_HF
-  imports "Finite_Automata_HF.Finite_Automata_HF" "HOL-IMP.Star"
+  imports "Finite_Automata_HF.Finite_Automata_HF" "HOL-IMP.Star" (*Should I use a different
+                                                                  reflexive-transitive closure thy?*)
 begin
 
 datatype dir = Left | Right
 
-datatype 'a symbol = Letter 'a | Marker dir
+datatype 'a symbol = Letter 'a | Marker dir (*Alternative: treat start/end of list as marker?*)
 
 abbreviation left_marker :: "'a symbol" ("\<turnstile>") where
   "\<turnstile> \<equiv> Marker Left"
@@ -36,6 +37,15 @@ locale dfa2 =
       and final_nxt_l:  "q = acc M \<or> q = rej M \<Longrightarrow> nxt M q \<stileturn> = (q, Left)"
 begin
 
+abbreviation \<Sigma> :: "'a list \<Rightarrow>'a symbol list" where
+  "\<Sigma> w \<equiv> map Letter w"
+
+abbreviation marker_map :: "'a list \<Rightarrow> 'a symbol list" ("\<langle>_\<rangle>" 60) where
+  "\<langle>w\<rangle> \<equiv> \<turnstile> # (\<Sigma> w) @ [\<stileturn>]"
+
+definition valid_input :: "'a symbol list \<Rightarrow> bool" where
+  "valid_input xs \<equiv> \<exists>w. xs = \<langle>w\<rangle>"
+
 
 inductive step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<close> 55) where
   step_left[intro]:  "nxt M p a = (q, Left) \<Longrightarrow> (x # xs, p, a # ys) \<rightarrow> (xs, q, x # a # ys)" |
@@ -48,11 +58,7 @@ inductive_cases step_rightE [elim]: "(u, q, a#v) \<rightarrow> (a#u, p, v)"
 abbreviation steps :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>*\<close> 55) where
   "steps \<equiv> star step"
 
-abbreviation \<Sigma> :: "'a list \<Rightarrow>'a symbol list" where
-  "\<Sigma> w \<equiv> map Letter w"
 
-abbreviation marker_map :: "'a list \<Rightarrow> 'a symbol list" ("\<langle>_\<rangle>" 60) where
-  "\<langle>w\<rangle> \<equiv> \<turnstile> # (\<Sigma> w) @ [\<stileturn>]"
 
 definition language :: "'a list set" where
   "language \<equiv> {w. ([], init M, \<langle>w\<rangle>) \<rightarrow>* ( \<turnstile>#(\<Sigma> w), acc M, [\<stileturn>])}"
@@ -116,36 +122,91 @@ proof (induction "(ws, q, u)" "(xs, q', ([]::'a symbol list))"  arbitrary: ws q 
   case (step y)
   then obtain ws' q'' u' where y_def: "y = (ws', q'', u')" by auto
   from step(1) y_def have "(ws, q, u @ v) \<rightarrow> (ws', q'', u' @ v)" by force
-  moreover from step(3)[OF y_def] have "(ws', q'', u' @ v) \<rightarrow>* (ys, p, zs)" .
-  ultimately show ?case by (simp add: star.step)
+  then show ?case by (simp add: star.step step.hyps(3) y_def)
 qed (use assms in simp)
 
-
-
-theorem 
-  "regular language"
-\<proof>
-  
 end
 
-locale dfa2_transition = dfa2 + (*There's probably a better alternative than a separate locale*)
+locale dfa2_transition = dfa2 + (*there's probably a better alternative than a separate locale*)
   fixes x :: "'a symbol list"
+  assumes "x \<noteq> []"
 begin 
 
 inductive left_step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L\<close> 55) where
-  "\<lbrakk>(a # xs, q, ys) \<rightarrow> (xs, p, a # ys)\<rbrakk> \<Longrightarrow> left_step (a # xs, q, ys) (xs, p, a # ys)" |
-  "\<lbrakk>(xs, q, a # ys) \<rightarrow> (a # xs, p, ys); a # xs \<noteq> x\<rbrakk> \<Longrightarrow> left_step (xs, q, a # ys) (a # xs, p, ys)"
+  lstep [intro]: "\<lbrakk>(ys, q, zs) \<rightarrow> (ys', p, zs'); length ys < length x; length ys' < length x\<rbrakk> 
+      \<Longrightarrow> (ys, q, zs) \<rightarrow>\<^sup>L (ys', p, zs')"
+
+inductive_cases lstepE [elim]: "c1 \<rightarrow>\<^sup>L c2"
+
+notation (ASCII) left_step (infix \<open>\<rightarrow>^L\<close> 55)
+
+abbreviation left_steps :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L*\<close> 55) where
+  "left_steps \<equiv>   star left_step" (*Possible problem: reflexive case holds 
+                                  even when config is not in x*)
+
+inductive_cases lstepsE [elim]: "c1 \<rightarrow>\<^sup>L* c2"
+
+lemma left_steps_impl_steps [elim]:
+  assumes "c1 \<rightarrow>\<^sup>L* c2"
+  obtains "c1 \<rightarrow>* c2" (*Is this bad usage of obtains? I
+                       used it in order to be able to use this as an elim rule*)
+proof 
+  from assms show "c1 \<rightarrow>* c2"
+  proof (induction c1 c2 rule: star.induct)
+    case (step x y z)
+    from step(1) have "x \<rightarrow> y" by blast
+    then show ?case using step(3) by (metis star.simps)
+  qed simp
+qed
+
+lemma left_steps_impl_lt_x: 
+  "\<lbrakk>(ys, q, zs) \<rightarrow>\<^sup>L* (ys', p, zs'); length ys < length x\<rbrakk> \<Longrightarrow> length ys' < length x"
+  by (induction "(ys, q, zs)" "(ys', p, zs')" arbitrary: ys q zs ys' rule: star.induct) auto
+
+lemma star_lstar_impl_substring_x:
+  assumes nsteps: "([], init M, x @ z) \<rightarrow>* (xs, q, zs)"
+      and in_x:   "length xs < length x"
+      and lsteps: "(xs, q, zs) \<rightarrow>\<^sup>L* (as, p, bs)"
+  obtains u where " rev as @ u = x" "u @ z = bs" 
+proof -
+  from lsteps show ?thesis
+  proof (induction "(xs, q, zs)" "(as, p, bs)" arbitrary: xs q zs rule: star.induct)
+    case refl 
+    from unchanged_word nsteps lsteps have app: "x @ z = rev as @ bs"
+      by (metis left_steps_impl_steps unchanged_substrings)
+    moreover from this  
+    obtain x' where "rev as @ x' = x" "x' @ z = bs" 
+    proof -
+      have "length bs > length z"
+      proof (rule ccontr)
+        assume "\<not>?thesis"
+        hence "length (rev as @ bs) < length (x @ z)" using left_steps_impl_lt_x[OF lsteps in_x]
+          by simp
+        thus False using app left_steps_impl_lt_x[OF lsteps in_x] by simp
+      qed
+      then obtain x' where "length bs = length x' + length z" "x' @ z = bs" 
+        using app left_steps_impl_lt_x[OF lsteps in_x]
+        by (metis append_eq_append_conv2 length_append not_add_less2)
+      moreover from this have "rev as @ x' = x" using app by auto
+      ultimately show thesis using that by simp
+    qed
+    ultimately show ?case using that by simp
+  qed blast
+qed
+
+corollary init_lstar_impl_substring_x:
+  assumes "([], init M, x @ z) \<rightarrow>\<^sup>L* (xs, q, zs)"
+  obtains u where " rev xs @ u = x" "u @ z = zs"
+  using star_lstar_impl_substring_x assms by blast
 
 
 inductive T :: "state option \<Rightarrow> state option \<Rightarrow> bool" where
-  "\<lbrakk>x = a # xs; ([], init M, x @ z) \<rightarrow>\<^sup>L (xs, q, a # z); (xs, q, a # z) \<rightarrow> (x, p, z)\<rbrakk>
+  "\<lbrakk>x = a # xs; ([], init M, x @ z) \<rightarrow>\<^sup>L* (xs, q, a # z); (xs, q, a # z) \<rightarrow> (x, p, z)\<rbrakk>
     \<Longrightarrow> T None (Some q)" |
   "\<lbrakk>x = a # xs;
     (x, q', z) \<rightarrow> (xs, q, a # z); 
-    (xs, q, a # z) \<rightarrow>\<^sup>L (xs, p, a # z); 
+    (xs, q, a # z) \<rightarrow>\<^sup>L* (xs, p, a # z); 
     (xs, p, a # z) \<rightarrow> (x, q'', z)\<rbrakk> \<Longrightarrow> T (Some q) (Some p)"
-
-notation T ("T _ _")
 
 (*TODO: Check/expand defs*)
 

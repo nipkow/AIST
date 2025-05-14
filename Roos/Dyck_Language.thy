@@ -16,7 +16,8 @@ inductive bal :: "(bracket  \<times> 'a) list \<Rightarrow> bool" where
 
 declare bal.intros(1)[iff] bal.intros(2)[intro,simp] bal.intros(3)[intro!,simp]
 
-lemma bal2[iff]: "bal [(Open,g), (Close,g)]" using bal.intros(1,3) by fastforce
+lemma bal2[iff]: "bal [(Open,g), (Close,g)]" 
+  using bal.intros(1,3) by fastforce
 
 
 section\<open>Dyck Language Definition\<close>
@@ -122,12 +123,17 @@ inductive bal_tm :: "('n, bracket  \<times> ('a)) syms \<Rightarrow> bool" where
 
 declare bal_tm.intros(1,2)[iff] bal_tm.intros(3)[intro, simp] bal_tm.intros(4)[intro!, simp]
 
-lemma bal_tm_prepend_Nt[intro!, simp]: \<open>bal_tm xs \<Longrightarrow> bal_tm (Nt A # xs)\<close> using bal_tm.intros(3) by force
-lemma bal_tm_append_Nt[intro!, simp]: \<open>bal_tm xs \<Longrightarrow> bal_tm (xs@[Nt A])\<close> by blast
+lemma bal_tm_prepend_Nt[intro!, simp]: \<open>bal_tm xs \<Longrightarrow> bal_tm (Nt A # xs)\<close> 
+  using bal_tm.intros(3) by force
 
-lemma bal_tm2[iff]: "bal_tm [Tm (Open,g), Tm (Close,g)]" using bal_tm.intros(1,4) by fastforce
+lemma bal_tm_append_Nt[intro!, simp]: \<open>bal_tm xs \<Longrightarrow> bal_tm (xs@[Nt A])\<close> 
+  by blast
 
-lemma bal_tm2_Nt[iff]: "bal_tm [Tm (Open,g), Tm (Close,g), Nt A]" using bal_tm.intros(1,3,4) by fastforce
+lemma bal_tm2[iff]: "bal_tm [Tm (Open,g), Tm (Close,g)]" 
+  using bal_tm.intros(1,4) by fastforce
+
+lemma bal_tm2_Nt[iff]: "bal_tm [Tm (Open,g), Tm (Close,g), Nt A]" 
+  using bal_tm.intros(1,3,4) by fastforce
 
 
 (* TODO: mv to CFG *)
@@ -209,7 +215,8 @@ lemma rhs_in_tm_append[intro, simp]: \<open>rhs_in_tm (xs) \<Gamma> \<Longrighta
 proof-
   assume assm_xs: \<open>rhs_in_tm (xs) \<Gamma>\<close>
   assume assm_ys: \<open>rhs_in_tm (ys) \<Gamma>\<close>
-  then have \<open>set (xs@ys) \<subseteq> set xs \<union> set ys\<close> by simp
+  then have \<open>set (xs@ys) \<subseteq> set xs \<union> set ys\<close> 
+    by simp
   then show ?thesis using rhs_in_tmI[of \<open>xs@ys\<close> \<Gamma>] using assm_xs assm_ys by auto
 qed
 

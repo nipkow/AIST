@@ -3,12 +3,13 @@ theory Finite_Automata_Not_HF
 begin
 
 
-text\<open>This file contains a version of the dfa and nfa definition from Lawrence C. Paulsons \<open>Finite_Automata_Hf\<close>
-but with \<open>'b set\<close> as states set, instead of forcing \<open>hf set\<close>. 
+text\<open>This file contains a version of the dfa and nfa definition from 
+Lawrence C. Paulsons \<open>Finite_Automata_Hf\<close> but with \<open>'b set\<close> as states set, 
+instead of forcing \<open>hf set\<close>. 
 It is intended to be used for easier constructions of explicitly given languages,
 not for abstract constructions such as the intersection of 2 automaton languages.
-The locale below adds a converter from this dfa to the hf version dfa, to show that regularity also
-holds for the language of this dfa.\<close>
+The locale below adds a converter from this dfa to the hf version dfa, 
+to show that regularity also holds for the language of this dfa.\<close>
 
 section\<open>Deterministic Finite Automata\<close>
 
@@ -82,9 +83,12 @@ lemma embed_finite_set_into_hf:
   assumes \<open>finite B\<close>
   shows \<open>\<exists>(f:: 'b \<Rightarrow> hf).  inj_on f B  \<close>
 proof-
-  from \<open>finite B\<close> obtain f_inv1::\<open>nat \<Rightarrow> 'b\<close> and n::nat where \<open>B = f_inv1 ` {i. i < n} \<and> inj_on f_inv1 {i. i < n}\<close>  using finite_imp_nat_seg_image_inj_on by fastforce
-  then obtain f1::\<open>'b \<Rightarrow> nat\<close> where \<open>(\<forall>x \<in> B. f_inv1 (f1 x) = x) \<and> (\<forall>x \<in> (f1 ` B). f1 (f_inv1 x) = x)\<close> by (metis (lifting) f_the_inv_into_f the_inv_into_f_f the_inv_into_onto)
-  then have \<open>inj_on (ord_of o f1) B\<close> by (metis comp_inj_on inj_on_def inj_ord_of)
+  from \<open>finite B\<close> obtain f_inv1::\<open>nat \<Rightarrow> 'b\<close> and n::nat where \<open>B = f_inv1 ` {i. i < n} \<and> inj_on f_inv1 {i. i < n}\<close>  
+    using finite_imp_nat_seg_image_inj_on by fastforce
+  then obtain f1::\<open>'b \<Rightarrow> nat\<close> where \<open>(\<forall>x \<in> B. f_inv1 (f1 x) = x) \<and> (\<forall>x \<in> (f1 ` B). f1 (f_inv1 x) = x)\<close> 
+    by (metis (lifting) f_the_inv_into_f the_inv_into_f_f the_inv_into_onto)
+  then have \<open>inj_on (ord_of o f1) B\<close> 
+    by (metis comp_inj_on inj_on_def inj_ord_of)
   then show ?thesis by blast
 qed
 
@@ -109,16 +113,29 @@ abbreviation hf_M' where
                 init  = f (init M'),
                 final = f ` (final M'),
                 nxt   = \<lambda>q x. f( nxt M' (f_inv q) x) \<rparr>\<close>
+lemma f_f_inv[simp]: \<open>h \<in> dfa.states hf_M' \<Longrightarrow> f (f_inv h) = h\<close> 
+  by (metis dfa.select_convs(1) construct_equiv_dfa_axioms construct_equiv_dfa_def f_the_inv_into_f)
 
-lemma f_f_inv[simp]: \<open>h \<in> dfa.states hf_M' \<Longrightarrow> f (f_inv h) = h\<close> by (metis dfa.select_convs(1) construct_equiv_dfa_axioms construct_equiv_dfa_def f_the_inv_into_f)
-lemma f_in[intro]: \<open>q \<in> dfa'.states M' \<Longrightarrow> f q \<in> dfa.states hf_M'\<close> by simp
-lemma f_in_final[intro]:\<open>q \<in> dfa'.final M' \<Longrightarrow> f q \<in> dfa.final hf_M'\<close> by simp
-lemma f_f__inv_init[simp]: \<open>f( f_inv( dfa.init hf_M' ) ) = dfa.init hf_M'\<close> by (simp add: dfa'.init dfa'_M')
+lemma f_in[intro]: \<open>q \<in> dfa'.states M' \<Longrightarrow> f q \<in> dfa.states hf_M'\<close> 
+  by simp
 
-lemma f_inv_f[simp]: \<open>q \<in> dfa'.states M' \<Longrightarrow> f_inv (f q) = q\<close> by (meson construct_equiv_dfa_axioms construct_equiv_dfa_def the_inv_into_f_f)
-lemma f_inv_in[intro]: \<open>h \<in> dfa.states hf_M' \<Longrightarrow> f_inv h \<in> dfa'.states M'\<close> by fastforce
-lemma f_inv_in_final[intro]: \<open>h \<in> dfa.final hf_M' \<Longrightarrow> f_inv h \<in> dfa'.final M'\<close> using dfa'_M' dfa'_def by fastforce
-lemma f_inv_f_init[simp]: \<open>f_inv( f( dfa'.init M' ) ) = dfa'.init M'\<close> by (simp add: dfa'.init dfa'_M')
+lemma f_in_final[intro]:\<open>q \<in> dfa'.final M' \<Longrightarrow> f q \<in> dfa.final hf_M'\<close> 
+  by simp
+
+lemma f_f__inv_init[simp]: \<open>f( f_inv( dfa.init hf_M' ) ) = dfa.init hf_M'\<close> 
+  by (simp add: dfa'.init dfa'_M')
+
+lemma f_inv_f[simp]: \<open>q \<in> dfa'.states M' \<Longrightarrow> f_inv (f q) = q\<close> 
+  by (meson construct_equiv_dfa_axioms construct_equiv_dfa_def the_inv_into_f_f)
+
+lemma f_inv_in[intro]: \<open>h \<in> dfa.states hf_M' \<Longrightarrow> f_inv h \<in> dfa'.states M'\<close> 
+  by fastforce
+
+lemma f_inv_in_final[intro]: \<open>h \<in> dfa.final hf_M' \<Longrightarrow> f_inv h \<in> dfa'.final M'\<close> using dfa'_M' dfa'_def 
+  by fastforce
+
+lemma f_inv_f_init[simp]: \<open>f_inv( f( dfa'.init M' ) ) = dfa'.init M'\<close> 
+  by (simp add: dfa'.init dfa'_M')
 
 
 lemma dfa_hf_M': \<open>dfa hf_M'\<close>
@@ -144,9 +161,11 @@ interpretation hf_M': dfa hf_M'
   by (fact dfa_hf_M')
 
 
-lemma nxt_M'_f_inv: \<open>h \<in> dfa.states hf_M' \<Longrightarrow> dfa'.nxt M' (f_inv h) x = f_inv (dfa.nxt hf_M' h x)\<close> by (simp add: dfa'.nxt dfa'_M' f_inv_in)
+lemma nxt_M'_f_inv: \<open>h \<in> dfa.states hf_M' \<Longrightarrow> dfa'.nxt M' (f_inv h) x = f_inv (dfa.nxt hf_M' h x)\<close> 
+  by (simp add: dfa'.nxt dfa'_M' f_inv_in)
 
-lemma nxt_hf_M'_f:\<open>q \<in> dfa'.states M' \<Longrightarrow> dfa.nxt hf_M' (f q) x = f (dfa'.nxt M' q x)\<close> by auto
+lemma nxt_hf_M'_f:\<open>q \<in> dfa'.states M' \<Longrightarrow> dfa.nxt hf_M' (f q) x = f (dfa'.nxt M' q x)\<close> 
+  by auto
 
 
 lemma nextl_M'_f_inv: \<open>h \<in> dfa.states hf_M' \<Longrightarrow> M'.nextl  (f_inv h) xs = f_inv (hf_M'.nextl h xs)\<close>

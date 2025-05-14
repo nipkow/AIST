@@ -130,12 +130,6 @@ abbreviation close_bracket2' :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> b
 
 
 
-lemma map_Tm_inject[dest!, simp]: "map Tm xs = map Tm ys \<Longrightarrow> xs = ys"
-  by (induction xs arbitrary: ys; auto)
-
-
-lemma split_tm_append: \<open>xs @ ys = map Tm zs \<Longrightarrow> \<exists> xs' ys'. (xs' @ ys' = zs) \<and> (xs = map Tm xs') \<and> (ys = map Tm ys')\<close> 
-  by (metis append_eq_map_conv)
 
 
 

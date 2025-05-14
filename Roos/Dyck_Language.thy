@@ -107,13 +107,16 @@ qed
 
 
 
+(*
+text\<open>TODO add destructor to definition of \<open>Tm\<close>\<close>
+fun strip_tm :: "('a, 'b) sym  \<Rightarrow> 'b" where 
+  \<open>strip_tm (Tm t) = t\<close> | 
+  \<open>strip_tm (Nt A) = undefined\<close>
 
 
-
-
-
-
-
+definition bal_tm where
+\<open>bal_tm \<equiv> bal o (map strip_tm) o (filter isTm)\<close>
+*)
 
 section\<open>\<^term>\<open>bal_tm\<close> and \<^term>\<open>rhs_in_tm\<close>\<close>
 

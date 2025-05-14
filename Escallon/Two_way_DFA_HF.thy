@@ -1,5 +1,6 @@
 theory Two_way_DFA_HF
-  imports "Finite_Automata_HF.Finite_Automata_HF" "HOL-IMP.Star" (*Should I use a different
+  imports "Finite_Automata_HF.Finite_Automata_HF"
+    (*Should I use a different
                                                                   reflexive-transitive closure thy?*)
 begin
 
@@ -40,11 +41,20 @@ begin
 abbreviation \<Sigma> :: "'a list \<Rightarrow>'a symbol list" where
   "\<Sigma> w \<equiv> map Letter w"
 
-abbreviation marker_map :: "'a list \<Rightarrow> 'a symbol list" ("\<langle>_\<rangle>" 60) where
+abbreviation marker_map :: "'a list \<Rightarrow> 'a symbol list" ("\<langle>_\<rangle>" 70) where
   "\<langle>w\<rangle> \<equiv> \<turnstile> # (\<Sigma> w) @ [\<stileturn>]"
 
+abbreviation marker_mapl :: "'a list \<Rightarrow> 'a symbol list" ("\<langle>_\<langle>" 70) where
+  "\<langle>w\<langle> \<equiv> \<turnstile> # (\<Sigma> w)"
+
+abbreviation marker_mapr :: "'a list \<Rightarrow> 'a symbol list" ("\<rangle>_\<rangle>" 70) where
+  "\<rangle>w\<rangle> \<equiv> (\<Sigma> w) @ [\<stileturn>]"
+
+lemma mapl_app_mapr_eq_map [simp]: 
+  "\<langle>u\<langle> @ \<rangle>v\<rangle> = \<langle>u @ v\<rangle>" by simp 
+
 definition valid_input :: "'a symbol list \<Rightarrow> bool" where
-  "valid_input xs \<equiv> \<exists>w. xs = \<langle>w\<rangle>"
+  "valid_input xs \<equiv> \<exists>w. xs = \<langle>w\<rangle>" (*unused until now*)
 
 
 inductive step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<close> 55) where
@@ -55,59 +65,49 @@ inductive_cases step_foldedE[elim]: "a \<rightarrow> b"
 inductive_cases step_leftE [elim]:  "(a#u, q, v) \<rightarrow> (u, p, a#v)"
 inductive_cases step_rightE [elim]: "(u, q, a#v) \<rightarrow> (a#u, p, v)"
 
+abbreviation stepn :: "nat \<Rightarrow> 'a config \<Rightarrow> 'a config \<Rightarrow> bool" where
+  "stepn n \<equiv> (step ^^ n)"
+
 abbreviation steps :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>*\<close> 55) where
-  "steps \<equiv> star step"
+  "steps \<equiv> step\<^sup>*\<^sup>*"
 
+(*Induction rule analogous to rtranclp_induct2*)
+lemmas config_induct = 
+  rtranclp_induct[of _ "(ax, ay, az)" "(bx, by, bz)", split_rule, consumes 1, case_names refl step]
 
+abbreviation reachable :: "'a list \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>**\<close> 55) where
+  "w \<rightarrow>** c \<equiv> ([], init M, \<langle>w\<rangle>) \<rightarrow>* c" 
 
 definition language :: "'a list set" where
-  "language \<equiv> {w. ([], init M, \<langle>w\<rangle>) \<rightarrow>* ( \<turnstile>#(\<Sigma> w), acc M, [\<stileturn>])}"
-
-inductive nstep :: "'a config \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" where
-  nstep_refl [intro]: "nstep c 0 c" |
-  nstep_step [intro]: "\<lbrakk>c\<^sub>1 \<rightarrow> c\<^sub>2; nstep c\<^sub>2 n c\<^sub>3\<rbrakk> \<Longrightarrow> nstep c\<^sub>1 (Suc n) c\<^sub>3"
-
-inductive_cases nstep_reflE [elim]: "nstep c\<^sub>1 0 c\<^sub>2"
-inductive_cases nstep_stepSE [elim]: "nstep c\<^sub>1 (Suc n) c\<^sub>2"
-
-
-lemma steps_equiv_nstep: "c\<^sub>1 \<rightarrow>* c\<^sub>2 \<longleftrightarrow> (\<exists>n. nstep c\<^sub>1 n c\<^sub>2)" 
-proof
-  show "\<exists>n. nstep c\<^sub>1 n c\<^sub>2 \<Longrightarrow> c\<^sub>1 \<rightarrow>* c\<^sub>2" 
-  proof -
-    assume "\<exists>n. nstep c\<^sub>1 n c\<^sub>2"
-    then obtain n where "nstep c\<^sub>1 n c\<^sub>2" by blast
-    thus "c\<^sub>1 \<rightarrow>* c\<^sub>2"
-    by (induction rule: nstep.induct) (simp add: star.step)+
-  qed     
-qed (induction rule: star.induct, blast+)
+  "language \<equiv> {w. \<exists>u v.  w \<rightarrow>** (u, acc M, v)}" 
 
 lemma unchanged_final:
   assumes "p = acc M \<or> p = rej M"
-  shows   "(u, p, v) \<rightarrow>* (u', q, v') \<Longrightarrow> q = p" 
-    by (induction "(u, p, v)" "(u', q, v')" arbitrary: u v rule: star.induct) 
-     (simp, (smt (verit) assms final_nxt_l final_nxt_r prod.inject step.simps))
+  shows "(u, p, v) \<rightarrow>* (u', q, v') \<Longrightarrow> p = q"
+proof (induction rule: config_induct)
+  case (step a q' b c q'' d)
+  then show ?case using assms
+    by (smt (verit, ccfv_SIG) dfa2_axioms dfa2_def prod.inject step_foldedE)
+qed simp
 
 lemma unchanged_substrings:
   "(u, q, v) \<rightarrow>* (u', p, v') \<Longrightarrow> rev u @ v = rev u' @ v'"
-proof (induction "(u, q, v)" "(u', p, v')" arbitrary: u q v rule: star.induct)
-  case (step y)
-  then obtain q' d where qd_def: "nxt M q (hd v) = (q', d)" by fastforce
-  consider "d = Left" | "d = Right"
+proof (induction rule: config_induct) 
+  case (step a q' b c q'' d)
+  then obtain p' d' where qd_def: "nxt M q' (hd b) = (p', d')" by fastforce
+  consider "d' = Left" | "d' = Right"
     using dir.exhaust by blast
-  then show ?case 
+  then show ?case
   proof cases
     case 1
-    hence y_eq: "y = (tl u, q', hd u # v)" 
-      using step(1) qd_def step.simps by fastforce
+    hence "(c, q'', d) = (tl a, p', hd a # b)"  
+      using step(2) qd_def step.simps by force
     then show ?thesis
-      using step.hyps(1,3) step.simps by auto
+      using step.IH step.hyps(2) by fastforce
   next
     case 2
-    hence "y = (hd v # u, q', tl v)" 
-      using step(1) qd_def step.simps by fastforce
-    then show ?thesis
-      using step step.cases by fastforce
+    hence "(c, q'', d) = (hd b # a, p', tl b)" using step(2) qd_def step.simps by force
+    then show ?thesis using step step.cases by fastforce
   qed
 qed simp
 
@@ -115,25 +115,38 @@ corollary unchanged_word:
   "([], init M, w) \<rightarrow>* (u, p, v) \<Longrightarrow> w = rev u @ v"
   using unchanged_substrings by force
 
-lemma steps_app:
+lemma steps_app':
   assumes "(xs, q', v) \<rightarrow>* (ys, p, zs)"
   shows "(ws, q, u) \<rightarrow>* (xs, q', []) \<Longrightarrow> (ws, q, u @ v) \<rightarrow>* (ys, p, zs)"
-proof (induction "(ws, q, u)" "(xs, q', ([]::'a symbol list))"  arbitrary: ws q u rule: star.induct)
-  case (step y)
-  then obtain ws' q'' u' where y_def: "y = (ws', q'', u')" by auto
-  from step(1) y_def have "(ws, q, u @ v) \<rightarrow> (ws', q'', u' @ v)" by force
-  then show ?case by (simp add: star.step step.hyps(3) y_def)
-qed (use assms in simp)
+   (*both config rules break here and raw rtranclp_induct does not work either
+      (Solved below)*)
+proof (induction arbitrary: ws q u rule: config_induct)
+  oops
 
+lemma steps_app:
+  "(u, q, v) \<rightarrow>* (u', p, v') \<Longrightarrow> (u, q, v @ xs) \<rightarrow>* (u', p, v' @ xs)"
+proof (induction rule: config_induct)
+  case (step w q' x y p' z)
+  from step(2) have "(w, q', x @ xs) \<rightarrow> (y, p', z @ xs)" by fastforce
+  then show ?case using step(3) by simp
+qed simp
+
+corollary steps_extend:
+  assumes "(ws, q, u) \<rightarrow>* (xs, q', [])"
+      and "(xs, q', v) \<rightarrow>* (ys, p, zs)"
+    shows "(ws, q, u @ v) \<rightarrow>* (ys, p, zs)"
+  using assms steps_app by (metis (no_types, lifting) append_Nil rtranclp_trans)
+  
 end
 
 locale dfa2_transition = dfa2 + (*there's probably a better alternative than a separate locale*)
-  fixes x :: "'a symbol list"
+  fixes x :: "'a list"
   assumes "x \<noteq> []"
 begin 
 
 inductive left_step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L\<close> 55) where
-  lstep [intro]: "\<lbrakk>(ys, q, zs) \<rightarrow> (ys', p, zs'); length ys < length x; length ys' < length x\<rbrakk> 
+  lstep [intro]: "\<lbrakk>(ys, q, zs) \<rightarrow> (ys', p, zs')
+                  ; length ys < length (\<langle>x\<langle>); length ys' < length (\<langle>x\<langle>)\<rbrakk> 
       \<Longrightarrow> (ys, q, zs) \<rightarrow>\<^sup>L (ys', p, zs')"
 
 inductive_cases lstepE [elim]: "c1 \<rightarrow>\<^sup>L c2"
@@ -141,72 +154,84 @@ inductive_cases lstepE [elim]: "c1 \<rightarrow>\<^sup>L c2"
 notation (ASCII) left_step (infix \<open>\<rightarrow>^L\<close> 55)
 
 abbreviation left_steps :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L*\<close> 55) where
-  "left_steps \<equiv>   star left_step" (*Possible problem: reflexive case holds 
+  "left_steps \<equiv> left_step\<^sup>*\<^sup>*" (*Possible problem: reflexive case holds 
                                   even when config is not in x*)
+
+abbreviation left_reachable :: "'a list \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L**\<close> 55) where
+  "w \<rightarrow>\<^sup>L** c \<equiv> ([], init M, \<langle>w\<rangle>) \<rightarrow>\<^sup>L* c" 
 
 inductive_cases lstepsE [elim]: "c1 \<rightarrow>\<^sup>L* c2"
 
 lemma left_steps_impl_steps [elim]:
   assumes "c1 \<rightarrow>\<^sup>L* c2"
   obtains "c1 \<rightarrow>* c2" (*Is this bad usage of obtains? I
-                       used it in order to be able to use this as an elim rule*)
+                       used it in order to be able to use this as an elim rule
+                      if it is not: when in general to use elims?*)
 proof 
   from assms show "c1 \<rightarrow>* c2"
-  proof (induction c1 c2 rule: star.induct)
-    case (step x y z)
-    from step(1) have "x \<rightarrow> y" by blast
-    then show ?case using step(3) by (metis star.simps)
+  proof (induction rule: rtranclp_induct)
+    case (step y z)
+    from step(2) have "y \<rightarrow> z" by blast
+    then show ?case using step(3) by simp
   qed simp
 qed
 
 lemma left_steps_impl_lt_x: 
-  "\<lbrakk>(ys, q, zs) \<rightarrow>\<^sup>L* (ys', p, zs'); length ys < length x\<rbrakk> \<Longrightarrow> length ys' < length x"
-  by (induction "(ys, q, zs)" "(ys', p, zs')" arbitrary: ys q zs ys' rule: star.induct) auto
+  "\<lbrakk>(ys, q, zs) \<rightarrow>\<^sup>L* (ys', p, zs'); length ys < length (\<langle>x\<langle>)\<rbrakk> \<Longrightarrow> length ys' < length (\<langle>x\<langle>)"
+  by (induction rule: config_induct) auto
+
+lemma lt_len_app:
+  assumes "m < length xs"
+  obtains ys zs where "length ys = m" "ys @ zs = xs" using assms 
+  by (metis add_diff_cancel_right' append_take_drop_id le_iff_add length_drop length_rev
+      order_less_imp_le rev_eq_append_conv)
 
 lemma star_lstar_impl_substring_x:
-  assumes nsteps: "([], init M, x @ z) \<rightarrow>* (xs, q, zs)"
-      and in_x:   "length xs < length x"
+  assumes nsteps: "x @ z \<rightarrow>** (xs, q, zs)"
+      and in_x:   "length xs < length (\<langle>x\<langle>)"
       and lsteps: "(xs, q, zs) \<rightarrow>\<^sup>L* (as, p, bs)"
-  obtains u where " rev as @ u = x" "u @ z = bs" 
+  obtains u where " rev as @ u = \<langle>x\<langle>" "u @ \<rangle>z\<rangle> = bs" 
 proof -
-  from lsteps show ?thesis
-  proof (induction "(xs, q, zs)" "(as, p, bs)" arbitrary: xs q zs rule: star.induct)
+  from lsteps show thesis
+  proof (induction arbitrary: xs q zs rule: config_induct)
     case refl 
-    from unchanged_word nsteps lsteps have app: "x @ z = rev as @ bs"
+    from unchanged_word nsteps lsteps have app: "\<langle>x @ z\<rangle> = rev as @ bs"
       by (metis left_steps_impl_steps unchanged_substrings)
-    moreover from this  
-    obtain x' where "rev as @ x' = x" "x' @ z = bs" 
+    moreover from this left_steps_impl_lt_x[OF lsteps in_x]
+    obtain x' where "rev as @ x' = \<langle>x\<langle>" "x' @ \<rangle>z\<rangle> = bs"
     proof -
-      have "length bs > length z"
-      proof (rule ccontr)
-        assume "\<not>?thesis"
-        hence "length (rev as @ bs) < length (x @ z)" using left_steps_impl_lt_x[OF lsteps in_x]
-          by simp
-        thus False using app left_steps_impl_lt_x[OF lsteps in_x] by simp
-      qed
-      then obtain x' where "length bs = length x' + length z" "x' @ z = bs" 
-        using app left_steps_impl_lt_x[OF lsteps in_x]
-        by (metis append_eq_append_conv2 length_append not_add_less2)
-      moreover from this have "rev as @ x' = x" using app by auto
-      ultimately show thesis using that by simp
+      print_theorems
+      from left_steps_impl_lt_x[OF lsteps in_x] lt_len_app
+      obtain xs xs' where "length xs = length as" and xapp: "xs @ xs' = \<langle>x\<langle>" by blast
+      moreover from this have "length (xs' @ \<rangle>z\<rangle>) = length bs" using app 
+        by (smt (verit) append_assoc append_eq_append_conv length_rev
+            mapl_app_mapr_eq_map) 
+      ultimately have xs_is_rev: "xs = rev as" 
+        by (smt (verit, ccfv_SIG) app append_assoc append_eq_append_conv
+            dfa2.mapl_app_mapr_eq_map dfa2_axioms)
+      then have "xs' @ \<rangle>z\<rangle> = bs" using xapp app 
+        by (metis (no_types, lifting) append_assoc mapl_app_mapr_eq_map
+            same_append_eq)
+      thus thesis using that xs_is_rev xapp by presburger 
     qed
     ultimately show ?case using that by simp
   qed blast
 qed
 
 corollary init_lstar_impl_substring_x:
-  assumes "([], init M, x @ z) \<rightarrow>\<^sup>L* (xs, q, zs)"
-  obtains u where " rev xs @ u = x" "u @ z = zs"
-  using star_lstar_impl_substring_x assms by blast
+  assumes "x @ z \<rightarrow>\<^sup>L** (xs, q, zs)"
+  obtains u where " rev xs @ u = \<langle>x\<langle>" "u @ \<rangle>z\<rangle> = zs"
+  using star_lstar_impl_substring_x assms
+  by (metis length_greater_0_conv list.discI list.size(3) rtranclp.rtrancl_refl)
 
 
 inductive T :: "state option \<Rightarrow> state option \<Rightarrow> bool" where
-  "\<lbrakk>x = a # xs; ([], init M, x @ z) \<rightarrow>\<^sup>L* (xs, q, a # z); (xs, q, a # z) \<rightarrow> (x, p, z)\<rbrakk>
+  "\<lbrakk>\<langle>x\<rangle> = a # xs; x @ z \<rightarrow>\<^sup>L** (xs, q, a # \<rangle>z\<rangle>); (xs, q, a # \<rangle>z\<rangle>) \<rightarrow> (\<langle>x\<langle>, p, \<rangle>z\<rangle>)\<rbrakk>
     \<Longrightarrow> T None (Some q)" |
-  "\<lbrakk>x = a # xs;
-    (x, q', z) \<rightarrow> (xs, q, a # z); 
-    (xs, q, a # z) \<rightarrow>\<^sup>L* (xs, p, a # z); 
-    (xs, p, a # z) \<rightarrow> (x, q'', z)\<rbrakk> \<Longrightarrow> T (Some q) (Some p)"
+  "\<lbrakk>\<langle>x\<rangle> = a # xs;
+    (\<langle>x\<langle>, q', \<rangle>z\<rangle>) \<rightarrow> (xs, q, a # \<rangle>z\<rangle>); 
+    (xs, q, a # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (xs, p, a # \<rangle>z\<rangle>); 
+    (xs, p, a # \<rangle>z\<rangle>) \<rightarrow> (\<langle>x\<langle>, q'', \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T (Some q) (Some p)"
 
 (*TODO: Check/expand defs*)
 

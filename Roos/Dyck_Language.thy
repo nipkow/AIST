@@ -45,7 +45,8 @@ lemmas rhs_inE = rhs_inD[elim_format]
 lemma rhs_in_del_right: \<open>rhs_in (xs@ys) \<Gamma> \<Longrightarrow> rhs_in xs \<Gamma>\<close>
 proof-
   assume assm: \<open>rhs_in (xs@ys) \<Gamma>\<close>
-  have \<open>set xs \<subseteq> set (xs @ ys)\<close> by simp
+  have \<open>set xs \<subseteq> set (xs @ ys)\<close> 
+    by simp
   then show ?thesis using rhs_inD[OF assm] by blast
 qed
 
@@ -54,7 +55,8 @@ lemmas rhs_in_del_rightE = rhs_in_del_right[elim_format]
 lemma rhs_in_del_left[dest]: \<open>rhs_in (xs@ys) \<Gamma> \<Longrightarrow> rhs_in ys \<Gamma>\<close>
 proof-
   assume assm: \<open>rhs_in (xs@ys) \<Gamma>\<close>
-  have \<open>set ys \<subseteq> set (xs @ ys)\<close> by simp
+  have \<open>set ys \<subseteq> set (xs @ ys)\<close> 
+    by simp
   then show ?thesis using rhs_inD[OF assm] by blast
 qed
 
@@ -64,7 +66,8 @@ lemma rhs_in_append[intro, simp]: \<open>rhs_in (xs) \<Gamma> \<Longrightarrow> 
 proof-
   assume assm_xs: \<open>rhs_in (xs) \<Gamma>\<close>
   assume assm_ys: \<open>rhs_in (ys) \<Gamma>\<close>
-  then have \<open>set (xs@ys) \<subseteq> set xs \<union> set ys\<close> by simp
+  then have \<open>set (xs@ys) \<subseteq> set xs \<union> set ys\<close> 
+    by simp
   then show ?thesis using rhs_inI[of \<open>xs@ys\<close> \<Gamma>] using assm_xs assm_ys by auto
 qed
 
@@ -97,7 +100,8 @@ text\<open>Balanced subexpressions are again in the Dyck Language.\<close>
 lemma Dyck_language_substring[intro]: \<open>bal w \<Longrightarrow> (xs@w@ys) \<in> Dyck_language \<Gamma> \<Longrightarrow> w \<in> Dyck_language \<Gamma>\<close> 
 proof-
   assume assms: \<open>bal w\<close> and \<open>(xs@w@ys) \<in> Dyck_language \<Gamma>\<close>
-  have \<open>set w \<subseteq> set (xs@w@ys)\<close> by (simp add: subsetI)
+  have \<open>set w \<subseteq> set (xs@w@ys)\<close> 
+    by (simp add: subsetI)
   then show ?thesis using \<open>bal w\<close> \<open>xs @ w @ ys \<in> Dyck_language \<Gamma>\<close> by blast
 qed
 
@@ -139,6 +143,7 @@ lemma bal_tm2_Nt[iff]: "bal_tm [Tm (Open,g), Tm (Close,g), Nt A]"
 (* TODO: mv to CFG *)
 lemma map_Tm_inject[dest!]: "map Tm xs = map Tm ys \<Longrightarrow> xs = ys"
   by (metis sym.inject(2) list.inj_map_strong)
+
 lemma map_Tm_inject_iff[simp]: "(map Tm xs = map Tm ys) = (xs = ys)"
   by blast
 
@@ -154,13 +159,17 @@ lemma bal_tm_imp_bal_for_tms: \<open>bal_tm (map Tm xs') \<Longrightarrow> bal x
 proof-
   assume assm: \<open>bal_tm (map Tm xs':: ('a, bracket \<times> 'b) sym list)\<close>
   define xs::\<open>('a, bracket \<times> 'b) sym list\<close> where \<open>xs = map Tm xs'\<close> \<comment> \<open>need to enforce the same non-terminal type for xs as for map Tm xs' ...\<close>
-  then have \<open>bal_tm xs\<close> using xs_def assm by simp
+  then have \<open>bal_tm xs\<close> 
+    using xs_def assm by simp
   from \<open>bal_tm xs\<close> \<open>xs = map Tm xs'\<close> show ?thesis
   proof(induction xs arbitrary: xs' rule: bal_tm.induct)
     case (4 xs g)
-    then obtain xs'' where \<open>xs = map Tm xs''\<close> and \<open>xs' = ((Open, g) # (xs'') @ [(Close, g)])\<close> using map_eq_append_conv by (smt (verit, best) Cons_eq_map_D list.map_disc_iff sym.inject(2))
-    then have \<open>bal xs''\<close> using "local.4.IH" by blast
-    then have \<open>bal ((Open, g) # (xs'') @ [(Close, g)])\<close> by auto
+    then obtain xs'' where \<open>xs = map Tm xs''\<close> and \<open>xs' = ((Open, g) # (xs'') @ [(Close, g)])\<close> 
+      using map_eq_append_conv by (smt (verit, best) Cons_eq_map_D list.map_disc_iff sym.inject(2))
+    then have \<open>bal xs''\<close> 
+      using "local.4.IH" by blast
+    then have \<open>bal ((Open, g) # (xs'') @ [(Close, g)])\<close> 
+      by auto
     then show ?case by (simp add: \<open>xs' = (Open, g) # xs'' @ [(Close, g)]\<close>)
   next
     case (3 xs ys)
@@ -196,7 +205,8 @@ lemmas rhs_in_tmE = rhs_in_tmD[elim_format]
 lemma rhs_in_tm_del_right: \<open>rhs_in_tm (xs@ys) \<Gamma> \<Longrightarrow> rhs_in_tm xs \<Gamma>\<close>
 proof-
   assume assm: \<open>rhs_in_tm (xs@ys) \<Gamma>\<close>
-  have \<open>set xs \<subseteq> set (xs @ ys)\<close> by simp
+  have \<open>set xs \<subseteq> set (xs @ ys)\<close> 
+    by simp
   then show ?thesis using rhs_in_tmD[OF assm] by blast
 qed
 
@@ -205,7 +215,8 @@ lemmas rhs_in_tm_del_rightE = rhs_in_tm_del_right[elim_format]
 lemma rhs_in_tm_del_left[dest]: \<open>rhs_in_tm (xs@ys) \<Gamma> \<Longrightarrow> rhs_in_tm ys \<Gamma>\<close>
 proof-
   assume assm: \<open>rhs_in_tm (xs@ys) \<Gamma>\<close>
-  have \<open>set ys \<subseteq> set (xs @ ys)\<close> by simp
+  have \<open>set ys \<subseteq> set (xs @ ys)\<close> 
+    by simp
   then show ?thesis using rhs_in_tmD[OF assm] by blast
 qed
 
@@ -225,8 +236,10 @@ text\<open>Relationship between \<^term>\<open>bal_tm\<close>, \<^term>\<open>rh
 lemma Dyck_languageI_tm[intro]: \<open>bal_tm (map Tm xs') \<Longrightarrow> rhs_in_tm (map Tm xs') \<Gamma> \<Longrightarrow> xs' \<in> Dyck_language \<Gamma>\<close>
 proof-
   assume bal: \<open>bal_tm (map Tm xs')\<close> and rhs: \<open>rhs_in_tm (map Tm xs') \<Gamma>\<close>
-  then have \<open>bal xs'\<close> using bal_tm_imp_bal_for_tms by blast
-  moreover have \<open>\<And>br r. (br, r) \<in> set xs' \<Longrightarrow> r \<in> \<Gamma>\<close> using rhs by (metis (no_types, lifting) List.list.simps(15,9) insert_iff map_append rhs_in_tmD rhs_in_tm_del_left split_list_last)
+  then have \<open>bal xs'\<close> 
+    using bal_tm_imp_bal_for_tms by blast
+  moreover have \<open>\<And>br r. (br, r) \<in> set xs' \<Longrightarrow> r \<in> \<Gamma>\<close> 
+    using rhs by (metis (no_types, lifting) List.list.simps(15,9) insert_iff map_append rhs_in_tmD rhs_in_tm_del_left split_list_last)
   ultimately show ?thesis using Dyck_languageI[of xs' \<Gamma>] by blast
 qed
 
@@ -274,9 +287,12 @@ next
   show ?case
   proof (cases v)
     case Nil
-    hence "w = ((Open, y)) # u @ [(Close, y)]" using "3.prems" by simp
-    hence "bal w" using "3.hyps" by blast
-    hence "bal ([(Open, x), (Close, x)] @ w)" by blast
+    hence "w = ((Open, y)) # u @ [(Close, y)]" using "3.prems" 
+      by simp
+    hence "bal w" using "3.hyps" 
+      by blast
+    hence "bal ([(Open, x), (Close, x)] @ w)" 
+      by blast
     thus ?thesis using Nil by simp
   next
     case (Cons X v')
@@ -292,7 +308,7 @@ next
       hence u: "u=v'@w'" and [simp]: "X=(Open, y) & Y=(Close, y)"
         using Cons "3.prems" apply (smt (verit, ccfv_threshold) List.append.assoc List.list.inject append_Cons append_eq_append_conv last_snoc)
         by (metis "local.3.prems" Cons List.append.assoc List.list.inject append_Cons last_snoc snoc)
-          \<comment> \<open>this also works by auto, but it takes 4 seconds.\<close>
+          \<comment> \<open>This also works by auto, but it takes 4 seconds.\<close>
       thus ?thesis
         by (metis "3.IH" append.assoc append_Cons local.Cons bal.intros(3) snoc)
     qed
@@ -305,13 +321,17 @@ next
   thus ?case
   proof
     assume A: ?A
-    hence "bal (v @ (Open, x) # (Close, x) # r)" using "2.IH"(1) by presburger
-    hence "bal ((v @ (Open, x) # (Close, x)#r) @ w')" using \<open>bal w'\<close> by(rule bal.intros(2))
+    hence "bal (v @ (Open, x) # (Close, x) # r)" 
+      using "2.IH"(1) by presburger
+    hence "bal ((v @ (Open, x) # (Close, x)#r) @ w')" 
+      using \<open>bal w'\<close> by(rule bal.intros(2))
     thus ?thesis using A by auto
   next
     assume B: ?B
-    hence "bal (r @ (Open, x) # (Close, x) # w)" using "2.IH"(2) by presburger
-    with \<open>bal v'\<close> have "bal (v'@(r@(Open, x) # (Close, x)#w))" by(rule bal.intros(2))
+    hence "bal (r @ (Open, x) # (Close, x) # w)" 
+      using "2.IH"(2) by presburger
+    with \<open>bal v'\<close> have "bal (v'@(r@(Open, x) # (Close, x)#w))" 
+      by(rule bal.intros(2))
     thus ?thesis using B by force
   qed 
 qed 
@@ -357,21 +377,26 @@ lemma bal_insert:
   shows "u = v@w \<Longrightarrow> bal (v @ b @ w)" 
 proof-
   assume uvw: \<open>u = v@w\<close>
-  have \<open>stk_bal (b) [] = ([],[])\<close> using assms stk_bal_iff_bal by blast
-  have \<open>stk_bal (u) [] = ([],[])\<close> using assms stk_bal_iff_bal by blast
-
-  then obtain s1' where s1'_def: \<open>stk_bal v [] = ([], s1')\<close> by (metis (full_types, lifting) uvw case_prodE stk_bal_append_inv)
-  then obtain s' where s'_def: \<open>stk_bal (v @ w) [] = stk_bal (w) s'\<close> using stk_bal_append_if by blast
-
-  then have \<open>([],[]) = stk_bal (v @ w) []\<close> using uvw using \<open>stk_bal u [] = ([], [])\<close> by presburger
-  also have \<open>... = stk_bal (w) s'\<close> using s'_def by simp
-  also have \<open>... = stk_bal (b@w) s'\<close> by (metis b stk_bal_append_if stk_bal_if_bal)
-
-  finally have \<open>stk_bal (b@w) s' = ([],[])\<close> by simp
-
-  then have \<open>stk_bal (v @ b @ w) [] = ([],[])\<close> using s1'_def by (metis b s'_def stk_bal_append_if stk_bal_if_bal)
-
-  then show \<open>bal (v @ b @ w)\<close> using stk_bal_iff_bal by blast
+  have \<open>stk_bal (b) [] = ([],[])\<close> 
+    using assms stk_bal_iff_bal by blast
+  have \<open>stk_bal (u) [] = ([],[])\<close> 
+    using assms stk_bal_iff_bal by blast
+  then obtain s1' where s1'_def: \<open>stk_bal v [] = ([], s1')\<close> 
+    by (metis (full_types, lifting) uvw case_prodE stk_bal_append_inv)
+  then obtain s' where s'_def: \<open>stk_bal (v @ w) [] = stk_bal (w) s'\<close> 
+    using stk_bal_append_if by blast
+  then have \<open>([],[]) = stk_bal (v @ w) []\<close> 
+    using uvw using \<open>stk_bal u [] = ([], [])\<close> by presburger
+  also have \<open>... = stk_bal (w) s'\<close> 
+    using s'_def by simp
+  also have \<open>... = stk_bal (b@w) s'\<close> 
+    by (metis b stk_bal_append_if stk_bal_if_bal)
+  finally have \<open>stk_bal (b@w) s' = ([],[])\<close> 
+    by simp
+  then have \<open>stk_bal (v @ b @ w) [] = ([],[])\<close> 
+    using s1'_def by (metis b s'_def stk_bal_append_if stk_bal_if_bal)
+  then show \<open>bal (v @ b @ w)\<close> 
+    using stk_bal_iff_bal by blast
 qed
 
 
@@ -383,14 +408,18 @@ lemma bal_del:
   shows "u = v @ b @ w \<Longrightarrow> bal (v @ w)" 
 proof-
   assume uvbw: \<open>u = v @ b @ w\<close>
-  have stk_bal_b: \<open>stk_bal (b) [] = ([],[])\<close> using assms stk_bal_iff_bal by blast
-  have stk_bal_vbw: \<open>stk_bal (v @ b @ w) [] = ([],[])\<close> using uvbw assms stk_bal_iff_bal by blast
-
-  then obtain s1' where s1'_def: \<open>stk_bal v [] = ([], s1')\<close> by (metis (full_types, lifting) case_prodE stk_bal_append_inv)
-
-  then have \<open>stk_bal (v@b) [] = ([], s1')\<close> by (metis b stk_bal_append_if stk_bal_if_bal)
-  then have \<open>stk_bal (v @  w) [] = ([],[])\<close> using stk_bal_vbw s1'_def by (metis stk_bal_append_if)
-  then show \<open>bal (v @ w)\<close> using stk_bal_iff_bal by blast
+  have stk_bal_b: \<open>stk_bal (b) [] = ([],[])\<close> 
+    using assms stk_bal_iff_bal by blast
+  have stk_bal_vbw: \<open>stk_bal (v @ b @ w) [] = ([],[])\<close> 
+    using uvbw assms stk_bal_iff_bal by blast
+  then obtain s1' where s1'_def: \<open>stk_bal v [] = ([], s1')\<close> 
+    by (metis (full_types, lifting) case_prodE stk_bal_append_inv)
+  then have \<open>stk_bal (v@b) [] = ([], s1')\<close> 
+    by (metis b stk_bal_append_if stk_bal_if_bal)
+  then have \<open>stk_bal (v @  w) [] = ([],[])\<close> 
+    using stk_bal_vbw s1'_def by (metis stk_bal_append_if)
+  then show \<open>bal (v @ w)\<close> 
+    using stk_bal_iff_bal by blast
 qed
 
 
@@ -403,12 +432,15 @@ corollary bal_iff_insert[iff]:
 lemma bal_start_Open: \<open>bal (x#xs) \<Longrightarrow>\<exists>g. x = (Open,g)\<close> 
 proof(induction \<open>length (x#xs)\<close> arbitrary: x xs rule: less_induct)
   case less
-  have IH: \<open>\<And>w (ws:: (bracket \<times> 'a) list). \<lbrakk>length (w # ws) < length (x # xs); bal (w # ws)\<rbrakk> \<Longrightarrow> \<exists>g. w = (Open, g)\<close> using less by blast
-  from less have \<open>bal (x # xs)\<close> by simp
+  have IH: \<open>\<And>w (ws:: (bracket \<times> 'a) list). \<lbrakk>length (w # ws) < length (x # xs); bal (w # ws)\<rbrakk> \<Longrightarrow> \<exists>g. w = (Open, g)\<close> 
+    using less by blast
+  from less have \<open>bal (x # xs)\<close> 
+    by simp
   then show ?case
   proof(induction \<open>x#xs\<close> rule:bal.induct)
     case (2 as bs)
-    consider (as_empty)  \<open>as = []\<close> | (bs_empty)\<open>bs = []\<close> | (both_not_empty)\<open>as \<noteq> [] \<and> bs \<noteq> []\<close> by blast
+    consider (as_empty)  \<open>as = []\<close> | (bs_empty)\<open>bs = []\<close> | (both_not_empty)\<open>as \<noteq> [] \<and> bs \<noteq> []\<close> 
+      by blast
     then show ?case
     proof(cases)
       case as_empty
@@ -418,10 +450,14 @@ proof(induction \<open>length (x#xs)\<close> arbitrary: x xs rule: less_induct)
       then show ?thesis by (metis "local.2.hyps"(2,5) List.append.right_neutral)
     next
       case both_not_empty
-      then have \<open>length as < length (x#xs)\<close> by (metis "local.2.hyps"(5) List.append.right_neutral append_eq_conv_conj linorder_not_le take_all_iff)
-      moreover have \<open>bal as\<close> by (simp add: "local.2.hyps"(1))
-      ultimately have \<open>\<exists>g. hd as = (Open, g)\<close> using IH[of \<open>hd as\<close> \<open>tl as\<close>] using both_not_empty by auto
-      moreover have \<open>x = hd as\<close> using both_not_empty by (metis "local.2.hyps"(5) List.list.sel(1) hd_append2)
+      then have \<open>length as < length (x#xs)\<close> 
+        by (metis "local.2.hyps"(5) List.append.right_neutral append_eq_conv_conj linorder_not_le take_all_iff)
+      moreover have \<open>bal as\<close> 
+        by (simp add: "local.2.hyps"(1))
+      ultimately have \<open>\<exists>g. hd as = (Open, g)\<close> 
+        using IH[of \<open>hd as\<close> \<open>tl as\<close>] using both_not_empty by auto
+      moreover have \<open>x = hd as\<close> 
+        using both_not_empty by (metis "local.2.hyps"(5) List.list.sel(1) hd_append2)
       ultimately show ?thesis by blast
     qed
   qed auto
@@ -433,12 +469,15 @@ qed
 lemma bal_Open_split: \<open>bal (x # xs) \<Longrightarrow> \<exists>y r g. bal y \<and> bal r \<and> (x # xs) = (Open, g) # y @ (Close, g) # r\<close>
 proof-
   assume bal_x_xs: \<open>bal (x # xs)\<close>
-  then obtain g where x_def: \<open>x = (Open, g)\<close> using bal_start_Open by blast
+  then obtain g where x_def: \<open>x = (Open, g)\<close> 
+    using bal_start_Open by blast
   then have \<open>bal ((Open, g) # xs) \<Longrightarrow> \<exists>y r. bal y \<and> bal r \<and> (x # xs) = (Open, g) # y @ (Close, g) # r\<close>
   proof(induction \<open>length (x # xs)\<close> arbitrary: xs rule: less_induct)
     case less
-    have IH: \<open>\<And>w. \<lbrakk>length ((Open, g) # w) < length ((Open, g) # xs); bal ((Open, g) # w)\<rbrakk> \<Longrightarrow> \<exists>y r. bal y \<and> bal r \<and> (Open, g) # w = (Open, g) # y @ (Close, g) # r\<close> using less by blast
-    have \<open>bal ((Open, g) # xs)\<close> using less bal_x_xs by blast
+    have IH: \<open>\<And>w. \<lbrakk>length ((Open, g) # w) < length ((Open, g) # xs); bal ((Open, g) # w)\<rbrakk> \<Longrightarrow> \<exists>y r. bal y \<and> bal r \<and> (Open, g) # w = (Open, g) # y @ (Close, g) # r\<close> 
+      using less by blast
+    have \<open>bal ((Open, g) # xs)\<close> 
+      using less bal_x_xs by blast
     then show ?case
     proof(induction \<open>(Open,g) # xs\<close> rule: bal.induct)
       case (2 as bs)
@@ -452,12 +491,16 @@ proof-
         then show ?thesis using 2 by (metis append_self_conv)
       next
         case both_not_empty
-        then obtain as' where as'_def: \<open>(Open, g) # as' = as\<close> using 2 by (metis append_eq_Cons_conv)
-        then have \<open>length ((Open, g) # as') < length ((Open, g) # xs)\<close> by (metis "local.2.hyps"(5) List.append.right_neutral append_eq_conv_conj both_not_empty linorder_not_le take_all_iff)
-        with IH \<open>bal as\<close> obtain y r where yr_def: \<open>bal y \<and> bal r \<and> (Open, g) # as' = (Open, g) # y @ (Close, g) # r\<close> using as'_def by meson
-
-        then have \<open>(Open, g) # xs = (Open, g) # y @ (Close, g) # r @ bs\<close> using as'_def by (metis "local.2.hyps"(5) List.append.assoc append_Cons)
-        moreover have \<open>bal y\<close> and \<open>bal (r@bs)\<close> using yr_def apply blast by (simp add: "local.2.hyps"(3) yr_def)
+        then obtain as' where as'_def: \<open>(Open, g) # as' = as\<close> 
+          using 2 by (metis append_eq_Cons_conv)
+        then have \<open>length ((Open, g) # as') < length ((Open, g) # xs)\<close> 
+          by (metis "local.2.hyps"(5) List.append.right_neutral append_eq_conv_conj both_not_empty linorder_not_le take_all_iff)
+        with IH \<open>bal as\<close> obtain y r where yr_def: \<open>bal y \<and> bal r \<and> (Open, g) # as' = (Open, g) # y @ (Close, g) # r\<close> 
+          using as'_def by meson
+        then have \<open>(Open, g) # xs = (Open, g) # y @ (Close, g) # r @ bs\<close> 
+          using as'_def by (metis "local.2.hyps"(5) List.append.assoc append_Cons)
+        moreover have \<open>bal y\<close> and \<open>bal (r@bs)\<close> 
+          using yr_def apply blast by (simp add: "local.2.hyps"(3) yr_def)
         ultimately show ?thesis using x_def by blast
       qed
     next
@@ -514,12 +557,15 @@ next
   then show ?case
   proof(cases v)
     case Nil
-    with 2 have \<open>w = [Nt A]\<close> by (metis append_Nil)
+    with 2 have \<open>w = [Nt A]\<close> 
+      by (metis append_Nil)
     show ?thesis unfolding Nil \<open>w = [Nt A]\<close> by simp
   next
     case (Cons a list)
-    with 2 have \<open>v = [Nt A]\<close> by simp
-    then have \<open>w = []\<close> using "2" by blast
+    with 2 have \<open>v = [Nt A]\<close> 
+      by simp
+    then have \<open>w = []\<close> using "2" 
+      by blast
     then show ?thesis unfolding \<open>v = [Nt A]\<close> \<open>w = []\<close> by simp
   qed
 next
@@ -527,9 +573,12 @@ next
   show ?case
   proof (cases v)
     case Nil
-    hence "w = (Tm (Open, y)) # u @ [Tm (Close, y)]" using "4.prems" by simp
-    hence "bal_tm w" using "4.hyps" by blast
-    hence "bal_tm ([Tm (Open, x), Tm (Close, x)] @ w)" by blast
+    hence "w = (Tm (Open, y)) # u @ [Tm (Close, y)]" 
+      using "4.prems" by simp
+    hence "bal_tm w" 
+      using "4.hyps" by blast
+    hence "bal_tm ([Tm (Open, x), Tm (Close, x)] @ w)" 
+      by blast
     thus ?thesis using Nil by simp
   next
     case (Cons X v')
@@ -545,7 +594,7 @@ next
       hence u: "u=v'@w'" and [simp]: "X=Tm (Open, y) & Y=Tm (Close, y)"
         using Cons "4.prems" apply (smt (verit, ccfv_threshold) List.append.assoc List.list.inject append_Cons append_eq_append_conv last_snoc)
         by (metis "local.4.prems" Cons List.append.assoc List.list.inject append_Cons last_snoc snoc)
-          \<comment> \<open>this also works by auto, but it takes 4 seconds.\<close>
+          \<comment> \<open>This also works by auto, but it takes 4 seconds.\<close>
       thus ?thesis
         by (metis "4.IH" append.assoc append_Cons local.Cons bal_tm.intros(4) snoc)
     qed
@@ -557,13 +606,17 @@ next
   thus ?case
   proof
     assume A: ?A
-    hence "bal_tm (v @ Tm (Open, x) # Tm (Close, x) # r)" using "3.IH"(1) by presburger
-    hence "bal_tm ((v @ Tm (Open, x) # Tm (Close, x)#r) @ w')" using \<open>bal_tm w'\<close> by(rule bal_tm.intros(3))
+    hence "bal_tm (v @ Tm (Open, x) # Tm (Close, x) # r)" 
+      using "3.IH"(1) by presburger
+    hence "bal_tm ((v @ Tm (Open, x) # Tm (Close, x)#r) @ w')" 
+      using \<open>bal_tm w'\<close> by(rule bal_tm.intros(3))
     thus ?thesis using A by auto
   next
     assume B: ?B
-    hence "bal_tm (r @ Tm (Open, x) # Tm (Close, x) # w)" using "3.IH"(2) by presburger
-    with \<open>bal_tm v'\<close> have "bal_tm (v'@(r@Tm (Open, x) # Tm (Close, x)#w))" by(rule bal_tm.intros(3))
+    hence "bal_tm (r @ Tm (Open, x) # Tm (Close, x) # w)" 
+      using "3.IH"(2) by presburger
+    with \<open>bal_tm v'\<close> have "bal_tm (v'@(r@Tm (Open, x) # Tm (Close, x)#w))" 
+      by(rule bal_tm.intros(3))
     thus ?thesis using B by force
   qed 
 qed 
@@ -578,27 +631,35 @@ next
   then show ?case
   proof(cases v)
     case Nil
-    with 2 have \<open>w = [Nt A]\<close> by (metis append_Nil)
+    with 2 have \<open>w = [Nt A]\<close> 
+      by (metis append_Nil)
     show ?thesis unfolding Nil \<open>w = [Nt A]\<close> by simp
   next
     case (Cons a list)
-    with 2 have \<open>v = [Nt A]\<close> by simp
-    then have \<open>w = []\<close> using "2" by blast
+    with 2 have \<open>v = [Nt A]\<close> 
+      by simp
+    then have \<open>w = []\<close> 
+      using "2" by blast
     then show ?thesis unfolding \<open>v = [Nt A]\<close> \<open>w = []\<close> by simp
   qed 
 next
   case (3 v' w')
-  then obtain r where \<open>(v' = v@r) \<and> (r@w' = w) \<or> (w' = r@w) \<and> (v'@r = v)\<close> (is \<open>?A \<or> ?B\<close>) by (meson append_eq_append_conv2)
+  then obtain r where \<open>(v' = v@r) \<and> (r@w' = w) \<or> (w' = r@w) \<and> (v'@r = v)\<close> (is \<open>?A \<or> ?B\<close>) 
+    by (meson append_eq_append_conv2)
   then show ?case
   proof
     assume A: ?A
-    then have \<open>bal_tm (v @ Nt A # r)\<close> using "3.IH" by presburger
-    then have \<open>bal_tm (v @ Nt A # r @ w')\<close> using \<open>bal_tm w'\<close> using bal_tm.intros(3) by fastforce 
+    then have \<open>bal_tm (v @ Nt A # r)\<close> 
+      using "3.IH" by presburger
+    then have \<open>bal_tm (v @ Nt A # r @ w')\<close> 
+      using \<open>bal_tm w'\<close> using bal_tm.intros(3) by fastforce 
     then show ?thesis using A by blast
   next
     assume B: ?B
-    then have \<open>bal_tm (r @ Nt A # w)\<close> using "3.IH" by presburger
-    then have \<open>bal_tm (v' @ r @ Nt A # w)\<close> using \<open>bal_tm v'\<close> using bal_tm.intros(3) by fastforce 
+    then have \<open>bal_tm (r @ Nt A # w)\<close> 
+      using "3.IH" by presburger
+    then have \<open>bal_tm (v' @ r @ Nt A # w)\<close> 
+      using \<open>bal_tm v'\<close> using bal_tm.intros(3) by fastforce 
     then show ?thesis using B by (metis List.append.assoc)
   qed
 next
@@ -607,9 +668,12 @@ next
   show ?case
   proof (cases v)
     case Nil
-    hence "w = (Tm (Open, y)) # u @ [Tm (Close, y)]" using "4.prems" by simp
-    hence "bal_tm w" using "4.hyps" by blast
-    hence "bal_tm ([Nt A] @ w)" by blast
+    hence "w = (Tm (Open, y)) # u @ [Tm (Close, y)]" 
+      using "4.prems" by simp
+    hence "bal_tm w" 
+      using "4.hyps" by blast
+    hence "bal_tm ([Nt A] @ w)" 
+      by blast
     thus ?thesis using Nil by simp
   next
     case (Cons X v')
@@ -623,7 +687,7 @@ next
       hence u: "u=v'@w'" and [simp]: "X=Tm (Open, y) & Y=Tm (Close, y)"
         using Cons "4.prems" apply (smt (verit, ccfv_threshold) List.append.assoc List.list.inject append_Cons append_eq_append_conv last_snoc)
         by (metis "local.4.prems" Cons List.append.assoc List.list.inject append_Cons last_snoc snoc)
-          \<comment> \<open>this also works by auto, but it takes 4 seconds.\<close>
+          \<comment> \<open>This also works by auto, but it takes 4 seconds.\<close>
       thus ?thesis
         by (metis "4.IH" append.assoc append_Cons local.Cons bal_tm.intros(4) snoc)
     qed
@@ -640,7 +704,8 @@ next
   then show ?case by (auto simp add: bal_tm_insert_AB split: if_splits)
 next
   case (4 A xs s)
-  then have \<open>stk_bal_tm xs s = ([], [])\<close> by simp
+  then have \<open>stk_bal_tm xs s = ([], [])\<close> 
+    by simp
   then show ?case by (metis "local.4.IH" bal_tm_insert_Nt)
 qed (auto)
 
@@ -676,21 +741,26 @@ lemma bal_tm_insert:
   shows "u = v@w \<Longrightarrow> bal_tm (v @ b @ w)" 
 proof-
   assume uvw: \<open>u = v@w\<close>
-  have \<open>stk_bal_tm (b) [] = ([],[])\<close> using assms stk_bal_tm_iff_bal_tm by blast
-  have \<open>stk_bal_tm (u) [] = ([],[])\<close> using assms stk_bal_tm_iff_bal_tm by blast
-
-  then obtain s1' where s1'_def: \<open>stk_bal_tm v [] = ([], s1')\<close> by (metis (full_types, lifting) uvw case_prodE stk_bal_tm_append_inv)
-  then obtain s' where s'_def: \<open>stk_bal_tm (v @ w) [] = stk_bal_tm (w) s'\<close> using stk_bal_tm_append_if by blast
-
-  then have \<open>([],[]) = stk_bal_tm (v @ w) []\<close> using uvw using \<open>stk_bal_tm u [] = ([], [])\<close> by presburger
-  also have \<open>... = stk_bal_tm (w) s'\<close> using s'_def by simp
-  also have \<open>... = stk_bal_tm (b@w) s'\<close> by (metis b stk_bal_tm_append_if stk_bal_tm_if_bal_tm)
-
-  finally have \<open>stk_bal_tm (b@w) s' = ([],[])\<close> by simp
-
-  then have \<open>stk_bal_tm (v @ b @ w) [] = ([],[])\<close> using s1'_def by (metis b s'_def stk_bal_tm_append_if stk_bal_tm_if_bal_tm)
-
-  then show \<open>bal_tm (v @ b @ w)\<close> using stk_bal_tm_iff_bal_tm by blast
+  have \<open>stk_bal_tm (b) [] = ([],[])\<close> 
+    using assms stk_bal_tm_iff_bal_tm by blast
+  have \<open>stk_bal_tm (u) [] = ([],[])\<close> 
+    using assms stk_bal_tm_iff_bal_tm by blast
+  then obtain s1' where s1'_def: \<open>stk_bal_tm v [] = ([], s1')\<close> 
+    by (metis (full_types, lifting) uvw case_prodE stk_bal_tm_append_inv)
+  then obtain s' where s'_def: \<open>stk_bal_tm (v @ w) [] = stk_bal_tm (w) s'\<close> 
+    using stk_bal_tm_append_if by blast
+  then have \<open>([],[]) = stk_bal_tm (v @ w) []\<close> 
+    using uvw using \<open>stk_bal_tm u [] = ([], [])\<close> by presburger
+  also have \<open>... = stk_bal_tm (w) s'\<close> 
+    using s'_def by simp
+  also have \<open>... = stk_bal_tm (b@w) s'\<close> 
+    by (metis b stk_bal_tm_append_if stk_bal_tm_if_bal_tm)
+  finally have \<open>stk_bal_tm (b@w) s' = ([],[])\<close> 
+    by simp
+  then have \<open>stk_bal_tm (v @ b @ w) [] = ([],[])\<close> 
+    using s1'_def by (metis b s'_def stk_bal_tm_append_if stk_bal_tm_if_bal_tm)
+  then show \<open>bal_tm (v @ b @ w)\<close> 
+    using stk_bal_tm_iff_bal_tm by blast
 qed
 
 
@@ -702,14 +772,18 @@ lemma bal_tm_del:
   shows "u = v @ b @ w \<Longrightarrow> bal_tm (v @ w)" 
 proof-
   assume uvbw: \<open>u = v @ b @ w\<close>
-  have stk_bal_tm_b: \<open>stk_bal_tm (b) [] = ([],[])\<close> using assms stk_bal_tm_iff_bal_tm by blast
-  have stk_bal_tm_vbw: \<open>stk_bal_tm (v @ b @ w) [] = ([],[])\<close> using uvbw assms stk_bal_tm_iff_bal_tm by blast
-
-  then obtain s1' where s1'_def: \<open>stk_bal_tm v [] = ([], s1')\<close> by (metis (full_types, lifting) case_prodE stk_bal_tm_append_inv)
-
-  then have \<open>stk_bal_tm (v@b) [] = ([], s1')\<close> by (metis b stk_bal_tm_append_if stk_bal_tm_if_bal_tm)
-  then have \<open>stk_bal_tm (v @  w) [] = ([],[])\<close> using stk_bal_tm_vbw s1'_def by (metis stk_bal_tm_append_if)
-  then show \<open>bal_tm (v @ w)\<close> using stk_bal_tm_iff_bal_tm by blast
+  have stk_bal_tm_b: \<open>stk_bal_tm (b) [] = ([],[])\<close> 
+    using assms stk_bal_tm_iff_bal_tm by blast
+  have stk_bal_tm_vbw: \<open>stk_bal_tm (v @ b @ w) [] = ([],[])\<close> 
+    using uvbw assms stk_bal_tm_iff_bal_tm by blast
+  then obtain s1' where s1'_def: \<open>stk_bal_tm v [] = ([], s1')\<close> 
+    by (metis (full_types, lifting) case_prodE stk_bal_tm_append_inv)
+  then have \<open>stk_bal_tm (v@b) [] = ([], s1')\<close> 
+    by (metis b stk_bal_tm_append_if stk_bal_tm_if_bal_tm)
+  then have \<open>stk_bal_tm (v @  w) [] = ([],[])\<close> 
+    using stk_bal_tm_vbw s1'_def by (metis stk_bal_tm_append_if)
+  then show \<open>bal_tm (v @ w)\<close> 
+    using stk_bal_tm_iff_bal_tm by blast
 qed
 
 

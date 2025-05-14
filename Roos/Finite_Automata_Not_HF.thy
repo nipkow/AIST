@@ -174,7 +174,8 @@ proof(induction xs arbitrary: h)
   then show ?case by simp
 next
   case (Cons a xs)
-  then have \<open>M'.nextl (dfa'.nxt M' (f_inv h) a) xs = f_inv (hf_M'.nextl (f (dfa'.nxt M' (f_inv h) a)) xs)\<close> using f_f_inv hf_M'.nxt nxt_M'_f_inv by presburger
+  then have \<open>M'.nextl (dfa'.nxt M' (f_inv h) a) xs = f_inv (hf_M'.nextl (f (dfa'.nxt M' (f_inv h) a)) xs)\<close> 
+    using f_f_inv hf_M'.nxt nxt_M'_f_inv by presburger
   then show ?case by simp
 qed 
 
@@ -185,7 +186,8 @@ proof(induction xs arbitrary: q)
   then show ?case by simp
 next
   case (Cons a xs)
-  then have \<open>hf_M'.nextl (f (dfa'.nxt M' q a)) xs = f (M'.nextl (dfa'.nxt M' q a) xs)\<close> using M'.nxt by blast
+  then have \<open>hf_M'.nextl (f (dfa'.nxt M' q a)) xs = f (M'.nextl (dfa'.nxt M' q a) xs)\<close> 
+    using M'.nxt by blast
   then show ?case by (simp add: Cons.prems)
 qed 
 
@@ -204,16 +206,18 @@ corollary ex_hf_M:
   assumes dfa'_M': \<open>dfa' M'\<close>
   shows \<open>\<exists>hf_M'. dfa hf_M' \<and> dfa'.language M' = dfa.language hf_M'\<close> 
 proof-
-  interpret M': dfa' M' using dfa'_M' by simp
-  have \<open>finite (dfa'.states M')\<close> by (simp add: M'.finite) 
-
-  with embed_finite_set_into_hf[of \<open>dfa'.states M'\<close>] obtain f::\<open>'b \<Rightarrow> hf\<close> where inj_on: \<open>inj_on f (dfa'.states M')\<close> by blast
-
-  then interpret construct_equiv_dfa: construct_equiv_dfa M' f apply unfold_locales by blast
-
-  have \<open>M'.language = dfa.language local.construct_equiv_dfa.hf_M'\<close> using construct_equiv_dfa.M'_lang_eq_hf_M'_lang by blast
-  moreover have \<open>dfa local.construct_equiv_dfa.hf_M'\<close> using local.construct_equiv_dfa.dfa_hf_M' by blast
-
+  interpret M': dfa' M' using dfa'_M' 
+    by simp
+  have \<open>finite (dfa'.states M')\<close> 
+    by (simp add: M'.finite) 
+  with embed_finite_set_into_hf[of \<open>dfa'.states M'\<close>] obtain f::\<open>'b \<Rightarrow> hf\<close> where inj_on: \<open>inj_on f (dfa'.states M')\<close> 
+    by blast
+  then interpret construct_equiv_dfa: construct_equiv_dfa M' f 
+    apply unfold_locales by blast
+  have \<open>M'.language = dfa.language local.construct_equiv_dfa.hf_M'\<close> 
+    using construct_equiv_dfa.M'_lang_eq_hf_M'_lang by blast
+  moreover have \<open>dfa local.construct_equiv_dfa.hf_M'\<close> 
+    using local.construct_equiv_dfa.dfa_hf_M' by blast
   ultimately show ?thesis by blast
 qed
 
@@ -221,7 +225,8 @@ text\<open>Now we have the result, that our dfas also produce regular languages.
 corollary dfa'_imp_regular:
   fixes M' :: \<open>('a, 'b) dfa'\<close>
   assumes dfa'_M': \<open>dfa' M'\<close> "dfa'.language M' = L"
-  shows \<open>regular L\<close> using ex_hf_M using dfa'_M'(1,2) regular_def by fastforce
+  shows \<open>regular L\<close> 
+  using ex_hf_M using dfa'_M'(1,2) regular_def by fastforce
 
 
 

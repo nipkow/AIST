@@ -564,7 +564,7 @@ function (sequential) P3_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<time
 \<open>P3_sym (Tm (Open, ((A, [Nt B, Nt C]), Two))) (Tm (p, ((X,y), t))) = (p = Open \<and> t = One \<and> X = C)\<close> | 
 \<open>P3_sym (Tm (Open, ((A, [Nt B, Nt C]), Two))) (Nt X) = (X = C)\<close> | 
 \<open>P3_sym x y = True\<close>
-apply pat_completeness by fastforce+
+                      apply pat_completeness by fastforce+
 termination by lexicographic_order
 
 
@@ -952,11 +952,11 @@ next
   then obtain w' where w'_def: \<open>transform_production (A, w') = (A, w)\<close> and \<open>(A,w') \<in> P\<close> by (metis (no_types, opaque_lifting) Product_Type.old.prod.exhaust fst_conv fst_transform_production imageE)
   then have Aw'_cnf: \<open>CNF_rule (A,w')\<close> using step by blast
   then obtain B C a where 
-  \<open>((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Nt B, Nt C]) \<or> 
+    \<open>((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Nt B, Nt C]) \<or> 
   ((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Tm a])\<close> using transform_production_CNF[of \<open>(A,w')\<close>] w'_def by (metis snd_conv)   
 
   then have w_eq: 
-  \<open>w = [Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2]   \<or>   
+    \<open>w = [Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2]   \<or>   
    w = [Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>2, Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2]\<close> (is \<open>w = ?w1 \<or> w = ?w2\<close>) by fastforce
   have w_resym: \<open>w \<in> Re_sym A\<close> apply(rule disjE[OF w_eq]; rule Re_symI) by auto 
 
@@ -988,14 +988,14 @@ next
           P7_sym (last (ys@[y])) (hd w) \<and> 
           P8_sym (last (ys@[y])) (hd w)\<close> unfolding y_eq using w_eq apply(cases \<open>w = ?w1\<close>) apply force by simp
     with Re_symD[OF uAv] moreover have 
-    \<open>successively P1'_sym (ys @ [y]) \<and> 
+      \<open>successively P1'_sym (ys @ [y]) \<and> 
      successively P2_sym (ys @ [y]) \<and> 
      successively P3_sym (ys @ [y]) \<and> 
      successively P4_sym (ys @ [y]) \<and> 
      successively P7_sym (ys @ [y]) \<and> 
      successively P8_sym (ys @ [y])\<close> unfolding snoc using successively_append_iff by blast
     ultimately show 
-    \<open>successively P1'_sym (u@w) \<and> 
+      \<open>successively P1'_sym (u@w) \<and> 
      successively P2_sym (u@w) \<and> 
      successively P3_sym (u@w) \<and> 
      successively P4_sym (u@w) \<and> 
@@ -1025,7 +1025,7 @@ next
          P7_sym (last w) (hd (y#ys)) \<and> 
          P8_sym (last w) (hd (y#ys))\<close> unfolding y_eq using w_eq apply(cases \<open>w = ?w1\<close>) apply force by simp
     with Re_symD[OF uAv] moreover have 
-    \<open>successively P1'_sym (y # ys) \<and> 
+      \<open>successively P1'_sym (y # ys) \<and> 
      successively P2_sym (y # ys) \<and> 
      successively P3_sym (y # ys) \<and> 
      successively P4_sym (y # ys) \<and> 
@@ -1041,7 +1041,7 @@ next
 
   from left right have P1_uwv: \<open>successively P1'_sym (u@w@v)\<close> using w_eq by (metis (no_types, lifting) List.list.discI hd_append2 successively_append_iff)
   from left right have ch: 
-  \<open>successively P2_sym (u@w@v) \<and> 
+    \<open>successively P2_sym (u@w@v) \<and> 
    successively P3_sym (u@w@v) \<and> 
    successively P4_sym (u@w@v) \<and> 
    successively P7_sym (u@w@v) \<and> 
@@ -1128,7 +1128,7 @@ lemma Re_imp_P':
     then obtain B C where pi_eq: \<open>\<pi> = (A, [Nt B, Nt C])\<close> by blast
 
     from split3 have y_successivelys: 
-    \<open>successively P1' y \<and> 
+      \<open>successively P1' y \<and> 
      successively P2 y \<and> 
      successively P3 y \<and> 
      successively P4 y\<close> using P1.simps p1x p2x p3x p4x by (metis List.list.simps(3) Nil_is_append_conv successively_Cons successively_append_iff)
@@ -1165,7 +1165,7 @@ lemma Re_imp_P':
 
 
     from split3 have z_successivelys: 
-    \<open>successively P1' z \<and> 
+      \<open>successively P1' z \<and> 
      successively P2 z \<and> 
      successively P3 z \<and> 
      successively P4 z\<close> using P1.simps p1x p2x p3x p4x by (metis List.list.simps(3) Nil_is_append_conv successively_Cons successively_append_iff)
@@ -1663,7 +1663,7 @@ qed
 
 
 lemma lang_descr_full: 
-\<open>(p1_aut.nextl last_ok xs = last_ok \<longleftrightarrow> (xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P))) \<and> 
+  \<open>(p1_aut.nextl last_ok xs = last_ok \<longleftrightarrow> (xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P))) \<and> 
  (p1_aut.nextl last_ok xs = last_bad \<longleftrightarrow> ((xs \<noteq> [] \<and> \<not>good (last xs) \<and> xs \<in> brackets P)))\<close>
 proof(induction xs rule: rev_induct)
   case Nil
@@ -2092,7 +2092,7 @@ function (sequential) transform_tree :: \<open>('n,'t) tree \<Rightarrow> ('n, b
   \<open>transform_tree (Rule A [Sym (Nt B), Rule C tC]) =   (Rule A [Sym (Tm (Open, (A, [Nt B, Nt C]), One)), Sym (Nt B), Sym (Tm (Close, ((A, [Nt B, Nt C]), One))), Sym (Tm (Open, (A, [Nt B, Nt C]), Two)), transform_tree (Rule C tC), Sym (Tm (Close, (A, [Nt B, Nt C]), Two))  ])\<close> | 
   \<open>transform_tree (Rule A [Rule B tB, Rule C tC]) =   (Rule A [Sym (Tm (Open, (A, [Nt B, Nt C]), One)), transform_tree (Rule B tB), Sym (Tm (Close, ((A, [Nt B, Nt C]), One))), Sym (Tm (Open, (A, [Nt B, Nt C]), Two)), transform_tree (Rule C tC), Sym (Tm (Close, (A, [Nt B, Nt C]), Two))  ])\<close> | 
   \<open>transform_tree (Rule A y) = (Rule A [])\<close>
-apply pat_completeness by blast+
+                      apply pat_completeness by blast+
 termination by lexicographic_order
 
 

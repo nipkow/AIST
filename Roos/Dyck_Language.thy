@@ -1,6 +1,6 @@
 (* Author: Moritz Roos *)
 theory Dyck_Language
-imports CFG.CFG
+  imports CFG.CFG
 begin
 
 section\<open>Balancedness\<close>
@@ -132,9 +132,9 @@ lemma bal_tm2_Nt[iff]: "bal_tm [Tm (Open,g), Tm (Close,g), Nt A]" using bal_tm.i
 
 (* TODO: mv to CFG *)
 lemma map_Tm_inject[dest!]: "map Tm xs = map Tm ys \<Longrightarrow> xs = ys"
-by (metis sym.inject(2) list.inj_map_strong)
+  by (metis sym.inject(2) list.inj_map_strong)
 lemma map_Tm_inject_iff[simp]: "(map Tm xs = map Tm ys) = (xs = ys)"
-by blast
+  by blast
 
 lemma split_tm_append: \<open>xs @ ys = map Tm zs \<Longrightarrow> \<exists> xs' ys'. (xs' @ ys' = zs) \<and> (xs = map Tm xs') \<and> (ys = map Tm ys')\<close> 
   by (metis append_eq_map_conv)

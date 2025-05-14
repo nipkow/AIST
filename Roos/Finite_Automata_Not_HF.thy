@@ -248,17 +248,17 @@ text\<open>These NFAs may include epsilon-transitions and multiple start states.
 subsection\<open>Basic Definitions\<close>
 
 record ('a, 'b) nfa' = states :: "'b set"
-                init   :: "'b set"
-                final  :: "'b set"
-                nxt    :: "'b \<Rightarrow> 'a \<Rightarrow> 'b set"
-                eps    :: "('b * 'b) set"
+  init   :: "'b set"
+  final  :: "'b set"
+  nxt    :: "'b \<Rightarrow> 'a \<Rightarrow> 'b set"
+  eps    :: "('b * 'b) set"
 
 locale nfa' =
   fixes M :: "('a, 'b) nfa'"
   assumes init: "init M \<subseteq> states M"
-      and final: "final M \<subseteq> states M"
-      and nxt:   "\<And>q x. q \<in> states M \<Longrightarrow> nxt M q x \<subseteq> states M"
-      and finite: "finite (states M)"
+    and final: "final M \<subseteq> states M"
+    and nxt:   "\<And>q x. q \<in> states M \<Longrightarrow> nxt M q x \<subseteq> states M"
+    and finite: "finite (states M)"
 begin
 
 lemma subset_states_finite [intro,simp]: "Q \<subseteq> states M \<Longrightarrow> finite Q"
@@ -305,8 +305,8 @@ lemma finite_nxt: "q \<in> states M \<Longrightarrow> finite (nxt M q x)"
 
 text\<open>Transition function for a given starting state and word.\<close>
 primrec nextl :: "['b set, 'a list] \<Rightarrow> 'b set" where
-    "nextl Q []     = epsclo Q"
-  | "nextl Q (x#xs) = nextl (\<Union>q \<in> epsclo Q. nxt M q x) xs"
+  "nextl Q []     = epsclo Q"
+| "nextl Q (x#xs) = nextl (\<Union>q \<in> epsclo Q. nxt M q x) xs"
 
 definition language :: "'a list set"  where
   "language \<equiv> {xs. nextl (init M) xs \<inter> final M \<noteq> {}}"
@@ -389,25 +389,25 @@ corollary dfa_Power: "dfa' Power_dfa'"
   by unfold_locales
 
 lemma nextl_Power_dfa':
-     "qs \<in> dfa'.states Power_dfa'
+  "qs \<in> dfa'.states Power_dfa'
      \<Longrightarrow> dfa'.nextl Power_dfa' qs u = (\<Union>q \<in> qs. nextl {q} u)"
   apply (induct u rule: List.rev_induct)
-  apply (auto simp: finite_nextl inj_on_HF [THEN inj_on_eq_iff])
-  apply (metis Int_empty_left Int_insert_left_if1 epsclo_increasing epsclo_subset subsetD singletonI)
+   apply (auto simp: finite_nextl inj_on_HF [THEN inj_on_eq_iff])
+   apply (metis Int_empty_left Int_insert_left_if1 epsclo_increasing epsclo_subset subsetD singletonI)
   apply (metis contra_subsetD empty_subsetI epsclo_idem epsclo_mono insert_subset)
   done
 
 text\<open>Part of Prop 4 of Jean-Marc Champarnaud, A. Khorsi and T. Paranthoën (2002)\<close>
 lemma Power_right_lang:
-     "qs \<in> dfa'.states Power_dfa' \<Longrightarrow> Power.right_lang qs = (\<Union>q \<in> qs. right_lang q)"
-using epsclo_increasing
-apply (auto simp: Power.right_lang_def right_lang_def nextl_Power_dfa'
-                  inj_on_HF [THEN inj_on_eq_iff] finite_nextl, blast)
-apply (rename_tac Q u q1 q2)
-apply (drule_tac x="(\<Union>x\<in>epsclo Q. nextl {x} u)" in spec)
-apply auto
-using nextl_state apply blast
-done
+  "qs \<in> dfa'.states Power_dfa' \<Longrightarrow> Power.right_lang qs = (\<Union>q \<in> qs. right_lang q)"
+  using epsclo_increasing
+  apply (auto simp: Power.right_lang_def right_lang_def nextl_Power_dfa'
+      inj_on_HF [THEN inj_on_eq_iff] finite_nextl, blast)
+  apply (rename_tac Q u q1 q2)
+  apply (drule_tac x="(\<Union>x\<in>epsclo Q. nextl {x} u)" in spec)
+  apply auto
+  using nextl_state apply blast
+  done
 
 
 text\<open>The Power DFA accepts the same language as the NFA.\<close>
@@ -425,7 +425,7 @@ proof -
     qed
     then have "u \<in> Power.language \<longleftrightarrow> u \<in> language"
       apply (auto simp add: Power.language_def language_def disjoint_iff_not_equal)
-      apply (metis Int_iff finite_nextl hfset_HF nextl.simps(1) epsclo_increasing subsetCE)
+       apply (metis Int_iff finite_nextl hfset_HF nextl.simps(1) epsclo_increasing subsetCE)
       apply (metis epsclo_nextl nextl_state)
       done
   }
@@ -442,8 +442,8 @@ end
 text\<open>As above, outside the locale\<close>
 corollary nfa'_imp_regular:
   assumes "nfa' M" "nfa'.language M = L"
-    shows "regular L"
-using assms nfa'.imp_regular by blast
+  shows "regular L"
+  using assms nfa'.imp_regular by blast
 
 
 

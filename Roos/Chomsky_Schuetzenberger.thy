@@ -85,30 +85,30 @@ declare [[names_short]]
 text\<open>A type with 2 elements, for creating 2 copies as needed in the proof.\<close>
 datatype version = One | Two
 
-abbreviation open_bracket1 :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version" ("[\<^sub>_\<^sup>1 ") where
+abbreviation open_bracket1 :: "('a, 'b) prod \<Rightarrow> bracket \<times> ('a, 'b) prod \<times> version" ("[\<^sub>_\<^sup>1 ") where
   "[\<^sub>p\<^sup>1  \<equiv> (Open, (p, One))"
 
-abbreviation close_bracket1 :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version" ("]\<^sub>_\<^sup>1") where
+abbreviation close_bracket1 :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("]\<^sub>_\<^sup>1") where
   "]\<^sub>p\<^sup>1 \<equiv> (Close, (p, One))"
 
-abbreviation open_bracket2 :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version" ("[\<^sub>_\<^sup>2") where
+abbreviation open_bracket2 :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("[\<^sub>_\<^sup>2") where
   "[\<^sub>p\<^sup>2 \<equiv> (Open, (p, Two))"
 
-abbreviation close_bracket2 :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version" ("]\<^sub>_\<^sup>2") where
+abbreviation close_bracket2 :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("]\<^sub>_\<^sup>2") where
   "]\<^sub>p\<^sup>2 \<equiv> (Close, (p, Two))"
 
 
 text\<open>Version for p = (A, w) (multiple letters) with bsub and esub\<close>
-abbreviation open_bracket1' :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version" ("[\<^bsub>_\<^esub>\<^sup>1 ") where
+abbreviation open_bracket1' :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("[\<^bsub>_\<^esub>\<^sup>1 ") where
   "[\<^bsub>p\<^esub>\<^sup>1  \<equiv> (Open, (p, One))"
 
-abbreviation close_bracket1' :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version" ("]\<^bsub>_\<^esub>\<^sup>1") where
+abbreviation close_bracket1' :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("]\<^bsub>_\<^esub>\<^sup>1") where
   "]\<^bsub>p\<^esub>\<^sup>1 \<equiv> (Close, (p, One))"
 
-abbreviation open_bracket2' :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version" ("[\<^bsub>_\<^esub>\<^sup>2") where
+abbreviation open_bracket2' :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("[\<^bsub>_\<^esub>\<^sup>2") where
   "[\<^bsub>p\<^esub>\<^sup>2 \<equiv> (Open, (p, Two))"
 
-abbreviation close_bracket2' :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version" ("]\<^bsub>_\<^esub>\<^sup>2 ") where
+abbreviation close_bracket2' :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("]\<^bsub>_\<^esub>\<^sup>2 ") where
   "]\<^bsub>p\<^esub>\<^sup>2 \<equiv> (Close, (p, Two))"
 
 text \<open>Nice LaTeX rendering:\<close>
@@ -432,7 +432,7 @@ lemma P1'D[dest]:
 lemma P1'_symD[dest]:
   assumes \<open>P1'_sym (Tm (Close, (p, One))) r\<close>
   shows \<open>r = Tm (Open, (p, Two))\<close> 
-  using assms apply(induction \<open>(Tm (Close, (p, One)))::('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym\<close> \<open>r\<close> rule: P1'_sym.induct) by auto
+  using assms apply(induction \<open>(Tm (Close, (p, One)))::('a, bracket \<times> ('a,'b) prod \<times> version) sym\<close> \<open>r\<close> rule: P1'_sym.induct) by auto
 
 lemmas P1'E = P1'D[elim_format]
 lemmas P1'_symE = P1'_symD[elim_format]
@@ -555,7 +555,7 @@ lemma P2D[dest]:
 lemma P2_symD[dest]:
   assumes \<open>P2_sym (Tm (Close, (p, Two))) r\<close>
   shows \<open>r \<noteq> Tm (Open, g)\<close> 
-  using assms apply(induction \<open>Tm (Close, (p, Two)):: ('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym\<close> \<open>r\<close> rule: P2_sym.induct) 
+  using assms apply(induction \<open>Tm (Close, (p, Two)):: ('a, bracket \<times> ('a,'b) prod \<times> version) sym\<close> \<open>r\<close> rule: P2_sym.induct) 
   by auto
 
 lemmas P2E = P2D[elim_format]
@@ -598,29 +598,29 @@ lemma P3D1[dest]:
   fixes r::\<open>(bracket \<times> ('n,'t) prod \<times> version)\<close>
   assumes \<open>P3 (Open, ((A, [Nt B, Nt C]), One)) r\<close>
   shows \<open>\<exists>l. r = (Open, (B, l), One)\<close>
-  using assms apply(induction \<open>(Open, ((A, [Nt B, Nt C]), One)):: bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version\<close> \<open>r:: bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version\<close> rule: P3.induct) 
+  using assms apply(induction \<open>(Open, ((A, [Nt B, Nt C]), One)):: bracket \<times> ('n, 't) prod \<times> version\<close> \<open>r:: bracket \<times> ('n, 't) prod \<times> version\<close> rule: P3.induct) 
   by auto 
 
 lemma P3D2[dest]:
   fixes r::\<open>(bracket \<times> ('n,'t) prod \<times> version)\<close>
   assumes \<open>P3 (Open, ((A, [Nt B, Nt C]), Two)) r\<close>
   shows \<open>\<exists>l. r = (Open, (C, l), One)\<close>
-  using assms apply(induction \<open>(Open, ((A, [Nt B, Nt C]), One)):: bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version\<close> \<open>r:: bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version\<close> rule: P3.induct) 
+  using assms apply(induction \<open>(Open, ((A, [Nt B, Nt C]), One)):: bracket \<times> ('n, 't) prod \<times> version\<close> \<open>r:: bracket \<times> ('n, 't) prod \<times> version\<close> rule: P3.induct) 
   by auto 
 
 
 lemma P3_symD1[dest]:
-  fixes r::\<open>('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym\<close>
+  fixes r::\<open>('n, bracket \<times> ('n, 't) prod \<times> version) sym\<close>
   assumes \<open>P3_sym (Tm (Open, ((A, [Nt B, Nt C]), One))) r\<close>
   shows \<open>(\<exists>l. r = Tm (Open, (B, l), One)) \<or> (r = Nt B)\<close>
-  using assms apply(induction \<open>Tm (Open, ((A, [Nt B, Nt C]), One)):: ('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym\<close> \<open>r:: ('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym\<close> rule: P3_sym.induct) 
+  using assms apply(induction \<open>Tm (Open, ((A, [Nt B, Nt C]), One)):: ('n, bracket \<times> ('n, 't) prod \<times> version) sym\<close> \<open>r:: ('n, bracket \<times> ('n, 't) prod \<times> version) sym\<close> rule: P3_sym.induct) 
   by auto 
 
 lemma P3_symD2[dest]:
-  fixes r::\<open>('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym\<close>
+  fixes r::\<open>('n, bracket \<times> ('n, 't) prod \<times> version) sym\<close>
   assumes \<open>P3_sym (Tm (Open, ((A, [Nt B, Nt C]), Two))) r\<close>
   shows \<open>(\<exists>l. r = Tm (Open, (C, l), One)) \<or> (r = Nt C)\<close>
-  using assms apply(induction \<open>Tm (Open, ((A, [Nt B, Nt C]), Two)):: ('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym\<close> \<open>r:: ('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) sym\<close> rule: P3_sym.induct) 
+  using assms apply(induction \<open>Tm (Open, ((A, [Nt B, Nt C]), Two)):: ('n, bracket \<times> ('n, 't) prod \<times> version) sym\<close> \<open>r:: ('n, bracket \<times> ('n, 't) prod \<times> version) sym\<close> rule: P3_sym.induct) 
   by auto
 
 
@@ -659,10 +659,10 @@ lemma P4D[dest]:
   by auto
 
 lemma P4_symD[dest]:
-  fixes r::\<open>('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym\<close>
+  fixes r::\<open>('a, bracket \<times> ('a,'b) prod \<times> version) sym\<close>
   assumes \<open>P4_sym (Tm (Open, ((A, [Tm a]), v))) r\<close>
   shows \<open>r = Tm (Close, (A, [Tm a]), v)\<close> 
-  using assms apply(induction \<open>Tm (Open, ((A, [Tm a]), v)):: ('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym\<close> \<open>r::('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym\<close> rule: P4_sym.induct) 
+  using assms apply(induction \<open>Tm (Open, ((A, [Tm a]), v)):: ('a, bracket \<times> ('a,'b) prod \<times> version) sym\<close> \<open>r::('a, bracket \<times> ('a,'b) prod \<times> version) sym\<close> rule: P4_sym.induct) 
   by auto
 
 lemmas P4E = P4D[elim_format]
@@ -715,10 +715,10 @@ fun P7_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<
 
 
 lemma P7_symD[dest]: 
-  fixes x:: \<open>('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym\<close>
+  fixes x:: \<open>('a, bracket \<times> ('a,'b) prod \<times> version) sym\<close>
   assumes \<open>P7_sym x (Nt Y)\<close>
   shows \<open>(\<exists>A C. x = Tm (Open, (A,[Nt Y, Nt C]), One)) \<or> (\<exists>A B. x = Tm (Open, (A,[Nt B, Nt Y]), Two))\<close>
-  using assms apply(induction x \<open>Nt Y::('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym\<close> rule: P7_sym.induct) 
+  using assms apply(induction x \<open>Nt Y::('a, bracket \<times> ('a,'b) prod \<times> version) sym\<close> rule: P7_sym.induct) 
   by auto
 
 lemmas P7_symE = P7_symD[elim_format]
@@ -730,10 +730,10 @@ fun P8_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<
   \<open>P8_sym x y = True\<close>
 
 lemma P8_symD[dest]: 
-  fixes x:: \<open>('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym\<close>
+  fixes x:: \<open>('a, bracket \<times> ('a,'b) prod \<times> version) sym\<close>
   assumes \<open>P8_sym (Nt Y) x\<close>
   shows \<open>(\<exists>A C. x = Tm (Close, (A,[Nt Y, Nt C]), One)) \<or> (\<exists>A B. x = Tm (Close, (A,[Nt B, Nt Y]), Two))\<close>
-  using assms apply(induction \<open>Nt Y::('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym\<close> x rule: P8_sym.induct) 
+  using assms apply(induction \<open>Nt Y::('a, bracket \<times> ('a,'b) prod \<times> version) sym\<close> x rule: P8_sym.induct) 
   by auto
 
 lemmas P8_symE = P8_symD[elim_format]
@@ -868,7 +868,7 @@ next
   then obtain a' where \<open>a = Tm a'\<close> 
   proof -
     assume a1: "\<And>a'. a = Tm a' \<Longrightarrow> thesis"
-    have f2: "\<forall>ss s. [s::('a, bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version) sym] @ ss = s # ss" 
+    have f2: "\<forall>ss s. [s::('a, bracket \<times> ('a,'b) prod \<times> version) sym] @ ss = s # ss" 
       by auto
     have "\<forall>ss s. (s::('a, 'b) sym) # ss = [s] @ ss" 
       by simp
@@ -1446,7 +1446,7 @@ qed
 
 section\<open>Showing regularity\<close>
 
-definition brackets'::\<open>('n,'t) Prods \<Rightarrow> (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) set\<close> where
+definition brackets'::\<open>('n,'t) Prods \<Rightarrow> (bracket \<times> ('n, 't) prod \<times> version) set\<close> where
   \<open>brackets' P = { (br,(p,v)) | br p v. p \<in> P }\<close>
 
 lemma brackets'I[intro!]: \<open>p \<in> P \<Longrightarrow> (br,(p,v)) \<in> brackets' P\<close> 
@@ -1461,7 +1461,7 @@ lemma brackets'E2[elim]: \<open>\<lbrakk>x \<in> brackets' P; \<And>br p v. \<lb
   unfolding brackets'_def by blast
 
 
-abbreviation brackets::\<open>('n,'t) Prods \<Rightarrow> (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set\<close> where
+abbreviation brackets::\<open>('n,'t) Prods \<Rightarrow> (bracket \<times> ('n, 't) prod \<times> version) list set\<close> where
   \<open>brackets P \<equiv> {x. list_all (\<lambda>y. y \<in> brackets' P) x}\<close>
 
 lemma bracketsI[intro!]: \<open>list_all (\<lambda>y. y \<in> brackets' P) x \<Longrightarrow> x \<in> brackets P\<close> 
@@ -1481,7 +1481,7 @@ text\<open>This is needed for the construction that shows P2,P3,P4 regular.\<clo
 datatype 'a state = start | garbage |  letter 'a
 
 
-definition allStates :: \<open>('n,'t) Prods \<Rightarrow>   (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) state set \<close>where
+definition allStates :: \<open>('n,'t) Prods \<Rightarrow>   (bracket \<times> ('n, 't) prod \<times> version) state set \<close>where
   \<open>allStates P = { letter (br,(p,v)) | br p v. p \<in> P } \<union> {start, garbage}\<close>
 
 lemma allStatesI: \<open>p \<in> P \<Longrightarrow> letter (br,(p,v)) \<in> allStates P\<close> 
@@ -1506,7 +1506,7 @@ lemma finite_allStates_if:
   assumes \<open>finite P\<close>
   shows \<open>finite( allStates P)\<close>
 proof -
-  define S::\<open>(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) state set\<close> where  "S = {letter (br, (p, v)) | br p v. p \<in> P}"
+  define S::\<open>(bracket \<times> ('n, 't) prod \<times> version) state set\<close> where  "S = {letter (br, (p, v)) | br p v. p \<in> P}"
   have 1:"S = (\<lambda>(br, p, v). letter (br, (p, v))) ` ({Open, Close} \<times> P \<times> {One, Two})" 
     unfolding S_def apply auto using bracket.exhaust version.exhaust by (smt (verit, best) SigmaI image_eqI insert_iff)
   have "finite ({Open, Close} \<times> P \<times> {One, Two})" 
@@ -1542,16 +1542,16 @@ fixes Q :: "(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (brac
 assumes finiteP: \<open>finite P\<close>
 begin
 
-fun succNext :: \<open>(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) state \<Rightarrow> (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) \<Rightarrow> (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) state\<close> where 
+fun succNext :: \<open>(bracket \<times> ('n, 't) prod \<times> version) state \<Rightarrow> (bracket \<times> ('n, 't) prod \<times> version) \<Rightarrow> (bracket \<times> ('n, 't) prod \<times> version) state\<close> where 
   \<open>succNext garbage _ = garbage\<close> | 
   \<open>succNext start (br', p', v') = (if p' \<in> P then letter (br', p',v') else garbage )\<close> | 
   \<open>succNext (letter (br, p, v)) (br', p', v') =  (if Q (br,p,v) (br',p',v') \<and> p \<in> P \<and> p' \<in> P then letter (br',p',v') else garbage)\<close>
 
 
 theorem succNext_induct[case_names garbage startp startnp letterQ letternQ]:
-  fixes R :: "(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) state \<Rightarrow> bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version \<Rightarrow> bool"
-  fixes a0 :: "(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) state"
-    and a1 :: "bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version"
+  fixes R :: "(bracket \<times> ('n, 't) prod \<times> version) state \<Rightarrow> bracket \<times> ('n, 't) prod \<times> version \<Rightarrow> bool"
+  fixes a0 :: "(bracket \<times> ('n, 't) prod \<times> version) state"
+    and a1 :: "bracket \<times> ('n, 't) prod \<times> version"
   assumes "\<And>u. R garbage u"
     and "\<And>br' p' v'. p' \<in> P \<Longrightarrow> R state.start (br', p', v')"
     and "\<And>br' p' v'. p' \<notin> P \<Longrightarrow> R state.start (br', p', v')"
@@ -1794,7 +1794,7 @@ fun good where
   \<open>good (br, p, v) = True\<close>
 
 
-fun nxt :: \<open>P1_State \<Rightarrow> (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) \<Rightarrow> P1_State\<close> where 
+fun nxt :: \<open>P1_State \<Rightarrow> (bracket \<times> ('n, 't) prod \<times> version) \<Rightarrow> P1_State\<close> where 
   \<open>nxt garbage _ = garbage\<close> | 
   \<open>nxt last_ok  (br, p, v) = (if p \<notin> P then garbage else (if good (br, p, v) then last_ok else last_bad))\<close> | 
   \<open>nxt last_bad (br, p, v) = (if p \<notin> P then garbage else (if good (br, p, v) then last_ok else last_bad))\<close>
@@ -1802,9 +1802,9 @@ fun nxt :: \<open>P1_State \<Rightarrow> (bracket \<times> ('n \<times> ('n, 't)
 
 
 theorem nxt_induct[case_names garbage startp startnp letterQ letternQ]:
-  fixes R :: "P1_State \<Rightarrow> bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version \<Rightarrow> bool"
+  fixes R :: "P1_State \<Rightarrow> bracket \<times> ('n, 't) prod \<times> version \<Rightarrow> bool"
   fixes a0 :: "P1_State"
-    and a1 :: "bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version"
+    and a1 :: "bracket \<times> ('n, 't) prod \<times> version"
   assumes "\<And>u. R garbage u"
     and "\<And>br p v. p \<notin> P \<Longrightarrow> R last_ok (br, p, v)"
     and "\<And>br p v. p \<in> P \<and> good (br, p, v) \<Longrightarrow> R last_ok (br, p, v)"
@@ -1986,7 +1986,7 @@ fun ok where
 
 
 
-fun nxt :: \<open>P5_State \<Rightarrow> (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) \<Rightarrow> P5_State\<close> where 
+fun nxt :: \<open>P5_State \<Rightarrow> (bracket \<times> ('n, 't) prod \<times> version) \<Rightarrow> P5_State\<close> where 
   \<open>nxt garbage _ = garbage\<close> | 
   \<open>nxt start  (br, (X, r), v) = (if (X,r) \<notin> P then garbage else (if ok (br, (X, r), v) then first_ok else garbage))\<close> | 
   \<open>nxt first_ok (br, p, v) = (if p \<notin> P then garbage else first_ok)\<close>
@@ -1994,9 +1994,9 @@ fun nxt :: \<open>P5_State \<Rightarrow> (bracket \<times> ('n \<times> ('n, 't)
 
 
 theorem nxt_induct[case_names garbage startnp start_p_ok start_p_nok first_ok_np first_ok_p]:
-  fixes R :: "P5_State \<Rightarrow> bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version \<Rightarrow> bool"
+  fixes R :: "P5_State \<Rightarrow> bracket \<times> ('n, 't) prod \<times> version \<Rightarrow> bool"
   fixes a0 :: "P5_State"
-    and a1 :: "bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version"
+    and a1 :: "bracket \<times> ('n, 't) prod \<times> version"
   assumes "\<And>u. R garbage u"
     and "\<And>br p v. p \<notin> P \<Longrightarrow> R start (br, p, v)"
     and "\<And>br X r v. (X, r) \<in> P \<and> ok (br, (X, r), v) \<Longrightarrow> R start (br, (X, r), v)"
@@ -2366,7 +2366,7 @@ where the corresponding production needs to be applied in the transformed versio
 abbreviation \<open>prod_rhs ts \<equiv> map root ts\<close>
 
 text\<open>We use function instead of fun here in a way, that is exactly what fun does but where we replaced \<open>auto\<close> by \<open>blast+\<close>, which happens to be 2.5 seconds faster.\<close>
-function (sequential) transform_tree :: \<open>('n,'t) tree \<Rightarrow> ('n, bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) tree\<close> where
+function (sequential) transform_tree :: \<open>('n,'t) tree \<Rightarrow> ('n, bracket \<times> ('n, 't) prod \<times> version) tree\<close> where
   \<open>transform_tree (Sym (Nt A)) = (Sym (Nt A))\<close> | 
   \<open>transform_tree (Sym (Tm a)) = (Sym (Tm (Open, ((SOME A. True, [Tm a]), One))))\<close> | 
   \<open>transform_tree (Rule A [Sym (Tm a)]) =             (Rule A [ Sym (Tm (Open, (A, [Tm a]),One)),       Sym(Tm (Close, (A, [Tm a]), One)), Sym (Tm (Open, (A, [Tm a]), Two)),       Sym(Tm (Close, (A, [Tm a]), Two))  ])\<close> | 
@@ -2725,12 +2725,12 @@ lemma Chomsky_Schuetzenberger_constr:
   defines \<open>L \<equiv> CFG.Lang P S\<close>
   assumes finite: \<open>finite P\<close> and P_CNF: \<open>CNF P\<close>
   shows \<open>regular ((brackets P) \<inter> Re S) \<and> L = image the_hom( ( (brackets P) \<inter> Re S) \<inter> (Dyck_language(P \<times> {One, Two}) ) ) \<and> 
-    hom (the_hom:: (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list \<Rightarrow> 't list)\<close>
+    hom (the_hom:: (bracket \<times> ('n, 't) prod \<times> version) list \<Rightarrow> 't list)\<close>
 proof -
   define \<Gamma> where \<open>\<Gamma> = P \<times> {One, Two}\<close>
   define P' where \<open>P' = image transform_production P\<close>
   define L' where \<open>L' = Lang P' S\<close>
-  define h where \<open>h = (the_hom::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list \<Rightarrow> 't list)\<close>
+  define h where \<open>h = (the_hom::(bracket \<times> ('n, 't) prod \<times> version) list \<Rightarrow> 't list)\<close>
   define h_ext where \<open>h_ext = (the_hom_ext::('n, bracket \<times> ('n,'t) prod \<times> version ) sym list \<Rightarrow> ('n,'t) sym list)\<close>
 
   have P_CNF': \<open>(\<forall>p \<in> P. CNF_rule p)\<close> 
@@ -2860,9 +2860,9 @@ lemma Chomsky_Schuetzenberger_not_empty:
   fixes P :: \<open>('n::infinite, 't) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S - {[]}\<close>
   assumes finite: \<open>finite P\<close>
-  shows \<open>\<exists>(R::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set) h \<Gamma>. (regular R) \<and> (L = image h (R \<inter> Dyck_language \<Gamma>)) \<and> hom h\<close>
+  shows \<open>\<exists>(R::(bracket \<times> ('n, 't) prod \<times> version) list set) h \<Gamma>. (regular R) \<and> (L = image h (R \<inter> Dyck_language \<Gamma>)) \<and> hom h\<close>
 proof -
-  define h where \<open>h = (the_hom:: (bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list \<Rightarrow> 't list)\<close>
+  define h where \<open>h = (the_hom:: (bracket \<times> ('n, 't) prod \<times> version) list \<Rightarrow> 't list)\<close>
   obtain ps where ps_def: \<open>set ps = P\<close> 
     using finite finite_list by auto
   from cnf_exists obtain ps' where ps'_CNF: \<open>CNF(set ps')\<close> and lang_ps_eq_lang_ps': \<open>CFG.lang ps' S = CFG.lang ps S - {[]}\<close> 
@@ -2890,13 +2890,13 @@ lemma Chomsky_Schuetzenberger:
   fixes P :: \<open>('n::infinite, 't) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S\<close>
   assumes finite: \<open>finite P\<close>
-  shows \<open>\<exists>(R::(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set) h \<Gamma>.  (regular R) \<and> (L = image h (R \<inter> Dyck_language \<Gamma>)) \<and> hom h\<close>
+  shows \<open>\<exists>(R::(bracket \<times> ('n, 't) prod \<times> version) list set) h \<Gamma>.  (regular R) \<and> (L = image h (R \<inter> Dyck_language \<Gamma>)) \<and> hom h\<close>
 proof(cases \<open>[] \<in> L\<close>)
   case False
   then show ?thesis by (metis Diff_empty Diff_insert0 L_def Chomsky_Schuetzenberger_not_empty finite)
 next
   case True
-  obtain R::\<open>(bracket \<times> ('n \<times> ('n, 't) sym list) \<times> version) list set\<close> and h and \<Gamma> where reg_R: \<open>(regular R)\<close> and L_minus_eq: \<open>(L-{[]} = image h (R \<inter> Dyck_language \<Gamma>))\<close> and hom_h: \<open>hom h\<close> 
+  obtain R::\<open>(bracket \<times> ('n, 't) prod \<times> version) list set\<close> and h and \<Gamma> where reg_R: \<open>(regular R)\<close> and L_minus_eq: \<open>(L-{[]} = image h (R \<inter> Dyck_language \<Gamma>))\<close> and hom_h: \<open>hom h\<close> 
     by (metis L_def Chomsky_Schuetzenberger_not_empty finite)
   then have reg_R_union: \<open>regular( R \<union> {[]})\<close> 
     by (meson regular_Un regular_nullstr)

@@ -139,28 +139,45 @@ corollary steps_extend:
   
 end
 
+
+type_synonym transition = "state option \<Rightarrow> state option \<Rightarrow> bool"
+
+
 locale dfa2_transition = dfa2 + (*there's probably a better alternative than a separate locale*)
   fixes x :: "'a list"
   assumes "x \<noteq> []"
 begin 
 
 inductive left_step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L\<close> 55) where
-  lstep [intro]: "\<lbrakk>(ys, q, zs) \<rightarrow> (ys', p, zs')
+  lstep [intro]: "\<lbrakk>x @ z \<rightarrow>** (ys, q, zs); (ys, q, zs) \<rightarrow> (ys', p, zs')
                   ; length ys < length (\<langle>x\<langle>); length ys' < length (\<langle>x\<langle>)\<rbrakk> 
       \<Longrightarrow> (ys, q, zs) \<rightarrow>\<^sup>L (ys', p, zs')"
 
 inductive_cases lstepE [elim]: "c1 \<rightarrow>\<^sup>L c2"
 
+(*A right_step definition seems to be necessary to define T*)
+inductive right_step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>R\<close> 55) where
+  rstep [intro]: "\<lbrakk>x @ z \<rightarrow>** (ys, q, zs); (ys, q, zs) \<rightarrow> (ys', p, zs')
+                  ; length ys \<ge> length (\<langle>x\<langle>); length ys' \<ge> length (\<langle>x\<langle>)\<rbrakk> 
+      \<Longrightarrow> (ys, q, zs) \<rightarrow>\<^sup>R (ys', p, zs')"
+
+inductive_cases rstepE [elim]: "c1 \<rightarrow>\<^sup>R c2"
+
 notation (ASCII) left_step (infix \<open>\<rightarrow>^L\<close> 55)
+notation (ASCII) right_step (infix \<open>\<rightarrow>^R\<close> 55)
+
 
 abbreviation left_steps :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L*\<close> 55) where
   "left_steps \<equiv> left_step\<^sup>*\<^sup>*" (*Possible problem: reflexive case holds 
                                   even when config is not in x*)
 
+abbreviation right_steps :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>R*\<close> 55) where
+  "right_steps \<equiv> right_step\<^sup>*\<^sup>*"
+
 abbreviation left_reachable :: "'a list \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L**\<close> 55) where
   "w \<rightarrow>\<^sup>L** c \<equiv> ([], init M, \<langle>w\<rangle>) \<rightarrow>\<^sup>L* c" 
+(*Right reachability?*)
 
-inductive_cases lstepsE [elim]: "c1 \<rightarrow>\<^sup>L* c2"
 
 lemma left_steps_impl_steps [elim]:
   assumes "c1 \<rightarrow>\<^sup>L* c2"
@@ -169,22 +186,50 @@ lemma left_steps_impl_steps [elim]:
                       if it is not: when in general to use elims?*)
 proof 
   from assms show "c1 \<rightarrow>* c2"
-  proof (induction rule: rtranclp_induct)
-    case (step y z)
-    from step(2) have "y \<rightarrow> z" by blast
-    then show ?case using step(3) by simp
-  qed simp
+    by (induction rule: rtranclp_induct) auto
+qed
+
+lemma right_steps_impl_steps [elim]:
+  assumes "c1 \<rightarrow>\<^sup>R* c2"
+  obtains "c1 \<rightarrow>* c2"
+proof 
+  from assms show "c1 \<rightarrow>* c2"
+    by (induction rule: rtranclp_induct) auto
 qed
 
 lemma left_steps_impl_lt_x: 
-  "\<lbrakk>(ys, q, zs) \<rightarrow>\<^sup>L* (ys', p, zs'); length ys < length (\<langle>x\<langle>)\<rbrakk> \<Longrightarrow> length ys' < length (\<langle>x\<langle>)"
+  "\<lbrakk>(ys, q, zs) \<rightarrow>\<^sup>L* (ys', p, zs'); length ys < length (\<langle>x\<langle>)\<rbrakk> 
+    \<Longrightarrow> length ys' < length (\<langle>x\<langle>)"
   by (induction rule: config_induct) auto
 
-lemma lt_len_app:
-  assumes "m < length xs"
+lemma right_steps_impl_ge_x: 
+  "\<lbrakk>(ys, q, zs) \<rightarrow>\<^sup>R* (ys', p, zs'); length ys \<ge> length (\<langle>x\<langle>)\<rbrakk> 
+    \<Longrightarrow> length ys' \<ge> length (\<langle>x\<langle>)"
+  by (induction rule: config_induct) auto
+
+proposition list_deconstruct1:
+  assumes "m \<le> length xs"
   obtains ys zs where "length ys = m" "ys @ zs = xs" using assms 
-  by (metis add_diff_cancel_right' append_take_drop_id le_iff_add length_drop length_rev
-      order_less_imp_le rev_eq_append_conv)
+  by (metis add_diff_cancel_right' append_take_drop_id le_iff_add length_drop 
+      length_rev rev_eq_append_conv)
+
+proposition list_deconstruct2:
+  assumes "m \<le> length xs"
+  obtains ys zs where "length zs = m" "ys @ zs = xs"
+proof -
+  from assms have "m \<le> length (rev xs)" by simp
+  then obtain ys zs where yz_defs: "length ys = m" "ys @ zs = rev xs"
+    using list_deconstruct1 by blast
+  hence "rev zs @ rev ys = xs" by (simp add: append_eq_rev_conv)
+  with yz_defs show thesis using that by auto
+qed
+
+lemmas list_deconstruct = list_deconstruct1 list_deconstruct2
+
+(*This lemma was necessary for the next one but sledgehammer somehow was not able to 
+prove it locally. How to deal with this?*)
+
+find_theorems "_ < _ \<Longrightarrow> _ \<le> _"
 
 lemma star_lstar_impl_substring_x:
   assumes nsteps: "x @ z \<rightarrow>** (xs, q, zs)"
@@ -200,9 +245,9 @@ proof -
     moreover from this left_steps_impl_lt_x[OF lsteps in_x]
     obtain x' where "rev as @ x' = \<langle>x\<langle>" "x' @ \<rangle>z\<rangle> = bs"
     proof -
-      print_theorems
-      from left_steps_impl_lt_x[OF lsteps in_x] lt_len_app
-      obtain xs xs' where "length xs = length as" and xapp: "xs @ xs' = \<langle>x\<langle>" by blast
+      from left_steps_impl_lt_x[OF lsteps in_x] list_deconstruct1
+      obtain xs xs' where "length xs = length as" and xapp: "xs @ xs' = \<langle>x\<langle>"
+        using Nat.less_imp_le_nat by metis
       moreover from this have "length (xs' @ \<rangle>z\<rangle>) = length bs" using app 
         by (smt (verit) append_assoc append_eq_append_conv length_rev
             mapl_app_mapr_eq_map) 
@@ -212,7 +257,7 @@ proof -
       then have "xs' @ \<rangle>z\<rangle> = bs" using xapp app 
         by (metis (no_types, lifting) append_assoc mapl_app_mapr_eq_map
             same_append_eq)
-      thus thesis using that xs_is_rev xapp by presburger 
+      thus thesis using that xs_is_rev xapp by presburger
     qed
     ultimately show ?case using that by simp
   qed blast
@@ -224,18 +269,68 @@ corollary init_lstar_impl_substring_x:
   using star_lstar_impl_substring_x assms
   by (metis length_greater_0_conv list.discI list.size(3) rtranclp.rtrancl_refl)
 
+lemma star_rstar_impl_substring_z:
+  assumes nsteps: "x @ z \<rightarrow>** (xs, q, zs)"
+      and not_in_x:   "length xs \<ge> length (\<langle>x\<langle>)"
+      and rsteps: "(xs, q, zs) \<rightarrow>\<^sup>R* (as, p, bs)"
+    obtains u where " rev (\<langle>x\<langle> @ u) = as" "u @ bs = \<rangle>z\<rangle>"
+proof -
+  from rsteps show thesis
+  proof (induction arbitrary: xs q zs rule: config_induct)
+    case refl
+    from unchanged_word nsteps rsteps have app: "\<langle>x @ z\<rangle> = rev as @ bs"
+      by (metis right_steps_impl_steps unchanged_substrings)
+    moreover from this right_steps_impl_ge_x[OF rsteps not_in_x]
+    obtain x' where "rev (\<langle>x\<langle> @ x') = as" "x' @ bs = \<rangle>z\<rangle>"
+    proof -
+      have "length bs \<le> length (\<rangle>z\<rangle>)" 
+      proof (rule ccontr)
+        assume "\<not>?thesis"
+        hence "length bs > length (\<rangle>z\<rangle>)" by simp
+        with right_steps_impl_ge_x[OF rsteps not_in_x]
+        have "length (rev as @ bs) > length (\<langle>x @ z\<rangle>)" by simp
+        thus False using app by (metis nat_less_le)
+      qed
+      from list_deconstruct2[OF this]
+      obtain xs xs' where "length xs' = length bs" and zapp: "xs @ xs' = \<rangle>z\<rangle>"
+        by metis
+      moreover from this have "length (\<langle>x\<langle> @ xs) = length as" using app
+        by (metis (no_types, lifting) append.assoc append_eq_append_conv length_rev
+            mapl_app_mapr_eq_map)
+      ultimately have xs'_is_bs: "xs' = bs"
+        by (metis app append_assoc append_eq_append_conv mapl_app_mapr_eq_map)
+      then have x_app_xs_eq_rev_as: "\<langle>x\<langle> @ xs = rev as" using zapp app
+        by (metis (no_types, lifting) append_assoc append_eq_append_conv
+            dfa2.mapl_app_mapr_eq_map dfa2_axioms)
+      hence "rev (\<langle>x\<langle> @ xs) = as" by simp
+      thus thesis using xs'_is_bs zapp that by presburger
+    qed
+    ultimately show ?case using that by simp
+  qed blast
+qed
 
-inductive T :: "state option \<Rightarrow> state option \<Rightarrow> bool" where
-  "\<lbrakk>\<langle>x\<rangle> = a # xs; x @ z \<rightarrow>\<^sup>L** (xs, q, a # \<rangle>z\<rangle>); (xs, q, a # \<rangle>z\<rangle>) \<rightarrow> (\<langle>x\<langle>, p, \<rangle>z\<rangle>)\<rbrakk>
+inductive T :: transition where
+  "\<lbrakk>\<langle>x\<rangle> = a # xs; x @ z \<rightarrow>\<^sup>L** (rev xs, q, a # \<rangle>z\<rangle>); (rev xs, q, a # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>)\<rbrakk>
     \<Longrightarrow> T None (Some q)" |
   "\<lbrakk>\<langle>x\<rangle> = a # xs;
-    (\<langle>x\<langle>, q', \<rangle>z\<rangle>) \<rightarrow> (xs, q, a # \<rangle>z\<rangle>); 
-    (xs, q, a # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (xs, p, a # \<rangle>z\<rangle>); 
-    (xs, p, a # \<rangle>z\<rangle>) \<rightarrow> (\<langle>x\<langle>, q'', \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T (Some q) (Some p)"
+    (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow> (rev xs, q, a # \<rangle>z\<rangle>); 
+    (rev xs, q, a # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev xs, p, a # \<rangle>z\<rangle>); 
+    (rev xs, p, a # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q'', \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T (Some q) (Some p)"
+(*TODO: Fix definitions using rstep as well*)
 
-(*TODO: Check/expand defs*)
+(*TODO: Set up automation for T*)
 
 end
+
+context dfa2
+begin
+abbreviation "T \<equiv> dfa2_transition.T M"
+notation T ("T\<^sub>_")
+  
+end
+
+
+(*TODO: formalize iff chain (Kozen, p. 126) top-down*)
 
 theorem two_way_dfa_lang_regular:
   assumes "dfa2 M"

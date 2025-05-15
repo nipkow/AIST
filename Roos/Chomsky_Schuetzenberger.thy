@@ -111,8 +111,16 @@ abbreviation open_bracket2' :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> br
 abbreviation close_bracket2' :: "('a \<times> ('a, 'b) sym list) \<Rightarrow> bracket \<times> ('a \<times> ('a, 'b) sym list) \<times> version" ("]\<^bsub>_\<^esub>\<^sup>2 ") where
   "]\<^bsub>p\<^esub>\<^sup>2 \<equiv> (Close, (p, Two))"
 
+text \<open>Nice LaTeX rendering:\<close>
 
-
+notation (latex output) open_bracket1 ("\<^latex>\<open>$[^1_{\<close>_\<^latex>\<open>}$\<close>")
+notation (latex output) open_bracket1' ("\<^latex>\<open>$[^1_{\<close>_\<^latex>\<open>}$\<close>")
+notation (latex output) open_bracket2 ("\<^latex>\<open>$[^2_{\<close>_\<^latex>\<open>}$\<close>")
+notation (latex output) open_bracket2' ("\<^latex>\<open>$[^2_{\<close>_\<^latex>\<open>}$\<close>")
+notation (latex output) close_bracket1 ("\<^latex>\<open>$]^1_{\<close>_\<^latex>\<open>}$\<close>")
+notation (latex output) close_bracket1' ("\<^latex>\<open>$]^1_{\<close>_\<^latex>\<open>}$\<close>")
+notation (latex output) close_bracket2 ("\<^latex>\<open>$]^2_{\<close>_\<^latex>\<open>}$\<close>")
+notation (latex output) close_bracket2' ("\<^latex>\<open>$]^2_{\<close>_\<^latex>\<open>}$\<close>")
 
 
 
@@ -666,7 +674,7 @@ lemma P4_sym_imp_P4_for_tm[intro, dest]: \<open>successively P4_sym (map Tm x) \
   by auto
 
 subsection\<open>P5\<close>
-text\<open>there exists some y, such that x begins with \<open>(Open,(A,y),1)\<close>\<close>
+text\<open>there exists some y, such that x begins with @{term \<open>(Open,(A,y)::('n,'t) prod,One)\<close>}\<close>
 fun P5 :: \<open>'n \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) list \<Rightarrow> bool\<close> where
   \<open>P5 A [] = False\<close> | 
   \<open>P5 A ((Open, (X,y), One) # xs) = (X = A)\<close> | 

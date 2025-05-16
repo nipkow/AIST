@@ -773,10 +773,10 @@ qed
 
 
 lemma [iff]: \<open>bal_tm ([ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ])\<close> 
-  using stk_bal_tm_iff_bal_tm unfolding stk_bal_tm_def by fastforce
+  using bal_stk_tm_iff_bal_tm unfolding bal_stk_tm_def by fastforce
 
 lemma [iff]: \<open>bal_tm ([ Tm (Open, (p,One)),       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ])\<close> 
-  using stk_bal_tm_iff_bal_tm unfolding stk_bal_tm_def by fastforce
+  using bal_stk_tm_iff_bal_tm unfolding bal_stk_tm_def by fastforce
 
 lemma \<open>rhs_in_tm [Nt A] \<Gamma>\<close> 
   unfolding rhs_in_tm_def by auto

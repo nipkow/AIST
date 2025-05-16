@@ -203,25 +203,25 @@ lemma Dyck_languageI_tm[intro]: \<open>bal_tm (map Tm xs') \<Longrightarrow> rhs
 
 section\<open>Function based equivalent description for \<^term>\<open>bal\<close> and \<^term>\<open>bal_tm\<close>\<close>
 
-subsection\<open>Function \<^term>\<open>stk_bal\<close>\<close>
+subsection\<open>Function \<^term>\<open>bal_stk\<close>\<close>
 text\<open>This development is thankfully taken from T. Nipkow.\<close>
 
 text\<open>A stack machine that puts open brackets to the stack, to remember that they must be matched by a closed bracket\<close>
-fun stk_bal :: "(bracket \<times> 't) list \<Rightarrow> 't list \<Rightarrow> ((bracket \<times> 't) list) * 't list" where
-  "stk_bal [] s = ([],s)" |
-  "stk_bal ((Open, g) # xs) s = stk_bal xs (g#s)" |
-  "stk_bal ((Close, g) # xs) (g'#s) = (if g=g' then stk_bal xs s else ((Close, g) # xs, g' # s))" | 
-  "stk_bal xs s = (xs,s)"
+fun bal_stk :: "(bracket \<times> 't) list \<Rightarrow> 't list \<Rightarrow> ((bracket \<times> 't) list) * 't list" where
+  "bal_stk [] s = ([],s)" |
+  "bal_stk ((Open, g) # xs) s = bal_stk xs (g#s)" |
+  "bal_stk ((Close, g) # xs) (g'#s) = (if g=g' then bal_stk xs s else ((Close, g) # xs, g' # s))" | 
+  "bal_stk xs s = (xs,s)"
 
-lemma stk_bal_append: "stk_bal (xs @ ys) s1 = (let (xs',s1') = stk_bal xs s1 in
-stk_bal (xs' @ ys) s1')"
-  by(induction xs s1 rule:stk_bal.induct) (auto split: if_splits)
+lemma bal_stk_append: "bal_stk (xs @ ys) s1 = (let (xs',s1') = bal_stk xs s1 in
+bal_stk (xs' @ ys) s1')"
+  by(induction xs s1 rule:bal_stk.induct) (auto split: if_splits)
 
-lemma stk_bal_append_if[simp]: "stk_bal xs s1 = ([],s2) \<Longrightarrow> stk_bal (xs @ ys) s1 =
-stk_bal ys s2"
-  by(simp add: stk_bal_append[of xs])
+lemma bal_stk_append_if[simp]: "bal_stk xs s1 = ([],s2) \<Longrightarrow> bal_stk (xs @ ys) s1 =
+bal_stk ys s2"
+  by(simp add: bal_stk_append[of xs])
 
-lemma stk_bal_if_bal:  "bal xs \<Longrightarrow> stk_bal xs s = ([],s)"
+lemma bal_stk_if_bal:  "bal xs \<Longrightarrow> bal_stk xs s = ([],s)"
   by(induction arbitrary: s rule: bal.induct)(auto split: if_splits)
 
 lemma bal_insert_AB: assumes u: "bal u" shows "u = v@w \<Longrightarrow> bal (v @ (Open, x) # (Close, x) # w)" using u
@@ -280,8 +280,8 @@ next
   qed 
 qed 
 
-lemma bal_if_stk_bal: "stk_bal w s = ([],[]) \<Longrightarrow> bal (rev(map (\<lambda>x. (Open, x)) s) @ w)"
-proof(induction w s rule: stk_bal.induct)
+lemma bal_if_bal_stk: "bal_stk w s = ([],[]) \<Longrightarrow> bal (rev(map (\<lambda>x. (Open, x)) s) @ w)"
+proof(induction w s rule: bal_stk.induct)
   case (2 x xs s)
   then show ?case by simp
 next
@@ -289,11 +289,11 @@ next
   then show ?case by (auto simp add: bal_insert_AB split: if_splits) 
 qed (auto)
 
-corollary stk_bal_iff_bal: "stk_bal w [] = ([],[]) \<longleftrightarrow> bal w"
-  using bal_if_stk_bal[of w "[]"] stk_bal_if_bal by auto
+corollary bal_stk_iff_bal: "bal_stk w [] = ([],[]) \<longleftrightarrow> bal w"
+  using bal_if_bal_stk[of w "[]"] bal_stk_if_bal by auto
 
-lemma stk_bal_append_inv: \<open>stk_bal (xs@ys) s1 = ([], s') \<Longrightarrow> (let (xs', s1') = stk_bal xs s1 in stk_bal xs s1 = ([], s1'))\<close>
-proof(induction xs s1 arbitrary: ys rule: stk_bal.induct)
+lemma bal_stk_append_inv: \<open>bal_stk (xs@ys) s1 = ([], s') \<Longrightarrow> (let (xs', s1') = bal_stk xs s1 in bal_stk xs s1 = ([], s1'))\<close>
+proof(induction xs s1 arbitrary: ys rule: bal_stk.induct)
   case (1 s)
   then show ?case by auto
 next
@@ -309,10 +309,10 @@ qed
 
 
 
-subsection\<open>More properties of \<^term>\<open>bal\<close>, using \<^term>\<open>stk_bal\<close>\<close>
+subsection\<open>More properties of \<^term>\<open>bal\<close>, using \<^term>\<open>bal_stk\<close>\<close>
 
 theorem bal_append_inv: "bal (u @ v) \<Longrightarrow> bal u \<Longrightarrow> bal v"
-  using stk_bal_append_if stk_bal_iff_bal by metis
+  using bal_stk_append_if bal_stk_iff_bal by metis
 
 lemma bal_insert: 
   assumes u: "bal u" 
@@ -320,26 +320,26 @@ lemma bal_insert:
   shows "u = v@w \<Longrightarrow> bal (v @ b @ w)" 
 proof-
   assume uvw: \<open>u = v@w\<close>
-  have \<open>stk_bal (b) [] = ([],[])\<close> 
-    using assms stk_bal_iff_bal by blast
-  have \<open>stk_bal (u) [] = ([],[])\<close> 
-    using assms stk_bal_iff_bal by blast
-  then obtain s1' where s1'_def: \<open>stk_bal v [] = ([], s1')\<close> 
-    by (metis (full_types, lifting) uvw case_prodE stk_bal_append_inv)
-  then obtain s' where s'_def: \<open>stk_bal (v @ w) [] = stk_bal (w) s'\<close> 
-    using stk_bal_append_if by blast
-  then have \<open>([],[]) = stk_bal (v @ w) []\<close> 
-    using uvw using \<open>stk_bal u [] = ([], [])\<close> by presburger
-  also have \<open>... = stk_bal (w) s'\<close> 
+  have \<open>bal_stk (b) [] = ([],[])\<close> 
+    using assms bal_stk_iff_bal by blast
+  have \<open>bal_stk (u) [] = ([],[])\<close> 
+    using assms bal_stk_iff_bal by blast
+  then obtain s1' where s1'_def: \<open>bal_stk v [] = ([], s1')\<close> 
+    by (metis (full_types, lifting) uvw case_prodE bal_stk_append_inv)
+  then obtain s' where s'_def: \<open>bal_stk (v @ w) [] = bal_stk (w) s'\<close> 
+    using bal_stk_append_if by blast
+  then have \<open>([],[]) = bal_stk (v @ w) []\<close> 
+    using uvw using \<open>bal_stk u [] = ([], [])\<close> by presburger
+  also have \<open>... = bal_stk (w) s'\<close> 
     using s'_def by simp
-  also have \<open>... = stk_bal (b@w) s'\<close> 
-    by (metis b stk_bal_append_if stk_bal_if_bal)
-  finally have \<open>stk_bal (b@w) s' = ([],[])\<close> 
+  also have \<open>... = bal_stk (b@w) s'\<close> 
+    by (metis b bal_stk_append_if bal_stk_if_bal)
+  finally have \<open>bal_stk (b@w) s' = ([],[])\<close> 
     by simp
-  then have \<open>stk_bal (v @ b @ w) [] = ([],[])\<close> 
-    using s1'_def by (metis b s'_def stk_bal_append_if stk_bal_if_bal)
+  then have \<open>bal_stk (v @ b @ w) [] = ([],[])\<close> 
+    using s1'_def by (metis b s'_def bal_stk_append_if bal_stk_if_bal)
   then show \<open>bal (v @ b @ w)\<close> 
-    using stk_bal_iff_bal by blast
+    using bal_stk_iff_bal by blast
 qed
 
 lemma bal_del: 
@@ -348,18 +348,18 @@ lemma bal_del:
   shows "u = v @ b @ w \<Longrightarrow> bal (v @ w)" 
 proof-
   assume uvbw: \<open>u = v @ b @ w\<close>
-  have stk_bal_b: \<open>stk_bal (b) [] = ([],[])\<close> 
-    using assms stk_bal_iff_bal by blast
-  have stk_bal_vbw: \<open>stk_bal (v @ b @ w) [] = ([],[])\<close> 
-    using uvbw assms stk_bal_iff_bal by blast
-  then obtain s1' where s1'_def: \<open>stk_bal v [] = ([], s1')\<close> 
-    by (metis (full_types, lifting) case_prodE stk_bal_append_inv)
-  then have \<open>stk_bal (v@b) [] = ([], s1')\<close> 
-    by (metis b stk_bal_append_if stk_bal_if_bal)
-  then have \<open>stk_bal (v @  w) [] = ([],[])\<close> 
-    using stk_bal_vbw s1'_def by (metis stk_bal_append_if)
+  have bal_stk_b: \<open>bal_stk (b) [] = ([],[])\<close> 
+    using assms bal_stk_iff_bal by blast
+  have bal_stk_vbw: \<open>bal_stk (v @ b @ w) [] = ([],[])\<close> 
+    using uvbw assms bal_stk_iff_bal by blast
+  then obtain s1' where s1'_def: \<open>bal_stk v [] = ([], s1')\<close> 
+    by (metis (full_types, lifting) case_prodE bal_stk_append_inv)
+  then have \<open>bal_stk (v@b) [] = ([], s1')\<close> 
+    by (metis b bal_stk_append_if bal_stk_if_bal)
+  then have \<open>bal_stk (v @  w) [] = ([],[])\<close> 
+    using bal_stk_vbw s1'_def by (metis bal_stk_append_if)
   then show \<open>bal (v @ w)\<close> 
-    using stk_bal_iff_bal by blast
+    using bal_stk_iff_bal by blast
 qed
 
 corollary bal_iff_insert[iff]:
@@ -449,29 +449,29 @@ qed
 lemma bal_not_empty:  
   assumes \<open>bal (x#xs)\<close>
   shows \<open>\<exists>g. x = (Open, g)\<close>
-  using assms by (metis (full_types) List.list.distinct(1) List.listrel.simps Product_Type.prod.exhaust_sel bracket.exhaust stk_bal.simps(4) stk_bal_if_bal)
+  using assms by (metis (full_types) List.list.distinct(1) List.listrel.simps Product_Type.prod.exhaust_sel bracket.exhaust bal_stk.simps(4) bal_stk_if_bal)
 
 
 
-subsection\<open>Function \<^term>\<open>stk_bal_tm\<close>\<close>
+subsection\<open>Function \<^term>\<open>bal_stk_tm\<close>\<close>
 
-text\<open>A version of \<^term>\<open>stk_bal\<close> but for a symbol list that might contain Nonterminals (they are ignored via filtering).\<close>
-definition stk_bal_tm :: "('n, bracket \<times> 't) syms \<Rightarrow> 't list \<Rightarrow> ('n, bracket \<times> 't) syms * 't list" where
-  \<open>stk_bal_tm \<equiv> (\<lambda>x y . (map Tm (fst ((stk_bal o (map stripTm) o (filter isTm)) x y)), snd ((stk_bal o (map stripTm) o (filter isTm)) x y)))\<close>
+text\<open>A version of \<^term>\<open>bal_stk\<close> but for a symbol list that might contain Nonterminals (they are ignored via filtering).\<close>
+definition bal_stk_tm :: "('n, bracket \<times> 't) syms \<Rightarrow> 't list \<Rightarrow> ('n, bracket \<times> 't) syms * 't list" where
+  \<open>bal_stk_tm \<equiv> (\<lambda>x y . (map Tm (fst ((bal_stk o (map stripTm) o (filter isTm)) x y)), snd ((bal_stk o (map stripTm) o (filter isTm)) x y)))\<close>
 
-lemma stk_bal_tm_append: "stk_bal_tm (xs @ ys) s1 = (let (xs',s1') = stk_bal_tm xs s1 in
-stk_bal_tm (xs' @ ys) s1')"
-  unfolding stk_bal_tm_def apply auto
-   apply (metis (no_types, lifting) old.prod.case stk_bal_append surjective_pairing)
-  by (metis (no_types, lifting) split_beta stk_bal_append)
+lemma bal_stk_tm_append: "bal_stk_tm (xs @ ys) s1 = (let (xs',s1') = bal_stk_tm xs s1 in
+bal_stk_tm (xs' @ ys) s1')"
+  unfolding bal_stk_tm_def apply auto
+   apply (metis (no_types, lifting) old.prod.case bal_stk_append surjective_pairing)
+  by (metis (no_types, lifting) split_beta bal_stk_append)
 
-lemma stk_bal_tm_append_if[simp]: "stk_bal_tm xs s1 = ([],s2) \<Longrightarrow> stk_bal_tm (xs @ ys) s1 =
-stk_bal_tm ys s2"
-  by(simp add: stk_bal_tm_append[of xs])
+lemma bal_stk_tm_append_if[simp]: "bal_stk_tm xs s1 = ([],s2) \<Longrightarrow> bal_stk_tm (xs @ ys) s1 =
+bal_stk_tm ys s2"
+  by(simp add: bal_stk_tm_append[of xs])
 
-lemma stk_bal_tm_if_bal_tm:  "bal_tm xs \<Longrightarrow> stk_bal_tm xs s = ([],s)"
-  unfolding stk_bal_tm_def 
-  by (simp add: bal_tm_def stk_bal_if_bal)+
+lemma bal_stk_tm_if_bal_tm:  "bal_tm xs \<Longrightarrow> bal_stk_tm xs s = ([],s)"
+  unfolding bal_stk_tm_def 
+  by (simp add: bal_tm_def bal_stk_if_bal)+
 
 lemma bal_tm_insert_AB: assumes u: "bal_tm u" shows "u = v@w \<Longrightarrow> bal_tm (v @ Tm (Open, x) # Tm (Close, x) # w)" using u
   unfolding bal_tm_def apply auto
@@ -480,22 +480,22 @@ lemma bal_tm_insert_AB: assumes u: "bal_tm u" shows "u = v@w \<Longrightarrow> b
 lemma bal_tm_insert_Nt: assumes u: "bal_tm u" shows "u = v@w \<Longrightarrow> bal_tm (v @ Nt A # w)" using u
   unfolding bal_tm_def by auto
 
-corollary stk_bal_tm_iff_bal_tm: "stk_bal_tm w [] = ([],[]) \<longleftrightarrow> bal_tm w"
-  unfolding stk_bal_tm_def bal_tm_def apply auto
-    apply (metis prod.exhaust_sel stk_bal_iff_bal)
-   apply (simp add: stk_bal_if_bal)
-  by (simp add: stk_bal_if_bal)
+corollary bal_stk_tm_iff_bal_tm: "bal_stk_tm w [] = ([],[]) \<longleftrightarrow> bal_tm w"
+  unfolding bal_stk_tm_def bal_tm_def apply auto
+    apply (metis prod.exhaust_sel bal_stk_iff_bal)
+   apply (simp add: bal_stk_if_bal)
+  by (simp add: bal_stk_if_bal)
 
-lemma stk_bal_tm_append_inv: \<open>stk_bal_tm (xs@ys) s1 = ([], s') \<Longrightarrow> (let (xs', s1') = stk_bal_tm xs s1 in stk_bal_tm xs s1 = ([], s1'))\<close>
-  unfolding stk_bal_tm_def apply auto 
-  by (smt (verit, del_insts) case_prodE fstI stk_bal_append_inv surjective_pairing)
+lemma bal_stk_tm_append_inv: \<open>bal_stk_tm (xs@ys) s1 = ([], s') \<Longrightarrow> (let (xs', s1') = bal_stk_tm xs s1 in bal_stk_tm xs s1 = ([], s1'))\<close>
+  unfolding bal_stk_tm_def apply auto 
+  by (smt (verit, del_insts) case_prodE fstI bal_stk_append_inv surjective_pairing)
 
 
 
-subsection\<open>More properties of \<^term>\<open>bal_tm\<close>, using \<^term>\<open>stk_bal_tm\<close>\<close>
+subsection\<open>More properties of \<^term>\<open>bal_tm\<close>, using \<^term>\<open>bal_stk_tm\<close>\<close>
 
 theorem bal_tm_append_inv: "bal_tm (u @ v) \<Longrightarrow> bal_tm u \<Longrightarrow> bal_tm v"
-  using stk_bal_tm_append_if stk_bal_tm_iff_bal_tm by metis
+  using bal_stk_tm_append_if bal_stk_tm_iff_bal_tm by metis
 
 lemma bal_tm_insert: 
   assumes u: "bal_tm u" 

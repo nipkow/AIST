@@ -7,25 +7,26 @@ section\<open>Balancedness\<close>
 text\<open>A type of brackets for creating the \<open>Dyck_language\<close>\<close>
 datatype bracket = Open | Close
 
-
 text\<open>definition of what it means to be a balanced string with letters of type \<open>bracket \<times> ('a)\<close> \<close>
 inductive bal :: "(bracket  \<times> 'a) list \<Rightarrow> bool" where
   "bal []" |
   "bal xs \<Longrightarrow> bal ys \<Longrightarrow> bal (xs @ ys)" | 
   "bal xs \<Longrightarrow> bal ((Open, g) # xs @ [(Close, g)])" 
-print_theorems
+
 declare bal.intros(1)[iff] bal.intros(2)[intro,simp] bal.intros(3)[intro!,simp]
 
 lemma bal2[iff]: "bal [(Open,g), (Close,g)]" 
   using bal.intros(1,3) by fastforce
 
 
+
 section\<open>Dyck Language Definition\<close>
 
-text\<open>Says that all right hand sides of letters in \<open>x\<close> are in \<open>\<Gamma>\<close>\<close>
+text\<open>To verify, that all the letters in the (to be defined) Dyck language
+come from the right set, we use this definition. 
+It says that all right hand sides of pairs in \<open>x\<close> are in \<open>\<Gamma>\<close>.\<close>
 definition rhs_in :: \<open> ('a  \<times> 'b) list \<Rightarrow> 'b set  \<Rightarrow> bool\<close> where
   \<open>rhs_in x \<Gamma> \<equiv> (\<forall>br \<gamma>. (br, \<gamma>) \<in> set x \<longrightarrow> \<gamma> \<in> \<Gamma>)\<close>
-
 
 text\<open>Useful Lemmas about this:\<close>
 
@@ -40,7 +41,6 @@ lemma rhs_inD[dest]:
   using assms unfolding rhs_in_def by blast
 
 lemmas rhs_inE = rhs_inD[elim_format]
-
 
 lemma rhs_in_del_right: \<open>rhs_in (xs@ys) \<Gamma> \<Longrightarrow> rhs_in xs \<Gamma>\<close>
 proof-
@@ -71,14 +71,9 @@ proof-
   then show ?thesis using rhs_inI[of \<open>xs@ys\<close> \<Gamma>] using assm_xs assm_ys by auto
 qed
 
-
-
-
-
-
-
-text\<open>The bracket language over a set \<open>\<Gamma>\<close>.  
-Every element \<^prop>\<open>\<gamma> \<in> \<Gamma>\<close> will get a Closing and an Opening version of itself, via pairing with the type bracket.\<close>
+text\<open>The dyck/bracket language over a set \<open>\<Gamma>\<close>.  
+Every element \<^prop>\<open>\<gamma> \<in> \<Gamma>\<close> will get a Closing and an Opening version of itself, 
+via pairing with the type bracket.\<close>
 definition Dyck_language :: "'a set \<Rightarrow> (bracket  \<times> ('a)) list set" where
   "Dyck_language \<Gamma> = {w. (bal w) \<and> rhs_in w \<Gamma>}"
 
@@ -105,10 +100,6 @@ proof-
   then show ?thesis using \<open>bal w\<close> \<open>xs @ w @ ys \<in> Dyck_language \<Gamma>\<close> by blast
 qed
 
-
-
-
-
 fun stripTm :: "('a, 'b) sym  \<Rightarrow> 'b" where 
   \<open>stripTm (Tm t) = t\<close> | 
   \<open>stripTm (Nt A) = undefined\<close>
@@ -118,6 +109,8 @@ lemma stripTm_Tm[simp]: \<open>map (stripTm \<circ> Tm) xs' = xs'\<close>
 
 definition bal_tm where
   \<open>bal_tm \<equiv> bal o (map stripTm) o (filter isTm)\<close>
+
+
 
 
 
@@ -134,10 +127,7 @@ lemma isTm_Tm[simp]: \<open>isTm (Tm a)\<close>
 
 lemma filter_isTm_map_Tm[simp]:\<open>filter isTm (map Tm xs') = map Tm xs'\<close>
   apply(induction xs') by auto
-
-
-
-
+(* until here *)
 
 lemma bal_tm_empty[iff]: \<open>bal_tm []\<close>
   by (simp add: bal_tm_def)
@@ -163,19 +153,15 @@ lemma bal_tm2[iff]: "bal_tm [Tm (Open,g), Tm (Close,g)]"
 lemma bal_tm2_Nt[iff]: "bal_tm [Tm (Open,g), Tm (Close,g), Nt A]" 
   using bal_tm_append_Nt by force
 
-
 (* TODO: mv to CFG *)
 lemma map_Tm_inject[dest!]: "map Tm xs = map Tm ys \<Longrightarrow> xs = ys"
   by (metis sym.inject(2) list.inj_map_strong)
 
 lemma map_Tm_inject_iff[simp]: "(map Tm xs = map Tm ys) = (xs = ys)"
   by blast
+(* until here *)
 
-lemma split_tm_append: \<open>xs @ ys = map Tm zs \<Longrightarrow> \<exists> xs' ys'. (xs' @ ys' = zs) \<and> (xs = map Tm xs') \<and> (ys = map Tm ys')\<close> 
-  by (metis append_eq_map_conv)
-
-
-text\<open>Relationship of \<^term>\<open>bal\<close> and \<^term>\<open>bal_tm\<close>\<close>
+text\<open>Relationship of \<^term>\<open>bal\<close> and \<^term>\<open>bal_tm\<close>:\<close>
 lemma bal_imp_bal_tm: \<open>bal xs \<Longrightarrow> bal_tm (map Tm xs)\<close>
   by(induction xs rule: bal.induct; auto)
 
@@ -183,20 +169,16 @@ lemma bal_tm_imp_bal_for_tms: \<open>bal_tm (map Tm xs') \<Longrightarrow> bal x
   unfolding bal_tm_def by auto
 
 
-
-
-
-
 subsection\<open>\<^term>\<open>rhs_in_tm\<close>\<close>
 
-text\<open>Says that all right hand sides of \<open>x\<close> (here stripped of their \<open>Tm\<close>) are in \<open>\<Gamma>\<close>.\<close>
+text\<open>Version of \<^term>\<open>rhs_in\<close> but for a list of symbols, that might contain Nonterminals.
+Says that all right hand sides of \<open>x\<close> (here stripped of their \<open>Tm\<close>) are in \<open>\<Gamma>\<close>:\<close>
 definition rhs_in_tm where
   \<open>rhs_in_tm \<equiv> rhs_in o (map stripTm) o (filter isTm)\<close>
 
-
+text\<open>Useful lemmas about this:\<close>
 lemma rhs_in_tm_del_right[dest]: \<open>rhs_in_tm (xs@ys) \<Gamma> \<Longrightarrow> rhs_in_tm xs \<Gamma>\<close> 
   unfolding rhs_in_tm_def using rhs_in_del_right by auto
-
 
 lemmas rhs_in_tm_del_rightE = rhs_in_tm_del_right[elim_format]
 
@@ -208,20 +190,9 @@ lemmas rhs_in_tm_del_leftE = rhs_in_tm_del_left[elim_format]
 lemma rhs_in_tm_append[intro, simp]: \<open>rhs_in_tm (xs) \<Gamma> \<Longrightarrow> rhs_in_tm (ys) \<Gamma> \<Longrightarrow> rhs_in_tm (xs@ys) \<Gamma>\<close>
   unfolding rhs_in_tm_def using rhs_in_append by simp
 
-
 text\<open>Relationship between \<^term>\<open>bal_tm\<close>, \<^term>\<open>rhs_in_tm\<close> and \<open>Dyck_Language\<close>\<close>
 lemma Dyck_languageI_tm[intro]: \<open>bal_tm (map Tm xs') \<Longrightarrow> rhs_in_tm (map Tm xs') \<Gamma> \<Longrightarrow> xs' \<in> Dyck_language \<Gamma>\<close>
   unfolding bal_tm_def rhs_in_tm_def by auto
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -246,8 +217,6 @@ stk_bal ys s2"
 
 lemma stk_bal_if_bal:  "bal xs \<Longrightarrow> stk_bal xs s = ([],s)"
   by(induction arbitrary: s rule: bal.induct)(auto split: if_splits)
-
-
 
 lemma bal_insert_AB: assumes u: "bal u" shows "u = v@w \<Longrightarrow> bal (v @ (Open, x) # (Close, x) # w)" using u
 proof(induction arbitrary: v w)
@@ -287,7 +256,6 @@ next
   case (2 v' w')
   then obtain r where "v'=v@r \<and> r@w'=w \<or> v'@r=v \<and>w'=r@w" (is "?A \<or> ?B")
     by (meson append_eq_append_conv2)
-
   thus ?case
   proof
     assume A: ?A
@@ -306,8 +274,6 @@ next
   qed 
 qed 
 
-
-
 lemma stk_bal_if_stk_bal: "stk_bal w s = ([],[]) \<Longrightarrow> bal (rev(map (\<lambda>x. (Open, x)) s) @ w)"
 proof(induction w s rule: stk_bal.induct)
   case (2 x xs s)
@@ -317,13 +283,11 @@ next
   then show ?case by (auto simp add: bal_insert_AB split: if_splits) 
 qed (auto)
 
-
 corollary stk_bal_iff_bal: "stk_bal w [] = ([],[]) \<longleftrightarrow> bal w"
   using stk_bal_if_stk_bal[of w "[]"] stk_bal_if_bal by auto
 
 theorem bal_append_inv: "bal (u @ v) \<Longrightarrow> bal u \<Longrightarrow> bal v"
   using stk_bal_append_if stk_bal_iff_bal by metis
-
 
 lemma stk_bal_append_inv: \<open>stk_bal (xs@ys) s1 = ([], s') \<Longrightarrow> (let (xs', s1') = stk_bal xs s1 in stk_bal xs s1 = ([], s1'))\<close>
 proof(induction xs s1 arbitrary: ys rule: stk_bal.induct)
@@ -339,7 +303,6 @@ next
   case (4 A xs s)
   then show ?case by(auto split: prod.splits)
 qed
-
 
 lemma bal_insert: 
   assumes u: "bal u" 
@@ -369,9 +332,6 @@ proof-
     using stk_bal_iff_bal by blast
 qed
 
-
-
-
 lemma bal_del: 
   assumes u: "bal u" 
     and b: \<open>bal b\<close>
@@ -392,12 +352,10 @@ proof-
     using stk_bal_iff_bal by blast
 qed
 
-
 corollary bal_iff_insert[iff]:
   assumes \<open>bal b\<close>
   shows \<open>bal (v @ b @ w) = bal (v @ w)\<close>
   using bal_del bal_insert by (metis assms)
-
 
 lemma bal_start_Open: \<open>bal (x#xs) \<Longrightarrow>\<exists>g. x = (Open,g)\<close> 
 proof(induction \<open>length (x#xs)\<close> arbitrary: x xs rule: less_induct)
@@ -432,9 +390,6 @@ proof(induction \<open>length (x#xs)\<close> arbitrary: x xs rule: less_induct)
     qed
   qed auto
 qed
-
-
-
 
 lemma bal_Open_split: \<open>bal (x # xs) \<Longrightarrow> \<exists>y r g. bal y \<and> bal r \<and> (x # xs) = (Open, g) # y @ (Close, g) # r\<close>
 proof-
@@ -481,9 +436,6 @@ proof-
   then show ?thesis using x_def using bal_x_xs by blast
 qed
 
-
-
-
 lemma bal_not_empty:  
   assumes \<open>bal (x#xs)\<close>
   shows \<open>\<exists>g. x = (Open, g)\<close>
@@ -491,18 +443,11 @@ lemma bal_not_empty:
 
 
 
-
-
-
-
-
 subsection\<open>\<^term>\<open>bal_tm\<close>\<close>
 
-
-text\<open>A stack machine that puts open brackets to the stack, to remember that they must be matched by a closed bracket\<close>
+text\<open>A version of \<^term>\<open>stk_bal\<close> but for a symbol list that might contain Nonterminals (they are ignored via filtering).\<close>
 definition stk_bal_tm :: "('n, bracket \<times> 't) syms \<Rightarrow> 't list \<Rightarrow> ('n, bracket \<times> 't) syms * 't list" where
   \<open>stk_bal_tm \<equiv> (\<lambda>x y . (map Tm (fst ((stk_bal o (map stripTm) o (filter isTm)) x y)), snd ((stk_bal o (map stripTm) o (filter isTm)) x y)))\<close>
-
 
 lemma stk_bal_tm_append: "stk_bal_tm (xs @ ys) s1 = (let (xs',s1') = stk_bal_tm xs s1 in
 stk_bal_tm (xs' @ ys) s1')"
@@ -518,22 +463,16 @@ lemma stk_bal_tm_if_bal_tm:  "bal_tm xs \<Longrightarrow> stk_bal_tm xs s = ([],
   unfolding stk_bal_tm_def 
   by (simp add: bal_tm_def stk_bal_if_bal)+
 
-
-
 lemma bal_tm_insert_AB: assumes u: "bal_tm u" shows "u = v@w \<Longrightarrow> bal_tm (v @ Tm (Open, x) # Tm (Close, x) # w)" using u
   unfolding bal_tm_def apply auto
   by (metis bal_insert_AB)
 
-
 lemma bal_tm_insert_Nt: assumes u: "bal_tm u" shows "u = v@w \<Longrightarrow> bal_tm (v @ Nt A # w)" using u
   unfolding bal_tm_def by auto
 
-
+(*TODO delete me*)
 lemma stk_bal_if_stk_bal_tm: "stk_bal_tm w s = ([],[]) \<Longrightarrow> bal_tm (rev(map (\<lambda>x. Tm (Open, x)) s) @ w)" 
   oops
-
-
-
 
 corollary stk_bal_tm_iff_bal_tm: "stk_bal_tm w [] = ([],[]) \<longleftrightarrow> bal_tm w"
   unfolding stk_bal_tm_def bal_tm_def apply auto
@@ -544,11 +483,9 @@ corollary stk_bal_tm_iff_bal_tm: "stk_bal_tm w [] = ([],[]) \<longleftrightarrow
 theorem bal_tm_append_inv: "bal_tm (u @ v) \<Longrightarrow> bal_tm u \<Longrightarrow> bal_tm v"
   using stk_bal_tm_append_if stk_bal_tm_iff_bal_tm by metis
 
-
 lemma stk_bal_tm_append_inv: \<open>stk_bal_tm (xs@ys) s1 = ([], s') \<Longrightarrow> (let (xs', s1') = stk_bal_tm xs s1 in stk_bal_tm xs s1 = ([], s1'))\<close>
   unfolding stk_bal_tm_def apply auto 
   by (smt (verit, del_insts) case_prodE fstI stk_bal_append_inv surjective_pairing)
-
 
 lemma bal_tm_insert: 
   assumes u: "bal_tm u" 
@@ -556,24 +493,15 @@ lemma bal_tm_insert:
   shows "u = v@w \<Longrightarrow> bal_tm (v @ b @ w)" 
   by (metis b bal_iff_insert bal_tm_def comp_def filter_append map_append u)
 
-
-
-
 lemma bal_tm_del: 
   assumes u: "bal_tm u" 
     and b: \<open>bal_tm b\<close>
   shows "u = v @ b @ w \<Longrightarrow> bal_tm (v @ w)" 
   by (metis b bal_iff_insert bal_tm_def comp_def filter_append map_append u)
 
-
 corollary bal_tm_iff_insert[iff]:
   assumes \<open>bal_tm b\<close>
   shows \<open>bal_tm (v @ b @ w) = bal_tm (v @ w)\<close>
   using bal_tm_del bal_tm_insert by (metis assms)
-
-
-
-
-
 
 end

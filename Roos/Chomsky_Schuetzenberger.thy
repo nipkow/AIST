@@ -1390,8 +1390,8 @@ subsection\<open>The construction of an automaton that accepts the language \<op
 
 locale successivelyConstruction = 
 
-fixes Q :: "(bracket \<times> ('n::finitary,'t::finitary) prod \<times> version) \<Rightarrow> (bracket \<times> ('n::finitary,'t::finitary) prod \<times> version) \<Rightarrow> bool" \<comment> \<open>e.g. P2\<close>
-  and P :: "('n::finitary,'t::finitary) Prods"
+fixes Q :: "(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool" \<comment> \<open>e.g. P2\<close>
+  and P :: "('n,'t) Prods"
 
 assumes finiteP: \<open>finite P\<close>
 begin
@@ -1420,11 +1420,11 @@ theorem succNext_induct[case_names garbage startp startnp letterQ letternQ]:
   apply(case_tac \<open>Q (br,p,v) (br',p',v') \<and> p \<in> P \<and> p' \<in> P\<close>) 
   using assms by simp+
 
-declare [[show_types]]
-abbreviation aut  where \<open>aut \<equiv> \<lparr>dfa.states = hf_of ` (allStates P),
-                     init  = hf_of start,
-                     final = hf_of ` (allStates P - {garbage}),
-                     nxt   = \<lambda>q x. hf_of (succNext (inv hf_of q) x) \<rparr>\<close>
+
+abbreviation aut where \<open>aut \<equiv> \<lparr>dfa'.states = (allStates P),
+                     init  = start,
+                     final = (allStates P - {garbage}),
+                     nxt   = succNext \<rparr>\<close>
 
 
 interpretation aut : dfa' aut

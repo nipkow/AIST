@@ -66,18 +66,7 @@ This is where the main work of the proof goes into.
 Using this then for the old start symbol S gives the desired equation \<open>L' = R \<inter> Dyck_language \<Gamma>\<close>
 \<close>
 
-
-
-
-
-
-
-
-
-
 section\<open>Cloning and Abbreviations\<close>
-
-
 
 text\<open>A type with 2 elements, for creating 2 copies as needed in the proof:\<close>
 datatype version = One | Two
@@ -142,7 +131,6 @@ fun transform_production :: "('n, 't) prod \<Rightarrow>
 
 \<open>transform_production (A, _) = (A, [])\<close>
 
-
 lemma transform_production_induct:
   \<open>\<lbrakk>\<And>B C. P ([Nt B, Nt C]); 
     \<And>a. P ([Tm a]); P ([]); 
@@ -153,18 +141,12 @@ lemma transform_production_induct:
 \<Longrightarrow> P a0\<close>
   by (metis CFG.sym.exhaust List.list.exhaust)
 
-
 lemma fst_transform_production[simp]: \<open>fst (transform_production (A, w)) = A\<close>
   by(induction rule: transform_production_induct;auto)    
-
-
-
-
 
 text\<open>Definition of what it means to be a chomksy-form rule:\<close>
 definition CNF_rule :: "('n,'t) prod \<Rightarrow> bool" where
   \<open>CNF_rule p \<equiv>  (\<exists>(A::'n) B C. (p = (A,[Nt B, Nt C]))) \<or> (\<exists>A a. p= (A, [Tm a]))\<close>
-
 
 lemma transform_production_CNF: \<open>CNF_rule p \<Longrightarrow> 
 (\<exists>A B C. transform_production p = (A, [ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ]) \<and> p = (A, [Nt B, Nt C])) \<or> 
@@ -189,7 +171,6 @@ lemma transform_production_when_CNF:
 \<close>
   using assms unfolding CNF_rule_def by auto
 
-
 lemma transform_production_when_CNF':
   assumes \<open>CNF_rule (A,r)\<close>
   shows \<open>\<exists>B C a.    
@@ -209,20 +190,12 @@ lemma transform_production_when_CNF':
 \<close>
   using transform_production_when_CNF fst_transform_production using assms by blast
 
-
-
 lemma transform_production_induct_cnf:
   assumes \<open>CNF_rule p\<close>
     and \<open>\<And>A B C. Q (transform_production (A, [Nt B, Nt C])) (A, [Nt B, Nt C])\<close>
     and \<open>\<And>A a. Q (transform_production (A, [Tm a])) (A, [Tm a])\<close>
   shows \<open>Q (transform_production p) p\<close>
   using assms CNF_rule_def by metis
-
-
-
-
-
-
 
 section\<open>Definition of the regular Language\<close>
 
@@ -252,8 +225,8 @@ lemma P1'_symD[dest]:
   using assms apply(induction \<open>(Tm (Close, (p, One)))::('a, bracket \<times> ('a,'b) prod \<times> version) sym\<close> \<open>r\<close> rule: P1'_sym.induct) by auto
 
 lemmas P1'E = P1'D[elim_format]
-lemmas P1'_symE = P1'_symD[elim_format]
 
+lemmas P1'_symE = P1'_symD[elim_format]
 
 text\<open>Asserts that P1' holds for every pair in xs, and that xs doesnt end in (Close, p, 1):\<close>
 fun P1 where
@@ -262,7 +235,6 @@ fun P1 where
 text\<open>Asserts that P1' holds for every pair in xs, and that xs doesnt end in Tm (Close, p, 1):\<close>
 fun P1_sym where
   \<open>P1_sym xs = ((successively P1'_sym xs) \<and> (if xs \<noteq> [] then (\<nexists>p. last xs = Tm (Close, (p, One))) else True))\<close>
-
 
 lemma P1_sym_imp_P1_for_tm[intro, dest]: \<open>P1_sym (map Tm x) \<Longrightarrow> P1 x\<close>
 proof(induction x rule: induct_list012)
@@ -278,8 +250,6 @@ next
     apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P1'_sym.cases) 
     by auto  
 qed
-
-
 
 lemma P1I[intro]: 
   assumes \<open>successively P1' xs\<close>
@@ -306,7 +276,6 @@ next
     apply (cases y) 
     using assms unfolding P1_sym.simps by argo+
 qed
-
 
 lemma P1D[dest]: \<open>P1 xs \<Longrightarrow> successively P1' xs\<close> by simp
 
@@ -343,13 +312,13 @@ lemma P1_symD_not_empty[dest]:
   shows \<open>\<nexists>p. last xs = Tm (Close, p, One)\<close> 
   using P1_symD_not_empty'[OF assms] by simp
 
-
 lemmas P1E = P1D[elim_format]
+
 lemmas P1E_not_empty = P1D_not_empty[elim_format]
 
 lemmas P1_symE = P1_symD[elim_format]
-lemmas P1_symE_not_empty = P1_symD_not_empty[elim_format]
 
+lemmas P1_symE_not_empty = P1_symD_not_empty[elim_format]
 
 subsection\<open>P2\<close>
 text\<open>After any \<open>(Close,pi,2)\<close> there never comes an \<open>(Open,...)\<close>:\<close>
@@ -357,7 +326,6 @@ fun P2 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> 
   \<open>P2 (Close, (p, Two)) (Open, (p', v))  = False\<close> | 
   \<open>P2 (Close, (p, Two)) y  = True\<close> | 
   \<open>P2 x y = True\<close>
-
 
 fun P2_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
   \<open>P2_sym (Tm (Close, (p, Two))) (Tm (Open, (p', v)))  = False\<close> | 
@@ -378,7 +346,6 @@ lemma P2_symD[dest]:
 lemmas P2E = P2D[elim_format]
 lemmas P2_symE = P2_symD[elim_format]
 
-
 lemma P2_sym_imp_P2_for_tm[intro, dest]: \<open>successively P2_sym (map Tm x) \<Longrightarrow> successively P2 x\<close>
   apply(induction x rule: induct_list012) 
     apply simp 
@@ -386,15 +353,12 @@ lemma P2_sym_imp_P2_for_tm[intro, dest]: \<open>successively P2_sym (map Tm x) \
   apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P2_sym.cases) 
   by auto
 
-
-
 subsection\<open>P3\<close>
 text\<open>After each \<open>(Open,A\<rightarrow>BC,1)\<close>, always comes a \<open>(Open,(B, _),1)\<close>,  and after each \<open>(Open,A\<rightarrow>BC,2)\<close> always comes a \<open>(Open,(C, _),1)\<close>:\<close>
 fun P3 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
   \<open>P3 (Open, ((A, [Nt B, Nt C]), One)) (p, ((X,y), t)) = (p = Open \<and> t = One \<and> X = B)\<close> |
   \<open>P3 (Open, ((A, [Nt B, Nt C]), Two)) (p, ((X,y), t)) = (p = Open \<and> t = One \<and> X = C)\<close> |
   \<open>P3 x y = True\<close>
-
 
 text\<open>After each \<open>(Open,A\<rightarrow>BC,1)\<close>, always comes a \<open>(Open,(B, _),1)\<close> or a \<open>Nt B\<close>,
 and after each \<open>(Open,A\<rightarrow>BC,2)\<close>, always comes a \<open>(Open,(C, _),1)\<close> or a \<open>Nt C\<close>.\<close>
@@ -410,7 +374,6 @@ function (sequential) P3_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<time
                       apply pat_completeness by fastforce+
 termination by lexicographic_order
 
-
 lemma P3D1[dest]:
   fixes r::\<open>(bracket \<times> ('n,'t) prod \<times> version)\<close>
   assumes \<open>P3 (Open, ((A, [Nt B, Nt C]), One)) r\<close>
@@ -424,7 +387,6 @@ lemma P3D2[dest]:
   shows \<open>\<exists>l. r = (Open, (C, l), One)\<close>
   using assms apply(induction \<open>(Open, ((A, [Nt B, Nt C]), One)):: bracket \<times> ('n, 't) prod \<times> version\<close> \<open>r:: bracket \<times> ('n, 't) prod \<times> version\<close> rule: P3.induct) 
   by auto 
-
 
 lemma P3_symD1[dest]:
   fixes r::\<open>('n, bracket \<times> ('n, 't) prod \<times> version) sym\<close>
@@ -440,10 +402,12 @@ lemma P3_symD2[dest]:
   using assms apply(induction \<open>Tm (Open, ((A, [Nt B, Nt C]), Two)):: ('n, bracket \<times> ('n, 't) prod \<times> version) sym\<close> \<open>r:: ('n, bracket \<times> ('n, 't) prod \<times> version) sym\<close> rule: P3_sym.induct) 
   by auto
 
-
 lemmas P3E1 = P3D1[elim_format]
+
 lemmas P3E2 = P3D2[elim_format]
+
 lemmas P3_symE1 = P3_symD1[elim_format]
+
 lemmas P3_symE2 = P3_symD2[elim_format]
 
 lemma P3_sym_imp_P3_for_tm[intro, dest]: \<open>successively P3_sym (map Tm x) \<Longrightarrow> successively P3 x\<close>
@@ -456,6 +420,7 @@ lemma P3_sym_imp_P3_for_tm[intro, dest]: \<open>successively P3_sym (map Tm x) \
 
 
 subsection\<open>P4\<close>
+
 text\<open>After each \<open>(Open,A\<rightarrow>a,1)\<close> comes a \<open>(Close,A\<rightarrow>a,1)\<close> and after each \<open>(Open,A\<rightarrow>a,2)\<close> comes a \<open>(Close,A\<rightarrow>a,2)\<close>:\<close>
 fun P4 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
   \<open>P4 (Open, ((A, [Tm a]), s)) (p, ((X, y), t)) = (p = Close \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> |
@@ -466,7 +431,6 @@ fun P4_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<
   \<open>P4_sym (Tm (Open, ((A, [Tm a]), s))) (Tm (p, ((X, y), t))) = (p = Close \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> | 
   \<open>P4_sym (Tm (Open, ((A, [Tm a]), s))) (Nt X) = False\<close> | 
   \<open>P4_sym x y = True\<close>
-
 
 lemma P4D[dest]:
   fixes r::\<open>(bracket \<times> ('n,'t) prod \<times> version)\<close>
@@ -483,6 +447,7 @@ lemma P4_symD[dest]:
   by auto
 
 lemmas P4E = P4D[elim_format]
+
 lemmas P4_symE = P4_symD[elim_format]
 
 
@@ -491,6 +456,7 @@ lemma P4_sym_imp_P4_for_tm[intro, dest]: \<open>successively P4_sym (map Tm x) \
   by auto
 
 subsection\<open>P5\<close>
+
 text\<open>There exists some y, such that x begins with @{term \<open>(Open,(A,y)::('n,'t) prod,One)\<close>}:\<close>
 fun P5 :: \<open>'n \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) list \<Rightarrow> bool\<close> where
   \<open>P5 A [] = False\<close> | 
@@ -521,15 +487,14 @@ lemma P5_sym_imp_P5_for_tm[intro, dest]: \<open>P5_sym A (map Tm x) \<Longrighta
   apply(induction x) by auto
 
 
-
 subsection\<open>P7 and P8\<close>
+
 text\<open>These are only needed for the version \<open>Re_sym\<close> that also allows Nonterminals - the conditions vanish for the \<open>Re\<close> version\<close>
 text\<open>Before a \<open>Nt Y\<close> there always comes a \<open>Tm (Open, A\<rightarrow>YC, 1)\<close> or a \<open>Tm (Open, A\<rightarrow>BY, 2)\<close>\<close>
 fun P7_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
   \<open>P7_sym (Tm (b,(A, [Nt B, Nt C]), v )) (Nt Y) = (b = Open \<and> ((Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
   \<open>P7_sym x (Nt Y) = False\<close> | 
   \<open>P7_sym x y = True\<close>
-
 
 lemma P7_symD[dest]: 
   fixes x:: \<open>('a, bracket \<times> ('a,'b) prod \<times> version) sym\<close>
@@ -620,9 +585,9 @@ lemma Re_symD[dest]:
 
 lemmas Re_symE = Re_symD[elim_format]
 
-
 lemma Re_sym_imp_Re_for_tm[intro, dest]: \<open>(map Tm x) \<in> Re_sym A \<Longrightarrow> x \<in> Re A\<close> 
   apply(rule ReI) by auto
+
 
 
 section\<open>The homomorphism \<open>h\<close> and \<open>h_ext\<close>\<close>
@@ -638,26 +603,19 @@ fun the_hom_helper :: \<open>(bracket \<times> (('a, 'b) prod) \<times> version)
   \<open>the_hom_helper (Open, ((A, [Tm a]), One)) = [a]\<close> | 
   \<open>the_hom_helper _ = []\<close> 
 
-
-
 text\<open>A helper function for the definition of the extended \<open>h_ext\<close>:\<close>
 fun the_hom_ext_helper :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version) sym \<Rightarrow> ('a,'b) sym list\<close> where
   \<open>the_hom_ext_helper (Tm (Open, ((A, [Tm a]), One))) = [Tm a]\<close> | 
   \<open>the_hom_ext_helper (Nt A) = [Nt A]\<close> | 
   \<open>the_hom_ext_helper _ = []\<close>
 
-
-
 text\<open>The needed homomorphism in the proof:\<close>
 fun the_hom :: \<open>(bracket \<times> ('a,'b) prod \<times> version) list \<Rightarrow> 'b list \<close> where
   \<open>the_hom l = concat (map the_hom_helper l)\<close>
 
-
 text\<open>The needed homomorphism in the proof, but extended on Variables:\<close>
 fun the_hom_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version ) syms \<Rightarrow> ('a,'b) syms\<close> where
   \<open>the_hom_ext l = concat (map the_hom_ext_helper l)\<close>
-
-
 
 lemma the_hom_ext_hom[simp]: \<open>the_hom_ext (l1 @ l2) = the_hom_ext l1 @ the_hom_ext l2\<close>
   by simp
@@ -695,11 +653,6 @@ next
     by (metis List.list.simps(9) \<open>w = map Tm w'\<close>)
 qed
 
-
-
-
-
-
 text\<open>Helper for showing the upcoming lemma:\<close>
 lemma helper: \<open>the_hom_ext_helper (Tm x) = map Tm (the_hom_helper x)\<close>
   apply(induction x rule: the_hom_helper.induct)
@@ -714,9 +667,6 @@ next
   case (Cons a x)
   then show ?case using helper[of a] by simp
 qed
-
-
-
 
 lemma the_hom_helper_strip: \<open>map Tm w = (the_hom_ext_helper x') \<Longrightarrow> w = the_hom_helper (stripTm x')\<close>
   by(induction x' rule: the_hom_ext_helper.induct; auto)
@@ -733,8 +683,6 @@ next
   then show ?case by (smt (verit, ccfv_threshold) comp_apply concat_map_cons map_eq_append_conv the_hom_helper_strip)
 qed
 
-
-
 lemma h_eq_h_ext2:
   assumes \<open>(map Tm w) = the_hom_ext w'\<close> 
   shows \<open>w = the_hom (map stripTm w')\<close>
@@ -743,20 +691,9 @@ lemma h_eq_h_ext2:
    apply simp
   by (smt (verit, ccfv_SIG) map_eq_append_conv the_hom_helper_strip the_hom_helper_strip2)
 
-
 lemma hom_ext_inv[simp]: \<open>CNF_rule \<pi> \<Longrightarrow> the_hom_ext (snd (transform_production \<pi>)) = snd \<pi>\<close>
   apply(rule transform_production_induct_cnf )
   by auto
-
-
-
-
-
-
-
-
-
-
 
 lemma transform_production_one_step:
   assumes \<open>CNF_rule (S,w)\<close>
@@ -770,7 +707,6 @@ proof-
   then show ?thesis 
     by (simp add: \<open>transform_production (S, w) = (S, w')\<close> derive_singleton)
 qed
-
 
 lemma [iff]: \<open>bal_tm ([ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ])\<close> 
   using bal_stk_tm_iff_bal_tm unfolding bal_stk_tm_def by fastforce
@@ -843,10 +779,6 @@ next
     using \<open>rhs_in_tm (u @ [Nt A] @ v) (P \<times> {One, Two})\<close> by (metis rhs_in_tm_append rhs_in_tm_del_left rhs_in_tm_del_right)
   ultimately show ?case using \<open>bal_tm (u @ w @ v)\<close> by blast
 qed
-
-
-
-
 
 lemma P'_imp_Re:
   assumes \<open>(image transform_production P) \<turnstile> [Nt S] \<Rightarrow>* x\<close>
@@ -1005,11 +937,6 @@ next
   ultimately show \<open>(u@w@v) \<in> Re_sym S\<close> 
     by blast 
 qed 
-
-
-
-
-
 
 lemma Re_imp_P':
   assumes \<open>x \<in> (Re A \<inter> (Dyck_language (P \<times> {One, Two})))\<close>
@@ -1225,42 +1152,6 @@ qed
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 section\<open>Showing regularity\<close>
 
 definition brackets'::\<open>('n,'t) Prods \<Rightarrow> (bracket \<times> ('n, 't) prod \<times> version) set\<close> where
@@ -1277,7 +1168,6 @@ lemmas brackets'E1[elim!] = brackets'D1[elim_format]
 lemma brackets'E2[elim]: \<open>\<lbrakk>x \<in> brackets' P; \<And>br p v. \<lbrakk>x = (br,(p,v)); p \<in> P\<rbrakk> \<Longrightarrow> thesis\<rbrakk> \<Longrightarrow> thesis\<close> 
   unfolding brackets'_def by blast
 
-
 abbreviation brackets::\<open>('n,'t) Prods \<Rightarrow> (bracket \<times> ('n, 't) prod \<times> version) list set\<close> where
   \<open>brackets P \<equiv> {x. list_all (\<lambda>y. y \<in> brackets' P) x}\<close>
 
@@ -1289,14 +1179,8 @@ lemma bracketsD: \<open>x \<in> brackets P \<Longrightarrow> list_all (\<lambda>
 
 lemmas bracketsE[elim!] = bracketsD[elim_format]
 
-
-
-
-
-
 text\<open>This is needed for the construction that shows P2,P3,P4 regular.\<close>
 datatype 'a state = start | garbage |  letter 'a
-
 
 definition allStates :: \<open>('n,'t) Prods \<Rightarrow>   (bracket \<times> ('n, 't) prod \<times> version) state set \<close>where
   \<open>allStates P = { letter (br,(p,v)) | br p v. p \<in> P } \<union> {start, garbage}\<close>
@@ -1338,13 +1222,6 @@ proof -
     unfolding allStates_def S_def by blast
 qed
 
-
-
-
-
-
-
-
 instantiation state :: (finitary) finitary
 begin
   definition hf_of_state_def: 
@@ -1383,9 +1260,6 @@ end
 
 
 
-
-
-
 subsection\<open>The construction of an automaton that accepts the language \<open>{xs. successively Q xs \<and>  xs \<in> brackets P}\<close> \<close>
 
 locale successivelyConstruction = 
@@ -1400,7 +1274,6 @@ fun succNext :: \<open>(bracket \<times> ('n, 't) prod \<times> version) state \
   \<open>succNext garbage _ = garbage\<close> | 
   \<open>succNext start (br', p', v') = (if p' \<in> P then letter (br', p',v') else garbage )\<close> | 
   \<open>succNext (letter (br, p, v)) (br', p', v') =  (if Q (br,p,v) (br',p',v') \<and> p \<in> P \<and> p' \<in> P then letter (br',p',v') else garbage)\<close>
-
 
 theorem succNext_induct[case_names garbage startp startnp letterQ letternQ]:
   fixes R :: "(bracket \<times> ('n, 't) prod \<times> version) state \<Rightarrow> bracket \<times> ('n, 't) prod \<times> version \<Rightarrow> bool"
@@ -1420,12 +1293,10 @@ theorem succNext_induct[case_names garbage startp startnp letterQ letternQ]:
   apply(case_tac \<open>Q (br,p,v) (br',p',v') \<and> p \<in> P \<and> p' \<in> P\<close>) 
   using assms by simp+
 
-
 abbreviation aut where \<open>aut \<equiv> \<lparr>dfa'.states = (allStates P),
                      init  = start,
                      final = (allStates P - {garbage}),
                      nxt   = succNext \<rparr>\<close>
-
 
 interpretation aut : dfa' aut
 proof(unfold_locales, goal_cases)
@@ -1445,10 +1316,8 @@ next
     using finiteP by (simp add: finite_allStates_if)
 qed
 
-
 corollary dfa_aut: "dfa' aut"
   by unfold_locales
-
 
 lemma nextl_in_allStates[intro]: \<open>q \<in> allStates P \<Longrightarrow> aut.nextl q ys \<in> allStates P\<close>
   apply(induction ys arbitrary: q) using local.aut.nxt by auto
@@ -1469,8 +1338,6 @@ proof(induction ys)
   then show ?case by blast
 qed auto
 
-
-
 lemma drop_left_general: \<open>aut.nextl (succNext q x) ys \<noteq> garbage \<Longrightarrow> aut.nextl start ys \<noteq> garbage\<close>
 proof(induction ys arbitrary: q x)
   case Nil
@@ -1481,12 +1348,10 @@ next
     using nextl_garbage by (smt (verit) Chomsky_Schuetzenberger.successivelyConstruction.succNext.elims Finite_Automata_Not_HF.dfa'.select_convs(4) local.aut.nextl.simps(2) local.succNext.simps(2) successivelyConstruction_axioms)
 qed
 
-
 lemma drop_left: \<open>xs@ys \<in> aut.language \<Longrightarrow> ys \<in> aut.language\<close>
   unfolding aut.language_def apply simp 
   apply(induction xs arbitrary: ys) 
   using drop_left_general by auto 
-
 
 lemma empty_in_aut: \<open>[] \<in> aut.language\<close> 
   unfolding aut.language_def by simp  
@@ -1511,11 +1376,6 @@ next
   case 2
   then show ?case unfolding aut.language_def by auto
 qed
-
-
-
-
-
 
 lemma aut_lang_iff_succ_Q: \<open>(successively Q xs \<and>  xs \<in> brackets P) \<longleftrightarrow> (xs \<in> aut.language)\<close>
 proof(induction xs rule: induct_list012)
@@ -1552,20 +1412,15 @@ next
   qed
 qed
 
-
-
-
-
 lemma aut_language_reg: \<open>regular aut.language\<close> 
   using dfa'_imp_regular dfa_aut by blast
-
-
 
 corollary regular_successively_inter_brackets: \<open>regular {xs. successively Q xs \<and>  xs \<in> brackets P}\<close> 
   using aut_language_reg aut_lang_iff_succ_Q by auto
 
-
 end
+
+
 
 subsection\<open>Regularity of P2, P3 and P4\<close>
 
@@ -1580,7 +1435,6 @@ proof-
   show ?thesis using regular_successively_inter_brackets by blast
 qed
 
-
 lemma P3_regular:
   fixes P::\<open>('n,'t) Prods\<close>
   shows \<open>finite P \<Longrightarrow> regular {xs. successively P3 xs \<and>  xs \<in> brackets P} \<close>
@@ -1591,8 +1445,6 @@ proof-
     using finite_P by blast 
   show ?thesis using regular_successively_inter_brackets by blast
 qed
-
-
 
 lemma P4_regular:
   fixes P::\<open>('n,'t) Prods\<close>
@@ -1606,38 +1458,13 @@ proof-
 qed
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 subsection\<open>Construction of an automaton for P1\<close>
 text\<open>More Precisely, for the \<open>if not empty, then doesnt end in (Close,_,1)\<close> part. 
 Then intersect with the other construction for P1' to get P1 regular.\<close>
 
 locale P1Construction = 
   fixes P :: "('n,'t) Prods"
-
 assumes finite_P: \<open>finite P\<close>
-
 begin
 
 datatype P1_State = last_ok | last_bad | garbage 
@@ -1647,13 +1474,10 @@ fun good where
   \<open>good (Close, p, One)  = False\<close> | 
   \<open>good (br, p, v) = True\<close>
 
-
 fun nxt :: \<open>P1_State \<Rightarrow> (bracket \<times> ('n, 't) prod \<times> version) \<Rightarrow> P1_State\<close> where 
   \<open>nxt garbage _ = garbage\<close> | 
   \<open>nxt last_ok  (br, p, v) = (if p \<notin> P then garbage else (if good (br, p, v) then last_ok else last_bad))\<close> | 
   \<open>nxt last_bad (br, p, v) = (if p \<notin> P then garbage else (if good (br, p, v) then last_ok else last_bad))\<close>
-
-
 
 theorem nxt_induct[case_names garbage startp startnp letterQ letternQ]:
   fixes R :: "P1_State \<Rightarrow> bracket \<times> ('n, 't) prod \<times> version \<Rightarrow> bool"
@@ -1680,12 +1504,10 @@ theorem nxt_induct[case_names garbage startp startnp letterQ letternQ]:
   using assms apply simp 
   using assms by simp 
 
-
 abbreviation p1_aut  where \<open>p1_aut \<equiv> \<lparr>dfa'.states = {last_ok, last_bad, garbage},
                      init  = last_ok,
                      final = {last_ok},
                      nxt   = nxt\<rparr>\<close>
-
 
 interpretation p1_aut : dfa' p1_aut
 proof(unfold_locales, goal_cases)
@@ -1705,10 +1527,8 @@ next
   then show ?case by simp
 qed
 
-
 corollary dfa_p1_aut: "dfa' p1_aut"
   by unfold_locales
-
 
 lemma empty_in_aut[simp]: \<open>[] \<in> p1_aut.language\<close> 
   unfolding p1_aut.language_def by auto
@@ -1729,9 +1549,6 @@ next
     by auto
   ultimately show ?case using snoc by (smt (verit, del_insts) Chomsky_Schuetzenberger.P1Construction.nxt.elims Finite_Automata_Not_HF.dfa'.select_convs(4) P1Construction_axioms brackets'D1 brackets'I list_all_simps(1,2) local.P1_State.distinct(4,6) local.p1_aut.nextl_snoc mem_Collect_eq)
 qed
-
-
-
 
 lemma lang_descr_full: 
   \<open>(p1_aut.nextl last_ok xs = last_ok \<longleftrightarrow> (xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P))) \<and> 
@@ -1762,15 +1579,11 @@ next
   qed
 qed
 
-
-
 lemma lang_descr: \<open>xs \<in> p1_aut.language \<longleftrightarrow> (xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P))\<close>
   unfolding p1_aut.language_def using lang_descr_full by auto
 
-
 lemma good_iff[simp]:\<open>(\<forall>a b. last xs \<noteq> ]\<^bsub>(a, b)\<^esub>\<^sup>1) = good (last xs)\<close> 
   apply auto by (metis local.good.elims(3) split_pairs)
-
 
 lemma in_P1_iff: \<open>(P1 xs \<and> xs \<in> brackets P ) \<longleftrightarrow>  (xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P)) \<and> successively P1' xs \<and>  xs \<in> brackets P\<close> 
   using good_iff by auto
@@ -1778,7 +1591,6 @@ lemma in_P1_iff: \<open>(P1 xs \<and> xs \<in> brackets P ) \<longleftrightarrow
 corollary P1_eq: \<open>{xs. P1 xs \<and> xs \<in> brackets P}  =   
   {xs. successively P1' xs \<and>  xs \<in> brackets P}   \<inter>   {xs. xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P)}\<close> 
   using in_P1_iff by blast
-
 
 lemma P1'_regular:
   shows \<open>regular {xs. successively P1' xs \<and>  xs \<in> brackets P} \<close>
@@ -1791,18 +1603,12 @@ qed
 lemma aut_language_reg: \<open>regular p1_aut.language\<close> 
   using dfa'_imp_regular dfa_p1_aut by blast
 
-
 corollary aux_regular: \<open>regular {xs. xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P)}\<close> 
   using lang_descr aut_language_reg p1_aut.language_def by simp
 
-
 corollary regular_P1: \<open>regular {xs. P1 xs \<and> xs \<in> brackets P}\<close> 
   unfolding P1_eq using P1'_regular aux_regular using regular_Int by blast
-
-
 end
-
-
 
 
 lemma P1_regular:
@@ -1817,18 +1623,12 @@ qed
 
 
 
-
-
-
-
-
 subsection\<open>Construction of an automaton for P5\<close>
 
 locale P5Construction = 
   fixes P :: "('n,'t) Prods"
     and A :: 'n
   assumes finite_P: \<open>finite P\<close>
-
 begin
 
 datatype P5_State = start | first_ok | garbage 
@@ -1838,14 +1638,10 @@ fun ok where
   \<open>ok (Open, (X, _), One) = (X = A)\<close> | 
   \<open>ok _ = False\<close>
 
-
-
 fun nxt :: \<open>P5_State \<Rightarrow> (bracket \<times> ('n, 't) prod \<times> version) \<Rightarrow> P5_State\<close> where 
   \<open>nxt garbage _ = garbage\<close> | 
   \<open>nxt start  (br, (X, r), v) = (if (X,r) \<notin> P then garbage else (if ok (br, (X, r), v) then first_ok else garbage))\<close> | 
   \<open>nxt first_ok (br, p, v) = (if p \<notin> P then garbage else first_ok)\<close>
-
-
 
 theorem nxt_induct[case_names garbage startnp start_p_ok start_p_nok first_ok_np first_ok_p]:
   fixes R :: "P5_State \<Rightarrow> bracket \<times> ('n, 't) prod \<times> version \<Rightarrow> bool"
@@ -1867,12 +1663,10 @@ theorem nxt_induct[case_names garbage startnp start_p_ok start_p_nok first_ok_np
   using assms apply simp
   using assms by fast+
 
-
 abbreviation p5_aut  where \<open>p5_aut \<equiv> \<lparr>dfa'.states = {start, first_ok, garbage},
                      init  = start,
                      final = {first_ok},
                      nxt   = nxt\<rparr>\<close>
-
 
 interpretation p5_aut : dfa' p5_aut
 proof(unfold_locales, goal_cases)
@@ -1889,11 +1683,8 @@ next
   then show ?case by simp
 qed
 
-
 corollary dfa_p5_aut: "dfa' p5_aut"
   by unfold_locales
-
-
 
 corollary nxt_start_ok_iff: \<open>ok x \<and> x \<in> brackets' P \<longleftrightarrow> nxt start x = first_ok\<close> 
   apply(cases x) 
@@ -1977,13 +1768,7 @@ corollary aux_regular: \<open>regular {xs. xs \<noteq> [] \<and> ok (hd xs) \<an
 
 lemma regular_P5:\<open>regular {xs. P5 A xs \<and> xs \<in> brackets P}\<close> 
   using in_P5_iff aux_regular by presburger
-
 end
-
-
-
-
-
 
 
 lemma P5_regular:
@@ -1996,7 +1781,6 @@ proof-
     apply(unfold_locales) using finite_P by blast 
   show ?thesis using regular_P5 by blast
 qed
-
 
 corollary regular_Re_inter: \<open>finite P \<Longrightarrow> regular ((brackets P) \<inter> Re A)\<close>
 proof-
@@ -2032,37 +1816,6 @@ proof-
 qed
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 text\<open>A lemma saying that all \<open>Dyck_language\<close> words really only consist of brackets (trivial definition wrangling):\<close>
 
 lemma Dyck_lang_imp_star_brackets: \<open>Dyck_language (P \<times> {One, Two}) \<subseteq> (brackets P)\<close>
@@ -2082,23 +1835,10 @@ qed
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 section\<open>Lemmas about star\<close>
 
 text\<open>TODO mv?\<close>
-
 lemma star_mono: \<open>A \<subseteq> B \<Longrightarrow> star A \<subseteq> star B\<close> by (metis (full_types) in_star_iff_concat subsetI subset_trans)
-
 
 text\<open>Splits the string until we finally get something from A:\<close>
 lemma split_star_union:
@@ -2141,75 +1881,6 @@ lemma split_star_union:
 qed auto
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 section\<open>Showing \<open>h(L') = L\<close>\<close>
 text\<open>Particularely \<open>\<supseteq>\<close> is formally hard. 
 To create the witness in \<open>L'\<close> we need to use the corresponding production in P' in each step. 
@@ -2232,10 +1903,8 @@ function (sequential) transform_tree :: \<open>('n,'t) tree \<Rightarrow> ('n, b
                       apply pat_completeness by blast+
 termination by lexicographic_order
 
-
 lemma root_of_transform_tree[intro, simp]: \<open>root t = Nt X \<Longrightarrow> root (transform_tree t) = Nt X\<close>
   apply(induction t rule: transform_tree.induct) by auto 
-
 
 lemma transform_tree_correct:
   fixes P
@@ -2301,8 +1970,6 @@ prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [R
     then show ?thesis
       using f3 a2 a1 by (metis (no_types) CFG.sym.simps(4) List.last.simps List.list.simps(9) Parse_Tree.root.elims Product_Type.prod.inject ei_def not_Cons_self2)
   qed
-
-
   then consider (Tm) \<open>ts = [Sym (Tm a)] \<and> prod_rhs ts = [Tm a]\<close> | 
     (Nt_Nt) \<open>prod_rhs ts = [Nt B, Nt C] \<and> ts = [Sym (Nt B), Sym (Nt C)]\<close> | 
     (Rule_Nt) \<open>prod_rhs ts = [Nt B, Nt C] \<and> ts = [Rule B tB, Sym (Nt C)]\<close> | 
@@ -2320,7 +1987,6 @@ prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [R
     also have \<open>... = w\<close> 
       using fr unfolding ts_eq by auto
     finally have \<open>the_hom_ext (fringe (transform_tree (Rule A ts))) = w\<close> .
-
     moreover have \<open>parse_tree (P') (transform_tree (Rule A [Sym (Tm a)]))\<close> 
       using pt prod_rhs unfolding P'_def apply simp by (metis Chomsky_Schuetzenberger.transform_production.simps(2) imageI) 
     ultimately show ?thesis unfolding ts_eq P'_def by blast
@@ -2335,7 +2001,6 @@ prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [R
     also have \<open>... = w\<close> 
       using fr unfolding ts_eq by auto
     finally have \<open>the_hom_ext (fringe (transform_tree (Rule A ts))) = w\<close> .
-
     moreover have \<open>parse_tree (P') (transform_tree (Rule A [Sym (Nt B), Sym (Nt C)]))\<close> 
       using pt prod_rhs unfolding P'_def apply simp by (metis Chomsky_Schuetzenberger.transform_production.simps(1) imageI)
     ultimately show ?thesis unfolding ts_eq by blast
@@ -2361,7 +2026,6 @@ prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [R
     also have \<open>... = w\<close> 
       using fr unfolding ts_eq by auto
     finally have fin: \<open>the_hom_ext (fringe (transform_tree (Rule A ts))) = w\<close> .
-
     have \<open>parse_tree (P') (transform_tree (Rule B tB)) \<and> (A, map root ts) \<in> P\<close> 
       by (simp add: \<open>(A, prod_rhs ts) \<in> P\<close> ptB(1)) 
     moreover have \<open>root (transform_tree (Rule B tB)) = Nt B\<close> by simp
@@ -2443,8 +2107,6 @@ prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [R
   qed  
 qed
 
-
-
 lemma 
   transfer_parse_tree:
   assumes \<open>\<And>p. p \<in> P \<Longrightarrow> CNF_rule p\<close>
@@ -2466,112 +2128,7 @@ qed
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 section\<open>The Theorem\<close>
-
 
 text\<open>The constructive version of the Theorem, for a grammar already in CNF:\<close>
 lemma Chomsky_Schuetzenberger_constr:
@@ -2586,10 +2143,8 @@ proof -
   define L' where \<open>L' = Lang P' S\<close>
   define h where \<open>h = (the_hom::(bracket \<times> ('n, 't) prod \<times> version) list \<Rightarrow> 't list)\<close>
   define h_ext where \<open>h_ext = (the_hom_ext::('n, bracket \<times> ('n,'t) prod \<times> version ) sym list \<Rightarrow> ('n,'t) sym list)\<close>
-
   have P_CNF': \<open>(\<forall>p \<in> P. CNF_rule p)\<close> 
     using P_CNF unfolding CNF.CNF_def CNF_rule_def by fastforce 
-
   have \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (Dyck_language \<Gamma>) \<inter> (Re A)\<close> (* This is the hard part of the proof - the local lemma in the textbook *)
   proof-
     have \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* x \<Longrightarrow> bal_tm x \<and> rhs_in_tm x (P \<times> {One, Two})\<close> 
@@ -2705,10 +2260,6 @@ proof -
   then show ?thesis unfolding h_def \<Gamma>_def by blast
 qed
 
-
-
-
-
 text\<open>The theorem, but only for languages not containing \<open>\<epsilon>\<close>:\<close>
 lemma Chomsky_Schuetzenberger_not_empty:
   fixes P :: \<open>('n::infinite, 't) Prods\<close> and S::"'n"
@@ -2731,13 +2282,6 @@ proof -
     by presburger
   then show ?thesis using L_def by auto
 qed
-
-
-
-
-
-
-
 
 text\<open>The Chomsky-Schuetzenberger theorem that we really want to prove:\<close>
 lemma Chomsky_Schuetzenberger:
@@ -2764,9 +2308,5 @@ next
     using \<open>[] \<in> Dyck_language \<Gamma>\<close> by auto
   then show ?thesis using reg_R_union hom_h by blast
 qed
-
-
-
-
 
 end

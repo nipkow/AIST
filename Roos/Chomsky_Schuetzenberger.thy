@@ -489,7 +489,7 @@ lemma P5_sym_imp_P5_for_tm[intro, dest]: \<open>P5_sym A (map Tm x) \<Longrighta
 
 subsection\<open>P7 and P8\<close>
 
-text\<open>These are only needed for the version \<open>Re_sym\<close> that also allows Nonterminals - the conditions vanish for the \<open>Re\<close> version\<close>
+text\<open>These are only needed for the version \<open>Reg_sym\<close> that also allows Nonterminals - the conditions vanish for the \<open>Reg\<close> version\<close>
 text\<open>Before a \<open>Nt Y\<close> there always comes a \<open>Tm (Open, A\<rightarrow>YC, 1)\<close> or a \<open>Tm (Open, A\<rightarrow>BY, 2)\<close>\<close>
 fun P7_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
   \<open>P7_sym (Tm (b,(A, [Nt B, Nt C]), v )) (Nt Y) = (b = Open \<and> ((Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
@@ -521,39 +521,39 @@ lemma P8_symD[dest]:
 lemmas P8_symE = P8_symD[elim_format]
 
 
-subsection\<open>\<open>Re\<close> and \<open>Re_sym\<close>\<close>
+subsection\<open>\<open>Reg\<close> and \<open>Reg_sym\<close>\<close>
 text\<open>This is the regular language, where one takes the Start symbol as a parameter, and then has the searched for \<open>R := R\<^sub>A\<close>:\<close>
-definition Re :: \<open>'n \<Rightarrow> (bracket \<times> (('n, 't) prod) \<times> version) list set\<close> where
-  \<open>Re A = {x. (P1 x) \<and> 
+definition Reg :: \<open>'n \<Rightarrow> (bracket \<times> (('n, 't) prod) \<times> version) list set\<close> where
+  \<open>Reg A = {x. (P1 x) \<and> 
     (successively P2 x) \<and> 
     (successively P3 x) \<and> 
     (successively P4 x) \<and> 
     (P5 A x)}\<close>
 
-lemma ReI[intro]:
+lemma RegI[intro]:
   assumes \<open>(P1 x)\<close> 
     and \<open>(successively P2 x)\<close> 
     and \<open>(successively P3 x)\<close> 
     and \<open>(successively P4 x)\<close> 
     and \<open>(P5 A x)\<close>
-  shows \<open>x \<in> Re A\<close>
-  using assms unfolding Re_def by blast
+  shows \<open>x \<in> Reg A\<close>
+  using assms unfolding Reg_def by blast
 
-lemma ReD[dest]:
-  assumes \<open>x \<in> Re A\<close>
+lemma RegD[dest]:
+  assumes \<open>x \<in> Reg A\<close>
   shows \<open>(P1 x)\<close> 
     and \<open>(successively P2 x)\<close> 
     and \<open>(successively P3 x)\<close> 
     and \<open>(successively P4 x)\<close> 
     and \<open>(P5 A x)\<close>
-  using assms unfolding Re_def by blast+
+  using assms unfolding Reg_def by blast+
 
-lemmas ReE = ReD[elim_format]
+lemmas RegE = RegD[elim_format]
 
-text\<open>A version of \<open>Re\<close> for symbols, i.e. strings that may still contain Nt's. 
+text\<open>A version of \<open>Reg\<close> for symbols, i.e. strings that may still contain Nt's. 
 It has 2 more Properties P6 and P7 that vanish for pure terminal strings:\<close>
-definition Re_sym :: \<open>'n \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms set\<close> where
-  \<open>Re_sym A = {x. (P1_sym x) \<and> 
+definition Reg_sym :: \<open>'n \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms set\<close> where
+  \<open>Reg_sym A = {x. (P1_sym x) \<and> 
      (successively P2_sym x) \<and> 
      (successively P3_sym x) \<and> 
      (successively P4_sym x) \<and> 
@@ -561,7 +561,7 @@ definition Re_sym :: \<open>'n \<Rightarrow> ('n, bracket \<times> ('n,'t) prod 
      (successively P7_sym x) \<and> 
      (successively P8_sym x)}\<close>
 
-lemma Re_symI[intro]:
+lemma Reg_symI[intro]:
   assumes \<open>P1_sym x\<close> 
     and \<open>successively P2_sym x\<close> 
     and \<open>successively P3_sym x\<close> 
@@ -569,11 +569,11 @@ lemma Re_symI[intro]:
     and \<open>P5_sym A x\<close> 
     and \<open>(successively P7_sym x)\<close> 
     and \<open>(successively P8_sym x)\<close>
-  shows \<open>x \<in> Re_sym A\<close>
-  using assms unfolding Re_sym_def by blast
+  shows \<open>x \<in> Reg_sym A\<close>
+  using assms unfolding Reg_sym_def by blast
 
-lemma Re_symD[dest]:
-  assumes \<open>x \<in> Re_sym A\<close>
+lemma Reg_symD[dest]:
+  assumes \<open>x \<in> Reg_sym A\<close>
   shows \<open>P1_sym x\<close> 
     and \<open>successively P2_sym x\<close> 
     and \<open>successively P3_sym x\<close> 
@@ -581,12 +581,12 @@ lemma Re_symD[dest]:
     and \<open>P5_sym A x\<close> 
     and \<open>(successively P7_sym x)\<close> 
     and \<open>(successively P8_sym x)\<close>
-  using assms unfolding Re_sym_def by blast+
+  using assms unfolding Reg_sym_def by blast+
 
-lemmas Re_symE = Re_symD[elim_format]
+lemmas Reg_symE = Reg_symD[elim_format]
 
-lemma Re_sym_imp_Re_for_tm[intro, dest]: \<open>(map Tm x) \<in> Re_sym A \<Longrightarrow> x \<in> Re A\<close> 
-  apply(rule ReI) by auto
+lemma Reg_sym_imp_Reg_for_tm[intro, dest]: \<open>(map Tm x) \<in> Reg_sym A \<Longrightarrow> x \<in> Reg A\<close> 
+  apply(rule RegI) by auto
 
 
 
@@ -780,16 +780,16 @@ next
   ultimately show ?case using \<open>bal_tm (u @ w @ v)\<close> by blast
 qed
 
-lemma P'_imp_Re:
+lemma P'_imp_Reg:
   assumes \<open>(image transform_production P) \<turnstile> [Nt S] \<Rightarrow>* x\<close>
     and \<open>\<forall>p \<in> P. CNF_rule p\<close>
-  shows \<open>x \<in> Re_sym S\<close>
+  shows \<open>x \<in> Reg_sym S\<close>
   using assms proof(induction rule: derives_induct)
   case base
-  show ?case apply(rule Re_symI) by simp+
+  show ?case apply(rule Reg_symI) by simp+
 next
   case (step u A v w)
-  have uAv: \<open>u @ [Nt A] @ v \<in> Re_sym S\<close> 
+  have uAv: \<open>u @ [Nt A] @ v \<in> Reg_sym S\<close> 
     using step by blast
   have \<open>(A, w) \<in> transform_production ` P\<close> 
     using step by blast
@@ -805,12 +805,12 @@ next
     \<open>w = [Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2]   \<or>   
    w = [Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>2, Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2]\<close> (is \<open>w = ?w1 \<or> w = ?w2\<close>) 
     by fastforce
-  have w_resym: \<open>w \<in> Re_sym A\<close> 
-    apply(rule disjE[OF w_eq]; rule Re_symI) by auto 
+  have w_resym: \<open>w \<in> Reg_sym A\<close> 
+    apply(rule disjE[OF w_eq]; rule Reg_symI) by auto 
   have P5_uAv: \<open>P5_sym S (u @ [Nt A] @ v)\<close> 
-    using Re_symD[OF uAv] by blast
+    using Reg_symD[OF uAv] by blast
   have P1_uAv: \<open>P1_sym (u @ [Nt A] @ v)\<close> 
-    using Re_symD[OF uAv] by blast
+    using Reg_symD[OF uAv] by blast
   have left: \<open>successively P1'_sym (u@w) \<and> 
               successively P2_sym (u@w) \<and> 
               successively P3_sym (u@w) \<and> 
@@ -824,7 +824,7 @@ next
     case (snoc ys y)
 
     then have \<open>successively P7_sym (ys @ [y] @ [Nt A] @ v)\<close> 
-      using Re_symD[OF uAv] snoc by auto
+      using Reg_symD[OF uAv] snoc by auto
     then have \<open>P7_sym y (Nt A)\<close> 
       by (simp add: successively_append_iff)
 
@@ -844,7 +844,7 @@ next
           P7_sym (last (ys@[y])) (hd w) \<and> 
           P8_sym (last (ys@[y])) (hd w)\<close> 
       unfolding y_eq using w_eq apply(cases \<open>w = ?w1\<close>) apply force by simp
-    with Re_symD[OF uAv] moreover have 
+    with Reg_symD[OF uAv] moreover have 
       \<open>successively P1'_sym (ys @ [y]) \<and> 
      successively P2_sym (ys @ [y]) \<and> 
      successively P3_sym (ys @ [y]) \<and> 
@@ -859,7 +859,7 @@ next
      successively P4_sym (u@w) \<and> 
      successively P7_sym (u@w) \<and> 
      successively P8_sym (u@w)\<close> 
-      unfolding snoc using Re_symD[OF w_resym] using successively_append_iff by blast
+      unfolding snoc using Reg_symD[OF w_resym] using successively_append_iff by blast
   qed
   have right: \<open>successively P1'_sym (w@v) \<and> 
                successively P2_sym (w@v) \<and> 
@@ -873,7 +873,7 @@ next
   next
     case (Cons y ys)
     then have \<open>successively P8_sym ([Nt A] @ y # ys)\<close> 
-      using Re_symD[OF uAv] Cons using successively_append_iff by blast
+      using Reg_symD[OF uAv] Cons using successively_append_iff by blast
     then have \<open>P8_sym (Nt A) y\<close> 
       by fastforce
     then obtain R X Y v' where y_eq: \<open>y = (Tm (Close,(R, [Nt X, Nt Y]), v' ))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> 
@@ -885,7 +885,7 @@ next
          P7_sym (last w) (hd (y#ys)) \<and> 
          P8_sym (last w) (hd (y#ys))\<close> 
       unfolding y_eq using w_eq apply(cases \<open>w = ?w1\<close>) apply force by simp
-    with Re_symD[OF uAv] moreover have 
+    with Reg_symD[OF uAv] moreover have 
       \<open>successively P1'_sym (y # ys) \<and> 
      successively P2_sym (y # ys) \<and> 
      successively P3_sym (y # ys) \<and> 
@@ -899,7 +899,7 @@ next
                      successively P4_sym (w@v) \<and> 
                      successively P7_sym (w@v) \<and> 
                      successively P8_sym (w@v)\<close> 
-      unfolding Cons using Re_symD[OF w_resym] successively_append_iff by blast
+      unfolding Cons using Reg_symD[OF w_resym] successively_append_iff by blast
   qed
   from left right have P1_uwv: \<open>successively P1'_sym (u@w@v)\<close> 
     using w_eq by (metis (no_types, lifting) List.list.discI hd_append2 successively_append_iff)
@@ -934,20 +934,20 @@ next
     with P1_uwv show \<open>P1_sym (u @ w @ v)\<close> 
       by blast
   qed
-  ultimately show \<open>(u@w@v) \<in> Re_sym S\<close> 
+  ultimately show \<open>(u@w@v) \<in> Reg_sym S\<close> 
     by blast 
 qed 
 
-lemma Re_imp_P':
-  assumes \<open>x \<in> (Re A \<inter> (Dyck_language (P \<times> {One, Two})))\<close>
+lemma Reg_imp_P':
+  assumes \<open>x \<in> (Reg A \<inter> (Dyck_language (P \<times> {One, Two})))\<close>
     and \<open>\<forall>p \<in> P. CNF_rule p\<close>
   shows \<open>(image transform_production P) \<turnstile> [Nt A] \<Rightarrow>* map Tm x\<close> using assms 
 proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induct)
   case less
-  then have IH: \<open>\<And>w H. \<lbrakk>length (map Tm w) < length (map Tm x);  w \<in> Re H \<inter> Dyck_language (P \<times> {One, Two})\<rbrakk> \<Longrightarrow> 
+  then have IH: \<open>\<And>w H. \<lbrakk>length (map Tm w) < length (map Tm x);  w \<in> Reg H \<inter> Dyck_language (P \<times> {One, Two})\<rbrakk> \<Longrightarrow> 
                   transform_production ` P \<turnstile> [Nt H] \<Rightarrow>* map Tm w\<close> 
     using less by simp
-  have xRe: \<open>x \<in> Re A\<close> and xDL: \<open>x \<in> Dyck_language (P \<times> {One, Two})\<close> 
+  have xReg: \<open>x \<in> Reg A\<close> and xDL: \<open>x \<in> Dyck_language (P \<times> {One, Two})\<close> 
     using less by blast+
 
   have p1x: \<open>P1 x\<close> 
@@ -955,12 +955,12 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
     and p3x: \<open>successively P3 x\<close> 
     and p4x: \<open>successively P4 x\<close> 
     and p5x: \<open>P5 A x\<close> 
-    using ReD[OF xRe] by blast+
+    using RegD[OF xReg] by blast+
 
   from p5x obtain \<pi> t where hd_x: \<open>hd x = (Open, \<pi>, One)\<close> and pi_def: \<open>\<pi> = (A, t)\<close> 
     by (metis List.list.sel(1) P5.elims(2))
-  with xRe have \<open>(Open, \<pi>, One) \<in> set x\<close> 
-    by (metis List.list.sel(1) List.list.set_intros(1) ReD(5) Chomsky_Schuetzenberger.P5.elims(2))
+  with xReg have \<open>(Open, \<pi>, One) \<in> set x\<close> 
+    by (metis List.list.sel(1) List.list.set_intros(1) RegD(5) Chomsky_Schuetzenberger.P5.elims(2))
   then have pi_in_P: \<open>\<pi> \<in> P\<close> 
     using xDL by auto
   have bal_x: \<open>bal x\<close> 
@@ -1044,11 +1044,11 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
       using y_not_empty split3 by (metis (no_types, lifting) P3D1 append_is_Nil_conv hd_append2 successively_Cons)
     then have \<open>P5 B y\<close> 
       by (metis \<open>y \<noteq> []\<close> Chomsky_Schuetzenberger.P5.simps(2) hd_Cons_tl)
-    with y_successivelys P1y have \<open>y \<in> Re B\<close> 
+    with y_successivelys P1y have \<open>y \<in> Reg B\<close> 
       by blast
     moreover have \<open>y \<in> Dyck_language (P \<times> {One, Two})\<close> 
       using split3 bal_y Dyck_language_substring by (metis append_Cons append_Nil hd_x split1 xDL)
-    ultimately have \<open>y \<in> Re B \<inter> Dyck_language (P \<times> {One, Two})\<close> 
+    ultimately have \<open>y \<in> Reg B \<inter> Dyck_language (P \<times> {One, Two})\<close> 
       by force
     moreover have \<open>length (map Tm y) < length (map Tm x)\<close> 
       using length_append length_map lessI split3 by fastforce
@@ -1094,11 +1094,11 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
         using z_successivelys by blast
     qed
 
-    ultimately have \<open>z \<in> Re C\<close> 
+    ultimately have \<open>z \<in> Reg C\<close> 
       using z_successivelys by blast
     moreover have \<open>z \<in> Dyck_language (P \<times> {One, Two})\<close> 
       using split3 bal_z Dyck_language_substring by (smt (z3) List.append.assoc append_Cons self_append_conv2 xDL)
-    ultimately have \<open>z \<in> Re C \<inter> Dyck_language (P \<times> {One, Two})\<close> 
+    ultimately have \<open>z \<in> Reg C \<inter> Dyck_language (P \<times> {One, Two})\<close> 
       by force
     moreover have \<open>length (map Tm z) < length (map Tm x)\<close> 
       using length_append length_map lessI split3 by fastforce
@@ -1422,7 +1422,7 @@ end
 
 
 
-subsection\<open>Regularity of P2, P3 and P4\<close>
+subsection\<open>Reggularity of P2, P3 and P4\<close>
 
 lemma P2_regular:
   fixes P::\<open>('n,'t) Prods\<close>
@@ -1782,7 +1782,7 @@ proof-
   show ?thesis using regular_P5 by blast
 qed
 
-corollary regular_Re_inter: \<open>finite P \<Longrightarrow> regular ((brackets P) \<inter> Re A)\<close>
+corollary regular_Reg_inter: \<open>finite P \<Longrightarrow> regular ((brackets P) \<inter> Reg A)\<close>
 proof-
   assume finite_P: \<open>finite P\<close>
 
@@ -1810,7 +1810,7 @@ proof-
            {xs. successively P3 xs \<and>  xs \<in> brackets P}\<inter>
            {xs. successively P4 xs \<and>  xs \<in> brackets P}\<inter>
            {xs. P5 A xs \<and> xs \<in> brackets P} 
-  = brackets P \<inter> Re A\<close> by auto 
+  = brackets P \<inter> Reg A\<close> by auto 
 
   ultimately show ?thesis by argo
 qed
@@ -2135,7 +2135,7 @@ lemma Chomsky_Schuetzenberger_constr:
   fixes P :: \<open>('n::infinite, 't) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S\<close>
   assumes finite: \<open>finite P\<close> and P_CNF: \<open>CNF P\<close>
-  shows \<open>regular ((brackets P) \<inter> Re S) \<and> L = image the_hom( ( (brackets P) \<inter> Re S) \<inter> (Dyck_language(P \<times> {One, Two}) ) ) \<and> 
+  shows \<open>regular ((brackets P) \<inter> Reg S) \<and> L = image the_hom( ( (brackets P) \<inter> Reg S) \<inter> (Dyck_language(P \<times> {One, Two}) ) ) \<and> 
     hom (the_hom:: (bracket \<times> ('n, 't) prod \<times> version) list \<Rightarrow> 't list)\<close>
 proof -
   define \<Gamma> where \<open>\<Gamma> = P \<times> {One, Two}\<close>
@@ -2145,23 +2145,23 @@ proof -
   define h_ext where \<open>h_ext = (the_hom_ext::('n, bracket \<times> ('n,'t) prod \<times> version ) sym list \<Rightarrow> ('n,'t) sym list)\<close>
   have P_CNF': \<open>(\<forall>p \<in> P. CNF_rule p)\<close> 
     using P_CNF unfolding CNF.CNF_def CNF_rule_def by fastforce 
-  have \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (Dyck_language \<Gamma>) \<inter> (Re A)\<close> (* This is the hard part of the proof - the local lemma in the textbook *)
+  have \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (Dyck_language \<Gamma>) \<inter> (Reg A)\<close> (* This is the hard part of the proof - the local lemma in the textbook *)
   proof-
     have \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* x \<Longrightarrow> bal_tm x \<and> rhs_in_tm x (P \<times> {One, Two})\<close> 
       by (simp add: P'_bal P'_def P_CNF')
     then have hr1: \<open>\<And>A x. (P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<Longrightarrow> x \<in> Dyck_language \<Gamma>)\<close> 
       using \<Gamma>_def by (meson Dyck_languageI_tm)
-    have \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* x \<Longrightarrow> x \<in> Re_sym A\<close> 
-      using P'_imp_Re using P'_def P_CNF' by fastforce
-    then have hr2: \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* map Tm x \<Longrightarrow> x \<in> Re A\<close> 
+    have \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* x \<Longrightarrow> x \<in> Reg_sym A\<close> 
+      using P'_imp_Reg using P'_def P_CNF' by fastforce
+    then have hr2: \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* map Tm x \<Longrightarrow> x \<in> Reg A\<close> 
       by blast
-    have rr: \<open>\<And>A x.  x \<in> (Dyck_language \<Gamma>) \<inter> (Re A) \<Longrightarrow> (P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x)) \<close> 
-      using Re_imp_P' by (metis P'_def P_CNF' \<Gamma>_def inf_sup_aci(1))
+    have rr: \<open>\<And>A x.  x \<in> (Dyck_language \<Gamma>) \<inter> (Reg A) \<Longrightarrow> (P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x)) \<close> 
+      using Reg_imp_P' by (metis P'_def P_CNF' \<Gamma>_def inf_sup_aci(1))
     show ?thesis using hr1 hr2 rr by (meson Int_iff)
   qed
-  then have \<open>L' = (Dyck_language \<Gamma>) \<inter> (Re S)\<close> 
+  then have \<open>L' = (Dyck_language \<Gamma>) \<inter> (Reg S)\<close> 
     by (auto simp add: CFG.Lang_def L'_def)
-  then have \<open>image h ((Dyck_language \<Gamma>) \<inter> (Re S)) =  image h L'\<close> 
+  then have \<open>image h ((Dyck_language \<Gamma>) \<inter> (Reg S)) =  image h L'\<close> 
     by simp
   also have \<open>... = Lang P S\<close>
   proof(standard)
@@ -2232,7 +2232,7 @@ proof -
         then have \<open>w = h w''\<close> 
           using h_eq_h_ext2 h_def h_ext_def by (metis h_eq_h_ext w'_def(2))
         moreover have \<open>w'' \<in> L'\<close> 
-          using \<open>w' \<in> Ders P' S\<close> by (metis DersD \<open>L' = Dyck_language \<Gamma> \<inter> Re S\<close> \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (Dyck_language \<Gamma>) \<inter> (Re A)\<close> \<open>w' = map Tm w''\<close>)
+          using \<open>w' \<in> Ders P' S\<close> by (metis DersD \<open>L' = Dyck_language \<Gamma> \<inter> Reg S\<close> \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (Dyck_language \<Gamma>) \<inter> (Reg A)\<close> \<open>w' = map Tm w''\<close>)
         ultimately show ?case by auto
       qed
     qed
@@ -2241,21 +2241,21 @@ proof -
   qed
   also have \<open>... = L\<close> 
     by (simp add: L_def)
-  finally have \<open>image h ((Dyck_language \<Gamma>) \<inter> (Re S)) = L\<close> 
+  finally have \<open>image h ((Dyck_language \<Gamma>) \<inter> (Reg S)) = L\<close> 
     by auto
-  moreover have \<open>((Dyck_language \<Gamma>) \<inter> ((brackets P) \<inter> Re S)) = ((Dyck_language \<Gamma>) \<inter> (Re S))\<close>
+  moreover have \<open>((Dyck_language \<Gamma>) \<inter> ((brackets P) \<inter> Reg S)) = ((Dyck_language \<Gamma>) \<inter> (Reg S))\<close>
   proof
-    show \<open>Dyck_language \<Gamma> \<inter> ((brackets P) \<inter> Re S) \<subseteq> Dyck_language \<Gamma> \<inter> Re S\<close> 
+    show \<open>Dyck_language \<Gamma> \<inter> ((brackets P) \<inter> Reg S) \<subseteq> Dyck_language \<Gamma> \<inter> Reg S\<close> 
       by blast
   next
-    show \<open>Dyck_language \<Gamma> \<inter> Re S \<subseteq> Dyck_language \<Gamma> \<inter> ((brackets P) \<inter> Re S)\<close> 
+    show \<open>Dyck_language \<Gamma> \<inter> Reg S \<subseteq> Dyck_language \<Gamma> \<inter> ((brackets P) \<inter> Reg S)\<close> 
       using \<Gamma>_def Dyck_lang_imp_star_brackets by auto
   qed
   moreover have hom: \<open>hom h\<close> 
     by (simp add: h_def hom_def)
-  moreover from \<open>finite P\<close> have \<open>regular ((brackets P) \<inter> Re S)\<close> 
-    using regular_Re_inter by fast
-  ultimately have \<open>regular ((brackets P) \<inter> Re S) \<and> L = image h (((brackets P) \<inter> Re S) \<inter> (Dyck_language \<Gamma>)) \<and> hom h\<close> 
+  moreover from \<open>finite P\<close> have \<open>regular ((brackets P) \<inter> Reg S)\<close> 
+    using regular_Reg_inter by fast
+  ultimately have \<open>regular ((brackets P) \<inter> Reg S) \<and> L = image h (((brackets P) \<inter> Reg S) \<inter> (Dyck_language \<Gamma>)) \<and> hom h\<close> 
     by (simp add: inf_commute)
   then show ?thesis unfolding h_def \<Gamma>_def by blast
 qed
@@ -2274,11 +2274,11 @@ proof -
     by blast
   then have \<open>finite( set ps')\<close> and \<open>CNF( set ps')\<close> 
     by auto
-  then have \<open>regular (brackets (set ps') \<inter> Re S) \<and> CFG.lang ps' S = h ` (brackets (set ps') \<inter> Re S \<inter> Dyck_language (set ps' \<times> {One, Two})) \<and> hom h\<close> 
+  then have \<open>regular (brackets (set ps') \<inter> Reg S) \<and> CFG.lang ps' S = h ` (brackets (set ps') \<inter> Reg S \<inter> Dyck_language (set ps' \<times> {One, Two})) \<and> hom h\<close> 
     using Chomsky_Schuetzenberger_constr[OF \<open>finite( set ps')\<close> \<open>CNF( set ps')\<close>, of S] using h_def by fastforce
   moreover have  \<open>CFG.lang ps' S = L - {[]}\<close> 
     unfolding lang_ps_eq_lang_ps' using L_def ps_def by blast
-  ultimately have eq: \<open>regular (brackets (set ps') \<inter> Re S) \<and> L - {[]} = h ` (brackets (set ps') \<inter> Re S \<inter> Dyck_language (set ps' \<times> {One, Two})) \<and> hom h\<close> 
+  ultimately have eq: \<open>regular (brackets (set ps') \<inter> Reg S) \<and> L - {[]} = h ` (brackets (set ps') \<inter> Reg S \<inter> Dyck_language (set ps' \<times> {One, Two})) \<and> hom h\<close> 
     by presburger
   then show ?thesis using L_def by auto
 qed

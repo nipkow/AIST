@@ -10,7 +10,7 @@ isabelle build -d .. -d ../Stimpfle -D .
 
 
 theory Chomsky_Schuetzenberger
-  imports CNF.CNF "Finite_Automata_Not_HF" CFG.Parse_Tree "Dyck_Language"
+  imports CNF.CNF "Finite_Automata_Not_HF" CFG.Parse_Tree "Dyck_Language" HereditarilyFinite.Finitary
 begin
 
 text \<open>This file contains all the constructions needed for the Chomsky-Schuetzenberger theorem.
@@ -77,7 +77,7 @@ Using this then for the old start symbol S gives the desired equation \<open>L' 
 
 section\<open>Cloning and Abbreviations\<close>
 
-declare [[names_short]]
+
 
 text\<open>A type with 2 elements, for creating 2 copies as needed in the proof.\<close>
 datatype version = One | Two
@@ -1345,6 +1345,43 @@ qed
 
 
 
+instantiation state :: (finitary) finitary
+begin
+  definition hf_of_state_def: 
+    "hf_of \<equiv> case_state 0 1 (\<lambda>x. \<lbrace>\<lbrace>hf_of x\<rbrace>\<rbrace>)"
+  instance 
+    apply intro_classes
+    by(auto simp: inj_on_def hf_of_state_def One_hf_def split: state.split_asm)
+end
+
+instantiation bracket :: finitary
+begin
+  definition hf_of_bracket_def: 
+    "hf_of \<equiv> case_bracket 0 1"
+  instance 
+    apply intro_classes
+    by(auto simp: inj_on_def hf_of_bracket_def split: bracket.split_asm)
+end
+
+instantiation version :: finitary
+begin
+  definition hf_of_version_def: 
+    "hf_of \<equiv> case_version 0 1"
+  instance 
+    apply intro_classes
+    by(auto simp: inj_on_def hf_of_version_def split: version.split_asm)
+end
+
+instantiation sym :: (finitary,finitary)finitary
+begin
+  definition hf_of_sym_def: 
+    "hf_of \<equiv> case_sym (HF.Inl o hf_of) (HF.Inr o hf_of)"
+  instance 
+    apply intro_classes
+    by(auto simp: inj_on_def hf_of_sym_def split: sym.split_asm)
+end
+
+
 
 
 
@@ -1353,8 +1390,8 @@ subsection\<open>The construction of an automaton that accepts the language \<op
 
 locale successivelyConstruction = 
 
-fixes Q :: "(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool" \<comment> \<open>e.g. P2\<close>
-  and P :: "('n,'t) Prods"
+fixes Q :: "(bracket \<times> ('n::finitary,'t::finitary) prod \<times> version) \<Rightarrow> (bracket \<times> ('n::finitary,'t::finitary) prod \<times> version) \<Rightarrow> bool" \<comment> \<open>e.g. P2\<close>
+  and P :: "('n::finitary,'t::finitary) Prods"
 
 assumes finiteP: \<open>finite P\<close>
 begin
@@ -1383,11 +1420,11 @@ theorem succNext_induct[case_names garbage startp startnp letterQ letternQ]:
   apply(case_tac \<open>Q (br,p,v) (br',p',v') \<and> p \<in> P \<and> p' \<in> P\<close>) 
   using assms by simp+
 
-
-abbreviation aut  where \<open>aut \<equiv> \<lparr>dfa'.states = allStates P,
-                     init  = start,
-                     final = allStates P - {garbage},
-                     nxt   = succNext\<rparr>\<close>
+declare [[show_types]]
+abbreviation aut  where \<open>aut \<equiv> \<lparr>dfa.states = hf_of ` (allStates P),
+                     init  = hf_of start,
+                     final = hf_of ` (allStates P - {garbage}),
+                     nxt   = \<lambda>q x. hf_of (succNext (inv hf_of q) x) \<rparr>\<close>
 
 
 interpretation aut : dfa' aut

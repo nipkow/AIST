@@ -13,7 +13,7 @@ inductive bal :: "(bracket  \<times> 'a) list \<Rightarrow> bool" where
   "bal []" |
   "bal xs \<Longrightarrow> bal ys \<Longrightarrow> bal (xs @ ys)" | 
   "bal xs \<Longrightarrow> bal ((Open, g) # xs @ [(Close, g)])" 
-
+print_theorems
 declare bal.intros(1)[iff] bal.intros(2)[intro,simp] bal.intros(3)[intro!,simp]
 
 lemma bal2[iff]: "bal [(Open,g), (Close,g)]" 
@@ -107,40 +107,61 @@ qed
 
 
 
-(*
-text\<open>TODO add destructor to definition of \<open>Tm\<close>\<close>
-fun strip_tm :: "('a, 'b) sym  \<Rightarrow> 'b" where 
-  \<open>strip_tm (Tm t) = t\<close> | 
-  \<open>strip_tm (Nt A) = undefined\<close>
 
+
+fun stripTm :: "('a, 'b) sym  \<Rightarrow> 'b" where 
+  \<open>stripTm (Tm t) = t\<close> | 
+  \<open>stripTm (Nt A) = undefined\<close>
+
+lemma stripTm_Tm[simp]: \<open>map (stripTm \<circ> Tm) xs' = xs'\<close>
+  apply(induction xs') by auto
 
 definition bal_tm where
-\<open>bal_tm \<equiv> bal o (map strip_tm) o (filter isTm)\<close>
-*)
+\<open>bal_tm \<equiv> bal o (map stripTm) o (filter isTm)\<close>
+
+
 
 section\<open>\<^term>\<open>bal_tm\<close> and \<^term>\<open>rhs_in_tm\<close>\<close>
 
 subsection\<open>\<^term>\<open>bal_tm\<close>\<close>
-text\<open>balanced strings of brackets that may contain arbitrary interspersion of Nonterminals\<close>
-inductive bal_tm :: "('n, bracket  \<times> ('a)) syms \<Rightarrow> bool" where
-  "bal_tm []" |
-  "bal_tm [Nt A]" |
-  "bal_tm xs \<Longrightarrow> bal_tm ys \<Longrightarrow> bal_tm (xs @ ys)" | 
-  "bal_tm xs \<Longrightarrow> bal_tm (Tm (Open, g) # xs @ [Tm (Close, g)])"
 
-declare bal_tm.intros(1,2)[iff] bal_tm.intros(3)[intro, simp] bal_tm.intros(4)[intro!, simp]
+(* TODO Move *)
+lemma isTm_Nt[simp]:\<open>(isTm (Nt A)) = False\<close>
+  by (simp add: isTm_def)
+
+lemma isTm_Tm[simp]: \<open>isTm (Tm a)\<close> 
+  by (simp add: isTm_def)
+
+lemma filter_isTm_map_Tm[simp]:\<open>filter isTm (map Tm xs') = map Tm xs'\<close>
+  apply(induction xs') by auto
+
+
+
+
+
+lemma bal_tm_empty[iff]: \<open>bal_tm []\<close>
+  by (simp add: bal_tm_def)
+
+lemma bal_tm_Nt[iff]:\<open>bal_tm [Nt A]\<close>
+  by (simp add: bal_tm_def)
+
+lemma bal_tm_append[intro, simp]: \<open>bal_tm xs \<Longrightarrow> bal_tm ys \<Longrightarrow> bal_tm (xs @ ys)\<close> 
+  unfolding bal_tm_def by simp
+
+lemma bal_tm_surr[intro!, simp]: \<open>bal_tm xs \<Longrightarrow> bal_tm (Tm (Open, g) # xs @ [Tm (Close, g)])\<close> 
+  unfolding bal_tm_def by simp
 
 lemma bal_tm_prepend_Nt[intro!, simp]: \<open>bal_tm xs \<Longrightarrow> bal_tm (Nt A # xs)\<close> 
-  using bal_tm.intros(3) by force
+  by (simp add: bal_tm_def)
 
 lemma bal_tm_append_Nt[intro!, simp]: \<open>bal_tm xs \<Longrightarrow> bal_tm (xs@[Nt A])\<close> 
   by blast
 
 lemma bal_tm2[iff]: "bal_tm [Tm (Open,g), Tm (Close,g)]" 
-  using bal_tm.intros(1,4) by fastforce
+  using bal_tm_surr by force
 
 lemma bal_tm2_Nt[iff]: "bal_tm [Tm (Open,g), Tm (Close,g), Nt A]" 
-  using bal_tm.intros(1,3,4) by fastforce
+  using bal_tm_append_Nt by force
 
 
 (* TODO: mv to CFG *)
@@ -159,28 +180,7 @@ lemma bal_imp_bal_tm: \<open>bal xs \<Longrightarrow> bal_tm (map Tm xs)\<close>
   by(induction xs rule: bal.induct; auto)
 
 lemma bal_tm_imp_bal_for_tms: \<open>bal_tm (map Tm xs') \<Longrightarrow> bal xs'\<close>
-proof-
-  assume assm: \<open>bal_tm (map Tm xs':: ('a, bracket \<times> 'b) sym list)\<close>
-  define xs::\<open>('a, bracket \<times> 'b) sym list\<close> where \<open>xs = map Tm xs'\<close> \<comment> \<open>need to enforce the same non-terminal type for xs as for map Tm xs' ...\<close>
-  then have \<open>bal_tm xs\<close> 
-    using xs_def assm by simp
-  from \<open>bal_tm xs\<close> \<open>xs = map Tm xs'\<close> show ?thesis
-  proof(induction xs arbitrary: xs' rule: bal_tm.induct)
-    case (4 xs g)
-    then obtain xs'' where \<open>xs = map Tm xs''\<close> and \<open>xs' = ((Open, g) # (xs'') @ [(Close, g)])\<close> 
-      using map_eq_append_conv by (smt (verit, best) Cons_eq_map_D list.map_disc_iff sym.inject(2))
-    then have \<open>bal xs''\<close> 
-      using "local.4.IH" by blast
-    then have \<open>bal ((Open, g) # (xs'') @ [(Close, g)])\<close> 
-      by auto
-    then show ?case by (simp add: \<open>xs' = (Open, g) # xs'' @ [(Close, g)]\<close>)
-  next
-    case (3 xs ys)
-    then show ?case by (metis append_eq_map_conv bal.intros(2))
-  qed auto
-qed
-
-
+unfolding bal_tm_def by auto
 
 
 
@@ -188,63 +188,30 @@ qed
 
 
 subsection\<open>\<^term>\<open>rhs_in_tm\<close>\<close>
+
 text\<open>Says that all right hand sides of \<open>x\<close> (here stripped of their \<open>Tm\<close>) are in \<open>\<Gamma>\<close>.\<close>
-definition rhs_in_tm :: \<open>('n, 'a \<times> 'b ) sym list \<Rightarrow> 'b set \<Rightarrow> bool\<close> where
-  \<open>rhs_in_tm x \<Gamma> \<equiv> (\<forall>br r. Tm (br, r) \<in> set x \<longrightarrow> r \<in> \<Gamma>)\<close>
-
-lemma rhs_in_tmI[intro]:
-  assumes \<open>\<And>r br. Tm (br, r) \<in> set x \<Longrightarrow> r \<in> \<Gamma>\<close>
-  shows \<open>rhs_in_tm x \<Gamma>\<close>
-  unfolding rhs_in_tm_def using assms by blast
-
-lemma rhs_in_tmD[dest]:
-  assumes \<open>rhs_in_tm x \<Gamma>\<close>
-  shows \<open>\<And>r br. Tm (br, r) \<in> set x \<Longrightarrow> r \<in> \<Gamma>\<close>
-  using assms unfolding rhs_in_tm_def by blast
-
-lemmas rhs_in_tmE = rhs_in_tmD[elim_format]
+ definition rhs_in_tm where
+\<open>rhs_in_tm \<equiv> rhs_in o (map stripTm) o (filter isTm)\<close>
 
 
-lemma rhs_in_tm_del_right: \<open>rhs_in_tm (xs@ys) \<Gamma> \<Longrightarrow> rhs_in_tm xs \<Gamma>\<close>
-proof-
-  assume assm: \<open>rhs_in_tm (xs@ys) \<Gamma>\<close>
-  have \<open>set xs \<subseteq> set (xs @ ys)\<close> 
-    by simp
-  then show ?thesis using rhs_in_tmD[OF assm] by blast
-qed
+lemma rhs_in_tm_del_right[dest]: \<open>rhs_in_tm (xs@ys) \<Gamma> \<Longrightarrow> rhs_in_tm xs \<Gamma>\<close> 
+  unfolding rhs_in_tm_def using rhs_in_del_right by auto
+
 
 lemmas rhs_in_tm_del_rightE = rhs_in_tm_del_right[elim_format]
 
 lemma rhs_in_tm_del_left[dest]: \<open>rhs_in_tm (xs@ys) \<Gamma> \<Longrightarrow> rhs_in_tm ys \<Gamma>\<close>
-proof-
-  assume assm: \<open>rhs_in_tm (xs@ys) \<Gamma>\<close>
-  have \<open>set ys \<subseteq> set (xs @ ys)\<close> 
-    by simp
-  then show ?thesis using rhs_in_tmD[OF assm] by blast
-qed
+  unfolding rhs_in_tm_def by auto
 
 lemmas rhs_in_tm_del_leftE = rhs_in_tm_del_left[elim_format]
 
 lemma rhs_in_tm_append[intro, simp]: \<open>rhs_in_tm (xs) \<Gamma> \<Longrightarrow> rhs_in_tm (ys) \<Gamma> \<Longrightarrow> rhs_in_tm (xs@ys) \<Gamma>\<close>
-proof-
-  assume assm_xs: \<open>rhs_in_tm (xs) \<Gamma>\<close>
-  assume assm_ys: \<open>rhs_in_tm (ys) \<Gamma>\<close>
-  then have \<open>set (xs@ys) \<subseteq> set xs \<union> set ys\<close> 
-    by simp
-  then show ?thesis using rhs_in_tmI[of \<open>xs@ys\<close> \<Gamma>] using assm_xs assm_ys by auto
-qed
+  unfolding rhs_in_tm_def using rhs_in_append by simp
 
 
 text\<open>Relationship between \<^term>\<open>bal_tm\<close>, \<^term>\<open>rhs_in_tm\<close> and \<open>Dyck_Language\<close>\<close>
 lemma Dyck_languageI_tm[intro]: \<open>bal_tm (map Tm xs') \<Longrightarrow> rhs_in_tm (map Tm xs') \<Gamma> \<Longrightarrow> xs' \<in> Dyck_language \<Gamma>\<close>
-proof-
-  assume bal: \<open>bal_tm (map Tm xs')\<close> and rhs: \<open>rhs_in_tm (map Tm xs') \<Gamma>\<close>
-  then have \<open>bal xs'\<close> 
-    using bal_tm_imp_bal_for_tms by blast
-  moreover have \<open>\<And>br r. (br, r) \<in> set xs' \<Longrightarrow> r \<in> \<Gamma>\<close> 
-    using rhs by (metis (no_types, lifting) List.list.simps(15,9) insert_iff map_append rhs_in_tmD rhs_in_tm_del_left split_list_last)
-  ultimately show ?thesis using Dyck_languageI[of xs' \<Gamma>] by blast
-qed
+unfolding bal_tm_def rhs_in_tm_def by auto
 
 
 

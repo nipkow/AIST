@@ -71,10 +71,7 @@ Using this then for the old start symbol S gives the desired equation \<open>L' 
 
 
 
-text\<open>TODO add destructor to definition of \<open>Tm\<close>\<close>
-fun strip_tm :: "('a, 'b) sym  \<Rightarrow> 'b" where 
-  \<open>strip_tm (Tm t) = t\<close> | 
-  \<open>strip_tm (Nt A) = undefined\<close>
+
 
 
 
@@ -721,13 +718,13 @@ qed
 
 
 
-lemma the_hom_helper_strip: \<open>map Tm w = (the_hom_ext_helper x') \<Longrightarrow> w = the_hom_helper (strip_tm x')\<close>
+lemma the_hom_helper_strip: \<open>map Tm w = (the_hom_ext_helper x') \<Longrightarrow> w = the_hom_helper (stripTm x')\<close>
   by(induction x' rule: the_hom_ext_helper.induct; auto)
 
 lemma concat_map_cons[simp]: \<open>concat (map f (a # w')) = f a @ concat ( map f w')\<close> 
   by auto
 
-lemma the_hom_helper_strip2: \<open>map Tm w = concat (map the_hom_ext_helper w') \<Longrightarrow> w = concat (map (the_hom_helper \<circ> strip_tm) w')\<close>
+lemma the_hom_helper_strip2: \<open>map Tm w = concat (map the_hom_ext_helper w') \<Longrightarrow> w = concat (map (the_hom_helper \<circ> stripTm) w')\<close>
 proof(induction w' arbitrary: w)
   case Nil
   then show ?case by simp
@@ -740,7 +737,7 @@ qed
 
 lemma h_eq_h_ext2:
   assumes \<open>(map Tm w) = the_hom_ext w'\<close> 
-  shows \<open>w = the_hom (map strip_tm w')\<close>
+  shows \<open>w = the_hom (map stripTm w')\<close>
   using assms apply simp
   apply(induction w') 
    apply simp
@@ -782,13 +779,13 @@ lemma [iff]: \<open>bal_tm ([ Tm (Open, (p,One)),       Tm ]\<^sub>p\<^sup>1 , T
   using stk_bal_tm_iff_bal_tm by fastforce
 
 lemma \<open>rhs_in_tm [Nt A] \<Gamma>\<close> 
-  by auto
+  unfolding rhs_in_tm_def by auto
 
 lemma prod1_rhs_in_tm [intro, simp]: \<open>p \<in> P \<Longrightarrow> rhs_in_tm [ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ] (P \<times> {One, Two}) \<close> 
-  by auto
+  unfolding rhs_in_tm_def by auto
 
 lemma prod2_rhs_in_tm [intro, simp]: \<open>p \<in> P \<Longrightarrow> rhs_in_tm [ Tm (Open, (p,One)),       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ] (P \<times> {One, Two})\<close> 
-  by auto
+  unfolding rhs_in_tm_def by auto
 
 lemma prod_bal_tm[intro!]:
   assumes \<open>p \<in> P\<close>
@@ -829,7 +826,7 @@ lemma P'_bal:
   shows \<open>bal_tm x \<and> rhs_in_tm x (P \<times> {One, Two})\<close>
   using assms proof(induction rule: derives_induct)
   case base
-  then show ?case by auto
+  then show ?case unfolding rhs_in_tm_def by auto
 next
   case (step u A v w)
   have \<open>bal_tm (u @ [Nt A] @ v)\<close> and \<open>rhs_in_tm (u @ [Nt A] @ v) (P \<times> {One, Two})\<close> 

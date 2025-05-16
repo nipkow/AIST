@@ -498,7 +498,6 @@ lemma bal_not_empty:
 
 subsection\<open>\<^term>\<open>bal_tm\<close>\<close>
 
-(* fun stk_bal :: "(bracket \<times> 't) list \<Rightarrow> 't list \<Rightarrow> ((bracket \<times> 't) list) * 't list" where *)
 
 text\<open>A stack machine that puts open brackets to the stack, to remember that they must be matched by a closed bracket\<close>
 definition stk_bal_tm :: "('n, bracket \<times> 't) syms \<Rightarrow> 't list \<Rightarrow> ('n, bracket \<times> 't) syms * 't list" where

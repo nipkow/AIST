@@ -1,13 +1,8 @@
 -keine Blöcke von Leerzeilen
 
--Sätze und Überschriften wenn möglich nicht mit einem Symbol beginnen.
-
--Also zB "3.1 Function bal". Wobei das verwirrend ist, denn in 3.1 wird nicht bal
-somndern stk_bal definiert. Analog 3.2
 
 -Qualifizierungen hinten an Namen anhängen: stk_bal -> bal_stk
 
--Nipkow nicht in der Überschrift, nur im Text.
 
 -Sätze groß anfangen, satzzeichen am Ende.
 

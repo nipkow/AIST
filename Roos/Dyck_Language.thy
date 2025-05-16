@@ -3,7 +3,17 @@ theory Dyck_Language
   imports CFG.CFG
 begin
 
+(*TODO where do i belong best?*)
+fun stripTm :: "('a, 'b) sym  \<Rightarrow> 'b" where 
+  \<open>stripTm (Tm t) = t\<close> | 
+  \<open>stripTm (Nt A) = undefined\<close>
+
+lemma stripTm_Tm[simp]: \<open>map (stripTm \<circ> Tm) xs' = xs'\<close>
+  apply(induction xs') by auto
+(* until here*)
+
 section\<open>Balancedness\<close>
+
 text\<open>A type of brackets for creating the \<open>Dyck_language\<close>\<close>
 datatype bracket = Open | Close
 
@@ -100,23 +110,14 @@ proof-
   then show ?thesis using \<open>bal w\<close> \<open>xs @ w @ ys \<in> Dyck_language \<Gamma>\<close> by blast
 qed
 
-fun stripTm :: "('a, 'b) sym  \<Rightarrow> 'b" where 
-  \<open>stripTm (Tm t) = t\<close> | 
-  \<open>stripTm (Nt A) = undefined\<close>
 
-lemma stripTm_Tm[simp]: \<open>map (stripTm \<circ> Tm) xs' = xs'\<close>
-  apply(induction xs') by auto
+
+section\<open>Versions of \<^term>\<open>bal\<close> and \<^term>\<open>rhs_in\<close> for \<^term>\<open>syms\<close>\<close>
+
+subsection\<open>Function \<^term>\<open>bal_tm\<close>\<close>
 
 definition bal_tm where
   \<open>bal_tm \<equiv> bal o (map stripTm) o (filter isTm)\<close>
-
-
-
-
-
-section\<open>\<^term>\<open>bal_tm\<close> and \<^term>\<open>rhs_in_tm\<close>\<close>
-
-subsection\<open>\<^term>\<open>bal_tm\<close>\<close>
 
 (* TODO Move *)
 lemma isTm_Nt[simp]:\<open>(isTm (Nt A)) = False\<close>
@@ -169,7 +170,7 @@ lemma bal_tm_imp_bal_for_tms: \<open>bal_tm (map Tm xs') \<Longrightarrow> bal x
   unfolding bal_tm_def by auto
 
 
-subsection\<open>\<^term>\<open>rhs_in_tm\<close>\<close>
+subsection\<open>Function \<^term>\<open>rhs_in_tm\<close>\<close>
 
 text\<open>Version of \<^term>\<open>rhs_in\<close> but for a list of symbols, that might contain Nonterminals.
 Says that all right hand sides of \<open>x\<close> (here stripped of their \<open>Tm\<close>) are in \<open>\<Gamma>\<close>:\<close>
@@ -196,9 +197,10 @@ lemma Dyck_languageI_tm[intro]: \<open>bal_tm (map Tm xs') \<Longrightarrow> rhs
 
 
 
-section\<open>Function based equivalent description of \<^term>\<open>bal\<close> and \<^term>\<open>bal_tm\<close>, from T. Nipkow\<close>
+section\<open>Function based equivalent description for \<^term>\<open>bal\<close> and \<^term>\<open>bal_tm\<close>\<close>
 
-subsection\<open>\<^term>\<open>bal\<close>\<close>
+subsection\<open>Function \<^term>\<open>stk_bal\<close>\<close>
+text\<open>This development is thankfully taken from T. Nipkow.\<close>
 
 text\<open>A stack machine that puts open brackets to the stack, to remember that they must be matched by a closed bracket\<close>
 fun stk_bal :: "(bracket \<times> 't) list \<Rightarrow> 't list \<Rightarrow> ((bracket \<times> 't) list) * 't list" where
@@ -274,7 +276,7 @@ next
   qed 
 qed 
 
-lemma stk_bal_if_stk_bal: "stk_bal w s = ([],[]) \<Longrightarrow> bal (rev(map (\<lambda>x. (Open, x)) s) @ w)"
+lemma bal_if_stk_bal: "stk_bal w s = ([],[]) \<Longrightarrow> bal (rev(map (\<lambda>x. (Open, x)) s) @ w)"
 proof(induction w s rule: stk_bal.induct)
   case (2 x xs s)
   then show ?case by simp
@@ -284,10 +286,7 @@ next
 qed (auto)
 
 corollary stk_bal_iff_bal: "stk_bal w [] = ([],[]) \<longleftrightarrow> bal w"
-  using stk_bal_if_stk_bal[of w "[]"] stk_bal_if_bal by auto
-
-theorem bal_append_inv: "bal (u @ v) \<Longrightarrow> bal u \<Longrightarrow> bal v"
-  using stk_bal_append_if stk_bal_iff_bal by metis
+  using bal_if_stk_bal[of w "[]"] stk_bal_if_bal by auto
 
 lemma stk_bal_append_inv: \<open>stk_bal (xs@ys) s1 = ([], s') \<Longrightarrow> (let (xs', s1') = stk_bal xs s1 in stk_bal xs s1 = ([], s1'))\<close>
 proof(induction xs s1 arbitrary: ys rule: stk_bal.induct)
@@ -303,6 +302,13 @@ next
   case (4 A xs s)
   then show ?case by(auto split: prod.splits)
 qed
+
+
+
+subsection\<open>More properties of \<^term>\<open>bal\<close>, using \<^term>\<open>stk_bal\<close>\<close>
+
+theorem bal_append_inv: "bal (u @ v) \<Longrightarrow> bal u \<Longrightarrow> bal v"
+  using stk_bal_append_if stk_bal_iff_bal by metis
 
 lemma bal_insert: 
   assumes u: "bal u" 
@@ -443,7 +449,7 @@ lemma bal_not_empty:
 
 
 
-subsection\<open>\<^term>\<open>bal_tm\<close>\<close>
+subsection\<open>Function \<^term>\<open>stk_bal_tm\<close>\<close>
 
 text\<open>A version of \<^term>\<open>stk_bal\<close> but for a symbol list that might contain Nonterminals (they are ignored via filtering).\<close>
 definition stk_bal_tm :: "('n, bracket \<times> 't) syms \<Rightarrow> 't list \<Rightarrow> ('n, bracket \<times> 't) syms * 't list" where
@@ -476,12 +482,16 @@ corollary stk_bal_tm_iff_bal_tm: "stk_bal_tm w [] = ([],[]) \<longleftrightarrow
    apply (simp add: stk_bal_if_bal)
   by (simp add: stk_bal_if_bal)
 
-theorem bal_tm_append_inv: "bal_tm (u @ v) \<Longrightarrow> bal_tm u \<Longrightarrow> bal_tm v"
-  using stk_bal_tm_append_if stk_bal_tm_iff_bal_tm by metis
-
 lemma stk_bal_tm_append_inv: \<open>stk_bal_tm (xs@ys) s1 = ([], s') \<Longrightarrow> (let (xs', s1') = stk_bal_tm xs s1 in stk_bal_tm xs s1 = ([], s1'))\<close>
   unfolding stk_bal_tm_def apply auto 
   by (smt (verit, del_insts) case_prodE fstI stk_bal_append_inv surjective_pairing)
+
+
+
+subsection\<open>More properties of \<^term>\<open>bal_tm\<close>, using \<^term>\<open>stk_bal_tm\<close>\<close>
+
+theorem bal_tm_append_inv: "bal_tm (u @ v) \<Longrightarrow> bal_tm u \<Longrightarrow> bal_tm v"
+  using stk_bal_tm_append_if stk_bal_tm_iff_bal_tm by metis
 
 lemma bal_tm_insert: 
   assumes u: "bal_tm u" 

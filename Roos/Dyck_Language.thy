@@ -81,6 +81,9 @@ proof-
   then show ?thesis using rhs_inI[of \<open>xs@ys\<close> \<Gamma>] using assm_xs assm_ys by auto
 qed
 
+lemma rhs_in_empty[simp, intro]: \<open>rhs_in [] \<Gamma>\<close>
+  by auto
+
 text\<open>The dyck/bracket language over a set \<open>\<Gamma>\<close>.  
 Every element \<^prop>\<open>\<gamma> \<in> \<Gamma>\<close> will get a Closing and an Opening version of itself, 
 via pairing with the type bracket.\<close>
@@ -110,7 +113,8 @@ proof-
   then show ?thesis using \<open>bal w\<close> \<open>xs @ w @ ys \<in> Dyck_language \<Gamma>\<close> by blast
 qed
 
-
+lemma empty_in_Dyck_language[simp, intro]: \<open>[] \<in> Dyck_language \<Gamma>\<close>
+  by blast
 
 section\<open>Versions of \<^term>\<open>bal\<close> and \<^term>\<open>rhs_in\<close> for \<^term>\<open>syms\<close>\<close>
 

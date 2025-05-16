@@ -773,10 +773,10 @@ qed
 
 
 lemma [iff]: \<open>bal_tm ([ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ])\<close> 
-  using stk_bal_tm_iff_bal_tm by fastforce
+  using stk_bal_tm_iff_bal_tm unfolding stk_bal_tm_def by fastforce
 
 lemma [iff]: \<open>bal_tm ([ Tm (Open, (p,One)),       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ])\<close> 
-  using stk_bal_tm_iff_bal_tm by fastforce
+  using stk_bal_tm_iff_bal_tm unfolding stk_bal_tm_def by fastforce
 
 lemma \<open>rhs_in_tm [Nt A] \<Gamma>\<close> 
   unfolding rhs_in_tm_def by auto
@@ -2757,7 +2757,7 @@ next
   have \<open>[] = h([])\<close> using hom_def hom_h 
     by metis
   moreover have \<open>[] \<in> Dyck_language \<Gamma>\<close> 
-    by fastforce
+    by simp
   ultimately have \<open>[] \<in> h ` ((R \<union> {[]}) \<inter> Dyck_language \<Gamma>)\<close> 
     by blast
   with True L_minus_eq have \<open>L = h ` ((R \<union> {[]}) \<inter> Dyck_language \<Gamma>)\<close> 

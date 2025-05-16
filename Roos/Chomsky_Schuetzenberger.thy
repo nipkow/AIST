@@ -1756,7 +1756,7 @@ proof(induction xs rule: rev_induct)
   qed
 qed simp
 
-(*TODO fragile?*)
+
 lemma in_P5_iff: \<open>P5 A xs \<and> xs \<in> brackets P \<longleftrightarrow> (xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets P)\<close> 
   apply auto by (metis List.list.exhaust_sel Chomsky_Schuetzenberger.P5.simps(2) local.ok.elims(2))
 

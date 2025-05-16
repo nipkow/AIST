@@ -79,7 +79,7 @@ section\<open>Cloning and Abbreviations\<close>
 
 
 
-text\<open>A type with 2 elements, for creating 2 copies as needed in the proof.\<close>
+text\<open>A type with 2 elements, for creating 2 copies as needed in the proof:\<close>
 datatype version = One | Two
 
 abbreviation open_bracket1 :: "('a, 'b) prod \<Rightarrow> bracket \<times> ('a, 'b) prod \<times> version" ("[\<^sub>_\<^sup>1 ") where
@@ -95,7 +95,7 @@ abbreviation close_bracket2 :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,
   "]\<^sub>p\<^sup>2 \<equiv> (Close, (p, Two))"
 
 
-text\<open>Version for p = (A, w) (multiple letters) with bsub and esub\<close>
+text\<open>Version for p = (A, w) (multiple letters) with bsub and esub:\<close>
 abbreviation open_bracket1' :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("[\<^bsub>_\<^esub>\<^sup>1 ") where
   "[\<^bsub>p\<^esub>\<^sup>1  \<equiv> (Open, (p, One))"
 
@@ -123,7 +123,7 @@ notation (latex output) close_bracket2' ("\<^latex>\<open>$]^2_{\<close>_\<^late
 
 section\<open>Grammar/Production transformation\<close>
 
-text\<open>The transformation of old productions to new productions used in the proof.\<close>
+text\<open>The transformation of old productions to new productions used in the proof:\<close>
 fun transform_production :: "('n, 't) prod \<Rightarrow> 
 ('n, bracket \<times> ('n,'t) prod \<times> version) prod" where
   \<open>  transform_production (A, [Nt B, Nt C]) =    
@@ -161,7 +161,7 @@ lemma fst_transform_production[simp]: \<open>fst (transform_production (A, w)) =
 
 
 
-text\<open>Definition of what it means to be a chomksy-form rule.\<close>
+text\<open>Definition of what it means to be a chomksy-form rule:\<close>
 definition CNF_rule :: "('n,'t) prod \<Rightarrow> bool" where
   \<open>CNF_rule p \<equiv>  (\<exists>(A::'n) B C. (p = (A,[Nt B, Nt C]))) \<or> (\<exists>A a. p= (A, [Tm a]))\<close>
 
@@ -229,13 +229,13 @@ section\<open>Definition of the regular Language\<close>
 subsection\<open>P1\<close>
 text\<open>Defines a Predicate on neighbouring string elements - 
 Is true iff after a \<open>(Close,p,1)\<close> there always immediately follows a \<open>(Open, p, 2)\<close>.
- That also means \<open>(Close, p, 1)\<close> can't be the end of the string\<close>
+ That also means \<open>(Close, p, 1)\<close> can't be the end of the string:\<close>
 fun P1' :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
   \<open>P1' ((Close, (p, One))) ((Open, (p', Two)))  = (p = p')\<close> | 
   \<open>P1' ((Close, (p, One))) y  = False\<close> | 
   \<open>P1' x y = True\<close>
 
-text\<open>Version of P1 for symbols, i.e. strings that may still contain Nt's\<close>
+text\<open>Version of P1 for symbols, i.e. strings that may still contain Nt's:\<close>
 fun P1'_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
   \<open>P1'_sym (Tm (Close, (p, One))) (Tm (Open, (p', Two)))  = (p = p')\<close> | 
   \<open>P1'_sym (Tm (Close, (p, One))) y  = False\<close> | 
@@ -255,11 +255,11 @@ lemmas P1'E = P1'D[elim_format]
 lemmas P1'_symE = P1'_symD[elim_format]
 
 
-text\<open>Asserts that P1' holds for every pair in xs, and that xs doesnt end in (Close, p, 1)\<close>
+text\<open>Asserts that P1' holds for every pair in xs, and that xs doesnt end in (Close, p, 1):\<close>
 fun P1 where
   \<open>P1 xs = ((successively P1' xs) \<and> (if xs \<noteq> [] then (\<nexists>p. last xs = (Close, (p, One))) else True))\<close>
 
-text\<open>Asserts that P1' holds for every pair in xs, and that xs doesnt end in Tm (Close, p, 1)\<close>
+text\<open>Asserts that P1' holds for every pair in xs, and that xs doesnt end in Tm (Close, p, 1):\<close>
 fun P1_sym where
   \<open>P1_sym xs = ((successively P1'_sym xs) \<and> (if xs \<noteq> [] then (\<nexists>p. last xs = Tm (Close, (p, One))) else True))\<close>
 
@@ -352,7 +352,7 @@ lemmas P1_symE_not_empty = P1_symD_not_empty[elim_format]
 
 
 subsection\<open>P2\<close>
-text\<open>After any \<open>(Close,pi,2)\<close> there never comes an \<open>(Open,...)\<close>\<close>
+text\<open>After any \<open>(Close,pi,2)\<close> there never comes an \<open>(Open,...)\<close>:\<close>
 fun P2 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
   \<open>P2 (Close, (p, Two)) (Open, (p', v))  = False\<close> | 
   \<open>P2 (Close, (p, Two)) y  = True\<close> | 
@@ -389,7 +389,7 @@ lemma P2_sym_imp_P2_for_tm[intro, dest]: \<open>successively P2_sym (map Tm x) \
 
 
 subsection\<open>P3\<close>
-text\<open>After each \<open>(Open,A\<rightarrow>BC,1)\<close>, always comes a \<open>(Open,(B, _),1)\<close>,  and after each \<open>(Open,A\<rightarrow>BC,2)\<close> always comes a \<open>(Open,(C, _),1)\<close>\<close>
+text\<open>After each \<open>(Open,A\<rightarrow>BC,1)\<close>, always comes a \<open>(Open,(B, _),1)\<close>,  and after each \<open>(Open,A\<rightarrow>BC,2)\<close> always comes a \<open>(Open,(C, _),1)\<close>:\<close>
 fun P3 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
   \<open>P3 (Open, ((A, [Nt B, Nt C]), One)) (p, ((X,y), t)) = (p = Open \<and> t = One \<and> X = B)\<close> |
   \<open>P3 (Open, ((A, [Nt B, Nt C]), Two)) (p, ((X,y), t)) = (p = Open \<and> t = One \<and> X = C)\<close> |
@@ -397,9 +397,9 @@ fun P3 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> 
 
 
 text\<open>After each \<open>(Open,A\<rightarrow>BC,1)\<close>, always comes a \<open>(Open,(B, _),1)\<close> or a \<open>Nt B\<close>,
-and after each \<open>(Open,A\<rightarrow>BC,2)\<close>, always comes a \<open>(Open,(C, _),1)\<close> or a \<open>Nt C\<close>\<close>
+and after each \<open>(Open,A\<rightarrow>BC,2)\<close>, always comes a \<open>(Open,(C, _),1)\<close> or a \<open>Nt C\<close>.\<close>
 text\<open>We use function instead of fun here in a way, that is exactly what fun does
-but where we replaced \<open>auto\<close> by \<open>fastforce+\<close>, which happens to be a second faster.\<close>
+but where we replaced \<open>auto\<close> by \<open>fastforce+\<close>, which happens to be a second faster:\<close>
 function (sequential) P3_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
   \<open>P3_sym (Tm (Open, ((A, [Nt B, Nt C]), One))) (Tm (p, ((X,y), t))) = (p = Open \<and> t = One \<and> X = B)\<close> | \<comment> \<open>Not obvious: the case (Tm (Open, ((A, [Nt B, Nt C]), One))) Nt X is set to True with the catch all\<close>
   \<open>P3_sym (Tm (Open, ((A, [Nt B, Nt C]), One))) (Nt X) = (X = B)\<close> | 
@@ -456,12 +456,12 @@ lemma P3_sym_imp_P3_for_tm[intro, dest]: \<open>successively P3_sym (map Tm x) \
 
 
 subsection\<open>P4\<close>
-text\<open>after each \<open>(Open,A\<rightarrow>a,1)\<close> comes a \<open>(Close,A\<rightarrow>a,1)\<close> and after each \<open>(Open,A\<rightarrow>a,2)\<close> comes a \<open>(Close,A\<rightarrow>a,2)\<close>\<close>
+text\<open>After each \<open>(Open,A\<rightarrow>a,1)\<close> comes a \<open>(Close,A\<rightarrow>a,1)\<close> and after each \<open>(Open,A\<rightarrow>a,2)\<close> comes a \<open>(Close,A\<rightarrow>a,2)\<close>:\<close>
 fun P4 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
   \<open>P4 (Open, ((A, [Tm a]), s)) (p, ((X, y), t)) = (p = Close \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> |
   \<open>P4 x y = True\<close>
 
-text\<open>after each \<open>(Open,A\<rightarrow>a,1)\<close> comes a \<open>(Close,A\<rightarrow>a,1)\<close> and after each \<open>(Open,A\<rightarrow>a,2)\<close> comes a \<open>(Close,A\<rightarrow>a,2)\<close>\<close>
+text\<open>After each \<open>(Open,A\<rightarrow>a,1)\<close> comes a \<open>(Close,A\<rightarrow>a,1)\<close> and after each \<open>(Open,A\<rightarrow>a,2)\<close> comes a \<open>(Close,A\<rightarrow>a,2)\<close>:\<close>
 fun P4_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
   \<open>P4_sym (Tm (Open, ((A, [Tm a]), s))) (Tm (p, ((X, y), t))) = (p = Close \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> | 
   \<open>P4_sym (Tm (Open, ((A, [Tm a]), s))) (Nt X) = False\<close> | 
@@ -491,13 +491,13 @@ lemma P4_sym_imp_P4_for_tm[intro, dest]: \<open>successively P4_sym (map Tm x) \
   by auto
 
 subsection\<open>P5\<close>
-text\<open>there exists some y, such that x begins with @{term \<open>(Open,(A,y)::('n,'t) prod,One)\<close>}\<close>
+text\<open>There exists some y, such that x begins with @{term \<open>(Open,(A,y)::('n,'t) prod,One)\<close>}:\<close>
 fun P5 :: \<open>'n \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) list \<Rightarrow> bool\<close> where
   \<open>P5 A [] = False\<close> | 
   \<open>P5 A ((Open, (X,y), One) # xs) = (X = A)\<close> | 
   \<open>P5 A (x # xs) = False\<close>
 
-text\<open>there exists some y, such that x begins with \<open>(Open,(A,y),1)\<close> or it begins with \<open>Nt A\<close>\<close>
+text\<open>There exists some y, such that x begins with \<open>(Open,(A,y),1)\<close> or it begins with \<open>Nt A\<close>:\<close>
 fun P5_sym :: \<open>'n \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms \<Rightarrow> bool\<close> where
   \<open>P5_sym A [] = False\<close> | 
   \<open>P5_sym A (Tm (Open, (X,y), One) # xs) = (X = A)\<close> | 
@@ -540,7 +540,7 @@ lemma P7_symD[dest]:
 
 lemmas P7_symE = P7_symD[elim_format]
 
-text\<open>After a \<open>Nt Y\<close> there always comes a \<open>(Close, A\<rightarrow>YC, 1)\<close> or a \<open>(Close, A\<rightarrow>BY, 2)\<close>\<close>
+text\<open>After a \<open>Nt Y\<close> there always comes a \<open>(Close, A\<rightarrow>YC, 1)\<close> or a \<open>(Close, A\<rightarrow>BY, 2)\<close>:\<close>
 fun P8_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
   \<open>P8_sym (Nt Y) (Tm (b,(A, [Nt B, Nt C]), v ))  = (b = Close \<and> ( (Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
   \<open>P8_sym (Nt Y) x = False\<close> | 
@@ -557,7 +557,7 @@ lemmas P8_symE = P8_symD[elim_format]
 
 
 subsection\<open>\<open>Re\<close> and \<open>Re_sym\<close>\<close>
-text\<open>This is the regular language, where one takes the Start symbol as a parameter, and then has the searched for \<open>R := R\<^sub>A\<close>\<close>
+text\<open>This is the regular language, where one takes the Start symbol as a parameter, and then has the searched for \<open>R := R\<^sub>A\<close>:\<close>
 definition Re :: \<open>'n \<Rightarrow> (bracket \<times> (('n, 't) prod) \<times> version) list set\<close> where
   \<open>Re A = {x. (P1 x) \<and> 
     (successively P2 x) \<and> 
@@ -585,8 +585,8 @@ lemma ReD[dest]:
 
 lemmas ReE = ReD[elim_format]
 
-text\<open>Version of \<open>Re\<close> for symbols, i.e. strings that may still contain Nt's. 
-It has 2 more Properties P6 and P7 that vanish for pure terminal strings\<close>
+text\<open>A version of \<open>Re\<close> for symbols, i.e. strings that may still contain Nt's. 
+It has 2 more Properties P6 and P7 that vanish for pure terminal strings:\<close>
 definition Re_sym :: \<open>'n \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms set\<close> where
   \<open>Re_sym A = {x. (P1_sym x) \<and> 
      (successively P2_sym x) \<and> 
@@ -626,21 +626,21 @@ lemma Re_sym_imp_Re_for_tm[intro, dest]: \<open>(map Tm x) \<in> Re_sym A \<Long
 
 
 section\<open>The homomorphism \<open>h\<close> and \<open>h_ext\<close>\<close>
-text\<open>\<open>h_ext\<close> is a version of \<open>h\<close> that can be used on words still containing Nonterminals.\<close>
+text\<open>The function \<open>h_ext\<close> is a version of \<open>h\<close> that can be used on words still containing Nonterminals.\<close>
 
-text\<open>Definition of a monoid-homomorphism where multiplication is that of words.\<close>
+text\<open>Definition of a monoid-homomorphism where multiplication is that of words:\<close>
 definition hom :: \<open>('c list \<Rightarrow> 'd list) \<Rightarrow> bool\<close> where
   \<open>hom h = ((\<forall>a b. h (a@b) = (h a) @ h (b)) \<and> h [] = [])\<close>
 
 
-text\<open>helper function for the definition of \<open>h\<close>\<close>
+text\<open>A helper function for the definition of \<open>h\<close>:\<close>
 fun the_hom_helper :: \<open>(bracket \<times> (('a, 'b) prod) \<times> version) \<Rightarrow> 'b list\<close> where
   \<open>the_hom_helper (Open, ((A, [Tm a]), One)) = [a]\<close> | 
   \<open>the_hom_helper _ = []\<close> 
 
 
 
-text\<open>helper function for the definition of the extended \<open>h_ext\<close>\<close>
+text\<open>A helper function for the definition of the extended \<open>h_ext\<close>:\<close>
 fun the_hom_ext_helper :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version) sym \<Rightarrow> ('a,'b) sym list\<close> where
   \<open>the_hom_ext_helper (Tm (Open, ((A, [Tm a]), One))) = [Tm a]\<close> | 
   \<open>the_hom_ext_helper (Nt A) = [Nt A]\<close> | 
@@ -648,12 +648,12 @@ fun the_hom_ext_helper :: \<open>('a, bracket \<times> ('a,'b) prod \<times> ver
 
 
 
-text\<open>The needed homomorphism in the proof\<close>
+text\<open>The needed homomorphism in the proof:\<close>
 fun the_hom :: \<open>(bracket \<times> ('a,'b) prod \<times> version) list \<Rightarrow> 'b list \<close> where
   \<open>the_hom l = concat (map the_hom_helper l)\<close>
 
 
-text\<open>The needed homomorphism in the proof, but extended on Variables\<close>
+text\<open>The needed homomorphism in the proof, but extended on Variables:\<close>
 fun the_hom_ext :: \<open>('a, bracket \<times> ('a,'b) prod \<times> version ) syms \<Rightarrow> ('a,'b) syms\<close> where
   \<open>the_hom_ext l = concat (map the_hom_ext_helper l)\<close>
 
@@ -700,12 +700,12 @@ qed
 
 
 
-text\<open>helper for showing the next lemma\<close>
+text\<open>Helper for showing the upcoming lemma:\<close>
 lemma helper: \<open>the_hom_ext_helper (Tm x) = map Tm (the_hom_helper x)\<close>
   apply(induction x rule: the_hom_helper.induct)
   by(auto split: list.splits sym.splits)
 
-text\<open>Show that the extension really is an extension in some sense.\<close>
+text\<open>Show that the extension really is an extension in some sense:\<close>
 lemma h_eq_h_ext: \<open>the_hom_ext (map Tm x) = map Tm (the_hom x)\<close>
 proof(induction x)
   case Nil
@@ -1642,7 +1642,7 @@ begin
 
 datatype P1_State = last_ok | last_bad | garbage 
 
-text\<open>The good ending letters, are those that are not of the form \<open>(Close, _ , 1)\<close>\<close>
+text\<open>The good ending letters, are those that are not of the form \<open>(Close, _ , 1)\<close>.\<close>
 fun good where
   \<open>good (Close, p, One)  = False\<close> | 
   \<open>good (br, p, v) = True\<close>
@@ -1833,7 +1833,7 @@ begin
 
 datatype P5_State = start | first_ok | garbage 
 
-text\<open>The good/ok ending letters, are those that are not of the form \<open>(Close, _ , 1)\<close>\<close>
+text\<open>The good/ok ending letters, are those that are not of the form \<open>(Close, _ , 1)\<close>.\<close>
 fun ok where
   \<open>ok (Open, (X, _), One) = (X = A)\<close> | 
   \<open>ok _ = False\<close>
@@ -2063,7 +2063,7 @@ qed
 
 
 
-text\<open>A lemma saying that all \<open>Dyck_language\<close> words really only consist of brackets (trivial definition wrangling).\<close>
+text\<open>A lemma saying that all \<open>Dyck_language\<close> words really only consist of brackets (trivial definition wrangling):\<close>
 
 lemma Dyck_lang_imp_star_brackets: \<open>Dyck_language (P \<times> {One, Two}) \<subseteq> (brackets P)\<close>
 proof
@@ -2100,7 +2100,7 @@ text\<open>TODO mv?\<close>
 lemma star_mono: \<open>A \<subseteq> B \<Longrightarrow> star A \<subseteq> star B\<close> by (metis (full_types) in_star_iff_concat subsetI subset_trans)
 
 
-text\<open>splits the string until we finally get something from A\<close>
+text\<open>Splits the string until we finally get something from A:\<close>
 lemma split_star_union:
   assumes \<open>zs \<in> star( A \<union> B )\<close>
   shows \<open>zs \<in> star B  \<or>  (\<exists>bs a zs'. zs = bs @ a @ zs' \<and> bs \<in> star B \<and> a \<in> A \<and> zs' \<in> star(A \<union> B))\<close>
@@ -2573,7 +2573,7 @@ qed
 section\<open>The Theorem\<close>
 
 
-text\<open>The constructive version of the Theorem, for a grammar already in CNF\<close>
+text\<open>The constructive version of the Theorem, for a grammar already in CNF:\<close>
 lemma Chomsky_Schuetzenberger_constr:
   fixes P :: \<open>('n::infinite, 't) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S\<close>
@@ -2709,7 +2709,7 @@ qed
 
 
 
-text\<open>The theorem, but only for languages not containing \<open>\<epsilon>\<close> \<close>
+text\<open>The theorem, but only for languages not containing \<open>\<epsilon>\<close>:\<close>
 lemma Chomsky_Schuetzenberger_not_empty:
   fixes P :: \<open>('n::infinite, 't) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S - {[]}\<close>
@@ -2739,7 +2739,7 @@ qed
 
 
 
-text\<open>The Chomsky-Schuetzenberger theorem that we really want to prove.\<close>
+text\<open>The Chomsky-Schuetzenberger theorem that we really want to prove:\<close>
 lemma Chomsky_Schuetzenberger:
   fixes P :: \<open>('n::infinite, 't) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S\<close>

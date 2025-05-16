@@ -1,9 +1,4 @@
 -keine Blöcke von Leerzeilen
 
 
--Qualifizierungen hinten an Namen anhängen: stk_bal -> bal_stk
-
-
--Sätze groß anfangen, satzzeichen am Ende.
-
 -Finite_Automata_Not_HF ersetzen

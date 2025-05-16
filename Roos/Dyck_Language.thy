@@ -470,10 +470,6 @@ lemma bal_tm_insert_AB: assumes u: "bal_tm u" shows "u = v@w \<Longrightarrow> b
 lemma bal_tm_insert_Nt: assumes u: "bal_tm u" shows "u = v@w \<Longrightarrow> bal_tm (v @ Nt A # w)" using u
   unfolding bal_tm_def by auto
 
-(*TODO delete me*)
-lemma stk_bal_if_stk_bal_tm: "stk_bal_tm w s = ([],[]) \<Longrightarrow> bal_tm (rev(map (\<lambda>x. Tm (Open, x)) s) @ w)" 
-  oops
-
 corollary stk_bal_tm_iff_bal_tm: "stk_bal_tm w [] = ([],[]) \<longleftrightarrow> bal_tm w"
   unfolding stk_bal_tm_def bal_tm_def apply auto
     apply (metis prod.exhaust_sel stk_bal_iff_bal)

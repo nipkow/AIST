@@ -1,4 +1,1 @@
--keine Blöcke von Leerzeilen
-
-
 -Finite_Automata_Not_HF ersetzen

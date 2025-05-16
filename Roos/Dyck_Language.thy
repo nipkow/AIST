@@ -117,7 +117,7 @@ lemma stripTm_Tm[simp]: \<open>map (stripTm \<circ> Tm) xs' = xs'\<close>
   apply(induction xs') by auto
 
 definition bal_tm where
-\<open>bal_tm \<equiv> bal o (map stripTm) o (filter isTm)\<close>
+  \<open>bal_tm \<equiv> bal o (map stripTm) o (filter isTm)\<close>
 
 
 
@@ -180,7 +180,7 @@ lemma bal_imp_bal_tm: \<open>bal xs \<Longrightarrow> bal_tm (map Tm xs)\<close>
   by(induction xs rule: bal.induct; auto)
 
 lemma bal_tm_imp_bal_for_tms: \<open>bal_tm (map Tm xs') \<Longrightarrow> bal xs'\<close>
-unfolding bal_tm_def by auto
+  unfolding bal_tm_def by auto
 
 
 
@@ -190,8 +190,8 @@ unfolding bal_tm_def by auto
 subsection\<open>\<^term>\<open>rhs_in_tm\<close>\<close>
 
 text\<open>Says that all right hand sides of \<open>x\<close> (here stripped of their \<open>Tm\<close>) are in \<open>\<Gamma>\<close>.\<close>
- definition rhs_in_tm where
-\<open>rhs_in_tm \<equiv> rhs_in o (map stripTm) o (filter isTm)\<close>
+definition rhs_in_tm where
+  \<open>rhs_in_tm \<equiv> rhs_in o (map stripTm) o (filter isTm)\<close>
 
 
 lemma rhs_in_tm_del_right[dest]: \<open>rhs_in_tm (xs@ys) \<Gamma> \<Longrightarrow> rhs_in_tm xs \<Gamma>\<close> 
@@ -211,7 +211,7 @@ lemma rhs_in_tm_append[intro, simp]: \<open>rhs_in_tm (xs) \<Gamma> \<Longrighta
 
 text\<open>Relationship between \<^term>\<open>bal_tm\<close>, \<^term>\<open>rhs_in_tm\<close> and \<open>Dyck_Language\<close>\<close>
 lemma Dyck_languageI_tm[intro]: \<open>bal_tm (map Tm xs') \<Longrightarrow> rhs_in_tm (map Tm xs') \<Gamma> \<Longrightarrow> xs' \<in> Dyck_language \<Gamma>\<close>
-unfolding bal_tm_def rhs_in_tm_def by auto
+  unfolding bal_tm_def rhs_in_tm_def by auto
 
 
 
@@ -500,245 +500,62 @@ subsection\<open>\<^term>\<open>bal_tm\<close>\<close>
 
 (* fun stk_bal :: "(bracket \<times> 't) list \<Rightarrow> 't list \<Rightarrow> ((bracket \<times> 't) list) * 't list" where *)
 
-(*
- definition stk_bal_tm2 :: "('n, bracket \<times> 't) syms \<Rightarrow> 't list \<Rightarrow> ('n, bracket \<times> 't) syms * 't list" where
-\<open>stk_bal_tm2 \<equiv> (\<lambda>x y . (map Tm (fst ((stk_bal o (map stripTm) o (filter isTm)) x y)), snd ((stk_bal o (map stripTm) o (filter isTm)) x y)))\<close>
-*)
-
 text\<open>A stack machine that puts open brackets to the stack, to remember that they must be matched by a closed bracket\<close>
-fun stk_bal_tm :: "('n, bracket \<times> 't) syms \<Rightarrow> 't list \<Rightarrow> ('n, bracket \<times> 't) syms * 't list" where
-  "stk_bal_tm [] s = ([],s)" |
-  "stk_bal_tm (Tm (Open, g) # xs) s = stk_bal_tm xs (g#s)" |
-  "stk_bal_tm (Tm (Close, g) # xs) (g'#s) = (if g=g' then stk_bal_tm xs s else ((Tm (Close, g) # xs), g'#s))" | 
-  \<open>stk_bal_tm (Nt A # xs) s = stk_bal_tm xs s\<close> | 
-  "stk_bal_tm xs s = (xs,s)"
+definition stk_bal_tm :: "('n, bracket \<times> 't) syms \<Rightarrow> 't list \<Rightarrow> ('n, bracket \<times> 't) syms * 't list" where
+  \<open>stk_bal_tm \<equiv> (\<lambda>x y . (map Tm (fst ((stk_bal o (map stripTm) o (filter isTm)) x y)), snd ((stk_bal o (map stripTm) o (filter isTm)) x y)))\<close>
+
 
 lemma stk_bal_tm_append: "stk_bal_tm (xs @ ys) s1 = (let (xs',s1') = stk_bal_tm xs s1 in
 stk_bal_tm (xs' @ ys) s1')"
-  by(induction xs s1 rule:stk_bal_tm.induct) (auto split: if_splits)
+  unfolding stk_bal_tm_def apply auto
+   apply (metis (no_types, lifting) old.prod.case stk_bal_append surjective_pairing)
+  by (metis (no_types, lifting) split_beta stk_bal_append)
 
 lemma stk_bal_tm_append_if[simp]: "stk_bal_tm xs s1 = ([],s2) \<Longrightarrow> stk_bal_tm (xs @ ys) s1 =
 stk_bal_tm ys s2"
   by(simp add: stk_bal_tm_append[of xs])
 
 lemma stk_bal_tm_if_bal_tm:  "bal_tm xs \<Longrightarrow> stk_bal_tm xs s = ([],s)"
-  by(induction arbitrary: s rule: bal_tm.induct)(auto split: if_splits)
+  unfolding stk_bal_tm_def 
+  by (simp add: bal_tm_def stk_bal_if_bal)+
 
 
 
 lemma bal_tm_insert_AB: assumes u: "bal_tm u" shows "u = v@w \<Longrightarrow> bal_tm (v @ Tm (Open, x) # Tm (Close, x) # w)" using u
-proof(induction arbitrary: v w)
-  case 1 thus ?case by simp
-next
-  case (2 A v w)
-  then show ?case
-  proof(cases v)
-    case Nil
-    with 2 have \<open>w = [Nt A]\<close> 
-      by (metis append_Nil)
-    show ?thesis unfolding Nil \<open>w = [Nt A]\<close> by simp
-  next
-    case (Cons a list)
-    with 2 have \<open>v = [Nt A]\<close> 
-      by simp
-    then have \<open>w = []\<close> using "2" 
-      by blast
-    then show ?thesis unfolding \<open>v = [Nt A]\<close> \<open>w = []\<close> by simp
-  qed
-next
-  case (4 u y)
-  show ?case
-  proof (cases v)
-    case Nil
-    hence "w = (Tm (Open, y)) # u @ [Tm (Close, y)]" 
-      using "4.prems" by simp
-    hence "bal_tm w" 
-      using "4.hyps" by blast
-    hence "bal_tm ([Tm (Open, x), Tm (Close, x)] @ w)" 
-      by blast
-    thus ?thesis using Nil by simp
-  next
-    case (Cons X v')
-    show ?thesis
-    proof (cases w rule:rev_cases)
-      case Nil
-      from "4.hyps" have "bal_tm ((Tm (Open, x) # u @ [Tm (Close, x)]) @ [Tm (Open, x), Tm (Close, x)])"
-        using bal.intros(2) by blast
-      thus ?thesis using Nil Cons 4
-        by (metis append_Nil append_Nil2 bal_tm.simps)
-    next
-      case (snoc w' Y)
-      hence u: "u=v'@w'" and [simp]: "X=Tm (Open, y) & Y=Tm (Close, y)"
-        using Cons "4.prems" apply (smt (verit, ccfv_threshold) List.append.assoc List.list.inject append_Cons append_eq_append_conv last_snoc)
-        by (metis "local.4.prems" Cons List.append.assoc List.list.inject append_Cons last_snoc snoc)
-          \<comment> \<open>This also works by auto, but it takes 4 seconds.\<close>
-      thus ?thesis
-        by (metis "4.IH" append.assoc append_Cons local.Cons bal_tm.intros(4) snoc)
-    qed
-  qed
-next
-  case (3 v' w')
-  then obtain r where "v'=v@r \<and> r@w'=w \<or> v'@r=v \<and>w'=r@w" (is "?A \<or> ?B")
-    by (meson append_eq_append_conv2)
-  thus ?case
-  proof
-    assume A: ?A
-    hence "bal_tm (v @ Tm (Open, x) # Tm (Close, x) # r)" 
-      using "3.IH"(1) by presburger
-    hence "bal_tm ((v @ Tm (Open, x) # Tm (Close, x)#r) @ w')" 
-      using \<open>bal_tm w'\<close> by(rule bal_tm.intros(3))
-    thus ?thesis using A by auto
-  next
-    assume B: ?B
-    hence "bal_tm (r @ Tm (Open, x) # Tm (Close, x) # w)" 
-      using "3.IH"(2) by presburger
-    with \<open>bal_tm v'\<close> have "bal_tm (v'@(r@Tm (Open, x) # Tm (Close, x)#w))" 
-      by(rule bal_tm.intros(3))
-    thus ?thesis using B by force
-  qed 
-qed 
+  unfolding bal_tm_def apply auto
+  by (metis bal_insert_AB)
 
 
 lemma bal_tm_insert_Nt: assumes u: "bal_tm u" shows "u = v@w \<Longrightarrow> bal_tm (v @ Nt A # w)" using u
-proof(induction arbitrary: v w)
-  case 1
-  then show ?case by blast
-next
-  case (2 A)
-  then show ?case
-  proof(cases v)
-    case Nil
-    with 2 have \<open>w = [Nt A]\<close> 
-      by (metis append_Nil)
-    show ?thesis unfolding Nil \<open>w = [Nt A]\<close> by simp
-  next
-    case (Cons a list)
-    with 2 have \<open>v = [Nt A]\<close> 
-      by simp
-    then have \<open>w = []\<close> 
-      using "2" by blast
-    then show ?thesis unfolding \<open>v = [Nt A]\<close> \<open>w = []\<close> by simp
-  qed 
-next
-  case (3 v' w')
-  then obtain r where \<open>(v' = v@r) \<and> (r@w' = w) \<or> (w' = r@w) \<and> (v'@r = v)\<close> (is \<open>?A \<or> ?B\<close>) 
-    by (meson append_eq_append_conv2)
-  then show ?case
-  proof
-    assume A: ?A
-    then have \<open>bal_tm (v @ Nt A # r)\<close> 
-      using "3.IH" by presburger
-    then have \<open>bal_tm (v @ Nt A # r @ w')\<close> 
-      using \<open>bal_tm w'\<close> using bal_tm.intros(3) by fastforce 
-    then show ?thesis using A by blast
-  next
-    assume B: ?B
-    then have \<open>bal_tm (r @ Nt A # w)\<close> 
-      using "3.IH" by presburger
-    then have \<open>bal_tm (v' @ r @ Nt A # w)\<close> 
-      using \<open>bal_tm v'\<close> using bal_tm.intros(3) by fastforce 
-    then show ?thesis using B by (metis List.append.assoc)
-  qed
-next
-
-  case (4 u y)
-  show ?case
-  proof (cases v)
-    case Nil
-    hence "w = (Tm (Open, y)) # u @ [Tm (Close, y)]" 
-      using "4.prems" by simp
-    hence "bal_tm w" 
-      using "4.hyps" by blast
-    hence "bal_tm ([Nt A] @ w)" 
-      by blast
-    thus ?thesis using Nil by simp
-  next
-    case (Cons X v')
-    show ?thesis
-    proof (cases w rule:rev_cases)
-      case Nil
-      thus ?thesis using Nil Cons 4
-        by (metis append_Nil2 bal_tm.simps)
-    next
-      case (snoc w' Y)
-      hence u: "u=v'@w'" and [simp]: "X=Tm (Open, y) & Y=Tm (Close, y)"
-        using Cons "4.prems" apply (smt (verit, ccfv_threshold) List.append.assoc List.list.inject append_Cons append_eq_append_conv last_snoc)
-        by (metis "local.4.prems" Cons List.append.assoc List.list.inject append_Cons last_snoc snoc)
-          \<comment> \<open>This also works by auto, but it takes 4 seconds.\<close>
-      thus ?thesis
-        by (metis "4.IH" append.assoc append_Cons local.Cons bal_tm.intros(4) snoc)
-    qed
-  qed
-qed
+  unfolding bal_tm_def by auto
 
 
-lemma stk_bal_if_stk_bal_tm: "stk_bal_tm w s = ([],[]) \<Longrightarrow> bal_tm (rev(map (\<lambda>x. Tm (Open, x)) s) @ w)"
-proof(induction w s rule: stk_bal_tm.induct)
-  case (2 x xs s)
-  then show ?case by simp
-next
-  case (3 x xs y s)
-  then show ?case by (auto simp add: bal_tm_insert_AB split: if_splits)
-next
-  case (4 A xs s)
-  then have \<open>stk_bal_tm xs s = ([], [])\<close> 
-    by simp
-  then show ?case by (metis "local.4.IH" bal_tm_insert_Nt)
-qed (auto)
+lemma stk_bal_if_stk_bal_tm: "stk_bal_tm w s = ([],[]) \<Longrightarrow> bal_tm (rev(map (\<lambda>x. Tm (Open, x)) s) @ w)" 
+  oops
+
+
+
 
 corollary stk_bal_tm_iff_bal_tm: "stk_bal_tm w [] = ([],[]) \<longleftrightarrow> bal_tm w"
-  using stk_bal_if_stk_bal_tm[of w "[]"] stk_bal_tm_if_bal_tm by auto
+  unfolding stk_bal_tm_def bal_tm_def apply auto
+    apply (metis prod.exhaust_sel stk_bal_iff_bal)
+   apply (simp add: stk_bal_if_bal)
+  by (simp add: stk_bal_if_bal)
 
 theorem bal_tm_append_inv: "bal_tm (u @ v) \<Longrightarrow> bal_tm u \<Longrightarrow> bal_tm v"
   using stk_bal_tm_append_if stk_bal_tm_iff_bal_tm by metis
 
 
 lemma stk_bal_tm_append_inv: \<open>stk_bal_tm (xs@ys) s1 = ([], s') \<Longrightarrow> (let (xs', s1') = stk_bal_tm xs s1 in stk_bal_tm xs s1 = ([], s1'))\<close>
-proof(induction xs s1 arbitrary: ys rule: stk_bal_tm.induct)
-  case (1 s)
-  then show ?case by auto
-next
-  case (2 g xs s)
-  then show ?case by(auto split: prod.splits)
-next
-  case (3 g xs g' s)
-  then show ?case apply simp by (metis List.list.distinct(1) Product_Type.prod.inject)
-next
-  case (4 A xs s)
-  then show ?case by(auto split: prod.splits)
-next
-  case (5 vd va)
-  then show ?case by(auto split: prod.splits)
-qed
+  unfolding stk_bal_tm_def apply auto 
+  by (smt (verit, del_insts) case_prodE fstI stk_bal_append_inv surjective_pairing)
 
 
 lemma bal_tm_insert: 
   assumes u: "bal_tm u" 
     and b: \<open>bal_tm b\<close>
   shows "u = v@w \<Longrightarrow> bal_tm (v @ b @ w)" 
-proof-
-  assume uvw: \<open>u = v@w\<close>
-  have \<open>stk_bal_tm (b) [] = ([],[])\<close> 
-    using assms stk_bal_tm_iff_bal_tm by blast
-  have \<open>stk_bal_tm (u) [] = ([],[])\<close> 
-    using assms stk_bal_tm_iff_bal_tm by blast
-  then obtain s1' where s1'_def: \<open>stk_bal_tm v [] = ([], s1')\<close> 
-    by (metis (full_types, lifting) uvw case_prodE stk_bal_tm_append_inv)
-  then obtain s' where s'_def: \<open>stk_bal_tm (v @ w) [] = stk_bal_tm (w) s'\<close> 
-    using stk_bal_tm_append_if by blast
-  then have \<open>([],[]) = stk_bal_tm (v @ w) []\<close> 
-    using uvw using \<open>stk_bal_tm u [] = ([], [])\<close> by presburger
-  also have \<open>... = stk_bal_tm (w) s'\<close> 
-    using s'_def by simp
-  also have \<open>... = stk_bal_tm (b@w) s'\<close> 
-    by (metis b stk_bal_tm_append_if stk_bal_tm_if_bal_tm)
-  finally have \<open>stk_bal_tm (b@w) s' = ([],[])\<close> 
-    by simp
-  then have \<open>stk_bal_tm (v @ b @ w) [] = ([],[])\<close> 
-    using s1'_def by (metis b s'_def stk_bal_tm_append_if stk_bal_tm_if_bal_tm)
-  then show \<open>bal_tm (v @ b @ w)\<close> 
-    using stk_bal_tm_iff_bal_tm by blast
-qed
+  by (metis b bal_iff_insert bal_tm_def comp_def filter_append map_append u)
 
 
 
@@ -747,21 +564,7 @@ lemma bal_tm_del:
   assumes u: "bal_tm u" 
     and b: \<open>bal_tm b\<close>
   shows "u = v @ b @ w \<Longrightarrow> bal_tm (v @ w)" 
-proof-
-  assume uvbw: \<open>u = v @ b @ w\<close>
-  have stk_bal_tm_b: \<open>stk_bal_tm (b) [] = ([],[])\<close> 
-    using assms stk_bal_tm_iff_bal_tm by blast
-  have stk_bal_tm_vbw: \<open>stk_bal_tm (v @ b @ w) [] = ([],[])\<close> 
-    using uvbw assms stk_bal_tm_iff_bal_tm by blast
-  then obtain s1' where s1'_def: \<open>stk_bal_tm v [] = ([], s1')\<close> 
-    by (metis (full_types, lifting) case_prodE stk_bal_tm_append_inv)
-  then have \<open>stk_bal_tm (v@b) [] = ([], s1')\<close> 
-    by (metis b stk_bal_tm_append_if stk_bal_tm_if_bal_tm)
-  then have \<open>stk_bal_tm (v @  w) [] = ([],[])\<close> 
-    using stk_bal_tm_vbw s1'_def by (metis stk_bal_tm_append_if)
-  then show \<open>bal_tm (v @ w)\<close> 
-    using stk_bal_tm_iff_bal_tm by blast
-qed
+  by (metis b bal_iff_insert bal_tm_def comp_def filter_append map_append u)
 
 
 corollary bal_tm_iff_insert[iff]:

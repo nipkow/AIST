@@ -200,15 +200,17 @@ lemma transform_production_induct_cnf:
 section\<open>Definition of the regular Language\<close>
 
 subsection\<open>P1\<close>
-text\<open>Defines a Predicate on neighbouring string elements - 
-Is true iff after a \<open>(Close,p,1)\<close> there always immediately follows a \<open>(Open, p, 2)\<close>.
- That also means \<open>(Close, p, 1)\<close> can't be the end of the string:\<close>
+text\<open>P1 will define a predicate on string elements. 
+It will be true iff after a \<open>]\<^sup>1\<^sub>p\<close> there always immediately follows a \<open>[\<^sup>2\<^sub>p\<close>.
+ That should also mean \<open>]\<^sup>1\<^sub>p\<close> can't be the end of the string.\<close>
+
+text\<open>But first we define a helper function, that only captures the neighbouring condition for two strings:\<close>
 fun P1' :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
   \<open>P1' ((Close, (p, One))) ((Open, (p', Two)))  = (p = p')\<close> | 
   \<open>P1' ((Close, (p, One))) y  = False\<close> | 
   \<open>P1' x y = True\<close>
 
-text\<open>Version of P1 for symbols, i.e. strings that may still contain Nt's:\<close>
+text\<open>A version of @{term \<open>P1'\<close>} for symbols, i.e. strings that may still contain Nt's:\<close>
 fun P1'_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
   \<open>P1'_sym (Tm (Close, (p, One))) (Tm (Open, (p', Two)))  = (p = p')\<close> | 
   \<open>P1'_sym (Tm (Close, (p, One))) y  = False\<close> | 
@@ -228,11 +230,11 @@ lemmas P1'E = P1'D[elim_format]
 
 lemmas P1'_symE = P1'_symD[elim_format]
 
-text\<open>Asserts that P1' holds for every pair in xs, and that xs doesnt end in (Close, p, 1):\<close>
+text\<open>Asserts that P1' holds for every pair in xs, and that xs doesnt end in \<open>]\<^sup>1\<^sub>p\<close>:\<close>
 fun P1 where
   \<open>P1 xs = ((successively P1' xs) \<and> (if xs \<noteq> [] then (\<nexists>p. last xs = (Close, (p, One))) else True))\<close>
 
-text\<open>Asserts that P1' holds for every pair in xs, and that xs doesnt end in Tm (Close, p, 1):\<close>
+text\<open>Asserts that P1' holds for every pair in xs, and that xs doesnt end in \<open>Tm ]\<^sup>1\<^sub>p\<close>:\<close>
 fun P1_sym where
   \<open>P1_sym xs = ((successively P1'_sym xs) \<and> (if xs \<noteq> [] then (\<nexists>p. last xs = Tm (Close, (p, One))) else True))\<close>
 
@@ -321,7 +323,7 @@ lemmas P1_symE = P1_symD[elim_format]
 lemmas P1_symE_not_empty = P1_symD_not_empty[elim_format]
 
 subsection\<open>P2\<close>
-text\<open>After any \<open>(Close,pi,2)\<close> there never comes an \<open>(Open,...)\<close>:\<close>
+text\<open>After any \<open>]\<^sup>2\<^bsub>\<pi>\<^esub>\<close> there never comes an \<open>[\<^bsup>...\<^esup>\<^bsub>...\<^esub>\<close>:\<close>
 fun P2 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
   \<open>P2 (Close, (p, Two)) (Open, (p', v))  = False\<close> | 
   \<open>P2 (Close, (p, Two)) y  = True\<close> | 
@@ -354,14 +356,14 @@ lemma P2_sym_imp_P2_for_tm[intro, dest]: \<open>successively P2_sym (map Tm x) \
   by auto
 
 subsection\<open>P3\<close>
-text\<open>After each \<open>(Open,A\<rightarrow>BC,1)\<close>, always comes a \<open>(Open,(B, _),1)\<close>,  and after each \<open>(Open,A\<rightarrow>BC,2)\<close> always comes a \<open>(Open,(C, _),1)\<close>:\<close>
+text\<open>After each \<open>[\<^sup>1\<^bsub>A\<rightarrow>BC\<^esub>\<close>, always comes a \<open>[\<^sup>1\<^bsub>B\<rightarrow>_\<^esub>\<close>,  and after each \<open>[\<^sup>2\<^bsub>A\<rightarrow>BC\<^esub>\<close> always comes a \<open>[\<^sup>1\<^bsub>C\<rightarrow>_\<^esub>\<close>:\<close>
 fun P3 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
   \<open>P3 (Open, ((A, [Nt B, Nt C]), One)) (p, ((X,y), t)) = (p = Open \<and> t = One \<and> X = B)\<close> |
   \<open>P3 (Open, ((A, [Nt B, Nt C]), Two)) (p, ((X,y), t)) = (p = Open \<and> t = One \<and> X = C)\<close> |
   \<open>P3 x y = True\<close>
 
-text\<open>After each \<open>(Open,A\<rightarrow>BC,1)\<close>, always comes a \<open>(Open,(B, _),1)\<close> or a \<open>Nt B\<close>,
-and after each \<open>(Open,A\<rightarrow>BC,2)\<close>, always comes a \<open>(Open,(C, _),1)\<close> or a \<open>Nt C\<close>.\<close>
+text\<open>After each \<open>[\<^sup>1\<^bsub>A\<rightarrow>BC\<^esub>\<close>, always comes a \<open>[\<^sup>1\<^bsub>B\<rightarrow>_\<^esub>\<close> or a \<open>Nt B\<close>,
+and after each \<open>[\<^sup>2\<^bsub>A\<rightarrow>BC\<^esub>\<close>, always comes a \<open>[\<^sup>1\<^bsub>C\<rightarrow>_\<^esub>\<close> or a \<open>Nt C\<close>.\<close>
 text\<open>We use function instead of fun here in a way, that is exactly what fun does
 but where we replaced \<open>auto\<close> by \<open>fastforce+\<close>, which happens to be a second faster:\<close>
 function (sequential) P3_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
@@ -421,12 +423,12 @@ lemma P3_sym_imp_P3_for_tm[intro, dest]: \<open>successively P3_sym (map Tm x) \
 
 subsection\<open>P4\<close>
 
-text\<open>After each \<open>(Open,A\<rightarrow>a,1)\<close> comes a \<open>(Close,A\<rightarrow>a,1)\<close> and after each \<open>(Open,A\<rightarrow>a,2)\<close> comes a \<open>(Close,A\<rightarrow>a,2)\<close>:\<close>
+text\<open>After each \<open>[\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> comes a \<open>]\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> and after each \<open>[\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close> comes a \<open>]\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close>:\<close>
 fun P4 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
   \<open>P4 (Open, ((A, [Tm a]), s)) (p, ((X, y), t)) = (p = Close \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> |
   \<open>P4 x y = True\<close>
 
-text\<open>After each \<open>(Open,A\<rightarrow>a,1)\<close> comes a \<open>(Close,A\<rightarrow>a,1)\<close> and after each \<open>(Open,A\<rightarrow>a,2)\<close> comes a \<open>(Close,A\<rightarrow>a,2)\<close>:\<close>
+text\<open>After each \<open>[\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> comes a \<open>]\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> and after each \<open>[\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close> comes a \<open>]\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close>:\<close>
 fun P4_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
   \<open>P4_sym (Tm (Open, ((A, [Tm a]), s))) (Tm (p, ((X, y), t))) = (p = Close \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> | 
   \<open>P4_sym (Tm (Open, ((A, [Tm a]), s))) (Nt X) = False\<close> | 
@@ -457,13 +459,13 @@ lemma P4_sym_imp_P4_for_tm[intro, dest]: \<open>successively P4_sym (map Tm x) \
 
 subsection\<open>P5\<close>
 
-text\<open>There exists some y, such that x begins with @{term \<open>(Open,(A,y)::('n,'t) prod,One)\<close>}:\<close>
+text\<open>There exists some y, such that x begins with \<open>[\<^sup>1\<^bsub>A\<rightarrow>y\<^esub>\<close>:\<close>
 fun P5 :: \<open>'n \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) list \<Rightarrow> bool\<close> where
   \<open>P5 A [] = False\<close> | 
   \<open>P5 A ((Open, (X,y), One) # xs) = (X = A)\<close> | 
   \<open>P5 A (x # xs) = False\<close>
 
-text\<open>There exists some y, such that x begins with \<open>(Open,(A,y),1)\<close> or it begins with \<open>Nt A\<close>:\<close>
+text\<open>There exists some y, such that x begins with \<open>[\<^sup>1\<^bsub>A\<rightarrow>y\<^esub>\<close> begins with \<open>Nt A\<close>:\<close>
 fun P5_sym :: \<open>'n \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) syms \<Rightarrow> bool\<close> where
   \<open>P5_sym A [] = False\<close> | 
   \<open>P5_sym A (Tm (Open, (X,y), One) # xs) = (X = A)\<close> | 
@@ -490,7 +492,7 @@ lemma P5_sym_imp_P5_for_tm[intro, dest]: \<open>P5_sym A (map Tm x) \<Longrighta
 subsection\<open>P7 and P8\<close>
 
 text\<open>These are only needed for the version \<open>Reg_sym\<close> that also allows Nonterminals - the conditions vanish for the \<open>Reg\<close> version\<close>
-text\<open>Before a \<open>Nt Y\<close> there always comes a \<open>Tm (Open, A\<rightarrow>YC, 1)\<close> or a \<open>Tm (Open, A\<rightarrow>BY, 2)\<close>\<close>
+text\<open>Before a \<open>Nt Y\<close> there always comes a \<open>Tm [\<^sup>1\<^bsub>A\<rightarrow>YC  \<^esub>\<close>} or a \<open>Tm [\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close>}\<close>
 fun P7_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
   \<open>P7_sym (Tm (b,(A, [Nt B, Nt C]), v )) (Nt Y) = (b = Open \<and> ((Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
   \<open>P7_sym x (Nt Y) = False\<close> | 
@@ -505,7 +507,7 @@ lemma P7_symD[dest]:
 
 lemmas P7_symE = P7_symD[elim_format]
 
-text\<open>After a \<open>Nt Y\<close> there always comes a \<open>(Close, A\<rightarrow>YC, 1)\<close> or a \<open>(Close, A\<rightarrow>BY, 2)\<close>:\<close>
+text\<open>After a \<open>Nt Y\<close> there always comes a \<open>]\<^sup>1\<^bsub>A\<rightarrow>YC\<^esub>\<close> or a \<open>]\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close>:\<close>
 fun P8_sym :: \<open>('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> ('n, bracket \<times> ('n,'t) prod \<times> version) sym \<Rightarrow> bool\<close> where
   \<open>P8_sym (Nt Y) (Tm (b,(A, [Nt B, Nt C]), v ))  = (b = Close \<and> ( (Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
   \<open>P8_sym (Nt Y) x = False\<close> | 

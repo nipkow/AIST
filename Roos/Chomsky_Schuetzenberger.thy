@@ -71,31 +71,31 @@ section\<open>Cloning and Abbreviations\<close>
 text\<open>A type with 2 elements, for creating 2 copies as needed in the proof:\<close>
 datatype version = One | Two
 
-abbreviation open_bracket1 :: "('a, 'b) prod \<Rightarrow> bracket \<times> ('a, 'b) prod \<times> version" ("[\<^sub>_\<^sup>1 ") where
-  "[\<^sub>p\<^sup>1  \<equiv> (Open, (p, One))"
+abbreviation open_bracket1 :: "('a, 'b) prod \<Rightarrow> bracket \<times> ('a, 'b) prod \<times> version" ("[\<^sup>1\<^sub>_ ") where
+  "[\<^sup>1\<^sub>p  \<equiv> (Open, (p, One))"
 
-abbreviation close_bracket1 :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("]\<^sub>_\<^sup>1") where
-  "]\<^sub>p\<^sup>1 \<equiv> (Close, (p, One))"
+abbreviation close_bracket1 :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("]\<^sup>1\<^sub>_") where
+  "]\<^sup>1\<^sub>p \<equiv> (Close, (p, One))"
 
-abbreviation open_bracket2 :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("[\<^sub>_\<^sup>2") where
-  "[\<^sub>p\<^sup>2 \<equiv> (Open, (p, Two))"
+abbreviation open_bracket2 :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("[\<^sup>2\<^sub>_") where
+  "[\<^sup>2\<^sub>p \<equiv> (Open, (p, Two))"
 
-abbreviation close_bracket2 :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("]\<^sub>_\<^sup>2") where
-  "]\<^sub>p\<^sup>2 \<equiv> (Close, (p, Two))"
+abbreviation close_bracket2 :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("]\<^sup>2\<^sub>_") where
+  "]\<^sup>2\<^sub>p \<equiv> (Close, (p, Two))"
 
 
 text\<open>Version for p = (A, w) (multiple letters) with bsub and esub:\<close>
-abbreviation open_bracket1' :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("[\<^bsub>_\<^esub>\<^sup>1 ") where
-  "[\<^bsub>p\<^esub>\<^sup>1  \<equiv> (Open, (p, One))"
+abbreviation open_bracket1' :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("[\<^sup>1\<^bsub>_\<^esub> ") where
+  "[\<^sup>1\<^bsub>p\<^esub>  \<equiv> (Open, (p, One))"
 
-abbreviation close_bracket1' :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("]\<^bsub>_\<^esub>\<^sup>1") where
-  "]\<^bsub>p\<^esub>\<^sup>1 \<equiv> (Close, (p, One))"
+abbreviation close_bracket1' :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("]\<^sup>1\<^bsub>_\<^esub>") where
+  "]\<^sup>1\<^bsub>p\<^esub> \<equiv> (Close, (p, One))"
 
-abbreviation open_bracket2' :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("[\<^bsub>_\<^esub>\<^sup>2") where
-  "[\<^bsub>p\<^esub>\<^sup>2 \<equiv> (Open, (p, Two))"
+abbreviation open_bracket2' :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("[\<^sup>2\<^bsub>_\<^esub>") where
+  "[\<^sup>2\<^bsub>p\<^esub> \<equiv> (Open, (p, Two))"
 
-abbreviation close_bracket2' :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("]\<^bsub>_\<^esub>\<^sup>2 ") where
-  "]\<^bsub>p\<^esub>\<^sup>2 \<equiv> (Close, (p, Two))"
+abbreviation close_bracket2' :: "('n,'t) prod \<Rightarrow> bracket \<times> ('n,'t) prod \<times> version" ("]\<^sup>2\<^bsub>_\<^esub> ") where
+  "]\<^sup>2\<^bsub>p\<^esub> \<equiv> (Close, (p, Two))"
 
 text \<open>Nice LaTeX rendering:\<close>
 
@@ -149,8 +149,8 @@ definition CNF_rule :: "('n,'t) prod \<Rightarrow> bool" where
   \<open>CNF_rule p \<equiv>  (\<exists>(A::'n) B C. (p = (A,[Nt B, Nt C]))) \<or> (\<exists>A a. p= (A, [Tm a]))\<close>
 
 lemma transform_production_CNF: \<open>CNF_rule p \<Longrightarrow> 
-(\<exists>A B C. transform_production p = (A, [ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ]) \<and> p = (A, [Nt B, Nt C])) \<or> 
-(\<exists>A a. transform_production p = (A, [ Tm [\<^sub>p\<^sup>1,       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ]) \<and> p = (A, [Tm a]) )\<close>
+(\<exists>A B C. transform_production p = (A, [ Tm [\<^sup>1\<^sub>p , Nt B, Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p , Nt C, Tm ]\<^sup>2\<^sub>p   ]) \<and> p = (A, [Nt B, Nt C])) \<or> 
+(\<exists>A a. transform_production p = (A, [ Tm [\<^sup>1\<^sub>p,       Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p ,       Tm ]\<^sup>2\<^sub>p   ]) \<and> p = (A, [Tm a]) )\<close>
   unfolding CNF_rule_def by auto
 
 lemma transform_production_when_CNF: 
@@ -708,19 +708,19 @@ proof-
     by (simp add: \<open>transform_production (S, w) = (S, w')\<close> derive_singleton)
 qed
 
-lemma [iff]: \<open>bal_tm ([ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ])\<close> 
+lemma [iff]: \<open>bal_tm ([ Tm [\<^sup>1\<^sub>p , Nt B, Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p , Nt C, Tm ]\<^sup>2\<^sub>p   ])\<close> 
   using bal_stk_tm_iff_bal_tm unfolding bal_stk_tm_def by fastforce
 
-lemma [iff]: \<open>bal_tm ([ Tm (Open, (p,One)),       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ])\<close> 
+lemma [iff]: \<open>bal_tm ([ Tm (Open, (p,One)),       Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p ,       Tm ]\<^sup>2\<^sub>p   ])\<close> 
   using bal_stk_tm_iff_bal_tm unfolding bal_stk_tm_def by fastforce
 
 lemma \<open>rhs_in_tm [Nt A] \<Gamma>\<close> 
   unfolding rhs_in_tm_def by auto
 
-lemma prod1_rhs_in_tm [intro, simp]: \<open>p \<in> P \<Longrightarrow> rhs_in_tm [ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ] (P \<times> {One, Two}) \<close> 
+lemma prod1_rhs_in_tm [intro, simp]: \<open>p \<in> P \<Longrightarrow> rhs_in_tm [ Tm [\<^sup>1\<^sub>p , Nt B, Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p , Nt C, Tm ]\<^sup>2\<^sub>p   ] (P \<times> {One, Two}) \<close> 
   unfolding rhs_in_tm_def by auto
 
-lemma prod2_rhs_in_tm [intro, simp]: \<open>p \<in> P \<Longrightarrow> rhs_in_tm [ Tm (Open, (p,One)),       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ] (P \<times> {One, Two})\<close> 
+lemma prod2_rhs_in_tm [intro, simp]: \<open>p \<in> P \<Longrightarrow> rhs_in_tm [ Tm (Open, (p,One)),       Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p ,       Tm ]\<^sup>2\<^sub>p   ] (P \<times> {One, Two})\<close> 
   unfolding rhs_in_tm_def by auto
 
 lemma prod_bal_tm[intro!]:
@@ -728,21 +728,21 @@ lemma prod_bal_tm[intro!]:
     and \<open>CNF_rule p\<close>
   shows \<open>bal_tm (snd (transform_production p)) \<and> rhs_in_tm (snd (transform_production p)) (P \<times> {One, Two})\<close> 
 proof-
-  have \<open>(\<exists>A B C. transform_production p = (A, [ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ]) ) \<or> 
-            (\<exists>A. transform_production p = (A, [ Tm (Open, (p,One)),       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ]))\<close> ( is \<open>?A1 \<or> ?A2\<close>) 
+  have \<open>(\<exists>A B C. transform_production p = (A, [ Tm [\<^sup>1\<^sub>p , Nt B, Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p , Nt C, Tm ]\<^sup>2\<^sub>p   ]) ) \<or> 
+            (\<exists>A. transform_production p = (A, [ Tm [\<^sup>1\<^sub>p,       Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p ,       Tm ]\<^sup>2\<^sub>p   ]))\<close> ( is \<open>?A1 \<or> ?A2\<close>) 
     using transform_production_CNF[OF assms(2)] by blast
 
   then show ?thesis
   proof
     assume A1: ?A1
-    then obtain A B C where \<open>transform_production p = (A, [ Tm [\<^sub>p\<^sup>1 , Nt B, Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 , Nt C, Tm ]\<^sub>p\<^sup>2   ])\<close> 
+    then obtain A B C where \<open>transform_production p = (A, [ Tm [\<^sup>1\<^sub>p , Nt B, Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p , Nt C, Tm ]\<^sup>2\<^sub>p   ])\<close> 
       by blast
     moreover have \<open>rhs_in_tm (snd (transform_production p)) (P \<times> {One, Two})\<close> using prod1_rhs_in_tm[of p P] 
       by (simp add: assms(1) calculation)
     ultimately show ?thesis by auto
   next
     assume A2: ?A2
-    then obtain A where \<open>transform_production p = (A, [ Tm (Open, (p,One)),       Tm ]\<^sub>p\<^sup>1 , Tm [\<^sub>p\<^sup>2 ,       Tm ]\<^sub>p\<^sup>2   ])\<close> 
+    then obtain A where \<open>transform_production p = (A, [ Tm (Open, (p,One)),       Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p ,       Tm ]\<^sup>2\<^sub>p   ])\<close> 
       by blast
     moreover have \<open>rhs_in_tm (snd (transform_production p)) (P \<times> {One, Two})\<close> 
       using prod1_rhs_in_tm[of p P] by (simp add: assms(1) calculation)
@@ -798,12 +798,12 @@ next
   then have Aw'_cnf: \<open>CNF_rule (A,w')\<close> 
     using step by blast
   then obtain B C a where 
-    \<open>((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Nt B, Nt C]) \<or> 
-  ((A, w) = (A, [Tm [\<^bsub>(A, w')\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, w')\<^esub>\<^sup>1, Tm [\<^bsub>(A, w')\<^esub>\<^sup>2, Tm ]\<^bsub>(A, w')\<^esub>\<^sup>2]) \<and> w' = [Tm a])\<close> 
+    \<open>((A, w) = (A, [Tm [\<^sup>1\<^bsub>(A, w')\<^esub> , Nt B, Tm ]\<^sup>1\<^bsub>(A, w')\<^esub>, Tm [\<^sup>2\<^bsub>(A, w')\<^esub>, Nt C, Tm ]\<^sup>2\<^bsub>(A, w')\<^esub>]) \<and> w' = [Nt B, Nt C]) \<or> 
+  ((A, w) = (A, [Tm [\<^sup>1\<^bsub>(A, w')\<^esub> , Tm ]\<^sup>1\<^bsub>(A, w')\<^esub>, Tm [\<^sup>2\<^bsub>(A, w')\<^esub>, Tm ]\<^sup>2\<^bsub>(A, w')\<^esub>]) \<and> w' = [Tm a])\<close> 
     using transform_production_CNF[of \<open>(A,w')\<close>] w'_def by (metis snd_conv)   
   then have w_eq: 
-    \<open>w = [Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2]   \<or>   
-   w = [Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>2, Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2]\<close> (is \<open>w = ?w1 \<or> w = ?w2\<close>) 
+    \<open>w = [Tm [\<^sup>1\<^bsub>(A, [Nt B, Nt C])\<^esub> , Nt B, Tm ]\<^sup>1\<^bsub>(A, [Nt B, Nt C])\<^esub>, Tm [\<^sup>2\<^bsub>(A, [Nt B, Nt C])\<^esub>, Nt C, Tm ]\<^sup>2\<^bsub>(A, [Nt B, Nt C])\<^esub>]   \<or>   
+   w = [Tm [\<^sup>1\<^bsub>(A, [Tm a])\<^esub> , Tm ]\<^sup>1\<^bsub>(A, [Tm a])\<^esub>, Tm [\<^sup>2\<^bsub>(A, [Tm a])\<^esub>, Tm ]\<^sup>2\<^bsub>(A, [Tm a])\<^esub>]\<close> (is \<open>w = ?w1 \<or> w = ?w2\<close>) 
     by fastforce
   have w_resym: \<open>w \<in> Reg_sym A\<close> 
     apply(rule disjE[OF w_eq]; rule Reg_symI) by auto 
@@ -965,43 +965,43 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
     using xDL by auto
   have bal_x: \<open>bal x\<close> 
     using xDL by blast
-  then have \<open>\<exists>y r. bal y \<and> bal r \<and> [\<^bsub>\<pi>\<^esub>\<^sup>1  # tl x = [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1 # r\<close> 
-    using hd_x bal_x bal_Open_split[of \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1 \<close>, where ?xs = \<open>tl x\<close>] 
+  then have \<open>\<exists>y r. bal y \<and> bal r \<and> [\<^sup>1\<^bsub>\<pi>\<^esub>  # tl x = [\<^sup>1\<^bsub>\<pi>\<^esub>  # y @ ]\<^sup>1\<^bsub>\<pi>\<^esub> # r\<close> 
+    using hd_x bal_x bal_Open_split[of \<open>[\<^sup>1\<^bsub>\<pi>\<^esub> \<close>, where ?xs = \<open>tl x\<close>] 
     by (metis (no_types, lifting) List.list.exhaust_sel List.list.inject Product_Type.prod.inject Chomsky_Schuetzenberger.P5.simps(1) p5x)
-  then obtain y r1 where \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1  # tl x   =   [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1 # r1\<close> and bal_y: \<open>bal y\<close> and bal_r1: \<open>bal r1\<close> 
+  then obtain y r1 where \<open>[\<^sup>1\<^bsub>\<pi>\<^esub>  # tl x   =   [\<^sup>1\<^bsub>\<pi>\<^esub>  # y @ ]\<^sup>1\<^bsub>\<pi>\<^esub> # r1\<close> and bal_y: \<open>bal y\<close> and bal_r1: \<open>bal r1\<close> 
     by blast
-  then have split1: \<open>x = [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1 # r1\<close> 
-    using hd_x by (metis List.list.exhaust_sel List.list.set(1) \<open>[\<^bsub>\<pi>\<^esub>\<^sup>1 \<in> set x\<close> empty_iff)
+  then have split1: \<open>x = [\<^sup>1\<^bsub>\<pi>\<^esub>  # y @ ]\<^sup>1\<^bsub>\<pi>\<^esub> # r1\<close> 
+    using hd_x by (metis List.list.exhaust_sel List.list.set(1) \<open>[\<^sup>1\<^bsub>\<pi>\<^esub> \<in> set x\<close> empty_iff)
   have r1_not_empty: \<open>r1 \<noteq> []\<close> 
   proof(rule ccontr)
     assume \<open>\<not> r1 \<noteq> []\<close>
-    then have \<open>last x = ]\<^bsub>\<pi>\<^esub>\<^sup>1 \<close> 
+    then have \<open>last x = ]\<^sup>1\<^bsub>\<pi>\<^esub> \<close> 
       using split1 by (metis List.list.distinct(1) Nil_is_append_conv last_ConsR last_snoc)
     then show \<open>False\<close> 
       using p1x using P1D_not_empty split1 by blast
   qed
-  from p1x have hd_r1: \<open>hd r1 = [\<^bsub>\<pi>\<^esub>\<^sup>2\<close> 
+  from p1x have hd_r1: \<open>hd r1 = [\<^sup>2\<^bsub>\<pi>\<^esub>\<close> 
     using split1 r1_not_empty by (metis (no_types, lifting) List.list.discI List.successively.elims(1) P1'D P1.simps successively_Cons successively_append_iff)
-  from bal_r1 have \<open>\<exists>z r2. bal z \<and> bal r2 \<and> [\<^bsub>\<pi>\<^esub>\<^sup>2 # tl r1 = [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @ ]\<^bsub>\<pi>\<^esub>\<^sup>2  # r2\<close> 
-    using bal_Open_split[of \<open>[\<^bsub>\<pi>\<^esub>\<^sup>2\<close> \<open>tl r1\<close>] by (metis List.list.exhaust_sel List.list.sel(1) Product_Type.prod.inject hd_r1 r1_not_empty) 
-  then obtain z r2 where split2': \<open>[\<^bsub>\<pi>\<^esub>\<^sup>2 # tl r1   =   [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @ ]\<^bsub>\<pi>\<^esub>\<^sup>2  # r2\<close> and bal_z: \<open>bal z\<close> and bal_r2: \<open>bal r2\<close> 
+  from bal_r1 have \<open>\<exists>z r2. bal z \<and> bal r2 \<and> [\<^sup>2\<^bsub>\<pi>\<^esub> # tl r1 = [\<^sup>2\<^bsub>\<pi>\<^esub> # z @ ]\<^sup>2\<^bsub>\<pi>\<^esub>  # r2\<close> 
+    using bal_Open_split[of \<open>[\<^sup>2\<^bsub>\<pi>\<^esub>\<close> \<open>tl r1\<close>] by (metis List.list.exhaust_sel List.list.sel(1) Product_Type.prod.inject hd_r1 r1_not_empty) 
+  then obtain z r2 where split2': \<open>[\<^sup>2\<^bsub>\<pi>\<^esub> # tl r1   =   [\<^sup>2\<^bsub>\<pi>\<^esub> # z @ ]\<^sup>2\<^bsub>\<pi>\<^esub>  # r2\<close> and bal_z: \<open>bal z\<close> and bal_r2: \<open>bal r2\<close> 
     by blast+
-  then have split2: \<open>x  =   [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1  # [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @ ]\<^bsub>\<pi>\<^esub>\<^sup>2  # r2\<close> 
+  then have split2: \<open>x  =   [\<^sup>1\<^bsub>\<pi>\<^esub>  # y @ ]\<^sup>1\<^bsub>\<pi>\<^esub>  # [\<^sup>2\<^bsub>\<pi>\<^esub> # z @ ]\<^sup>2\<^bsub>\<pi>\<^esub>  # r2\<close> 
     by (metis List.list.exhaust_sel hd_r1 r1_not_empty split1)
   have r2_empty: \<open>r2 = []\<close>  \<comment> \<open>prove that if r2 notempty, it would need to start with an open bracket, else it cant be balanced. But this cant be with P2.\<close>
   proof(cases r2)
     case (Cons r2' r2's)
     with bal_r2 obtain g where r2_begin_op: \<open>r2' = (Open, g)\<close> 
       using bal_not_empty[of r2' r2's] using Cons by blast
-    have \<open>successively P2 ( ]\<^bsub>\<pi>\<^esub>\<^sup>2  # r2' # r2's)\<close> 
+    have \<open>successively P2 ( ]\<^sup>2\<^bsub>\<pi>\<^esub>  # r2' # r2's)\<close> 
       using p2x unfolding split2 Cons successively_append_iff by (metis append_Cons successively_append_iff)
-    then have \<open>P2 ]\<^bsub>\<pi>\<^esub>\<^sup>2 (r2')\<close> 
+    then have \<open>P2 ]\<^sup>2\<^bsub>\<pi>\<^esub> (r2')\<close> 
       by fastforce
     with r2_begin_op have \<open>False\<close> 
       by (metis Chomsky_Schuetzenberger.P2.simps(1) split_pairs)
     then show ?thesis by blast
   qed blast
-  then have split3: \<open>x  =   [\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1  # [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @[   ]\<^bsub>\<pi>\<^esub>\<^sup>2   ]\<close> 
+  then have split3: \<open>x  =   [\<^sup>1\<^bsub>\<pi>\<^esub>  # y @ ]\<^sup>1\<^bsub>\<pi>\<^esub>  # [\<^sup>2\<^bsub>\<pi>\<^esub> # z @[   ]\<^sup>2\<^bsub>\<pi>\<^esub>   ]\<close> 
     using split2 by blast
   consider (BC) \<open>\<exists>B C. \<pi> = (A, [Nt B, Nt C])\<close> | (a) \<open>\<exists>a. \<pi> = (A, [Tm a])\<close> 
     using assms pi_in_P by (metis CNF_rule_def fst_conv pi_def)
@@ -1021,19 +1021,19 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
       using p3x pi_eq split1 by fastforce
     have \<open>\<nexists>p. last y = (Close, (p, One))\<close>
     proof(rule ccontr)
-      assume \<open>\<not> (\<nexists>p. last y = ]\<^bsub>p\<^esub>\<^sup>1)\<close>
-      then obtain p where last_y: \<open>last y = ]\<^bsub>p\<^esub>\<^sup>1 \<close> 
+      assume \<open>\<not> (\<nexists>p. last y = ]\<^sup>1\<^bsub>p\<^esub>)\<close>
+      then obtain p where last_y: \<open>last y = ]\<^sup>1\<^bsub>p\<^esub> \<close> 
         by blast
       obtain butl where butl_def: \<open>y = butl @ [last y]\<close> 
         by (metis append_butlast_last_id y_not_empty)
 
-      have  \<open>successively P1' ([\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1  # [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @[   ]\<^bsub>\<pi>\<^esub>\<^sup>2   ])\<close> 
+      have  \<open>successively P1' ([\<^sup>1\<^bsub>\<pi>\<^esub>  # y @ ]\<^sup>1\<^bsub>\<pi>\<^esub>  # [\<^sup>2\<^bsub>\<pi>\<^esub> # z @[   ]\<^sup>2\<^bsub>\<pi>\<^esub>   ])\<close> 
         using p1x split3 by blast 
-      then have \<open>successively P1' ([\<^bsub>\<pi>\<^esub>\<^sup>1  # (butl@[last y]) @ ]\<^bsub>\<pi>\<^esub>\<^sup>1  # [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @[   ]\<^bsub>\<pi>\<^esub>\<^sup>2   ])\<close> 
+      then have \<open>successively P1' ([\<^sup>1\<^bsub>\<pi>\<^esub>  # (butl@[last y]) @ ]\<^sup>1\<^bsub>\<pi>\<^esub>  # [\<^sup>2\<^bsub>\<pi>\<^esub> # z @[   ]\<^sup>2\<^bsub>\<pi>\<^esub>   ])\<close> 
         using butl_def by simp
-      then have \<open>successively P1' (([\<^bsub>\<pi>\<^esub>\<^sup>1  # butl) @ last y # [ ]\<^bsub>\<pi>\<^esub>\<^sup>1] @ [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @ [ ]\<^bsub>\<pi>\<^esub>\<^sup>2 ])\<close> 
+      then have \<open>successively P1' (([\<^sup>1\<^bsub>\<pi>\<^esub>  # butl) @ last y # [ ]\<^sup>1\<^bsub>\<pi>\<^esub>] @ [\<^sup>2\<^bsub>\<pi>\<^esub> # z @ [ ]\<^sup>2\<^bsub>\<pi>\<^esub> ])\<close> 
         by (metis (no_types, opaque_lifting) Cons_eq_appendI append_assoc append_self_conv2) 
-      then have \<open>P1' ]\<^bsub>p\<^esub>\<^sup>1  ]\<^bsub>\<pi>\<^esub>\<^sup>1 \<close> 
+      then have \<open>P1' ]\<^sup>1\<^bsub>p\<^esub>  ]\<^sup>1\<^bsub>\<pi>\<^esub> \<close> 
         using last_y by (metis (no_types, lifting) List.successively.simps(3) append_Cons successively_append_iff)
       then show \<open>False\<close> 
         by simp
@@ -1060,11 +1060,11 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
      successively P3 z \<and> 
      successively P4 z\<close> 
       using P1.simps p1x p2x p3x p4x by (metis List.list.simps(3) Nil_is_append_conv successively_Cons successively_append_iff)
-    then have successively_P3: \<open>successively P3 (([\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ [ ]\<^bsub>\<pi>\<^esub>\<^sup>1]) @ [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @ [ ]\<^bsub>\<pi>\<^esub>\<^sup>2 ])\<close> 
+    then have successively_P3: \<open>successively P3 (([\<^sup>1\<^bsub>\<pi>\<^esub>  # y @ [ ]\<^sup>1\<^bsub>\<pi>\<^esub>]) @ [\<^sup>2\<^bsub>\<pi>\<^esub> # z @ [ ]\<^sup>2\<^bsub>\<pi>\<^esub> ])\<close> 
       using split3 p3x by (metis List.append.assoc append_Cons append_Nil)
     have z_not_empty: \<open>z \<noteq> []\<close> 
       using p3x pi_eq split1 successively_P3 by (metis List.list.distinct(1) List.list.sel(1) append_Nil Chomsky_Schuetzenberger.P3.simps(2) Dyck_Language.bracket.simps(2) successively_Cons successively_append_iff)
-    then have \<open>P3 [\<^bsub>\<pi>\<^esub>\<^sup>2 (hd z)\<close> 
+    then have \<open>P3 [\<^sup>2\<^bsub>\<pi>\<^esub> (hd z)\<close> 
       by (metis append_is_Nil_conv hd_append2 successively_Cons successively_P3 successively_append_iff)
     with p3x pi_eq have \<open>\<exists>g. hd z = (Open, (C,g), One)\<close> 
       using split_pairs by (metis Chomsky_Schuetzenberger.P3.simps(2))
@@ -1072,20 +1072,20 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
       by (metis List.list.exhaust_sel \<open>z \<noteq> []\<close> Chomsky_Schuetzenberger.P5.simps(2)) 
     moreover have \<open>P1 z\<close>
     proof-
-      have \<open>\<nexists>p. last z = ]\<^bsub>p\<^esub>\<^sup>1\<close> 
+      have \<open>\<nexists>p. last z = ]\<^sup>1\<^bsub>p\<^esub>\<close> 
       proof(rule ccontr)
-        assume \<open>\<not> (\<nexists>p. last z = ]\<^bsub>p\<^esub>\<^sup>1)\<close>
-        then obtain p where last_y: \<open>last z = ]\<^bsub>p\<^esub>\<^sup>1 \<close> 
+        assume \<open>\<not> (\<nexists>p. last z = ]\<^sup>1\<^bsub>p\<^esub>)\<close>
+        then obtain p where last_y: \<open>last z = ]\<^sup>1\<^bsub>p\<^esub> \<close> 
           by blast
         obtain butl where butl_def: \<open>z = butl @ [last z]\<close> 
           by (metis append_butlast_last_id z_not_empty)
-        have  \<open>successively P1' ([\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1  # [\<^bsub>\<pi>\<^esub>\<^sup>2 # z @[   ]\<^bsub>\<pi>\<^esub>\<^sup>2   ])\<close> 
+        have  \<open>successively P1' ([\<^sup>1\<^bsub>\<pi>\<^esub>  # y @ ]\<^sup>1\<^bsub>\<pi>\<^esub>  # [\<^sup>2\<^bsub>\<pi>\<^esub> # z @[   ]\<^sup>2\<^bsub>\<pi>\<^esub>   ])\<close> 
           using p1x split3 by blast 
-        then have \<open>successively P1' ([\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1  # [\<^bsub>\<pi>\<^esub>\<^sup>2 # butl @ [last z] @[   ]\<^bsub>\<pi>\<^esub>\<^sup>2   ])\<close> 
+        then have \<open>successively P1' ([\<^sup>1\<^bsub>\<pi>\<^esub>  # y @ ]\<^sup>1\<^bsub>\<pi>\<^esub>  # [\<^sup>2\<^bsub>\<pi>\<^esub> # butl @ [last z] @[   ]\<^sup>2\<^bsub>\<pi>\<^esub>   ])\<close> 
           using butl_def by (metis append_assoc)
-        then have \<open>successively P1' (([\<^bsub>\<pi>\<^esub>\<^sup>1  # y @ ]\<^bsub>\<pi>\<^esub>\<^sup>1 # [\<^bsub>\<pi>\<^esub>\<^sup>2 # butl) @ last z # [ ]\<^bsub>\<pi>\<^esub>\<^sup>2 ] @ [])\<close> 
+        then have \<open>successively P1' (([\<^sup>1\<^bsub>\<pi>\<^esub>  # y @ ]\<^sup>1\<^bsub>\<pi>\<^esub> # [\<^sup>2\<^bsub>\<pi>\<^esub> # butl) @ last z # [ ]\<^sup>2\<^bsub>\<pi>\<^esub> ] @ [])\<close> 
           by (metis (no_types, opaque_lifting) Cons_eq_appendI append_assoc append_self_conv2) 
-        then have \<open>P1' ]\<^bsub>p\<^esub>\<^sup>1  ]\<^bsub>\<pi>\<^esub>\<^sup>2 \<close> 
+        then have \<open>P1' ]\<^sup>1\<^bsub>p\<^esub>  ]\<^sup>2\<^bsub>\<pi>\<^esub> \<close> 
           using last_y by (metis List.append.right_neutral List.successively.simps(3) successively_append_iff)
         then show \<open>False\<close> 
           by simp
@@ -1104,13 +1104,13 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
       using length_append length_map lessI split3 by fastforce
     ultimately have der_z: \<open>transform_production ` P \<turnstile> [Nt C] \<Rightarrow>* map Tm z\<close> 
       using IH[of z C] split3  by blast
-    have \<open>transform_production ` P \<turnstile> [Nt A] \<Rightarrow>* [ Tm [\<^bsub>\<pi>\<^esub>\<^sup>1 ] @ [(Nt B)] @ [Tm ]\<^bsub>\<pi>\<^esub>\<^sup>1  , Tm [\<^bsub>\<pi>\<^esub>\<^sup>2 ] @  [(Nt C)] @ [   Tm ]\<^bsub>\<pi>\<^esub>\<^sup>2   ]\<close> 
+    have \<open>transform_production ` P \<turnstile> [Nt A] \<Rightarrow>* [ Tm [\<^sup>1\<^bsub>\<pi>\<^esub> ] @ [(Nt B)] @ [Tm ]\<^sup>1\<^bsub>\<pi>\<^esub>  , Tm [\<^sup>2\<^bsub>\<pi>\<^esub> ] @  [(Nt C)] @ [   Tm ]\<^sup>2\<^bsub>\<pi>\<^esub>   ]\<close> 
       by (metis List.append.left_neutral append_Cons bu_prod Chomsky_Schuetzenberger.transform_production.simps(1) derives_if_bu image_eqI pi_eq pi_in_P)
-    also have \<open>transform_production ` P \<turnstile> [ Tm [\<^bsub>\<pi>\<^esub>\<^sup>1 ] @ [(Nt B)] @ [Tm ]\<^bsub>\<pi>\<^esub>\<^sup>1  , Tm [\<^bsub>\<pi>\<^esub>\<^sup>2 ] @  [(Nt C)] @ [   Tm ]\<^bsub>\<pi>\<^esub>\<^sup>2   ]    \<Rightarrow>*    [ Tm [\<^bsub>\<pi>\<^esub>\<^sup>1 ] @ map Tm y @ [Tm ]\<^bsub>\<pi>\<^esub>\<^sup>1  , Tm [\<^bsub>\<pi>\<^esub>\<^sup>2 ] @  [(Nt C)] @ [   Tm ]\<^bsub>\<pi>\<^esub>\<^sup>2   ]\<close> 
+    also have \<open>transform_production ` P \<turnstile> [ Tm [\<^sup>1\<^bsub>\<pi>\<^esub> ] @ [(Nt B)] @ [Tm ]\<^sup>1\<^bsub>\<pi>\<^esub>  , Tm [\<^sup>2\<^bsub>\<pi>\<^esub> ] @  [(Nt C)] @ [   Tm ]\<^sup>2\<^bsub>\<pi>\<^esub>   ]    \<Rightarrow>*    [ Tm [\<^sup>1\<^bsub>\<pi>\<^esub> ] @ map Tm y @ [Tm ]\<^sup>1\<^bsub>\<pi>\<^esub>  , Tm [\<^sup>2\<^bsub>\<pi>\<^esub> ] @  [(Nt C)] @ [   Tm ]\<^sup>2\<^bsub>\<pi>\<^esub>   ]\<close> 
       using der_y using derives_append derives_prepend by blast
-    also have \<open>transform_production ` P \<turnstile> [ Tm [\<^bsub>\<pi>\<^esub>\<^sup>1 ] @ map Tm y @ [Tm ]\<^bsub>\<pi>\<^esub>\<^sup>1  , Tm [\<^bsub>\<pi>\<^esub>\<^sup>2 ] @  [(Nt C)] @ [   Tm ]\<^bsub>\<pi>\<^esub>\<^sup>2   ]    \<Rightarrow>*    [ Tm [\<^bsub>\<pi>\<^esub>\<^sup>1 ] @ map Tm y @ [Tm ]\<^bsub>\<pi>\<^esub>\<^sup>1  , Tm [\<^bsub>\<pi>\<^esub>\<^sup>2 ] @  (map Tm z) @ [   Tm ]\<^bsub>\<pi>\<^esub>\<^sup>2   ]\<close> 
+    also have \<open>transform_production ` P \<turnstile> [ Tm [\<^sup>1\<^bsub>\<pi>\<^esub> ] @ map Tm y @ [Tm ]\<^sup>1\<^bsub>\<pi>\<^esub>  , Tm [\<^sup>2\<^bsub>\<pi>\<^esub> ] @  [(Nt C)] @ [   Tm ]\<^sup>2\<^bsub>\<pi>\<^esub>   ]    \<Rightarrow>*    [ Tm [\<^sup>1\<^bsub>\<pi>\<^esub> ] @ map Tm y @ [Tm ]\<^sup>1\<^bsub>\<pi>\<^esub>  , Tm [\<^sup>2\<^bsub>\<pi>\<^esub> ] @  (map Tm z) @ [   Tm ]\<^sup>2\<^bsub>\<pi>\<^esub>   ]\<close> 
       using der_z by (meson derives_append derives_prepend)
-    finally have \<open>transform_production ` P \<turnstile> [Nt A] \<Rightarrow>* [ Tm [\<^bsub>\<pi>\<^esub>\<^sup>1 ] @ map Tm y @ [Tm ]\<^bsub>\<pi>\<^esub>\<^sup>1  , Tm [\<^bsub>\<pi>\<^esub>\<^sup>2 ] @  (map Tm z) @ [   Tm ]\<^bsub>\<pi>\<^esub>\<^sup>2   ]\<close> 
+    finally have \<open>transform_production ` P \<turnstile> [Nt A] \<Rightarrow>* [ Tm [\<^sup>1\<^bsub>\<pi>\<^esub> ] @ map Tm y @ [Tm ]\<^sup>1\<^bsub>\<pi>\<^esub>  , Tm [\<^sup>2\<^bsub>\<pi>\<^esub> ] @  (map Tm z) @ [   Tm ]\<^sup>2\<^bsub>\<pi>\<^esub>   ]\<close> 
       by blast
     then show ?thesis using split3 by simp
   next
@@ -1120,7 +1120,7 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
     have \<open>y = []\<close>
     proof(cases y)
       case (Cons y' ys')
-      have \<open>P4 [\<^bsub>\<pi>\<^esub>\<^sup>1 y'\<close> 
+      have \<open>P4 [\<^sup>1\<^bsub>\<pi>\<^esub> y'\<close> 
         using Cons append_Cons p4x split3 by (metis List.successively.simps(3)) 
       then have \<open>y' = (Close, \<pi>, One)\<close> 
         using P4E by (metis pi_eq)
@@ -1133,7 +1133,7 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
     have \<open>z = []\<close>
     proof(cases z)
       case (Cons z' zs')
-      have \<open>P4 [\<^bsub>\<pi>\<^esub>\<^sup>2 z'\<close> 
+      have \<open>P4 [\<^sup>2\<^bsub>\<pi>\<^esub> z'\<close> 
         using p4x split3 by (simp add: Cons \<open>y = []\<close>)
       then have \<open>z' = (Close, \<pi>, One)\<close> 
         using P4E by (metis Cons bal_not_empty bal_z Dyck_Language.bracket.simps(2) fst_eqD pi_eq)
@@ -1143,7 +1143,7 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
         by blast
       then show ?thesis by blast
     qed blast
-    have \<open>transform_production ` P \<turnstile> [Nt A] \<Rightarrow>* [ Tm [\<^sub>\<pi>\<^sup>1,       Tm ]\<^sub>\<pi>\<^sup>1 , Tm [\<^sub>\<pi>\<^sup>2 ,       Tm ]\<^sub>\<pi>\<^sup>2   ]\<close> 
+    have \<open>transform_production ` P \<turnstile> [Nt A] \<Rightarrow>* [ Tm [\<^sup>1\<^sub>\<pi>,       Tm ]\<^sup>1\<^sub>\<pi> , Tm [\<^sup>2\<^sub>\<pi> ,       Tm ]\<^sup>2\<^sub>\<pi>   ]\<close> 
       by (metis \<open>\<And>thesis. (\<And>a. \<pi> = (A, [Tm a]) \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> Chomsky_Schuetzenberger.transform_production.simps(2) local.less.prems(2) pi_in_P r_into_rtranclp snd_eqD transform_production_one_step)
     then show ?thesis using \<open>y = []\<close> \<open>z = []\<close> by (simp add: split3)
   qed
@@ -1582,7 +1582,7 @@ qed
 lemma lang_descr: \<open>xs \<in> p1_aut.language \<longleftrightarrow> (xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P))\<close>
   unfolding p1_aut.language_def using lang_descr_full by auto
 
-lemma good_iff[simp]:\<open>(\<forall>a b. last xs \<noteq> ]\<^bsub>(a, b)\<^esub>\<^sup>1) = good (last xs)\<close> 
+lemma good_iff[simp]:\<open>(\<forall>a b. last xs \<noteq> ]\<^sup>1\<^bsub>(a, b)\<^esub>) = good (last xs)\<close> 
   apply auto by (metis local.good.elims(3) split_pairs)
 
 lemma in_P1_iff: \<open>(P1 xs \<and> xs \<in> brackets P ) \<longleftrightarrow>  (xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P)) \<and> successively P1' xs \<and>  xs \<in> brackets P\<close> 
@@ -1932,9 +1932,9 @@ lemma transform_tree_correct:
       by simp
     then have \<open>the_hom_ext ... = [Tm a]\<close> 
       by simp
-    then have \<open>... = w\<close> using Sym using Tm \<open>transform_tree (Sym x) = Sym (Tm [\<^bsub>(SOME A. True, [Tm a])\<^esub>\<^sup>1 )\<close> 
+    then have \<open>... = w\<close> using Sym using Tm \<open>transform_tree (Sym x) = Sym (Tm [\<^sup>1\<^bsub>(SOME A. True, [Tm a])\<^esub> )\<close> 
       by force
-    then show ?thesis using Sym by (metis Parse_Tree.parse_tree.simps(1) \<open>fringe (Sym (Tm [\<^bsub>(SOME A. True, [Tm a])\<^esub>\<^sup>1 )) = [Tm [\<^bsub>(SOME A. True, [Tm a])\<^esub>\<^sup>1 ]\<close> \<open>the_hom_ext [Tm [\<^bsub>(SOME A. True, [Tm a])\<^esub>\<^sup>1 ] = [Tm a]\<close> \<open>transform_tree (Sym x) = Sym (Tm [\<^bsub>(SOME A. True, [Tm a])\<^esub>\<^sup>1 )\<close>)
+    then show ?thesis using Sym by (metis Parse_Tree.parse_tree.simps(1) \<open>fringe (Sym (Tm [\<^sup>1\<^bsub>(SOME A. True, [Tm a])\<^esub> )) = [Tm [\<^sup>1\<^bsub>(SOME A. True, [Tm a])\<^esub> ]\<close> \<open>the_hom_ext [Tm [\<^sup>1\<^bsub>(SOME A. True, [Tm a])\<^esub> ] = [Tm a]\<close> \<open>transform_tree (Sym x) = Sym (Tm [\<^sup>1\<^bsub>(SOME A. True, [Tm a])\<^esub> )\<close>)
   qed
 next
   case (Rule A ts)
@@ -1947,9 +1947,9 @@ next
   then have \<open>CNF_rule (A, map root ts)\<close> 
     using Rule.prems(2) by blast
   then obtain B C a where 
-    def: \<open>(A, prod_rhs ts) = (A, [Nt B, Nt C]) \<and> transform_production (A, prod_rhs ts) = (A, [Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1 , Nt B, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2, Nt C, Tm ]\<^bsub>(A, [Nt B, Nt C])\<^esub>\<^sup>2 ]) 
+    def: \<open>(A, prod_rhs ts) = (A, [Nt B, Nt C]) \<and> transform_production (A, prod_rhs ts) = (A, [Tm [\<^sup>1\<^bsub>(A, [Nt B, Nt C])\<^esub> , Nt B, Tm ]\<^sup>1\<^bsub>(A, [Nt B, Nt C])\<^esub>, Tm [\<^sup>2\<^bsub>(A, [Nt B, Nt C])\<^esub>, Nt C, Tm ]\<^sup>2\<^bsub>(A, [Nt B, Nt C])\<^esub> ]) 
 \<or>
-       (A, prod_rhs ts) = (A, [Tm a]) \<and> transform_production (A, prod_rhs ts) = (A, [Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>2, Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2 ])\<close> 
+       (A, prod_rhs ts) = (A, [Tm a]) \<and> transform_production (A, prod_rhs ts) = (A, [Tm [\<^sup>1\<^bsub>(A, [Tm a])\<^esub> , Tm ]\<^sup>1\<^bsub>(A, [Tm a])\<^esub>, Tm [\<^sup>2\<^bsub>(A, [Tm a])\<^esub>, Tm ]\<^sup>2\<^bsub>(A, [Tm a])\<^esub> ])\<close> 
     using transform_production_when_CNF' assms(3) by meson
   then obtain e1 e2 e3 where ei_def: \<open>ts = [e1] \<or> ts = [e2, e3]\<close> 
     by blast  
@@ -1961,7 +1961,7 @@ prod_rhs ts = [Nt B, Nt C]  \<and>  (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [R
     using root.elims root.simps \<open>CNF_rule (A, prod_rhs ts)\<close> apply (smt (verit, ccfv_threshold) CFG.sym.inject(1) Cons_eq_map_D Product_Type.prod.inject map_is_Nil_conv)
     using root.elims root.simps \<open>CNF_rule (A, prod_rhs ts)\<close> 
   proof -
-    assume a1: "(A, prod_rhs ts) = (A, [Tm a]) \<and> transform_production (A, prod_rhs ts) = (A, [Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>1 , Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>1, Tm [\<^bsub>(A, [Tm a])\<^esub>\<^sup>2, Tm ]\<^bsub>(A, [Tm a])\<^esub>\<^sup>2 ])"
+    assume a1: "(A, prod_rhs ts) = (A, [Tm a]) \<and> transform_production (A, prod_rhs ts) = (A, [Tm [\<^sup>1\<^bsub>(A, [Tm a])\<^esub> , Tm ]\<^sup>1\<^bsub>(A, [Tm a])\<^esub>, Tm [\<^sup>2\<^bsub>(A, [Tm a])\<^esub>, Tm ]\<^sup>2\<^bsub>(A, [Tm a])\<^esub> ])"
     assume a2: "\<And>tB tC. ts = [Sym (Tm a)] \<and> prod_rhs ts = [Tm a] \<or> prod_rhs ts = [Nt B, Nt C] \<and> (ts = [Sym (Nt B), Sym (Nt C)] \<or> ts = [Rule B tB, Sym (Nt C)] \<or> ts = [Sym (Nt B), Rule C tC] \<or> ts = [Rule B tB, Rule C tC]) \<Longrightarrow> thesis"
     have f3: "prod_rhs [] = []"
       by force

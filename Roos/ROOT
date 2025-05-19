@@ -4,7 +4,7 @@ session Roos = CNF +
     "HereditarilyFinite"
     "Finite_Automata_HF"
   theories [document = false]
-    "Finite_Automata_Not_HF" CFG.CFG CFG.Parse_Tree CNF.CNF "Dyck_Language"
+    "Finite_Automata_HF.Finite_Automata_HF" CFG.CFG CFG.Parse_Tree CNF.CNF "Dyck_Language"
   theories
     Chomsky_Schuetzenberger
   document_files

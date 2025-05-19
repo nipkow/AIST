@@ -2231,7 +2231,7 @@ section\<open>The Theorem\<close>
 
 text\<open>The constructive version of the Theorem, for a grammar already in CNF:\<close>
 lemma Chomsky_Schuetzenberger_constr:
-  fixes P :: \<open>('n::infinite + finitary, 't::finitary) Prods\<close> and S::"'n"
+  fixes P :: \<open>('n :: {infinite, finitary}, 't::finitary) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S\<close>
   assumes finite: \<open>finite P\<close> and P_CNF: \<open>CNF P\<close>
   shows \<open>regular ((brackets P) \<inter> Reg S) \<and> L = image the_hom( ( (brackets P) \<inter> Reg S) \<inter> (Dyck_language(P \<times> {One, Two}) ) ) \<and> 
@@ -2361,7 +2361,7 @@ qed
 
 text\<open>The theorem, but only for languages not containing \<open>\<epsilon>\<close>:\<close>
 lemma Chomsky_Schuetzenberger_not_empty:
-  fixes P :: \<open>('n::infinite, 't) Prods\<close> and S::"'n"
+  fixes P :: \<open>('n :: {infinite, finitary}, 't::finitary) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S - {[]}\<close>
   assumes finite: \<open>finite P\<close>
   shows \<open>\<exists>(R::(bracket \<times> ('n, 't) prod \<times> version) list set) h \<Gamma>. (regular R) \<and> (L = image h (R \<inter> Dyck_language \<Gamma>)) \<and> hom h\<close>
@@ -2384,7 +2384,7 @@ qed
 
 text\<open>The Chomsky-Schuetzenberger theorem that we really want to prove:\<close>
 lemma Chomsky_Schuetzenberger:
-  fixes P :: \<open>('n::infinite, 't) Prods\<close> and S::"'n"
+  fixes P :: \<open>('n :: {infinite, finitary}, 't::finitary) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S\<close>
   assumes finite: \<open>finite P\<close>
   shows \<open>\<exists>(R::(bracket \<times> ('n, 't) prod \<times> version) list set) h \<Gamma>.  (regular R) \<and> (L = image h (R \<inter> Dyck_language \<Gamma>)) \<and> hom h\<close>

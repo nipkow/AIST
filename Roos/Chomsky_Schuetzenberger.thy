@@ -1226,38 +1226,38 @@ qed
 
 instantiation state :: (finitary) finitary
 begin
-  definition hf_of_state_def: 
-    "hf_of \<equiv> case_state 0 1 (\<lambda>x. \<lbrace>\<lbrace>hf_of x\<rbrace>\<rbrace>)"
-  instance 
-    apply intro_classes
-    by(auto simp: inj_on_def hf_of_state_def One_hf_def split: state.split_asm)
+definition hf_of_state_def: 
+  "hf_of \<equiv> case_state 0 1 (\<lambda>x. \<lbrace>\<lbrace>hf_of x\<rbrace>\<rbrace>)"
+instance 
+  apply intro_classes
+  by(auto simp: inj_on_def hf_of_state_def One_hf_def split: state.split_asm)
 end
 
 instantiation bracket :: finitary
 begin
-  definition hf_of_bracket_def: 
-    "hf_of \<equiv> case_bracket 0 1"
-  instance 
-    apply intro_classes
-    by(auto simp: inj_on_def hf_of_bracket_def split: bracket.split_asm)
+definition hf_of_bracket_def: 
+  "hf_of \<equiv> case_bracket 0 1"
+instance 
+  apply intro_classes
+  by(auto simp: inj_on_def hf_of_bracket_def split: bracket.split_asm)
 end
 
 instantiation version :: finitary
 begin
-  definition hf_of_version_def: 
-    "hf_of \<equiv> case_version 0 1"
-  instance 
-    apply intro_classes
-    by(auto simp: inj_on_def hf_of_version_def split: version.split_asm)
+definition hf_of_version_def: 
+  "hf_of \<equiv> case_version 0 1"
+instance 
+  apply intro_classes
+  by(auto simp: inj_on_def hf_of_version_def split: version.split_asm)
 end
 
 instantiation sym :: (finitary,finitary)finitary
 begin
-  definition hf_of_sym_def: 
-    "hf_of \<equiv> case_sym (HF.Inl o hf_of) (HF.Inr o hf_of)"
-  instance 
-    apply intro_classes
-    by(auto simp: inj_on_def hf_of_sym_def split: sym.split_asm)
+definition hf_of_sym_def: 
+  "hf_of \<equiv> case_sym (HF.Inl o hf_of) (HF.Inr o hf_of)"
+instance 
+  apply intro_classes
+  by(auto simp: inj_on_def hf_of_sym_def split: sym.split_asm)
 end
 
 
@@ -1295,13 +1295,13 @@ theorem succNext_induct[case_names garbage startp startnp letterQ letternQ]:
   using assms by simp+
 
 abbreviation starta  where
-\<open>starta \<equiv> (start:: (bracket \<times> ('n, 't) prod \<times> version)state)\<close>
+  \<open>starta \<equiv> (start:: (bracket \<times> ('n, 't) prod \<times> version)state)\<close>
 
 abbreviation garbagea where
-\<open>garbagea \<equiv> (garbage::(bracket \<times> ('n, 't) prod \<times> version)state)\<close>
+  \<open>garbagea \<equiv> (garbage::(bracket \<times> ('n, 't) prod \<times> version)state)\<close>
 
 abbreviation hf_inv where
-\<open>hf_inv \<equiv> inv hf_of\<close>
+  \<open>hf_inv \<equiv> inv hf_of\<close>
 
 lemma h_inj[simp]: \<open>hf_inv (hf_of x) = x\<close> 
   by (simp add: inj)
@@ -1318,7 +1318,7 @@ definition aut where \<open>aut \<equiv> \<lparr>dfa.states = hf_of ` (allStates
                      nxt   = \<lambda>q a. hf_of (succNext (inv hf_of q) a) \<rparr>\<close>
 
 interpretation aut : dfa aut
-unfolding aut_def
+  unfolding aut_def
 proof(unfold_locales, goal_cases)
   case 1
   then show ?case by simp
@@ -1342,8 +1342,8 @@ corollary dfa_aut: "dfa aut"
 lemma nextl_in_allStates[intro]: \<open>q \<in> hf_of ` allStates P \<Longrightarrow> aut.nextl q ys \<in> hf_of ` allStates P\<close>
   apply(induction ys arbitrary: q) using local.aut.nxt 
   using aut.nextl.simps(1) apply fastforce  
-    by (metis aut.nextl_state aut_def dfa.select_convs(1))
-  
+  by (metis aut.nextl_state aut_def dfa.select_convs(1))
+
 corollary nextl_in_allStates_from_start[simp]: \<open>aut.nextl (hf_of starta) ys \<in> hf_of ` allStates P\<close> 
   using nextl_in_allStates by auto 
 
@@ -1380,7 +1380,7 @@ lemma drop_left: \<open>xs@ys \<in> aut.language \<Longrightarrow> ys \<in> aut.
   unfolding aut.language_def apply simp 
   apply(induction xs arbitrary: ys) 
   using drop_left_general using aut_def apply auto 
-    by (smt (z3) Diff_empty Diff_insert0 aut.nextl.simps(2) dfa.select_convs(4) image_insert insert_Diff insert_iff nextl_in_allStates_from_start) 
+  by (smt (z3) Diff_empty Diff_insert0 aut.nextl.simps(2) dfa.select_convs(4) image_insert insert_Diff insert_iff nextl_in_allStates_from_start) 
 
 lemma empty_in_aut: \<open>[] \<in> aut.language\<close>
   using aut.language_def aut.nextl.simps(1) aut_def by force  
@@ -1490,18 +1490,6 @@ qed
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 subsection\<open>Construction of an automaton for P1\<close>
 text\<open>More Precisely, for the \<open>if not empty, then doesnt end in (Close,_,1)\<close> part. 
 Then intersect with the other construction for P1' to get P1 regular.\<close>
@@ -1510,20 +1498,20 @@ datatype P1_State = last_ok | last_bad | garbage
 
 instantiation P1_State :: finitary
 begin
-  definition hf_of_P1_State_def:
-    "hf_of \<equiv> case_P1_State 0 1 (1+1)"
-  instance
-    apply intro_classes
-    apply (auto simp: inj_on_def hf_of_P1_State_def split: P1_State.split_asm)
-    apply (metis sum_empty sum_equal_iff zero_neq_one)
-   apply (metis Inl_in_sum_iff Inl_nonzero zero_hmem_one)
+definition hf_of_P1_State_def:
+  "hf_of \<equiv> case_P1_State 0 1 (1+1)"
+instance
+  apply intro_classes
+  apply (auto simp: inj_on_def hf_of_P1_State_def split: P1_State.split_asm)
+     apply (metis sum_empty sum_equal_iff zero_neq_one)
+    apply (metis Inl_in_sum_iff Inl_nonzero zero_hmem_one)
    apply (metis sum_empty sum_equal_iff zero_neq_one)
-   by (metis Inl_in_sum_iff Inl_nonzero zero_hmem_one)
+  by (metis Inl_in_sum_iff Inl_nonzero zero_hmem_one)
 end
 
 locale P1Construction = 
   fixes P :: "('n::finitary,'t::finitary) Prods"
-assumes finite_P: \<open>finite P\<close>
+  assumes finite_P: \<open>finite P\<close>
 begin
 
 
@@ -1564,7 +1552,7 @@ theorem nxt_induct[case_names garbage startp startnp letterQ letternQ]:
 
 
 abbreviation hf_inv where
-\<open>hf_inv \<equiv> inv hf_of\<close>
+  \<open>hf_inv \<equiv> inv hf_of\<close>
 
 lemma h_inj[simp]: \<open>hf_inv (hf_of x) = x\<close> 
   by (simp add: inj)
@@ -1700,15 +1688,15 @@ datatype P5_State = start | first_ok | garbage
 
 instantiation P5_State :: finitary
 begin
-  definition hf_of_P5_State_def:
-    "hf_of \<equiv> case_P5_State 0 1 (1+1)"
-  instance
-    apply intro_classes
-    apply (auto simp: inj_on_def hf_of_P5_State_def split: P5_State.split_asm)
-    apply (metis sum_empty sum_equal_iff zero_neq_one)
-   apply (metis Inl_in_sum_iff Inl_nonzero zero_hmem_one)
+definition hf_of_P5_State_def:
+  "hf_of \<equiv> case_P5_State 0 1 (1+1)"
+instance
+  apply intro_classes
+  apply (auto simp: inj_on_def hf_of_P5_State_def split: P5_State.split_asm)
+     apply (metis sum_empty sum_equal_iff zero_neq_one)
+    apply (metis Inl_in_sum_iff Inl_nonzero zero_hmem_one)
    apply (metis sum_empty sum_equal_iff zero_neq_one)
-   by (metis Inl_in_sum_iff Inl_nonzero zero_hmem_one)
+  by (metis Inl_in_sum_iff Inl_nonzero zero_hmem_one)
 end
 
 locale P5Construction = 
@@ -1749,7 +1737,7 @@ theorem nxt_induct[case_names garbage startnp start_p_ok start_p_nok first_ok_np
   using assms by fast+
 
 abbreviation hf_inv where
-\<open>hf_inv \<equiv> inv hf_of\<close>
+  \<open>hf_inv \<equiv> inv hf_of\<close>
 
 lemma h_inj[simp]: \<open>hf_inv (hf_of x) = x\<close> 
   by (simp add: inj)

@@ -1922,51 +1922,6 @@ qed
 
 
 
-section\<open>Lemmas about star\<close>
-
-text\<open>TODO mv?\<close>
-lemma star_mono: \<open>A \<subseteq> B \<Longrightarrow> star A \<subseteq> star B\<close> by (metis (full_types) in_star_iff_concat subsetI subset_trans)
-
-text\<open>Splits the string until we finally get something from A:\<close>
-lemma split_star_union:
-  assumes \<open>zs \<in> star( A \<union> B )\<close>
-  shows \<open>zs \<in> star B  \<or>  (\<exists>bs a zs'. zs = bs @ a @ zs' \<and> bs \<in> star B \<and> a \<in> A \<and> zs' \<in> star(A \<union> B))\<close>
-  using assms proof(induction zs rule: star_induct)
-  case (append u zs)
-  then consider (A) \<open>u \<in> A\<close> | (B) \<open>u \<in> B\<close> by blast
-  then show ?case
-  proof(cases)
-    case A
-    then have \<open>u @ zs = [] @ u @ zs \<and> [] \<in> star B \<and> u \<in> A \<and> zs \<in> star(A \<union> B)\<close> 
-      using append by blast 
-    then show ?thesis by blast
-  next
-    case B
-    then consider (zsB) \<open>zs \<in> star B\<close> | (Split) \<open>(\<exists>bs a zs'. zs = bs @ a @ zs' \<and> bs \<in> star B \<and> a \<in> A \<and> zs' \<in> star (A \<union> B))\<close> 
-      using append by blast
-    then show ?thesis
-    proof(cases)
-      case zsB
-      then have \<open>u@zs \<in> star B\<close> 
-        using B by simp
-      then show ?thesis by blast
-    next
-      case Split
-      then obtain bs a zs' where split: \<open>zs = bs @ a @ zs'\<close> \<open>bs \<in> star B\<close> \<open>a \<in> A\<close> \<open>zs' \<in> star (A \<union> B)\<close> 
-        by blast
-      then have \<open>u \<in> star B\<close> 
-        using B using star_if_lang by blast
-      then have \<open>u@bs \<in> star B\<close> 
-        using append_in_starI[of u B bs, OF \<open>u \<in> star B\<close> \<open>bs \<in> star B\<close>] by blast
-      moreover have \<open>u@zs = (u@bs) @ a @ zs'\<close> 
-        unfolding split by simp 
-      ultimately have \<open>u@zs = (u@bs) @ a @ zs' \<and> (u@bs) \<in> star B \<and> a \<in> A \<and> zs' \<in> star(A \<union> B)\<close> 
-        using split by blast
-      then show ?thesis by blast
-    qed
-  qed
-qed auto
-
 
 section\<open>Showing \<open>h(L') = L\<close>\<close>
 text\<open>Particularely \<open>\<supseteq>\<close> is formally hard. 

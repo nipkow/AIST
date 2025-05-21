@@ -8,8 +8,8 @@ Lawrence C. Paulsons \<open>Finite_Automata_Hf\<close> but with \<open>'b set\<c
 instead of forcing \<open>hf set\<close>. 
 It is intended to be used for easier constructions of explicitly given languages,
 not for abstract constructions such as the intersection of 2 automaton languages.
-The locale below adds a converter from this dfa to the hf version dfa, 
-to show that regularity also holds for the language of this dfa.\<close>
+The locale below adds a converter from this dfa/nfa to the hf version dfa/nfa, 
+to show that regularity also holds for the language of this dfa/nfa.\<close>
 
 section\<open>Deterministic Finite Automata\<close>
 

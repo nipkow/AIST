@@ -144,7 +144,7 @@ lemma transform_production_induct:
 lemma fst_transform_production[simp]: \<open>fst (transform_production (A, w)) = A\<close>
   by(induction rule: transform_production_induct;auto)    
 
-text\<open>Definition of what it means to be a chomksy-form rule:\<close>
+text\<open>Definition of what it means to be a Chomsky-form rule:\<close>
 definition CNF_rule :: "('n,'t) prod \<Rightarrow> bool" where
   \<open>CNF_rule p \<equiv>  (\<exists>(A::'n) B C. (p = (A,[Nt B, Nt C]))) \<or> (\<exists>A a. p= (A, [Tm a]))\<close>
 
@@ -199,8 +199,8 @@ lemma transform_production_induct_cnf:
 
 section\<open>Definition of the regular Language\<close>
 
-subsection\<open>P1\<close>
-text\<open>P1 will define a predicate on string elements. 
+subsection\<open>\<open>P1\<close>\<close>
+text\<open>\<open>P1\<close> will define a predicate on string elements. 
 It will be true iff after a \<open>]\<^sup>1\<^sub>p\<close> there always immediately follows a \<open>[\<^sup>2\<^sub>p\<close>.
  That should also mean \<open>]\<^sup>1\<^sub>p\<close> can't be the end of the string.\<close>
 
@@ -230,11 +230,11 @@ lemmas P1'E = P1'D[elim_format]
 
 lemmas P1'_symE = P1'_symD[elim_format]
 
-text\<open>Asserts that P1' holds for every pair in xs, and that xs doesnt end in \<open>]\<^sup>1\<^sub>p\<close>:\<close>
+text\<open>Asserts that \<open>P1'\<close> holds for every pair in xs, and that xs doesnt end in \<open>]\<^sup>1\<^sub>p\<close>:\<close>
 fun P1 where
   \<open>P1 xs = ((successively P1' xs) \<and> (if xs \<noteq> [] then (\<nexists>p. last xs = (Close, (p, One))) else True))\<close>
 
-text\<open>Asserts that P1' holds for every pair in xs, and that xs doesnt end in \<open>Tm ]\<^sup>1\<^sub>p\<close>:\<close>
+text\<open>Asserts that \<open>P1'\<close> holds for every pair in xs, and that xs doesnt end in \<open>Tm ]\<^sup>1\<^sub>p\<close>:\<close>
 fun P1_sym where
   \<open>P1_sym xs = ((successively P1'_sym xs) \<and> (if xs \<noteq> [] then (\<nexists>p. last xs = Tm (Close, (p, One))) else True))\<close>
 
@@ -322,7 +322,7 @@ lemmas P1_symE = P1_symD[elim_format]
 
 lemmas P1_symE_not_empty = P1_symD_not_empty[elim_format]
 
-subsection\<open>P2\<close>
+subsection\<open>\<open>P2\<close>\<close>
 text\<open>After any \<open>]\<^sup>2\<^bsub>\<pi>\<^esub>\<close> there never comes an \<open>[\<^bsup>...\<^esup>\<^bsub>...\<^esub>\<close>:\<close>
 fun P2 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
   \<open>P2 (Close, (p, Two)) (Open, (p', v))  = False\<close> | 
@@ -355,7 +355,7 @@ lemma P2_sym_imp_P2_for_tm[intro, dest]: \<open>successively P2_sym (map Tm x) \
   apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P2_sym.cases) 
   by auto
 
-subsection\<open>P3\<close>
+subsection\<open>\<open>P3\<close>\<close>
 text\<open>After each \<open>[\<^sup>1\<^bsub>A\<rightarrow>BC\<^esub>\<close>, always comes a \<open>[\<^sup>1\<^bsub>B\<rightarrow>_\<^esub>\<close>,  and after each \<open>[\<^sup>2\<^bsub>A\<rightarrow>BC\<^esub>\<close> always comes a \<open>[\<^sup>1\<^bsub>C\<rightarrow>_\<^esub>\<close>:\<close>
 fun P3 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
   \<open>P3 (Open, ((A, [Nt B, Nt C]), One)) (p, ((X,y), t)) = (p = Open \<and> t = One \<and> X = B)\<close> |
@@ -421,7 +421,7 @@ lemma P3_sym_imp_P3_for_tm[intro, dest]: \<open>successively P3_sym (map Tm x) \
 
 
 
-subsection\<open>P4\<close>
+subsection\<open>\<open>P4\<close>\<close>
 
 text\<open>After each \<open>[\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> comes a \<open>]\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> and after each \<open>[\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close> comes a \<open>]\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close>:\<close>
 fun P4 :: \<open>(bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) \<Rightarrow> bool\<close> where
@@ -457,7 +457,7 @@ lemma P4_sym_imp_P4_for_tm[intro, dest]: \<open>successively P4_sym (map Tm x) \
   apply(induction x rule: induct_list012) apply simp apply simp apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P4_sym.cases) 
   by auto
 
-subsection\<open>P5\<close>
+subsection\<open>\<open>P5\<close>\<close>
 
 text\<open>There exists some y, such that x begins with \<open>[\<^sup>1\<^bsub>A\<rightarrow>y\<^esub>\<close>:\<close>
 fun P5 :: \<open>'n \<Rightarrow> (bracket \<times> ('n,'t) prod \<times> version) list \<Rightarrow> bool\<close> where
@@ -489,7 +489,7 @@ lemma P5_sym_imp_P5_for_tm[intro, dest]: \<open>P5_sym A (map Tm x) \<Longrighta
   apply(induction x) by auto
 
 
-subsection\<open>P7 and P8\<close>
+subsection\<open>\<open>P7\<close> and \<open>P8\<close>\<close>
 
 text\<open>These are only needed for the version \<open>Reg_sym\<close> that also allows Nonterminals - the conditions vanish for the \<open>Reg\<close> version\<close>
 text\<open>Before a \<open>Nt Y\<close> there always comes a \<open>Tm [\<^sup>1\<^bsub>A\<rightarrow>YC  \<^esub>\<close>} or a \<open>Tm [\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close>}\<close>

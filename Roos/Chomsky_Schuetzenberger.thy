@@ -995,7 +995,7 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
   proof(cases r2)
     case (Cons r2' r2's)
     with bal_r2 obtain g where r2_begin_op: \<open>r2' = (Open, g)\<close> 
-      using bal_not_empty[of r2' r2's] using Cons by blast
+      using bal_start_Open[of r2' r2's] using Cons by blast
     have \<open>successively P2 ( ]\<^sup>2\<^bsub>\<pi>\<^esub>  # r2' # r2's)\<close> 
       using p2x unfolding split2 Cons successively_append_iff by (metis append_Cons successively_append_iff)
     then have \<open>P2 ]\<^sup>2\<^bsub>\<pi>\<^esub> (r2')\<close> 
@@ -1128,7 +1128,7 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
       then have \<open>y' = (Close, \<pi>, One)\<close> 
         using P4E by (metis pi_eq)
       moreover obtain g where \<open>y' = (Open, g)\<close> 
-        using Cons bal_not_empty bal_y by blast
+        using Cons bal_start_Open bal_y by blast
       ultimately have \<open>False\<close> 
         by blast
       then show ?thesis by blast
@@ -1139,9 +1139,9 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
       have \<open>P4 [\<^sup>2\<^bsub>\<pi>\<^esub> z'\<close> 
         using p4x split3 by (simp add: Cons \<open>y = []\<close>)
       then have \<open>z' = (Close, \<pi>, One)\<close> 
-        using P4E by (metis Cons bal_not_empty bal_z Dyck_Language.bracket.simps(2) fst_eqD pi_eq)
+        using P4E by (metis Cons bal_start_Open bal_z Dyck_Language.bracket.simps(2) fst_eqD pi_eq)
       moreover obtain g where \<open>z' = (Open, g)\<close> 
-        using Cons bal_not_empty bal_z by blast
+        using Cons bal_start_Open bal_z by blast
       ultimately have \<open>False\<close> 
         by blast
       then show ?thesis by blast
@@ -2224,7 +2224,7 @@ next
   have \<open>[] = h([])\<close> using hom_def hom_h 
     by metis
   moreover have \<open>[] \<in> Dyck_language \<Gamma>\<close> 
-    by simp
+    by auto
   ultimately have \<open>[] \<in> h ` ((R \<union> {[]}) \<inter> Dyck_language \<Gamma>)\<close> 
     by blast
   with True L_minus_eq have \<open>L = h ` ((R \<union> {[]}) \<inter> Dyck_language \<Gamma>)\<close> 

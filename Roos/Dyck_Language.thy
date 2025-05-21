@@ -151,11 +151,9 @@ theorem bal_append_inv: "bal (u @ v) \<Longrightarrow> bal u \<Longrightarrow> b
   using bal_stk_append_if bal_stk_iff_bal by metis
 
 lemma bal_insert: 
-  assumes u: "bal u" 
-    and b: \<open>bal b\<close>
-  shows "u = v@w \<Longrightarrow> bal (v @ b @ w)" 
+  assumes u: "bal u"  and b: \<open>bal b\<close> and uvw: "u = v@w"
+  shows "bal (v @ b @ w)" 
 proof-
-  assume uvw: \<open>u = v@w\<close>
   have \<open>bal_stk [] b = ([],[])\<close> 
     using assms bal_stk_iff_bal by blast
   have \<open>bal_stk [] u = ([],[])\<close> 
@@ -179,11 +177,9 @@ proof-
 qed
 
 lemma bal_del: 
-  assumes u: "bal u" 
-    and b: \<open>bal b\<close>
-  shows "u = v @ b @ w \<Longrightarrow> bal (v @ w)" 
+  assumes u: "bal u" and b: \<open>bal b\<close> and uvbw: \<open>u = v @ b @ w\<close>
+  shows "bal (v @ w)" 
 proof-
-  assume uvbw: \<open>u = v @ b @ w\<close>
   have bal_stk_b: \<open>bal_stk [] b = ([],[])\<close> 
     using assms bal_stk_iff_bal by blast
   have bal_stk_vbw: \<open>bal_stk [] (v @ b @ w) = ([],[])\<close> 
@@ -203,44 +199,13 @@ corollary bal_iff_insert[iff]:
   shows \<open>bal (v @ b @ w) = bal (v @ w)\<close>
   using bal_del bal_insert by (metis assms)
 
-lemma bal_start_Open: \<open>bal (x#xs) \<Longrightarrow>\<exists>g. x = (Open,g)\<close> 
-proof(induction \<open>length (x#xs)\<close> arbitrary: x xs rule: less_induct)
-  case less
-  have IH: \<open>\<And>w (ws:: (bracket \<times> 'a) list). \<lbrakk>length (w # ws) < length (x # xs); bal (w # ws)\<rbrakk> \<Longrightarrow> \<exists>g. w = (Open, g)\<close> 
-    using less by blast
-  from less have \<open>bal (x # xs)\<close> 
-    by simp
-  then show ?case
-  proof(induction \<open>x#xs\<close> rule:bal.induct)
-    case (2 as bs)
-    consider (as_empty)  \<open>as = []\<close> | (bs_empty)\<open>bs = []\<close> | (both_not_empty)\<open>as \<noteq> [] \<and> bs \<noteq> []\<close> 
-      by blast
-    then show ?case
-    proof(cases)
-      case as_empty
-      then show ?thesis using "local.2.hyps"(4,5) eq_Nil_appendI by blast
-    next
-      case bs_empty
-      then show ?thesis by (metis "local.2.hyps"(2,5) List.append.right_neutral)
-    next
-      case both_not_empty
-      then have \<open>length as < length (x#xs)\<close> 
-        by (metis "local.2.hyps"(5) List.append.right_neutral append_eq_conv_conj linorder_not_le take_all_iff)
-      moreover have \<open>bal as\<close> 
-        by (simp add: "local.2.hyps"(1))
-      ultimately have \<open>\<exists>g. hd as = (Open, g)\<close> 
-        using IH[of \<open>hd as\<close> \<open>tl as\<close>] using both_not_empty by auto
-      moreover have \<open>x = hd as\<close> 
-        using both_not_empty by (metis "local.2.hyps"(5) List.list.sel(1) hd_append2)
-      ultimately show ?thesis by blast
-    qed
-  qed auto
-qed
+lemma bal_start_Open: \<open>bal (x#xs) \<Longrightarrow>\<exists>g. x = (Open,g)\<close>
+  using bal_stk.elims bal_stk_iff_bal by blast 
 
-lemma bal_Open_split: \<open>bal (x # xs) \<Longrightarrow> \<exists>y r g. bal y \<and> bal r \<and> (x # xs) = (Open, g) # y @ (Close, g) # r\<close>
+lemma bal_Open_split: assumes bal_x_xs: \<open>bal (x # xs)\<close>
+  shows \<open>\<exists>y r g. bal y \<and> bal r \<and> (x # xs) = (Open, g) # y @ (Close, g) # r\<close>
 proof-
-  assume bal_x_xs: \<open>bal (x # xs)\<close>
-  then obtain g where x_def: \<open>x = (Open, g)\<close> 
+  from bal_x_xs obtain g where x_def: \<open>x = (Open, g)\<close> 
     using bal_start_Open by blast
   then have \<open>bal ((Open, g) # xs) \<Longrightarrow> \<exists>y r. bal y \<and> bal r \<and> (x # xs) = (Open, g) # y @ (Close, g) # r\<close>
   proof(induction \<open>length (x # xs)\<close> arbitrary: xs rule: less_induct)
@@ -282,35 +247,12 @@ proof-
   then show ?thesis using x_def using bal_x_xs by blast
 qed
 
-lemma bal_not_empty:  
-  assumes \<open>bal (x#xs)\<close>
-  shows \<open>\<exists>g. x = (Open, g)\<close>
-  using assms by (metis (full_types) List.list.distinct(1) List.listrel.simps Product_Type.prod.exhaust_sel bracket.exhaust bal_stk.simps(4) bal_stk_if_bal)
-
 
 subsection\<open>Dyck Language over an Alphabet\<close>
 
 text\<open>The second components of a list of pairs are all in \<open>\<Gamma>\<close>:\<close>
 abbreviation snds_in :: \<open>'a set  \<Rightarrow> ('b  \<times> 'a) list \<Rightarrow> bool\<close> where
   \<open>snds_in \<Gamma> bs \<equiv> snd ` (set bs) \<subseteq> \<Gamma>\<close>
-
-text\<open>Useful Lemmas about this:\<close>
-
-lemma snds_in_del_right: \<open>snds_in \<Gamma> (xs@ys) \<Longrightarrow> snds_in \<Gamma> xs\<close>
-by auto
-
-lemmas snds_in_del_rightE = snds_in_del_right[elim_format]
-
-lemma snds_in_del_left[dest]: \<open>snds_in \<Gamma> (xs@ys) \<Longrightarrow> snds_in \<Gamma> ys\<close>
-by auto
-
-lemmas snds_in_del_leftE = snds_in_del_left[elim_format]
-
-lemma snds_in_append[intro, simp]: \<open>snds_in \<Gamma> xs \<Longrightarrow> snds_in \<Gamma> ys \<Longrightarrow> snds_in \<Gamma> (xs@ys)\<close>
-by auto
-
-lemma snds_in_empty[simp, intro]: \<open>snds_in \<Gamma> []\<close>
-by auto
 
 text\<open>The Dyck/bracket language over a set \<open>\<Gamma>\<close> is the set of balanced words over \<open>\<Gamma>\<close>:\<close>
 
@@ -329,13 +271,10 @@ lemma Dyck_languageD[dest]:
     and \<open>snds_in \<Gamma> w\<close>
   using assms unfolding Dyck_language_def by auto
 
-text\<open>Balanced subexpressions are again in the Dyck Language.\<close>
+text\<open>Balanced subwords are again in the Dyck Language.\<close>
 lemma Dyck_language_substring:
   \<open>bal w \<Longrightarrow> u @ w @ v \<in> Dyck_language \<Gamma> \<Longrightarrow> w \<in> Dyck_language \<Gamma>\<close>
 unfolding Dyck_language_def by auto
-
-lemma empty_in_Dyck_language[simp, intro]: \<open>[] \<in> Dyck_language \<Gamma>\<close>
-by auto
 
 
 section\<open>Versions of \<^const>\<open>bal\<close> and \<^const>\<open>snds_in\<close> for @{type syms}\<close>
@@ -402,22 +341,20 @@ definition snds_in_tm where
   \<open>snds_in_tm \<Gamma> \<equiv> snds_in \<Gamma> o map destTm o filter isTm\<close>
 
 text\<open>Useful lemmas about this:\<close>
-lemma snds_in_tm_del_right[dest]: \<open>snds_in_tm \<Gamma> (xs@ys) \<Longrightarrow> snds_in_tm \<Gamma> xs\<close> 
-  unfolding snds_in_tm_def using snds_in_del_right by auto
-
-lemmas snds_in_tm_del_rightE = snds_in_tm_del_right[elim_format]
-
-lemma snds_in_tm_del_left[dest]: \<open>snds_in_tm \<Gamma> (xs@ys) \<Longrightarrow> snds_in_tm \<Gamma> ys\<close>
+lemma snds_in_tm_del_right: \<open>snds_in_tm \<Gamma> (xs@ys) \<Longrightarrow> snds_in_tm \<Gamma> xs\<close> 
   unfolding snds_in_tm_def by auto
 
-lemmas snds_in_tm_del_leftE = snds_in_tm_del_left[elim_format]
+lemma snds_in_tm_del_left: \<open>snds_in_tm \<Gamma> (xs@ys) \<Longrightarrow> snds_in_tm \<Gamma> ys\<close>
+  unfolding snds_in_tm_def by auto
 
-lemma snds_in_tm_append[intro, simp]: \<open>snds_in_tm \<Gamma> xs \<Longrightarrow> snds_in_tm \<Gamma> ys \<Longrightarrow> snds_in_tm \<Gamma> (xs@ys)\<close>
-  unfolding snds_in_tm_def using snds_in_append by auto
+lemma snds_in_tm_append[simp]:
+  \<open>snds_in_tm \<Gamma> xs \<Longrightarrow> snds_in_tm \<Gamma> ys \<Longrightarrow> snds_in_tm \<Gamma> (xs@ys)\<close>
+unfolding snds_in_tm_def by auto
 
 text\<open>Relationship between \<^term>\<open>bal_tm\<close>, \<^term>\<open>snds_in_tm\<close> and \<open>Dyck_Language\<close>\<close>
-lemma Dyck_languageI_tm[intro]: \<open>bal_tm (map Tm xs') \<Longrightarrow> snds_in_tm \<Gamma> (map Tm xs') \<Longrightarrow> xs' \<in> Dyck_language \<Gamma>\<close>
-  unfolding bal_tm_def snds_in_tm_def by auto
+lemma Dyck_languageI_tm[intro]:
+  \<open>bal_tm (map Tm xs') \<Longrightarrow> snds_in_tm \<Gamma> (map Tm xs') \<Longrightarrow> xs' \<in> Dyck_language \<Gamma>\<close>
+unfolding bal_tm_def snds_in_tm_def by auto
 
 
 subsection\<open>Lifting \<^const>\<open>bal\<close> and \<^const>\<open>bal_tm\<close> to @{type syms}\<close>

@@ -39,29 +39,6 @@ primrec nextl :: "['b, 'a list] \<Rightarrow> 'b" where
 definition language :: "'a list set"  where
   "language \<equiv> {xs. nextl (init M) xs \<in> final M}"
 
-
-
-
-
-text\<open>The left language WRT a state q is the set of words that lead to q.\<close>
-definition left_lang :: "'b \<Rightarrow> 'a list set"  where
-  "left_lang q \<equiv> {u. nextl (init M) u = q}"
-
-text\<open>Part of Prop 1 of
-  Jean-Marc Champarnaud, A. Khorsi and T. Paranthoën,
-  Split and join for minimizing: Brzozowski's algorithm,
-  Prague Stringology Conference 2002\<close>
-lemma left_lang_disjoint:
-  "q1 \<noteq> q2 \<Longrightarrow> left_lang q1 \<inter> left_lang q2 = {}"
-  unfolding left_lang_def by auto
-
-text\<open>The right language WRT a state q is the set of words that go from q to F.\<close>
-definition right_lang :: "'b \<Rightarrow> 'a list set"  where
-  "right_lang q \<equiv> {u. nextl q u \<in> final M}"
-
-lemma language_eq_right_lang: "language = right_lang (init M)"
-  using language_def right_lang_def by auto
-
 lemma nextl_app: "nextl q (xs@ys) = nextl (nextl q xs) ys"
   by (induct xs arbitrary: q) auto
 
@@ -131,8 +108,8 @@ lemma f_inv_f[simp]: \<open>q \<in> dfa'.states M' \<Longrightarrow> f_inv (f q)
 lemma f_inv_in[intro]: \<open>h \<in> dfa.states hf_M' \<Longrightarrow> f_inv h \<in> dfa'.states M'\<close> 
   by fastforce
 
-lemma f_inv_in_final[intro]: \<open>h \<in> dfa.final hf_M' \<Longrightarrow> f_inv h \<in> dfa'.final M'\<close> using dfa'_M' dfa'_def 
-  by fastforce
+lemma f_inv_in_final[intro]: \<open>h \<in> dfa.final hf_M' \<Longrightarrow> f_inv h \<in> dfa'.final M'\<close> 
+  using dfa'_M' dfa'_def by fastforce
 
 lemma f_inv_f_init[simp]: \<open>f_inv( f( dfa'.init M' ) ) = dfa'.init M'\<close> 
   by (simp add: dfa'.init dfa'_M')
@@ -198,9 +175,6 @@ lemma M'_lang_eq_hf_M'_lang: \<open>M'.language = hf_M'.language\<close>
 end
 
 
-
-
-
 corollary ex_hf_M:
   fixes M' :: \<open>('a, 'b) dfa'\<close>
   assumes dfa'_M': \<open>dfa' M'\<close>
@@ -227,33 +201,6 @@ corollary dfa'_imp_regular:
   assumes dfa'_M': \<open>dfa' M'\<close> "dfa'.language M' = L"
   shows \<open>regular L\<close> 
   using ex_hf_M using dfa'_M'(1,2) regular_def by fastforce
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -335,10 +282,6 @@ primrec nextl :: "['b set, 'a list] \<Rightarrow> 'b set" where
 definition language :: "'a list set"  where
   "language \<equiv> {xs. nextl (init M) xs \<inter> final M \<noteq> {}}"
 
-text\<open>The right language WRT a state q is the set of words that go from q to F.\<close>
-definition right_lang :: "'b \<Rightarrow> 'a list set"  where
-  "right_lang q \<equiv> {u. nextl {q} u \<inter> final M \<noteq> {}}"
-
 lemma nextl_epsclo [simp]: "nextl (epsclo Q) xs = nextl Q xs"
   by (induct xs) auto
 
@@ -411,28 +354,6 @@ qed
 
 corollary dfa_Power: "dfa' Power_dfa'"
   by unfold_locales
-
-lemma nextl_Power_dfa':
-  "qs \<in> dfa'.states Power_dfa'
-     \<Longrightarrow> dfa'.nextl Power_dfa' qs u = (\<Union>q \<in> qs. nextl {q} u)"
-  apply (induct u rule: List.rev_induct)
-   apply (auto simp: finite_nextl inj_on_HF [THEN inj_on_eq_iff])
-   apply (metis Int_empty_left Int_insert_left_if1 epsclo_increasing epsclo_subset subsetD singletonI)
-  apply (metis contra_subsetD empty_subsetI epsclo_idem epsclo_mono insert_subset)
-  done
-
-text\<open>Part of Prop 4 of Jean-Marc Champarnaud, A. Khorsi and T. Paranthoën (2002)\<close>
-lemma Power_right_lang:
-  "qs \<in> dfa'.states Power_dfa' \<Longrightarrow> Power.right_lang qs = (\<Union>q \<in> qs. right_lang q)"
-  using epsclo_increasing
-  apply (auto simp: Power.right_lang_def right_lang_def nextl_Power_dfa'
-      inj_on_HF [THEN inj_on_eq_iff] finite_nextl, blast)
-  apply (rename_tac Q u q1 q2)
-  apply (drule_tac x="(\<Union>x\<in>epsclo Q. nextl {x} u)" in spec)
-  apply auto
-  using nextl_state apply blast
-  done
-
 
 text\<open>The Power DFA accepts the same language as the NFA.\<close>
 theorem Power_language [simp]: "Power.language = language"

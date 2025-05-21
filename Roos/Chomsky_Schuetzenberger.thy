@@ -612,7 +612,7 @@ fun the_hom_ext_helper :: \<open>('a, bracket \<times> ('a,'b) prod \<times> ver
   \<open>the_hom_ext_helper _ = []\<close>
 
 text\<open>The needed homomorphism in the proof:\<close>
-fun the_hom :: \<open>(bracket \<times> ('a,'b) prod \<times> version) list \<Rightarrow> 'b list \<close> where
+fun the_hom :: \<open>(bracket \<times> ('a,'b) prod \<times> version) list \<Rightarrow> 'b list \<close> ("\<h>")where
   \<open>the_hom l = concat (map the_hom_helper l)\<close>
 
 text\<open>The needed homomorphism in the proof, but extended on Variables:\<close>
@@ -716,19 +716,21 @@ lemma [iff]: \<open>bal_tm ([ Tm [\<^sup>1\<^sub>p , Nt B, Tm ]\<^sup>1\<^sub>p 
 lemma [iff]: \<open>bal_tm ([ Tm (Open, (p,One)),       Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p ,       Tm ]\<^sup>2\<^sub>p   ])\<close> 
   using bal_stk_tm_iff_bal_tm unfolding bal_stk_tm_def by fastforce
 
-lemma \<open>rhs_in_tm [Nt A] \<Gamma>\<close> 
-  unfolding rhs_in_tm_def by auto
+lemma \<open>snds_in_tm \<Gamma> [Nt A]\<close> 
+  unfolding snds_in_tm_def by auto
 
-lemma prod1_rhs_in_tm [intro, simp]: \<open>p \<in> P \<Longrightarrow> rhs_in_tm [ Tm [\<^sup>1\<^sub>p , Nt B, Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p , Nt C, Tm ]\<^sup>2\<^sub>p   ] (P \<times> {One, Two}) \<close> 
-  unfolding rhs_in_tm_def by auto
+lemma prod1_snds_in_tm [intro, simp]: \<open>p \<in> P \<Longrightarrow>
+  snds_in_tm (P \<times> {One, Two}) [ Tm [\<^sup>1\<^sub>p , Nt B, Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p , Nt C, Tm ]\<^sup>2\<^sub>p   ] \<close> 
+  unfolding snds_in_tm_def by auto
 
-lemma prod2_rhs_in_tm [intro, simp]: \<open>p \<in> P \<Longrightarrow> rhs_in_tm [ Tm (Open, (p,One)),       Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p ,       Tm ]\<^sup>2\<^sub>p   ] (P \<times> {One, Two})\<close> 
-  unfolding rhs_in_tm_def by auto
+lemma prod2_snds_in_tm [intro, simp]: \<open>p \<in> P \<Longrightarrow>
+  snds_in_tm (P \<times> {One, Two}) [ Tm (Open, (p,One)),       Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p ,       Tm ]\<^sup>2\<^sub>p   ]\<close> 
+  unfolding snds_in_tm_def by auto
 
 lemma prod_bal_tm[intro!]:
   assumes \<open>p \<in> P\<close>
     and \<open>CNF_rule p\<close>
-  shows \<open>bal_tm (snd (transform_production p)) \<and> rhs_in_tm (snd (transform_production p)) (P \<times> {One, Two})\<close> 
+  shows \<open>bal_tm (snd (transform_production p)) \<and> snds_in_tm (P \<times> {One, Two}) (snd (transform_production p))\<close> 
 proof-
   have \<open>(\<exists>A B C. transform_production p = (A, [ Tm [\<^sup>1\<^sub>p , Nt B, Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p , Nt C, Tm ]\<^sup>2\<^sub>p   ]) ) \<or> 
             (\<exists>A. transform_production p = (A, [ Tm [\<^sup>1\<^sub>p,       Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p ,       Tm ]\<^sup>2\<^sub>p   ]))\<close> ( is \<open>?A1 \<or> ?A2\<close>) 
@@ -738,15 +740,15 @@ proof-
     assume A1: ?A1
     then obtain A B C where \<open>transform_production p = (A, [ Tm [\<^sup>1\<^sub>p , Nt B, Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p , Nt C, Tm ]\<^sup>2\<^sub>p   ])\<close> 
       by blast
-    moreover have \<open>rhs_in_tm (snd (transform_production p)) (P \<times> {One, Two})\<close> using prod1_rhs_in_tm[of p P] 
+    moreover have \<open>snds_in_tm (P \<times> {One, Two}) (snd (transform_production p))\<close> using prod1_snds_in_tm[of p P] 
       by (simp add: assms(1) calculation)
     ultimately show ?thesis by auto
   next
     assume A2: ?A2
     then obtain A where \<open>transform_production p = (A, [ Tm (Open, (p,One)),       Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p ,       Tm ]\<^sup>2\<^sub>p   ])\<close> 
       by blast
-    moreover have \<open>rhs_in_tm (snd (transform_production p)) (P \<times> {One, Two})\<close> 
-      using prod1_rhs_in_tm[of p P] by (simp add: assms(1) calculation)
+    moreover have \<open>snds_in_tm (P \<times> {One, Two}) (snd (transform_production p))\<close> 
+      using prod1_snds_in_tm[of p P] by (simp add: assms(1) calculation)
     ultimately show ?thesis by auto
   qed
 qed
@@ -760,24 +762,24 @@ section\<open>Helper lemmas for \<open>A \<rightarrow>\<^sub>P\<^sub>'\<^sup>* x
 lemma P'_bal:
   assumes \<open>(image transform_production P) \<turnstile> [Nt A] \<Rightarrow>* x\<close>
     and \<open>\<forall>p \<in> P. CNF_rule p\<close>
-  shows \<open>bal_tm x \<and> rhs_in_tm x (P \<times> {One, Two})\<close>
+  shows \<open>bal_tm x \<and> snds_in_tm (P \<times> {One, Two}) x\<close>
   using assms proof(induction rule: derives_induct)
   case base
-  then show ?case unfolding rhs_in_tm_def by auto
+  then show ?case unfolding snds_in_tm_def by auto
 next
   case (step u A v w)
-  have \<open>bal_tm (u @ [Nt A] @ v)\<close> and \<open>rhs_in_tm (u @ [Nt A] @ v) (P \<times> {One, Two})\<close> 
+  have \<open>bal_tm (u @ [Nt A] @ v)\<close> and \<open>snds_in_tm (P \<times> {One, Two}) (u @ [Nt A] @ v)\<close> 
     using local.step.IH local.step.prems by auto
   obtain w' where w'_def: \<open>(A, w) = transform_production (A, w')\<close> and A_w'_in_P: \<open>(A,w') \<in> P\<close> 
     by (metis (no_types, opaque_lifting) Product_Type.prod.collapse fst_transform_production imageE local.step.hyps(2))
   then have \<open>CNF_rule (A,w')\<close> 
     using assms by blast
-  have bal_tm_w: \<open>bal_tm w\<close> and rhs_in_tm_w: \<open>rhs_in_tm w (P \<times> {One, Two})\<close> 
+  have bal_tm_w: \<open>bal_tm w\<close> and snds_in_tm_w: \<open>snds_in_tm (P \<times> {One, Two}) w\<close> 
     using prod_bal_tm[OF \<open>(A,w') \<in> P\<close> \<open>CNF_rule (A,w')\<close>] w'_def by (metis split_pairs)+
   then have \<open>bal_tm (u @ w @ v)\<close> 
     using \<open>bal_tm (u @ [Nt A] @ v)\<close> by blast 
-  moreover from rhs_in_tm_w have \<open>rhs_in_tm (u @ w @ v) (P \<times> {One, Two})\<close> 
-    using \<open>rhs_in_tm (u @ [Nt A] @ v) (P \<times> {One, Two})\<close> by (metis rhs_in_tm_append rhs_in_tm_del_left rhs_in_tm_del_right)
+  moreover from snds_in_tm_w have \<open>snds_in_tm (P \<times> {One, Two}) (u @ w @ v)\<close> 
+    using \<open>snds_in_tm (P \<times> {One, Two}) (u @ [Nt A] @ v)\<close> by (metis snds_in_tm_append snds_in_tm_del_left snds_in_tm_del_right)
   ultimately show ?case using \<open>bal_tm (u @ w @ v)\<close> by blast
 qed
 
@@ -963,7 +965,7 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
   with xReg have \<open>(Open, \<pi>, One) \<in> set x\<close> 
     by (metis List.list.sel(1) List.list.set_intros(1) RegD(5) Chomsky_Schuetzenberger.P5.elims(2))
   then have pi_in_P: \<open>\<pi> \<in> P\<close> 
-    using xDL by auto
+    using xDL unfolding Dyck_language_def by auto
   have bal_x: \<open>bal x\<close> 
     using xDL by blast
   then have \<open>\<exists>y r. bal y \<and> bal r \<and> [\<^sup>1\<^bsub>\<pi>\<^esub>  # tl x = [\<^sup>1\<^bsub>\<pi>\<^esub>  # y @ ]\<^sup>1\<^bsub>\<pi>\<^esub> # r\<close> 
@@ -2056,7 +2058,7 @@ lemma Chomsky_Schuetzenberger_constr:
   fixes P :: \<open>('n :: infinite, 't) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S\<close>
   assumes finite: \<open>finite P\<close> and P_CNF: \<open>CNF P\<close>
-  shows \<open>regular ((brackets P) \<inter> Reg S) \<and> L = image the_hom( ( (brackets P) \<inter> Reg S) \<inter> (Dyck_language(P \<times> {One, Two}) ) ) \<and> 
+  shows \<open>regular (brackets P \<inter> Reg S) \<and> L = the_hom ` ( (brackets P \<inter> Reg S) \<inter> Dyck_language (P \<times> {One, Two} ) ) \<and> 
     hom (the_hom:: (bracket \<times> ('n, 't) prod \<times> version) list \<Rightarrow> 't list)\<close>
 proof -
   define \<Gamma> where \<open>\<Gamma> = P \<times> {One, Two}\<close>
@@ -2068,7 +2070,7 @@ proof -
     using P_CNF unfolding CNF.CNF_def CNF_rule_def by fastforce 
   have \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (Dyck_language \<Gamma>) \<inter> (Reg A)\<close> (* This is the hard part of the proof - the local lemma in the textbook *)
   proof-
-    have \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* x \<Longrightarrow> bal_tm x \<and> rhs_in_tm x (P \<times> {One, Two})\<close> 
+    have \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* x \<Longrightarrow> bal_tm x \<and> snds_in_tm (P \<times> {One, Two}) x\<close> 
       by (simp add: P'_bal P'_def P_CNF')
     then have hr1: \<open>\<And>A x. (P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<Longrightarrow> x \<in> Dyck_language \<Gamma>)\<close> 
       using \<Gamma>_def by (meson Dyck_languageI_tm)
@@ -2209,7 +2211,7 @@ lemma Chomsky_Schuetzenberger:
   fixes P :: \<open>('n :: infinite, 't) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S\<close>
   assumes finite: \<open>finite P\<close>
-  shows \<open>\<exists>(R::(bracket \<times> ('n, 't) prod \<times> version) list set) h \<Gamma>.  (regular R) \<and> (L = image h (R \<inter> Dyck_language \<Gamma>)) \<and> hom h\<close>
+  shows \<open>\<exists>(R::(bracket \<times> ('n, 't) prod \<times> version) list set) h \<Gamma>.  (regular R) \<and> (L = h ` (R \<inter> Dyck_language \<Gamma>)) \<and> hom h\<close>
 proof(cases \<open>[] \<in> L\<close>)
   case False
   then show ?thesis by (metis Diff_empty Diff_insert0 L_def Chomsky_Schuetzenberger_not_empty finite)
@@ -2226,7 +2228,7 @@ next
   ultimately have \<open>[] \<in> h ` ((R \<union> {[]}) \<inter> Dyck_language \<Gamma>)\<close> 
     by blast
   with True L_minus_eq have \<open>L = h ` ((R \<union> {[]}) \<inter> Dyck_language \<Gamma>)\<close> 
-    using \<open>[] \<in> Dyck_language \<Gamma>\<close> by auto
+    using \<open>[] \<in> Dyck_language \<Gamma>\<close> \<open>[] = h []\<close> by auto
   then show ?thesis using reg_R_union hom_h by blast
 qed
 

@@ -1,15 +1,16 @@
 (* Author: Moritz Roos *)
+
 theory Dyck_Language
   imports CFG.CFG
 begin
 
-(*TODO where do i belong best?*)
-fun stripTm :: "('a, 'b) sym  \<Rightarrow> 'b" where 
-  \<open>stripTm (Tm t) = t\<close> | 
-  \<open>stripTm (Nt A) = undefined\<close>
+(*TODO now in CFG *)
+fun destTm :: "('a, 'b) sym  \<Rightarrow> 'b" where 
+  \<open>destTm (Tm t) = t\<close> | 
+  \<open>destTm (Nt A) = undefined\<close>
 
-lemma stripTm_Tm[simp]: \<open>map (stripTm \<circ> Tm) xs' = xs'\<close>
-  apply(induction xs') by auto
+lemma destTm_Tm[simp]: \<open>destTm \<circ> Tm = id\<close>
+by auto
 (* until here*)
 
 section\<open>Balancedness\<close>
@@ -121,9 +122,9 @@ section\<open>Versions of \<^term>\<open>bal\<close> and \<^term>\<open>rhs_in\<
 subsection\<open>Function \<^term>\<open>bal_tm\<close>\<close>
 
 definition bal_tm where
-  \<open>bal_tm \<equiv> bal o (map stripTm) o (filter isTm)\<close>
+  \<open>bal_tm \<equiv> bal o (map destTm) o (filter isTm)\<close>
 
-(* TODO Move *)
+(* TODO now in CFG *)
 lemma isTm_Nt[simp]:\<open>(isTm (Nt A)) = False\<close>
   by (simp add: isTm_def)
 
@@ -158,12 +159,9 @@ lemma bal_tm2[iff]: "bal_tm [Tm (Open,g), Tm (Close,g)]"
 lemma bal_tm2_Nt[iff]: "bal_tm [Tm (Open,g), Tm (Close,g), Nt A]" 
   using bal_tm_append_Nt by force
 
-(* TODO: mv to CFG *)
-lemma map_Tm_inject[dest!]: "map Tm xs = map Tm ys \<Longrightarrow> xs = ys"
-  by (metis sym.inject(2) list.inj_map_strong)
-
+(* TODO: now in CFG *)
 lemma map_Tm_inject_iff[simp]: "(map Tm xs = map Tm ys) = (xs = ys)"
-  by blast
+by (metis sym.inject(2) list.inj_map_strong)
 (* until here *)
 
 text\<open>Relationship of \<^term>\<open>bal\<close> and \<^term>\<open>bal_tm\<close>:\<close>
@@ -179,7 +177,7 @@ subsection\<open>Function \<^term>\<open>rhs_in_tm\<close>\<close>
 text\<open>Version of \<^term>\<open>rhs_in\<close> but for a list of symbols, that might contain Nonterminals.
 Says that all right hand sides of \<open>x\<close> (here stripped of their \<open>Tm\<close>) are in \<open>\<Gamma>\<close>:\<close>
 definition rhs_in_tm where
-  \<open>rhs_in_tm \<equiv> rhs_in o (map stripTm) o (filter isTm)\<close>
+  \<open>rhs_in_tm \<equiv> rhs_in o (map destTm) o (filter isTm)\<close>
 
 text\<open>Useful lemmas about this:\<close>
 lemma rhs_in_tm_del_right[dest]: \<open>rhs_in_tm (xs@ys) \<Gamma> \<Longrightarrow> rhs_in_tm xs \<Gamma>\<close> 
@@ -457,7 +455,7 @@ subsection\<open>Function \<^term>\<open>bal_stk_tm\<close>\<close>
 
 text\<open>A version of \<^term>\<open>bal_stk\<close> but for a symbol list that might contain Nonterminals (they are ignored via filtering).\<close>
 definition bal_stk_tm :: "('n, bracket \<times> 't) syms \<Rightarrow> 't list \<Rightarrow> ('n, bracket \<times> 't) syms * 't list" where
-  \<open>bal_stk_tm \<equiv> (\<lambda>x y . (map Tm (fst ((bal_stk o (map stripTm) o (filter isTm)) x y)), snd ((bal_stk o (map stripTm) o (filter isTm)) x y)))\<close>
+  \<open>bal_stk_tm \<equiv> (\<lambda>x y . (map Tm (fst ((bal_stk o (map destTm) o (filter isTm)) x y)), snd ((bal_stk o (map destTm) o (filter isTm)) x y)))\<close>
 
 lemma bal_stk_tm_append: "bal_stk_tm (xs @ ys) s1 = (let (xs',s1') = bal_stk_tm xs s1 in
 bal_stk_tm (xs' @ ys) s1')"
@@ -491,7 +489,7 @@ lemma bal_stk_tm_append_inv: \<open>bal_stk_tm (xs@ys) s1 = ([], s') \<Longright
   by (smt (verit, del_insts) case_prodE fstI bal_stk_append_inv surjective_pairing)
 
 
-
+                              
 subsection\<open>More properties of \<^term>\<open>bal_tm\<close>, using \<^term>\<open>bal_stk_tm\<close>\<close>
 
 theorem bal_tm_append_inv: "bal_tm (u @ v) \<Longrightarrow> bal_tm u \<Longrightarrow> bal_tm v"

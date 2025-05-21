@@ -670,13 +670,13 @@ next
   then show ?case using helper[of a] by simp
 qed
 
-lemma the_hom_helper_strip: \<open>map Tm w = (the_hom_ext_helper x') \<Longrightarrow> w = the_hom_helper (stripTm x')\<close>
+lemma the_hom_helper_strip: \<open>map Tm w = (the_hom_ext_helper x') \<Longrightarrow> w = the_hom_helper (destTm x')\<close>
   by(induction x' rule: the_hom_ext_helper.induct; auto)
 
 lemma concat_map_cons[simp]: \<open>concat (map f (a # w')) = f a @ concat ( map f w')\<close> 
   by auto
 
-lemma the_hom_helper_strip2: \<open>map Tm w = concat (map the_hom_ext_helper w') \<Longrightarrow> w = concat (map (the_hom_helper \<circ> stripTm) w')\<close>
+lemma the_hom_helper_strip2: \<open>map Tm w = concat (map the_hom_ext_helper w') \<Longrightarrow> w = concat (map (the_hom_helper \<circ> destTm) w')\<close>
 proof(induction w' arbitrary: w)
   case Nil
   then show ?case by simp
@@ -687,7 +687,7 @@ qed
 
 lemma h_eq_h_ext2:
   assumes \<open>(map Tm w) = the_hom_ext w'\<close> 
-  shows \<open>w = the_hom (map stripTm w')\<close>
+  shows \<open>w = the_hom (map destTm w')\<close>
   using assms apply simp
   apply(induction w') 
    apply simp

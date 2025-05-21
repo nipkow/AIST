@@ -733,7 +733,6 @@ proof-
   have \<open>(\<exists>A B C. transform_production p = (A, [ Tm [\<^sup>1\<^sub>p , Nt B, Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p , Nt C, Tm ]\<^sup>2\<^sub>p   ]) ) \<or> 
             (\<exists>A. transform_production p = (A, [ Tm [\<^sup>1\<^sub>p,       Tm ]\<^sup>1\<^sub>p , Tm [\<^sup>2\<^sub>p ,       Tm ]\<^sup>2\<^sub>p   ]))\<close> ( is \<open>?A1 \<or> ?A2\<close>) 
     using transform_production_CNF[OF assms(2)] by blast
-
   then show ?thesis
   proof
     assume A1: ?A1

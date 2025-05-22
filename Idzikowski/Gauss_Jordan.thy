@@ -30,6 +30,13 @@ In each step, \<open>solve1 a b\<close> solves an equation \<open>X_i = a*X_i + 
 definition dot :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a" where
 "dot as bs = foldl add zero (map2 mult as bs)"
 
+
+definition zipSum :: "'a list ⇒ 'a list ⇒ 'a list" (infixl "+z+" 65) where
+"zipSum = map2 add"
+
+lemma zipSumCons: "(a#as) +z+ (b#bs) = add a b # (as+z+bs)"
+  unfolding zipSum_def by simp
+
 definition is_sol :: "'a \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> bool" where
 "is_sol a cs sol = eq a (dot cs sol)"
 
@@ -84,7 +91,7 @@ proof(cases "length sol = length eqns")
   qed simp+
 qed (simp add: wrong_len_not_sol)
 
-corollary is_sols3_eqiv: "is_sols3 sol eqns = is_sols sol sol eqns"
+corollary is_sols3_eqiv: "is_sols3 sols eqns = is_sols sols sols eqns"
   by (simp add: is_sols2_eqiv)
 
 definition mult1 where
@@ -93,7 +100,42 @@ definition mult1 where
 fun subst :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list" where
 "subst sol (c#cs) = map2 add (mult1 c sol) cs"
 
+
+lemma dot_Cons: "dot (a#as) (b#bs) = add (mult a b) (dot as bs)" sorry
+
+
+(*
+
+‹X#Xs› are a solution of the system of equations
+they exist but are not known to the algo
+
+(c#cs) are the coefficients of the first equation
+ds     are the coefficients with the first variable eliminated
+    aka where the system has been solve1 ed for that variable
+
+(e#es)   are the coefficients of some other equation
+  where we want to eleminate the first variable
+
+Y is the solution of that equation
+
+*)
+lemma subst_correct:
+  assumes "is_sol X cs (X#Xs)"
+          "is_sol X ds Xs"
+          "is_sol Y es (X#Xs)"
+  shows "is_sol Y (subst ds es) Xs"
+using assms unfolding is_sol_def
+  sorry
+
+
+lemma solve1_correct:
+  assumes "is_sol X (c#cs) (X#Xs)"
+  shows "is_sol X (solve1 c cs) Xs"
+  sorry
+
+
 fun solves :: "'a list list \<Rightarrow> 'a list list \<Rightarrow> 'a list list" where
+(* would it be a good idea to map hd here? *)
 "solves sols [] = sols" |
 "solves sols ((c # cs) # eqs) =
  (let sol = solve1 c cs;
@@ -128,7 +170,52 @@ next
     by(auto simp add: length_solve1 length_subst mx_def Let_def)
 qed (auto simp: mx_def)
 
+
+(*
+
+  the assumption about shape is only correct at the algo start
+  mx h (Suc n + m) eqns
+  mx h (Suc n + m) sols
+
+  during the algo we can only say that
+
+  mx n b eqns
+  mx m b sols
+  b > 0
+
+*)
+
+theorem solves_is_sols:
+  shows "\<lbrakk> b > 0; mx n b eqns; mx m b sols; is_sols Xs Xs (reverse sols @ eqns) \<rbrakk> \<Longrightarrow> is_sols Xs Xs (reverse (solves sols eqns))"
+proof(induction arbitrary: sols rule: solves.induct )
+  case (1 sols)
+  then show ?case by simp
+next
+  case (2 sols c cs eqs)
+  obtain sol where sol: "sol = solve1 c cs" by auto
+  obtain eqs' where eqs': "eqs' = map (subst sol) eqs" by auto
+  obtain sols' where sols': "sols' = sol # map (subst sol) sols" by auto
+
+  thm "2.IH"[OF sol eqs']
+
+  then show ?case using solve1_correct subst_correct sorry
+next
+  case (3 a va)
+  then show ?case by (simp add: mx_def)
+qed
+
+
+
+
+
+
+
+
+
 end
+
+
+
 
 global_interpretation Gauss where zero = Zero and add = Plus and mult = Times and
 solve1 = "\<lambda>r cs. map (\<lambda>c. Times (Star r) c) cs" and eq = "\<lambda>r s. lang r = lang s"

@@ -311,7 +311,7 @@ lemmas P1_symE_not_empty = P1_symD_not_empty[elim_format]
 
 subsection\<open>\<open>P2\<close>\<close>
 
-text\<open>After each \<open>]\<^sup>2\<^bsub>\<pi>\<^esub>\<close> there never comes an \<open>[\<^bsup>...\<^esup>\<^bsub>...\<^esub>\<close>:\<close>
+text\<open>A \<open>]\<^sup>2\<^sub>\<pi>\<close> is never directly followed by some \<open>[\<close>:\<close>
 fun P2 :: \<open>('n,'t) bracket3 \<Rightarrow> ('n,'t) bracket3 \<Rightarrow> bool\<close> where
   \<open>P2 (Close, (p, Two)) (Open, (p', v))  = False\<close> | 
   \<open>P2 (Close, (p, Two)) y  = True\<close> | 
@@ -346,19 +346,19 @@ lemma P2_sym_imp_P2_for_tm[intro, dest]: \<open>successively P2_sym (map Tm x) \
 
 subsection\<open>\<open>P3\<close>\<close>
 
-text\<open>After each \<open>[\<^sup>1\<^bsub>A\<rightarrow>BC\<^esub>\<close>, always comes a \<open>[\<^sup>1\<^bsub>B\<rightarrow>_\<^esub>\<close>,  and after each \<open>[\<^sup>2\<^bsub>A\<rightarrow>BC\<^esub>\<close> always comes a \<open>[\<^sup>1\<^bsub>C\<rightarrow>_\<^esub>\<close>:\<close>
+text\<open>Each \<open>[\<^sup>1\<^bsub>A\<rightarrow>BC\<^esub>\<close> is directly followed by a \<open>[\<^sup>1\<^bsub>B\<rightarrow>_\<^esub>\<close>,
+and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>BC\<^esub>\<close> is directly followed by a \<open>[\<^sup>1\<^bsub>C\<rightarrow>_\<^esub>\<close>:\<close>
 fun P3 :: \<open>('n,'t) bracket3 \<Rightarrow> ('n,'t) bracket3 \<Rightarrow> bool\<close> where
   \<open>P3 (Open, ((A, [Nt B, Nt C]), One)) (p, ((X,y), t)) = (p = Open \<and> t = One \<and> X = B)\<close> |
   \<open>P3 (Open, ((A, [Nt B, Nt C]), Two)) (p, ((X,y), t)) = (p = Open \<and> t = One \<and> X = C)\<close> |
   \<open>P3 x y = True\<close>
 
-text\<open>After each \<open>[\<^sup>1\<^bsub>A\<rightarrow>BC\<^esub>\<close>, always comes a \<open>[\<^sup>1\<^bsub>B\<rightarrow>_\<^esub>\<close> or a \<open>Nt B\<close>,
-and after each \<open>[\<^sup>2\<^bsub>A\<rightarrow>BC\<^esub>\<close>, always comes a \<open>[\<^sup>1\<^bsub>C\<rightarrow>_\<^esub>\<close> or a \<open>Nt C\<close>.\<close>
-text\<open>We use function instead of fun here in a way, that is exactly what fun does
-but where we replaced \<open>auto\<close> by \<open>fastforce+\<close>, which happens to be a second faster:\<close>
+text\<open>Each \<open>[\<^sup>1\<^bsub>A\<rightarrow>BC\<^esub>\<close> is directly followed a \<open>[\<^sup>1\<^bsub>B\<rightarrow>_\<^esub>\<close> or a \<open>Nt B\<close>,
+and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>BC\<^esub>\<close> is directly followed by a \<open>[\<^sup>1\<^bsub>C\<rightarrow>_\<^esub>\<close> or a \<open>Nt C\<close>:\<close>
 fun P3_sym :: \<open>('n, ('n,'t) bracket3) sym \<Rightarrow> ('n, ('n,'t) bracket3) sym \<Rightarrow> bool\<close> where
-  \<open>P3_sym (Tm (Open, ((A, [Nt B, Nt C]), One))) (Tm (p, ((X,y), t))) = (p = Open \<and> t = One \<and> X = B)\<close> | \<comment> \<open>Not obvious: the case (Tm (Open, ((A, [Nt B, Nt C]), One))) Nt X is set to True with the catch all\<close>
-  \<open>P3_sym (Tm (Open, ((A, [Nt B, Nt C]), One))) (Nt X) = (X = B)\<close> | 
+\<open>P3_sym (Tm (Open, ((A, [Nt B, Nt C]), One))) (Tm (p, ((X,y), t))) = (p = Open \<and> t = One \<and> X = B)\<close> |
+ \<comment> \<open>Not obvious: the case (Tm (Open, ((A, [Nt B, Nt C]), One))) Nt X is set to True with the catch all\<close>
+\<open>P3_sym (Tm (Open, ((A, [Nt B, Nt C]), One))) (Nt X) = (X = B)\<close> | 
 
 \<open>P3_sym (Tm (Open, ((A, [Nt B, Nt C]), Two))) (Tm (p, ((X,y), t))) = (p = Open \<and> t = One \<and> X = C)\<close> | 
 \<open>P3_sym (Tm (Open, ((A, [Nt B, Nt C]), Two))) (Nt X) = (X = C)\<close> | 
@@ -410,12 +410,14 @@ lemma P3_sym_imp_P3_for_tm[intro, dest]: \<open>successively P3_sym (map Tm x) \
 
 subsection\<open>\<open>P4\<close>\<close>
 
-text\<open>After each \<open>[\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> comes a \<open>]\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> and after each \<open>[\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close> comes a \<open>]\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close>:\<close>
+text\<open>Each \<open>[\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by a \<open>]\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close>
+and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by a \<open>]\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close>:\<close>
 fun P4 :: \<open>('n,'t) bracket3 \<Rightarrow> ('n,'t) bracket3 \<Rightarrow> bool\<close> where
   \<open>P4 (Open, ((A, [Tm a]), s)) (p, ((X, y), t)) = (p = Close \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> |
   \<open>P4 x y = True\<close>
 
-text\<open>After each \<open>[\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> comes a \<open>]\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> and after each \<open>[\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close> comes a \<open>]\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close>:\<close>
+text\<open>Each \<open>[\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by a \<open>]\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close>
+and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by a \<open>]\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close>:\<close>
 fun P4_sym :: \<open>('n, ('n,'t) bracket3) sym \<Rightarrow> ('n, ('n,'t) bracket3) sym \<Rightarrow> bool\<close> where
   \<open>P4_sym (Tm (Open, ((A, [Tm a]), s))) (Tm (p, ((X, y), t))) = (p = Close \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> | 
   \<open>P4_sym (Tm (Open, ((A, [Tm a]), s))) (Nt X) = False\<close> | 

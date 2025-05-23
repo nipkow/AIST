@@ -121,7 +121,7 @@ From the key theorem we obtain (by setting \<open>A := S\<close>) that
   \<open>L' = R\<^sub>S \<inter> Dyck_language \<Gamma>\<close> as wanted.
 
 Only the regularity remains to show. 
-For this we write 
+For this we use that 
 \<open>R\<^sub>S \<inter> Dyck_language \<Gamma> = (R\<^sub>S \<inter> brackets \<Gamma>) Dyck_language \<Gamma>\<close>, 
 where \<open>brackets \<Gamma> (\<subseteq> Dyck_language \<Gamma>)\<close> is the set of all brackets over \<open>\<Gamma>\<close>.
 Actually, what we defined as \<open>R\<^sub>S\<close>, isn't regular, only \<open>(R\<^sub>S \<inter> brackets \<Gamma>)\<close> is.

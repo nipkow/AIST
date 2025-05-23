@@ -2043,7 +2043,7 @@ proof -
   define \<Gamma> where \<open>\<Gamma> = P \<times> {One, Two}\<close>
   define P' where \<open>P' = image transform_prod P\<close>
   define L' where \<open>L' = Lang P' S\<close>
-  define h where \<open>h = (the_hom:: ('n,'t) bracket3 list \<Rightarrow> 't list)\<close>
+  define h where \<open>h = (\<h>:: ('n,'t) bracket3 list \<Rightarrow> 't list)\<close>
   define h_ext where \<open>h_ext = (\<h>\<s>::('n, ('n,'t) bracket3) sym list \<Rightarrow> ('n,'t) sym list)\<close>
   have P_CNF': \<open>\<forall>p \<in> P. CNF_rule p\<close> 
     using \<open>CNF P\<close> CNF_iff_CNF_rules by blast

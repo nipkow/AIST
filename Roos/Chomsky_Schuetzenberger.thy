@@ -28,7 +28,7 @@ The construction of the Dyck language is found in theory \<^theory>\<open>Roos.D
 section\<open>Overview of Proof\<close>
 
 text\<open>
-A (very) rough proof overview of Chomsky-Schützenberger is as follows:
+A rough proof of Chomsky-Schützenberger is as follows:
 Take some context-free grammar for \<open>L\<close> with productions \<open>P\<close>, 
 wlog assume it in Chomsky normal form. 
 Now define a new language \<open>L'\<close> with productions \<open>P'\<close> in the following way from \<open>P\<close>:
@@ -45,13 +45,89 @@ that are triples of type \<open>{[,]} \<times> old_prod_type \<times> {1,2}\<clo
 This bracketing encodes the parse tree of any old word.
 The old word is easily recovered by the homomorphism which sends 
 \<open>[\<^sup>1\<^sub>\<pi>\<close> to \<open>a\<close> if \<open>\<pi> = A \<rightarrow> a\<close>, and sends every other bracket to \<open>\<epsilon>\<close>.
-Thus we have \<open>h(L') = L\<close>, so all we need to show is, 
-that \<open>L'\<close> is of the form \<open>R \<inter> Dyck_language \<Gamma>\<close>, then we are finished.
+Thus we have \<open>h(L') = L\<close> by essentially exchanging \<open>\<pi>\<close> for \<open>\<pi>'\<close> and the other way round in the derivation.
+The direction \<open>\<supseteq>\<close> is done in @{term \<open>transfer_parse_tree\<close>},
+the direction \<open>\<subseteq>\<close> is done directly in the proof of the main theorem.
 
-For this, \<open>R\<close> is defined via an intersection of 5 regular languages. 
-Each of these is defined via a property of words 
+Then all that remains to show is, that \<open>L'\<close> is of the form \<open>R \<inter> Dyck_language \<Gamma>\<close> 
+(for \<open>\<Gamma>:= P \<times> {One, Two}\<close>) and the regularity of R.
 
-One then shows the key theorem \<open>P' \<turnstile> S \<rightarrow>\<^sup>* w  \<longleftrightarrow>  w \<in> R \<inter> Dyck_language \<Gamma>\<close>. 
+For this, \<open>R:=R\<^sub>S\<close> is defined via an intersection of 5 following regular languages. 
+Each of these is defined via a property on words \<open>x\<close>:
+
+\<open>P1 x\<close>:   True iff after a \<open>]\<^sup>1\<^sub>p\<close> there always immediately follows a \<open>[\<^sup>2\<^sub>p\<close> in \<open>x\<close>.
+      This especially means, that \<open>]\<^sup>1\<^sub>p\<close> can't be the end of the string.
+
+\<open>successively P2 x\<close>:  True iff a \<open>]\<^sup>2\<^sub>\<pi>\<close> is never directly followed by some \<open>[\<close> in \<open>x\<close>.
+
+\<open>successively P3 x\<close>: True iff each \<open>[\<^sup>1\<^bsub>A\<rightarrow>BC\<^esub>\<close> is directly followed by a \<open>[\<^sup>1\<^bsub>B\<rightarrow>_\<^esub>\<close>  in \<open>x\<close>
+      (last letter isn't checked).
+
+\<open>successively P4 x\<close>:  True iff each \<open>[\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by a \<open>]\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close>  in \<open>x\<close>
+and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by a \<open>]\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close>  in \<open>x\<close> (last letter isn't checked).
+
+\<open>P5 A x\<close>: True iff there exists some y such that the word begins with \<open>[\<^sup>1\<^bsub>A\<rightarrow>y\<^esub>\<close>.
+
+
+One then shows the key theorem \<open>P' \<turnstile> A \<rightarrow>\<^sup>* w  \<longleftrightarrow>  w \<in> R\<^sub>A \<inter> Dyck_language \<Gamma>\<close>:
+
+The direction \<open>\<rightarrow>\<close> (see lemma @{term \<open>P'_imp_Reg\<close>} is easily checked, by checking that every condition holds
+during all derivation steps already. For this one needs a version of R (and all the conditions)
+which ignores any Terminals that might still exist in such a derivation step. Since this version
+operates on symbols (a different type) it needs a fully new definition. Since these new versions 
+allow more flexibility on the words, it turns out that the original 5 conditions aren't enough anymore 
+to fully constrain to the target language. Thus we add two additional 
+constraints \<open>successively P7\<close> and \<open>successively P8\<close> on the symbol-version of \<open>R\<^sub>A\<close> that vanish when 
+we ultimately restricts back to words consisting only of terminal symbols. With these the induction goes through:
+
+\<open>(successively P7_sym) x\<close>: True iff before a \<open>Nt Y\<close> there always comes some \<open>Tm [\<^sup>1\<^bsub>A\<rightarrow>YC\<^esub>\<close> or some \<open>Tm [\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close> in \<open>x\<close>:
+\<open>(successively P8_sym) x\<close>: True iff after a \<open>Nt Y\<close> there always comes some \<open>]\<^sup>1\<^bsub>A\<rightarrow>YC\<^esub>\<close> or some \<open>]\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close> in \<open>x\<close>:
+
+The direction \<open>\<leftarrow>\<close> (see lemma @{term \<open>Reg_imp_P'\<close>} is more work. 
+This time we stick with fully terminal words, so we work with the standard version of \<open>R\<^sub>A\<close>:
+Proceed by induction on the length of \<open>w\<close> generalized over \<open>A\<close>. 
+For this, let \<open>x \<in> R\<^sub>A \<inter> Dyck_language \<Gamma>\<close>, thus we have the properties 
+\<open>P1 x\<close>, \<open>successively Pi x\<close> for \<open>i \<in> {2,3,4,7,8}\<close> and \<open>P5 A x\<close> availible.
+From \<open>P5 A x\<close> we have that there exists \<open>\<pi> \<in> P\<close> s.t. \<open>fst \<pi> = A\<close> and \<open>x\<close> begins
+with \<open>[\<^sup>1\<^sub>\<pi>\<close>. Since \<open>x \<in> Dyck_language \<Gamma>\<close> it is balanced, so it must be of the form
+  \<open>x = [\<^sup>1\<^sub>\<pi>  y  ]\<^sup>1\<^sub>\<pi>  r1\<close> 
+for some balanced \<open>y\<close>.  From \<open>P1 x\<close> it must then be of the form 
+  \<open>x = [\<^sup>1\<^sub>\<pi>  y  ]\<^sup>1\<^sub>\<pi>  [\<^sup>2\<^sub>\<pi>  r1'.\<close>
+Since \<open>x\<close> is balanced it must then be of the form
+  \<open>x = [\<^sup>1\<^sub>\<pi>  y  ]\<^sup>1\<^sub>\<pi>  [\<^sup>2\<^sub>\<pi> z ]\<^sup>2\<^sub>\<pi> r2\<close> 
+for some balanced \<open>z\<close>. Then \<open>r2\<close> must also be balanced. If \<open>r2\<close> was not empty 
+it would begin with an opening bracket, but \<open>P2 x\<close> makes this impossible - so 
+\<open>r2 = []\<close> and as such
+  \<open>x = [\<^sup>1\<^sub>\<pi>  y  ]\<^sup>1\<^sub>\<pi>  [\<^sup>2\<^sub>\<pi> z ]\<^sup>2\<^sub>\<pi>.\<close>
+Since our grammar is in CNF, we can consider the following case distinction on \<open>\<pi>\<close>:
+Case 1: \<open>\<pi> = A \<rightarrow> BC\<close>. 
+  Since \<open>y,z\<close> are balanced substrings of \<open>x\<close> one easily checks
+  \<open>Pi y\<close> and \<open>Pi z\<close> for \<open>i \<in> {1,2,3,4}\<close>. From \<open>P3 x\<close> (and \<open>\<pi> = A \<rightarrow> BC\<close>) we further obtain \<open>P5 B y\<close> and \<open>P5 C z\<close>.
+  So \<open>y \<in> R\<^sub>B \<inter> Dyck_language \<Gamma>\<close> and \<open>z \<in> R\<^sub>C \<inter> Dyck_language \<Gamma>\<close>.
+  From the induction hypothesis we thus obtain 
+    \<open>P' \<turnstile> B \<rightarrow>\<^sup>* y\<close> and \<open>P' \<turnstile> C \<rightarrow>\<^sup>* z.\<close>
+  Since \<open>\<pi> = A \<rightarrow> BC\<close> we then have
+    \<open>A  \<rightarrow>\<^sup>1\<^bsub>\<pi>'\<^esub>  [\<^sup>1\<^sub>\<pi>  B  ]\<^sup>1\<^sub>\<pi>  [\<^sup>2\<^sub>\<pi> C ]\<^sup>2\<^sub>\<pi>  \<rightarrow>\<^sup>* [\<^sup>1\<^sub>\<pi>  y  ]\<^sup>1\<^sub>\<pi>  [\<^sup>2\<^sub>\<pi> z ]\<^sup>2\<^sub>\<pi> = x\<close>
+  as required.
+Case 2: \<open>\<pi> = A \<rightarrow> a\<close>. 
+  Suppose we didn't have \<open>y = []\<close>. Then from \<open>P4 x\<close> (and \<open>\<pi> = A \<rightarrow> a\<close>) we would have \<open>y = ]\<^sup>1\<^sub>\<pi>\<close>. 
+  But since \<open>y\<close> is balanced it needs to begin with an opening bracket, contradiction.
+  So it must be that \<open>y = []\<close>.
+  By the same argument we also have that \<open>z = []\<close>.
+  So really \<open>x = [\<^sup>1\<^sub>\<pi>   ]\<^sup>1\<^sub>\<pi>  [\<^sup>2\<^sub>\<pi>  ]\<^sup>2\<^sub>\<pi>\<close> and of course from \<open>\<pi> = A \<rightarrow> a\<close> it holds
+  \<open>A  \<rightarrow>\<^sup>1\<^bsub>\<pi>'\<^esub>  [\<^sup>1\<^sub>\<pi>  ]\<^sup>1\<^sub>\<pi>  [\<^sup>2\<^sub>\<pi>  ]\<^sup>2\<^sub>\<pi>  = x\<close> as required.
+
+From the key theorem we obtain (by setting \<open>A := S\<close>) that 
+  \<open>L' = R\<^sub>S \<inter> Dyck_language \<Gamma>\<close> as wanted.
+
+Only the regularity remains to show. 
+For this we write 
+\<open>R\<^sub>S \<inter> Dyck_language \<Gamma> = (R\<^sub>S \<inter> brackets \<Gamma>) Dyck_language \<Gamma>\<close>, 
+where \<open>brackets \<Gamma> (\<subseteq> Dyck_language \<Gamma>)\<close> is the set of all brackets over \<open>\<Gamma>\<close>.
+Actually, what we defined as \<open>R\<^sub>S\<close>, isn't regular, only \<open>(R\<^sub>S \<inter> brackets \<Gamma>)\<close> is.
+The intersection restricts to a finite amount of possible brackets, 
+that are used in states for finite automatons for the 5 languages that \<open>R\<^sub>S\<close> is
+the intersection of.
 \<close>
 
 
@@ -183,6 +259,25 @@ lemma transform_prod_induct_cnf:
 
 
 section\<open>The Regular Language\<close>
+
+text\<open>The regular Language @{term \<open>Reg\<close>} will be an intersection of 5 Languages.
+The languages \<open>2, 3 ,4\<close> are defined each via a relation \<open>P2, P3, P4\<close> on neighbouring letters and 
+lifted to a language via @{term \<open>successively\<close>}. 
+Language \<open>1\<close> is an intersection of another such lifted relation \<open>P1'\<close> and a 
+condition on the last letter (if existent).
+Language \<open>5\<close> is a condition on the first letter (and requires it to exist). 
+It takes a term of type \<open>'n\<close> (the original variable type) as parameter.
+
+Additionally a version of each language (taking symbols as input) is defined 
+which allows arbitrary interspersion of nonterminals.
+
+As this interspersion weakens the description, the symbol version of the regular language (@{term \<open>Reg_sym\<close>})
+is defined using two additional languages lifted from \<open>P7\<close> and \<open>P8\<close>. These vanish when restricted to
+words only containing terminals.
+
+As stated in the introductory text, these languages will only be regular, when constrained to a finite bracket set.
+The theorems about this, are in the later section \<open>Showing Regularity\<close>.
+\<close>
 
 subsection\<open>\<open>P1\<close>\<close>
 
@@ -449,13 +544,13 @@ lemma P4_sym_imp_P4_for_tm[intro, dest]: \<open>successively P4_sym (map Tm x) \
 
 subsection\<open>\<open>P5\<close>\<close>
 
-text\<open>There exists some y, such that x begins with \<open>[\<^sup>1\<^bsub>A\<rightarrow>y\<^esub>\<close>:\<close>
+text\<open>\<open>P5 A x\<close> holds, iff there exists some y such that x begins with \<open>[\<^sup>1\<^bsub>A\<rightarrow>y\<^esub>\<close>:\<close>
 fun P5 :: \<open>'n \<Rightarrow> ('n,'t) bracket3 list \<Rightarrow> bool\<close> where
   \<open>P5 A [] = False\<close> | 
   \<open>P5 A ((Open, (X,y), One) # xs) = (X = A)\<close> | 
   \<open>P5 A (x # xs) = False\<close>
 
-text\<open>There exists some y, such that x begins with \<open>[\<^sup>1\<^bsub>A\<rightarrow>y\<^esub>\<close> begins with \<open>Nt A\<close>:\<close>
+text\<open>\<open>P5_sym A x\<close> holds, iff either there exists some y such that x begins with \<open>[\<^sup>1\<^bsub>A\<rightarrow>y\<^esub>\<close>, or if it begins with \<open>Nt A\<close>:\<close>
 fun P5_sym :: \<open>'n \<Rightarrow> ('n, ('n,'t) bracket3) syms \<Rightarrow> bool\<close> where
   \<open>P5_sym A [] = False\<close> | 
   \<open>P5_sym A (Tm (Open, (X,y), One) # xs) = (X = A)\<close> | 
@@ -481,9 +576,8 @@ lemma P5_sym_imp_P5_for_tm[intro, dest]: \<open>P5_sym A (map Tm x) \<Longrighta
 
 subsection\<open>\<open>P7\<close> and \<open>P8\<close>\<close>
 
-text\<open>These are only needed for the version \<open>Reg_sym\<close> that also allows nonterminals --- the conditions vanish for the \<open>Reg\<close> version.\<close>
 
-text\<open>Before a \<open>Nt Y\<close> there always comes a \<open>Tm [\<^sup>1\<^bsub>A\<rightarrow>YC\<^esub>\<close> or a \<open>Tm [\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close>:\<close>
+text\<open>\<open>(successively P7_sym) w\<close> iff before a \<open>Nt Y\<close> there always comes some \<open>Tm [\<^sup>1\<^bsub>A\<rightarrow>YC\<^esub>\<close> or some \<open>Tm [\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close> in w:\<close>
 fun P7_sym :: \<open>('n, ('n,'t) bracket3) sym \<Rightarrow> ('n, ('n,'t) bracket3) sym \<Rightarrow> bool\<close> where
   \<open>P7_sym (Tm (b,(A, [Nt B, Nt C]), v )) (Nt Y) = (b = Open \<and> ((Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
   \<open>P7_sym x (Nt Y) = False\<close> | 
@@ -498,7 +592,7 @@ lemma P7_symD[dest]:
 
 lemmas P7_symE = P7_symD[elim_format]
 
-text\<open>After a \<open>Nt Y\<close> there always comes a \<open>]\<^sup>1\<^bsub>A\<rightarrow>YC\<^esub>\<close> or a \<open>]\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close>:\<close>
+text\<open>\<open>(successively P8_sym) w\<close> iff after a \<open>Nt Y\<close> there always comes some \<open>]\<^sup>1\<^bsub>A\<rightarrow>YC\<^esub>\<close> or some \<open>]\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close> in w:\<close>
 fun P8_sym :: \<open>('n, ('n,'t) bracket3) sym \<Rightarrow> ('n, ('n,'t) bracket3) sym \<Rightarrow> bool\<close> where
   \<open>P8_sym (Nt Y) (Tm (b,(A, [Nt B, Nt C]), v ))  = (b = Close \<and> ( (Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
   \<open>P8_sym (Nt Y) x = False\<close> | 
@@ -544,7 +638,7 @@ lemma RegD[dest]:
 lemmas RegE = RegD[elim_format]
 
 text\<open>A version of \<open>Reg\<close> for symbols, i.e. strings that may still contain Nt's. 
-It has 2 more Properties P6 and P7 that vanish for pure terminal strings:\<close>
+It has 2 more Properties \<open>P6\<close> and \<open>P7\<close> that vanish for pure terminal strings:\<close>
 definition Reg_sym :: \<open>'n \<Rightarrow> ('n, ('n,'t) bracket3) syms set\<close> where
   \<open>Reg_sym A = {x. (P1_sym x) \<and> 
      (successively P2_sym x) \<and> 
@@ -984,7 +1078,7 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
     by blast+
   then have split2: \<open>x  =   [\<^sup>1\<^bsub>\<pi>\<^esub>  # y @ ]\<^sup>1\<^bsub>\<pi>\<^esub>  # [\<^sup>2\<^bsub>\<pi>\<^esub> # z @ ]\<^sup>2\<^bsub>\<pi>\<^esub>  # r2\<close> 
     by (metis List.list.exhaust_sel hd_r1 r1_not_empty split1)
-  have r2_empty: \<open>r2 = []\<close>  \<comment> \<open>prove that if r2 notempty, it would need to start with an open bracket, else it cant be balanced. But this cant be with P2.\<close>
+  have r2_empty: \<open>r2 = []\<close>  \<comment> \<open>prove that if r2 was not empty, it would need to start with an open bracket, else it cant be balanced. But this cant be with P2.\<close>
   proof(cases r2)
     case (Cons r2' r2's)
     with bal_r2 obtain g where r2_begin_op: \<open>r2' = (Open, g)\<close> 
@@ -2017,7 +2111,6 @@ lemma
     and \<open>w \<in> Ders P S\<close>
   shows \<open>\<exists>w' \<in> Ders (transform_prod ` P) S. w = \<h>\<s> w'\<close>
 proof-
-
   from assms obtain t where t_def: \<open>parse_tree P t \<and> fringe t = w \<and> root t = Nt S\<close> 
     using parse_tree_if_derives DersD by meson
   then have root_tr: \<open>root (transform_tree t) = Nt S\<close> 

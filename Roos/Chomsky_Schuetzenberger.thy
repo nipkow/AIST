@@ -638,7 +638,7 @@ lemma RegD[dest]:
 lemmas RegE = RegD[elim_format]
 
 text\<open>A version of \<open>Reg\<close> for symbols, i.e. strings that may still contain Nt's. 
-It has 2 more Properties \<open>P6\<close> and \<open>P7\<close> that vanish for pure terminal strings:\<close>
+It has 2 more Properties \<open>P7\<close> and \<open>P8\<close> that vanish for pure terminal strings:\<close>
 definition Reg_sym :: \<open>'n \<Rightarrow> ('n, ('n,'t) bracket3) syms set\<close> where
   \<open>Reg_sym A = {x. (P1_sym x) \<and> 
      (successively P2_sym x) \<and> 

@@ -123,7 +123,8 @@ From the key theorem we obtain (by setting \<open>A := S\<close>) that
 Only regularity remains to show. 
 For this we use that 
 \<open>R\<^sub>S \<inter> Dyck_language \<Gamma> = (R\<^sub>S \<inter> brackets \<Gamma>) Dyck_language \<Gamma>\<close>, 
-where \<open>brackets \<Gamma> (\<subseteq> Dyck_language \<Gamma>)\<close> is the set of all brackets over \<open>\<Gamma>\<close>.
+where \<open>brackets \<Gamma> (\<subseteq> Dyck_language \<Gamma>)\<close> is the set of words which only 
+consist of brackets over \<open>\<Gamma>\<close>.
 Actually, what we defined as \<open>R\<^sub>S\<close>, isn't regular, only \<open>(R\<^sub>S \<inter> brackets \<Gamma>)\<close> is.
 The intersection restricts to a finite amount of possible brackets, 
 that are used in states for finite automatons for the 5 languages that \<open>R\<^sub>S\<close> is

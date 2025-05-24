@@ -112,6 +112,11 @@ corollary reachable_impl_in_states:
   shows   "q \<in> states M"
   using assms dfa2_def dfa2_axioms by (blast intro: steps_impl_in_states)
 
+lemma step_length_diff:
+  assumes "(u, p, v) \<rightarrow> (x, q, y)"
+  shows "length v = Suc (length y) \<or> length y = Suc (length v)"
+  using assms by force
+
 definition language :: "'a list set" where
   "language \<equiv> {w. \<exists>u v.  w \<rightarrow>** (u, acc M, v)}" 
 
@@ -186,7 +191,102 @@ corollary steps_extend:
     shows "(ws, p, u @ v) \<rightarrow>* (ys, q, zs)"
   using assms steps_app by (metis (no_types, lifting) append_Nil rtranclp_trans)
 
+lemma reachable_impl_notempty:
+  assumes "w \<rightarrow>** (u, q, v)"
+  shows "v \<noteq> []"
+proof -
+  from assms obtain n where "w \<rightarrow>*{n} (u, q, v)" 
+    by (meson rtranclp_imp_relpowp)
+  then show "v \<noteq> []"
+  proof (induction n arbitrary: u q v)
+    case (Suc n)
+    from Suc(2) obtain x p y 
+      where "w \<rightarrow>*{n} (x, p, y)" 
+        and step: "(x, p, y) \<rightarrow> (u, q, v)" by auto
+    with Suc(1) have "y \<noteq> []" by simp
+    then consider a where "y = [a]" | a b ys where "y = a # b # ys" 
+      by (meson remdups_adj.cases)
+    then show "v \<noteq> []"
+    proof cases
+      case 1
+      with unchanged_word have "a = \<stileturn>"
+        by (metis \<open>((\<rightarrow>) ^^ n) ([], dfa2.init M, \<turnstile> # \<Sigma> w @ [\<stileturn>]) (x, p, y)\<close> append1_eq_conv append_Cons
+            rtranclp_power)
+      moreover from unchanged_word obtain b xs where "x = b # xs" 
+        by (metis "1" \<open>((\<rightarrow>) ^^ n) ([], dfa2.init M, \<turnstile> # \<Sigma> w @ [\<stileturn>]) (x, p, y)\<close> append_Cons
+            append_self_conv2 calculation list.exhaust rev.simps(1) rtranclp_power)
+      ultimately have "(x, p, y) \<rightarrow> (xs, q, b # [a])" using right_nxt[of p q] 1 
+        using \<open>((\<rightarrow>) ^^ n) ([], dfa2.init M, \<turnstile> # \<Sigma> w @ [\<stileturn>]) (x, p, y)\<close> init local.step
+          relpowp_imp_rtranclp steps_impl_in_states by fastforce 
+      then show ?thesis using step by fastforce
+    next
+      case 2
+      then obtain n where "length y = Suc (Suc n)" by simp
+      hence "length v = Suc (Suc (Suc n)) \<or> length v = Suc n" using step
+        by force
+      then show ?thesis by auto
+    qed
+  qed force
+qed 
 
+
+lemma acc_impl_reachable_substring:
+  assumes "w \<rightarrow>** (u, acc M, v)"
+          "xs \<noteq> []"
+          "ys \<noteq> []"
+  shows "v = xs @ ys \<Longrightarrow> (u, acc M, v) \<rightarrow>* (rev xs @ u, acc M, ys)"
+  using assms 
+proof (induction v arbitrary: u xs ys)
+  case (Cons a v)
+  consider b where "a = Letter b \<or> a = \<turnstile>" | "a = \<stileturn>"  by (metis dir.exhaust symbol.exhaust)
+  then show ?case 
+  proof cases
+    case 1
+    hence step: "(u, acc M, a # v) \<rightarrow> (a # u, acc M, v)" using final_nxt_r by auto
+    with Cons(3) have reach: "w \<rightarrow>** (a # u, acc M, v)" by simp
+    from this obtain xs' where xs'_def: "v = xs' @ ys" 
+      by (metis Cons.prems(1,3) append_eq_Cons_conv)
+    from xs'_def Cons(2) have "a # xs' = xs" by simp
+    then show ?thesis using Cons Cons(1)[of xs' ys "a # u", OF xs'_def reach] step by fastforce
+  next
+    case 2
+    note unchanged = unchanged_word[OF Cons(3)]
+    have "v = []"
+    proof -
+      have "length u = length (\<langle>w\<langle>)"
+      proof (rule ccontr)
+        assume "length u \<noteq> length (\<langle>w\<langle>)"
+        with unchanged obtain n where n_len: "n < length (\<langle>w\<langle>)"
+                                  and n_idx: "(rev u @ a # v) ! n = \<stileturn>"
+          using 2
+          by (metis append_assoc length_Cons length_append length_append_singleton length_rev 
+              length_tl linorder_neqE_nat list.sel(3) not_add_less1 nth_append_length)
+        have "(\<langle>w\<rangle>) ! n \<noteq> \<stileturn>"
+        proof -
+          consider "n = 0" | "0 < n" by blast
+          then show ?thesis
+          proof cases
+            case 1
+            then show ?thesis by simp
+          next
+            case 2
+            hence "(\<langle>w\<rangle>) ! n = (\<langle>w\<langle>) ! n" using n_len
+              by (simp add: nth_append_left)
+            also have "... = \<Sigma> w ! (n - 1)" using 2 by simp
+            finally show ?thesis
+              by (metis "2" One_nat_def Suc_less_eq Suc_pred length_Cons length_map n_len nth_map
+                  symbol.distinct(1))
+          qed
+        qed
+        with n_idx unchanged show False by argo 
+      qed
+      with unchanged have "length (a # v) = Suc 0" 
+        by (metis add_left_cancel length_Cons length_append length_rev list.size(3,4))
+      thus ?thesis by simp
+    qed
+    then show ?thesis using Cons 2 by (metis append_assoc snoc_eq_iff_butlast)
+  qed
+qed simp
 
 end
 
@@ -292,12 +392,7 @@ lemma right_steps_impl_right_config[dest]:
   "\<lbrakk>c1 \<rightarrow>\<^sup>R* c2; right_config c1\<rbrakk> 
     \<Longrightarrow> right_config c2"
   by (induction rule: rtranclp_induct) auto
-  
-
-lemma left_acc_impl_left_reachable_bound:
-  assumes "left_config (u, acc M, v)"
-  shows "(u, acc M, v) \<rightarrow>\<^sup>L* (rev x_init, acc M, x_end # \<rangle>z\<rangle>)"
-  sorry
+ 
  
 proposition list_deconstruct1:
   assumes "m \<le> length xs"
@@ -311,14 +406,11 @@ proposition list_deconstruct2:
   obtains ys zs where "length zs = m" "ys @ zs = xs"
 proof -
   from assms have "m \<le> length (rev xs)" by simp
-  then obtain ys zs where yz_defs: "length ys = m" "ys @ zs = rev xs"
+  then obtain ys zs where "length ys = m" "ys @ zs = rev xs"
     using list_deconstruct1 by blast
-  hence "rev zs @ rev ys = xs" by (simp add: append_eq_rev_conv)
-  with yz_defs show thesis using that by auto
+  then show thesis using list_deconstruct1 that by (auto simp: append_eq_rev_conv)
 qed
-
-lemmas list_deconstruct = list_deconstruct1 list_deconstruct2
-  (*These propositions were necessary for the two following lemmas.*)
+  (*These propositions are necessary for the two following lemmas.*)
 
 
 lemma star_lstar_impl_substring_x:
@@ -415,16 +507,14 @@ proof -
     by (meson rtranclp_power)
   hence "([], init M, \<langle>x @ z\<rangle>) \<rightarrow>\<^sup>L{n} (u, q, v @ \<rangle>z\<rangle>)"
   proof (induction n arbitrary: u q v)
-    case 0
-    hence "([], init M, \<langle>x @ y\<rangle>) = (u, q, v @ \<rangle>y\<rangle>)" by simp
-    then show ?case by simp
-  next
     case (Suc n)
-    from Suc(2) obtain u' p v' where stepn: "x @ y \<rightarrow>\<^sup>L*{n} (u', p, v' @ \<rangle>y\<rangle>)" 
-                                 and "(u', p, v' @ \<rangle>y\<rangle>) \<rightarrow>\<^sup>L{1} (u, q, v @ \<rangle>y\<rangle>)"
+    from Suc(2) obtain u' p v' 
+      where stepn: "x @ y \<rightarrow>\<^sup>L*{n} (u', p, v' @ \<rangle>y\<rangle>)" 
+        and "(u', p, v' @ \<rangle>y\<rangle>) \<rightarrow>\<^sup>L{1} (u, q, v @ \<rangle>y\<rangle>)"
     proof -
-      from Suc(2) obtain u' p v'' where "x @ y \<rightarrow>\<^sup>L*{n} (u', p, v'')"
-                                        "(u', p, v'') \<rightarrow>\<^sup>L{1} (u, q, v @ \<rangle>y\<rangle>)" by auto
+      from Suc(2) obtain u' p v'' 
+        where "x @ y \<rightarrow>\<^sup>L*{n} (u', p, v'')"
+              "(u', p, v'') \<rightarrow>\<^sup>L{1} (u, q, v @ \<rangle>y\<rangle>)" by auto
       moreover from this init_lstar_impl_substring_x obtain v' where "v'' = v' @ \<rangle>y\<rangle>" 
         using rtranclp_power by metis
       ultimately show thesis using that by blast
@@ -433,44 +523,33 @@ proof -
       by fastforce
     hence "(u', p, v' @ \<rangle>z\<rangle>) \<rightarrow>\<^sup>L (u, q, v @ \<rangle>z\<rangle>)"
     proof -
-      from y_lstep have left_configs: "left_config (u', p, v' @ \<rangle>y\<rangle>)"
-                                      "left_config (u, q, v @ \<rangle>y\<rangle>)" by blast+
-      hence "left_config (u', p, v' @ \<rangle>z\<rangle>)"
+      from y_lstep have left_configs: 
+        "left_config (u', p, v' @ \<rangle>y\<rangle>)" 
+        "left_config (u, q, v @ \<rangle>y\<rangle>)" by blast+
+      hence "left_config (u', p, v' @ \<rangle>z\<rangle>)" 
             "left_config (u, q, v @ \<rangle>z\<rangle>)"
         unfolding left_config_def by auto
       moreover have "(u', p, v' @ \<rangle>z\<rangle>) \<rightarrow> (u, q, v @ \<rangle>z\<rangle>)"
       proof -
         from y_lstep have y_step: "(u', p, v' @ \<rangle>y\<rangle>) \<rightarrow> (u, q, v @ \<rangle>y\<rangle>)" by blast
-        then show ?thesis
-        proof cases
-          case (step_left a b ys)
-          obtain c vs where v'_def: "v' = c # vs"
-          proof -
-            from unchanged_word have "rev u' @ v' @ \<rangle>y\<rangle> = \<langle>x @ y\<rangle>"
-              by (metis left_steps_impl_steps relpowp_imp_rtranclp stepn)
-            hence rev_u'_app_v': "rev u' @ v' = \<langle>x\<langle>" by simp
-            have "v' \<noteq> []"
-            proof (rule ccontr)
-              assume "\<not>?thesis"
-              hence "rev u' = \<langle>x\<langle>" using rev_u'_app_v' by simp
-              hence "\<not>left_config (u', p, v' @ \<rangle>y\<rangle>)"
-                by (simp add: left_config_def)
-              thus False using left_configs by blast
-            qed
-            then obtain c vs where "v' = c # vs" using list.exhaust by blast
-            thus thesis using that by simp
-          qed
-          moreover from step_left have "(b # u, p, c # vs @ \<rangle>y\<rangle>) \<rightarrow> (u, q, b # c # vs @ \<rangle>y\<rangle>)"
-            using v'_def by auto
-          ultimately have "(b # u, p, v' @ \<rangle>z\<rangle>) \<rightarrow> (u, q, b # v' @ \<rangle>z\<rangle>)" by auto
-          thus ?thesis using step_left by (metis Cons_eq_appendI append_same_eq)           
-        qed auto
-      qed
+        obtain c vs where v'_def: "v' = c # vs"
+        proof -
+          from unchanged_word have "rev u' @ v' @ \<rangle>y\<rangle> = \<langle>x @ y\<rangle>"
+            by (metis left_steps_impl_steps relpowp_imp_rtranclp stepn)
+          hence rev_u'_app_v': "rev u' @ v' = \<langle>x\<langle>" by simp
+          have "v' \<noteq> []"
+            by (rule ccontr) (use rev_u'_app_v' left_config_def left_configs in auto)
+          thus thesis using that list.exhaust by blast
+        qed
+        with y_step have "(u', p, c # vs @ \<rangle>y\<rangle>) \<rightarrow> (u, q, v @ \<rangle>y\<rangle>)" by simp
+        hence "(u', p, c # vs @ \<rangle>z\<rangle>) \<rightarrow> (u, q, v @ \<rangle>z\<rangle>)" by fastforce
+        with v'_def show ?thesis by simp
+      qed 
       ultimately show ?thesis by blast
     qed
     moreover from Suc(1)[OF stepn] have "x @ z \<rightarrow>\<^sup>L*{n} (u', p, v' @ \<rangle>z\<rangle>)" .
     ultimately show ?case by auto
-  qed
+  qed simp
   then show ?thesis by (meson rtranclp_power)
 qed
 
@@ -482,12 +561,12 @@ inductive T :: "'a list \<Rightarrow> state option \<Rightarrow> state option \<
 
   init_no_tr[intro]: "\<nexists>q. x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>) \<Longrightarrow> T z None None" |
 
-  some_tr[intro]: "\<lbrakk> 
+  some_tr[intro]: "\<lbrakk>x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>); 
               (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, q, x_end # \<rangle>z\<rangle>); 
               (rev x_init, q, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, p', x_end # \<rangle>z\<rangle>); 
               (rev x_init, p', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T z (Some q) (Some p)" |
                                                        (*Following notation in Kozen, p. 124*)
-  no_tr[intro]:   "\<lbrakk>c \<rightarrow>\<^sup>R* (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>); 
+  no_tr[intro]:   "\<lbrakk>x @ z \<rightarrow>**c; c \<rightarrow>\<^sup>R* (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>); 
               (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>) \<rightarrow> (rev x_init, q, x_end # \<rangle>z\<rangle>); 
               \<nexists>q'. (rev x_init, q, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q', x_end # \<rangle>z\<rangle>) \<and>
               (rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q'', \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T z (Some q) None" 
@@ -504,10 +583,9 @@ lemma T_impl_in_states:
   assumes "T z p q"
   shows "p = Some p' \<Longrightarrow> p' \<in> states M" 
         "q = Some q' \<Longrightarrow> q' \<in> states M"
-  using assms
-  by (smt (verit) T.cases init option.discI option.inject right_steps_impl_steps
+  by (smt (verit) assms T.simps init option.distinct(1) option.inject right_steps_impl_steps
       rtranclp_trans step_impl_in_states steps_impl_in_states left_steps_impl_steps)+
-
+ 
 lemma T_p_Some_impl_reachable:
   assumes "T z p (Some q)"
   obtains u v where "x @ z \<rightarrow>** (u, q, v)"
@@ -553,11 +631,11 @@ proof (cases "x @ z \<rightarrow>\<^sup>L** (u, acc M, v)")
   ultimately show ?thesis using that by blast
 next
   case False
-  then obtain q q' where "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" 
-                         "(rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>) \<rightarrow> (rev x_init, q', x_end # \<rangle>z\<rangle>)"
-                         "(rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (u, acc M, v)" sorry
+  then obtain q q' 
+    where "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" 
+          "(rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>) \<rightarrow> (rev x_init, q', x_end # \<rangle>z\<rangle>)"
+          "(rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (u, acc M, v)" sorry
   from left have "(u, acc M, v) \<rightarrow>\<^sup>L* (rev x_init, acc M, x_end # \<rangle>z\<rangle>)" sorry
-  
   then show ?thesis sorry
 qed
 

@@ -19,7 +19,7 @@ text \<open>Dyck languages are sets of words/lists of balanced brackets.\<close>
 
 subsection\<open>Balanced\<close>
 
-text\<open>A type of brackets for creating the \emph{Dyck_language}\<close>
+text\<open>A type of brackets for creating the \emph{Dyck_lang}\<close>
 datatype bracket = Open | Close
 
 text\<open>Definition of what it means to be a \emph{balanced} list with elements of type \<open>bracket \<times> 'a\<close>,
@@ -256,25 +256,25 @@ abbreviation snds_in :: \<open>'a set  \<Rightarrow> ('b  \<times> 'a) list \<Ri
 
 text\<open>The Dyck/bracket language over a set \<open>\<Gamma>\<close> is the set of balanced words over \<open>\<Gamma>\<close>:\<close>
 
-definition Dyck_language :: "'a set \<Rightarrow> (bracket  \<times> 'a) list set" where
-"Dyck_language \<Gamma> = {w. bal w \<and> snds_in \<Gamma> w}"
+definition Dyck_lang :: "'a set \<Rightarrow> (bracket  \<times> 'a) list set" where
+"Dyck_lang \<Gamma> = {w. bal w \<and> snds_in \<Gamma> w}"
 
-lemma Dyck_languageI[intro]: 
+lemma Dyck_langI[intro]: 
   assumes \<open>bal w\<close>
     and \<open>snds_in \<Gamma> w\<close>
-  shows \<open>w \<in> Dyck_language \<Gamma>\<close>
-  using assms unfolding Dyck_language_def by blast
+  shows \<open>w \<in> Dyck_lang \<Gamma>\<close>
+  using assms unfolding Dyck_lang_def by blast
 
-lemma Dyck_languageD[dest]:
-  assumes \<open>w \<in> Dyck_language \<Gamma>\<close>
+lemma Dyck_langD[dest]:
+  assumes \<open>w \<in> Dyck_lang \<Gamma>\<close>
   shows \<open>bal w\<close>
     and \<open>snds_in \<Gamma> w\<close>
-  using assms unfolding Dyck_language_def by auto
+  using assms unfolding Dyck_lang_def by auto
 
 text\<open>Balanced subwords are again in the Dyck Language.\<close>
-lemma Dyck_language_substring:
-  \<open>bal w \<Longrightarrow> u @ w @ v \<in> Dyck_language \<Gamma> \<Longrightarrow> w \<in> Dyck_language \<Gamma>\<close>
-unfolding Dyck_language_def by auto
+lemma Dyck_lang_substring:
+  \<open>bal w \<Longrightarrow> u @ w @ v \<in> Dyck_lang \<Gamma> \<Longrightarrow> w \<in> Dyck_lang \<Gamma>\<close>
+unfolding Dyck_lang_def by auto
 
 
 section\<open>Versions of \<^const>\<open>bal\<close> and \<^const>\<open>snds_in\<close> for @{type syms}\<close>
@@ -352,8 +352,8 @@ lemma snds_in_tm_append[simp]:
 unfolding snds_in_tm_def by auto
 
 text\<open>Relationship between \<^term>\<open>bal_tm\<close>, \<^term>\<open>snds_in_tm\<close> and \<open>Dyck_Language\<close>\<close>
-lemma Dyck_languageI_tm[intro]:
-  \<open>bal_tm (map Tm xs') \<Longrightarrow> snds_in_tm \<Gamma> (map Tm xs') \<Longrightarrow> xs' \<in> Dyck_language \<Gamma>\<close>
+lemma Dyck_langI_tm[intro]:
+  \<open>bal_tm (map Tm xs') \<Longrightarrow> snds_in_tm \<Gamma> (map Tm xs') \<Longrightarrow> xs' \<in> Dyck_lang \<Gamma>\<close>
 unfolding bal_tm_def snds_in_tm_def by auto
 
 

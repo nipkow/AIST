@@ -16,7 +16,7 @@ begin
 text \<open>This theory proves the Chomsky-Schuetzenberger theorem \<^cite>\<open>ChomskyS\<close>.
 We closely follow Kozen \<^cite>\<open>Kozen\<close> for the proof.
 The theorem states, that each context-free language \<open>L\<close> 
-can be written as \<^term>\<open>h(R \<inter> Dyck_language(\<Gamma>))\<close>, for a suitable alphabet \<open>\<Gamma>\<close>, 
+can be written as \<^term>\<open>h(R \<inter> Dyck_lang(\<Gamma>))\<close>, for a suitable alphabet \<open>\<Gamma>\<close>, 
 a regular language \<open>R\<close> and a word-homomorphism \<open>h\<close>.
 
 The Dyck language over a set \<open>\<Gamma>\<close> (also called it's bracket language) is defined as follows:
@@ -49,7 +49,7 @@ Thus we have \<open>h(L') = L\<close> by essentially exchanging \<open>\<pi>\<cl
 The direction \<open>\<supseteq>\<close> is done in \<open>transfer_parse_tree\<close>,
 the direction \<open>\<subseteq>\<close> is done directly in the proof of the main theorem.
 
-Then all that remains to show is, that \<open>L'\<close> is of the form \<open>R \<inter> Dyck_language \<Gamma>\<close> 
+Then all that remains to show is, that \<open>L'\<close> is of the form \<open>R \<inter> Dyck_lang \<Gamma>\<close> 
 (for \<open>\<Gamma>:= P \<times> {1, 2}\<close>) and the regularity of \<open>R\<close>.
 
 For this, \<open>R := R\<^sub>S\<close> is defined via an intersection of 5 following regular languages. 
@@ -69,7 +69,7 @@ and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly fol
   \<^descr> \<open>P5 A x\<close>: there exists some \<open>y\<close> such that the word begins with \<open>[\<^sup>1\<^bsub>A\<rightarrow>y\<^esub>\<close>.
 
 
-One then shows the key theorem \<open>P' \<turnstile> A \<rightarrow>\<^sup>* w  \<longleftrightarrow>  w \<in> R\<^sub>A \<inter> Dyck_language \<Gamma>\<close>:
+One then shows the key theorem \<open>P' \<turnstile> A \<rightarrow>\<^sup>* w  \<longleftrightarrow>  w \<in> R\<^sub>A \<inter> Dyck_lang \<Gamma>\<close>:
 
 The \<open>\<rightarrow>\<close>-direction (see lemma \<open>Reg_if_P'\<close>) is easily checked, by checking that every condition holds
 during all derivation steps already. For this one needs a version of R (and all the conditions)
@@ -86,10 +86,10 @@ we ultimately restricts back to words consisting only of terminal symbols. With 
 The \<open>\<leftarrow>\<close>-direction (see lemma \<open>P'_if_Reg\<close>) is more work. 
 This time we stick with fully terminal words, so we work with the standard version of \<open>R\<^sub>A\<close>:
 Proceed by induction on the length of \<open>w\<close> generalized over \<open>A\<close>. 
-For this, let \<open>x \<in> R\<^sub>A \<inter> Dyck_language \<Gamma>\<close>, thus we have the properties 
+For this, let \<open>x \<in> R\<^sub>A \<inter> Dyck_lang \<Gamma>\<close>, thus we have the properties 
 \<open>P1 x\<close>, \<open>successively Pi x\<close> for \<open>i \<in> {2,3,4,7,8}\<close> and \<open>P5 A x\<close> available.
 From \<open>P5 A x\<close> we have that there exists \<open>\<pi> \<in> P\<close> s.t. \<open>fst \<pi> = A\<close> and \<open>x\<close> begins
-with \<open>[\<^sup>1\<^sub>\<pi>\<close>. Since \<open>x \<in> Dyck_language \<Gamma>\<close> it is balanced, so it must be of the form
+with \<open>[\<^sup>1\<^sub>\<pi>\<close>. Since \<open>x \<in> Dyck_lang \<Gamma>\<close> it is balanced, so it must be of the form
   \<open>x = [\<^sup>1\<^sub>\<pi>  y  ]\<^sup>1\<^sub>\<pi>  r1\<close> 
 for some balanced \<open>y\<close>.  From \<open>P1 x\<close> it must then be of the form 
   \<open>x = [\<^sup>1\<^sub>\<pi>  y  ]\<^sup>1\<^sub>\<pi>  [\<^sup>2\<^sub>\<pi>  r1'.\<close>
@@ -103,7 +103,7 @@ Since our grammar is in CNF, we can consider the following case distinction on \
 Case 1: \<open>\<pi> = A \<rightarrow> BC\<close>. 
   Since \<open>y,z\<close> are balanced substrings of \<open>x\<close> one easily checks
   \<open>Pi y\<close> and \<open>Pi z\<close> for \<open>i \<in> {1,2,3,4}\<close>. From \<open>P3 x\<close> (and \<open>\<pi> = A \<rightarrow> BC\<close>) we further obtain \<open>P5 B y\<close> and \<open>P5 C z\<close>.
-  So \<open>y \<in> R\<^sub>B \<inter> Dyck_language \<Gamma>\<close> and \<open>z \<in> R\<^sub>C \<inter> Dyck_language \<Gamma>\<close>.
+  So \<open>y \<in> R\<^sub>B \<inter> Dyck_lang \<Gamma>\<close> and \<open>z \<in> R\<^sub>C \<inter> Dyck_lang \<Gamma>\<close>.
   From the induction hypothesis we thus obtain 
     \<open>P' \<turnstile> B \<rightarrow>\<^sup>* y\<close> and \<open>P' \<turnstile> C \<rightarrow>\<^sup>* z.\<close>
   Since \<open>\<pi> = A \<rightarrow> BC\<close> we then have
@@ -118,12 +118,12 @@ Case 2: \<open>\<pi> = A \<rightarrow> a\<close>.
   \<open>A  \<rightarrow>\<^sup>1\<^bsub>\<pi>'\<^esub>  [\<^sup>1\<^sub>\<pi>  ]\<^sup>1\<^sub>\<pi>  [\<^sup>2\<^sub>\<pi>  ]\<^sup>2\<^sub>\<pi>  = x\<close> as required.
 
 From the key theorem we obtain (by setting \<open>A := S\<close>) that 
-  \<open>L' = R\<^sub>S \<inter> Dyck_language \<Gamma>\<close> as wanted.
+  \<open>L' = R\<^sub>S \<inter> Dyck_lang \<Gamma>\<close> as wanted.
 
 Only regularity remains to show. 
 For this we use that 
-\<open>R\<^sub>S \<inter> Dyck_language \<Gamma> = (R\<^sub>S \<inter> brackets \<Gamma>) \<inter> Dyck_language \<Gamma>\<close>, 
-where \<open>brackets \<Gamma> (\<supseteq> Dyck_language \<Gamma>)\<close> is the set of words which only 
+\<open>R\<^sub>S \<inter> Dyck_lang \<Gamma> = (R\<^sub>S \<inter> brackets \<Gamma>) \<inter> Dyck_lang \<Gamma>\<close>, 
+where \<open>brackets \<Gamma> (\<supseteq> Dyck_lang \<Gamma>)\<close> is the set of words which only 
 consist of brackets over \<open>\<Gamma>\<close>.
 Actually, what we defined as \<open>R\<^sub>S\<close>, isn't regular, only \<open>(R\<^sub>S \<inter> brackets \<Gamma>)\<close> is.
 The intersection restricts to a finite amount of possible brackets, 
@@ -845,7 +845,7 @@ qed
 
 
 
-section\<open>Lemmas for \<open>A \<rightarrow>\<^sub>P\<^sub>'\<^sup>* x  \<longleftrightarrow>  x \<in> R\<^sub>A \<inter> Dyck_language \<Gamma>\<close>\<close>
+section\<open>Lemmas for \<open>A \<rightarrow>\<^sub>P\<^sub>'\<^sup>* x  \<longleftrightarrow>  x \<in> R\<^sub>A \<inter> Dyck_lang \<Gamma>\<close>\<close>
 
 lemma P'_bal:
   assumes \<open>transform_prod ` P \<turnstile> [Nt A] \<Rightarrow>* x\<close>
@@ -1030,15 +1030,15 @@ next
 qed 
 
 lemma P'_if_Reg:
-  assumes \<open>x \<in> (Reg A \<inter> (Dyck_language (P \<times> {One, Two})))\<close>
+  assumes \<open>x \<in> (Reg A \<inter> (Dyck_lang (P \<times> {One, Two})))\<close>
     and \<open>\<forall>p \<in> P. CNF_rule p\<close>
   shows \<open>(image transform_prod P) \<turnstile> [Nt A] \<Rightarrow>* map Tm x\<close> using assms 
 proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induct)
   case less
-  then have IH: \<open>\<And>w H. \<lbrakk>length (map Tm w) < length (map Tm x);  w \<in> Reg H \<inter> Dyck_language (P \<times> {One, Two})\<rbrakk> \<Longrightarrow> 
+  then have IH: \<open>\<And>w H. \<lbrakk>length (map Tm w) < length (map Tm x);  w \<in> Reg H \<inter> Dyck_lang (P \<times> {One, Two})\<rbrakk> \<Longrightarrow> 
                   transform_prod ` P \<turnstile> [Nt H] \<Rightarrow>* map Tm w\<close> 
     using less by simp
-  have xReg: \<open>x \<in> Reg A\<close> and xDL: \<open>x \<in> Dyck_language (P \<times> {One, Two})\<close> 
+  have xReg: \<open>x \<in> Reg A\<close> and xDL: \<open>x \<in> Dyck_lang (P \<times> {One, Two})\<close> 
     using less by blast+
 
   have p1x: \<open>P1 x\<close> 
@@ -1053,7 +1053,7 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
   with xReg have \<open>(Open, \<pi>, One) \<in> set x\<close> 
     by (metis List.list.sel(1) List.list.set_intros(1) RegD(5) P5.elims(2))
   then have pi_in_P: \<open>\<pi> \<in> P\<close> 
-    using xDL unfolding Dyck_language_def by auto
+    using xDL unfolding Dyck_lang_def by auto
   have bal_x: \<open>bal x\<close> 
     using xDL by blast
   then have \<open>\<exists>y r. bal y \<and> bal r \<and> [\<^sup>1\<^bsub>\<pi>\<^esub>  # tl x = [\<^sup>1\<^bsub>\<pi>\<^esub>  # y @ ]\<^sup>1\<^bsub>\<pi>\<^esub> # r\<close> 
@@ -1137,9 +1137,9 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
       by (metis \<open>y \<noteq> []\<close> P5.simps(2) hd_Cons_tl)
     with y_successivelys P1y have \<open>y \<in> Reg B\<close> 
       by blast
-    moreover have \<open>y \<in> Dyck_language (P \<times> {One, Two})\<close> 
-      using split3 bal_y Dyck_language_substring by (metis append_Cons append_Nil hd_x split1 xDL)
-    ultimately have \<open>y \<in> Reg B \<inter> Dyck_language (P \<times> {One, Two})\<close> 
+    moreover have \<open>y \<in> Dyck_lang (P \<times> {One, Two})\<close> 
+      using split3 bal_y Dyck_lang_substring by (metis append_Cons append_Nil hd_x split1 xDL)
+    ultimately have \<open>y \<in> Reg B \<inter> Dyck_lang (P \<times> {One, Two})\<close> 
       by force
     moreover have \<open>length (map Tm y) < length (map Tm x)\<close> 
       using length_append length_map lessI split3 by fastforce
@@ -1187,9 +1187,9 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
 
     ultimately have \<open>z \<in> Reg C\<close> 
       using z_successivelys by blast
-    moreover have \<open>z \<in> Dyck_language (P \<times> {One, Two})\<close> 
-      using xDL[simplified split3] bal_z Dyck_language_substring by fastforce
-    ultimately have \<open>z \<in> Reg C \<inter> Dyck_language (P \<times> {One, Two})\<close> 
+    moreover have \<open>z \<in> Dyck_lang (P \<times> {One, Two})\<close> 
+      using xDL[simplified split3] bal_z Dyck_lang_substring by fastforce
+    ultimately have \<open>z \<in> Reg C \<inter> Dyck_lang (P \<times> {One, Two})\<close> 
       by force
     moreover have \<open>length (map Tm z) < length (map Tm x)\<close> 
       using length_append length_map lessI split3 by fastforce
@@ -1872,10 +1872,10 @@ proof-
 qed
 
 
-text\<open>A lemma saying that all \<open>Dyck_language\<close> words really only consist of brackets (trivial definition wrangling):\<close>
+text\<open>A lemma saying that all \<open>Dyck_lang\<close> words really only consist of brackets (trivial definition wrangling):\<close>
 
-lemma Dyck_lang_subset_brackets: \<open>Dyck_language (P \<times> {One, Two}) \<subseteq> brackets P\<close>
-  unfolding Dyck_language_def using Ball_set by fastforce
+lemma Dyck_lang_subset_brackets: \<open>Dyck_lang (P \<times> {One, Two}) \<subseteq> brackets P\<close>
+  unfolding Dyck_lang_def using Ball_set by fastforce
 
 
 
@@ -2133,7 +2133,7 @@ lemma Chomsky_Schuetzenberger_constr:
   fixes P :: \<open>('n :: infinite, 't) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S\<close>
   assumes finite: \<open>finite P\<close> and \<open>CNF P\<close>
-  shows \<open>regular (brackets P \<inter> Reg S) \<and> L = the_hom ` ( (brackets P \<inter> Reg S) \<inter> Dyck_language (P \<times> {One, Two} ) ) \<and> 
+  shows \<open>regular (brackets P \<inter> Reg S) \<and> L = the_hom ` ( (brackets P \<inter> Reg S) \<inter> Dyck_lang (P \<times> {One, Two} ) ) \<and> 
     hom (the_hom:: ('n,'t) bracket3 list \<Rightarrow> 't list)\<close>
 proof -
   define \<Gamma> where \<open>\<Gamma> = P \<times> {One, Two}\<close>
@@ -2143,23 +2143,23 @@ proof -
   define h_ext where \<open>h_ext = (\<h>\<s>::('n, ('n,'t) bracket3) sym list \<Rightarrow> ('n,'t) sym list)\<close>
   have P_CNF': \<open>\<forall>p \<in> P. CNF_rule p\<close> 
     using \<open>CNF P\<close> CNF_iff_CNF_rules by blast
-  have \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (Dyck_language \<Gamma>) \<inter> (Reg A)\<close> (* This is the hard part of the proof - the local lemma in the textbook *)
+  have \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (Dyck_lang \<Gamma>) \<inter> (Reg A)\<close> (* This is the hard part of the proof - the local lemma in the textbook *)
   proof-
     have \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* x \<Longrightarrow> bal_tm x \<and> snds_in_tm (P \<times> {One, Two}) x\<close> 
       by (simp add: P'_bal P'_def P_CNF')
-    then have hr1: \<open>\<And>A x. (P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<Longrightarrow> x \<in> Dyck_language \<Gamma>)\<close> 
-      using \<Gamma>_def by (meson Dyck_languageI_tm)
+    then have hr1: \<open>\<And>A x. (P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<Longrightarrow> x \<in> Dyck_lang \<Gamma>)\<close> 
+      using \<Gamma>_def by (meson Dyck_langI_tm)
     have \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* x \<Longrightarrow> x \<in> Reg_sym A\<close> 
       using Reg_if_P' using P'_def P_CNF' by fastforce
     then have hr2: \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* map Tm x \<Longrightarrow> x \<in> Reg A\<close> 
       by blast
-    have rr: \<open>\<And>A x.  x \<in> (Dyck_language \<Gamma>) \<inter> (Reg A) \<Longrightarrow> (P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x)) \<close> 
+    have rr: \<open>\<And>A x.  x \<in> (Dyck_lang \<Gamma>) \<inter> (Reg A) \<Longrightarrow> (P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x)) \<close> 
       using P'_if_Reg by (metis P'_def P_CNF' \<Gamma>_def inf_sup_aci(1))
     show ?thesis using hr1 hr2 rr by (meson Int_iff)
   qed
-  then have \<open>L' = (Dyck_language \<Gamma>) \<inter> (Reg S)\<close> 
+  then have \<open>L' = (Dyck_lang \<Gamma>) \<inter> (Reg S)\<close> 
     by (auto simp add: CFG.Lang_def L'_def)
-  then have \<open>image h ((Dyck_language \<Gamma>) \<inter> (Reg S)) =  image h L'\<close> 
+  then have \<open>image h ((Dyck_lang \<Gamma>) \<inter> (Reg S)) =  image h L'\<close> 
     by simp
   also have \<open>... = Lang P S\<close>
   proof(standard)
@@ -2230,7 +2230,7 @@ proof -
         then have \<open>w = h w''\<close> 
           using h_eq_h_ext2 h_def h_ext_def by (metis h_eq_h_ext w'_def(2))
         moreover have \<open>w'' \<in> L'\<close> 
-          using \<open>w' \<in> Ders P' S\<close> by (metis DersD \<open>L' = Dyck_language \<Gamma> \<inter> Reg S\<close> \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (Dyck_language \<Gamma>) \<inter> (Reg A)\<close> \<open>w' = map Tm w''\<close>)
+          using \<open>w' \<in> Ders P' S\<close> by (metis DersD \<open>L' = Dyck_lang \<Gamma> \<inter> Reg S\<close> \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> (Dyck_lang \<Gamma>) \<inter> (Reg A)\<close> \<open>w' = map Tm w''\<close>)
         ultimately show ?case by auto
       qed
     qed
@@ -2239,21 +2239,21 @@ proof -
   qed
   also have \<open>... = L\<close> 
     by (simp add: L_def)
-  finally have \<open>image h ((Dyck_language \<Gamma>) \<inter> (Reg S)) = L\<close> 
+  finally have \<open>image h ((Dyck_lang \<Gamma>) \<inter> (Reg S)) = L\<close> 
     by auto
-  moreover have \<open>(Dyck_language \<Gamma> \<inter> (brackets P \<inter> Reg S)) = (Dyck_language \<Gamma> \<inter> Reg S)\<close>
+  moreover have \<open>(Dyck_lang \<Gamma> \<inter> (brackets P \<inter> Reg S)) = (Dyck_lang \<Gamma> \<inter> Reg S)\<close>
   proof
-    show \<open>Dyck_language \<Gamma> \<inter> (brackets P \<inter> Reg S) \<subseteq> Dyck_language \<Gamma> \<inter> Reg S\<close> 
+    show \<open>Dyck_lang \<Gamma> \<inter> (brackets P \<inter> Reg S) \<subseteq> Dyck_lang \<Gamma> \<inter> Reg S\<close> 
       by blast
   next
-    show \<open>Dyck_language \<Gamma> \<inter> Reg S \<subseteq> Dyck_language \<Gamma> \<inter> (brackets P \<inter> Reg S)\<close> 
+    show \<open>Dyck_lang \<Gamma> \<inter> Reg S \<subseteq> Dyck_lang \<Gamma> \<inter> (brackets P \<inter> Reg S)\<close> 
       using \<Gamma>_def Dyck_lang_subset_brackets by auto
   qed
   moreover have hom: \<open>hom h\<close> 
     by (simp add: h_def hom_def)
   moreover from \<open>finite P\<close> have \<open>regular (brackets P \<inter> Reg S)\<close> 
     using regular_Reg_inter by fast
-  ultimately have \<open>regular (brackets P \<inter> Reg S) \<and> L = h ` ((brackets P \<inter> Reg S) \<inter> Dyck_language \<Gamma>) \<and> hom h\<close> 
+  ultimately have \<open>regular (brackets P \<inter> Reg S) \<and> L = h ` ((brackets P \<inter> Reg S) \<inter> Dyck_lang \<Gamma>) \<and> hom h\<close> 
     by (simp add: inf_commute)
   then show ?thesis unfolding h_def \<Gamma>_def by blast
 qed
@@ -2263,7 +2263,7 @@ lemma Chomsky_Schuetzenberger_not_empty:
   fixes P :: \<open>('n :: infinite, 't) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S - {[]}\<close>
   assumes \<open>finite P\<close>
-  shows \<open>\<exists>(R::('n,'t) bracket3 list set) h \<Gamma>. regular R \<and> L = h ` (R \<inter> Dyck_language \<Gamma>) \<and> hom h\<close>
+  shows \<open>\<exists>(R::('n,'t) bracket3 list set) h \<Gamma>. regular R \<and> L = h ` (R \<inter> Dyck_lang \<Gamma>) \<and> hom h\<close>
 proof -
   define h where \<open>h = (the_hom:: ('n,'t) bracket3 list \<Rightarrow> 't list)\<close>
   obtain ps where ps_def: \<open>set ps = P\<close> 
@@ -2273,11 +2273,11 @@ proof -
     by blast
   then have \<open>finite (set ps')\<close>
     by auto
-  then have \<open>regular (brackets (set ps') \<inter> Reg S) \<and> CFG.lang ps' S = h ` (brackets (set ps') \<inter> Reg S \<inter> Dyck_language (set ps' \<times> {One, Two})) \<and> hom h\<close> 
+  then have \<open>regular (brackets (set ps') \<inter> Reg S) \<and> CFG.lang ps' S = h ` (brackets (set ps') \<inter> Reg S \<inter> Dyck_lang (set ps' \<times> {One, Two})) \<and> hom h\<close> 
     using Chomsky_Schuetzenberger_constr[OF \<open>finite( set ps')\<close> \<open>CNF( set ps')\<close>, of S] using h_def by fastforce
   moreover have  \<open>CFG.lang ps' S = L - {[]}\<close> 
     unfolding lang_ps_eq_lang_ps' using L_def ps_def by blast
-  ultimately have eq: \<open>regular (brackets (set ps') \<inter> Reg S) \<and> L - {[]} = h ` (brackets (set ps') \<inter> Reg S \<inter> Dyck_language (set ps' \<times> {One, Two})) \<and> hom h\<close> 
+  ultimately have eq: \<open>regular (brackets (set ps') \<inter> Reg S) \<and> L - {[]} = h ` (brackets (set ps') \<inter> Reg S \<inter> Dyck_lang (set ps' \<times> {One, Two})) \<and> hom h\<close> 
     by presburger
   then show ?thesis using L_def by auto
 qed
@@ -2287,25 +2287,25 @@ lemma Chomsky_Schuetzenberger:
   fixes P :: \<open>('n :: infinite, 't) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S\<close>
   assumes finite: \<open>finite P\<close>
-  shows \<open>\<exists>(R::('n,'t) bracket3 list set) h \<Gamma>. regular R \<and> L = h ` (R \<inter> Dyck_language \<Gamma>) \<and> hom h\<close>
+  shows \<open>\<exists>(R::('n,'t) bracket3 list set) h \<Gamma>. regular R \<and> L = h ` (R \<inter> Dyck_lang \<Gamma>) \<and> hom h\<close>
 proof(cases \<open>[] \<in> L\<close>)
   case False
   then show ?thesis by (metis Diff_empty Diff_insert0 L_def Chomsky_Schuetzenberger_not_empty finite)
 next
   case True
   obtain R::"('n,'t) bracket3 list set" and h and \<Gamma> where
-    reg_R: \<open>(regular R)\<close> and L_minus_eq: \<open>L-{[]} = h ` (R \<inter> Dyck_language \<Gamma>)\<close> and hom_h: \<open>hom h\<close> 
+    reg_R: \<open>(regular R)\<close> and L_minus_eq: \<open>L-{[]} = h ` (R \<inter> Dyck_lang \<Gamma>)\<close> and hom_h: \<open>hom h\<close> 
     by (metis L_def Chomsky_Schuetzenberger_not_empty finite)
   then have reg_R_union: \<open>regular(R \<union> {[]})\<close>
     by (meson regular_Un regular_nullstr)
   have \<open>[] = h([])\<close> using hom_def hom_h 
     by metis
-  moreover have \<open>[] \<in> Dyck_language \<Gamma>\<close> 
+  moreover have \<open>[] \<in> Dyck_lang \<Gamma>\<close> 
     by auto
-  ultimately have \<open>[] \<in> h ` ((R \<union> {[]}) \<inter> Dyck_language \<Gamma>)\<close> 
+  ultimately have \<open>[] \<in> h ` ((R \<union> {[]}) \<inter> Dyck_lang \<Gamma>)\<close> 
     by blast
-  with True L_minus_eq have \<open>L = h ` ((R \<union> {[]}) \<inter> Dyck_language \<Gamma>)\<close> 
-    using \<open>[] \<in> Dyck_language \<Gamma>\<close> \<open>[] = h []\<close> by auto
+  with True L_minus_eq have \<open>L = h ` ((R \<union> {[]}) \<inter> Dyck_lang \<Gamma>)\<close> 
+    using \<open>[] \<in> Dyck_lang \<Gamma>\<close> \<open>[] = h []\<close> by auto
   then show ?thesis using reg_R_union hom_h by blast
 qed
 

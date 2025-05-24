@@ -46,32 +46,32 @@ This bracketing encodes the parse tree of any old word.
 The old word is easily recovered by the homomorphism which sends 
 \<open>[\<^sup>1\<^sub>\<pi>\<close> to \<open>a\<close> if \<open>\<pi> = A \<rightarrow> a\<close>, and sends every other bracket to \<open>\<epsilon>\<close>.
 Thus we have \<open>h(L') = L\<close> by essentially exchanging \<open>\<pi>\<close> for \<open>\<pi>'\<close> and the other way round in the derivation.
-The direction \<open>\<supseteq>\<close> is done in @{term \<open>transfer_parse_tree\<close>},
+The direction \<open>\<supseteq>\<close> is done in \<open>transfer_parse_tree\<close>,
 the direction \<open>\<subseteq>\<close> is done directly in the proof of the main theorem.
 
 Then all that remains to show is, that \<open>L'\<close> is of the form \<open>R \<inter> Dyck_language \<Gamma>\<close> 
-(for \<open>\<Gamma>:= P \<times> {One, Two}\<close>) and the regularity of R.
+(for \<open>\<Gamma>:= P \<times> {1, 2}\<close>) and the regularity of \<open>R\<close>.
 
-For this, \<open>R:=R\<^sub>S\<close> is defined via an intersection of 5 following regular languages. 
+For this, \<open>R := R\<^sub>S\<close> is defined via an intersection of 5 following regular languages. 
 Each of these is defined via a property on words \<open>x\<close>:
 
-\<open>P1 x\<close>:   True iff after a \<open>]\<^sup>1\<^sub>p\<close> there always immediately follows a \<open>[\<^sup>2\<^sub>p\<close> in \<open>x\<close>.
-      This especially means, that \<open>]\<^sup>1\<^sub>p\<close> can't be the end of the string.
+  \<^descr> \<open>P1 x\<close>: after a \<open>]\<^sup>1\<^sub>p\<close> there always immediately follows a \<open>[\<^sup>2\<^sub>p\<close> in \<open>x\<close>.
+      This especially means, that \<open>]\<^sup>1\<^sub>p\<close> cannot be the end of the string.
 
-\<open>successively P2 x\<close>:  True iff a \<open>]\<^sup>2\<^sub>\<pi>\<close> is never directly followed by some \<open>[\<close> in \<open>x\<close>.
+  \<^descr> \<open>successively P2 x\<close>: a \<open>]\<^sup>2\<^sub>\<pi>\<close> is never directly followed by some \<open>[\<close> in \<open>x\<close>.
 
-\<open>successively P3 x\<close>: True iff each \<open>[\<^sup>1\<^bsub>A\<rightarrow>BC\<^esub>\<close> is directly followed by a \<open>[\<^sup>1\<^bsub>B\<rightarrow>_\<^esub>\<close>  in \<open>x\<close>
+  \<^descr> \<open>successively P3 x\<close>: each \<open>[\<^sup>1\<^bsub>A\<rightarrow>BC\<^esub>\<close> is directly followed by \<open>[\<^sup>1\<^bsub>B\<rightarrow>_\<^esub>\<close> in \<open>x\<close>
       (last letter isn't checked).
 
-\<open>successively P4 x\<close>:  True iff each \<open>[\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by a \<open>]\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close>  in \<open>x\<close>
-and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by a \<open>]\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close>  in \<open>x\<close> (last letter isn't checked).
+  \<^descr> \<open>successively P4 x\<close>: each \<open>[\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by \<open>]\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> in \<open>x\<close>
+and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by \<open>]\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close> in \<open>x\<close> (last letter isn't checked).
 
-\<open>P5 A x\<close>: True iff there exists some y such that the word begins with \<open>[\<^sup>1\<^bsub>A\<rightarrow>y\<^esub>\<close>.
+  \<^descr> \<open>P5 A x\<close>: there exists some \<open>y\<close> such that the word begins with \<open>[\<^sup>1\<^bsub>A\<rightarrow>y\<^esub>\<close>.
 
 
 One then shows the key theorem \<open>P' \<turnstile> A \<rightarrow>\<^sup>* w  \<longleftrightarrow>  w \<in> R\<^sub>A \<inter> Dyck_language \<Gamma>\<close>:
 
-The direction \<open>\<rightarrow>\<close> (see lemma @{term \<open>P'_imp_Reg\<close>} is easily checked, by checking that every condition holds
+The \<open>\<rightarrow>\<close>-direction (see lemma \<open>Reg_if_P'\<close>) is easily checked, by checking that every condition holds
 during all derivation steps already. For this one needs a version of R (and all the conditions)
 which ignores any Terminals that might still exist in such a derivation step. Since this version
 operates on symbols (a different type) it needs a fully new definition. Since these new versions 
@@ -80,14 +80,14 @@ to fully constrain to the target language. Thus we add two additional
 constraints \<open>successively P7\<close> and \<open>successively P8\<close> on the symbol-version of \<open>R\<^sub>A\<close> that vanish when 
 we ultimately restricts back to words consisting only of terminal symbols. With these the induction goes through:
 
-\<open>(successively P7_sym) x\<close>: True iff before a \<open>Nt Y\<close> there always comes some \<open>Tm [\<^sup>1\<^bsub>A\<rightarrow>YC\<^esub>\<close> or some \<open>Tm [\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close> in \<open>x\<close>:
-\<open>(successively P8_sym) x\<close>: True iff after a \<open>Nt Y\<close> there always comes some \<open>]\<^sup>1\<^bsub>A\<rightarrow>YC\<^esub>\<close> or some \<open>]\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close> in \<open>x\<close>:
+  \<^descr> \<open>(successively P7_sym) x\<close>: each \<open>Nt Y\<close> is directly preceded by some \<open>Tm [\<^sup>1\<^bsub>A\<rightarrow>YC\<^esub>\<close> or some \<open>Tm [\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close> in \<open>x\<close>;
+  \<^descr> \<open>(successively P8_sym) x\<close>: each \<open>Nt Y\<close> is directly followed by some \<open>]\<^sup>1\<^bsub>A\<rightarrow>YC\<^esub>\<close> or some \<open>]\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close> in \<open>x\<close>.
 
-The direction \<open>\<leftarrow>\<close> (see lemma @{term \<open>Reg_imp_P'\<close>} is more work. 
+The \<open>\<leftarrow>\<close>-direction (see lemma \<open>P'_if_Reg\<close>) is more work. 
 This time we stick with fully terminal words, so we work with the standard version of \<open>R\<^sub>A\<close>:
 Proceed by induction on the length of \<open>w\<close> generalized over \<open>A\<close>. 
 For this, let \<open>x \<in> R\<^sub>A \<inter> Dyck_language \<Gamma>\<close>, thus we have the properties 
-\<open>P1 x\<close>, \<open>successively Pi x\<close> for \<open>i \<in> {2,3,4,7,8}\<close> and \<open>P5 A x\<close> availible.
+\<open>P1 x\<close>, \<open>successively Pi x\<close> for \<open>i \<in> {2,3,4,7,8}\<close> and \<open>P5 A x\<close> available.
 From \<open>P5 A x\<close> we have that there exists \<open>\<pi> \<in> P\<close> s.t. \<open>fst \<pi> = A\<close> and \<open>x\<close> begins
 with \<open>[\<^sup>1\<^sub>\<pi>\<close>. Since \<open>x \<in> Dyck_language \<Gamma>\<close> it is balanced, so it must be of the form
   \<open>x = [\<^sup>1\<^sub>\<pi>  y  ]\<^sup>1\<^sub>\<pi>  r1\<close> 
@@ -120,7 +120,7 @@ Case 2: \<open>\<pi> = A \<rightarrow> a\<close>.
 From the key theorem we obtain (by setting \<open>A := S\<close>) that 
   \<open>L' = R\<^sub>S \<inter> Dyck_language \<Gamma>\<close> as wanted.
 
-Only the regularity remains to show. 
+Only regularity remains to show. 
 For this we use that 
 \<open>R\<^sub>S \<inter> Dyck_language \<Gamma> = (R\<^sub>S \<inter> brackets \<Gamma>) Dyck_language \<Gamma>\<close>, 
 where \<open>brackets \<Gamma> (\<subseteq> Dyck_language \<Gamma>)\<close> is the set of all brackets over \<open>\<Gamma>\<close>.
@@ -282,8 +282,8 @@ The theorems about this, are in the later section \<open>Showing Regularity\<clo
 subsection\<open>\<open>P1\<close>\<close>
 
 text\<open>\<open>P1\<close> will define a predicate on string elements. 
-It will be true iff after a \<open>]\<^sup>1\<^sub>p\<close> there always immediately follows a \<open>[\<^sup>2\<^sub>p\<close>.
- That should also mean \<open>]\<^sup>1\<^sub>p\<close> can't be the end of the string.\<close>
+It will be true iff each \<open>]\<^sup>1\<^sub>p\<close> is directly followed by \<open>[\<^sup>2\<^sub>p\<close>.
+ That also means \<open>]\<^sup>1\<^sub>p\<close> cannot be the end of the string.\<close>
 
 text\<open>But first we define a helper function, that only captures the neighbouring condition for two strings:\<close>
 fun P1' :: \<open>('n,'t) bracket3 \<Rightarrow> ('n,'t) bracket3 \<Rightarrow> bool\<close> where
@@ -319,7 +319,7 @@ text\<open>Asserts that \<open>P1'\<close> holds for every pair in xs, and that 
 fun P1_sym where
   \<open>P1_sym xs = ((successively P1'_sym xs) \<and> (if xs \<noteq> [] then (\<nexists>p. last xs = Tm (Close, (p, One))) else True))\<close>
 
-lemma P1_sym_imp_P1_for_tm[intro, dest]: \<open>P1_sym (map Tm x) \<Longrightarrow> P1 x\<close>
+lemma P1_for_tm_if_P1_sym[intro, dest]: \<open>P1_sym (map Tm x) \<Longrightarrow> P1 x\<close>
 proof(induction x rule: induct_list012)
   case 1
   then show ?case by simp
@@ -431,7 +431,7 @@ lemma P2_symD[dest]:
 lemmas P2E = P2D[elim_format]
 lemmas P2_symE = P2_symD[elim_format]
 
-lemma P2_sym_imp_P2_for_tm[intro, dest]: \<open>successively P2_sym (map Tm x) \<Longrightarrow> successively P2 x\<close>
+lemma P2_for_tm_if_P2_sym[intro, dest]: \<open>successively P2_sym (map Tm x) \<Longrightarrow> successively P2 x\<close>
   apply(induction x rule: induct_list012) 
     apply simp 
    apply simp 
@@ -441,15 +441,15 @@ lemma P2_sym_imp_P2_for_tm[intro, dest]: \<open>successively P2_sym (map Tm x) \
 
 subsection\<open>\<open>P3\<close>\<close>
 
-text\<open>Each \<open>[\<^sup>1\<^bsub>A\<rightarrow>BC\<^esub>\<close> is directly followed by a \<open>[\<^sup>1\<^bsub>B\<rightarrow>_\<^esub>\<close>,
-and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>BC\<^esub>\<close> is directly followed by a \<open>[\<^sup>1\<^bsub>C\<rightarrow>_\<^esub>\<close>:\<close>
+text\<open>Each \<open>[\<^sup>1\<^bsub>A\<rightarrow>BC\<^esub>\<close> is directly followed by \<open>[\<^sup>1\<^bsub>B\<rightarrow>_\<^esub>\<close>,
+and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>BC\<^esub>\<close> is directly followed by \<open>[\<^sup>1\<^bsub>C\<rightarrow>_\<^esub>\<close>:\<close>
 fun P3 :: \<open>('n,'t) bracket3 \<Rightarrow> ('n,'t) bracket3 \<Rightarrow> bool\<close> where
   \<open>P3 (Open, ((A, [Nt B, Nt C]), One)) (p, ((X,y), t)) = (p = Open \<and> t = One \<and> X = B)\<close> |
   \<open>P3 (Open, ((A, [Nt B, Nt C]), Two)) (p, ((X,y), t)) = (p = Open \<and> t = One \<and> X = C)\<close> |
   \<open>P3 x y = True\<close>
 
-text\<open>Each \<open>[\<^sup>1\<^bsub>A\<rightarrow>BC\<^esub>\<close> is directly followed a \<open>[\<^sup>1\<^bsub>B\<rightarrow>_\<^esub>\<close> or a \<open>Nt B\<close>,
-and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>BC\<^esub>\<close> is directly followed by a \<open>[\<^sup>1\<^bsub>C\<rightarrow>_\<^esub>\<close> or a \<open>Nt C\<close>:\<close>
+text\<open>Each \<open>[\<^sup>1\<^bsub>A\<rightarrow>BC\<^esub>\<close> is directly followed \<open>[\<^sup>1\<^bsub>B\<rightarrow>_\<^esub>\<close> or \<open>Nt B\<close>,
+and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>BC\<^esub>\<close> is directly followed by \<open>[\<^sup>1\<^bsub>C\<rightarrow>_\<^esub>\<close> or \<open>Nt C\<close>:\<close>
 fun P3_sym :: \<open>('n, ('n,'t) bracket3) sym \<Rightarrow> ('n, ('n,'t) bracket3) sym \<Rightarrow> bool\<close> where
 \<open>P3_sym (Tm (Open, ((A, [Nt B, Nt C]), One))) (Tm (p, ((X,y), t))) = (p = Open \<and> t = One \<and> X = B)\<close> |
  \<comment> \<open>Not obvious: the case (Tm (Open, ((A, [Nt B, Nt C]), One))) Nt X is set to True with the catch all\<close>
@@ -495,7 +495,7 @@ lemmas P3_symE1 = P3_symD1[elim_format]
 
 lemmas P3_symE2 = P3_symD2[elim_format]
 
-lemma P3_sym_imp_P3_for_tm[intro, dest]: \<open>successively P3_sym (map Tm x) \<Longrightarrow> successively P3 x\<close>
+lemma P3_for_tm_if_P3_sym[intro, dest]: \<open>successively P3_sym (map Tm x) \<Longrightarrow> successively P3 x\<close>
   apply(induction x rule: induct_list012) 
     apply simp 
    apply simp 
@@ -505,14 +505,14 @@ lemma P3_sym_imp_P3_for_tm[intro, dest]: \<open>successively P3_sym (map Tm x) \
 
 subsection\<open>\<open>P4\<close>\<close>
 
-text\<open>Each \<open>[\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by a \<open>]\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close>
-and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by a \<open>]\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close>:\<close>
+text\<open>Each \<open>[\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by \<open>]\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close>
+and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by \<open>]\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close>:\<close>
 fun P4 :: \<open>('n,'t) bracket3 \<Rightarrow> ('n,'t) bracket3 \<Rightarrow> bool\<close> where
   \<open>P4 (Open, ((A, [Tm a]), s)) (p, ((X, y), t)) = (p = Close \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> |
   \<open>P4 x y = True\<close>
 
-text\<open>Each \<open>[\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by a \<open>]\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close>
-and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by a \<open>]\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close>:\<close>
+text\<open>Each \<open>[\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by \<open>]\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close>
+and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by \<open>]\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close>:\<close>
 fun P4_sym :: \<open>('n, ('n,'t) bracket3) sym \<Rightarrow> ('n, ('n,'t) bracket3) sym \<Rightarrow> bool\<close> where
   \<open>P4_sym (Tm (Open, ((A, [Tm a]), s))) (Tm (p, ((X, y), t))) = (p = Close \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> | 
   \<open>P4_sym (Tm (Open, ((A, [Tm a]), s))) (Nt X) = False\<close> | 
@@ -537,20 +537,20 @@ lemmas P4E = P4D[elim_format]
 lemmas P4_symE = P4_symD[elim_format]
 
 
-lemma P4_sym_imp_P4_for_tm[intro, dest]: \<open>successively P4_sym (map Tm x) \<Longrightarrow> successively P4 x\<close>
+lemma P4_for_tm_if_P4_sym[intro, dest]: \<open>successively P4_sym (map Tm x) \<Longrightarrow> successively P4 x\<close>
   apply(induction x rule: induct_list012) apply simp apply simp apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P4_sym.cases) 
   by auto
 
 
 subsection\<open>\<open>P5\<close>\<close>
 
-text\<open>\<open>P5 A x\<close> holds, iff there exists some y such that x begins with \<open>[\<^sup>1\<^bsub>A\<rightarrow>y\<^esub>\<close>:\<close>
+text\<open>\<open>P5 A x\<close> holds, iff there exists some \<open>y\<close> such that \<open>x\<close> begins with \<open>[\<^sup>1\<^bsub>A\<rightarrow>y\<^esub>\<close>:\<close>
 fun P5 :: \<open>'n \<Rightarrow> ('n,'t) bracket3 list \<Rightarrow> bool\<close> where
   \<open>P5 A [] = False\<close> | 
   \<open>P5 A ((Open, (X,y), One) # xs) = (X = A)\<close> | 
   \<open>P5 A (x # xs) = False\<close>
 
-text\<open>\<open>P5_sym A x\<close> holds, iff either there exists some y such that x begins with \<open>[\<^sup>1\<^bsub>A\<rightarrow>y\<^esub>\<close>, or if it begins with \<open>Nt A\<close>:\<close>
+text\<open>\<open>P5_sym A x\<close> holds, iff either there exists some \<open>y\<close> such that \<open>x\<close> begins with \<open>[\<^sup>1\<^bsub>A\<rightarrow>y\<^esub>\<close>, or if it begins with \<open>Nt A\<close>:\<close>
 fun P5_sym :: \<open>'n \<Rightarrow> ('n, ('n,'t) bracket3) syms \<Rightarrow> bool\<close> where
   \<open>P5_sym A [] = False\<close> | 
   \<open>P5_sym A (Tm (Open, (X,y), One) # xs) = (X = A)\<close> | 
@@ -570,14 +570,14 @@ lemma P5_symD[dest]:
 lemmas P5E = P5D[elim_format]
 lemmas P5_symE = P5_symD[elim_format]
 
-lemma P5_sym_imp_P5_for_tm[intro, dest]: \<open>P5_sym A (map Tm x) \<Longrightarrow> P5 A x\<close>
+lemma P5_for_tm_if_P5_sym[intro, dest]: \<open>P5_sym A (map Tm x) \<Longrightarrow> P5 A x\<close>
   apply(induction x) by auto
 
 
 subsection\<open>\<open>P7\<close> and \<open>P8\<close>\<close>
 
 
-text\<open>\<open>(successively P7_sym) w\<close> iff before a \<open>Nt Y\<close> there always comes some \<open>Tm [\<^sup>1\<^bsub>A\<rightarrow>YC\<^esub>\<close> or some \<open>Tm [\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close> in w:\<close>
+text\<open>\<open>(successively P7_sym) w\<close> iff \<open>Nt Y\<close> is directly preceded by some \<open>Tm [\<^sup>1\<^bsub>A\<rightarrow>YC\<^esub>\<close> or \<open>Tm [\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close> in w:\<close>
 fun P7_sym :: \<open>('n, ('n,'t) bracket3) sym \<Rightarrow> ('n, ('n,'t) bracket3) sym \<Rightarrow> bool\<close> where
   \<open>P7_sym (Tm (b,(A, [Nt B, Nt C]), v )) (Nt Y) = (b = Open \<and> ((Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
   \<open>P7_sym x (Nt Y) = False\<close> | 
@@ -592,7 +592,7 @@ lemma P7_symD[dest]:
 
 lemmas P7_symE = P7_symD[elim_format]
 
-text\<open>\<open>(successively P8_sym) w\<close> iff after a \<open>Nt Y\<close> there always comes some \<open>]\<^sup>1\<^bsub>A\<rightarrow>YC\<^esub>\<close> or some \<open>]\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close> in w:\<close>
+text\<open>\<open>(successively P8_sym) w\<close> iff \<open>Nt Y\<close> is directly followed by some \<open>]\<^sup>1\<^bsub>A\<rightarrow>YC\<^esub>\<close> or \<open>]\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close> in w:\<close>
 fun P8_sym :: \<open>('n, ('n,'t) bracket3) sym \<Rightarrow> ('n, ('n,'t) bracket3) sym \<Rightarrow> bool\<close> where
   \<open>P8_sym (Nt Y) (Tm (b,(A, [Nt B, Nt C]), v ))  = (b = Close \<and> ( (Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
   \<open>P8_sym (Nt Y) x = False\<close> | 
@@ -672,7 +672,7 @@ lemma Reg_symD[dest]:
 
 lemmas Reg_symE = Reg_symD[elim_format]
 
-lemma Reg_sym_imp_Reg_for_tm[intro, dest]: \<open>(map Tm x) \<in> Reg_sym A \<Longrightarrow> x \<in> Reg A\<close> 
+lemma Reg_for_tm_if_Reg_sym[intro, dest]: \<open>(map Tm x) \<in> Reg_sym A \<Longrightarrow> x \<in> Reg A\<close> 
   apply(rule RegI) by auto
 
 
@@ -870,7 +870,7 @@ next
   ultimately show ?case using \<open>bal_tm (u @ w @ v)\<close> by blast
 qed
 
-lemma P'_imp_Reg:
+lemma Reg_if_P':
   assumes \<open>transform_prod ` P \<turnstile> [Nt S] \<Rightarrow>* x\<close>
     and \<open>\<forall>p \<in> P. CNF_rule p\<close>
   shows \<open>x \<in> Reg_sym S\<close>
@@ -1028,7 +1028,7 @@ next
     by blast 
 qed 
 
-lemma Reg_imp_P':
+lemma P'_if_Reg:
   assumes \<open>x \<in> (Reg A \<inter> (Dyck_language (P \<times> {One, Two})))\<close>
     and \<open>\<forall>p \<in> P. CNF_rule p\<close>
   shows \<open>(image transform_prod P) \<turnstile> [Nt A] \<Rightarrow>* map Tm x\<close> using assms 
@@ -1873,7 +1873,7 @@ qed
 
 text\<open>A lemma saying that all \<open>Dyck_language\<close> words really only consist of brackets (trivial definition wrangling):\<close>
 
-lemma Dyck_lang_imp_star_brackets: \<open>Dyck_language (P \<times> {One, Two}) \<subseteq> brackets P\<close>
+lemma Dyck_lang_subset_brackets: \<open>Dyck_language (P \<times> {One, Two}) \<subseteq> brackets P\<close>
   unfolding Dyck_language_def using Ball_set by fastforce
 
 
@@ -2149,11 +2149,11 @@ proof -
     then have hr1: \<open>\<And>A x. (P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<Longrightarrow> x \<in> Dyck_language \<Gamma>)\<close> 
       using \<Gamma>_def by (meson Dyck_languageI_tm)
     have \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* x \<Longrightarrow> x \<in> Reg_sym A\<close> 
-      using P'_imp_Reg using P'_def P_CNF' by fastforce
+      using Reg_if_P' using P'_def P_CNF' by fastforce
     then have hr2: \<open>\<And>A x.  P' \<turnstile> [Nt A] \<Rightarrow>* map Tm x \<Longrightarrow> x \<in> Reg A\<close> 
       by blast
     have rr: \<open>\<And>A x.  x \<in> (Dyck_language \<Gamma>) \<inter> (Reg A) \<Longrightarrow> (P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x)) \<close> 
-      using Reg_imp_P' by (metis P'_def P_CNF' \<Gamma>_def inf_sup_aci(1))
+      using P'_if_Reg by (metis P'_def P_CNF' \<Gamma>_def inf_sup_aci(1))
     show ?thesis using hr1 hr2 rr by (meson Int_iff)
   qed
   then have \<open>L' = (Dyck_language \<Gamma>) \<inter> (Reg S)\<close> 
@@ -2246,7 +2246,7 @@ proof -
       by blast
   next
     show \<open>Dyck_language \<Gamma> \<inter> Reg S \<subseteq> Dyck_language \<Gamma> \<inter> (brackets P \<inter> Reg S)\<close> 
-      using \<Gamma>_def Dyck_lang_imp_star_brackets by auto
+      using \<Gamma>_def Dyck_lang_subset_brackets by auto
   qed
   moreover have hom: \<open>hom h\<close> 
     by (simp add: h_def hom_def)

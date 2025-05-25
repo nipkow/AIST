@@ -139,33 +139,33 @@ subsection\<open>Brackets\<close>
 text\<open>A type with 2 elements, for creating 2 copies as needed in the proof:\<close>
 datatype version = One | Two
 
-type_synonym ('n,'t) bracket3 = "bracket \<times> ('n, 't) prod \<times> version"
+type_synonym ('n,'t) bracket3 = "(('n, 't) prod \<times> version) bracket"
 
 abbreviation open_bracket1 :: "('n, 't) prod \<Rightarrow> ('n,'t) bracket3" ("[\<^sup>1\<^sub>_ " [1000]) where
-  "[\<^sup>1\<^sub>p  \<equiv> (Open, (p, One))"
+  "[\<^sup>1\<^sub>p  \<equiv> (Open (p, One))"
 
 abbreviation close_bracket1 :: "('n,'t) prod \<Rightarrow> ('n,'t) bracket3" ("]\<^sup>1\<^sub>_" [1000]) where
-  "]\<^sup>1\<^sub>p \<equiv> (Close, (p, One))"
+  "]\<^sup>1\<^sub>p \<equiv> (Close (p, One))"
 
 abbreviation open_bracket2 :: "('n,'t) prod \<Rightarrow> ('n,'t) bracket3" ("[\<^sup>2\<^sub>_" [1000]) where
-  "[\<^sup>2\<^sub>p \<equiv> (Open, (p, Two))"
+  "[\<^sup>2\<^sub>p \<equiv> (Open (p, Two))"
 
 abbreviation close_bracket2 :: "('n,'t) prod \<Rightarrow> ('n,'t) bracket3" ("]\<^sup>2\<^sub>_" [1000]) where
-  "]\<^sup>2\<^sub>p \<equiv> (Close, (p, Two))"
+  "]\<^sup>2\<^sub>p \<equiv> (Close (p, Two))"
 
 
 text\<open>Version for p = (A, w) (multiple letters) with bsub and esub:\<close>
 abbreviation open_bracket1' :: "('n,'t) prod \<Rightarrow> ('n,'t) bracket3" ("[\<^sup>1\<^bsub>_\<^esub> ") where
-  "[\<^sup>1\<^bsub>p\<^esub>  \<equiv> (Open, (p, One))"
+  "[\<^sup>1\<^bsub>p\<^esub>  \<equiv> (Open (p, One))"
 
 abbreviation close_bracket1' :: "('n,'t) prod \<Rightarrow> ('n,'t) bracket3" ("]\<^sup>1\<^bsub>_\<^esub>") where
-  "]\<^sup>1\<^bsub>p\<^esub> \<equiv> (Close, (p, One))"
+  "]\<^sup>1\<^bsub>p\<^esub> \<equiv> (Close (p, One))"
 
 abbreviation open_bracket2' :: "('n,'t) prod \<Rightarrow> ('n,'t) bracket3" ("[\<^sup>2\<^bsub>_\<^esub>") where
-  "[\<^sup>2\<^bsub>p\<^esub> \<equiv> (Open, (p, Two))"
+  "[\<^sup>2\<^bsub>p\<^esub> \<equiv> (Open (p, Two))"
 
 abbreviation close_bracket2' :: "('n,'t) prod \<Rightarrow> ('n,'t) bracket3" ("]\<^sup>2\<^bsub>_\<^esub> ") where
-  "]\<^sup>2\<^bsub>p\<^esub> \<equiv> (Close, (p, Two))"
+  "]\<^sup>2\<^bsub>p\<^esub> \<equiv> (Close (p, Two))"
 
 text \<open>Nice LaTeX rendering:\<close>
 
@@ -315,13 +315,6 @@ lemma h_eq_h_ext2:
    apply simp
   by (smt (verit, ccfv_SIG) map_eq_append_conv the_hom_helper_strip the_hom_helper_strip2)
 
-(*TODO mv to dyck_lang*)
-lemma \<open>snds_in_tm \<Gamma> [Nt A]\<close> 
-  unfolding snds_in_tm_def by auto
-
-
-
-
 
 
 section\<open>The Regular Language\<close>
@@ -410,7 +403,7 @@ proof(cases xs)
   then show ?thesis using assms by force
 next
   case (Cons a list)
-  then show ?thesis using assms by (auto split: version.splits sym.splits bracket.splits)
+  then show ?thesis using assms by (auto split: version.splits sym.splits prod.splits)
 qed
 
 lemma P1_symI[intro]: 
@@ -475,24 +468,24 @@ subsection\<open>\<open>P2\<close>\<close>
 
 text\<open>A \<open>]\<^sup>2\<^sub>\<pi>\<close> is never directly followed by some \<open>[\<close>:\<close>
 fun P2 :: \<open>('n,'t) bracket3 \<Rightarrow> ('n,'t) bracket3 \<Rightarrow> bool\<close> where
-  \<open>P2 (Close, (p, Two)) (Open, (p', v))  = False\<close> | 
-  \<open>P2 (Close, (p, Two)) y  = True\<close> | 
+  \<open>P2 (Close (p, Two)) (Open (p', v))  = False\<close> | 
+  \<open>P2 (Close (p, Two)) y  = True\<close> | 
   \<open>P2 x y = True\<close>
 
 fun P2_sym :: \<open>('n, ('n,'t) bracket3) sym \<Rightarrow> ('n, ('n,'t) bracket3) sym \<Rightarrow> bool\<close> where
-  \<open>P2_sym (Tm (Close, (p, Two))) (Tm (Open, (p', v)))  = False\<close> | 
-  \<open>P2_sym (Tm (Close, (p, Two))) y  = True\<close> | 
+  \<open>P2_sym (Tm (Close (p, Two))) (Tm (Open (p', v)))  = False\<close> | 
+  \<open>P2_sym (Tm (Close (p, Two))) y  = True\<close> | 
   \<open>P2_sym x y = True\<close>
 
 lemma P2D[dest]:
-  assumes \<open>P2 (Close, (p, Two)) r\<close>
-  shows \<open>r \<noteq> (Open, g)\<close> 
-  using assms by(induction \<open>(Close, (p, Two))\<close> \<open>r\<close> rule: P2.induct) auto
+  assumes \<open>P2 (Close (p, Two)) r\<close>
+  shows \<open>r \<noteq> (Open g)\<close> 
+  using assms by(induction \<open>(Close (p, Two))\<close> \<open>r\<close> rule: P2.induct) auto
 
 lemma P2_symD[dest]:
-  assumes \<open>P2_sym (Tm (Close, (p, Two))) r\<close>
-  shows \<open>r \<noteq> Tm (Open, g)\<close> 
-  using assms by(induction \<open>Tm (Close, (p, Two)):: ('a, ('a,'b) bracket3) sym\<close> r rule: P2_sym.induct) auto
+  assumes \<open>P2_sym (Tm (Close (p, Two))) r\<close>
+  shows \<open>r \<noteq> Tm (Open g)\<close> 
+  using assms by(induction \<open>Tm (Close (p, Two)):: ('a, ('a,'b) bracket3) sym\<close> r rule: P2_sym.induct) auto
 
 lemmas P2E = P2D[elim_format]
 lemmas P2_symE = P2_symD[elim_format]
@@ -510,18 +503,18 @@ subsection\<open>\<open>P3\<close>\<close>
 text\<open>Each \<open>[\<^sup>1\<^bsub>A\<rightarrow>BC\<^esub>\<close> is directly followed by \<open>[\<^sup>1\<^bsub>B\<rightarrow>_\<^esub>\<close>,
 and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>BC\<^esub>\<close> is directly followed by \<open>[\<^sup>1\<^bsub>C\<rightarrow>_\<^esub>\<close>:\<close>
 fun P3 :: \<open>('n,'t) bracket3 \<Rightarrow> ('n,'t) bracket3 \<Rightarrow> bool\<close> where
-  \<open>P3 [\<^sup>1\<^bsub>(A, [Nt B, Nt C])\<^esub> (p, ((X,y), t)) = (p = Open \<and> t = One \<and> X = B)\<close> |
-  \<open>P3 [\<^sup>2\<^bsub>(A, [Nt B, Nt C])\<^esub> (p, ((X,y), t)) = (p = Open \<and> t = One \<and> X = C)\<close> |
+  \<open>P3 [\<^sup>1\<^bsub>(A, [Nt B, Nt C])\<^esub> (p, ((X,y), t)) = (p = True \<and> t = One \<and> X = B)\<close> |
+  \<open>P3 [\<^sup>2\<^bsub>(A, [Nt B, Nt C])\<^esub> (p, ((X,y), t)) = (p = True \<and> t = One \<and> X = C)\<close> |
   \<open>P3 x y = True\<close>
 
 text\<open>Each \<open>[\<^sup>1\<^bsub>A\<rightarrow>BC\<^esub>\<close> is directly followed \<open>[\<^sup>1\<^bsub>B\<rightarrow>_\<^esub>\<close> or \<open>Nt B\<close>,
 and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>BC\<^esub>\<close> is directly followed by \<open>[\<^sup>1\<^bsub>C\<rightarrow>_\<^esub>\<close> or \<open>Nt C\<close>:\<close>
 fun P3_sym :: \<open>('n, ('n,'t) bracket3) sym \<Rightarrow> ('n, ('n,'t) bracket3) sym \<Rightarrow> bool\<close> where
-  \<open>P3_sym (Tm [\<^sup>1\<^bsub>(A, [Nt B, Nt C])\<^esub>) (Tm (p, ((X,y), t))) = (p = Open \<and> t = One \<and> X = B)\<close> |
+  \<open>P3_sym (Tm [\<^sup>1\<^bsub>(A, [Nt B, Nt C])\<^esub>) (Tm (p, ((X,y), t))) = (p = True \<and> t = One \<and> X = B)\<close> |
   \<comment> \<open>Not obvious: the case \<open>(Tm [\<^sup>1\<^bsub>(A, [Nt B, Nt C])\<^esub>) Nt X\<close> is set to True with the catch all\<close>
   \<open>P3_sym (Tm [\<^sup>1\<^bsub>(A, [Nt B, Nt C])\<^esub>) (Nt X) = (X = B)\<close> | 
 
-\<open>P3_sym (Tm [\<^sup>2\<^bsub>(A, [Nt B, Nt C])\<^esub>) (Tm (p, ((X,y), t))) = (p = Open \<and> t = One \<and> X = C)\<close> | 
+\<open>P3_sym (Tm [\<^sup>2\<^bsub>(A, [Nt B, Nt C])\<^esub>) (Tm (p, ((X,y), t))) = (p = True \<and> t = One \<and> X = C)\<close> | 
 \<open>P3_sym (Tm [\<^sup>2\<^bsub>(A, [Nt B, Nt C])\<^esub>) (Nt X) = (X = C)\<close> | 
 \<open>P3_sym x y = True\<close>
 
@@ -570,27 +563,27 @@ subsection\<open>\<open>P4\<close>\<close>
 text\<open>Each \<open>[\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by \<open>]\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close>
 and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by \<open>]\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close>:\<close>
 fun P4 :: \<open>('n,'t) bracket3 \<Rightarrow> ('n,'t) bracket3 \<Rightarrow> bool\<close> where
-  \<open>P4 (Open, ((A, [Tm a]), s)) (p, ((X, y), t)) = (p = Close \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> |
+  \<open>P4 (Open ((A, [Tm a]), s)) (p, ((X, y), t)) = (p = False \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> |
   \<open>P4 x y = True\<close>
 
 text\<open>Each \<open>[\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by \<open>]\<^sup>1\<^bsub>A\<rightarrow>a\<^esub>\<close>
 and each \<open>[\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close> is directly followed by \<open>]\<^sup>2\<^bsub>A\<rightarrow>a\<^esub>\<close>:\<close>
 fun P4_sym :: \<open>('n, ('n,'t) bracket3) sym \<Rightarrow> ('n, ('n,'t) bracket3) sym \<Rightarrow> bool\<close> where
-  \<open>P4_sym (Tm (Open, ((A, [Tm a]), s))) (Tm (p, ((X, y), t))) = (p = Close \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> | 
-  \<open>P4_sym (Tm (Open, ((A, [Tm a]), s))) (Nt X) = False\<close> | 
+  \<open>P4_sym (Tm (Open ((A, [Tm a]), s))) (Tm (p, ((X, y), t))) = (p = False \<and> X = A \<and> y = [Tm a] \<and> s = t)\<close> | 
+  \<open>P4_sym (Tm (Open ((A, [Tm a]), s))) (Nt X) = False\<close> | 
   \<open>P4_sym x y = True\<close>
 
 lemma P4D[dest]:
   fixes r::\<open>('n,'t) bracket3\<close>
-  assumes \<open>P4 (Open, ((A, [Tm a]), v)) r\<close>
-  shows \<open>r = (Close, (A, [Tm a]), v)\<close> 
-  using assms by(induction \<open>(Open, ((A, [Tm a]), v))::('n,'t) bracket3\<close> r rule: P4.induct) auto
+  assumes \<open>P4 (Open ((A, [Tm a]), v)) r\<close>
+  shows \<open>r = Close ((A, [Tm a]), v)\<close> 
+  using assms by(induction \<open>(Open ((A, [Tm a]), v))::('n,'t) bracket3\<close> r rule: P4.induct) auto
 
 lemma P4_symD[dest]:
   fixes r::\<open>('n, ('n,'t) bracket3) sym\<close>
-  assumes \<open>P4_sym (Tm (Open, ((A, [Tm a]), v))) r\<close>
-  shows \<open>r = Tm (Close, (A, [Tm a]), v)\<close> 
-  using assms by(induction \<open>Tm (Open, ((A, [Tm a]), v)):: ('n, ('n,'t) bracket3) sym\<close> r rule: P4_sym.induct) auto
+  assumes \<open>P4_sym (Tm (Open ((A, [Tm a]), v))) r\<close>
+  shows \<open>r = Tm (Close ((A, [Tm a]), v))\<close> 
+  using assms by(induction \<open>Tm (Open ((A, [Tm a]), v)):: ('n, ('n,'t) bracket3) sym\<close> r rule: P4_sym.induct) auto
 
 lemmas P4E = P4D[elim_format]
 
@@ -644,21 +637,21 @@ subsection\<open>\<open>P7\<close> and \<open>P8\<close>\<close>
 
 text\<open>\<open>(successively P7_sym) w\<close> iff \<open>Nt Y\<close> is directly preceded by some \<open>Tm [\<^sup>1\<^bsub>A\<rightarrow>YC\<^esub>\<close> or \<open>Tm [\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close> in w:\<close>
 fun P7_sym :: \<open>('n, ('n,'t) bracket3) sym \<Rightarrow> ('n, ('n,'t) bracket3) sym \<Rightarrow> bool\<close> where
-  \<open>P7_sym (Tm (b,(A, [Nt B, Nt C]), v )) (Nt Y) = (b = Open \<and> ((Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
+  \<open>P7_sym (Tm (b,(A, [Nt B, Nt C]), v )) (Nt Y) = (b = True \<and> ((Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
   \<open>P7_sym x (Nt Y) = False\<close> | 
   \<open>P7_sym x y = True\<close>
 
 lemma P7_symD[dest]: 
   fixes x:: \<open>('n, ('n,'t) bracket3) sym\<close>
   assumes \<open>P7_sym x (Nt Y)\<close>
-  shows \<open>(\<exists>A C. x = Tm [\<^sup>1\<^bsub>(A,[Nt Y, Nt C])\<^esub>) \<or> (\<exists>A B. x = Tm (Open, (A,[Nt B, Nt Y]), Two))\<close>
+  shows \<open>(\<exists>A C. x = Tm [\<^sup>1\<^bsub>(A,[Nt Y, Nt C])\<^esub>) \<or> (\<exists>A B. x = Tm [\<^sup>2\<^bsub>(A,[Nt B, Nt Y])\<^esub>)\<close>
   using assms by(induction x \<open>Nt Y::('n, ('n,'t) bracket3) sym\<close> rule: P7_sym.induct) auto
 
 lemmas P7_symE = P7_symD[elim_format]
 
 text\<open>\<open>(successively P8_sym) w\<close> iff \<open>Nt Y\<close> is directly followed by some \<open>]\<^sup>1\<^bsub>A\<rightarrow>YC\<^esub>\<close> or \<open>]\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close> in w:\<close>
 fun P8_sym :: \<open>('n, ('n,'t) bracket3) sym \<Rightarrow> ('n, ('n,'t) bracket3) sym \<Rightarrow> bool\<close> where
-  \<open>P8_sym (Nt Y) (Tm (b,(A, [Nt B, Nt C]), v ))  = (b = Close \<and> ( (Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
+  \<open>P8_sym (Nt Y) (Tm (b,(A, [Nt B, Nt C]), v ))  = (b = False \<and> ( (Y = B \<and> v = One) \<or> (Y=C \<and> v = Two)) )\<close> | 
   \<open>P8_sym (Nt Y) x = False\<close> | 
   \<open>P8_sym x y = True\<close>
 
@@ -748,30 +741,8 @@ lemma Reg_for_tm_if_Reg_sym[intro, dest]: \<open>(map Tm x) \<in> Reg_sym A \<Lo
 
 section\<open>Showing Regularity\<close>
 
-definition brackets'::\<open>('n,'t) Prods \<Rightarrow> ('n,'t) bracket3 set\<close> where
-  \<open>brackets' P = { (br,(p,v)) | br p v. p \<in> P }\<close>
-
-lemma brackets'I[intro!]: \<open>p \<in> P \<Longrightarrow> (br,(p,v)) \<in> brackets' P\<close> 
-  unfolding brackets'_def by blast
-
-lemma brackets'D1: \<open>(br,(p,v)) \<in> brackets' P \<Longrightarrow> p \<in> P\<close> 
-  unfolding brackets'_def by blast
-
-lemmas brackets'E1[elim!] = brackets'D1[elim_format]
-
-lemma brackets'E2[elim]: \<open>\<lbrakk>x \<in> brackets' P; \<And>br p v. \<lbrakk>x = (br,(p,v)); p \<in> P\<rbrakk> \<Longrightarrow> thesis\<rbrakk> \<Longrightarrow> thesis\<close> 
-  unfolding brackets'_def by blast
-
 abbreviation brackets::\<open>('n,'t) Prods \<Rightarrow> ('n,'t) bracket3 list set\<close> where
-  \<open>brackets P \<equiv> {x. list_all (\<lambda>y. y \<in> brackets' P) x}\<close>
-
-lemma bracketsI[intro!]: \<open>list_all (\<lambda>y. y \<in> brackets' P) x \<Longrightarrow> x \<in> brackets P\<close> 
-  by blast
-
-lemma bracketsD: \<open>x \<in> brackets P \<Longrightarrow> list_all (\<lambda>y. y \<in> brackets' P) x\<close> 
-  by blast
-
-lemmas bracketsE[elim!] = bracketsD[elim_format]
+  \<open>brackets P \<equiv> {bs. \<forall>(_,p,_) \<in> set bs. p \<in> P}\<close>
 
 text\<open>This is needed for the construction that shows P2,P3,P4 regular.\<close>
 datatype 'a state = start | garbage |  letter 'a
@@ -802,11 +773,11 @@ lemma finite_allStates_if:
   shows \<open>finite( allStates P)\<close>
 proof -
   define S::\<open>('n,'t) bracket3 state set\<close> where  "S = {letter (br, (p, v)) | br p v. p \<in> P}"
-  have 1:"S = (\<lambda>(br, p, v). letter (br, (p, v))) ` ({Open, Close} \<times> P \<times> {One, Two})" 
-    unfolding S_def apply auto using bracket.exhaust version.exhaust by (smt (verit, best) SigmaI image_eqI insert_iff)
-  have "finite ({Open, Close} \<times> P \<times> {One, Two})" 
+  have 1:"S = (\<lambda>(br, p, v). letter (br, (p, v))) ` ({True, False} \<times> P \<times> {One, Two})" 
+    unfolding S_def by (auto simp: image_iff intro: version.exhaust)
+  have "finite ({True, False} \<times> P \<times> {One, Two})" 
     using `finite P` by simp
-  then have \<open>finite ((\<lambda>(br, p, v). letter (br, (p, v))) ` ({Open, Close} \<times> P \<times> {One, Two}))\<close> 
+  then have \<open>finite ((\<lambda>(br, p, v). letter (br, (p, v))) ` ({True, False} \<times> P \<times> {One, Two}))\<close> 
     by blast
   then have \<open>finite S\<close> 
     unfolding 1 by blast
@@ -954,9 +925,7 @@ proof(induction xs rule: induct_list012)
 next
   case (2 x)
   then show ?case
-    apply(standard)
-    using singleton_in_aut_iff apply fastforce
-    using singleton_in_aut_iff by (metis List.successively.simps(2) brackets'I list_all_simps(1,2) mem_Collect_eq surj_pair)  
+    using singleton_in_aut_iff by auto
 next
   case (3 x y zs)
   show ?case
@@ -1029,7 +998,7 @@ qed
 
 
 subsection\<open>Construction of an automaton for \<open>P1\<close>\<close>
-text\<open>More Precisely, for the \<open>if not empty, then doesnt end in (Close,_,1)\<close> part. 
+text\<open>More Precisely, for the \<open>if not empty, then doesnt end in (Close_,1)\<close> part. 
 Then intersect with the other construction for \<open>P1'\<close> to get \<open>P1\<close> regular.\<close>
 
 locale P1Construction = 
@@ -1039,7 +1008,7 @@ begin
 
 datatype P1_State = last_ok | last_bad | garbage 
 
-text\<open>The good ending letters, are those that are not of the form \<open>(Close, _ , 1)\<close>.\<close>
+text\<open>The good ending letters, are those that are not of the form \<open>(Close _ , 1)\<close>.\<close>
 fun good where
   \<open>good ]\<^sup>1\<^sub>p  = False\<close> | 
   \<open>good (br, p, v) = True\<close>
@@ -1115,7 +1084,8 @@ next
   moreover have \<open>(p1_aut.nextl last_ok (xs@[x]) = garbage) \<longleftrightarrow> 
     (p1_aut.nextl last_ok xs = garbage) \<or> ((p1_aut.nextl last_ok (xs @ [x]) = garbage) \<and> (p1_aut.nextl last_ok (xs) \<noteq> garbage))\<close> 
     by auto
-  ultimately show ?case using snoc by (smt (verit, del_insts) nxt.elims Finite_Automata_Not_HF.dfa'.select_convs(4) brackets'D1 brackets'I list_all_simps(1,2) P1_State.distinct(4,6) p1_aut.nextl_snoc mem_Collect_eq)
+  ultimately show ?case using snoc apply (cases x) apply (simp)
+    by (smt (z3) P1_State.exhaust P1_State.simps(3,5) nxt.simps(2,3))
 qed
 
 lemma lang_descr_full: 
@@ -1129,11 +1099,11 @@ next
   then show ?case
   proof(cases \<open>p1_aut.nextl last_ok (xs@[x]) = garbage\<close>)
     case True
-    then show ?thesis using nextl_garbage_iff by (metis P1_State.distinct(4,6) p1_aut.nextl.simps(1))
+    then show ?thesis using nextl_garbage_iff by fastforce
   next
     case False
-    then have br: \<open>xs \<in> brackets P\<close> \<open>[x] \<in> brackets P\<close> 
-      by (metis list_all_append mem_Collect_eq nextl_garbage_iff)+
+    then have br: \<open>xs \<in> brackets P\<close> \<open>[x] \<in> brackets P\<close>
+      using nextl_garbage_iff by fastforce+
     with snoc consider \<open>(p1_aut.nextl last_ok xs = last_ok)\<close> | \<open>(p1_aut.nextl last_ok xs = last_bad)\<close> 
       using nextl_garbage_iff by blast
     then show ?thesis
@@ -1201,9 +1171,9 @@ begin
 
 datatype P5_State = start | first_ok | garbage 
 
-text\<open>The good/ok ending letters, are those that are not of the form \<open>(Close, _ , 1)\<close>.\<close>
+text\<open>The good/ok ending letters, are those that are not of the form \<open>(Close _ , 1)\<close>.\<close>
 fun ok where
-  \<open>ok (Open, (X, _), One) = (X = A)\<close> | 
+  \<open>ok (Open ((X, _), One)) = (X = A)\<close> | 
   \<open>ok _ = False\<close>
 
 fun nxt :: \<open>P5_State \<Rightarrow> ('n,'t) bracket3 \<Rightarrow> P5_State\<close> where 
@@ -1254,7 +1224,7 @@ qed
 corollary dfa_p5_aut: "dfa' p5_aut"
   by unfold_locales
 
-corollary nxt_start_ok_iff: \<open>ok x \<and> x \<in> brackets' P \<longleftrightarrow> nxt start x = first_ok\<close> 
+corollary nxt_start_ok_iff: \<open>ok x \<and> fst(snd x) \<in> P \<longleftrightarrow> nxt start x = first_ok\<close> 
   apply(cases x) 
   apply(rename_tac br p v) 
   apply(case_tac br; case_tac v; case_tac \<open>p \<in> P\<close>) 
@@ -1264,7 +1234,7 @@ lemma empty_not_in_lang[simp]:\<open>[] \<notin> p5_aut.language\<close>
   unfolding p5_aut.language_def by auto 
 
 lemma singleton_in_lang_iff: \<open>[x] \<in> p5_aut.language \<longleftrightarrow> ok (hd [x]) \<and> [x] \<in> brackets P\<close> 
-  unfolding p5_aut.language_def using nxt_start_ok_iff by auto
+  unfolding p5_aut.language_def using nxt_start_ok_iff by (cases x) fastforce
 
 lemma singleton_first_ok_iff: \<open>p5_aut.nextl start ([x]) = first_ok \<or> p5_aut.nextl start ([x]) = garbage\<close> 
   apply(cases x) 
@@ -1319,7 +1289,7 @@ proof(induction xs rule: rev_induct)
         unfolding p5_aut.language_def using first_ok_iff[of xs] Cons by auto
       then have \<open>p5_aut.nextl start (xs@[x]) = garbage\<close> 
         by simp
-      then show ?thesis using IH unfolding xs_eq by (smt (verit, ccfv_threshold) Cons_eq_append_conv False Finite_Automata_Not_HF.dfa'.select_convs(2,3) List.list.sel(1) list_all_append P5_State.simps(5) p5_aut.language_def mem_Collect_eq neq_Nil_conv singleton_conv2 singleton_iff xs_eq)
+      then show ?thesis using IH unfolding xs_eq p5_aut.language_def by auto
     qed
   qed
 qed simp
@@ -1387,13 +1357,13 @@ qed
 text\<open>A lemma saying that all \<open>Dyck_lang\<close> words really only consist of brackets (trivial definition wrangling):\<close>
 
 lemma Dyck_lang_subset_brackets: \<open>Dyck_lang (P \<times> {One, Two}) \<subseteq> brackets P\<close>
-  unfolding Dyck_lang_def using Ball_set by fastforce
+  unfolding Dyck_lang_def using Ball_set by auto
 
 
 
 
 
-section\<open>Definitions of \<open>L\<close>, \<open>\<Gamma>\<close>, \<open>P'\<close>, \<open>L'\<close> and the locale beginning\<close>
+section\<open>Definitions of \<open>L\<close>, \<open>\<Gamma>\<close>, \<open>P'\<close>, \<open>L'\<close> w.r.t. fixed \<open>P\<close>\<close>
 
 locale Chomsky_Schuetzenberger_locale = 
 
@@ -1469,7 +1439,7 @@ next
   then have \<open>bal_tm (u @ w @ v)\<close> 
     using \<open>bal_tm (u @ [Nt A] @ v)\<close> by blast 
   moreover from snds_in_tm_w have \<open>snds_in_tm \<Gamma> (u @ w @ v)\<close> 
-    using \<open>snds_in_tm \<Gamma> (u @ [Nt A] @ v)\<close> by (metis snds_in_tm_append snds_in_tm_del_left snds_in_tm_del_right)
+    using \<open>snds_in_tm \<Gamma> (u @ [Nt A] @ v)\<close> by (simp)
   ultimately show ?case using \<open>bal_tm (u @ w @ v)\<close> by blast
 qed
 
@@ -1514,7 +1484,7 @@ next
     then have \<open>P7_sym y (Nt A)\<close> 
       by (simp add: successively_append_iff)
 
-    then obtain R X Y v' where y_eq: \<open>y = (Tm (Open,(R, [Nt X, Nt Y]), v' ))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> 
+    then obtain R X Y v' where y_eq: \<open>y = (Tm (Open((R, [Nt X, Nt Y]), v')))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> 
       by blast
     then have \<open>P3_sym y (hd w)\<close> 
       using w_eq apply(cases \<open>w = ?w1\<close>) 
@@ -1562,7 +1532,7 @@ next
       using Reg_symD[OF uAv] Cons using successively_append_iff by blast
     then have \<open>P8_sym (Nt A) y\<close> 
       by fastforce
-    then obtain R X Y v' where y_eq: \<open>y = (Tm (Close,(R, [Nt X, Nt Y]), v' ))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> 
+    then obtain R X Y v' where y_eq: \<open>y = (Tm (Close((R, [Nt X, Nt Y]), v')))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> 
       by blast
     have \<open>P1'_sym (last w) (hd (y#ys)) \<and> 
          P2_sym (last w) (hd (y#ys)) \<and> 
@@ -1607,15 +1577,15 @@ next
   moreover have \<open>P1_sym (u@w@v)\<close> 
   proof(cases v rule: rev_cases)
     case Nil
-    have \<open>\<nexists>p. last (u@w@v) = Tm (Close,(p, One))\<close> 
+    have \<open>\<nexists>p. last (u@w@v) = Tm (Close(p, One))\<close> 
       unfolding Nil apply(rule disjE[OF w_eq]) by auto
     with P1_uwv show \<open>P1_sym (u @ w @ v)\<close> 
       by blast
   next
     case (snoc vs v')
-    then have \<open>\<nexists>p. last v = Tm (Close,(p, One))\<close> 
+    then have \<open>\<nexists>p. last v = Tm (Close(p, One))\<close> 
       using P1_symD_not_empty[OF _ P1_uAv] by (metis Nil_is_append_conv last_appendR not_Cons_self2)
-    then have \<open>\<nexists>p. last (u@w@v) = Tm (Close,(p, One))\<close> 
+    then have \<open>\<nexists>p. last (u@w@v) = Tm (Close(p, One))\<close> 
       by (simp add: snoc)
     with P1_uwv show \<open>P1_sym (u @ w @ v)\<close> 
       by blast
@@ -1694,7 +1664,7 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
   have r2_empty: \<open>r2 = []\<close>  \<comment> \<open>prove that if r2 was not empty, it would need to start with an open bracket, else it cant be balanced. But this cant be with P2.\<close>
   proof(cases r2)
     case (Cons r2' r2's)
-    with bal_r2 obtain g where r2_begin_op: \<open>r2' = (Open, g)\<close> 
+    with bal_r2 obtain g where r2_begin_op: \<open>r2' = (Open g)\<close> 
       using bal_start_Open[of r2' r2's] using Cons by blast
     have \<open>successively P2 ( ]\<^sup>2\<^bsub>\<pi>\<^esub>  # r2' # r2's)\<close> 
       using p2x unfolding split2 Cons successively_append_iff by (metis append_Cons successively_append_iff)
@@ -1766,11 +1736,11 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
     then have successively_P3: \<open>successively P3 (([\<^sup>1\<^bsub>\<pi>\<^esub>  # y @ [ ]\<^sup>1\<^bsub>\<pi>\<^esub>]) @ [\<^sup>2\<^bsub>\<pi>\<^esub> # z @ [ ]\<^sup>2\<^bsub>\<pi>\<^esub> ])\<close> 
       using split3 p3x by (metis List.append.assoc append_Cons append_Nil)
     have z_not_empty: \<open>z \<noteq> []\<close> 
-      using p3x pi_eq split1 successively_P3 by (metis List.list.distinct(1) List.list.sel(1) append_Nil P3.simps(2) Dyck_Language.bracket.simps(2) successively_Cons successively_append_iff)
+      using p3x pi_eq split1 successively_P3 by (metis List.list.distinct(1) List.list.sel(1) append_Nil P3.simps(2) successively_Cons successively_append_iff)
     then have \<open>P3 [\<^sup>2\<^bsub>\<pi>\<^esub> (hd z)\<close> 
       by (metis append_is_Nil_conv hd_append2 successively_Cons successively_P3 successively_append_iff)
     with p3x pi_eq have \<open>\<exists>g. hd z = [\<^sup>1\<^bsub>(C,g)\<^esub>\<close> 
-      using split_pairs by (metis P3.simps(2))
+      using split_pairs by blast
     then have \<open>P5 C z\<close> 
       by (metis List.list.exhaust_sel \<open>z \<noteq> []\<close> P5.simps(2)) 
     moreover have \<open>P1 z\<close>
@@ -1825,9 +1795,9 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
       case (Cons y' ys')
       have \<open>P4 [\<^sup>1\<^bsub>\<pi>\<^esub> y'\<close> 
         using Cons append_Cons p4x split3 by (metis List.successively.simps(3)) 
-      then have \<open>y' = (Close, \<pi>, One)\<close> 
+      then have \<open>y' = Close (\<pi>, One)\<close> 
         using pi_eq P4D by auto
-      moreover obtain g where \<open>y' = (Open, g)\<close> 
+      moreover obtain g where \<open>y' = (Open g)\<close> 
         using Cons bal_start_Open bal_y by blast
       ultimately have \<open>False\<close> 
         by blast
@@ -1838,9 +1808,9 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
       case (Cons z' zs')
       have \<open>P4 [\<^sup>2\<^bsub>\<pi>\<^esub> z'\<close> 
         using p4x split3 by (simp add: Cons \<open>y = []\<close>)
-      then have \<open>z' = (Close, \<pi>, One)\<close> 
+      then have \<open>z' = Close (\<pi>, One)\<close> 
         using pi_eq bal_start_Open bal_z local.Cons by blast
-      moreover obtain g where \<open>z' = (Open, g)\<close> 
+      moreover obtain g where \<open>z' = (Open g)\<close> 
         using Cons bal_start_Open bal_z by blast
       ultimately have \<open>False\<close> 
         by blast
@@ -1870,11 +1840,11 @@ where the corresponding production needs to be applied in the transformed versio
 abbreviation \<open>prod_rhs ts \<equiv> map root ts\<close>
 
 fun wrap1_Sym :: \<open>'n \<Rightarrow> ('n,'t) sym \<Rightarrow> version \<Rightarrow> ('n,('n,'t) bracket3) tree list\<close> where
-  "wrap1_Sym A (Tm a) v = [ Sym (Tm (Open, (A, [Tm a]),v)),  Sym (Tm (Close, (A, [Tm a]), v))]" | 
+  "wrap1_Sym A (Tm a) v = [ Sym (Tm (Open ((A, [Tm a]),v))),  Sym (Tm (Close ((A, [Tm a]), v)))]" | 
   \<open>wrap1_Sym _ _ _ = []\<close>
 
 fun wrap2_Sym :: \<open>'n \<Rightarrow> ('n,'t) sym \<Rightarrow> ('n,'t) sym \<Rightarrow> version \<Rightarrow> ('n,('n,'t) bracket3) tree \<Rightarrow> ('n,('n,'t) bracket3) tree list\<close>  where
-  "wrap2_Sym A (Nt B) (Nt C) v t = [Sym (Tm (Open, (A, [Nt B, Nt C]), v)), t , Sym (Tm (Close, ((A, [Nt B, Nt C]), v)))]" | 
+  "wrap2_Sym A (Nt B) (Nt C) v t = [Sym (Tm (Open ((A, [Nt B, Nt C]), v))), t , Sym (Tm (Close ((A, [Nt B, Nt C]), v)))]" | 
   \<open>wrap2_Sym _ _ _ _ _ = []\<close>
 
 fun transform_tree :: "('n,'t) tree \<Rightarrow> ('n,('n,'t) bracket3) tree" where
@@ -2113,8 +2083,8 @@ proof -
     by (simp add: L_def)
   finally have \<open>\<h> ` (Dyck_lang \<Gamma> \<inter> Reg S) = L\<close> 
     by auto
-  moreover have \<open>(Dyck_lang \<Gamma> \<inter> (brackets P \<inter> Reg S)) = (Dyck_lang \<Gamma> \<inter> Reg S)\<close>
-    using \<Gamma>_def Dyck_lang_subset_brackets by auto
+  moreover have \<open>Dyck_lang \<Gamma> \<inter> (brackets P \<inter> Reg S) = Dyck_lang \<Gamma> \<inter> Reg S\<close>
+    using Dyck_lang_subset_brackets unfolding \<Gamma>_def by fastforce
   moreover have hom: \<open>hom \<h>\<close> 
     by (simp add: hom_def)
   moreover from finiteP have \<open>regular (brackets P \<inter> Reg S)\<close> 
@@ -2160,7 +2130,7 @@ qed
 
 
 
-text\<open>The Chomsky-Schuetzenberger theorem that we really want to prove:\<close>
+text\<open>The Chomsky-Schützenberger theorem that we really want to prove:\<close>
 lemma Chomsky_Schuetzenberger_general:
   fixes P :: \<open>('n :: infinite, 't) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> CFG.Lang P S\<close>

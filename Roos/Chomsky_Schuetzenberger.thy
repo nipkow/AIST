@@ -280,8 +280,7 @@ qed
 
 text\<open>Helper for showing the upcoming lemma:\<close>
 lemma helper: \<open>the_hom_ext_helper (Tm x) = map Tm (the_hom_helper x)\<close>
-  apply(induction x rule: the_hom_helper.induct)
-  by(auto split: list.splits sym.splits)
+  by(induction x rule: the_hom_helper.induct)(auto split: list.splits sym.splits)
 
 text\<open>Show that the extension really is an extension in some sense:\<close>
 lemma h_eq_h_ext: \<open>\<h>\<s> (map Tm x) = map Tm (\<h> x)\<close>
@@ -368,12 +367,12 @@ fun P1'_sym :: \<open>('n, ('n,'t) bracket3) sym \<Rightarrow> ('n, ('n,'t) brac
 lemma P1'D[dest]:
   assumes \<open>P1' (Close, (p, One)) r\<close>
   shows \<open>r = (Open, (p, Two))\<close> 
-  using assms apply(induction \<open>(Close, (p, One))\<close> \<open>r\<close> rule: P1'.induct) by auto
+  using assms by(induction \<open>(Close, (p, One))\<close> \<open>r\<close> rule: P1'.induct) auto
 
 lemma P1'_symD[dest]:
   assumes \<open>P1'_sym (Tm (Close, (p, One))) r\<close>
   shows \<open>r = Tm (Open, (p, Two))\<close> 
-  using assms apply(induction \<open>(Tm (Close, (p, One)))::('a, ('a,'b) bracket3) sym\<close> \<open>r\<close> rule: P1'_sym.induct) by auto
+  using assms by(induction \<open>(Tm (Close, (p, One)))::('a, ('a,'b) bracket3) sym\<close> \<open>r\<close> rule: P1'_sym.induct) auto
 
 lemmas P1'E = P1'D[elim_format]
 
@@ -488,13 +487,12 @@ fun P2_sym :: \<open>('n, ('n,'t) bracket3) sym \<Rightarrow> ('n, ('n,'t) brack
 lemma P2D[dest]:
   assumes \<open>P2 (Close, (p, Two)) r\<close>
   shows \<open>r \<noteq> (Open, g)\<close> 
-  using assms apply(induction \<open>(Close, (p, Two))\<close> \<open>r\<close> rule: P2.induct) by auto
+  using assms by(induction \<open>(Close, (p, Two))\<close> \<open>r\<close> rule: P2.induct) auto
 
 lemma P2_symD[dest]:
   assumes \<open>P2_sym (Tm (Close, (p, Two))) r\<close>
   shows \<open>r \<noteq> Tm (Open, g)\<close> 
-  using assms apply(induction \<open>Tm (Close, (p, Two)):: ('a, ('a,'b) bracket3) sym\<close> r rule: P2_sym.induct) 
-  by auto
+  using assms by(induction \<open>Tm (Close, (p, Two)):: ('a, ('a,'b) bracket3) sym\<close> r rule: P2_sym.induct) auto
 
 lemmas P2E = P2D[elim_format]
 lemmas P2_symE = P2_symD[elim_format]
@@ -531,29 +529,25 @@ lemma P3D1[dest]:
   fixes r::\<open>('n,'t) bracket3\<close>
   assumes \<open>P3 (Open, ((A, [Nt B, Nt C]), One)) r\<close>
   shows \<open>\<exists>l. r = (Open, (B, l), One)\<close>
-  using assms apply(induction \<open>(Open, ((A, [Nt B, Nt C]), One)):: ('n,'t) bracket3\<close> r rule: P3.induct) 
-  by auto 
+  using assms by(induction \<open>(Open, ((A, [Nt B, Nt C]), One)):: ('n,'t) bracket3\<close> r rule: P3.induct) auto 
 
 lemma P3D2[dest]:
   fixes r::\<open>('n,'t) bracket3\<close>
   assumes \<open>P3 (Open, ((A, [Nt B, Nt C]), Two)) r\<close>
   shows \<open>\<exists>l. r = (Open, (C, l), One)\<close>
-  using assms apply(induction \<open>(Open, ((A, [Nt B, Nt C]), One)):: ('n,'t) bracket3\<close> r rule: P3.induct) 
-  by auto 
+  using assms by(induction \<open>(Open, ((A, [Nt B, Nt C]), One)):: ('n,'t) bracket3\<close> r rule: P3.induct) auto 
 
 lemma P3_symD1[dest]:
   fixes r::\<open>('n, ('n,'t) bracket3) sym\<close>
   assumes \<open>P3_sym (Tm (Open, ((A, [Nt B, Nt C]), One))) r\<close>
   shows \<open>(\<exists>l. r = Tm (Open, (B, l), One)) \<or> (r = Nt B)\<close>
-  using assms apply(induction \<open>Tm (Open, ((A, [Nt B, Nt C]), One)):: ('n, ('n,'t) bracket3) sym\<close> r rule: P3_sym.induct) 
-  by auto 
+  using assms by(induction \<open>Tm (Open, ((A, [Nt B, Nt C]), One)):: ('n, ('n,'t) bracket3) sym\<close> r rule: P3_sym.induct) auto 
 
 lemma P3_symD2[dest]:
   fixes r::\<open>('n, ('n,'t) bracket3) sym\<close>
   assumes \<open>P3_sym (Tm (Open, ((A, [Nt B, Nt C]), Two))) r\<close>
   shows \<open>(\<exists>l. r = Tm (Open, (C, l), One)) \<or> (r = Nt C)\<close>
-  using assms apply(induction \<open>Tm (Open, ((A, [Nt B, Nt C]), Two)):: ('n, ('n,'t) bracket3) sym\<close> r rule: P3_sym.induct) 
-  by auto
+  using assms by(induction \<open>Tm (Open, ((A, [Nt B, Nt C]), Two)):: ('n, ('n,'t) bracket3) sym\<close> r rule: P3_sym.induct) auto
 
 lemmas P3E1 = P3D1[elim_format]
 
@@ -590,15 +584,13 @@ lemma P4D[dest]:
   fixes r::\<open>('n,'t) bracket3\<close>
   assumes \<open>P4 (Open, ((A, [Tm a]), v)) r\<close>
   shows \<open>r = (Close, (A, [Tm a]), v)\<close> 
-  using assms apply(induction \<open>(Open, ((A, [Tm a]), v))::('n,'t) bracket3\<close> r rule: P4.induct) 
-  by auto
+  using assms by(induction \<open>(Open, ((A, [Tm a]), v))::('n,'t) bracket3\<close> r rule: P4.induct) auto
 
 lemma P4_symD[dest]:
   fixes r::\<open>('n, ('n,'t) bracket3) sym\<close>
   assumes \<open>P4_sym (Tm (Open, ((A, [Tm a]), v))) r\<close>
   shows \<open>r = Tm (Close, (A, [Tm a]), v)\<close> 
-  using assms apply(induction \<open>Tm (Open, ((A, [Tm a]), v)):: ('n, ('n,'t) bracket3) sym\<close> r rule: P4_sym.induct) 
-  by auto
+  using assms by(induction \<open>Tm (Open, ((A, [Tm a]), v)):: ('n, ('n,'t) bracket3) sym\<close> r rule: P4_sym.induct) auto
 
 lemmas P4E = P4D[elim_format]
 
@@ -606,7 +598,10 @@ lemmas P4_symE = P4_symD[elim_format]
 
 
 lemma P4_for_tm_if_P4_sym[intro, dest]: \<open>successively P4_sym (map Tm x) \<Longrightarrow> successively P4 x\<close>
-  apply(induction x rule: induct_list012) apply simp apply simp apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P4_sym.cases) 
+  apply(induction x rule: induct_list012)
+    apply simp
+   apply simp
+  apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P4_sym.cases) 
   by auto
 
 
@@ -628,18 +623,18 @@ fun P5_sym :: \<open>'n \<Rightarrow> ('n, ('n,'t) bracket3) syms \<Rightarrow> 
 lemma P5D[dest]: 
   assumes \<open>P5 A x\<close>
   shows \<open>\<exists>y. (hd x = (Open, (A,y), One))\<close>
-  using assms apply(induction A x rule: P5.induct) by auto
+  using assms by(induction A x rule: P5.induct) auto
 
 lemma P5_symD[dest]: 
   assumes \<open>P5_sym A x\<close>
   shows \<open>(\<exists>y. hd x = Tm (Open, (A,y), One)) \<or> (hd x = Nt A)\<close>
-  using assms apply(induction A x rule: P5_sym.induct) by auto
+  using assms by(induction A x rule: P5_sym.induct) auto
 
 lemmas P5E = P5D[elim_format]
 lemmas P5_symE = P5_symD[elim_format]
 
 lemma P5_for_tm_if_P5_sym[intro, dest]: \<open>P5_sym A (map Tm x) \<Longrightarrow> P5 A x\<close>
-  apply(induction x) by auto
+  by(induction x) auto
 
 
 
@@ -657,8 +652,7 @@ lemma P7_symD[dest]:
   fixes x:: \<open>('n, ('n,'t) bracket3) sym\<close>
   assumes \<open>P7_sym x (Nt Y)\<close>
   shows \<open>(\<exists>A C. x = Tm (Open, (A,[Nt Y, Nt C]), One)) \<or> (\<exists>A B. x = Tm (Open, (A,[Nt B, Nt Y]), Two))\<close>
-  using assms apply(induction x \<open>Nt Y::('n, ('n,'t) bracket3) sym\<close> rule: P7_sym.induct) 
-  by auto
+  using assms by(induction x \<open>Nt Y::('n, ('n,'t) bracket3) sym\<close> rule: P7_sym.induct) auto
 
 lemmas P7_symE = P7_symD[elim_format]
 
@@ -672,8 +666,7 @@ lemma P8_symD[dest]:
   fixes x:: \<open>('n, ('n,'t) bracket3) sym\<close>
   assumes \<open>P8_sym (Nt Y) x\<close>
   shows \<open>(\<exists>A C. x = Tm (Close, (A,[Nt Y, Nt C]), One)) \<or> (\<exists>A B. x = Tm (Close, (A,[Nt B, Nt Y]), Two))\<close>
-  using assms apply(induction \<open>Nt Y::('n, ('n,'t) bracket3) sym\<close> x rule: P8_sym.induct) 
-  by auto
+  using assms by(induction \<open>Nt Y::('n, ('n,'t) bracket3) sym\<close> x rule: P8_sym.induct) auto
 
 lemmas P8_symE = P8_symD[elim_format]
 
@@ -874,8 +867,7 @@ next
 next
   case (3 q x)
   then show ?case 
-    apply(induction rule: succNext_induct[of _ q x]) 
-    by (auto simp: allStatesI)
+    by(induction rule: succNext_induct[of _ q x]) (auto simp: allStatesI)
 next
   case 4
   then show ?case 
@@ -886,13 +878,13 @@ corollary dfa_aut: "dfa' aut"
   by unfold_locales
 
 lemma nextl_in_allStates[intro]: \<open>q \<in> allStates P \<Longrightarrow> aut.nextl q ys \<in> allStates P\<close>
-  apply(induction ys arbitrary: q) using aut.nxt by auto
+  using aut.nxt by(induction ys arbitrary: q) auto
 
 corollary nextl_in_allStates_from_start[simp]: \<open>aut.nextl start ys \<in> allStates P\<close> 
   using nextl_in_allStates by auto
 
 lemma nextl_garbage[simp]: \<open>aut.nextl garbage xs = garbage\<close> 
-  apply(induction xs) by auto
+by(induction xs) auto
 
 lemma drop_right: \<open>xs@ys \<in> aut.language \<Longrightarrow> xs \<in> aut.language\<close>
 proof(induction ys)
@@ -907,15 +899,13 @@ qed auto
 
 
 lemma state_after1[iff]: \<open>(succNext q a \<noteq> garbage) = (succNext q a = letter a)\<close>
-  apply(induction q a rule: succNext.induct) 
-  by (auto split: if_splits)
+by(induction q a rule: succNext.induct) (auto split: if_splits)
 
 lemma state_after[iff]: \<open>(aut.nextl q (as@[a]) \<noteq> garbage) = (aut.nextl q (as@[a]) = letter a)\<close> 
   by simp
 
 lemma state_after_in_P[intro]: \<open>succNext q (br, p, v) \<noteq> garbage \<Longrightarrow> p \<in> P\<close>
-  apply(induction q \<open>(br, p, v)\<close> rule: succNext_induct) 
-  by auto 
+by(induction q \<open>(br, p, v)\<close> rule: succNext_induct) auto 
 
 
 lemma drop_left_general: \<open>aut.nextl start ys = garbage \<Longrightarrow> aut.nextl q ys = garbage\<close>
@@ -1099,9 +1089,7 @@ next
 next
   case (3 q x)
   then show ?case 
-    apply simp 
-    apply(induction rule: nxt_induct[of _ q x]) 
-    by auto
+    by(induction rule: nxt_induct[of _ q x]) auto
 next
   case 4
   then show ?case by simp
@@ -1114,7 +1102,7 @@ lemma empty_in_aut[simp]: \<open>[] \<in> p1_aut.language\<close>
   unfolding p1_aut.language_def by auto
 
 lemma singleton_in_aut_iff: \<open>[(br, p, v)] \<in> p1_aut.language \<longleftrightarrow> (good (br, p, v) \<and> p \<in> P)\<close>
-  unfolding p1_aut.language_def apply(induction \<open>(br,p,v)\<close> rule: good.induct) by auto
+  unfolding p1_aut.language_def by(induction \<open>(br,p,v)\<close> rule: good.induct) auto
 
 lemma nextl_garbage_iff[simp]:\<open>p1_aut.nextl last_ok xs = garbage \<longleftrightarrow> \<not>(xs \<in> brackets P)\<close>
 proof(induction xs rule: rev_induct)
@@ -1163,7 +1151,7 @@ lemma lang_descr: \<open>xs \<in> p1_aut.language \<longleftrightarrow> (xs = []
   unfolding p1_aut.language_def using lang_descr_full by auto
 
 lemma good_iff[simp]:\<open>(\<forall>a b. last xs \<noteq> ]\<^sup>1\<^bsub>(a, b)\<^esub>) = good (last xs)\<close> 
-  apply auto by (metis good.elims(3) split_pairs)
+  by auto (metis good.elims(3) split_pairs)
 
 lemma in_P1_iff: \<open>(P1 xs \<and> xs \<in> brackets P ) \<longleftrightarrow>  (xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets P)) \<and> successively P1' xs \<and>  xs \<in> brackets P\<close> 
   using good_iff by auto
@@ -1257,7 +1245,7 @@ next
   then show ?case by simp
 next
   case (3 q x)
-  then show ?case apply simp apply(induction rule: nxt_induct[of _ q x]) by auto
+  then show ?case by(induction rule: nxt_induct[of _ q x]) auto
 next
   case 4
   then show ?case by simp
@@ -1338,7 +1326,7 @@ qed simp
 
 
 lemma in_P5_iff: \<open>P5 A xs \<and> xs \<in> brackets P \<longleftrightarrow> (xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets P)\<close> 
-  apply auto by (metis List.list.exhaust_sel P5.simps(2) ok.elims(2))
+  by auto (metis List.list.exhaust_sel P5.simps(2) ok.elims(2))
 
 lemma aut_language_reg: \<open>regular p5_aut.language\<close> 
   using dfa'_imp_regular dfa_p5_aut by blast
@@ -1897,7 +1885,7 @@ fun transform_tree :: "('n,'t) tree \<Rightarrow> ('n,('n,'t) bracket3) tree" wh
   \<open>transform_tree (Rule A y) = (Rule A [])\<close>
 
 lemma root_of_transform_tree[intro, simp]: \<open>root t = Nt X \<Longrightarrow> root (transform_tree t) = Nt X\<close>
-  apply(induction t rule: transform_tree.induct) by auto
+  by(induction t rule: transform_tree.induct) auto
 
 lemma transform_tree_correct:
   assumes \<open>parse_tree P t \<and> fringe t = w\<close>
@@ -2040,7 +2028,7 @@ proof-
   obtain A a B C where pi_def: \<open>\<pi> = (A, [Nt B, Nt C]) \<or> \<pi> = (A, [Tm a])\<close> 
     using assms by fastforce
   then show ?thesis 
-    apply(rule disjE) by auto
+    by auto
 qed
 
 

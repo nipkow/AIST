@@ -904,14 +904,57 @@ proof(induction ys)
   then show ?case by blast
 qed auto
 
-lemma drop_left_general: \<open>aut.nextl (succNext q x) ys \<noteq> garbage \<Longrightarrow> aut.nextl start ys \<noteq> garbage\<close>
-proof(induction ys arbitrary: q x)
+
+
+lemma state_after1[iff]: \<open>(succNext q a \<noteq> garbage) = (succNext q a = letter a)\<close>
+  apply(induction q a rule: succNext.induct) 
+  by (auto split: if_splits)
+
+lemma state_after[iff]: \<open>(aut.nextl q (as@[a]) \<noteq> garbage) = (aut.nextl q (as@[a]) = letter a)\<close> 
+  by simp
+
+lemma state_after_in_P[intro]: \<open>succNext q (br, p, v) \<noteq> garbage \<Longrightarrow> p \<in> P\<close>
+  apply(induction q \<open>(br, p, v)\<close> rule: succNext_induct) 
+  by auto 
+
+lemma drop_left_general: \<open>aut.nextl (succNext q a) ys \<noteq> garbage \<Longrightarrow> aut.nextl start ys \<noteq> garbage\<close>
+proof(induction ys rule: rev_induct)
   case Nil
   then show ?case by simp
 next
-  case (Cons a ys)
-  then show ?case 
-    using nextl_garbage by (smt (verit) successivelyConstruction.succNext.elims Finite_Automata_Not_HF.dfa'.select_convs(4) aut.nextl.simps(2) succNext.simps(2) successivelyConstruction_axioms)
+  case (snoc x xs)
+  then have nngarbage: \<open>aut.nextl (succNext q a) (xs @ [x]) \<noteq> garbage\<close>
+    by blast
+  then have nnletter: \<open>aut.nextl (succNext q a) (xs @ [x]) = letter x\<close> 
+    by blast
+  from nngarbage have ngbarage_xs_succ: \<open>aut.nextl (succNext q a) xs \<noteq> garbage\<close> 
+    using nextl_garbage by auto
+  then have ngarbage_xs: \<open>aut.nextl state.start xs \<noteq> garbage\<close> 
+    using snoc by blast
+  obtain br' p' v' where x_eq: \<open>x = (br', p', v')\<close> 
+    using prod_cases3 by blast 
+  then show ?case
+  proof(cases xs rule: rev_cases)
+    case Nil
+    from nnletter have \<open>succNext (succNext q a) x = letter x\<close> 
+      unfolding Nil by auto
+    then have \<open>p' \<in> P\<close> 
+      using x_eq state_after_in_P by blast
+    then show ?thesis using x_eq Nil by simp
+  next
+    case (snoc bs b)
+    then have xs_eq: \<open>xs = bs @ [b]\<close>
+      by blast
+    obtain br p v where a_eq: \<open>b = (br, p, v)\<close>
+      using prod_cases3 by blast
+    from ngarbage_xs have \<open>aut.nextl state.start xs = letter b\<close> 
+      using xs_eq by blast
+    then have \<open>aut.nextl state.start (xs @ [x]) = succNext (letter b) x\<close> 
+      by simp
+    moreover from ngbarage_xs_succ have \<open>aut.nextl (succNext q a) (xs @ [x]) = succNext (letter b) x\<close> 
+      using xs_eq aut.nextl_app by auto
+    ultimately show ?thesis using nngarbage by argo
+  qed
 qed
 
 lemma drop_left: \<open>xs@ys \<in> aut.language \<Longrightarrow> ys \<in> aut.language\<close>

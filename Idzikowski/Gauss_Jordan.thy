@@ -46,6 +46,10 @@ fun is_sols :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list list \<Right
 "is_sols sol _  [] = False" |
 "is_sols sol []  _ = False"
 
+lemma is_sols_length: "is_sols sol as eqns \<Longrightarrow> length as = length eqns"
+  apply(induction rule: is_sols.induct)
+  by auto
+
 abbreviation "all \<equiv> foldl (\<and>) True"
 
 lemma all_Cons: "all (x#xs) = (x \<and> all xs)"
@@ -64,6 +68,7 @@ lemma all_and_foldl: "(x \<and> all xs) = foldl (\<and>) x xs"
 fun is_sols2 where
 "is_sols2 sol as eqns = (length as = length eqns \<and> all (map2 (λs eq. is_sol s eq sol) as eqns))"
 
+(*maybe better with ∀*)
 fun is_sols3 where
 "is_sols3 sol eqns = (length sol = length eqns \<and> all (map2 (λs eq. is_sol s eq sol) sol eqns))"
 
@@ -120,7 +125,7 @@ Y is the solution of that equation
 
 *)
 lemma subst_correct:
-  assumes "is_sol X cs (X#Xs)"
+  assumes (*maybe not needed*) "is_sol X cs (X#Xs)"
           "is_sol X ds Xs"
           "is_sol Y es (X#Xs)"
   shows "is_sol Y (subst ds es) Xs"
@@ -183,11 +188,13 @@ qed (auto simp: mx_def)
   mx m b sols
   b > 0
 
+
+  the 2 Xs do not stay the same, only sublists
 *)
 
 theorem solves_is_sols:
-  shows "\<lbrakk> b > 0; mx n b eqns; mx m b sols; is_sols Xs Xs (reverse sols @ eqns) \<rbrakk> \<Longrightarrow> is_sols Xs Xs (reverse (solves sols eqns))"
-proof(induction arbitrary: sols rule: solves.induct )
+  shows "\<lbrakk> 0 < b; mx n b eqns; mx m b sols; is_sols Xs Xs (rev sols @ eqns) \<rbrakk> \<Longrightarrow> is_sols Xs Xs (rev (solves sols eqns))"
+proof(induction sols eqns arbitrary: Xs rule: solves.induct )
   case (1 sols)
   then show ?case by simp
 next
@@ -196,7 +203,11 @@ next
   obtain eqs' where eqs': "eqs' = map (subst sol) eqs" by auto
   obtain sols' where sols': "sols' = sol # map (subst sol) sols" by auto
 
-  thm "2.IH"[OF sol eqs']
+  from ‹mx n b ((c # cs) # eqs)› have "mx (n-1) b eqs" unfolding mx_def by auto
+
+  have "mx (n-1) (b-1) eqs'" using length_subst[of sol] eqs' ‹mx n b ((c # cs) # eqs)› length_solve1[of c cs] sol ‹0 < b› sorry
+
+  thm "2.IH"[OF sol eqs' sols' ‹0 < b›]
 
   then show ?case using solve1_correct subst_correct sorry
 next

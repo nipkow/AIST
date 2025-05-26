@@ -85,37 +85,38 @@ begin
 abbreviation f_inv where 
   \<open>f_inv \<equiv> the_inv_into (states M') f\<close>
 
-abbreviation hf_M' where
-  \<open>hf_M' \<equiv>  \<lparr>dfa.states = f ` (states M'),
-                init  = f (init M'),
-                final = f ` (final M'),
-                nxt   = \<lambda>q x. f( nxt M' (f_inv q) x) \<rparr>\<close>
-lemma f_f_inv[simp]: \<open>h \<in> dfa.states hf_M' \<Longrightarrow> f (f_inv h) = h\<close> 
+abbreviation f_M' where
+  \<open>f_M' \<equiv>  \<lparr>dfa.states = f ` (states M'),
+            init  = f (init M'),
+            final = f ` (final M'),
+            nxt   = \<lambda>q x. f( nxt M' (f_inv q) x) \<rparr>\<close>
+
+lemma f_f_inv[simp]: \<open>h \<in> dfa.states f_M' \<Longrightarrow> f (f_inv h) = h\<close> 
   by (metis dfa.select_convs(1) construct_equiv_dfa_axioms construct_equiv_dfa_def f_the_inv_into_f)
 
-lemma f_in[intro]: \<open>q \<in> dfa'.states M' \<Longrightarrow> f q \<in> dfa.states hf_M'\<close> 
+lemma f_in[intro]: \<open>q \<in> dfa'.states M' \<Longrightarrow> f q \<in> dfa.states f_M'\<close> 
   by simp
 
-lemma f_in_final[intro]:\<open>q \<in> dfa'.final M' \<Longrightarrow> f q \<in> dfa.final hf_M'\<close> 
+lemma f_in_final[intro]:\<open>q \<in> dfa'.final M' \<Longrightarrow> f q \<in> dfa.final f_M'\<close> 
   by simp
 
-lemma f_f__inv_init[simp]: \<open>f( f_inv( dfa.init hf_M' ) ) = dfa.init hf_M'\<close> 
+lemma f_f__inv_init[simp]: \<open>f( f_inv( dfa.init f_M' ) ) = dfa.init f_M'\<close> 
   by (simp add: dfa'.init dfa'_M')
 
 lemma f_inv_f[simp]: \<open>q \<in> dfa'.states M' \<Longrightarrow> f_inv (f q) = q\<close> 
   by (meson construct_equiv_dfa_axioms construct_equiv_dfa_def the_inv_into_f_f)
 
-lemma f_inv_in[intro]: \<open>h \<in> dfa.states hf_M' \<Longrightarrow> f_inv h \<in> dfa'.states M'\<close> 
+lemma f_inv_in[intro]: \<open>h \<in> dfa.states f_M' \<Longrightarrow> f_inv h \<in> dfa'.states M'\<close> 
   by fastforce
 
-lemma f_inv_in_final[intro]: \<open>h \<in> dfa.final hf_M' \<Longrightarrow> f_inv h \<in> dfa'.final M'\<close> 
+lemma f_inv_in_final[intro]: \<open>h \<in> dfa.final f_M' \<Longrightarrow> f_inv h \<in> dfa'.final M'\<close> 
   using dfa'_M' dfa'_def by fastforce
 
 lemma f_inv_f_init[simp]: \<open>f_inv( f( dfa'.init M' ) ) = dfa'.init M'\<close> 
   by (simp add: dfa'.init dfa'_M')
 
 
-lemma dfa_hf_M': \<open>dfa hf_M'\<close>
+lemma dfa_f_M': \<open>dfa f_M'\<close>
 proof(standard, goal_cases)
   case 1
   then show ?case using dfa'.init dfa'_M' by auto
@@ -134,53 +135,53 @@ qed
 interpretation M': dfa' M'
   by (fact dfa'_M')
 
-interpretation hf_M': dfa hf_M'
-  by (fact dfa_hf_M')
+interpretation f_M': dfa f_M'
+  by (fact dfa_f_M')
 
 
-lemma nxt_M'_f_inv: \<open>h \<in> dfa.states hf_M' \<Longrightarrow> dfa'.nxt M' (f_inv h) x = f_inv (dfa.nxt hf_M' h x)\<close> 
+lemma nxt_M'_f_inv: \<open>h \<in> dfa.states f_M' \<Longrightarrow> dfa'.nxt M' (f_inv h) x = f_inv (dfa.nxt f_M' h x)\<close> 
   by (simp add: dfa'.nxt dfa'_M' f_inv_in)
 
-lemma nxt_hf_M'_f:\<open>q \<in> dfa'.states M' \<Longrightarrow> dfa.nxt hf_M' (f q) x = f (dfa'.nxt M' q x)\<close> 
+lemma nxt_f_M'_f:\<open>q \<in> dfa'.states M' \<Longrightarrow> dfa.nxt f_M' (f q) x = f (dfa'.nxt M' q x)\<close> 
   by auto
 
 
-lemma nextl_M'_f_inv: \<open>h \<in> dfa.states hf_M' \<Longrightarrow> M'.nextl  (f_inv h) xs = f_inv (hf_M'.nextl h xs)\<close>
+lemma nextl_M'_f_inv: \<open>h \<in> dfa.states f_M' \<Longrightarrow> M'.nextl  (f_inv h) xs = f_inv (f_M'.nextl h xs)\<close>
 proof(induction xs arbitrary: h)
   case Nil
   then show ?case by simp
 next
   case (Cons a xs)
-  then have \<open>M'.nextl (dfa'.nxt M' (f_inv h) a) xs = f_inv (hf_M'.nextl (f (dfa'.nxt M' (f_inv h) a)) xs)\<close> 
-    using f_f_inv hf_M'.nxt nxt_M'_f_inv by presburger
+  then have \<open>M'.nextl (dfa'.nxt M' (f_inv h) a) xs = f_inv (f_M'.nextl (f (dfa'.nxt M' (f_inv h) a)) xs)\<close> 
+    using f_f_inv f_M'.nxt nxt_M'_f_inv by presburger
   then show ?case by simp
 qed 
 
 
-lemma nextl_hf_M'_f: \<open>q \<in> dfa'.states M' \<Longrightarrow> hf_M'.nextl (f q) xs = f (M'.nextl q xs)\<close>
+lemma nextl_f_M'_f: \<open>q \<in> dfa'.states M' \<Longrightarrow> f_M'.nextl (f q) xs = f (M'.nextl q xs)\<close>
 proof(induction xs arbitrary: q)
   case Nil
   then show ?case by simp
 next
   case (Cons a xs)
-  then have \<open>hf_M'.nextl (f (dfa'.nxt M' q a)) xs = f (M'.nextl (dfa'.nxt M' q a) xs)\<close> 
+  then have \<open>f_M'.nextl (f (dfa'.nxt M' q a)) xs = f (M'.nextl (dfa'.nxt M' q a) xs)\<close> 
     using M'.nxt by blast
   then show ?case by (simp add: Cons.prems)
 qed 
 
 
-lemma M'_lang_eq_hf_M'_lang: \<open>M'.language = hf_M'.language\<close>
-  unfolding M'.language_def hf_M'.language_def by (metis M'.init dfa.select_convs(2) f_in_final f_inv_f_init f_inv_in_final hf_M'.init nextl_M'_f_inv nextl_hf_M'_f)
+lemma M'_lang_eq_f_M'_lang: \<open>M'.language = f_M'.language\<close>
+  unfolding M'.language_def f_M'.language_def by (metis M'.init dfa.select_convs(2) f_in_final f_inv_f_init f_inv_in_final f_M'.init nextl_M'_f_inv nextl_f_M'_f)
 
 end
 
 
 corollary ex_hf_M:
   fixes M' :: \<open>('a, 'b) dfa'\<close>
-  assumes dfa'_M': \<open>dfa' M'\<close>
-  shows \<open>\<exists>hf_M'. dfa hf_M' \<and> dfa'.language M' = dfa.language hf_M'\<close> 
+  assumes \<open>dfa' M'\<close>
+  shows \<open>\<exists>f_M'. dfa f_M' \<and> dfa'.language M' = dfa.language f_M'\<close> 
 proof-
-  interpret M': dfa' M' using dfa'_M' 
+  interpret M': dfa' M' using assms
     by simp
   have \<open>finite (dfa'.states M')\<close> 
     by (simp add: M'.finite) 
@@ -188,19 +189,19 @@ proof-
     by blast
   then interpret construct_equiv_dfa: construct_equiv_dfa M' f 
     apply unfold_locales by blast
-  have \<open>M'.language = dfa.language local.construct_equiv_dfa.hf_M'\<close> 
-    using construct_equiv_dfa.M'_lang_eq_hf_M'_lang by blast
-  moreover have \<open>dfa local.construct_equiv_dfa.hf_M'\<close> 
-    using local.construct_equiv_dfa.dfa_hf_M' by blast
+  have \<open>M'.language = dfa.language local.construct_equiv_dfa.f_M'\<close> 
+    using construct_equiv_dfa.M'_lang_eq_f_M'_lang by blast
+  moreover have \<open>dfa local.construct_equiv_dfa.f_M'\<close> 
+    using local.construct_equiv_dfa.dfa_f_M' by blast
   ultimately show ?thesis by blast
 qed
 
 text\<open>Now we have the result, that our dfas also produce regular languages.\<close>
 corollary dfa'_imp_regular:
   fixes M' :: \<open>('a, 'b) dfa'\<close>
-  assumes dfa'_M': \<open>dfa' M'\<close> "dfa'.language M' = L"
+  assumes \<open>dfa' M'\<close> "dfa'.language M' = L"
   shows \<open>regular L\<close> 
-  using ex_hf_M using dfa'_M'(1,2) regular_def by fastforce
+  using ex_hf_M assms unfolding regular_def by blast
 
 
 
@@ -368,11 +369,8 @@ proof -
       case (snoc x u) then show ?case
         by (simp add: init finite_nextl nextl_state [THEN subsetD])
     qed
-    then have "u \<in> Power.language \<longleftrightarrow> u \<in> language"
-      apply (auto simp add: Power.language_def language_def disjoint_iff_not_equal)
-       apply (metis Int_iff finite_nextl hfset_HF nextl.simps(1) epsclo_increasing subsetCE)
-      apply (metis epsclo_nextl nextl_state)
-      done
+    then have "u \<in> Power.language \<longleftrightarrow> u \<in> language" using epsclo_increasing nextl_state
+      by (fastforce simp add: Power.language_def language_def disjoint_iff_not_equal)
   }
   then show ?thesis
     by blast

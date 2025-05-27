@@ -259,7 +259,7 @@ lemma the_hom_syms_var_inj: \<open>\<h>\<s> [r] = [Nt A] \<Longrightarrow> r = N
   using the_hom_sym_var_inj by fastforce
 
 lemma the_hom_syms_tm_inj: \<open>\<h>\<s> [r] = [Tm m ]\<Longrightarrow> \<exists>x. r = Tm x\<close> 
-  by (metis CFG.sym.distinct(1) CFG.sym.exhaust List.list.inject the_hom_syms_keep_var)
+  by (metis sym.distinct(1) sym.exhaust List.list.inject the_hom_syms_keep_var)
 
 lemma the_hom_syms_tms_inj: \<open>\<h>\<s> w = map Tm m \<Longrightarrow> \<exists>w'. w = map Tm w'\<close> 
 proof(induction w arbitrary: m)
@@ -276,7 +276,7 @@ next
       by auto
     have "\<forall>ss s. (s::('a, 'b) sym) # ss = [s] @ ss" 
       by simp
-    then show ?thesis using f2 a1 by (metis CFG.sym.exhaust CFG.sym.simps(4) Cons.prems map_eq_Cons_D the_hom_syms_hom the_hom_syms_keep_var)
+    then show ?thesis using f2 a1 by (metis sym.exhaust sym.simps(4) Cons.prems map_eq_Cons_D the_hom_syms_hom the_hom_syms_keep_var)
   qed
   then show \<open>\<exists>w'. a # w = map Tm w'\<close> 
     by (metis List.list.simps(9) \<open>w = map Tm w'\<close>)
@@ -314,10 +314,7 @@ qed
 lemma h_eq_h_ext2:
   assumes \<open>\<h>\<s> w' = (map Tm w)\<close> 
   shows \<open>\<h> (map destTm w') = w\<close>
-  using assms apply simp
-  apply(induction w') 
-   apply simp
-  by (smt (verit, ccfv_SIG) map_eq_append_conv the_hom1_strip the_hom1_strip2)
+using assms by (simp add: the_hom1_strip2)
 
 
 
@@ -393,9 +390,7 @@ next
 next
   case (3 x y zs)
   then show ?case 
-    apply simp 
-    apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P1'_sym.cases) 
-    by auto  
+    by(case_tac \<open>(Tm x, Tm y)\<close> rule: P1'_sym.cases) auto  
 qed
 
 lemma P1I[intro]: 
@@ -420,8 +415,7 @@ proof(cases xs rule: rev_cases)
 next
   case (snoc ys y)
   then show ?thesis 
-    apply (cases y) 
-    using assms unfolding P1_sym.simps by argo+
+    using assms by (cases y) auto
 qed
 
 lemma P1D[dest]: \<open>P1 xs \<Longrightarrow> successively P1' xs\<close> by simp
@@ -433,10 +427,8 @@ lemma P1D_not_empty[dest]:
     and \<open>P1 xs\<close>
   shows \<open>last xs \<noteq> ]\<^sup>1\<^sub>p\<close>
 proof-
-  obtain x xs' where x_eq: \<open>xs = x# xs'\<close> 
-    using assms using List.list.exhaust_sel by blast
-  with assms have \<open>successively P1' xs\<close> \<open>\<nexists>p. last xs = ]\<^sup>1\<^sub>p\<close> 
-    using P1.simps apply blast using P1.simps by (metis assms(1,2))
+  from assms have \<open>successively P1' xs \<and> (\<nexists>p. last xs = ]\<^sup>1\<^sub>p)\<close> 
+    by simp
   then show ?thesis by blast
 qed
 
@@ -445,11 +437,8 @@ lemma P1_symD_not_empty'[dest]:
     and \<open>P1_sym xs\<close>
   shows \<open>last xs \<noteq> Tm ]\<^sup>1\<^sub>p\<close>
 proof-
-  obtain x xs' where x_eq: \<open>xs = x# xs'\<close> 
-    using assms using List.list.exhaust_sel by blast
-  with assms have \<open>successively P1'_sym xs\<close> \<open>\<nexists>p. last xs = Tm ]\<^sup>1\<^sub>p\<close> 
-    using P1_sym.simps apply blast 
-    using x_eq by (metis assms(1,2) P1_sym.elims(2))
+  from assms have \<open>successively P1'_sym xs \<and> (\<nexists>p. last xs = Tm ]\<^sup>1\<^sub>p)\<close> 
+    by simp
   then show ?thesis by blast
 qed
 
@@ -498,8 +487,7 @@ lemma P2_for_tm_if_P2_sym[intro, dest]: \<open>successively P2_sym (map Tm x) \<
   apply(induction x rule: induct_list012) 
     apply simp 
    apply simp 
-  apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P2_sym.cases) 
-  by auto
+  by(case_tac \<open>(Tm x, Tm y)\<close> rule: P2_sym.cases) auto
 
 
 subsection\<open>\<open>P3\<close>\<close>
@@ -558,8 +546,7 @@ lemma P3_for_tm_if_P3_sym[intro, dest]: \<open>successively P3_sym (map Tm x) \<
   apply(induction x rule: induct_list012) 
     apply simp 
    apply simp 
-  apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P3_sym.cases) 
-  by auto
+  by(case_tac \<open>(Tm x, Tm y)\<close> rule: P3_sym.cases) auto
 
 
 subsection\<open>\<open>P4\<close>\<close>
@@ -598,8 +585,7 @@ lemma P4_for_tm_if_P4_sym[intro, dest]: \<open>successively P4_sym (map Tm x) \<
   apply(induction x rule: induct_list012)
     apply simp
    apply simp
-  apply(case_tac \<open>(Tm x, Tm y)\<close> rule: P4_sym.cases) 
-  by auto
+  by(case_tac \<open>(Tm x, Tm y)\<close> rule: P4_sym.cases) auto
 
 
 subsection\<open>\<open>P5\<close>\<close>
@@ -734,7 +720,7 @@ lemma Reg_symD[dest]:
 lemmas Reg_symE = Reg_symD[elim_format]
 
 lemma Reg_for_tm_if_Reg_sym[intro, dest]: \<open>(map Tm x) \<in> Reg_sym A \<Longrightarrow> x \<in> Reg A\<close> 
-  apply(rule RegI) by auto
+by(rule RegI) auto
 
 
 
@@ -815,13 +801,7 @@ theorem succNext_induct[case_names garbage startp startnp letterQ letternQ]:
     and "\<And>br p v br' p' v'. Q (br,p,v) (br',p',v') \<and> p \<in> P \<and> p' \<in> P \<Longrightarrow> R (letter (br, p, v)) (br', p', v')"
     and "\<And>br p v br' p' v'. \<not>(Q (br,p,v) (br',p',v') \<and> p \<in> P \<and> p' \<in> P) \<Longrightarrow> R (letter (br, p, v)) (br', p', v')"
   shows "R a0 a1"
-  apply(induction rule: succNext.induct) 
-  using assms apply simp 
-   apply(case_tac \<open>p' \<in> P\<close>) 
-  using assms apply simp  
-  using assms apply simp 
-  apply(case_tac \<open>Q (br,p,v) (br',p',v') \<and> p \<in> P \<and> p' \<in> P\<close>) 
-  using assms by simp+
+by (metis assms prod_cases3 state.exhaust)
 
 abbreviation aut where \<open>aut \<equiv> \<lparr>dfa'.states = allStates,
                      init  = start,
@@ -890,9 +870,8 @@ next
 qed
 
 lemma drop_left: \<open>xs@ys \<in> aut.language \<Longrightarrow> ys \<in> aut.language\<close>
-  unfolding aut.language_def apply simp 
-  apply(induction xs arbitrary: ys) 
-  by (auto dest: drop_left_general)
+  unfolding aut.language_def
+  by(induction xs arbitrary: ys) (auto dest: drop_left_general)
 
 lemma empty_in_aut: \<open>[] \<in> aut.language\<close> 
   unfolding aut.language_def by simp  
@@ -1020,18 +999,7 @@ theorem nxt1_induct[case_names garbage startp startnp letterQ letternQ]:
     and "\<And>br p v. p \<in> P \<and> good (br, p, v) \<Longrightarrow> R last_bad (br, p, v)"
     and "\<And>br p v. p \<in> P \<and> \<not>(good (br, p, v)) \<Longrightarrow> R last_bad (br, p, v)"
   shows "R a0 a1"
-  apply(induction rule: nxt1.induct) 
-  using assms apply simp 
-   apply(case_tac \<open>p \<notin> P\<close>)
-  using assms apply simp
-   apply(case_tac \<open>good (br, p, v)\<close>)
-  using assms apply simp 
-  using assms apply simp
-  apply(case_tac \<open>p \<notin> P\<close>)
-  using assms apply simp
-  apply(case_tac \<open>good (br, p, v)\<close>)
-  using assms apply simp 
-  using assms by simp 
+by (metis (full_types) P1_State.exhaust assms prod_induct3)
 
 abbreviation p1_aut  where \<open>p1_aut \<equiv> \<lparr>dfa'.states = {last_ok, last_bad, garbage},
                      init  = last_ok,
@@ -1074,7 +1042,9 @@ next
   moreover have \<open>(p1_aut.nextl last_ok (xs@[x]) = garbage) \<longleftrightarrow> 
     (p1_aut.nextl last_ok xs = garbage) \<or> ((p1_aut.nextl last_ok (xs @ [x]) = garbage) \<and> (p1_aut.nextl last_ok (xs) \<noteq> garbage))\<close> 
     by auto
-  ultimately show ?case using snoc apply (cases x) apply (simp)
+  ultimately show ?case using snoc
+    apply (cases x)
+     apply (simp)
     by (smt (z3) P1_State.exhaust P1_State.simps(3,5) nxt1.simps(2,3))
 qed
 
@@ -1099,10 +1069,10 @@ next
     then show ?thesis
     proof(cases)
       case 1
-      then show ?thesis using br apply(cases \<open>good x\<close>) by auto 
+      then show ?thesis using br by(cases \<open>good x\<close>) auto 
     next
       case 2
-      then show ?thesis using br apply(cases \<open>good x\<close>) by auto 
+      then show ?thesis using br by(cases \<open>good x\<close>) auto 
     qed
   qed
 qed
@@ -1168,14 +1138,7 @@ theorem nxt2_induct[case_names garbage startnp start_p_ok start_p_nok first_ok_n
     and "\<And>br X r v. (X, r) \<notin> P  \<Longrightarrow> R first_ok (br, (X, r), v)"
     and "\<And>br X r v. (X, r) \<in> P  \<Longrightarrow> R first_ok (br, (X, r), v)"
   shows "R a0 a1"
-  apply(induction rule: nxt2.induct) 
-  using assms apply simp 
-   apply(case_tac \<open>(X, r) \<notin> P\<close>; case_tac \<open>ok (br, (X, r), v)\<close>)
-  using assms apply simp
-  using assms apply simp
-  using assms apply simp
-  using assms apply simp
-  using assms by fast+
+by (metis (full_types, opaque_lifting) P5_State.exhaust assms surj_pair)
 
 abbreviation p5_aut  where \<open>p5_aut \<equiv> \<lparr>dfa'.states = {start, first_ok, garbage},
                      init  = start,
@@ -1197,14 +1160,8 @@ next
   then show ?case by simp
 qed
 
-corollary dfa_p5_aut: "dfa' p5_aut"
-  by unfold_locales
-
-corollary nxt2_start_ok_iff: \<open>ok x \<and> fst(snd x) \<in> P \<longleftrightarrow> nxt2 start x = first_ok\<close> 
-  apply(cases x) 
-  apply(rename_tac br p v) 
-  apply(case_tac br; case_tac v; case_tac \<open>p \<in> P\<close>) 
-  by (auto split: if_splits)
+corollary nxt2_start_ok_iff: \<open>ok x \<and> fst(snd x) \<in> P \<longleftrightarrow> nxt2 start x = first_ok\<close>
+by(auto elim!: nxt2.elims ok.elims split: if_splits)
 
 lemma empty_not_in_lang[simp]:\<open>[] \<notin> p5_aut.language\<close> 
   unfolding p5_aut.language_def by auto 
@@ -1213,10 +1170,7 @@ lemma singleton_in_lang_iff: \<open>[x] \<in> p5_aut.language \<longleftrightarr
   unfolding p5_aut.language_def using nxt2_start_ok_iff by (cases x) fastforce
 
 lemma singleton_first_ok_iff: \<open>p5_aut.nextl start ([x]) = first_ok \<or> p5_aut.nextl start ([x]) = garbage\<close> 
-  apply(cases x) 
-  apply(rename_tac br p v) 
-  apply(case_tac br; case_tac v; case_tac \<open>p \<in> P\<close>) 
-  by (auto split: if_splits)
+by(cases x) (auto split: if_splits)
 
 lemma first_ok_iff: \<open>xs\<noteq> [] \<Longrightarrow> p5_aut.nextl start xs = first_ok \<or> p5_aut.nextl start xs = garbage\<close>
 proof(induction xs rule: rev_induct)
@@ -1232,8 +1186,8 @@ next
     case False
     with snoc have \<open>p5_aut.nextl start xs = first_ok \<or> p5_aut.nextl start xs = garbage\<close> 
       by blast
-    then show ?thesis apply(cases x) apply(rename_tac br p v) apply(case_tac br; case_tac v; case_tac \<open>p \<in> P\<close>) 
-      by (auto split: if_splits)
+    then show ?thesis
+      by(cases x) (auto split: if_splits)
   qed
 qed
 
@@ -1256,9 +1210,7 @@ proof(induction xs rule: rev_induct)
       then have \<open>(xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets)\<close> 
         using IH by blast
       then show ?thesis 
-        apply(cases x) 
-        apply(rename_tac br p v) 
-        using p5_aut.language_def snoc by auto
+        using p5_aut.language_def snoc by(cases x) auto
     next
       case False
       then have \<open>p5_aut.nextl start xs = garbage\<close> 
@@ -1275,7 +1227,7 @@ lemma in_P5_iff: \<open>P5 A xs \<and> xs \<in> brackets \<longleftrightarrow> (
   by auto (metis List.list.exhaust_sel P5.simps(2) ok.elims(2))
 
 lemma aut_language_reg: \<open>regular p5_aut.language\<close> 
-  using dfa'_imp_regular dfa_p5_aut by blast
+  using dfa'_imp_regular p5_aut.dfa'_axioms by blast
 
 corollary aux_regular: \<open>regular {xs. xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets}\<close> 
   using lang_descr aut_language_reg p5_aut.language_def by simp
@@ -1341,7 +1293,7 @@ lemma P_CNFE[elim_format,elim]:
   using assms CNF_P unfolding CNF_def by fastforce
 
 definition L where 
-  \<open>L \<equiv> CFG.Lang P S\<close>
+  \<open>L \<equiv> Lang P S\<close>
 
 definition \<Gamma> where 
   \<open>\<Gamma> = P \<times> {One, Two}\<close>
@@ -1377,8 +1329,8 @@ text\<open>This essentially says, that the right sides of productions are in the
 if one ignores any occuring nonterminals. This will be needed for \<open>\<rightarrow>\<close>.\<close>
 lemma prod_bal_tm[intro!]:
   assumes \<open>p \<in> P\<close>
-  shows \<open>bal_tm (snd (transform_prod p)) \<and> snds_in_tm \<Gamma> (snd (transform_prod p))\<close> 
-  using assms apply auto 
+  shows \<open>bal_tm (snd (transform_prod p))\<close> \<open>snds_in_tm \<Gamma> (snd (transform_prod p))\<close>
+   using assms apply auto 
   using assms by fastforce
 
 
@@ -1411,7 +1363,7 @@ lemma P'_imp_Reg:
   shows \<open>x \<in> Reg_sym T\<close>
   using assms proof(induction rule: derives_induct)
   case base
-  show ?case apply(rule Reg_symI) by simp+
+  show ?case by(rule Reg_symI) simp_all
 next
   case (step u A v w)
   have uAv: \<open>u @ [Nt A] @ v \<in> Reg_sym T\<close> 
@@ -1422,8 +1374,8 @@ next
     by (smt (verit, best) fst_transform_prod P'_def P_CNFE fst_conv image_iff)
   then obtain B C a where w_eq: \<open>w = wrap1 A a \<or> w = wrap2 A B C\<close> (is \<open>w = ?w1 \<or> w = ?w2\<close>) 
     by fastforce
-  have w_resym: \<open>w \<in> Reg_sym A\<close> 
-    apply(rule disjE[OF w_eq]; rule Reg_symI) by auto 
+  then have w_resym: \<open>w \<in> Reg_sym A\<close> 
+    by auto 
   have P5_uAv: \<open>P5_sym T (u @ [Nt A] @ v)\<close> 
     using Reg_symD[OF uAv] by blast
   have P1_uAv: \<open>P1_sym (u @ [Nt A] @ v)\<close> 
@@ -1436,7 +1388,7 @@ next
               successively P8_sym (u@w)\<close>
   proof(cases u rule: rev_cases)
     case Nil
-    show ?thesis apply(rule disjE[OF w_eq]) unfolding Nil by auto
+    then show ?thesis using w_eq by auto
   next
     case (snoc ys y)
 
@@ -1448,19 +1400,14 @@ next
     then obtain R X Y v' where y_eq: \<open>y = (Tm (Open((R, [Nt X, Nt Y]), v')))\<close> and \<open>v' = One \<Longrightarrow> A = X\<close> and \<open>v' = Two \<Longrightarrow> A = Y\<close> 
       by blast
     then have \<open>P3_sym y (hd w)\<close> 
-      using w_eq apply(cases \<open>w = ?w1\<close>) 
-       apply(cases v') 
-        apply force 
-       apply force 
-      by (smt (verit, best) List.list.sel(1) P3_sym.simps(1,3) version.exhaust) 
-
+      using w_eq \<open>P7_sym y (Nt A)\<close> by force
     hence \<open>P1'_sym (last (ys@[y])) (hd w) \<and> 
           P2_sym (last (ys@[y])) (hd w) \<and> 
           P3_sym (last (ys@[y])) (hd w) \<and> 
           P4_sym (last (ys@[y])) (hd w) \<and> 
           P7_sym (last (ys@[y])) (hd w) \<and> 
           P8_sym (last (ys@[y])) (hd w)\<close> 
-      unfolding y_eq using w_eq apply(cases \<open>w = ?w1\<close>) apply force by simp
+      unfolding y_eq using w_eq by auto
     with Reg_symD[OF uAv] moreover have 
       \<open>successively P1'_sym (ys @ [y]) \<and> 
      successively P2_sym (ys @ [y]) \<and> 
@@ -1486,7 +1433,7 @@ next
                successively P8_sym (w@v)\<close>
   proof(cases v)
     case Nil
-    show ?thesis apply(rule disjE[OF w_eq]) unfolding Nil by auto
+    then show ?thesis using w_eq by auto
   next
     case (Cons y ys)
     then have \<open>successively P8_sym ([Nt A] @ y # ys)\<close> 
@@ -1501,7 +1448,7 @@ next
          P4_sym (last w) (hd (y#ys)) \<and> 
          P7_sym (last w) (hd (y#ys)) \<and> 
          P8_sym (last w) (hd (y#ys))\<close> 
-      unfolding y_eq using w_eq apply(cases \<open>w = ?w1\<close>) apply force by simp
+      unfolding y_eq using w_eq by auto
     with Reg_symD[OF uAv] moreover have 
       \<open>successively P1'_sym (y # ys) \<and> 
      successively P2_sym (y # ys) \<and> 
@@ -1529,17 +1476,13 @@ next
     using w_eq by (metis (no_types, lifting) List.list.discI hd_append2 successively_append_iff)
 
   moreover have \<open>P5_sym T (u@w@v)\<close> 
-    apply(rule disjE[OF w_eq]; cases u) 
-    using P5_uAv apply force
-    using P5_uAv apply (metis List.list.sel(1) P5_symD append_Cons P5_sym.simps(2,3))
-    using P5_uAv apply force 
-    using P5_uAv by (metis List.list.sel(1) P5_symD append_Cons P5_sym.simps(2,3))
+    using w_eq P5_uAv by (cases u) auto
 
   moreover have \<open>P1_sym (u@w@v)\<close> 
   proof(cases v rule: rev_cases)
     case Nil
-    have \<open>\<nexists>p. last (u@w@v) = Tm (Close(p, One))\<close> 
-      unfolding Nil apply(rule disjE[OF w_eq]) by auto
+    then have \<open>\<nexists>p. last (u@w@v) = Tm (Close(p, One))\<close> 
+      using w_eq by auto
     with P1_uwv show \<open>P1_sym (u @ w @ v)\<close> 
       by blast
   next
@@ -1620,8 +1563,8 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
     using bal_Open_split[of \<open>[\<^sup>2\<^bsub>\<pi>\<^esub>\<close> \<open>tl r1\<close>] by (metis List.list.exhaust_sel List.list.sel(1) Product_Type.prod.inject hd_r1 \<open>r1 \<noteq> []\<close>) 
   then obtain z r2 where split2': \<open>[\<^sup>2\<^bsub>\<pi>\<^esub> # tl r1   =   [\<^sup>2\<^bsub>\<pi>\<^esub> # z @ ]\<^sup>2\<^bsub>\<pi>\<^esub>  # r2\<close> and bal_z: \<open>bal z\<close> and bal_r2: \<open>bal r2\<close> 
     by blast+
-  then have split2: \<open>x  =   [\<^sup>1\<^bsub>\<pi>\<^esub>  # y @ ]\<^sup>1\<^bsub>\<pi>\<^esub>  # [\<^sup>2\<^bsub>\<pi>\<^esub> # z @ ]\<^sup>2\<^bsub>\<pi>\<^esub>  # r2\<close> apply auto
-    by (metis List.list.exhaust_sel hd_r1 \<open>r1 \<noteq> []\<close> split1)
+  then have split2: \<open>x  =   [\<^sup>1\<^bsub>\<pi>\<^esub>  # y @ ]\<^sup>1\<^bsub>\<pi>\<^esub>  # [\<^sup>2\<^bsub>\<pi>\<^esub> # z @ ]\<^sup>2\<^bsub>\<pi>\<^esub>  # r2\<close>
+    by (metis \<open>r1 \<noteq> []\<close> hd_r1 list.exhaust_sel split1)
   have r2_empty: \<open>r2 = []\<close>  \<comment> \<open>prove that if r2 was not empty, it would need to start with an open bracket, else it cant be balanced. But this cant be with P2.\<close>
   proof(cases r2)
     case (Cons r2' r2's)
@@ -1904,10 +1847,9 @@ next
     moreover have root2: \<open>map Parse_Tree.root (wrap2_Sym A (Nt B) (Nt C) Two (transform_tree t2)) = [Tm [\<^sup>2\<^bsub>(A, [Nt B, Nt C])\<^esub>, Nt C, Tm ]\<^sup>2\<^bsub>(A, [Nt B, Nt C])\<^esub> ] \<close> 
       using root_t2_eq_C by auto
     ultimately have \<open>parse_tree P' (transform_tree (Rule A ts))\<close> 
-      unfolding ts_eq apply auto unfolding root_t1_eq_B root_t2_eq_C apply auto 
-      using \<open>parse_tree P' (transform_tree t1)\<close> apply blast
-      using \<open>parse_tree P' (transform_tree t2)\<close> apply blast
-      by (metis P'_def \<open>(A, map Parse_Tree.root ts) \<in> P\<close> imageI prod_rhs transform_prod.simps(2))
+      using \<open>parse_tree P' (transform_tree t1)\<close>  \<open>parse_tree P' (transform_tree t2)\<close>
+        \<open>(A, map Parse_Tree.root ts) \<in> P\<close> prod_rhs
+      by (force simp: ts_eq P'_def)
     then show ?thesis 
       using \<open>\<h>\<s> (fringe (transform_tree (Rule A ts))) = w\<close> by auto
   qed  
@@ -1971,7 +1913,7 @@ proof-
   from assms L'_def have \<open>w' \<in> Lang P' S\<close> 
     by simp
   then have \<open>P' \<turnstile> [Nt S] \<Rightarrow>* map Tm w'\<close> 
-    by (simp add: CFG.Lang_def)
+    by (simp add: Lang_def)
   then obtain n where \<open>P' \<turnstile> [Nt S] \<Rightarrow>(n) map Tm w'\<close> 
     by (metis rtranclp_power)
   then have \<open>P \<turnstile> [Nt S] \<Rightarrow>* \<h>\<s> (map Tm w')\<close> 
@@ -2029,7 +1971,7 @@ proof -
     ultimately show ?thesis by blast
   qed
   then have \<open>L' = Dyck_lang \<Gamma> \<inter> (Reg S)\<close> 
-    by (auto simp add: CFG.Lang_def L'_def)
+    by (auto simp add: Lang_def L'_def)
   then have \<open>\<h> ` (Dyck_lang \<Gamma> \<inter> Reg S) = \<h> ` L'\<close> 
     by simp
   also have \<open>... = Lang P S\<close>
@@ -2066,7 +2008,7 @@ Therefore we cannot just re-enter \<open>locale_P\<close>. Now we make all the a
 text\<open>The theorem for any grammar, but only for languages not containing \<open>\<epsilon>\<close>:\<close>
 lemma Chomsky_Schuetzenberger_not_empty:
   fixes P :: \<open>('n :: infinite, 't) Prods\<close> and S::"'n"
-  defines \<open>L \<equiv> CFG.Lang P S - {[]}\<close>
+  defines \<open>L \<equiv> Lang P S - {[]}\<close>
   assumes finiteP: \<open>finite P\<close>
   shows \<open>\<exists>(R::('n,'t) bracket3 list set) h \<Gamma>. regular R \<and> L = h ` (R \<inter> Dyck_lang \<Gamma>) \<and> hom h\<close>
 proof -
@@ -2074,16 +2016,16 @@ proof -
   obtain ps where ps_def: \<open>set ps = P\<close> 
     using \<open>finite P\<close> finite_list by auto
   from cnf_exists obtain ps' where
-    \<open>CNF(set ps')\<close> and lang_ps_eq_lang_ps': \<open>CFG.lang ps' S = CFG.lang ps S - {[]}\<close> 
+    \<open>CNF(set ps')\<close> and lang_ps_eq_lang_ps': \<open>Lang (set ps') S = Lang (set ps) S - {[]}\<close> 
     by blast
   then have \<open>finite (set ps')\<close>
     by auto
   interpret Chomsky_Schuetzenberger_locale \<open>(set ps')\<close> S
     apply unfold_locales
     using \<open>finite (set ps')\<close> \<open>CNF (set ps')\<close> by auto
-  have \<open>regular (brackets \<inter> Reg S) \<and> CFG.lang ps' S = h ` (brackets \<inter> Reg S \<inter> Dyck_lang \<Gamma>) \<and> hom h\<close> 
+  have \<open>regular (brackets \<inter> Reg S) \<and> Lang (set ps') S = h ` (brackets \<inter> Reg S \<inter> Dyck_lang \<Gamma>) \<and> hom h\<close> 
     using Chomsky_Schuetzenberger_constr L_def h_def by argo
-  moreover have  \<open>CFG.lang ps' S = L - {[]}\<close> 
+  moreover have  \<open>Lang (set ps') S = L - {[]}\<close> 
     unfolding lang_ps_eq_lang_ps' using L_def ps_def by (simp add: assms(1))
   ultimately have \<open>regular (brackets \<inter> Reg S) \<and> L - {[]} = h ` (brackets \<inter> Reg S \<inter> Dyck_lang \<Gamma>) \<and> hom h\<close> 
     by presburger
@@ -2097,7 +2039,7 @@ qed
 text\<open>The Chomsky-Schützenberger theorem that we really want to prove:\<close>
 lemma Chomsky_Schuetzenberger_general:
   fixes P :: \<open>('n :: infinite, 't) Prods\<close> and S :: "'n"
-  defines \<open>L \<equiv> CFG.Lang P S\<close>
+  defines \<open>L \<equiv> Lang P S\<close>
   assumes finite: \<open>finite P\<close>
   shows \<open>\<exists>(R::('n,'t) bracket3 list set) h \<Gamma>. regular R \<and> L = h ` (R \<inter> Dyck_lang \<Gamma>) \<and> hom h\<close>
 proof(cases \<open>[] \<in> L\<close>)

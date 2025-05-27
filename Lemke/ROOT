@@ -1,0 +1,18 @@
+(*
+  Open all theories like this:
+  isabelle jedit -d .. -d . <filename>
+*)
+
+session PreStar = CFG +
+  options [document = pdf, document_output = "output"]
+  sessions
+    "HOL-Data_Structures"
+    "Labeled_Transition_Systems"
+    "Pushdown_Systems"
+  theories
+    Definition
+    Applications
+  theories [document = false]
+    PreStar
+  document_files
+    root.tex

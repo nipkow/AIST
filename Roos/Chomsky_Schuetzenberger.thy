@@ -224,51 +224,51 @@ definition hom :: \<open>('c list \<Rightarrow> 'd list) \<Rightarrow> bool\<clo
   \<open>hom h = ((\<forall>a b. h (a@b) = (h a) @ h (b)) \<and> h [] = [])\<close>
 
 
-text\<open>A helper function for the definition of \<open>h\<close>:\<close>
-fun the_hom_helper :: \<open>('n,'t) bracket3 \<Rightarrow> 't list\<close> where
-  \<open>the_hom_helper [\<^sup>1\<^bsub>(A, [Tm a])\<^esub> = [a]\<close> | 
-  \<open>the_hom_helper _ = []\<close> 
+text\<open>The homomorphism on single brackets:\<close>
+fun the_hom1 :: \<open>('n,'t) bracket3 \<Rightarrow> 't list\<close> where
+  \<open>the_hom1 [\<^sup>1\<^bsub>(A, [Tm a])\<^esub> = [a]\<close> | 
+  \<open>the_hom1 _ = []\<close> 
 
-text\<open>A helper function for the definition of the extended \<open>h_ext\<close>:\<close>
-fun the_hom_ext_helper :: \<open>('n, ('n,'t) bracket3) sym \<Rightarrow> ('n,'t) sym list\<close> where
-  \<open>the_hom_ext_helper (Tm [\<^sup>1\<^bsub>(A, [Tm a])\<^esub>) = [Tm a]\<close> | 
-  \<open>the_hom_ext_helper (Nt A) = [Nt A]\<close> | 
-  \<open>the_hom_ext_helper _ = []\<close>
+text\<open>The homomorphism on single bracket symbols:\<close>
+fun the_hom_sym :: \<open>('n, ('n,'t) bracket3) sym \<Rightarrow> ('n,'t) sym list\<close> where
+  \<open>the_hom_sym (Tm [\<^sup>1\<^bsub>(A, [Tm a])\<^esub>) = [Tm a]\<close> | 
+  \<open>the_hom_sym (Nt A) = [Nt A]\<close> | 
+  \<open>the_hom_sym _ = []\<close>
 
-text\<open>The needed homomorphism in the proof:\<close>
+text\<open>The homomorphism on bracket words:\<close>
 fun the_hom :: \<open>('n,'t) bracket3 list \<Rightarrow> 't list \<close> ("\<h>") where
-  \<open>the_hom l = concat (map the_hom_helper l)\<close>
+  \<open>the_hom l = concat (map the_hom1 l)\<close>
 
-text\<open>The needed homomorphism in the proof, but extended on Variables:\<close>
-fun the_hom_ext :: \<open>('n, ('n,'t) bracket3) syms \<Rightarrow> ('n,'t) syms\<close> where
-  \<open>the_hom_ext l = concat (map the_hom_ext_helper l)\<close>
+text\<open>The homomorphism extended to symbols:\<close>
+fun the_hom_syms :: \<open>('n, ('n,'t) bracket3) syms \<Rightarrow> ('n,'t) syms\<close> where
+  \<open>the_hom_syms l = concat (map the_hom_sym l)\<close>
 
 notation the_hom ("\<h>")
-notation the_hom_ext ("\<h>\<s>")
+notation the_hom_syms ("\<h>\<s>")
 
-lemma the_hom_ext_hom[simp]: \<open>\<h>\<s> (l1 @ l2) = \<h>\<s> l1 @ \<h>\<s> l2\<close>
+lemma the_hom_syms_hom[simp]: \<open>\<h>\<s> (l1 @ l2) = \<h>\<s> l1 @ \<h>\<s> l2\<close>
   by simp
 
-lemma the_hom_ext_keep_var[simp] : \<open>\<h>\<s> [(Nt A)] = [Nt A]\<close> 
+lemma the_hom_syms_keep_var[simp] : \<open>\<h>\<s> [(Nt A)] = [Nt A]\<close> 
   by simp 
 
-lemma the_hom_ext_helper_var_inj: \<open>the_hom_ext_helper r = [Nt A] \<Longrightarrow> r = Nt A\<close> 
-  by(induction r rule: the_hom_ext_helper.induct;auto)
+lemma the_hom_sym_var_inj: \<open>the_hom_sym r = [Nt A] \<Longrightarrow> r = Nt A\<close> 
+  by(induction r rule: the_hom_sym.induct;auto)
 
-lemma the_hom_ext_var_inj: \<open>\<h>\<s> [r] = [Nt A] \<Longrightarrow> r = Nt A\<close>
-  using the_hom_ext_helper_var_inj by fastforce
+lemma the_hom_syms_var_inj: \<open>\<h>\<s> [r] = [Nt A] \<Longrightarrow> r = Nt A\<close>
+  using the_hom_sym_var_inj by fastforce
 
-lemma the_hom_ext_tm_inj: \<open>\<h>\<s> [r] = [Tm m ]\<Longrightarrow> \<exists>x. r = Tm x\<close> 
-  by (metis CFG.sym.distinct(1) CFG.sym.exhaust List.list.inject the_hom_ext_keep_var)
+lemma the_hom_syms_tm_inj: \<open>\<h>\<s> [r] = [Tm m ]\<Longrightarrow> \<exists>x. r = Tm x\<close> 
+  by (metis CFG.sym.distinct(1) CFG.sym.exhaust List.list.inject the_hom_syms_keep_var)
 
-lemma the_hom_ext_tms_inj: \<open>\<h>\<s> w = map Tm m \<Longrightarrow> \<exists>w'. w = map Tm w'\<close> 
+lemma the_hom_syms_tms_inj: \<open>\<h>\<s> w = map Tm m \<Longrightarrow> \<exists>w'. w = map Tm w'\<close> 
 proof(induction w arbitrary: m)
   case Nil
   then show ?case by simp
 next
   case (Cons a w)
   then obtain w' where \<open>w = map Tm w'\<close> 
-    by (metis (no_types, opaque_lifting) append_Cons append_Nil map_eq_append_conv the_hom_ext_hom)
+    by (metis (no_types, opaque_lifting) append_Cons append_Nil map_eq_append_conv the_hom_syms_hom)
   then obtain a' where \<open>a = Tm a'\<close> 
   proof -
     assume a1: "\<And>a'. a = Tm a' \<Longrightarrow> thesis"
@@ -276,15 +276,15 @@ next
       by auto
     have "\<forall>ss s. (s::('a, 'b) sym) # ss = [s] @ ss" 
       by simp
-    then show ?thesis using f2 a1 by (metis CFG.sym.exhaust CFG.sym.simps(4) Cons.prems map_eq_Cons_D the_hom_ext_hom the_hom_ext_keep_var)
+    then show ?thesis using f2 a1 by (metis CFG.sym.exhaust CFG.sym.simps(4) Cons.prems map_eq_Cons_D the_hom_syms_hom the_hom_syms_keep_var)
   qed
   then show \<open>\<exists>w'. a # w = map Tm w'\<close> 
     by (metis List.list.simps(9) \<open>w = map Tm w'\<close>)
 qed
 
 text\<open>Helper for showing the upcoming lemma:\<close>
-lemma helper: \<open>the_hom_ext_helper (Tm x) = map Tm (the_hom_helper x)\<close>
-  by(induction x rule: the_hom_helper.induct)(auto split: list.splits sym.splits)
+lemma helper: \<open>the_hom_sym (Tm x) = map Tm (the_hom1 x)\<close>
+  by(induction x rule: the_hom1.induct)(auto split: list.splits sym.splits)
 
 text\<open>Show that the extension really is an extension in some sense:\<close>
 lemma h_eq_h_ext: \<open>\<h>\<s> (map Tm x) = map Tm (\<h> x)\<close>
@@ -296,19 +296,19 @@ next
   then show ?case using helper[of a] by simp
 qed
 
-lemma the_hom_helper_strip: \<open>(the_hom_ext_helper x') = map Tm w \<Longrightarrow> the_hom_helper (destTm x') = w\<close>
-  by(induction x' rule: the_hom_ext_helper.induct; auto)
+lemma the_hom1_strip: \<open>(the_hom_sym x') = map Tm w \<Longrightarrow> the_hom1 (destTm x') = w\<close>
+  by(induction x' rule: the_hom_sym.induct; auto)
 
 lemma concat_map_cons[simp]: \<open>concat (map f (a # w')) = f a @ concat ( map f w')\<close> 
   by auto
 
-lemma the_hom_helper_strip2: \<open>concat (map the_hom_ext_helper w') = map Tm w  \<Longrightarrow> concat (map (the_hom_helper \<circ> destTm) w') = w\<close>
+lemma the_hom1_strip2: \<open>concat (map the_hom_sym w') = map Tm w  \<Longrightarrow> concat (map (the_hom1 \<circ> destTm) w') = w\<close>
 proof(induction w' arbitrary: w)
   case Nil
   then show ?case by simp
 next
   case (Cons a w')
-  then show ?case by (smt (verit, ccfv_threshold) comp_apply concat_map_cons map_eq_append_conv the_hom_helper_strip)
+  then show ?case by (smt (verit, ccfv_threshold) comp_apply concat_map_cons map_eq_append_conv the_hom1_strip)
 qed
 
 lemma h_eq_h_ext2:
@@ -317,7 +317,7 @@ lemma h_eq_h_ext2:
   using assms apply simp
   apply(induction w') 
    apply simp
-  by (smt (verit, ccfv_SIG) map_eq_append_conv the_hom_helper_strip the_hom_helper_strip2)
+  by (smt (verit, ccfv_SIG) map_eq_append_conv the_hom1_strip the_hom1_strip2)
 
 
 
@@ -1872,7 +1872,7 @@ lemma transform_tree_correct:
     case (Nt x1)
     then have \<open>transform_tree (Sym x) = (Sym (Nt x1))\<close> 
       by simp 
-    then show ?thesis using Sym by (metis Nt Parse_Tree.fringe.simps(1) Parse_Tree.parse_tree.simps(1) the_hom_ext_keep_var)
+    then show ?thesis using Sym by (metis Nt Parse_Tree.fringe.simps(1) Parse_Tree.parse_tree.simps(1) the_hom_syms_keep_var)
   next
     case (Tm x2)
     then obtain a where \<open>transform_tree (Sym x) = (Sym (Tm [\<^sup>1\<^bsub>(SOME A. True, [Tm a])\<^esub>))\<close> 
@@ -1982,7 +1982,7 @@ proof-
   then obtain w' where w'_def: \<open>w' \<in> Ders P' S\<close> \<open>(map Tm w) = \<h>\<s> w'\<close> 
     using ex by blast 
   moreover obtain w'' where \<open>w' = map Tm w''\<close> 
-    using w'_def the_hom_ext_tms_inj by metis
+    using w'_def the_hom_syms_tms_inj by metis
   then have \<open>w = \<h> w''\<close> 
     using h_eq_h_ext2 by (metis h_eq_h_ext w'_def(2))
   moreover have \<open>w'' \<in> L'\<close> 
@@ -2162,6 +2162,6 @@ qed
 
 
 no_notation the_hom ("\<h>")
-no_notation the_hom_ext ("\<h>\<s>")
+no_notation the_hom_syms ("\<h>\<s>")
 
 end

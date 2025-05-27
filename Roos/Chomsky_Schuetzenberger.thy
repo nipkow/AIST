@@ -10,19 +10,23 @@ isabelle build -d .. -d ../Stimpfle -D .
 
 
 theory Chomsky_Schuetzenberger
-  imports CNF.CNF "Finite_Automata_Not_HF" CFG.Parse_Tree "Dyck_Language"
+imports
+  CFG.Parse_Tree
+  CNF.CNF
+  Finite_Automata_Not_HF
+  Dyck_Language_Syms
 begin
 
-text \<open>This theory proves the Chomsky-Schuetzenberger theorem \<^cite>\<open>ChomskyS\<close>.
+text \<open>This theory proves the Chomsky-Schützenberger theorem \<^cite>\<open>ChomskyS\<close>.
 We closely follow Kozen \<^cite>\<open>Kozen\<close> for the proof.
-The theorem states, that each context-free language \<open>L\<close> 
+The theorem states that every context-free language \<open>L\<close> 
 can be written as \<^term>\<open>h(R \<inter> Dyck_lang(\<Gamma>))\<close>, for a suitable alphabet \<open>\<Gamma>\<close>, 
 a regular language \<open>R\<close> and a word-homomorphism \<open>h\<close>.
 
 The Dyck language over a set \<open>\<Gamma>\<close> (also called it's bracket language) is defined as follows:
 The symbols of  \<open>\<Gamma>\<close> are paired with \<open>[\<close> and \<open>]\<close>, as in \<open>[\<^sub>g\<close> and \<open>]\<^sub>g\<close> for \<open>g \<in> \<Gamma>\<close>.
-The Dyck language over \<open>\<Gamma>\<close> then is the language of correctly bracketed words.
-The construction of the Dyck language is found in theory \<^theory>\<open>Roos.Dyck_Language\<close>.
+The Dyck language over \<open>\<Gamma>\<close> is the language of correctly bracketed words.
+The construction of the Dyck language is found in theory \<^theory>\<open>Roos.Dyck_Language_Syms\<close>.
 \<close>
 
 section\<open>Overview of the Proof\<close>
@@ -790,7 +794,7 @@ qed
 
 
 
-subsection\<open>The construction of an automaton that accepts the language \<open>{xs. successively Q xs \<and>  xs \<in> brackets P}\<close> \<close>
+subsection\<open>An automaton for \<open>{xs. successively Q xs \<and>  xs \<in> brackets P}\<close>\<close>
 
 locale successivelyConstruction = 
 
@@ -997,7 +1001,8 @@ proof-
 qed
 
 
-subsection\<open>Construction of an automaton for \<open>P1\<close>\<close>
+subsection\<open>An automaton for \<open>P1\<close>\<close>
+
 text\<open>More Precisely, for the \<open>if not empty, then doesnt end in (Close_,1)\<close> part. 
 Then intersect with the other construction for \<open>P1'\<close> to get \<open>P1\<close> regular.\<close>
 
@@ -1161,7 +1166,7 @@ qed
 
 
 
-subsection\<open>Construction of an automaton for \<open>P5\<close>\<close>
+subsection\<open>An automaton for \<open>P5\<close>\<close>
 
 locale P5Construction = 
   fixes P :: "('n,'t) Prods"

@@ -1372,12 +1372,10 @@ assumes finiteP: \<open>finite P\<close> and CNF_P: \<open>CNF P\<close>
 
 begin
 
-lemma P_CNFE[dest]:
+lemma P_CNFE[elim_format,elim]:
   assumes \<open>\<pi> \<in> P\<close>
   shows \<open>\<exists>A a B C. \<pi> = (A, [Nt B, Nt C]) \<or> \<pi> = (A, [Tm a])\<close>  
   using assms CNF_P unfolding CNF_def by fastforce
-
-lemmas P_CNFD = P_CNFE[elim_format]
 
 definition L where 
   \<open>L \<equiv> CFG.Lang P S\<close>
@@ -1407,10 +1405,10 @@ lemma prod2_snds_in_tm [intro, simp]: \<open>(A, [Tm a]) \<in> P \<Longrightarro
   unfolding snds_in_tm_def using \<Gamma>_def by auto
 
 lemma bal_tm_wrap1[iff]: \<open>bal_tm (wrap1 A a)\<close> 
-  using bal_stk_tm_iff_bal_tm unfolding bal_stk_tm_def by fastforce
+unfolding bal_tm_def using bal_insert_AB by fastforce
 
 lemma bal_tm_wrap2[iff]: \<open>bal_tm (wrap2 A B C)\<close> 
-  using bal_stk_tm_iff_bal_tm unfolding bal_stk_tm_def by fastforce
+unfolding bal_tm_def using bal_insert_AB by fastforce
 
 text\<open>This essentially says, that the right sides of productions are in the Dyck language of \<open>\<Gamma>\<close>, 
 if one ignores any occuring nonterminals. This will be needed for \<open>\<rightarrow>\<close>.\<close>

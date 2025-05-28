@@ -8,7 +8,6 @@ Building it:
 isabelle build -d .. -d ../Stimpfle -D .
 *)
 
-
 theory Chomsky_Schuetzenberger
 imports
   CFG.Parse_Tree
@@ -17,7 +16,7 @@ imports
   Dyck_Language_Syms
 begin
 
-text \<open>This theory proves the Chomsky-Schützenberger theorem \<^cite>\<open>ChomskyS\<close>.
+text \<open>This theory proves the Chomsky-Schützenberger representation theorem \<^cite>\<open>ChomskyS\<close>.
 We closely follow Kozen \<^cite>\<open>Kozen\<close> for the proof.
 The theorem states that every context-free language \<open>L\<close> 
 can be written as \<^term>\<open>h(R \<inter> Dyck_lang(\<Gamma>))\<close>, for a suitable alphabet \<open>\<Gamma>\<close>, 
@@ -33,8 +32,8 @@ section\<open>Overview of the Proof\<close>
 
 text\<open>
 A rough proof of Chomsky-Schützenberger is as follows:
-Take some context-free grammar for \<open>L\<close> with productions \<open>P\<close>, 
-wlog assume it in Chomsky normal form. 
+Take some context-free grammar for \<open>L\<close> with productions \<open>P\<close>.
+Wlog assume it is in Chomsky Normal Form. 
 Now define a new language \<open>L'\<close> with productions \<open>P'\<close> in the following way from \<open>P\<close>:
 
 If \<open>\<pi> = A \<rightarrow> BC\<close> let \<open>\<pi>' = A \<rightarrow> [\<^sup>1\<^sub>\<pi> B ]\<^sup>1\<^sub>p [\<^sup>2\<^sub>\<pi> C ]\<^sup>2\<^sub>p\<close>,
@@ -133,10 +132,20 @@ Actually, what we defined as \<open>R\<^sub>S\<close>, isn't regular, only \<ope
 The intersection restricts to a finite amount of possible brackets, 
 that are used in states for finite automatons for the 5 languages that \<open>R\<^sub>S\<close> is
 the intersection of.
+
+Throughout most of the proof below, we implicitly or explicitly assume that the grammar is in CNF.
+This is lifted only at the very end.
 \<close>
 
 
-section\<open>Grammar/Production Transformation\<close>
+section\<open>Production Transformation and Homomorphisms\<close>
+
+text \<open>A fixed finite set of productions \<open>P\<close>, used later on:\<close>
+
+locale locale_P =
+fixes P :: "('n,'t) Prods"
+assumes finiteP: \<open>finite P\<close>
+
 
 subsection\<open>Brackets\<close>
 
@@ -203,21 +212,18 @@ abbreviation wrap2 :: \<open>'n \<Rightarrow> 'n \<Rightarrow> 'n \<Rightarrow> 
          Tm ]\<^sup>2\<^bsub>(A, [Nt B, Nt C])\<^esub>  ]\<close>
 
 text\<open>The transformation of old productions to new productions used in the proof:\<close>
+
+fun transform_rhs :: "'n \<Rightarrow> ('n, 't) syms \<Rightarrow> ('n, ('n,'t) bracket3) syms" where
+  \<open>transform_rhs A [Tm a] = wrap1 A a\<close> | 
+  \<open>transform_rhs A [Nt B, Nt C] = wrap2 A B C\<close>
+
+text \<open>The last equation is only added to permit us to state lemmas about \<close>
+
 fun transform_prod :: "('n, 't) prod \<Rightarrow> ('n, ('n,'t) bracket3) prod" where
-  \<open>transform_prod (A, [Tm a])  = (A, wrap1 A a) \<close> | 
-  \<open>transform_prod (A, [Nt B, Nt C]) = (A, wrap2 A B C)  \<close> | 
-  \<open>transform_prod (A, _) = (A, [])\<close>
-
-lemma fst_transform_prod[simp]: \<open>fst (transform_prod (A, w)) = A\<close>
-  by(cases "(A,w)" rule: transform_prod.cases) auto
+  \<open>transform_prod (A, \<alpha>) = (A, transform_rhs A \<alpha>)\<close>
 
 
-
-
-
-section\<open>The Homomorphisms \<open>\<h>\<close> and \<open>\<h>\<s>\<close>\<close>
-
-text\<open>The function \<open>h_ext\<close> is a version of \<open>h\<close> that can be used on words still containing Nonterminals.\<close>
+subsection\<open>Homomorphisms\<close>
 
 text\<open>Definition of a monoid-homomorphism where multiplication is that of words:\<close>
 definition hom :: \<open>('c list \<Rightarrow> 'd list) \<Rightarrow> bool\<close> where
@@ -724,14 +730,10 @@ by(rule RegI) auto
 
 
 
-
-
-locale locale_P =
-fixes P :: "('n,'t) Prods"
-assumes finiteP: \<open>finite P\<close>
-begin
-
 section\<open>Showing Regularity\<close>
+
+context locale_P
+begin
 
 abbreviation brackets::\<open>('n,'t) bracket3 list set\<close> where
   \<open>brackets \<equiv> {bs. \<forall>(_,p,_) \<in> set bs. p \<in> P}\<close>
@@ -780,7 +782,7 @@ qed
 end (* P *)
 
 
-subsection\<open>An automaton for \<open>{xs. successively Q xs \<and>  xs \<in> brackets P}\<close>\<close>
+subsection\<open>An automaton for \<open>{xs. successively Q xs \<and> xs \<in> brackets P}\<close>\<close>
 
 locale successivelyConstruction = locale_P where P = P for P :: "('n,'t) Prods" +
 fixes Q :: "('n,'t) bracket3 \<Rightarrow> ('n,'t) bracket3 \<Rightarrow> bool" \<comment> \<open>e.g. P2\<close>
@@ -936,8 +938,7 @@ lemma aut_language_reg: \<open>regular aut.language\<close>
 corollary regular_successively_inter_brackets: \<open>regular {xs. successively Q xs \<and>  xs \<in> brackets}\<close> 
   using aut_language_reg aut_lang_iff_succ_Q by auto
 
-end
-
+end (* successivelyConstruction *)
 
 
 subsection\<open>Regularity of \<open>P2\<close>, \<open>P3\<close> and \<open>P4\<close>\<close>
@@ -1107,7 +1108,7 @@ corollary aux_regular: \<open>regular {xs. xs = [] \<or> (xs \<noteq> [] \<and> 
 corollary regular_P1: \<open>regular {xs. P1 xs \<and> xs \<in> brackets}\<close> 
   unfolding P1_eq using P1'_regular aux_regular using regular_Int by blast
 
-end
+end (* P *)
 
 subsection\<open>An automaton for \<open>P5\<close>\<close>
 
@@ -1235,7 +1236,8 @@ corollary aux_regular: \<open>regular {xs. xs \<noteq> [] \<and> ok (hd xs) \<an
 lemma regular_P5:\<open>regular {xs. P5 A xs \<and> xs \<in> brackets}\<close> 
   using in_P5_iff aux_regular by presburger
 
-end
+end (* P5Construction *)
+
 
 context locale_P
 begin
@@ -1274,8 +1276,7 @@ lemma Dyck_lang_subset_brackets: \<open>Dyck_lang (P \<times> {One, Two}) \<subs
   unfolding Dyck_lang_def using Ball_set by auto
 
 
-end
-
+end (* P *)
 
 
 
@@ -1287,7 +1288,7 @@ assumes CNF_P: \<open>CNF P\<close>
 
 begin
 
-lemma P_CNFE[elim_format,elim]:
+lemma P_CNFE[dest]:
   assumes \<open>\<pi> \<in> P\<close>
   shows \<open>\<exists>A a B C. \<pi> = (A, [Nt B, Nt C]) \<or> \<pi> = (A, [Tm a])\<close>  
   using assms CNF_P unfolding CNF_def by fastforce
@@ -1299,19 +1300,14 @@ definition \<Gamma> where
   \<open>\<Gamma> = P \<times> {One, Two}\<close>
 
 definition P' where 
-  \<open>P' = image transform_prod P\<close>
+  \<open>P' = transform_prod ` P\<close>
 
 definition L' where 
   \<open>L' = Lang P' S\<close>
 
 
 
-
-
-
-
-
-section\<open>Lemmas for \<open>A \<rightarrow>\<^sup>*\<^sub>P\<^sub>' x  \<longleftrightarrow>  x \<in> R\<^sub>A \<inter> Dyck_lang \<Gamma>\<close>\<close>
+section\<open>Lemmas for \<open>P' \<turnstile> A \<Rightarrow>\<^sup>* x  \<longleftrightarrow>  x \<in> R\<^sub>A \<inter> Dyck_lang \<Gamma>\<close>\<close>
 
 lemma prod1_snds_in_tm [intro, simp]: \<open>(A, [Nt B, Nt C]) \<in> P \<Longrightarrow> snds_in_tm \<Gamma> (wrap2 A B C)\<close> 
   unfolding snds_in_tm_def using \<Gamma>_def by auto
@@ -1327,11 +1323,13 @@ unfolding bal_tm_def using bal_insert_AB by fastforce
 
 text\<open>This essentially says, that the right sides of productions are in the Dyck language of \<open>\<Gamma>\<close>, 
 if one ignores any occuring nonterminals. This will be needed for \<open>\<rightarrow>\<close>.\<close>
-lemma prod_bal_tm[intro!]:
-  assumes \<open>p \<in> P\<close>
-  shows \<open>bal_tm (snd (transform_prod p))\<close> \<open>snds_in_tm \<Gamma> (snd (transform_prod p))\<close>
-   using assms apply auto 
-  using assms by fastforce
+lemma bal_tm_ransform_rhs[intro!]:
+  \<open>(A,\<alpha>) \<in> P \<Longrightarrow> bal_tm (transform_rhs A \<alpha>)\<close>
+by auto
+
+lemma snds_in_tm_ransform_rhs[intro!]:
+  \<open>(A,\<alpha>) \<in> P \<Longrightarrow> snds_in_tm \<Gamma> (transform_rhs A \<alpha>)\<close>
+  using P_CNFE by (fastforce)
 
 
 text\<open>The lemma for \<open>\<rightarrow>\<close>\<close>
@@ -1346,13 +1344,13 @@ next
   have \<open>bal_tm (u @ [Nt A] @ v)\<close> and \<open>snds_in_tm \<Gamma> (u @ [Nt A] @ v)\<close> 
     using step.IH step.prems by auto
   obtain w' where w'_def: \<open>(A, w) = transform_prod (A, w')\<close> and A_w'_in_P: \<open>(A,w') \<in> P\<close>     
-    by (smt (verit, best) P'_def fst_conv fst_transform_prod image_iff step.hyps(2) surj_pair)
-  have bal_tm_w: \<open>bal_tm w\<close> and snds_in_tm_w: \<open>snds_in_tm \<Gamma> w\<close> 
-    using prod_bal_tm[OF \<open>(A,w') \<in> P\<close>] w'_def by (metis split_pairs)+
+    by (smt (verit, best) P'_def fst_conv transform_prod.simps image_iff step.hyps(2) surj_pair)
+  have bal_tm_w: \<open>bal_tm w\<close> (*and snds_in_tm_w: \<open>snds_in_tm \<Gamma> w\<close> *)
+    using bal_tm_ransform_rhs[OF \<open>(A,w') \<in> P\<close>] w'_def by auto
   then have \<open>bal_tm (u @ w @ v)\<close> 
     using \<open>bal_tm (u @ [Nt A] @ v)\<close> by blast 
-  moreover from snds_in_tm_w have \<open>snds_in_tm \<Gamma> (u @ w @ v)\<close> 
-    using \<open>snds_in_tm \<Gamma> (u @ [Nt A] @ v)\<close> by (simp)
+  moreover have \<open>snds_in_tm \<Gamma> (u @ w @ v)\<close> 
+    using snds_in_tm_ransform_rhs[OF \<open>(A,w') \<in> P\<close>] \<open>snds_in_tm \<Gamma> (u @ [Nt A] @ v)\<close> w'_def by (simp)
   ultimately show ?case using \<open>bal_tm (u @ w @ v)\<close> by blast
 qed
 
@@ -1371,7 +1369,7 @@ next
   have \<open>(A, w) \<in> P'\<close> 
     using step by blast
   then obtain w' where w'_def: \<open>transform_prod (A, w') = (A, w)\<close> and \<open>(A,w') \<in> P\<close> 
-    by (smt (verit, best) fst_transform_prod P'_def P_CNFE fst_conv image_iff)
+    by (smt (verit, best) transform_prod.simps P'_def P_CNFE fst_conv image_iff)
   then obtain B C a where w_eq: \<open>w = wrap1 A a \<or> w = wrap2 A B C\<close> (is \<open>w = ?w1 \<or> w = ?w2\<close>) 
     by fastforce
   then have w_resym: \<open>w \<in> Reg_sym A\<close> 
@@ -1498,15 +1496,13 @@ next
     by blast 
 qed
 
-
-
 text\<open>This will be needed for the direction \<open>\<leftarrow>\<close>.\<close>
 lemma transform_prod_one_step:
   assumes \<open>\<pi> \<in> P\<close>
   shows \<open>P' \<turnstile> [Nt (fst \<pi>)] \<Rightarrow> snd (transform_prod \<pi>)\<close>
 proof-
   obtain w' where w'_def: \<open>transform_prod \<pi> = (fst \<pi>, w')\<close> 
-    by (metis fst_eqD fst_transform_prod surj_pair)
+    by (metis fst_eqD transform_prod.simps surj_pair)
   then have \<open>(fst \<pi>, w') \<in> P'\<close> 
     using assms by (simp add: P'_def rev_image_eqI)
   then show ?thesis 
@@ -1741,7 +1737,7 @@ We do this by defining the transformation on the parse tree, instead of only the
 Simple induction on the derivation wouldn't (in the induction step) get us enough information on 
 where the corresponding production needs to be applied in the transformed version.\<close>
 
-abbreviation \<open>prod_rhs ts \<equiv> map root ts\<close>
+abbreviation \<open>roots ts \<equiv> map root ts\<close>
 
 fun wrap1_Sym :: \<open>'n \<Rightarrow> ('n,'t) sym \<Rightarrow> version \<Rightarrow> ('n,('n,'t) bracket3) tree list\<close> where
   "wrap1_Sym A (Tm a) v = [ Sym (Tm (Open ((A, [Tm a]),v))),  Sym (Tm (Close ((A, [Tm a]), v)))]" | 
@@ -1792,22 +1788,22 @@ next
     by blast+
   from Rule have IH: \<open>\<And>x2a w'. \<lbrakk>x2a \<in> set ts; parse_tree P x2a \<and> fringe x2a = w'\<rbrakk> \<Longrightarrow> parse_tree P' (transform_tree x2a) \<and> \<h>\<s> (fringe (transform_tree x2a)) = w'\<close> 
     using P'_def by blast
-  from pt have \<open>(A, prod_rhs ts) \<in> P\<close> 
+  from pt have \<open>(A, roots ts) \<in> P\<close> 
     by simp
   then obtain B C a where 
-    def: \<open>(A, prod_rhs ts) = (A, [Nt B, Nt C]) \<and> transform_prod (A, prod_rhs ts) = (A, [Tm [\<^sup>1\<^bsub>(A, [Nt B, Nt C])\<^esub> , Nt B, Tm ]\<^sup>1\<^bsub>(A, [Nt B, Nt C])\<^esub>, Tm [\<^sup>2\<^bsub>(A, [Nt B, Nt C])\<^esub>, Nt C, Tm ]\<^sup>2\<^bsub>(A, [Nt B, Nt C])\<^esub> ]) 
+    def: \<open>(A, roots ts) = (A, [Nt B, Nt C]) \<and> transform_prod (A, roots ts) = (A, [Tm [\<^sup>1\<^bsub>(A, [Nt B, Nt C])\<^esub> , Nt B, Tm ]\<^sup>1\<^bsub>(A, [Nt B, Nt C])\<^esub>, Tm [\<^sup>2\<^bsub>(A, [Nt B, Nt C])\<^esub>, Nt C, Tm ]\<^sup>2\<^bsub>(A, [Nt B, Nt C])\<^esub> ]) 
 \<or>
-       (A, prod_rhs ts) = (A, [Tm a]) \<and> transform_prod (A, prod_rhs ts) = (A, [Tm [\<^sup>1\<^bsub>(A, [Tm a])\<^esub> , Tm ]\<^sup>1\<^bsub>(A, [Tm a])\<^esub>, Tm [\<^sup>2\<^bsub>(A, [Tm a])\<^esub>, Tm ]\<^sup>2\<^bsub>(A, [Tm a])\<^esub> ])\<close> 
+       (A, roots ts) = (A, [Tm a]) \<and> transform_prod (A, roots ts) = (A, [Tm [\<^sup>1\<^bsub>(A, [Tm a])\<^esub> , Tm ]\<^sup>1\<^bsub>(A, [Tm a])\<^esub>, Tm [\<^sup>2\<^bsub>(A, [Tm a])\<^esub>, Tm ]\<^sup>2\<^bsub>(A, [Tm a])\<^esub> ])\<close> 
     by fastforce
   then obtain t1 t2 e1 where ei_def: \<open>ts = [e1] \<or> ts = [t1, t2]\<close> 
     by blast
-  then consider (Tm) \<open>prod_rhs ts = [Tm a]       \<and> ts = [Sym (Tm a)]\<close> | 
-    (Nt_Nt) \<open>prod_rhs ts = [Nt B, Nt C] \<and> ts = [t1, t2]\<close> 
+  then consider (Tm) \<open>roots ts = [Tm a]       \<and> ts = [Sym (Tm a)]\<close> | 
+    (Nt_Nt) \<open>roots ts = [Nt B, Nt C] \<and> ts = [t1, t2]\<close> 
     by (smt (verit, best) def list.inject list.simps(8,9) not_Cons_self2 prod.inject root.elims sym.distinct(1))
   then show ?case
   proof(cases)
     case Tm
-    then have ts_eq: \<open>ts = [Sym (Tm a)]\<close> and prod_rhs: \<open>prod_rhs ts = [Tm a]\<close> 
+    then have ts_eq: \<open>ts = [Sym (Tm a)]\<close> and roots: \<open>roots ts = [Tm a]\<close> 
       by blast+
     then have \<open>transform_tree (Rule A ts) = Rule A [ Sym (Tm [\<^sup>1\<^bsub>(A,[Tm a])\<^esub>),  Sym(Tm ]\<^sup>1\<^bsub>(A,[Tm a])\<^esub>),  Sym (Tm [\<^sup>2\<^bsub>(A,[Tm a])\<^esub>),  Sym(Tm ]\<^sup>2\<^bsub>(A, [Tm a])\<^esub>)  ]\<close> 
       by simp
@@ -1817,11 +1813,11 @@ next
       using fr unfolding ts_eq by auto
     finally have \<open>\<h>\<s> (fringe (transform_tree (Rule A ts))) = w\<close> .
     moreover have \<open>parse_tree (P') (transform_tree (Rule A [Sym (Tm a)]))\<close> 
-      using pt prod_rhs unfolding P'_def by force
+      using pt roots unfolding P'_def by force
     ultimately show ?thesis unfolding ts_eq P'_def by blast
   next
     case Nt_Nt
-    then have ts_eq: \<open>ts = [t1, t2]\<close>  and prod_rhs: \<open>prod_rhs ts = [Nt B, Nt C]\<close> 
+    then have ts_eq: \<open>ts = [t1, t2]\<close>  and roots: \<open>roots ts = [Nt B, Nt C]\<close> 
       by blast+
     then have root_t1_eq_B: \<open>root t1 = Nt B\<close> and root_t2_eq_C: \<open>root t2 = Nt C\<close>
       by blast+
@@ -1848,13 +1844,12 @@ next
       using root_t2_eq_C by auto
     ultimately have \<open>parse_tree P' (transform_tree (Rule A ts))\<close> 
       using \<open>parse_tree P' (transform_tree t1)\<close>  \<open>parse_tree P' (transform_tree t2)\<close>
-        \<open>(A, map Parse_Tree.root ts) \<in> P\<close> prod_rhs
+        \<open>(A, map Parse_Tree.root ts) \<in> P\<close> roots
       by (force simp: ts_eq P'_def)
     then show ?thesis 
       using \<open>\<h>\<s> (fringe (transform_tree (Rule A ts))) = w\<close> by auto
   qed  
 qed
-
 
 lemma 
   transfer_parse_tree:
@@ -1952,8 +1947,6 @@ qed
 
 
 
-
-
 section\<open>The Theorem\<close>
 
 text\<open>The constructive version of the Theorem, for a grammar already in CNF:\<close>
@@ -1997,8 +1990,8 @@ proof -
   then show ?thesis unfolding \<Gamma>_def by blast
 qed
 
+end (* Chomsky_Schuetzenberger_locale *)
 
-end (*of the locale Chomsky_Schuetzenberger_locale *)
 
 text \<open>Now we want to prove the theorem without assuming that \<open>P\<close> is in CNF.
 Of course any grammar can be converted into CNF, but this requires an infinite type of nonterminals

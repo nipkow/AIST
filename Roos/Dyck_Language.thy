@@ -196,22 +196,22 @@ corollary bal_iff_insert[iff]:
 lemma bal_start_Open: \<open>bal (x#xs) \<Longrightarrow>\<exists>a. x = Open a\<close>
   using bal_stk.elims bal_stk_iff_bal by blast 
 
-lemma bal_Open_split: assumes bal_x_xs: \<open>bal (x # xs)\<close>
-  shows \<open>\<exists>y r a. bal y \<and> bal r \<and> (x # xs) = Open a # y @ Close a # r\<close>
+lemma bal_Open_split: assumes \<open>bal (x # xs)\<close>
+  shows \<open>\<exists>y r a. bal y \<and> bal r \<and> x = Open a \<and> xs = y @ Close a # r\<close>
 proof-
-  from bal_x_xs obtain a where x_def: \<open>x = Open a\<close> 
+  from assms obtain a where \<open>x = Open a\<close> 
     using bal_start_Open by blast
-  then have \<open>bal (Open a # xs) \<Longrightarrow> \<exists>y r. bal y \<and> bal r \<and> (x # xs) = Open a # y @ Close a # r\<close>
-  proof(induction \<open>length (x # xs)\<close> arbitrary: xs rule: less_induct)
+  have \<open>bal (Open a # xs) \<Longrightarrow> \<exists>y r. bal y \<and> bal r \<and> xs = y @ Close a # r\<close>
+  proof(induction \<open>length xs\<close> arbitrary: xs rule: less_induct)
     case less
-    have IH: \<open>\<And>w. \<lbrakk>length (Open a # w) < length (Open a # xs); bal (Open a # w)\<rbrakk> \<Longrightarrow> \<exists>y r. bal y \<and> bal r \<and> Open a # w = Open a # y @ Close a # r\<close> 
+    have IH: \<open>\<And>w. \<lbrakk>length w < length xs; bal (Open a # w)\<rbrakk> \<Longrightarrow> \<exists>y r. bal y \<and> bal r \<and> w = y @ Close a # r\<close> 
       using less by blast
     have \<open>bal (Open a # xs)\<close> 
-      using less bal_x_xs by blast
-    then show ?case
+      using less by blast
+    from less(2) show ?case
     proof(induction \<open>Open a # xs\<close> rule: bal.induct)
       case (2 as bs)
-      consider (as_empty)  \<open>as = []\<close> | (bs_empty)\<open>bs = []\<close> | (both_not_empty)\<open>as \<noteq> [] \<and> bs \<noteq> []\<close> by blast
+      consider (as_empty) \<open>as = []\<close> | (bs_empty) \<open>bs = []\<close> | (both_not_empty) \<open>as \<noteq> [] \<and> bs \<noteq> []\<close> by blast
       then show ?case
       proof(cases)
         case as_empty
@@ -223,24 +223,24 @@ proof-
         case both_not_empty
         then obtain as' where as'_def: \<open>Open a # as' = as\<close> 
           using 2 by (metis append_eq_Cons_conv)
-        then have \<open>length (Open a # as') < length (Open a # xs)\<close>
+        then have \<open>length as' < length xs\<close>
           using "2.hyps"(5) both_not_empty by fastforce
-        with IH \<open>bal as\<close> obtain y r where yr: \<open>bal y \<and> bal r \<and> Open a # as' = Open a # y @ Close a # r\<close> 
+        with IH \<open>bal as\<close> obtain y r where yr: \<open>bal y \<and> bal r \<and> as' = y @ Close a # r\<close> 
           using as'_def by meson
-        then have \<open>Open a # xs = Open a # y @ Close a # r @ bs\<close> 
-          using as'_def by (metis "2.hyps"(5) List.append.assoc append_Cons)
+        then have \<open>xs = y @ Close a # r @ bs\<close>
+          using "2.hyps"(5) as'_def by fastforce 
         moreover have \<open>bal y\<close>
           using yr by blast
         moreover have \<open>bal (r@bs)\<close> 
           using yr by (simp add: "2.hyps"(3))
-        ultimately show ?thesis using x_def by blast
+        ultimately show ?thesis by blast
       qed
     next
       case (3 xs)
-      then show ?case using x_def by blast    
+      then show ?case by blast    
     qed
   qed
-  then show ?thesis using x_def using bal_x_xs by blast
+  then show ?thesis using assms \<open>x = _\<close> by blast
 qed
 
 

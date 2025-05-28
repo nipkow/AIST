@@ -138,6 +138,7 @@ This is lifted only at the very end.
 \<close>
 
 
+
 section\<open>Production Transformation and Homomorphisms\<close>
 
 text \<open>A fixed finite set of productions \<open>P\<close>, used later on:\<close>
@@ -229,7 +230,6 @@ text\<open>Definition of a monoid-homomorphism where multiplication is that of w
 definition hom :: \<open>('c list \<Rightarrow> 'd list) \<Rightarrow> bool\<close> where
   \<open>hom h = ((\<forall>a b. h (a@b) = (h a) @ h (b)) \<and> h [] = [])\<close>
 
-
 text\<open>The homomorphism on single brackets:\<close>
 fun the_hom1 :: \<open>('n,'t) bracket3 \<Rightarrow> 't list\<close> where
   \<open>the_hom1 [\<^sup>1\<^bsub>(A, [Tm a])\<^esub> = [a]\<close> | 
@@ -252,10 +252,10 @@ fun the_hom_syms :: \<open>('n, ('n,'t) bracket3) syms \<Rightarrow> ('n,'t) sym
 notation the_hom ("\<h>")
 notation the_hom_syms ("\<h>\<s>")
 
-lemma the_hom_syms_hom[simp]: \<open>\<h>\<s> (l1 @ l2) = \<h>\<s> l1 @ \<h>\<s> l2\<close>
+lemma the_hom_syms_hom: \<open>\<h>\<s> (l1 @ l2) = \<h>\<s> l1 @ \<h>\<s> l2\<close>
   by simp
 
-lemma the_hom_syms_keep_var[simp] : \<open>\<h>\<s> [(Nt A)] = [Nt A]\<close> 
+lemma the_hom_syms_keep_var: \<open>\<h>\<s> [(Nt A)] = [Nt A]\<close> 
   by simp 
 
 lemma the_hom_sym_var_inj: \<open>the_hom_sym r = [Nt A] \<Longrightarrow> r = Nt A\<close> 
@@ -305,16 +305,14 @@ qed
 lemma the_hom1_strip: \<open>(the_hom_sym x') = map Tm w \<Longrightarrow> the_hom1 (destTm x') = w\<close>
   by(induction x' rule: the_hom_sym.induct; auto)
 
-lemma concat_map_cons[simp]: \<open>concat (map f (a # w')) = f a @ concat ( map f w')\<close> 
-  by auto
-
 lemma the_hom1_strip2: \<open>concat (map the_hom_sym w') = map Tm w  \<Longrightarrow> concat (map (the_hom1 \<circ> destTm) w') = w\<close>
 proof(induction w' arbitrary: w)
   case Nil
   then show ?case by simp
 next
   case (Cons a w')
-  then show ?case by (smt (verit, ccfv_threshold) comp_apply concat_map_cons map_eq_append_conv the_hom1_strip)
+  then show ?case
+    by(auto simp: the_hom1_strip map_eq_append_conv append_eq_map_conv)
 qed
 
 lemma h_eq_h_ext2:
@@ -626,10 +624,7 @@ lemma P5_for_tm_if_P5_sym[intro, dest]: \<open>P5_sym A (map Tm x) \<Longrightar
   by(induction x) auto
 
 
-
-
 subsection\<open>\<open>P7\<close> and \<open>P8\<close>\<close>
-
 
 text\<open>\<open>(successively P7_sym) w\<close> iff \<open>Nt Y\<close> is directly preceded by some \<open>Tm [\<^sup>1\<^bsub>A\<rightarrow>YC\<^esub>\<close> or \<open>Tm [\<^sup>2\<^bsub>A\<rightarrow>BY\<^esub>\<close> in w:\<close>
 fun P7_sym :: \<open>('n, ('n,'t) bracket3) sym \<Rightarrow> ('n, ('n,'t) bracket3) sym \<Rightarrow> bool\<close> where
@@ -660,8 +655,8 @@ lemma P8_symD[dest]:
 lemmas P8_symE = P8_symD[elim_format]
 
 
-
 subsection\<open>\<open>Reg\<close> and \<open>Reg_sym\<close>\<close>
+
 text\<open>This is the regular language, where one takes the Start symbol as a parameter, and then has the searched for \<open>R := R\<^sub>A\<close>:\<close>
 definition Reg :: \<open>'n \<Rightarrow> ('n,'t) bracket3 list set\<close> where
   \<open>Reg A = {x. (P1 x) \<and> 
@@ -747,10 +742,10 @@ definition allStates :: \<open>('n,'t) bracket3 state set \<close>where
 lemma allStatesI: \<open>p \<in> P \<Longrightarrow> letter (br,(p,v)) \<in> allStates\<close> 
   unfolding allStates_def by blast
 
-lemma [simp]:\<open>start \<in> allStates\<close> 
+lemma [simp]: \<open>start \<in> allStates\<close> 
   unfolding allStates_def by blast
 
-lemma [simp]:\<open>garbage \<in> allStates\<close> 
+lemma [simp]: \<open>garbage \<in> allStates\<close> 
   unfolding allStates_def by blast
 
 lemma allStatesD1: \<open>letter (br,(p,v)) \<in> allStates \<Longrightarrow> p \<in> P\<close> 
@@ -827,14 +822,8 @@ next
     using finiteP by (simp add: finite_allStates_if)
 qed
 
-corollary dfa_aut: "dfa' aut"
-  by unfold_locales
-
-lemma nextl_in_allStates[intro]: \<open>q \<in> allStates \<Longrightarrow> aut.nextl q ys \<in> allStates\<close>
+lemma nextl_in_allStates[intro,simp]: \<open>q \<in> allStates \<Longrightarrow> aut.nextl q ys \<in> allStates\<close>
   using aut.nxt by(induction ys arbitrary: q) auto
-
-corollary nextl_in_allStates_from_start[simp]: \<open>aut.nextl start ys \<in> allStates\<close> 
-  using nextl_in_allStates by auto
 
 lemma nextl_garbage[simp]: \<open>aut.nextl garbage xs = garbage\<close> 
 by(induction xs) auto
@@ -849,8 +838,6 @@ proof(induction ys)
   then show ?case by blast
 qed auto
 
-
-
 lemma state_after1[iff]: \<open>(succNext q a \<noteq> garbage) = (succNext q a = letter a)\<close>
 by(induction q a rule: succNext.induct) (auto split: if_splits)
 
@@ -859,7 +846,6 @@ lemma state_after[iff]: \<open>(aut.nextl q (as@[a]) \<noteq> garbage) = (aut.ne
 
 lemma state_after_in_P[intro]: \<open>succNext q (br, p, v) \<noteq> garbage \<Longrightarrow> p \<in> P\<close>
 by(induction q \<open>(br, p, v)\<close> rule: succNext_induct) auto 
-
 
 lemma drop_left_general: \<open>aut.nextl start ys = garbage \<Longrightarrow> aut.nextl q ys = garbage\<close>
 proof(induction ys)
@@ -933,7 +919,7 @@ next
 qed
 
 lemma aut_language_reg: \<open>regular aut.language\<close> 
-  using dfa'_imp_regular dfa_aut by blast
+  using dfa'_imp_regular aut.dfa'_axioms by blast
 
 corollary regular_successively_inter_brackets: \<open>regular {xs. successively Q xs \<and>  xs \<in> brackets}\<close> 
   using aut_language_reg aut_lang_iff_succ_Q by auto
@@ -1110,6 +1096,7 @@ corollary regular_P1: \<open>regular {xs. P1 xs \<and> xs \<in> brackets}\<close
 
 end (* P *)
 
+
 subsection\<open>An automaton for \<open>P5\<close>\<close>
 
 locale P5Construction = locale_P where P=P for P :: "('n,'t)Prods" +
@@ -1223,7 +1210,6 @@ proof(induction xs rule: rev_induct)
   qed
 qed simp
 
-
 lemma in_P5_iff: \<open>P5 A xs \<and> xs \<in> brackets \<longleftrightarrow> (xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets)\<close> 
   by auto (metis List.list.exhaust_sel P5.simps(2) ok.elims(2))
 
@@ -1331,7 +1317,6 @@ lemma snds_in_tm_ransform_rhs[intro!]:
   \<open>(A,\<alpha>) \<in> P \<Longrightarrow> snds_in_tm \<Gamma> (transform_rhs A \<alpha>)\<close>
   using P_CNFE by (fastforce)
 
-
 text\<open>The lemma for \<open>\<rightarrow>\<close>\<close>
 lemma P'_imp_bal:
   assumes \<open>P' \<turnstile> [Nt A] \<Rightarrow>* x\<close>
@@ -1353,7 +1338,6 @@ next
     using snds_in_tm_ransform_rhs[OF \<open>(A,w') \<in> P\<close>] \<open>snds_in_tm \<Gamma> (u @ [Nt A] @ v)\<close> w'_def by (simp)
   ultimately show ?case using \<open>bal_tm (u @ w @ v)\<close> by blast
 qed
-
 
 text\<open>Another lemma for \<open>\<rightarrow>\<close>\<close>
 lemma P'_imp_Reg:
@@ -1508,8 +1492,6 @@ proof-
   then show ?thesis 
     by (simp add: w'_def derive_singleton)
 qed
-
-
 
 text\<open>The lemma for \<open>\<leftarrow>\<close>\<close>
 lemma Reg_and_dyck_imp_P':
@@ -1724,11 +1706,6 @@ qed
 
 
 
-
-
-
-
-
 section\<open>Showing \<open>h(L') = L\<close>\<close>
 
 text\<open>Particularly \<open>\<supseteq>\<close> is formally hard. 
@@ -1886,8 +1863,6 @@ proof-
     by blast
 qed
 
-
-
 text\<open>This lemma is used in the proof of the other direction \<open>(h(L') \<subseteq> L)\<close>:\<close>
 lemma hom_ext_inv[simp]: 
   assumes \<open>\<pi> \<in> P\<close>
@@ -1898,7 +1873,6 @@ proof-
   then show ?thesis 
     by auto
 qed
-
 
 text\<open>This lemma is essentially the other direction \<open>(h(L') \<subseteq> L)\<close>:\<close>
 lemma L'_imp_h_P:
@@ -2025,9 +1999,6 @@ proof -
   then show ?thesis 
     using assms(1) by auto
 qed
-
-
-
 
 text\<open>The Chomsky-Schützenberger theorem that we really want to prove:\<close>
 lemma Chomsky_Schuetzenberger_general:

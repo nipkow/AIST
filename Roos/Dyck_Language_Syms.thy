@@ -34,57 +34,45 @@ lemma filter_isTm_map_Tm[simp]:\<open>filter isTm (map Tm xs') = map Tm xs'\<clo
   apply(induction xs') by auto
 (* until here *)
 
-lemma bal_tm_empty[iff]: \<open>bal_tm []\<close>
+lemma bal_tm_empty[simp]: \<open>bal_tm []\<close>
   by (simp add: bal_tm_def)
 
-lemma bal_tm_Nt[iff]:\<open>bal_tm [Nt A]\<close>
-  by (simp add: bal_tm_def)
-
-lemma bal_tm_append[intro, simp]: \<open>bal_tm xs \<Longrightarrow> bal_tm ys \<Longrightarrow> bal_tm (xs @ ys)\<close> 
+lemma bal_tm_append[simp]: \<open>bal_tm xs \<Longrightarrow> bal_tm ys \<Longrightarrow> bal_tm (xs @ ys)\<close> 
   unfolding bal_tm_def by simp
 
-lemma bal_tm_surr[intro!, simp]: \<open>bal_tm xs \<Longrightarrow> bal_tm (Tm (Open a) # xs @ [Tm (Close a)])\<close> 
+lemma bal_tm_surr[simp]: \<open>bal_tm xs \<Longrightarrow> bal_tm (Tm (Open a) # xs @ [Tm (Close a)])\<close> 
   unfolding bal_tm_def by simp
 
-lemma bal_tm_prepend_Nt[intro!, simp]: \<open>bal_tm xs \<Longrightarrow> bal_tm (Nt A # xs)\<close> 
+lemma bal_tm_prepend_Nt[simp]: \<open>bal_tm (Nt A # xs) = bal_tm xs\<close> 
   by (simp add: bal_tm_def)
 
-lemma bal_tm_append_Nt[intro!, simp]: \<open>bal_tm xs \<Longrightarrow> bal_tm (xs@[Nt A])\<close> 
-  by blast
-
-lemma bal_tm2[iff]: "bal_tm [Tm (Open a), Tm (Close a)]"
-  using bal_tm_surr by force
-
-lemma bal_tm2_Nt[iff]: "bal_tm [Tm (Open a), Tm (Close a), Nt A]" 
-  using bal_tm_append_Nt by force
+lemma bal_tm2[simp]: "bal_tm [Tm (Open a), Tm (Close a)]"
+using bal_tm_surr[of "[]"] by simp
 
 (* TODO: now in CFG *)
 lemma map_Tm_inject_iff[simp]: "(map Tm xs = map Tm ys) = (xs = ys)"
 by (metis sym.inject(2) list.inj_map_strong)
 (* until here *)
 
-text\<open>Relationship of \<^term>\<open>bal\<close> and \<^term>\<open>bal_tm\<close>:\<close>
-lemma bal_imp_bal_tm: \<open>bal xs \<Longrightarrow> bal_tm (map Tm xs)\<close>
-  by(induction xs rule: bal.induct; auto)
+lemma bal_iff_bal_tm[simp]: \<open>bal_tm (map Tm xs) = bal xs\<close>
+unfolding bal_tm_def by simp
 
-lemma bal_tm_imp_bal_for_tms: \<open>bal_tm (map Tm xs') \<Longrightarrow> bal xs'\<close>
-  unfolding bal_tm_def by auto
+
+lemma bal_tm_append_inv: "bal_tm (u @ v) \<Longrightarrow> bal_tm u \<Longrightarrow> bal_tm v"
+unfolding bal_tm_def by(auto dest: bal_append_inv)
+
+lemma bal_tm_inside: 
+  "bal_tm b \<Longrightarrow> bal_tm (v @ b @ w) = bal_tm (v @ w)"
+unfolding bal_tm_def by(auto)
 
 
 subsection\<open>Function \<open>snds_in_tm\<close>\<close>
 
-text\<open>Version of \<open>snds_in\<close> but for a list of symbols, that might contain Nonterminals.
-Says that all right hand sides of \<open>x\<close> (here stripped of their \<open>Tm\<close>) are in \<open>\<Gamma>\<close>:\<close>
+text\<open>Version of \<open>snds_in\<close> for a list of symbols:\<close>
+
 definition snds_in_tm where
   \<open>snds_in_tm \<Gamma> \<equiv> snds_in \<Gamma> o map destTm o filter isTm\<close>
-(*
-text\<open>Useful lemmas about this:\<close>
-lemma snds_in_tm_del_right: \<open>snds_in_tm \<Gamma> (xs@ys) \<Longrightarrow> snds_in_tm \<Gamma> xs\<close> 
-  unfolding snds_in_tm_def by auto
 
-lemma snds_in_tm_del_left: \<open>snds_in_tm \<Gamma> (xs@ys) \<Longrightarrow> snds_in_tm \<Gamma> ys\<close>
-  unfolding snds_in_tm_def by auto
-*)
 lemma snds_in_tm_Nt[simp]:
   \<open>snds_in_tm \<Gamma> (Nt A # xs) = snds_in_tm \<Gamma> xs\<close>
 unfolding snds_in_tm_def by auto
@@ -93,13 +81,12 @@ lemma snds_in_tm_append[simp]:
   \<open>snds_in_tm \<Gamma> (xs@ys) = (snds_in_tm \<Gamma> xs \<and> snds_in_tm \<Gamma> ys)\<close>
 unfolding snds_in_tm_def by auto
 
-text\<open>Relationship between \<^term>\<open>bal_tm\<close>, \<^term>\<open>snds_in_tm\<close> and \<open>Dyck_Language\<close>\<close>
-lemma Dyck_langI_tm[intro]:
-  \<open>bal_tm (map Tm xs') \<Longrightarrow> snds_in_tm \<Gamma> (map Tm xs') \<Longrightarrow> xs' \<in> Dyck_lang \<Gamma>\<close>
+lemma Dyck_langI_tm[simp]:
+  \<open>xs \<in> Dyck_lang \<Gamma> \<longleftrightarrow> bal_tm (map Tm xs) \<and> snds_in_tm \<Gamma> (map Tm xs)\<close>
 unfolding bal_tm_def snds_in_tm_def by auto
 
-
-subsection\<open>Lifting \<^const>\<open>bal\<close> and \<^const>\<open>bal_tm\<close> to @{type syms}\<close>
+(*
+subsection\<open>Lifting \<^const>\<open>bal\<close> and \<^const>\<open>bal_stk\<close> to @{type syms}\<close>
 
 
 subsubsection\<open>Function \<open>bal_stk_tm\<close>\<close>
@@ -138,28 +125,6 @@ lemma bal_stk_tm_append_inv:
   let (s1', xs') = bal_stk_tm s1 xs in bal_stk_tm s1 xs = (s1', [])\<close>
   unfolding bal_stk_tm_def Let_def apply auto 
   by (smt (verit, del_insts) case_prodE sndI bal_stk_append_inv surjective_pairing)
-
-                              
-subsection\<open>More properties of \<^term>\<open>bal_tm\<close>, using \<^term>\<open>bal_stk_tm\<close>\<close>
-
-theorem bal_tm_append_inv: "bal_tm (u @ v) \<Longrightarrow> bal_tm u \<Longrightarrow> bal_tm v"
-  using bal_stk_tm_append_if bal_stk_tm_iff_bal_tm by metis
-
-lemma bal_tm_insert: 
-  assumes u: "bal_tm u" 
-    and b: \<open>bal_tm b\<close>
-  shows "u = v@w \<Longrightarrow> bal_tm (v @ b @ w)" 
-  by (metis b bal_iff_insert bal_tm_def comp_def filter_append map_append u)
-
-lemma bal_tm_del: 
-  assumes u: "bal_tm u" 
-    and b: \<open>bal_tm b\<close>
-  shows "u = v @ b @ w \<Longrightarrow> bal_tm (v @ w)" 
-  by (metis b bal_iff_insert bal_tm_def comp_def filter_append map_append u)
-
-corollary bal_tm_iff_insert[iff]:
-  assumes \<open>bal_tm b\<close>
-  shows \<open>bal_tm (v @ b @ w) = bal_tm (v @ w)\<close>
-  using bal_tm_del bal_tm_insert by (metis assms)
+*)
 
 end

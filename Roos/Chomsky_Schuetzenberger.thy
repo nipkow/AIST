@@ -1229,7 +1229,7 @@ next
   have bal_tm_w: \<open>bal_tm w\<close>
     using bal_tm_ransform_rhs[OF \<open>(A,w') \<in> P\<close>] w'_def by auto
   then have \<open>bal_tm (u @ w @ v)\<close> 
-    using \<open>bal_tm (u @ [Nt A] @ v)\<close> by blast 
+    using \<open>bal_tm (u @ [Nt A] @ v)\<close> by (metis bal_tm_empty bal_tm_inside bal_tm_prepend_Nt)
   moreover have \<open>snds_in_tm \<Gamma> (u @ w @ v)\<close> 
     using snds_in_tm_ransform_rhs[OF \<open>(A,w') \<in> P\<close>] \<open>snds_in_tm \<Gamma> (u @ [Nt A] @ v)\<close> w'_def by (simp)
   ultimately show ?case using \<open>bal_tm (u @ w @ v)\<close> by blast
@@ -1548,7 +1548,8 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
     ultimately have \<open>z \<in> Reg C\<close> 
       using z_successivelys by blast
     moreover have \<open>z \<in> Dyck_lang (\<Gamma>)\<close> 
-      using xDL[simplified split3] bal_z Dyck_lang_substring by fastforce
+      using xDL[simplified split3] bal_z Dyck_lang_substring[of z "[\<^sup>1\<^sub>\<pi> # y @ ]\<^sup>1\<^sub>\<pi> # [\<^sup>2\<^sub>\<pi> # []" "[ ]\<^sup>2\<^sub>\<pi> ]"]
+      by auto
     ultimately have \<open>z \<in> Reg C \<inter> Dyck_lang (\<Gamma>)\<close> 
       by force
     moreover have \<open>length (map Tm z) < length (map Tm x)\<close> 
@@ -1562,7 +1563,7 @@ proof(induction \<open>length (map Tm x)\<close> arbitrary: A x rule: less_induc
     also have \<open>P' \<turnstile> [ Tm [\<^sup>1\<^bsub>\<pi>\<^esub> ] @ map Tm y @ [Tm ]\<^sup>1\<^bsub>\<pi>\<^esub>  , Tm [\<^sup>2\<^bsub>\<pi>\<^esub> ] @  [(Nt C)] @ [   Tm ]\<^sup>2\<^bsub>\<pi>\<^esub>   ]    \<Rightarrow>*    [ Tm [\<^sup>1\<^bsub>\<pi>\<^esub> ] @ map Tm y @ [Tm ]\<^sup>1\<^bsub>\<pi>\<^esub>  , Tm [\<^sup>2\<^bsub>\<pi>\<^esub> ] @  (map Tm z) @ [   Tm ]\<^sup>2\<^bsub>\<pi>\<^esub>   ]\<close> 
       using der_z by (meson derives_append derives_prepend)
     finally have \<open>P' \<turnstile> [Nt A] \<Rightarrow>* [ Tm [\<^sup>1\<^bsub>\<pi>\<^esub> ] @ map Tm y @ [Tm ]\<^sup>1\<^bsub>\<pi>\<^esub>  , Tm [\<^sup>2\<^bsub>\<pi>\<^esub> ] @  (map Tm z) @ [   Tm ]\<^sup>2\<^bsub>\<pi>\<^esub>   ]\<close> 
-      by blast
+      .
     then show ?thesis using split3 by simp
   next
     case a
@@ -1828,7 +1829,7 @@ proof -
   have \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> Dyck_lang \<Gamma> \<inter> Reg A\<close> (* This is the hard part of the proof - the local lemma in the textbook *)
   proof-
     have \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longrightarrow> x \<in> Dyck_lang \<Gamma> \<inter> Reg A\<close>
-      using P'_imp_Reg P'_imp_bal by blast
+      using P'_imp_Reg P'_imp_bal Dyck_langI_tm by blast
     moreover have \<open>\<forall>A. \<forall>x. x \<in> Dyck_lang \<Gamma> \<inter> Reg A \<longrightarrow> P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<close> 
       using Reg_and_dyck_imp_P' by blast
     ultimately show ?thesis by blast
@@ -1924,7 +1925,7 @@ next
   then show ?thesis using reg_R_union hom_h by blast
 qed
 
-(*unused_thms Dyck_Language CFG - Dyck_Language_Syms*)
+unused_thms Dyck_Language CFG - Dyck_Language_Syms
 no_notation the_hom ("\<h>")
 no_notation the_hom_syms ("\<h>\<s>")
 

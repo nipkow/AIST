@@ -226,9 +226,12 @@ fun transform_prod :: "('n, 't) prod \<Rightarrow> ('n, ('n,'t) bracket3) prod" 
 
 subsection\<open>Homomorphisms\<close>
 
-text\<open>Definition of a monoid-homomorphism where multiplication is that of words:\<close>
-definition hom :: \<open>('c list \<Rightarrow> 'd list) \<Rightarrow> bool\<close> where
-  \<open>hom h = ((\<forall>a b. h (a@b) = (h a) @ h (b)) \<and> h [] = [])\<close>
+text\<open>Definition of a monoid-homomorphism where multiplication is \<open>(@)\<close>:\<close>
+definition hom_list :: \<open>('a list \<Rightarrow> 'b list) \<Rightarrow> bool\<close> where
+\<open>hom_list h = (\<forall>a b. h (a @ b) = h a @ h b)\<close>
+
+lemma hom_list_Nil: "hom_list h \<Longrightarrow> h [] = []"
+  unfolding hom_list_def by (metis self_append_conv)
 
 text\<open>The homomorphism on single brackets:\<close>
 fun the_hom1 :: \<open>('n,'t) bracket3 \<Rightarrow> 't list\<close> where
@@ -1197,11 +1200,11 @@ lemma prod1_snds_in_tm [intro, simp]: \<open>(A, [Nt B, Nt C]) \<in> P \<Longrig
 lemma prod2_snds_in_tm [intro, simp]: \<open>(A, [Tm a]) \<in> P \<Longrightarrow> snds_in_tm \<Gamma> (wrap1 A a)\<close> 
   unfolding snds_in_tm_def using \<Gamma>_def by auto
 
-lemma bal_tm_wrap1[iff]: \<open>bal_tm (wrap1 A a)\<close> 
-unfolding bal_tm_def using bal_insert_AB by fastforce
+lemma bal_tm_wrap1[iff]: \<open>bal_tm (wrap1 A a)\<close>
+unfolding bal_tm_def by (simp add: bal_iff_bal_stk)
 
 lemma bal_tm_wrap2[iff]: \<open>bal_tm (wrap2 A B C)\<close> 
-unfolding bal_tm_def using bal_insert_AB by fastforce
+unfolding bal_tm_def by (simp add: bal_iff_bal_stk)
 
 text\<open>This essentially says, that the right sides of productions are in the Dyck language of \<open>\<Gamma>\<close>, 
 if one ignores any occuring nonterminals. This will be needed for \<open>\<rightarrow>\<close>.\<close>
@@ -1824,7 +1827,7 @@ text\<open>The constructive version of the Theorem, for a grammar already in CNF
 lemma Chomsky_Schuetzenberger_CNF:
   \<open>regular (brackets \<inter> Reg S)
    \<and> L = \<h> ` ((brackets \<inter> Reg S) \<inter> Dyck_lang \<Gamma>)
-   \<and> hom (\<h> :: ('n,'t) bracket3 list \<Rightarrow> 't list)\<close>
+   \<and> hom_list (\<h> :: ('n,'t) bracket3 list \<Rightarrow> 't list)\<close>
 proof -
   have \<open>\<forall>A. \<forall>x. P' \<turnstile> [Nt A] \<Rightarrow>* (map Tm x) \<longleftrightarrow> x \<in> Dyck_lang \<Gamma> \<inter> Reg A\<close> (* This is the hard part of the proof - the local lemma in the textbook *)
   proof-
@@ -1852,11 +1855,11 @@ proof -
     by auto
   moreover have \<open>Dyck_lang \<Gamma> \<inter> (brackets \<inter> Reg S) = Dyck_lang \<Gamma> \<inter> Reg S\<close>
     using Dyck_lang_subset_brackets unfolding \<Gamma>_def by fastforce
-  moreover have hom: \<open>hom \<h>\<close> 
-    by (simp add: hom_def)
+  moreover have hom: \<open>hom_list \<h>\<close> 
+    by (simp add: hom_list_def)
   moreover from finiteP have \<open>regular (brackets \<inter> Reg S)\<close> 
     using regular_Reg_inter by fast
-  ultimately have \<open>regular (brackets \<inter> Reg S) \<and> L = \<h> ` ((brackets \<inter> Reg S) \<inter> Dyck_lang \<Gamma>) \<and> hom \<h>\<close> 
+  ultimately have \<open>regular (brackets \<inter> Reg S) \<and> L = \<h> ` ((brackets \<inter> Reg S) \<inter> Dyck_lang \<Gamma>) \<and> hom_list \<h>\<close> 
     by (simp add: inf_commute)
   then show ?thesis unfolding \<Gamma>_def by blast
 qed
@@ -1874,7 +1877,7 @@ lemma Chomsky_Schuetzenberger_not_empty:
   fixes P :: \<open>('n :: infinite, 't) Prods\<close> and S::"'n"
   defines \<open>L \<equiv> Lang P S - {[]}\<close>
   assumes finiteP: \<open>finite P\<close>
-  shows \<open>\<exists>(R::('n,'t) bracket3 list set) h \<Gamma>. regular R \<and> L = h ` (R \<inter> Dyck_lang \<Gamma>) \<and> hom h\<close>
+  shows \<open>\<exists>(R::('n,'t) bracket3 list set) h \<Gamma>. regular R \<and> L = h ` (R \<inter> Dyck_lang \<Gamma>) \<and> hom_list h\<close>
 proof -
   define h where \<open>h = (the_hom:: ('n,'t) bracket3 list \<Rightarrow> 't list)\<close>
   obtain ps where ps_def: \<open>set ps = P\<close> 
@@ -1887,11 +1890,11 @@ proof -
   interpret Chomsky_Schuetzenberger_locale \<open>(set ps')\<close> S
     apply unfold_locales
     using \<open>finite (set ps')\<close> \<open>CNF (set ps')\<close> by auto
-  have \<open>regular (brackets \<inter> Reg S) \<and> Lang (set ps') S = h ` (brackets \<inter> Reg S \<inter> Dyck_lang \<Gamma>) \<and> hom h\<close> 
+  have \<open>regular (brackets \<inter> Reg S) \<and> Lang (set ps') S = h ` (brackets \<inter> Reg S \<inter> Dyck_lang \<Gamma>) \<and> hom_list h\<close> 
     using Chomsky_Schuetzenberger_CNF L_def h_def by argo
   moreover have  \<open>Lang (set ps') S = L - {[]}\<close> 
     unfolding lang_ps_eq_lang_ps' using L_def ps_def by (simp add: assms(1))
-  ultimately have \<open>regular (brackets \<inter> Reg S) \<and> L - {[]} = h ` (brackets \<inter> Reg S \<inter> Dyck_lang \<Gamma>) \<and> hom h\<close> 
+  ultimately have \<open>regular (brackets \<inter> Reg S) \<and> L - {[]} = h ` (brackets \<inter> Reg S \<inter> Dyck_lang \<Gamma>) \<and> hom_list h\<close> 
     by presburger
   then show ?thesis 
     using assms(1) by auto
@@ -1902,7 +1905,7 @@ theorem Chomsky_Schuetzenberger:
   fixes P :: \<open>('n :: infinite, 't) Prods\<close> and S :: "'n"
   defines \<open>L \<equiv> Lang P S\<close>
   assumes finite: \<open>finite P\<close>
-  shows \<open>\<exists>(R::('n,'t) bracket3 list set) h \<Gamma>. regular R \<and> L = h ` (R \<inter> Dyck_lang \<Gamma>) \<and> hom h\<close>
+  shows \<open>\<exists>(R::('n,'t) bracket3 list set) h \<Gamma>. regular R \<and> L = h ` (R \<inter> Dyck_lang \<Gamma>) \<and> hom_list h\<close>
 proof(cases \<open>[] \<in> L\<close>)
   case False
   then show ?thesis
@@ -1910,12 +1913,12 @@ proof(cases \<open>[] \<in> L\<close>)
 next
   case True
   obtain R::"('n,'t) bracket3 list set" and h and \<Gamma> where
-    reg_R: \<open>(regular R)\<close> and L_minus_eq: \<open>L-{[]} = h ` (R \<inter> Dyck_lang \<Gamma>)\<close> and hom_h: \<open>hom h\<close> 
+    reg_R: \<open>(regular R)\<close> and L_minus_eq: \<open>L-{[]} = h ` (R \<inter> Dyck_lang \<Gamma>)\<close> and hom_h: \<open>hom_list h\<close> 
     by (metis L_def Chomsky_Schuetzenberger_not_empty finite)
   then have reg_R_union: \<open>regular(R \<union> {[]})\<close>
     by (meson regular_Un regular_nullstr)
-  have \<open>[] = h([])\<close> using hom_def hom_h 
-    by metis
+  have \<open>[] = h([])\<close>
+    by (simp add: hom_h hom_list_Nil)
   moreover have \<open>[] \<in> Dyck_lang \<Gamma>\<close> 
     by auto
   ultimately have \<open>[] \<in> h ` ((R \<union> {[]}) \<inter> Dyck_lang \<Gamma>)\<close> 

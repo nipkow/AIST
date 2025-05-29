@@ -15,7 +15,7 @@ lemma destTm_Tm[simp]: \<open>destTm \<circ> Tm = id\<close>
 by auto
 (* until here*)
 
-section\<open>Versions of \<^const>\<open>bal\<close> and \<^const>\<open>snds_in\<close> for @{type syms}\<close>
+section\<open>Versions of \<^const>\<open>bal\<close> and restriction to \<open>\<Gamma>\<close> for @{type syms}\<close>
 
 
 subsection\<open>Function \<^term>\<open>bal_tm\<close>\<close>
@@ -68,10 +68,10 @@ unfolding bal_tm_def by(auto)
 
 subsection\<open>Function \<open>snds_in_tm\<close>\<close>
 
-text\<open>Version of \<open>snds_in\<close> for a list of symbols:\<close>
+text\<open>Restriction to \<open>\<Gamma>\<close> for a list of symbols:\<close>
 
 definition snds_in_tm where
-  \<open>snds_in_tm \<Gamma> \<equiv> snds_in \<Gamma> o map destTm o filter isTm\<close>
+  \<open>snds_in_tm \<Gamma> w \<equiv> snd ` set(map destTm (filter isTm w)) \<subseteq> \<Gamma>\<close>
 
 lemma snds_in_tm_Nt[simp]:
   \<open>snds_in_tm \<Gamma> (Nt A # xs) = snds_in_tm \<Gamma> xs\<close>

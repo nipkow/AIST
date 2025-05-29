@@ -7,13 +7,14 @@ imports Main
 begin
 
 text \<open>Dyck languages are sets of words/lists of balanced brackets. A bracket is a pair of type
-\<^typ>\<open>bool \<times> 'a\<close> where \<open>True\<close> is an opening and \<open>False\<close> a closing bracket. Brackets are tagged with
-elements of type \<open>'a\<close>.\<close>
+\<^typ>\<open>bool \<times> 'a\<close> where \<open>True\<close> is an opening and \<open>False\<close> a closing bracket.
+That is, brackets are tagged with elements of type \<open>'a\<close>.\<close>
 
 type_synonym 'a bracket = "bool \<times> 'a"
 
 abbreviation "Open a \<equiv> (True,a)"
 abbreviation "Close a \<equiv> (False,a)"
+
 
 subsection\<open>Balanced\<close>
 
@@ -24,10 +25,10 @@ inductive bal :: "'a bracket list \<Rightarrow> bool" where
   "bal xs \<Longrightarrow> bal ys \<Longrightarrow> bal (xs @ ys)" | 
   "bal xs \<Longrightarrow> bal (Open a # xs @ [Close a])" 
 
-declare bal.intros(1)[iff] bal.intros(2)[intro,simp] bal.intros(3)[intro!,simp]
+declare bal.intros(1)[iff] bal.intros(2)[intro,simp] bal.intros(3)[intro,simp]
 
 lemma bal2[iff]: "bal [Open a, Close a]" 
-  using bal.intros(3) by fastforce
+  using bal.intros(3)[of "[]"] by simp
 
 text \<open>The inductive definition of balanced is complemented with a functional version
 that uses a stack to remember which opening brackets need to be closed:\<close>
@@ -40,74 +41,63 @@ fun bal_stk :: "'a list \<Rightarrow> 'a bracket list \<Rightarrow> 'a list * 'a
   "bal_stk bs stk = (bs,stk)"
 
 lemma bal_stk_append:
-  "bal_stk s1 (xs @ ys) = (let (s1',xs') = bal_stk s1 xs in bal_stk s1' (xs' @ ys))"
-by(induction s1 xs rule:bal_stk.induct) (auto split: if_splits)
+  "bal_stk s (xs @ ys)
+   = (let (s',xs') = bal_stk s xs in if xs' = [] then bal_stk s' ys else (s', xs' @ ys))"
+by(induction s xs rule:bal_stk.induct) (auto split: if_splits)
 
-lemma bal_stk_append_if[simp]:
+lemma bal_stk_append_if:
   "bal_stk s1 xs = (s2,[]) \<Longrightarrow> bal_stk s1 (xs @ ys) = bal_stk s2 ys"
 by(simp add: bal_stk_append[of _ xs])
+
+lemma bal_stk_more_stk: "bal_stk s1 xs = (s1',[]) \<Longrightarrow> bal_stk (s1@s2) xs = (s1'@s2,[])"
+by(induction s1 xs arbitrary: s2 rule: bal_stk.induct) (auto split: if_splits)
+
+lemma bal_stk_if_Nils[simp]: "ASSUMPTION(bal_stk [] bs = ([], [])) \<Longrightarrow> bal_stk s bs = (s, [])"
+unfolding ASSUMPTION_def using bal_stk_more_stk[of "[]" _ "[]"] by simp
 
 
 subsubsection "Equivalence of @{const bal} and @{const bal_stk}"
 
 lemma bal_stk_if_bal:  "bal xs \<Longrightarrow> bal_stk s xs = (s,[])"
-by(induction arbitrary: s rule: bal.induct)(auto split: if_splits)
+by(induction arbitrary: s rule: bal.induct)(auto simp: bal_stk_append_if split: if_splits)
 
 lemma bal_insert_AB:
-  "bal u \<Longrightarrow> u = v@w \<Longrightarrow> bal (v @ (Open x # Close x # w))"
-proof(induction arbitrary: v w rule: bal.induct)
+  "bal (v @ w) \<Longrightarrow> bal (v @ (Open a # Close a # w))"
+proof(induction "v @ w" arbitrary: v w rule: bal.induct)
   case 1 thus ?case by blast
 next
-  case (3 u y)
-  show ?case
+  case (3 u b)
+  then show ?case
   proof (cases v)
     case Nil
-    hence "w = (Open y) # u @ [Close y]" using "3.prems" 
-      by simp
+    hence "w = Open b # u @ [Close b]"
+      using "3.hyps"(3) by fastforce
     hence "bal w" using "3.hyps" 
       by blast
-    hence "bal ([Open x, Close x] @ w)" 
+    hence "bal ([Open a, Close a] @ w)" 
       by blast
     thus ?thesis using Nil by simp
   next
-    case (Cons X v')
+    case [simp]: (Cons x v')
     show ?thesis
     proof (cases w rule:rev_cases)
       case Nil
-      from "3.hyps" have "bal ((Open x # u @ [Close x]) @ [Open x, Close x])"
+      from "3.hyps" have "bal ((Open a # u @ [Close a]) @ [Open a, Close a])"
         using bal.intros(2) by blast
       thus ?thesis using Nil Cons 3
         by (metis append_Nil append_Nil2 bal.simps)
     next
-      case (snoc w' Y)
-      hence u: "u=v'@w'" and [simp]: "X= Open y & Y= Close y"
-        using Cons "3.prems" apply (smt (verit, ccfv_threshold) List.append.assoc List.list.inject append_Cons append_eq_append_conv last_snoc)
-        by (metis "local.3.prems" Cons List.append.assoc List.list.inject append_Cons last_snoc snoc)
-          \<comment> \<open>This also works by auto, but it takes 4 seconds.\<close>
+      case (snoc w' y)
       thus ?thesis
-        by (metis "3.IH" append.assoc append_Cons local.Cons bal.intros(3) snoc)
+        using "3.hyps"(2,3) bal.intros(3) by force 
     qed
   qed
 next
   case (2 v' w')
-  then obtain r where "v'=v@r \<and> r@w'=w \<or> v'@r=v \<and>w'=r@w" (is "?A \<or> ?B")
+  then obtain r where "v'=v@r \<and> r@w'=w \<or> v'@r=v \<and> w'=r@w"
     by (meson append_eq_append_conv2)
   thus ?case
-  proof
-    assume A: ?A
-    hence "bal (v @ Open x # Close x # r)" 
-      using "2.IH"(1) by presburger
-    hence "bal ((v @ Open x # Close x#r) @ w')" 
-      using \<open>bal w'\<close> by(rule bal.intros(2))
-    thus ?thesis using A by auto
-  next
-    assume B: ?B
-    hence "bal (r @ Open x # Close x # w)" 
-      using "2.IH"(2) by presburger
-    with \<open>bal v'\<close> have "bal (v'@(r@Open x # Close x#w))" 
-      by(rule bal.intros(2))
-    thus ?thesis using B by force
-  qed 
+    using "2.hyps" bal.intros(2) by force
 qed 
 
 lemma bal_if_bal_stk: "bal_stk s w = ([],[]) \<Longrightarrow> bal (rev(map (\<lambda>x. Open x) s) @ w)"
@@ -119,82 +109,21 @@ next
   then show ?case by (auto simp add: bal_insert_AB split: if_splits) 
 qed (auto)
 
-corollary bal_stk_iff_bal: "bal_stk [] w = ([],[]) \<longleftrightarrow> bal w"
-  using bal_if_bal_stk[of "[]"] bal_stk_if_bal by auto
-
-lemma bal_stk_append_inv:
-  \<open>bal_stk s1 (xs@ys) = (s', []) \<Longrightarrow> (let (s1', xs') = bal_stk s1 xs in bal_stk s1 xs = (s1', []))\<close>
-proof(induction s1 xs arbitrary: ys rule: bal_stk.induct)
-  case (1 s)
-  then show ?case by auto
-next
-  case (2 g xs s)
-  then show ?case by(auto split: prod.splits)
-next
-  case (3 g xs g' s)
-  then show ?case apply simp by (metis List.list.distinct(1) Product_Type.prod.inject)
-next
-  case (4 A xs s)
-  then show ?case by(auto split: prod.splits)
-qed
+corollary bal_iff_bal_stk: "bal w \<longleftrightarrow> bal_stk [] w = ([],[])"
+using bal_if_bal_stk[of "[]"] bal_stk_if_bal by auto
 
 
 subsection\<open>More properties of \<^const>\<open>bal\<close>, using \<^const>\<open>bal_stk\<close>\<close>
 
 theorem bal_append_inv: "bal (u @ v) \<Longrightarrow> bal u \<Longrightarrow> bal v"
-  using bal_stk_append_if bal_stk_iff_bal by metis
+  using bal_stk_append_if bal_iff_bal_stk by metis
 
-lemma bal_insert: 
-  assumes u: "bal u"  and b: \<open>bal b\<close> and uvw: "u = v@w"
-  shows "bal (v @ b @ w)" 
-proof-
-  have \<open>bal_stk [] b = ([],[])\<close> 
-    using assms bal_stk_iff_bal by blast
-  have \<open>bal_stk [] u = ([],[])\<close> 
-    using assms bal_stk_iff_bal by blast
-  then obtain s1' where s1'_def: \<open>bal_stk [] v = (s1', [])\<close> 
-    by (metis (full_types, lifting) uvw case_prodE bal_stk_append_inv)
-  then obtain s' where s'_def: \<open>bal_stk [] (v @ w) = bal_stk s' w\<close> 
-    using bal_stk_append_if by blast
-  then have \<open>([],[]) = bal_stk [] (v @ w)\<close> 
-    using uvw using \<open>bal_stk [] u = ([], [])\<close> by presburger
-  also have \<open>... = bal_stk s' w\<close> 
-    using s'_def by simp
-  also have \<open>... = bal_stk s' (b@w)\<close> 
-    by (metis b bal_stk_append_if bal_stk_if_bal)
-  finally have \<open>bal_stk s' (b@w) = ([],[])\<close> 
-    by simp
-  then have \<open>bal_stk [] (v @ b @ w) = ([],[])\<close> 
-    using s1'_def by (metis b s'_def bal_stk_append_if bal_stk_if_bal)
-  then show \<open>bal (v @ b @ w)\<close> 
-    using bal_stk_iff_bal by blast
-qed
-
-lemma bal_del: 
-  assumes u: "bal u" and b: \<open>bal b\<close> and uvbw: \<open>u = v @ b @ w\<close>
-  shows "bal (v @ w)" 
-proof-
-  have bal_stk_b: \<open>bal_stk [] b = ([],[])\<close> 
-    using assms bal_stk_iff_bal by blast
-  have bal_stk_vbw: \<open>bal_stk [] (v @ b @ w) = ([],[])\<close> 
-    using uvbw assms bal_stk_iff_bal by blast
-  then obtain s1' where s1'_def: \<open>bal_stk [] v = (s1', [])\<close> 
-    by (metis (full_types, lifting) case_prodE bal_stk_append_inv)
-  then have \<open>bal_stk [] (v@b) = (s1', [])\<close> 
-    by (metis b bal_stk_append_if bal_stk_if_bal)
-  then have \<open>bal_stk [] (v @  w) = ([],[])\<close> 
-    using bal_stk_vbw s1'_def by (metis bal_stk_append_if)
-  then show \<open>bal (v @ w)\<close> 
-    using bal_stk_iff_bal by blast
-qed
-
-corollary bal_iff_insert[iff]:
-  assumes \<open>bal b\<close>
-  shows \<open>bal (v @ b @ w) = bal (v @ w)\<close>
-  using bal_del bal_insert by (metis assms)
+lemma bal_insert_bal_iff[simp]: 
+  "bal b \<Longrightarrow> bal (v @ b @ w) = bal (v@w)" 
+unfolding bal_iff_bal_stk by(auto simp add: bal_stk_append split: prod.splits if_splits)
 
 lemma bal_start_Open: \<open>bal (x#xs) \<Longrightarrow>\<exists>a. x = Open a\<close>
-  using bal_stk.elims bal_stk_iff_bal by blast 
+  using bal_stk.elims bal_iff_bal_stk by blast 
 
 lemma bal_Open_split: assumes \<open>bal (x # xs)\<close>
   shows \<open>\<exists>y r a. bal y \<and> bal r \<and> x = Open a \<and> xs = y @ Close a # r\<close>
@@ -246,25 +175,21 @@ qed
 
 subsection\<open>Dyck Language over an Alphabet\<close>
 
-text\<open>The second components of a list of pairs are all in \<open>\<Gamma>\<close>:\<close>
-abbreviation snds_in :: \<open>'a set  \<Rightarrow> ('b  \<times> 'a) list \<Rightarrow> bool\<close> where
-  \<open>snds_in \<Gamma> bs \<equiv> snd ` (set bs) \<subseteq> \<Gamma>\<close>
-
 text\<open>The Dyck/bracket language over a set \<open>\<Gamma>\<close> is the set of balanced words over \<open>\<Gamma>\<close>:\<close>
 
 definition Dyck_lang :: "'a set \<Rightarrow> 'a bracket list set" where
-"Dyck_lang \<Gamma> = {w. bal w \<and> snds_in \<Gamma> w}"
+"Dyck_lang \<Gamma> = {w. bal w \<and> snd ` (set w) \<subseteq> \<Gamma>}"
 
 lemma Dyck_langI[intro]: 
   assumes \<open>bal w\<close>
-    and \<open>snds_in \<Gamma> w\<close>
+    and \<open>snd ` (set w) \<subseteq> \<Gamma>\<close>
   shows \<open>w \<in> Dyck_lang \<Gamma>\<close>
   using assms unfolding Dyck_lang_def by blast
 
 lemma Dyck_langD[dest]:
   assumes \<open>w \<in> Dyck_lang \<Gamma>\<close>
   shows \<open>bal w\<close>
-    and \<open>snds_in \<Gamma> w\<close>
+    and \<open>snd ` (set w) \<subseteq> \<Gamma>\<close>
   using assms unfolding Dyck_lang_def by auto
 
 text\<open>Balanced subwords are again in the Dyck Language.\<close>

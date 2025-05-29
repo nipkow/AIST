@@ -40,6 +40,12 @@ fun bal_stk :: "'a list \<Rightarrow> 'a bracket list \<Rightarrow> 'a list * 'a
     (if a = a' then bal_stk s bs else (a' # s, Close a # bs))" | 
   "bal_stk bs stk = (bs,stk)"
 
+lemma bal_stk_more_stk: "bal_stk s1 xs = (s1',[]) \<Longrightarrow> bal_stk (s1@s2) xs = (s1'@s2,[])"
+by(induction s1 xs arbitrary: s2 rule: bal_stk.induct) (auto split: if_splits)
+
+lemma bal_stk_if_Nils[simp]: "ASSUMPTION(bal_stk [] bs = ([], [])) \<Longrightarrow> bal_stk s bs = (s, [])"
+unfolding ASSUMPTION_def using bal_stk_more_stk[of "[]" _ "[]"] by simp
+
 lemma bal_stk_append:
   "bal_stk s (xs @ ys)
    = (let (s',xs') = bal_stk s xs in if xs' = [] then bal_stk s' ys else (s', xs' @ ys))"
@@ -49,11 +55,9 @@ lemma bal_stk_append_if:
   "bal_stk s1 xs = (s2,[]) \<Longrightarrow> bal_stk s1 (xs @ ys) = bal_stk s2 ys"
 by(simp add: bal_stk_append[of _ xs])
 
-lemma bal_stk_more_stk: "bal_stk s1 xs = (s1',[]) \<Longrightarrow> bal_stk (s1@s2) xs = (s1'@s2,[])"
-by(induction s1 xs arbitrary: s2 rule: bal_stk.induct) (auto split: if_splits)
-
-lemma bal_stk_if_Nils[simp]: "ASSUMPTION(bal_stk [] bs = ([], [])) \<Longrightarrow> bal_stk s bs = (s, [])"
-unfolding ASSUMPTION_def using bal_stk_more_stk[of "[]" _ "[]"] by simp
+lemma bal_stk_split:
+  "bal_stk s xs = (s',xs') \<Longrightarrow> \<exists>us. xs = us@xs' \<and> bal_stk s us = (s',[])"
+by(induction s xs rule:bal_stk.induct) (auto split: if_splits)
 
 
 subsubsection "Equivalence of @{const bal} and @{const bal_stk}"

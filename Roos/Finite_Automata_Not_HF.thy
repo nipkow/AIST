@@ -13,6 +13,12 @@ not for abstract constructions such as the intersection of 2 automaton languages
 The locale below adds a converter from this dfa/nfa to the hf version dfa/nfa, 
 to show that regularity also holds for the language of this dfa/nfa.\<close>
 
+lemma embed_finite_set_into_hf:
+  fixes B::\<open>'b set\<close>
+  assumes \<open>finite B\<close>
+  shows \<open>\<exists>(f:: 'b \<Rightarrow> hf).  inj_on f B  \<close>
+by (meson assms comp_inj_on finite_imp_inj_to_nat_seg inj_ord_of)
+
 section\<open>Deterministic Finite Automata\<close>
 
 text\<open>First, the record for DFAs\<close>
@@ -54,65 +60,48 @@ lemma nextl_state: "q \<in> states M \<Longrightarrow> nextl q xs \<in> states M
 lemma nextl_init_state [simp]: "nextl (init M) xs \<in> states M"
   by (simp add: nextl_state)
 
-end
+definition f :: "'b \<Rightarrow> hf" where
+"f = (SOME f. inj_on f (states M))"
 
-
-lemma embed_finite_set_into_hf:
-  fixes B::\<open>'b set\<close>
-  assumes \<open>finite B\<close>
-  shows \<open>\<exists>(f:: 'b \<Rightarrow> hf).  inj_on f B  \<close>
-proof-
-  from \<open>finite B\<close> obtain f_inv1::\<open>nat \<Rightarrow> 'b\<close> and n::nat where \<open>B = f_inv1 ` {i. i < n} \<and> inj_on f_inv1 {i. i < n}\<close>  
-    using finite_imp_nat_seg_image_inj_on by fastforce
-  then obtain f1::\<open>'b \<Rightarrow> nat\<close> where \<open>(\<forall>x \<in> B. f_inv1 (f1 x) = x) \<and> (\<forall>x \<in> (f1 ` B). f1 (f_inv1 x) = x)\<close> 
-    by (metis (lifting) f_the_inv_into_f the_inv_into_f_f the_inv_into_onto)
-  then have \<open>inj_on (ord_of o f1) B\<close> 
-    by (metis comp_inj_on inj_on_def inj_ord_of)
-  then show ?thesis by blast
-qed
-
-
-locale construct_equiv_dfa = dfa' M' for M' :: "('a, 'b) dfa'" +
-fixes f:: \<open>'b \<Rightarrow> hf\<close>
-assumes f_inj_on: \<open>inj_on f (states M')\<close>
-
-begin
+lemma f_inj_on: "inj_on f (states M)"
+unfolding f_def using embed_finite_set_into_hf[OF finite]
+by (metis someI_ex)
 
 abbreviation f_inv :: "hf \<Rightarrow> 'b" where 
-  \<open>f_inv \<equiv> the_inv_into (states M') f\<close>
+  \<open>f_inv \<equiv> the_inv_into (states M) f\<close>
 
-abbreviation f_M' :: "'a dfa" where
-  \<open>f_M' \<equiv>  \<lparr>dfa.states = f ` (states M'),
-            init  = f (init M'),
-            final = f ` (final M'),
-            nxt   = \<lambda>q x. f( nxt M' (f_inv q) x) \<rparr>\<close>
+abbreviation f_M :: "'a dfa" where
+  \<open>f_M \<equiv>  \<lparr>dfa.states = f ` (states M),
+            init  = f (init M),
+            final = f ` (final M),
+            nxt   = \<lambda>q x. f( nxt M (f_inv q) x) \<rparr>\<close>
 
-lemma f_f_inv[simp]: \<open>h \<in> dfa.states f_M' \<Longrightarrow> f (f_inv h) = h\<close>
+lemma f_f_inv[simp]: \<open>h \<in> dfa.states f_M \<Longrightarrow> f (f_inv h) = h\<close>
   by (simp add: f_inj_on f_the_inv_into_f)
 
-lemma f_in[intro]: \<open>q \<in> dfa'.states M' \<Longrightarrow> f q \<in> dfa.states f_M'\<close> 
+lemma f_in[intro]: \<open>q \<in> dfa'.states M \<Longrightarrow> f q \<in> dfa.states f_M\<close> 
   by simp
 
-lemma f_in_final[intro]:\<open>q \<in> dfa'.final M' \<Longrightarrow> f q \<in> dfa.final f_M'\<close> 
+lemma f_in_final[intro]:\<open>q \<in> dfa'.final M \<Longrightarrow> f q \<in> dfa.final f_M\<close> 
   by simp
 
-lemma f_f__inv_init[simp]: \<open>f( f_inv( dfa.init f_M' ) ) = dfa.init f_M'\<close> 
+lemma f_f__inv_init[simp]: \<open>f( f_inv( dfa.init f_M) ) = dfa.init f_M\<close> 
   by (simp add: dfa'.init)
 
-lemma f_inv_f[simp]: \<open>q \<in> dfa'.states M' \<Longrightarrow> f_inv (f q) = q\<close> 
+lemma f_inv_f[simp]: \<open>q \<in> dfa'.states M \<Longrightarrow> f_inv (f q) = q\<close> 
   by (meson f_inj_on the_inv_into_f_f)
 
-lemma f_inv_in[intro]: \<open>h \<in> dfa.states f_M' \<Longrightarrow> f_inv h \<in> dfa'.states M'\<close> 
+lemma f_inv_in[intro]: \<open>h \<in> dfa.states f_M \<Longrightarrow> f_inv h \<in> dfa'.states M\<close> 
   by fastforce
 
-lemma f_inv_in_final[intro]: \<open>h \<in> dfa.final f_M' \<Longrightarrow> f_inv h \<in> dfa'.final M'\<close>
+lemma f_inv_in_final[intro]: \<open>h \<in> dfa.final f_M \<Longrightarrow> f_inv h \<in> dfa'.final M\<close>
   using final by auto 
 
-lemma f_inv_f_init[simp]: \<open>f_inv( f( dfa'.init M' ) ) = dfa'.init M'\<close> 
+lemma f_inv_f_init[simp]: \<open>f_inv( f( dfa'.init M) ) = dfa'.init M\<close> 
   by (simp add: dfa'.init)
 
 
-lemma dfa_f_M': \<open>dfa f_M'\<close>
+interpretation f_M: dfa f_M
 proof(standard, goal_cases)
   case 1
   then show ?case using dfa'.init by auto
@@ -127,57 +116,44 @@ next
   then show ?case by (simp add: finite)
 qed
 
-(* TODO *)
-interpretation f_M': dfa f_M'
-  by (fact dfa_f_M')
 
-
-lemma nxt_M'_f_inv: \<open>h \<in> dfa.states f_M' \<Longrightarrow> dfa'.nxt M' (f_inv h) x = f_inv (dfa.nxt f_M' h x)\<close> 
+lemma nxt_M_f_inv: \<open>h \<in> dfa.states f_M \<Longrightarrow> dfa'.nxt M (f_inv h) x = f_inv (dfa.nxt f_M h x)\<close> 
   by (simp add: nxt f_inv_in)
 
-lemma nxt_f_M'_f:\<open>q \<in> dfa'.states M' \<Longrightarrow> dfa.nxt f_M' (f q) x = f (dfa'.nxt M' q x)\<close> 
+lemma nxt_f_M_f:\<open>q \<in> dfa'.states M \<Longrightarrow> dfa.nxt f_M (f q) x = f (dfa'.nxt M q x)\<close> 
   by auto
 
-
-lemma nextl_M'_f_inv: \<open>h \<in> dfa.states f_M' \<Longrightarrow> nextl  (f_inv h) xs = f_inv (f_M'.nextl h xs)\<close>
+lemma nextl_M_f_inv: \<open>h \<in> dfa.states f_M \<Longrightarrow> nextl  (f_inv h) xs = f_inv (f_M.nextl h xs)\<close>
 proof(induction xs arbitrary: h)
   case Nil
   then show ?case by simp
 next
   case (Cons a xs)
-  then have \<open>nextl (dfa'.nxt M' (f_inv h) a) xs = f_inv (f_M'.nextl (f (dfa'.nxt M' (f_inv h) a)) xs)\<close> 
-    using f_f_inv f_M'.nxt nxt_M'_f_inv by presburger
+  then have \<open>nextl (dfa'.nxt M (f_inv h) a) xs = f_inv (f_M.nextl (f (dfa'.nxt M (f_inv h) a)) xs)\<close> 
+    using f_f_inv f_M.nxt nxt_M_f_inv by presburger
   then show ?case by simp
 qed 
 
-
-lemma nextl_f_M'_f: \<open>q \<in> dfa'.states M' \<Longrightarrow> f_M'.nextl (f q) xs = f (nextl q xs)\<close>
+lemma nextl_f_M_f: \<open>q \<in> dfa'.states M \<Longrightarrow> f_M.nextl (f q) xs = f (nextl q xs)\<close>
 proof(induction xs arbitrary: q)
   case Nil
   then show ?case by simp
 next
   case (Cons a xs)
-  then have \<open>f_M'.nextl (f (dfa'.nxt M' q a)) xs = f (nextl (dfa'.nxt M' q a) xs)\<close> 
+  then have \<open>f_M.nextl (f (dfa'.nxt M q a)) xs = f (nextl (dfa'.nxt M q a) xs)\<close> 
     using nxt by blast
   then show ?case by (simp add: Cons.prems)
 qed 
 
 
-lemma M'_lang_eq_f_M'_lang: \<open>language = f_M'.language\<close>
-  unfolding language_def f_M'.language_def
-  by (metis dfa.select_convs(2) f_M'.init f_in_final f_inv_f_init f_inv_in_final init nextl_M'_f_inv
-      nextl_f_M'_f)
-
-end
-
-context dfa'
-begin
+lemma M'_lang_eq_f_M'_lang: \<open>language = f_M.language\<close>
+  unfolding language_def f_M.language_def
+  by (metis dfa.select_convs(2) f_M.init f_in_final f_inv_f_init f_inv_in_final init nextl_M_f_inv
+      nextl_f_M_f)
 
 corollary ex_hf_M:
-  \<open>\<exists>f_M'. dfa f_M' \<and> dfa'.language M = dfa.language f_M'\<close>
-by (meson construct_equiv_dfa.M'_lang_eq_f_M'_lang construct_equiv_dfa.dfa_f_M'
-      construct_equiv_dfa.intro construct_equiv_dfa_axioms.intro dfa'_axioms
-      embed_finite_set_into_hf[OF finite]) 
+  \<open>\<exists>f_M. dfa f_M \<and> dfa'.language M = dfa.language f_M\<close>
+using M'_lang_eq_f_M'_lang f_M.dfa_axioms by blast
 
 text\<open>Now we have the result, that our dfas also produce regular languages.\<close>
 corollary dfa'_imp_regular:

@@ -1,10 +1,12 @@
+(* Author: Moritz Roos *)
+
 theory Finite_Automata_Not_HF
-  imports Main HereditarilyFinite.Ordinal "Finite_Automata_HF.Finite_Automata_HF"
+  imports Finite_Automata_HF.Finite_Automata_HF
 begin
 
 
 text\<open>This file contains a version of the dfa and nfa definition from 
-Lawrence C. Paulsons \<open>Finite_Automata_Hf\<close> but with \<open>'b set\<close> as states set, 
+Lawrence C. Paulson's \<open>Finite_Automata_Hf\<close> but with \<open>'b set\<close> as states set, 
 instead of forcing \<open>hf set\<close>. 
 It is intended to be used for easier constructions of explicitly given languages,
 not for abstract constructions such as the intersection of 2 automaton languages.
@@ -14,7 +16,8 @@ to show that regularity also holds for the language of this dfa/nfa.\<close>
 section\<open>Deterministic Finite Automata\<close>
 
 text\<open>First, the record for DFAs\<close>
-record ('a, 'b) dfa' = states :: "'b set"
+record ('a, 'b) dfa' =
+  states :: "'b set"
   init   :: "'b"
   final  :: "'b set"
   nxt    :: "'b \<Rightarrow> 'a \<Rightarrow> 'b"
@@ -54,7 +57,6 @@ lemma nextl_init_state [simp]: "nextl (init M) xs \<in> states M"
 end
 
 
-
 lemma embed_finite_set_into_hf:
   fixes B::\<open>'b set\<close>
   assumes \<open>finite B\<close>
@@ -70,29 +72,23 @@ proof-
 qed
 
 
-
-
-
-locale construct_equiv_dfa = 
-  fixes M' :: \<open>('a, 'b) dfa'\<close>
-    and f:: \<open>'b \<Rightarrow> hf\<close>
-
-assumes dfa'_M': \<open>dfa' M'\<close>
-  and \<open>inj_on f (states M')\<close>
+locale construct_equiv_dfa = dfa' M' for M' :: "('a, 'b) dfa'" +
+fixes f:: \<open>'b \<Rightarrow> hf\<close>
+assumes f_inj_on: \<open>inj_on f (states M')\<close>
 
 begin
 
-abbreviation f_inv where 
+abbreviation f_inv :: "hf \<Rightarrow> 'b" where 
   \<open>f_inv \<equiv> the_inv_into (states M') f\<close>
 
-abbreviation f_M' where
+abbreviation f_M' :: "'a dfa" where
   \<open>f_M' \<equiv>  \<lparr>dfa.states = f ` (states M'),
             init  = f (init M'),
             final = f ` (final M'),
             nxt   = \<lambda>q x. f( nxt M' (f_inv q) x) \<rparr>\<close>
 
-lemma f_f_inv[simp]: \<open>h \<in> dfa.states f_M' \<Longrightarrow> f (f_inv h) = h\<close> 
-  by (metis dfa.select_convs(1) construct_equiv_dfa_axioms construct_equiv_dfa_def f_the_inv_into_f)
+lemma f_f_inv[simp]: \<open>h \<in> dfa.states f_M' \<Longrightarrow> f (f_inv h) = h\<close>
+  by (simp add: f_inj_on f_the_inv_into_f)
 
 lemma f_in[intro]: \<open>q \<in> dfa'.states M' \<Longrightarrow> f q \<in> dfa.states f_M'\<close> 
   by simp
@@ -101,125 +97,105 @@ lemma f_in_final[intro]:\<open>q \<in> dfa'.final M' \<Longrightarrow> f q \<in>
   by simp
 
 lemma f_f__inv_init[simp]: \<open>f( f_inv( dfa.init f_M' ) ) = dfa.init f_M'\<close> 
-  by (simp add: dfa'.init dfa'_M')
+  by (simp add: dfa'.init)
 
 lemma f_inv_f[simp]: \<open>q \<in> dfa'.states M' \<Longrightarrow> f_inv (f q) = q\<close> 
-  by (meson construct_equiv_dfa_axioms construct_equiv_dfa_def the_inv_into_f_f)
+  by (meson f_inj_on the_inv_into_f_f)
 
 lemma f_inv_in[intro]: \<open>h \<in> dfa.states f_M' \<Longrightarrow> f_inv h \<in> dfa'.states M'\<close> 
   by fastforce
 
-lemma f_inv_in_final[intro]: \<open>h \<in> dfa.final f_M' \<Longrightarrow> f_inv h \<in> dfa'.final M'\<close> 
-  using dfa'_M' dfa'_def by fastforce
+lemma f_inv_in_final[intro]: \<open>h \<in> dfa.final f_M' \<Longrightarrow> f_inv h \<in> dfa'.final M'\<close>
+  using final by auto 
 
 lemma f_inv_f_init[simp]: \<open>f_inv( f( dfa'.init M' ) ) = dfa'.init M'\<close> 
-  by (simp add: dfa'.init dfa'_M')
+  by (simp add: dfa'.init)
 
 
 lemma dfa_f_M': \<open>dfa f_M'\<close>
 proof(standard, goal_cases)
   case 1
-  then show ?case using dfa'.init dfa'_M' by auto
+  then show ?case using dfa'.init by auto
 next
   case 2
-  then show ?case apply simp using dfa'.final dfa'_M' by blast
+  then show ?case by (simp add: final image_mono)
 next
   case (3 q x)
-  then show ?case by (simp add: dfa'.nxt dfa'_M' f_inv_in)
+  then show ?case by (simp add: nxt f_inv_in)
 next
   case 4
-  then show ?case using dfa'_M' dfa'_def by auto
+  then show ?case by (simp add: finite)
 qed
 
-
-interpretation M': dfa' M'
-  by (fact dfa'_M')
-
+(* TODO *)
 interpretation f_M': dfa f_M'
   by (fact dfa_f_M')
 
 
 lemma nxt_M'_f_inv: \<open>h \<in> dfa.states f_M' \<Longrightarrow> dfa'.nxt M' (f_inv h) x = f_inv (dfa.nxt f_M' h x)\<close> 
-  by (simp add: dfa'.nxt dfa'_M' f_inv_in)
+  by (simp add: nxt f_inv_in)
 
 lemma nxt_f_M'_f:\<open>q \<in> dfa'.states M' \<Longrightarrow> dfa.nxt f_M' (f q) x = f (dfa'.nxt M' q x)\<close> 
   by auto
 
 
-lemma nextl_M'_f_inv: \<open>h \<in> dfa.states f_M' \<Longrightarrow> M'.nextl  (f_inv h) xs = f_inv (f_M'.nextl h xs)\<close>
+lemma nextl_M'_f_inv: \<open>h \<in> dfa.states f_M' \<Longrightarrow> nextl  (f_inv h) xs = f_inv (f_M'.nextl h xs)\<close>
 proof(induction xs arbitrary: h)
   case Nil
   then show ?case by simp
 next
   case (Cons a xs)
-  then have \<open>M'.nextl (dfa'.nxt M' (f_inv h) a) xs = f_inv (f_M'.nextl (f (dfa'.nxt M' (f_inv h) a)) xs)\<close> 
+  then have \<open>nextl (dfa'.nxt M' (f_inv h) a) xs = f_inv (f_M'.nextl (f (dfa'.nxt M' (f_inv h) a)) xs)\<close> 
     using f_f_inv f_M'.nxt nxt_M'_f_inv by presburger
   then show ?case by simp
 qed 
 
 
-lemma nextl_f_M'_f: \<open>q \<in> dfa'.states M' \<Longrightarrow> f_M'.nextl (f q) xs = f (M'.nextl q xs)\<close>
+lemma nextl_f_M'_f: \<open>q \<in> dfa'.states M' \<Longrightarrow> f_M'.nextl (f q) xs = f (nextl q xs)\<close>
 proof(induction xs arbitrary: q)
   case Nil
   then show ?case by simp
 next
   case (Cons a xs)
-  then have \<open>f_M'.nextl (f (dfa'.nxt M' q a)) xs = f (M'.nextl (dfa'.nxt M' q a) xs)\<close> 
-    using M'.nxt by blast
+  then have \<open>f_M'.nextl (f (dfa'.nxt M' q a)) xs = f (nextl (dfa'.nxt M' q a) xs)\<close> 
+    using nxt by blast
   then show ?case by (simp add: Cons.prems)
 qed 
 
 
-lemma M'_lang_eq_f_M'_lang: \<open>M'.language = f_M'.language\<close>
-  unfolding M'.language_def f_M'.language_def by (metis M'.init dfa.select_convs(2) f_in_final f_inv_f_init f_inv_in_final f_M'.init nextl_M'_f_inv nextl_f_M'_f)
+lemma M'_lang_eq_f_M'_lang: \<open>language = f_M'.language\<close>
+  unfolding language_def f_M'.language_def
+  by (metis dfa.select_convs(2) f_M'.init f_in_final f_inv_f_init f_inv_in_final init nextl_M'_f_inv
+      nextl_f_M'_f)
 
 end
 
+context dfa'
+begin
 
 corollary ex_hf_M:
-  fixes M' :: \<open>('a, 'b) dfa'\<close>
-  assumes \<open>dfa' M'\<close>
-  shows \<open>\<exists>f_M'. dfa f_M' \<and> dfa'.language M' = dfa.language f_M'\<close> 
-proof-
-  interpret M': dfa' M' using assms
-    by simp
-  have \<open>finite (dfa'.states M')\<close> 
-    by (simp add: M'.finite) 
-  with embed_finite_set_into_hf[of \<open>dfa'.states M'\<close>] obtain f::\<open>'b \<Rightarrow> hf\<close> where inj_on: \<open>inj_on f (dfa'.states M')\<close> 
-    by blast
-  then interpret construct_equiv_dfa: construct_equiv_dfa M' f 
-    apply unfold_locales by blast
-  have \<open>M'.language = dfa.language local.construct_equiv_dfa.f_M'\<close> 
-    using construct_equiv_dfa.M'_lang_eq_f_M'_lang by blast
-  moreover have \<open>dfa local.construct_equiv_dfa.f_M'\<close> 
-    using local.construct_equiv_dfa.dfa_f_M' by blast
-  ultimately show ?thesis by blast
-qed
+  \<open>\<exists>f_M'. dfa f_M' \<and> dfa'.language M = dfa.language f_M'\<close>
+by (meson construct_equiv_dfa.M'_lang_eq_f_M'_lang construct_equiv_dfa.dfa_f_M'
+      construct_equiv_dfa.intro construct_equiv_dfa_axioms.intro dfa'_axioms
+      embed_finite_set_into_hf[OF finite]) 
 
 text\<open>Now we have the result, that our dfas also produce regular languages.\<close>
 corollary dfa'_imp_regular:
-  fixes M' :: \<open>('a, 'b) dfa'\<close>
-  assumes \<open>dfa' M'\<close> "dfa'.language M' = L"
+  assumes "dfa'.language M = L"
   shows \<open>regular L\<close> 
   using ex_hf_M assms unfolding regular_def by blast
 
-
-
-
-
-
-
-
-
-
+end
 
 section\<open>Non-Deterministic Finite Automata\<close>
+(* Currently unused *)
 
 text\<open>These NFAs may include epsilon-transitions and multiple start states.\<close>
 
 subsection\<open>Basic Definitions\<close>
 
-record ('a, 'b) nfa' = states :: "'b set"
+record ('a, 'b) nfa' =
+  states :: "'b set"
   init   :: "'b set"
   final  :: "'b set"
   nxt    :: "'b \<Rightarrow> 'a \<Rightarrow> 'b set"
@@ -378,7 +354,7 @@ qed
 
 text\<open>Every language accepted by a NFA is also accepted by a DFA.\<close>
 corollary imp_regular: "regular language"
-  using Power_language dfa_Power regular_def using dfa'_imp_regular by blast
+  using Power_language dfa_Power regular_def using Power.dfa'_imp_regular by blast
 
 end
 
@@ -387,15 +363,5 @@ corollary nfa'_imp_regular:
   assumes "nfa' M" "nfa'.language M = L"
   shows "regular L"
   using assms nfa'.imp_regular by blast
-
-
-
-
-
-
-
-
-
-
 
 end

@@ -1,13 +1,13 @@
-session Roos = CNF +
+session Roos = Context_Free_Grammar +
   options [document = pdf, document_output = "output"]
   sessions
     "HereditarilyFinite"
     "Finite_Automata_HF"
   theories [document = false]
-    CFG.Parse_Tree
-    CNF.CNF
-    "Finite_Automata_Not_HF"
-    "Dyck_Language_Syms"
+    Context_Free_Grammar.Parse_Tree
+    Context_Free_Grammar.Chomsky_Normal_Form
+    Finite_Automata_Not_HF
+    Dyck_Language_Syms
   theories
     Chomsky_Schuetzenberger
   document_files

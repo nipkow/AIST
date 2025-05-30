@@ -1,17 +1,9 @@
-(*
 (* Author: Moritz Roos; Tobias Nipkow *)
-
-Opening it:
-isabelle jedit -d .. -d ../Stimpfle -d . Chomsky_Schuetzenberger.thy
-isabelle vscode -d .. -d ../Stimpfle -d . Chomsky_Schuetzenberger.thy
-Building it:
-isabelle build -d .. -d ../Stimpfle -D .
-*)
 
 theory Chomsky_Schuetzenberger
 imports
-  CFG.Parse_Tree
-  CNF.CNF
+  Context_Free_Grammar.Parse_Tree
+  Context_Free_Grammar.Chomsky_Normal_Form
   Finite_Automata_Not_HF
   Dyck_Language_Syms
 begin
@@ -826,8 +818,8 @@ next
   qed
 qed
 
-lemma aut_language_reg: \<open>regular aut.language\<close> 
-  using dfa'_imp_regular aut.dfa'_axioms by blast
+lemma aut_language_reg: \<open>regular aut.language\<close>
+by (meson aut.dfa'_imp_regular) 
 
 corollary regular_successively_inter_brackets: \<open>regular {xs. successively Q xs \<and>  xs \<in> brackets}\<close> 
   using aut_language_reg aut_lang_iff_succ_Q by auto
@@ -984,8 +976,8 @@ proof-
   show ?thesis using regular_successively_inter_brackets by blast
 qed
 
-lemma aut_language_reg: \<open>regular p1_aut.language\<close> 
-  using dfa'_imp_regular p1_aut.dfa'_axioms by blast
+lemma aut_language_reg: \<open>regular p1_aut.language\<close>
+  using p1_aut.dfa'_imp_regular by blast 
 
 corollary aux_regular: \<open>regular {xs. xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets)}\<close> 
   using lang_descr aut_language_reg p1_aut.language_def by simp
@@ -1112,8 +1104,8 @@ qed simp
 lemma in_P5_iff: \<open>P5 A xs \<and> xs \<in> brackets \<longleftrightarrow> (xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets)\<close> 
   by auto (metis List.list.exhaust_sel P5.simps(2) ok.elims(2))
 
-lemma aut_language_reg: \<open>regular p5_aut.language\<close> 
-  using dfa'_imp_regular p5_aut.dfa'_axioms by blast
+lemma aut_language_reg: \<open>regular p5_aut.language\<close>
+  using p5_aut.dfa'_imp_regular by blast 
 
 corollary aux_regular: \<open>regular {xs. xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets}\<close> 
   using lang_descr aut_language_reg p5_aut.language_def by simp
@@ -1179,7 +1171,7 @@ lemma P_CNFE[dest]:
   using assms CNF_P unfolding CNF_def by fastforce
 
 definition L where 
-  \<open>L \<equiv> Lang P S\<close>
+  \<open>L = Lang P S\<close>
 
 definition \<Gamma> where 
   \<open>\<Gamma> = P \<times> {One, Two}\<close>
@@ -1208,11 +1200,11 @@ unfolding bal_tm_def by (simp add: bal_iff_bal_stk)
 
 text\<open>This essentially says, that the right sides of productions are in the Dyck language of \<open>\<Gamma>\<close>, 
 if one ignores any occuring nonterminals. This will be needed for \<open>\<rightarrow>\<close>.\<close>
-lemma bal_tm_ransform_rhs[intro!]:
+lemma bal_tm_transform_rhs[intro!]:
   \<open>(A,\<alpha>) \<in> P \<Longrightarrow> bal_tm (transform_rhs A \<alpha>)\<close>
 by auto
 
-lemma snds_in_tm_ransform_rhs[intro!]:
+lemma snds_in_tm_transform_rhs[intro!]:
   \<open>(A,\<alpha>) \<in> P \<Longrightarrow> snds_in_tm \<Gamma> (transform_rhs A \<alpha>)\<close>
   using P_CNFE by (fastforce)
 
@@ -1230,11 +1222,11 @@ next
   obtain w' where w'_def: \<open>w = transform_rhs A w'\<close> and A_w'_in_P: \<open>(A,w') \<in> P\<close>
     using P'_def step.hyps(2) by force
   have bal_tm_w: \<open>bal_tm w\<close>
-    using bal_tm_ransform_rhs[OF \<open>(A,w') \<in> P\<close>] w'_def by auto
+    using bal_tm_transform_rhs[OF \<open>(A,w') \<in> P\<close>] w'_def by auto
   then have \<open>bal_tm (u @ w @ v)\<close> 
     using \<open>bal_tm (u @ [Nt A] @ v)\<close> by (metis bal_tm_empty bal_tm_inside bal_tm_prepend_Nt)
   moreover have \<open>snds_in_tm \<Gamma> (u @ w @ v)\<close> 
-    using snds_in_tm_ransform_rhs[OF \<open>(A,w') \<in> P\<close>] \<open>snds_in_tm \<Gamma> (u @ [Nt A] @ v)\<close> w'_def by (simp)
+    using snds_in_tm_transform_rhs[OF \<open>(A,w') \<in> P\<close>] \<open>snds_in_tm \<Gamma> (u @ [Nt A] @ v)\<close> w'_def by (simp)
   ultimately show ?case using \<open>bal_tm (u @ w @ v)\<close> by blast
 qed
 
@@ -1928,7 +1920,6 @@ next
   then show ?thesis using reg_R_union hom_h by blast
 qed
 
-unused_thms Dyck_Language CFG - Dyck_Language_Syms
 no_notation the_hom ("\<h>")
 no_notation the_hom_syms ("\<h>\<s>")
 

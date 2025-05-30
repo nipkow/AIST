@@ -1,38 +1,19 @@
 (* Author: Moritz Roos, Tobias Nipkow *)
 
-(*section \<open>Dyck Languages over Type @{typ "'a  syms"}\<close>*)
+section \<open>Dyck Languages over Type \<open>syms\<close>\<close>
 
 theory Dyck_Language_Syms
-  imports Dyck_Language "CFG.CFG"
+imports
+  Dyck_Language
+  Context_Free_Grammar.Context_Free_Grammar
 begin
 
-(*TODO now in CFG *)
-fun destTm :: "('a, 'b) sym  \<Rightarrow> 'b" where 
-  \<open>destTm (Tm t) = t\<close> | 
-  \<open>destTm (Nt A) = undefined\<close>
-
-lemma destTm_Tm[simp]: \<open>destTm \<circ> Tm = id\<close>
-by auto
-(* until here*)
-
 section\<open>Versions of \<^const>\<open>bal\<close> and restriction to \<open>\<Gamma>\<close> for @{type syms}\<close>
-
 
 subsection\<open>Function \<^term>\<open>bal_tm\<close>\<close>
 
 definition bal_tm where
-  \<open>bal_tm \<equiv> bal o (map destTm) o (filter isTm)\<close>
-
-(* TODO now in CFG *)
-lemma isTm_Nt[simp]:\<open>(isTm (Nt A)) = False\<close>
-  by (simp add: isTm_def)
-
-lemma isTm_Tm[simp]: \<open>isTm (Tm a)\<close> 
-  by (simp add: isTm_def)
-
-lemma filter_isTm_map_Tm[simp]:\<open>filter isTm (map Tm xs') = map Tm xs'\<close>
-  apply(induction xs') by auto
-(* until here *)
+  \<open>bal_tm = bal o (map destTm) o (filter isTm)\<close>
 
 lemma bal_tm_empty[simp]: \<open>bal_tm []\<close>
   by (simp add: bal_tm_def)
@@ -49,14 +30,8 @@ lemma bal_tm_prepend_Nt[simp]: \<open>bal_tm (Nt A # xs) = bal_tm xs\<close>
 lemma bal_tm2[simp]: "bal_tm [Tm (Open a), Tm (Close a)]"
 using bal_tm_surr[of "[]"] by simp
 
-(* TODO: now in CFG *)
-lemma map_Tm_inject_iff[simp]: "(map Tm xs = map Tm ys) = (xs = ys)"
-by (metis sym.inject(2) list.inj_map_strong)
-(* until here *)
-
 lemma bal_iff_bal_tm[simp]: \<open>bal_tm (map Tm xs) = bal xs\<close>
 unfolding bal_tm_def by simp
-
 
 lemma bal_tm_append_inv: "bal_tm (u @ v) \<Longrightarrow> bal_tm u \<Longrightarrow> bal_tm v"
 unfolding bal_tm_def by(auto dest: bal_append_inv)
@@ -71,7 +46,7 @@ subsection\<open>Function \<open>snds_in_tm\<close>\<close>
 text\<open>Restriction to \<open>\<Gamma>\<close> for a list of symbols:\<close>
 
 definition snds_in_tm where
-  \<open>snds_in_tm \<Gamma> w \<equiv> snd ` set(map destTm (filter isTm w)) \<subseteq> \<Gamma>\<close>
+  \<open>snds_in_tm \<Gamma> w = (snd ` set(map destTm (filter isTm w)) \<subseteq> \<Gamma>)\<close>
 
 lemma snds_in_tm_Nt[simp]:
   \<open>snds_in_tm \<Gamma> (Nt A # xs) = snds_in_tm \<Gamma> xs\<close>

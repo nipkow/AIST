@@ -819,7 +819,7 @@ next
 qed
 
 lemma aut_language_reg: \<open>regular aut.language\<close>
-by (meson aut.dfa'_imp_regular) 
+by (meson aut.regular)
 
 corollary regular_successively_inter_brackets: \<open>regular {xs. successively Q xs \<and>  xs \<in> brackets}\<close> 
   using aut_language_reg aut_lang_iff_succ_Q by auto
@@ -977,7 +977,7 @@ proof-
 qed
 
 lemma aut_language_reg: \<open>regular p1_aut.language\<close>
-  using p1_aut.dfa'_imp_regular by blast 
+  using p1_aut.regular by blast 
 
 corollary aux_regular: \<open>regular {xs. xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets)}\<close> 
   using lang_descr aut_language_reg p1_aut.language_def by simp
@@ -1105,7 +1105,7 @@ lemma in_P5_iff: \<open>P5 A xs \<and> xs \<in> brackets \<longleftrightarrow> (
   by auto (metis List.list.exhaust_sel P5.simps(2) ok.elims(2))
 
 lemma aut_language_reg: \<open>regular p5_aut.language\<close>
-  using p5_aut.dfa'_imp_regular by blast 
+  using p5_aut.regular by blast 
 
 corollary aux_regular: \<open>regular {xs. xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets}\<close> 
   using lang_descr aut_language_reg p5_aut.language_def by simp

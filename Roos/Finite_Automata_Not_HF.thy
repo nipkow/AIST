@@ -163,20 +163,22 @@ locale nfa' =
   fixes M :: "('a, 'b) nfa'"
   assumes init: "init M \<subseteq> states M"
     and final: "final M \<subseteq> states M"
+(* Not needed because \<open>epsclo\<close> restricts to \<open>states\<close>:
     and nxt:   "\<And>q x. q \<in> states M \<Longrightarrow> nxt M q x \<subseteq> states M"
+*)
     and finite: "finite (states M)"
 begin
 
 definition epsclo :: "'b set \<Rightarrow> 'b set" where
   "epsclo Q \<equiv> states M \<inter> (\<Union>q\<in>Q. {q'. (q,q') \<in> (eps M)\<^sup>*})"
 
-lemma epsclo_idem [simp]: "epsclo (epsclo Q) = epsclo Q"
+lemma epsclo_idem: "epsclo (epsclo Q) = epsclo Q"
   by (auto simp: epsclo_def)
 
 lemma epsclo_increasing: "Q \<inter> states M \<subseteq> epsclo Q"
   by (auto simp: epsclo_def)
 
-lemma epsclo_UN [simp]: "epsclo (\<Union>x\<in>A. B x) = (\<Union>x\<in>A. epsclo (B x))"
+lemma epsclo_UN: "epsclo (\<Union>x\<in>A. B x) = (\<Union>x\<in>A. epsclo (B x))"
   by (auto simp: epsclo_def)
 
 lemma epsclo_subset [simp]: "epsclo Q \<subseteq> states M"
@@ -190,17 +192,17 @@ primrec nextl :: "['b set, 'a list] \<Rightarrow> 'b set" where
 definition language :: "'a list set"  where
   "language \<equiv> {xs. nextl (init M) xs \<inter> final M \<noteq> {}}"
 
-lemma nextl_epsclo [simp]: "nextl (epsclo Q) xs = nextl Q xs"
-  by (induct xs) auto
+lemma nextl_epsclo: "nextl (epsclo Q) xs = nextl Q xs"
+  by (induct xs) (auto simp: epsclo_idem)
 
-lemma epsclo_nextl [simp]: "epsclo (nextl Q xs) = nextl Q xs"
-  by (induct xs arbitrary: Q) auto
+lemma epsclo_nextl: "epsclo (nextl Q xs) = nextl Q xs"
+  by (induct xs arbitrary: Q) (auto simp: epsclo_idem)
 
 lemma nextl_app: "nextl Q (xs@ys) = nextl (nextl Q xs) ys"
-  by (induct xs arbitrary: Q) auto
+  by (induct xs arbitrary: Q) (auto simp: nextl_epsclo)
 
-lemma nextl_snoc [simp]: "nextl Q (xs@[x]) = (\<Union>q \<in> nextl Q xs. epsclo (nxt M q x))"
-  by (simp add: nextl_app)
+lemma nextl_snoc: "nextl Q (xs@[x]) = (\<Union>q \<in> nextl Q xs. epsclo (nxt M q x))"
+  by (simp add: nextl_app epsclo_UN epsclo_nextl)
 
 lemma nextl_state: "nextl Q xs \<subseteq> states M"
   by (induct xs arbitrary: Q) auto
@@ -253,16 +255,16 @@ proof -
         by (auto simp: hinsert_def)
     next
       case (snoc x u) then show ?case
-        by (simp add: init nextl_state [THEN subsetD])
+        by (simp add: epsclo_nextl nextl_snoc init nextl_state [THEN subsetD])
     qed
     then have "u \<in> Power.language \<longleftrightarrow> u \<in> language" using epsclo_increasing nextl_state
-      by (fastforce simp add: Power.language_def language_def disjoint_iff_not_equal)
+      by (fastforce simp add: Power.language_def language_def disjoint_iff_not_equal epsclo_nextl)
   }
   then show ?thesis
     by blast
 qed
 
-text\<open>Every language accepted by a NFA is also accepted by a DFA.\<close>
+text\<open>Every language accepted by an \<open>nfa'\<close> is also regular.\<close>
 corollary regular: "regular language"
 using Power_language Power.regular by blast
 

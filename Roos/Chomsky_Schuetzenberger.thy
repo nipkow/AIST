@@ -959,7 +959,7 @@ lemma lang_descr: \<open>xs \<in> p1_aut.language \<longleftrightarrow> (xs = []
   unfolding p1_aut.language_def using lang_descr_full by auto
 
 lemma good_iff[simp]:\<open>(\<forall>a b. last xs \<noteq> ]\<^sup>1\<^bsub>(a, b)\<^esub>) = good (last xs)\<close> 
-  by auto (metis good.elims(3) split_pairs)
+  by (metis good.simps(1) good.elims(3) split_pairs)
 
 lemma in_P1_iff: \<open>(P1 xs \<and> xs \<in> brackets) \<longleftrightarrow>  (xs = [] \<or> (xs \<noteq> [] \<and> good (last xs) \<and> xs \<in> brackets)) \<and> successively P1' xs \<and>  xs \<in> brackets\<close> 
   using good_iff by auto
@@ -1101,8 +1101,8 @@ proof(induction xs rule: rev_induct)
   qed
 qed simp
 
-lemma in_P5_iff: \<open>P5 A xs \<and> xs \<in> brackets \<longleftrightarrow> (xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets)\<close> 
-  by auto (metis List.list.exhaust_sel P5.simps(2) ok.elims(2))
+lemma in_P5_iff: \<open>P5 A xs \<and> xs \<in> brackets \<longleftrightarrow> (xs \<noteq> [] \<and> ok (hd xs) \<and> xs \<in> brackets)\<close>
+  using P5.elims(3) by fastforce 
 
 lemma aut_language_reg: \<open>regular p5_aut.language\<close>
   using p5_aut.regular by blast 

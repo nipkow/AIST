@@ -68,13 +68,6 @@ inductive_cases step_foldedE[elim]: "a \<rightarrow> b"
 inductive_cases step_leftE [elim]:  "(a#u, q, v) \<rightarrow> (u, p, a#v)"
 inductive_cases step_rightE [elim]: "(u, q, a#v) \<rightarrow> (a#u, p, v)"
 
-lemma step_impl_in_states[intro]: (*Should these be intros?*)
-  assumes "p \<in> states M"
-          "(u, p, v) \<rightarrow> (x, q, y)"
-        shows "q \<in> states M"
-  using assms dfa2_def dfa2_axioms
-  by (smt (verit, del_insts) old.prod.inject step_foldedE)
-
 abbreviation steps :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>*\<close> 55) where
   "steps \<equiv> step\<^sup>*\<^sup>*"
 
@@ -104,8 +97,9 @@ notation nreachable ("_ \<rightarrow>*{_} _" 55)
 
 lemma steps_impl_in_states:
   assumes "p \<in> states M"
-    shows "(u, p, v) \<rightarrow>* (u', q, v') \<Longrightarrow> q \<in> states M"
-    by (induction rule: rtranclp_induct3) (use assms in auto)
+  shows "(u, p, v) \<rightarrow>* (u', q, v') \<Longrightarrow> q \<in> states M"
+  by (induction rule: rtranclp_induct3) (use assms nxt in auto)
+ 
 
 corollary reachable_impl_in_states:
   assumes "w \<rightarrow>** (u, q, v)"
@@ -453,6 +447,7 @@ corollary init_lstar_impl_substring_x:
   obtains y where " rev u @ y = \<langle>x\<langle>" "y @ \<rangle>z\<rangle> = v"
   using star_lstar_impl_substring_x assms left_config_def 
     left_reachable_impl_left_config by blast
+
   
 
 lemma star_rstar_impl_substring_z:
@@ -583,8 +578,10 @@ lemma T_impl_in_states:
   assumes "T z p q"
   shows "p = Some p' \<Longrightarrow> p' \<in> states M" 
         "q = Some q' \<Longrightarrow> q' \<in> states M"
-  by (smt (verit) assms T.simps init option.distinct(1) option.inject right_steps_impl_steps
-      rtranclp_trans step_impl_in_states steps_impl_in_states left_steps_impl_steps)+
+  using assms by (induction, auto) 
+    ( meson init left_steps_impl_steps steps_impl_in_states r_into_rtranclp 
+      right_steps_impl_steps dfa2_axioms dfa2_transition_axioms)+
+
  
 lemma T_p_Some_impl_reachable:
   assumes "T z p (Some q)"
@@ -618,8 +615,33 @@ lemma left_acc_impl_T_Some_acc:
         obtains q where "T z q (Some (acc M))"
 proof (cases "x @ z \<rightarrow>\<^sup>L** (u, acc M, v)")
   case True
-  have "(u, acc M, v) \<rightarrow>\<^sup>L* (rev x_init, acc M, x_end # \<rangle>z\<rangle>)" sorry (*Induction?*)
-  with assms have "x @ z \<rightarrow>\<^sup>L** ..." using True by fastforce
+  have "(u, acc M, v) \<rightarrow>\<^sup>L* (rev x_init, acc M, x_end # \<rangle>z\<rangle>)"
+  proof -
+    from reachable_impl_notempty[OF reach] have nempty: "v \<noteq> []" .
+    from True obtain y where y_defs: "rev u @ y = \<langle>x\<langle>" "y @ \<rangle>z\<rangle> = v" 
+      using init_lstar_impl_substring_x by blast
+    obtain ys ys' where ys_defs: "y @ \<rangle>z\<rangle> = ys @ ys'" "ys' = x_end # \<rangle>z\<rangle>" 
+    proof -
+      have "y \<noteq> []" using y_defs left left_config_def by auto
+      with y_defs unchanged_word[OF reach] 
+        obtain ys where "y = ys @ [x_end]"
+          by (metis append_butlast_last_id last_appendR x_end_def)
+        thus thesis using that by simp
+      qed
+      from this have v_is_ys: "v = ys @ ys'" using y_defs by simp (*TODO: ys must be x_init*)
+      consider "ys = []" | a as where "ys = a # as" using List.list.exhaust by blast
+      then have "(u, acc M, v) \<rightarrow>* (rev x_init, acc M, x_end # \<rangle>z\<rangle>)"
+      proof cases
+        case 1
+        hence "u = rev x_init" using ys_defs unchanged_word[OF reach] y_defs
+          by (simp add: x_is_init_app_end)
+        then show ?thesis using ys_defs 1 by (simp add: v_is_ys)
+      next
+        case 2
+        then show ?thesis using acc_impl_reachable_substring[OF reach _ _ v_is_ys] ys_defs 2 sorry
+      qed (*Prove left config that reaches left config from the left implies left reachability?*)
+  qed
+  with assms have "x @ z \<rightarrow>\<^sup>L** ..." using True sorry
   moreover have "(rev x_init, acc M, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), acc M, \<rangle>z\<rangle>)"
   proof -
     have "x_end \<noteq> \<stileturn>" unfolding x_end_def 

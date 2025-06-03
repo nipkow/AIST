@@ -550,7 +550,6 @@ qed
 
 
 inductive T :: "'a list \<Rightarrow> state option \<Rightarrow> state option \<Rightarrow> bool" for z where
-                                   (*Refactored with z as schematic variable (suboptimal?)*)
   init_tr[intro]: "\<lbrakk>x @ z \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z\<rangle>); 
               (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T z None (Some p)" |
 
@@ -609,56 +608,66 @@ proof -
   qed
 qed
 
+lemma boundary_cross_impl_T:
+  assumes "x @ z \<rightarrow>** (rev x_init, p, x_end # \<rangle>z\<rangle>)"
+          "(rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)"
+  obtains q' where "T z q' (Some p)"
+  \<proof>
+
 lemma left_acc_impl_T_Some_acc:
   assumes reach: "x @ z \<rightarrow>** (u, acc M, v)"
       and left: "left_config (u, acc M, v)"
-        obtains q where "T z q (Some (acc M))"
-proof (cases "x @ z \<rightarrow>\<^sup>L** (u, acc M, v)")
-  case True
-  have "(u, acc M, v) \<rightarrow>\<^sup>L* (rev x_init, acc M, x_end # \<rangle>z\<rangle>)"
+    obtains q where "T z q (Some (acc M))"
+proof -
+  from assms(2) star_lstar_impl_substring_x[OF assms(1)] 
+  obtain y where y_defs: "rev u @ y = \<langle>x\<langle>" "y @ \<rangle>z\<rangle> = v"
+    unfolding left_config_def by blast
+  moreover obtain a as where "y = a # as" 
   proof -
-    from reachable_impl_notempty[OF reach] have nempty: "v \<noteq> []" .
-    from True obtain y where y_defs: "rev u @ y = \<langle>x\<langle>" "y @ \<rangle>z\<rangle> = v" 
-      using init_lstar_impl_substring_x by blast
-    obtain ys ys' where ys_defs: "y @ \<rangle>z\<rangle> = ys @ ys'" "ys' = x_end # \<rangle>z\<rangle>" 
+    have "y \<noteq> []" using y_defs left left_config_def by auto
+    thus thesis using list.exhaust that by blast
+  qed
+  ultimately have last_y: "last y = x_end" using x_defs left left_config_def
+    by (metis last_appendR list.distinct(1))
+  obtain ys where ys_def: "v = ys @ (x_end # \<rangle>z\<rangle>)"
+  proof -
+    from last_y obtain ys where "y = ys @ [x_end]" 
+      by (metis \<open>y = a # as\<close> append_butlast_last_id list.distinct(1))
+    with y_defs have "ys @ [x_end] @ \<rangle>z\<rangle> = v" by simp
+    thus thesis using that by auto
+  qed
+  consider "ys = []" | b bs where "ys = b # bs" using list.exhaust by blast
+  then show thesis
+  proof cases
+    case 1
+    hence u_v_is_bound: "(u, acc M, v) = (rev x_init, acc M, x_end # \<rangle>z\<rangle>)" 
+      using ys_def unchanged_word[OF reach] x_defs by simp
+    have "(u, acc M, v) \<rightarrow> (rev (\<langle>x\<langle>), acc M, \<rangle>z\<rangle>)" 
     proof -
-      have "y \<noteq> []" using y_defs left left_config_def by auto
-      with y_defs unchanged_word[OF reach] 
-        obtain ys where "y = ys @ [x_end]"
-          by (metis append_butlast_last_id last_appendR x_end_def)
-        thus thesis using that by simp
-      qed
-      from this have v_is_ys: "v = ys @ ys'" using y_defs by simp (*TODO: ys must be x_init*)
-      consider "ys = []" | a as where "ys = a # as" using List.list.exhaust by blast
-      then have "(u, acc M, v) \<rightarrow>* (rev x_init, acc M, x_end # \<rangle>z\<rangle>)"
-      proof cases
-        case 1
-        hence "u = rev x_init" using ys_defs unchanged_word[OF reach] y_defs
-          by (simp add: x_is_init_app_end)
-        then show ?thesis using ys_defs 1 by (simp add: v_is_ys)
-      next
-        case 2
-        then show ?thesis using acc_impl_reachable_substring[OF reach _ _ v_is_ys] ys_defs 2 sorry
-      qed (*Prove left config that reaches left config from the left implies left reachability?*)
+      have "x_end \<noteq> \<stileturn>" using x_defs(2) by (simp add: last_map)
+      hence "(rev x_init, acc M, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), acc M, \<rangle>z\<rangle>)"
+        using final_nxt_r x_defs 
+        by (smt (verit, ccfv_SIG) rev_eq_Cons_iff rev_rev_ident step.simps x_is_init_app_end)
+      with u_v_is_bound show ?thesis by blast
+    qed
+    then show thesis using that boundary_cross_impl_T u_v_is_bound reach by blast
+  next
+    case 2
+    with acc_impl_reachable_substring[OF reach] 
+      have bound_reach: "(u, acc M, v) \<rightarrow>* (rev ys @ u, acc M, x_end # \<rangle>z\<rangle>)"
+        using ys_def by blast
+      hence "(rev x_init, acc M, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), acc M, \<rangle>z\<rangle>)"
+      proof -
+        have "x_end \<noteq> \<stileturn>" using x_defs(2) by (simp add: last_map)
+        thus ?thesis using final_nxt_r x_defs 
+        by (smt (verit, ccfv_SIG) rev_eq_Cons_iff rev_rev_ident step.simps x_is_init_app_end)
+    qed
+    moreover have "x @ z \<rightarrow>** (rev ys @ u, acc M, x_end # \<rangle>z\<rangle>)" using reach bound_reach by simp
+    moreover from this have "rev ys @ u = rev x_init" using unchanged_word x_defs
+      by (metis append_eq_append_conv calculation(1) dfa2.mapl_app_mapr_eq_map
+          dfa2.unchanged_substrings dfa2_axioms r_into_rtranclp rev_rev_ident)
+    ultimately show thesis using that boundary_cross_impl_T by metis
   qed
-  with assms have "x @ z \<rightarrow>\<^sup>L** ..." using True sorry
-  moreover have "(rev x_init, acc M, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), acc M, \<rangle>z\<rangle>)"
-  proof -
-    have "x_end \<noteq> \<stileturn>" unfolding x_end_def 
-      by (simp add: last_map)
-    hence "nxt M (acc M) x_end = (acc M, Right)" using dfa2_axioms dfa2_def by auto
-    thus ?thesis unfolding x_init_def 
-      using x_is_init_app_end by auto
-  qed
-  ultimately show ?thesis using that by blast
-next
-  case False
-  then obtain q q' 
-    where "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" 
-          "(rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>) \<rightarrow> (rev x_init, q', x_end # \<rangle>z\<rangle>)"
-          "(rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (u, acc M, v)" sorry
-  from left have "(u, acc M, v) \<rightarrow>\<^sup>L* (rev x_init, acc M, x_end # \<rangle>z\<rangle>)" sorry
-  then show ?thesis sorry
 qed
 
 lemma right_substring_steps_impl_word_reachable:

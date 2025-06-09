@@ -1,3 +1,5 @@
+section \<open>Regular language expressions\<close>
+
 theory Reg_Lang_Exp
   imports 
     "Regular-Sets.Regular_Set"
@@ -5,7 +7,7 @@ theory Reg_Lang_Exp
 begin
 
 
-section \<open>Definition of regular language expressions\<close>
+subsection \<open>Definition\<close>
 
 text \<open>We introduce regular language expressions: These expressions can contain both constant languages
 and variables where variables are natural numbers for simplicity. Given a valuation, i.e. an instantiation of
@@ -43,7 +45,7 @@ primrec subst :: "(nat \<Rightarrow> 'a rlexp) \<Rightarrow> 'a rlexp \<Rightarr
 
 
 
-section \<open>Some lemmas about regular language expressions\<close>
+subsection \<open>Basic lemmas\<close>
 
 lemma substitution_lemma:
   assumes "\<forall>i. v' i = eval (upd i) v"
@@ -119,7 +121,7 @@ qed
 
 
 
-section \<open>Monotonicity of regular language expressions\<close>
+subsection \<open>Monotonicity\<close>
 
 lemma rlexp_mono_aux:
   assumes "\<forall>i \<in> vars f. v i \<subseteq> v' i"
@@ -137,7 +139,7 @@ lemma rlexp_mono:
 
 
 
-section \<open>Continuity of regular language expressions\<close>
+subsection \<open>Continuity\<close>
 
 lemma langpow_mono:
   fixes A :: "'a lang"
@@ -217,7 +219,7 @@ qed
 
 
 
-section \<open>Regular language expressions which evaluate to regular languages\<close>
+subsection \<open>Regular language expressions which evaluate to regular languages\<close>
 
 text \<open>Evaluating regular language expressions can yield non-regular languages even if
 the valuation maps each variable to a regular language. This is because \<^const>\<open>Const\<close> may introduce
@@ -309,7 +311,7 @@ lemma finite_Union_regular:
 
 
 
-section \<open>Constant regular language functions\<close>
+subsection \<open>Constant regular language functions\<close>
 
 text \<open>We call a regular language expression constant if it contains no variables:\<close>
 abbreviation const_rlexp :: "'a rlexp \<Rightarrow> bool" where

@@ -1,6 +1,6 @@
 theory Parikh_Img
   imports 
-    "Lfun"
+    "Reg_Lang_Exp"
     "HOL-Library.Multiset"
 begin
 

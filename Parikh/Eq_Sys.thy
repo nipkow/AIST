@@ -1,9 +1,7 @@
 theory Eq_Sys
   imports
-    "Lfun"
     "Parikh_Img"
-    "../CFG"
-    "../CFL"
+    "CFG.CFL"
 begin
 
 (* TODO: remove unnecessary definitions and rename *)

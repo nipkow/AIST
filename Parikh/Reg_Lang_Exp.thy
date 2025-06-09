@@ -1,4 +1,4 @@
-theory Lfun
+theory Reg_Lang_Exp
   imports 
     "Regular-Sets.Regular_Set"
     "Regular-Sets.Regular_Exp"
@@ -7,18 +7,17 @@ begin
 
 section \<open>Definition of regular language expressions\<close>
 
-text \<open>Regular language expressions\<close>
+text \<open>We introduce regular language expressions: These expressions can contain both constant languages
+and variables where variables are natural numbers for simplicity. Given a valuation, i.e. an instantiation of
+each variable with a language, the regular language expression can be evaluated, yielding a language.\<close>
 datatype 'a rlexp = Var nat                          (* Variable *)
                   | Const "'a lang"                  (* Constant *)
                   | Union "'a rlexp" "'a rlexp"
                   | Concat "'a rlexp" "'a rlexp"     (* Concatenation *)
                   | Star "'a rlexp"                  (* Kleene star*)
 
-
-text \<open>instantiate each variable with a language\<close>
 type_synonym 'a valuation = "nat \<Rightarrow> 'a lang"
 
-text \<open>evaluate the regular language expression for a given valuation, yielding a language\<close>
 primrec eval :: "'a rlexp \<Rightarrow> 'a valuation \<Rightarrow> 'a lang" where
   "eval (Var n) v = v n" |
   "eval (Const l) _ = l" |
@@ -26,7 +25,6 @@ primrec eval :: "'a rlexp \<Rightarrow> 'a valuation \<Rightarrow> 'a lang" wher
   "eval (Concat f g) v = eval f v @@ eval g v" |
   "eval (Star f) v = star (eval f v)"
 
-text \<open>all variables occurring in the regular language expression\<close>
 primrec vars :: "'a rlexp \<Rightarrow> nat set" where
   "vars (Var n) = {n}" |
   "vars (Const _) = {}" |
@@ -34,7 +32,8 @@ primrec vars :: "'a rlexp \<Rightarrow> nat set" where
   "vars (Concat f g) = vars f \<union> vars g" |
   "vars (Star f) = vars f"
 
-text \<open>substitute each occurrence of a variable \<open>i\<close> by the regular language expression \<open>s i\<close>\<close>
+text \<open>Given some regular language expression, substituting each occurrence of a variable \<open>i\<close> by
+the regular language expression \<open>s i\<close> yields the following regular language expression:\<close>
 primrec subst :: "(nat \<Rightarrow> 'a rlexp) \<Rightarrow> 'a rlexp \<Rightarrow> 'a rlexp" where
   "subst s (Var n) = s n" |
   "subst _ (Const l) = Const l" |
@@ -131,7 +130,6 @@ using assms proof (induction rule: rlexp.induct)
     by (smt (verit, best) eval.simps(5) in_star_iff_concat order_trans subsetI vars.simps(5))
 qed fastforce+
 
-text \<open>The actually monotonicity lemma\<close>
 lemma rlexp_mono:
   fixes f :: "'a rlexp"
   shows "mono (eval f)"
@@ -222,12 +220,12 @@ qed
 section \<open>Regular language expressions which evaluate to regular languages\<close>
 
 text \<open>Evaluating regular language expressions can yield non-regular languages even if
-the valuation maps each variable to a regular language. This is because \<open>Const\<close> may introduce
+the valuation maps each variable to a regular language. This is because \<^const>\<open>Const\<close> may introduce
 non-regular languages.
-We therefore introduce the predicate \<open>reg_eval\<close> which guarantees that a regular language expression
+We therefore define the following predicate which guarantees that a regular language expression
 \<open>f\<close> yields a regular language if the valuation maps all variables occurring in \<open>f\<close> to some regular
 language. This is achieved by only allowing regular languages as constants.
-However, note that \<open>reg_eval\<close> is an under-approximation, i.e. there exist regular language
+However, note that this predicate is just an under-approximation, i.e. there exist regular language
 expressions which do not satisfy this predicate but evaluate to regular languages anyway.\<close>
 
 fun reg_eval :: "'a rlexp \<Rightarrow> bool" where
@@ -246,7 +244,7 @@ lemma epsilon_regular: "reg_eval (Const {[]})"
 
 
 text \<open>If the valuation \<open>v\<close> maps all variables occurring in the regular language function \<open>f\<close> to
-some regular language, then evaluating \<open>f\<close> again yields a regular language.\<close>
+some regular language, then evaluating \<open>f\<close> again yields a regular language:\<close>
 lemma reg_eval_regular:
   assumes "reg_eval f"
       and "\<And>n. n \<in> vars f \<Longrightarrow> regular_lang (v n)"
@@ -269,8 +267,8 @@ next
 qed simp_all
 
 
-text \<open>A \<open>reg_eval\<close> regular language expression stays \<open>reg_eval\<close> if all variables are substituted
-by \<open>reg_eval\<close> regular language expressions\<close>
+text \<open>A \<^const>\<open>reg_eval\<close> regular language expression stays \<^const>\<open>reg_eval\<close> if all variables are substituted
+by \<^const>\<open>reg_eval\<close> regular language expressions:\<close>
 lemma subst_reg_eval:
   assumes "reg_eval f"
       and "\<forall>x \<in> vars f. reg_eval (upd x)"
@@ -285,9 +283,8 @@ lemma subst_reg_eval_update:
   using assms subst_reg_eval fun_upd_def by (metis reg_eval.simps(1))
 
 
-text \<open>For any finite union of \<open>reg_eval\<close> regular language expressions exists a \<open>reg_eval\<close> regular
-language expression\<close>
-
+text \<open>For any finite union of \<^const>\<open>reg_eval\<close> regular language expressions exists a \<^const>\<open>reg_eval\<close> regular
+language expression:\<close>
 lemma finite_Union_regular_aux:
   "\<forall>f \<in> set fs. reg_eval f \<Longrightarrow> \<exists>g. reg_eval g \<and> \<Union>(vars ` set fs) = vars g
                                       \<and> (\<forall>v. (\<Union>f \<in> set fs. eval f v) = eval g v)"
@@ -314,17 +311,17 @@ lemma finite_Union_regular:
 
 section \<open>Constant regular language functions\<close>
 
-text \<open>A regular language expression is constant iff it contains no variables\<close>
+text \<open>We call a regular language expression constant if it contains no variables:\<close>
 abbreviation const_rlexp :: "'a rlexp \<Rightarrow> bool" where
   "const_rlexp f \<equiv> vars f = {}"
 
 text \<open>A constant regular language expression always evaluates to the same language, independent on
-the valuation\<close>
+the valuation:\<close>
 lemma const_rlexp_lang: "const_rlexp f \<Longrightarrow> \<exists>l. \<forall>v. eval f v = l"
   by (induction f) auto
 
-text \<open>A regular language expression which is constant and \<open>reg_eval\<close>, evaluates to some regular
-language, independent on the valuation\<close>
+text \<open>A regular language expression which is constant and \<^const>\<open>reg_eval\<close>, evaluates to some regular
+language, independent on the valuation:\<close>
 lemma const_rlexp_regular_lang:
   assumes "const_rlexp f"
       and "reg_eval f"

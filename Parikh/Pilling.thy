@@ -1,12 +1,6 @@
 theory Pilling
   imports 
-    "../CFG"
-    "../CFL"
-    "Lfun"
-    "Parikh_Img"
     "Eq_Sys"
-    "Regular-Sets.Regular_Set"
-    "Regular-Sets.Regular_Exp"
 begin
 
 
@@ -35,9 +29,11 @@ lemma "bipart_rlexp x f \<Longrightarrow> reg_eval f"
   unfolding bipart_rlexp_def by fastforce
 
 
-text \<open>For each reg_eval regular language expression and variable \<open>x\<close>, there exists a bipartite
+text \<open>For each \<^const>\<open>reg_eval\<close> regular language expression and variable \<open>x\<close>, there exists a bipartite
 regular language expression with identical Parikh image and almost identical set of variables.
-We first prove some auxiliary lemmas\<close>
+We first prove some auxiliary lemmas
+\<^prop>\<open>a = b\<close>
+\<close>
 
 lemma reg_eval_bipart_rlexp_Variable: "\<exists>f'. bipart_rlexp x f' \<and> vars f' = vars (Var y) \<union> {x}
                                         \<and> (\<forall>v. parikh_img (eval (Var y) v) = parikh_img (eval f' v))"

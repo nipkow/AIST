@@ -3,7 +3,7 @@ section \<open>Context free grammars and systems of equations\<close>
 theory Eq_Sys
   imports
     "Parikh_Img"
-    "CFG.CFL"
+    "Context_Free_Grammar.Context_Free_Language"
 begin
 
 text \<open>In this section, we will first introduce two types of systems of
@@ -158,7 +158,7 @@ begin
 text \<open>The following definitions construct a regular language expression for a single production. This
 happens step by step, i.e. starting with a single symbol (terminal or non-terminal) and then extending
 this to a single production. The definitions closely follow the definitions \<^term>\<open>inst_sym\<close>,
-\<^term>\<open>concats\<close> and \<^term>\<open>inst_syms\<close> in \<^theory>\<open>CFG.CFL\<close>\<close>
+\<^term>\<open>concats\<close> and \<^term>\<open>inst_syms\<close> in \<^theory>\<open>Context_Free_Grammar.Context_Free_Language\<close>\<close>
 
 definition rlexp_sym :: "('n, 'a) sym \<Rightarrow> 'a rlexp" where
   "rlexp_sym s = (case s of Tm a \<Rightarrow> Const {[a]} | Nt A \<Rightarrow> Var (\<gamma>' A))"

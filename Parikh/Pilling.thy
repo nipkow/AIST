@@ -1,3 +1,5 @@
+section \<open>Pilling's proof of Parikh's theorem\<close>
+
 theory Pilling
   imports 
     "Eq_Sys"
@@ -5,35 +7,30 @@ begin
 
 
 text \<open>We prove Parikh's theorem, closely following Pilling's proof (TODO: citation). The rough
-idea is as follows: Each CFG can be interpreted as a system of equations. Pilling shows that
-there is a regular solution to this system if one applies the Parikh image on both sides of each
-equation (in the following, we will call this modified system of equations the "commutative system
-of equations") and that this solution is furthermore minimal. Since the CFL minimally solves
-the commutative system of equations as well (see Eq_Sys.thy for a proof), the Parikh image of the
-CFL and the regular solution must be identical, proving Parikh's theorem.\<close>
+idea is as follows: As seen above, each CFG can be interpreted as a system of equations of the first type
+and we can easily convert it into a system of the second type by applying the Parikh image on both sides
+of each equation. Pilling now shows that there is a regular solution to this system  and that this
+solution is furthermore minimal. Since the CFG's language is a minimal solution of the same sytem,
+the Parikh image of the CFG's language and the regular solution must be identical, proving Parikh's theorem.\<close>
 
 
-section \<open>Special representation of regular language expressions\<close>
+subsection \<open>Special representation of regular language expressions\<close>
 
 text \<open>To each regular language expression and variable \<open>x\<close> corresponds a second regular language
-expression with the same Parikh image and of the form \<open>p \<union> q @@ Var x\<close> (see equation 3 in Pilling's paper)
-where p does not depend on x. We call regular language expressions of this form "bipartite regular
-language expressions":\<close>
+expression with the same Parikh image and of the form depicted in equation (3) in TODO: citation.
+We call regular language expressions of this form "bipartite regular
+language expressions" since they decompose into two subexpressions where one of them contains the
+variable \<open>x\<close> and the other one does not:\<close>
 definition bipart_rlexp :: "nat \<Rightarrow> 'a rlexp \<Rightarrow> bool" where
   "bipart_rlexp x f \<equiv> \<exists>p q. reg_eval p \<and> reg_eval q \<and>
     f = Union p (Concat q (Var x)) \<and> x \<notin> vars p"
 
 
-text \<open>All bipartite regular language expressions evaluate to regular languages:\<close>
+text \<open>All bipartite regular language expressions evaluate to regular languages. Additionally,
+for each \<^const>\<open>reg_eval\<close> regular language expression and variable \<open>x\<close>, there exists a bipartite
+regular language expression with identical Parikh image and almost identical set of variables:\<close>
 lemma "bipart_rlexp x f \<Longrightarrow> reg_eval f"
   unfolding bipart_rlexp_def by fastforce
-
-
-text \<open>For each \<^const>\<open>reg_eval\<close> regular language expression and variable \<open>x\<close>, there exists a bipartite
-regular language expression with identical Parikh image and almost identical set of variables.
-We first prove some auxiliary lemmas
-\<^prop>\<open>a = b\<close>
-\<close>
 
 lemma reg_eval_bipart_rlexp_Variable: "\<exists>f'. bipart_rlexp x f' \<and> vars f' = vars (Var y) \<union> {x}
                                         \<and> (\<forall>v. parikh_img (eval (Var y) v) = parikh_img (eval f' v))"
@@ -187,7 +184,6 @@ proof -
   ultimately show ?thesis by metis
 qed
 
-text \<open>The actual lemma:\<close>
 lemma reg_eval_bipart_rlexp: "reg_eval f \<Longrightarrow>
     \<exists>f'. bipart_rlexp x f' \<and> vars f' = vars f \<union> {x} \<and>
          (\<forall>s. parikh_img (eval f s) = parikh_img (eval f' s))"
@@ -218,17 +214,12 @@ next
 qed
 
 
-section \<open>Minimal solution\<close>
-
-text \<open>We show that any commutative system of equations has some minimal solution which is reg_eval\<close>
-
-
 subsection \<open>Minimal solution for a single equation\<close>
 
-(* We show that F(E)*E (in the following q(p)*p is a minimal solution) *)
-
-text \<open>We first prove that every bipartite regular language expression for the variable \<open>x\<close> has
-some minimal solution which is reg_eval\<close>
+text \<open>The aim is to prove that every system of equations of the second type
+has some minimal solution which is \<^const>\<open>reg_eval\<close>. In this section, we prove this property
+only for the case of a single equation. First we assume that the equation is bipartite but later
+in this section we will abandon this assumption.\<close>
 
 locale single_bipartite_eq =
   fixes x :: "nat"
@@ -239,14 +230,12 @@ locale single_bipartite_eq =
   assumes x_not_in_p: "x \<notin> vars p"
 begin
 
-text \<open>The equation\<close>
+text \<open>The equation and the minimal solution look as follows. Here, \<open>x\<close> describes the variable whose
+solution is to be determined. In the subsequent lemmas, we prove that the solution is \<^const>\<open>reg_eval\<close>
+and fulfills each of the three conditions of the predicate \<^const>\<open>partial_min_sol_one_ineq\<close>.\<close>
 abbreviation "eq \<equiv> Union p (Concat q (Var x))"
-
-text \<open>The solution\<close>
 abbreviation "sol \<equiv> Concat (Star (subst (Var(x := p)) q)) p"
 
-
-text \<open>\<open>sol\<close> is a reg_eval regular language expression\<close>
 lemma sol_is_reg: "reg_eval sol"
 proof -
   from p_reg q_reg have r_reg: "reg_eval (subst (Var(x := p)) q)"
@@ -254,8 +243,6 @@ proof -
   with p_reg show "reg_eval sol" by auto
 qed
 
-
-text \<open>\<open>sol\<close> contains only variables which also appear in the equation and it does not contain \<open>x\<close>\<close>
 lemma sol_vars: "vars sol \<subseteq> vars eq - {x}"
 proof -
   let ?upd = "Var(x := p)"
@@ -280,8 +267,6 @@ proof -
   with x_not_in_p show ?thesis by auto
 qed
 
-
-text \<open>\<open>sol\<close> is a partial solution of the equation\<close>
 lemma sol_is_sol_ineq: "partial_sol_ineq x eq sol"
 unfolding partial_sol_ineq_def proof (rule allI, rule impI)
   fix v
@@ -317,8 +302,6 @@ unfolding partial_sol_ineq_def proof (rule allI, rule impI)
   with * show "solves_ineq_comm x eq v" unfolding solves_ineq_comm_def by argo
 qed
 
-
-text \<open>The equation does not have any partial solution smaller than \<open>sol\<close>\<close>
 lemma sol_is_minimal:
   assumes is_sol:    "solves_ineq_comm x eq v"
       and sol'_s:    "v x = eval sol' v"
@@ -340,7 +323,7 @@ proof -
   with 1 show ?thesis by fast
 qed
 
-text \<open>In summary, \<open>sol\<close> is a minimal partial solution and it is reg_eval\<close>
+text \<open>In summary, \<open>sol\<close> is a minimal partial solution and it is \<^const>\<open>reg_eval\<close>:\<close>
 lemma sol_is_minimal_reg_sol:
   "reg_eval sol \<and> partial_min_sol_one_ineq x eq sol"
   unfolding partial_min_sol_one_ineq_def
@@ -350,7 +333,8 @@ lemma sol_is_minimal_reg_sol:
 end
 
 
-text \<open>Every equation (not necessarily bipartite) has some minimal partial solution which is reg_eval\<close>
+text \<open>As announced at the beginning of this section, we now extend the previous result to arbitrary equations,
+i.e. we show that each equation has some minimal partial solution which is \<^const>\<open>reg_eval\<close>:\<close>
 lemma exists_minimal_reg_sol:
   assumes eq_reg: "reg_eval eq"
   shows "\<exists>sol. reg_eval sol \<and> partial_min_sol_one_ineq x eq sol"
@@ -373,13 +357,14 @@ qed
 
 subsection \<open>Minimal solution of the whole system of equations\<close>
 
-text \<open>Now, we will prove that the whole commutative system of equations has some minimal solution
-which is regular. For this purpose, we will show by induction that the first \<open>r\<close> equations have
-some minimal partial solution which is reg_eval.
-First, we show the centerpiece of the induction step: If a reg_eval and minimal partial solution
-\<open>sols\<close> exists for the first \<open>r\<close> equations and furthermore a reg_eval and minimal partial solution
-\<open>sol_r\<close> exists for the \<open>r\<close>-th equation, then there exists a reg_eval and minimal partial solution
-for the first \<open>Suc r\<close> equations as well.\<close>
+text \<open>In this section we will extend the last section's result to whole systems of equations.
+For this purpose, we will show by induction that the first \<open>r\<close> equations have
+some minimal partial solution which is \<^const>\<open>reg_eval\<close>.
+
+We start with the centerpiece of the induction step: If a \<^const>\<open>reg_eval\<close> and minimal partial solution
+\<open>sols\<close> exists for the first \<open>r\<close> equations and furthermore a \<^const>\<open>reg_eval\<close> and minimal partial solution
+\<open>sol_r\<close> exists for the \<open>r\<close>-th equation, then there exists a \<^const>\<open>reg_eval\<close> and minimal partial solution
+for the first \<open>Suc r\<close> equations as well:\<close>
 
 locale min_sol_induction_step =
   fixes r :: nat
@@ -395,25 +380,23 @@ locale min_sol_induction_step =
       and sol_r_reg:    "reg_eval sol_r"
 begin
 
-
-text \<open>Substitute the partial solutions for the first \<open>r\<close> equations into the system of equations:\<close>
+text \<open>Throughout the proof, a modified system of equations will be occasionally used to simplify
+the proof; this modified system is obtained by substituting the partial solutions of
+the first \<open>r\<close> equations into the original system. Additionally
+we retrieve a partial solution for the first \<open>Suc r\<close> equations - named \<open>sols'\<close> - by substituting the partial
+solution of the \<open>r\<close>-th equation into the partial solutions of each of the first \<open>r\<close> equations:\<close>
 abbreviation "sys' \<equiv> subst_sys sols sys"
-
-text \<open>The solution for the first \<open>Suc r\<close> equations. We retrieve it by substituting the partial
-solution of the \<open>r\<close>-th equation into the partial solutions for the first \<open>r\<close> equations:\<close>
 abbreviation "sols' \<equiv> \<lambda>i. subst (Var(r := sol_r)) (sols i)"
-
 
 lemma sols'_r: "sols' r = sol_r"
   using sols_is_sol unfolding partial_min_sol_ineq_sys_def by simp
 
 
-text \<open>All regular language expressions in \<open>sols'\<close> are still reg_eval\<close>
+text \<open>The next lemmas show that \<^const>\<open>sols'\<close> is still \<^const>\<open>reg_eval\<close> and that it complies with
+each of the four conditions defined by the predicate \<^const>\<open>partial_min_sol_ineq_sys\<close>:\<close>
 lemma sols'_reg: "\<forall>i. reg_eval (sols' i)"
   using sols_reg sol_r_reg using subst_reg_eval_update by blast
 
-
-text \<open>\<open>sols'\<close> is a partial solution of the first \<open>Suc r\<close> equations\<close>
 lemma sols'_is_sol: "solution_ineq_sys (take (Suc r) sys) sols'"
 unfolding solution_ineq_sys_def proof (rule allI, rule impI)
   fix v
@@ -436,7 +419,6 @@ unfolding solution_ineq_sys_def proof (rule allI, rule impI)
     unfolding solves_ineq_sys_comm_def solves_ineq_comm_def by (auto simp add: less_Suc_eq)
 qed
 
-text \<open>There is no partial solution of the first \<open>Suc r\<close> equations which is smaller than \<open>sols'\<close>\<close>
 lemma sols'_min: "\<forall>sols2 v2. (\<forall>x. v2 x = eval (sols2 x) v2)
                    \<and> solves_ineq_sys_comm (take (Suc r) sys) v2
                    \<longrightarrow> (\<forall>i. parikh_img (eval (sols' i) v2) \<subseteq> parikh_img (v2 i))"
@@ -464,13 +446,9 @@ proof (rule allI | rule impI)+
     using substitution_lemma_update[where f="sols i"] rlexp_mono_parikh[of "sols i" ?v' v2] by force
 qed
 
-
 lemma sols'_vars_gt_r: "\<forall>i \<ge> Suc r. sols' i = Var i"
   using sols_is_sol unfolding partial_min_sol_ineq_sys_def by auto
 
-
-text \<open>No partial solution for one of the first \<open>Suc r\<close> equations depends on the variable \<open>r\<close> or 
-smaller variables or on variables which do not occur in the equation system\<close>
 lemma sols'_vars_leq_r: "\<forall>i < Suc r. \<forall>x \<in> vars (sols' i). x \<ge> Suc r \<and> x < length sys"
 proof -
   from sols_is_sol have "\<forall>i < r. \<forall>x \<in> vars (sols i). x \<ge> r \<and> x < length sys"
@@ -494,15 +472,14 @@ proof -
 qed
 
 
-text \<open>In summary, \<open>sols'\<close> is a minimal partial solution of the first \<open>Suc r\<close> equations\<close>
+text \<open>In summary, \<^const>\<open>sols'\<close> is a minimal partial solution of the first \<open>Suc r\<close> equations. This
+allows us to prove the centerpiece of the induction step in the next lemma, namely that there exists
+a \<^const>\<open>reg_eval\<close> and minimal partial solution for the first \<open>Suc r\<close> equations:\<close>
 lemma sols'_is_min_sol: "partial_min_sol_ineq_sys (Suc r) sys sols'"
   unfolding partial_min_sol_ineq_sys_def
   using sols'_is_sol sols'_min sols'_vars_gt_r sols'_vars_leq_r
   by blast
 
-
-text \<open>The centerpiece of the induction step: There exists a reg_eval and minimal partial solution
-for the first \<open>Suc r\<close> equations\<close>
 lemma exists_min_sol_Suc_r:
   "\<exists>sols'. partial_min_sol_ineq_sys (Suc r) sys sols' \<and> (\<forall>i. reg_eval (sols' i))"
   using sols'_reg sols'_is_min_sol by blast
@@ -510,8 +487,9 @@ lemma exists_min_sol_Suc_r:
 end
 
 
-text \<open>The actual induction proof: For every \<open>r\<close>, there exists a reg_eval and minimal partial
-solution of the first \<open>r\<close> equations\<close>
+text \<open>Now follows the actual induction proof: For every \<open>r\<close>, there exists a \<^const>\<open>reg_eval\<close> and minimal partial
+solution of the first \<open>r\<close> equations. This then implies that there also exists a regular and minimal (non-partial)
+solution of the whole system:\<close>
 lemma exists_minimal_reg_sol_sys_aux:
   assumes eqs_reg:   "\<forall>eq \<in> set sys. reg_eval eq"
       and sys_valid: "\<forall>eq \<in> set sys. \<forall>x \<in> vars eq. x < length sys"
@@ -540,9 +518,6 @@ next
   from min_sol_induction_step.exists_min_sol_Suc_r[OF this] show ?case by blast
 qed
 
-
-text \<open>As a consequence of the induction proof, there exists a regular and minimal (non-partial)
-solution for the whole system of equations\<close>
 lemma exists_minimal_reg_sol_sys:
   assumes eqs_reg:   "\<forall>eq \<in> set sys. reg_eval eq"
       and sys_valid: "\<forall>eq \<in> set sys. \<forall>x \<in> vars eq. x < length sys"
@@ -588,7 +563,7 @@ qed
 
 
 
-section \<open>Parikh's theorem\<close>
+subsection \<open>Parikh's theorem\<close>
 
 theorem Parikh: "CFL (TYPE('n)) L \<Longrightarrow> \<exists>L'. regular_lang L' \<and> parikh_img L = parikh_img L'"
 proof -

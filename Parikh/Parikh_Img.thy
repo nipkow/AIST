@@ -154,13 +154,11 @@ next
     unfolding parikh_img_def by auto
   then obtain w1 w2 where w1_w2_intro: "w = w1@w2 \<and> w1 \<in> A \<union> B \<and> w2 \<in> (A \<union> B) ^^ n" by fastforce
   let ?v1 = "parikh_vec w1" and ?v2 = "parikh_vec w2"
-
   from w1_w2_intro have "?v2 \<in> \<Psi> ((A \<union> B) ^^ n)" unfolding parikh_img_def by blast
   with Suc.IH have "?v2 \<in> \<Psi> (\<Union>i \<le> n. A ^^ i @@ B ^^ (n-i))" by auto
   then obtain w2' where w2'_intro: "parikh_vec w2' = parikh_vec w2 \<and>
       w2' \<in> (\<Union>i \<le> n. A ^^ i @@ B ^^ (n-i))" unfolding parikh_img_def by fastforce
   then obtain i where i_intro: "i \<le> n \<and> w2' \<in> A ^^ i @@ B ^^ (n-i)" by blast
-
   from w1_w2_intro w2'_intro have "parikh_vec w = parikh_vec (w1@w2')"
     by simp
   moreover have "parikh_vec (w1@w2') \<in> \<Psi> (\<Union>i \<le> Suc n. A ^^ i @@ B ^^ (Suc n-i))"
@@ -183,7 +181,6 @@ next
   qed
   ultimately show ?case using w_intro by auto
 qed
-
 
 lemma parikh_img_star_aux1:
   assumes "v \<in> \<Psi> (star (A \<union> B))"
@@ -418,7 +415,6 @@ proof
   let ?A' = "\<Union>(parikh_img_eq_class A)"
   show "\<Psi> A \<subseteq> \<Psi> ?A'"
     unfolding parikh_img_eq_class_def by (simp add: Union_upper parikh_img_mono)
-
   show "\<Psi> ?A' \<subseteq> \<Psi> A"
   proof
     fix v
@@ -448,6 +444,5 @@ proof
   with parikh_img_Union_class have "\<Psi> (?B' \<union> {a}) = \<Psi> B" by blast
   then show "a \<in> ?B'" unfolding parikh_img_eq_class_def by blast
 qed
-
 
 end

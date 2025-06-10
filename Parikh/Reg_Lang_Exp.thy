@@ -9,9 +9,11 @@ begin
 
 subsection \<open>Definition\<close>
 
-text \<open>We introduce regular language expressions: These expressions can contain both constant languages
-and variables where variables are natural numbers for simplicity. Given a valuation, i.e. an instantiation of
-each variable with a language, the regular language expression can be evaluated, yielding a language.\<close>
+text \<open>We introduce regular language expressions which will be the building blocks of the systems of
+equations defined later. Regular language expressions can contain both constant languages and
+variable languages where variables are natural numbers for simplicity. Given a valuation, i.e. an
+instantiation of each variable with a language, the regular language expression can be evaluated,
+yielding a language.\<close>
 datatype 'a rlexp = Var nat                          (* Variable *)
                   | Const "'a lang"                  (* Constant *)
                   | Union "'a rlexp" "'a rlexp"
@@ -59,13 +61,11 @@ lemma substitution_lemma_update:
 lemma subst_id: "eval (subst Var f) v = eval f v"
   using substitution_lemma[of v] by simp
 
-
 lemma vars_subst: "vars (subst upd f) = (\<Union>x \<in> vars f. vars (upd x))"
   by (induction f) auto
 
 lemma vars_subst_upper: "vars (subst upd f) \<subseteq> (\<Union>x. vars (upd x))"
   using vars_subst by force
-
 
 lemma vars_subst_upd_upper: "vars (subst (Var(x := fx)) f) \<subseteq> vars f - {x} \<union> vars fx"
 proof
@@ -112,7 +112,6 @@ proof -
   let ?v'' = "\<lambda>i. eval (upd i) v"
   have v'_v'': "?v' i = ?v'' i" for i using assms by simp
   then have v_v'': "\<forall>i. ?v'' i = eval (upd i) v" by simp
-
   from assms have "eval f v = eval f ?v'" using eval_vars[of f] by simp
   also have "\<dots> = eval (subst upd f) v"
     using assms substitution_lemma[OF v_v'', of f] by (simp add: eval_vars)
@@ -147,7 +146,6 @@ lemma langpow_mono:
   shows "A ^^ n \<subseteq> B ^^ n"
 using assms conc_mono[of A B] by (induction n) auto
 
-text \<open>The one direction:\<close>
 lemma rlexp_cont_aux1:
   assumes "\<forall>i. v i \<le> v (Suc i)"
       and "w \<in> (\<Union>i. eval f (v i))"
@@ -181,7 +179,6 @@ next
   from 1 2 show ?case using w_decomp by auto
 qed
 
-text \<open>The other direction:\<close>
 lemma rlexp_cont_aux2:
   assumes "\<forall>i. v i \<le> v (Suc i)"
       and "w \<in> eval f (\<lambda>x. \<Union>i. v i x)"
@@ -207,8 +204,6 @@ next
   then show ?case by (auto simp add: star_def)
 qed fastforce+
 
-
-text \<open>The actual continuity lemma:\<close>
 lemma rlexp_cont:
   assumes "\<forall>i. v i \<le> v (Suc i)"
   shows "eval f (\<lambda>x. \<Union>i. v i x) = (\<Union>i. eval f (v i))"
@@ -246,7 +241,7 @@ lemma epsilon_regular: "reg_eval (Const {[]})"
 
 
 text \<open>If the valuation \<open>v\<close> maps all variables occurring in the regular language function \<open>f\<close> to
-some regular language, then evaluating \<open>f\<close> again yields a regular language:\<close>
+a regular language, then evaluating \<open>f\<close> again yields a regular language:\<close>
 lemma reg_eval_regular:
   assumes "reg_eval f"
       and "\<And>n. n \<in> vars f \<Longrightarrow> regular_lang (v n)"
@@ -276,7 +271,6 @@ lemma subst_reg_eval:
       and "\<forall>x \<in> vars f. reg_eval (upd x)"
     shows "reg_eval (subst upd f)"
   using assms by (induction f rule: reg_eval.induct) simp_all
-
 
 lemma subst_reg_eval_update:
   assumes "reg_eval f"
@@ -313,17 +307,17 @@ lemma finite_Union_regular:
 
 subsection \<open>Constant regular language functions\<close>
 
-text \<open>We call a regular language expression constant if it contains no variables:\<close>
+text \<open>We call a regular language expression constant if it contains no variables. A constant
+regular language expression always evaluates to the same language, independent on the valuation.
+Thus, if the constant regular language expression is \<^const>\<open>reg_eval\<close>, then it evaluates to some
+regular language, independent on the valuation.\<close>
+
 abbreviation const_rlexp :: "'a rlexp \<Rightarrow> bool" where
   "const_rlexp f \<equiv> vars f = {}"
 
-text \<open>A constant regular language expression always evaluates to the same language, independent on
-the valuation:\<close>
 lemma const_rlexp_lang: "const_rlexp f \<Longrightarrow> \<exists>l. \<forall>v. eval f v = l"
   by (induction f) auto
 
-text \<open>A regular language expression which is constant and \<^const>\<open>reg_eval\<close>, evaluates to some regular
-language, independent on the valuation:\<close>
 lemma const_rlexp_regular_lang:
   assumes "const_rlexp f"
       and "reg_eval f"

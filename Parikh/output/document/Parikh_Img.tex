@@ -2,6 +2,23 @@
 \begin{isabellebody}%
 \setisabellecontext{Parikh{\isacharunderscore}{\kern0pt}Img}%
 %
+\isadelimdocument
+%
+\endisadelimdocument
+%
+\isatagdocument
+%
+\isamarkupsection{Parikh images%
+}
+\isamarkuptrue%
+%
+\endisatagdocument
+{\isafolddocument}%
+%
+\isadelimdocument
+%
+\endisadelimdocument
+%
 \isadelimtheory
 %
 \endisadelimtheory
@@ -10,7 +27,7 @@
 \isakeywordONE{theory}\isamarkupfalse%
 \ Parikh{\isacharunderscore}{\kern0pt}Img\isanewline
 \ \ \isakeywordTWO{imports}\ \isanewline
-\ \ \ \ {\isachardoublequoteopen}Lfun{\isachardoublequoteclose}\isanewline
+\ \ \ \ {\isachardoublequoteopen}Reg{\isacharunderscore}{\kern0pt}Lang{\isacharunderscore}{\kern0pt}Exp{\isachardoublequoteclose}\isanewline
 \ \ \ \ {\isachardoublequoteopen}HOL{\isacharminus}{\kern0pt}Library{\isachardot}{\kern0pt}Multiset{\isachardoublequoteclose}\isanewline
 \isakeywordTWO{begin}%
 \endisatagtheory
@@ -26,7 +43,7 @@
 %
 \isatagdocument
 %
-\isamarkupsection{Parikh image%
+\isamarkupsubsection{Definition and basic lemmas%
 }
 \isamarkuptrue%
 %
@@ -36,24 +53,22 @@
 \isadelimdocument
 %
 \endisadelimdocument
+%
+\begin{isamarkuptext}%
+The Parikh vector of a finite word describes how often each symbol of the alphabet occurs in the word.
+We represent parikh vectors by multisets. The Parikh image of a language \isa{L}, denoted by \isa{{\isasymPsi}\ L},
+is then the set of Parikh vectors of all words in the language.%
+\end{isamarkuptext}\isamarkuptrue%
 \isakeywordONE{abbreviation}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}vec\ \isakeywordTWO{where}\isanewline
 \ \ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}vec\ {\isasymequiv}\ mset{\isachardoublequoteclose}\isanewline
 \isanewline
-\isanewline
 \isakeywordONE{definition}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}{\isacharprime}{\kern0pt}a\ lang\ {\isasymRightarrow}\ {\isacharprime}{\kern0pt}a\ multiset\ set{\isachardoublequoteclose}\ {\isacharparenleft}{\kern0pt}{\isachardoublequoteopen}{\isasymPsi}{\isachardoublequoteclose}{\isacharparenright}{\kern0pt}\ \isakeywordTWO{where}\isanewline
-\ \ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ L\ {\isasymequiv}\ parikh{\isacharunderscore}{\kern0pt}vec\ {\isacharbackquote}{\kern0pt}\ L{\isachardoublequoteclose}\isanewline
-\isanewline
-\isanewline
-\isanewline
-\isakeywordONE{definition}\isamarkupfalse%
-\ subseteq{\isacharunderscore}{\kern0pt}comm\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}{\isacharprime}{\kern0pt}t\ lang\ {\isasymRightarrow}\ {\isacharprime}{\kern0pt}t\ lang\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeywordTWO{where}\isanewline
-\ \ {\isachardoublequoteopen}subseteq{\isacharunderscore}{\kern0pt}comm\ L{\isadigit{1}}\ L{\isadigit{2}}\ {\isasymequiv}\ {\isasymPsi}\ L{\isadigit{1}}\ {\isasymsubseteq}\ {\isasymPsi}\ L{\isadigit{2}}{\isachardoublequoteclose}\isanewline
-\isanewline
+\ \ {\isachardoublequoteopen}{\isasymPsi}\ L\ {\isasymequiv}\ parikh{\isacharunderscore}{\kern0pt}vec\ {\isacharbackquote}{\kern0pt}\ L{\isachardoublequoteclose}\isanewline
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}Un\ {\isacharbrackleft}{\kern0pt}simp{\isacharbrackright}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}L{\isadigit{1}}\ {\isasymunion}\ L{\isadigit{2}}{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ L{\isadigit{1}}\ {\isasymunion}\ parikh{\isacharunderscore}{\kern0pt}img\ L{\isadigit{2}}{\isachardoublequoteclose}\isanewline
+\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}Un\ {\isacharbrackleft}{\kern0pt}simp{\isacharbrackright}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}L{\isadigit{1}}\ {\isasymunion}\ L{\isadigit{2}}{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ L{\isadigit{1}}\ {\isasymunion}\ {\isasymPsi}\ L{\isadigit{2}}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 \ \ %
@@ -71,7 +86,7 @@
 \endisadelimproof
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}UNION{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isasymUnion}{\isacharparenleft}{\kern0pt}L\ {\isacharbackquote}{\kern0pt}\ I{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isasymUnion}\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}{\isasymlambda}i{\isachardot}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}L\ i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharbackquote}{\kern0pt}\ I{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}UNION{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isasymUnion}{\isacharparenleft}{\kern0pt}L\ {\isacharbackquote}{\kern0pt}\ I{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isasymUnion}\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}{\isasymlambda}i{\isachardot}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}L\ i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharbackquote}{\kern0pt}\ I{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 \ \ %
@@ -89,46 +104,7 @@
 \endisadelimproof
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}mono{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}A\ {\isasymsubseteq}\ B\ {\isasymLongrightarrow}\ parikh{\isacharunderscore}{\kern0pt}img\ A\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ B{\isachardoublequoteclose}\isanewline
-%
-\isadelimproof
-\ \ %
-\endisadelimproof
-%
-\isatagproof
-\isakeywordONE{unfolding}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{by}\isamarkupfalse%
-\ fast%
-\endisatagproof
-{\isafoldproof}%
-%
-\isadelimproof
-\isanewline
-%
-\endisadelimproof
-\isanewline
-\isakeywordONE{lemma}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}mono{\isacharunderscore}{\kern0pt}eq{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}A\ {\isacharequal}{\kern0pt}\ B\ {\isasymLongrightarrow}\ parikh{\isacharunderscore}{\kern0pt}img\ A\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ B{\isachardoublequoteclose}\isanewline
-%
-\isadelimproof
-\ \ %
-\endisadelimproof
-%
-\isatagproof
-\isakeywordONE{using}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}mono\ \isakeywordONE{by}\isamarkupfalse%
-\ blast%
-\endisatagproof
-{\isafoldproof}%
-%
-\isadelimproof
-\isanewline
-%
-\endisadelimproof
-\isanewline
-\isanewline
-\isakeywordONE{lemma}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}Star{\isacharunderscore}{\kern0pt}pow{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}m\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}Star\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\ {\isasymLongrightarrow}\ {\isasymexists}n{\isachardot}{\kern0pt}\ m\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ f\ v\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}Star{\isacharunderscore}{\kern0pt}pow{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}m\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}Star\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\ {\isasymLongrightarrow}\ {\isasymexists}n{\isachardot}{\kern0pt}\ m\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ f\ v\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 %
@@ -138,10 +114,10 @@
 \isakeywordONE{proof}\isamarkupfalse%
 \ {\isacharminus}{\kern0pt}\isanewline
 \ \ \isakeywordTHREE{assume}\isamarkupfalse%
-\ {\isachardoublequoteopen}m\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}rlexp{\isachardot}{\kern0pt}Star\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}m\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}rlexp{\isachardot}{\kern0pt}Star\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}m\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}eval\ f\ v{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
+\ {\isachardoublequoteopen}m\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}eval\ f\ v{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
 \ simp\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordTHREE{show}\isamarkupfalse%
@@ -158,9 +134,8 @@
 %
 \endisadelimproof
 \isanewline
-\isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}conc{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}L{\isadigit{1}}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ L{\isadigit{2}}{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isacharbraceleft}{\kern0pt}\ m{\isadigit{1}}\ {\isacharplus}{\kern0pt}\ m{\isadigit{2}}\ {\isacharbar}{\kern0pt}\ m{\isadigit{1}}\ m{\isadigit{2}}{\isachardot}{\kern0pt}\ m{\isadigit{1}}\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ L{\isadigit{1}}\ {\isasymand}\ m{\isadigit{2}}\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ L{\isadigit{2}}\ {\isacharbraceright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}conc{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}L{\isadigit{1}}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ L{\isadigit{2}}{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isacharbraceleft}{\kern0pt}\ m{\isadigit{1}}\ {\isacharplus}{\kern0pt}\ m{\isadigit{2}}\ {\isacharbar}{\kern0pt}\ m{\isadigit{1}}\ m{\isadigit{2}}{\isachardot}{\kern0pt}\ m{\isadigit{1}}\ {\isasymin}\ {\isasymPsi}\ L{\isadigit{1}}\ {\isasymand}\ m{\isadigit{2}}\ {\isasymin}\ {\isasymPsi}\ L{\isadigit{2}}\ {\isacharbraceright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 \ \ %
@@ -179,7 +154,7 @@
 \endisadelimproof
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}commut{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}L{\isadigit{1}}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ L{\isadigit{2}}{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}L{\isadigit{2}}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ L{\isadigit{1}}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}commut{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}L{\isadigit{1}}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ L{\isadigit{2}}{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}L{\isadigit{2}}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ L{\isadigit{1}}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 %
@@ -189,8 +164,8 @@
 \isakeywordONE{proof}\isamarkupfalse%
 \ {\isacharminus}{\kern0pt}\isanewline
 \ \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isacharbraceleft}{\kern0pt}\ m{\isadigit{1}}\ {\isacharplus}{\kern0pt}\ m{\isadigit{2}}\ {\isacharbar}{\kern0pt}\ m{\isadigit{1}}\ m{\isadigit{2}}{\isachardot}{\kern0pt}\ m{\isadigit{1}}\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ L{\isadigit{1}}\ {\isasymand}\ m{\isadigit{2}}\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ L{\isadigit{2}}\ {\isacharbraceright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ \isanewline
-\ \ \ \ \ \ \ \ {\isacharbraceleft}{\kern0pt}\ m{\isadigit{2}}\ {\isacharplus}{\kern0pt}\ m{\isadigit{1}}\ {\isacharbar}{\kern0pt}\ m{\isadigit{1}}\ m{\isadigit{2}}{\isachardot}{\kern0pt}\ m{\isadigit{1}}\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ L{\isadigit{1}}\ {\isasymand}\ m{\isadigit{2}}\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ L{\isadigit{2}}\ {\isacharbraceright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isacharbraceleft}{\kern0pt}\ m{\isadigit{1}}\ {\isacharplus}{\kern0pt}\ m{\isadigit{2}}\ {\isacharbar}{\kern0pt}\ m{\isadigit{1}}\ m{\isadigit{2}}{\isachardot}{\kern0pt}\ m{\isadigit{1}}\ {\isasymin}\ {\isasymPsi}\ L{\isadigit{1}}\ {\isasymand}\ m{\isadigit{2}}\ {\isasymin}\ {\isasymPsi}\ L{\isadigit{2}}\ {\isacharbraceright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ \isanewline
+\ \ \ \ \ \ \ \ {\isacharbraceleft}{\kern0pt}\ m{\isadigit{2}}\ {\isacharplus}{\kern0pt}\ m{\isadigit{1}}\ {\isacharbar}{\kern0pt}\ m{\isadigit{1}}\ m{\isadigit{2}}{\isachardot}{\kern0pt}\ m{\isadigit{1}}\ {\isasymin}\ {\isasymPsi}\ L{\isadigit{1}}\ {\isasymand}\ m{\isadigit{2}}\ {\isasymin}\ {\isasymPsi}\ L{\isadigit{2}}\ {\isacharbraceright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{using}\isamarkupfalse%
 \ add{\isachardot}{\kern0pt}commute\ \isakeywordONE{by}\isamarkupfalse%
 \ blast\isanewline
@@ -206,13 +181,65 @@
 {\isafoldproof}%
 %
 \isadelimproof
+%
+\endisadelimproof
+%
+\isadelimdocument
+%
+\endisadelimdocument
+%
+\isatagdocument
+%
+\isamarkupsubsection{Monotonicity properties%
+}
+\isamarkuptrue%
+%
+\endisatagdocument
+{\isafolddocument}%
+%
+\isadelimdocument
+%
+\endisadelimdocument
+\isakeywordONE{lemma}\isamarkupfalse%
+\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}mono{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}A\ {\isasymsubseteq}\ B\ {\isasymLongrightarrow}\ {\isasymPsi}\ A\ {\isasymsubseteq}\ {\isasymPsi}\ B{\isachardoublequoteclose}\isanewline
+%
+\isadelimproof
+\ \ %
+\endisadelimproof
+%
+\isatagproof
+\isakeywordONE{unfolding}\isamarkupfalse%
+\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{by}\isamarkupfalse%
+\ fast%
+\endisatagproof
+{\isafoldproof}%
+%
+\isadelimproof
 \isanewline
 %
 \endisadelimproof
 \isanewline
+\isakeywordONE{lemma}\isamarkupfalse%
+\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}mono{\isacharunderscore}{\kern0pt}eq{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}A\ {\isacharequal}{\kern0pt}\ B\ {\isasymLongrightarrow}\ {\isasymPsi}\ A\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ B{\isachardoublequoteclose}\isanewline
+%
+\isadelimproof
+\ \ %
+\endisadelimproof
+%
+\isatagproof
+\isakeywordONE{using}\isamarkupfalse%
+\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}mono\ \isakeywordONE{by}\isamarkupfalse%
+\ blast%
+\endisatagproof
+{\isafoldproof}%
+%
+\isadelimproof
+\isanewline
+%
+\endisadelimproof
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}right{\isacharunderscore}{\kern0pt}subset{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ A\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ B\ {\isasymLongrightarrow}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ C{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}B\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ C{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}right{\isacharunderscore}{\kern0pt}subset{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}{\isasymPsi}\ A\ {\isasymsubseteq}\ {\isasymPsi}\ B\ {\isasymLongrightarrow}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ C{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}B\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ C{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 \ \ %
@@ -230,7 +257,7 @@
 \endisadelimproof
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}left{\isacharunderscore}{\kern0pt}subset{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ A\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ B\ {\isasymLongrightarrow}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}C\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ A{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}C\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}left{\isacharunderscore}{\kern0pt}subset{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}{\isasymPsi}\ A\ {\isasymsubseteq}\ {\isasymPsi}\ B\ {\isasymLongrightarrow}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}C\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ A{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}C\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 \ \ %
@@ -249,9 +276,9 @@
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}subset{\isacharcolon}{\kern0pt}\isanewline
-\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ A\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ C{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \isakeywordTWO{and}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ B\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ D{\isachardoublequoteclose}\isanewline
-\ \ \ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}C\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ D{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}{\isasymPsi}\ A\ {\isasymsubseteq}\ {\isasymPsi}\ C{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \isakeywordTWO{and}\ {\isachardoublequoteopen}{\isasymPsi}\ B\ {\isasymsubseteq}\ {\isasymPsi}\ D{\isachardoublequoteclose}\isanewline
+\ \ \ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}C\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ D{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 \ \ %
@@ -270,7 +297,7 @@
 \endisadelimproof
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}right{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ A\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ B\ {\isasymLongrightarrow}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ C{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}B\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ C{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}right{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}{\isasymPsi}\ A\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ B\ {\isasymLongrightarrow}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ C{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}B\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ C{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 \ \ %
@@ -288,7 +315,7 @@
 \endisadelimproof
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}left{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ A\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ B\ {\isasymLongrightarrow}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}C\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ A{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}C\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}left{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}{\isasymPsi}\ A\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ B\ {\isasymLongrightarrow}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}C\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ A{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}C\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 \ \ %
@@ -306,7 +333,7 @@
 \endisadelimproof
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}pow{\isacharunderscore}{\kern0pt}mono{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ A\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ B\ {\isasymLongrightarrow}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ parikh{\isacharunderscore}{\kern0pt}pow{\isacharunderscore}{\kern0pt}mono{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}{\isasymPsi}\ A\ {\isasymsubseteq}\ {\isasymPsi}\ B\ {\isasymLongrightarrow}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 \ \ %
@@ -323,10 +350,11 @@
 %
 \endisadelimproof
 \isanewline
+\isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}star{\isacharunderscore}{\kern0pt}mono{\isacharcolon}{\kern0pt}\isanewline
-\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ A\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ B{\isachardoublequoteclose}\isanewline
-\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ A{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}{\isasymPsi}\ A\ {\isasymsubseteq}\ {\isasymPsi}\ B{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ A{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 %
@@ -338,7 +366,7 @@
 \ \ \isakeywordTHREE{fix}\isamarkupfalse%
 \ v\isanewline
 \ \ \isakeywordTHREE{assume}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ A{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ A{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordTHREE{obtain}\isamarkupfalse%
 \ w\ \isakeywordTWO{where}\ w{\isacharunderscore}{\kern0pt}intro{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}vec\ w\ {\isacharequal}{\kern0pt}\ v\ {\isasymand}\ w\ {\isasymin}\ star\ A{\isachardoublequoteclose}\ \isakeywordONE{unfolding}\isamarkupfalse%
@@ -351,18 +379,18 @@
 \ blast\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{using}\isamarkupfalse%
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{using}\isamarkupfalse%
 \ w{\isacharunderscore}{\kern0pt}intro\ \isakeywordONE{unfolding}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{by}\isamarkupfalse%
 \ blast\isanewline
 \ \ \isakeywordONE{with}\isamarkupfalse%
 \ assms\ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{using}\isamarkupfalse%
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}pow{\isacharunderscore}{\kern0pt}mono\ \isakeywordONE{by}\isamarkupfalse%
 \ blast\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordTHREE{show}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{unfolding}\isamarkupfalse%
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{unfolding}\isamarkupfalse%
 \ star{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}UNION\ \isakeywordONE{by}\isamarkupfalse%
 \ fastforce\isanewline
@@ -378,8 +406,8 @@
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}star{\isacharunderscore}{\kern0pt}mono{\isacharunderscore}{\kern0pt}eq{\isacharcolon}{\kern0pt}\isanewline
-\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ A\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ B{\isachardoublequoteclose}\isanewline
-\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ A{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}{\isasymPsi}\ A\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ B{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ A{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 \ \ %
@@ -400,8 +428,8 @@
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}subst{\isacharunderscore}{\kern0pt}mono{\isacharcolon}{\kern0pt}\isanewline
-\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}{\isasymforall}i{\isachardot}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}A\ i{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}B\ i{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
-\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ A\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ B\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}{\isasymforall}i{\isachardot}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}A\ i{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}B\ i{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ A\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ B\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 %
@@ -415,8 +443,8 @@
 \ {\isacharparenleft}{\kern0pt}Concat\ f{\isadigit{1}}\ f{\isadigit{2}}{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ A\ f{\isadigit{1}}{\isacharparenright}{\kern0pt}\ v\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ {\isacharparenleft}{\kern0pt}subst\ A\ f{\isadigit{2}}{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ B\ f{\isadigit{1}}{\isacharparenright}{\kern0pt}\ v\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ {\isacharparenleft}{\kern0pt}subst\ B\ f{\isadigit{2}}{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ A\ f{\isadigit{1}}{\isacharparenright}{\kern0pt}\ v\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ {\isacharparenleft}{\kern0pt}subst\ A\ f{\isadigit{2}}{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ B\ f{\isadigit{1}}{\isacharparenright}{\kern0pt}\ v\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ {\isacharparenleft}{\kern0pt}subst\ B\ f{\isadigit{2}}{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}subset\ \isakeywordONE{by}\isamarkupfalse%
 \ blast\isanewline
@@ -430,7 +458,7 @@
 \ {\isacharparenleft}{\kern0pt}Star\ f{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ A\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ B\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ A\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ B\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}star{\isacharunderscore}{\kern0pt}mono\ \isakeywordONE{by}\isamarkupfalse%
 \ blast\isanewline
@@ -450,8 +478,8 @@
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}subst{\isacharunderscore}{\kern0pt}mono{\isacharunderscore}{\kern0pt}upd{\isacharcolon}{\kern0pt}\isanewline
-\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ A\ v{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ B\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
-\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ {\isacharparenleft}{\kern0pt}Var{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ A{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ {\isacharparenleft}{\kern0pt}Var{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ A\ v{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ B\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ {\isacharparenleft}{\kern0pt}Var{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ A{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ {\isacharparenleft}{\kern0pt}Var{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 \ \ %
@@ -471,8 +499,8 @@
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}subst{\isacharunderscore}{\kern0pt}mono{\isacharunderscore}{\kern0pt}eq{\isacharcolon}{\kern0pt}\isanewline
-\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}{\isasymforall}i{\isachardot}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}A\ i{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}B\ i{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
-\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ {\isacharparenleft}{\kern0pt}{\isasymlambda}i{\isachardot}{\kern0pt}\ A\ i{\isacharparenright}{\kern0pt}\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ {\isacharparenleft}{\kern0pt}{\isasymlambda}i{\isachardot}{\kern0pt}\ B\ i{\isacharparenright}{\kern0pt}\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}{\isasymforall}i{\isachardot}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}A\ i{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}B\ i{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ {\isacharparenleft}{\kern0pt}{\isasymlambda}i{\isachardot}{\kern0pt}\ A\ i{\isacharparenright}{\kern0pt}\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ {\isacharparenleft}{\kern0pt}{\isasymlambda}i{\isachardot}{\kern0pt}\ B\ i{\isacharparenright}{\kern0pt}\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 \ \ %
@@ -490,10 +518,11 @@
 %
 \endisadelimproof
 \isanewline
+\isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
 \ rlexp{\isacharunderscore}{\kern0pt}mono{\isacharunderscore}{\kern0pt}parikh{\isacharcolon}{\kern0pt}\isanewline
-\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}{\isasymforall}i\ {\isasymin}\ vars\ f{\isachardot}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}v\ i{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}v{\isacharprime}{\kern0pt}\ i{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
-\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ f\ v{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ f\ v{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}{\isasymforall}i\ {\isasymin}\ vars\ f{\isachardot}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}v\ i{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}v{\isacharprime}{\kern0pt}\ i{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ f\ v{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ f\ v{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 %
@@ -507,7 +536,7 @@
 \ {\isacharparenleft}{\kern0pt}Concat\ f{\isadigit{1}}\ f{\isadigit{2}}{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ f{\isadigit{1}}\ v\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ f{\isadigit{2}}\ v{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ f{\isadigit{1}}\ v{\isacharprime}{\kern0pt}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ f{\isadigit{2}}\ v{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ f{\isadigit{1}}\ v\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ f{\isadigit{2}}\ v{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ f{\isadigit{1}}\ v{\isacharprime}{\kern0pt}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ f{\isadigit{2}}\ v{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}subset\ \isakeywordONE{by}\isamarkupfalse%
 \ {\isacharparenleft}{\kern0pt}metis\ UnCI\ vars{\isachardot}{\kern0pt}simps{\isacharparenleft}{\kern0pt}{\isadigit{4}}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\isanewline
@@ -525,11 +554,10 @@
 %
 \endisadelimproof
 \isanewline
-\isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
 \ rlexp{\isacharunderscore}{\kern0pt}mono{\isacharunderscore}{\kern0pt}parikh{\isacharunderscore}{\kern0pt}eq{\isacharcolon}{\kern0pt}\isanewline
-\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}{\isasymforall}i\ {\isasymin}\ vars\ f{\isachardot}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}v\ i{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}v{\isacharprime}{\kern0pt}\ i{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
-\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ f\ v{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ f\ v{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}{\isasymforall}i\ {\isasymin}\ vars\ f{\isachardot}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}v\ i{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}v{\isacharprime}{\kern0pt}\ i{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ f\ v{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ f\ v{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 \ \ %
@@ -552,7 +580,7 @@
 %
 \isatagdocument
 %
-\isamarkupsection{(E\<union>F)* and E*F* have the same Parikh image%
+\isamarkupsubsection{$\Psi \; (A \cup B)^* = \Psi \; A^* B^*$%
 }
 \isamarkuptrue%
 %
@@ -562,10 +590,14 @@
 \isadelimdocument
 %
 \endisadelimdocument
+%
+\begin{isamarkuptext}%
+This property is claimed by Pilling in \cite{Pilling} and will be needed later.%
+\end{isamarkuptext}\isamarkuptrue%
 \isakeywordONE{lemma}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}union{\isacharunderscore}{\kern0pt}pow{\isacharunderscore}{\kern0pt}aux{\isadigit{1}}{\isacharcolon}{\kern0pt}\isanewline
-\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isasymUnion}i\ {\isasymle}\ n{\isachardot}{\kern0pt}\ A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ i\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}n{\isacharminus}{\kern0pt}i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isasymUnion}i\ {\isasymle}\ n{\isachardot}{\kern0pt}\ A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ i\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}n{\isacharminus}{\kern0pt}i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 %
@@ -597,15 +629,14 @@
 \ fastforce\isanewline
 \ \ \isakeywordONE{let}\isamarkupfalse%
 \ {\isacharquery}{\kern0pt}v{\isadigit{1}}\ {\isacharequal}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}vec\ w{\isadigit{1}}{\isachardoublequoteclose}\ \isakeywordTWO{and}\ {\isacharquery}{\kern0pt}v{\isadigit{2}}\ {\isacharequal}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}vec\ w{\isadigit{2}}{\isachardoublequoteclose}\isanewline
-\isanewline
 \ \ \isakeywordONE{from}\isamarkupfalse%
 \ w{\isadigit{1}}{\isacharunderscore}{\kern0pt}w{\isadigit{2}}{\isacharunderscore}{\kern0pt}intro\ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isacharquery}{\kern0pt}v{\isadigit{2}}\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{unfolding}\isamarkupfalse%
+\ {\isachardoublequoteopen}{\isacharquery}{\kern0pt}v{\isadigit{2}}\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{unfolding}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{by}\isamarkupfalse%
 \ blast\isanewline
 \ \ \isakeywordONE{with}\isamarkupfalse%
 \ Suc{\isachardot}{\kern0pt}IH\ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isacharquery}{\kern0pt}v{\isadigit{2}}\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isasymUnion}i\ {\isasymle}\ n{\isachardot}{\kern0pt}\ A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ i\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}n{\isacharminus}{\kern0pt}i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
+\ {\isachardoublequoteopen}{\isacharquery}{\kern0pt}v{\isadigit{2}}\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isasymUnion}i\ {\isasymle}\ n{\isachardot}{\kern0pt}\ A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ i\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}n{\isacharminus}{\kern0pt}i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
 \ auto\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordTHREE{obtain}\isamarkupfalse%
@@ -617,7 +648,6 @@
 \ \isakeywordTHREE{obtain}\isamarkupfalse%
 \ i\ \isakeywordTWO{where}\ i{\isacharunderscore}{\kern0pt}intro{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}i\ {\isasymle}\ n\ {\isasymand}\ w{\isadigit{2}}{\isacharprime}{\kern0pt}\ {\isasymin}\ A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ i\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}n{\isacharminus}{\kern0pt}i{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
 \ blast\isanewline
-\isanewline
 \ \ \isakeywordONE{from}\isamarkupfalse%
 \ w{\isadigit{1}}{\isacharunderscore}{\kern0pt}w{\isadigit{2}}{\isacharunderscore}{\kern0pt}intro\ w{\isadigit{2}}{\isacharprime}{\kern0pt}{\isacharunderscore}{\kern0pt}intro\ \isakeywordONE{have}\isamarkupfalse%
 \ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}vec\ w\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}vec\ {\isacharparenleft}{\kern0pt}w{\isadigit{1}}{\isacharat}{\kern0pt}w{\isadigit{2}}{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
@@ -625,7 +655,7 @@
 \ simp\isanewline
 \ \ \isakeywordONE{moreover}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}vec\ {\isacharparenleft}{\kern0pt}w{\isadigit{1}}{\isacharat}{\kern0pt}w{\isadigit{2}}{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isasymUnion}i\ {\isasymle}\ Suc\ n{\isachardot}{\kern0pt}\ A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ i\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}Suc\ n{\isacharminus}{\kern0pt}i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}vec\ {\isacharparenleft}{\kern0pt}w{\isadigit{1}}{\isacharat}{\kern0pt}w{\isadigit{2}}{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isasymUnion}i\ {\isasymle}\ Suc\ n{\isachardot}{\kern0pt}\ A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ i\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}Suc\ n{\isacharminus}{\kern0pt}i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \isakeywordONE{proof}\isamarkupfalse%
 \ {\isacharparenleft}{\kern0pt}cases\ {\isachardoublequoteopen}w{\isadigit{1}}\ {\isasymin}\ A{\isachardoublequoteclose}{\isacharparenright}{\kern0pt}\isanewline
 \ \ \ \ \isakeywordTHREE{case}\isamarkupfalse%
@@ -637,7 +667,7 @@
 \ {\isacharparenleft}{\kern0pt}auto\ simp\ add{\isacharcolon}{\kern0pt}\ conc{\isacharunderscore}{\kern0pt}assoc{\isacharparenright}{\kern0pt}\isanewline
 \ \ \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}vec\ {\isacharparenleft}{\kern0pt}w{\isadigit{1}}{\isacharat}{\kern0pt}w{\isadigit{2}}{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}Suc\ i{\isacharparenright}{\kern0pt}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}Suc\ n\ {\isacharminus}{\kern0pt}\ Suc\ i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}vec\ {\isacharparenleft}{\kern0pt}w{\isadigit{1}}{\isacharat}{\kern0pt}w{\isadigit{2}}{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}Suc\ i{\isacharparenright}{\kern0pt}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}Suc\ n\ {\isacharminus}{\kern0pt}\ Suc\ i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \isakeywordONE{unfolding}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{by}\isamarkupfalse%
 \ blast\isanewline
@@ -655,13 +685,13 @@
 \ blast\isanewline
 \ \ \ \ \isakeywordONE{with}\isamarkupfalse%
 \ i{\isacharunderscore}{\kern0pt}intro\ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}vec\ {\isacharparenleft}{\kern0pt}w{\isadigit{1}}{\isacharat}{\kern0pt}w{\isadigit{2}}{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}B\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ i\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}n{\isacharminus}{\kern0pt}i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}vec\ {\isacharparenleft}{\kern0pt}w{\isadigit{1}}{\isacharat}{\kern0pt}w{\isadigit{2}}{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}B\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ i\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}n{\isacharminus}{\kern0pt}i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \isakeywordONE{unfolding}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{by}\isamarkupfalse%
 \ blast\isanewline
 \ \ \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}vec\ {\isacharparenleft}{\kern0pt}w{\isadigit{1}}{\isacharat}{\kern0pt}w{\isadigit{2}}{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ i\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}Suc\ n{\isacharminus}{\kern0pt}i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}vec\ {\isacharparenleft}{\kern0pt}w{\isadigit{1}}{\isacharat}{\kern0pt}w{\isadigit{2}}{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ i\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}Suc\ n{\isacharminus}{\kern0pt}i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}commut\ conc{\isacharunderscore}{\kern0pt}assoc\isanewline
 \ \ \ \ \ \ \isakeywordONE{by}\isamarkupfalse%
@@ -687,11 +717,10 @@
 %
 \endisadelimproof
 \isanewline
-\isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}star{\isacharunderscore}{\kern0pt}aux{\isadigit{1}}{\isacharcolon}{\kern0pt}\isanewline
-\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}A\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
-\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}A\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 %
@@ -702,29 +731,29 @@
 \ {\isacharminus}{\kern0pt}\isanewline
 \ \ \isakeywordONE{from}\isamarkupfalse%
 \ assms\ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isacharparenleft}{\kern0pt}{\isasymUnion}n{\isachardot}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isacharparenleft}{\kern0pt}{\isasymUnion}n{\isachardot}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{unfolding}\isamarkupfalse%
 \ star{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}UNION\ \isakeywordONE{by}\isamarkupfalse%
 \ metis\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordTHREE{obtain}\isamarkupfalse%
-\ n\ \isakeywordTWO{where}\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
+\ n\ \isakeywordTWO{where}\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
 \ blast\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isasymUnion}i\ {\isasymle}\ n{\isachardot}{\kern0pt}\ A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ i\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}n{\isacharminus}{\kern0pt}i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isasymUnion}i\ {\isasymle}\ n{\isachardot}{\kern0pt}\ A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ i\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}n{\isacharminus}{\kern0pt}i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}union{\isacharunderscore}{\kern0pt}pow{\isacharunderscore}{\kern0pt}aux{\isadigit{1}}\ \isakeywordONE{by}\isamarkupfalse%
 \ auto\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isacharparenleft}{\kern0pt}{\isasymUnion}i{\isasymle}n{\isachardot}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ i\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}n{\isacharminus}{\kern0pt}i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{using}\isamarkupfalse%
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isacharparenleft}{\kern0pt}{\isasymUnion}i{\isasymle}n{\isachardot}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ i\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}n{\isacharminus}{\kern0pt}i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}UNION\ \isakeywordONE{by}\isamarkupfalse%
 \ metis\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordTHREE{obtain}\isamarkupfalse%
-\ i\ \isakeywordTWO{where}\ {\isachardoublequoteopen}i{\isasymle}n\ {\isasymand}\ v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ i\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}n{\isacharminus}{\kern0pt}i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
+\ i\ \isakeywordTWO{where}\ {\isachardoublequoteopen}i{\isasymle}n\ {\isasymand}\ v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ i\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}n{\isacharminus}{\kern0pt}i{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
 \ blast\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordTHREE{obtain}\isamarkupfalse%
@@ -761,8 +790,8 @@
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}star{\isacharunderscore}{\kern0pt}aux{\isadigit{2}}{\isacharcolon}{\kern0pt}\isanewline
-\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
-\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}A\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}A\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 %
@@ -818,7 +847,7 @@
 \isanewline
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}star{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}A\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}star{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}A\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 %
@@ -828,11 +857,11 @@
 \isakeywordONE{proof}\isamarkupfalse%
 \isanewline
 \ \ \isakeywordTHREE{show}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}A\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{using}\isamarkupfalse%
+\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}A\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}star{\isacharunderscore}{\kern0pt}aux{\isadigit{1}}\ \isakeywordONE{by}\isamarkupfalse%
 \ auto\isanewline
 \ \ \isakeywordTHREE{show}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}A\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{using}\isamarkupfalse%
+\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}A\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}star{\isacharunderscore}{\kern0pt}aux{\isadigit{2}}\ \isakeywordONE{by}\isamarkupfalse%
 \ auto\isanewline
 \isakeywordONE{qed}\isamarkupfalse%
@@ -850,7 +879,7 @@
 %
 \isatagdocument
 %
-\isamarkupsection{(E*F)* and {\<epsilon>} \<union> E*F*F have the same Parikh image%
+\isamarkupsubsection{$\Psi \; (E^* F)^* = \Psi \; \left(\{\varepsilon\} \cup E^* F^* F\right)$%
 }
 \isamarkuptrue%
 %
@@ -860,8 +889,13 @@
 \isadelimdocument
 %
 \endisadelimdocument
+%
+\begin{isamarkuptext}%
+This property (where $\varepsilon$ denotes the empty word) is claimed by
+Pilling as well \cite{Pilling}; we will use it later.%
+\end{isamarkuptext}\isamarkuptrue%
 \isakeywordONE{lemma}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}pow{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}pow{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 %
@@ -874,13 +908,13 @@
 \ {\isacharparenleft}{\kern0pt}Suc\ n{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}right{\isacharunderscore}{\kern0pt}subset\ conc{\isacharunderscore}{\kern0pt}assoc\ \isakeywordONE{by}\isamarkupfalse%
 \ metis\isanewline
 \ \ \isakeywordONE{also}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isasymdots}\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymdots}\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{by}\isamarkupfalse%
 \ {\isacharparenleft}{\kern0pt}metis\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}commut\ conc{\isacharunderscore}{\kern0pt}assoc\ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}left{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{finally}\isamarkupfalse%
@@ -898,7 +932,7 @@
 \endisadelimproof
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}star{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}star{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 %
@@ -910,23 +944,23 @@
 \ \ \isakeywordTHREE{fix}\isamarkupfalse%
 \ v\isanewline
 \ \ \isakeywordTHREE{assume}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isasymexists}n{\isachardot}{\kern0pt}\ v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{unfolding}\isamarkupfalse%
+\ {\isachardoublequoteopen}{\isasymexists}n{\isachardot}{\kern0pt}\ v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{unfolding}\isamarkupfalse%
 \ star{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{by}\isamarkupfalse%
 \ {\isacharparenleft}{\kern0pt}simp\ add{\isacharcolon}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}UNION{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordTHREE{obtain}\isamarkupfalse%
-\ n\ \isakeywordTWO{where}\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
+\ n\ \isakeywordTWO{where}\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
 \ blast\isanewline
 \ \ \isakeywordONE{with}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}pow\ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
 \ fast\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{unfolding}\isamarkupfalse%
 \ star{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}left{\isacharunderscore}{\kern0pt}subset\isanewline
@@ -934,7 +968,7 @@
 \ {\isacharparenleft}{\kern0pt}metis\ {\isacharparenleft}{\kern0pt}no{\isacharunderscore}{\kern0pt}types{\isacharcomma}{\kern0pt}\ lifting{\isacharparenright}{\kern0pt}\ Sup{\isacharunderscore}{\kern0pt}upper\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}mono\ rangeI\ subset{\isacharunderscore}{\kern0pt}eq{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordTHREE{show}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{unfolding}\isamarkupfalse%
 \ star{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}right{\isacharunderscore}{\kern0pt}subset\isanewline
@@ -951,7 +985,7 @@
 \endisadelimproof
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}pow{\isadigit{2}}{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ Suc\ n{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}pow{\isadigit{2}}{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ Suc\ n{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 %
@@ -963,15 +997,15 @@
 \ \ \isakeywordTHREE{fix}\isamarkupfalse%
 \ v\isanewline
 \ \ \isakeywordTHREE{assume}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ Suc\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ Suc\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \isakeywordONE{with}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}pow\ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ Suc\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ Suc\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{by}\isamarkupfalse%
 \ {\isacharparenleft}{\kern0pt}metis\ conc{\isacharunderscore}{\kern0pt}pow{\isacharunderscore}{\kern0pt}comm\ lang{\isacharunderscore}{\kern0pt}pow{\isachardot}{\kern0pt}simps{\isacharparenleft}{\kern0pt}{\isadigit{2}}{\isacharparenright}{\kern0pt}\ subsetD{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{unfolding}\isamarkupfalse%
 \ star{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}right{\isacharunderscore}{\kern0pt}subset\isanewline
@@ -979,7 +1013,7 @@
 \ {\isacharparenleft}{\kern0pt}metis\ {\isacharparenleft}{\kern0pt}no{\isacharunderscore}{\kern0pt}types{\isacharcomma}{\kern0pt}\ lifting{\isacharparenright}{\kern0pt}\ Sup{\isacharunderscore}{\kern0pt}upper\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}mono\ rangeI\ subset{\isacharunderscore}{\kern0pt}eq{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordTHREE{show}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ B\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{unfolding}\isamarkupfalse%
 \ star{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}right{\isacharunderscore}{\kern0pt}subset\ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}left{\isacharunderscore}{\kern0pt}subset\isanewline
@@ -997,7 +1031,7 @@
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}star{\isadigit{2}}{\isacharunderscore}{\kern0pt}aux{\isadigit{1}}{\isacharcolon}{\kern0pt}\isanewline
-\ \ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharbraceleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharbraceright}{\kern0pt}\ {\isasymunion}\ star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ F\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharbraceleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharbraceright}{\kern0pt}\ {\isasymunion}\ star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ F\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 %
@@ -1009,19 +1043,19 @@
 \ \ \isakeywordTHREE{fix}\isamarkupfalse%
 \ v\isanewline
 \ \ \isakeywordTHREE{assume}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isasymexists}n{\isachardot}{\kern0pt}\ v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymexists}n{\isachardot}{\kern0pt}\ v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{unfolding}\isamarkupfalse%
 \ star{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{by}\isamarkupfalse%
 \ {\isacharparenleft}{\kern0pt}simp\ add{\isacharcolon}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}UNION{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordTHREE{obtain}\isamarkupfalse%
-\ n\ \isakeywordTWO{where}\ v{\isacharunderscore}{\kern0pt}in{\isacharunderscore}{\kern0pt}pow{\isacharunderscore}{\kern0pt}n{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
+\ n\ \isakeywordTWO{where}\ v{\isacharunderscore}{\kern0pt}in{\isacharunderscore}{\kern0pt}pow{\isacharunderscore}{\kern0pt}n{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
 \ blast\isanewline
 \ \ \isakeywordTHREE{show}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharbraceleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharbraceright}{\kern0pt}\ {\isasymunion}\ star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ F\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharbraceleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharbraceright}{\kern0pt}\ {\isasymunion}\ star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ F\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \isakeywordONE{proof}\isamarkupfalse%
 \ {\isacharparenleft}{\kern0pt}cases\ n{\isacharparenright}{\kern0pt}\isanewline
 \ \ \ \ \isakeywordTHREE{case}\isamarkupfalse%
@@ -1042,7 +1076,7 @@
 \ {\isacharparenleft}{\kern0pt}Suc\ m{\isacharparenright}{\kern0pt}\isanewline
 \ \ \ \ \isakeywordONE{with}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}pow{\isadigit{2}}\ v{\isacharunderscore}{\kern0pt}in{\isacharunderscore}{\kern0pt}pow{\isacharunderscore}{\kern0pt}n\ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}star\ E{\isacharparenright}{\kern0pt}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ F\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}star\ E{\isacharparenright}{\kern0pt}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ F\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
 \ blast\isanewline
 \ \ \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordTHREE{show}\isamarkupfalse%
@@ -1061,7 +1095,7 @@
 \endisadelimproof
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}star{\isadigit{2}}{\isacharunderscore}{\kern0pt}aux{\isadigit{2}}{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ F\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}star{\isadigit{2}}{\isacharunderscore}{\kern0pt}aux{\isadigit{2}}{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ F\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 %
@@ -1078,13 +1112,13 @@
 \ {\isacharparenleft}{\kern0pt}metis\ concI{\isacharunderscore}{\kern0pt}if{\isacharunderscore}{\kern0pt}Nil{\isadigit{1}}\ star{\isacharunderscore}{\kern0pt}def\ subsetI{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ F{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ F{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}left{\isacharunderscore}{\kern0pt}subset\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}mono\ parikh{\isacharunderscore}{\kern0pt}star{\isacharunderscore}{\kern0pt}mono\ \isakeywordONE{by}\isamarkupfalse%
 \ meson\isanewline
 \ \ \isakeywordONE{also}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isasymdots}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymdots}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{by}\isamarkupfalse%
 \ {\isacharparenleft}{\kern0pt}metis\ conc{\isacharunderscore}{\kern0pt}assoc\ inf{\isacharunderscore}{\kern0pt}sup{\isacharunderscore}{\kern0pt}ord{\isacharparenleft}{\kern0pt}{\isadigit{3}}{\isacharparenright}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}mono\ star{\isacharunderscore}{\kern0pt}unfold{\isacharunderscore}{\kern0pt}left{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{finally}\isamarkupfalse%
@@ -1103,7 +1137,7 @@
 \endisadelimproof
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}star{\isadigit{2}}{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharbraceleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharbraceright}{\kern0pt}\ {\isasymunion}\ star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ F\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}star{\isadigit{2}}{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharbraceleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharbraceright}{\kern0pt}\ {\isasymunion}\ star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ F\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 %
@@ -1115,12 +1149,12 @@
 \ \ \isakeywordONE{from}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}star{\isadigit{2}}{\isacharunderscore}{\kern0pt}aux{\isadigit{1}}\isanewline
 \ \ \ \ \isakeywordTHREE{show}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharbraceleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharbraceright}{\kern0pt}\ {\isasymunion}\ star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ F\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{{\isachardot}{\kern0pt}}\isamarkupfalse%
+\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharbraceleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharbraceright}{\kern0pt}\ {\isasymunion}\ star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ F\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{{\isachardot}{\kern0pt}}\isamarkupfalse%
 \isanewline
 \ \ \isakeywordONE{from}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}star{\isadigit{2}}{\isacharunderscore}{\kern0pt}aux{\isadigit{2}}\isanewline
 \ \ \ \ \isakeywordTHREE{show}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharbraceleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharbraceright}{\kern0pt}\ {\isasymunion}\ star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ F\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharbraceleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharbraceright}{\kern0pt}\ {\isasymunion}\ star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ F\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}star\ E\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ F{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{by}\isamarkupfalse%
 \ {\isacharparenleft}{\kern0pt}metis\ le{\isacharunderscore}{\kern0pt}sup{\isacharunderscore}{\kern0pt}iff\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}Un\ star{\isacharunderscore}{\kern0pt}unfold{\isacharunderscore}{\kern0pt}left\ sup{\isachardot}{\kern0pt}cobounded{\isadigit{2}}{\isacharparenright}{\kern0pt}\isanewline
 \isakeywordONE{qed}\isamarkupfalse%
@@ -1138,7 +1172,7 @@
 %
 \isatagdocument
 %
-\isamarkupsection{A homogeneous-like property for regular functions%
+\isamarkupsubsection{A homogeneous-like property for regular functions%
 }
 \isamarkuptrue%
 %
@@ -1151,7 +1185,7 @@
 \isakeywordONE{lemma}\isamarkupfalse%
 \ rlexp{\isacharunderscore}{\kern0pt}homogeneous{\isacharunderscore}{\kern0pt}aux{\isacharcolon}{\kern0pt}\isanewline
 \ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}v\ x\ {\isacharequal}{\kern0pt}\ star\ Y\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ Z{\isachardoublequoteclose}\isanewline
-\ \ \ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ f\ v{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ Y\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ f\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ f\ v{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ Y\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ f\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 %
@@ -1204,7 +1238,7 @@
 \ {\isacharparenleft}{\kern0pt}Union\ f\ g{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}Union\ f\ g{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ Y\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ f\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymunion}\isanewline
+\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}Union\ f\ g{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ Y\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ f\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymunion}\isanewline
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ star\ Y\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ g\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{by}\isamarkupfalse%
 \ fastforce\isanewline
@@ -1218,18 +1252,18 @@
 \ {\isacharparenleft}{\kern0pt}Concat\ f\ g{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}Concat\ f\ g{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}star\ Y\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ f\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\isanewline
+\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}Concat\ f\ g{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}star\ Y\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ f\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\isanewline
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ Y\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ g\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{by}\isamarkupfalse%
 \ {\isacharparenleft}{\kern0pt}metis\ eval{\isachardot}{\kern0pt}simps{\isacharparenleft}{\kern0pt}{\isadigit{4}}{\isacharparenright}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}subset{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{also}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isasymdots}\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ Y\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ Y\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ f\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ g\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymdots}\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ Y\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ Y\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ f\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ g\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{by}\isamarkupfalse%
 \ {\isacharparenleft}{\kern0pt}metis\ conc{\isacharunderscore}{\kern0pt}assoc\ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}right\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}commut{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{also}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isasymdots}\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ Y\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ f\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ g\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymdots}\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ Y\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ f\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ g\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{by}\isamarkupfalse%
 \ {\isacharparenleft}{\kern0pt}metis\ conc{\isacharunderscore}{\kern0pt}assoc\ conc{\isacharunderscore}{\kern0pt}star{\isacharunderscore}{\kern0pt}star{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{finally}\isamarkupfalse%
@@ -1242,14 +1276,14 @@
 \ {\isacharparenleft}{\kern0pt}Star\ f{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}eval\ f\ v{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}star\ Y\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ f\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}eval\ f\ v{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}star\ Y\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ f\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}star{\isacharunderscore}{\kern0pt}mono\ \isakeywordONE{by}\isamarkupfalse%
 \ metis\isanewline
 \ \ \isakeywordONE{also}\isamarkupfalse%
 \ \isakeywordONE{from}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}star\ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isasymdots}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ Y\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ {\isacharparenleft}{\kern0pt}eval\ f\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymdots}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ Y\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ star\ {\isacharparenleft}{\kern0pt}eval\ f\ {\isacharparenleft}{\kern0pt}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{by}\isamarkupfalse%
 \ fastforce\isanewline
 \ \ \isakeywordONE{finally}\isamarkupfalse%
@@ -1262,14 +1296,16 @@
 {\isafoldproof}%
 %
 \isadelimproof
-\isanewline
 %
 \endisadelimproof
-\isanewline
+%
+\begin{isamarkuptext}%
+Now we can prove the desired homogeneous-like property which will become useful later:%
+\end{isamarkuptext}\isamarkuptrue%
 \isakeywordONE{lemma}\isamarkupfalse%
-\ rlexp{\isacharunderscore}{\kern0pt}homogeneous{\isacharcolon}{\kern0pt}\ \ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ {\isacharparenleft}{\kern0pt}Var{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Concat\ {\isacharparenleft}{\kern0pt}Star\ y{\isacharparenright}{\kern0pt}\ z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}Concat\ {\isacharparenleft}{\kern0pt}Star\ y{\isacharparenright}{\kern0pt}\ {\isacharparenleft}{\kern0pt}subst\ {\isacharparenleft}{\kern0pt}Var{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ f{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharparenleft}{\kern0pt}\isakeywordTWO{is}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharquery}{\kern0pt}L\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharquery}{\kern0pt}R{\isachardoublequoteclose}{\isacharparenright}{\kern0pt}\isanewline
+\ rlexp{\isacharunderscore}{\kern0pt}homogeneous{\isacharcolon}{\kern0pt}\ \ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ {\isacharparenleft}{\kern0pt}Var{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Concat\ {\isacharparenleft}{\kern0pt}Star\ y{\isacharparenright}{\kern0pt}\ z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}Concat\ {\isacharparenleft}{\kern0pt}Star\ y{\isacharparenright}{\kern0pt}\ {\isacharparenleft}{\kern0pt}subst\ {\isacharparenleft}{\kern0pt}Var{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ f{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharparenleft}{\kern0pt}\isakeywordTWO{is}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharquery}{\kern0pt}L\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharquery}{\kern0pt}R{\isachardoublequoteclose}{\isacharparenright}{\kern0pt}\isanewline
 %
 \isadelimproof
 %
@@ -1281,66 +1317,20 @@
 \ \ \isakeywordONE{let}\isamarkupfalse%
 \ {\isacharquery}{\kern0pt}v{\isacharprime}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isachardoublequoteopen}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ star\ {\isacharparenleft}{\kern0pt}eval\ y\ v{\isacharparenright}{\kern0pt}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ z\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharquery}{\kern0pt}L\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ f\ {\isacharquery}{\kern0pt}v{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{using}\isamarkupfalse%
+\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharquery}{\kern0pt}L\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}eval\ f\ {\isacharquery}{\kern0pt}v{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{using}\isamarkupfalse%
 \ substitution{\isacharunderscore}{\kern0pt}lemma{\isacharunderscore}{\kern0pt}update{\isacharbrackleft}{\kern0pt}\isakeywordTWO{where}\ f{\isacharequal}{\kern0pt}f{\isacharbrackright}{\kern0pt}\ \isakeywordONE{by}\isamarkupfalse%
 \ simp\isanewline
 \ \ \isakeywordONE{also}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isasymdots}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}eval\ y\ v{\isacharparenright}{\kern0pt}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ f\ {\isacharparenleft}{\kern0pt}{\isacharquery}{\kern0pt}v{\isacharprime}{\kern0pt}{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ eval\ z\ v{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymdots}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}eval\ y\ v{\isacharparenright}{\kern0pt}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ f\ {\isacharparenleft}{\kern0pt}{\isacharquery}{\kern0pt}v{\isacharprime}{\kern0pt}{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ eval\ z\ v{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{using}\isamarkupfalse%
 \ rlexp{\isacharunderscore}{\kern0pt}homogeneous{\isacharunderscore}{\kern0pt}aux{\isacharbrackleft}{\kern0pt}of\ {\isacharquery}{\kern0pt}v{\isacharprime}{\kern0pt}{\isacharbrackright}{\kern0pt}\ \isakeywordONE{unfolding}\isamarkupfalse%
 \ fun{\isacharunderscore}{\kern0pt}upd{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{by}\isamarkupfalse%
 \ auto\isanewline
 \ \ \isakeywordONE{also}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isasymdots}\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharquery}{\kern0pt}R{\isachardoublequoteclose}\ \isakeywordONE{using}\isamarkupfalse%
+\ {\isachardoublequoteopen}{\isasymdots}\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ {\isacharquery}{\kern0pt}R{\isachardoublequoteclose}\ \isakeywordONE{using}\isamarkupfalse%
 \ substitution{\isacharunderscore}{\kern0pt}lemma{\isacharbrackleft}{\kern0pt}of\ {\isachardoublequoteopen}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ eval\ z\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}{\isacharbrackright}{\kern0pt}\ \isakeywordONE{by}\isamarkupfalse%
-\ simp\isanewline
-\ \ \isakeywordONE{finally}\isamarkupfalse%
-\ \isakeywordTHREE{show}\isamarkupfalse%
-\ {\isacharquery}{\kern0pt}thesis\ \isakeywordONE{{\isachardot}{\kern0pt}}\isamarkupfalse%
-\isanewline
-\isakeywordONE{qed}\isamarkupfalse%
-%
-\endisatagproof
-{\isafoldproof}%
-%
-\isadelimproof
-\isanewline
-%
-\endisadelimproof
-\isanewline
-\isanewline
-\isakeywordONE{lemma}\isamarkupfalse%
-\ rlexp{\isacharunderscore}{\kern0pt}homogeneous{\isadigit{2}}{\isacharcolon}{\kern0pt}\isanewline
-\ \ \ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}subst\ {\isacharparenleft}{\kern0pt}Var{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Concat\ {\isacharparenleft}{\kern0pt}Star\ y{\isacharparenright}{\kern0pt}\ z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ f{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ {\isacharparenleft}{\kern0pt}Concat\ {\isacharparenleft}{\kern0pt}Star\ y{\isacharparenright}{\kern0pt}\ {\isacharparenleft}{\kern0pt}subst\ {\isacharparenleft}{\kern0pt}Var{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ z{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ f{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ {\isacharparenleft}{\kern0pt}\isakeywordTWO{is}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharquery}{\kern0pt}L\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharquery}{\kern0pt}R{\isachardoublequoteclose}{\isacharparenright}{\kern0pt}\isanewline
-%
-\isadelimproof
-%
-\endisadelimproof
-%
-\isatagproof
-\isakeywordONE{proof}\isamarkupfalse%
-\ {\isacharminus}{\kern0pt}\isanewline
-\ \ \isakeywordONE{let}\isamarkupfalse%
-\ {\isacharquery}{\kern0pt}v{\isacharprime}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isachardoublequoteopen}v{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ star\ {\isacharparenleft}{\kern0pt}eval\ y\ v{\isacharparenright}{\kern0pt}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ z\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
-\ \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharquery}{\kern0pt}L\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}eval\ f\ {\isacharquery}{\kern0pt}v{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \isakeywordONE{using}\isamarkupfalse%
-\ substitution{\isacharunderscore}{\kern0pt}lemma{\isacharbrackleft}{\kern0pt}of\ {\isacharquery}{\kern0pt}v{\isacharprime}{\kern0pt}\ {\isachardoublequoteopen}Var{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ Concat\ {\isacharparenleft}{\kern0pt}Star\ y{\isacharparenright}{\kern0pt}\ z{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}{\isacharbrackright}{\kern0pt}\ \isakeywordONE{by}\isamarkupfalse%
-\ fastforce\isanewline
-\ \ \isakeywordONE{also}\isamarkupfalse%
-\ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isasymdots}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ {\isacharparenleft}{\kern0pt}eval\ y\ v{\isacharparenright}{\kern0pt}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ eval\ f\ {\isacharparenleft}{\kern0pt}{\isacharquery}{\kern0pt}v{\isacharprime}{\kern0pt}{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ eval\ z\ v{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \isakeywordONE{using}\isamarkupfalse%
-\ rlexp{\isacharunderscore}{\kern0pt}homogeneous{\isacharunderscore}{\kern0pt}aux{\isacharbrackleft}{\kern0pt}of\ {\isacharquery}{\kern0pt}v{\isacharprime}{\kern0pt}{\isacharbrackright}{\kern0pt}\ \isakeywordONE{by}\isamarkupfalse%
-\ {\isacharparenleft}{\kern0pt}meson\ fun{\isacharunderscore}{\kern0pt}upd{\isacharunderscore}{\kern0pt}apply{\isacharparenright}{\kern0pt}\isanewline
-\ \ \isakeywordONE{also}\isamarkupfalse%
-\ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isasymdots}\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharquery}{\kern0pt}R{\isachardoublequoteclose}\ \isakeywordONE{using}\isamarkupfalse%
-\ substitution{\isacharunderscore}{\kern0pt}lemma{\isacharbrackleft}{\kern0pt}of\ {\isachardoublequoteopen}{\isacharquery}{\kern0pt}v{\isacharprime}{\kern0pt}{\isacharparenleft}{\kern0pt}x\ {\isacharcolon}{\kern0pt}{\isacharequal}{\kern0pt}\ eval\ z\ v{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}{\isacharbrackright}{\kern0pt}\ \isakeywordONE{by}\isamarkupfalse%
 \ simp\isanewline
 \ \ \isakeywordONE{finally}\isamarkupfalse%
 \ \isakeywordTHREE{show}\isamarkupfalse%
@@ -1361,7 +1351,7 @@
 %
 \isatagdocument
 %
-\isamarkupsection{Extension of Arden's lemma to Parikh images%
+\isamarkupsubsection{Extension of Arden's lemma to Parikh images%
 }
 \isamarkuptrue%
 %
@@ -1373,8 +1363,8 @@
 \endisadelimdocument
 \isakeywordONE{lemma}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}arden{\isacharunderscore}{\kern0pt}aux{\isacharcolon}{\kern0pt}\isanewline
-\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ X\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ X{\isachardoublequoteclose}\isanewline
-\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ X{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ X\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ X{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ X{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 %
@@ -1396,19 +1386,19 @@
 \ {\isacharparenleft}{\kern0pt}Suc\ n{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}Suc\ n{\isacharparenright}{\kern0pt}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ {\isacharparenleft}{\kern0pt}Suc\ n{\isacharparenright}{\kern0pt}\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{by}\isamarkupfalse%
 \ {\isacharparenleft}{\kern0pt}simp\ add{\isacharcolon}{\kern0pt}\ conc{\isacharunderscore}{\kern0pt}assoc{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{moreover}\isamarkupfalse%
 \ \isakeywordONE{from}\isamarkupfalse%
 \ Suc\ parikh{\isacharunderscore}{\kern0pt}conc{\isacharunderscore}{\kern0pt}left\ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isasymdots}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ X{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymdots}\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ X{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{by}\isamarkupfalse%
 \ {\isacharparenleft}{\kern0pt}metis\ conc{\isacharunderscore}{\kern0pt}Un{\isacharunderscore}{\kern0pt}distrib{\isacharparenleft}{\kern0pt}{\isadigit{1}}{\isacharparenright}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}Un\ sup{\isachardot}{\kern0pt}orderE\ sup{\isachardot}{\kern0pt}orderI{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{moreover}\isamarkupfalse%
 \ \isakeywordONE{from}\isamarkupfalse%
 \ Suc{\isachardot}{\kern0pt}prems\ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isasymdots}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ X{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
+\ {\isachardoublequoteopen}{\isasymdots}\ {\isasymsubseteq}\ {\isasymPsi}\ X{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
 \ auto\isanewline
 \ \ \isakeywordONE{ultimately}\isamarkupfalse%
 \ \isakeywordTHREE{show}\isamarkupfalse%
@@ -1426,8 +1416,8 @@
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}arden{\isacharcolon}{\kern0pt}\isanewline
-\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ X\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ X{\isachardoublequoteclose}\isanewline
-\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ X{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ X\ {\isasymunion}\ B{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ X{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ X{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 %
@@ -1439,20 +1429,20 @@
 \ \ \isakeywordTHREE{fix}\isamarkupfalse%
 \ x\isanewline
 \ \ \isakeywordTHREE{assume}\isamarkupfalse%
-\ {\isachardoublequoteopen}x\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}x\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}star\ A\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}{\isasymexists}n{\isachardot}{\kern0pt}\ x\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymexists}n{\isachardot}{\kern0pt}\ x\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{unfolding}\isamarkupfalse%
 \ star{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{by}\isamarkupfalse%
 \ {\isacharparenleft}{\kern0pt}simp\ add{\isacharcolon}{\kern0pt}\ conc{\isacharunderscore}{\kern0pt}UNION{\isacharunderscore}{\kern0pt}distrib{\isacharparenleft}{\kern0pt}{\isadigit{2}}{\isacharparenright}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}UNION{\isacharparenright}{\kern0pt}\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordTHREE{obtain}\isamarkupfalse%
-\ n\ \isakeywordTWO{where}\ {\isachardoublequoteopen}x\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
+\ n\ \isakeywordTWO{where}\ {\isachardoublequoteopen}x\ {\isasymin}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}A\ {\isacharcircum}{\kern0pt}{\isacharcircum}{\kern0pt}\ n\ {\isacharat}{\kern0pt}{\isacharat}{\kern0pt}\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
 \ blast\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordTHREE{show}\isamarkupfalse%
-\ {\isachardoublequoteopen}x\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ X{\isachardoublequoteclose}\ \isakeywordONE{using}\isamarkupfalse%
+\ {\isachardoublequoteopen}x\ {\isasymin}\ {\isasymPsi}\ X{\isachardoublequoteclose}\ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}arden{\isacharunderscore}{\kern0pt}aux{\isacharbrackleft}{\kern0pt}OF\ assms{\isacharbrackright}{\kern0pt}\ \isakeywordONE{by}\isamarkupfalse%
 \ fast\isanewline
 \isakeywordONE{qed}\isamarkupfalse%
@@ -1470,7 +1460,7 @@
 %
 \isatagdocument
 %
-\isamarkupsection{Equivalence class of languages with same Parikh image%
+\isamarkupsubsection{Equivalence class of languages with identical Parikh image%
 }
 \isamarkuptrue%
 %
@@ -1480,13 +1470,17 @@
 \isadelimdocument
 %
 \endisadelimdocument
+%
+\begin{isamarkuptext}%
+For a given language \isa{L}, we define the equivalence class of all languages with identical Parikh
+image:%
+\end{isamarkuptext}\isamarkuptrue%
 \isakeywordONE{definition}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}eq{\isacharunderscore}{\kern0pt}class\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}{\isacharprime}{\kern0pt}a\ lang\ {\isasymRightarrow}\ {\isacharprime}{\kern0pt}a\ lang\ set{\isachardoublequoteclose}\ \isakeywordTWO{where}\isanewline
-\ \ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}eq{\isacharunderscore}{\kern0pt}class\ L\ {\isasymequiv}\ {\isacharbraceleft}{\kern0pt}L{\isacharprime}{\kern0pt}{\isachardot}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ L{\isacharprime}{\kern0pt}\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ L{\isacharbraceright}{\kern0pt}{\isachardoublequoteclose}\isanewline
-\isanewline
+\ \ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}eq{\isacharunderscore}{\kern0pt}class\ L\ {\isasymequiv}\ {\isacharbraceleft}{\kern0pt}L{\isacharprime}{\kern0pt}{\isachardot}{\kern0pt}\ {\isasymPsi}\ L{\isacharprime}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ L{\isacharbraceright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
-\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}Union{\isacharunderscore}{\kern0pt}class{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ A\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isasymUnion}{\isacharparenleft}{\kern0pt}parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}eq{\isacharunderscore}{\kern0pt}class\ A{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}Union{\isacharunderscore}{\kern0pt}class{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}{\isasymPsi}\ A\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isasymUnion}{\isacharparenleft}{\kern0pt}parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}eq{\isacharunderscore}{\kern0pt}class\ A{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 %
 \isadelimproof
 %
@@ -1498,19 +1492,18 @@
 \ \ \isakeywordONE{let}\isamarkupfalse%
 \ {\isacharquery}{\kern0pt}A{\isacharprime}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isachardoublequoteopen}{\isasymUnion}{\isacharparenleft}{\kern0pt}parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}eq{\isacharunderscore}{\kern0pt}class\ A{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \isakeywordTHREE{show}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ A\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharquery}{\kern0pt}A{\isacharprime}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymPsi}\ A\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharquery}{\kern0pt}A{\isacharprime}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{unfolding}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}eq{\isacharunderscore}{\kern0pt}class{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{by}\isamarkupfalse%
 \ {\isacharparenleft}{\kern0pt}simp\ add{\isacharcolon}{\kern0pt}\ Union{\isacharunderscore}{\kern0pt}upper\ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}mono{\isacharparenright}{\kern0pt}\isanewline
-\isanewline
 \ \ \isakeywordTHREE{show}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharquery}{\kern0pt}A{\isacharprime}{\kern0pt}\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ A{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharquery}{\kern0pt}A{\isacharprime}{\kern0pt}\ {\isasymsubseteq}\ {\isasymPsi}\ A{\isachardoublequoteclose}\isanewline
 \ \ \isakeywordONE{proof}\isamarkupfalse%
 \isanewline
 \ \ \ \ \isakeywordTHREE{fix}\isamarkupfalse%
 \ v\isanewline
 \ \ \ \ \isakeywordTHREE{assume}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharquery}{\kern0pt}A{\isacharprime}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ {\isacharquery}{\kern0pt}A{\isacharprime}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordTHREE{obtain}\isamarkupfalse%
 \ a\ \isakeywordTWO{where}\ a{\isacharunderscore}{\kern0pt}intro{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}vec\ a\ {\isacharequal}{\kern0pt}\ v\ {\isasymand}\ a\ {\isasymin}\ {\isacharquery}{\kern0pt}A{\isacharprime}{\kern0pt}{\isachardoublequoteclose}\isanewline
@@ -1525,12 +1518,12 @@
 \ blast\isanewline
 \ \ \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ L\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ A{\isachardoublequoteclose}\ \isakeywordONE{unfolding}\isamarkupfalse%
+\ {\isachardoublequoteopen}{\isasymPsi}\ L\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ A{\isachardoublequoteclose}\ \isakeywordONE{unfolding}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}eq{\isacharunderscore}{\kern0pt}class{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{by}\isamarkupfalse%
 \ fastforce\isanewline
 \ \ \ \ \isakeywordONE{with}\isamarkupfalse%
 \ a{\isacharunderscore}{\kern0pt}intro\ L{\isacharunderscore}{\kern0pt}intro\ \isakeywordTHREE{show}\isamarkupfalse%
-\ {\isachardoublequoteopen}v\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ A{\isachardoublequoteclose}\ \isakeywordONE{unfolding}\isamarkupfalse%
+\ {\isachardoublequoteopen}v\ {\isasymin}\ {\isasymPsi}\ A{\isachardoublequoteclose}\ \isakeywordONE{unfolding}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{by}\isamarkupfalse%
 \ blast\isanewline
 \ \ \isakeywordONE{qed}\isamarkupfalse%
@@ -1545,10 +1538,9 @@
 %
 \endisadelimproof
 \isanewline
-\isanewline
 \isakeywordONE{lemma}\isamarkupfalse%
 \ subseteq{\isacharunderscore}{\kern0pt}comm{\isacharunderscore}{\kern0pt}subseteq{\isacharcolon}{\kern0pt}\isanewline
-\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ A\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ B{\isachardoublequoteclose}\isanewline
+\ \ \isakeywordTWO{assumes}\ {\isachardoublequoteopen}{\isasymPsi}\ A\ {\isasymsubseteq}\ {\isasymPsi}\ B{\isachardoublequoteclose}\isanewline
 \ \ \isakeywordTWO{shows}\ {\isachardoublequoteopen}A\ {\isasymsubseteq}\ {\isasymUnion}{\isacharparenleft}{\kern0pt}parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}eq{\isacharunderscore}{\kern0pt}class\ B{\isacharparenright}{\kern0pt}{\isachardoublequoteclose}\ {\isacharparenleft}{\kern0pt}\isakeywordTWO{is}\ {\isachardoublequoteopen}A\ {\isasymsubseteq}\ {\isacharquery}{\kern0pt}B{\isacharprime}{\kern0pt}{\isachardoublequoteclose}{\isacharparenright}{\kern0pt}\isanewline
 %
 \isadelimproof
@@ -1564,13 +1556,13 @@
 \ a{\isacharunderscore}{\kern0pt}in{\isacharunderscore}{\kern0pt}A{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}a\ {\isasymin}\ A{\isachardoublequoteclose}\isanewline
 \ \ \isakeywordONE{from}\isamarkupfalse%
 \ assms\ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ A\ {\isasymsubseteq}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharquery}{\kern0pt}B{\isacharprime}{\kern0pt}{\isachardoublequoteclose}\isanewline
+\ {\isachardoublequoteopen}{\isasymPsi}\ A\ {\isasymsubseteq}\ {\isasymPsi}\ {\isacharquery}{\kern0pt}B{\isacharprime}{\kern0pt}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeywordONE{using}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}Union{\isacharunderscore}{\kern0pt}class\ \isakeywordONE{by}\isamarkupfalse%
 \ blast\isanewline
 \ \ \isakeywordONE{with}\isamarkupfalse%
 \ a{\isacharunderscore}{\kern0pt}in{\isacharunderscore}{\kern0pt}A\ \isakeywordONE{have}\isamarkupfalse%
-\ vec{\isacharunderscore}{\kern0pt}a{\isacharunderscore}{\kern0pt}in{\isacharunderscore}{\kern0pt}B{\isacharprime}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}vec\ a\ {\isasymin}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharquery}{\kern0pt}B{\isacharprime}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{unfolding}\isamarkupfalse%
+\ vec{\isacharunderscore}{\kern0pt}a{\isacharunderscore}{\kern0pt}in{\isacharunderscore}{\kern0pt}B{\isacharprime}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}vec\ a\ {\isasymin}\ {\isasymPsi}\ {\isacharquery}{\kern0pt}B{\isacharprime}{\kern0pt}{\isachardoublequoteclose}\ \isakeywordONE{unfolding}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{by}\isamarkupfalse%
 \ fast\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
@@ -1585,12 +1577,12 @@
 \ blast\isanewline
 \ \ \isakeywordONE{with}\isamarkupfalse%
 \ vec{\isacharunderscore}{\kern0pt}a{\isacharunderscore}{\kern0pt}in{\isacharunderscore}{\kern0pt}B{\isacharprime}{\kern0pt}\ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharquery}{\kern0pt}B{\isacharprime}{\kern0pt}\ {\isasymunion}\ {\isacharbraceleft}{\kern0pt}a{\isacharbraceright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ {\isacharquery}{\kern0pt}B{\isacharprime}{\kern0pt}{\isachardoublequoteclose}\isakeywordONE{unfolding}\isamarkupfalse%
+\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharquery}{\kern0pt}B{\isacharprime}{\kern0pt}\ {\isasymunion}\ {\isacharbraceleft}{\kern0pt}a{\isacharbraceright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ {\isacharquery}{\kern0pt}B{\isacharprime}{\kern0pt}{\isachardoublequoteclose}\isakeywordONE{unfolding}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}def\ \isakeywordONE{by}\isamarkupfalse%
 \ blast\isanewline
 \ \ \isakeywordONE{with}\isamarkupfalse%
 \ parikh{\isacharunderscore}{\kern0pt}img{\isacharunderscore}{\kern0pt}Union{\isacharunderscore}{\kern0pt}class\ \isakeywordONE{have}\isamarkupfalse%
-\ {\isachardoublequoteopen}parikh{\isacharunderscore}{\kern0pt}img\ {\isacharparenleft}{\kern0pt}{\isacharquery}{\kern0pt}B{\isacharprime}{\kern0pt}\ {\isasymunion}\ {\isacharbraceleft}{\kern0pt}a{\isacharbraceright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ parikh{\isacharunderscore}{\kern0pt}img\ B{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
+\ {\isachardoublequoteopen}{\isasymPsi}\ {\isacharparenleft}{\kern0pt}{\isacharquery}{\kern0pt}B{\isacharprime}{\kern0pt}\ {\isasymunion}\ {\isacharbraceleft}{\kern0pt}a{\isacharbraceright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isasymPsi}\ B{\isachardoublequoteclose}\ \isakeywordONE{by}\isamarkupfalse%
 \ blast\isanewline
 \ \ \isakeywordONE{then}\isamarkupfalse%
 \ \isakeywordTHREE{show}\isamarkupfalse%
@@ -1606,7 +1598,6 @@
 \isanewline
 %
 \endisadelimproof
-\isanewline
 %
 \isadelimtheory
 \isanewline
@@ -1626,1055 +1617,1012 @@
 \end{isabellebody}%
 \endinput
 %:%file=~/studium/semester_7/semantik/homeworks/AIST/Parikh/Parikh_Img.thy%:%
-%:%10=1%:%
 %:%11=1%:%
-%:%12=2%:%
-%:%13=3%:%
-%:%14=4%:%
-%:%15=5%:%
-%:%29=8%:%
-%:%39=13%:%
-%:%40=13%:%
-%:%41=14%:%
-%:%42=15%:%
-%:%43=16%:%
-%:%44=17%:%
-%:%45=17%:%
-%:%46=18%:%
-%:%47=19%:%
-%:%48=20%:%
-%:%49=21%:%
-%:%50=22%:%
-%:%51=22%:%
-%:%52=23%:%
-%:%53=24%:%
-%:%54=25%:%
-%:%55=26%:%
-%:%56=26%:%
-%:%59=27%:%
-%:%63=27%:%
-%:%64=27%:%
-%:%69=27%:%
-%:%72=28%:%
-%:%73=29%:%
-%:%74=29%:%
-%:%77=30%:%
-%:%81=30%:%
-%:%82=30%:%
-%:%87=30%:%
-%:%90=31%:%
-%:%91=32%:%
-%:%92=32%:%
-%:%95=33%:%
-%:%99=33%:%
-%:%100=33%:%
-%:%101=33%:%
-%:%106=33%:%
-%:%109=34%:%
-%:%110=35%:%
-%:%111=35%:%
-%:%114=36%:%
-%:%118=36%:%
-%:%119=36%:%
-%:%120=36%:%
-%:%125=36%:%
-%:%128=37%:%
-%:%129=38%:%
-%:%130=39%:%
-%:%131=39%:%
-%:%138=40%:%
-%:%139=40%:%
-%:%140=41%:%
-%:%141=41%:%
-%:%142=42%:%
-%:%143=42%:%
-%:%144=42%:%
-%:%145=42%:%
-%:%146=43%:%
-%:%147=43%:%
-%:%148=43%:%
-%:%149=43%:%
-%:%150=43%:%
-%:%151=44%:%
-%:%157=44%:%
-%:%160=45%:%
-%:%161=46%:%
-%:%162=47%:%
-%:%163=47%:%
-%:%166=48%:%
-%:%170=48%:%
-%:%171=48%:%
-%:%172=48%:%
-%:%177=48%:%
-%:%180=49%:%
-%:%181=50%:%
-%:%182=50%:%
-%:%189=51%:%
-%:%190=51%:%
-%:%191=52%:%
-%:%192=52%:%
-%:%193=53%:%
-%:%194=54%:%
-%:%195=54%:%
-%:%196=54%:%
-%:%197=55%:%
-%:%198=55%:%
-%:%199=55%:%
-%:%200=56%:%
-%:%201=56%:%
-%:%202=56%:%
-%:%203=57%:%
-%:%209=57%:%
-%:%212=58%:%
-%:%213=59%:%
-%:%214=60%:%
-%:%215=60%:%
-%:%218=61%:%
-%:%222=61%:%
-%:%223=61%:%
-%:%228=61%:%
-%:%231=62%:%
-%:%232=63%:%
-%:%233=63%:%
-%:%236=64%:%
-%:%240=64%:%
-%:%241=64%:%
-%:%246=64%:%
-%:%249=65%:%
-%:%250=66%:%
-%:%251=66%:%
-%:%252=67%:%
-%:%253=68%:%
-%:%254=69%:%
-%:%257=70%:%
-%:%261=70%:%
-%:%262=70%:%
-%:%263=70%:%
-%:%268=70%:%
-%:%271=71%:%
-%:%272=72%:%
-%:%273=72%:%
-%:%276=73%:%
-%:%280=73%:%
-%:%281=73%:%
-%:%286=73%:%
-%:%289=74%:%
-%:%290=75%:%
-%:%291=75%:%
-%:%294=76%:%
-%:%298=76%:%
-%:%299=76%:%
-%:%304=76%:%
-%:%307=77%:%
-%:%308=78%:%
-%:%309=78%:%
-%:%312=79%:%
-%:%316=79%:%
-%:%317=79%:%
-%:%322=79%:%
-%:%325=80%:%
-%:%326=81%:%
-%:%327=81%:%
-%:%328=82%:%
-%:%329=83%:%
-%:%336=84%:%
-%:%337=84%:%
-%:%338=85%:%
-%:%339=85%:%
-%:%340=86%:%
-%:%341=86%:%
-%:%342=87%:%
-%:%343=87%:%
-%:%344=87%:%
-%:%345=87%:%
-%:%346=87%:%
-%:%347=88%:%
-%:%348=88%:%
-%:%349=88%:%
-%:%350=88%:%
-%:%351=88%:%
-%:%352=89%:%
-%:%353=89%:%
-%:%354=89%:%
-%:%355=89%:%
-%:%356=89%:%
-%:%357=89%:%
-%:%358=90%:%
-%:%359=90%:%
-%:%360=90%:%
-%:%361=90%:%
-%:%362=90%:%
-%:%363=91%:%
-%:%364=91%:%
-%:%365=91%:%
-%:%366=91%:%
-%:%367=91%:%
-%:%368=91%:%
-%:%369=92%:%
-%:%375=92%:%
-%:%378=93%:%
-%:%379=94%:%
-%:%380=94%:%
-%:%381=95%:%
-%:%382=96%:%
-%:%385=97%:%
-%:%389=97%:%
-%:%390=97%:%
-%:%391=97%:%
-%:%396=97%:%
-%:%399=98%:%
-%:%400=99%:%
-%:%401=100%:%
-%:%402=100%:%
-%:%403=101%:%
-%:%404=102%:%
-%:%411=103%:%
-%:%412=103%:%
-%:%413=103%:%
-%:%414=104%:%
-%:%415=104%:%
-%:%416=105%:%
-%:%417=105%:%
-%:%418=105%:%
-%:%419=106%:%
-%:%420=107%:%
-%:%421=107%:%
-%:%422=107%:%
-%:%423=108%:%
-%:%424=108%:%
-%:%425=108%:%
-%:%426=108%:%
-%:%427=109%:%
-%:%428=109%:%
-%:%429=110%:%
-%:%430=110%:%
-%:%431=111%:%
-%:%432=111%:%
-%:%433=111%:%
-%:%434=112%:%
-%:%435=112%:%
-%:%436=112%:%
-%:%437=113%:%
-%:%438=113%:%
-%:%439=113%:%
-%:%440=113%:%
-%:%441=114%:%
-%:%442=114%:%
-%:%447=114%:%
-%:%450=115%:%
-%:%451=116%:%
-%:%452=116%:%
-%:%453=117%:%
-%:%454=118%:%
-%:%457=119%:%
-%:%461=119%:%
-%:%462=119%:%
-%:%463=119%:%
-%:%468=119%:%
-%:%471=120%:%
-%:%472=121%:%
-%:%473=121%:%
-%:%474=122%:%
-%:%475=123%:%
-%:%478=124%:%
-%:%482=124%:%
-%:%483=124%:%
-%:%484=124%:%
-%:%489=124%:%
-%:%492=125%:%
-%:%493=126%:%
-%:%494=126%:%
-%:%495=127%:%
-%:%496=128%:%
-%:%503=129%:%
-%:%504=129%:%
-%:%505=129%:%
-%:%506=130%:%
-%:%507=130%:%
-%:%508=131%:%
-%:%509=131%:%
-%:%510=131%:%
-%:%511=132%:%
-%:%512=132%:%
-%:%513=132%:%
-%:%514=133%:%
-%:%515=133%:%
-%:%516=133%:%
-%:%517=133%:%
-%:%518=134%:%
-%:%519=134%:%
-%:%524=134%:%
-%:%527=135%:%
-%:%528=136%:%
-%:%529=137%:%
-%:%530=137%:%
-%:%531=138%:%
-%:%532=139%:%
-%:%535=140%:%
-%:%539=140%:%
-%:%540=140%:%
-%:%541=140%:%
-%:%555=144%:%
-%:%565=146%:%
-%:%566=146%:%
-%:%567=147%:%
-%:%568=148%:%
-%:%575=149%:%
-%:%576=149%:%
-%:%577=149%:%
-%:%578=150%:%
-%:%579=150%:%
-%:%580=151%:%
-%:%581=151%:%
-%:%582=151%:%
-%:%583=151%:%
-%:%584=152%:%
-%:%585=152%:%
-%:%586=153%:%
-%:%587=153%:%
-%:%588=154%:%
-%:%589=154%:%
-%:%590=154%:%
-%:%591=155%:%
-%:%592=155%:%
-%:%593=155%:%
-%:%594=156%:%
-%:%595=156%:%
-%:%596=156%:%
-%:%597=156%:%
-%:%598=157%:%
-%:%599=157%:%
-%:%600=158%:%
-%:%601=159%:%
-%:%602=159%:%
-%:%603=159%:%
-%:%604=159%:%
-%:%605=159%:%
-%:%606=160%:%
-%:%607=160%:%
-%:%608=160%:%
-%:%609=160%:%
-%:%610=161%:%
-%:%611=161%:%
-%:%612=161%:%
-%:%613=162%:%
-%:%614=162%:%
-%:%615=162%:%
-%:%616=163%:%
-%:%617=163%:%
-%:%618=163%:%
-%:%619=163%:%
-%:%620=164%:%
-%:%621=165%:%
-%:%622=165%:%
-%:%623=165%:%
-%:%624=166%:%
-%:%625=166%:%
-%:%626=167%:%
-%:%627=167%:%
-%:%628=167%:%
-%:%629=168%:%
-%:%630=168%:%
-%:%631=169%:%
-%:%632=169%:%
-%:%633=170%:%
-%:%634=170%:%
-%:%635=170%:%
-%:%636=171%:%
-%:%637=171%:%
-%:%638=172%:%
-%:%639=172%:%
-%:%640=172%:%
-%:%641=173%:%
-%:%642=173%:%
-%:%643=173%:%
-%:%644=174%:%
-%:%645=174%:%
-%:%646=174%:%
-%:%647=174%:%
-%:%648=175%:%
-%:%649=175%:%
-%:%650=176%:%
-%:%651=176%:%
-%:%652=177%:%
-%:%653=177%:%
-%:%654=177%:%
-%:%655=177%:%
-%:%656=178%:%
-%:%657=178%:%
-%:%658=178%:%
-%:%659=179%:%
-%:%660=179%:%
-%:%661=179%:%
-%:%662=180%:%
-%:%663=180%:%
-%:%664=180%:%
-%:%665=181%:%
-%:%666=181%:%
-%:%667=182%:%
-%:%668=182%:%
-%:%669=183%:%
-%:%670=183%:%
-%:%671=183%:%
-%:%672=183%:%
-%:%673=184%:%
-%:%674=184%:%
-%:%675=185%:%
-%:%676=185%:%
-%:%677=185%:%
-%:%678=185%:%
-%:%679=185%:%
-%:%680=186%:%
-%:%686=186%:%
-%:%689=187%:%
-%:%690=188%:%
-%:%691=189%:%
-%:%692=189%:%
-%:%693=190%:%
-%:%694=191%:%
-%:%701=192%:%
-%:%702=192%:%
-%:%703=193%:%
-%:%704=193%:%
-%:%705=193%:%
-%:%706=194%:%
-%:%707=194%:%
-%:%708=194%:%
-%:%709=194%:%
-%:%710=195%:%
-%:%711=195%:%
-%:%712=195%:%
-%:%713=195%:%
-%:%714=196%:%
-%:%715=196%:%
-%:%716=196%:%
-%:%717=197%:%
-%:%718=197%:%
-%:%719=197%:%
-%:%720=198%:%
-%:%721=198%:%
-%:%722=198%:%
-%:%723=198%:%
-%:%724=198%:%
-%:%725=199%:%
-%:%726=199%:%
-%:%727=199%:%
-%:%728=199%:%
-%:%729=200%:%
-%:%730=200%:%
-%:%731=200%:%
-%:%732=201%:%
-%:%733=201%:%
-%:%734=201%:%
-%:%735=202%:%
-%:%736=202%:%
-%:%737=202%:%
-%:%738=202%:%
-%:%739=203%:%
-%:%740=203%:%
-%:%741=203%:%
-%:%742=203%:%
-%:%743=204%:%
-%:%744=204%:%
-%:%745=204%:%
-%:%746=204%:%
-%:%747=205%:%
-%:%748=205%:%
-%:%749=205%:%
-%:%750=205%:%
-%:%751=205%:%
-%:%752=206%:%
-%:%758=206%:%
-%:%761=207%:%
-%:%762=208%:%
-%:%763=208%:%
-%:%764=209%:%
-%:%765=210%:%
-%:%772=211%:%
-%:%773=211%:%
-%:%774=212%:%
-%:%775=212%:%
-%:%776=212%:%
-%:%777=213%:%
-%:%778=213%:%
-%:%779=213%:%
-%:%780=214%:%
-%:%781=214%:%
-%:%782=214%:%
-%:%783=214%:%
-%:%784=215%:%
-%:%785=215%:%
-%:%786=215%:%
-%:%787=215%:%
-%:%788=215%:%
-%:%789=216%:%
-%:%790=216%:%
-%:%791=216%:%
-%:%792=216%:%
-%:%793=216%:%
-%:%794=217%:%
-%:%795=217%:%
-%:%796=217%:%
-%:%797=217%:%
-%:%798=217%:%
-%:%799=218%:%
-%:%800=218%:%
-%:%801=218%:%
-%:%802=218%:%
-%:%803=218%:%
-%:%804=219%:%
-%:%805=219%:%
-%:%806=219%:%
-%:%807=219%:%
-%:%808=219%:%
-%:%809=220%:%
-%:%815=220%:%
-%:%818=221%:%
-%:%819=222%:%
-%:%820=223%:%
-%:%821=223%:%
-%:%828=224%:%
-%:%829=224%:%
-%:%830=225%:%
-%:%831=225%:%
-%:%832=225%:%
-%:%833=225%:%
-%:%834=226%:%
-%:%835=226%:%
-%:%836=226%:%
-%:%837=226%:%
-%:%838=227%:%
-%:%853=231%:%
-%:%863=234%:%
-%:%864=234%:%
-%:%871=235%:%
-%:%872=235%:%
-%:%873=236%:%
-%:%874=236%:%
-%:%875=237%:%
-%:%876=237%:%
-%:%877=237%:%
-%:%878=238%:%
-%:%879=238%:%
-%:%880=238%:%
-%:%881=239%:%
-%:%882=239%:%
-%:%883=239%:%
-%:%884=240%:%
-%:%885=240%:%
-%:%886=241%:%
-%:%887=241%:%
-%:%888=241%:%
-%:%889=241%:%
-%:%890=242%:%
-%:%891=242%:%
-%:%896=242%:%
-%:%899=243%:%
-%:%900=244%:%
-%:%901=244%:%
-%:%908=245%:%
-%:%909=245%:%
-%:%910=246%:%
-%:%911=246%:%
-%:%912=247%:%
-%:%913=247%:%
-%:%914=248%:%
-%:%915=248%:%
-%:%916=248%:%
-%:%917=248%:%
-%:%918=248%:%
-%:%919=249%:%
-%:%920=249%:%
-%:%921=249%:%
-%:%922=249%:%
-%:%923=250%:%
-%:%924=250%:%
-%:%925=250%:%
-%:%926=250%:%
-%:%927=251%:%
-%:%928=251%:%
-%:%929=251%:%
-%:%930=252%:%
-%:%931=252%:%
-%:%932=252%:%
-%:%933=253%:%
-%:%934=253%:%
-%:%935=254%:%
-%:%936=254%:%
-%:%937=254%:%
-%:%938=255%:%
-%:%939=255%:%
-%:%940=255%:%
-%:%941=256%:%
-%:%942=256%:%
-%:%943=257%:%
-%:%949=257%:%
-%:%952=258%:%
-%:%953=259%:%
-%:%954=259%:%
-%:%961=260%:%
-%:%962=260%:%
-%:%963=261%:%
-%:%964=261%:%
-%:%965=262%:%
-%:%966=262%:%
-%:%967=263%:%
-%:%968=263%:%
-%:%969=263%:%
-%:%970=264%:%
-%:%971=264%:%
-%:%972=265%:%
-%:%973=265%:%
-%:%974=265%:%
-%:%975=266%:%
-%:%976=266%:%
-%:%977=266%:%
-%:%978=267%:%
-%:%979=267%:%
-%:%980=268%:%
-%:%981=268%:%
-%:%982=268%:%
-%:%983=269%:%
-%:%984=269%:%
-%:%985=269%:%
-%:%986=270%:%
-%:%987=270%:%
-%:%988=271%:%
-%:%994=271%:%
-%:%997=272%:%
-%:%998=273%:%
-%:%999=273%:%
-%:%1000=274%:%
-%:%1007=275%:%
-%:%1008=275%:%
-%:%1009=276%:%
-%:%1010=276%:%
-%:%1011=277%:%
-%:%1012=277%:%
-%:%1013=278%:%
-%:%1014=278%:%
-%:%1015=278%:%
-%:%1016=279%:%
-%:%1017=279%:%
-%:%1018=279%:%
-%:%1019=280%:%
-%:%1020=280%:%
-%:%1021=280%:%
-%:%1022=280%:%
-%:%1023=281%:%
-%:%1024=281%:%
-%:%1025=282%:%
-%:%1026=282%:%
-%:%1027=283%:%
-%:%1028=283%:%
-%:%1029=284%:%
-%:%1030=284%:%
-%:%1031=284%:%
-%:%1032=284%:%
-%:%1033=284%:%
-%:%1034=285%:%
-%:%1035=285%:%
-%:%1036=285%:%
-%:%1037=285%:%
-%:%1038=285%:%
-%:%1039=286%:%
-%:%1040=286%:%
-%:%1041=287%:%
-%:%1042=287%:%
-%:%1043=288%:%
-%:%1044=288%:%
-%:%1045=288%:%
-%:%1046=288%:%
-%:%1047=289%:%
-%:%1048=289%:%
-%:%1049=289%:%
-%:%1050=289%:%
-%:%1051=290%:%
-%:%1052=290%:%
-%:%1053=291%:%
-%:%1059=291%:%
-%:%1062=292%:%
-%:%1063=293%:%
-%:%1064=293%:%
-%:%1071=294%:%
-%:%1072=294%:%
-%:%1073=295%:%
-%:%1074=295%:%
-%:%1075=295%:%
-%:%1076=295%:%
-%:%1077=296%:%
-%:%1078=296%:%
-%:%1079=297%:%
-%:%1080=297%:%
-%:%1081=297%:%
-%:%1082=298%:%
-%:%1083=298%:%
-%:%1084=298%:%
-%:%1085=299%:%
-%:%1086=299%:%
-%:%1087=299%:%
-%:%1088=300%:%
-%:%1089=300%:%
-%:%1090=301%:%
-%:%1091=301%:%
-%:%1092=301%:%
-%:%1093=301%:%
-%:%1094=301%:%
-%:%1095=302%:%
-%:%1101=302%:%
-%:%1104=303%:%
-%:%1105=304%:%
-%:%1106=304%:%
-%:%1113=305%:%
-%:%1114=305%:%
-%:%1115=306%:%
-%:%1116=306%:%
-%:%1117=307%:%
-%:%1118=307%:%
-%:%1119=307%:%
-%:%1120=308%:%
-%:%1121=308%:%
-%:%1122=309%:%
-%:%1123=309%:%
-%:%1124=310%:%
-%:%1125=310%:%
-%:%1126=311%:%
-%:%1141=315%:%
-%:%1151=317%:%
-%:%1152=317%:%
-%:%1153=318%:%
-%:%1154=319%:%
-%:%1161=320%:%
-%:%1162=320%:%
-%:%1163=320%:%
-%:%1164=321%:%
-%:%1165=321%:%
-%:%1166=322%:%
-%:%1167=322%:%
-%:%1168=323%:%
-%:%1169=323%:%
-%:%1170=324%:%
-%:%1171=324%:%
-%:%1172=325%:%
-%:%1173=325%:%
-%:%1174=325%:%
-%:%1175=325%:%
-%:%1176=326%:%
-%:%1177=326%:%
-%:%1178=327%:%
-%:%1179=327%:%
-%:%1180=328%:%
-%:%1181=328%:%
-%:%1182=328%:%
-%:%1183=329%:%
-%:%1184=329%:%
-%:%1185=329%:%
-%:%1186=329%:%
-%:%1187=330%:%
-%:%1188=330%:%
-%:%1189=331%:%
-%:%1190=331%:%
-%:%1191=332%:%
-%:%1192=332%:%
-%:%1193=333%:%
-%:%1194=333%:%
-%:%1195=333%:%
-%:%1196=333%:%
-%:%1197=334%:%
-%:%1198=334%:%
-%:%1199=334%:%
-%:%1200=334%:%
-%:%1201=335%:%
-%:%1202=335%:%
-%:%1203=336%:%
-%:%1204=336%:%
-%:%1205=337%:%
-%:%1206=337%:%
-%:%1207=337%:%
-%:%1208=338%:%
-%:%1209=339%:%
-%:%1210=339%:%
-%:%1211=340%:%
-%:%1212=340%:%
-%:%1213=340%:%
-%:%1214=340%:%
-%:%1215=341%:%
-%:%1216=341%:%
-%:%1217=342%:%
-%:%1218=342%:%
-%:%1219=343%:%
-%:%1220=343%:%
-%:%1221=343%:%
-%:%1222=344%:%
-%:%1223=345%:%
-%:%1224=345%:%
-%:%1225=346%:%
-%:%1226=346%:%
-%:%1227=346%:%
-%:%1228=347%:%
-%:%1229=347%:%
-%:%1230=348%:%
-%:%1231=348%:%
-%:%1232=348%:%
-%:%1233=349%:%
-%:%1234=349%:%
-%:%1235=350%:%
-%:%1236=350%:%
-%:%1237=350%:%
-%:%1238=350%:%
-%:%1239=351%:%
-%:%1240=351%:%
-%:%1241=352%:%
-%:%1242=352%:%
-%:%1243=353%:%
-%:%1244=353%:%
-%:%1245=353%:%
-%:%1246=354%:%
-%:%1247=354%:%
-%:%1248=354%:%
-%:%1249=355%:%
-%:%1250=355%:%
-%:%1251=355%:%
-%:%1252=355%:%
-%:%1253=356%:%
-%:%1254=356%:%
-%:%1255=357%:%
-%:%1256=357%:%
-%:%1257=357%:%
-%:%1258=357%:%
-%:%1259=358%:%
-%:%1265=358%:%
-%:%1268=359%:%
-%:%1269=360%:%
-%:%1270=360%:%
-%:%1271=361%:%
-%:%1272=362%:%
-%:%1279=363%:%
-%:%1280=363%:%
-%:%1281=364%:%
-%:%1282=364%:%
-%:%1283=365%:%
-%:%1284=365%:%
-%:%1285=365%:%
-%:%1286=365%:%
-%:%1287=366%:%
-%:%1288=366%:%
-%:%1289=366%:%
-%:%1290=367%:%
-%:%1291=367%:%
-%:%1292=367%:%
-%:%1293=367%:%
-%:%1294=368%:%
-%:%1295=368%:%
-%:%1296=368%:%
-%:%1297=368%:%
-%:%1298=368%:%
-%:%1299=369%:%
-%:%1300=369%:%
-%:%1301=369%:%
-%:%1302=369%:%
-%:%1303=370%:%
-%:%1309=370%:%
-%:%1312=371%:%
-%:%1313=372%:%
-%:%1314=373%:%
-%:%1315=373%:%
-%:%1316=374%:%
-%:%1317=375%:%
-%:%1318=376%:%
-%:%1325=377%:%
-%:%1326=377%:%
-%:%1327=378%:%
-%:%1328=378%:%
-%:%1329=379%:%
-%:%1330=379%:%
-%:%1331=380%:%
-%:%1332=380%:%
-%:%1333=380%:%
-%:%1334=381%:%
-%:%1335=381%:%
-%:%1336=381%:%
-%:%1337=382%:%
-%:%1338=382%:%
-%:%1339=382%:%
-%:%1340=383%:%
-%:%1341=383%:%
-%:%1342=383%:%
-%:%1343=383%:%
-%:%1344=383%:%
-%:%1345=384%:%
-%:%1346=384%:%
-%:%1347=384%:%
-%:%1348=384%:%
-%:%1349=385%:%
-%:%1364=389%:%
-%:%1374=391%:%
-%:%1375=391%:%
-%:%1376=392%:%
-%:%1377=393%:%
-%:%1384=394%:%
-%:%1385=394%:%
-%:%1386=394%:%
-%:%1387=395%:%
-%:%1388=395%:%
-%:%1389=396%:%
-%:%1390=396%:%
-%:%1391=396%:%
-%:%1392=396%:%
-%:%1393=397%:%
-%:%1394=397%:%
-%:%1395=398%:%
-%:%1396=398%:%
-%:%1397=399%:%
-%:%1398=399%:%
-%:%1399=399%:%
-%:%1400=400%:%
-%:%1401=400%:%
-%:%1402=401%:%
-%:%1403=401%:%
-%:%1404=401%:%
-%:%1405=401%:%
-%:%1406=402%:%
-%:%1407=402%:%
-%:%1408=403%:%
-%:%1409=403%:%
-%:%1410=403%:%
-%:%1411=403%:%
-%:%1412=403%:%
-%:%1413=404%:%
-%:%1414=404%:%
-%:%1415=404%:%
-%:%1416=404%:%
-%:%1417=405%:%
-%:%1423=405%:%
-%:%1426=406%:%
-%:%1427=407%:%
-%:%1428=407%:%
-%:%1429=408%:%
-%:%1430=409%:%
-%:%1437=410%:%
-%:%1438=410%:%
-%:%1439=411%:%
-%:%1440=411%:%
-%:%1441=412%:%
-%:%1442=412%:%
-%:%1443=413%:%
-%:%1444=413%:%
-%:%1445=413%:%
-%:%1446=414%:%
-%:%1447=414%:%
-%:%1448=414%:%
-%:%1449=415%:%
-%:%1450=415%:%
-%:%1451=415%:%
-%:%1452=415%:%
-%:%1453=416%:%
-%:%1454=416%:%
-%:%1455=416%:%
-%:%1456=416%:%
-%:%1457=416%:%
-%:%1458=417%:%
-%:%1473=420%:%
-%:%1483=422%:%
-%:%1484=422%:%
-%:%1485=423%:%
-%:%1486=424%:%
-%:%1487=425%:%
-%:%1488=426%:%
-%:%1489=426%:%
-%:%1496=427%:%
-%:%1497=427%:%
-%:%1498=428%:%
-%:%1499=428%:%
-%:%1500=429%:%
-%:%1501=429%:%
-%:%1502=430%:%
-%:%1503=430%:%
-%:%1504=430%:%
-%:%1505=431%:%
-%:%1506=432%:%
-%:%1507=432%:%
-%:%1508=433%:%
-%:%1509=433%:%
-%:%1510=434%:%
-%:%1511=434%:%
-%:%1512=435%:%
-%:%1513=435%:%
-%:%1514=436%:%
-%:%1515=436%:%
-%:%1516=436%:%
-%:%1517=437%:%
-%:%1518=437%:%
-%:%1519=437%:%
-%:%1520=438%:%
-%:%1521=438%:%
-%:%1522=438%:%
-%:%1523=439%:%
-%:%1524=439%:%
-%:%1525=439%:%
-%:%1526=440%:%
-%:%1527=440%:%
-%:%1528=440%:%
-%:%1529=440%:%
-%:%1530=440%:%
-%:%1531=441%:%
-%:%1532=441%:%
-%:%1533=441%:%
-%:%1534=441%:%
-%:%1535=441%:%
-%:%1536=442%:%
-%:%1537=442%:%
-%:%1538=443%:%
-%:%1544=443%:%
-%:%1547=444%:%
-%:%1548=445%:%
-%:%1549=446%:%
-%:%1550=446%:%
-%:%1551=447%:%
-%:%1552=448%:%
-%:%1559=449%:%
-%:%1560=449%:%
-%:%1561=450%:%
-%:%1562=450%:%
-%:%1563=451%:%
-%:%1564=451%:%
-%:%1565=452%:%
-%:%1566=452%:%
-%:%1567=452%:%
-%:%1568=453%:%
-%:%1569=453%:%
-%:%1570=453%:%
-%:%1571=454%:%
-%:%1572=454%:%
-%:%1573=454%:%
-%:%1574=454%:%
-%:%1575=454%:%
-%:%1576=455%:%
-%:%1577=455%:%
-%:%1578=455%:%
-%:%1579=456%:%
-%:%1580=456%:%
-%:%1581=456%:%
-%:%1582=457%:%
-%:%1583=457%:%
-%:%1584=457%:%
-%:%1585=457%:%
-%:%1586=458%:%
-%:%1587=458%:%
-%:%1588=458%:%
-%:%1589=458%:%
-%:%1590=458%:%
-%:%1591=459%:%
-%:%1592=459%:%
-%:%1593=459%:%
-%:%1594=459%:%
-%:%1595=460%:%
-%:%1596=460%:%
-%:%1597=460%:%
-%:%1598=460%:%
-%:%1599=460%:%
-%:%1600=461%:%
-%:%1606=461%:%
-%:%1609=462%:%
-%:%1612=463%:%
-%:%1617=464%:%
+%:%27=3%:%
+%:%28=3%:%
+%:%29=4%:%
+%:%30=5%:%
+%:%31=6%:%
+%:%32=7%:%
+%:%46=10%:%
+%:%58=12%:%
+%:%59=13%:%
+%:%60=14%:%
+%:%62=16%:%
+%:%63=16%:%
+%:%64=17%:%
+%:%65=18%:%
+%:%66=19%:%
+%:%67=19%:%
+%:%68=20%:%
+%:%69=21%:%
+%:%70=22%:%
+%:%71=22%:%
+%:%74=23%:%
+%:%78=23%:%
+%:%79=23%:%
+%:%84=23%:%
+%:%87=24%:%
+%:%88=25%:%
+%:%89=25%:%
+%:%92=26%:%
+%:%96=26%:%
+%:%97=26%:%
+%:%102=26%:%
+%:%105=27%:%
+%:%106=28%:%
+%:%107=28%:%
+%:%114=29%:%
+%:%115=29%:%
+%:%116=30%:%
+%:%117=30%:%
+%:%118=31%:%
+%:%119=31%:%
+%:%120=31%:%
+%:%121=31%:%
+%:%122=32%:%
+%:%123=32%:%
+%:%124=32%:%
+%:%125=32%:%
+%:%126=32%:%
+%:%127=33%:%
+%:%133=33%:%
+%:%136=34%:%
+%:%137=35%:%
+%:%138=35%:%
+%:%141=36%:%
+%:%145=36%:%
+%:%146=36%:%
+%:%147=36%:%
+%:%152=36%:%
+%:%155=37%:%
+%:%156=38%:%
+%:%157=38%:%
+%:%164=39%:%
+%:%165=39%:%
+%:%166=40%:%
+%:%167=40%:%
+%:%168=41%:%
+%:%169=42%:%
+%:%170=42%:%
+%:%171=42%:%
+%:%172=43%:%
+%:%173=43%:%
+%:%174=43%:%
+%:%175=44%:%
+%:%176=44%:%
+%:%177=44%:%
+%:%178=45%:%
+%:%193=48%:%
+%:%203=50%:%
+%:%204=50%:%
+%:%207=51%:%
+%:%211=51%:%
+%:%212=51%:%
+%:%213=51%:%
+%:%218=51%:%
+%:%221=52%:%
+%:%222=53%:%
+%:%223=53%:%
+%:%226=54%:%
+%:%230=54%:%
+%:%231=54%:%
+%:%232=54%:%
+%:%237=54%:%
+%:%240=55%:%
+%:%241=56%:%
+%:%242=56%:%
+%:%245=57%:%
+%:%249=57%:%
+%:%250=57%:%
+%:%255=57%:%
+%:%258=58%:%
+%:%259=59%:%
+%:%260=59%:%
+%:%263=60%:%
+%:%267=60%:%
+%:%268=60%:%
+%:%273=60%:%
+%:%276=61%:%
+%:%277=62%:%
+%:%278=62%:%
+%:%279=63%:%
+%:%280=64%:%
+%:%281=65%:%
+%:%284=66%:%
+%:%288=66%:%
+%:%289=66%:%
+%:%290=66%:%
+%:%295=66%:%
+%:%298=67%:%
+%:%299=68%:%
+%:%300=68%:%
+%:%303=69%:%
+%:%307=69%:%
+%:%308=69%:%
+%:%313=69%:%
+%:%316=70%:%
+%:%317=71%:%
+%:%318=71%:%
+%:%321=72%:%
+%:%325=72%:%
+%:%326=72%:%
+%:%331=72%:%
+%:%334=73%:%
+%:%335=74%:%
+%:%336=74%:%
+%:%339=75%:%
+%:%343=75%:%
+%:%344=75%:%
+%:%349=75%:%
+%:%352=76%:%
+%:%353=77%:%
+%:%354=78%:%
+%:%355=78%:%
+%:%356=79%:%
+%:%357=80%:%
+%:%364=81%:%
+%:%365=81%:%
+%:%366=82%:%
+%:%367=82%:%
+%:%368=83%:%
+%:%369=83%:%
+%:%370=84%:%
+%:%371=84%:%
+%:%372=84%:%
+%:%373=84%:%
+%:%374=84%:%
+%:%375=85%:%
+%:%376=85%:%
+%:%377=85%:%
+%:%378=85%:%
+%:%379=85%:%
+%:%380=86%:%
+%:%381=86%:%
+%:%382=86%:%
+%:%383=86%:%
+%:%384=86%:%
+%:%385=86%:%
+%:%386=87%:%
+%:%387=87%:%
+%:%388=87%:%
+%:%389=87%:%
+%:%390=87%:%
+%:%391=88%:%
+%:%392=88%:%
+%:%393=88%:%
+%:%394=88%:%
+%:%395=88%:%
+%:%396=88%:%
+%:%397=89%:%
+%:%403=89%:%
+%:%406=90%:%
+%:%407=91%:%
+%:%408=91%:%
+%:%409=92%:%
+%:%410=93%:%
+%:%413=94%:%
+%:%417=94%:%
+%:%418=94%:%
+%:%419=94%:%
+%:%424=94%:%
+%:%427=95%:%
+%:%428=96%:%
+%:%429=97%:%
+%:%430=97%:%
+%:%431=98%:%
+%:%432=99%:%
+%:%439=100%:%
+%:%440=100%:%
+%:%441=100%:%
+%:%442=101%:%
+%:%443=101%:%
+%:%444=102%:%
+%:%445=102%:%
+%:%446=102%:%
+%:%447=103%:%
+%:%448=104%:%
+%:%449=104%:%
+%:%450=104%:%
+%:%451=105%:%
+%:%452=105%:%
+%:%453=105%:%
+%:%454=105%:%
+%:%455=106%:%
+%:%456=106%:%
+%:%457=107%:%
+%:%458=107%:%
+%:%459=108%:%
+%:%460=108%:%
+%:%461=108%:%
+%:%462=109%:%
+%:%463=109%:%
+%:%464=109%:%
+%:%465=110%:%
+%:%466=110%:%
+%:%467=110%:%
+%:%468=110%:%
+%:%469=111%:%
+%:%470=111%:%
+%:%475=111%:%
+%:%478=112%:%
+%:%479=113%:%
+%:%480=113%:%
+%:%481=114%:%
+%:%482=115%:%
+%:%485=116%:%
+%:%489=116%:%
+%:%490=116%:%
+%:%491=116%:%
+%:%496=116%:%
+%:%499=117%:%
+%:%500=118%:%
+%:%501=118%:%
+%:%502=119%:%
+%:%503=120%:%
+%:%506=121%:%
+%:%510=121%:%
+%:%511=121%:%
+%:%512=121%:%
+%:%517=121%:%
+%:%520=122%:%
+%:%521=123%:%
+%:%522=124%:%
+%:%523=124%:%
+%:%524=125%:%
+%:%525=126%:%
+%:%532=127%:%
+%:%533=127%:%
+%:%534=127%:%
+%:%535=128%:%
+%:%536=128%:%
+%:%537=129%:%
+%:%538=129%:%
+%:%539=129%:%
+%:%540=130%:%
+%:%541=130%:%
+%:%542=130%:%
+%:%543=131%:%
+%:%544=131%:%
+%:%545=131%:%
+%:%546=131%:%
+%:%547=132%:%
+%:%548=132%:%
+%:%553=132%:%
+%:%556=133%:%
+%:%557=134%:%
+%:%558=134%:%
+%:%559=135%:%
+%:%560=136%:%
+%:%563=137%:%
+%:%567=137%:%
+%:%568=137%:%
+%:%569=137%:%
+%:%583=141%:%
+%:%595=143%:%
+%:%597=145%:%
+%:%598=145%:%
+%:%599=146%:%
+%:%600=147%:%
+%:%607=148%:%
+%:%608=148%:%
+%:%609=148%:%
+%:%610=149%:%
+%:%611=149%:%
+%:%612=150%:%
+%:%613=150%:%
+%:%614=150%:%
+%:%615=150%:%
+%:%616=151%:%
+%:%617=151%:%
+%:%618=152%:%
+%:%619=152%:%
+%:%620=153%:%
+%:%621=153%:%
+%:%622=153%:%
+%:%623=154%:%
+%:%624=154%:%
+%:%625=154%:%
+%:%626=155%:%
+%:%627=155%:%
+%:%628=155%:%
+%:%629=155%:%
+%:%630=156%:%
+%:%631=156%:%
+%:%632=157%:%
+%:%633=157%:%
+%:%634=157%:%
+%:%635=157%:%
+%:%636=157%:%
+%:%637=158%:%
+%:%638=158%:%
+%:%639=158%:%
+%:%640=158%:%
+%:%641=159%:%
+%:%642=159%:%
+%:%643=159%:%
+%:%644=160%:%
+%:%645=160%:%
+%:%646=160%:%
+%:%647=161%:%
+%:%648=161%:%
+%:%649=161%:%
+%:%650=161%:%
+%:%651=162%:%
+%:%652=162%:%
+%:%653=162%:%
+%:%654=163%:%
+%:%655=163%:%
+%:%656=164%:%
+%:%657=164%:%
+%:%658=164%:%
+%:%659=165%:%
+%:%660=165%:%
+%:%661=166%:%
+%:%662=166%:%
+%:%663=167%:%
+%:%664=167%:%
+%:%665=167%:%
+%:%666=168%:%
+%:%667=168%:%
+%:%668=169%:%
+%:%669=169%:%
+%:%670=169%:%
+%:%671=170%:%
+%:%672=170%:%
+%:%673=170%:%
+%:%674=171%:%
+%:%675=171%:%
+%:%676=171%:%
+%:%677=171%:%
+%:%678=172%:%
+%:%679=172%:%
+%:%680=173%:%
+%:%681=173%:%
+%:%682=174%:%
+%:%683=174%:%
+%:%684=174%:%
+%:%685=174%:%
+%:%686=175%:%
+%:%687=175%:%
+%:%688=175%:%
+%:%689=176%:%
+%:%690=176%:%
+%:%691=176%:%
+%:%692=177%:%
+%:%693=177%:%
+%:%694=177%:%
+%:%695=178%:%
+%:%696=178%:%
+%:%697=179%:%
+%:%698=179%:%
+%:%699=180%:%
+%:%700=180%:%
+%:%701=180%:%
+%:%702=180%:%
+%:%703=181%:%
+%:%704=181%:%
+%:%705=182%:%
+%:%706=182%:%
+%:%707=182%:%
+%:%708=182%:%
+%:%709=182%:%
+%:%710=183%:%
+%:%716=183%:%
+%:%719=184%:%
+%:%720=185%:%
+%:%721=185%:%
+%:%722=186%:%
+%:%723=187%:%
+%:%730=188%:%
+%:%731=188%:%
+%:%732=189%:%
+%:%733=189%:%
+%:%734=189%:%
+%:%735=190%:%
+%:%736=190%:%
+%:%737=190%:%
+%:%738=190%:%
+%:%739=191%:%
+%:%740=191%:%
+%:%741=191%:%
+%:%742=191%:%
+%:%743=192%:%
+%:%744=192%:%
+%:%745=192%:%
+%:%746=193%:%
+%:%747=193%:%
+%:%748=193%:%
+%:%749=194%:%
+%:%750=194%:%
+%:%751=194%:%
+%:%752=194%:%
+%:%753=194%:%
+%:%754=195%:%
+%:%755=195%:%
+%:%756=195%:%
+%:%757=195%:%
+%:%758=196%:%
+%:%759=196%:%
+%:%760=196%:%
+%:%761=197%:%
+%:%762=197%:%
+%:%763=197%:%
+%:%764=198%:%
+%:%765=198%:%
+%:%766=198%:%
+%:%767=198%:%
+%:%768=199%:%
+%:%769=199%:%
+%:%770=199%:%
+%:%771=199%:%
+%:%772=200%:%
+%:%773=200%:%
+%:%774=200%:%
+%:%775=200%:%
+%:%776=201%:%
+%:%777=201%:%
+%:%778=201%:%
+%:%779=201%:%
+%:%780=201%:%
+%:%781=202%:%
+%:%787=202%:%
+%:%790=203%:%
+%:%791=204%:%
+%:%792=204%:%
+%:%793=205%:%
+%:%794=206%:%
+%:%801=207%:%
+%:%802=207%:%
+%:%803=208%:%
+%:%804=208%:%
+%:%805=208%:%
+%:%806=209%:%
+%:%807=209%:%
+%:%808=209%:%
+%:%809=210%:%
+%:%810=210%:%
+%:%811=210%:%
+%:%812=210%:%
+%:%813=211%:%
+%:%814=211%:%
+%:%815=211%:%
+%:%816=211%:%
+%:%817=211%:%
+%:%818=212%:%
+%:%819=212%:%
+%:%820=212%:%
+%:%821=212%:%
+%:%822=212%:%
+%:%823=213%:%
+%:%824=213%:%
+%:%825=213%:%
+%:%826=213%:%
+%:%827=213%:%
+%:%828=214%:%
+%:%829=214%:%
+%:%830=214%:%
+%:%831=214%:%
+%:%832=214%:%
+%:%833=215%:%
+%:%834=215%:%
+%:%835=215%:%
+%:%836=215%:%
+%:%837=215%:%
+%:%838=216%:%
+%:%844=216%:%
+%:%847=217%:%
+%:%848=218%:%
+%:%849=219%:%
+%:%850=219%:%
+%:%857=220%:%
+%:%858=220%:%
+%:%859=221%:%
+%:%860=221%:%
+%:%861=221%:%
+%:%862=221%:%
+%:%863=222%:%
+%:%864=222%:%
+%:%865=222%:%
+%:%866=222%:%
+%:%867=223%:%
+%:%882=227%:%
+%:%894=229%:%
+%:%895=230%:%
+%:%897=233%:%
+%:%898=233%:%
+%:%905=234%:%
+%:%906=234%:%
+%:%907=235%:%
+%:%908=235%:%
+%:%909=236%:%
+%:%910=236%:%
+%:%911=236%:%
+%:%912=237%:%
+%:%913=237%:%
+%:%914=237%:%
+%:%915=238%:%
+%:%916=238%:%
+%:%917=238%:%
+%:%918=239%:%
+%:%919=239%:%
+%:%920=240%:%
+%:%921=240%:%
+%:%922=240%:%
+%:%923=240%:%
+%:%924=241%:%
+%:%925=241%:%
+%:%930=241%:%
+%:%933=242%:%
+%:%934=243%:%
+%:%935=243%:%
+%:%942=244%:%
+%:%943=244%:%
+%:%944=245%:%
+%:%945=245%:%
+%:%946=246%:%
+%:%947=246%:%
+%:%948=247%:%
+%:%949=247%:%
+%:%950=247%:%
+%:%951=247%:%
+%:%952=247%:%
+%:%953=248%:%
+%:%954=248%:%
+%:%955=248%:%
+%:%956=248%:%
+%:%957=249%:%
+%:%958=249%:%
+%:%959=249%:%
+%:%960=249%:%
+%:%961=250%:%
+%:%962=250%:%
+%:%963=250%:%
+%:%964=251%:%
+%:%965=251%:%
+%:%966=251%:%
+%:%967=252%:%
+%:%968=252%:%
+%:%969=253%:%
+%:%970=253%:%
+%:%971=253%:%
+%:%972=254%:%
+%:%973=254%:%
+%:%974=254%:%
+%:%975=255%:%
+%:%976=255%:%
+%:%977=256%:%
+%:%983=256%:%
+%:%986=257%:%
+%:%987=258%:%
+%:%988=258%:%
+%:%995=259%:%
+%:%996=259%:%
+%:%997=260%:%
+%:%998=260%:%
+%:%999=261%:%
+%:%1000=261%:%
+%:%1001=262%:%
+%:%1002=262%:%
+%:%1003=262%:%
+%:%1004=263%:%
+%:%1005=263%:%
+%:%1006=264%:%
+%:%1007=264%:%
+%:%1008=264%:%
+%:%1009=265%:%
+%:%1010=265%:%
+%:%1011=265%:%
+%:%1012=266%:%
+%:%1013=266%:%
+%:%1014=267%:%
+%:%1015=267%:%
+%:%1016=267%:%
+%:%1017=268%:%
+%:%1018=268%:%
+%:%1019=268%:%
+%:%1020=269%:%
+%:%1021=269%:%
+%:%1022=270%:%
+%:%1028=270%:%
+%:%1031=271%:%
+%:%1032=272%:%
+%:%1033=272%:%
+%:%1034=273%:%
+%:%1041=274%:%
+%:%1042=274%:%
+%:%1043=275%:%
+%:%1044=275%:%
+%:%1045=276%:%
+%:%1046=276%:%
+%:%1047=277%:%
+%:%1048=277%:%
+%:%1049=277%:%
+%:%1050=278%:%
+%:%1051=278%:%
+%:%1052=278%:%
+%:%1053=279%:%
+%:%1054=279%:%
+%:%1055=279%:%
+%:%1056=279%:%
+%:%1057=280%:%
+%:%1058=280%:%
+%:%1059=281%:%
+%:%1060=281%:%
+%:%1061=282%:%
+%:%1062=282%:%
+%:%1063=283%:%
+%:%1064=283%:%
+%:%1065=283%:%
+%:%1066=283%:%
+%:%1067=283%:%
+%:%1068=284%:%
+%:%1069=284%:%
+%:%1070=284%:%
+%:%1071=284%:%
+%:%1072=284%:%
+%:%1073=285%:%
+%:%1074=285%:%
+%:%1075=286%:%
+%:%1076=286%:%
+%:%1077=287%:%
+%:%1078=287%:%
+%:%1079=287%:%
+%:%1080=287%:%
+%:%1081=288%:%
+%:%1082=288%:%
+%:%1083=288%:%
+%:%1084=288%:%
+%:%1085=289%:%
+%:%1086=289%:%
+%:%1087=290%:%
+%:%1093=290%:%
+%:%1096=291%:%
+%:%1097=292%:%
+%:%1098=292%:%
+%:%1105=293%:%
+%:%1106=293%:%
+%:%1107=294%:%
+%:%1108=294%:%
+%:%1109=294%:%
+%:%1110=294%:%
+%:%1111=295%:%
+%:%1112=295%:%
+%:%1113=296%:%
+%:%1114=296%:%
+%:%1115=296%:%
+%:%1116=297%:%
+%:%1117=297%:%
+%:%1118=297%:%
+%:%1119=298%:%
+%:%1120=298%:%
+%:%1121=298%:%
+%:%1122=299%:%
+%:%1123=299%:%
+%:%1124=300%:%
+%:%1125=300%:%
+%:%1126=300%:%
+%:%1127=300%:%
+%:%1128=300%:%
+%:%1129=301%:%
+%:%1135=301%:%
+%:%1138=302%:%
+%:%1139=303%:%
+%:%1140=303%:%
+%:%1147=304%:%
+%:%1148=304%:%
+%:%1149=305%:%
+%:%1150=305%:%
+%:%1151=306%:%
+%:%1152=306%:%
+%:%1153=306%:%
+%:%1154=307%:%
+%:%1155=307%:%
+%:%1156=308%:%
+%:%1157=308%:%
+%:%1158=309%:%
+%:%1159=309%:%
+%:%1160=310%:%
+%:%1175=314%:%
+%:%1185=316%:%
+%:%1186=316%:%
+%:%1187=317%:%
+%:%1188=318%:%
+%:%1195=319%:%
+%:%1196=319%:%
+%:%1197=319%:%
+%:%1198=320%:%
+%:%1199=320%:%
+%:%1200=321%:%
+%:%1201=321%:%
+%:%1202=322%:%
+%:%1203=322%:%
+%:%1204=323%:%
+%:%1205=323%:%
+%:%1206=324%:%
+%:%1207=324%:%
+%:%1208=324%:%
+%:%1209=324%:%
+%:%1210=325%:%
+%:%1211=325%:%
+%:%1212=326%:%
+%:%1213=326%:%
+%:%1214=327%:%
+%:%1215=327%:%
+%:%1216=327%:%
+%:%1217=328%:%
+%:%1218=328%:%
+%:%1219=328%:%
+%:%1220=328%:%
+%:%1221=329%:%
+%:%1222=329%:%
+%:%1223=330%:%
+%:%1224=330%:%
+%:%1225=331%:%
+%:%1226=331%:%
+%:%1227=332%:%
+%:%1228=332%:%
+%:%1229=332%:%
+%:%1230=332%:%
+%:%1231=333%:%
+%:%1232=333%:%
+%:%1233=333%:%
+%:%1234=333%:%
+%:%1235=334%:%
+%:%1236=334%:%
+%:%1237=335%:%
+%:%1238=335%:%
+%:%1239=336%:%
+%:%1240=336%:%
+%:%1241=336%:%
+%:%1242=337%:%
+%:%1243=338%:%
+%:%1244=338%:%
+%:%1245=339%:%
+%:%1246=339%:%
+%:%1247=339%:%
+%:%1248=339%:%
+%:%1249=340%:%
+%:%1250=340%:%
+%:%1251=341%:%
+%:%1252=341%:%
+%:%1253=342%:%
+%:%1254=342%:%
+%:%1255=342%:%
+%:%1256=343%:%
+%:%1257=344%:%
+%:%1258=344%:%
+%:%1259=345%:%
+%:%1260=345%:%
+%:%1261=345%:%
+%:%1262=346%:%
+%:%1263=346%:%
+%:%1264=347%:%
+%:%1265=347%:%
+%:%1266=347%:%
+%:%1267=348%:%
+%:%1268=348%:%
+%:%1269=349%:%
+%:%1270=349%:%
+%:%1271=349%:%
+%:%1272=349%:%
+%:%1273=350%:%
+%:%1274=350%:%
+%:%1275=351%:%
+%:%1276=351%:%
+%:%1277=352%:%
+%:%1278=352%:%
+%:%1279=352%:%
+%:%1280=353%:%
+%:%1281=353%:%
+%:%1282=353%:%
+%:%1283=354%:%
+%:%1284=354%:%
+%:%1285=354%:%
+%:%1286=354%:%
+%:%1287=355%:%
+%:%1288=355%:%
+%:%1289=356%:%
+%:%1290=356%:%
+%:%1291=356%:%
+%:%1292=356%:%
+%:%1293=357%:%
+%:%1303=359%:%
+%:%1305=361%:%
+%:%1306=361%:%
+%:%1307=362%:%
+%:%1308=363%:%
+%:%1315=364%:%
+%:%1316=364%:%
+%:%1317=365%:%
+%:%1318=365%:%
+%:%1319=366%:%
+%:%1320=366%:%
+%:%1321=366%:%
+%:%1322=366%:%
+%:%1323=367%:%
+%:%1324=367%:%
+%:%1325=367%:%
+%:%1326=368%:%
+%:%1327=368%:%
+%:%1328=368%:%
+%:%1329=368%:%
+%:%1330=369%:%
+%:%1331=369%:%
+%:%1332=369%:%
+%:%1333=369%:%
+%:%1334=369%:%
+%:%1335=370%:%
+%:%1336=370%:%
+%:%1337=370%:%
+%:%1338=370%:%
+%:%1339=371%:%
+%:%1354=374%:%
+%:%1364=376%:%
+%:%1365=376%:%
+%:%1366=377%:%
+%:%1367=378%:%
+%:%1374=379%:%
+%:%1375=379%:%
+%:%1376=379%:%
+%:%1377=380%:%
+%:%1378=380%:%
+%:%1379=381%:%
+%:%1380=381%:%
+%:%1381=381%:%
+%:%1382=381%:%
+%:%1383=382%:%
+%:%1384=382%:%
+%:%1385=383%:%
+%:%1386=383%:%
+%:%1387=384%:%
+%:%1388=384%:%
+%:%1389=384%:%
+%:%1390=385%:%
+%:%1391=385%:%
+%:%1392=386%:%
+%:%1393=386%:%
+%:%1394=386%:%
+%:%1395=386%:%
+%:%1396=387%:%
+%:%1397=387%:%
+%:%1398=388%:%
+%:%1399=388%:%
+%:%1400=388%:%
+%:%1401=388%:%
+%:%1402=388%:%
+%:%1403=389%:%
+%:%1404=389%:%
+%:%1405=389%:%
+%:%1406=389%:%
+%:%1407=390%:%
+%:%1413=390%:%
+%:%1416=391%:%
+%:%1417=392%:%
+%:%1418=392%:%
+%:%1419=393%:%
+%:%1420=394%:%
+%:%1427=395%:%
+%:%1428=395%:%
+%:%1429=396%:%
+%:%1430=396%:%
+%:%1431=397%:%
+%:%1432=397%:%
+%:%1433=398%:%
+%:%1434=398%:%
+%:%1435=398%:%
+%:%1436=399%:%
+%:%1437=399%:%
+%:%1438=399%:%
+%:%1439=400%:%
+%:%1440=400%:%
+%:%1441=400%:%
+%:%1442=400%:%
+%:%1443=401%:%
+%:%1444=401%:%
+%:%1445=401%:%
+%:%1446=401%:%
+%:%1447=401%:%
+%:%1448=402%:%
+%:%1463=405%:%
+%:%1475=407%:%
+%:%1476=408%:%
+%:%1478=410%:%
+%:%1479=410%:%
+%:%1480=411%:%
+%:%1481=412%:%
+%:%1482=413%:%
+%:%1483=413%:%
+%:%1490=414%:%
+%:%1491=414%:%
+%:%1492=415%:%
+%:%1493=415%:%
+%:%1494=416%:%
+%:%1495=416%:%
+%:%1496=417%:%
+%:%1497=417%:%
+%:%1498=417%:%
+%:%1499=418%:%
+%:%1500=418%:%
+%:%1501=419%:%
+%:%1502=419%:%
+%:%1503=420%:%
+%:%1504=420%:%
+%:%1505=421%:%
+%:%1506=421%:%
+%:%1507=422%:%
+%:%1508=422%:%
+%:%1509=422%:%
+%:%1510=423%:%
+%:%1511=423%:%
+%:%1512=423%:%
+%:%1513=424%:%
+%:%1514=424%:%
+%:%1515=424%:%
+%:%1516=425%:%
+%:%1517=425%:%
+%:%1518=425%:%
+%:%1519=426%:%
+%:%1520=426%:%
+%:%1521=426%:%
+%:%1522=426%:%
+%:%1523=426%:%
+%:%1524=427%:%
+%:%1525=427%:%
+%:%1526=427%:%
+%:%1527=427%:%
+%:%1528=427%:%
+%:%1529=428%:%
+%:%1530=428%:%
+%:%1531=429%:%
+%:%1537=429%:%
+%:%1540=430%:%
+%:%1541=431%:%
+%:%1542=431%:%
+%:%1543=432%:%
+%:%1544=433%:%
+%:%1551=434%:%
+%:%1552=434%:%
+%:%1553=435%:%
+%:%1554=435%:%
+%:%1555=436%:%
+%:%1556=436%:%
+%:%1557=437%:%
+%:%1558=437%:%
+%:%1559=437%:%
+%:%1560=438%:%
+%:%1561=438%:%
+%:%1562=438%:%
+%:%1563=439%:%
+%:%1564=439%:%
+%:%1565=439%:%
+%:%1566=439%:%
+%:%1567=439%:%
+%:%1568=440%:%
+%:%1569=440%:%
+%:%1570=440%:%
+%:%1571=441%:%
+%:%1572=441%:%
+%:%1573=441%:%
+%:%1574=442%:%
+%:%1575=442%:%
+%:%1576=442%:%
+%:%1577=442%:%
+%:%1578=443%:%
+%:%1579=443%:%
+%:%1580=443%:%
+%:%1581=443%:%
+%:%1582=443%:%
+%:%1583=444%:%
+%:%1584=444%:%
+%:%1585=444%:%
+%:%1586=444%:%
+%:%1587=445%:%
+%:%1588=445%:%
+%:%1589=445%:%
+%:%1590=445%:%
+%:%1591=445%:%
+%:%1592=446%:%
+%:%1598=446%:%
+%:%1603=447%:%
+%:%1608=448%:%

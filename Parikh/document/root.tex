@@ -1,0 +1,36 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{isabelle,isabellesym}
+
+% this should be the last package used
+\usepackage{pdfsetup}
+
+% urls in roman style, theory text in math-similar italics
+\urlstyle{rm}
+\isabellestyle{it}
+
+
+\begin{document}
+
+\title{Parikh's theorem}
+\author{Fabian Lehr}
+\maketitle
+
+\begin{abstract}
+  This library introduces Parikh images of formal languages and
+  proves Parikh's theorem. The proof closely follows Pilling's proof \cite{Pilling}:
+  It describes a context free grammar as a system of equations and
+  shows that there exists a minimal solution to this system which is
+  regular. Thus, this regular solution and the context free language
+  accepted by the grammar have the same Parikh image.
+\end{abstract}
+
+\tableofcontents
+
+% include generated text of all theories
+\input{session}
+
+\bibliographystyle{abbrv}
+\bibliography{root}
+
+\end{document}

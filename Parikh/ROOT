@@ -1,0 +1,12 @@
+(* Session name, list base session: *)
+session "Parikh" = CFG +
+  options [document = pdf, document_output = "output"]
+
+(* The top-level theories of the submission: *)
+  theories
+    Pilling
+
+(* Dependencies on document source files: *)
+  document_files
+    "root.bib"
+    "root.tex"

@@ -6,7 +6,7 @@ theory Pilling
 begin
 
 
-text \<open>We prove Parikh's theorem, closely following Pilling's proof (TODO: citation). The rough
+text \<open>We prove Parikh's theorem, closely following Pilling's proof \<^cite>\<open>Pilling\<close>. The rough
 idea is as follows: As seen above, each CFG can be interpreted as a system of equations of the first type
 and we can easily convert it into a system of the second type by applying the Parikh image on both sides
 of each equation. Pilling now shows that there is a regular solution to this system  and that this
@@ -17,7 +17,7 @@ the Parikh image of the CFG's language and the regular solution must be identica
 subsection \<open>Special representation of regular language expressions\<close>
 
 text \<open>To each regular language expression and variable \<open>x\<close> corresponds a second regular language
-expression with the same Parikh image and of the form depicted in equation (3) in TODO: citation.
+expression with the same Parikh image and of the form depicted in equation (3) in \<^cite>\<open>Pilling\<close>.
 We call regular language expressions of this form "bipartite regular
 language expressions" since they decompose into two subexpressions where one of them contains the
 variable \<open>x\<close> and the other one does not:\<close>

@@ -140,7 +140,7 @@ lemma rlexp_mono_parikh_eq:
 
 subsection \<open>\<^latex>\<open>$\Psi \; (A \cup B)^* = \Psi \; A^* B^*$\<close>\<close>
 
-text \<open>This property is claimed by Pilling in (TODO: citation) and will be needed in the rest of the proof.\<close>
+text \<open>This property is claimed by Pilling in \<^cite>\<open>Pilling\<close> and will be needed later.\<close>
 
 lemma parikh_img_union_pow_aux1:
   assumes "v \<in> \<Psi> ((A \<union> B) ^^ n)"
@@ -230,7 +230,7 @@ qed
 subsection \<open>\<^latex>\<open>$\Psi \; (E^* F)^* = \Psi \; \left(\{\varepsilon\} \cup E^* F^* F\right)$\<close>\<close>
 
 text \<open>This property (where \<^latex>\<open>$\varepsilon$\<close> denotes the empty word) is claimed by
-Pilling as well (TODO: citation); we will need it later.\<close>
+Pilling as well \<^cite>\<open>Pilling\<close>; we will use it later.\<close>
 
 (* It even holds = but \<subseteq> suffices for the proof *)
 lemma parikh_img_conc_pow: "\<Psi> ((A @@ B) ^^ n) \<subseteq> \<Psi> (A ^^ n @@ B ^^ n)"

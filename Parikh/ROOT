@@ -1,6 +1,10 @@
 (* Session name, list base session: *)
-session "Parikh" = CFG +
+session "Parikh" = Context_Free_Grammar +
   options [document = pdf, document_output = "output"]
+
+  sessions
+    "HOL-Library"
+    "Regular-Sets"
 
 (* The top-level theories of the submission: *)
   theories

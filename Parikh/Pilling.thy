@@ -248,21 +248,8 @@ proof -
   let ?upd = "Var(x := p)"
   let ?subst_q = "subst ?upd q"
   from x_not_in_p have vars_p: "vars p \<subseteq> vars eq - {x}" by fastforce
-  have "vars ?subst_q \<subseteq> vars eq - {x}"
-  proof
-    fix y
-    assume y_in_subst_q: "y \<in> vars ?subst_q"
-    with vars_subst obtain y' where y'_in_q: "y' \<in> vars q" and y_in_y': "y \<in> vars (?upd y')"
-      unfolding fun_upd_def by force
-    show "y \<in> vars eq - {x}"
-    proof (cases "y' = x")
-      case True
-      with y_in_y' x_not_in_p show ?thesis by auto
-    next
-      case False
-      with y'_in_q y_in_y' show ?thesis by simp
-    qed
-  qed
+  moreover have "vars p \<union> vars q \<subseteq> vars eq" by auto
+  ultimately have "vars ?subst_q \<subseteq> vars eq - {x}" using vars_subst_upd_upper by blast
   with x_not_in_p show ?thesis by auto
 qed
 
@@ -293,7 +280,7 @@ unfolding partial_sol_ineq_def proof (rule allI, rule impI)
   finally have *: "\<Psi> (eval ?eq_subst v) \<subseteq> \<Psi> (v x)" using x_is_sol by simp
   from x_is_sol have "v = v(x := eval sol v)" using fun_upd_triv by metis
   then have "eval eq v = eval (subst (Var(x := sol)) eq) v"
-    using substitution_lemma_update[where f=eq] by presburger
+    using substitution_lemma_upd[where f=eq] by presburger
   with * show "solves_ineq_comm x eq v" unfolding solves_ineq_comm_def by argo
 qed
 
@@ -396,7 +383,7 @@ unfolding solution_ineq_sys_def proof (rule allI, rule impI)
   assume s_sols': "\<forall>x. v x = eval (sols' x) v"
   from sols'_r s_sols' have s_r_sol_r: "v r = eval sol_r v" by simp
   with s_sols' have s_sols: "v x = eval (sols x) v" for x
-    using substitution_lemma_update[where f="sols x"] by (auto simp add: fun_upd_idem)
+    using substitution_lemma_upd[where f="sols x"] by (auto simp add: fun_upd_idem)
   with sols_is_sol have solves_r_sys: "solves_ineq_sys_comm (take r sys) v"
     unfolding partial_min_sol_ineq_sys_def solution_ineq_sys_def by meson
   have "eval (sys ! r) (\<lambda>y. eval (sols y) v) = eval (sys' ! r) v"
@@ -431,7 +418,7 @@ proof (rule allI | rule impI)+
   let ?v' = "v2(r := eval sol_r v2)"
   from sol_r_min have "\<Psi> (?v' i) \<subseteq> \<Psi> (v2 i)" for i by simp
   with sols_s2 show "\<Psi> (eval (sols' i) v2) \<subseteq> \<Psi> (v2 i)"
-    using substitution_lemma_update[where f="sols i"] rlexp_mono_parikh[of "sols i" ?v' v2] by force
+    using substitution_lemma_upd[where f="sols i"] rlexp_mono_parikh[of "sols i" ?v' v2] by force
 qed
 
 lemma sols'_vars_gt_r: "\<forall>i \<ge> Suc r. sols' i = Var i"

@@ -25,14 +25,6 @@ lemma parikh_img_Un [simp]: "\<Psi> (L1 \<union> L2) = \<Psi> L1 \<union> \<Psi>
 lemma parikh_img_UNION: "\<Psi> (\<Union>(L ` I)) = \<Union> ((\<lambda>i. \<Psi> (L i)) ` I)"
   by (auto simp add: parikh_img_def)
 
-lemma parikh_img_Star_pow:
-  assumes "m \<in> \<Psi> (eval (Star f) v)"
-  shows   "\<exists>n. m \<in> \<Psi> (eval f v ^^ n)"
-proof -
-  from assms have "m \<in> \<Psi> (star (eval f v))" by simp
-  then show ?thesis unfolding star_def by (simp add: parikh_img_UNION)
-qed
-
 lemma parikh_img_conc: "\<Psi> (L1 @@ L2) = { m1 + m2 | m1 m2. m1 \<in> \<Psi> L1 \<and> m2 \<in> \<Psi> L2 }"
   unfolding parikh_img_def by force
 
@@ -50,9 +42,6 @@ subsection \<open>Monotonicity properties\<close>
 
 lemma parikh_img_mono: "A \<subseteq> B \<Longrightarrow> \<Psi> A \<subseteq> \<Psi> B"
   unfolding parikh_img_def by fast
-
-lemma parikh_img_mono_eq: "A = B \<Longrightarrow> \<Psi> A = \<Psi> B"
-  using parikh_img_mono by blast
 
 lemma parikh_conc_right_subset: "\<Psi> A \<subseteq> \<Psi> B \<Longrightarrow> \<Psi> (A @@ C) \<subseteq> \<Psi> (B @@ C)"
   by (auto simp add: parikh_img_conc)
@@ -115,12 +104,6 @@ lemma parikh_img_subst_mono_upd:
   assumes "\<Psi> (eval A v) \<subseteq> \<Psi> (eval B v)"
   shows "\<Psi> (eval (subst (Var(x := A)) f) v) \<subseteq> \<Psi> (eval (subst (Var(x := B)) f) v)"
   using parikh_img_subst_mono[of "Var(x := A)" v "Var(x := B)"] assms by auto
-
-lemma parikh_img_subst_mono_eq:
-  assumes "\<forall>i. \<Psi> (eval (A i) v) = \<Psi> (eval (B i) v)"
-  shows "\<Psi> (eval (subst (\<lambda>i. A i) f) v) = \<Psi> (eval (subst (\<lambda>i. B i) f) v)"
-  using parikh_img_subst_mono assms by blast
-
 
 lemma rlexp_mono_parikh:
   assumes "\<forall>i \<in> vars f. \<Psi> (v i) \<subseteq> \<Psi> (v' i)"
@@ -363,7 +346,7 @@ lemma rlexp_homogeneous:  "\<Psi> (eval (subst (Var(x := Concat (Star y) z)) f) 
                           (is "\<Psi> ?L \<subseteq> \<Psi> ?R")
 proof -
   let ?v' = "v(x := star (eval y v) @@ eval z v)"
-  have "\<Psi> ?L = \<Psi> (eval f ?v')" using substitution_lemma_update[where f=f] by simp
+  have "\<Psi> ?L = \<Psi> (eval f ?v')" using substitution_lemma_upd[where f=f] by simp
   also have "\<dots> \<subseteq> \<Psi> (star (eval y v) @@ eval f (?v'(x := eval z v)))"
     using rlexp_homogeneous_aux[of ?v'] unfolding fun_upd_def by auto
   also have "\<dots> = \<Psi> ?R" using substitution_lemma[of "v(x := eval z v)"] by simp

@@ -53,7 +53,7 @@ lemma substitution_lemma:
   shows "eval (subst upd f) v = eval f v'"
   by (induction f rule: rlexp.induct) (use assms in auto)
 
-lemma substitution_lemma_update:
+lemma substitution_lemma_upd:
   "eval (subst (Var(x := f')) f) v = eval f (v(x := eval f' v))"
   using substitution_lemma[of "v(x := eval f' v)"] by force
 
@@ -62,9 +62,6 @@ lemma subst_id: "eval (subst Var f) v = eval f v"
 
 lemma vars_subst: "vars (subst upd f) = (\<Union>x \<in> vars f. vars (upd x))"
   by (induction f) auto
-
-lemma vars_subst_upper: "vars (subst upd f) \<subseteq> (\<Union>x. vars (upd x))"
-  using vars_subst by force
 
 lemma vars_subst_upd_upper: "vars (subst (Var(x := fx)) f) \<subseteq> vars f - {x} \<union> vars fx"
 proof
@@ -75,28 +72,6 @@ proof
   then show "y \<in> vars f - {x} \<union> vars fx" by (cases "x = y'") auto
 qed
 
-lemma vars_subst_upd_aux:
-  assumes "x \<in> vars f"
-  shows   "vars f - {x} \<union> vars fx \<subseteq> vars (subst (Var(x := fx)) f)"
-proof
-  fix y
-  let ?upd = "Var(x := fx)"
-  assume as: "y \<in> vars f - {x} \<union> vars fx"
-  then show "y \<in> vars (subst ?upd f)"
-  proof (cases "y \<in> vars f - {x}")
-    case True
-    then show ?thesis using vars_subst by fastforce
-  next
-    case False
-    with as have "y \<in> vars fx" by blast
-    with assms show ?thesis using vars_subst by fastforce
-  qed
-qed
-
-lemma vars_subst_upd:
-  assumes "x \<in> vars f"
-  shows   "vars (subst (Var(x := fx)) f) = vars f - {x} \<union> vars fx"
-  using assms vars_subst_upd_upper vars_subst_upd_aux by blast
 
 lemma eval_vars:
   assumes "\<forall>i \<in> vars f. s i = s' i"
@@ -118,10 +93,8 @@ proof -
 qed
 
 
-
-subsection \<open>Monotonicity\<close>
-
-lemma rlexp_mono_aux:
+text \<open>\<^term>\<open>eval f\<close> is monotone:\<close>
+lemma rlexp_mono:
   assumes "\<forall>i \<in> vars f. v i \<subseteq> v' i"
   shows "eval f v \<subseteq> eval f v'"
 using assms proof (induction f rule: rlexp.induct)
@@ -129,11 +102,6 @@ using assms proof (induction f rule: rlexp.induct)
   then show ?case
     by (smt (verit, best) eval.simps(5) in_star_iff_concat order_trans subsetI vars.simps(5))
 qed fastforce+
-
-lemma rlexp_mono:
-  fixes f :: "'a rlexp"
-  shows "mono (eval f)"
-  using rlexp_mono_aux by (metis le_funD monoI)
 
 
 
@@ -153,7 +121,7 @@ proof -
   from assms(2) obtain n where n_intro: "w \<in> eval f (v n)" by auto
   have "v n x \<subseteq> (\<Union>i. v i x)" for x by auto
   with n_intro show "?thesis"
-    using rlexp_mono_aux[where v="v n" and v'="\<lambda>x. \<Union>i. v i x"] by auto
+    using rlexp_mono[where v="v n" and v'="\<lambda>x. \<Union>i. v i x"] by auto
 qed
 
 lemma langpow_Union_eval:
@@ -170,9 +138,9 @@ next
   with Suc have "u \<in> (\<Union>i. eval f (v i)) \<and> u' \<in> (\<Union>i. eval f (v i) ^^ n)" by auto
   then obtain i j where i_intro: "u \<in> eval f (v i)" and j_intro: "u' \<in> eval f (v j) ^^ n" by blast
   let ?m = "max i j"
-  from i_intro Suc.prems(1) assms(1) rlexp_mono_aux have 1: "u \<in> eval f (v ?m)"
+  from i_intro Suc.prems(1) assms(1) rlexp_mono have 1: "u \<in> eval f (v ?m)"
     by (metis le_fun_def lift_Suc_mono_le max.cobounded1 subset_eq)
-  from Suc.prems(1) assms (1) rlexp_mono_aux have "eval f (v j) \<subseteq> eval f (v ?m)"
+  from Suc.prems(1) assms (1) rlexp_mono have "eval f (v j) \<subseteq> eval f (v ?m)"
     by (metis le_fun_def lift_Suc_mono_le max.cobounded2)
   with j_intro langpow_mono have 2: "u' \<in> eval f (v ?m) ^^ n" by auto
   from 1 2 show ?case using w_decomp by auto
@@ -189,9 +157,9 @@ using assms(2) proof (induction f arbitrary: w rule: rlexp.induct)
   with Concat have "u \<in> (\<Union>i. eval f (v i)) \<and> u' \<in> (\<Union>i. eval g (v i))" by auto
   then obtain i j where i_intro: "u \<in> eval f (v i)" and j_intro: "u' \<in> eval g (v j)" by blast
   let ?m = "max i j"
-  from i_intro Concat.prems(1) assms(1) rlexp_mono_aux have "u \<in> eval f (v ?m)"
+  from i_intro Concat.prems(1) assms(1) rlexp_mono have "u \<in> eval f (v ?m)"
     by (metis le_fun_def lift_Suc_mono_le max.cobounded1 subset_eq)
-  moreover from j_intro Concat.prems(1) assms(1) rlexp_mono_aux have "u' \<in> eval g (v ?m)"
+  moreover from j_intro Concat.prems(1) assms(1) rlexp_mono have "u' \<in> eval g (v ?m)"
     by (metis le_fun_def lift_Suc_mono_le max.cobounded2 subset_eq)
   ultimately show ?case using w_decomp by auto
 next
@@ -203,6 +171,9 @@ next
   then show ?case by (auto simp add: star_def)
 qed fastforce+
 
+text \<open>Now we prove that \<^term>\<open>eval f\<close> is continuous. This result is not needed in the further
+proof, but it is interesting anyway:\<close>
+(* currently unused *)
 lemma rlexp_cont:
   assumes "\<forall>i. v i \<le> v (Suc i)"
   shows "eval f (\<lambda>x. \<Union>i. v i x) = (\<Union>i. eval f (v i))"

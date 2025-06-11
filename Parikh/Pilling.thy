@@ -2,7 +2,7 @@ section \<open>Pilling's proof of Parikh's theorem\<close>
 
 theory Pilling
   imports 
-    Reg_Lang_Exp_Eqns
+    "Reg_Lang_Exp_Eqns"
 begin
 
 

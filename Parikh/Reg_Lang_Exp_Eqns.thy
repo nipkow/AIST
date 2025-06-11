@@ -14,9 +14,9 @@ of the types - and that the language defined by the CFG is a minimal solution of
 subsection \<open>Introduction of systems of equations\<close>
 
 text \<open>For the first type of systems, each equation is of the form
-\<^latex>\<open>$$X_i \supseteq r_i$$\<close>
+\[X_i \supseteq r_i\]
 For the second type of systems, each equation is of the form
-\<^latex>\<open>$$\Psi \; X_i \supseteq \Psi \; r_i$$\<close>
+\[\Psi \; X_i \supseteq \Psi \; r_i\]
 i.e.\ the Parikh image is applied on both sides of each equation.
 In both cases, we represent the whole system by a list of regular language expression where each
 of the variables \<open>X\<^sub>0, X\<^sub>1, \<dots>\<close> is identified by its integer, i.e.\ \<^term>\<open>Var i\<close> denotes the variable
@@ -76,12 +76,13 @@ definition solution_ineq_sys :: "'a eq_sys \<Rightarrow> (nat \<Rightarrow> 'a r
 
 text \<open>Given the \<open>x\<close>-th equation \<open>eq\<close>, \<open>sol\<close> is a minimal partial solution of this equation if and
 only if
-\<^latex>\<open>\begin{enumerate}
-\item \textit{sol} is a partial solution of \textit{eq}
-\item \textit{sol} is a proper partial solution (i.e.\ it does not depend on \textit{x}) and only
-  depends on variables occurring in the equation \textit{eq}
-\item no partial solution of the equation \textit{eq} is smaller than \textit{sol}
-\end{enumerate}\<close>\<close>
+\begin{enumerate}
+  \item \<open>sol\<close> is a partial solution of \<open>eq\<close>
+  \item \<open>sol\<close> is a proper partial solution (i.e.\ it does not depend on \<open>x\<close>) and only
+    depends on variables occurring in the equation \<open>eq\<close>
+  \item no partial solution of the equation \<open>eq\<close> is smaller than \<open>sol\<close>
+\end{enumerate}
+\<close>
 definition partial_min_sol_one_ineq :: "nat \<Rightarrow> 'a rlexp \<Rightarrow> 'a rlexp \<Rightarrow> bool" where
   "partial_min_sol_one_ineq x eq sol \<equiv>
     partial_sol_ineq x eq sol \<and>
@@ -90,7 +91,7 @@ definition partial_min_sol_one_ineq :: "nat \<Rightarrow> 'a rlexp \<Rightarrow>
                \<longrightarrow> \<Psi> (eval sol v') \<subseteq> \<Psi> (v' x))"
 
 text \<open>Given a whole system of equations \<open>sys\<close>, we can generalize the previous definition such that
-\<open>sols\<close> is a minimal solution (possibly dependent on the variables \<^latex>\<open>$X_n, X_{n+1}, \dots$\<close>) of
+\<open>sols\<close> is a minimal solution (possibly dependent on the variables $X_n, X_{n+1}, \dots$) of
 the first \<open>n\<close> equations. Besides the three conditions described above, we introduce a forth
 condition: \<open>sols i = Var i\<close> for \<open>i \<ge> n\<close>, i.e.\ \<open>sols\<close> assigns only spurious solutions to the
 equations which are not yet solved:\<close>

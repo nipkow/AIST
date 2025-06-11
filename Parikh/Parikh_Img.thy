@@ -139,7 +139,7 @@ lemma rlexp_mono_parikh_eq:
 
 
 
-subsection \<open>\<^latex>\<open>$\Psi \; (A \cup B)^* = \Psi \; A^* B^*$\<close>\<close>
+subsection \<open>$\Psi \; (A \cup B)^* = \Psi \; A^* B^*$\<close>
 
 text \<open>This property is claimed by Pilling in \<^cite>\<open>Pilling\<close> and will be needed later.\<close>
 
@@ -224,9 +224,9 @@ qed
 
 
 
-subsection \<open>\<^latex>\<open>$\Psi \; (E^* F)^* = \Psi \; \left(\{\varepsilon\} \cup E^* F^* F\right)$\<close>\<close>
+subsection \<open>$\Psi \; (E^* F)^* = \Psi \; \left(\{\varepsilon\} \cup E^* F^* F\right)$\<close>
 
-text \<open>This property (where \<^latex>\<open>$\varepsilon$\<close> denotes the empty word) is claimed by
+text \<open>This property (where $\varepsilon$ denotes the empty word) is claimed by
 Pilling as well \<^cite>\<open>Pilling\<close>; we will use it later.\<close>
 
 (* It even holds = but \<subseteq> suffices for the proof *)

@@ -13,7 +13,10 @@ image on both sides of each equation. Pilling now shows that there is a regular 
 system and that this solution is furthermore minimal.
 Using the relations explored in the last section we prove that the CFG's language is a minimal
 solution of the same sytem and hence that the Parikh image of the CFG's language and of the regular
-solution must be identical; this proves Parikh's theorem.\<close>
+solution must be identical; this finishes the proof of Parikh's theorem.
+
+Notably, while in \<^cite>\<open>Pilling\<close> Pilling proves an auxiliary lemma first and applies this lemma in
+the proof of the main theorem, we were able to complete the whole proof without using the lemma.\<close>
 
 
 subsection \<open>Special representation of regular language expressions\<close>

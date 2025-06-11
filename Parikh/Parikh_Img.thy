@@ -339,8 +339,9 @@ next
   finally show ?case by (metis eval.simps(5))
 qed
 
-text \<open>Now we can prove the desired homogeneous-like property which will become useful later:\<close>
-(* Pilling even claims =, but \<supseteq> does not hold in my opinion and \<subseteq> suffices for the remaining proof anyway *)
+text \<open>Now we can prove the desired homogeneous-like property which will become useful later.
+Notably this property slightly differs from the property claimed in \<^cite>\<open>Pilling\<close>. However, our
+property is easier to prove formally and it suffices for the rest of the proof.\<close>
 lemma rlexp_homogeneous:  "\<Psi> (eval (subst (Var(x := Concat (Star y) z)) f) v)
                           \<subseteq> \<Psi> (eval (Concat (Star y) (subst (Var(x := z)) f)) v)"
                           (is "\<Psi> ?L \<subseteq> \<Psi> ?R")

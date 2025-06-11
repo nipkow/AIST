@@ -1,6 +1,6 @@
 section \<open>Context free grammars and systems of equations\<close>
 
-theory Eq_Sys
+theory Reg_Lang_Exp_Eqns
   imports
     "Parikh_Img"
     "Context_Free_Grammar.Context_Free_Language"

@@ -216,7 +216,6 @@ proof -
   with w_intro show ?thesis unfolding parikh_img_def by auto
 qed
 
-
 lemma parikh_img_star: "\<Psi> (star (A \<union> B)) = \<Psi> (star A @@ star B)"
 proof
   show "\<Psi> (star (A \<union> B)) \<subseteq> \<Psi> (star A @@ star B)" using parikh_img_star_aux1 by auto

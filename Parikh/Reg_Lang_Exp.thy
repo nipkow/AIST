@@ -2,7 +2,6 @@ section \<open>Regular language expressions\<close>
 
 theory Reg_Lang_Exp
   imports 
-    "Regular-Sets.Regular_Set"
     "Regular-Sets.Regular_Exp"
 begin
 

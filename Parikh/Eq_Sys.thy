@@ -17,16 +17,16 @@ text \<open>For the first type of systems, each equation is of the form
 \<^latex>\<open>$$X_i \supseteq r_i$$\<close>
 For the second type of systems, each equation is of the form
 \<^latex>\<open>$$\Psi \; X_i \supseteq \Psi \; r_i$$\<close>
-i.e. the Parikh image is applied on both sides of each equation.
+i.e.\ the Parikh image is applied on both sides of each equation.
 In both cases, we represent the whole system by a list of regular language expression where each
-of the variables \<open>X\<^sub>0, X\<^sub>1, \<dots>\<close> is identified by its integer, i.e. \<^term>\<open>Var i\<close> denotes the variable
+of the variables \<open>X\<^sub>0, X\<^sub>1, \<dots>\<close> is identified by its integer, i.e.\ \<^term>\<open>Var i\<close> denotes the variable
 \<open>X\<^sub>i\<close>. The \<open>i\<close>-th item of the list then represents the right-hand side \<open>r\<^sub>i\<close> of the \<open>i\<close>-th equation:\<close>
 
 type_synonym 'a eq_sys = "'a rlexp list"
 
 
 text \<open>Now we can define what it means for a valuation \<open>v\<close> to solve a system of equations of the
-first type, i.e. a system without Parikh images. Afterwards we characterize minimal solutions of
+first type, i.e.\ a system without Parikh images. Afterwards we characterize minimal solutions of
 such a system.\<close>
 definition solves_ineq_sys :: "'a eq_sys \<Rightarrow> 'a valuation \<Rightarrow> bool" where
   "solves_ineq_sys sys v \<equiv> \<forall>i < length sys. eval (sys ! i) v \<subseteq> v i"
@@ -61,7 +61,7 @@ lemma subst_sys_subst:
 
 subsection \<open>Partial solutions of systems of equations\<close>
 
-text \<open>We introduce partial solutions, i.e. solutions which might depend on one or multiple
+text \<open>We introduce partial solutions, i.e.\ solutions which might depend on one or multiple
 variables. They are therefore not represented as languages, but as regular language expressions.
 \<open>sol\<close> is a partial solution of the \<open>x\<close>-th equation if and only if it solves the equation
 independently on the values of the other variables:\<close>
@@ -78,7 +78,7 @@ text \<open>Given the \<open>x\<close>-th equation \<open>eq\<close>, \<open>sol
 only if
 \<^latex>\<open>\begin{enumerate}
 \item \textit{sol} is a partial solution of \textit{eq}
-\item \textit{sol} is a proper partial solution (i.e. it does not depend on \textit{x}) and only
+\item \textit{sol} is a proper partial solution (i.e.\ it does not depend on \textit{x}) and only
   depends on variables occurring in the equation \textit{eq}
 \item no partial solution of the equation \textit{eq} is smaller than \textit{sol}
 \end{enumerate}\<close>\<close>
@@ -92,7 +92,7 @@ definition partial_min_sol_one_ineq :: "nat \<Rightarrow> 'a rlexp \<Rightarrow>
 text \<open>Given a whole system of equations \<open>sys\<close>, we can generalize the previous definition such that
 \<open>sols\<close> is a minimal solution (possibly dependent on the variables \<^latex>\<open>$X_n, X_{n+1}, \dots$\<close>) of
 the first \<open>n\<close> equations. Besides the three conditions described above, we introduce a forth
-condition: \<open>sols i = Var i\<close> for \<open>i \<ge> n\<close>, i.e. \<open>sols\<close> assigns only spurious solutions to the
+condition: \<open>sols i = Var i\<close> for \<open>i \<ge> n\<close>, i.e.\ \<open>sols\<close> assigns only spurious solutions to the
 equations which are not yet solved:\<close>
 definition partial_min_sol_ineq_sys :: "nat \<Rightarrow> 'a eq_sys \<Rightarrow> (nat \<Rightarrow> 'a rlexp) \<Rightarrow> bool" where
   "partial_min_sol_ineq_sys n sys sols \<equiv>
@@ -126,7 +126,7 @@ qed
 
 subsection \<open>CFLs as minimal solution of systems of equations\<close>
 
-text \<open>We show that each CFG induces a system of equations of the first type, i.e. without Parikh images,
+text \<open>We show that each CFG induces a system of equations of the first type, i.e.\ without Parikh images,
 such that the CFG's language is the minimal solution of the system. First, we describe how to derive
 the system of equations from a CFG. This requires us to fix some bijection between the variables in
 the system and the non-terminals occurring in the CFG:\<close>
@@ -158,7 +158,7 @@ locale CFG_eq_sys =
 begin
 
 text \<open>The following definitions construct a regular language expression for a single production. This
-happens step by step, i.e. starting with a single symbol (terminal or non-terminal) and then extending
+happens step by step, i.e.\ starting with a single symbol (terminal or non-terminal) and then extending
 this to a single production. The definitions closely follow the definitions \<^term>\<open>inst_sym\<close>,
 \<^term>\<open>concats\<close> and \<^term>\<open>inst_syms\<close> in \<^theory>\<open>Context_Free_Grammar.Context_Free_Language\<close>.\<close>
 
@@ -425,12 +425,12 @@ end
 
 subsection \<open>Relation between the two types of systems of equations\<close>
 
-text \<open>One can simply convert a system \<open>sys\<close> of equations of the second type (i.e. with Parikh
+text \<open>One can simply convert a system \<open>sys\<close> of equations of the second type (i.e.\ with Parikh
 images) into a system of equations of the first type by dropping the Parikh images on both side of
 each equation. The following lemmas describe how the two systems are related to each other.
 
 First of all, to any solution \<open>sol\<close> of \<open>sys\<close> exists a valuation whose Parikh image is
-identical to that of \<open>sol\<close> and which is a solution of the other system (i.e. the system obtained
+identical to that of \<open>sol\<close> and which is a solution of the other system (i.e.\ the system obtained
 by dropping all Parikh images in \<open>sys\<close>). The proof benefits from the result of section 2.7:\<close>
 lemma sol_comm_sol:
   assumes sol_is_sol_comm: "solves_ineq_sys_comm sys sol"

@@ -11,7 +11,7 @@ subsection \<open>Definition\<close>
 
 text \<open>We introduce regular language expressions which will be the building blocks of the systems of
 equations defined later. Regular language expressions can contain both constant languages and
-variable languages where variables are natural numbers for simplicity. Given a valuation, i.e. an
+variable languages where variables are natural numbers for simplicity. Given a valuation, i.e.\ an
 instantiation of each variable with a language, the regular language expression can be evaluated,
 yielding a language.\<close>
 datatype 'a rlexp = Var nat                          (* Variable *)
@@ -222,7 +222,7 @@ non-regular languages.
 We therefore define the following predicate which guarantees that a regular language expression
 \<open>f\<close> yields a regular language if the valuation maps all variables occurring in \<open>f\<close> to some regular
 language. This is achieved by only allowing regular languages as constants.
-However, note that this predicate is just an under-approximation, i.e. there exist regular language
+However, note that this predicate is just an under-approximation, i.e.\ there exist regular language
 expressions which do not satisfy this predicate but evaluate to regular languages anyway.\<close>
 
 fun reg_eval :: "'a rlexp \<Rightarrow> bool" where

@@ -327,7 +327,7 @@ end
 
 
 text \<open>As announced at the beginning of this section, we now extend the previous result to arbitrary
-equations, i.e. we show that each equation has some minimal partial solution which is
+equations, i.e.\ we show that each equation has some minimal partial solution which is
 \<^const>\<open>reg_eval\<close>:\<close>
 lemma exists_minimal_reg_sol:
   assumes eq_reg: "reg_eval eq"
@@ -548,7 +548,7 @@ qed
 
 subsection \<open>Parikh's theorem\<close>
 
-text \<open>Finally we are able to prove Parikh's theorem, i.e. that to each context free grammar exists
+text \<open>Finally we are able to prove Parikh's theorem, i.e.\ that to each context free grammar exists
 a regular language with identical Parikh image:\<close>
 theorem Parikh: "CFL (TYPE('n)) L \<Longrightarrow> \<exists>L'. regular_lang L' \<and> \<Psi> L = \<Psi> L'"
 proof -

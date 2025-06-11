@@ -550,10 +550,11 @@ subsection \<open>Parikh's theorem\<close>
 
 text \<open>Finally we are able to prove Parikh's theorem, i.e.\ that to each context free grammar exists
 a regular language with identical Parikh image:\<close>
-theorem Parikh: "CFL (TYPE('n)) L \<Longrightarrow> \<exists>L'. regular_lang L' \<and> \<Psi> L = \<Psi> L'"
+theorem Parikh:
+  assumes "CFL (TYPE('n)) L"
+  shows   "\<exists>L'. regular_lang L' \<and> \<Psi> L = \<Psi> L'"
 proof -
-  assume "CFL (TYPE('n)) L"
-  then obtain P and S::'n where *: "L = Lang P S \<and> finite P" unfolding CFL_def by blast
+  from assms obtain P and S::'n where *: "L = Lang P S \<and> finite P" unfolding CFL_def by blast
   show ?thesis
   proof (cases "S \<in> Nts P")
     case True

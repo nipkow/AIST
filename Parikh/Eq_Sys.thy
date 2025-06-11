@@ -135,10 +135,11 @@ definition bij_Nt_Var :: "'n set \<Rightarrow> (nat \<Rightarrow> 'n) \<Rightarr
   "bij_Nt_Var A \<gamma> \<gamma>' \<equiv> bij_betw \<gamma> {..< card A} A \<and> bij_betw \<gamma>' A {..< card A}
                           \<and> (\<forall>x \<in> {..< card A}. \<gamma>' (\<gamma> x) = x) \<and> (\<forall>y \<in> A. \<gamma> (\<gamma>' y) = y)"
 
-lemma exists_bij_Nt_Var: "finite A \<Longrightarrow> \<exists>\<gamma> \<gamma>'. bij_Nt_Var A \<gamma> \<gamma>'"
+lemma exists_bij_Nt_Var:
+  assumes "finite A"
+  shows   "\<exists>\<gamma> \<gamma>'. bij_Nt_Var A \<gamma> \<gamma>'"
 proof -
-  assume "finite A"
-  then have "\<exists>\<gamma>. bij_betw \<gamma> {..< card A} A" by (simp add: bij_betw_iff_card)
+  from assms have "\<exists>\<gamma>. bij_betw \<gamma> {..< card A} A" by (simp add: bij_betw_iff_card)
   then obtain \<gamma> where 1: "bij_betw \<gamma> {..< card A} A" by blast
   let ?\<gamma>' = "the_inv_into {..< card A} \<gamma>"
   from the_inv_into_f_f 1 have 2: "\<forall>x \<in> {..< card A}. ?\<gamma>' (\<gamma> x) = x" unfolding bij_betw_def by fast

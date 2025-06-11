@@ -25,10 +25,11 @@ lemma parikh_img_Un [simp]: "\<Psi> (L1 \<union> L2) = \<Psi> L1 \<union> \<Psi>
 lemma parikh_img_UNION: "\<Psi> (\<Union>(L ` I)) = \<Union> ((\<lambda>i. \<Psi> (L i)) ` I)"
   by (auto simp add: parikh_img_def)
 
-lemma parikh_img_Star_pow: "m \<in> \<Psi> (eval (Star f) v) \<Longrightarrow> \<exists>n. m \<in> \<Psi> (eval f v ^^ n)"
+lemma parikh_img_Star_pow:
+  assumes "m \<in> \<Psi> (eval (Star f) v)"
+  shows   "\<exists>n. m \<in> \<Psi> (eval f v ^^ n)"
 proof -
-  assume "m \<in> \<Psi> (eval (rlexp.Star f) v)"
-  then have "m \<in> \<Psi> (star (eval f v))" by simp
+  from assms have "m \<in> \<Psi> (star (eval f v))" by simp
   then show ?thesis unfolding star_def by (simp add: parikh_img_UNION)
 qed
 

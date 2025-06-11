@@ -187,7 +187,7 @@ qed auto
 lemma rlexp_concats_reg:
   assumes "\<forall>f \<in> set fs. reg_eval f"
     shows "reg_eval (rlexp_concats fs)"
-  using assms epsilon_regular unfolding rlexp_concats_def by (induction fs) auto
+  using assms unfolding rlexp_concats_def by (induction fs) (use epsilon_regular in auto)
 
 lemma rlexp_syms_reg: "reg_eval (rlexp_syms w)"
 proof -
@@ -262,9 +262,9 @@ proof -
     fix i
     assume "i < length w"
     then show "eval (rlexp_sym (w ! i)) v = inst_sym L (w ! i)"
-      using assms proof (induction "w!i")
+      proof (induction "w!i")
       case (Nt A)
-      then have "v (\<gamma>' A) = L A" unfolding nts_syms_def by force
+      with assms have "v (\<gamma>' A) = L A" unfolding nts_syms_def by force
       with rlexp_sym_inst_Nt Nt show ?case by metis
     next
       case (Tm x)

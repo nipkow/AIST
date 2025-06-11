@@ -51,7 +51,7 @@ subsection \<open>Basic lemmas\<close>
 lemma substitution_lemma:
   assumes "\<forall>i. v' i = eval (upd i) v"
   shows "eval (subst upd f) v = eval f v'"
-  using assms by (induction rule: rlexp.induct) auto
+  by (induction f rule: rlexp.induct) (use assms in auto)
 
 lemma substitution_lemma_update:
   "eval (subst (Var(x := f')) f) v = eval f (v(x := eval f' v))"
@@ -124,7 +124,7 @@ subsection \<open>Monotonicity\<close>
 lemma rlexp_mono_aux:
   assumes "\<forall>i \<in> vars f. v i \<subseteq> v' i"
   shows "eval f v \<subseteq> eval f v'"
-using assms proof (induction rule: rlexp.induct)
+using assms proof (induction f rule: rlexp.induct)
   case (Star x)
   then show ?case
     by (smt (verit, best) eval.simps(5) in_star_iff_concat order_trans subsetI vars.simps(5))
@@ -143,7 +143,7 @@ lemma langpow_mono:
   fixes A :: "'a lang"
   assumes "A \<subseteq> B"
   shows "A ^^ n \<subseteq> B ^^ n"
-using assms conc_mono[of A B] by (induction n) auto
+  by (induction n) (use assms conc_mono[of A B] in auto)
 
 lemma rlexp_cont_aux1:
   assumes "\<forall>i. v i \<le> v (Suc i)"
@@ -160,7 +160,7 @@ lemma langpow_Union_eval:
   assumes "\<forall>i. v i \<le> v (Suc i)"
       and "w \<in> (\<Union>i. eval f (v i)) ^^ n"
     shows "w \<in> (\<Union>i. eval f (v i) ^^ n)"
-using assms proof (induction n arbitrary: w)
+using assms(2) proof (induction n arbitrary: w)
   case 0
   then show ?case by simp
 next
@@ -170,9 +170,9 @@ next
   with Suc have "u \<in> (\<Union>i. eval f (v i)) \<and> u' \<in> (\<Union>i. eval f (v i) ^^ n)" by auto
   then obtain i j where i_intro: "u \<in> eval f (v i)" and j_intro: "u' \<in> eval f (v j) ^^ n" by blast
   let ?m = "max i j"
-  from i_intro Suc.prems(1) rlexp_mono_aux have 1: "u \<in> eval f (v ?m)"
+  from i_intro Suc.prems(1) assms(1) rlexp_mono_aux have 1: "u \<in> eval f (v ?m)"
     by (metis le_fun_def lift_Suc_mono_le max.cobounded1 subset_eq)
-  from Suc.prems(1) rlexp_mono_aux have "eval f (v j) \<subseteq> eval f (v ?m)"
+  from Suc.prems(1) assms (1) rlexp_mono_aux have "eval f (v j) \<subseteq> eval f (v ?m)"
     by (metis le_fun_def lift_Suc_mono_le max.cobounded2)
   with j_intro langpow_mono have 2: "u' \<in> eval f (v ?m) ^^ n" by auto
   from 1 2 show ?case using w_decomp by auto
@@ -182,16 +182,16 @@ lemma rlexp_cont_aux2:
   assumes "\<forall>i. v i \<le> v (Suc i)"
       and "w \<in> eval f (\<lambda>x. \<Union>i. v i x)"
     shows "w \<in> (\<Union>i. eval f (v i))"
-using assms proof (induction arbitrary: w rule: rlexp.induct)
+using assms(2) proof (induction f arbitrary: w rule: rlexp.induct)
   case (Concat f g)
   then obtain u u' where w_decomp: "w = u@u'"
     and "u \<in> eval f (\<lambda>x. \<Union>i. v i x) \<and> u' \<in> eval g (\<lambda>x. \<Union>i. v i x)" by auto
   with Concat have "u \<in> (\<Union>i. eval f (v i)) \<and> u' \<in> (\<Union>i. eval g (v i))" by auto
   then obtain i j where i_intro: "u \<in> eval f (v i)" and j_intro: "u' \<in> eval g (v j)" by blast
   let ?m = "max i j"
-  from i_intro Concat.prems(1) rlexp_mono_aux have "u \<in> eval f (v ?m)"
+  from i_intro Concat.prems(1) assms(1) rlexp_mono_aux have "u \<in> eval f (v ?m)"
     by (metis le_fun_def lift_Suc_mono_le max.cobounded1 subset_eq)
-  moreover from j_intro Concat.prems(1) rlexp_mono_aux have "u' \<in> eval g (v ?m)"
+  moreover from j_intro Concat.prems(1) assms(1) rlexp_mono_aux have "u' \<in> eval g (v ?m)"
     by (metis le_fun_def lift_Suc_mono_le max.cobounded2 subset_eq)
   ultimately show ?case using w_decomp by auto
 next
@@ -199,7 +199,7 @@ next
   then obtain n where n_intro: "w \<in> (eval f (\<lambda>x. \<Union>i. v i x)) ^^ n"
     using eval.simps(5) star_pow by blast
   with Star have "w \<in> (\<Union>i. eval f (v i)) ^^ n" using langpow_mono by blast
-  with Star.prems have "w \<in> (\<Union>i. eval f (v i) ^^ n)" using langpow_Union_eval by auto
+  with Star.prems assms have "w \<in> (\<Union>i. eval f (v i) ^^ n)" using langpow_Union_eval by auto
   then show ?case by (auto simp add: star_def)
 qed fastforce+
 
@@ -245,7 +245,7 @@ lemma reg_eval_regular:
   assumes "reg_eval f"
       and "\<And>n. n \<in> vars f \<Longrightarrow> regular_lang (v n)"
     shows "regular_lang (eval f v)"
-using assms proof (induction rule: reg_eval.induct)
+using assms proof (induction f rule: reg_eval.induct)
   case (3 f g)
   then obtain r1 r2 where "Regular_Exp.lang r1 = eval f v \<and> Regular_Exp.lang r2 = eval g v" by auto
   then have "Regular_Exp.lang (Plus r1 r2) = eval (Union f g) v" by simp

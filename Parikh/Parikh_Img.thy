@@ -98,7 +98,7 @@ lemma parikh_star_mono_eq:
 lemma parikh_img_subst_mono:
   assumes "\<forall>i. \<Psi> (eval (A i) v) \<subseteq> \<Psi> (eval (B i) v)"
   shows "\<Psi> (eval (subst A f) v) \<subseteq> \<Psi> (eval (subst B f) v)"
-using assms proof (induction f)
+proof (induction f)
   case (Concat f1 f2)
   then have "\<Psi> (eval (subst A f1) v @@ eval (subst A f2) v)
               \<subseteq> \<Psi> (eval (subst B f1) v @@ eval (subst B f2) v)"
@@ -109,7 +109,7 @@ next
   then have "\<Psi> (star (eval (subst A f) v)) \<subseteq> \<Psi> (star (eval (subst B f) v))"
     using parikh_star_mono by blast
   then show ?case by simp
-qed auto
+qed (use assms(1) in auto)
 
 lemma parikh_img_subst_mono_upd:
   assumes "\<Psi> (eval A v) \<subseteq> \<Psi> (eval B v)"
@@ -125,7 +125,7 @@ lemma parikh_img_subst_mono_eq:
 lemma rlexp_mono_parikh:
   assumes "\<forall>i \<in> vars f. \<Psi> (v i) \<subseteq> \<Psi> (v' i)"
   shows "\<Psi> (eval f v) \<subseteq> \<Psi> (eval f v')"
-using assms proof (induction rule: rlexp.induct)
+using assms proof (induction f rule: rlexp.induct)
 case (Concat f1 f2)
   then have "\<Psi> (eval f1 v @@ eval f2 v) \<subseteq> \<Psi> (eval f1 v' @@ eval f2 v')"
     using parikh_conc_subset by (metis UnCI vars.simps(4))
@@ -316,12 +316,12 @@ subsection \<open>A homogeneous-like property for regular functions\<close>
 lemma rlexp_homogeneous_aux:
   assumes "v x = star Y @@ Z"
     shows "\<Psi> (eval f v) \<subseteq> \<Psi> (star Y @@ eval f (v(x := Z)))"
-using assms proof (induction f)
+proof (induction f)
   case (Var y)
   show ?case
   proof (cases "x = y")
     case True
-    with Var show ?thesis by simp
+    with Var assms show ?thesis by simp
   next
     case False
     have "eval (Var y) v \<subseteq> star Y @@ eval (Var y) v" by (metis Nil_in_star concI_if_Nil1 subsetI)
@@ -335,7 +335,7 @@ next
   case (Union f g)
   then have "\<Psi> (eval (Union f g) v) \<subseteq> \<Psi> (star Y @@ eval f (v(x := Z)) \<union>
                                                             star Y @@ eval g (v(x := Z)))"
-    by fastforce
+    by (metis eval.simps(3) parikh_img_Un sup.mono)
   then show ?case by (metis conc_Un_distrib(1) eval.simps(3))
 next
   case (Concat f g)
@@ -376,16 +376,16 @@ subsection \<open>Extension of Arden's lemma to Parikh images\<close>
 lemma parikh_img_arden_aux:
   assumes "\<Psi> (A @@ X \<union> B) \<subseteq> \<Psi> X"
   shows "\<Psi> (A ^^ n @@ B) \<subseteq> \<Psi> X"
-using assms proof (induction n)
+proof (induction n)
   case 0
-  then show ?case by auto
+  with assms show ?case by auto
 next
   case (Suc n)
   then have "\<Psi> (A ^^ (Suc n) @@ B) \<subseteq> \<Psi> (A @@ A ^^ n @@B)"
     by (simp add: conc_assoc)
   moreover from Suc parikh_conc_left have "\<dots> \<subseteq> \<Psi> (A @@ X)"
     by (metis conc_Un_distrib(1) parikh_img_Un sup.orderE sup.orderI)
-  moreover from Suc.prems have "\<dots> \<subseteq> \<Psi> X" by auto
+  moreover from Suc.prems assms have "\<dots> \<subseteq> \<Psi> X" by auto
   ultimately show ?case by fast
 qed
 

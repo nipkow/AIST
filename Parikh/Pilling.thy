@@ -483,7 +483,7 @@ lemma exists_minimal_reg_sol_sys_aux:
       and sys_valid: "\<forall>eq \<in> set sys. \<forall>x \<in> vars eq. x < length sys"
       and r_valid:   "r \<le> length sys"   
     shows            "\<exists>sols. partial_min_sol_ineq_sys r sys sols \<and> (\<forall>i. reg_eval (sols i))"
-using assms proof (induction r)
+using r_valid proof (induction r)
   case 0
   have "solution_ineq_sys (take 0 sys) Var"
     unfolding solution_ineq_sys_def solves_ineq_sys_comm_def by simp
@@ -499,7 +499,7 @@ next
   then obtain sol_r where sol_r_intro:
     "reg_eval sol_r \<and> partial_min_sol_one_ineq r (?sys' ! r) sol_r"
     using exists_minimal_reg_sol by blast
-  with Suc sols_intro have "min_sol_induction_step r sys sols sol_r"
+  with Suc sols_intro sys_valid eqs_reg have "min_sol_induction_step r sys sols sol_r"
     unfolding min_sol_induction_step_def by force
   from min_sol_induction_step.exists_min_sol_Suc_r[OF this] show ?case by blast
 qed

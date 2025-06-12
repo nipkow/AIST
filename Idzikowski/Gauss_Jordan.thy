@@ -37,9 +37,21 @@ definition zipSum :: "'a list ⇒ 'a list ⇒ 'a list" (infixl "+z+" 65) where
 lemma zipSumCons: "(a#as) +z+ (b#bs) = add a b # (as+z+bs)"
   unfolding zipSum_def by simp
 
+(*
+is_sol x ds xs :=   x = ds * (xs @ [1])
+*)
 definition is_sol :: "'a \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> bool" where
 "is_sol a cs sol = eq a (dot cs sol)"
 
+(*
+when we put sol into each equation
+we expect (a#as) to come out
+
+(eqn # eqns) * (sol @ [1]) = (a#as)
+
+is_sols xs ys M :=  ys = M * (xs @ [1])
+
+*)
 fun is_sols :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list list \<Rightarrow> bool" where
 "is_sols sol (a#as) (eqn # eqns) = (is_sol a eqn sol \<and> is_sols sol as eqns)" |
 "is_sols sol [] [] = True" |
@@ -50,27 +62,17 @@ lemma is_sols_length: "is_sols sol as eqns \<Longrightarrow> length as = length 
   apply(induction rule: is_sols.induct)
   by auto
 
-abbreviation "all \<equiv> foldl (\<and>) True"
-
-lemma all_Cons: "all (x#xs) = (x \<and> all xs)"
-proof(induction xs)
-  case Nil
-  then show ?case by simp
-next
-  case (Cons a as)
-  then show ?case by (metis (full_types) foldl_Cons)
-qed
-lemma all_and_foldl: "(x \<and> all xs) = foldl (\<and>) x xs"
-  using all_Cons[of x xs] foldl_Cons[of "(\<and>)"]
-  by simp
+lemma is_sols_append: "is_sols sol as1 eqns1 \<Longrightarrow> is_sols sol as2 eqns2 \<Longrightarrow> is_sols sol (as1@as2) (eqns1@eqns2)"
+  apply(induction sol as1 eqns1 rule: is_sols.induct)
+  by auto
 
 
 fun is_sols2 where
-"is_sols2 sol as eqns = (length as = length eqns \<and> all (map2 (λs eq. is_sol s eq sol) as eqns))"
+"is_sols2 sol as eqns = (length as = length eqns \<and> list_all2 (λs eq. is_sol s eq sol) as eqns)"
 
 (*maybe better with ∀*)
 fun is_sols3 where
-"is_sols3 sol eqns = (length sol = length eqns \<and> all (map2 (λs eq. is_sol s eq sol) sol eqns))"
+"is_sols3 sol eqns = (length sol = length eqns \<and> list_all2 (λs eq. is_sol s eq sol) sol eqns)"
 
 lemma wrong_len_not_sol: "length sol \<noteq> length eqns \<Longrightarrow> \<not>is_sols sol2 sol eqns"
   apply(induction rule: is_sols.induct)
@@ -87,11 +89,10 @@ proof(cases "length sol = length eqns")
     case (1 sol a as eqn eqns)
     then have len: "length as = length eqns" by simp
     then have "is_sols sol as eqns = is_sols2 sol as eqns" using 1 by simp
-    have "is_sols2 sol (a # as) (eqn # eqns) = all (map2 (\<lambda>x y. is_sol x y sol) (a # as) (eqn # eqns))"
+    have "is_sols2 sol (a # as) (eqn # eqns) = list_all2 (\<lambda>x y. is_sol x y sol) (a # as) (eqn # eqns)"
       using 1 by simp
     also have "\<dots> = (is_sol a eqn sol \<and> is_sols2 sol as eqns)"
-      apply (simp add: map2_Cons all_Cons len)
-      using all_and_foldl by simp
+      using len by simp
     then show ?case using 1 by simp
   qed simp+
 qed (simp add: wrong_len_not_sol)
@@ -106,7 +107,6 @@ fun subst :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list" where
 "subst sol (c#cs) = map2 add (mult1 c sol) cs"
 
 
-lemma dot_Cons: "dot (a#as) (b#bs) = add (mult a b) (dot as bs)" sorry
 
 
 (*
@@ -131,6 +131,19 @@ lemma subst_correct:
   shows "is_sol Y (subst ds es) Xs"
 using assms unfolding is_sol_def
   sorry
+
+lemma map_subst_correct: "\<lbrakk>
+  is_sol x ds xs ;
+  is_sols (x#xs) ys eqs
+\<rbrakk> \<Longrightarrow> is_sols xs ys (map (subst ds) eqs)"
+proof(induction eqs)
+  case Nil
+  then show ?case using append_is_Nil_conv is_sols_length by fastforce
+next
+  case (Cons a eqs)
+  then show ?case sorry
+qed
+
 
 
 lemma solve1_correct:
@@ -175,6 +188,13 @@ next
     by(auto simp add: length_solve1 length_subst mx_def Let_def)
 qed (auto simp: mx_def)
 
+lemma length_map_subst: "\<lbrakk> mx n b eqns; length sol = b-1 ; length sol \<noteq> 0 \<rbrakk> \<Longrightarrow>  mx n (b-1) (map (subst sol) eqns)"
+unfolding mx_def
+apply(induction eqns)
+using length_subst
+apply auto
+apply (metis One_nat_def linordered_nonzero_semiring_class.zero_le_one list.size(3))
+by (metis One_nat_def le0 length_subst)
 
 (*
 
@@ -193,26 +213,52 @@ qed (auto simp: mx_def)
 *)
 
 theorem solves_is_sols:
-  shows "\<lbrakk> 0 < b; mx n b eqns; mx m b sols; is_sols Xs Xs (rev sols @ eqns) \<rbrakk> \<Longrightarrow> is_sols Xs Xs (rev (solves sols eqns))"
-proof(induction sols eqns arbitrary: Xs rule: solves.induct )
+  shows "\<lbrakk> b = n+1; mx n b eqns; mx m b sols; is_sols Ys Ys eqns; is_sols Ys (rev Xs) sols \<rbrakk> \<Longrightarrow> is_sols [] (Xs@Ys) (rev (solves sols eqns))"
+proof(induction sols eqns arbitrary: Xs Ys n m b rule: solves.induct)
   case (1 sols)
-  then show ?case by simp
+  then have "Ys = []" using is_sols_length by fastforce
+  then show ?case using 1 unfolding is_sols2_eqiv by (simp add: list_all2_rev1)
 next
   case (2 sols c cs eqs)
   obtain sol where sol: "sol = solve1 c cs" by auto
   obtain eqs' where eqs': "eqs' = map (subst sol) eqs" by auto
   obtain sols' where sols': "sols' = sol # map (subst sol) sols" by auto
 
-  from ‹mx n b ((c # cs) # eqs)› have "mx (n-1) b eqs" unfolding mx_def by auto
+  obtain y ys where yys: "y#ys = Ys" by (metis "2.prems"(4) is_sols.simps(4) neq_Nil_conv)
 
-  have "mx (n-1) (b-1) eqs'" using length_subst[of sol] eqs' ‹mx n b ((c # cs) # eqs)› length_solve1[of c cs] sol ‹0 < b› sorry
+  have "length cs = b - 1"
+    by (metis "2.prems"(2) One_nat_def add_diff_cancel_right' list.set_intros(1) list.size(4) mx_def)
+  then have "length sol = b - 1"
+    using length_solve1 sol by presburger
 
-  thm "2.IH"[OF sol eqs' sols' ‹0 < b›]
+
+  have "length sol \<noteq> 0" by (metis "2.prems"(1,2) \<open>length sol = b - 1\<close> add_diff_cancel_right' length_0_conv list.distinct(1) mx_def)
+
+  have "mx (n-1) b eqs" using ‹mx n b ((c # cs) # eqs)› unfolding mx_def by auto
+  then have "mx (n-1) (b-1) (map (subst sol) eqs)" using length_map_subst[OF ‹mx (n-1) b eqs› ‹length sol = b - 1› ‹length sol \<noteq> 0›] by simp
+  then have "mx (n-1) (b-1) eqs'" using eqs' by simp
+
+
+  have "b-1 = n-1+1" using ‹b = n + 1› by (metis "2.prems"(2) One_nat_def add_diff_cancel_right' list.size(4) mx_def)
+
+
+
+  have "is_sol y (c#cs) (y#ys)" using yys ‹is_sols Ys Ys ((c # cs) # eqs)›
+    by auto
+  then have "is_sol y (solve1 c cs) ys"
+    using solve1_correct by simp
+
+  have "is_sols ys ys eqs'" sorry
+
+  have "mx (m+1) (b - 1) sols'" sorry
+  thm "2.IH"[OF sol eqs' sols' ‹b-1 = n-1+1› ‹mx (n - 1) (b - 1) eqs'› ‹mx (m+1) (b - 1) sols'›]
 
   then show ?case using solve1_correct subst_correct sorry
 next
   case (3 a va)
-  then show ?case by (simp add: mx_def)
+  have "b = 0" using ‹mx n b ([] # va)› unfolding mx_def by simp
+  then have "Ys = []" by (simp add: "3.prems"(1))
+  then show ?case using "3.prems"(4) by auto
 qed
 
 

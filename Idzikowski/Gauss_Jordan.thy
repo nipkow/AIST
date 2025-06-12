@@ -44,37 +44,32 @@ definition is_sol :: "'a \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarro
 "is_sol a cs sol = eq a (dot cs sol)"
 
 (*
-when we put sol into each equation
-we expect (a#as) to come out
-
-(eqn # eqns) * (sol @ [1]) = (a#as)
-
-is_sols xs ys M :=  ys = M * (xs @ [1])
+is_sols ys M xs :=  ys = M * (xs @ [1])
 
 *)
-fun is_sols :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list list \<Rightarrow> bool" where
-"is_sols sol (a#as) (eqn # eqns) = (is_sol a eqn sol \<and> is_sols sol as eqns)" |
-"is_sols sol [] [] = True" |
-"is_sols sol _  [] = False" |
-"is_sols sol []  _ = False"
+fun is_sols :: "'a list \<Rightarrow> 'a list list ⇒ 'a list \<Rightarrow> bool" where
+"is_sols (a#as) (eqn # eqns) sol = (is_sol a eqn sol \<and> is_sols as eqns sol)" |
+"is_sols [] [] sol = True" |
+"is_sols _  [] sol = False" |
+"is_sols []  _ sol = False"
 
-lemma is_sols_length: "is_sols sol as eqns \<Longrightarrow> length as = length eqns"
-  apply(induction rule: is_sols.induct)
+lemma is_sols_length: "is_sols as eqns sol \<Longrightarrow> length as = length eqns"
+  apply(induction as eqns sol rule: is_sols.induct )
   by auto
 
-lemma is_sols_append: "is_sols sol as1 eqns1 \<Longrightarrow> is_sols sol as2 eqns2 \<Longrightarrow> is_sols sol (as1@as2) (eqns1@eqns2)"
-  apply(induction sol as1 eqns1 rule: is_sols.induct)
+lemma is_sols_append: "is_sols as1 eqns1 sol \<Longrightarrow> is_sols as2 eqns2 sol \<Longrightarrow> is_sols (as1@as2) (eqns1@eqns2) sol"
+  apply(induction as1 eqns1 sol rule: is_sols.induct)
   by auto
 
 
 fun is_sols2 where
-"is_sols2 sol as eqns = (length as = length eqns \<and> list_all2 (λs eq. is_sol s eq sol) as eqns)"
+"is_sols2 as eqns sol = (length as = length eqns \<and> list_all2 (λs eq. is_sol s eq sol) as eqns)"
 
 (*maybe better with ∀*)
 fun is_sols3 where
 "is_sols3 sol eqns = (length sol = length eqns \<and> list_all2 (λs eq. is_sol s eq sol) sol eqns)"
 
-lemma wrong_len_not_sol: "length sol \<noteq> length eqns \<Longrightarrow> \<not>is_sols sol2 sol eqns"
+lemma wrong_len_not_sol: "length sol \<noteq> length eqns \<Longrightarrow> \<not>is_sols sol eqns sol2"
   apply(induction rule: is_sols.induct)
   by simp+
 
@@ -82,22 +77,22 @@ lemma wrong_len_not_sol: "length sol \<noteq> length eqns \<Longrightarrow> \<no
 lemma map2_Cons: "map2 f (a#as) (b#bs) = f a b # (map2 f as bs)"
   by simp
 
-lemma is_sols2_eqiv: "is_sols sol' sol eqns = is_sols2 sol' sol eqns"
+lemma is_sols2_eqiv: "is_sols sol eqns sol' = is_sols2 sol eqns sol'"
 proof(cases "length sol = length eqns")
   case True
-  from True show "is_sols sol' sol eqns = is_sols2 sol' sol eqns" proof(induction rule: is_sols.induct)
-    case (1 sol a as eqn eqns)
+  from True show "is_sols sol eqns sol'  = is_sols2 sol eqns sol'" proof(induction rule: is_sols.induct)
+    case (1 a as eqn eqns sol)
     then have len: "length as = length eqns" by simp
-    then have "is_sols sol as eqns = is_sols2 sol as eqns" using 1 by simp
-    have "is_sols2 sol (a # as) (eqn # eqns) = list_all2 (\<lambda>x y. is_sol x y sol) (a # as) (eqn # eqns)"
+    then have "is_sols as eqns sol  = is_sols2 as eqns sol" using 1 by simp
+    have "is_sols2 (a # as) (eqn # eqns) sol = list_all2 (\<lambda>x y. is_sol x y sol) (a # as) (eqn # eqns)"
       using 1 by simp
-    also have "\<dots> = (is_sol a eqn sol \<and> is_sols2 sol as eqns)"
+    also have "\<dots> = (is_sol a eqn sol \<and> is_sols2 as eqns sol)"
       using len by simp
     then show ?case using 1 by simp
   qed simp+
 qed (simp add: wrong_len_not_sol)
 
-corollary is_sols3_eqiv: "is_sols3 sols eqns = is_sols sols sols eqns"
+corollary is_sols3_eqiv: "is_sols3 sols eqns = is_sols sols eqns sols"
   by (simp add: is_sols2_eqiv)
 
 definition mult1 where
@@ -134,8 +129,8 @@ using assms unfolding is_sol_def
 
 lemma map_subst_correct: "\<lbrakk>
   is_sol x ds xs ;
-  is_sols (x#xs) ys eqs
-\<rbrakk> \<Longrightarrow> is_sols xs ys (map (subst ds) eqs)"
+  is_sols ys eqs (x#xs)
+\<rbrakk> \<Longrightarrow> is_sols ys (map (subst ds) eqs) xs"
 proof(induction eqs)
   case Nil
   then show ?case using append_is_Nil_conv is_sols_length by fastforce
@@ -213,7 +208,7 @@ by (metis One_nat_def le0 length_subst)
 *)
 
 theorem solves_is_sols:
-  shows "\<lbrakk> b = n+1; mx n b eqns; mx m b sols; is_sols Ys Ys eqns; is_sols Ys (rev Xs) sols \<rbrakk> \<Longrightarrow> is_sols [] (Xs@Ys) (rev (solves sols eqns))"
+  shows "\<lbrakk> b = n+1; mx n b eqns; mx m b sols; is_sols Ys eqns Ys; is_sols (rev Xs) sols Ys \<rbrakk> \<Longrightarrow> is_sols (Xs@Ys) (rev (solves sols eqns)) []"
 proof(induction sols eqns arbitrary: Xs Ys n m b rule: solves.induct)
   case (1 sols)
   then have "Ys = []" using is_sols_length by fastforce
@@ -243,12 +238,12 @@ next
 
 
 
-  have "is_sol y (c#cs) (y#ys)" using yys ‹is_sols Ys Ys ((c # cs) # eqs)›
+  have "is_sol y (c#cs) (y#ys)" using yys ‹is_sols Ys ((c # cs) # eqs) Ys›
     by auto
   then have "is_sol y (solve1 c cs) ys"
     using solve1_correct by simp
 
-  have "is_sols ys ys eqs'" sorry
+  have "is_sols ys eqs' ys" sorry
 
   have "mx (m+1) (b - 1) sols'" sorry
   thm "2.IH"[OF sol eqs' sols' ‹b-1 = n-1+1› ‹mx (n - 1) (b - 1) eqs'› ‹mx (m+1) (b - 1) sols'›]

@@ -208,7 +208,10 @@ by (metis One_nat_def le0 length_subst)
 *)
 
 theorem solves_is_sols:
-  shows "\<lbrakk> b = n+1; mx n b eqns; mx m b sols; is_sols Ys eqns Ys; is_sols (rev Xs) sols Ys \<rbrakk> \<Longrightarrow> is_sols (Xs@Ys) (rev (solves sols eqns)) []"
+  shows "\<lbrakk> b = n+1; mx n b eqns; mx m b sols;
+    is_sols Ys eqns Ys;
+    is_sols (rev Xs) sols Ys \<rbrakk>
+    \<Longrightarrow> is_sols (Xs@Ys) (rev (solves sols eqns)) []"
 proof(induction sols eqns arbitrary: Xs Ys n m b rule: solves.induct)
   case (1 sols)
   then have "Ys = []" using is_sols_length by fastforce
@@ -240,15 +243,20 @@ next
 
   have "is_sol y (c#cs) (y#ys)" using yys ‹is_sols Ys ((c # cs) # eqs) Ys›
     by auto
-  then have "is_sol y (solve1 c cs) ys"
-    using solve1_correct by simp
+  then have "is_sol y sol ys"
+    using solve1_correct sol by simp
 
-  have "is_sols ys eqs' ys" sorry
+  have "is_sols ys eqs (y#ys)" using ‹is_sols Ys ((c # cs) # eqs) Ys› yys by auto
+  then have "is_sols ys eqs' ys" using eqs' map_subst_correct[OF ‹is_sol y sol ys› ‹is_sols ys eqs (y#ys)›] by simp
 
-  have "mx (m+1) (b - 1) sols'" sorry
-  thm "2.IH"[OF sol eqs' sols' ‹b-1 = n-1+1› ‹mx (n - 1) (b - 1) eqs'› ‹mx (m+1) (b - 1) sols'›]
+  have "is_sols (rev Xs) (map (subst sol) sols) ys" using ‹is_sols (rev Xs) sols Ys› map_subst_correct \<open>is_sol y sol ys\<close> yys by blast
+  then have "is_sols (rev (Xs @ [y])) sols' ys" by (simp add: \<open>is_sol y sol ys\<close> sols')
 
-  then show ?case using solve1_correct subst_correct sorry
+  have "mx m (b-1) (map (subst sol) sols)" using "2.prems"(3) \<open>length sol = b - 1\<close> \<open>length sol \<noteq> 0\<close> length_map_subst by blast
+  then have "mx (m+1) (b-1) sols'" using sols' by (simp add: \<open>length sol = b - 1\<close> mx_def)
+
+  show ?case using "2.IH"[OF sol eqs' sols' ‹b-1 = n-1+1› ‹mx (n - 1) (b - 1) eqs'› ‹mx (m+1) (b - 1) sols'› ‹is_sols ys eqs' ys› ‹is_sols (rev (Xs @ [y])) sols' ys›]
+    by (metis append_Cons append_assoc eq_Nil_appendI eqs' sol sols' solves.simps(2) yys)
 next
   case (3 a va)
   have "b = 0" using ‹mx n b ([] # va)› unfolding mx_def by simp

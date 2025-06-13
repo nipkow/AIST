@@ -1,5 +1,5 @@
-theory CFG_To_Pda
-  imports Pushdown_Automata "../CFG"
+theory CFG_To_PDA
+  imports PDA "../CFG" 
 begin
 
 datatype sing_st = Q_loop

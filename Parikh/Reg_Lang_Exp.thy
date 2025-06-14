@@ -109,7 +109,8 @@ qed fastforce+
 
 subsection \<open>Continuity\<close>
 
-lemma langpow_mono:
+(* TODO: rm, is in devel *)
+lemma lang_pow_mono:
   fixes A :: "'a lang"
   assumes "A \<subseteq> B"
   shows "A ^^ n \<subseteq> B ^^ n"
@@ -144,7 +145,7 @@ next
     by (metis le_fun_def lift_Suc_mono_le max.cobounded1 subset_eq)
   from Suc.prems(1) assms (1) rlexp_mono have "eval f (v j) \<subseteq> eval f (v ?m)"
     by (metis le_fun_def lift_Suc_mono_le max.cobounded2)
-  with j_intro langpow_mono have 2: "u' \<in> eval f (v ?m) ^^ n" by auto
+  with j_intro lang_pow_mono have 2: "u' \<in> eval f (v ?m) ^^ n" by auto
   from 1 2 show ?case using w_decomp by auto
 qed
 
@@ -168,7 +169,7 @@ next
   case (Star f)
   then obtain n where n_intro: "w \<in> (eval f (\<lambda>x. \<Union>i. v i x)) ^^ n"
     using eval.simps(5) star_pow by blast
-  with Star have "w \<in> (\<Union>i. eval f (v i)) ^^ n" using langpow_mono by blast
+  with Star have "w \<in> (\<Union>i. eval f (v i)) ^^ n" using lang_pow_mono by blast
   with Star.prems assms have "w \<in> (\<Union>i. eval f (v i) ^^ n)" using langpow_Union_eval by auto
   then show ?case by (auto simp add: star_def)
 qed fastforce+

@@ -196,8 +196,8 @@ proof -
     unfolding parikh_img_def by blast
   then obtain w1 w2 where w_decomp: "w=w1@w2 \<and> w1 \<in> star A \<and> w2 \<in> star B" by blast
   then obtain i j where "w1 \<in> A ^^ i" and w2_intro: "w2 \<in> B ^^ j" unfolding star_def by blast
-  then have w1_in_union: "w1 \<in> (A \<union> B) ^^ i" using langpow_mono by blast
-  from w2_intro have "w2 \<in> (A \<union> B) ^^ j" using langpow_mono by blast
+  then have w1_in_union: "w1 \<in> (A \<union> B) ^^ i" using lang_pow_mono by blast
+  from w2_intro have "w2 \<in> (A \<union> B) ^^ j" using lang_pow_mono by blast
   with w1_in_union w_decomp have "w \<in> (A \<union> B) ^^ (i+j)" using lang_pow_add by fast
   with w_intro show ?thesis unfolding parikh_img_def by auto
 qed

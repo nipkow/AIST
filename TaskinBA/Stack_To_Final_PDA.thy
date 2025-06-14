@@ -1,5 +1,5 @@
-theory Stack_To_Final_Pda
-  imports Pushdown_Automata
+theory Stack_To_Final_PDA
+  imports PDA 
 begin
 
 datatype 'q st_extended = Old_st 'q | New_init | New_final 

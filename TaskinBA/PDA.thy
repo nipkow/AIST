@@ -1,4 +1,4 @@
-theory Pushdown_Automata
+theory PDA
   imports "HOL-IMP.Star"
 begin
 

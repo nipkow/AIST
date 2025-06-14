@@ -9,8 +9,9 @@ theory Reg_Lang_Exp_Eqns
 begin
 
 text \<open>In this section, we will first introduce two types of systems of
-equations. Then we will show that to each CFG correspond two systems of equations - one for both
-of the types - and that the language defined by the CFG is a minimal solution of both systems.\<close>
+equations. Then we will show that to each CFG corresponds a system of equations of the first type 
+and that the language defined by the CFG is a minimal solution of this systems. Lastly we prove
+some relations between the two types of systems of equations.\<close>
 
 
 subsection \<open>Introduction of systems of equations\<close>
@@ -130,6 +131,7 @@ qed
 
 subsection \<open>CFLs as minimal solutions to systems of equations\<close>
 
+text \<open>\label{sec:cfl_as_eqns_sys}\<close>
 text \<open>We show that each CFG induces a system of equations of the first type, i.e.\ without Parikh images,
 such that each equation is \<^const>\<open>reg_eval\<close> and the CFG's language is the minimal solution of the system.
 First, we describe how to derive the system of equations from a CFG. This requires us to fix some
@@ -430,6 +432,7 @@ end
 
 subsection \<open>Relation between the two types of systems of equations\<close>
 
+text \<open>\label{sec:eqns_sys_relations}\<close>
 text \<open>One can simply convert a system \<open>sys\<close> of equations of the second type (i.e.\ with Parikh
 images) into a system of equations of the first type by dropping the Parikh images on both sides of
 each equation. The following lemmas describe how the two systems are related to each other.
@@ -437,7 +440,7 @@ each equation. The following lemmas describe how the two systems are related to 
 First of all, to any solution \<open>sol\<close> of \<open>sys\<close> exists a valuation whose Parikh image is
 identical to that of \<open>sol\<close> and which is a solution of the other system (i.e.\ the system obtained
 by dropping all Parikh images in \<open>sys\<close>). The following proof explicitly gives such a solution,
-namely \<^term>\<open>\<lambda>x. \<Union>(parikh_img_eq_class (sol x))\<close>, benefiting from the results of section 2.7:\<close>
+namely \<^term>\<open>\<lambda>x. \<Union>(parikh_img_eq_class (sol x))\<close>, benefiting from the results of section \ref{sec:parikh_eq_class}:\<close>
 lemma sol_comm_sol:
   assumes sol_is_sol_comm: "solves_ineq_sys_comm sys sol"
   shows   "\<exists>sol'. (\<forall>x. \<Psi> (sol x) = \<Psi> (sol' x)) \<and> solves_ineq_sys sys sol'"

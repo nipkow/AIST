@@ -126,6 +126,7 @@ lemma rlexp_mono_parikh_eq:
 
 subsection \<open>$\Psi \; (A \cup B)^* = \Psi \; A^* B^*$\<close>
 
+text \<open>\label{sec:parikh_img_star}\<close>
 text \<open>This property is claimed by Pilling in \<^cite>\<open>Pilling\<close> and will be needed later.\<close>
 
 lemma parikh_img_union_pow_aux1:
@@ -211,6 +212,7 @@ qed
 
 subsection \<open>$\Psi \; (E^* F)^* = \Psi \; \left(\{\varepsilon\} \cup E^* F^* F\right)$\<close>
 
+text \<open>\label{sec:parikh_img_star2}\<close>
 text \<open>This property (where $\varepsilon$ denotes the empty word) is claimed by
 Pilling as well \<^cite>\<open>Pilling\<close>; we will use it later.\<close>
 
@@ -296,7 +298,9 @@ qed
 
 
 
-subsection \<open>A homogeneous-like property for regular functions\<close>
+subsection \<open>A homogeneous-like property for regular language expressions\<close>
+
+text \<open>\label{sec:rlexp_homogeneous}\<close>
 
 lemma rlexp_homogeneous_aux:
   assumes "v x = star Y @@ Z"
@@ -359,6 +363,8 @@ qed
 
 subsection \<open>Extension of Arden's lemma to Parikh images\<close>
 
+text \<open>\label{sec:parikh_arden}\<close>
+
 lemma parikh_img_arden_aux:
   assumes "\<Psi> (A @@ X \<union> B) \<subseteq> \<Psi> X"
   shows "\<Psi> (A ^^ n @@ B) \<subseteq> \<Psi> X"
@@ -390,6 +396,7 @@ qed
 
 subsection \<open>Equivalence class of languages with identical Parikh image\<close>
 
+text \<open>\label{sec:parikh_eq_class}\<close>
 text \<open>For a given language \<open>L\<close>, we define the equivalence class of all languages with identical Parikh
 image:\<close>
 

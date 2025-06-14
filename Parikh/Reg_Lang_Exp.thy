@@ -212,7 +212,7 @@ lemma epsilon_regular: "reg_eval (Const {[]})"
   using lang.simps(2) reg_eval.simps(2) by blast
 
 
-text \<open>If the valuation \<open>v\<close> maps all variables occurring in the regular language function \<open>f\<close> to
+text \<open>If the valuation \<open>v\<close> maps all variables occurring in the regular language expression \<open>f\<close> to
 a regular language, then evaluating \<open>f\<close> again yields a regular language:\<close>
 lemma reg_eval_regular:
   assumes "reg_eval f"
@@ -277,7 +277,7 @@ lemma finite_Union_regular:
 
 
 
-subsection \<open>Constant regular language functions\<close>
+subsection \<open>Constant regular language expressions\<close>
 
 text \<open>We call a regular language expression constant if it contains no variables. A constant
 regular language expression always evaluates to the same language, independent on the valuation.

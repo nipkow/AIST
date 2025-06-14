@@ -9,13 +9,13 @@ begin
 
 
 text \<open>We prove Parikh's theorem, closely following Pilling's proof \<^cite>\<open>Pilling\<close>. The rough
-idea is as follows: As seen above, each CFG can be interpreted as a system of \<^const>\<open>reg_eval\<close>
-equations of the first type and we can easily convert it into a system of the second type by
-applying the Parikh image on both sides of each equation. Pilling now shows that there is a
-regular solution to this system and that this solution is furthermore minimal.
-Using the relations explored in the last section we prove that the CFG's language is a minimal
-solution of the same sytem and hence that the Parikh image of the CFG's language and of the regular
-solution must be identical; this finishes the proof of Parikh's theorem.
+idea is as follows: As seen in section \ref{sec:cfl_as_eqns_sys}, each CFG can be interpreted as a
+system of \<^const>\<open>reg_eval\<close> equations of the first type and we can easily convert it into a system
+of the second type by applying the Parikh image on both sides of each equation. Pilling now shows
+that there is a regular solution to the latter system and that this solution is furthermore minimal.
+Using the relations explored in section \ref{sec:eqns_sys_relations} we prove that the CFG's
+language is a minimal solution of the same sytem and hence that the Parikh image of the CFG's
+language and of the regular solution must be identical; this finishes the proof of Parikh's theorem.
 
 Notably, while in \<^cite>\<open>Pilling\<close> Pilling proves an auxiliary lemma first and applies this lemma in
 the proof of the main theorem, we were able to complete the whole proof without using the lemma.\<close>
@@ -37,7 +37,7 @@ text \<open>All bipartite regular language expressions evaluate to regular langu
 for each \<^const>\<open>reg_eval\<close> regular language expression and variable \<open>x\<close>, there exists a bipartite
 regular language expression with identical Parikh image and almost identical set of variables.
 While the first proof is simple, the second one is more complex and needs the results of the
-sections 2.3 and 2.4:\<close>
+sections \ref{sec:parikh_img_star} and \ref{sec:parikh_img_star2}:\<close>
 lemma "bipart_rlexp x f \<Longrightarrow> reg_eval f"
   unfolding bipart_rlexp_def by fastforce
 
@@ -237,7 +237,8 @@ begin
 text \<open>The equation and the minimal solution look as follows. Here, \<open>x\<close> describes the variable whose
 solution is to be determined. In the subsequent lemmas, we prove that the solution is \<^const>\<open>reg_eval\<close>
 and fulfills each of the three conditions of the predicate \<^const>\<open>partial_min_sol_one_ineq\<close>.
-In particular, we will use the lemmas of the sections 2.5 and 2.6 here:\<close>
+In particular, we will use the lemmas of the sections \ref{sec:rlexp_homogeneous} and
+\ref{sec:parikh_arden} here:\<close>
 abbreviation "eq \<equiv> Union p (Concat q (Var x))"
 abbreviation "sol \<equiv> Concat (Star (subst (Var(x := p)) q)) p"
 

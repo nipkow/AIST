@@ -1,3 +1,5 @@
+(* Authors: Fabian Lehr *)
+
 section \<open>Pilling's proof of Parikh's theorem\<close>
 
 theory Pilling
@@ -7,10 +9,10 @@ begin
 
 
 text \<open>We prove Parikh's theorem, closely following Pilling's proof \<^cite>\<open>Pilling\<close>. The rough
-idea is as follows: As seen above, each CFG can be interpreted as a system of equations of the
-first type and we can easily convert it into a system of the second type by applying the Parikh
-image on both sides of each equation. Pilling now shows that there is a regular solution to this
-system and that this solution is furthermore minimal.
+idea is as follows: As seen above, each CFG can be interpreted as a system of \<^const>\<open>reg_eval\<close>
+equations of the first type and we can easily convert it into a system of the second type by
+applying the Parikh image on both sides of each equation. Pilling now shows that there is a
+regular solution to this system and that this solution is furthermore minimal.
 Using the relations explored in the last section we prove that the CFG's language is a minimal
 solution of the same sytem and hence that the Parikh image of the CFG's language and of the regular
 solution must be identical; this finishes the proof of Parikh's theorem.
@@ -21,11 +23,11 @@ the proof of the main theorem, we were able to complete the whole proof without 
 
 subsection \<open>Special representation of regular language expressions\<close>
 
-text \<open>To each regular language expression and variable \<open>x\<close> corresponds a second regular language
-expression with the same Parikh image and of the form depicted in equation (3) in \<^cite>\<open>Pilling\<close>.
-We call regular language expressions of this form "bipartite regular language expressions" since
-they decompose into two subexpressions where one of them contains the variable \<open>x\<close> and the other
-one does not:\<close>
+text \<open>To each \<^const>\<open>reg_eval\<close> regular language expression and variable \<open>x\<close> corresponds a second
+regular language expression with the same Parikh image and of the form depicted in equation (3) in
+\<^cite>\<open>Pilling\<close>. We call regular language expressions of this form "bipartite regular language
+expressions" since they decompose into two subexpressions where one of them contains the variable
+\<open>x\<close> and the other one does not:\<close>
 definition bipart_rlexp :: "nat \<Rightarrow> 'a rlexp \<Rightarrow> bool" where
   "bipart_rlexp x f \<equiv> \<exists>p q. reg_eval p \<and> reg_eval q \<and>
     f = Union p (Concat q (Var x)) \<and> x \<notin> vars p"
@@ -218,7 +220,7 @@ qed
 
 subsection \<open>Minimal solution for a single equation\<close>
 
-text \<open>The aim is to prove that every system of equations of the second type
+text \<open>The aim is to prove that every system of \<^const>\<open>reg_eval\<close> equations of the second type
 has some minimal solution which is \<^const>\<open>reg_eval\<close>. In this section, we prove this property
 only for the case of a single equation. First we assume that the equation is bipartite but later
 in this section we will abandon this assumption.\<close>
@@ -317,7 +319,7 @@ end
 
 
 text \<open>As announced at the beginning of this section, we now extend the previous result to arbitrary
-equations, i.e.\ we show that each equation has some minimal partial solution which is
+equations, i.e.\ we show that each \<^const>\<open>reg_eval\<close> equation has some minimal partial solution which is
 \<^const>\<open>reg_eval\<close>:\<close>
 lemma exists_minimal_reg_sol:
   assumes eq_reg: "reg_eval eq"
@@ -340,8 +342,8 @@ qed
 
 subsection \<open>Minimal solution of the whole system of equations\<close>
 
-text \<open>In this section we will extend the last section's result to whole systems of equations.
-For this purpose, we will show by induction on \<open>r\<close> that the first \<open>r\<close> equations have
+text \<open>In this section we will extend the last section's result to whole systems of \<^const>\<open>reg_eval\<close>
+equations. For this purpose, we will show by induction on \<open>r\<close> that the first \<open>r\<close> equations have
 some minimal partial solution which is \<^const>\<open>reg_eval\<close>.
 
 We start with the centerpiece of the induction step: If a \<^const>\<open>reg_eval\<close> and minimal partial solution
@@ -466,7 +468,7 @@ end
 
 
 text \<open>Now follows the actual induction proof: For every \<open>r\<close>, there exists a \<^const>\<open>reg_eval\<close> and minimal partial
-solution of the first \<open>r\<close> equations. This then implies that there also exists a regular and minimal (non-partial)
+solution of the first \<open>r\<close> equations. This then implies that there exists a regular and minimal (non-partial)
 solution of the whole system:\<close>
 lemma exists_minimal_reg_sol_sys_aux:
   assumes eqs_reg:   "\<forall>eq \<in> set sys. reg_eval eq"
@@ -538,7 +540,7 @@ qed
 
 subsection \<open>Parikh's theorem\<close>
 
-text \<open>Finally we are able to prove Parikh's theorem, i.e.\ that to each context free grammar exists
+text \<open>Finally we are able to prove Parikh's theorem, i.e.\ that to each context free language exists
 a regular language with identical Parikh image:\<close>
 theorem Parikh:
   assumes "CFL (TYPE('n)) L"

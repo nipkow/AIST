@@ -1,3 +1,5 @@
+(* Authors: Fabian Lehr *)
+
 section \<open>Regular language expressions\<close>
 
 theory Reg_Lang_Exp

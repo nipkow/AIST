@@ -1,3 +1,5 @@
+(* Authors: Fabian Lehr *)
+
 section \<open>Parikh images\<close>
 
 theory Parikh_Img

@@ -1,3 +1,5 @@
+(* Authors: Fabian Lehr *)
+
 section \<open>Context free grammars and systems of equations\<close>
 
 theory Reg_Lang_Exp_Eqns
@@ -18,7 +20,7 @@ text \<open>For the first type of systems, each equation is of the form
 For the second type of systems, each equation is of the form
 \[\Psi \; X_i \supseteq \Psi \; r_i\]
 i.e.\ the Parikh image is applied on both sides of each equation.
-In both cases, we represent the whole system by a list of regular language expression where each
+In both cases, we represent the whole system by a list of regular language expressions where each
 of the variables \<open>X\<^sub>0, X\<^sub>1, \<dots>\<close> is identified by its integer, i.e.\ \<^term>\<open>Var i\<close> denotes the variable
 \<open>X\<^sub>i\<close>. The \<open>i\<close>-th item of the list then represents the right-hand side \<open>r\<^sub>i\<close> of the \<open>i\<close>-th equation:\<close>
 
@@ -70,7 +72,8 @@ definition partial_sol_ineq :: "nat \<Rightarrow> 'a rlexp \<Rightarrow> 'a rlex
 
 text \<open>We generalize the previous definition to partial solutions of whole systems of equations:
 \<open>sols\<close> maps each variable \<open>i\<close> to a regular language expression representing the partial solution
-of the \<open>i\<close>-th equation. A partial solution of the whole system is then defined as follows:\<close>
+of the \<open>i\<close>-th equation. \<open>sols\<close> is then a partial solution of the whole system if it satisfies the
+following predicate:\<close>
 definition solution_ineq_sys :: "'a eq_sys \<Rightarrow> (nat \<Rightarrow> 'a rlexp) \<Rightarrow> bool" where
   "solution_ineq_sys sys sols \<equiv> \<forall>v. (\<forall>x. v x = eval (sols x) v) \<longrightarrow> solves_ineq_sys_comm sys v"
 
@@ -125,12 +128,12 @@ qed
 
 
 
-subsection \<open>CFLs as minimal solution of systems of equations\<close>
+subsection \<open>CFLs as minimal solutions to systems of equations\<close>
 
 text \<open>We show that each CFG induces a system of equations of the first type, i.e.\ without Parikh images,
-such that the CFG's language is the minimal solution of the system. First, we describe how to derive
-the system of equations from a CFG. This requires us to fix some bijection between the variables in
-the system and the non-terminals occurring in the CFG:\<close>
+such that each equation is \<^const>\<open>reg_eval\<close> and the CFG's language is the minimal solution of the system.
+First, we describe how to derive the system of equations from a CFG. This requires us to fix some
+bijection between the variables in the system and the non-terminals occurring in the CFG:\<close>
 
 definition bij_Nt_Var :: "'n set \<Rightarrow> (nat \<Rightarrow> 'n) \<Rightarrow> ('n \<Rightarrow> nat) \<Rightarrow> bool" where
   "bij_Nt_Var A \<gamma> \<gamma>' \<equiv> bij_betw \<gamma> {..< card A} A \<and> bij_betw \<gamma>' A {..< card A}
@@ -315,8 +318,8 @@ proof -
 qed
 
 
-text \<open>The whole CFG induces a system of equations. We first define which conditions this system
-should fulfill and show its existence in the second step:\<close>
+text \<open>The whole CFG induces a system of \<^const>\<open>reg_eval\<close> equations. We first define which conditions
+this system should fulfill and show its existence in the second step:\<close>
 
 abbreviation "CFG_sys sys \<equiv>
   length sys = card (Nts P) \<and>
@@ -340,9 +343,9 @@ proof -
 qed
 
 
-text \<open>As we have proved that each CFG induces a system of equations, it remains to show that the
- CFG's language is a minimal solution of this system. The first lemma proves that the CFG's language
-is a solution and the next two lemmas prove that it is minimal:\<close>
+text \<open>As we have proved that each CFG induces a system of \<^const>\<open>reg_eval\<close> equations, it remains to
+show that the  CFG's language is a minimal solution of this system. The first lemma proves that
+the CFG's language is a solution and the next two lemmas prove that it is minimal:\<close>
 
 abbreviation "sol \<equiv> \<lambda>i. if i < card (Nts P) then Lang_lfp P (\<gamma> i) else {}"
 
@@ -406,8 +409,8 @@ qed
 
 
 text \<open>Lastly we combine all of the previous lemmas into the desired result of this section, namely
-that each CFG induces a system of equations such that the CFG's language is a minimal solution of
-the system:\<close>
+that each CFG induces a system of \<^const>\<open>reg_eval\<close> equations such that the CFG's language is a
+minimal solution of the system:\<close>
 lemma CFL_is_min_sol:
   "\<exists>sys. (\<forall>eq \<in> set sys. reg_eval eq) \<and> (\<forall>eq \<in> set sys. \<forall>x \<in> vars eq. x < length sys)
           \<and> min_sol_ineq_sys sys sol"
@@ -428,12 +431,13 @@ end
 subsection \<open>Relation between the two types of systems of equations\<close>
 
 text \<open>One can simply convert a system \<open>sys\<close> of equations of the second type (i.e.\ with Parikh
-images) into a system of equations of the first type by dropping the Parikh images on both side of
+images) into a system of equations of the first type by dropping the Parikh images on both sides of
 each equation. The following lemmas describe how the two systems are related to each other.
 
 First of all, to any solution \<open>sol\<close> of \<open>sys\<close> exists a valuation whose Parikh image is
 identical to that of \<open>sol\<close> and which is a solution of the other system (i.e.\ the system obtained
-by dropping all Parikh images in \<open>sys\<close>). The proof benefits from the result of section 2.7:\<close>
+by dropping all Parikh images in \<open>sys\<close>). The following proof explicitly gives such a solution,
+namely \<^term>\<open>\<lambda>x. \<Union>(parikh_img_eq_class (sol x))\<close>, benefiting from the results of section 2.7:\<close>
 lemma sol_comm_sol:
   assumes sol_is_sol_comm: "solves_ineq_sys_comm sys sol"
   shows   "\<exists>sol'. (\<forall>x. \<Psi> (sol x) = \<Psi> (sol' x)) \<and> solves_ineq_sys sys sol'"

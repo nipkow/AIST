@@ -184,7 +184,7 @@ using assms proof (induction "(Q_loop, w, \<alpha>)" "(Q_loop, [] :: 't list, []
   qed
 qed (simp_all add: assms)
 
-lemma cfg_of_pda: "LangS G = pda.stack_accept cfg_to_pda_pda"
+lemma cfg_to_pda: "LangS G = pda.stack_accept cfg_to_pda_pda"
 proof
   show "LangS G \<subseteq> pda.stack_accept cfg_to_pda_pda"
   proof

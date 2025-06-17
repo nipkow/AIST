@@ -285,7 +285,7 @@ proof -
 qed
 
 lemma split_stack: 
-"stepn n (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1 @ \<beta>\<^sub>1) (p\<^sub>2, [], []) \<Longrightarrow> \<exists>p' m\<^sub>1 m\<^sub>2 y y'. w\<^sub>1 = y @ y' \<and> m\<^sub>1 \<le> n \<and> m\<^sub>2 \<le> n 
+"stepn n (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1 @ \<beta>\<^sub>1) (p\<^sub>2, [], []) \<Longrightarrow> \<exists>p' m\<^sub>1 m\<^sub>2 y y'. w\<^sub>1 = y @ y' \<and> m\<^sub>1 + m\<^sub>2 = n 
                                           \<and> stepn m\<^sub>1 (p\<^sub>1, y, \<alpha>\<^sub>1) (p', [], []) \<and> stepn m\<^sub>2 (p', y', \<beta>\<^sub>1) (p\<^sub>2, [], [])"
 proof (induction n arbitrary: p\<^sub>1 w\<^sub>1 \<alpha>\<^sub>1 \<beta>\<^sub>1)
   case (Suc n)
@@ -293,7 +293,7 @@ proof (induction n arbitrary: p\<^sub>1 w\<^sub>1 \<alpha>\<^sub>1 \<beta>\<^sub
     case Nil
     hence *: "stepn 0 (p\<^sub>1, [], \<alpha>\<^sub>1) (p\<^sub>1, [], [])" by simp
     from Suc.prems Nil have **: "stepn (Suc n) (p\<^sub>1, w\<^sub>1, \<beta>\<^sub>1) (p\<^sub>2, [], [])" by simp
-    from * ** show ?thesis by fastforce
+    from * ** show ?thesis by force
   next
     case (Cons Z \<alpha>)
     with Suc.prems have "stepn (Suc n) (p\<^sub>1, w\<^sub>1, Z # \<alpha> @ \<beta>\<^sub>1) (p\<^sub>2, [], [])" by simp
@@ -306,31 +306,29 @@ proof (induction n arbitrary: p\<^sub>1 w\<^sub>1 \<alpha>\<^sub>1 \<beta>\<^sub
       assume "\<exists>\<beta>. w' = w\<^sub>1 \<and> \<alpha>' = \<beta> @ \<alpha> @ \<beta>\<^sub>1 \<and> (p', \<beta>) \<in> eps_fun M p\<^sub>1 Z"
       then obtain \<beta> where w1_def: "w\<^sub>1 = w'" and \<alpha>'_def: "\<alpha>' = \<beta> @ \<alpha> @ \<beta>\<^sub>1" and e: "(p',\<beta>) \<in> eps_fun M p\<^sub>1 Z" by blast
       from rN \<alpha>'_def have rN2: "stepn n (p', w', (\<beta> @ \<alpha>) @ \<beta>\<^sub>1) (p\<^sub>2, [], [])" by simp
-      obtain p'' m\<^sub>1 m\<^sub>2 y y' where w'_def: "w' = y @ y'" and m1: "m\<^sub>1 \<le> n" and m2: "m\<^sub>2 \<le> n" 
+      obtain p'' m\<^sub>1 m\<^sub>2 y y' where w'_def: "w' = y @ y'" and m1_m2_n: "m\<^sub>1 + m\<^sub>2 = n" 
           and rm1: "stepn m\<^sub>1 (p', y, \<beta> @ \<alpha>) (p'', [], [])" and rm2: "stepn m\<^sub>2 (p'', y', \<beta>\<^sub>1) (p\<^sub>2, [], [])"
         using Suc.IH[OF rN2] by blast
       from w1_def w'_def have *: "w\<^sub>1 = y @ y'" by simp
-      from m1 have **: "Suc m\<^sub>1 \<le> Suc n" by simp
-      from m2 have ***: "m\<^sub>2 \<le> Suc n" by simp
+      from m1_m2_n have **: "Suc m\<^sub>1 + m\<^sub>2 = Suc n" by simp
       from e have "step\<^sub>1 (p\<^sub>1, y, Z#\<alpha>) (p', y, \<beta>@\<alpha>)"
         using step\<^sub>1_rule by blast
-      with rm1 Cons have ****: "stepn (Suc m\<^sub>1) (p\<^sub>1, y, \<alpha>\<^sub>1) (p'', [], [])"
+      with rm1 Cons have ***: "stepn (Suc m\<^sub>1) (p\<^sub>1, y, \<alpha>\<^sub>1) (p'', [], [])"
         using stepn_split_first by blast
-      from * ** *** **** rm2 show ?thesis by fastforce
+      from * ** *** rm2 show ?thesis by metis
     next
       assume "\<not>(\<exists>\<beta>. w' = w\<^sub>1 \<and> \<alpha>' = \<beta> @ \<alpha> @ \<beta>\<^sub>1 \<and> (p', \<beta>) \<in> eps_fun M p\<^sub>1 Z)"
       with step obtain a \<beta> where w1_def: "w\<^sub>1 = a # w'" and \<alpha>'_def: "\<alpha>' = \<beta> @ \<alpha> @ \<beta>\<^sub>1" and tr: "(p',\<beta>) \<in> trans_fun M p\<^sub>1 a Z" by blast
       from rN \<alpha>'_def have rN2: "stepn n (p', w', (\<beta> @ \<alpha>) @ \<beta>\<^sub>1) (p\<^sub>2, [], [])" by simp
-      obtain p'' m\<^sub>1 m\<^sub>2 y y' where w'_def: "w' = y @ y'" and  m1: "m\<^sub>1 \<le> n" and m2: "m\<^sub>2 \<le> n" 
+      obtain p'' m\<^sub>1 m\<^sub>2 y y' where w'_def: "w' = y @ y'" and m1_m2_n: "m\<^sub>1 + m\<^sub>2 = n" 
           and rm1: "stepn m\<^sub>1 (p', y, \<beta> @ \<alpha>) (p'', [], [])" and rm2: "stepn m\<^sub>2 (p'', y', \<beta>\<^sub>1) (p\<^sub>2, [], [])"
         using Suc.IH[OF rN2] by blast
       from w1_def w'_def have *: "w\<^sub>1 = (a # y) @ y'" by simp
-      from m1 have **: "Suc m\<^sub>1 \<le> Suc n" by simp
-      from m2 have ***: "m\<^sub>2 \<le> Suc n" by simp
+      from m1_m2_n have **: "Suc m\<^sub>1 + m\<^sub>2 = Suc n" by simp
       from tr have "step\<^sub>1 (p\<^sub>1, a#y, Z#\<alpha>) (p', y, \<beta>@\<alpha>)" by simp
-      with rm1 Cons have ****: "stepn (Suc m\<^sub>1) (p\<^sub>1, a#y, \<alpha>\<^sub>1) (p'', [], [])"
+      with rm1 Cons have ***: "stepn (Suc m\<^sub>1) (p\<^sub>1, a#y, \<alpha>\<^sub>1) (p'', [], [])"
         using stepn_split_first by blast
-      from * ** *** **** rm2 show ?thesis by metis
+      from * ** *** rm2 show ?thesis by metis
     qed
   qed
 qed blast

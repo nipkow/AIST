@@ -78,11 +78,11 @@ using assms proof (induction n arbitrary: x p q \<gamma> rule: less_induct)
     show ?thesis proof (cases)
       assume ?asm
       then obtain \<beta> where x_def: "x' = x" and \<gamma>'_split: "\<gamma>' = \<beta>@\<alpha>" and eps: "(q', \<beta>) \<in> eps_fun M q Z" by blast
-      from stepn \<gamma>'_split obtain p' m\<^sub>1 m\<^sub>2 y y' where x'_def: "x' = y @ y'" and m1_less_n': "m\<^sub>1 \<le> n'" and m2_less_n': "m\<^sub>2 \<le> n'" 
+      from stepn \<gamma>'_split obtain p' m\<^sub>1 m\<^sub>2 y y' where x'_def: "x' = y @ y'" and m1_m2_n': "m\<^sub>1 + m\<^sub>2 = n'" 
                   and stepm1: "stepn m\<^sub>1 (q', y, \<beta>) (p', [], [])" and stepm2: "stepn m\<^sub>2 (p', y', \<alpha>) (p, [], [])"
         using split_stack[of n' q' x' \<beta> \<alpha> p] by blast
-      from n_def m1_less_n' have m1_less_n: "m\<^sub>1 < n" by simp
-      from n_def m2_less_n' have m2_less_n: "m\<^sub>2 < n" by simp
+      from n_def m1_m2_n' have m1_less_n: "m\<^sub>1 < n" by simp
+      from n_def m1_m2_n' have m2_less_n: "m\<^sub>2 < n" by simp
 
       from Cons have "Prods G \<turnstile> [Nt (List_sym q \<gamma> p)] \<Rightarrow> [Nt (Single_sym q Z p'), Nt (List_sym p' \<alpha> p)]"
         using pda_to_cfg_derive_split by simp
@@ -102,11 +102,11 @@ using assms proof (induction n arbitrary: x p q \<gamma> rule: less_induct)
     next
       assume "\<not>?asm"
       with rule obtain a \<beta> where x_def: "x = a # x'" and \<gamma>'_split: "\<gamma>' = \<beta>@\<alpha>" and trans: "(q', \<beta>) \<in> trans_fun M q a Z" by blast
-      from stepn \<gamma>'_split obtain p' m\<^sub>1 m\<^sub>2 y y' where x'_def: "x' = y @ y'" and m1_less_n': "m\<^sub>1 \<le> n'" and m2_less_n': "m\<^sub>2 \<le> n'" 
+      from stepn \<gamma>'_split obtain p' m\<^sub>1 m\<^sub>2 y y' where x'_def: "x' = y @ y'" and m1_m2_n': "m\<^sub>1 + m\<^sub>2 = n'" 
                   and stepm1: "stepn m\<^sub>1 (q', y, \<beta>) (p', [], [])" and stepm2: "stepn m\<^sub>2 (p', y', \<alpha>) (p, [], [])"
         using split_stack[of n' q' x' \<beta> \<alpha> p] by blast
-      from n_def m1_less_n' have m1_less_n: "m\<^sub>1 < n" by simp
-      from n_def m2_less_n' have m2_less_n: "m\<^sub>2 < n" by simp
+      from n_def m1_m2_n' have m1_less_n: "m\<^sub>1 < n" by simp
+      from n_def m1_m2_n' have m2_less_n: "m\<^sub>2 < n" by simp
 
       from Cons have "Prods G \<turnstile> [Nt (List_sym q \<gamma> p)] \<Rightarrow> [Nt (Single_sym q Z p'), Nt (List_sym p' \<alpha> p)]"
         using pda_to_cfg_derive_split by simp
@@ -128,7 +128,7 @@ using assms proof (induction n arbitrary: x p q \<gamma> rule: less_induct)
   qed
 qed
 
-(* CFG? *)
+(* TODO: CFG? *)
 lemma derivel_append_decomp:
   "P \<turnstile> u@v \<Rightarrow>l w \<longleftrightarrow>
   (\<exists>u'. w = u'@v \<and> P \<turnstile> u \<Rightarrow>l u') \<or> (\<exists>u' v'. w = u@v' \<and> u = map Tm u' \<and> P \<turnstile> v \<Rightarrow>l v')"
@@ -165,81 +165,80 @@ next
     by (auto simp add: derivel_append derivel_map_Tm_append)
 qed
 
-(* CFG? *)
+(* TODO: CFG? *)
 lemma split_derivel':
   assumes "P \<turnstile> x#v \<Rightarrow>l(n) u"
-  shows "(\<exists>u'. u = u' @ v \<and> P \<turnstile> [x] \<Rightarrow>l(n) u') \<or> (\<exists>w\<^sub>1 u\<^sub>2 m\<^sub>1 m\<^sub>2. m\<^sub>1 \<le> n \<and> m\<^sub>2 \<le> n \<and> u = map Tm w\<^sub>1 @ u\<^sub>2 
+  shows "(\<exists>u'. u = u' @ v \<and> P \<turnstile> [x] \<Rightarrow>l(n) u') \<or> (\<exists>w\<^sub>1 u\<^sub>2 m\<^sub>1 m\<^sub>2. m\<^sub>1 + m\<^sub>2 = n \<and> u = map Tm w\<^sub>1 @ u\<^sub>2 
                                                     \<and> P \<turnstile> [x] \<Rightarrow>l(m\<^sub>1) map Tm w\<^sub>1 \<and> P \<turnstile> v \<Rightarrow>l(m\<^sub>2) u\<^sub>2)"
 using assms proof (induction n arbitrary: u)
   case (Suc n)
   from Suc(2) obtain w where x_v_deriveln_w: "P \<turnstile> x # v \<Rightarrow>l(n) w" and w_derivel_u: "P \<turnstile> w \<Rightarrow>l u" by auto
   from Suc(1)[OF x_v_deriveln_w] have IH: "(\<exists>u'. w = u' @ v \<and> P \<turnstile> [x] \<Rightarrow>l(n) u') \<or>
-          (\<exists>w\<^sub>1 u\<^sub>2 m\<^sub>1 m\<^sub>2. m\<^sub>1 \<le> n \<and> m\<^sub>2 \<le> n \<and> w = map Tm w\<^sub>1 @ u\<^sub>2 \<and> P \<turnstile> [x] \<Rightarrow>l(m\<^sub>1) map Tm w\<^sub>1 \<and> P \<turnstile> v \<Rightarrow>l(m\<^sub>2) u\<^sub>2)" (is "?asm \<or> _") .
+  (\<exists>w\<^sub>1 u\<^sub>2 m\<^sub>1 m\<^sub>2. m\<^sub>1 + m\<^sub>2 = n \<and> w = map Tm w\<^sub>1 @ u\<^sub>2 \<and> P \<turnstile> [x] \<Rightarrow>l(m\<^sub>1) map Tm w\<^sub>1 \<and> P \<turnstile> v \<Rightarrow>l(m\<^sub>2) u\<^sub>2)" (is "?asm \<or> _") .
   then show ?case proof (cases)
     assume ?asm
     then obtain u' where w_def: "w = u' @ v" and x_deriveln_u': "P \<turnstile> [x] \<Rightarrow>l(n) u'" by blast
     from w_def w_derivel_u have "P \<turnstile> u' @ v \<Rightarrow>l u" by simp
-    hence case_dist: "(\<exists>u\<^sub>1 u\<^sub>2. u = u' @ u\<^sub>2 \<and> u' = map Tm u\<^sub>1 \<and> P \<turnstile> v \<Rightarrow>l u\<^sub>2) \<or> 
-                        (\<exists>u\<^sub>0. u = u\<^sub>0 @ v \<and> P \<turnstile> u' \<Rightarrow>l u\<^sub>0)" (is "?asm' \<or> _")
-      using derivel_append_decomp[of P u' v u] by blast
+    hence case_dist: "(\<exists>u\<^sub>0. u = u\<^sub>0 @ v \<and> P \<turnstile> u' \<Rightarrow>l u\<^sub>0) \<or>
+                  (\<exists>u\<^sub>1 u\<^sub>2. u = u' @ u\<^sub>2 \<and> u' = map Tm u\<^sub>1 \<and> P \<turnstile> v \<Rightarrow>l u\<^sub>2)" (is "?asm' \<or> _")
+      using derivel_append_decomp[of P u' v u] by simp
     then show ?thesis proof (cases)
       assume ?asm'
-      then obtain u\<^sub>1 u\<^sub>2 where u_def: "u = map Tm u\<^sub>1 @ u\<^sub>2" and u'_def: "u' = map Tm u\<^sub>1" and v_derivel_u2: "P \<turnstile> v \<Rightarrow>l u\<^sub>2" by blast
-      from x_deriveln_u' u'_def have "P \<turnstile> [x] \<Rightarrow>l(n) map Tm u\<^sub>1" by simp
-      with u_def v_derivel_u2 show ?thesis by fastforce
+      then obtain u\<^sub>0 where u_def: "u = u\<^sub>0 @ v" and u'_derivel_u0: "P \<turnstile> u' \<Rightarrow>l u\<^sub>0" by blast
+      from x_deriveln_u' u'_derivel_u0 have "P \<turnstile> [x] \<Rightarrow>l(Suc n) u\<^sub>0" by auto
+      with u_def show ?thesis by blast
     next
       assume "\<not>?asm'"
-      with case_dist obtain u\<^sub>0 where u_def: "u = u\<^sub>0 @ v" and u'_derivel_u0: "P \<turnstile> u' \<Rightarrow>l u\<^sub>0" by blast
-      from x_deriveln_u' u'_derivel_u0 have "P \<turnstile> [x] \<Rightarrow>l(Suc n) u\<^sub>0" by auto 
-      with u_def show ?thesis by blast
+      with case_dist obtain u\<^sub>1 u\<^sub>2 where u_def: "u = u' @ u\<^sub>2" and u'_def: "u' = map Tm u\<^sub>1" and v_derivel_u2: "P \<turnstile> v \<Rightarrow>l u\<^sub>2" by blast
+      from x_deriveln_u' u'_def have "P \<turnstile> [x] \<Rightarrow>l(n) map Tm u\<^sub>1" by simp
+      with u_def u'_def v_derivel_u2 show ?thesis by fastforce
     qed
   next
     assume "\<not>?asm"
-    with IH obtain w\<^sub>1 u\<^sub>2 m\<^sub>1 m\<^sub>2 where m1_less: "m\<^sub>1 \<le> n" and m2_less: "m\<^sub>2 \<le> n" and w_def: "w = map Tm w\<^sub>1 @ u\<^sub>2" and 
+    with IH obtain w\<^sub>1 u\<^sub>2 m\<^sub>1 m\<^sub>2 where m1_m2_n: "m\<^sub>1 + m\<^sub>2 = n" and w_def: "w = map Tm w\<^sub>1 @ u\<^sub>2" and 
                                       x_derivelm1_w1: "P \<turnstile> [x] \<Rightarrow>l(m\<^sub>1) map Tm w\<^sub>1" and v_derivelm2_u2: "P \<turnstile> v \<Rightarrow>l(m\<^sub>2) u\<^sub>2" by blast
     from w_def w_derivel_u have "P \<turnstile> map Tm w\<^sub>1 @ u\<^sub>2 \<Rightarrow>l u" by simp
     then obtain u' where u_def: "u = map Tm w\<^sub>1 @ u'" and u2_derivel_u': "P \<turnstile> u\<^sub>2 \<Rightarrow>l u'"
       using derivel_map_Tm_append by blast
 
-    from m1_less have "m\<^sub>1 \<le> Suc n" by simp
-
-    moreover from m2_less have "Suc m\<^sub>2 \<le> Suc n" by simp
+    from m1_m2_n have "m\<^sub>1 + Suc m\<^sub>2 = Suc n" by simp
 
     moreover from v_derivelm2_u2 u2_derivel_u' have "P \<turnstile> v \<Rightarrow>l(Suc m\<^sub>2) u'" by auto
-  
+
     ultimately show ?thesis
       using u_def x_derivelm1_w1 by blast
   qed
 qed simp
 
-(* CFG? *)
+(* TODO: CFG? *)
 lemma split_derivel:
   assumes "P \<turnstile> x#v \<Rightarrow>l(n) map Tm w"
-  shows "\<exists>w\<^sub>1 w\<^sub>2 m\<^sub>1 m\<^sub>2. m\<^sub>1 \<le> n \<and> m\<^sub>2 \<le> n \<and> w = w\<^sub>1 @ w\<^sub>2 \<and> P \<turnstile> [x] \<Rightarrow>l(m\<^sub>1) map Tm w\<^sub>1 \<and> P \<turnstile> v \<Rightarrow>l(m\<^sub>2) map Tm w\<^sub>2"
+  shows "\<exists>w\<^sub>1 w\<^sub>2 m\<^sub>1 m\<^sub>2. m\<^sub>1 + m\<^sub>2 = n \<and> w = w\<^sub>1 @ w\<^sub>2 \<and> P \<turnstile> [x] \<Rightarrow>l(m\<^sub>1) map Tm w\<^sub>1 \<and> P \<turnstile> v \<Rightarrow>l(m\<^sub>2) map Tm w\<^sub>2"
 proof -
-  have case_dist: "(\<exists>u'. map Tm w = u' @ v \<and> P \<turnstile> [x] \<Rightarrow>l(n) u') \<or> (\<exists>w\<^sub>1 u\<^sub>2 m\<^sub>1 m\<^sub>2. m\<^sub>1 \<le> n \<and> m\<^sub>2 \<le> n \<and> map Tm w = map Tm w\<^sub>1 @ u\<^sub>2 
+  have case_dist: "(\<exists>u'. map Tm w = u' @ v \<and> P \<turnstile> [x] \<Rightarrow>l(n) u') \<or> (\<exists>w\<^sub>1 u\<^sub>2 m\<^sub>1 m\<^sub>2. m\<^sub>1 + m\<^sub>2 = n \<and> map Tm w = map Tm w\<^sub>1 @ u\<^sub>2 
                                                     \<and> P \<turnstile> [x] \<Rightarrow>l(m\<^sub>1) map Tm w\<^sub>1 \<and> P \<turnstile> v \<Rightarrow>l(m\<^sub>2) u\<^sub>2)" (is "?asm \<or> _")
     using split_derivel'[OF assms] by simp
   thus ?thesis proof (cases)
     assume ?asm
     then obtain u' where map_w_def: "map Tm w = u' @ v" and x_derives_u': "P \<turnstile> [x] \<Rightarrow>l(n) u'" by blast
-    from map_w_def obtain w\<^sub>1 w\<^sub>2 where  "w = w\<^sub>1 @ w\<^sub>2" and map_w\<^sub>1_def: "map Tm w\<^sub>1 = u'" and "map Tm w\<^sub>2 = v"
+    from map_w_def obtain w\<^sub>1 w\<^sub>2 where "w = w\<^sub>1 @ w\<^sub>2" and map_w\<^sub>1_def: "map Tm w\<^sub>1 = u'" and "map Tm w\<^sub>2 = v"
       using map_eq_append_conv[of Tm w u' v] by blast
 
     moreover from x_derives_u' map_w\<^sub>1_def have "P \<turnstile> [x] \<Rightarrow>l(n) map Tm w\<^sub>1" by simp
 
     moreover have "P \<turnstile> map Tm w\<^sub>2 \<Rightarrow>l(0) map Tm w\<^sub>2" by simp
 
-    ultimately show ?thesis by blast
+    ultimately show ?thesis by force
   next
     assume "\<not>?asm"
-    with case_dist obtain w\<^sub>1 u\<^sub>2 m\<^sub>1 m\<^sub>2 where "m\<^sub>1 \<le> n" and "m\<^sub>2 \<le> n" and map_w_def: "map Tm w = map Tm w\<^sub>1 @ u\<^sub>2" 
-                                               and "P \<turnstile> [x] \<Rightarrow>l(m\<^sub>1) map Tm w\<^sub>1" and "P \<turnstile> v \<Rightarrow>l(m\<^sub>2) u\<^sub>2" by blast
-    thus ?thesis 
-      using map_eq_append_conv[of Tm w "map Tm w\<^sub>1" u\<^sub>2] by metis
-  qed
+    with case_dist obtain w\<^sub>1 u\<^sub>2 m\<^sub>1 m\<^sub>2 where m1_m2_n: "m\<^sub>1 + m\<^sub>2 = n" and map_w_def: "map Tm w = map Tm w\<^sub>1 @ u\<^sub>2" 
+                                               and x_derivelm1_w1: "P \<turnstile> [x] \<Rightarrow>l(m\<^sub>1) map Tm w\<^sub>1" and v_derivelm2_u2: "P \<turnstile> v \<Rightarrow>l(m\<^sub>2) u\<^sub>2" by blast
+    from map_w_def obtain w\<^sub>1' u\<^sub>2' where "w = w\<^sub>1' @ u\<^sub>2'" and "map (Tm :: 'c \<Rightarrow> ('b, 'c) sym) w\<^sub>1 = map Tm w\<^sub>1'" and "u\<^sub>2 = map (Tm :: 'c \<Rightarrow> ('b, 'c) sym) u\<^sub>2'"
+      using map_eq_append_conv[of "Tm :: 'c \<Rightarrow> ('b, 'c) sym" w "map Tm w\<^sub>1" u\<^sub>2] by blast
+    with m1_m2_n x_derivelm1_w1 v_derivelm2_u2 show ?thesis by auto
+  qed                    
 qed
-                  
+
 lemma pda_to_cfg_steps_if_derivel:
   assumes "Prods G \<turnstile> [Nt (List_sym q \<gamma> p)] \<Rightarrow>l(n) map Tm x"
   shows "steps (q, x, \<gamma>) (p, [], [])"
@@ -294,12 +293,12 @@ using assms proof (induction n arbitrary: x p q \<gamma> rule: less_induct)
       from \<gamma>''_def ln'' obtain x' where x_def: "x = a#x'" and 
                                split: "Prods G \<turnstile> [Nt (List_sym q'' \<alpha>'' q'), Nt (List_sym q' \<alpha> p)] \<Rightarrow>l(n'') map Tm x'"
         using deriveln_Tm_Cons[of n'' "Prods G" a "[Nt (List_sym q'' \<alpha>'' q'), Nt (List_sym q' \<alpha> p)]" "map Tm x"] by auto
-      obtain w\<^sub>1 w\<^sub>2 m\<^sub>1 m\<^sub>2 where m1_lessn'': "m\<^sub>1 \<le> n''" and m2_lessn'': "m\<^sub>2 \<le> n''" and x'_def: "x' = w\<^sub>1 @ w\<^sub>2" 
+      obtain w\<^sub>1 w\<^sub>2 m\<^sub>1 m\<^sub>2 where m1_m2_n''': "m\<^sub>1 + m\<^sub>2 = n''" and x'_def: "x' = w\<^sub>1 @ w\<^sub>2" 
                                     and m1_path: "Prods G \<turnstile> [Nt (List_sym q'' \<alpha>'' q')] \<Rightarrow>l(m\<^sub>1) map Tm w\<^sub>1" 
                                     and m2_path: "Prods G \<turnstile> [Nt (List_sym q' \<alpha> p)] \<Rightarrow>l(m\<^sub>2) map Tm w\<^sub>2" 
         using split_derivel[OF split] by blast
-      from m1_lessn'' n_def n'_def have m1_lessn: "m\<^sub>1 < n" by simp
-      from m2_lessn'' n_def n'_def have m2_lessn: "m\<^sub>2 < n" by simp
+      from m1_m2_n''' n_def n'_def have m1_lessn: "m\<^sub>1 < n" by simp
+      from m1_m2_n''' n_def n'_def have m2_lessn: "m\<^sub>2 < n" by simp
 
       from trans x_def Cons have "step\<^sub>1 (q, x, \<gamma>) (q'', x', \<alpha>'' @ \<alpha>)"
         using step\<^sub>1_rule by simp
@@ -318,12 +317,12 @@ using assms proof (induction n arbitrary: x p q \<gamma> rule: less_induct)
       with rule obtain q'' \<alpha>'' where eps: "(q'', \<alpha>'') \<in> eps_fun M q Z" and  
                                   \<gamma>''_def: "\<gamma>'' = [Nt (List_sym q'' \<alpha>'' q'), Nt (List_sym q' \<alpha> p)]" by blast
       from \<gamma>''_def ln'' have split: "Prods G \<turnstile> [Nt (List_sym q'' \<alpha>'' q'), Nt (List_sym q' \<alpha> p)] \<Rightarrow>l(n'') map Tm x" by simp
-      obtain w\<^sub>1 w\<^sub>2 m\<^sub>1 m\<^sub>2 where m1_lessn'': "m\<^sub>1 \<le> n''" and m2_lessn'': "m\<^sub>2 \<le> n''" and x_def: "x = w\<^sub>1 @ w\<^sub>2" 
+      obtain w\<^sub>1 w\<^sub>2 m\<^sub>1 m\<^sub>2 where m1_m2_n''': "m\<^sub>1 + m\<^sub>2 = n''" and x_def: "x = w\<^sub>1 @ w\<^sub>2" 
                              and m1_path: "Prods G \<turnstile> [Nt (List_sym q'' \<alpha>'' q')] \<Rightarrow>l(m\<^sub>1) map Tm w\<^sub>1" 
                              and m2_path: "Prods G \<turnstile> [Nt (List_sym q' \<alpha> p)] \<Rightarrow>l(m\<^sub>2) map Tm w\<^sub>2"
         using split_derivel[OF split] by blast
-      from m1_lessn'' n_def n'_def have m1_lessn: "m\<^sub>1 < n" by simp
-      from m2_lessn'' n_def n'_def have m2_lessn: "m\<^sub>2 < n" by simp
+      from m1_m2_n''' n_def n'_def have m1_lessn: "m\<^sub>1 < n" by simp
+      from m1_m2_n''' n_def n'_def have m2_lessn: "m\<^sub>2 < n" by simp
 
       from eps Cons have "step\<^sub>1 (q, x, \<gamma>) (q'', x, \<alpha>'' @ \<alpha>)"
         using step\<^sub>1_rule by simp

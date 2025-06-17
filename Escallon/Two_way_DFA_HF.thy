@@ -95,6 +95,12 @@ abbreviation nreachable :: "'a list \<Rightarrow> nat \<Rightarrow> 'a config \<
 
 notation nreachable ("_ \<rightarrow>*{_} _" 55)
 
+lemma step_unique:
+  assumes "c1 \<rightarrow> c2"
+          "c1 \<rightarrow> c3"
+        shows "c2 = c3"
+  using assms by fastforce
+
 lemma steps_impl_in_states:
   assumes "p \<in> states M"
   shows "(u, p, v) \<rightarrow>* (u', q, v') \<Longrightarrow> q \<in> states M"
@@ -147,15 +153,6 @@ qed simp
 corollary unchanged_word:
   "([], p, w) \<rightarrow>* (u, q, v) \<Longrightarrow> w = rev u @ v"
   using unchanged_substrings by force
-
-lemma final_reaches_right_stepn:
-  assumes "p = acc M \<or> p = rej M"
-          "valid_input (ys @ zs)"
-  shows "(xs, p, ys @ zs) \<rightarrow>{length ys} (rev ys @ xs, p, zs)"
-  apply (induction ys arbitrary: xs)
-   apply fastforce
-  using assms unfolding valid_input_def 
-  sorry
 
 lemma step_butlast:
   assumes "(u, p, v) \<rightarrow> (u', q, v')"
@@ -221,7 +218,26 @@ proof -
       then show ?thesis by auto
     qed
   qed force
-qed 
+qed
+
+lemma left_to_right_impl_reachable_substring:
+  assumes "length u < length y"
+          "(u, p, v) \<rightarrow>{n} (y, q, z)"
+          "v = as @ bs"
+        obtains q' m k where "m + k = n" "(u, p, v) \<rightarrow>{m} (rev as @ u, q', bs)"
+                         "(rev as @ u, q', bs) \<rightarrow>{k} (y, q, z)"
+  sorry
+
+lemma right_to_left_impl_reachable_substring:
+  assumes "length u > length y"
+          "(u, p, v) \<rightarrow>{n} (y, q, z)"
+          "u = as @ bs"
+        obtains q' m k where "m + k = n" "(u, p, v) \<rightarrow>{m} (bs, q', rev as @ v)"   
+                         "(bs, q', rev as @ v) \<rightarrow>{k} (y, q, z)"
+  sorry
+
+lemmas reachable_impl_reachable_substring = 
+  left_to_right_impl_reachable_substring right_to_left_impl_reachable_substring
 
 
 lemma acc_impl_reachable_substring:
@@ -229,7 +245,7 @@ lemma acc_impl_reachable_substring:
           "xs \<noteq> []"
           "ys \<noteq> []"
   shows "v = xs @ ys \<Longrightarrow> (u, acc M, v) \<rightarrow>* (rev xs @ u, acc M, ys)"
-  using assms 
+  using assms
 proof (induction v arbitrary: u xs ys)
   case (Cons a v)
   consider b where "a = Letter b \<or> a = \<turnstile>" | "a = \<stileturn>"  by (metis dir.exhaust symbol.exhaust)
@@ -307,6 +323,11 @@ definition left_config :: "'a config \<Rightarrow> bool" where
 definition right_config :: "'a config \<Rightarrow> bool" where
   "right_config c \<equiv> \<exists>u q v. c = (u, q, v) \<and> length u \<ge> length (\<langle>x\<langle>)"
 
+lemma left_config_is_not_right_config:
+  "left_config c \<longleftrightarrow> \<not>right_config c"
+  unfolding left_config_def right_config_def
+  by (metis linorder_not_less prod.inject prod_cases3)
+
 inductive left_step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L\<close> 55) where
   lstep [intro]: "\<lbrakk>c1 \<rightarrow> c2; left_config c1; left_config c2\<rbrakk> 
       \<Longrightarrow> c1 \<rightarrow>\<^sup>L c2"
@@ -324,6 +345,10 @@ inductive_cases rstepE [elim]: "c1 \<rightarrow>\<^sup>R c2"
 notation (ASCII) left_step (infix \<open>\<rightarrow>^L\<close> 55)
 notation (ASCII) right_step (infix \<open>\<rightarrow>^R\<close> 55)
 
+lemma dir_step_impl_not_opposite:
+      "c1 \<rightarrow>\<^sup>L c2 \<Longrightarrow> \<not>(c1 \<rightarrow>\<^sup>R c2)"
+      "c1 \<rightarrow>\<^sup>R c2 \<Longrightarrow> \<not>(c1 \<rightarrow>\<^sup>L c2)"
+  using left_config_is_not_right_config by blast+
 
 abbreviation left_steps :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L*\<close> 55) where
   "left_steps \<equiv> left_step\<^sup>*\<^sup>*"
@@ -348,13 +373,6 @@ abbreviation left_nreachable :: "'a list \<Rightarrow> nat \<Rightarrow> 'a conf
   "left_nreachable w n c \<equiv> ([], init M, \<langle>w\<rangle>) \<rightarrow>\<^sup>L{n} c" 
 
 notation left_nreachable ("_ \<rightarrow>\<^sup>L*{_} _" 55) 
-
-inductive right_reachable :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>R**\<close> 55) where
-  "\<lbrakk>x @ z \<rightarrow>** c1; 
-    c1 \<rightarrow>\<^sup>L* (rev x_init, p, x_end # \<rangle>z\<rangle>); (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>);
-    (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>) \<rightarrow>\<^sup>R* c2\<rbrakk> \<Longrightarrow> c1 \<rightarrow>\<^sup>R** c2"
- (*Right reachability: c1 is reachable and can reach c2 with a single boundary crossing
-    (is reachability of c1 too weak?)*)
 
 
 lemma left_steps_impl_steps [dest]:
@@ -386,6 +404,122 @@ lemma right_steps_impl_right_config[dest]:
   "\<lbrakk>c1 \<rightarrow>\<^sup>R* c2; right_config c1\<rbrakk> 
     \<Longrightarrow> right_config c2"
   by (induction rule: rtranclp_induct) auto
+
+lemma nsteps_lower_bound:
+  assumes "length u \<ge> length y"
+  shows "(u, p, v) \<rightarrow>{n} (y, q, z) \<Longrightarrow> length y \<ge> length u - n"
+using assms proof (induction n arbitrary: u p v y q z)
+  case (Suc n) 
+  consider q' where "nxt M p (hd v) = (q', Left)" | q' where "nxt M p (hd v) = (q', Right)"
+    by (metis (full_types) dir.exhaust old.prod.exhaust)
+  then show ?case
+  proof cases
+    case 1
+    with Suc(2) have steps: "(u, p, v) \<rightarrow> (tl u, q', hd u # v)" "(tl u, q', hd u # v) \<rightarrow>{n} (y, q, z)"
+       apply (smt (verit) Pair_inject dir.distinct(1) list.sel(1,3) relpowp_Suc_E2 step.simps)
+      using "1" Suc.prems(1) relpowp_Suc_D2' by fastforce
+    consider "length (tl u) \<ge> length y" | "length (tl u) < length y" by linarith
+    then show ?thesis by cases (use steps Suc in auto)
+  next
+    case 2
+    with Suc(2) have steps: "(u, p, v) \<rightarrow> (hd v # u, q', tl v)" "(hd v # u, q', tl v) \<rightarrow>{n} (y, q, z)"
+       apply (smt (verit) Pair_inject dir.distinct(1) list.sel(1,3) relpowp_Suc_E2 step.simps)
+      using "2" Suc.prems(1) relpowp_Suc_D2' by fastforce
+    then show ?thesis using Suc by force
+  qed
+qed simp
+
+lemma steps_is_chain:
+  "(c0 \<rightarrow>{n} cn) \<longleftrightarrow> (\<exists>c :: nat \<Rightarrow> 'a config. c 0 = c0 \<and> c n = cn \<and> (\<forall>i < n. c i \<rightarrow> c (i + 1)))"
+          (is "_ \<longleftrightarrow> ?ex")
+proof 
+  assume "(c0 \<rightarrow>{n} cn)"
+  then obtain c where "c 0 = c0" "c n = cn" "\<forall>i < n. c i \<rightarrow> c (i + 1)" sorry
+  thus ?ex by blast
+next
+  assume ?ex
+  then obtain c where "c 0 = c0" "c n = cn" "\<forall>i < n. c i \<rightarrow> c (i + 1)" by blast
+  thus "c0 \<rightarrow>{n} cn" sorry
+qed
+
+corollary chain_end_is_reachable:
+  fixes f :: "nat \<Rightarrow> 'a config"
+  assumes "c0 \<rightarrow>{n} cn"
+          "n > 0"
+          "f 0 = c0"
+          "f n = cn"
+          "\<forall>i < n. f i \<rightarrow> f (i + 1)"
+          "k < n"
+        shows "f k \<rightarrow>{n - k} cn"
+using assms(6) proof (induction k)
+  case (Suc k)
+  hence k_lt_n: "k < n" by simp
+  with Suc(1) have "f k \<rightarrow>{n - k} cn" by blast
+  with Suc(2) obtain c where "f k \<rightarrow> c" "c \<rightarrow>{n - Suc k} cn"
+    by (metis Suc_diff_Suc \<open>k < n\<close> relpowp_Suc_D2)
+  then show ?case using assms(5) k_lt_n by fastforce
+qed (use assms in simp)
+
+corollary chain_is_reachable:
+  fixes f :: "nat \<Rightarrow> 'a config"
+  assumes "c0 \<rightarrow>{n} cn"
+          "n > 0"
+          "f 0 = c0"
+          "f n = cn"
+          "\<forall>i < n. f i \<rightarrow> f (i + 1)"
+          "k \<le> n"
+        shows "c0 \<rightarrow>{k} f k"
+  using assms steps_is_chain by auto
+
+lemma left_steps_is_left_chain:
+  "(c0 \<rightarrow>\<^sup>L{n} cn) \<longleftrightarrow> (\<exists>f :: nat \<Rightarrow> 'a config. f 0 = c0 \<and> f n = cn \<and> (\<forall>i < n. f i \<rightarrow>\<^sup>L f (i + 1)))" 
+          (is "_ \<longleftrightarrow> ?ex")
+proof
+  assume nsteps: "c0 \<rightarrow>\<^sup>L{n} cn"
+  obtain f where "f 0 = c0" "\<forall>i < n. f i \<rightarrow>\<^sup>L f (i + 1)" "f n = cn"
+  proof -
+    from nsteps that show thesis
+    proof (induction n arbitrary: cn thesis)
+        case 0
+        let ?f = "(\<lambda>n. c0)"
+        have "?f 0 = cn" using 0(1) by simp 
+        then show ?case using 0(2)[of ?f] by simp
+      next
+        case (Suc n)
+        from Suc(2) obtain c' where "c0 \<rightarrow>\<^sup>L{n} c'" and step: "c' \<rightarrow>\<^sup>L cn" by auto
+        from Suc(1)[OF this(1)] obtain f where f_defs: "f 0 = c0" 
+                                   "\<forall>i < n. f i \<rightarrow>\<^sup>L f (i + 1)" 
+                                   "f n = c'" by blast
+        let ?g = "(\<lambda>i. if i < Suc n then f i else cn)"
+        have "\<forall>i < Suc n. ?g i \<rightarrow>\<^sup>L ?g (i + 1)"
+        proof (rule allI, rule impI)
+          fix i
+          assume "i < Suc n"
+          then consider "i = n" | "i < n" by fastforce
+          thus "?g i \<rightarrow>\<^sup>L ?g (i + 1)" by cases (use step f_defs in auto)
+        qed
+        then show ?case using Suc(3)[of ?g] f_defs by simp 
+    qed
+  qed
+  thus ?ex by metis
+next
+  assume ?ex
+  then obtain f where c_defs: "f 0 = c0" "f n = cn" "\<forall>i<n. f i \<rightarrow>\<^sup>L f (i + 1)" by auto
+  then show "c0 \<rightarrow>\<^sup>L{n} cn"
+  proof (induction n arbitrary: cn)
+      case (Suc n)
+      from Suc(1)[OF Suc(2), of "f n"] Suc(4) have "c0 \<rightarrow>\<^sup>L{n} f n" by simp
+      then show ?case using Suc(3,4) by auto
+  qed auto
+qed
+
+
+
+
+lemma not_left_steps_impl_right_config:
+  assumes "\<not>c1 \<rightarrow>\<^sup>L* c3"
+  obtains c2 where "right_config c2" "c1 \<rightarrow>* c2" "c2 \<rightarrow>* c3"
+  sorry
  
  
 proposition list_deconstruct1:
@@ -407,7 +541,7 @@ qed
   (*These propositions are necessary for the two following lemmas.*)
 
 
-lemma star_lstar_impl_substring_x:
+lemma star_lstar_impl_substring_x: (*weaken?*)
   assumes nsteps: "x @ z \<rightarrow>** (u, p, v)"
       and in_x:   "length u < length (\<langle>x\<langle>)"
       and lsteps: "(u, p, v) \<rightarrow>\<^sup>L* (u', q, v')"
@@ -450,20 +584,21 @@ corollary init_lstar_impl_substring_x:
 
   
 
-lemma star_rstar_impl_substring_z:
+lemma star_rconfig_impl_substring_z:
   assumes nsteps: "x @ z \<rightarrow>** (u, p, v)"
       and not_in_x:   "length u \<ge> length (\<langle>x\<langle>)"
-      and rsteps: "(u, p, v) \<rightarrow>\<^sup>R* (u', q, v')"
+      and reach: "(u, p, v) \<rightarrow>* (u', q, v')"
+      and rconf: "right_config (u', q, v')"
     obtains y where " rev (\<langle>x\<langle> @ y) = u'" "y @ v' = \<rangle>z\<rangle>"
 proof -
   have "right_config (u, p, v)" using not_in_x right_config_def by simp
-  with rsteps right_config_def have u'_ge_x: "length (\<langle>x\<langle>) \<le> length u'"
-    using right_steps_impl_right_config by force
-  from rsteps show thesis
+  with right_config_def have u'_ge_x: "length (\<langle>x\<langle>) \<le> length u'"
+    using rconf by force
+  from reach show thesis
   proof (induction arbitrary: u p v rule: rtranclp_induct3)
     case refl
-    from unchanged_word nsteps rsteps have app: "\<langle>x @ z\<rangle> = rev u' @ v'"
-      by (metis right_steps_impl_steps unchanged_substrings)
+    from unchanged_word nsteps have app: "\<langle>x @ z\<rangle> = rev u' @ v'"
+      by (metis reach unchanged_substrings)
     moreover from this u'_ge_x
     obtain x' where "rev (\<langle>x\<langle> @ x') = u'" "x' @ v' = \<rangle>z\<rangle>"
     proof -
@@ -493,6 +628,48 @@ proof -
   qed blast
 qed
 
+corollary reachable_right_conf_impl_substring_z:
+  assumes "x @ z \<rightarrow>** (u, q, v)"
+          "right_config (u, q, v)"
+        obtains y where "rev (\<langle>x\<langle> @ y) = u" "y @ v = \<rangle>z\<rangle>"
+  using assms star_rconfig_impl_substring_z right_config_def by blast
+
+lemma reachable_from_right_impl_reachable_without_loops:
+  assumes "(u, p, v) \<rightarrow>{n} (y, q, z)"
+          "length u > length y"
+        obtains p' m where "m < n" "(u, p, v) \<rightarrow>{m} (u, p', v)" "(u, p', v) \<rightarrow>{n-m} (y, q, z)"
+                           "\<forall>k < n-m. \<forall>u' q' v'. ((u, p', v) \<rightarrow>{k} (u', q', v')) \<longrightarrow> length u > length u'"
+proof -
+  have "(\<lambda>n. ((u, p, v) \<rightarrow>{n} (y, q, z)) \<and> length u > length y \<longrightarrow>
+          (\<exists>p' m. m < n \<and> ((u, p, v) \<rightarrow>{m} (u, p', v)) \<and> ((u, p', v) \<rightarrow>{n-m} (y, q, z))
+        \<and> (\<forall>k < n-m. \<forall>u' q' v'. ((u, p', v) \<rightarrow>{k} (u', q', v')) \<longrightarrow> length u > length u'))) n" (is "?ex n")
+  proof (rule infinite_descent[where P="?ex"])
+    fix n
+    assume nexn: "\<not>?ex n"
+    hence assms': "((u, p, v) \<rightarrow>{n} (y, q, z))" "length u > length y" by simp+
+    from nexn have "\<forall>p'. \<forall>m<n. (\<forall>u' v'. ((u, p, v) \<rightarrow>{m} (u', p', v')) \<longrightarrow>  u' \<noteq> u \<or> v' \<noteq> v)
+                      \<or> (\<not>((u, p', v) \<rightarrow>{n-m} (y, q, z)))
+                      \<or> (\<exists>k<n-m. \<exists>u' q' v'. ((u, p', v) \<rightarrow>{k} (u', q', v')) \<and> length u \<le> length u')" 
+      by (meson linorder_le_less_linear)
+    from assms' have "n > 0" using bot_nat_0.not_eq_extremum by fastforce
+    hence "\<exists>p' m. m < n \<and> ((u, p, v) \<rightarrow>{m} (u, p', v)) \<and> ((u, p', v) \<rightarrow>{n-m} (y, q, z))" 
+      by (metis diff_Suc_1' diff_Suc_Suc nexn relpowp_0_I)
+    with nexn obtain p' m where stepm:
+      "m < n"
+      "(u, p, v) \<rightarrow>{m} (u, p', v)"
+      "(u, p', v) \<rightarrow>{n-m} (y, q, z)"
+      "\<exists>k<n-m. \<exists>u' q' v'. ((u, p', v) \<rightarrow>{k} (u', q', v')) \<and> length u \<le> length u'"
+      by fastforce
+    then obtain k u' q' v' where stepk:
+      "k < n-m"
+      "(u, p', v) \<rightarrow>{k} (u', q', v')" 
+      "length u \<le> length u'" by blast
+    with stepm assms' obtain j where "(u', q', v') \<rightarrow>{j} (y, q, z)" 
+      using right_to_left_impl_reachable_substring sorry
+    show "\<exists>m<n. \<not>?ex m" sorry
+  qed
+  thus thesis using that assms by auto
+qed
 
 lemma left_reachable_indep:
   assumes "x @ y \<rightarrow>\<^sup>L** (u, q, v @ \<rangle>y\<rangle>)"
@@ -549,6 +726,58 @@ proof -
 qed
 
 
+lemma reachable_right_config_impl_left_boundary_cross:
+  assumes "x @ z \<rightarrow>** c"
+          "right_config c"
+        obtains p q where "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>)"
+                   "(rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>) \<rightarrow> (rev x_init, q, x_end # \<rangle>z\<rangle>)"
+                   "(rev x_init, q, x_end # \<rangle>z\<rangle>) \<rightarrow>* c"
+  sorry
+
+lemma not_left_reachable_impl_right_boundary_cross:
+  assumes reach: "x @ z \<rightarrow>** c"
+      and left: "left_config c"
+      and not_lr: "\<not>x @ z \<rightarrow>\<^sup>L** c"
+      and c_def: "c = (u, q, v)"
+        obtains p q' where "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>)"
+                   "(rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>) \<rightarrow> (rev x_init, q', x_end # \<rangle>z\<rangle>)"
+                   "(rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* c"
+proof -
+  from reach obtain f :: "nat \<Rightarrow> 'a config" and n where
+    nsteps: "x @ z \<rightarrow>*{n} c"
+and f_defs:
+    "f 0 = ([], init M, \<langle>x @ z\<rangle>)"
+    "f n = c"
+    "\<forall>i<n. f i \<rightarrow> f (i + 1)" 
+    by (meson rtranclp_imp_relpowp steps_is_chain)
+  then obtain k where "k < n" "right_config (f k)"
+  proof -
+    have "\<exists>k<n. right_config (f k)"
+    proof (rule ccontr)
+      assume "\<not>(\<exists>k<n. right_config (f k))"
+      hence "\<forall>k<n. left_config (f k)" using left_config_is_not_right_config by simp
+      with f_defs have "\<forall>k<n. f k \<rightarrow>\<^sup>L f (k + 1)" 
+        by (metis left less_iff_succ_less_eq lstep nless_le)
+      with f_defs  have "x @ z \<rightarrow>\<^sup>L*{n} c" using left_steps_is_left_chain by auto
+      with not_lr show False by (simp add: rtranclp_power)
+    qed
+    with that show thesis by blast
+  qed
+  moreover have "x @ z \<rightarrow>** f k" and fk_reach: "f k \<rightarrow>* c"
+    by (meson left_steps_impl_steps not_left_steps_impl_right_config rtranclp_trans)+
+  ultimately obtain p q' where "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>)"
+                   "(rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>) \<rightarrow> (rev x_init, q', x_end # \<rangle>z\<rangle>)"
+                   "(rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow>* f k"
+    using reachable_right_config_impl_left_boundary_cross by blast
+  hence "(rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow>* c" using fk_reach by simp
+  then obtain q'' where "(rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow>* (rev x_init, q'', x_end # \<rangle>z\<rangle>)"
+                       "(rev x_init, q'', x_end # \<rangle>z\<rangle>) \<rightarrow>{length x_init - length u} c" sorry
+  have "(rev x_init, q'', x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L{length x_init - length u} c" sorry
+  hence "(rev x_init, q'', x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* c" by (meson rtranclp_power) 
+  show thesis sorry
+qed
+
+
 inductive T :: "'a list \<Rightarrow> state option \<Rightarrow> state option \<Rightarrow> bool" for z where
   init_tr[intro]: "\<lbrakk>x @ z \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z\<rangle>); 
               (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T z None (Some p)" |
@@ -557,8 +786,8 @@ inductive T :: "'a list \<Rightarrow> state option \<Rightarrow> state option \<
 
   some_tr[intro]: "\<lbrakk>x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>); 
               (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, q, x_end # \<rangle>z\<rangle>); 
-              (rev x_init, q, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, p', x_end # \<rangle>z\<rangle>); 
-              (rev x_init, p', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T z (Some q) (Some p)" |
+              (rev x_init, q, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, p, x_end # \<rangle>z\<rangle>); 
+              (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T z (Some q) (Some p)" |
                                                        (*Following notation in Kozen, p. 124*)
   no_tr[intro]:   "\<lbrakk>x @ z \<rightarrow>**c; c \<rightarrow>\<^sup>R* (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>); 
               (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>) \<rightarrow> (rev x_init, q, x_end # \<rangle>z\<rangle>); 
@@ -581,6 +810,7 @@ lemma T_impl_in_states:
     ( meson init left_steps_impl_steps steps_impl_in_states r_into_rtranclp 
       right_steps_impl_steps dfa2_axioms dfa2_transition_axioms)+
 
+
  
 lemma T_p_Some_impl_reachable:
   assumes "T z p (Some q)"
@@ -601,9 +831,9 @@ proof -
     with assms obtain q' q'' where 
        "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)" 
        "(rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, p', x_end # \<rangle>z\<rangle>)"
-       "(rev x_init, p', x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q'', x_end # \<rangle>z\<rangle>)"
-       "(rev x_init, q'', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" by auto
-    hence "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" by fastforce            
+       "(rev x_init, p', x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q, x_end # \<rangle>z\<rangle>)"
+       "(rev x_init, q, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q'', \<rangle>z\<rangle>)" by auto
+    hence "x @ z \<rightarrow>** (rev x_init, q, x_end # \<rangle>z\<rangle>)" by fastforce            
     then show thesis using that by simp
   qed
 qed
@@ -612,7 +842,17 @@ lemma boundary_cross_impl_T:
   assumes "x @ z \<rightarrow>** (rev x_init, p, x_end # \<rangle>z\<rangle>)"
           "(rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)"
   obtains q' where "T z q' (Some p)"
-  \<proof>
+proof (cases "x @ z \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z\<rangle>)")
+  case False
+  then obtain q' q'' where "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)" 
+                           "(rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, q'', x_end # \<rangle>z\<rangle>)"
+                           "(rev x_init, q'', x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, p, x_end # \<rangle>z\<rangle>)"
+    by (metis assms(1) left_config_def length_append_singleton length_rev lessI
+        not_left_reachable_impl_right_boundary_cross x_is_init_app_end)
+  hence "T z (Some q'') (Some p)" using assms by blast
+  then show ?thesis using that by simp
+qed (use that assms in blast)
+
 
 lemma left_acc_impl_T_Some_acc:
   assumes reach: "x @ z \<rightarrow>** (u, acc M, v)"
@@ -787,7 +1027,6 @@ begin
 
 abbreviation "T \<equiv> dfa2_transition.T M" 
 abbreviation "left_reachable \<equiv> dfa2_transition.left_reachable M"
-abbreviation "right_reachable \<equiv> dfa2_transition.right_reachable M"
 abbreviation "left_config \<equiv> dfa2_transition.left_config"
 abbreviation "right_config \<equiv> dfa2_transition.right_config" (*Poor style?*)
 

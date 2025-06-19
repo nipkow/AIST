@@ -1,5 +1,5 @@
 theory PDA_To_CFG
-  imports PDA "../CFG"
+  imports PDA Context_Free_Grammar.Context_Free_Language
 begin
 
 datatype ('q, 's) pda_nt = Start_sym | Single_sym 'q 's 'q | List_sym 'q "'s list" 'q

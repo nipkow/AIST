@@ -1,0 +1,5 @@
+session "TaskinBA" = Context_Free_Grammar +
+  options [document = pdf, document_output = "output"]
+
+  sessions
+    "HOL-IMP"

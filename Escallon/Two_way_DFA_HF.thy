@@ -458,7 +458,7 @@ qed simp
 lemma not_left_steps_impl_right_config:
   assumes "\<not>c1 \<rightarrow>\<^sup>L* c3"
   obtains c2 where "right_config c2" "c1 \<rightarrow>* c2" "c2 \<rightarrow>* c3"
-  \<proof>
+  oops
  
  
 proposition list_deconstruct1:
@@ -575,7 +575,7 @@ lemma reachable_from_right_impl_reachable_without_loops:
   assumes "(u, p, v) \<rightarrow>{n} (y, q, z)"
           "length u > length y"
         obtains p' m where "m < n" "(u, p, v) \<rightarrow>{m} (u, p', v)" "(u, p', v) \<rightarrow>{n-m} (y, q, z)"
-               "\<forall>k \<le> m. \<forall>u' q' v'. ((u, p', v) \<rightarrow>{n-k} (u', q', v')) \<longrightarrow> length u > length u'"
+               "\<forall>k \<le> n-m. \<forall>u' q' v'. ((u, p', v) \<rightarrow>{k} (u', q', v')) \<and> k \<noteq> 0 \<longrightarrow> length u > length u'"
 proof -
   have "(\<lambda>n. ((u, p, v) \<rightarrow>{n} (y, q, z)) \<and> length u > length y \<longrightarrow>
           (\<exists>p' m. m < n \<and> ((u, p, v) \<rightarrow>{m} (u, p', v)) \<and> ((u, p', v) \<rightarrow>{n-m} (y, q, z))
@@ -671,6 +671,7 @@ lemma reachable_right_config_impl_left_boundary_cross:
                    "(rev x_init, q, x_end # \<rangle>z\<rangle>) \<rightarrow>* c"
   \<proof>
 
+
 lemma not_left_reachable_impl_right_boundary_cross:
   assumes reach: "x @ z \<rightarrow>** c"
       and left: "left_config c"
@@ -700,23 +701,22 @@ proof -
     with that show thesis by blast
   qed
   then obtain w p y where wpy_def: "f k = (w, p, y)" by (metis surj_pair)
-  obtain zs where "rev (\<langle>x\<langle> @ zs) = w" "zs @ y = \<rangle>z\<rangle>" 
+  have wpy_reachable: "x @ z \<rightarrow>** (w, p, y)"
   proof -
-    have "x @ z \<rightarrow>** (w, p, y)"
-    proof -
-      from k_leq_n consider "k < n" | "k = n" by linarith
-      thus ?thesis
-      proof cases
-        case 1
-        then show ?thesis using wpy_def f_defs
-          by (meson left_steps_impl_steps not_left_steps_impl_right_config rtranclp_trans)
-      next
-        case 2
-        then show ?thesis using wpy_def f_defs(2) reach by simp 
-      qed
+    from k_leq_n consider "k < n" | "k = n" by linarith
+    thus ?thesis
+    proof cases
+      case 1
+      then show ?thesis using wpy_def f_defs
+        by (smt (verit, best) dfa2_transition.chain_reachable dfa2_transition_axioms diff_is_0_eq k_leq_n
+            less_imp_diff_less nsteps rtranclp.simps rtranclp_power zero_less_iff_neq_zero)
+    next
+      case 2
+      then show ?thesis using wpy_def f_defs(2) reach by simp 
     qed
-    with star_rconfig_impl_substring_z[of z w p y w p y] show thesis using that wpy_def fk_right by auto
   qed
+  then obtain zs where zs_defs: "rev (\<langle>x\<langle> @ zs) = w" "zs @ y = \<rangle>z\<rangle>" 
+    using star_rconfig_impl_substring_z[of z w p y w p y] that wpy_def fk_right by auto
   hence w_app_def: "w = rev zs @ rev (\<langle>x\<langle>)" by simp
   obtain m where m_def: "m = n-k" by simp
   hence fk_mstep_c: "f k \<rightarrow>{m} c" using k_leq_n 
@@ -729,43 +729,84 @@ proof -
     qed (use f_defs nsteps in auto) 
   obtain q' j l where 
     jl_def: "j + l = m"
-and wpy_jstep: "(w, p, y) \<rightarrow>{j} (rev (\<langle>x\<langle>), q', rev zs @ v)" 
-and revx_lstep: "(rev (\<langle>x\<langle>), q', rev zs @ v) \<rightarrow>{l} (u, q, v)" 
+and wpy_jstep: "(w, p, y) \<rightarrow>{j} (rev (\<langle>x\<langle>), q', zs @ y)" 
+and revx_lstep: "(rev (\<langle>x\<langle>), q', zs @ y) \<rightarrow>{l} (u, q, v)" 
   proof -
     from fk_right wpy_def w_app_def left have "length (rev zs @ rev (\<langle>x\<langle>)) > length u"
       by (metis c_def left_config_lt_right_config)
-    thus thesis using that right_to_left_impl_reachable_substring w_app_def 
-      sorry
+    moreover from fk_mstep_c wpy_def zs_defs have "(rev zs @ rev (\<langle>x\<langle>), p, y) \<rightarrow>{m} (u, q, v)"
+      using c_def by simp
+    ultimately  show thesis 
+      using that right_to_left_impl_reachable_substring w_app_def rev_rev_ident by metis
   qed
-  then have bound_interm: "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q', rev zs @ v)" sorry
-  then have rev_zs_v_eq_z: "rev zs @ v = \<rangle>z\<rangle>" using unchanged_word by force
+  have bound_interm: "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q', zs @ y)" 
+    using wpy_jstep rtranclp_power wpy_reachable by (metis (no_types, lifting) rtranclp_trans)
+  then have rev_zs_v_eq_z: "zs @ y = \<rangle>z\<rangle>" using unchanged_word by force
   with left c_def left_config_def have "length u < length (rev (\<langle>x\<langle>))" by simp 
   with reachable_from_right_impl_reachable_without_loops revx_lstep c_def
   obtain q'' l' where q''_bound_defs:               
     "l' < l"
     "(rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>{l'} (rev (\<langle>x\<langle>), q'', \<rangle>z\<rangle>)"
     "(rev (\<langle>x\<langle>), q'', \<rangle>z\<rangle>) \<rightarrow>{l-l'} c"
-    "\<forall>i\<le>l'. \<forall>u' q' v'. ((rev (\<langle>x\<langle>), q'', \<rangle>z\<rangle>) \<rightarrow>{l-i} (u', q', v')) \<longrightarrow> length u' < length (rev (\<langle>x\<langle>))"
+    "\<forall>i\<le>l-l'. \<forall>u' q' v'. ((rev (\<langle>x\<langle>), q'', \<rangle>z\<rangle>) \<rightarrow>{i} (u', q', v')) \<and> i \<noteq> 0 \<longrightarrow> length u' < length (rev (\<langle>x\<langle>))"
     using rev_zs_v_eq_z by metis
   then obtain g :: "nat \<Rightarrow> 'a config" where g_defs:
     "g 0 = (rev (\<langle>x\<langle>), q'', \<rangle>z\<rangle>)"
     "g (l-l') = c"
     "\<forall>i<l-l'. g i \<rightarrow> g (Suc i)" using relpowp_fun_conv rev_zs_v_eq_z by metis
-  with q''_bound_defs have "\<forall>i\<le>l-l'. i \<noteq> 0 \<longrightarrow> left_config (g i)" sorry
-  with g_defs have g_lstep_all: "\<forall>i\<le>l-l'. i \<noteq> 0 \<longrightarrow> g i \<rightarrow>\<^sup>L g (Suc i)"
-    using q''_bound_defs(1) left_config_def sorry
+  have g_gt_0_left: "\<forall>i\<le>l-l'. i \<noteq> 0 \<longrightarrow> left_config (g i)"
+  proof (rule allI, rule impI, rule impI)
+    fix i
+    assume i_leq_diff: "i \<le> l - l'"
+      and i_neq_0: "i \<noteq> 0"
+    moreover have "(rev (\<langle>x\<langle>), q'', \<rangle>z\<rangle>) \<rightarrow>{i} g i"
+    using i_leq_diff proof (induction i)
+      case (Suc i)
+      from Suc(2) consider "Suc i < l-l'" | "Suc i = l-l'" by linarith
+      then show ?case using Suc g_defs q''_bound_defs(3) by cases force+ 
+    qed (use g_defs in simp)
+    moreover obtain u q v where "g  i = (u, q, v)" using prod_cases3 by blast
+    ultimately show "left_config (g i)" using q''_bound_defs unfolding left_config_def by auto
+  qed
+  hence g_lstep_all: "\<forall>i<l-l'. i \<noteq> 0 \<longrightarrow> g i \<rightarrow>\<^sup>L g (Suc i)" using g_defs left_config_def left
+    by (simp add: lstep)
   hence g_lstepn: "g (Suc 0) \<rightarrow>\<^sup>L{l-l'-1} g (l-l')"
   proof -
     obtain h where "\<forall>n. h n = g (Suc n)" by fast
     hence
       "h (l-l'-1) = g (l-l')"
-      "\<forall>i<l-l'. h i \<rightarrow>\<^sup>L h (Suc i)"
+      "\<forall>i<l-l'-1. h i \<rightarrow>\<^sup>L h (Suc i)"
       "h 0 = g (Suc 0)"
       using g_lstep_all Suc_pred' q''_bound_defs(1) zero_less_diff
       by (presburger, simp+)
     thus ?thesis using relpowp_fun_conv[where x="g (Suc 0)" and y="g (l-l')"] by auto
   qed
-  obtain r where g1_def: "g (Suc 0) = (rev x_init, r, x_end # \<rangle>z\<rangle>)" sorry
+  obtain r where g1_def: "g (Suc 0) = (rev x_init, r, x_end # \<rangle>z\<rangle>)"
+  proof -
+    from g_gt_0_left have g_1_left: "left_config (g (Suc 0))" using q''_bound_defs(1) by simp
+    then obtain r where r_def: "nxt M q'' (hd (\<rangle>z\<rangle>)) = (r, Left)"
+    proof -
+      have "\<exists>r. nxt M q'' (hd (\<rangle>z\<rangle>)) = (r, Left)"
+      proof (rule ccontr)
+        assume "\<not>?thesis"
+        then obtain r where "nxt M q'' (hd (\<rangle>z\<rangle>)) = (r, Right)" using dir.exhaust
+          by (metis (full_types) old.prod.exhaust)
+        hence "(rev (\<langle>x\<langle>), q'', \<rangle>z\<rangle>) \<rightarrow> ((hd (\<rangle>z\<rangle>)) # rev (\<langle>x\<langle>), r, tl (\<rangle>z\<rangle>))"
+          by (metis append_is_Nil_conv list.collapse not_Cons_self2 step_right)
+        hence "g (Suc 0) = ..." using g_defs q''_bound_defs(1) by force
+        thus False using g_1_left left_config_def by simp
+      qed
+      thus thesis using that by blast
+    qed
+    have "(rev (\<langle>x\<langle>), q'', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, r, x_end # \<rangle>z\<rangle>)" 
+    proof -
+      from x_defs have "(rev (\<langle>x\<langle>), q'', \<rangle>z\<rangle>) = (x_end # rev x_init, q'', \<rangle>z\<rangle>)" by simp
+      also from r_def have "... \<rightarrow> (rev x_init, r, x_end # \<rangle>z\<rangle>)" 
+        by (metis (no_types, opaque_lifting) Nil_is_append_conv list.exhaust list.sel(1) step_left)
+      finally show ?thesis .
+    qed
+    thus thesis using g_defs that q''_bound_defs(1) by fastforce
+  qed
   hence "(rev x_init, r, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* c" using g_defs(2) g_lstepn by (metis rtranclp_power)
   moreover from g_defs(1,3) g1_def have "(rev (\<langle>x\<langle>), q'', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, r, x_end # \<rangle>z\<rangle>)" 
     using q''_bound_defs(1) by fastforce

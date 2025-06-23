@@ -636,7 +636,7 @@ proof -
       ultimately have ex_mki: "\<exists>k'\<le>n-(m+k+i). \<exists>u' q' v'. ((\<rightarrow>) ^^ k') (u, q'', v) (u', q', v') \<and> k' \<noteq> 0 
                       \<and> length u \<le> length u'" using neg kstep(3) by force
       have "m+k+i \<noteq> 0" using kstep(3) by simp
-      then show thesis using that ex_mki mki_reach mki_lt_n by presburger
+      then show thesis using that ex_mki mki_reach mki_lt_n by presburger 
     qed
     then obtain k u' q' v' where ksteps: "k \<le> n - m" "(u, p', v) \<rightarrow>{k} (u', q', v')" "k \<noteq> 0" 
                                         "length u \<le> length u'"

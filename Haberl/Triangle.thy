@@ -40,10 +40,6 @@ fun exp_hd_list :: "'n \<Rightarrow> 'n list \<Rightarrow> ('n,'t)prod list \<Ri
 value "exp_hd_list (1::int) [2,3] [(1, [Nt 2,Tm 0]::(int,int)sym list), (2,[Nt 3]), (3,[Tm 1])]"
 value "exp_hd_list (1::int) [3,2] [(1, [Nt 2]::(int,int)sym list)]"
 
-lemma "set(exp_hd_list A As R) = exp_hd A As (set R)"
-(*nitpick*)
-oops
-
 text \<open>Remove left-recursive rules\<close>
 definition rm_lrec ::  "'n \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t)Prods" where
 "rm_lrec A R = R - {(A,Nt A # v)|v. True}"
@@ -93,17 +89,13 @@ In each step \<open>A#As\<close>, first the remaining \<open>As\<close> are solv
 This should mean that in the result of the outermost \<open>exp_hd A As\<close>, \<open>A\<close> only depends on \<open>A\<close>,
 i.e. the \<open>A\<close> rules in the result of \<open>solve_lrec A A'\<close> are already in GNF. More precisely:
 the result should be in triangular form.\<close>
-fun solve_tri where
+fun solve_tri :: "'a list \<Rightarrow> 'a list \<Rightarrow> ('a, 'b) Prods \<Rightarrow> ('a, 'b) Prods" where
 "solve_tri [] _ R = R" |
 "solve_tri (A#As) (A'#As') R = solve_lrec A A' (exp_hd A As (solve_tri As As' R))"
 
 fun solve_tri_list where
 "solve_tri_list [] _ R = R" |
 "solve_tri_list (A#As) (A'#As') R = solve_lrec_list A A' (exp_hd_list A As (solve_tri_list As As' R))"
-
-lemma "set(solve_tri_list As As' R) = solve_tri As As' (set R)"
-(*nitpick*)
-oops
 
 text \<open>\<open>A\<close> depends on \<open>B\<close> if there is a rule \<open>A \<rightarrow> B w\<close>:\<close>
 definition dep_on :: "('n,'t) Prods \<Rightarrow> 'n \<Rightarrow> 'n set" where
@@ -147,7 +139,7 @@ qed
 lemma exp_hd_preserves_neq: "B \<noteq> A \<Longrightarrow> (B,w) \<in> exp_hd A Ss R \<longleftrightarrow> (B,w) \<in> R"
   by(induction A Ss R rule: exp_hd.induct)  (auto simp add: Let_def)
 
-(* True! Later *)
+text \<open>exp_hd preserves epsilon free-ness\<close>
 lemma Eps_free_exp_hd: "Eps_free R \<Longrightarrow> Eps_free (exp_hd A Ss R)"
 proof (induction A Ss R rule: exp_hd.induct)
   case (1 A R)
@@ -172,27 +164,111 @@ next
     by(fastforce simp add: Let_def dep_on_def Cons_eq_append_conv Eps_free_exp_hd Eps_free_Nil exp_hd_preserves_neq set_eq_iff)
 qed
 
-(* ? *)
-lemma dep_on_exp_hd_step:
-  "\<lbrakk> dep_on R B \<inter> ({B} \<union> set Ts) = {}; distinct (B#Ts); A \<notin> set(B#Ts) \<rbrakk> \<Longrightarrow> dep_on (exp_hd A (B#Ts) R) A = dep_on(exp_hd A Ts R) A - {B}"
-apply(simp add: Let_def)
-oops
 
-(* ? *)
-lemma "\<lbrakk> Eps_free R; A \<notin> set Ts \<union> S; dep_on R A \<inter> S = {} ; triangular Ts R; distinct Ts \<rbrakk> \<Longrightarrow> dep_on (exp_hd A Ts R) A \<inter> (set Ts \<union> S) = {}"
-(*nitpick*)
-oops
+text \<open>lemmas about Nts in the grammar\<close>
 
-lemma "\<lbrakk> eps_free R; length As \<le> length As'; distinct(As @ As'); nts R \<subseteq> set As \<rbrakk>
-  \<Longrightarrow> triangular_list As (solve_tri_list As As' R)"
-(* quickcheck  no counterexample found - not clear if that means much here *)
-  oops
+lemma Nts_set_dif_subset: "Nts (G - H) \<subseteq> Nts G"
+  by (auto simp add: Nts_def)
 
+lemma dep_on_subs_Nts: "dep_on R A \<subseteq> Nts R"
+  by (auto simp add: Nts_def dep_on_def)
 
-text \<open>WIP Section \<close>
+text \<open> exp_hd does not add any new Nts \<close>
+lemma Nts_exp_hd_sub: "Nts (exp_hd A As R) \<subseteq> Nts R"
+proof (induction A As R rule: exp_hd.induct)
+  case (1 A R)
+  then show ?case by simp
+next
+  case (2 A S Ss R)
+  let ?R' = "exp_hd A Ss R"
+  let ?X = "{(Al, Bw). (Al, Bw) \<in> ?R' \<and> Al = A \<and> (\<exists>w. Bw = Nt S # w)}"
+  let ?Y = "{(A, v @ w) |v w. (A, Nt S # w) \<in> ?R' \<and> (S, v) \<in> ?R'}"
 
+  have lhs_sub: "Lhss ?Y \<subseteq> Lhss ?R'" by (auto simp add: Lhss_def)
 
-text \<open> Eps_free preservation \<close>
+  have "B \<notin> Rhs_Nts ?R' \<longrightarrow> B \<notin> Rhs_Nts ?Y" for B by (fastforce simp add: Rhs_Nts_def split: prod.splits)
+  then have "B \<in> Rhs_Nts ?Y \<longrightarrow> B \<in> Rhs_Nts ?R'" for B by blast
+  then have rhs_sub: "Rhs_Nts ?Y \<subseteq> Rhs_Nts ?R'" by auto
+
+  have "Nts ?Y \<subseteq> Nts ?R'" using lhs_sub rhs_sub by (auto simp add: Nts_Lhss_Rhs_Nts)
+  then have "Nts ?Y \<subseteq> Nts R" using 2 by auto
+  then show ?case using Nts_set_dif_subset[of ?R' ?X] 2 by (auto simp add: Let_def Nts_Un)
+qed
+  
+text \<open> Nts of solve_lrec are a subset of Nts R and the newly added one \<close>
+lemma Nts_solve_lrec_sub: "Nts (solve_lrec A A' R) \<subseteq> Nts R \<union> {A'}"
+proof-
+  have 1: "Nts (rm_lrec A R) \<subseteq> Nts R" using Nts_set_dif_subset[of R] by (auto simp add: rm_lrec_def)
+
+  have 2: "Lhss (rrec_of_lrec A A' R) \<subseteq> Lhss R \<union> {A'}" by (auto simp add: rrec_of_lrec_def Let_def Lhss_def)
+  have 3: "Rhs_Nts (rrec_of_lrec A A' R) \<subseteq> Rhs_Nts R \<union> {A'}" by (auto simp add: rrec_of_lrec_def Let_def Rhs_Nts_def)
+
+  have "Nts (rrec_of_lrec A A' R) \<subseteq> Nts R \<union> {A'}" using 2 3 by (auto simp add: Nts_Lhss_Rhs_Nts)
+  then show ?thesis using 1 by (auto simp add: solve_lrec_def Nts_Un)
+qed
+
+text \<open> Nts of solve_tri are a subset of Nts R and newly added ones \<close>
+lemma Nts_solve_tri_sub: "length As \<le> length As' \<Longrightarrow> Nts (solve_tri As As' R) \<subseteq> Nts R \<union> set As'"
+proof (induction As As' R rule: solve_tri.induct)
+  case (1 uu R)
+  then show ?case by simp
+next
+  case (2 A As A' As' R)
+  have "Nts (solve_tri (A # As) (A' # As') R) = Nts (solve_lrec A A' (exp_hd A As (solve_tri As As' R)))" by simp
+  also have "... \<subseteq> Nts (exp_hd A As (solve_tri As As' R)) \<union> {A'}"
+    using Nts_solve_lrec_sub[of A A' "exp_hd A As (solve_tri As As' R)"] by simp
+  also have "... \<subseteq> Nts (solve_tri As As' R) \<union> {A'}" using Nts_exp_hd_sub[of A As "solve_tri As As' R"] by auto
+  finally show ?case using 2 by auto
+next
+  case (3 v va c)
+  then show ?case by simp
+qed
+
+text \<open> lemmas about rule inclusions in solve_lrec \<close>
+
+lemma solve_lrec_rule_simp1: "A \<noteq> B \<Longrightarrow> A \<noteq> B' \<Longrightarrow> (A, w) \<in> solve_lrec B B' R \<longleftrightarrow> (A, w) \<in> R"
+  by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def)
+
+lemma solve_lrec_rule_simp2: "A \<noteq> A' \<Longrightarrow> A' \<notin> Nts R \<Longrightarrow> w \<noteq> [] \<Longrightarrow> (A', w @ [Nt A']) \<in> solve_lrec A A' R \<longleftrightarrow> (A, Nt A # w) \<in> R"
+  by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def)  
+
+lemma solve_lrec_rule_simp3: "A \<noteq> A' \<Longrightarrow> A' \<notin> Nts R \<Longrightarrow> w \<noteq> [] \<Longrightarrow> last w \<noteq> Nt A' \<Longrightarrow> (A, w) \<in> solve_lrec A A' R \<Longrightarrow> (A, w) \<in> R"
+  by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def)
+
+lemma solve_lrec_rule_simp4: "A \<noteq> A' \<Longrightarrow> A' \<notin> Nts R \<Longrightarrow> Eps_free R \<Longrightarrow> (A, [Nt A']) \<notin> solve_lrec A A' R"
+  by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def Eps_free_def)
+
+lemma solve_lrec_rule_simp5: "A' \<notin> Nts R \<Longrightarrow> (A, w @ [Nt A']) \<in> solve_lrec A A' R \<Longrightarrow> (A, w) \<in> R"
+  by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def)
+
+lemma solve_lrec_rule_simp6: "A' \<notin> Nts R \<Longrightarrow> (A',w @ [Nt A']) \<in> (solve_lrec A A' R) \<Longrightarrow> A' \<notin> nts_syms w"
+  by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def nts_syms_def)
+
+lemma solve_lrec_rule_simp7: "A' \<notin> Nts R \<Longrightarrow> last w \<noteq> Nt A'  \<Longrightarrow> (A',w) \<in> (solve_lrec A A' R) \<Longrightarrow> A' \<notin> nts_syms w"
+  by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def nts_syms_def)
+
+lemma solve_lrec_rule_simp8: "A' \<noteq> A \<Longrightarrow> A' \<notin> Nts R \<Longrightarrow> (A', Nt A' # w) \<notin> (solve_lrec A A' R)"
+proof (rule ccontr)
+  assume assms: "A' \<noteq> A" "A' \<notin> Nts R" "\<not>(A', Nt A' # w) \<notin> (solve_lrec A A' R)"
+  then have "(A', Nt A' # w) \<in> (solve_lrec A A' R)" by simp
+  have "(A, Nt A # x) \<in> R \<and> x \<noteq> [] \<and> Nt A' # w = x @ [Nt A'] \<longrightarrow> False" for x
+  proof
+    fix x
+    assume assm: "(A, Nt A # x) \<in> R \<and> x \<noteq> [] \<and> Nt A' # w = x @ [Nt A']"
+    then have "hd x = Nt A'"
+      by (metis hd_append list.sel(1))
+    then have "Nt A' \<in> set x" using assm hd_in_set by fastforce
+    then have "A' \<in> nts_syms (Nt A # x)"  by (auto simp add: nts_syms_def)
+    then have "A' \<in> Nts R" using assm solve_lrec_rule_simp6 by (fastforce simp add: Nts_def split: prod.split)
+    then show "False" using assms by blast
+  qed
+  then show "False" using assms by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def nts_syms_def split: prod.splits)
+qed
+
+lemma solve_lrec_rule_simp9: "A' \<notin> Nts R \<Longrightarrow> B \<noteq> A' \<Longrightarrow> B \<noteq> A \<Longrightarrow> (B, Nt A' # w) \<notin> (solve_lrec A A' R)"
+  by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def nts_syms_def split: prod.splits)
+
+text \<open>Section Eps_free preservation \<close>
 
 lemma Eps_free_solve_lrec: "Eps_free R \<Longrightarrow> Eps_free (solve_lrec A A' R)"
   by (auto simp add: solve_lrec_def rrec_of_lrec_def Eps_free_def Let_def rm_lrec_def)
@@ -205,7 +281,8 @@ lemma dep_on_exp_hd_simp2: "B \<noteq> A \<Longrightarrow> dep_on (exp_hd A As R
 
 text  \<open> exp_hd keeps triangular, if it does not expand a Nt considered in triangular\<close>
 lemma triangular_exp_hd: "\<lbrakk>A \<notin> set As; triangular As R\<rbrakk> \<Longrightarrow> triangular As (exp_hd A Bs R)"
-proof(induction As)
+  by (induction As) (auto simp add: dep_on_exp_hd_simp2)
+(*proof(induction As)
   case Nil
   then show ?case by simp
 next
@@ -215,12 +292,13 @@ next
   also have "... = (dep_on R a \<inter> ({a} \<union> set As) = {})" using dep_on_exp_hd_simp2 Cons
     by (metis list.set_intros(1))
   then show ?case using Cons by auto
-qed
+qed*)
 
 
 lemma dep_on_solve_lrec_simp2: "A \<noteq> B \<Longrightarrow> A' \<noteq> B \<Longrightarrow> dep_on (solve_lrec A A' R) B = dep_on R B"
   by (auto simp add: solve_lrec_def dep_on_def rm_lrec_def rrec_of_lrec_def Let_def)
 
+text \<open> solving a Nt not considered by triangular preserves the triangular property \<close>
 lemma triangular_solve_lrec: "\<lbrakk>A \<notin> set As; A' \<notin> set As; triangular As R\<rbrakk> \<Longrightarrow> triangular As (solve_lrec A A' R)"
 proof(induction As)
   case Nil
@@ -246,7 +324,7 @@ next
   then show ?thesis by (auto simp add: triangular_exp_hd triangular_solve_lrec)
 qed
 
-text \<open> Couple of small lemmas about dep_on \<close>
+text \<open> Couple of small lemmas about dep_on and the solving of left-recursion\<close>
 lemma rm_lrec_rem_own_dep: "A \<notin> dep_on (rm_lrec A R) A"
   by (auto simp add: dep_on_def rm_lrec_def)
 
@@ -257,6 +335,9 @@ lemma rrec_of_lrec_has_no_own_dep: "A \<noteq> A' \<Longrightarrow> A \<notin> d
 lemma solve_lrec_no_own_dep: "A \<noteq> A' \<Longrightarrow> A \<notin> dep_on (solve_lrec A A' R) A"
   by (auto simp add: dep_on_Un solve_lrec_def rm_lrec_rem_own_dep rrec_of_lrec_has_no_own_dep)
 
+lemma solve_lrec_no_new_own_dep: "A \<noteq> A' \<Longrightarrow> A' \<notin> Nts R \<Longrightarrow> A' \<notin> dep_on (solve_lrec A A' R) A'"
+  by (auto simp add: dep_on_def solve_lrec_rule_simp8)  
+  
 lemma dep_on_rem_lrec_simp: "dep_on (rm_lrec A R) A = dep_on R A - {A}"
   by (auto simp add: dep_on_def rm_lrec_def)
 
@@ -293,6 +374,21 @@ lemma dep_on_solve_lrec_simp: "Eps_free R \<Longrightarrow> A \<noteq> A' \<Long
   by (simp add: dep_on_rem_lrec_simp dep_on_rrec_of_lrec_simp dep_on_Un solve_lrec_def)
 
 
+lemma dep_on_solve_tri_simp: "B \<notin> set As \<Longrightarrow> B \<notin> set As' \<Longrightarrow> length As \<le> length As' \<Longrightarrow> dep_on (solve_tri As As' R) B = dep_on R B"
+proof (induction As As' R rule: solve_tri.induct)
+  case (1 uu R)
+  then show ?case by simp
+next
+  case (2 A As A' As' R)
+  have "dep_on (solve_tri (A # As) (A' # As') R) B = dep_on (exp_hd A As (solve_tri As As' R)) B" 
+    using 2 by (auto simp add: dep_on_solve_lrec_simp2)
+  then show ?case using 2 by (auto simp add: dep_on_exp_hd_simp2)
+next
+  case (3 v va c)
+  then show ?case by simp
+qed
+
+text \<open> induction step for showing that solve_tri removes dependencies of previously solved Nts\<close>
 lemma triangular_dep_on_induct_step: "\<lbrakk>Eps_free R; length As \<le> length As'; distinct ((A # As) @ A' # As'); triangular As (solve_tri As As' R)\<rbrakk>
    \<Longrightarrow> (dep_on (solve_tri (A # As) (A' # As') R) A \<inter> ({A} \<union> set As) = {})"
 proof(cases "As = []")
@@ -319,7 +415,7 @@ next
   finally show ?thesis by auto
 qed
 
-text \<open> stronger than triangular_solve_tri (one less assumption)\<close>
+text \<open> solve_tri brings an epsilon free grammar into triangular form\<close>
 lemma part_triangular_solve_tri:  "\<lbrakk> Eps_free R; length As \<le> length As'; distinct(As @ As')\<rbrakk>
   \<Longrightarrow> triangular As (solve_tri As As' R)"
 proof(induction As As' R rule: solve_tri.induct)
@@ -338,23 +434,7 @@ next
   then show ?case by simp
 qed
 
-(* This is the first key result we need: \<open>solve_tri\<close> produces a triangular form *)
-(*lemma triangular_solve_tri:  "\<lbrakk> Eps_free R; length As \<le> length As'; distinct(As @ As'); Nts R \<subseteq> set As \<rbrakk>
-  \<Longrightarrow> triangular As (solve_tri As As' R)"
-proof(induction As As' R rule: solve_tri.induct)
-  case (1 uu R)
-  then show ?case by simp
-next
-  case (2 A As A' As' R)
-  then have "triangular As (solve_tri (A # As) (A' # As') R)" using test1
-  have "triangular (A # As) (solve_tri (A # As) (A' # As') R) = (dep_on (solve_tri (A # As) (A' # As') R) A \<inter> ({A} \<union> set As) = {} \<and> triangular As (solve_tri (A # As) (A' # As') R))"
-    by simp
-  also have "... = (dep_on (solve_tri (A # As) (A' # As') R) A \<inter> ({A} \<union> set As) = {})" using test1 2 by auto
-  then show ?case using test1
-next
-  case (3 v va c)
-  then show ?case by simp
-qed*)
+
 
 text \<open> Section Language equivalence \<close>
 
@@ -364,15 +444,134 @@ lemma Ders_sub_Lang_sub: "Ders R A \<subseteq> Ders R' A \<Longrightarrow> Lang 
   by (auto simp add: Lang_def Ders_def)
 
 
-text \<open> If there es a derivation from u to v where u and v start with different non-terminals then
- the derivation can be split into two parts,
- where the first is a left-derivation which only replaces the starting non-terminal  of u left-recursively
- and the second goes from this result to v.
- 
- The left-derivation is given as a list of intermediary words
- which all but the last start with the same non-terminal as u \<close>
-lemma test1: "\<lbrakk> Eps_free R; B \<noteq> B'; B' \<notin> Nts R\<rbrakk> \<Longrightarrow> hd p = Nt A \<Longrightarrow> hd q \<noteq> Nt A \<Longrightarrow> R \<turnstile> p \<Rightarrow>(n) q \<Longrightarrow>
-  (\<exists>ds pp qq. ds \<noteq> [] \<and> hd ds = p \<and> (\<forall>i < length ds - 1. hd (ds ! i) = Nt A \<and> (ds ! i) \<noteq> [] \<and> R \<turnstile> ds ! i \<Rightarrow>l ds ! Suc i) \<and> last ds = pp \<and> R \<turnstile> pp \<Rightarrow>l qq \<and> R \<turnstile> qq \<Rightarrow>* q \<and> hd pp = Nt A \<and> hd qq \<noteq> Nt A)"
+text \<open> This function removes all productions of the form \<open>A \<longrightarrow> A\<close> \<close>
+definition rem_self_loops :: "('n,'t) Prods \<Rightarrow> ('n,'t) Prods" where
+  "rem_self_loops P = P - {x. (\<exists>A. x = (A, [Nt A]) \<and> x \<in> P)}"
+
+text \<open> if there exists a derivation from \<open>u\<close> to \<open>v\<close> then there exists one which does not use productions of the form \<open>A \<rightarrow> A\<close> \<close>
+lemma rem_self_loops_derivels: "P \<turnstile> u \<Rightarrow>l(n) v \<Longrightarrow> (rem_self_loops P) \<turnstile> u \<Rightarrow>l* v"
+proof(induction n arbitrary: u)
+  case 0
+  then show ?case by simp
+next
+  case (Suc n)
+  then have "\<exists>w. P \<turnstile> u \<Rightarrow>l w \<and> P \<turnstile> w \<Rightarrow>l(n) v"
+    by (simp add: relpowp_Suc_D2)
+  then obtain w where W: "P \<turnstile> u \<Rightarrow>l w \<and> P \<turnstile> w \<Rightarrow>l(n) v" by blast
+  then have "\<exists> (A,x) \<in> P. \<exists>u1 u2. u = map Tm u1 @ Nt A # u2 \<and> w = map Tm u1 @ x @ u2" by (simp add: derivel_iff)
+  then obtain A x u1 u2 where prod: "u = map Tm u1 @ Nt A # u2 \<and> w = map Tm u1 @ x @ u2 \<and> (A, x) \<in> P" by blast
+  then show ?case
+  proof(cases "x = [Nt A]")
+    case True
+    then have "u = w" using prod by auto
+    then show ?thesis using Suc W by auto
+  next
+    case False
+    then have "(A, x) \<in> (rem_self_loops P)" using prod by (auto simp add: rem_self_loops_def)
+    then show ?thesis using Suc W
+      by (metis converse_rtranclp_into_rtranclp derivel.intros prod)
+  qed
+qed
+
+
+text \<open> restricted to productions with one Lhs (\<open>A\<close>), and no \<open>A \<longrightarrow> A\<close> productions
+      if there is a derivation from \<open>u\<close> to \<open>Nt A # v\<close> then \<open>u\<close> must start with \<open>Nt A\<close> \<close>
+lemma lrec_lemma1: "S = {x. (\<exists>v. x = (A, v) \<and> x \<in> R)}  \<Longrightarrow> (rem_self_loops S) \<turnstile> u \<Rightarrow>l(n) Nt A # v  \<Longrightarrow> \<exists>u'. u = Nt A # u'"
+proof (rule ccontr)
+  assume assms: "S = {x. \<exists>v. x = (A, v) \<and> x \<in> R}" "rem_self_loops S \<turnstile> u \<Rightarrow>l(n) Nt A # v"  "\<nexists>u'. u = Nt A # u'"
+  show "False"
+  proof (cases "u = []")
+    case True
+    then show ?thesis using assms by simp
+  next
+    case False
+    then show ?thesis
+    proof (cases "\<exists>t. hd u = Tm t")
+      case True
+      then show ?thesis using assms
+        by (metis (no_types, lifting) False deriveln_Tm_Cons hd_Cons_tl list.inject)
+    next
+      case False
+      then have "\<exists>B u'. u = Nt B # u' \<and> B \<noteq> A" using assms
+        by (metis deriveln_from_empty list.sel(1) neq_Nil_conv sym.exhaust)
+      then obtain B u' where B_not_A: "u = Nt B # u' \<and> B \<noteq> A" by blast
+      then have "\<exists>w. (B, w) \<in> rem_self_loops S" using assms
+        by (metis (no_types, lifting) derivels_Nt_Cons relpowp_imp_rtranclp)
+      then obtain w where elem: "(B, w) \<in> rem_self_loops S" by blast
+      have "(B, w) \<notin> rem_self_loops S" using B_not_A assms by (auto simp add: rem_self_loops_def)
+      then show ?thesis using elem by simp
+    qed
+  qed
+qed
+
+
+text \<open> restricted to productions with one Lhs (\<open>A\<close>), and no \<open>A \<longrightarrow> A\<close> productions
+      if there is a derivation from \<open>u\<close> to \<open>Nt A # v\<close> then \<open>u\<close> must start with \<open>Nt A\<close> and there 
+      exists a prefix of \<open>Nt A#v\<close> s.t. a left-derivation from \<open>[Nt A]\<close> to that prefix exists  \<close>
+lemma  lrec_lemma2:"S = {x. (\<exists>v. x = (A, v) \<and> x \<in> R)} \<Longrightarrow> Eps_free R \<Longrightarrow> A' \<notin> Nts R  \<Longrightarrow> (rem_self_loops S) \<turnstile> u \<Rightarrow>l(n) Nt A # v  
+\<Longrightarrow> \<exists>u' v'. u = Nt A # u' \<and> v = v' @ u' \<and> (rem_self_loops S) \<turnstile> [Nt A] \<Rightarrow>l(n) Nt A # v'"
+proof (induction n arbitrary: u)
+  case 0
+  then show ?case by simp
+next
+  case (Suc n)
+  have "\<exists>u'. u = Nt A # u'" using lrec_lemma1[of S] Suc by auto
+  then obtain u' where u'_prop: "u = Nt A # u'" by blast
+  then have "\<exists>w. (A,w) \<in> (rem_self_loops S) \<and> (rem_self_loops S) \<turnstile> w @ u' \<Rightarrow>l(n) Nt A # v" using Suc by (auto simp add: deriveln_Nt_Cons split: prod.split)
+  then obtain w where w_prop: "(A,w) \<in> (rem_self_loops S) \<and> (rem_self_loops S) \<turnstile> w @ u' \<Rightarrow>l(n) Nt A # v" by blast
+  then have "\<exists>u'' v''. w @ u' = Nt A # u'' \<and>  v = v'' @ u'' \<and> (rem_self_loops S) \<turnstile> [Nt A] \<Rightarrow>l(n) Nt A # v''" using Suc.IH Suc by auto
+  then obtain u'' v'' where u''_prop: "w @ u' = Nt A # u'' \<and>  v = v'' @ u''" and ln_derive: "(rem_self_loops S) \<turnstile> [Nt A] \<Rightarrow>l(n) Nt A # v''" by blast
+  have "w \<noteq> [] \<and> w \<noteq> [Nt A]" using Suc w_prop by (auto simp add: Eps_free_Nil rem_self_loops_def split: prod.splits)
+  then have "\<exists>u1. u1 \<noteq> [] \<and> w = Nt A # u1 \<and> u'' = u1 @ u'" using u''_prop
+    by (metis Cons_eq_append_conv)
+  then obtain u1 where u1_prop: "u1 \<noteq> [] \<and> w = Nt A # u1 \<and> u'' = u1 @ u'" by blast
+  then have 1: "u = Nt A # u' \<and> v = (v'' @ u1) @ u'" using u'_prop u''_prop by auto
+  
+  have 2: "(rem_self_loops S) \<turnstile> [Nt A] @ u1 \<Rightarrow>l(n) Nt A # v'' @ u1" using ln_derive deriveln_append
+    by fastforce
+  have "(rem_self_loops S) \<turnstile> [Nt A] \<Rightarrow>l [Nt A] @ u1" using w_prop u''_prop u1_prop
+    by (simp add: derivel_Nt_Cons)
+  then have "(rem_self_loops S) \<turnstile> [Nt A] \<Rightarrow>l(Suc n) Nt A # v'' @ u1" using ln_derive
+    by (meson 2 relpowp_Suc_I2)
+  then show ?case using 1 by blast
+qed
+
+text \<open> restricted to productions with one Lhs (\<open>A\<close>), and no \<open>A \<longrightarrow> A\<close> productions
+      if there is a left-derivation from \<open>[Nt A]\<close> to \<open>Nt A # u\<close> 
+      then there exists a derivation from  \<open>[Nt A']\<close> to \<open>u@[Nt A]\<close> and if \<open>u \<noteq> []\<close> also to \<open>u\<close> in solve_lrec\<close>
+lemma lrec_lemma3: "S = {x. (\<exists>v. x = (A, v) \<and> x \<in> R)} \<Longrightarrow> Eps_free R \<Longrightarrow> A' \<notin> Nts R  \<Longrightarrow> (rem_self_loops S) \<turnstile> [Nt A] \<Rightarrow>l(n) Nt A # u  
+  \<Longrightarrow> (solve_lrec A A' S) \<turnstile> [Nt A'] \<Rightarrow>(n) u @ [Nt A'] \<and> (u \<noteq> [] \<longrightarrow> (solve_lrec A A' S) \<turnstile> [Nt A'] \<Rightarrow>(n) u)"
+proof(induction n arbitrary: u)
+  case 0
+  then show ?case by (simp)
+next
+  case (Suc n)
+  then have "\<exists>w. (A,w) \<in> (rem_self_loops S) \<and> (rem_self_loops S) \<turnstile> w \<Rightarrow>l(n) Nt A # u"
+    by (auto simp add: deriveln_Nt_Cons split: prod.splits)
+  then obtain w where w_prop1: "(A,w) \<in> (rem_self_loops S) \<and> (rem_self_loops S) \<turnstile> w \<Rightarrow>l(n) Nt A # u" by blast
+  then have "\<exists>w' u'. w = Nt A # w' \<and> u = u' @ w' \<and> (rem_self_loops S) \<turnstile> [Nt A] \<Rightarrow>l(n) Nt A # u'" using lrec_lemma2[of S] Suc by auto
+  then obtain w' u' where w_prop2: "w = Nt A # w' \<and> u = u' @ w'" and ln_derive: "(rem_self_loops S) \<turnstile> [Nt A] \<Rightarrow>l(n) Nt A # u'" by blast
+  then have "w' \<noteq> []" using w_prop1 Suc by (auto simp add: rem_self_loops_def)
+  have "(A, w) \<in> S" using Suc.prems(1) w_prop1 by (auto simp add: rem_self_loops_def)
+  then have prod_in_solve_lrec: "(A', w' @ [Nt A']) \<in> solve_lrec A A' S" using w_prop2 \<open>w' \<noteq> []\<close> by (auto simp add: solve_lrec_def rrec_of_lrec_def rm_lrec_def Let_def)
+
+  have 1: "(solve_lrec A A' S) \<turnstile> [Nt A'] \<Rightarrow>(n) u' @ [Nt A']" using Suc.IH Suc ln_derive by auto
+  then have 2: "(solve_lrec A A' S) \<turnstile> [Nt A'] \<Rightarrow>(Suc n) u' @ w' @ [Nt A']" using prod_in_solve_lrec
+    by (simp add: derive_prepend derive_singleton relpowp_Suc_I)
+
+  have "(A', w') \<in> solve_lrec A A' S" using w_prop2 \<open>w' \<noteq> []\<close> \<open>(A, w) \<in> S\<close> by (auto simp add: solve_lrec_def rrec_of_lrec_def rm_lrec_def Let_def)
+  then have "(solve_lrec A A' S) \<turnstile> [Nt A'] \<Rightarrow>(Suc n) u' @ w'" using 1
+    by (simp add: derive_prepend derive_singleton relpowp_Suc_I)
+  then show ?case using w_prop2 2 by simp
+qed
+
+
+text \<open> a left derivation from \<open>p\<close> (\<open>hd p = Nt A\<close>) to \<open>q\<close> (\<open>hd q \<noteq> Nt A\<close>) can be split into 
+  a left-recursive part, only using left-recursive productions \<open>A \<rightarrow> Nt A # as\<close>, 
+  one left derivation step consuming \<open>Nt A\<close> using some rule \<open>A \<rightarrow> B # as\<close> where \<open>B \<noteq> Nt A\<close>
+  and a left-derivation comprising the rest of the derivation\<close>
+lemma lrec_decomp: "S = {x. (\<exists>v. x = (A, v) \<and> x \<in> R)} \<Longrightarrow> Eps_free R \<Longrightarrow> hd p = Nt A \<Longrightarrow> hd q \<noteq> Nt A \<Longrightarrow> R \<turnstile> p \<Rightarrow>l(n) q 
+  \<Longrightarrow> \<exists>u w m k. S \<turnstile> p \<Rightarrow>l(m) Nt A # u \<and> S \<turnstile> Nt A # u \<Rightarrow>l w \<and> hd w \<noteq> Nt A \<and> R \<turnstile> w \<Rightarrow>l(k) q \<and> n = m + k + 1"
 proof (induction n arbitrary: p)
   case 0
   then have pq_not_Nil: "p \<noteq> [] \<and> q \<noteq> []" using Eps_free_derives_Nil
@@ -382,8 +581,8 @@ proof (induction n arbitrary: p)
   then show ?case using pq_not_Nil 0 by auto
 next
   case (Suc n)
-  then have pq_not_Nil: "p \<noteq> [] \<and> q \<noteq> []" using Eps_free_derives_Nil
-    by (metis deriven_from_empty relpowp_imp_rtranclp)
+  then have pq_not_Nil: "p \<noteq> [] \<and> q \<noteq> []"
+    using Eps_free_deriveln_Nil by fastforce
 
   have ex_p': "\<exists>p'. p = Nt A # p'" using pq_not_Nil Suc
     by (metis hd_Cons_tl)
@@ -391,102 +590,34 @@ next
   have "\<nexists>q'. q = Nt A # q'" using pq_not_Nil Suc
     by fastforce
 
-  then have "\<exists>n1 n2 \<alpha> q1 q2. Suc n = Suc (n1 + n2) \<and> q = q1 @ q2 \<and> 
-   (A,\<alpha>) \<in> R \<and> R \<turnstile> \<alpha> \<Rightarrow>(n1) q1 \<and> R \<turnstile> p' \<Rightarrow>(n2) q2" using P ex_p' deriven_Cons_decomp[of "Suc n" R "Nt A" p' q] Suc by auto
-  then have "\<exists>\<alpha> p''. p = Nt A # p'' \<and> R \<turnstile> \<alpha> @ p'' \<Rightarrow>(n) q \<and> (A, \<alpha>) \<in> R"
-    using P deriven_append_decomp by fastforce
-  then obtain \<alpha> p'' where deriven_p_IH: " p = Nt A # p'' \<and> R \<turnstile> \<alpha> @ p'' \<Rightarrow>(n) q" and A\<alpha>_R:  "(A, \<alpha>) \<in> R" by blast
-  have p_derivel_ap'': "R \<turnstile> p \<Rightarrow>l \<alpha> @ p''" using deriven_p_IH A\<alpha>_R
-      by (simp add: derivel_Nt_Cons derivel_imp_derive)
+  then have "\<exists>w. (A,w) \<in> R \<and> R \<turnstile> w @ p' \<Rightarrow>l(n) q" using Suc P by (auto simp add: deriveln_Nt_Cons)
+  then obtain w where w_prop: "(A,w) \<in> R \<and> R \<turnstile> w @ p' \<Rightarrow>l(n) q" by blast
+  then have prod_in_S: "(A, w) \<in> S" using Suc by auto
+
   show ?case
-  proof (cases "hd \<alpha> = Nt A")
+  proof (cases "\<exists>w'. w = Nt A # w'")
     case True
-    have \<alpha>_not_Nil: "\<alpha> \<noteq> []" using "Suc.prems"(1) A\<alpha>_R by (auto simp add: Eps_free_def)
-    then have "\<exists>ds pp qq. ds \<noteq> [] \<and> hd ds = (\<alpha> @ p'') \<and> (\<forall> i < length ds - 1. hd (ds ! i) = Nt A \<and> (ds ! i) \<noteq> [] \<and> R \<turnstile> ds ! i \<Rightarrow>l ds ! Suc i) \<and> last ds = pp \<and> R \<turnstile> pp \<Rightarrow>l qq \<and> R \<turnstile> qq \<Rightarrow>* q \<and> hd pp = Nt A \<and> hd qq \<noteq> Nt A"
-      using Suc deriven_p_IH True by auto
-    then obtain ds pp qq where P: "ds \<noteq> [] \<and> hd ds = (\<alpha> @ p'') \<and> (\<forall> i < length ds - 1. hd (ds ! i) = Nt A \<and> (ds ! i) \<noteq> [] \<and> R \<turnstile> ds ! i \<Rightarrow>l ds ! Suc i) \<and> last ds = pp \<and> R \<turnstile> pp \<Rightarrow>l qq \<and> R \<turnstile> qq \<Rightarrow>* q \<and> hd pp = Nt A \<and> hd qq \<noteq> Nt A" by blast
-    then have 1: "(p#ds) \<noteq> [] \<and> hd (p#ds) = p \<and> last (p#ds) = pp"
-      by auto
-    
-    then have 2: "(i < length (p#ds) - 1 \<longrightarrow> hd ((p#ds) ! i) = Nt A \<and> ((p#ds) ! i) \<noteq> [] \<and> R \<turnstile> (p#ds) ! i \<Rightarrow>l (p#ds) ! Suc i)" for i
-      using Suc P p_derivel_ap'' \<alpha>_not_Nil by (cases i) (auto simp flip: hd_conv_nth)
-    then show ?thesis using 1 2 P by blast
+    then obtain w' where "w = Nt A # w'" by blast
+    then have "\<exists>u w'' m k. S \<turnstile> w @ p' \<Rightarrow>l(m) Nt A # u \<and> S \<turnstile> Nt A # u \<Rightarrow>l w'' \<and> hd w'' \<noteq> Nt A \<and> R \<turnstile> w'' \<Rightarrow>l(k) q \<and> n = m + k + 1"
+      using Suc.IH Suc.prems w_prop by auto
+    then obtain u w'' m k where propo: "S \<turnstile> w @ p' \<Rightarrow>l(m) Nt A # u \<and> S \<turnstile> Nt A # u \<Rightarrow>l w'' \<and> hd w'' \<noteq> Nt A \<and> R \<turnstile> w'' \<Rightarrow>l(k) q \<and> n = m + k + 1" by blast
+    then have "S \<turnstile> Nt A # p' \<Rightarrow>l(Suc m) Nt A # u" using prod_in_S P
+      by (meson derivel_Nt_Cons relpowp_Suc_I2)
+  
+    then have "S \<turnstile> p \<Rightarrow>l(Suc m) Nt A # u \<and> S \<turnstile> Nt A # u \<Rightarrow>l w'' \<and> hd w'' \<noteq> Nt A \<and> R \<turnstile> w'' \<Rightarrow>l(k) q \<and> Suc n = Suc m + k + 1" using P propo by auto
+    then show ?thesis by blast
   next
     case False
-    have \<alpha>_not_Nil: "\<alpha> \<noteq> []" using "Suc.prems"(1) A\<alpha>_R by (auto simp add: Eps_free_def)
-    
-    have 3: "[p] \<noteq> [] \<and> hd [p] = p \<and> (\<forall> i < length [p] - 1. hd ([p] ! i) = Nt A \<and> ([p] ! i) \<noteq> [] \<and> R \<turnstile> [p] ! i \<Rightarrow>l [p] ! Suc i) \<and> last [p] = p"
-      by auto
-    have "R \<turnstile> p \<Rightarrow>l (\<alpha> @ p'') \<and> R \<turnstile> (\<alpha> @ p'') \<Rightarrow>* q \<and> hd p = Nt A \<and> hd (\<alpha> @ p'') \<noteq> Nt A"
-      using p_derivel_ap'' \<alpha>_not_Nil deriven_p_IH False by (auto simp add: relpowp_imp_rtranclp)
-    then show ?thesis using 3 by blast
+    then have "w \<noteq> [] \<and> hd w \<noteq> Nt A" using Suc w_prop
+      by (metis Eps_free_Nil list.collapse)
+    then have "S \<turnstile> p \<Rightarrow>l(0) Nt A # p' \<and> S \<turnstile> Nt A # p' \<Rightarrow>l w @ p' \<and> hd (w @ p') \<noteq> Nt A \<and> R \<turnstile> w @ p' \<Rightarrow>l(n) q \<and> Suc n = 0 + n + 1"
+        using P w_prop prod_in_S by (auto simp add: derivel_Nt_Cons)
+    then show ?thesis by blast
   qed
 qed
 
 
-text \<open> TODO
-    this lemma should prove that if a left-recursive derivation exists
-   then there exists a right-recursive derivation for the set of productions produced by solve_lrec \<close>
-lemma derivel_R_imp_deriver_solve_lrec_R:
-  "(ds \<noteq> [] \<and> hd ds = [Nt A] \<and> (\<forall>i < length ds - 1. hd (ds ! i) = Nt A \<and> (ds ! i) \<noteq> [] \<and> R \<turnstile> ds ! i \<Rightarrow>l ds ! Suc i) \<and> last ds = Nt A # q')
-  \<Longrightarrow> (\<exists>dsr. dsr \<noteq> [] \<and> hd dsr = [Nt A'] \<and> (\<forall>i < length dsr - 1. last (dsr ! i) = Nt A' \<and> (dsr ! i) \<noteq> [] \<and>  (solve_lrec A A' R) \<turnstile> dsr ! i \<Rightarrow>r dsr ! Suc i) \<and> last dsr = q' @ [Nt A'])"
-proof (induction "length ds" arbitrary: ds q')
-  case 0
-  then show ?case by simp
-next
-  case ind: (Suc x)
-  then have "\<exists>frt lst. ds = frt @ [lst]"
-    by (metis append_butlast_last_id)
-  then obtain frt lst where ds_decomp: "ds = frt @ [lst]" by blast
-  then show ?case
-  proof (cases x)
-    case 0
-    then show ?thesis sorry
-  next
-    case (Suc nat)
-    then have 1: "frt \<noteq> []"
-      using ds_decomp ind.hyps(2) by fastforce
-    then have 2: "i < length frt - 1 \<Longrightarrow> frt ! i = ds ! i \<and> frt ! Suc i = ds ! Suc i" for i
-      using ds_decomp by (auto simp add: nth_append_left)
-    have "hd (last frt) = Nt A \<and> last frt \<noteq> []" using 1 ds_decomp ind by (auto simp add: last_conv_nth nth_append_left)
-    then have "\<exists>p'. last frt = Nt A # p'"
-      by (metis hd_Cons_tl)
-    then obtain p' where "last frt = Nt A # p'" by blast
-    then have "x = length frt \<Longrightarrow>
-    frt \<noteq> [] \<and>
-    hd frt = [Nt A] \<and>
-    (\<forall>i<length frt - 1. hd (frt ! i) = Nt A \<and> frt ! i \<noteq> [] \<and> R \<turnstile> frt ! i \<Rightarrow>l frt ! Suc i) \<and> last frt = Nt A # p'"
-      using ds_decomp ind 1 2 by (auto simp add: last_conv_nth)
-    then have "\<exists>dsr. dsr \<noteq> [] \<and>
-        hd dsr = [Nt A'] \<and>
-        (\<forall>i<length dsr - 1. last (dsr ! i) = Nt A' \<and> dsr ! i \<noteq> [] \<and> solve_lrec A A' R \<turnstile> dsr ! i \<Rightarrow>r dsr ! Suc i) \<and>
-        last dsr = p' @ [Nt A']" using ind ds_decomp by auto
-    then obtain dsr where dsr_props: "dsr \<noteq> [] \<and>
-        hd dsr = [Nt A'] \<and>
-        (\<forall>i<length dsr - 1. last (dsr ! i) = Nt A' \<and> dsr ! i \<noteq> [] \<and> solve_lrec A A' R \<turnstile> dsr ! i \<Rightarrow>r dsr ! Suc i) \<and>
-        last dsr = p' @ [Nt A']" by blast
-    let ?dsr = "dsr @ [q' @ [Nt A']]"
-    have 1: "?dsr \<noteq> [] \<and> hd ?dsr = [Nt A'] \<and> last ?dsr = q' @ [Nt A']" using dsr_props by auto
-    have 2: "(i<length ?dsr - 1 \<longrightarrow> last (?dsr ! i) = Nt A' \<and> ?dsr ! i \<noteq> [] \<and> solve_lrec A A' R \<turnstile> ?dsr ! i \<Rightarrow>r ?dsr ! Suc i)" for i
-    proof (cases "i = length dsr - 1")
-      case True
-      then have "last (?dsr ! i) = Nt A' \<and> ?dsr ! i \<noteq> []" using dsr_props by (auto simp add: nth_append_left last_conv_nth)
-      have "(solve_lrec A A' R \<turnstile> ?dsr ! i \<Rightarrow>r ?dsr ! Suc i) = (solve_lrec A A' R \<turnstile> last dsr \<Rightarrow>r last ?dsr)" 
-        using True dsr_props by (auto simp add: nth_append_left last_conv_nth)
-      also have "... = (solve_lrec A A' R \<turnstile> p' @ [Nt A'] \<Rightarrow>r q' @ [Nt A'])" using dsr_props by auto
-      then show ?thesis sorry
-    next
-      case False
-      then show ?thesis using dsr_props by (auto simp add: nth_append_left)
-    qed
-    have "?dsr \<noteq> [] \<and>
-          hd ?dsr = [Nt A'] \<and>
-          (\<forall>i<length ?dsr - 1. last (?dsr ! i) = Nt A' \<and> ?dsr ! i \<noteq> [] \<and> solve_lrec A A' R \<turnstile> ?dsr ! i \<Rightarrow>r ?dsr ! Suc i) \<and>
-          last ?dsr = q' @ [Nt A']" sorry
-    then show ?thesis sorry
-  qed
-qed
-
+(* should be moved to CFG.thy *)
 text \<open> Helper lemma which could be moved to CFG.thy \<close>
 lemma Eps_free_deriven_Nil:
   assumes R: "Eps_free R" "R \<turnstile> l \<Rightarrow>(n) []" shows "l = []"
@@ -498,14 +629,42 @@ proof (rule ccontr)
     using assms by auto
 qed
 
+(* should be moved to CFG.thy *)
 text \<open> Helper lemma which could be moved to CFG.thy \<close>
 lemma deriven_Tm_prepend: "R \<turnstile> map Tm t @ u \<Rightarrow>(n) v \<Longrightarrow> \<exists>v1. v = map Tm t @ v1 \<and> R \<turnstile> u \<Rightarrow>(n) v1"
   by (induction t arbitrary: v) (auto simp add: deriven_Tm_Cons)  
 
-text \<open> TODO
-  this lemma will be the heart of the prove of "Lang R A" \<subseteq> "Lang (solve_lrec R) A"
-  it should boil down to couple of case distinctions and the lemmas test1 and derivel_R_imp_deriver_solve_lrec_R \<close>
-lemma "\<lbrakk> Eps_free R; B \<noteq> B'; B' \<notin> Nts R\<rbrakk> \<Longrightarrow> p \<noteq> [] \<Longrightarrow> R \<turnstile> p \<Rightarrow>(n) map Tm q \<Longrightarrow> (solve_lrec B B' R) \<turnstile> p \<Rightarrow>* map Tm q"
+
+text \<open> something that is not a word has a first Nt \<close>
+lemma non_word_has_first_Nt: "\<nexists>pt. p = map Tm pt \<Longrightarrow> \<exists>C pt p2. p = map Tm pt @ Nt C # p2"
+proof (induction p)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a list)
+  then show ?case
+  proof (cases "\<exists>C. a = Nt C")
+    case True
+    then obtain C where " a = Nt C" by blast
+    then have "a # list = map Tm [] @ Nt C # list" using Cons by auto
+    then show ?thesis by blast
+  next
+    case False
+    then have "\<exists>t. a = Tm t"
+      by (meson sym.exhaust)
+    then obtain t where terminal: "a = Tm t" by blast
+    have "\<nexists>pt. list = map Tm pt" using Cons
+      by (metis False list.simps(9) sym.exhaust)
+    then have "\<exists>C pt p2. list = map Tm pt @ Nt C # p2" using Cons by auto
+    then obtain C pt p2 where "list = map Tm pt @ Nt C # p2" by blast
+    then have "a # list = map Tm (t # pt) @ Nt C # p2" using terminal by auto
+    then show ?thesis by blast
+  qed
+qed
+
+text \<open> every derivation resulting in a word has a derivation in solve_lrec R \<close>
+lemma tm_derive_impl_solve_lrec_derive:
+  "\<lbrakk> Eps_free R; B \<noteq> B'; B' \<notin> Nts R\<rbrakk> \<Longrightarrow> p \<noteq> [] \<Longrightarrow> R \<turnstile> p \<Rightarrow>(n) map Tm q \<Longrightarrow> (solve_lrec B B' R) \<turnstile> p \<Rightarrow>* map Tm q"
 proof (induction n arbitrary: p q rule: nat_less_induct)
   case (1 n)
   then show ?case
@@ -517,7 +676,7 @@ proof (induction n arbitrary: p q rule: nat_less_induct)
     then show ?thesis by simp
   next
     case False
-    then have "\<exists>C pt p2. p = map Tm pt @ Nt C # p2" sorry
+    then have "\<exists>C pt p2. p = map Tm pt @ Nt C # p2" using non_word_has_first_Nt by auto
     then obtain C pt p2 where P: "p = map Tm pt @ Nt C # p2" by blast
     then have "R \<turnstile> map Tm pt @ Nt C # p2 \<Rightarrow>l(n) map Tm q" using 1 by (simp add: deriveln_iff_deriven)
     then have "\<exists>q2. map Tm q = map Tm pt @ q2 \<and> R \<turnstile> Nt C # p2 \<Rightarrow>l(n) q2"
@@ -534,7 +693,86 @@ proof (induction n arbitrary: p q rule: nat_less_induct)
     then show ?thesis
     proof (cases "C = B")
       case True
-      then show ?thesis sorry
+      then have n_derive: "R \<turnstile> Nt B # p2 \<Rightarrow>(n) q2" using P1
+        by (simp add: deriveln_imp_deriven)
+      have "\<nexists>v2. q2 = Nt B #v2 \<and> R \<turnstile> p2 \<Rightarrow>(n) v2" using q2_tms by auto
+      then have "\<exists>n1 n2 w v1 v2. n = Suc (n1 + n2) \<and> q2 = v1 @ v2 \<and>
+          (B,w) \<in> R \<and> R \<turnstile> w \<Rightarrow>(n1) v1 \<and> R \<turnstile> p2 \<Rightarrow>(n2) v2" using n_derive deriven_Cons_decomp
+        by (smt (verit) sym.inject(1))
+      then obtain n1 n2 w v1 v2 where decomp: "n = Suc (n1 + n2) \<and> q2 = v1 @ v2 \<and>
+          (B,w) \<in> R \<and> R \<turnstile> w \<Rightarrow>(n1) v1 \<and> R \<turnstile> p2 \<Rightarrow>(n2) v2" by blast
+      then have derive_from_singleton: "R \<turnstile> [Nt B] \<Rightarrow>(Suc n1) v1"
+        using deriven_Suc_decomp_left by force
+
+      have "v1 \<noteq> []"
+        using "1.prems"(1) Eps_free_deriven_Nil derive_from_singleton by auto
+      then have "\<exists>v1t. v1 = map Tm v1t"
+        using decomp append_eq_map_conv q2_tms by blast
+      then obtain v1t where v1_tms: "v1 = map Tm v1t" by blast
+      then have v1_hd: "hd v1 \<noteq> Nt B"
+        by (metis Nil_is_map_conv \<open>v1 \<noteq> []\<close> hd_map sym.distinct(1))
+
+      have deriveln_from_singleton: "R \<turnstile> [Nt B] \<Rightarrow>l(Suc n1) v1" using v1_tms derive_from_singleton
+        by (simp add: deriveln_iff_deriven)
+
+      text \<open> This is the interesting bit where we use other lemmas to prove that we can replace 
+              a specific part of the derivation which is a left-recursion by a right-recursion in the new productions \<close>
+      let ?S = "{x. (\<exists>v. x = (B, v) \<and> x \<in> R)}"
+      have "\<exists>u w m k. ?S \<turnstile> [Nt B] \<Rightarrow>l(m) Nt B # u \<and> ?S \<turnstile> Nt B # u \<Rightarrow>l w \<and> hd w \<noteq> Nt B \<and> R \<turnstile> w \<Rightarrow>l(k) v1 \<and> Suc n1 = m + k + 1"
+        using deriveln_from_singleton v1_hd 1 lrec_decomp[of ?S B R "[Nt B]" v1 "Suc n1"] by auto
+      then obtain u w2 m2 k where l_decomp: "?S \<turnstile> [Nt B] \<Rightarrow>l(m2) Nt B # u \<and> ?S \<turnstile> Nt B # u \<Rightarrow>l w2 \<and> hd w2 \<noteq> Nt B \<and> R \<turnstile> w2 \<Rightarrow>l(k) v1 \<and> Suc n1 = m2 + k + 1" by blast
+      then have "\<exists>w2'. (B,w2') \<in> ?S \<and> w2 = w2' @ u" by (simp add: derivel_Nt_Cons)
+      then obtain w2' where w2'_prod: "(B,w2') \<in> ?S \<and> w2 = w2' @ u" by blast
+      then have w2'_props: "w2' \<noteq> [] \<and> hd w2' \<noteq> Nt B"
+        by (metis (mono_tags, lifting) "1.prems"(1) Eps_free_Nil l_decomp hd_append mem_Collect_eq)
+
+      have solve_lrec_subset: "solve_lrec B B' ?S \<subseteq> solve_lrec B B' R" by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def)
+
+      have "solve_lrec B B' ?S \<turnstile> [Nt B] \<Rightarrow>* w2"
+        proof(cases "u = []")
+          case True
+          have "(B, w2') \<in> solve_lrec B B' ?S"using  w2'_props w2'_prod by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def)
+          then show ?thesis
+            by (simp add: True bu_prod derives_if_bu w2'_prod)
+        next
+          case False
+          have solved_prod: "(B, w2' @ [Nt B']) \<in> solve_lrec B B' ?S"using  w2'_props w2'_prod by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def)
+          have "rem_self_loops ?S \<turnstile> [Nt B] \<Rightarrow>l* Nt B # u" using l_decomp rem_self_loops_derivels by auto
+          then have "\<exists>ln. rem_self_loops ?S \<turnstile> [Nt B] \<Rightarrow>l(ln) Nt B # u"
+            by (simp add: rtranclp_power)
+          then obtain ln where "rem_self_loops ?S \<turnstile> [Nt B] \<Rightarrow>l(ln) Nt B # u" by blast
+          then have "(solve_lrec B B' ?S) \<turnstile> [Nt B'] \<Rightarrow>(ln) u" using lrec_lemma3[of ?S B R B' ln u] 1 False by auto
+          then have rrec_derive: "(solve_lrec B B' ?S) \<turnstile> w2' @ [Nt B'] \<Rightarrow>(ln) w2' @ u"
+            by (simp add: deriven_prepend)
+          have "(solve_lrec B B' ?S) \<turnstile> [Nt B] \<Rightarrow> w2' @ [Nt B']" using solved_prod
+            by (simp add: derive_singleton)
+          then have "(solve_lrec B B' ?S) \<turnstile> [Nt B] \<Rightarrow>* w2' @ u" using rrec_derive
+            by (simp add: converse_rtranclp_into_rtranclp relpowp_imp_rtranclp)
+          then show ?thesis using w2'_prod by auto
+        qed
+      then have 2: "solve_lrec B B' R \<turnstile> [Nt B] \<Rightarrow>* w2" using solve_lrec_subset
+        by (simp add: derives_mono)
+
+      text \<open> from here on all the smaller derivations are concatenated again after applying the IH \<close>
+      have fact2: "R \<turnstile> w2 \<Rightarrow>l(k) v1 \<and> Suc n1 = m2 + k + 1" using l_decomp by auto
+      then have "k < n"
+        using decomp by linarith
+      then have 3: "solve_lrec B B' R \<turnstile> w2 \<Rightarrow>* v1" using "1.IH" 1 v1_tms fact2
+        by (metis deriveln_iff_deriven derives_from_empty relpowp_imp_rtranclp)
+
+      have 4: "solve_lrec B B' R \<turnstile> [Nt B] \<Rightarrow>* v1" using 2 3
+        by auto
+
+      have "\<exists>v2t. v2 = map Tm v2t" using decomp append_eq_map_conv q2_tms by blast
+      then obtain v2t where v2_tms: "v2 = map Tm v2t" by blast
+      have "n2 < n" using decomp by auto
+      then have 5: "solve_lrec B B' R \<turnstile> p2 \<Rightarrow>* v2" using "1.IH" 1 decomp v2_tms
+        by (metis derives_from_empty relpowp_imp_rtranclp)
+
+      have "solve_lrec B B' R \<turnstile> Nt B # p2 \<Rightarrow>* q2" using 4 5 decomp
+        by (metis append_Cons append_Nil derives_append_decomp)
+      then show ?thesis
+        by (simp add: P P1 True derives_prepend)
     next
       case C_not_B: False
       then have "\<exists>w. (C, w) \<in> R \<and> R \<turnstile> w @ p2 \<Rightarrow>l(m) q2"
@@ -554,18 +792,363 @@ proof (induction n arbitrary: p q rule: nat_less_induct)
 qed
 
 
-lemma "\<lbrakk> Eps_free R; B \<noteq> B'; B' \<notin> Nts R\<rbrakk> \<Longrightarrow> Lang (solve_lrec B B' R) A \<subseteq> Lang R A"
-  sorry
+text \<open> right recursive lemmas for \<open>solve_lrec A A' R\<close> \<close>
 
-lemma "\<lbrakk> Eps_free R; B \<noteq> B'; B' \<notin> Nts R\<rbrakk> \<Longrightarrow> Lang (solve_lrec B B' R) A \<supseteq> Lang R A"
-  sorry
+text \<open> restricted to right-recursive productions of one Nt (\<open>A' \<rightarrow> w @ [Nt A']\<close>)
+      if there is a right-derivation from \<open>u\<close> to \<open>v @ [Nt A']\<close> then u ends in \<open>Nt A'\<close> \<close>
+lemma rrec_lemma1: "S = {x. (\<exists>v. x = (A', v @ [Nt A']) \<and> x \<in> solve_lrec A A' R)} \<Longrightarrow> S \<turnstile> u \<Rightarrow>r(n) v @ [Nt A']  \<Longrightarrow> \<exists>u'. u = u' @ [Nt A']"
+proof (rule ccontr)
+  assume assms: "S = {x. (\<exists>v. x = (A', v @ [Nt A']) \<and> x \<in> solve_lrec A A' R)}" "S \<turnstile> u \<Rightarrow>r(n) v @ [Nt A']"  "\<nexists>u'. u = u' @ [Nt A']"
+  show "False"
+  proof (cases "u = []")
+    case True
+    then show ?thesis using assms derivern_imp_deriven by fastforce
+  next
+    case u_not_Nil: False
+    then show ?thesis
+    proof (cases "\<exists>t. last u = Tm t")
+      case True
+      then show ?thesis using assms
+        by (metis (lifting) u_not_Nil append_butlast_last_id derivern_snoc_Tm last_snoc)
+    next
+      case False
+      then have "\<exists>B u'. u = u' @ [Nt B] \<and> B \<noteq> A'" using assms u_not_Nil
+        by (metis append_butlast_last_id sym.exhaust)
+      then obtain B u' where B_not_A': "u = u' @ [Nt B] \<and> B \<noteq> A'" by blast
+      then have "\<exists>w. (B, w) \<in> S" using assms
+        by (metis (lifting) derivers_snoc_Nt relpowp_imp_rtranclp)
+      then obtain w where elem: "(B, w) \<in> S" by blast
+      have "(B, w) \<notin> S" using B_not_A' assms by auto
+      then show ?thesis using elem by simp
+    qed
+  qed
+qed
 
-find_theorems name: "exp_hd.induct"
+text \<open> solve_lrec does not add productions of the form \<open>A' \<rightarrow> Nt A'\<close> \<close>
+lemma solve_lrec_no_self_loop: "Eps_free R \<Longrightarrow> A' \<notin> Nts R \<Longrightarrow> (A', [Nt A']) \<notin> solve_lrec A A' R"
+  by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Eps_free_def Nts_def split: prod.splits)
+
+text \<open> helper lemma that could be moved to CFG.thy \<close>
+lemma derivern_prepend: "R \<turnstile> u \<Rightarrow>r(n) v \<Longrightarrow> R \<turnstile> p @ u \<Rightarrow>r(n) p @ v"
+  by (fastforce simp: derivern_iff_rev_deriveln rev_map deriveln_append rev_eq_append_conv)
+
+text \<open> restricted to right-recursive productions of one Nt (\<open>A' \<rightarrow> w @ [Nt A']\<close>)
+      if there is a right-derivation from \<open>u\<close> to \<open>v @ [Nt A']\<close> then u ends in \<open>Nt A'\<close> 
+      and there exists a suffix of \<open>v @ [Nt A']\<close> s.t. there is a right-derivation from \<open>[Nt A']\<close> to that suffix\<close>
+lemma  rrec_lemma2:"S = {x. (\<exists>v. x = (A', v @ [Nt A']) \<and> x \<in> solve_lrec A A' R)} \<Longrightarrow> Eps_free R \<Longrightarrow> A' \<notin> Nts R  \<Longrightarrow> S \<turnstile> u \<Rightarrow>r(n) v @ [Nt A']
+\<Longrightarrow> \<exists>u' v'. u = u' @ [Nt A'] \<and> v = u' @ v' \<and> S \<turnstile> [Nt A'] \<Rightarrow>r(n) v' @ [Nt A']"
+proof (induction n arbitrary: u)
+  case 0
+  then show ?case by simp
+next
+  case (Suc n)
+  have "\<exists>u'. u = u' @ [Nt A']" using rrec_lemma1[of S] Suc by auto
+  then obtain u' where u'_prop: "u = u' @ [Nt A']" by blast
+  then have "\<exists>w. (A',w) \<in> S \<and> S \<turnstile> u' @ w \<Rightarrow>r(n) v @ [Nt A']" using Suc by (auto simp add: derivern_snoc_Nt)
+  then obtain w where w_prop: "(A',w) \<in> S \<and> S \<turnstile> u' @ w \<Rightarrow>r(n) v @ [Nt A']" by blast
+  then have "\<exists>u'' v''. u' @ w = u'' @ [Nt A'] \<and>  v = u'' @ v'' \<and> S \<turnstile> [Nt A'] \<Rightarrow>r(n) v'' @ [Nt A']" using Suc.IH Suc by auto
+  then obtain u'' v'' where u''_prop: "u' @ w = u'' @ [Nt A'] \<and>  v = u'' @ v'' \<and> S \<turnstile> [Nt A'] \<Rightarrow>r(n) v'' @ [Nt A']" by blast
+  have "w \<noteq> [] \<and> w \<noteq> [Nt A']" using Suc w_prop solve_lrec_no_self_loop
+    by fastforce
+  then have "\<exists>u1. u1 \<noteq> [] \<and> w = u1 @ [Nt A'] \<and> u'' = u' @ u1" using u''_prop
+    by (metis (no_types, opaque_lifting) append.left_neutral append1_eq_conv append_assoc rev_exhaust)
+  then obtain u1 where u1_prop: "u1 \<noteq> [] \<and> w = u1 @ [Nt A'] \<and> u'' = u' @ u1" by blast
+  then have 1: "u = u' @ [Nt A'] \<and> v = u' @ (u1 @ v'')" using u'_prop u''_prop by auto
+  
+  have 2: "S \<turnstile> u1 @ [Nt A'] \<Rightarrow>r(n) u1 @ v'' @ [Nt A']" using u''_prop derivern_prepend
+    by fastforce
+  have "S \<turnstile> [Nt A'] \<Rightarrow>r u1 @ [Nt A']" using w_prop u''_prop u1_prop
+    by (simp add: deriver_singleton)
+  then have "S \<turnstile> [Nt A'] \<Rightarrow>r(Suc n) u1 @ v'' @ [Nt A']" using u''_prop
+    by (meson 2 relpowp_Suc_I2)
+  then show ?case using 1
+    by auto
+qed
+
+text \<open> restricted to right-recursive productions of one Nt (\<open>A' \<rightarrow> w @ [Nt A']\<close>)
+      if there is a restricted right-derivation in solve_lrec from \<open>[Nt A']\<close> to \<open>u @ [Nt A']\<close> 
+      then there exists a derivation in R from \<open>[Nt A]\<close> to \<open>Nt A # u\<close> to that suffix\<close>
+lemma rrec_lemma3: "S = {x. (\<exists>v. x = (A', v @ [Nt A']) \<and> x \<in> solve_lrec A A' R)} \<Longrightarrow> Eps_free R \<Longrightarrow> A' \<notin> Nts R \<Longrightarrow> A \<noteq> A' \<Longrightarrow> S \<turnstile> [Nt A'] \<Rightarrow>r(n) u @ [Nt A'] \<Longrightarrow> R \<turnstile> [Nt A] \<Rightarrow>(n) Nt A # u"
+proof(induction n arbitrary: u)
+  case 0
+  then show ?case by (simp)
+next
+  case (Suc n)
+  then have "\<exists>w. (A',w) \<in> S \<and> S \<turnstile> w \<Rightarrow>r(n) u @ [Nt A']"
+    by (auto simp add: derivern_singleton split: prod.splits)
+  then obtain w where w_prop1: "(A',w) \<in> S \<and> S \<turnstile> w \<Rightarrow>r(n) u @ [Nt A']" by blast
+  then have "\<exists>u' v'. w = u' @ [Nt A'] \<and> u = u' @ v' \<and> S \<turnstile> [Nt A'] \<Rightarrow>r(n) v' @ [Nt A']" using rrec_lemma2[of S] Suc by auto
+  then obtain u' v' where u'v'_prop: "w = u' @ [Nt A'] \<and> u = u' @ v' \<and> S \<turnstile> [Nt A'] \<Rightarrow>r(n) v' @ [Nt A']" by blast
+  then have 1: "R \<turnstile> [Nt A] \<Rightarrow>(n) Nt A # v'" using Suc.IH Suc.prems by auto
+
+  have "(A', u' @ [Nt A']) \<in> solve_lrec A A' R \<longrightarrow> (A, Nt A # u') \<in> R" using Suc by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def)
+  then have "(A, Nt A # u') \<in> R" using u'v'_prop Suc.prems(1) w_prop1 by auto
+
+  then have "R \<turnstile> [Nt A] \<Rightarrow> Nt A # u'"
+    by (simp add: derive_singleton)
+  then have "R \<turnstile> [Nt A] @ v' \<Rightarrow> Nt A # u' @ v'"
+    by (metis Cons_eq_appendI derive_append)
+  then have "R \<turnstile> [Nt A] \<Rightarrow>(Suc n) Nt A # (u' @ v')" using 1
+    by (simp add: relpowp_Suc_I)
+  then show ?case using u'v'_prop by simp
+qed
+
+
+text \<open> a right derivation from \<open>p@[Nt A']\<close> to \<open>q\<close> (\<open>last q \<noteq> Nt A'\<close>) can be split into 
+  a right-recursive part, only using right-recursive productions with \<open>Nt A'\<close>, 
+  one right derivation step consuming \<open>Nt A'\<close> using some rule \<open>A' \<rightarrow> as@[B]\<close> where \<open>B \<noteq> Nt A'\<close>
+  and a right-derivation comprising the rest of the derivation\<close>
+lemma rrec_decomp: "S = {x. (\<exists>v. x = (A', v @ [Nt A']) \<and> x \<in> solve_lrec A A' R)} \<Longrightarrow> Eps_free R \<Longrightarrow> A \<noteq> A' \<Longrightarrow> A' \<notin> Nts R \<Longrightarrow> A' \<notin> nts_syms p \<Longrightarrow> last q \<noteq> Nt A' \<Longrightarrow> solve_lrec A A' R \<turnstile> p @ [Nt A'] \<Rightarrow>r(n) q 
+  \<Longrightarrow> \<exists>u w m k. S \<turnstile> p @ [Nt A'] \<Rightarrow>r(m) u @ [Nt A'] \<and> solve_lrec A A' R \<turnstile> u @ [Nt A'] \<Rightarrow>r w \<and> A' \<notin> nts_syms w \<and> solve_lrec A A' R \<turnstile> w \<Rightarrow>r(k) q \<and> n = m + k + 1"
+proof (induction n arbitrary: p)
+  case 0
+  then have pq_not_Nil: "p @ [Nt A'] \<noteq> [] \<and> q \<noteq> []" using Eps_free_derives_Nil
+    by auto
+
+  have "p = q" using 0 by auto
+  then show ?case using pq_not_Nil 0 by auto
+next
+  case (Suc n)
+  then have pq_not_Nil: "p @ [Nt A'] \<noteq> [] \<and> q \<noteq> []"
+    using Eps_free_deriven_Nil Eps_free_solve_lrec derivern_imp_deriven
+    by (metis (no_types, lifting) snoc_eq_iff_butlast)
+
+  have "\<nexists>q'. q = q' @ [Nt A']" using pq_not_Nil Suc
+    by fastforce
+
+  then have "\<exists>w. (A',w) \<in> (solve_lrec A A' R) \<and> (solve_lrec A A' R) \<turnstile> p @ w \<Rightarrow>r(n) q" using Suc by (auto simp add: derivern_snoc_Nt)
+  then obtain w where w_prop: "(A',w) \<in> (solve_lrec A A' R) \<and> solve_lrec A A' R \<turnstile> p @ w \<Rightarrow>r(n) q" by blast
+
+  show ?case
+  proof (cases "(A', w) \<in> S")
+    case True
+    then have "\<exists>w'. w = w' @ [Nt A']"
+      by (simp add: Suc.prems(1))
+    then obtain w' where w_decomp: "w = w' @ [Nt A']" by blast
+    then have "A' \<notin> nts_syms (p @ w')" using Suc True by (auto simp add: solve_lrec_rule_simp6)
+    then have "\<exists>u w'' m k. S \<turnstile> p @ w \<Rightarrow>r(m) u @ [Nt A'] \<and> solve_lrec A A' R \<turnstile> u @ [Nt A'] \<Rightarrow>r w'' \<and> A' \<notin> nts_syms w'' \<and> solve_lrec A A' R \<turnstile> w'' \<Rightarrow>r(k) q \<and> n = m + k + 1"
+      using Suc.IH Suc.prems w_prop w_decomp by (metis (lifting) append_assoc)
+    then obtain u w'' m k where propo: "S \<turnstile> p @ w \<Rightarrow>r(m) u @ [Nt A'] \<and> solve_lrec A A' R \<turnstile> u @ [Nt A'] \<Rightarrow>r w'' \<and> A' \<notin> nts_syms w'' \<and> solve_lrec A A' R \<turnstile> w'' \<Rightarrow>r(k) q \<and> n = m + k + 1" by blast
+    then have "S \<turnstile> p @ [Nt A'] \<Rightarrow>r(Suc m) u @ [Nt A']" using True
+      by (meson deriver_snoc_Nt relpowp_Suc_I2)
+  
+    then have "S \<turnstile> p @ [Nt A'] \<Rightarrow>r(Suc m) u @ [Nt A'] \<and> solve_lrec A A' R \<turnstile> u @ [Nt A'] \<Rightarrow>r w'' \<and> A' \<notin> nts_syms w'' \<and> solve_lrec A A' R \<turnstile> w'' \<Rightarrow>r(k) q \<and> Suc n = Suc m + k + 1" using propo by auto
+    then show ?thesis by blast
+  next
+    case False
+    then have "last w \<noteq> Nt A'"
+      by (metis (mono_tags, lifting) Eps_freeE_Cons Eps_free_solve_lrec Suc.prems(1,2) append_butlast_last_id list.distinct(1) mem_Collect_eq w_prop)
+    then have "A' \<notin> nts_syms w" using Suc w_prop by (auto simp add: solve_lrec_rule_simp7)
+    then have "w \<noteq> [] \<and> A' \<notin> nts_syms w" using Suc w_prop False
+      by (metis (mono_tags, lifting) Eps_free_Nil Eps_free_solve_lrec)
+    then have "S \<turnstile> p @ [Nt A'] \<Rightarrow>r(0) p @ [Nt A'] \<and> solve_lrec A A' R \<turnstile> p @ [Nt A'] \<Rightarrow>r p @ w \<and> A' \<notin> nts_syms (p @ w) \<and> solve_lrec A A' R \<turnstile> p @ w \<Rightarrow>r(n) q \<and> Suc n = 0 + n + 1"
+      using w_prop Suc by (auto simp add: deriver_snoc_Nt)
+    then show ?thesis by blast
+  qed
+qed
+
+text \<open> if something is not a word it must have a last terminal \<close>
+lemma non_word_has_last_Nt: "\<nexists>pt. p = map Tm pt \<Longrightarrow> \<exists>C pt p2. p = p2 @ [Nt C] @ map Tm pt"
+proof (induction p)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a list)
+  then show ?case
+    by (metis append.left_neutral append_Cons list.simps(9) sym.exhaust)
+qed
+
+text \<open> a decomposition of a derivation from a sentential form to a word into multiple derivations that derive words \<close>
+lemma derivern_snoc_Nt_Tms_decomp1: "R \<turnstile> p @ [Nt A] \<Rightarrow>r(n) map Tm q \<Longrightarrow> \<exists>pt At w k m. R \<turnstile> p \<Rightarrow>(k) map Tm pt \<and> R \<turnstile> w \<Rightarrow>(m) map Tm At \<and> (A, w) \<in> R \<and> q = pt @ At \<and> n = Suc(k + m)"
+proof-
+  assume assm: "R \<turnstile> p @ [Nt A] \<Rightarrow>r(n) map Tm q"
+  then have "R \<turnstile> p @ [Nt A] \<Rightarrow>(n) map Tm q" by (simp add: derivern_iff_deriven)
+  then have "\<exists>n1 n2 q1 q2. n = n1 + n2 \<and> map Tm q = q1 @ q2 \<and> R \<turnstile> p \<Rightarrow>(n1) q1 \<and> R \<turnstile> [Nt A] \<Rightarrow>(n2) q2"
+    using deriven_append_decomp by blast
+  then obtain n1 n2 q1 q2 where decomp1: "n = n1 + n2 \<and> map Tm q = q1 @ q2 \<and> R \<turnstile> p \<Rightarrow>(n1) q1 \<and> R \<turnstile> [Nt A] \<Rightarrow>(n2) q2" by blast
+  then have "\<exists>pt At. q1 = map Tm pt \<and> q2 = map Tm At \<and> q = pt @ At"
+    by (meson map_eq_append_conv)
+  then obtain pt At where decomp_tms: "q1 = map Tm pt \<and> q2 = map Tm At \<and> q = pt @ At" by blast
+  then have "\<exists>w m. n2 = Suc m \<and> R \<turnstile> w \<Rightarrow>(m) (map Tm At) \<and> (A,w) \<in> R" using decomp1 by (auto simp add: deriven_start1)
+  then obtain w m where "n2 = Suc m \<and> R \<turnstile> w \<Rightarrow>(m) (map Tm At) \<and> (A,w) \<in> R" by blast
+  then have "R \<turnstile> p \<Rightarrow>(n1) map Tm pt \<and> R \<turnstile> w \<Rightarrow>(m) map Tm At \<and> (A, w) \<in> R \<and> q = pt @ At \<and> n = Suc(n1 + m)" using decomp1 decomp_tms by auto
+  then show ?thesis by blast
+qed
+
+text \<open> a decomposition of a derivation from a sentential form to a word into multiple derivations that derive words \<close>
+lemma word_decomp1: "R \<turnstile> p @ [Nt A] @ map Tm ts \<Rightarrow>(n) map Tm q \<Longrightarrow>
+   \<exists>pt At w k m. R \<turnstile> p \<Rightarrow>(k) map Tm pt \<and> R \<turnstile> w \<Rightarrow>(m) map Tm At \<and> (A, w) \<in> R \<and> q = pt @ At @ ts \<and> n = Suc(k + m)"
+proof -
+  assume assm: "R \<turnstile> p @ [Nt A] @ map Tm ts \<Rightarrow>(n) map Tm q"
+  then have "\<exists>q1 q2 n1 n2. R \<turnstile> p @ [Nt A] \<Rightarrow>(n1) q1 \<and> R \<turnstile> map Tm ts \<Rightarrow>(n2) q2 \<and> map Tm q = q1 @ q2 \<and> n = n1 + n2"
+    using deriven_append_decomp[of n R "p @ [Nt A]" "map Tm ts" "map Tm q"] by auto
+  then obtain q1 q2 n1 n2 where P: "R \<turnstile> p @ [Nt A] \<Rightarrow>(n1) q1 \<and> R \<turnstile> map Tm ts \<Rightarrow>(n2) q2 \<and> map Tm q = q1 @ q2 \<and> n = n1 + n2" by blast
+  then have "(\<exists>q1t q2t. q1 = map Tm q1t \<and> q2 = map Tm q2t \<and> q = q1t @ q2t)"
+    using deriven_from_TmsD map_eq_append_conv by blast
+  then obtain q1t q2t where P1: "q1 = map Tm q1t \<and> q2 = map Tm q2t \<and> q = q1t @ q2t" by blast
+  then have "q2 = map Tm ts" using P
+    using deriven_from_TmsD by blast
+  then have 1: "ts = q2t" using P1
+    by (metis list.inj_map_strong sym.inject(2))
+  then have "n1 = n" using P
+    by (metis add.right_neutral not_derive_from_Tms relpowp_E2)
+  then have "\<exists>pt At w k m. R \<turnstile> p \<Rightarrow>(k) map Tm pt \<and> R \<turnstile> w \<Rightarrow>(m) map Tm At \<and> (A, w) \<in> R \<and> q1t = pt @ At \<and> n = Suc(k + m)"
+    using P P1 derivern_snoc_Nt_Tms_decomp1[of n R p A q1t] derivern_iff_deriven by blast
+  then obtain pt At w k m where P2: "R \<turnstile> p \<Rightarrow>(k) map Tm pt \<and> R \<turnstile> w \<Rightarrow>(m) map Tm At \<and> (A, w) \<in> R \<and> q1t = pt @ At \<and> n = Suc(k + m)" by blast
+  then have "q = pt @ At @ ts" using P1 1 by auto
+  then show ?thesis using P2 by blast
+qed
+
+
+text \<open> every word derived by solve_lrec R can be derived by R \<close>
+lemma tm_solve_lrec_derive_impl_derive:
+ "\<lbrakk> Eps_free R; B \<noteq> B'; B' \<notin> Nts R\<rbrakk> \<Longrightarrow> p \<noteq> [] \<Longrightarrow> B' \<notin> nts_syms p \<Longrightarrow> (solve_lrec B B' R) \<turnstile> p \<Rightarrow>(n) map Tm q \<Longrightarrow> R \<turnstile> p \<Rightarrow>* map Tm q"
+proof (induction arbitrary: p q rule: nat_less_induct)
+  case (1 n)
+  let ?R' = "(solve_lrec B B' R)"
+  show ?case
+  proof (cases "\<exists>pt. p = map Tm pt")
+    case True
+    then show ?thesis
+      using "1.prems"(6) deriven_from_TmsD derives_from_Tms_iff by blast
+  next
+    case False
+    then have "\<exists>C pt p2. p = p2 @ [Nt C] @ map Tm pt" using non_word_has_last_Nt by auto
+    then obtain C pt p2 where p_decomp: "p = p2 @ [Nt C] @ map Tm pt" by blast
+    then have "\<exists>pt' At w k m. ?R' \<turnstile> p2 \<Rightarrow>(k) map Tm pt' \<and> ?R' \<turnstile> w \<Rightarrow>(m) map Tm At \<and> (C, w) \<in> ?R' \<and> q = pt' @ At @ pt \<and> n = Suc(k + m)"
+      using 1 word_decomp1[of n ?R' p2 C pt q] by auto
+    then obtain pt' At w k m where P: "?R' \<turnstile> p2 \<Rightarrow>(k) map Tm pt' \<and> ?R' \<turnstile> w \<Rightarrow>(m) map Tm At \<and> (C, w) \<in> ?R' \<and> q = pt' @ At @ pt \<and> n = Suc(k + m)" by blast
+    then have pre1: "m < n" by auto
+
+    have "B' \<notin> nts_syms p2 \<and> k < n" using P 1 p_decomp by auto
+    then have p2_not_Nil_derive: "p2 \<noteq> [] \<longrightarrow> R \<turnstile> p2 \<Rightarrow>* map Tm pt'" using 1 P by blast
+
+    have "p2 = [] \<longrightarrow> map Tm pt' = []" using P
+      by auto
+    then have p2_derive: "R \<turnstile> p2 \<Rightarrow>* map Tm pt'" using p2_not_Nil_derive by auto
+
+    have "R \<turnstile> [Nt C] \<Rightarrow>* map Tm At"
+    proof(cases "C = B")
+      case C_is_B: True
+      then show ?thesis
+      proof (cases "last w = Nt B'")
+        case True
+        let ?S = "{x. (\<exists>v. x = (B', v @ [Nt B']) \<and> x \<in> solve_lrec B B' R)}"
+
+        have "\<exists>w1. w = w1 @ [Nt B']" using True
+          by (metis "1.prems"(1) Eps_free_Nil Eps_free_solve_lrec P append_butlast_last_id)
+        then obtain w1 where w_decomp: "w = w1 @ [Nt B']" by blast
+        then have "\<exists>w1' b k1 m1. ?R' \<turnstile> w1 \<Rightarrow>(k1) w1' \<and> ?R' \<turnstile> [Nt B'] \<Rightarrow>(m1) b \<and> map Tm At = w1' @ b \<and> m = k1 + m1"
+          using P deriven_append_decomp by blast
+        then obtain w1' b k1 m1 where w_derive_decomp: "?R' \<turnstile> w1 \<Rightarrow>(k1) w1' \<and> ?R' \<turnstile> [Nt B'] \<Rightarrow>(m1) b \<and> map Tm At = w1' @ b \<and> m = k1 + m1" by blast
+        then have "\<exists>w1t bt. w1' = map Tm w1t \<and> b = map Tm bt"
+          by (meson map_eq_append_conv)
+        then obtain w1t bt where tms: "w1' = map Tm w1t \<and> b = map Tm bt" by blast
+
+        have pre1: "k1 < n \<and> m1 < n" using w_derive_decomp P by auto
+        have pre2: "w1 \<noteq> []" using w_decomp C_is_B P 1 by (auto simp add: solve_lrec_rule_simp4)
+        have Bw1_in_R: "(B, w1) \<in> R" using w_decomp P C_is_B 1 by (auto simp add: solve_lrec_rule_simp5 nts_syms_def)
+        then have pre3: "B' \<notin> nts_syms w1" using 1 by (auto simp add: nts_syms_def Nts_def)
+
+        have "R \<turnstile> w1 \<Rightarrow>* map Tm w1t" using pre1 pre2 pre3 w_derive_decomp 1 tms by blast
+        then have w1'_derive: "R \<turnstile> [Nt B] \<Rightarrow>* w1'" using Bw1_in_R tms
+          by (simp add: derives_Cons_rule)
+
+        have "last [Nt B'] = Nt B' \<and> last (map Tm bt) \<noteq> Nt B'" 
+          by (metis "1.prems"(1) Eps_free_deriven_Nil Eps_free_solve_lrec last_ConsL last_map list.map_disc_iff not_Cons_self2 sym.distinct(1) tms w_derive_decomp)
+        then have "\<exists>u v m2 k2. ?S \<turnstile> [Nt B'] \<Rightarrow>r(m2) u @ [Nt B'] \<and> ?R' \<turnstile> u @ [Nt B'] \<Rightarrow>r v \<and> B' \<notin> nts_syms v \<and> ?R' \<turnstile> v \<Rightarrow>r(k2) map Tm bt \<and> m1 = m2 + k2 + 1"
+          using rrec_decomp[of ?S B' B R "[]" "map Tm bt" m1] w_derive_decomp 1 tms by (simp add: derivern_iff_deriven)
+        then obtain u v m2 k2 where rec_decomp: "?S \<turnstile> [Nt B'] \<Rightarrow>r(m2) u @ [Nt B'] \<and> ?R' \<turnstile> u @ [Nt B'] \<Rightarrow>r v \<and> B' \<notin> nts_syms v \<and> ?R' \<turnstile> v \<Rightarrow>r(k2) map Tm bt \<and> m1 = m2 + k2 + 1" by blast
+        then have Bu_derive: "R \<turnstile> [Nt B] \<Rightarrow>(m2) Nt B # u"
+          using "1.prems"(1,2,3) rrec_lemma3 by fastforce
+
+        have "\<exists>v'. (B', v') \<in> ?R' \<and> v = u @ v'" using rec_decomp
+          by (simp add: deriver_snoc_Nt)
+        then obtain v' where v_decomp: "(B', v') \<in> ?R' \<and> v = u @ v'" by blast
+        then have "(B, Nt B # v') \<in> R" using "1.prems" rec_decomp by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def nts_syms_def)
+        then have "R \<turnstile> [Nt B] \<Rightarrow> Nt B # v'"
+          by (simp add: derive_singleton)
+        then have "R \<turnstile> [Nt B] @ v' \<Rightarrow>* Nt B # u @ v'"
+          by (metis Bu_derive append_Cons derives_append rtranclp_power)
+        then have Buv'_derive: "R \<turnstile> [Nt B] \<Rightarrow>* Nt B # u @ v'"
+          using \<open>R \<turnstile> [Nt B] \<Rightarrow> Nt B # v'\<close> by force
+
+        have pre2: "k2 < n" using rec_decomp pre1 by auto
+        have "v \<noteq> []" using rec_decomp
+          by (metis (lifting) "1.prems"(1) Eps_free_deriven_Nil Eps_free_solve_lrec deriven_from_TmsD derivern_imp_deriven list.simps(8) not_Cons_self2 tms
+              w_derive_decomp)
+        then have "R \<turnstile> v \<Rightarrow>* map Tm bt" using "1.IH" 1 pre2 rec_decomp by (auto simp add: derivern_iff_deriven)
+        then have "R \<turnstile> [Nt B] \<Rightarrow>* Nt B # map Tm bt" using Buv'_derive v_decomp
+          by (meson derives_Cons rtranclp_trans)
+        then have "R \<turnstile> [Nt B] \<Rightarrow>* [Nt B] @ map Tm bt" by auto
+        then have "R \<turnstile> [Nt B] \<Rightarrow>* w1' @ map Tm bt" using w1'_derive derives_append
+          by (metis rtranclp_trans)
+        then show ?thesis using tms w_derive_decomp C_is_B by auto
+      next
+        case False
+        have pre2: "w \<noteq> []" using P "1.prems"(1)
+          by (meson Eps_free_Nil Eps_free_solve_lrec)
+        then have 2: "(C, w) \<in> R" using P False "1.prems" p_decomp C_is_B by (auto simp add: solve_lrec_rule_simp3)
+        then have pre3: "B' \<notin> nts_syms w" using P "1.prems"(3) by (auto simp add: Nts_def)
+
+        have "R \<turnstile> w \<Rightarrow>* map Tm At" using "1.IH" "1.prems" pre1 pre2 pre3 P by blast
+        then show ?thesis using 2
+          by (meson bu_prod derives_bu_iff rtranclp_trans)
+      qed
+    next
+      case False
+      then have 2: "(C, w) \<in> R" using P "1.prems"(5) p_decomp by (auto simp add: solve_lrec_rule_simp1)
+      then have pre2: "B' \<notin> nts_syms w" using P "1.prems"(3) by (auto simp add: Nts_def)
+      have pre3: "w \<noteq> []" using "1.prems"(1) 2 by (auto simp add: Eps_free_def)
+
+      have "R \<turnstile> w \<Rightarrow>* map Tm At" using "1.IH" "1.prems" pre1 pre2 pre3 P by blast
+      then show ?thesis using 2
+        by (meson bu_prod derives_bu_iff rtranclp_trans)
+    qed
+
+    
+    then show ?thesis using p2_derive
+      by (metis P derives_append derives_append_decomp map_append p_decomp)
+  qed
+qed
+
+text \<open> Language inclusion of \<open>solve_lrec R\<close> in \<open>R\<close> \<close>
+lemma Lang_solve_lrec_incl_Lang: "\<lbrakk> Eps_free R; B \<noteq> B'; B' \<notin> Nts R; A \<noteq> B'\<rbrakk> \<Longrightarrow> Lang (solve_lrec B B' R) A \<subseteq> Lang R A"
+proof
+  fix x
+  assume assms: "x \<in> Lang (solve_lrec B B' R) A" "Eps_free R" "B \<noteq> B'" "B' \<notin> Nts R" "A \<noteq> B'"
+
+  then have "(solve_lrec B B' R) \<turnstile> [Nt A] \<Rightarrow>* map Tm x" by (simp add: Lang_def)
+  then have "\<exists>n. (solve_lrec B B' R) \<turnstile> [Nt A] \<Rightarrow>(n) map Tm x"
+    by (simp add: rtranclp_power)
+  then obtain n where "(solve_lrec B B' R) \<turnstile> [Nt A] \<Rightarrow>(n) map Tm x" by blast
+  then have "R \<turnstile> [Nt A] \<Rightarrow>* map Tm x" using tm_solve_lrec_derive_impl_derive[of R] assms by auto
+
+  then show "x \<in> Lang R A" by (simp add: Lang_def)
+qed
+
+text \<open> Language inclusion of \<open>R\<close> in \<open>solve_lrec R\<close> \<close>
+lemma Lang_incl_Lang_solve_lrec: "\<lbrakk> Eps_free R; B \<noteq> B'; B' \<notin> Nts R\<rbrakk> \<Longrightarrow> Lang (solve_lrec B B' R) A \<supseteq> Lang R A"
+proof
+  fix x
+  assume assms: "x \<in> Lang R A" "Eps_free R" "B \<noteq> B'" "B' \<notin> Nts R"
+
+  then have "R \<turnstile> [Nt A] \<Rightarrow>* map Tm x" using assms by (auto simp add: Lang_def)
+  then have "\<exists>n. R \<turnstile> [Nt A] \<Rightarrow>(n) map Tm x"
+    by (simp add: rtranclp_imp_relpowp) 
+  then obtain n where "R \<turnstile> [Nt A] \<Rightarrow>(n) map Tm x" by blast
+  then show "x \<in> Lang (solve_lrec B B' R) A" using tm_derive_impl_solve_lrec_derive[of R B B' "[Nt A]" n x] assms by (auto simp add: Lang_def) 
+qed
+
+text \<open> solve_lrec does not change language \<close>
+lemma solve_lrec_Lang: "\<lbrakk> Eps_free R; B \<noteq> B'; B' \<notin> Nts R; A \<noteq> B'\<rbrakk> \<Longrightarrow> Lang (solve_lrec B B' R) A = Lang R A"
+  using Lang_solve_lrec_incl_Lang Lang_incl_Lang_solve_lrec by fastforce
+
 
 text \<open> Section exp_hd Language equivalence \<close>
 
 
-text \<open> every righthand side of an "exp_hd R" production is derivable by R \<close>
+text \<open> every righthand side of an \<open>exp_hd R\<close> production is derivable by \<open>R\<close> \<close>
 lemma exp_hd_is_deriveable: "(A, w) \<in> exp_hd B As R \<Longrightarrow> R \<turnstile> [Nt A] \<Rightarrow>* w"
 proof (induction B As R arbitrary: A w rule: exp_hd.induct)
   case (1 B R)
@@ -607,6 +1190,7 @@ proof -
     by metis
 qed
 
+(* should be moved to CFG.thy*)
 text \<open>Sentential form that derives to terminals and has a Nt in it has a derivation that starts with some rule acting on that Nt \<close>
 lemma deriven_start_sent: "R \<turnstile> u @ Nt V # w \<Rightarrow>(Suc n) map Tm x \<Longrightarrow> \<exists>v. (V, v) \<in> R \<and> R \<turnstile> u @ v @ w \<Rightarrow>(n) map Tm x"
 proof -
@@ -627,10 +1211,9 @@ proof -
   then show ?thesis using P2 by blast
 qed
 
-find_theorems name: "deriven_start"
 
-text \<open>This lemma expects a Set of quadruples (A, a1, B, a2). 
-  Each quadruple encodes a specific terminal in a specific rule (A, a1 @ Nt B # a2) (here Nt B)
+text \<open>This lemma expects a Set of quadruples \<open>(A, a1, B, a2)\<close>. 
+  Each quadruple encodes a specific terminal in a specific rule \<open>(A, a1 @ Nt B # a2)\<close> (this encodes \<open>Nt B\<close>)
    which should be expanded, by replacing the Nt with every rule for that Nt and then removing the original rule.
   This expansion contains the original productions Language\<close>
 lemma exp_includes_Lang: "\<forall>x \<in> S. \<exists>A a1 B a2. x = (A, a1, B, a2) \<and> (A, a1 @ Nt B # a2) \<in> R
@@ -710,7 +1293,7 @@ qed
 
 text \<open> this inclusion uses exp_includes_Lang lemma
   so it constructs sets that encode the expansions done by exp_hd in a form that is needed for the exp_includes_Lang lemma
-  Then only equivalence of the encoded set with the "exp_hd R" set has to be proven (by fastforce)\<close>
+  Then only equivalence of the encoded set with the \<open>exp_hd R\<close> set has to be proven \<close>
 lemma exp_hd_incl2: "Lang (exp_hd B As R) A \<supseteq> Lang R A"
 proof (induction B As R rule: exp_hd.induct)
   case (1 A R)
@@ -739,24 +1322,507 @@ next
   finally show ?case by (simp add: Let_def)
 qed
 
-lemma "Lang R A = Lang (exp_hd B As R) A"
+text \<open> Language equivalence of \<open>exp_hd R\<close> and \<open>R\<close> \<close>
+lemma exp_hd_Lang: "Lang (exp_hd B As R) A = Lang R A"
   using exp_hd_incl1[of B As R A] exp_hd_incl2[of R A B As] by auto
 
 
-text \<open> Section Lang solve_tri equivalence \<close>
+text \<open> Section Lang solve_tri equivalence \<close>    
 
-lemma "\<lbrakk> Eps_free R; length As \<le> length As'; distinct(As @ As')\<rbrakk> \<Longrightarrow> Lang (solve_tri As As' R) A \<subseteq> Lang R A"
+lemma "\<lbrakk> Eps_free R; length As \<le> length As'; distinct(As @ As'); A \<notin> set As'\<rbrakk> \<Longrightarrow> Lang (solve_tri As As' R) A \<subseteq> Lang R A"
   sorry
 
-lemma "\<lbrakk> Eps_free R; length As \<le> length As'; distinct(As @ As')\<rbrakk> \<Longrightarrow> Lang (solve_tri As As' R) A \<supseteq> Lang R A"
+lemma "\<lbrakk> Eps_free R; length As \<le> length As'; distinct(As @ As'); A \<notin> set As'\<rbrakk> \<Longrightarrow> Lang (solve_tri As As' R) A \<supseteq> Lang R A"
   sorry
 
+text \<open> solve_tri does not change the Language \<close>
+lemma solve_tri_Lang: "\<lbrakk> Eps_free R; length As \<le> length As'; distinct(As @ As'); Nts R \<inter> set As' = {}; A \<notin> set As'\<rbrakk> \<Longrightarrow> Lang (solve_tri As As' R) A = Lang R A"
+proof (induction As As' R rule: solve_tri.induct)
+  case (1 uu R)
+  then show ?case by simp
+next
+  case (2 Aa As A' As' R)
+  then have e_free1: "Eps_free (exp_hd Aa As (solve_tri As As' R))" by (simp add: Eps_free_exp_hd Eps_free_solve_tri)
+  have "length As \<le> length As'" using 2 by simp
+  then have "Nts (exp_hd Aa As (solve_tri As As' R)) \<subseteq> Nts R \<union> set As'" using 2 Nts_exp_hd_sub Nts_solve_tri_sub
+    by (metis subset_trans)
+  then have nts1: " A' \<notin> Nts (exp_hd Aa As (solve_tri As As' R))" using 2 Nts_exp_hd_sub Nts_solve_tri_sub by auto
+  
+  have "Lang (solve_tri (Aa # As) (A' # As') R) A = 
+             Lang (solve_lrec Aa A' (exp_hd Aa As (solve_tri As As' R))) A" by simp
+  also have "... = Lang (exp_hd Aa As (solve_tri As As' R)) A"
+    using nts1 e_free1 2 solve_lrec_Lang[of "exp_hd Aa As (solve_tri As As' R)" Aa A' A] by (simp)
+  also have "... = Lang (solve_tri As As' R) A" by (simp add: exp_hd_Lang)
+  finally show ?case using 2 by (auto)
+next
+  case (3 v va c)
+  then show ?case by simp
+qed
+  
+  
+text \<open>Section Bringing triangular grammar into GNF form\<close>
 
-lemma "\<lbrakk> Eps_free R; length As \<le> length As'; distinct(As @ As')\<rbrakk> \<Longrightarrow> Lang (solve_tri As As' R) A = Lang R A"
-  sorry
+text \<open> this function expands all head-Nts of productions with Lhs given in the list 
+  If the Productions were in a triangular form beforehand this function returns productions in GNF \<close>
+fun exp_triangular :: "'n list \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t)Prods" where
+"exp_triangular [] R = R" |
+"exp_triangular (S#Ss) R =
+ (let R' = exp_triangular Ss R;
+      X = {(Al,Bw) \<in> R'. Al=S \<and> (\<exists>w B. Bw = Nt B # w \<and> B \<in> set (Ss))};
+      Y = {(S,v@w) |v w. \<exists>B. (S, Nt B # w) \<in> X \<and> (B,v) \<in> R'}
+  in R' - X \<union> Y)"
+
+text \<open> GNF property, that all productions start with a Tm \<close>
+definition GNF_hd :: "('n,'t)Prods \<Rightarrow> bool" where 
+"GNF_hd R = (\<forall>(A, w) \<in> R. \<exists>t. hd w = Tm t)"
+
+text \<open> GNF property expressed using dep_on, all Nt depend on no Nt\<close>
+definition GNF_hd_dep_on :: "('n,'t)Prods \<Rightarrow> bool" where
+"GNF_hd_dep_on R = (\<forall>A \<in> Nts R. dep_on R A = {})"
+ 
+fun GNF :: "('n,'t)Prods \<Rightarrow> bool" where 
+"GNF R = (GNF_hd R)" 
+(* \<and> tms_syms (tl w) = {}*)
+
+
+(*fun replace_tl_tms_by_Nts :: "'n list \<Rightarrow> 't list \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t)Prods" where 
+"replace_tl_tms_by_Nts _ [] R = R" |
+"replace_tl_tms_by_Nts (S#Ss) (T#Ts) R = 
+ (let R' = replace_tl_tms_by_Nts Ss Ts R;
+      X = {(Al,Bw) \<in> R'. (\<exists>A. Al=A) \<and> (\<exists>v w. tl Bw = v @ Tm T # w)};
+      Y = {(A,x) | A x. (\<exists>y. (A, y) \<in> X \<and> x = substs (Tm T) [Nt S] y)}
+  in R' - X \<union> Y \<union> {(S, [Tm T])})"*)
+
+lemma dep_on_helper: "dep_on R A = {} \<Longrightarrow> (A, w) \<in> R \<Longrightarrow> w = [] \<or> (\<exists>T wt. w = Tm T # wt)"
+proof -
+  assume assms: "dep_on R A = {}"  "(A, w) \<in> R"
+  show "w = [] \<or> (\<exists>T wt. w = Tm T # wt)"
+  proof (rule ccontr)
+    assume "\<not>(w = [] \<or> (\<exists>T wt. w = Tm T # wt))"
+    then have "\<exists>B wb. w = Nt B # wb"
+      by (meson hd_not_NA_list.elims(1))
+    then obtain B wb where "w = Nt B # wb" by blast
+    then show "False" using assms by (auto simp add: dep_on_def)
+  qed
+qed
+
+text \<open> both definitions of the GNF property are equivalent \<close>
+lemma GNF_hd_iff_dep_on: "Eps_free R \<Longrightarrow> GNF_hd R \<longleftrightarrow> (\<forall>A \<in> Nts R. dep_on R A = {})"
+proof
+  assume "GNF_hd R"
+  then show "(\<forall>A \<in> Nts R. dep_on R A = {})" by (auto simp add: GNF_hd_def dep_on_def)
+next
+  assume assm: "(\<forall>A \<in> Nts R. dep_on R A = {})" "Eps_free R"
+  have 1: "\<forall>(B, w) \<in> R. \<exists>T wt. w = Tm T # wt \<or> w = []"
+  proof
+    fix x
+    assume "x \<in> R"
+    then have "case x of (B, w) \<Rightarrow> dep_on R B = {}" using assm by (auto simp add: Nts_def)
+    then show "case x of (B, w) \<Rightarrow> \<exists>T wt. w = Tm T # wt \<or> w = []" using \<open>x \<in> R\<close> dep_on_helper by fastforce
+  qed
+  have 2: "\<forall>(B, w) \<in> R. w \<noteq> []" using assm by (auto simp add: Eps_free_def)
+  have "\<forall>(B, w) \<in> R. \<exists>T wt. w = Tm T # wt" using 1 2 by auto
+  then show "GNF_hd R" by (auto simp add: GNF_hd_def)
+qed
+
+text \<open> eps_free preservation \<close>
+lemma exp_triangular_Eps_free: "Eps_free R \<Longrightarrow> Eps_free (exp_triangular As R)"
+  by (induction As R rule: exp_triangular.induct) (auto simp add: Let_def Eps_free_def)
+
+
+lemma helper_tri1: "triangular (As @ [A]) R \<Longrightarrow> triangular As R"
+proof(induction As R rule: triangular.induct)
+  case (1 R)
+  then show ?case by simp
+next
+  case (2 A As R)
+  then show ?case by simp
+qed
+
+lemma helper_exp_tri1: "A \<notin> set As \<Longrightarrow> (A, w) \<in> exp_triangular As R \<Longrightarrow> (A, w) \<in> R"
+  by (induction As R rule: exp_triangular.induct) (auto simp add: Let_def)
+
+
+text \<open> if none of the expanded Nts depend on \<open>A\<close> then any rule depending on \<open>A\<close> in \<open>exp_triangular As R\<close> must already have been in \<open>R\<close> \<close>
+lemma helper_exp_tri2: "Eps_free R \<Longrightarrow> A \<notin> set As \<Longrightarrow> \<forall>C \<in> set As. A \<notin> (dep_on R C) \<Longrightarrow> B \<noteq> A \<Longrightarrow> (B, Nt A # w) \<in> exp_triangular As R \<Longrightarrow> (B, Nt A # w) \<in> R"
+proof (induction As R arbitrary: B w rule: exp_triangular.induct)
+  case (1 R)
+  then show ?case by simp
+next
+  case (2 S Ss R)
+  have "(B, Nt A # w) \<in> exp_triangular Ss R"
+  proof (cases "B = S")
+    case B_is_S: True
+    let ?R' = "exp_triangular Ss R"
+    let ?X = "{(Al,Bw) \<in> ?R'. Al=S \<and> (\<exists>w B. Bw = Nt B # w \<and> B \<in> set (Ss))}"
+    let ?Y = "{(S,v@w) |v w. \<exists>B. (S, Nt B # w) \<in> ?X \<and> (B,v) \<in> ?R'}"
+    have "(B, Nt A # w) \<notin> ?X" using 2 by auto
+    then have 3: "(B, Nt A # w) \<in> ?R' \<or> (B, Nt A # w) \<in> ?Y" using 2 by (auto simp add: Let_def)
+    then show ?thesis
+    proof (cases "(B, Nt A # w) \<in> ?R'")
+      case True
+      then show ?thesis by simp
+    next
+      case False
+      then have "(B, Nt A # w) \<in> ?Y" using 3 by simp
+      then have "\<exists>v wa Ba. Nt A # w = v @ wa \<and> (S, Nt Ba # wa) \<in> exp_triangular Ss R \<and> Ba \<in> set Ss \<and> (Ba, v) \<in> exp_triangular Ss R" by (auto simp add: Let_def)
+      then obtain v wa Ba where P: "Nt A # w = v @ wa \<and> (S, Nt Ba # wa) \<in> exp_triangular Ss R \<and> Ba \<in> set Ss \<and> (Ba, v) \<in> exp_triangular Ss R" by blast
+      have "Eps_free (exp_triangular Ss R)" using 2 by (auto simp add: exp_triangular_Eps_free)
+      then have "v \<noteq> []" using P by (auto simp add: Eps_free_def)
+      then have v_hd: "hd v = Nt A" using P by (metis hd_append list.sel(1))
+      then have "\<exists>va. v = Nt A # va"
+        by (metis \<open>v \<noteq> []\<close> list.collapse)
+      then obtain va where P2: "v = Nt A # va" by blast
+      then have "(Ba, v) \<in> R" using 2 P
+        by (metis list.set_intros(2))
+      then have "A \<in> dep_on R Ba" using v_hd P2 by (auto simp add: dep_on_def)
+      then show ?thesis using 2 P by auto
+    qed
+  next
+    case False
+    then show ?thesis using 2 by (auto simp add: Let_def)
+  qed
+
+  then show ?case using 2 by auto
+qed 
+
+text \<open> in a triangular form no Nts depend on the last Nt in the list \<close>
+lemma triangular_snoc_dep_on: "triangular (As@[A]) R \<Longrightarrow> \<forall>C \<in> set As. A \<notin> (dep_on R C)"
+  by (induction As) auto
+
+lemma triangular_helper1: "triangular As R \<Longrightarrow> A \<in> set As \<Longrightarrow> A \<notin> dep_on R A"
+  by (induction As) auto
+
+
+lemma dep_on_A'_solve_lrec_Nts: "A \<noteq> A' \<Longrightarrow> A' \<notin> Nts R \<Longrightarrow> dep_on (solve_lrec A A' R) A' \<subseteq> Nts R"
+proof -
+  assume assms: "A \<noteq> A'" "A' \<notin> Nts R"
+  have 1: "dep_on (solve_lrec A A' R) A' \<subseteq> Nts R \<union> {A'}"
+    using Nts_solve_lrec_sub dep_on_subs_Nts by fastforce
+  have "A' \<notin> dep_on (solve_lrec A A' R) A'" using assms by (auto simp add: solve_lrec_no_new_own_dep)
+  then show ?thesis using 1 by auto
+qed
   
 
-(* nitpick  no counterexample found - not clear if that means much here *)
+lemma dep_on_solve_tri_Nts_R: "Eps_free R \<Longrightarrow> B \<in> set As \<Longrightarrow> distinct (As @ As') \<Longrightarrow> set As' \<inter> Nts R = {} \<Longrightarrow> length As \<le> length As' \<Longrightarrow> dep_on (solve_tri As As' R) B \<subseteq> Nts R"
+proof (induction As As' R arbitrary: B rule: solve_tri.induct)
+  case (1 uu R)
+  then show ?case by (simp add: dep_on_subs_Nts)
+next
+  case (2 A As A' As' R)
+  then have F1: "dep_on (solve_tri As As' R) B \<subseteq> Nts R"
+    by (cases "B = A") (simp_all add: dep_on_solve_tri_simp dep_on_subs_Nts)
+  then have F2: "dep_on (exp_hd A As (solve_tri As As' R)) B \<subseteq> Nts R"
+  proof (cases "B = A")
+    case True
+    have "triangular As (solve_tri As As' R)" using 2 by (auto simp add: part_triangular_solve_tri)
+    then have "dep_on (exp_hd A As (solve_tri As As' R)) B \<subseteq> dep_on (solve_tri As As' R) B \<union> \<Union> (dep_on (solve_tri As As' R) ` set As) - set As"
+      using 2 True by (auto simp add: dep_on_exp_hd Eps_free_solve_tri)
+    also have "... \<subseteq> Nts R" using "2.IH" 2 F1 by auto
+    finally show ?thesis.
+  next
+    case False
+    then show ?thesis using F1 by (auto simp add: dep_on_exp_hd_simp2)
+  qed
+  then have "dep_on (solve_lrec A A' (exp_hd A As (solve_tri As As' R))) B \<subseteq> Nts R"
+  proof (cases "B = A")
+    case True
+    then show ?thesis using 2 F2 by (auto simp add: dep_on_solve_lrec_simp Eps_free_solve_tri Eps_free_exp_hd)
+  next
+    case False
+    have "B \<noteq> A'" using 2 by auto
+    then show ?thesis using 2 F2 False by (simp add: dep_on_solve_lrec_simp2)
+  qed
+  then show ?case by simp
+next
+  case (3 v va c)
+  then show ?case by simp
+qed
+
+text \<open> in triangular form Nts do not depend on Nts later in the list \<close>
+lemma middle_triangular_dep_on: "triangular (As@[A]@Bs) R \<Longrightarrow> dep_on R A \<inter> (set Bs \<union> {A}) = {}"
+  by (induction As) auto
+
+text \<open> if the full set of productions is in triangular form Nts only depend on Nts earlier in the list \<close>
+lemma "triangular (As@[A]@Bs) R \<Longrightarrow> Nts R \<subseteq> set (As@[A]@Bs) \<Longrightarrow> dep_on R A \<subseteq> set As"
+proof -
+  assume tri: "triangular (As@[A]@Bs) R" and Nts_sub: "Nts R \<subseteq> set (As@[A]@Bs)"
+  have "dep_on R A \<subseteq> Nts R" by (simp add: dep_on_subs_Nts)
+  then have 1: "dep_on R A \<subseteq> set (As@[A]@Bs)" using Nts_sub by simp
+  have "dep_on R A \<inter> (set Bs \<union> {A}) = {}" using tri middle_triangular_dep_on by simp
+  then show "dep_on R A \<subseteq> set As" using 1 by auto
+qed
+
+text \<open> if two parts of the productions are triangular and no Nts from the first part depend on ones of the second they are also triangular when put together \<close>
+lemma triangular_append: "triangular As R \<Longrightarrow> triangular Bs R \<Longrightarrow> \<forall>A\<in>set As. dep_on R A \<inter> set Bs = {} \<Longrightarrow> triangular (As@Bs) R"
+  by (induction As) auto
+
+lemma help1: "set As \<inter> Nts R = {} \<Longrightarrow> triangular As R"
+proof (induction As)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons a As)
+  have "dep_on R a \<subseteq> Nts R" by (simp add: dep_on_subs_Nts)
+  then have "dep_on R a \<inter> (set As  \<union> {a}) = {}" using Cons by auto
+  then show ?case using Cons by auto
+qed
+
+text \<open> the newly added Nts in solve_lrec are in triangular form wrt \<open>rev As'\<close> \<close>
+lemma triangular_rev_As'_solve_tri: "set As' \<inter> Nts R = {} \<Longrightarrow> distinct (As @ As') \<Longrightarrow> length As \<le> length As' \<Longrightarrow> triangular (rev As') (solve_tri As As' R)"
+proof (induction As As' R rule: solve_tri.induct)
+  case (1 uu R)
+  then show ?case by (auto simp add: help1)
+next
+  case (2 A As A' As' R)
+  then have "triangular (rev As') (solve_tri As As' R)" by simp
+  then have "triangular (rev As') (exp_hd A As (solve_tri As As' R))" using 2 by (auto simp add: triangular_exp_hd)
+  then have F1: "triangular (rev As') (solve_tri (A#As) (A'#As') R)" using 2 by (auto simp add: triangular_solve_lrec)
+  have "Nts (solve_tri As As' R) \<subseteq> Nts R \<union> set As'" using 2 by (auto simp add: Nts_solve_tri_sub)
+  then have F_nts: "Nts (exp_hd A As (solve_tri As As' R)) \<subseteq> Nts R \<union> set As'"
+    using Nts_exp_hd_sub[of A As "(solve_tri As As' R)"] by auto
+  then have "A' \<notin> dep_on (solve_lrec A A' (exp_hd A As (solve_tri As As' R))) A'" 
+    using 2 solve_lrec_no_new_own_dep[of A A'] by auto
+  then have F2: "triangular [A'] (solve_tri (A#As) (A'#As') R)" by auto
+  have "\<forall>a\<in>set As'. dep_on (solve_tri (A#As) (A'#As') R) a \<inter> set [A'] = {}"
+  proof
+    fix a
+    assume "a \<in> set As'"
+    then have "A' \<notin> Nts (exp_hd A As (solve_tri As As' R)) \<and> a \<noteq> A" using F_nts 2 by auto
+    then show "dep_on (solve_tri (A#As) (A'#As') R) a \<inter> set [A'] = {}" 
+      using 2 solve_lrec_rule_simp9[of A' "(exp_hd A As (solve_tri As As' R))" a A] solve_lrec_rule_simp8[of A'] 
+      by (cases "a = A'") (auto simp add: dep_on_def)
+  qed
+    
+  then have "triangular (rev (A'#As')) (solve_tri (A#As) (A'#As') R)" using F1 F2 by (auto simp add: triangular_append)
+  then show ?case by auto
+next
+  case (3 v va c)
+  then show ?case by auto
+qed
+
+text \<open> the entire set of productions is in triangular form after solve_tri wrt \<open>As@(rev As')\<close> \<close>
+lemma triangular_As_As'_solve_tri: "\<lbrakk> Eps_free R; length As \<le> length As'; distinct(As @ As'); Nts R \<subseteq> set As\<rbrakk> \<Longrightarrow> triangular (As@(rev As')) (solve_tri As As' R)"
+proof-
+  assume assms: "Eps_free R" "length As \<le> length As'" "distinct (As@As')" "Nts R \<subseteq> set As"
+  then have 1: "triangular As (solve_tri As As' R)" by (auto simp add: part_triangular_solve_tri)
+  have "set As' \<inter> Nts R = {}" using assms by auto
+  then have 2: "triangular (rev As') (solve_tri As As' R)" using assms by (auto simp add: triangular_rev_As'_solve_tri)
+  have "set As' \<inter> Nts R = {}" using assms by auto
+  then have "\<forall>A\<in>set As. dep_on (solve_tri As As' R) A \<subseteq> Nts R" using assms by (auto simp add: dep_on_solve_tri_Nts_R)
+  then have "\<forall>A\<in>set As. dep_on (solve_tri As As' R) A \<inter> set As' = {}" using assms by auto
+  then show ?thesis using 1 2 by (auto simp add: triangular_append)
+qed
+
+text \<open> given \<open>triangular As\<close> then \<open>exp_triangular (rev As)\<close> brings the set of productions \<open>As\<close> into GNF form\<close>
+lemma dep_on_exp_tri: "\<lbrakk>Eps_free R; triangular (rev As) R; distinct As; A \<in> set As\<rbrakk> \<Longrightarrow> dep_on (exp_triangular As R) A \<inter> set As = {}"
+proof(induction As R arbitrary: A rule: exp_triangular.induct)
+  case (1 R)
+  then show ?case by simp
+next
+  case (2 S Ss R)
+  then have Eps_free_exp_Ss: "Eps_free (exp_triangular Ss R)"
+    by (simp add: exp_triangular_Eps_free)
+  have dep_on_fact: "\<forall>C \<in> set Ss. S \<notin> (dep_on R C)" using 2 by (auto simp add: triangular_snoc_dep_on)
+  then show ?case
+  proof (cases "A = S")
+    case True
+    have F1: "(S, Nt S # w) \<notin> exp_triangular Ss R" for w
+    proof(rule ccontr)
+      assume "\<not>((S, Nt S # w) \<notin> exp_triangular Ss R)"
+      then have "(S, Nt S # w) \<in> R" using 2 by (auto simp add: helper_exp_tri1)
+      then have N: "S \<in> dep_on R A" using True by (auto simp add: dep_on_def)
+      have "S \<notin> dep_on R A" using 2 True by (auto simp add: triangular_helper1)
+      then show "False" using N by simp
+    qed
+
+    have F2: "(S, Nt S # w) \<notin> exp_triangular (S#Ss) R" for w
+    proof(rule ccontr)
+      assume "\<not>((S, Nt S # w) \<notin> exp_triangular (S#Ss) R)"
+      then have "\<exists>v wa B. Nt S # w = v @ wa \<and> B \<in> set Ss \<and> (S, Nt B # wa) \<in> exp_triangular Ss R \<and> (B, v) \<in> exp_triangular Ss R"
+        using 2 F1 by (auto simp add: Let_def)
+      then obtain v wa B where v_wa_B_P: "Nt S # w = v @ wa \<and> B \<in> set Ss \<and> (S, Nt B # wa) \<in> exp_triangular Ss R \<and> (B, v) \<in> exp_triangular Ss R" by blast
+      then have "v \<noteq> [] \<and> (\<exists>va. v = Nt S # va)" using Eps_free_exp_Ss
+        by (metis Eps_free_Nil append_eq_Cons_conv)
+      then obtain va where vP: "v \<noteq> [] \<and> v = Nt S # va" by blast
+      then have "(B, v) \<in> R" using v_wa_B_P 2 dep_on_fact helper_exp_tri2[of R S Ss B] True by auto
+      then have "S \<in> dep_on R B" using vP by (auto simp add: dep_on_def)
+      then show "False" using dep_on_fact v_wa_B_P by auto
+    qed
+
+    have "x \<in> set Ss \<longrightarrow> (S, Nt x # w) \<notin> exp_triangular (S#Ss) R" for x w
+    proof (rule ccontr)
+      assume "\<not> (x \<in> set Ss \<longrightarrow> (S, Nt x # w) \<notin> exp_triangular (S # Ss) R)"
+      then have assm: "x \<in> set Ss \<and> (S, Nt x # w) \<in> exp_triangular (S # Ss) R" by blast
+      then have "\<exists>v wa B. Nt x # w = v @ wa \<and> (S, Nt B # wa) \<in> exp_triangular Ss R \<and> B \<in> set Ss \<and> (B, v) \<in> exp_triangular Ss R"
+        using 2 by (auto simp add: Let_def)
+      then obtain v wa B where v_wa_B_P:"Nt x # w = v @ wa \<and> (S, Nt B # wa) \<in> exp_triangular Ss R \<and> B \<in> set Ss \<and> (B, v) \<in> exp_triangular Ss R" by blast
+      then have dep_on_IH: "dep_on (exp_triangular Ss R) B \<inter> set Ss = {}" using 2 by (auto simp add: helper_tri1)
+      have "v \<noteq> [] \<and> (\<exists>va. v = Nt x # va)" using Eps_free_exp_Ss v_wa_B_P
+        by (metis Eps_free_Nil append_eq_Cons_conv)
+      then obtain va where vP: "v \<noteq> [] \<and> v = Nt x # va" by blast
+      then have "x \<in> dep_on (exp_triangular Ss R) B" using v_wa_B_P by (auto simp add: dep_on_def)
+      then show "False" using dep_on_IH v_wa_B_P assm by auto
+    qed
+
+    then show ?thesis using 2 True F2 by (auto simp add: Let_def dep_on_def)
+  next
+    case False
+    have "(A, Nt S # w) \<notin> exp_triangular Ss R" for w
+    proof (rule ccontr)
+      assume "\<not> (A, Nt S # w) \<notin> exp_triangular Ss R"
+      then have "(A, Nt S # w) \<in> R" using 2 helper_exp_tri2 dep_on_fact
+        by (metis False distinct.simps(2))
+      then have F: "S \<in> dep_on R A" by (auto simp add: dep_on_def)
+      have "S \<notin> dep_on R A" using dep_on_fact False 2 by auto
+      then show "False" using F by simp
+    qed
+    then show ?thesis using 2 False by (auto simp add: helper_tri1 Let_def dep_on_def)
+  qed
+qed
+ 
+text \<open>Section on exp_triangular does not change the set of Nts\<close>
+
+lemma Lhss_exp_tri: "Lhss (exp_triangular As R) \<subseteq> Lhss R"
+  by (induction As R rule: exp_triangular.induct) (auto simp add: Lhss_def Let_def)
+
+lemma Rhs_Nts_exp_tri: "Rhs_Nts (exp_triangular As R) \<subseteq> Rhs_Nts R"
+proof (induction As R rule: exp_triangular.induct)
+  case (1 R)
+  then show ?case by simp
+next
+  case (2 S Ss R)
+  let ?X = "{(Al, Bw). (Al, Bw) \<in> exp_triangular Ss R \<and> Al = S \<and> (\<exists>w B. Bw = Nt B # w \<and> B \<in> set Ss)}"
+  let ?Y = "{(S, v @ w) |v w. \<exists>B. (S, Nt B # w) \<in> exp_triangular Ss R \<and> B \<in> set Ss \<and> (B, v) \<in> exp_triangular Ss R}"
+  have F1: "Rhs_Nts ?X \<subseteq> Rhs_Nts R" using 2 by (auto simp add: Rhs_Nts_def)
+  have "Rhs_Nts ?Y \<subseteq> Rhs_Nts R"
+  proof
+    fix x
+    assume "x \<in> Rhs_Nts ?Y"
+    then have "\<exists>y ys. (y, ys) \<in> ?Y \<and> x \<in> nts_syms ys" by (auto simp add: Rhs_Nts_def)
+    then obtain y ys where P1: "(y, ys) \<in> ?Y \<and> x \<in> nts_syms ys" by blast
+    then show "x \<in> Rhs_Nts R" using P1 2 Rhs_Nts_def by fastforce
+  qed
+  then show ?case using F1 2 by (auto simp add: Rhs_Nts_def Let_def)
+qed 
+
+lemma Nts_exp_tri: "Nts (exp_triangular As R) \<subseteq> Nts R"
+  by (metis Lhss_exp_tri Nts_Lhss_Rhs_Nts Rhs_Nts_exp_tri Un_mono)
+
+text \<open> if the entire triangular form is expanded the full set of productions is in GNF form \<close>
+lemma GNF_hd_exp_tri: "\<lbrakk>Eps_free R; triangular (rev As) R; distinct As; Nts R \<subseteq> set As\<rbrakk> \<Longrightarrow> GNF_hd (exp_triangular As R)"
+proof -
+  assume assms: "Eps_free R" "triangular (rev As) R" "distinct As" "Nts R \<subseteq> set As"
+  then have "x \<in> Nts R \<Longrightarrow> dep_on (exp_triangular As R) x = {}" for x
+  proof -
+    assume "x \<in> Nts R"
+    then have "dep_on (exp_triangular As R) x \<inter> set As = {}" using dep_on_exp_tri assms
+      by (metis subsetD)
+    then show ?thesis using dep_on_subs_Nts Nts_exp_tri assms(4) by fastforce 
+  qed
+
+  then show ?thesis using GNF_hd_iff_dep_on assms
+    by (metis Nts_exp_tri exp_triangular_Eps_free subset_iff)
+qed
+
+text \<open> any set of productions can be transformed into GNF via \<open>exp_triangular (solve_tri)\<close> \<close>
+theorem GNF_of_R: "\<lbrakk>Eps_free R; distinct (As @ As'); Nts R \<subseteq> set As; length As \<le> length As'\<rbrakk> 
+\<Longrightarrow> GNF (exp_triangular (As' @ rev As) (solve_tri As As' R))"
+proof -
+  assume assms: "Eps_free R" "distinct (As @ As')" "Nts R \<subseteq> set As" "length As \<le> length As'"
+  then have tri: "triangular (As @ rev As') (solve_tri As As' R)"
+    by (simp add: Int_commute triangular_As_As'_solve_tri)
+  have "Nts (solve_tri As As' R) \<subseteq> set As \<union> set As'" using assms Nts_solve_tri_sub by fastforce 
+  then show ?thesis using GNF_hd_exp_tri[of "(solve_tri As As' R)" "(As' @ rev As)"] assms tri by (auto simp add: Eps_free_solve_tri)
+qed
+
+text \<open> Section Language equivalence of \<open>exp_triangular\<close> \<close>
+
+lemma exp_tri_prods_deirvable: "(B, bs) \<in> (exp_triangular As R) \<Longrightarrow> R \<turnstile> [Nt B] \<Rightarrow>* bs"
+proof (induction As R arbitrary: B bs rule: exp_triangular.induct)
+  case (1 R)
+  then show ?case
+    by (simp add: bu_prod derives_if_bu)
+next
+  case (2 A As R)
+  then show ?case
+  proof (cases "B \<in> set (A#As)")
+    case True
+    then show ?thesis 
+    proof (cases "B = A")
+      case True
+      then have "\<exists>C cw v. (bs = cw @ v \<and> (B, Nt C # v) \<in> (exp_triangular As R) \<and> (C, cw) \<in> (exp_triangular As R)) \<or> (B, bs) \<in> (exp_triangular As R)"
+        using 2 by (auto simp add: Let_def)
+      then obtain C cw v where "(bs = cw @ v \<and> (B, Nt C # v) \<in> (exp_triangular As R) \<and> (C, cw) \<in> (exp_triangular As R)) \<or> (B, bs) \<in> (exp_triangular As R)" by blast
+      then have "(bs = cw @ v \<and> R \<turnstile> [Nt B] \<Rightarrow>* [Nt C] @ v \<and> R \<turnstile> [Nt C] \<Rightarrow>* cw) \<or> R \<turnstile> [Nt B] \<Rightarrow>* bs" using "2.IH" by auto       
+      then show ?thesis by (meson derives_append rtranclp_trans)
+    next
+      case False
+      then have "(B, bs) \<in> (exp_triangular As R)" using 2 by (auto simp add: Let_def)
+      then show ?thesis using "2.IH" by (simp add: bu_prod derives_if_bu)
+    qed
+  next
+    case False
+    then have "(B, bs) \<in> R" using 2 by (auto simp only: helper_exp_tri1)
+    then show ?thesis by (simp add: bu_prod derives_if_bu)
+  qed
+qed
+
+lemma exp_tri_Lang: "Lang (exp_triangular As R) A = Lang R A"
+proof
+  have "(B, bs) \<in> (exp_triangular As R) \<Longrightarrow> R \<turnstile> [Nt B] \<Rightarrow>* bs" for B bs
+    by (simp add: exp_tri_prods_deirvable)
+  then have "exp_triangular As R \<turnstile> [Nt A] \<Rightarrow>* map Tm x \<Longrightarrow> R \<turnstile> [Nt A] \<Rightarrow>* map Tm x" for x
+    using derives_simul_rules by blast
+  then show "Lang (exp_triangular As R) A \<subseteq> Lang R A"  by(auto simp add: Lang_def)
+next
+  show "Lang R A \<subseteq> Lang (exp_triangular As R) A"
+  proof (induction As R rule: exp_triangular.induct)
+    case (1 R)
+    then show ?case by simp
+  next
+    case (2 D Ds R)
+    let ?R' = "exp_triangular Ds R"
+    let ?X = "{(Al,Bw) \<in> ?R'. Al=D \<and> (\<exists>w B. Bw = Nt B # w \<and> B \<in> set (Ds))}"
+    let ?Y = "{(D,v@w) |v w. \<exists>B. (D, Nt B # w) \<in> ?X \<and> (B,v) \<in> ?R'}"
+    have F1: "exp_triangular (D#Ds) R = ?R' - ?X \<union> ?Y" by (simp add: Let_def)
+
+    let ?S = "{x. \<exists>A w H. x = (A, [], H, w) \<and> (A, Nt H # w) \<in> ?X}"
+    let ?S' = "{x. \<exists>A a1 B a2. x = (A, a1 @ Nt B # a2) \<and> (A, a1, B, a2) \<in> ?S}"
+    let ?E = "{x. \<exists>A v a1 a2 B. x = (A,a1@v@a2) \<and> (A, a1, B, a2) \<in> ?S \<and> (B,v) \<in> ?R'}"
+  
+    have S'_eq_X: "?S' = ?X" by fastforce
+    have E_eq_Y: "?E = ?Y" by fastforce
+
+    have "\<forall>x \<in> ?S. \<exists>A a1 B a2. x = (A, a1, B, a2) \<and> (A, a1 @ Nt B # a2) \<in> ?R'" by fastforce
+    have "Lang R A \<subseteq> Lang (exp_triangular Ds R) A" using 2 by simp
+    also have "... \<subseteq> Lang (?R' - ?S' \<union> ?E) A"
+      using exp_includes_Lang[of ?S] by auto
+    also have "... = Lang (exp_triangular (D#Ds) R) A" using S'_eq_X E_eq_Y F1 by fastforce
+    finally show ?case.
+  qed
+qed
+
+text \<open> putting the productions into GNF via \<open>exp_triangular (solve_tri)\<close> preserves the language \<close>
+theorem GNF_of_R_Lang: "\<lbrakk>Eps_free R; distinct (As @ As'); Nts R \<inter> set As' = {}; A \<notin> set As'; length As \<le> length As'\<rbrakk> 
+\<Longrightarrow> Lang (exp_triangular (As' @ rev As) (solve_tri As As' R)) A = Lang R A"
+proof -
+  assume "Eps_free R" "distinct (As @ As')" "Nts R \<inter> set As' = {}" "A \<notin> set As'" "length As \<le> length As'"
+  then have "Lang (solve_tri As As' R) A = Lang R A" using solve_tri_Lang by simp
+  then show ?thesis using exp_tri_Lang[of "(As' @ rev As)"] by auto
+qed
+
+text \<open> any epsilon free Grammar can be brought into GNF while preserving the Language \<close>
+theorem GNF_Lang: "\<lbrakk>Eps_free (Prods G); distinct (As @ As'); Nts (Prods G) \<subseteq> set As; Start G \<notin> set As'; length As \<le> length As'\<rbrakk>
+ \<Longrightarrow> Lang (Prods G) (Start G) = Lang (exp_triangular (As' @ rev As) (solve_tri As As' (Prods G))) (Start G) 
+      \<and> GNF ((exp_triangular (As' @ rev As) (solve_tri As As' (Prods G))))"
+proof -
+  assume assms: "Eps_free (Prods G)" "distinct (As @ As')" "Nts (Prods G) \<subseteq> set As" "Start G \<notin> set As'" "length As \<le> length As'"
+  then have "Nts (Prods G) \<inter> set As' = {} \<and> (Start G) \<notin> set As'" by (auto simp add: Nts_def)
+  then show ?thesis using GNF_of_R_Lang[of "(Prods G)"] GNF_of_R[of "(Prods G)"] assms by auto  
+qed
+
+
 
 text \<open> Unused lemmas \<close>
 
@@ -836,178 +1902,4 @@ lemma last_derive_is_term: "(derive R^^(Suc n)) [Nt S] (map Tm x) \<Longrightarr
     then show ?thesis using derivern_iff_deriven
       using assm derivern_imp_deriven by fastforce
   qed
-
-text \<open> Broken Lemmas or not looked at \<close>
-
-lemma Eps_free_exp_hd_simp[simp]: "Eps_free (exp_hd A As R) = Eps_free R"
-by(auto simp: Eps_free_def) sorry
-
-lemma dep_on_UN: "dep_on (\<Union>RR) A = (\<Union>R\<in>RR. dep_on R A)"
-by(auto simp add: dep_on_def)
-
-lemma dep_on_solve_lrec1:
-  "\<lbrakk> Eps_free R; A \<noteq> A' \<rbrakk> \<Longrightarrow> dep_on (solve_lrec A A' R) A \<subseteq> dep_on R A - {A}"
-by(fastforce simp add:solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def dep_on_def dest: Eps_freeE_Cons)
-
-lemma dep_on_solve_lrec2:
-  "\<lbrakk> B \<noteq> A; B \<noteq> A' \<rbrakk> \<Longrightarrow> dep_on (solve_lrec A A' R) B = dep_on R B"
-by(auto simp:solve_lrec_def dep_on_def rm_lrec_def rrec_of_lrec_def Let_def)
-(*R is lrec for B not in As. rule out*)
-lemma dep_on_exp_hd1:
-  "set(dep_on_list (exp_hd_list A As R) A) = set([B \<leftarrow> dep_on_list R A. B \<in> set (As)]
-  @ (if A \<in> set(dep_on_list R A) then [A] else[]))"
-nitpick
-by(auto simp: dep_on_def Let_def)
-
-
-lemma dep_on_solve_tri: "\<lbrakk> length As = length As'; A \<notin> set As \<union> set As' \<rbrakk>
-  \<Longrightarrow> dep_on (solve_tri As As' R) A = dep_on R A"
-proof(induction As As' arbitrary: R rule: list_induct2)
-  case Nil
-  then show ?case by simp
-next
-  case (Cons A As A' As')
-  then show ?case by (simp add: dep_on_solve_lrec2 dep_on_exp_hd_simp2)
-qed
-
-lemma "A \<notin> set As \<Longrightarrow>dep_on (solve_tri As As' R) A = dep_on R A"
-oops
-
-lemma "\<lbrakk> length As = length As'; distinct(As @ As'); Eps_free R \<rbrakk>
-  \<Longrightarrow> triangular As (solve_tri As As' R)"
-proof(induction As As' arbitrary: R rule: list_induct2)
-  case Nil
-  then show ?case by simp
-next
-  case (Cons A As A' As')
-  then show ?case using dep_on_solve_lrec1[of "exp_hd A As R" A A']
-apply (simp add: dep_on_solve_tri )
- sorry
-qed
-lemma "\<lbrakk> Eps_free (set R); length As \<le> length As'; distinct(As @ As'); Nts (set R) \<subseteq> set As \<rbrakk>
- \<Longrightarrow> triangular_list As (solve_tri_list As As' R)"
-quickcheck
-oops
-
-value "dep_on_list [(1,[T 5]::(int,int)sym list)] 1"
-value "hdNts_list[(1,[T 5]::(int,int)sym list)]"
-value "solve_tri_list [1] [2] [(1,[N 1, N 1]::(int,int)sym list)]"
-
-lemma hdNts_exp_hd: "Eps_free R \<Longrightarrow> hdNts (exp_hd A As R) \<subseteq> hdNts R"
-by(fastforce simp: hdNts_def dest: Eps_freeE_Cons)
-
-(* used? *)
-lemma hdNts_solve_lrec: "hdNts (solve_lrec A A' R) \<subseteq> Nt R"
-by(auto simp: hdNts_def solve_lrec_def rrec_of_lrec_def rm_lrec_def Cons_eq_append_conv
-   dest: Eps_freeE_Cons dest: hd_in_Nt hd2_in_Nt)
-
-lemma Eps_free_Un: "Eps_free (R \<union> S) = (Eps_free R \<and> Eps_free S)"
-by(auto simp: Eps_free_def)
-
-lemma Eps_free_UN: "Eps_free (\<Union>RR) = (\<forall>R \<in> RR. Eps_free R)"
-by(auto simp: Eps_free_def)
-
-lemma Eps_free_rm_lrec[simp]: "Eps_free R \<Longrightarrow> Eps_free (rm_lrec A R)"
-by(auto simp: rm_lrec_def Eps_free_def)
-
-lemma Eps_free_rrec_of_lrec[simp]: "Eps_free R \<Longrightarrow> Eps_free (rrec_of_lrec A A' R)"
-by(auto simp: rrec_of_lrec_def Eps_free_def)
-
-lemma Eps_free_solve_lrec[simp]: "Eps_free R \<Longrightarrow> Eps_free (solve_lrec A A' R)"
-by(auto simp: solve_lrec_def Eps_free_Un)
-
-lemma Eps_free_exp_hd[simp]: "Eps_free R \<Longrightarrow> Eps_free (exp_hd A As R)"
-by(auto simp: Eps_free_def split: prod.splits)
-
-lemma hdNts_exp_hd_Un: "\<lbrakk> Eps_free R; A' \<notin> Nt R; A' \<notin> hdNts RA'; \<forall>(A,w) \<in> RA'. A=A' \<rbrakk>
- \<Longrightarrow> hdNts (exp_hd A' {} (R \<union> RA')) \<subseteq> hdNts R"
-by(auto simp add: exp_hd_def hdNts_def Nt_def subset_iff Eps_free_def Cons_eq_append_conv split: prod.splits)
-
-corollary hdNts_exp_hd_solve_lrec: "\<comment>\<open>\<lbrakk> Eps_free R; A' \<notin> Nt R; A' \<notin> hdNts RA'; \<forall>(A,w) \<in> RA'. A=A' \<rbrakk>
- \<Longrightarrow>\<close> hdNts (exp_hd A' {} (solve_lrec A A' R)) \<subseteq> hdNts R"
-unfolding solve_lrec_def
-sorry(*
-apply(rule hdNts_exp_hd_Un)
-by(auto simp add: exp_hd_def hdNts_def Nt_def subset_iff Eps_free_def Cons_eq_append_conv split: prod.splits)
-*)
-lemma "\<lbrakk> Eps_free R; length As = length As' \<rbrakk> \<Longrightarrow> hdNts (solve_tri As As' R) \<subseteq> hdNts R - set As"
-proof(induction As As' R rule: solve_tri.induct)
-  case (2 A As A' As' R)
-  then show ?case
- using hdNts_exp_hd[of R A "set As"]
-apply (simp)
-apply (simp add: solve_lrec_def)
-apply (auto simp add: Eps_free_UN)
-unfolding solve_lrec_def Let_def
-    using hdNts_solve_lrec  by fas tforce
-qed auto
-
-apply simp
-apply simp
-apply(rule subset_trans)
-apply(erule meta_allE)
-apply(erule meta_mp)
-  apply (simp add: Eps_free_solve_lrec Eps_free_exp_hd)
-  using hdNts_solve_lrec ldep_on_exp_hd by fa stforce
-
-lemma "Eps_free R \<Longrightarrow> hdNts (solve_tri As R) \<subseteq> hdNts R - set As"
-apply(induction As arbitrary: R)
-apply simp
-apply simp
-apply(rule subset_trans)
-apply(erule meta_allE)
-apply(erule meta_mp)
-  apply (simp add: Eps_free_solve_lrec Eps_free_exp_hd)
-  using hdNts_solve_lrec ldep_on_exp_hd by fastforce
-
-  by (metis bot.extremum_uniqueI solve_lrec_def empty_Diff Eps_free_solve_lrec hdNts_solve_lrec subsetI subset_Diff_insert)
-
-type_synonym 'a ix = "'a * nat"
-
-fun rt :: "('n,'t)syms \<Rightarrow> bool" where
-"rt [] = True" |
-"rt (Tm _ # _) = True" |
-"rt _ = False"
-
-fun rtp :: "('n,'t)prod \<Rightarrow> bool" where
-"rtp (_, w) = rt w"
-
-definition rtps :: "('n,'t)Prods \<Rightarrow> bool" where
-"rtps ps = (\<forall>p \<in> ps. rtp p)"
-
-fun lnts :: "('n \<times> ('n, 't) syms) list \<Rightarrow> 'n list" where
-"lnts [] = []" |
-"lnts ((_,[]) # ps) = lnts ps" |
-"lnts ((_, Tm a # w) # ps) = lnts ps" |
-"lnts ((_, Nt B # w) # ps) = List.insert B (lnts ps)"
-
-definition rtps2 :: "'n set \<Rightarrow> ('n,'t)prods \<Rightarrow> bool" where
-"rtps2 M ps = (set (lnts ps) \<subseteq> M)"
-
-lemma rtps_if_lnts_Nil: "lnts ps = [] \<Longrightarrow> rtps ps"
-apply(induction ps rule: lnts.induct)
-apply (auto simp: rtps_def List.insert_def split: if_splits)
-done
-
-theorem GNF:
-fixes P :: "('n ix,'t)Prods"
-(*assumes "\<not>(\<exists>(A,w) \<in> set(Prods G). w=[])"*)
-shows "\<exists>P'::('n ix,'t)Prods. Lang S P' = Lang S P \<and> rtps P'"
-proof (induction "lnts P" arbitrary: P)
-  case Nil
-  then have "rtps P" by (simp add: rtps_if_lnts_Nil)
-  then show ?case by blast
-next
-  case (Cons A As)
-  let ?X = 
-  let ?P = undefined
-  have "Lang S ?P = Lang S P" sorry
-  moreover
-  have "lnts ?P = As" sorry
-  ultimately show ?case using Cons(1) by blast
-qed
-
-fun deleft :: "('n,'t) cfg \<Rightarrow> 'n \<Rightarrow> ('n,'t) cfg" where
-"deleft G A = (let )"
-
 end

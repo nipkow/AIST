@@ -15,11 +15,10 @@ text \<open>The Parikh vector of a finite word describes how often each symbol o
 We represent parikh vectors by multisets. The Parikh image of a language \<open>L\<close>, denoted by \<open>\<Psi> L\<close>,
 is then the set of Parikh vectors of all words in the language.\<close>
 
-abbreviation parikh_vec where
-  "parikh_vec \<equiv> mset"
+definition parikh_img :: "'a lang \<Rightarrow> 'a multiset set" where
+  "parikh_img L \<equiv> mset ` L"
 
-definition parikh_img :: "'a lang \<Rightarrow> 'a multiset set" ("\<Psi>") where
-  "\<Psi> L \<equiv> parikh_vec ` L"
+notation parikh_img ("\<Psi>")
 
 lemma parikh_img_Un [simp]: "\<Psi> (L1 \<union> L2) = \<Psi> L1 \<union> \<Psi> L2"
   by (auto simp add: parikh_img_def)
@@ -73,7 +72,7 @@ lemma parikh_star_mono:
 proof
   fix v
   assume "v \<in> \<Psi> (star A)"
-  then obtain w where w_intro: "parikh_vec w = v \<and> w \<in> star A" unfolding parikh_img_def by blast
+  then obtain w where w_intro: "mset w = v \<and> w \<in> star A" unfolding parikh_img_def by blast
   then obtain n where "w \<in> A ^^ n" unfolding star_def by blast
   then have "v \<in> \<Psi> (A ^^ n)" using w_intro unfolding parikh_img_def by blast
   with assms have "v \<in> \<Psi> (B ^^ n)" using parikh_pow_mono by blast
@@ -137,31 +136,31 @@ using assms proof (induction n arbitrary: v)
   then show ?case by simp
 next
   case (Suc n)
-  then obtain w where w_intro: "w \<in> (A \<union> B) ^^ (Suc n) \<and> parikh_vec w = v"
+  then obtain w where w_intro: "w \<in> (A \<union> B) ^^ (Suc n) \<and> mset w = v"
     unfolding parikh_img_def by auto
   then obtain w1 w2 where w1_w2_intro: "w = w1@w2 \<and> w1 \<in> A \<union> B \<and> w2 \<in> (A \<union> B) ^^ n" by fastforce
-  let ?v1 = "parikh_vec w1" and ?v2 = "parikh_vec w2"
+  let ?v1 = "mset w1" and ?v2 = "mset w2"
   from w1_w2_intro have "?v2 \<in> \<Psi> ((A \<union> B) ^^ n)" unfolding parikh_img_def by blast
   with Suc.IH have "?v2 \<in> \<Psi> (\<Union>i \<le> n. A ^^ i @@ B ^^ (n-i))" by auto
-  then obtain w2' where w2'_intro: "parikh_vec w2' = parikh_vec w2 \<and>
+  then obtain w2' where w2'_intro: "mset w2' = mset w2 \<and>
       w2' \<in> (\<Union>i \<le> n. A ^^ i @@ B ^^ (n-i))" unfolding parikh_img_def by fastforce
   then obtain i where i_intro: "i \<le> n \<and> w2' \<in> A ^^ i @@ B ^^ (n-i)" by blast
-  from w1_w2_intro w2'_intro have "parikh_vec w = parikh_vec (w1@w2')"
+  from w1_w2_intro w2'_intro have "mset w = mset (w1@w2')"
     by simp
-  moreover have "parikh_vec (w1@w2') \<in> \<Psi> (\<Union>i \<le> Suc n. A ^^ i @@ B ^^ (Suc n-i))"
+  moreover have "mset (w1@w2') \<in> \<Psi> (\<Union>i \<le> Suc n. A ^^ i @@ B ^^ (Suc n-i))"
   proof (cases "w1 \<in> A")
     case True
     with i_intro have Suc_i_valid: "Suc i \<le> Suc n" and "w1@w2' \<in> A ^^ (Suc i) @@ B ^^ (Suc n - Suc i)"
       by (auto simp add: conc_assoc)
-    then have "parikh_vec (w1@w2') \<in> \<Psi> (A ^^ (Suc i) @@ B ^^ (Suc n - Suc i))"
+    then have "mset (w1@w2') \<in> \<Psi> (A ^^ (Suc i) @@ B ^^ (Suc n - Suc i))"
       unfolding parikh_img_def by blast
     with Suc_i_valid parikh_img_UNION show ?thesis by fast
   next
     case False
     with w1_w2_intro have "w1 \<in> B" by blast
-    with i_intro have "parikh_vec (w1@w2') \<in> \<Psi> (B @@ A ^^ i @@ B ^^ (n-i))"
+    with i_intro have "mset (w1@w2') \<in> \<Psi> (B @@ A ^^ i @@ B ^^ (n-i))"
       unfolding parikh_img_def by blast
-    then have "parikh_vec (w1@w2') \<in> \<Psi> (A ^^ i @@ B ^^ (Suc n-i))"
+    then have "mset (w1@w2') \<in> \<Psi> (A ^^ i @@ B ^^ (Suc n-i))"
       using parikh_img_commut conc_assoc
       by (metis Suc_diff_le conc_pow_comm i_intro lang_pow.simps(2))
     with i_intro parikh_img_UNION show ?thesis by fastforce
@@ -180,7 +179,7 @@ proof -
     using parikh_img_union_pow_aux1 by auto
   then have "v \<in> (\<Union>i\<le>n. \<Psi> (A ^^ i @@ B ^^ (n-i)))" using parikh_img_UNION by metis
   then obtain i where "i\<le>n \<and> v \<in> \<Psi> (A ^^ i @@ B ^^ (n-i))" by blast
-  then obtain w where w_intro: "parikh_vec w = v \<and> w \<in> A ^^ i @@ B ^^ (n-i)"
+  then obtain w where w_intro: "mset w = v \<and> w \<in> A ^^ i @@ B ^^ (n-i)"
     unfolding parikh_img_def by blast
   then obtain w1 w2 where w_decomp: "w=w1@w2 \<and> w1 \<in> A ^^ i \<and> w2 \<in> B ^^ (n-i)" by blast
   then have "w1 \<in> star A" and "w2 \<in> star B" by auto
@@ -192,7 +191,7 @@ lemma parikh_img_star_aux2:
   assumes "v \<in> \<Psi> (star A @@ star B)"
   shows "v \<in> \<Psi> (star (A \<union> B))"
 proof -
-  from assms obtain w where w_intro: "parikh_vec w = v \<and> w \<in> star A @@ star B"
+  from assms obtain w where w_intro: "mset w = v \<and> w \<in> star A @@ star B"
     unfolding parikh_img_def by blast
   then obtain w1 w2 where w_decomp: "w=w1@w2 \<and> w1 \<in> star A \<and> w2 \<in> star B" by blast
   then obtain i j where "w1 \<in> A ^^ i" and w2_intro: "w2 \<in> B ^^ j" unfolding star_def by blast
@@ -267,7 +266,7 @@ proof
   show "v \<in> \<Psi> ({[]} \<union> star E @@ star F @@ F)"
   proof (cases n)
     case 0
-    with v_in_pow_n have "v = parikh_vec []" unfolding parikh_img_def by simp
+    with v_in_pow_n have "v = mset []" unfolding parikh_img_def by simp
     then show ?thesis unfolding parikh_img_def by blast
   next
     case (Suc m)
@@ -412,7 +411,7 @@ proof
   proof
     fix v
     assume "v \<in> \<Psi> ?A'"
-    then obtain a where a_intro: "parikh_vec a = v \<and> a \<in> ?A'"
+    then obtain a where a_intro: "mset a = v \<and> a \<in> ?A'"
       unfolding parikh_img_def by blast
     then obtain L where L_intro: "a \<in> L \<and> L \<in> parikh_img_eq_class A"
       unfolding parikh_img_eq_class_def by blast
@@ -429,10 +428,10 @@ proof
   assume a_in_A: "a \<in> A"
   from assms have "\<Psi> A \<subseteq> \<Psi> ?B'"
     using parikh_img_Union_class by blast
-  with a_in_A have vec_a_in_B': "parikh_vec a \<in> \<Psi> ?B'" unfolding parikh_img_def by fast
-  then have "\<exists>b. parikh_vec b = parikh_vec a \<and> b \<in> ?B'"
+  with a_in_A have vec_a_in_B': "mset a \<in> \<Psi> ?B'" unfolding parikh_img_def by fast
+  then have "\<exists>b. mset b = mset a \<and> b \<in> ?B'"
     unfolding parikh_img_def by fastforce
-  then obtain b where b_intro: "parikh_vec b = parikh_vec a \<and> b \<in> ?B'" by blast
+  then obtain b where b_intro: "mset b = mset a \<and> b \<in> ?B'" by blast
   with vec_a_in_B' have "\<Psi> (?B' \<union> {a}) = \<Psi> ?B'"unfolding parikh_img_def by blast
   with parikh_img_Union_class have "\<Psi> (?B' \<union> {a}) = \<Psi> B" by blast
   then show "a \<in> ?B'" unfolding parikh_img_eq_class_def by blast

@@ -625,4 +625,6 @@ proof -
     by (meson CFL_1_Tm_regular CFL_def assms(1))
 qed
 
+no_notation parikh_img ("\<Psi>")
+
 end

@@ -595,7 +595,7 @@ proof -
     by (metis antisym assms(1,2) singleton_set_mset_subset subset_refl)
 qed
 
-lemma tms_syms_derives:
+lemma derives_tms_syms_subset:
   "P \<turnstile> \<alpha> \<Rightarrow>* \<gamma> \<Longrightarrow> tms_syms \<gamma> \<subseteq> tms_syms \<alpha> \<union> Tms P"
 by(induction rule: derives_induct) (auto simp:tms_syms_def Tms_def)
 (* end rm *)
@@ -619,10 +619,10 @@ corollary CFG_1_Tm_regular:
 proof -
   let ?L = "Lang P A"
   have "\<forall>w \<in> ?L. set w \<subseteq> {a}"
-    using tms_syms_derives[of P "[Nt A]" "map Tm _"] assms(2) unfolding Lang_def tms_syms_def
-    by auto
+    using derives_tms_syms_subset[of P "[Nt A]" "map Tm _"] assms(2)
+    unfolding Lang_def tms_syms_def by auto
   thus ?thesis
-   by (meson CFL_1_Tm_regular CFL_def assms(1))
+    by (meson CFL_1_Tm_regular CFL_def assms(1))
 qed
 
 end

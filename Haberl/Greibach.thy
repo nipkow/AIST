@@ -1,5 +1,5 @@
-theory Triangle
-imports "../CFG"
+theory Greibach
+imports "Context_Free_Grammar.Context_Free_Grammar"
 begin
 
 (* The algorithms and an initial part of the proof. So far I have only tried to show that
@@ -1821,6 +1821,80 @@ proof -
   then have "Nts (Prods G) \<inter> set As' = {} \<and> (Start G) \<notin> set As'" by (auto simp add: Nts_def)
   then show ?thesis using GNF_of_R_Lang[of "(Prods G)"] GNF_of_R[of "(Prods G)"] assms by auto  
 qed
+
+text \<open> Section on Grammar size \<close>
+(*WIP*)
+
+fun bad_grammar :: "'n list \<Rightarrow> ('n, nat)Prods" where
+ "bad_grammar [] = {}"
+|"bad_grammar [A] = {(A, [Tm 0]), (A, [Tm 1])}"
+|"bad_grammar (A#B#As) = {(A, Nt B # [Tm 0]), (A, Nt B # [Tm 1])} \<union> (bad_grammar (B#As))"
+
+
+lemma test1: "A \<notin> set As \<Longrightarrow> triangular As (insert (A, Bs) R) = triangular As R"
+  by (induction As arbitrary: Bs) (auto simp add: dep_on_def)
+
+lemma test2: "distinct As \<Longrightarrow> (A, Nt A # Bs) \<notin> (bad_grammar As)"
+  by (induction As rule: bad_grammar.induct) (auto simp add: dep_on_def)
+
+lemma test3: "distinct (A#As) \<Longrightarrow> (B, Nt A # Bs) \<notin> (bad_grammar As)"
+  by (induction As rule: bad_grammar.induct) (auto simp add: dep_on_def)
+
+lemma bad_grammar_triangular: "distinct As \<Longrightarrow> triangular (rev As) (bad_grammar As)"
+proof (induction As rule: bad_grammar.induct)
+  case 1
+  then show ?case by (auto simp add: dep_on_def)
+next
+  case (2 A)
+  then show ?case by (auto simp add: dep_on_def)
+next
+  case (3 A B As)
+  then have 4: "triangular ((rev As)@[B]) (bad_grammar (A#B#As))" by (auto simp add: test1)
+  from 3 have 5: "triangular [A] (bad_grammar (A#B#As))" by (auto simp add: test2 dep_on_def)
+  from 3 have "\<forall>C\<in>set (B#As). dep_on (bad_grammar (A#B#As)) C \<inter> set [A] = {}" by (auto simp add: dep_on_def test3)
+  then show ?case using 4 5 triangular_append
+    by (metis rev.simps(2) set_rev)
+qed
+
+lemma test4: "dep_on R A \<inter> set As = {} \<Longrightarrow> exp_hd A As R = R"
+  by (induction As) (auto simp add: dep_on_def)
+
+
+lemma exp_hd_triangular: "triangular As R \<Longrightarrow> exp_hd (hd As) (tl As) R = R"
+proof (induction As)
+  case Nil
+  then show ?case by simp
+next
+  case Cons
+  then show ?case by (auto simp add: test4)
+qed
+
+lemma exp_hd_triangular1: "triangular (A#As) R \<Longrightarrow> exp_hd A As R = R"
+  using exp_hd_triangular 
+  by (metis list.sel(1,3))
+
+lemma solve_lrec_triangular: "A \<notin> dep_on R A \<Longrightarrow> R \<subseteq> solve_lrec A A' R"
+  by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def dep_on_def)
+
+lemma "Eps_free R \<Longrightarrow> length As \<le> length As' \<Longrightarrow> distinct (As @ As') \<Longrightarrow> triangular As R \<Longrightarrow> R \<subseteq> solve_tri As As' R"
+proof (induction As As' R rule: solve_tri.induct)
+  case (1 uu R)
+  then show ?case by auto
+next
+  case (2 A As A' As' R)
+  then show ?case sorry
+next
+  case (3 v va c)
+  then show ?case by auto
+qed
+
+(*incorect as A \<longrightarrow> u gets solved to A \<longrightarrow> u and A \<longrightarrow> u @ [Nt A'] even if there is no left-recursion*)
+lemma "length As \<le> length As' \<Longrightarrow> solve_tri As As' (bad_grammar As) = bad_grammar As"
+  oops
+
+lemma "length As = n \<Longrightarrow> n \<ge> 1 \<Longrightarrow> distinct (As @ As') 
+\<Longrightarrow> card (bad_grammar As) = 2*n \<and> card (exp_triangular (As' @ rev As) (solve_tri As As' (bad_grammar As))) = 2 ^ n"
+  sorry
 
 
 

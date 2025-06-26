@@ -1,0 +1,12 @@
+(* Session name, list base session: *)
+session "Greibach" = Context_Free_Grammar +
+  options [document = pdf, document_output = "output"]
+
+(* The top-level theories of the submission: *)
+  theories
+    Triangle
+
+(* Dependencies on document source files: *)
+  (*document_files
+    "root.bib"
+    "root.tex"*)

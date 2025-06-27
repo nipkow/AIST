@@ -27,6 +27,7 @@ text \<open>We work on a matrix representation of \<open>X = A*X+B\<close> where
 In each step, \<open>solve1 a b\<close> solves an equation \<open>X_i = a*X_i + b\<close>
  where b is a list of coefficients of the remaining variables (and the additive constant).\<close>
 
+(*equivalent zu foldr, mit foldr beweis leichter*)
 definition dot :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a" where
 "dot as bs = foldl add zero (map2 mult as bs)"
 

@@ -1,7 +1,9 @@
 session "Greibach" = Context_Free_Grammar +
   options [document = pdf, document_output = "output"]
 
-(* The top-level theories of the submission: *)
+  sessions
+    Fresh_Identifiers
+
   theories
     Greibach_Code
 

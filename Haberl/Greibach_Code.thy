@@ -78,32 +78,6 @@ definition gnf_hd :: "('n::fresh,'t)prods \<Rightarrow> ('n,'t)Prods" where
        As' = freshs (set As) (hd As) (length As)
    in exp_triangular (As' @ rev As) (solve_tri As As' (set ps)))"
 
-
-subsection \<open>Code\<close>
-
-lemma Rhss_code[code]: "Rhss P A = snd ` {Aw \<in> P. fst Aw = A}"
-by(auto simp add: Rhss_def image_iff)
-
-declare exp_hd.simps(1)[code]
-
-lemma exp_hd_Cons_code[code]: "exp_hd A (S#Ss) R =
- (let R' = exp_hd A Ss R;
-      X = {w \<in> Rhss R' A. w \<noteq> [] \<and> hd w = Nt S};
-      Y = (\<Union>(B,v) \<in> R'. \<Union>w \<in> X. if hd w \<noteq> Nt B then {} else {(A,v @ tl w)})
-  in R' - ({A} \<times> X) \<union> Y)"
-by(simp add: Rhss_def Let_def neq_Nil_conv Ball_def hd_append split: if_splits, safe, force+)
-
-lemma rm_lrec_code[code]:
-  "rm_lrec A R = {Aw \<in> R. let (A',w) = Aw in A' \<noteq> A \<or> w = [] \<or> hd w \<noteq> Nt A}"
-by(auto simp add: rm_lrec_def neq_Nil_conv)
-
-lemma rrec_of_lrec_code[code]: "rrec_of_lrec A A' R =
-  (let RA = Rhss R A;
-       V = (\<Union> w \<in> RA. if w \<noteq> [] \<and> hd w = Nt A \<and> tl w \<noteq> [] then {tl w} else {});
-       U = {u \<in> RA. u = [] \<or> hd u \<noteq> Nt A }
-  in ({A} \<times> U) \<union> (\<Union>u\<in>U. {(A,u@[Nt A'])}) \<union> ({A'} \<times> V) \<union> (\<Union>v\<in>V. {(A',v @ [Nt A'])}))"
-by(auto simp add: rrec_of_lrec_def Let_def Rhss_def neq_Nil_conv)
-
 declare exp_triangular.simps(1)[code]
 lemma exp_triangular_Cons_code[code]: "exp_triangular (S#Ss) R =
  (let R' = exp_triangular Ss R;

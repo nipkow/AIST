@@ -29,20 +29,27 @@ fun exp_hd :: "'n \<Rightarrow> 'n list \<Rightarrow> ('n,'t)Prods \<Rightarrow>
       Y = {(A,v@w) |v w. \<exists>B. (A,Nt B # w) \<in> X \<and> (B,v) \<in> R'}
   in R' - X \<union> Y)"
 
-fun exp_hd_list :: "'n \<Rightarrow> 'n list \<Rightarrow> ('n,'t)prod list \<Rightarrow> ('n,'t)prod list" where
-"exp_hd_list A [] R = R" |
-"exp_hd_list A (S#Ss) R =
-  (let R' = exp_hd_list A Ss R;
-       X = [(Al,Nt B # w) . (Al,Nt B # w) \<leftarrow> R', Al=A, B = S] in
-  [(B,w) \<leftarrow> R'. (B,w) \<notin> set X] @
-  [(A,v@w). (_,Nt B # w) \<leftarrow> X, (C,v) \<leftarrow> R', B = C])"
+text \<open>Code:\<close>
 
-value "exp_hd_list (1::int) [2,3] [(1, [Nt 2,Tm 0]::(int,int)sym list), (2,[Nt 3]), (3,[Tm 1])]"
-value "exp_hd_list (1::int) [3,2] [(1, [Nt 2]::(int,int)sym list)]"
+lemma Rhss_code[code]: "Rhss P A = snd ` {Aw \<in> P. fst Aw = A}"
+by(auto simp add: Rhss_def image_iff)
+
+declare exp_hd.simps(1)[code]
+
+lemma exp_hd_Cons_code[code]: "exp_hd A (S#Ss) R =
+ (let R' = exp_hd A Ss R;
+      X = {w \<in> Rhss R' A. w \<noteq> [] \<and> hd w = Nt S};
+      Y = (\<Union>(B,v) \<in> R'. \<Union>w \<in> X. if hd w \<noteq> Nt B then {} else {(A,v @ tl w)})
+  in R' - ({A} \<times> X) \<union> Y)"
+by(simp add: Rhss_def Let_def neq_Nil_conv Ball_def hd_append split: if_splits, safe, force+)
 
 text \<open>Remove left-recursive rules\<close>
 definition rm_lrec ::  "'n \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t)Prods" where
 "rm_lrec A R = R - {(A,Nt A # v)|v. True}"
+
+lemma rm_lrec_code[code]:
+  "rm_lrec A R = {Aw \<in> R. let (A',w) = Aw in A' \<noteq> A \<or> w = [] \<or> hd w \<noteq> Nt A}"
+by(auto simp add: rm_lrec_def neq_Nil_conv)
 
 fun hd_not_NA where
 "hd_not_NA A w = (\<not>(\<exists>u. w = Nt A # u))"
@@ -55,12 +62,6 @@ fun hd_not_NA_list where
 lemma hd_not_NA_list: "hd_not_NA_list A w = hd_not_NA A w"
 by(induction A w rule: hd_not_NA_list.induct) auto
 
-definition rm_lrec_list ::  "'n \<Rightarrow> ('n,'t)prod list \<Rightarrow> ('n,'t)prod list" where
-"rm_lrec_list A R = [(B,w) \<leftarrow> R. B=A \<longrightarrow> hd_not_NA_list A w]"
-
-lemma "set(rm_lrec_list A R) = rm_lrec A (set R)"
-by(auto simp: rm_lrec_list_def rm_lrec_def hd_not_NA_list)
-
 text \<open>Conversion from left-recursion to right-recursion:
 Split \<open>A\<close>-rules into \<open>A \<rightarrow> u\<close> and \<open>A \<rightarrow> A v\<close>.
 Keep \<open>A \<rightarrow> u\<close> but replace \<open>A \<rightarrow> A v\<close> by \<open>A \<rightarrow> u A'\<close>, \<open>A' \<rightarrow> v\<close>, \<open>A' \<rightarrow> v A'\<close>:\<close>
@@ -70,18 +71,16 @@ definition rrec_of_lrec ::  "'n \<Rightarrow> 'n \<Rightarrow> ('n,'t)Prods \<Ri
        U = {u. (A,u) \<in> R \<and> \<not>(\<exists>v. u = Nt A # v) }
   in (\<Union>u\<in>U. {(A,u)}) \<union> (\<Union>u\<in>U. {(A,u@[Nt A'])}) \<union> (\<Union>v\<in>V. {(A',v)}) \<union> (\<Union>v\<in>V. {(A',v @ [Nt A'])}))"
 
-definition rrec_of_lrec_list ::  "'n \<Rightarrow> 'n \<Rightarrow> ('n,'t)prod list \<Rightarrow> ('n,'t)prod list" where
-"rrec_of_lrec_list A A' R =
-  (let V = [v. (Al,Nt Ar # v) \<leftarrow> R, Al=A, Ar=A, v \<noteq> []];
-       U = [u. (Al,u) \<leftarrow> R, Al=A, hd_not_NA_list A u]
-  in [(A,u). u \<leftarrow> U] @ [(A,u@[Nt A']). u \<leftarrow> U] @ [(A',v). v \<leftarrow> V] @ [(A',v @ [Nt A']). v \<leftarrow>V])"
+lemma rrec_of_lrec_code[code]: "rrec_of_lrec A A' R =
+  (let RA = Rhss R A;
+       V = (\<Union> w \<in> RA. if w \<noteq> [] \<and> hd w = Nt A \<and> tl w \<noteq> [] then {tl w} else {});
+       U = {u \<in> RA. u = [] \<or> hd u \<noteq> Nt A }
+  in ({A} \<times> U) \<union> (\<Union>u\<in>U. {(A,u@[Nt A'])}) \<union> ({A'} \<times> V) \<union> (\<Union>v\<in>V. {(A',v @ [Nt A'])}))"
+by(auto simp add: rrec_of_lrec_def Let_def Rhss_def neq_Nil_conv)
 
 text \<open>Dealing with ("solving") Nt A. The new Nt A' is also given as a parameter.\<close>
 definition solve_lrec ::  "'n \<Rightarrow> 'n \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t)Prods" where
 "solve_lrec A A' R = rm_lrec A R \<union> rrec_of_lrec A A' R"
-
-definition solve_lrec_list ::  "'n \<Rightarrow> 'n \<Rightarrow> ('n,'t)prod list \<Rightarrow> ('n,'t)prod list" where
-"solve_lrec_list A A' R = rm_lrec_list A R @ rrec_of_lrec_list A A' R"
 
 text \<open>Put \<open>R\<close> into triangular form wrt \<open>As\<close> (using the new Nts \<open>As'\<close>).
 That means that \<open>As\<close> are the Nts that still have to be solved.
@@ -92,10 +91,6 @@ the result should be in triangular form.\<close>
 fun solve_tri :: "'a list \<Rightarrow> 'a list \<Rightarrow> ('a, 'b) Prods \<Rightarrow> ('a, 'b) Prods" where
 "solve_tri [] _ R = R" |
 "solve_tri (A#As) (A'#As') R = solve_lrec A A' (exp_hd A As (solve_tri As As' R))"
-
-fun solve_tri_list where
-"solve_tri_list [] _ R = R" |
-"solve_tri_list (A#As) (A'#As') R = solve_lrec_list A A' (exp_hd_list A As (solve_tri_list As As' R))"
 
 text \<open>\<open>A\<close> depends on \<open>B\<close> if there is a rule \<open>A \<rightarrow> B w\<close>:\<close>
 definition dep_on :: "('n,'t) Prods \<Rightarrow> 'n \<Rightarrow> 'n set" where

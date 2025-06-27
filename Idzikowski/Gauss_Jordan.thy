@@ -3,74 +3,74 @@ imports
   "$AFP/Regular-Sets/Regular_Exp"
 begin
 
-text \<open>Solver for a system of linear equations \<open>xi = a0 * x0 + ... + an*xn + b\<close>
-where \<open>+, * :: 'a \<Rightarrow> 'a \<Rightarrow> 'a\<close> are parameters.
-The system is represented in matrix form: \<open>X = A*X + B\<close> where the matrix is of type \<open>'a list list\<close>
-and we work with only a single matrix \<open>A\<close> augmented with the vector \<open>B\<close>.
+text ‹Solver for a system of linear equations ‹xi = a0 * x0 + ... + an*xn + b›
+where ‹+, * :: 'a ⇒ 'a ⇒ 'a› are parameters.
+The system is represented in matrix form: ‹X = A*X + B› where the matrix is of type ‹'a list list›
+and we work with only a single matrix ‹A› augmented with the vector ‹B›.
 In each step, the solver eliminates one variable. This step must be supplied as a parameter
-\<open>solve1\<close> that solves \<open>x = a * x + rest\<close> for \<open>x\<close>. Here, \<open>rest\<close> is of the form \<open>ak*xk + ... + an*xn+b\<close>
-and given as the list \<open>[ak,...,an,b]\<close>.
+‹solve1› that solves ‹x = a * x + rest› for ‹x›. Here, ‹rest› is of the form ‹ak*xk + ... + an*xn+b›
+and given as the list ‹[ak,...,an,b]›.
 The solution is returned in fully substituted, not triangular form.
-The order of the variables/equations is reversed.\<close>
+The order of the variables/equations is reversed.›
 
-definition "mx m n xss = (length xss = m \<and> (\<forall>xs \<in> set xss. length xs = n))"
+definition "mx m n xss = (length xss = m ∧ (∀xs ∈ set xss. length xs = n))"
 
 locale Gauss =
 fixes zero :: 'a
-and add :: "'a \<Rightarrow> 'a \<Rightarrow> 'a"
-and mult :: "'a \<Rightarrow> 'a \<Rightarrow> 'a"
-and eq :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
-and solve1 :: "'a \<Rightarrow> 'a list \<Rightarrow> 'a list"
+and add :: "'a ⇒ 'a ⇒ 'a"
+and mult :: "'a ⇒ 'a ⇒ 'a"
+and solve1 :: "'a ⇒ 'a list ⇒ 'a list"
+and γ :: "'a ⇒ 'b :: semiring_1"
 assumes length_solve1: "length(solve1 a cs) = length cs"
+and γ_add: "γ (add a b) = γ a + γ b"
+and γ_mul: "γ (mult a b) = γ a * γ b"
+and γ_zero: "γ zero = 0"
+
 begin
-text \<open>We work on a matrix representation of \<open>X = A*X+B\<close> where the matrix is \<open>(A|B)\<close>.
-In each step, \<open>solve1 a b\<close> solves an equation \<open>X_i = a*X_i + b\<close>
- where b is a list of coefficients of the remaining variables (and the additive constant).\<close>
+text ‹We work on a matrix representation of ‹X = A*X+B› where the matrix is ‹(A|B)›.
+In each step, ‹solve1 a b› solves an equation ‹X_i = a*X_i + b›
+ where b is a list of coefficients of the remaining variables (and the additive constant).›
 
 (*equivalent zu foldr, mit foldr beweis leichter*)
-definition dot :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a" where
+definition dot :: "'a list ⇒ 'a list ⇒ 'a" where
 "dot as bs = foldl add zero (map2 mult as bs)"
 
 
-definition zipSum :: "'a list ⇒ 'a list ⇒ 'a list" (infixl "+z+" 65) where
-"zipSum = map2 add"
-
-lemma zipSumCons: "(a#as) +z+ (b#bs) = add a b # (as+z+bs)"
-  unfolding zipSum_def by simp
+fun eq where "eq a b = (γ a = γ b) "
 
 (*
 is_sol x ds xs :=   x = ds * (xs @ [1])
 *)
-definition is_sol :: "'a \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> bool" where
+definition is_sol :: "'a ⇒ 'a list ⇒ 'a list ⇒ bool" where
 "is_sol a cs sol = eq a (dot cs sol)"
 
 (*
 is_sols ys M xs :=  ys = M * (xs @ [1])
 
 *)
-fun is_sols :: "'a list \<Rightarrow> 'a list list ⇒ 'a list \<Rightarrow> bool" where
-"is_sols (a#as) (eqn # eqns) sol = (is_sol a eqn sol \<and> is_sols as eqns sol)" |
+fun is_sols :: "'a list ⇒ 'a list list ⇒ 'a list ⇒ bool" where
+"is_sols (a#as) (eqn # eqns) sol = (is_sol a eqn sol ∧ is_sols as eqns sol)" |
 "is_sols [] [] sol = True" |
 "is_sols _  [] sol = False" |
 "is_sols []  _ sol = False"
 
-lemma is_sols_length: "is_sols as eqns sol \<Longrightarrow> length as = length eqns"
+lemma is_sols_length: "is_sols as eqns sol ⟹  length as = length eqns"
   apply(induction as eqns sol rule: is_sols.induct )
   by auto
 
-lemma is_sols_append: "is_sols as1 eqns1 sol \<Longrightarrow> is_sols as2 eqns2 sol \<Longrightarrow> is_sols (as1@as2) (eqns1@eqns2) sol"
+lemma is_sols_append: "is_sols as1 eqns1 sol ⟹  is_sols as2 eqns2 sol ⟹  is_sols (as1@as2) (eqns1@eqns2) sol"
   apply(induction as1 eqns1 sol rule: is_sols.induct)
   by auto
 
 
 fun is_sols2 where
-"is_sols2 as eqns sol = (length as = length eqns \<and> list_all2 (λs eq. is_sol s eq sol) as eqns)"
+"is_sols2 as eqns sol = (length as = length eqns ∧ list_all2 (λs eq. is_sol s eq sol) as eqns)"
 
 (*maybe better with ∀*)
 fun is_sols3 where
-"is_sols3 sol eqns = (length sol = length eqns \<and> list_all2 (λs eq. is_sol s eq sol) sol eqns)"
+"is_sols3 sol eqns = (length sol = length eqns ∧ list_all2 (λs eq. is_sol s eq sol) sol eqns)"
 
-lemma wrong_len_not_sol: "length sol \<noteq> length eqns \<Longrightarrow> \<not>is_sols sol eqns sol2"
+lemma wrong_len_not_sol: "length sol ≠ length eqns ⟹  ¬is_sols sol eqns sol2"
   apply(induction rule: is_sols.induct)
   by simp+
 
@@ -85,9 +85,9 @@ proof(cases "length sol = length eqns")
     case (1 a as eqn eqns sol)
     then have len: "length as = length eqns" by simp
     then have "is_sols as eqns sol  = is_sols2 as eqns sol" using 1 by simp
-    have "is_sols2 (a # as) (eqn # eqns) sol = list_all2 (\<lambda>x y. is_sol x y sol) (a # as) (eqn # eqns)"
+    have "is_sols2 (a # as) (eqn # eqns) sol = list_all2 (λx y. is_sol x y sol) (a # as) (eqn # eqns)"
       using 1 by simp
-    also have "\<dots> = (is_sol a eqn sol \<and> is_sols2 as eqns sol)"
+    also have "… = (is_sol a eqn sol ∧ is_sols2 as eqns sol)"
       using len by simp
     then show ?case using 1 by simp
   qed simp+
@@ -99,11 +99,18 @@ corollary is_sols3_eqiv: "is_sols3 sols eqns = is_sols sols eqns sols"
 definition mult1 where
 "mult1 = map o mult"
 
-fun subst :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+fun subst :: "'a list ⇒ 'a list ⇒ 'a list" where
 "subst sol (c#cs) = map2 add (mult1 c sol) cs"
 
 
 
+(*
+TODO
+wie mache ich das zu einem lemma im locale?
+wie benutze ich da schon is_sol?
+*)
+lemma solve1_correct: "is_sol X (c#cs) (X#Xs) \<Longrightarrow>  is_sol X (solve1 c cs) Xs"
+  sorry
 
 (*
 
@@ -128,10 +135,10 @@ lemma subst_correct:
 using assms unfolding is_sol_def
   sorry
 
-lemma map_subst_correct: "\<lbrakk>
+lemma map_subst_correct: "⟦
   is_sol x ds xs ;
   is_sols ys eqs (x#xs)
-\<rbrakk> \<Longrightarrow> is_sols ys (map (subst ds) eqs) xs"
+⟧ ⟹  is_sols ys (map (subst ds) eqs) xs"
 proof(induction eqs)
   case Nil
   then show ?case using append_is_Nil_conv is_sols_length by fastforce
@@ -142,13 +149,8 @@ qed
 
 
 
-lemma solve1_correct:
-  assumes "is_sol X (c#cs) (X#Xs)"
-  shows "is_sol X (solve1 c cs) Xs"
-  sorry
 
-
-fun solves :: "'a list list \<Rightarrow> 'a list list \<Rightarrow> 'a list list" where
+fun solves :: "'a list list ⇒ 'a list list ⇒ 'a list list" where
 (* would it be a good idea to map hd here? *)
 "solves sols [] = sols" |
 "solves sols ((c # cs) # eqs) =
@@ -158,11 +160,11 @@ fun solves :: "'a list list \<Rightarrow> 'a list list \<Rightarrow> 'a list lis
   in solves sols' eqs')"
 
 lemma length_subst:
-  "\<lbrakk> length sol = length cs - 1; length cs \<noteq> 0 \<rbrakk> \<Longrightarrow> length(subst sol cs) = length sol"
+  "⟦ length sol = length cs - 1; length cs ≠ 0 ⟧ ⟹  length(subst sol cs) = length sol"
 by(auto simp: neq_Nil_conv mult1_def)
 
 lemma length_solves:
-  "\<lbrakk> mx k (Suc k) eqs; mx n (Suc k) sols \<rbrakk> \<Longrightarrow> length(solves sols eqs) = k+n"
+  "⟦ mx k (Suc k) eqs; mx n (Suc k) sols ⟧ ⟹  length(solves sols eqs) = k+n"
 proof(induction sols eqs arbitrary: k n rule: solves.induct)
   case (1 sols)
   then show ?case by(auto simp: mx_def)
@@ -173,7 +175,7 @@ next
 qed (auto simp: mx_def)
 
 lemma length_in_solves:
-  "\<lbrakk> mx k (Suc k) eqs; mx n (Suc k) sols; cs \<in> set(solves sols eqs) \<rbrakk> \<Longrightarrow> length cs = Suc 0"
+  "⟦ mx k (Suc k) eqs; mx n (Suc k) sols; cs ∈ set(solves sols eqs) ⟧ ⟹  length cs = Suc 0"
 proof(induction sols eqs arbitrary: cs k n rule: solves.induct)
   case (1 sols)
   then show ?case by(auto simp: mx_def)
@@ -184,7 +186,7 @@ next
     by(auto simp add: length_solve1 length_subst mx_def Let_def)
 qed (auto simp: mx_def)
 
-lemma length_map_subst: "\<lbrakk> mx n b eqns; length sol = b-1 ; length sol \<noteq> 0 \<rbrakk> \<Longrightarrow>  mx n (b-1) (map (subst sol) eqns)"
+lemma length_map_subst: "⟦ mx n b eqns; length sol = b-1 ; length sol ≠ 0 ⟧ ⟹  mx n (b-1) (map (subst sol) eqns)"
 unfolding mx_def
 apply(induction eqns)
 using length_subst
@@ -209,10 +211,10 @@ by (metis One_nat_def le0 length_subst)
 *)
 
 theorem solves_is_sols:
-  shows "\<lbrakk> b = n+1; mx n b eqns; mx m b sols;
+  shows "⟦ b = n+1; mx n b eqns; mx m b sols;
     is_sols Ys eqns Ys;
-    is_sols (rev Xs) sols Ys \<rbrakk>
-    \<Longrightarrow> is_sols (Xs@Ys) (rev (solves sols eqns)) []"
+    is_sols (rev Xs) sols Ys ⟧
+    ⟹  is_sols (Xs@Ys) (rev (solves sols eqns)) []"
 proof(induction sols eqns arbitrary: Xs Ys n m b rule: solves.induct)
   case (1 sols)
   then have "Ys = []" using is_sols_length by fastforce
@@ -231,10 +233,10 @@ next
     using length_solve1 sol by presburger
 
 
-  have "length sol \<noteq> 0" by (metis "2.prems"(1,2) \<open>length sol = b - 1\<close> add_diff_cancel_right' length_0_conv list.distinct(1) mx_def)
+  have "length sol ≠ 0" by (metis "2.prems"(1,2) ‹length sol = b - 1› add_diff_cancel_right' length_0_conv list.distinct(1) mx_def)
 
   have "mx (n-1) b eqs" using ‹mx n b ((c # cs) # eqs)› unfolding mx_def by auto
-  then have "mx (n-1) (b-1) (map (subst sol) eqs)" using length_map_subst[OF ‹mx (n-1) b eqs› ‹length sol = b - 1› ‹length sol \<noteq> 0›] by simp
+  then have "mx (n-1) (b-1) (map (subst sol) eqs)" using length_map_subst[OF ‹mx (n-1) b eqs› ‹length sol = b - 1› ‹length sol ≠ 0›] by simp
   then have "mx (n-1) (b-1) eqs'" using eqs' by simp
 
 
@@ -250,11 +252,11 @@ next
   have "is_sols ys eqs (y#ys)" using ‹is_sols Ys ((c # cs) # eqs) Ys› yys by auto
   then have "is_sols ys eqs' ys" using eqs' map_subst_correct[OF ‹is_sol y sol ys› ‹is_sols ys eqs (y#ys)›] by simp
 
-  have "is_sols (rev Xs) (map (subst sol) sols) ys" using ‹is_sols (rev Xs) sols Ys› map_subst_correct \<open>is_sol y sol ys\<close> yys by blast
-  then have "is_sols (rev (Xs @ [y])) sols' ys" by (simp add: \<open>is_sol y sol ys\<close> sols')
+  have "is_sols (rev Xs) (map (subst sol) sols) ys" using ‹is_sols (rev Xs) sols Ys› map_subst_correct ‹is_sol y sol ys› yys by blast
+  then have "is_sols (rev (Xs @ [y])) sols' ys" by (simp add: ‹is_sol y sol ys› sols')
 
-  have "mx m (b-1) (map (subst sol) sols)" using "2.prems"(3) \<open>length sol = b - 1\<close> \<open>length sol \<noteq> 0\<close> length_map_subst by blast
-  then have "mx (m+1) (b-1) sols'" using sols' by (simp add: \<open>length sol = b - 1\<close> mx_def)
+  have "mx m (b-1) (map (subst sol) sols)" using "2.prems"(3) ‹length sol = b - 1› ‹length sol ≠ 0› length_map_subst by blast
+  then have "mx (m+1) (b-1) sols'" using sols' by (simp add: ‹length sol = b - 1› mx_def)
 
   show ?case using "2.IH"[OF sol eqs' sols' ‹b-1 = n-1+1› ‹mx (n - 1) (b - 1) eqs'› ‹mx (m+1) (b - 1) sols'› ‹is_sols ys eqs' ys› ‹is_sols (rev (Xs @ [y])) sols' ys›]
     by (metis append_Cons append_assoc eq_Nil_appendI eqs' sol sols' solves.simps(2) yys)
@@ -271,21 +273,95 @@ qed
 
 
 
+end
 
+datatype 'a langR = Lang "'a list set"
+fun unLang where "unLang (Lang x) = x"
 
+(*TODO: stimmt es, dass type alles ist?*)
+instantiation langR :: (type) semiring_1
+begin
+definition times_langR :: "'a langR ⇒ 'a langR ⇒ 'a langR"
+  where "A * B ≡ Lang (unLang A @@ unLang B)"
+definition plus_langR :: "'a langR ⇒ 'a langR ⇒ 'a langR"
+  where "A + B ≡ Lang (unLang A ∪ unLang B)"
+definition zero_langR where "zero_langR ≡ Lang {}"
+definition one_langR where "one_langR ≡ Lang {[]}"
+
+instance proof(standard, goal_cases)
+  case (1 a b c)
+  then show ?case by (simp add: Gauss_Jordan.times_langR_def conc_assoc)
+next
+  case (2 a)
+  then show ?case unfolding one_langR_def
+    by (metis conc_epsilon(1) times_langR_def unLang.elims unLang.simps)
+next
+  case (3 a)
+  then show ?case unfolding one_langR_def
+    by (metis conc_epsilon(2) times_langR_def unLang.elims unLang.simps)
+next
+  case (4 a b c)
+  then show ?case by (simp add: inf_sup_aci(6) plus_langR_def)
+next
+  case (5 a b)
+  then show ?case by (simp add: inf_sup_aci(5) plus_langR_def)
+next
+  case (6 a)
+  then show ?case unfolding zero_langR_def
+    by (metis Un_empty_left plus_langR_def unLang.cases unLang.simps)
+next
+  case (7 a)
+  then show ?case unfolding zero_langR_def
+    by (simp add: Gauss_Jordan.times_langR_def)
+next
+  case (8 a)
+  then show ?case unfolding zero_langR_def
+    by (simp add: Gauss_Jordan.times_langR_def)
+next
+  case (9 a b c)
+  then show ?case by (simp add: conc_Un_distrib(2) plus_langR_def times_langR_def)
+next
+  case (10 a b c)
+  then show ?case by (simp add: conc_Un_distrib(1) plus_langR_def times_langR_def)
+next
+  case 11
+  then show ?case by (simp add: one_langR_def zero_langR_def)
+qed
 end
 
 
-
+lemma Ardens:
+  "star A @@ B = (A @@ (star A @@ B)) ∪ B"
+proof -
+  have "star A = A @@ star A ∪ {[]}"
+    by (rule star_unfold_left)
+  then have "star A @@ B = (A @@ star A ∪ {[]}) @@ B"
+    by metis
+  also have "… = (A @@ star A) @@ B ∪ B"
+    unfolding conc_Un_distrib by simp
+  also have "… = A @@ (star A @@ B) ∪ B"
+    by (simp only: conc_assoc)
+  finally show ?thesis .
+qed
 
 global_interpretation Gauss where zero = Zero and add = Plus and mult = Times and
-solve1 = "\<lambda>r cs. map (\<lambda>c. Times (Star r) c) cs" and eq = "\<lambda>r s. lang r = lang s"
+solve1 = "λr cs. map (λc. Times (Star r) c) cs" and γ = "λr. Lang (lang r)"
 defines solves_r = solves and subst_r = subst and mult1_r = mult1
 proof (standard, goal_cases)
   case (1 a cs)
   then show ?case by simp
+next
+  case (2 a b)
+  then show ?case by (simp add: plus_langR_def)
+next
+  case (3 a b)
+  then show ?case by (simp add: times_langR_def)
+next
+  case 4
+  then show ?case by (simp add: zero_langR_def)
 qed
 
 value "solves_r [] [[a00,a01,b0], [a10,a11,b1]]"
 value "solves_r [[x,y,z]] [[a00,a01,b0], [a10,a11,b1]]"
 value "solves_r [] [[a00,a01,b0]]"
+

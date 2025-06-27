@@ -15,25 +15,26 @@ The order of the variables/equations is reversed.›
 
 definition "mx m n xss = (length xss = m ∧ (∀xs ∈ set xss. length xs = n))"
 
+
+fun mult where "mult a b = a * b"
+
+(*equivalent zu foldr, mit foldr beweis leichter*)
+definition dot where
+"dot as bs = foldl (+) 0 (map2 mult as bs)"
+
+
 locale Gauss =
-fixes zero :: 'a
-and add :: "'a ⇒ 'a ⇒ 'a"
-and mult :: "'a ⇒ 'a ⇒ 'a"
-and solve1 :: "'a ⇒ 'a list ⇒ 'a list"
-and γ :: "'a ⇒ 'b :: semiring_1"
+fixes solve1 :: "'a :: {one, zero, plus, times} ⇒ 'a list ⇒ 'a list"
+and γ :: "'a  ⇒ 'b :: semiring_1"
 assumes length_solve1: "length(solve1 a cs) = length cs"
-and γ_add: "γ (add a b) = γ a + γ b"
-and γ_mul: "γ (mult a b) = γ a * γ b"
-and γ_zero: "γ zero = 0"
+and γ_add: "γ (a + b) = γ a + γ b"
+and γ_mul: "γ (a * b) = γ a * γ b"
+and γ_zero: "γ 0 = 0"
 
 begin
 text ‹We work on a matrix representation of ‹X = A*X+B› where the matrix is ‹(A|B)›.
 In each step, ‹solve1 a b› solves an equation ‹X_i = a*X_i + b›
  where b is a list of coefficients of the remaining variables (and the additive constant).›
-
-(*equivalent zu foldr, mit foldr beweis leichter*)
-definition dot :: "'a list ⇒ 'a list ⇒ 'a" where
-"dot as bs = foldl add zero (map2 mult as bs)"
 
 
 fun eq where "eq a b = (γ a = γ b) "
@@ -100,7 +101,7 @@ definition mult1 where
 "mult1 = map o mult"
 
 fun subst :: "'a list ⇒ 'a list ⇒ 'a list" where
-"subst sol (c#cs) = map2 add (mult1 c sol) cs"
+"subst sol (c#cs) = map2 (+) (mult1 c sol) cs"
 
 
 
@@ -344,7 +345,24 @@ proof -
   finally show ?thesis .
 qed
 
-global_interpretation Gauss where zero = Zero and add = Plus and mult = Times and
+instantiation rexp :: (type) plus begin
+  definition plus_rexp where "plus_rexp \<equiv> Plus"
+  instance ..
+end
+instantiation rexp :: (type) zero begin
+  definition zero_rexp where "zero_rexp \<equiv> Zero"
+  instance ..
+end
+instantiation rexp :: (type) one begin
+  definition one_rexp where "one_rexp \<equiv> One"
+  instance ..
+end
+instantiation rexp :: (type) times begin
+  definition times_rexp where "times_rexp \<equiv> Times"
+  instance ..
+end
+
+global_interpretation Gauss where
 solve1 = "λr cs. map (λc. Times (Star r) c) cs" and γ = "λr. Lang (lang r)"
 defines solves_r = solves and subst_r = subst and mult1_r = mult1
 proof (standard, goal_cases)
@@ -352,13 +370,13 @@ proof (standard, goal_cases)
   then show ?case by simp
 next
   case (2 a b)
-  then show ?case by (simp add: plus_langR_def)
+  then show ?case by (simp add: plus_langR_def plus_rexp_def)
 next
   case (3 a b)
-  then show ?case by (simp add: times_langR_def)
+  then show ?case by (simp add: times_langR_def times_rexp_def)
 next
   case 4
-  then show ?case by (simp add: zero_langR_def)
+  then show ?case by (simp add: zero_langR_def zero_rexp_def)
 qed
 
 value "solves_r [] [[a00,a01,b0], [a10,a11,b1]]"

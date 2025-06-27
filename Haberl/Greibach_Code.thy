@@ -78,13 +78,6 @@ definition gnf_hd :: "('n::fresh,'t)prods \<Rightarrow> ('n,'t)Prods" where
        As' = freshs (set As) (hd As) (length As)
    in exp_triangular (As' @ rev As) (solve_tri As As' (set ps)))"
 
-declare exp_triangular.simps(1)[code]
-lemma exp_triangular_Cons_code[code]: "exp_triangular (S#Ss) R =
- (let R' = exp_triangular Ss R;
-      X = {w \<in> Rhss R' S. w \<noteq> [] \<and> hd w \<in> Nt ` (set Ss)};
-      Y = (\<Union>(B,v) \<in> R'. \<Union>w \<in> X. if hd w \<noteq> Nt B then {} else {(S,v @ tl w)})
-  in R' - ({S} \<times> X) \<union> Y)"
-by(simp add: Let_def Rhss_def neq_Nil_conv Ball_def, safe, force+)
 
 text "Examples"
 

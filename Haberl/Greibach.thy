@@ -16,8 +16,6 @@ Sometimes I have proved equivalence with the set version, but that is merely a s
 Testing with nitpick is possible also for sets, but seems to work less well than quickcheck *)
 
 definition "hdNts R = {B. \<exists>A w. (A,Nt B # w) \<in> R}"
-definition hdNts_list :: "('n \<times> ('n, 't) sym list) list \<Rightarrow> 'n list" where
-"hdNts_list R = [B. (A,Nt B # w) \<leftarrow> R]"
 
 text \<open>"Expand head: Replace all rules \<open>A \<rightarrow> B w\<close> where \<open>B \<in> Ss\<close> (\<open>Ss\<close> = solved Nts)
 by \<open>A \<rightarrow> v w\<close> where \<open>B \<rightarrow> v\<close>. Starting from the end of \<open>Ss\<close>\<close>
@@ -35,7 +33,6 @@ lemma Rhss_code[code]: "Rhss P A = snd ` {Aw \<in> P. fst Aw = A}"
 by(auto simp add: Rhss_def image_iff)
 
 declare exp_hd.simps(1)[code]
-
 lemma exp_hd_Cons_code[code]: "exp_hd A (S#Ss) R =
  (let R' = exp_hd A Ss R;
       X = {w \<in> Rhss R' A. w \<noteq> [] \<and> hd w = Nt S};
@@ -53,14 +50,6 @@ by(auto simp add: rm_lrec_def neq_Nil_conv)
 
 fun hd_not_NA where
 "hd_not_NA A w = (\<not>(\<exists>u. w = Nt A # u))"
-
-fun hd_not_NA_list where
-"hd_not_NA_list A [] = True" |
-"hd_not_NA_list A (Tm _ # _) = True" |
-"hd_not_NA_list A (Nt B # _) = (B\<noteq>A)"
-
-lemma hd_not_NA_list: "hd_not_NA_list A w = hd_not_NA A w"
-by(induction A w rule: hd_not_NA_list.induct) auto
 
 text \<open>Conversion from left-recursion to right-recursion:
 Split \<open>A\<close>-rules into \<open>A \<rightarrow> u\<close> and \<open>A \<rightarrow> A v\<close>.
@@ -1367,6 +1356,14 @@ fun exp_triangular :: "'n list \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t)P
       Y = {(S,v@w) |v w. \<exists>B. (S, Nt B # w) \<in> X \<and> (B,v) \<in> R'}
   in R' - X \<union> Y)"
 
+declare exp_triangular.simps(1)[code]
+lemma exp_triangular_Cons_code[code]: "exp_triangular (S#Ss) R =
+ (let R' = exp_triangular Ss R;
+      X = {w \<in> Rhss R' S. w \<noteq> [] \<and> hd w \<in> Nt ` (set Ss)};
+      Y = (\<Union>(B,v) \<in> R'. \<Union>w \<in> X. if hd w \<noteq> Nt B then {} else {(S,v @ tl w)})
+  in R' - ({S} \<times> X) \<union> Y)"
+by(simp add: Let_def Rhss_def neq_Nil_conv Ball_def, safe, force+)
+
 text \<open> GNF property, that all productions start with a Tm \<close>
 definition GNF_hd :: "('n,'t)Prods \<Rightarrow> bool" where 
 "GNF_hd R = (\<forall>(A, w) \<in> R. \<exists>t. hd w = Tm t)"
@@ -1395,7 +1392,7 @@ proof -
   proof (rule ccontr)
     assume "\<not>(w = [] \<or> (\<exists>T wt. w = Tm T # wt))"
     then have "\<exists>B wb. w = Nt B # wb"
-      by (meson hd_not_NA_list.elims(1))
+      by (metis destTm.cases neq_Nil_conv)
     then obtain B wb where "w = Nt B # wb" by blast
     then show "False" using assms by (auto simp add: dep_on_def)
   qed

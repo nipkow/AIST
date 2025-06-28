@@ -6,7 +6,7 @@ begin
 
 subsection \<open>Fresh Nonterminals\<close>
 
-(* TODO mv to CFG *)
+(* TODO rm after next release (is in AFP/devel/CFG) *)
 definition nts_syms_list :: "('n,'t)syms \<Rightarrow> 'n list \<Rightarrow> 'n list" where
 "nts_syms_list sys = foldr (\<lambda>sy ns. case sy of Nt A \<Rightarrow> List.insert A ns | Tm _ \<Rightarrow> ns) sys"
 

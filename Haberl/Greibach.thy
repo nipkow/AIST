@@ -15,7 +15,7 @@ The list version is intended for quickcheck test only (because quickcheck cannot
 Sometimes I have proved equivalence with the set version, but that is merely a sanity check.
 Testing with nitpick is possible also for sets, but seems to work less well than quickcheck *)
 
-definition "hdNts R = {B. \<exists>A w. (A,Nt B # w) \<in> R}"
+abbreviation "lrec_prods R A S \<equiv> {(A',Bw) \<in> R. A'=A \<and> (\<exists>w B. Bw = Nt B # w \<and> B \<in> S)}"
 
 text \<open>"Expand head: Replace all rules \<open>A \<rightarrow> B w\<close> where \<open>B \<in> Ss\<close> (\<open>Ss\<close> = solved Nts)
 by \<open>A \<rightarrow> v w\<close> where \<open>B \<rightarrow> v\<close>. Starting from the end of \<open>Ss\<close>\<close>
@@ -23,7 +23,7 @@ fun exp_hd :: "'n \<Rightarrow> 'n list \<Rightarrow> ('n,'t)Prods \<Rightarrow>
 "exp_hd A [] R = R" |
 "exp_hd A (S#Ss) R =
  (let R' = exp_hd A Ss R;
-      X = {(Al,Bw) \<in> R'. Al=A \<and> (\<exists>w. Bw = Nt S # w)};
+      X = lrec_prods R' A {S};
       Y = {(A,v@w) |v w. \<exists>B. (A,Nt B # w) \<in> X \<and> (B,v) \<in> R'}
   in R' - X \<union> Y)"
 
@@ -1174,7 +1174,7 @@ proof -
     by metis
 qed
 
-(* should be moved to CFG.thy*)
+(* TODO should be moved to CFG.thy*)
 text \<open>Sentential form that derives to terminals and has a Nt in it has a derivation that starts with some rule acting on that Nt \<close>
 lemma deriven_start_sent: "R \<turnstile> u @ Nt V # w \<Rightarrow>(Suc n) map Tm x \<Longrightarrow> \<exists>v. (V, v) \<in> R \<and> R \<turnstile> u @ v @ w \<Rightarrow>(n) map Tm x"
 proof -
@@ -1352,7 +1352,7 @@ fun exp_triangular :: "'n list \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t)P
 "exp_triangular [] R = R" |
 "exp_triangular (S#Ss) R =
  (let R' = exp_triangular Ss R;
-      X = {(Al,Bw) \<in> R'. Al=S \<and> (\<exists>w B. Bw = Nt B # w \<and> B \<in> set (Ss))};
+      X = lrec_prods R' S (set Ss);
       Y = {(S,v@w) |v w. \<exists>B. (S, Nt B # w) \<in> X \<and> (B,v) \<in> R'}
   in R' - X \<union> Y)"
 

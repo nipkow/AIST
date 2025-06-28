@@ -715,7 +715,89 @@ lemma reachable_from_left_impl_reachable_without_loops:
           "length u < length y"
 obtains p' m where "m < n" "(u, p, v) \<rightarrow>{m} (u, p', v)"
                "\<forall>k \<le> n-m. \<forall>u' q' v'. ((u, p', v) \<rightarrow>{k} (u', q', v')) \<and> k \<noteq> 0 \<longrightarrow> length u < length u'"
-\<proof>
+proof - 
+  have "\<exists>p' m. m < n \<and> ((u, p, v) \<rightarrow>{m} (u, p', v)) 
+\<and> (\<forall>k \<le> n-m. \<forall>u' q' v'. ((u, p', v) \<rightarrow>{k} (u', q', v')) \<and> k \<noteq> 0 \<longrightarrow> length u < length u')"
+    (is "?ex n p")
+    using assms(1,2)
+  proof (induction n arbitrary: p rule: infinite_descent0)
+    case (smaller n)
+    then obtain p where nsteps: "(u, p, v) \<rightarrow>{n} (y, q, z)" "w \<rightarrow>** (u, p, v)" "\<not>?ex n p" by blast
+    from \<open>\<not>?ex n p\<close> have neg: "\<forall>p' m. m \<ge> n \<or> \<not>((u, p, v) \<rightarrow>{m} (u, p', v))
+        \<or> (\<exists>k\<le>n-m. \<exists>u' q' v'. ((u, p', v) \<rightarrow>{k} (u', q', v')) \<and> k \<noteq> 0 \<and> length u \<ge> length u')" 
+    by (metis diff_is_0_eq not_gr_zero zero_less_diff)
+    then obtain p' m where msteps: "m < n" "(u, p, v) \<rightarrow>{m} (u, p', v)" "m \<noteq> 0"
+      "\<exists>k\<le>n-m. \<exists>u' q' v'. ((u, p', v) \<rightarrow>{k} (u', q', v')) \<and> k \<noteq> 0 \<and> length u \<ge> length u'"  
+    proof -
+      from smaller(1) obtain p' m where mstep: "m < n" "(u, p, v) \<rightarrow>{m} (u, p', v)" by simp
+      from this have loop: "\<exists>k\<le>n-m. \<exists>u' q' v'. ((u, p', v) \<rightarrow>{k} (u', q', v')) 
+                                    \<and> k \<noteq> 0 \<and> length u \<ge> length u'" 
+        using neg by fastforce
+      then obtain k u' q' v' where kstep: "k\<le>n-m" "(u, p', v) \<rightarrow>{k} (u', q', v')" "k \<noteq> 0" 
+                                          "length u \<ge> length u'"
+        by blast
+      with mstep have "k < n" 
+        by (smt (verit, ccfv_SIG) assms(3) diff_diff_cancel less_imp_diff_less less_or_eq_imp_le neq0_conv nsteps(1)
+            prod.inject relpowp_fun_conv relpowp_right_unique step_unique zero_less_diff)
+      with nsteps stepn_decompose kstep mstep have 
+        mk_step: "(u, p, v) \<rightarrow>{m+k} (u', q', v')" by (meson relpowp_trans) 
+      then obtain w' where w'_def: "w' @ v = v'" using unchanged_substrings kstep
+        by (smt (verit, ccfv_threshold) append.assoc append_eq_append_conv list_deconstruct2 relpowp_imp_rtranclp
+          rev_append rev_rev_ident that)
+      with mk_step kstep nsteps(1) have "(u', q', w' @ v) \<rightarrow>{n-(m+k)} (y, q, z)"
+        using stepn_decompose by auto
+      moreover have "length v > length z"
+      proof -
+        from unchanged_substrings nsteps(1) have "rev u @ v = rev y @ z" by (metis rtranclp_power)
+        with assms(3) show ?thesis
+          by (metis add_le_cancel_left add_le_cancel_right leD leI length_append length_rev)
+      qed
+      ultimately obtain q'' i j where ij_defs: 
+        "i+j = n-(m+k)" "(u', q', w' @ v) \<rightarrow>{i} (u, q'', v)" "(u, q'', v) \<rightarrow>{j} (y, q, z)"
+      proof -
+        from mk_step nsteps(2) have "w \<rightarrow>** (u', q', w' @ v)" using w'_def 
+          by (meson relpowp_imp_rtranclp rtranclp_trans)
+        with left_to_right_impl_reachable_substring obtain q'' i j where
+          "i+j = n-(m+k)" "(u', q', w' @ v) \<rightarrow>{i} (rev w' @ u', q'', v)" 
+          "(rev w' @ u', q'', v) \<rightarrow>{j} (y, q, z)"
+          by (metis \<open>((\<rightarrow>) ^^ (n - (m + k))) (u', q', w' @ v) (y, q, z)\<close> \<open>length z < length v\<close>)
+        moreover have "rev w' @ u' = u" 
+        proof -
+          from mk_step unchanged_substrings have "rev u @ v = rev u' @ v'" by (meson rtranclp_power)
+          also from w'_def have "... = rev u' @ w' @ v" by simp
+          finally show ?thesis by (simp add: rev_eq_append_conv)
+        qed
+        ultimately show thesis using that by simp
+      qed
+      hence mki_reach: "(u, p, v) \<rightarrow>{m+k+i} (u, q'', v)" using w'_def mk_step by (simp add: relpowp_trans)
+      moreover have mki_lt_n: "m+k+i < n" using ij_defs kstep(1,3) using assms(3) nat_neq_iff by fastforce
+      ultimately have ex_mki: "\<exists>k'\<le>n-(m+k+i). \<exists>u' q' v'. ((\<rightarrow>) ^^ k') (u, q'', v) (u', q', v') \<and> k' \<noteq> 0 
+                      \<and> length u \<ge> length u'" using neg kstep(3) by force
+      have "m+k+i \<noteq> 0" using kstep(3) by simp
+      then show thesis using that ex_mki mki_reach mki_lt_n by presburger 
+    qed
+    then obtain k u' q' v' where ksteps: "k \<le> n - m" "(u, p', v) \<rightarrow>{k} (u', q', v')" "k \<noteq> 0" 
+                                        "length u \<ge> length u'"
+      by blast
+    from msteps nsteps stepn_decompose have p'_reach: "(u, p', v) \<rightarrow>{n-m} (y, q, z)" by simp
+    have w_reaches_p': "w \<rightarrow>** (u, p', v)" using nsteps(2) msteps(2) 
+      by (meson relpowp_imp_rtranclp rtranclp_trans)   
+    have "\<forall>p'' j. j < n-m \<longrightarrow> ((u, p', v) \<rightarrow>{j} (u, p'', v)) 
+          \<longrightarrow> (\<exists>i\<le>n-(m+j). \<exists>u' q' v'. ((u, p'', v) \<rightarrow>{i} (u', q', v')) \<and> i \<noteq> 0 \<and> length u' \<le> length u)"
+    proof (rule allI | rule impI)+
+      fix p'' j
+      assume j_lt_diff: "j < n-m"
+        and  jstep: "(u, p', v) \<rightarrow>{j} (u, p'', v)"
+      with msteps(2) have mj_step: "(u, p, v) \<rightarrow>{m+j} (u, p'', v)" using relpowp_trans by metis
+      then show "\<exists>i\<le>n-(m+j). \<exists>u' q' v'. ((u, p'', v) \<rightarrow>{i} (u', q', v')) \<and> i \<noteq> 0 \<and> length u' \<le> length u"
+        using j_lt_diff neg by fastforce
+    qed
+    hence "\<not>?ex (n-m) p'" using Suc_diff_Suc Zero_not_Suc diff_is_0_eq 
+      by (metis (no_types, lifting) diff_diff_eq)    
+    then show ?case using msteps(3) p'_reach using diff_less smaller.hyps w_reaches_p' by blast 
+  qed (use assms(3) in simp)
+  then show thesis using that by blast
+qed
 
 lemma reachable_from_right_impl_reachable_without_loops:
   assumes "w \<rightarrow>** (u, p, v)"
@@ -797,7 +879,7 @@ proof -
     hence "\<not>?ex (n-m) p'" using Suc_diff_Suc Zero_not_Suc diff_is_0_eq 
       by (metis (no_types, lifting) diff_diff_eq)
     then show ?case using msteps(3) p'_reach using diff_less smaller.hyps w_reaches_p' by blast 
-    qed (use assms in simp)
+    qed (use assms(3) in simp)
   then show thesis using that by blast
 qed
 

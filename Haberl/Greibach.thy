@@ -15,7 +15,11 @@ The list version is intended for quickcheck test only (because quickcheck cannot
 Sometimes I have proved equivalence with the set version, but that is merely a sanity check.
 Testing with nitpick is possible also for sets, but seems to work less well than quickcheck *)
 
-abbreviation "lrec_prods R A S \<equiv> {(A',Bw) \<in> R. A'=A \<and> (\<exists>w B. Bw = Nt B # w \<and> B \<in> S)}"
+abbreviation lrec_Prods :: "('n,'t)Prods \<Rightarrow> 'n \<Rightarrow> 'n set \<Rightarrow> ('n,'t)Prods" where
+"lrec_Prods R A S \<equiv> {(A',Bw) \<in> R. A'=A \<and> (\<exists>w B. Bw = Nt B # w \<and> B \<in> S)}"
+
+abbreviation subst_hd :: "('n,'t)Prods \<Rightarrow> ('n,'t)Prods \<Rightarrow> 'n \<Rightarrow> ('n,'t)Prods" where
+"subst_hd R X A \<equiv>  {(A,v@w) |v w. \<exists>B. (A,Nt B # w) \<in> X \<and> (B,v) \<in> R}"
 
 text \<open>"Expand head: Replace all rules \<open>A \<rightarrow> B w\<close> where \<open>B \<in> Ss\<close> (\<open>Ss\<close> = solved Nts)
 by \<open>A \<rightarrow> v w\<close> where \<open>B \<rightarrow> v\<close>. Starting from the end of \<open>Ss\<close>\<close>
@@ -23,8 +27,8 @@ fun exp_hd :: "'n \<Rightarrow> 'n list \<Rightarrow> ('n,'t)Prods \<Rightarrow>
 "exp_hd A [] R = R" |
 "exp_hd A (S#Ss) R =
  (let R' = exp_hd A Ss R;
-      X = lrec_prods R' A {S};
-      Y = {(A,v@w) |v w. \<exists>B. (A,Nt B # w) \<in> X \<and> (B,v) \<in> R'}
+      X = lrec_Prods R' A {S};
+      Y = subst_hd R' X A
   in R' - X \<union> Y)"
 
 text \<open>Code:\<close>
@@ -1352,8 +1356,8 @@ fun exp_triangular :: "'n list \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t)P
 "exp_triangular [] R = R" |
 "exp_triangular (S#Ss) R =
  (let R' = exp_triangular Ss R;
-      X = lrec_prods R' S (set Ss);
-      Y = {(S,v@w) |v w. \<exists>B. (S, Nt B # w) \<in> X \<and> (B,v) \<in> R'}
+      X = lrec_Prods R' S (set Ss);
+      Y = subst_hd R' X S
   in R' - X \<union> Y)"
 
 declare exp_triangular.simps(1)[code]

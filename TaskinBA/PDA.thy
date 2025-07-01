@@ -2,7 +2,7 @@ theory PDA
   imports "HOL-IMP.Star"
 begin
 
-record ('q,'a,'s) pda = states        :: "'q set"
+record ('q,'a,'s) pda = states        :: "'q set" (* drop *)
                         init_state    :: 'q
                         init_symbol   :: 's 
                         final_states  :: "'q set"
@@ -39,6 +39,55 @@ lemma steps_induct[consumes 1, case_names base step]:
                 P (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3) \<Longrightarrow> P (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3)"
     shows "P x1 x2"
 using assms[unfolded steps_def] star.induct[of step\<^sub>1] prod_cases3 by metis
+
+lemma bij_trans: "bij_betw (\<lambda>(q, \<beta>). (q, w, \<beta> @ \<alpha>)) (trans_fun M p a Z) {(q, w, \<beta>@\<alpha>) | q \<beta>. (q, \<beta>) \<in> trans_fun M p a Z}" (is "bij_betw ?f ?A ?B")
+proof -
+  have "inj_on ?f ?A"
+    by (fastforce simp: inj_on_def)
+
+  moreover have "?f ` ?A = ?B" by auto
+
+  ultimately show "bij_betw ?f ?A ?B" 
+    by (simp add: bij_betw_def)
+qed
+
+lemma card_trans_step: "card (trans_fun M p a Z) = card {(q, w, \<beta>@\<alpha>) | q \<beta>. (q, \<beta>) \<in> trans_fun M p a Z}"
+  using bij_betw_same_card[OF bij_trans, of p a Z w \<alpha>] . 
+
+lemma finite_trans_step: "finite {(q, w, \<beta>@\<alpha>) | q \<beta>. (q, \<beta>) \<in> trans_fun M p a Z}"
+  using bij_betw_finite[OF bij_trans, of p a Z w \<alpha>] finite_trans by simp
+
+lemma bij_eps: "bij_betw (\<lambda>(q, \<beta>). (q, w, \<beta> @ \<alpha>)) (eps_fun M p Z) {(q, w, \<beta>@\<alpha>) | q \<beta>. (q, \<beta>) \<in> eps_fun M p Z}" (is "bij_betw ?f ?A ?B")
+proof -
+  have "inj_on ?f ?A"
+    by (fastforce simp: inj_on_def)
+
+  moreover have "?f ` ?A = ?B" by auto
+
+  ultimately show "bij_betw ?f ?A ?B" 
+    by (simp add: bij_betw_def)
+qed
+
+lemma card_eps_step: "card (eps_fun M p Z) = card {(q, w, \<beta>@\<alpha>) | q \<beta>. (q, \<beta>) \<in> eps_fun M p Z}" (is "card ?A = card ?B")
+  using bij_betw_same_card[OF bij_eps, of p Z w \<alpha>] .
+
+lemma finite_eps_step: "finite {(q, w, \<beta>@\<alpha>) | q \<beta>. (q, \<beta>) \<in> eps_fun M p Z}"
+  using bij_betw_finite[OF bij_eps, of p Z w \<alpha>] finite_eps by simp
+
+lemma card_empty_step: "card (step (p, [], Z#\<alpha>)) = card (eps_fun M p Z)"
+  by (rule sym) (auto simp: card_eps_step)
+
+lemma card_nonempty_step: "card (step (p, a#w, Z#\<alpha>)) = card (trans_fun M p a Z) + card (eps_fun M p Z)"
+proof -
+  have "card ({(q, w, \<beta>@\<alpha>) | q \<beta>. (q, \<beta>) \<in> trans_fun M p a Z} \<union> {(q, a#w, \<beta>@\<alpha>) | q \<beta>. (q, \<beta>) \<in> eps_fun M p Z}) = 
+          card {(q, w, \<beta>@\<alpha>) | q \<beta>. (q, \<beta>) \<in> trans_fun M p a Z} + card {(q, a#w, \<beta>@\<alpha>) | q \<beta>. (q, \<beta>) \<in> eps_fun M p Z}"
+    by (rule card_Un_disjoint) (fastforce simp: finite_trans_step finite_eps_step)+
+  thus ?thesis
+    using card_trans_step[of p a Z w \<alpha>] card_eps_step[of p Z "a#w" \<alpha>] by simp
+qed
+
+lemma finite_step: "finite (step (p, w, Z#\<alpha>))"
+  by (cases w) (auto simp: finite_trans_step finite_eps_step)
 
 lemma steps_refl: "steps (p, w, \<alpha>) (p, w, \<alpha>)"
   unfolding steps_def by simp
@@ -84,10 +133,38 @@ next
   qed
 qed
 
+(* useful induction lemma, use where possible *)
+lemma stepn_induct[consumes 1, case_names basen stepn]:
+  assumes "stepn n x1 x2"
+      and "\<And>p w \<alpha>. P 0 (p, w, \<alpha>) (p, w, \<alpha>)"
+      and "\<And>n p\<^sub>1 w\<^sub>1 \<alpha>\<^sub>1 p\<^sub>2 w\<^sub>2 \<alpha>\<^sub>2 p\<^sub>3 w\<^sub>3 \<alpha>\<^sub>3. step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> stepn n (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3) \<Longrightarrow> 
+                P n (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3) \<Longrightarrow> P (Suc n) (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3)"
+    shows "P n x1 x2" 
+using assms proof (induction n arbitrary: x1 rule: less_induct)
+  case (less x)
+  show ?case proof (cases x)
+    case 0
+    obtain p w \<alpha> p' w' \<alpha>' where x1_def: "x1 = (p, w, \<alpha>)" and x2_def: "x2 = (p', w', \<alpha>')"
+      by (metis prod_cases3)
+    with 0 less.prems(1) have "p = p' \<and> w = w' \<and> \<alpha> = \<alpha>'" by auto
+    with 0 x1_def x2_def less.prems(2) show ?thesis by blast
+  next
+    case (Suc n)
+    obtain p w \<alpha> p' w' \<alpha>' where x1_def: "x1 = (p, w, \<alpha>)" and x2_def: "x2 = (p', w', \<alpha>')"
+      by (metis prod_cases3)
+    with Suc less.prems(1) obtain p'' w'' \<alpha>'' where s1: "step\<^sub>1 x1 (p'', w'', \<alpha>'')" and sn: "stepn n (p'', w'', \<alpha>'') x2"
+      using stepn_split_first[of p w \<alpha> n p' w' \<alpha>'] by auto
+    from Suc have n_x: "n < x" by simp
+    have "P n (p'', w'', \<alpha>'') x2"
+      using less.IH[OF n_x sn less.prems(2) less.prems(3)] by simp
+    with Suc x1_def x2_def s1 sn less.prems(3) show ?thesis by blast
+  qed
+qed
+
 lemma stepn_trans:
   assumes "stepn n (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)"
       and "stepn m (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3)"
-    shows "\<exists>k \<le> n + m. stepn k (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3)"
+    shows "stepn (n+m) (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3)"
 using assms(2,1) by (induction rule: stepn.induct) auto
 
 lemma stepn_steps: "(\<exists>n. stepn n (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)) \<longleftrightarrow> steps (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)"
@@ -120,7 +197,7 @@ next
         using stepn_split_first by blast
       thus ?case by metis
     qed
-qed
+  qed
 
 lemma step\<^sub>1_nonempty_stack: "step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> \<exists>Z' \<alpha>'. \<alpha>\<^sub>1 = Z'#\<alpha>'"
   using neq_Nil_conv by fastforce
@@ -214,6 +291,29 @@ lemma stepn_not_refl:
     shows "n > 0"
 using assms by fastforce
 
+(* useful lemmas, use where possible *)
+lemma stepn_not_refl_split_first:
+  assumes "stepn n (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)"
+      and "(p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) \<noteq> (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)"
+    shows "\<exists>n' p' w' \<alpha>'. n = Suc n' \<and> step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p', w', \<alpha>') \<and> stepn n' (p', w', \<alpha>') (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)"
+proof -
+  from assms obtain n' where "n = Suc n'"
+    using stepn_not_refl gr0_conv_Suc by blast
+  with assms(1) show ?thesis
+    using stepn_split_first by simp
+qed
+
+lemma stepn_not_refl_split_last:
+  assumes "stepn n (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)"
+      and "(p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) \<noteq> (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)"
+    shows "\<exists>n' p' w' \<alpha>'. n = Suc n' \<and> stepn n' (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p', w', \<alpha>') \<and> step\<^sub>1 (p', w', \<alpha>') (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)"
+proof -
+  from assms obtain n' where "n = Suc n'"
+    using stepn_not_refl gr0_conv_Suc by blast
+  with assms(1) show ?thesis
+    using stepn_split_last by simp
+qed
+
 lemma steps_not_refl_split_first:
   assumes "steps (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)"
       and "(p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) \<noteq> (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)"
@@ -283,6 +383,64 @@ proof -
   with \<alpha>\<^sub>1_def show ?thesis
     using step\<^sub>1_rule by simp
 qed
+
+(* simplify to n and use where possible *)
+lemma stepn_reads_input:
+  assumes "stepn (Suc n) (p\<^sub>1, a # w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, [], \<alpha>\<^sub>2)"
+  shows "\<exists>k q\<^sub>1 q\<^sub>2 \<gamma>\<^sub>1 \<gamma>\<^sub>2. k \<le> n \<and> stepn k (p\<^sub>1, a # w\<^sub>1, \<alpha>\<^sub>1) (q\<^sub>1, a # w\<^sub>1, \<gamma>\<^sub>1) \<and> step\<^sub>1 (q\<^sub>1, a # w\<^sub>1, \<gamma>\<^sub>1) (q\<^sub>2, w\<^sub>1, \<gamma>\<^sub>2) \<and>
+                          stepn (n-k) (q\<^sub>2, w\<^sub>1, \<gamma>\<^sub>2) (p\<^sub>2, [], \<alpha>\<^sub>2)"
+  using assms proof (induction "Suc n" "(p\<^sub>1, a # w\<^sub>1, \<alpha>\<^sub>1)" "(p\<^sub>2, [] :: 'a list, \<alpha>\<^sub>2)" 
+                      arbitrary: n p\<^sub>1 \<alpha>\<^sub>1 rule: stepn_induct)
+  case (stepn n p\<^sub>1 \<alpha>\<^sub>1 p' w' \<alpha>')
+  from stepn(1) have case_dist: "w' = w\<^sub>1 \<or> w' = a#w\<^sub>1"
+    using step\<^sub>1_rule_ext by auto
+  then show ?case proof (cases)
+    assume "w' = w\<^sub>1"
+    with stepn.hyps(1,2) show ?thesis by fastforce
+  next
+    assume "\<not>w' = w\<^sub>1"
+    with case_dist have w'_def: "w' = a#w\<^sub>1" by simp
+    with stepn(2) obtain n' where n_def: "n = Suc n'"
+      using stepn_not_refl not0_implies_Suc by blast
+    obtain k q\<^sub>1 q\<^sub>2 \<gamma>\<^sub>1 \<gamma>\<^sub>2 where k_lesseq_n': "k \<le> n'" and stepk: "stepn k (p', a # w\<^sub>1, \<alpha>') (q\<^sub>1, a # w\<^sub>1, \<gamma>\<^sub>1)" and
+              s1: "step\<^sub>1 (q\<^sub>1, a # w\<^sub>1, \<gamma>\<^sub>1) (q\<^sub>2, w\<^sub>1, \<gamma>\<^sub>2)" and stepn'k: "stepn (n' - k) (q\<^sub>2, w\<^sub>1, \<gamma>\<^sub>2) (p\<^sub>2, [], \<alpha>\<^sub>2)"
+      using stepn(3)[OF n_def w'_def] by blast
+
+    from n_def k_lesseq_n' have "Suc k \<le> n" by simp
+
+    moreover from stepn(1) w'_def stepk have "stepn (Suc k) (p\<^sub>1, a # w\<^sub>1, \<alpha>\<^sub>1) (q\<^sub>1, a # w\<^sub>1, \<gamma>\<^sub>1)"
+      using stepn_split_first by blast
+
+    moreover from n_def stepn'k have "stepn (n - Suc k) (q\<^sub>2, w\<^sub>1, \<gamma>\<^sub>2) (p\<^sub>2, [], \<alpha>\<^sub>2)" by simp
+
+    ultimately show ?thesis
+      using s1 by metis
+  qed
+qed
+
+lemma split_word:
+"stepn n (p\<^sub>1, w @ w', \<alpha>\<^sub>1) (p\<^sub>2, [], \<alpha>\<^sub>2) \<Longrightarrow> \<exists>k q \<gamma>. k \<le> n \<and> stepn k (p\<^sub>1, w, \<alpha>\<^sub>1) (q, [], \<gamma>) \<and> stepn (n-k) (q, w', \<gamma>) (p\<^sub>2, [], \<alpha>\<^sub>2)"
+proof (induction w arbitrary: n p\<^sub>1 \<alpha>\<^sub>1)
+  case (Cons a w)
+  from Cons(2) obtain n' where n_def: "n = Suc n'"
+    using stepn_not_refl not0_implies_Suc by fastforce
+  with Cons(2) obtain k q\<^sub>1 q\<^sub>2 \<gamma>\<^sub>1 \<gamma>\<^sub>2 where k_lesseq_n': "k \<le> n'" and stepk: "stepn k (p\<^sub>1, a # (w @ w'), \<alpha>\<^sub>1) (q\<^sub>1, a # (w @ w'), \<gamma>\<^sub>1)" and
+                    step1: "step\<^sub>1 (q\<^sub>1, a # (w @ w'), \<gamma>\<^sub>1) (q\<^sub>2, w @ w', \<gamma>\<^sub>2)" and stepnk: "stepn (n'-k) (q\<^sub>2, w @ w', \<gamma>\<^sub>2) (p\<^sub>2, [], \<alpha>\<^sub>2)"
+    using stepn_reads_input[of n' p\<^sub>1 a "w @ w'" \<alpha>\<^sub>1 p\<^sub>2 \<alpha>\<^sub>2] by auto
+  obtain k'' q \<gamma> where k''_lesseq_n'k: "k'' \<le> n'-k" and stepk'': "stepn k'' (q\<^sub>2, w, \<gamma>\<^sub>2) (q, [], \<gamma>)" and stepn'kk'': "stepn (n' - k - k'') (q, w', \<gamma>) (p\<^sub>2, [], \<alpha>\<^sub>2)"
+    using Cons.IH[OF stepnk] by blast
+  from stepk step1 have "stepn (Suc k) (p\<^sub>1, a # w, \<alpha>\<^sub>1) (q\<^sub>2, w, \<gamma>\<^sub>2)"
+    using stepn_word_app by fastforce
+
+  with stepk'' have "stepn (Suc k + k'') (p\<^sub>1, a # w, \<alpha>\<^sub>1) (q, [], \<gamma>)" 
+    using stepn_trans by presburger
+
+  moreover from n_def stepn'kk'' have "stepn (n - (Suc k + k'')) (q, w', \<gamma>) (p\<^sub>2, [], \<alpha>\<^sub>2)" by simp
+
+  moreover from n_def k_lesseq_n' k''_lesseq_n'k have "Suc k + k'' \<le> n" by simp
+
+  ultimately show ?case by blast
+qed fastforce
 
 lemma split_stack: 
 "stepn n (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1 @ \<beta>\<^sub>1) (p\<^sub>2, [], []) \<Longrightarrow> \<exists>p' m\<^sub>1 m\<^sub>2 y y'. w\<^sub>1 = y @ y' \<and> m\<^sub>1 + m\<^sub>2 = n 

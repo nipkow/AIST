@@ -5,9 +5,23 @@ begin
 datatype 'q st_extended = Old_st 'q | New_init | New_final 
 datatype 's sym_extended = Old_sym 's | New_sym
 
-context pda begin
+instance st_extended :: (finite) finite
+proof
+  have *: "UNIV = {t. \<exists>q. t = Old_st q} \<union> {New_init, New_final}"
+    by auto (metis st_extended.exhaust)
+  show "finite (UNIV :: 'a st_extended set)"
+    by (simp add: * full_SetCompr_eq)
+qed
 
-definition "stack_final_states \<equiv> Old_st ` states M \<union> {New_init, New_final}"
+instance sym_extended :: (finite) finite
+proof
+  have *: "UNIV = {t. \<exists>s. t = Old_sym s} \<union> {New_sym}"
+    by auto (metis sym_extended.exhaust)
+  show "finite (UNIV :: 'a sym_extended set)"
+    by (simp add: * full_SetCompr_eq)
+qed
+
+context pda begin
 
 fun final_to_stack_trans_fun :: "'q st_extended \<Rightarrow> 'a \<Rightarrow> 's sym_extended \<Rightarrow> ('q st_extended \<times> 's sym_extended list) set" where
   "final_to_stack_trans_fun (Old_st q) a (Old_sym Z) = (\<lambda>(p, \<alpha>). (Old_st p, map Old_sym \<alpha>)) ` (trans_fun M q a Z)"
@@ -22,45 +36,19 @@ fun final_to_stack_eps_fun :: "'q st_extended \<Rightarrow> 's sym_extended \<Ri
 | "final_to_stack_eps_fun _ _ = {}"
 
 definition final_to_stack_pda :: "('q st_extended, 'a, 's sym_extended) pda" where
-  "final_to_stack_pda \<equiv> \<lparr> states = stack_final_states, init_state = New_init, init_symbol = New_sym, final_states = {New_final}, 
+  "final_to_stack_pda \<equiv> \<lparr> init_state = New_init, init_symbol = New_sym, final_states = {New_final}, 
                     trans_fun = final_to_stack_trans_fun, eps_fun = final_to_stack_eps_fun\<rparr>"
 
 lemma pda_final_to_stack:
   "pda final_to_stack_pda"
 proof (standard, goal_cases)
-  case 1
-  then show ?case
-    unfolding final_to_stack_pda_def stack_final_states_def by simp
-next
-  case 2
-  then show ?case
-    unfolding final_to_stack_pda_def stack_final_states_def by simp
-next
-  case (3 p x z)
-  from 3[unfolded final_to_stack_pda_def stack_final_states_def] 
-  have "fst ` final_to_stack_trans_fun p x z \<subseteq> Old_st ` states M \<union> {New_init, New_final}"
-    using trans by (induction p x z rule: final_to_stack_trans_fun.induct) fastforce+
-  then show ?case
-    unfolding final_to_stack_pda_def stack_final_states_def by simp
-next
-  case (4 p z)
-  from 4[unfolded final_to_stack_pda_def stack_final_states_def] 
-  have "fst ` final_to_stack_eps_fun p z \<subseteq> Old_st ` states M \<union> {New_init, New_final}"
-    using eps init by (induction p z rule: final_to_stack_eps_fun.induct) (auto, fastforce)
-  then show ?case
-    unfolding final_to_stack_pda_def stack_final_states_def by simp
-next
-  case 5
-  then show ?case
-    unfolding final_to_stack_pda_def stack_final_states_def using finite_states by simp
-next
-  case (6 p x z)
+  case (1 p x z)
   have "finite (final_to_stack_trans_fun p x z)"
     by (induction p x z rule: final_to_stack_trans_fun.induct) (auto simp: finite_trans)
   then show ?case
     unfolding final_to_stack_pda_def by simp
 next
-  case (7 p z)
+  case (2 p z)
   have "finite (final_to_stack_eps_fun p z)"
     by (induction p z rule: final_to_stack_eps_fun.induct) (auto simp: finite_eps)
   then show ?case

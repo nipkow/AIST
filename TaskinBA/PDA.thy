@@ -2,21 +2,15 @@ theory PDA
   imports "HOL-IMP.Star"
 begin
 
-record ('q,'a,'s) pda = states        :: "'q set" (* drop *)
-                        init_state    :: 'q
+record ('q,'a,'s) pda = init_state    :: 'q
                         init_symbol   :: 's 
                         final_states  :: "'q set"
                         trans_fun     :: "'q \<Rightarrow> 'a \<Rightarrow> 's \<Rightarrow> ('q \<times> 's list) set"
                         eps_fun       :: "'q \<Rightarrow> 's \<Rightarrow> ('q \<times> 's list) set"
 
 locale pda =
-  fixes M :: "('q, 'a, 's) pda"
-  assumes init: "init_state M \<in> states M"
-      and final: "final_states M \<subseteq> states M"
-      and trans: "p \<in> states M \<Longrightarrow> fst ` trans_fun M p x z \<subseteq> states M"
-      and eps: "p \<in> states M \<Longrightarrow> fst ` eps_fun M p z \<subseteq> states M"
-      and finite_states: "finite (states M)"
-      and finite_trans: "finite (trans_fun M p x z)"
+  fixes M :: "('q :: finite, 'a :: finite, 's :: finite) pda"
+  assumes finite_trans: "finite (trans_fun M p x z)"
       and finite_eps: "finite (eps_fun M p z)"
 begin
 
@@ -490,21 +484,6 @@ proof (induction n arbitrary: p\<^sub>1 w\<^sub>1 \<alpha>\<^sub>1 \<beta>\<^sub
     qed
   qed
 qed blast
-
-lemma state_if_step\<^sub>1:
-  "step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> p\<^sub>1 \<in> states M \<Longrightarrow> p\<^sub>2 \<in> states M"
-proof -
-  assume step1: "step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)" and p1: "p\<^sub>1 \<in> states M" 
-  then obtain Z' \<alpha>' where "\<alpha>\<^sub>1 = Z'#\<alpha>'" and rule: "(\<exists>\<beta>. w\<^sub>2 = w\<^sub>1 \<and> \<alpha>\<^sub>2 = \<beta>@\<alpha>' \<and> (p\<^sub>2, \<beta>) \<in> eps_fun M p\<^sub>1 Z') 
-                                          \<or> (\<exists>a \<beta>. w\<^sub>1 = a # w\<^sub>2 \<and> \<alpha>\<^sub>2 = \<beta>@\<alpha>' \<and> (p\<^sub>2,\<beta>) \<in> trans_fun M p\<^sub>1 a Z')"
-    using step\<^sub>1_rule_ext by auto
-  from rule p1 show ?thesis 
-    using trans eps by (metis fst_conv image_subset_iff)
-qed
-
-lemma state_if_steps:
-  "steps (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> p\<^sub>1 \<in> states M \<Longrightarrow> p\<^sub>2 \<in> states M"
-by (induction "(p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1)" "(p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)" arbitrary: p\<^sub>1 w\<^sub>1 \<alpha>\<^sub>1 rule: steps_induct) (auto simp: state_if_step\<^sub>1)
 
 definition "stack_accept \<equiv> {w | w q. steps (init_state M, w, [init_symbol M]) (q, [], [])}"
 

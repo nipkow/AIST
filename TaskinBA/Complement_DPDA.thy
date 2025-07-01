@@ -4,9 +4,15 @@ begin
 
 datatype 'q st_primed = N 'q | P 'q
 
-context dpda begin
+instance st_primed :: (finite) finite
+proof
+  have *: "UNIV = {t. \<exists>q. t = N q} \<union> {t. \<exists>q. t = P q}"
+    by auto (metis st_primed.exhaust)
+  show "finite (UNIV :: 'a st_primed set)"
+    by (simp add: * full_SetCompr_eq)
+qed
 
-definition "end_check_states \<equiv> N ` states M \<union> P ` states M"
+context dpda begin
 
 definition "end_check_final_states \<equiv> P ` final_states M"
 
@@ -20,7 +26,7 @@ fun end_check_eps_fun :: "'q st_primed \<Rightarrow> 's \<Rightarrow> ('q st_pri
 | "end_check_eps_fun (P q) Z = (\<lambda>(p, \<alpha>). (P p, \<alpha>)) ` (eps_fun M q Z)"
 
 definition end_check_dpda :: "('q st_primed, 'a input_with_marker, 's) pda" where
-  "end_check_dpda \<equiv> \<lparr> states = end_check_states, init_state = N (init_state M), init_symbol = init_symbol M, 
+  "end_check_dpda \<equiv> \<lparr> init_state = N (init_state M), init_symbol = init_symbol M, 
                       final_states = end_check_final_states, trans_fun = end_check_trans_fun, eps_fun = end_check_eps_fun \<rparr>"
 
 lemma end_check_card_trans_N: "card (end_check_trans_fun (N q) a Z) = card (trans_fun M q a Z)"
@@ -60,50 +66,24 @@ qed
 
 lemma dpda_end_check: "dpda end_check_dpda"
 proof (standard, goal_cases)
-  case 1
-  then show ?case
-    unfolding end_check_dpda_def end_check_states_def using init by simp
-next
-  case 2
-  then show ?case
-    unfolding end_check_dpda_def end_check_states_def end_check_final_states_def using final by auto
-next
-  case (3 p x z)
-  from 3[unfolded end_check_dpda_def end_check_states_def]
-  have "fst ` end_check_trans_fun p x z \<subseteq> N ` states M \<union> P ` states M"
-    using trans by (induction p x z rule: end_check_trans_fun.induct) fastforce+
-  then show ?case
-    unfolding end_check_dpda_def end_check_states_def by simp
-next
-  case (4 p z)
-  from 4[unfolded end_check_dpda_def end_check_states_def]
-  have "fst ` end_check_eps_fun p z \<subseteq> N ` states M \<union> P ` states M"
-    using eps by (induction p z rule: end_check_eps_fun.induct) fastforce+
-  then show ?case
-    unfolding end_check_dpda_def end_check_states_def by simp
-next
-  case 5
-  then show ?case
-    unfolding end_check_dpda_def end_check_states_def using finite_states by simp
-next
-  case (6 p x z)
+  case (1 p x z)
   have "finite (end_check_trans_fun p x z)"
     by (induction p x z rule: end_check_trans_fun.induct) (auto simp: finite_trans)
   then show ?case
     unfolding end_check_dpda_def by simp
 next
-  case (7 p z)
+  case (2 p z)
   have "finite (end_check_eps_fun p z)"
     by (induction p z rule: end_check_eps_fun.induct) (auto simp: finite_eps)
   then show ?case
     unfolding end_check_dpda_def by simp
 next
-  case (8 q a Z)
+  case (3 q a Z)
   then show ?case 
     using det end_check_card_trans_N end_check_card_eps_N end_check_card_trans_P end_check_card_eps_P
     by (cases q) (auto simp: end_check_dpda_def)
 next
-  case (9 q \<alpha> p a)
+  case (4 q \<alpha> p a)
   hence "(q, \<alpha>) \<in> end_check_trans_fun p a (init_symbol M)"
     unfolding end_check_dpda_def by simp
   hence "\<exists>\<alpha>'. \<alpha> = \<alpha>' @ [init_symbol M]"
@@ -111,7 +91,7 @@ next
   thus ?case
     unfolding end_check_dpda_def by simp
 next
-  case (10 q \<alpha> p)
+  case (5 q \<alpha> p)
   hence "(q, \<alpha>) \<in> end_check_eps_fun p (init_symbol M)"
     unfolding end_check_dpda_def by simp
   hence "\<exists>\<alpha>'. \<alpha> = \<alpha>' @ [init_symbol M]"
@@ -121,7 +101,7 @@ next
 qed
 
 lemma pda_end_check: "pda end_check_dpda"
-  by (auto simp: dpda_end_check dpda.pda)
+  using dpda_def dpda_end_check by auto
 
 lemma end_check_dpda_trans_N: 
 "(p\<^sub>2, \<beta>) \<in> trans_fun M p\<^sub>1 (Input a) Z \<longleftrightarrow> (N p\<^sub>2, \<beta>) \<in> trans_fun end_check_dpda (N p\<^sub>1) (Input a) Z"

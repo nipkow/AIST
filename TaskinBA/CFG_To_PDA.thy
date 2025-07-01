@@ -4,8 +4,24 @@ begin
 
 datatype sing_st = Q_loop
 
+instance sing_st :: finite
+proof
+  have *: "UNIV = {Q_loop}"
+    by (auto intro: sing_st.exhaust)
+  show "finite (UNIV :: sing_st set)"
+    by (simp add: *)
+qed
+
+instance sym :: (finite, finite) finite
+proof
+  have *: "UNIV = {t. \<exists>s. t = Nt s} \<union> {t. \<exists>s. t = Tm s}"
+    by (auto intro: sym.exhaust)
+  show "finite (UNIV :: ('a, 'b) sym set)"
+    by (simp add: * full_SetCompr_eq)
+qed
+
 locale cfg_to_pda =
-  fixes G :: "('n, 't) Cfg"
+  fixes G :: "('n :: finite, 't :: finite) Cfg"
   assumes finite_G: "finite (Prods G)"
 begin
 
@@ -18,38 +34,18 @@ fun cfg_to_pda_eps_fun :: "sing_st \<Rightarrow> ('n,'t) sym \<Rightarrow> (sing
 | "cfg_to_pda_eps_fun _ _ = {}"
 
 definition cfg_to_pda_pda :: "(sing_st, 't, ('n,'t) sym) pda" where
-  "cfg_to_pda_pda \<equiv> \<lparr> states = {Q_loop}, init_state = Q_loop, init_symbol = Nt (Start G), final_states = {}, 
-                    trans_fun = cfg_to_pda_trans_fun, eps_fun = cfg_to_pda_eps_fun\<rparr>"
+  "cfg_to_pda_pda \<equiv> \<lparr> init_state = Q_loop, init_symbol = Nt (Start G), final_states = {}, 
+                    trans_fun = cfg_to_pda_trans_fun, eps_fun = cfg_to_pda_eps_fun \<rparr>"
 
 lemma pda_cfg_to_pda: "pda cfg_to_pda_pda"
 proof (standard, goal_cases)
-  case 1
-  then show ?case
-    unfolding cfg_to_pda_pda_def by simp
-next
-  case 2
-  then show ?case 
-    unfolding cfg_to_pda_pda_def by simp
-next
-  case (3 p x z)
-  then show ?case
-    unfolding cfg_to_pda_pda_def using sing_st.exhaust by auto
-next
-  case (4 p z)
-  then show ?case
-    unfolding cfg_to_pda_pda_def using sing_st.exhaust by auto
-next
-  case 5
-  then show ?case 
-    unfolding cfg_to_pda_pda_def by simp
-next
-  case (6 p x z)
+  case (1 p x z)
   have "finite (cfg_to_pda_trans_fun p x z)"
     by (induction p x z rule: cfg_to_pda_trans_fun.induct) auto
   then show ?case
     unfolding cfg_to_pda_pda_def by simp
 next
-  case (7 p z)
+  case (2 p z)
   let ?h = "\<lambda>(A,\<alpha>). (Q_loop, \<alpha>)"
   have *: "\<And>A. {(Q_loop, \<alpha>) |\<alpha>. (A, \<alpha>) \<in> Prods G} \<subseteq> (?h ` Prods G)" by auto
   have **: "finite (?h ` Prods G)"

@@ -4,19 +4,13 @@ begin
 
 datatype 'a input_with_marker = Input 'a | End_marker
 
-locale dpda =
-  fixes M :: "('q, 'a input_with_marker, 's) pda"
-  assumes pda: "pda M"
-      and det: "card (trans_fun M q a Z) + card (eps_fun M q Z) \<le> 1"
-      and init_trans: "(q, \<alpha>) \<in> trans_fun M p a (init_symbol M) \<Longrightarrow> \<exists>\<alpha>'. \<alpha> = \<alpha>' @ [init_symbol M]"
-      and init_eps: "(q, \<alpha>) \<in> eps_fun M p (init_symbol M) \<Longrightarrow> \<exists>\<alpha>'. \<alpha> = \<alpha>' @ [init_symbol M]"
-begin
-end
-
-(* show that every pda with the assumption det has a dpda accepting the same set and vice versa *)
-
-sublocale dpda \<subseteq> pda
-  using dpda_def dpda_axioms by blast
+instance input_with_marker :: (finite) finite
+proof
+  have *: "UNIV = {t. \<exists>a. t = Input a} \<union> {End_marker}"
+    by auto (metis input_with_marker.exhaust)
+  show "finite (UNIV :: 'a input_with_marker set)"
+    by (simp add: * full_SetCompr_eq)
+qed
 
 lemma card_leq_1: 
   assumes "finite A"
@@ -32,7 +26,13 @@ next
   with assms(1) show ?thesis by simp
 qed
 
-context dpda begin
+locale dpda = pda M for M :: "('q :: finite, ('a :: finite) input_with_marker, 's :: finite) pda" +
+  assumes det: "card (trans_fun M q a Z) + card (eps_fun M q Z) \<le> 1"
+      and init_trans: "(q, \<alpha>) \<in> trans_fun M p a (init_symbol M) \<Longrightarrow> \<exists>\<alpha>'. \<alpha> = \<alpha>' @ [init_symbol M]"
+      and init_eps: "(q, \<alpha>) \<in> eps_fun M p (init_symbol M) \<Longrightarrow> \<exists>\<alpha>'. \<alpha> = \<alpha>' @ [init_symbol M]"
+begin
+
+(* show that every pda with the assumption det has a dpda accepting the same set and vice versa *)
 
 lemma step_empty_or_singleton: "step (p, w, Z#\<alpha>) = {} \<or> (\<exists>p' w' \<alpha>'. step (p, w, Z#\<alpha>) = {(p', w', \<alpha>')})"
 proof (cases w)

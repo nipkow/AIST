@@ -133,17 +133,15 @@ lemma unchanged_substrings:
 proof (induction rule: rtranclp_induct3) 
   case (step a q' b c q'' d)
   then obtain p' d' where qd_def: "nxt M q' (hd b) = (p', d')" by fastforce
-  consider "d' = Left" | "d' = Right"
-    using dir.exhaust by blast
   then show ?case
-  proof cases
-    case 1
+  proof (cases d')
+    case Left
     hence "(c, q'', d) = (tl a, p', hd a # b)"  
       using step(2) qd_def step.simps by force
     then show ?thesis
       using step.IH step.hyps(2) by fastforce
   next
-    case 2
+    case Right
     hence "(c, q'', d) = (hd b # a, p', tl b)" using step(2) qd_def step.simps by force
     then show ?thesis using step step.cases by fastforce
   qed
@@ -343,8 +341,7 @@ lemma left_to_right_impl_substring:
     case 1
     then have "length u \<le> length u'" using step by fastforce
     with step(3) obtain us where us_app_u: "us @ u = u'" by blast
-    consider "us = []" | a as where "us = a # as" using list.exhaust by blast
-    then show thesis by cases (use step us_app_u in auto)
+    then show thesis by (cases us) (use step us_app_u in auto)
   next
     case 2
     with step(1,2) unchanged_substrings have "u = x"
@@ -587,15 +584,6 @@ lemma chain_reachable:
   ultimately have "f j \<rightarrow>{k-j+1} f (Suc k)" by auto
   thus ?case using Suc.prems(2) Suc_diff_le by fastforce
 qed simp
-
-
-
-
-lemma not_left_steps_impl_right_config:
-  assumes "\<not>c1 \<rightarrow>\<^sup>L* c3"
-  obtains c2 where "right_config c2" "c1 \<rightarrow>* c2" "c2 \<rightarrow>* c3"
-  oops
- 
  
 proposition list_deconstruct1:
   assumes "m \<le> length xs"
@@ -1085,7 +1073,7 @@ and revx_lstep: "(rev (\<langle>x\<langle>), q', zs @ y) \<rightarrow>{l} (u, q,
 qed
 
 
-inductive T :: "'a list \<Rightarrow> state option \<Rightarrow> state option \<Rightarrow> bool" for z where
+inductive T :: "'a list \<Rightarrow> state option \<Rightarrow> state option \<Rightarrow> bool" where
   init_tr[intro]: "\<lbrakk>x @ z \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z\<rangle>); 
               (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T z None (Some q)" |
 
@@ -1124,26 +1112,22 @@ lemma T_p_Some_impl_reachable:
   assumes "T z p (Some q)"
   obtains u v where "x @ z \<rightarrow>** (u, q, v)"
   using assms
-proof -
-  consider "p = None" | p' where "p = Some p'" by auto
-  then show thesis
-  proof cases
-    case 1
-    obtain q' where "x @ z \<rightarrow>\<^sup>L** (rev x_init, q', x_end # \<rangle>z\<rangle>)"
+proof (cases p)
+  case None
+  obtain q' where "x @ z \<rightarrow>\<^sup>L** (rev x_init, q', x_end # \<rangle>z\<rangle>)"
                                "(rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" 
-      using assms 1 by auto
+      using assms None by auto
     hence "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" by auto
     thus thesis using that by simp
-  next
-    case 2
-    with assms obtain q' q'' where
+next
+  case (Some p')
+  with assms obtain q' q'' where
        "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>)" 
        "(rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, q', x_end # \<rangle>z\<rangle>)"
        "(rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q'', x_end # \<rangle>z\<rangle>)"
        "(rev x_init, q'', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" by auto
     hence "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" by fastforce            
     then show thesis using that by simp
-  qed
 qed
 
 lemma boundary_cross_impl_T:
@@ -1184,10 +1168,9 @@ proof -
     with y_defs have "ys @ [x_end] @ \<rangle>z\<rangle> = v" by simp
     thus thesis using that by auto
   qed
-  consider "ys = []" | b bs where "ys = b # bs" using list.exhaust by blast
   then show thesis
-  proof cases
-    case 1
+  proof (cases ys)
+    case Nil
     hence u_v_is_bound: "(u, acc M, v) = (rev x_init, acc M, x_end # \<rangle>z\<rangle>)" 
       using ys_def unchanged_word[OF reach] x_defs by simp
     have "(u, acc M, v) \<rightarrow> (rev (\<langle>x\<langle>), acc M, \<rangle>z\<rangle>)" 
@@ -1200,7 +1183,7 @@ proof -
     qed
     then show thesis using that boundary_cross_impl_T u_v_is_bound reach by blast
   next
-    case 2
+    case (Cons b bs)
     with acc_impl_reachable_substring[OF reach] 
       have bound_reach: "(u, acc M, v) \<rightarrow>* (rev ys @ u, acc M, x_end # \<rangle>z\<rangle>)"
         using ys_def by blast
@@ -1218,18 +1201,6 @@ proof -
   qed
 qed
 
-lemma right_substring_steps_impl_word_reachable:
-  assumes "([], p, \<rangle>z\<rangle>) \<rightarrow>* (u, q, v)"
-          "T z q' (Some p)"
-        shows "x @ z \<rightarrow>** (u, q, v)"
-  using assms oops
-
-lemma reachable_impl_right_substring_reachable:
-  assumes "x @ z \<rightarrow>** (\<langle>x\<langle> @ u, q, v)"
-        obtains q' p where "T z q' (Some p)" "([], p, \<rangle>z\<rangle>) \<rightarrow>* (u, q, v)" 
-  oops
-
-  find_theorems name: right_to_left
 
 (*Needed? (All unused until now)*)
 lemma T_func:
@@ -1312,6 +1283,8 @@ proof -
 qed
 
 
+
+
 lemma \<T>_finite_index:
   "finite (UNIV // (\<T> z))" (*Nontrivial(?) and not proved in the book*)
     (*Try: define leftlang as in Finite_Automata_HF and apply the same rule*)
@@ -1328,6 +1301,10 @@ lemma T_eq_is_\<T>_eq:
   unfolding dfa2_transition.\<T>_def[OF assms(1)] dfa2_transition.\<T>_def[OF assms(2)]
   by fastforce
 
+lemma bij: "bij_betw (\<lambda>X. \<Union>(f ` X)) (A // {(x, y). f x = f y}) (f ` A)" sorry
+
+
+
 
 context dfa2
 begin
@@ -1339,368 +1316,207 @@ abbreviation "right_config \<equiv> dfa2_transition.right_config"
 abbreviation "pf_init \<equiv> dfa2_transition.x_init"
 abbreviation "pf_end \<equiv> dfa2_transition.x_end" (*Poor style?*)
 
-theorem two_way_dfa_lang_regular:
-  "regular language"
+definition T' :: "'a list \<Rightarrow> (state option \<times> state option) set" where
+  "T' x = {(p, q). dfa2_transition.T M x [] p q}"
+
+lemma "finite (T' ` UNIV)" sorry
+
+lemma T_eq_impl_right_congr:
+  assumes not_empty:  "x \<noteq> []" "y \<noteq> []"
+      and T_eq:       "T x = T y"
+      and xz_in_lang: "x @ z \<in> language"
+        shows "y @ z \<in> language"
 proof -
-  obtain x y :: "'a list" where "x \<noteq> []" "y \<noteq> []" by blast
-  (*Is this the best way to setup the proof? Fixing x and y under assms \<noteq> [] does not work*)
-  with dfa2_axioms have transition_axioms: "dfa2_transition M x" "dfa2_transition M y"
+    from not_empty dfa2_axioms have transition_axioms: "dfa2_transition M x" "dfa2_transition M y"
     using dfa2_transition_def unfolding dfa2_transition_axioms_def by auto
-  have "T x = T y \<Longrightarrow> \<forall>z. x @ z \<in> language \<longleftrightarrow> y @ z \<in> language"
-  proof
-    fix z
-    assume T_eq: "T x = T y"
-    show "x @ z \<in> language \<longleftrightarrow> y @ z \<in> language"
-    proof
-      assume "x @ z \<in> language"
-      then obtain u v where x_acc_reachable: "x @ z \<rightarrow>** (u, acc M, v)" 
+  with xz_in_lang obtain u v where x_acc_reachable: "x @ z \<rightarrow>** (u, acc M, v)" 
         unfolding language_def by blast
       consider "left_config x (u, acc M, v)" | "right_config x (u, acc M, v)"
         unfolding dfa2_transition.left_config_def[OF transition_axioms(1)]
                   dfa2_transition.right_config_def[OF transition_axioms(1)] 
         by fastforce
-      thus "y @ z \<in> language"
-      proof cases
-        case 1
-        then obtain q where "T x z q (Some (acc M))"
-          using dfa2_transition.left_acc_impl_T_Some_acc[OF transition_axioms(1) 
-                                                         x_acc_reachable]
-          by blast
-        with T_eq have "T y z q (Some (acc M))" by presburger
-        then show ?thesis using language_def 
-              dfa2_transition.T_p_Some_impl_reachable[OF transition_axioms(2)]
-          by (metis (mono_tags, lifting) mem_Collect_eq)
-      next
-        case 2
-        from x_acc_reachable have "([], init M, pf_init x @ pf_end x # \<rangle>z\<rangle>) \<rightarrow>* (u, acc M, v)"
-          (is "?butlast_init \<rightarrow>* _")
-          by (metis append.assoc append_Cons append_Nil dfa2_transition.x_is_init_app_end mapl_app_mapr_eq_map
-              transition_axioms(1))
-        then obtain n where "?butlast_init \<rightarrow>{n} (u, acc M, v)" by (meson rtranclp_imp_relpowp)
-        moreover have "length v < length (pf_end x # \<rangle>z\<rangle>)"
-        proof -
-          from dfa2_transition.reachable_right_conf_impl_substring_z[of M x z u "acc M" v,
-            OF transition_axioms(1) x_acc_reachable 2]
-          obtain zs where "rev (\<langle>x\<langle> @ zs) = u" "zs @ v = \<rangle>z\<rangle>" by blast
-          then show ?thesis by (metis length_Suc_conv length_append not_add_less2 not_less_eq)
-        qed
-        moreover have butlast_reachable: "x @ z \<rightarrow>** ?butlast_init" 
-        proof -
-          have "([], init M, \<langle>x @ z\<rangle>) = ([], init M, \<langle>x\<langle> @ \<rangle>z\<rangle>)" by simp
-          also have "... = ([], init M, butlast (\<langle>x\<langle>) @ last (\<langle>x\<langle>) # \<rangle>z\<rangle>)" by simp
-          finally have "([], init M, \<langle>x @ z\<rangle>) = ?butlast_init"
-            using dfa2_transition.x_defs[OF transition_axioms(1)] by simp
-          thus ?thesis by (metis rtranclp.rtrancl_refl)
-        qed
-        ultimately obtain p' m k where p'mk_defs:
-          "m + k = n"
-          "?butlast_init \<rightarrow>{m} (rev (pf_init x), p', pf_end x # \<rangle>z\<rangle>)" 
-          "(rev (pf_init x), p', pf_end x # \<rangle>z\<rangle>) \<rightarrow>{k} (u, acc M, v)"
-          using left_to_right_impl_reachable_substring
-          by (metis self_append_conv)
-        from 2 have "length (rev (pf_init x)) < length u"
-          using dfa2_transition.right_config_def
-          by (metis dfa2_transition.x_is_init_app_end length_append_singleton length_rev less_eq_Suc_le 
-              prod.inject transition_axioms(1))
-        moreover from p'mk_defs(2) butlast_reachable have x_init_reachable:
-          "x @ z \<rightarrow>** (rev (pf_init x), p', pf_end x # \<rangle>z\<rangle>)"
-          by (metis
-              \<open>([], dfa2.init M, dfa2_transition.x_init x @ dfa2_transition.x_end x # \<Sigma> z @ [\<stileturn>]) 
-              \<rightarrow>* (u, acc M, v)\<close>  relpowp_imp_rtranclp unchanged_word x_acc_reachable)
-        ultimately obtain p j where x_init_loopless:
-          "j < k"
-          "(rev (pf_init x), p', pf_end x # \<rangle>z\<rangle>) \<rightarrow>{j} (rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>)"
-          "\<forall>i\<le>k-j. \<forall>u' q' v'. ((rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>) \<rightarrow>{i} (u', q', v')) \<and> i \<noteq> 0 
-            \<longrightarrow> length u' > length (rev (pf_init x))" 
-          using p'mk_defs(3) dfa2_transition.reachable_from_left_impl_reachable_without_loops
-                              [OF transition_axioms(1)] by metis
-        with x_init_reachable have loopless_reachable:
-          "x @ z \<rightarrow>** (rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>)" 
-          by (meson relpowp_imp_rtranclp rtranclp_trans)
-        have loopless_reaches_acc: "... \<rightarrow>{k-j} (u, acc M, v)"
-          using x_init_loopless(1,2) p'mk_defs(3) stepn_decompose[of j k] 
-          by (meson nat_less_le)
-        obtain q' where loopless_step: "(rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)"
-        proof -
-          obtain q' where "nxt M p (pf_end x) = (q', Right)"
-          proof -
-            have "\<exists>q'. nxt M p (pf_end x) = (q', Right)"
-            proof (rule ccontr)
-              assume "\<not>?thesis"
-              then obtain q' where q'_def: "nxt M p (pf_end x) = (q', Left)"
-                by (metis (full_types) dir.exhaust old.prod.exhaust)
-              let ?rev = "rev (pf_init x)"
-              from q'_def have "(?rev, p, pf_end x # \<rangle>z\<rangle>) \<rightarrow> (tl ?rev, q', hd ?rev # pf_end x # \<rangle>z\<rangle>)" 
-                by (metis (no_types, lifting) Nil_is_append_conv Nil_is_map_conv \<open>x \<noteq> []\<close> append_Nil
-                    dfa2_transition.x_is_init_app_end list.distinct(1) list.exhaust_sel list.sel(3) rev.simps(2) 
-                    step_left transition_axioms(1))
-              hence "(?rev, p, pf_end x # \<rangle>z\<rangle>) \<rightarrow>{Suc 0} (tl ?rev, q', hd ?rev # pf_end x # \<rangle>z\<rangle>)" by auto
-              moreover have "length (tl ?rev) \<le> length ?rev" by simp
-              ultimately show False using x_init_loopless 
-                by (metis Suc_leI linorder_not_less nat.distinct(1) zero_less_diff)
-            qed
-            thus thesis using that by blast
-          qed
-          hence "(rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>) \<rightarrow> (pf_end x # rev (pf_init x), q', \<rangle>z\<rangle>)" by blast
-          moreover have "pf_end x # rev (pf_init x) = rev (\<langle>x\<langle>)" 
-            using dfa2_transition.x_defs[OF transition_axioms(1)]
-            by (metis dfa2_transition.x_is_init_app_end rev.simps(2) rev_rev_ident transition_axioms(1))
-          ultimately show thesis using that by simp 
-        qed
-        hence x_reaches_acc: "... \<rightarrow>{k-j-1} (u, acc M, v)" 
-          by (metis (no_types, lifting) diff_add_inverse less_iff_succ_less_eq less_imp_add_positive 
-              loopless_reaches_acc nat_add_left_cancel_le relpowp_1 stepn_decompose x_init_loopless(1))
-        then obtain us where u_app_def: "us @ rev (\<langle>x\<langle>) = u"
-          using x_init_loopless(3) loopless_reaches_acc left_to_right_impl_substring
-          by (metis "2" dfa2_transition.reachable_right_conf_impl_substring_z rev_append transition_axioms(1)
-              x_acc_reachable)         
-        from loopless_step dfa2_transition.boundary_cross_impl_T[OF transition_axioms(1)]
-        obtain qopt where "T x z qopt (Some q')" using loopless_reachable by blast
-        with T_eq have Ty: "T y z qopt (Some q')" by simp
-        show ?thesis
-        proof (cases rule: dfa2_transition.T.cases[OF transition_axioms(2) Ty])
-          case (1 p' q)
-          then have "y @ z \<rightarrow>** (rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>)" using 
-                dfa2_transition.left_steps_impl_steps[OF transition_axioms(2) 1(3)]
-            by auto
-          also have "... \<rightarrow>* (us @ rev (\<langle>y\<langle>), acc M, v)"
-          proof -
-            have
-              "\<forall>i\<le>k-j-1. \<forall>u' q'' v'. ((rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>{i} (u', q'', v'))
-                \<longrightarrow> length (rev (\<langle>x\<langle>)) \<le> length u'"
-            proof ((rule allI)+, rule impI)+
-              fix i u' q'' v'
-              assume i_leq_kj1: "i \<le> k-j-1"
-                 and stepi:  "((rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>{i} (u', q'', v'))"
-              with 1(2) loopless_step have "(rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>) \<rightarrow>{Suc i} (u', q'', v')"
-                by (meson relpowp_Suc_I2)
-              with x_init_loopless(3) i_leq_kj1 have "length (rev (pf_init x)) < length u'"  
-                by (metis Suc_diff_1 Suc_le_mono Zero_not_Suc x_init_loopless(1) zero_less_diff)
-              then show "length (rev (\<langle>x\<langle>)) \<le> length u'" using 
-                  dfa2_transition.x_defs[OF transition_axioms(1)] 
-                by (metis append_butlast_last_id length_append_singleton length_rev 
-                    linorder_le_less_linear list.discI not_less_eq)
-            qed
-            moreover from loopless_reachable loopless_step have
-              "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)" by auto
-            moreover from x_reaches_acc u_app_def have
-              "(rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>{k-j-1} (us @ rev (\<langle>x\<langle>), acc M, v)" by blast
-            ultimately show ?thesis using u_app_def 
-                x_reaches_acc all_geq_left_impl_left_indep relpowp_imp_rtranclp by metis
-          qed
-          finally show ?thesis unfolding language_def by blast
-        next
-          case (3 p' q p'')
-          then have "y @ z \<rightarrow>** (rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>)" using 
-                dfa2_transition.left_steps_impl_steps[OF transition_axioms(2) 3(5)]
-            by auto
-          also have "... \<rightarrow>* (us @ rev (\<langle>y\<langle>), acc M, v)"
-          proof -
-            have
-              "\<forall>i\<le>k-j-1. \<forall>u' q'' v'. ((rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>{i} (u', q'', v'))
-                \<longrightarrow> length (rev (\<langle>x\<langle>)) \<le> length u'"
-            proof ((rule allI)+, rule impI)+
-              fix i u' q'' v'
-              assume i_leq_kj1: "i \<le> k-j-1"
-                 and stepi:  "((rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>{i} (u', q'', v'))"
-              with loopless_step have "(rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>) \<rightarrow>{Suc i} (u', q'', v')"
-                by (meson relpowp_Suc_I2)
-              with x_init_loopless(3) i_leq_kj1 have "length (rev (pf_init x)) < length u'"  
-                by (metis Suc_diff_1 Suc_le_mono Zero_not_Suc x_init_loopless(1) zero_less_diff)
-              then show "length (rev (\<langle>x\<langle>)) \<le> length u'" using 
-                  dfa2_transition.x_defs[OF transition_axioms(1)] 
-                by (metis append_butlast_last_id length_append_singleton length_rev 
-                    linorder_le_less_linear list.discI not_less_eq)
-            qed
-            moreover from loopless_reachable loopless_step have
-              "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)" by auto
-            moreover from x_reaches_acc u_app_def have
-              "(rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>{k-j-1} (us @ rev (\<langle>x\<langle>), acc M, v)" by blast
-            ultimately show ?thesis using u_app_def 
-                x_reaches_acc all_geq_left_impl_left_indep relpowp_imp_rtranclp by metis
-            qed
-          finally show ?thesis unfolding language_def by blast
-        qed simp+
-      qed
-    next
-      (*The other direction is exactly the same but flipped. Any way to make more compact?*)
-      assume "y @ z \<in> language" 
-      then obtain u v where y_acc_reachable: "y @ z \<rightarrow>** (u, acc M, v)" 
-        unfolding language_def by blast
-      consider "left_config y (u, acc M, v)" | "right_config y (u, acc M, v)"
-        unfolding dfa2_transition.left_config_def[OF transition_axioms(2)]
-                  dfa2_transition.right_config_def[OF transition_axioms(2)] 
-        by fastforce
-      thus "x @ z \<in> language"
-      proof cases
-        case 1
-        then obtain q where "T y z q (Some (acc M))"
-          using dfa2_transition.left_acc_impl_T_Some_acc[OF transition_axioms(2) 
-                                                         y_acc_reachable]
-          by blast
-        with T_eq have "T x z q (Some (acc M))" by presburger
-        then show ?thesis using language_def 
-              dfa2_transition.T_p_Some_impl_reachable[OF transition_axioms(1)]
-          by (metis (mono_tags, lifting) mem_Collect_eq)
-      next
-        case 2
-        from y_acc_reachable have "([], init M, pf_init y @ pf_end y # \<rangle>z\<rangle>) \<rightarrow>* (u, acc M, v)"
-          (is "?butlast_init \<rightarrow>* _")
-          by (metis append.assoc append_Cons append_Nil dfa2_transition.x_is_init_app_end mapl_app_mapr_eq_map
-              transition_axioms(2))
-        then obtain n where "?butlast_init \<rightarrow>{n} (u, acc M, v)" by (meson rtranclp_imp_relpowp)
-        moreover have "length v < length (pf_end y # \<rangle>z\<rangle>)"
-        proof -
-          from dfa2_transition.reachable_right_conf_impl_substring_z[of M y z u "acc M" v,
-            OF transition_axioms(2) y_acc_reachable 2]
-          obtain zs where "rev (\<langle>y\<langle> @ zs) = u" "zs @ v = \<rangle>z\<rangle>" by blast
-          then show ?thesis by (metis length_Suc_conv length_append not_add_less2 not_less_eq)
-        qed
-        moreover have butlast_reachable: "y @ z \<rightarrow>** ?butlast_init" 
-        proof -
-          have "([], init M, \<langle>y @ z\<rangle>) = ([], init M, \<langle>y\<langle> @ \<rangle>z\<rangle>)" by simp
-          also have "... = ([], init M, butlast (\<langle>y\<langle>) @ last (\<langle>y\<langle>) # \<rangle>z\<rangle>)" by simp
-          finally have "([], init M, \<langle>y @ z\<rangle>) = ?butlast_init"
-            using dfa2_transition.x_defs[OF transition_axioms(2)] by simp
-          thus ?thesis by (metis rtranclp.rtrancl_refl)
-        qed
-        ultimately obtain p' m k where p'mk_defs:
-          "m + k = n"
-          "?butlast_init \<rightarrow>{m} (rev (pf_init y), p', pf_end y # \<rangle>z\<rangle>)" 
-          "(rev (pf_init y), p', pf_end y # \<rangle>z\<rangle>) \<rightarrow>{k} (u, acc M, v)"
-          using left_to_right_impl_reachable_substring
-          by (metis self_append_conv)
-        from 2 have "length (rev (pf_init y)) < length u"
-          using dfa2_transition.right_config_def
-          by (metis dfa2_transition.x_is_init_app_end length_append_singleton length_rev less_eq_Suc_le 
-              prod.inject transition_axioms(2))
-        moreover from p'mk_defs(2) butlast_reachable have y_init_reachable:
-          "y @ z \<rightarrow>** (rev (pf_init y), p', pf_end y # \<rangle>z\<rangle>)"
-          by (metis
-              \<open>([], dfa2.init M, dfa2_transition.x_init y @ dfa2_transition.x_end y # \<Sigma> z @ [\<stileturn>]) 
-              \<rightarrow>* (u, acc M, v)\<close>  relpowp_imp_rtranclp unchanged_word y_acc_reachable)
-        ultimately obtain p j where y_init_loopless:
-          "j < k"
-          "(rev (pf_init y), p', pf_end y # \<rangle>z\<rangle>) \<rightarrow>{j} (rev (pf_init y), p, pf_end y # \<rangle>z\<rangle>)"
-          "\<forall>i\<le>k-j. \<forall>u' q' v'. ((rev (pf_init y), p, pf_end y # \<rangle>z\<rangle>) \<rightarrow>{i} (u', q', v')) \<and> i \<noteq> 0 
-            \<longrightarrow> length u' > length (rev (pf_init y))" 
-          using p'mk_defs(3) dfa2_transition.reachable_from_left_impl_reachable_without_loops
-                              [OF transition_axioms(2)] by metis
-        with y_init_reachable have loopless_reachable:
-          "y @ z \<rightarrow>** (rev (pf_init y), p, pf_end y # \<rangle>z\<rangle>)" 
-          by (meson relpowp_imp_rtranclp rtranclp_trans)
-        have loopless_reaches_acc: "... \<rightarrow>{k-j} (u, acc M, v)"
-          using y_init_loopless(1,2) p'mk_defs(3) stepn_decompose[of j k] 
-          by (meson nat_less_le)
-        obtain q' where loopless_step: "(rev (pf_init y), p, pf_end y # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>)"
-        proof -
-          obtain q' where "nxt M p (pf_end y) = (q', Right)"
-          proof -
-            have "\<exists>q'. nxt M p (pf_end y) = (q', Right)"
-            proof (rule ccontr)
-              assume "\<not>?thesis"
-              then obtain q' where q'_def: "nxt M p (pf_end y) = (q', Left)"
-                by (metis (full_types) dir.exhaust old.prod.exhaust)
-              let ?rev = "rev (pf_init y)"
-              from q'_def have "(?rev, p, pf_end y # \<rangle>z\<rangle>) \<rightarrow> (tl ?rev, q', hd ?rev # pf_end y # \<rangle>z\<rangle>)" 
-                by (metis (no_types, lifting) Nil_is_append_conv Nil_is_map_conv \<open>y \<noteq> []\<close> append_Nil
-                    dfa2_transition.x_is_init_app_end list.distinct(1) list.exhaust_sel list.sel(3) rev.simps(2) 
-                    step_left transition_axioms(2))
-              hence "(?rev, p, pf_end y # \<rangle>z\<rangle>) \<rightarrow>{Suc 0} (tl ?rev, q', hd ?rev # pf_end y # \<rangle>z\<rangle>)" by auto
-              moreover have "length (tl ?rev) \<le> length ?rev" by simp
-              ultimately show False using y_init_loopless 
-                by (metis Suc_leI linorder_not_less nat.distinct(1) zero_less_diff)
-            qed
-            thus thesis using that by blast
-          qed
-          hence "(rev (pf_init y), p, pf_end y # \<rangle>z\<rangle>) \<rightarrow> (pf_end y # rev (pf_init y), q', \<rangle>z\<rangle>)" by blast
-          moreover have "pf_end y # rev (pf_init y) = rev (\<langle>y\<langle>)" 
-            using dfa2_transition.x_defs[OF transition_axioms(2)]
-            by (metis dfa2_transition.x_is_init_app_end rev.simps(2) rev_rev_ident transition_axioms(2))
-          ultimately show thesis using that by simp 
-        qed
-        hence y_reaches_acc: "... \<rightarrow>{k-j-1} (u, acc M, v)" 
-          by (metis (no_types, lifting) diff_add_inverse less_iff_succ_less_eq less_imp_add_positive 
-              loopless_reaches_acc nat_add_left_cancel_le relpowp_1 stepn_decompose y_init_loopless(1))
-        then obtain us where u_app_def: "us @ rev (\<langle>y\<langle>) = u"
-          using y_init_loopless(3) loopless_reaches_acc left_to_right_impl_substring
-          by (metis "2" dfa2_transition.reachable_right_conf_impl_substring_z rev_append transition_axioms(2)
-              y_acc_reachable)         
-        from loopless_step dfa2_transition.boundary_cross_impl_T[OF transition_axioms(2)]
-        obtain qopt where "T y z qopt (Some q')" using loopless_reachable by blast
-        with T_eq have Ty: "T x z qopt (Some q')" by simp
-        show ?thesis
-        proof (cases rule: dfa2_transition.T.cases[OF transition_axioms(1) Ty])
-          case (1 p' q)
-          then have "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)" using 
-                dfa2_transition.left_steps_impl_steps[OF transition_axioms(1) 1(3)]
-            by auto
-          also have "... \<rightarrow>* (us @ rev (\<langle>x\<langle>), acc M, v)"
-          proof -
-            have
-              "\<forall>i\<le>k-j-1. \<forall>u' q'' v'. ((rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>{i} (u', q'', v'))
-                \<longrightarrow> length (rev (\<langle>y\<langle>)) \<le> length u'"
-            proof ((rule allI)+, rule impI)+
-              fix i u' q'' v'
-              assume i_leq_kj1: "i \<le> k-j-1"
-                 and stepi:  "((rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>{i} (u', q'', v'))"
-              with 1(2) loopless_step have "(rev (pf_init y), p, pf_end y # \<rangle>z\<rangle>) \<rightarrow>{Suc i} (u', q'', v')"
-                by (meson relpowp_Suc_I2)
-              with y_init_loopless(3) i_leq_kj1 have "length (rev (pf_init y)) < length u'"  
-                by (metis Suc_diff_1 Suc_le_mono Zero_not_Suc y_init_loopless(1) zero_less_diff)
-              then show "length (rev (\<langle>y\<langle>)) \<le> length u'" using 
-                  dfa2_transition.x_defs[OF transition_axioms(2)] 
-                by (metis append_butlast_last_id length_append_singleton length_rev 
-                    linorder_le_less_linear list.discI not_less_eq)
-            qed
-            moreover from loopless_reachable loopless_step have
-              "y @ z \<rightarrow>** (rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>)" by auto
-            moreover from y_reaches_acc u_app_def have
-              "(rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>{k-j-1} (us @ rev (\<langle>y\<langle>), acc M, v)" by blast
-            ultimately show ?thesis using u_app_def 
-                y_reaches_acc all_geq_left_impl_left_indep relpowp_imp_rtranclp by metis
-          qed
-          finally show ?thesis unfolding language_def by blast
-        next
-          case (3 p' q p'')
-          then have "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)" using 
-                dfa2_transition.left_steps_impl_steps[OF transition_axioms(1) 3(5)]
-            by auto
-          also have "... \<rightarrow>* (us @ rev (\<langle>x\<langle>), acc M, v)"
-          proof -
-            have
-              "\<forall>i\<le>k-j-1. \<forall>u' q'' v'. ((rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>{i} (u', q'', v'))
-                \<longrightarrow> length (rev (\<langle>y\<langle>)) \<le> length u'"
-            proof ((rule allI)+, rule impI)+
-              fix i u' q'' v'
-              assume i_leq_kj1: "i \<le> k-j-1"
-                 and stepi:  "((rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>{i} (u', q'', v'))"
-              with loopless_step have "(rev (pf_init y), p, pf_end y # \<rangle>z\<rangle>) \<rightarrow>{Suc i} (u', q'', v')"
-                by (meson relpowp_Suc_I2)
-              with y_init_loopless(3) i_leq_kj1 have "length (rev (pf_init y)) < length u'"  
-                by (metis Suc_diff_1 Suc_le_mono Zero_not_Suc y_init_loopless(1) zero_less_diff)
-              then show "length (rev (\<langle>y\<langle>)) \<le> length u'" using 
-                  dfa2_transition.x_defs[OF transition_axioms(2)] 
-                by (metis append_butlast_last_id length_append_singleton length_rev 
-                    linorder_le_less_linear list.discI not_less_eq)
-            qed
-            moreover from loopless_reachable loopless_step have
-              "y @ z \<rightarrow>** (rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>)" by auto
-            moreover from y_reaches_acc u_app_def have
-              "(rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>{k-j-1} (us @ rev (\<langle>y\<langle>), acc M, v)" by blast
-            ultimately show ?thesis using u_app_def 
-                y_reaches_acc all_geq_left_impl_left_indep relpowp_imp_rtranclp by metis
-            qed
-          finally show ?thesis unfolding language_def by blast
-        qed simp+
-      qed
+  thus "y @ z \<in> language"
+  proof cases
+    case 1
+    then obtain q where "T x z q (Some (acc M))"
+      using dfa2_transition.left_acc_impl_T_Some_acc[OF transition_axioms(1) 
+                                                     x_acc_reachable]
+      by blast
+    with T_eq have "T y z q (Some (acc M))" by presburger
+    then show ?thesis using language_def 
+          dfa2_transition.T_p_Some_impl_reachable[OF transition_axioms(2)]
+      by (metis (mono_tags, lifting) mem_Collect_eq)
+  next
+    case 2
+    from x_acc_reachable have "([], init M, pf_init x @ pf_end x # \<rangle>z\<rangle>) \<rightarrow>* (u, acc M, v)"
+      (is "?butlast_init \<rightarrow>* _")
+      by (metis append.assoc append_Cons append_Nil dfa2_transition.x_is_init_app_end mapl_app_mapr_eq_map
+          transition_axioms(1))
+    then obtain n where "?butlast_init \<rightarrow>{n} (u, acc M, v)" by (meson rtranclp_imp_relpowp)
+    moreover have "length v < length (pf_end x # \<rangle>z\<rangle>)"
+    proof -
+      from dfa2_transition.reachable_right_conf_impl_substring_z[of M x z u "acc M" v,
+        OF transition_axioms(1) x_acc_reachable 2]
+      obtain zs where "rev (\<langle>x\<langle> @ zs) = u" "zs @ v = \<rangle>z\<rangle>" by blast
+      then show ?thesis by (metis length_Suc_conv length_append not_add_less2 not_less_eq)
     qed
+    moreover have butlast_reachable: "x @ z \<rightarrow>** ?butlast_init" 
+    proof -
+      have "([], init M, \<langle>x @ z\<rangle>) = ([], init M, \<langle>x\<langle> @ \<rangle>z\<rangle>)" by simp
+      also have "... = ([], init M, butlast (\<langle>x\<langle>) @ last (\<langle>x\<langle>) # \<rangle>z\<rangle>)" by simp
+      finally have "([], init M, \<langle>x @ z\<rangle>) = ?butlast_init"
+        using dfa2_transition.x_defs[OF transition_axioms(1)] by simp
+      thus ?thesis by (metis rtranclp.rtrancl_refl)
+    qed
+    ultimately obtain p' m k where p'mk_defs:
+      "m + k = n"
+      "?butlast_init \<rightarrow>{m} (rev (pf_init x), p', pf_end x # \<rangle>z\<rangle>)" 
+      "(rev (pf_init x), p', pf_end x # \<rangle>z\<rangle>) \<rightarrow>{k} (u, acc M, v)"
+      using left_to_right_impl_reachable_substring
+      by (metis self_append_conv)
+    from 2 have "length (rev (pf_init x)) < length u"
+      using dfa2_transition.right_config_def
+      by (metis dfa2_transition.x_is_init_app_end length_append_singleton length_rev less_eq_Suc_le 
+          prod.inject transition_axioms(1))
+    moreover from p'mk_defs(2) butlast_reachable have x_init_reachable:
+      "x @ z \<rightarrow>** (rev (pf_init x), p', pf_end x # \<rangle>z\<rangle>)"
+      by (metis
+          \<open>([], dfa2.init M, dfa2_transition.x_init x @ dfa2_transition.x_end x # \<Sigma> z @ [\<stileturn>]) 
+          \<rightarrow>* (u, acc M, v)\<close>  relpowp_imp_rtranclp unchanged_word x_acc_reachable)
+    ultimately obtain p j where x_init_loopless:
+      "j < k"
+      "(rev (pf_init x), p', pf_end x # \<rangle>z\<rangle>) \<rightarrow>{j} (rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>)"
+      "\<forall>i\<le>k-j. \<forall>u' q' v'. ((rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>) \<rightarrow>{i} (u', q', v')) \<and> i \<noteq> 0 
+        \<longrightarrow> length u' > length (rev (pf_init x))" 
+      using p'mk_defs(3) dfa2_transition.reachable_from_left_impl_reachable_without_loops
+                          [OF transition_axioms(1)] by metis
+    with x_init_reachable have loopless_reachable:
+      "x @ z \<rightarrow>** (rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>)" 
+      by (meson relpowp_imp_rtranclp rtranclp_trans)
+    have loopless_reaches_acc: "... \<rightarrow>{k-j} (u, acc M, v)"
+      using x_init_loopless(1,2) p'mk_defs(3) stepn_decompose[of j k] 
+      by (meson nat_less_le)
+    obtain q' where loopless_step: "(rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)"
+    proof -
+      obtain q' where "nxt M p (pf_end x) = (q', Right)"
+      proof -
+        have "\<exists>q'. nxt M p (pf_end x) = (q', Right)"
+        proof (rule ccontr)
+          assume "\<not>?thesis"
+          then obtain q' where q'_def: "nxt M p (pf_end x) = (q', Left)"
+            by (metis (full_types) dir.exhaust old.prod.exhaust)
+          let ?rev = "rev (pf_init x)"
+          from q'_def have "(?rev, p, pf_end x # \<rangle>z\<rangle>) \<rightarrow> (tl ?rev, q', hd ?rev # pf_end x # \<rangle>z\<rangle>)" 
+            by (metis (no_types, lifting) Nil_is_append_conv Nil_is_map_conv \<open>x \<noteq> []\<close> append_Nil
+                dfa2_transition.x_is_init_app_end list.distinct(1) list.exhaust_sel list.sel(3) rev.simps(2) 
+                step_left transition_axioms(1))
+          hence "(?rev, p, pf_end x # \<rangle>z\<rangle>) \<rightarrow>{Suc 0} (tl ?rev, q', hd ?rev # pf_end x # \<rangle>z\<rangle>)" by auto
+          moreover have "length (tl ?rev) \<le> length ?rev" by simp
+          ultimately show False using x_init_loopless 
+            by (metis Suc_leI linorder_not_less nat.distinct(1) zero_less_diff)
+        qed
+        thus thesis using that by blast
+      qed
+      hence "(rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>) \<rightarrow> (pf_end x # rev (pf_init x), q', \<rangle>z\<rangle>)" by blast
+      moreover have "pf_end x # rev (pf_init x) = rev (\<langle>x\<langle>)" 
+        using dfa2_transition.x_defs[OF transition_axioms(1)]
+        by (metis dfa2_transition.x_is_init_app_end rev.simps(2) rev_rev_ident transition_axioms(1))
+      ultimately show thesis using that by simp 
+    qed
+    hence x_reaches_acc: "... \<rightarrow>{k-j-1} (u, acc M, v)" 
+      by (metis (no_types, lifting) diff_add_inverse less_iff_succ_less_eq less_imp_add_positive 
+          loopless_reaches_acc nat_add_left_cancel_le relpowp_1 stepn_decompose x_init_loopless(1))
+    then obtain us where u_app_def: "us @ rev (\<langle>x\<langle>) = u"
+      using x_init_loopless(3) loopless_reaches_acc left_to_right_impl_substring
+      by (metis "2" dfa2_transition.reachable_right_conf_impl_substring_z rev_append transition_axioms(1)
+          x_acc_reachable)         
+    from loopless_step dfa2_transition.boundary_cross_impl_T[OF transition_axioms(1)]
+    obtain qopt where "T x z qopt (Some q')" using loopless_reachable by blast
+    with T_eq have Ty: "T y z qopt (Some q')" by simp
+    show ?thesis
+    proof (cases rule: dfa2_transition.T.cases[OF transition_axioms(2) Ty])
+      case (1 p' q)
+      then have "y @ z \<rightarrow>** (rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>)" using 
+            dfa2_transition.left_steps_impl_steps[OF transition_axioms(2)] 1(3)
+        sorry 
+      also have "... \<rightarrow>* (us @ rev (\<langle>y\<langle>), acc M, v)"
+      proof -
+        have
+          "\<forall>i\<le>k-j-1. \<forall>u' q'' v'. ((rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>{i} (u', q'', v'))
+            \<longrightarrow> length (rev (\<langle>x\<langle>)) \<le> length u'"
+        proof ((rule allI)+, rule impI)+
+          fix i u' q'' v'
+          assume i_leq_kj1: "i \<le> k-j-1"
+             and stepi:  "((rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>{i} (u', q'', v'))"
+          with 1(2) loopless_step have "(rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>) \<rightarrow>{Suc i} (u', q'', v')"
+            by (meson relpowp_Suc_I2)
+          with x_init_loopless(3) i_leq_kj1 have "length (rev (pf_init x)) < length u'"  
+            by (metis Suc_diff_1 Suc_le_mono Zero_not_Suc x_init_loopless(1) zero_less_diff)
+          then show "length (rev (\<langle>x\<langle>)) \<le> length u'" using 
+              dfa2_transition.x_defs[OF transition_axioms(1)] 
+            by (metis append_butlast_last_id length_append_singleton length_rev 
+                linorder_le_less_linear list.discI not_less_eq)
+        qed
+        moreover from loopless_reachable loopless_step have
+          "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)" by auto
+        moreover from x_reaches_acc u_app_def have
+          "(rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>{k-j-1} (us @ rev (\<langle>x\<langle>), acc M, v)" by blast
+        ultimately show ?thesis using u_app_def 
+            x_reaches_acc all_geq_left_impl_left_indep relpowp_imp_rtranclp by metis
+      qed
+      finally show ?thesis unfolding language_def by blast
+    next
+      case (3 p' q p'')
+      then have "y @ z \<rightarrow>** (rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>)" using 
+            dfa2_transition.left_steps_impl_steps sorry
+      also have "... \<rightarrow>* (us @ rev (\<langle>y\<langle>), acc M, v)"
+      proof -
+        have
+          "\<forall>i\<le>k-j-1. \<forall>u' q'' v'. ((rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>{i} (u', q'', v'))
+            \<longrightarrow> length (rev (\<langle>x\<langle>)) \<le> length u'"
+        proof ((rule allI)+, rule impI)+
+          fix i u' q'' v'
+          assume i_leq_kj1: "i \<le> k-j-1"
+             and stepi:  "((rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>{i} (u', q'', v'))"
+          with loopless_step have "(rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>) \<rightarrow>{Suc i} (u', q'', v')"
+            by (meson relpowp_Suc_I2)
+          with x_init_loopless(3) i_leq_kj1 have "length (rev (pf_init x)) < length u'"  
+            by (metis Suc_diff_1 Suc_le_mono Zero_not_Suc x_init_loopless(1) zero_less_diff)
+          then show "length (rev (\<langle>x\<langle>)) \<le> length u'" using 
+              dfa2_transition.x_defs[OF transition_axioms(1)] 
+            by (metis append_butlast_last_id length_append_singleton length_rev 
+                linorder_le_less_linear list.discI not_less_eq)
+        qed
+        moreover from loopless_reachable loopless_step have
+          "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)" by auto
+        moreover from x_reaches_acc u_app_def have
+          "(rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>{k-j-1} (us @ rev (\<langle>x\<langle>), acc M, v)" by blast
+        ultimately show ?thesis using u_app_def 
+            x_reaches_acc all_geq_left_impl_left_indep relpowp_imp_rtranclp by metis
+        qed
+      finally show ?thesis unfolding language_def by blast
+    qed simp+
   qed
+qed
+      
+
+
+
+
+theorem two_way_dfa_lang_regular:
+  "regular language"
+proof -
+  obtain x y :: "'a list" where not_empty: "x \<noteq> []" "y \<noteq> []" by blast
+  hence "T x = T y \<Longrightarrow> \<forall>z. x @ z \<in> language \<longleftrightarrow> y @ z \<in> language" using T_eq_impl_right_congr
+    by metis
   have "(\<forall>z. x @ z \<in> language \<longleftrightarrow> y @ z \<in> language) 
              \<longleftrightarrow> (x, y) \<in> eq_app_right language" unfolding eq_app_right_def by simp
-  have "finite (UNIV // eq_app_right language)" sorry
+  have "T' x = T' y \<Longrightarrow> (x, y) \<in> eq_app_right language" unfolding T'_def sorry
+  have "finite (UNIV // eq_app_right language)" \<proof>
   then show "regular language" using L3_1 by auto
 qed
+
+find_theorems name: refine
   
 end
 end

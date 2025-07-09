@@ -43,7 +43,7 @@ proof (standard, goal_cases)
   have "finite (cfg_to_pda_trans_fun p x z)"
     by (induction p x z rule: cfg_to_pda_trans_fun.induct) auto
   then show ?case
-    unfolding cfg_to_pda_pda_def by simp
+    by (simp add: cfg_to_pda_pda_def)
 next
   case (2 p z)
   let ?h = "\<lambda>(A,\<alpha>). (Q_loop, \<alpha>)"
@@ -55,7 +55,7 @@ next
   hence "finite (cfg_to_pda_eps_fun p z)"
     by (induction p z rule: cfg_to_pda_eps_fun.induct) auto
   then show ?case
-    unfolding cfg_to_pda_pda_def by simp
+    by (simp add: cfg_to_pda_pda_def)
 qed
 
 lemma cfg_to_pda_cons_tm:
@@ -70,16 +70,12 @@ using assms pda.step\<^sub>1_rule[OF pda_cfg_to_pda] by (simp add: cfg_to_pda_pd
 lemma cfg_to_pda_cons_tms:
   "pda.steps cfg_to_pda_pda (Q_loop, w@w', map Tm w @ \<gamma>) (Q_loop, w', \<gamma>)"
 proof (induction w)
-  case Nil
-  then show ?case
-    using pda.steps_refl[OF pda_cfg_to_pda] by simp
-next
   case (Cons a w)
   have "pda.step\<^sub>1 cfg_to_pda_pda (Q_loop, (a # w) @ w', map Tm (a # w) @ \<gamma>) (Q_loop, w @ w', map Tm w @ \<gamma>)"
     using cfg_to_pda_cons_tm by simp
   with Cons.IH show ?case
-    unfolding pda.steps_def[OF pda_cfg_to_pda] by (simp add: star.step)
-qed
+    using pda.step\<^sub>1_steps[OF pda_cfg_to_pda] pda.steps_trans[OF pda_cfg_to_pda] by blast
+qed (simp add: pda.steps_refl[OF pda_cfg_to_pda])
 
 lemma cfg_to_pda_nt_cons:
   assumes "pda.step\<^sub>1 cfg_to_pda_pda (Q_loop, w, Nt A#\<gamma>) (Q_loop, w', \<beta>)"
@@ -107,23 +103,23 @@ lemma cfg_to_pda_tm_stack_path:
   assumes "pda.steps cfg_to_pda_pda (Q_loop, w, Tm a # \<alpha>) (Q_loop, [], [])"
   shows "\<exists>w'. w = a#w' \<and> pda.steps cfg_to_pda_pda (Q_loop, w', \<alpha>) (Q_loop, [], [])"
 proof -
-  from assms obtain p' w' \<alpha>' where step1: "pda.step\<^sub>1 cfg_to_pda_pda (Q_loop, w, Tm a # \<alpha>) (p', w', \<alpha>')" and 
-                                   steps: "pda.steps cfg_to_pda_pda (p', w', \<alpha>') (Q_loop, [], [])"
+  from assms obtain q' w' \<alpha>' where step1: "pda.step\<^sub>1 cfg_to_pda_pda (Q_loop, w, Tm a # \<alpha>) (q', w', \<alpha>')" and 
+                                   steps: "pda.steps cfg_to_pda_pda (q', w', \<alpha>') (Q_loop, [], [])"
     using pda.steps_not_refl_split_first[OF pda_cfg_to_pda] by blast
-  have p'_def: "p' = Q_loop"
+  have q'_def: "q' = Q_loop"
     using sing_st.exhaust by blast
-  with step1 have "(\<exists>\<beta>\<^sub>0. w' = w \<and> \<alpha>' = \<beta>\<^sub>0@\<alpha> \<and> (Q_loop, \<beta>\<^sub>0) \<in> cfg_to_pda_eps_fun Q_loop (Tm a)) 
+  from step1[unfolded q'_def] have "(\<exists>\<beta>\<^sub>0. w' = w \<and> \<alpha>' = \<beta>\<^sub>0@\<alpha> \<and> (Q_loop, \<beta>\<^sub>0) \<in> cfg_to_pda_eps_fun Q_loop (Tm a)) 
                     \<or> (\<exists>a\<^sub>0 \<beta>\<^sub>0. w = a\<^sub>0#w' \<and> \<alpha>' = \<beta>\<^sub>0@\<alpha> \<and> (Q_loop, \<beta>\<^sub>0) \<in> cfg_to_pda_trans_fun Q_loop a\<^sub>0 (Tm a))"
     using pda.step\<^sub>1_rule[OF pda_cfg_to_pda] by (simp add: cfg_to_pda_pda_def)
   hence "w = a # w' \<and> \<alpha>' = \<alpha>"
     by (induction Q_loop "Tm a :: ('n, 't) sym" rule: cfg_to_pda_eps_fun.induct, auto) (metis empty_iff, metis empty_iff prod.inject singletonD)
-  with steps p'_def show ?thesis by simp
+  with steps q'_def show ?thesis by simp
 qed
 
 lemma cfg_to_pda_tms_stack_path:
   assumes "pda.steps cfg_to_pda_pda (Q_loop, w, map Tm v @ \<alpha>) (Q_loop, [], [])"
   shows "\<exists>w'. w = v @ w' \<and> pda.steps cfg_to_pda_pda (Q_loop, w', \<alpha>) (Q_loop, [], [])"
-  using assms cfg_to_pda_tm_stack_path by (induction v arbitrary: w) fastforce+
+using assms cfg_to_pda_tm_stack_path by (induction v arbitrary: w) fastforce+
 
 lemma cfg_to_pda_accepts_if_G_derives:
   assumes "Prods G \<turnstile> \<alpha> \<Rightarrow>l* map Tm w"
@@ -137,14 +133,17 @@ next
   from step(1) obtain A \<alpha> u1 u2 where prod: "(A,\<alpha>) \<in> Prods G" and y_def: "y = map Tm u1 @ Nt A # u2" and z_def: "z = map Tm u1 @ \<alpha> @ u2"
     using derivel_iff[of "Prods G" y z] by blast
   from step(3) z_def obtain w' where w_def: "w = u1 @ w'" and 
-                                     ***: "pda.steps cfg_to_pda_pda (Q_loop, w', \<alpha> @ u2) (Q_loop, [], [])"
+                                     *: "pda.steps cfg_to_pda_pda (Q_loop, w', \<alpha> @ u2) (Q_loop, [], [])"
     using cfg_to_pda_tms_stack_path by blast
-  from w_def y_def have *: "pda.steps cfg_to_pda_pda (Q_loop, w, y) (Q_loop, w', Nt A # u2)"
+
+  from w_def y_def have "pda.steps cfg_to_pda_pda (Q_loop, w, y) (Q_loop, w', Nt A # u2)"
     using cfg_to_pda_cons_tms by simp
-  from prod have **: "pda.steps cfg_to_pda_pda (Q_loop, w', Nt A # u2) (Q_loop, w', \<alpha> @ u2)"
-    unfolding pda.steps_def[OF pda_cfg_to_pda] using cfg_to_pda_cons_nt by simp
-  from * ** *** show ?case
-    using pda.steps_trans[OF pda_cfg_to_pda] by blast
+
+  moreover from prod have "pda.steps cfg_to_pda_pda (Q_loop, w', Nt A # u2) (Q_loop, w', \<alpha> @ u2)"
+    using cfg_to_pda_cons_nt pda.step\<^sub>1_steps[OF pda_cfg_to_pda] by simp
+
+  ultimately show ?case
+    using * pda.steps_trans[OF pda_cfg_to_pda] by blast
 qed
 
 lemma G_derives_if_cfg_to_pda_accepts:
@@ -154,15 +153,11 @@ using assms proof (induction "(Q_loop, w, \<alpha>)" "(Q_loop, [] :: 't list, []
                       arbitrary: w \<alpha> rule: pda.steps_induct[OF pda_cfg_to_pda])
   case (3 w\<^sub>1 \<alpha>\<^sub>1 p\<^sub>2 w\<^sub>2 \<alpha>\<^sub>2)
   then show ?case proof (cases \<alpha>\<^sub>1)
-    case Nil
-    with 3(1) show ?thesis
-      using pda.step\<^sub>1_empty_stack[OF pda_cfg_to_pda] by simp
-  next
     case (Cons Z' \<alpha>')
     have p\<^sub>2_def: "p\<^sub>2 = Q_loop"
       using sing_st.exhaust by blast
     with 3(2,3) have IH: "Prods G \<turnstile> \<alpha>\<^sub>2 \<Rightarrow>* map Tm w\<^sub>2" by simp
-    then show ?thesis proof (cases Z')
+    show ?thesis proof (cases Z')
       case (Nt A)
       with Cons p\<^sub>2_def 3(1) obtain \<alpha> where prod: "(A, \<alpha>) \<in> Prods G" and \<alpha>\<^sub>2_def: "\<alpha>\<^sub>2 = \<alpha> @ \<alpha>'" and w\<^sub>2_def: "w\<^sub>2 = w\<^sub>1"
         using cfg_to_pda_nt_cons by blast
@@ -177,37 +172,37 @@ using assms proof (induction "(Q_loop, w, \<alpha>)" "(Q_loop, [] :: 't list, []
         using derives_Cons by auto
       with Cons Tm w_\<alpha>_def show ?thesis by simp
     qed
-  qed
+  qed (simp add: 3(1) pda.step\<^sub>1_empty_stack[OF pda_cfg_to_pda])
 qed (simp_all add: assms)
 
-lemma cfg_to_pda: "LangS G = pda.stack_accept cfg_to_pda_pda"
+lemma cfg_to_pda: "LangS G = pda.stack_accept cfg_to_pda_pda" (is "?L = ?P")
 proof
-  show "LangS G \<subseteq> pda.stack_accept cfg_to_pda_pda"
+  show "?L \<subseteq> ?P"
   proof
     fix x
-    assume "x \<in> LangS G"
+    assume "x \<in> ?L"
     hence "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* map Tm x"
-      unfolding Lang_def by simp
+      by (simp add: Lang_def)
     hence "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>l* map Tm x"
       using derivels_iff_derives by auto
     hence "pda.steps cfg_to_pda_pda (Q_loop, x, [Nt (Start G)]) (Q_loop, [], [])"
       using cfg_to_pda_accepts_if_G_derives by simp
-    thus "x \<in> pda.stack_accept cfg_to_pda_pda"
+    thus "x \<in> ?P"
       unfolding pda.stack_accept_def[OF pda_cfg_to_pda] by (auto simp: cfg_to_pda_pda_def)
   qed
 next
-  show "pda.stack_accept cfg_to_pda_pda \<subseteq> LangS G"
+  show "?P \<subseteq> ?L"
   proof
     fix x
-    assume "x \<in> pda.stack_accept cfg_to_pda_pda"
+    assume "x \<in> ?P"
     then obtain q where steps: "pda.steps cfg_to_pda_pda (Q_loop, x, [Nt (Start G)]) (q, [], [])"
       unfolding pda.stack_accept_def[OF pda_cfg_to_pda] by (auto simp: cfg_to_pda_pda_def)
     have "q = Q_loop"
       using sing_st.exhaust by blast
     with steps have "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* map Tm x"
       using G_derives_if_cfg_to_pda_accepts by simp
-    thus "x \<in> LangS G"
-      unfolding Lang_def by simp
+    thus "x \<in> ?L"
+      by (simp add: Lang_def)
   qed
 qed
 

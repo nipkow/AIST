@@ -26,7 +26,7 @@ by(induction sys arbitrary: ns) (auto split: sym.split)
 
 lemma distinct_nts_prods_list: "distinct(nts_prods_list ps)"
 by(induction ps) (auto simp: nts_prods_list_def distinct_nts_syms_list split: sym.split)
-(* end *)
+(* end rm *)
 
 (* TODO: unify fresh and fresh0 *)
 class fresh0 = fresh +
@@ -72,11 +72,7 @@ proof(induction n arbitrary: X)
     using freshs_disj[of "insert (fresh0 X) X" n]
     by(auto simp: fresh0 Let_def)
 qed simp
-
-lemma distinct_app_freshs: "\<lbrakk> As = nts_prods_list ps; As' = freshs (set As) (length As) \<rbrakk> \<Longrightarrow>
-   distinct (As @ As')"
-using freshs_disj[of "set As" "length As"]
-by (auto simp: distinct_nts_prods_list freshs_distinct)
+(* end freshs *)
 
 text \<open>Top level function:\<close>
 
@@ -89,6 +85,11 @@ definition gnf_hd :: "('n::fresh0,'t)prods \<Rightarrow> ('n,'t)Prods" where
 lemma GNF_hd_gnf_hd: "eps_free ps \<Longrightarrow> GNF_hd (gnf_hd ps)"
 by(simp add: gnf_hd_def Let_def GNF_of_R[simplified]
   distinct_nts_prods_list freshs_distinct finite_nts freshs_disj set_nts_prods_list length_freshs)
+
+lemma distinct_app_freshs: "\<lbrakk> As = nts_prods_list ps; As' = freshs (set As) (length As) \<rbrakk> \<Longrightarrow>
+   distinct (As @ As')"
+using freshs_disj[of "set As" "length As"]
+by (auto simp: distinct_nts_prods_list freshs_distinct)
 
 lemma Lang_gnf_hd: "\<lbrakk> eps_free ps; A \<in> nts ps \<rbrakk> \<Longrightarrow> Lang (gnf_hd ps) A = lang ps A"
 unfolding gnf_hd_def Let_def

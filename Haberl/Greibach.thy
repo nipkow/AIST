@@ -1,3 +1,5 @@
+section \<open>Greibach Normal Form\<close>
+
 theory Greibach
 imports "Context_Free_Grammar.Context_Free_Grammar"
 begin
@@ -51,9 +53,6 @@ definition rm_lrec ::  "'n \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t)Prods
 lemma rm_lrec_code[code]:
   "rm_lrec A R = {Aw \<in> R. let (A',w) = Aw in A' \<noteq> A \<or> w = [] \<or> hd w \<noteq> Nt A}"
 by(auto simp add: rm_lrec_def neq_Nil_conv)
-
-fun hd_not_NA where
-"hd_not_NA A w = (\<not>(\<exists>u. w = Nt A # u))"
 
 text \<open>Conversion from left-recursion to right-recursion:
 Split \<open>A\<close>-rules into \<open>A \<rightarrow> u\<close> and \<open>A \<rightarrow> A v\<close>.
@@ -212,7 +211,7 @@ next
   then show ?case by simp
 qed
 
-text \<open> lemmas about rule inclusions in solve_lrec \<close>
+text \<open>Lemmas about rule inclusions in \<open>solve_lrec\<close>\<close>
 
 lemma solve_lrec_rule_simp1: "A \<noteq> B \<Longrightarrow> A \<noteq> B' \<Longrightarrow> (A, w) \<in> solve_lrec B B' R \<longleftrightarrow> (A, w) \<in> R"
   by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def)
@@ -329,10 +328,10 @@ lemma solve_lrec_no_new_own_dep: "A \<noteq> A' \<Longrightarrow> A' \<notin> Nt
 lemma dep_on_rem_lrec_simp: "dep_on (rm_lrec A R) A = dep_on R A - {A}"
   by (auto simp add: dep_on_def rm_lrec_def)
 
-lemma dep_on_rrec_of_lrec_simp: "Eps_free R \<Longrightarrow> A \<noteq> A' \<Longrightarrow> dep_on (rrec_of_lrec A A' R) A = dep_on R A - {A}"
-  apply (auto simp add: dep_on_def rrec_of_lrec_def Let_def)
-  apply (metis Eps_free_Nil butlast.simps(2) butlast_snoc)
-  by (metis Eps_freeE_Cons hd_append list.sel(1) sym.inject(1))
+lemma dep_on_rrec_of_lrec_simp:
+  "Eps_free R \<Longrightarrow> A \<noteq> A' \<Longrightarrow> dep_on (rrec_of_lrec A A' R) A = dep_on R A - {A}"
+using Eps_freeE_Cons[of R A "[]"]
+by (auto simp add: dep_on_def rrec_of_lrec_def Let_def Cons_eq_append_conv)
 
 text \<open> Half an Isar proof for dep_on_rrec_of_lrec_simp\<close>
 (*lemma "Eps_free R \<Longrightarrow> A \<noteq> A' \<Longrightarrow> dep_on (rrec_of_lrec A A' R) A = dep_on R A - {A}"
@@ -1972,4 +1971,7 @@ lemma last_derive_is_term: "(derive R^^(Suc n)) [Nt S] (map Tm x) \<Longrightarr
     then show ?thesis using derivern_iff_deriven
       using assm derivern_imp_deriven by fastforce
   qed
+
+unused_thms
+
 end

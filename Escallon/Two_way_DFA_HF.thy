@@ -130,7 +130,7 @@ qed simp
 
 lemma unchanged_substrings:
   "(u, p, v) \<rightarrow>* (u', q, v') \<Longrightarrow> rev u @ v = rev u' @ v'"
-proof (induction rule: rtranclp_induct3) 
+proof (induction rule: rtranclp_induct3)
   case (step a q' b c q'' d)
   then obtain p' d' where qd_def: "nxt M q' (hd b) = (p', d')" by fastforce
   then show ?case
@@ -156,6 +156,21 @@ lemma step_butlast:
           "v = a # b # cs"
     shows "(u, p, butlast v) \<rightarrow> (u', q, butlast v')" 
   using assms by cases auto
+
+lemma step_tl_indep:
+  assumes "(u, p, w @ v) \<rightarrow> (y, q, z @ v)"
+          "w \<noteq> []"
+        shows "(u, p, w @ v') \<rightarrow> (y, q, z @ v')"
+  using assms(1) proof cases
+  case (step_left a x ys)
+  with assms obtain as where "w = a # as" by (meson append_eq_Cons_conv) 
+  moreover from this step_left have "(u, p, w @ v') \<rightarrow> (y, q, x # w @ v')" by auto
+  ultimately show ?thesis using step_left by auto
+next
+  case (step_right a)
+  with assms obtain as where "w = a # as" by (meson append_eq_Cons_conv) 
+  then show ?thesis using step_right by auto
+qed
 
 lemma steps_app [simp, intro]:
   "(u, p, v) \<rightarrow>* (u', q, v') \<Longrightarrow> (u, p, v @ xs) \<rightarrow>* (u', q, v' @ xs)"
@@ -229,6 +244,7 @@ lemma stepn_decompose:
   then show ?case using c'_defs
     by (metis Suc.prems(1) Suc_diff_le diff_Suc_Suc relpowp_Suc_D2 step_unique)
 qed simp
+
 
 lemma left_to_right_impl_reachable_substring:
   assumes "length bs > length z"
@@ -412,7 +428,8 @@ lemma all_geq_left_impl_left_indep:
   assumes upv_reachable: "w \<rightarrow>** (u, p, v)"
       and "(u, p, v) \<rightarrow>(n) (vs @ u, q, x)"
           "\<forall>i\<le>n. \<forall>u' p' v'. ((u, p, v) \<rightarrow>(i) (u', p', v')) \<longrightarrow> length u' \<ge> length u"
-        shows "(u', p, v) \<rightarrow>(n) (vs @ u', q, x)"
+        shows "((u', p, v) \<rightarrow>(n) (vs @ u', q, x))
+               \<and> (\<forall>i\<le>n. \<forall>y p' v'. ((u', p, v) \<rightarrow>(i) (y, p', v')) \<longrightarrow> length y \<ge> length u')"
   using assms(2,3) proof (induction n arbitrary: vs q x)
   case (Suc n)
   then obtain vs' q' x' where 
@@ -425,9 +442,27 @@ lemma all_geq_left_impl_left_indep:
       by (metis relpowp_imp_rtranclp)
     then show thesis using nstep that by blast
   qed
-  with Suc(1) have "(u', p, v) \<rightarrow>(n) (vs' @ u', q', x')" 
-    using Suc.prems(2) le_Suc_eq by blast
-  moreover from nsteps(2) have "(vs' @ u', q', x') \<rightarrow> (vs @ u', q, x)" by force
+  with Suc(1) have u'_stepn: "(u', p, v) \<rightarrow>(n) (vs' @ u', q', x')" 
+               and u'_n_geq: "\<forall>i\<le>n. \<forall>y p' v'. ((u', p, v) \<rightarrow>(i) (y, p', v')) 
+                              \<longrightarrow> length u' \<le> length y" 
+    using Suc.IH Suc.prems(2) le_SucI le_Suc_eq  nsteps(1) by blast+
+  moreover from u'_stepn nsteps(2) have Sucn_steps: "(u', p, v) \<rightarrow>(Suc n) (vs @ u', q, x)" by force
+  moreover have "\<forall>i\<le>Suc n. \<forall>y p' v'. ((u', p, v) \<rightarrow>(i) (y, p', v')) \<longrightarrow> length y \<ge> length u'" 
+  proof ((rule allI)+, (rule impI))+
+    fix i y p' v'
+    assume i_lt_Suc: "i \<le> Suc n"
+        and stepi: "(u', p, v) \<rightarrow>(i) (y, p', v')"
+    then consider (Suc) "i = Suc n" | (lt_Suc) "i < Suc n" by force
+    then show "length u' \<le> length y"
+    proof cases
+      case Suc
+      with stepi Sucn_steps show ?thesis
+        by (metis leI length_append not_add_less2 prod.inject relpowp_right_unique step_unique)
+    next
+      case lt_Suc
+      then show ?thesis using u'_n_geq stepi using less_Suc_eq_le by auto
+    qed
+  qed
   ultimately show ?case by auto
 qed simp
 
@@ -545,6 +580,26 @@ lemma right_steps_impl_right_config_conv[dest]:
     \<Longrightarrow> right_config c0"
   by (induction rule: rtranclp_induct) auto
 
+lemma left_step_step_unique:
+  assumes "c0 \<rightarrow> c1"
+          "c0 \<rightarrow>\<^sup>L c2"
+        shows "c1 = c2" 
+  using assms by (meson left_step.cases step_unique)
+
+lemma left_step_tl_indep:
+  assumes "(u, p, w @ v) \<rightarrow>\<^sup>L (y, q, z @ v)"
+          "w \<noteq> []"
+        shows "(u, p, w @ v') \<rightarrow>\<^sup>L (y, q, z @ v')"
+  using step_tl_indep assms 
+  by (meson dual_order.irrefl left_config_is_not_right_config left_config_lt_right_config
+      left_step.cases lstep)
+
+lemma right_step_step_unique:
+  assumes "c0 \<rightarrow> c1"
+          "c0 \<rightarrow>\<^sup>R c2"
+        shows "c1 = c2" 
+  using assms by (meson right_step.cases step_unique)
+
 lemma nsteps_lower_bound:
   assumes "length u \<ge> length y"
   shows "(u, p, v) \<rightarrow>(n) (y, q, z) \<Longrightarrow> length y \<ge> length u - n"
@@ -568,6 +623,69 @@ using assms proof (induction n arbitrary: u p v y q z)
     then show ?thesis using Suc by force
   qed
 qed simp
+
+lemma right_step_tl_indep:
+  assumes "(u, p, w @ v) \<rightarrow>\<^sup>R (y, q, z @ v)"
+          "w \<noteq> []"
+        shows "(u, p, w @ v') \<rightarrow>\<^sup>R (y, q, z @ v')"
+  using step_tl_indep assms 
+  by (meson dual_order.irrefl left_config_is_not_right_config left_config_lt_right_config
+      right_step.cases rstep)
+
+lemma lstepn_impl_reachable:
+  "c0 \<rightarrow>\<^sup>L(n) c1 \<Longrightarrow> c0 \<rightarrow>* c1"
+proof (induction n arbitrary: c1)
+  case (Suc n)
+  then obtain c' where "c0 \<rightarrow>\<^sup>L(n) c'" "c' \<rightarrow>\<^sup>L c1" by auto
+  hence "c0 \<rightarrow>* c' " "c' \<rightarrow> c1" using Suc.IH by auto
+  then show ?case by simp
+qed simp
+
+lemma rstepn_impl_reachable:
+  "c0 \<rightarrow>\<^sup>R(n) c1 \<Longrightarrow> c0 \<rightarrow>* c1"
+proof (induction n arbitrary: c1)
+  case (Suc n)
+  then obtain c' where "c0 \<rightarrow>\<^sup>R(n) c'" "c' \<rightarrow>\<^sup>R c1" by auto
+  hence "c0 \<rightarrow>* c' " "c' \<rightarrow> c1" using Suc.IH by auto
+  then show ?case by simp
+qed simp
+
+lemma right_stepn_impl_interm_right_stepn:
+  assumes "c0 \<rightarrow>\<^sup>R(n) c2"
+          "c0 \<rightarrow>(m) c1"
+          "m \<le> n"
+        shows "c0 \<rightarrow>\<^sup>R(m) c1"
+proof -
+  from assms(1) obtain f where f_def:
+    "f 0 = c0"
+    "f n = c2"
+    "\<forall>i<n. f i \<rightarrow>\<^sup>R f (Suc i)" 
+    by (metis relpowp_fun_conv)
+  from assms(2) obtain g where g_def:
+    "g 0 = c0"
+    "g m = c1"
+    "\<forall>i<m. g i \<rightarrow> g (Suc i)"
+    by (metis relpowp_fun_conv)
+  have "\<forall>i<m. g i = f i"
+  proof (rule allI, rule impI)
+    fix i
+    assume i_lt_m: "i < m"
+    then show "g i = f i"
+    proof (induction i)
+      case 0
+      then show ?case using f_def g_def by blast
+    next
+      case (Suc n)
+      then have "g n = f n" by linarith
+      with Suc f_def g_def show ?case
+        by (metis assms(3) dual_order.strict_trans2 not_less_eq order.asym
+            right_step_step_unique)
+    qed
+  qed
+  with f_def g_def have "\<forall>i<m. g i \<rightarrow>\<^sup>R g (Suc i)" using right_step_step_unique
+    by (metis assms(3) order_less_le_trans)
+  with g_def show ?thesis by (metis relpowp_fun_conv)
+qed
 
 lemma chain_reachable:
   fixes f :: "nat \<Rightarrow> 'a config"
@@ -605,8 +723,8 @@ qed
   (*These propositions are necessary for the two following lemmas.*)
 
 
-lemma star_lstar_impl_substring_x:
-  assumes nsteps: "x @ z \<rightarrow>** (u, p, v)"
+lemma lstar_impl_substring_x:
+  assumes nsteps: "rev u @ v = \<langle>x @ z\<rangle>"
       and in_x:   "length u < length (\<langle>x\<langle>)"
       and lsteps: "(u, p, v) \<rightarrow>\<^sup>L* (u', q, v')"
   obtains y where " rev u' @ y = \<langle>x\<langle>" "y @ \<rangle>z\<rangle> = v'" 
@@ -640,11 +758,18 @@ proof -
   qed blast
 qed
 
-corollary init_lstar_impl_substring_x:
+corollary left_reachable_impl_substring_x:
   assumes "x @ z \<rightarrow>\<^sup>L** (u, q, v)"
   obtains y where " rev u @ y = \<langle>x\<langle>" "y @ \<rangle>z\<rangle> = v"
-  using star_lstar_impl_substring_x assms left_config_def 
+  using lstar_impl_substring_x assms left_config_def 
     left_reachable_impl_left_config by blast
+
+corollary reachable_lconfig_impl_substring_x:
+  assumes "x @ z \<rightarrow>** (u, p, v)"
+      and "length u < length (\<langle>x\<langle>)"
+      and "(u, p, v) \<rightarrow>\<^sup>L* (u', q, v')"
+    obtains y where " rev u' @ y = \<langle>x\<langle>" "y @ \<rangle>z\<rangle> = v'" 
+  using unchanged_word[OF assms(1)] lstar_impl_substring_x assms by metis 
 
   
 
@@ -873,11 +998,59 @@ proof -
 qed
 
 lemma lsteps_indep:
-  assumes "\<langle>x\<langle> = rev u @ v"
-          "(u, p, v @ \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (w, q, y @ \<rangle>z\<rangle>)"
+  assumes "(u, p, v @ \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (w, q, y @ \<rangle>z\<rangle>)"
+          "rev u @ v @ \<rangle>z\<rangle> = \<langle>x @ z\<rangle>"
         shows "(u, p, v @ \<rangle>z'\<rangle>) \<rightarrow>\<^sup>L* (w, q, y @ \<rangle>z'\<rangle>)"
-  \<proof>
-
+proof -
+  from assms obtain n where nsteps: "(u, p, v @ \<rangle>z\<rangle>) \<rightarrow>\<^sup>L(n) (w, q, y @ \<rangle>z\<rangle>)" 
+    using rtranclp_power by meson
+  then show ?thesis using assms(2)
+  proof (induction n arbitrary: w q y)
+    case (Suc n)
+    obtain w' q' y' where lstepn: "(u, p, v @ \<rangle>z\<rangle>) \<rightarrow>\<^sup>L(n) (w', q', y' @ \<rangle>z\<rangle>)"
+                      and lstep:  "(w', q', y' @ \<rangle>z\<rangle>) \<rightarrow>\<^sup>L (w, q, y @ \<rangle>z\<rangle>)"
+    proof -
+      from Suc.prems obtain w' q' y' where lstepn: "(u, p, v @ \<rangle>z\<rangle>) \<rightarrow>\<^sup>L(n) (w', q', y')"
+                                       and lstep: "(w', q', y') \<rightarrow>\<^sup>L (w, q, y @ \<rangle>z\<rangle>)" by auto
+      hence w'_left: "left_config (w', q', y')" by blast
+      then obtain xs where "xs @ \<rangle>z\<rangle> = y'"
+      proof -
+        from lstepn have "(u, p, v @ \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (w', q', y')"
+          by (simp add: relpowp_imp_rtranclp)
+        moreover have "length u < length (\<langle>x\<langle>)"
+          by (meson calculation left_config_lt_right_config left_steps_impl_left_config_conv
+              linorder_le_less_linear order_less_imp_not_eq2 right_config_def w'_left)
+        ultimately show thesis using Suc.prems(2) that by (meson lstar_impl_substring_x)
+      qed
+      with lstepn lstep show thesis using that by auto
+    qed
+    with Suc.IH have "(u, p, v @ \<rangle>z'\<rangle>) \<rightarrow>\<^sup>L* (w', q', y' @ \<rangle>z'\<rangle>)"
+      by (simp add: Suc.prems(2))
+    moreover have "(w', q', y' @ \<rangle>z'\<rangle>) \<rightarrow>\<^sup>L (w, q, y @ \<rangle>z'\<rangle>)"
+    proof -
+      have y'_not_empty: "y' \<noteq> []"
+      proof 
+        assume "y' = []"
+        hence "(u, p, v @ \<rangle>z'\<rangle>) \<rightarrow>\<^sup>L* (w', q', \<rangle>z'\<rangle>)" using calculation by auto
+        moreover have "left_config (u, p, v @ \<rangle>z\<rangle>)"
+          by (meson Suc.prems(1) \<open>(w', q', y' @ \<Sigma> z @ [\<stileturn>]) \<rightarrow>\<^sup>L (w, q, y @ \<Sigma> z @ [\<stileturn>])\<close>
+              dfa2_transition.left_steps_impl_left_config_conv dfa2_transition_axioms left_step.cases
+              relpowp_imp_rtranclp)
+        ultimately have lc: "left_config (w', q', \<rangle>z'\<rangle>)" 
+          using left_config_is_not_right_config left_config_lt_right_config by blast
+        have "rev u @ v @ \<rangle>z'\<rangle> = \<langle>x @ z'\<rangle>"
+          using assms(2) by force
+        hence "rev w' @ \<rangle>z'\<rangle> = ..."
+          by (metis \<open>(u, p, v @ \<Sigma> z' @ [\<stileturn>]) \<rightarrow>\<^sup>L* (w', q', y' @ \<Sigma> z' @ [\<stileturn>])\<close> \<open>y' = []\<close> left_steps_impl_steps
+              self_append_conv2 unchanged_substrings) 
+        hence "length w' = length (\<langle>x\<langle>)" by simp
+        with lc show False using left_config_def by simp
+      qed
+      with left_step_tl_indep[OF lstep] show ?thesis by simp
+    qed
+    ultimately show ?case by simp
+  qed simp
+qed
 
 lemma left_reachable_indep:
   assumes "x @ y \<rightarrow>\<^sup>L** (u, q, v @ \<rangle>y\<rangle>)"
@@ -895,7 +1068,7 @@ proof -
       from Suc(2) obtain u' p v'' 
         where "x @ y \<rightarrow>\<^sup>L*(n) (u', p, v'')"
               "(u', p, v'') \<rightarrow>\<^sup>L(1) (u, q, v @ \<rangle>y\<rangle>)" by auto
-      moreover from this init_lstar_impl_substring_x obtain v' where "v'' = v' @ \<rangle>y\<rangle>" 
+      moreover from this left_reachable_impl_substring_x obtain v' where "v'' = v' @ \<rangle>y\<rangle>" 
         using rtranclp_power by metis
       ultimately show thesis using that by blast
     qed
@@ -1095,7 +1268,6 @@ inductive T :: "state option \<Rightarrow> state option \<Rightarrow> bool" wher
               (rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q'', \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T (Some p) None" 
 (*2nd premise of some_tr and no_tr?*)
 
-thm some_tr
 
 inductive_cases init_trNoneE[elim]: "T None None"
 inductive_cases init_trSomeE[elim]: "T  None (Some q)"
@@ -1131,7 +1303,7 @@ proof -
     "(rev (\<langle>x\<langle>), p', \<rangle>z'\<rangle>) \<rightarrow> (rev x_init, p, x_end # \<rangle>z'\<rangle>)"
     "(rev x_init, p, x_end # \<rangle>z'\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q', x_end # \<rangle>z'\<rangle>)"
     "(rev x_init, q', x_end # \<rangle>z'\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z'\<rangle>)" by auto
-  with lsteps_indep[of "rev x_init" "[x_end]" p z' "rev x_init" q' "[x_end]" z] have
+  with lsteps_indep[of "rev x_init" p "[x_end]" z' "rev x_init" q' "[x_end]" z] have
             "(rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q', x_end # \<rangle>z\<rangle>)"
             "(rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" 
       using x_is_init_app_end by auto
@@ -1168,8 +1340,8 @@ lemma T_Some_Some_impl_reachable:
     have "\<langle>x\<langle> = rev (rev x_init) @ [x_end]" using x_defs by simp
     moreover have "x_end # \<rangle>z\<rangle> = [x_end] @ \<rangle>z\<rangle>" by simp
     ultimately show "(rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q', x_end # \<rangle>z\<rangle>)"
-      using T_prems(1) lsteps_indep[of "rev x_init" "[x_end]" p z' "rev x_init" q' "[x_end]" z]
-      by auto
+      using T_prems(1) lsteps_indep[of "rev x_init" p "[x_end]" z' "rev x_init" q' "[x_end]" z]
+      by simp
     from T_prems(2) show "(rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" by fastforce
   qed
   with assms(2) show "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" by fastforce            
@@ -1195,7 +1367,6 @@ next
       using T_None_Some_impl_reachable by blast
   next
     case (Some a)
-    print_statement some_tr[of _ _ a _ q']
     with someq assms obtain p' z where
       "p' \<in> states M"
       "(rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, a, x_end # \<rangle>z\<rangle>)"
@@ -1209,10 +1380,10 @@ qed
 inductive crossn :: "'a config \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>X'(_') _" 55) where
   no_crossl[intro]:   "\<lbrakk>left_config c0; c0 \<rightarrow>\<^sup>L* c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>X(0) c1" |
   no_crossr[intro]:   "\<lbrakk>right_config c0; c0 \<rightarrow>\<^sup>R* c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>X(0) c1" |
-  cross_rtol[intro]:  "\<lbrakk>c0 \<rightarrow>\<^sup>X(n) (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>); 
+  crossn_rtol[intro]:  "\<lbrakk>c0 \<rightarrow>\<^sup>X(n) (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>); 
                       (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>) \<rightarrow> (rev x_init, q, x_end # \<rangle>z\<rangle>);
                       (rev x_init, q, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>X(Suc n) c1" |
-  cross_ltor[intro]:  "\<lbrakk> c0 \<rightarrow>\<^sup>X(n) (rev x_init, p, x_end # \<rangle>z\<rangle>); 
+  crossn_ltor[intro]:  "\<lbrakk> c0 \<rightarrow>\<^sup>X(n) (rev x_init, p, x_end # \<rangle>z\<rangle>); 
                       (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>);
                       (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>) \<rightarrow>\<^sup>R* c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>X(Suc n) c1"
 
@@ -1240,11 +1411,11 @@ lemma left_config_impl_rtol_cross[elim]:
                           "(rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>) \<rightarrow> (rev x_init, q, x_end # \<rangle>z\<rangle>)"
                           "(rev x_init, q, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* c1"
   using assms(1) proof cases
-  case (cross_rtol p z q)
+  case (crossn_rtol p z q)
   then show ?thesis using that by blast
 next
-  case (cross_ltor p z q)
-  from cross_ltor(3) have "right_config c1" 
+  case (crossn_ltor p z q)
+  from crossn_ltor(3) have "right_config c1" 
     using right_config_def right_steps_impl_right_config by auto
   then show ?thesis using assms left_config_is_not_right_config by auto
 qed
@@ -1256,13 +1427,13 @@ lemma right_config_impl_ltor_cross[elim]:
                           "(rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)"
                           "(rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>) \<rightarrow>\<^sup>R* c1"
   using assms(1) proof cases
-  case (cross_rtol p z q)
-  from cross_rtol(3) have "left_config c1" 
+  case (crossn_rtol p z q)
+  from crossn_rtol(3) have "left_config c1" 
     using left_config_def left_steps_impl_left_config
     by (simp add: x_is_init_app_end)
   then show ?thesis using assms left_config_is_not_right_config by auto
 next
-  case (cross_ltor p z q)
+  case (crossn_ltor p z q)
     then show ?thesis using that by blast
 qed
 
@@ -1270,16 +1441,16 @@ lemma crossn_decompose:
   assumes "c0 \<rightarrow>\<^sup>X(Suc n) c2"
   obtains c1 where "c0 \<rightarrow>\<^sup>X(n) c1" "c1 \<rightarrow>\<^sup>X(Suc 0) c2" 
 using assms proof cases
-  case (cross_rtol p z q)
+  case (crossn_rtol p z q)
   moreover have "(rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>) \<rightarrow>\<^sup>X(Suc 0) c2" 
     by (rule crossn.intros(3)[OF self_nocross])
-        (use cross_rtol in auto)
+        (use crossn_rtol in auto)
   ultimately show ?thesis using that by blast
 next
-  case (cross_ltor p z q)
+  case (crossn_ltor p z q)
   moreover have "(rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>X(Suc 0) c2" 
     by (rule crossn.intros(4)[OF self_nocross])
-        (use cross_ltor in auto)
+        (use crossn_ltor in auto)
   ultimately show ?thesis using that by blast
 qed 
 
@@ -1387,21 +1558,21 @@ next
   then show ?thesis using right_steps_impl_right_config
     assms left_config_is_not_right_config by (meson crossn.no_crossr no_crossE rtranclp_trans)
 next
-  case (cross_rtol n p z q)
-  from cross_rtol(4) have "left_config c1" using left_steps_impl_left_config left_config_def 
+  case (crossn_rtol n p z q)
+  from crossn_rtol(4) have "left_config c1" using left_steps_impl_left_config left_config_def 
     x_is_init_app_end by auto
   with assms(2) have "c1 \<rightarrow>\<^sup>L* c2" using left_config_is_not_right_config by blast
-  then show ?thesis using cross_rtol by auto
+  then show ?thesis using crossn_rtol by auto
 next
-  case (cross_ltor n p z q)
-  from cross_ltor(4) have "right_config c1" using right_steps_impl_right_config right_config_def
+  case (crossn_ltor n p z q)
+  from crossn_ltor(4) have "right_config c1" using right_steps_impl_right_config right_config_def
     x_is_init_app_end by auto
   with assms(2) have "c1 \<rightarrow>\<^sup>R* c2" using left_config_is_not_right_config by blast
-  then show ?thesis using cross_ltor by auto
+  then show ?thesis using crossn_ltor by auto
 qed    
 
 
-lemma crossn_chain_is_sum:
+lemma crossn_trans:
   assumes "c0 \<rightarrow>\<^sup>X(n) c1"
   shows "c1 \<rightarrow>\<^sup>X(m) c2 \<Longrightarrow> c0 \<rightarrow>\<^sup>X(n+m) c2"
   proof (induction m arbitrary: c2)
@@ -1418,18 +1589,18 @@ lemma crossn_chain_is_sum:
       by (metis "0.prems"(1) add_0_right crossn.no_crossr left_config_is_not_right_config no_crossE
           right_steps_impl_right_config rtranclp_trans)
   next
-    case (cross_rtol n p z q)
+    case (crossn_rtol n p z q)
     then show ?thesis
-      by (smt (verit, best) "0.prems"(1) Nat.add_0_right crossn.cross_rtol left_config_def
+      by (smt (verit, best) "0.prems"(1) Nat.add_0_right crossn.crossn_rtol left_config_def
           left_config_is_not_right_config left_steps_impl_left_config length_append_singleton length_rev
           lessI no_crossE rtranclp_trans x_is_init_app_end)
   next
-    case (cross_ltor n p z q)
-    from cross_ltor(4) have "right_config c1" using right_steps_impl_right_config 
+    case (crossn_ltor n p z q)
+    from crossn_ltor(4) have "right_config c1" using right_steps_impl_right_config 
       by (simp add: right_config_def)
     with 0(1) have "c1 \<rightarrow>\<^sup>R* c2" using left_config_is_not_right_config by blast
-    with cross_ltor(4) have "(rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>) \<rightarrow>\<^sup>R* c2" by simp
-    with cross_ltor(1,2,3) show ?thesis by auto
+    with crossn_ltor(4) have "(rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>) \<rightarrow>\<^sup>R* c2" by simp
+    with crossn_ltor(1,2,3) show ?thesis by auto
   qed
 next
   case (Suc m)
@@ -1438,12 +1609,12 @@ next
   with Suc(1) have c0_nm_cross: "c0 \<rightarrow>\<^sup>X(n+m) c'" by blast
   from c'_cross show ?case
   proof cases
-    case (cross_rtol r w s)
+    case (crossn_rtol r w s)
     moreover from this c0_nm_cross crossn_no_cross_eq_crossn have 
       "c0 \<rightarrow>\<^sup>X(n+m) (rev (\<langle>x\<langle>), r, \<rangle>w\<rangle>)" by blast
     ultimately show ?thesis by auto
   next
-    case (cross_ltor r w s)
+    case (crossn_ltor r w s)
     moreover from this c0_nm_cross crossn_no_cross_eq_crossn have
       "c0 \<rightarrow>\<^sup>X(n+m) (rev x_init, r, x_end # \<rangle>w\<rangle>)" by blast
     ultimately show ?thesis by auto
@@ -1470,7 +1641,7 @@ next
   moreover from this have "rev w @ y = \<langle>x @ z\<rangle>" 
      using unchanged_substrings step(1,5,6) by simp
   ultimately obtain m where "c1 \<rightarrow>\<^sup>X(m) c2" using step(2) step_impl_crossn by metis
-  then show ?case using ncross crossn_chain_is_sum step(4) by blast
+  then show ?case using ncross crossn_trans step(4) by blast
 qed
 
 lemma boundary_cross_impl_T:
@@ -1493,7 +1664,8 @@ lemma left_acc_impl_T_Some_acc:
       and left: "left_config (u, acc M, v)"
     obtains q where "T q (Some (acc M))"
 proof -
-  from assms(2) star_lstar_impl_substring_x[OF assms(1)] 
+  from reach have "rev u @ v = \<langle>x @ z\<rangle>" using unchanged_word by simp
+  with assms reachable_lconfig_impl_substring_x
   obtain y where y_defs: "rev u @ y = \<langle>x\<langle>" "y @ \<rangle>z\<rangle> = v"
     unfolding left_config_def by blast
   moreover obtain a as where "y = a # as" 
@@ -1537,8 +1709,8 @@ proof -
     qed
     moreover have "x @ z \<rightarrow>** (rev ys @ u, acc M, x_end # \<rangle>z\<rangle>)" using reach bound_reach by simp
     moreover from this have "rev ys @ u = rev x_init" using unchanged_word x_defs
-      by (metis append_eq_append_conv calculation(1) dfa2.mapl_app_mapr_eq_map
-          dfa2.unchanged_substrings dfa2_axioms r_into_rtranclp rev_rev_ident)
+      by (metis append_eq_append_conv calculation(1) dfa2.mapl_app_mapr_eq_map dfa2.unchanged_substrings dfa2_axioms
+          r_into_rtranclp rev_rev_ident)
     ultimately show thesis using that boundary_cross_impl_T by metis
   qed
 qed
@@ -1632,7 +1804,6 @@ lemma \<T>_finite_index:
     (*Try: define leftlang as in Finite_Automata_HF and apply the same rule*)
   sorry
 
-find_theorems name: right_to_left
 end
 
 lemma T_eq_is_\<T>_eq:
@@ -1658,200 +1829,305 @@ abbreviation "right_config \<equiv> dfa2_transition.right_config"
 abbreviation "pf_init \<equiv> dfa2_transition.x_init"
 abbreviation "pf_end \<equiv> dfa2_transition.x_end" (*Poor style?*)
 
+abbreviation left_step' :: "'a config \<Rightarrow> 'a list \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>L\<lparr>_\<rparr> _" 55) where
+  "c0 \<rightarrow>\<^sup>L\<lparr>x\<rparr> c1 \<equiv> dfa2_transition.left_step M x c0 c1"
+
+abbreviation left_steps' :: "'a config \<Rightarrow> 'a list \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>L*\<lparr>_\<rparr> _" 55) where
+  "c0 \<rightarrow>\<^sup>L*\<lparr>x\<rparr> c1 \<equiv> dfa2_transition.left_steps M x c0 c1"
+
+abbreviation right_step' :: "'a config \<Rightarrow> 'a list \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>R\<lparr>_\<rparr> _" 55) where
+  "c0 \<rightarrow>\<^sup>R\<lparr>x\<rparr> c1 \<equiv> dfa2_transition.right_step M x c0 c1"
+
+abbreviation right_steps' :: "'a config \<Rightarrow> 'a list \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>R*\<lparr>_\<rparr> _" 55) where
+  "c0 \<rightarrow>\<^sup>R*\<lparr>x\<rparr> c1 \<equiv> dfa2_transition.right_steps M x c0 c1"
+
+abbreviation right_stepn' :: "'a config \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" 
+                                                          ("_ \<rightarrow>\<^sup>R'(_,_') _" 55) where
+  "c0 \<rightarrow>\<^sup>R(x,n) c1 \<equiv> dfa2_transition.right_stepn M x c0 n c1"
+
+abbreviation left_reachable' :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>L**\<lparr>_\<rparr> _" 55) where
+  "w \<rightarrow>\<^sup>L**\<lparr>x\<rparr> c \<equiv> dfa2_transition.left_reachable M x w c"
+
+abbreviation crossn' :: "'a config \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>X'(_,_') _" 55) where
+  "w \<rightarrow>\<^sup>X(x,n) y \<equiv> dfa2_transition.crossn M x w n y"
+
+abbreviation word_crossn' :: "'a list \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>X*'(_,_') _" 55) where
+  "w \<rightarrow>\<^sup>X*(x, n) c \<equiv> dfa2_transition.word_crossn M x w n c" 
+
 definition T' :: "'a list \<Rightarrow> (state option \<times> state option) set" where
   "T' x = {(p, q). dfa2_transition.T M x p q}"
 
 lemma "finite (T' ` UNIV)" sorry
 
+
 lemma T_eq_impl_rconf_reachable:
-  assumes not_empty:  "x \<noteq> []" "y \<noteq> []"
+  assumes x_stepn:    "x @ z \<rightarrow>\<^sup>X*(x,n) (zs @ rev (\<langle>x\<langle>), q, v)"
+      and not_empty:  "x \<noteq> []" "y \<noteq> []"
       and T_eq:       "T x = T y"
-      and Tpq:        "T x p (Some q)"
-      and x_stepn:    "x @ z \<rightarrow>*(n) (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)"
-    shows "y @ z \<rightarrow>** (rev (\<langle>y\<langle>), q, \<rangle>z\<rangle>)"
-  sorry
+    shows "y @ z \<rightarrow>\<^sup>X*(y,n) (zs @ rev (\<langle>y\<langle>), q, v)"
+  using x_stepn proof (induction n arbitrary: zs q v rule: less_induct)
+  case (less n)
+  have T_axioms: "dfa2_transition M x" "dfa2_transition M y" using not_empty
+     dfa2_axioms dfa2_transition_axioms_def dfa2_transition_def by auto
+  have n_gt_0: "n > 0"
+  proof (rule ccontr)
+    assume "\<not>?thesis"
+    hence "n = 0" by blast
+    with less(2) have "(x @ z \<rightarrow>\<^sup>L**\<lparr>x\<rparr> (zs @ rev (\<langle>x\<langle>), q, v)) 
+                     \<or> (([], init M, \<langle>x @ z\<rangle>) \<rightarrow>\<^sup>R*\<lparr>x\<rparr> (zs @ rev (\<langle>x\<langle>), q, v))" 
+      using T_axioms(1) dfa2_transition.no_crossE by blast
+    moreover have "left_config x ([], init M, \<langle>x @ z\<rangle>)" 
+      unfolding dfa2_transition.left_config_def[OF T_axioms(1)] by simp
+    moreover have "right_config x (zs @ rev (\<langle>x\<langle>), q, v)" 
+      unfolding dfa2_transition.right_config_def[OF T_axioms(1)] by simp
+    ultimately show False
+      using T_axioms(1) \<open>n = 0\<close> dfa2_transition.left_config_is_not_right_config
+        dfa2_transition.no_cross_impl_same_side less.prems by blast
+  qed
+  then obtain m where m_def: "n = Suc m" using not0_implies_Suc by auto
+  obtain p q' where ltor: "x @ z \<rightarrow>\<^sup>X*(x,m) (rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>)"
+                    "(rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)"
+                    "(rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>\<^sup>R*\<lparr>x\<rparr> (zs @ rev (\<langle>x\<langle>), q, v)"
+  proof -
+    have "right_config x (zs @ rev (\<langle>x\<langle>), q, v)" 
+      using dfa2_transition.right_config_def[OF T_axioms(1)] by auto
+    from m_def less(2) dfa2_transition.right_config_impl_ltor_cross[OF T_axioms(1)]
+    obtain p q' z' where ltor': "x @ z \<rightarrow>\<^sup>X*(x,m) (rev (pf_init x), p, pf_end x # \<rangle>z'\<rangle>)"
+                    "(rev (pf_init x), p, pf_end x # \<rangle>z'\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q', \<rangle>z'\<rangle>)"
+                    "(rev (\<langle>x\<langle>), q', \<rangle>z'\<rangle>) \<rightarrow>\<^sup>R*\<lparr>x\<rparr> (zs @ rev (\<langle>x\<langle>), q, v)"
+      by (metis \<open>dfa2_transition.right_config x (zs @ rev (\<turnstile> # \<Sigma> x), q, v)\<close>)
+    moreover have "\<rangle>z\<rangle> = \<rangle>z'\<rangle>"
+    proof -
+      from ltor' have "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q', \<rangle>z'\<rangle>)" 
+        using dfa2_transition.crossn_impl_reachable[OF T_axioms(1)]
+        by (meson rtranclp.rtrancl_into_rtrancl)
+      with unchanged_word show ?thesis by force
+    qed
+    ultimately show thesis using that by presburger
+  qed
+  have y_rsteps_zs: "(rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>\<^sup>R*\<lparr>y\<rparr> (zs @ rev (\<langle>y\<langle>), q, v)"
+  proof -
+      from ltor have xq'z_reach: "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)" 
+        by (meson T_axioms(1) dfa2_transition.crossn_impl_reachable rtranclp.rtrancl_into_rtrancl)
+      from ltor(3) obtain i where rstepi:
+        "(rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>\<^sup>R(x,i) (zs @ rev (\<langle>x\<langle>), q, v)" 
+        by (meson rtranclp_imp_relpowp)
+      hence stepi: "(rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>(i) (zs @ rev (\<langle>x\<langle>), q, v)"
+        by (metis T_axioms(1) dfa2_transition.right_step.simps relpowp_mono)
+      moreover have 
+        x_all_geq: "\<forall>j\<le>i. \<forall>u' p' v'. ((rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)\<rightarrow>(j) (u', p', v')) 
+                \<longrightarrow> length (rev (\<langle>x\<langle>)) \<le> length u'"
+      proof ((rule allI)+, rule impI)+
+        fix j u' p' v'
+        assume j_lt_i: "j \<le> i"
+           and stepj: "(rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)\<rightarrow>(j) (u', p', v')"
+        with dfa2_transition.right_stepn_impl_interm_right_stepn[OF T_axioms(1)]
+        have "(rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)\<rightarrow>\<^sup>R(x,j) (u', p', v')"
+          using rstepi by blast
+        hence "right_config x (u', p', v')" using dfa2_transition.right_config_def[OF T_axioms(1)]
+          by (metis T_axioms(1) dfa2_transition.rstepE length_rev nat_le_linear relpowp_E)
+        thus "length (rev (\<langle>x\<langle>)) \<le> length u'" using dfa2_transition.right_config_def[OF T_axioms(1)]
+          by auto        
+      qed
+      ultimately have stepi_y: "(rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>(i) (zs @ rev (\<langle>y\<langle>), q, v)" 
+                      and y_all_geq: 
+                      "\<forall>j\<le>i. \<forall>u' p' v'. ((rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>)\<rightarrow>(j) (u', p', v')) 
+                        \<longrightarrow> length (rev (\<langle>y\<langle>)) \<le> length u'"
+        using all_geq_left_impl_left_indep[OF xq'z_reach stepi x_all_geq] by blast+
+      thus ?thesis 
+      proof -
+        note rconf_def_y = dfa2_transition.right_config_def[OF T_axioms(2)]
+        from stepi_y obtain f where f_def:
+          "f 0 = (rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>)"
+          "f i = (zs @ rev (\<langle>y\<langle>), q, v)"
+          "\<forall>n<i. f n \<rightarrow> f (Suc n)" by (metis relpowp_fun_conv)
+        hence "\<forall>n<i. (f 0 \<rightarrow>(n) f n)"
+          by (metis Suc_lessD less_trans_Suc relpowp_fun_conv)
+        have rstepn_fn: "\<forall>n<i. ((rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>\<^sup>R(y,n) f n)"
+        proof (rule allI, rule impI)
+          fix n
+          assume n_lt_i: "n < i"
+          then show "((rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>\<^sup>R(y,n) f n)"
+          proof (induction n)
+            case (Suc n)
+            hence rstepn: "((rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>\<^sup>R(y,n) f n)" by simp
+            moreover from this have fn_rconf: "right_config y (f n)" 
+              by (metis T_axioms(2) dfa2_transition.rstepE le_refl length_rev rconf_def_y relpowp_E)
+            moreover have "f n \<rightarrow>\<^sup>R\<lparr>y\<rparr> f (Suc n)"
+            proof -
+              from f_def Suc have "f n \<rightarrow> f (Suc n)" by simp
+              moreover from this rstepn have "(rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>(Suc n) f (Suc n)"
+                using Suc.prems \<open>\<forall>n<i. ((\<rightarrow>) ^^ n) (f 0) (f n)\<close> f_def(1) by auto
+              moreover have "right_config y (f (Suc n))" 
+              proof -
+                obtain u p v where "f (Suc n) = (u, p, v)" using prod_cases3 by blast
+                moreover from this y_all_geq have "right_config y (u, p, v)"
+                  using rstepn 
+                  by (metis Suc.prems \<open>((\<rightarrow>) ^^ Suc n) (rev (\<turnstile> # \<Sigma> y), q', \<Sigma> z @ [\<stileturn>]) (f (Suc n))\<close> 
+                      length_rev nat_less_le rconf_def_y)
+                ultimately show ?thesis by simp
+              qed
+              ultimately show ?thesis 
+                by (simp add: T_axioms(2) dfa2_transition.right_step.simps fn_rconf)
+            qed
+            ultimately show ?case by auto
+          qed (use f_def in simp)
+        qed
+        thus ?thesis 
+        proof (cases i)
+          case 0
+          then show ?thesis using f_def by simp
+        next
+          case (Suc k)
+          with rstepn_fn have stepk: "(rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>\<^sup>R(y,k) f k" by blast
+          moreover have "... \<rightarrow>\<^sup>R\<lparr>y\<rparr> (zs @ rev (\<langle>y\<langle>), q, v)"
+          proof -
+            from Suc f_def have "f k \<rightarrow> (zs @ rev (\<langle>y\<langle>), q, v)" by auto
+            moreover have "right_config y (f k)" 
+              using stepk 
+              by (metis T_axioms(2) dfa2_transition.right_config_def dfa2_transition.right_step.simps 
+                  length_rev less_or_eq_imp_le relpowp_E)
+            moreover have "right_config y (zs @ rev (\<langle>y\<langle>), q, v)"
+              unfolding rconf_def_y by simp
+            ultimately show ?thesis
+              by (simp add: T_axioms(2) dfa2_transition.right_step.simps)
+          qed
+          ultimately show ?thesis 
+            by (meson relpowp_imp_rtranclp rtranclp.rtrancl_into_rtrancl) 
+        qed
+      qed
+  qed
+  show ?case
+  proof (cases m)
+    case 0
+    with ltor have "x @ z \<rightarrow>\<^sup>L**\<lparr>x\<rparr> (rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>)"
+      by (metis T_axioms(1) dfa2_transition.left_config_lt_right_config
+          dfa2_transition.left_reachable_impl_left_config dfa2_transition.no_crossE length_greater_0_conv
+          list.size(3) rtranclp.rtrancl_refl)
+    with ltor have "T x None (Some q')"
+      using T_axioms(1) dfa2_transition.init_tr by blast
+    with T_eq obtain p' where "y @ z \<rightarrow>\<^sup>L**\<lparr>y\<rparr> (rev (pf_init y), p', pf_end y # \<rangle>z\<rangle>)"
+                              "(rev (pf_init y), p', pf_end y # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>)"
+      using dfa2_transition.init_tr_indep[OF T_axioms(2)] by auto
+    hence "y @ z \<rightarrow>\<^sup>X*(y,Suc 0) (rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>)"
+      by (meson T_axioms(2) dfa2_transition.crossn_ltor dfa2_transition.left_reachable_impl_left_config
+          dfa2_transition.no_crossl rtranclp.rtrancl_refl)
+    then have "y @ z \<rightarrow>\<^sup>X*(y,Suc 0) (zs @ rev (\<langle>y\<langle>), q, v)"
+      using dfa2_transition.crossn_trans[OF T_axioms(2)] y_rsteps_zs
+      by (meson T_axioms(2)
+          \<open>\<And>thesis. (\<And>p'. \<lbrakk>y @ z \<rightarrow>\<^sup>L**\<lparr>y\<rparr> (rev (pf_init y), p', pf_end y # \<rangle>z\<rangle>); 
+                    (rev (pf_init y), p', pf_end y # \<rangle>z\<rangle>) \<rightarrow> (rev (\<turnstile> # \<Sigma> y), q', \<Sigma> z @ [\<stileturn>])\<rbrakk> 
+          \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
+          dfa2_transition.crossn_ltor dfa2_transition.left_reachable_impl_left_config
+          dfa2_transition.left_steps_impl_left_config_conv dfa2_transition.no_crossl)
+    then show ?thesis using 0 m_def by blast
+  next
+    case (Suc k)
+    with ltor(1) obtain p' q'' where rtol:
+      "x @ z \<rightarrow>\<^sup>X*(x,k) (rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>)"
+      "(rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>) \<rightarrow> (rev (pf_init x), q'', pf_end x # \<rangle>z\<rangle>)"
+      "(rev (pf_init x), q'', pf_end x # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L*\<lparr>x\<rparr> (rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>)"
+    proof -
+      note lconf_def_x = dfa2_transition.left_config_def[OF T_axioms(1)]
+      have "left_config x (rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>)" 
+        using lconf_def_x dfa2_transition.x_defs[OF T_axioms(1)] by auto
+      with ltor(1) Suc dfa2_transition.left_config_impl_rtol_cross[OF T_axioms(1)]
+      obtain p' q'' z' where
+        "x @ z \<rightarrow>\<^sup>X*(x,k) (rev (\<langle>x\<langle>), p', \<rangle>z'\<rangle>)"
+        "(rev (\<langle>x\<langle>), p', \<rangle>z'\<rangle>) \<rightarrow> (rev (pf_init x), q'', pf_end x # \<rangle>z'\<rangle>)"
+        "(rev (pf_init x), q'', pf_end x # \<rangle>z'\<rangle>) \<rightarrow>\<^sup>L*\<lparr>x\<rparr> (rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>)"
+        by metis
+      moreover from this have "\<rangle>z'\<rangle> = \<rangle>z\<rangle>" using unchanged_word 
+        by (metis T_axioms(1) dfa2_transition.crossn_impl_reachable mapl_app_mapr_eq_map 
+            rev_rev_ident same_append_eq)
+      ultimately show thesis using that by simp
+    qed
+    with ltor(2) have Tx_Some: "T x (Some q'') (Some q')"
+      by (metis T_axioms(1) dfa2_transition.crossn_impl_reachable
+          dfa2_transition.some_tr init steps_impl_in_states)
+    from Suc m_def have "k < n" by simp
+    with rtol(1) have "y @ z \<rightarrow>\<^sup>X*(y,k) (rev (\<langle>y\<langle>), p', \<rangle>z\<rangle>)"
+      using less(1)[of _ "[]"] by simp 
+    moreover have "... \<rightarrow> (rev (pf_init y), q'', pf_end y # \<rangle>z\<rangle>)"
+    proof -
+      have z_nempty: "\<rangle>z\<rangle> \<noteq> []" by simp
+      with rtol(2) have p'_nxt: "nxt M p' (hd (\<rangle>z\<rangle>)) = (q'', Left)" by auto
+      have "(rev (\<langle>y\<langle>), p', \<rangle>z\<rangle>) = (rev (pf_init y @ [pf_end y]), p', \<rangle>z\<rangle>)"
+        using dfa2_transition.x_defs[OF T_axioms(2)] by simp
+      also have "... = (pf_end y # rev (pf_init y), p', \<rangle>z\<rangle>)" by simp
+      also have "... \<rightarrow> (rev (pf_init y), q'', pf_end y # \<rangle>z\<rangle>)" using p'_nxt z_nempty 
+        by (metis list.exhaust list.sel(1) step_left)
+      finally show ?thesis .
+    qed
+    moreover from Tx_Some T_eq obtain r where 
+      "... \<rightarrow>\<^sup>L*\<lparr>y\<rparr> (rev (pf_init y), r, pf_end y # \<rangle>z\<rangle>)"
+      "(rev (pf_init y), r, pf_end y # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>)"
+        using that dfa2_transition.some_tr_indep[OF T_axioms(2)] by metis
+    ultimately show ?thesis using y_rsteps_zs 
+      using Suc T_axioms(2) dfa2_transition.crossn_ltor dfa2_transition.crossn_rtol m_def
+      by blast
+  qed
+qed
+
+
 
 lemma T_eq_impl_right_congr:
   assumes not_empty:  "x \<noteq> []" "y \<noteq> []"
       and T_eq:       "T x = T y"
       and xz_in_lang: "x @ z \<in> language"
-        shows "y @ z \<in> language"
+    shows "y @ z \<in> language"
 proof -
-    from not_empty dfa2_axioms have transition_axioms: "dfa2_transition M x" "dfa2_transition M y"
+  from not_empty dfa2_axioms have T_axioms: "dfa2_transition M x" "dfa2_transition M y"
     using dfa2_transition_def unfolding dfa2_transition_axioms_def by auto
   with xz_in_lang obtain u v where x_acc_reachable: "x @ z \<rightarrow>** (u, acc M, v)" 
-        unfolding language_def by blast
-      consider "left_config x (u, acc M, v)" | "right_config x (u, acc M, v)"
-        unfolding dfa2_transition.left_config_def[OF transition_axioms(1)]
-                  dfa2_transition.right_config_def[OF transition_axioms(1)] 
-        by fastforce
-  thus "y @ z \<in> language"
+    unfolding language_def by blast
+  with dfa2_transition.reachable_xz_impl_crossn[OF T_axioms(1)] 
+  obtain n where "x @ z \<rightarrow>\<^sup>X*(x,n) (u, acc M, v)" by blast
+  consider "left_config x (u, acc M, v)" | "right_config x (u, acc M, v)"
+    unfolding dfa2_transition.left_config_def[OF T_axioms(1)]
+              dfa2_transition.right_config_def[OF T_axioms(1)] 
+    by fastforce
+  then show ?thesis
   proof cases
     case 1
-    then obtain q where "T x z q (Some (acc M))"
-      using dfa2_transition.left_acc_impl_T_Some_acc[OF transition_axioms(1) 
-                                                     x_acc_reachable]
+    then obtain xs where "rev u @ xs = \<langle>x\<langle>" "xs @ \<rangle>z\<rangle> = v" "xs \<noteq> []"
+    proof -
+      obtain xs where "rev u @ xs = \<langle>x\<langle>" "xs @ \<rangle>z\<rangle> = v"
+        by (smt (verit, ccfv_threshold) "1" T_axioms(1) dfa2_transition.left_config_def
+            dfa2_transition.reachable_lconfig_impl_substring_x rtranclp.rtrancl_refl x_acc_reachable)
+      moreover from this 1 have "xs \<noteq> []" using dfa2_transition.left_config_def[OF T_axioms(1)] by auto
+      ultimately show thesis using that by blast
+    qed
+    with acc_impl_reachable_substring have revxsu_reach: "x @ z \<rightarrow>** (rev xs @ u, acc M, \<rangle>z\<rangle>)" 
+      by (smt (verit, ccfv_SIG) rtranclp_trans snoc_eq_iff_butlast x_acc_reachable)
+    obtain m where "x @ z \<rightarrow>\<^sup>X*(x,m) (rev (\<langle>x\<langle>), acc M, \<rangle>z\<rangle>)"
+    proof -
+      from revxsu_reach dfa2_transition.reachable_xz_impl_crossn[OF T_axioms(1)] 
+      obtain m where "x @ z \<rightarrow>\<^sup>X*(x,m) (rev xs @ u, acc M, \<rangle>z\<rangle>)" by blast
+      moreover have "rev xs @ u = rev (\<langle>x\<langle>)"
+        by (metis \<open>rev u @ xs = \<turnstile> # \<Sigma> x\<close> rev_append rev_rev_ident)
+      ultimately show thesis using that by simp
+    qed
+    with T_eq_impl_rconf_reachable[OF _ not_empty T_eq, of _ _ "[]"] 
+    have "y @ z \<rightarrow>\<^sup>X*(y,m) (rev (\<langle>y\<langle>), acc M, \<rangle>z\<rangle>)"
+      by auto      
+    hence "y @ z \<rightarrow>** (rev (\<langle>y\<langle>), acc M, \<rangle>z\<rangle>)" using dfa2_transition.crossn_impl_reachable[OF T_axioms(2)]
       by blast
-    with T_eq have "T y z q (Some (acc M))" by presburger
-    then show ?thesis using language_def 
-          dfa2_transition.T_p_Some_impl_reachable[OF transition_axioms(2)]
-      by (metis (mono_tags, lifting) mem_Collect_eq)
+    then show ?thesis using language_def by blast
   next
     case 2
-    from x_acc_reachable have "([], init M, pf_init x @ pf_end x # \<rangle>z\<rangle>) \<rightarrow>* (u, acc M, v)"
-      (is "?butlast_init \<rightarrow>* _")
-      by (metis append.assoc append_Cons append_Nil dfa2_transition.x_is_init_app_end mapl_app_mapr_eq_map
-          transition_axioms(1))
-    then obtain n where "?butlast_init \<rightarrow>(n) (u, acc M, v)" by (meson rtranclp_imp_relpowp)
-    moreover have "length v < length (pf_end x # \<rangle>z\<rangle>)"
-    proof -
-      from dfa2_transition.reachable_right_conf_impl_substring_z[of M x z u "acc M" v,
-        OF transition_axioms(1) x_acc_reachable 2]
-      obtain zs where "rev (\<langle>x\<langle> @ zs) = u" "zs @ v = \<rangle>z\<rangle>" by blast
-      then show ?thesis by (metis length_Suc_conv length_append not_add_less2 not_less_eq)
-    qed
-    moreover have butlast_reachable: "x @ z \<rightarrow>** ?butlast_init" 
-    proof -
-      have "([], init M, \<langle>x @ z\<rangle>) = ([], init M, \<langle>x\<langle> @ \<rangle>z\<rangle>)" by simp
-      also have "... = ([], init M, butlast (\<langle>x\<langle>) @ last (\<langle>x\<langle>) # \<rangle>z\<rangle>)" by simp
-      finally have "([], init M, \<langle>x @ z\<rangle>) = ?butlast_init"
-        using dfa2_transition.x_defs[OF transition_axioms(1)] by simp
-      thus ?thesis by (metis rtranclp.rtrancl_refl)
-    qed
-    ultimately obtain p' m k where p'mk_defs:
-      "m + k = n"
-      "?butlast_init \<rightarrow>(m) (rev (pf_init x), p', pf_end x # \<rangle>z\<rangle>)" 
-      "(rev (pf_init x), p', pf_end x # \<rangle>z\<rangle>) \<rightarrow>(k) (u, acc M, v)"
-      using left_to_right_impl_reachable_substring
-      by (metis self_append_conv)
-    from 2 have "length (rev (pf_init x)) < length u"
-      using dfa2_transition.right_config_def
-      by (metis dfa2_transition.x_is_init_app_end length_append_singleton length_rev less_eq_Suc_le 
-          prod.inject transition_axioms(1))
-    moreover from p'mk_defs(2) butlast_reachable have x_init_reachable:
-      "x @ z \<rightarrow>** (rev (pf_init x), p', pf_end x # \<rangle>z\<rangle>)"
-      by (metis
-          \<open>([], dfa2.init M, dfa2_transition.x_init x @ dfa2_transition.x_end x # \<Sigma> z @ [\<stileturn>]) 
-          \<rightarrow>* (u, acc M, v)\<close>  relpowp_imp_rtranclp unchanged_word x_acc_reachable)
-    ultimately obtain p j where x_init_loopless:
-      "j < k"
-      "(rev (pf_init x), p', pf_end x # \<rangle>z\<rangle>) \<rightarrow>(j) (rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>)"
-      "\<forall>i\<le>k-j. \<forall>u' q' v'. ((rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>) \<rightarrow>(i) (u', q', v')) \<and> i \<noteq> 0 
-        \<longrightarrow> length u' > length (rev (pf_init x))" 
-      using p'mk_defs(3) dfa2_transition.reachable_from_left_impl_reachable_without_loops
-                          [OF transition_axioms(1)] by metis
-    with x_init_reachable have loopless_reachable:
-      "x @ z \<rightarrow>** (rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>)" 
-      by (meson relpowp_imp_rtranclp rtranclp_trans)
-    have loopless_reaches_acc: "... \<rightarrow>(k-j) (u, acc M, v)"
-      using x_init_loopless(1,2) p'mk_defs(3) stepn_decompose[of j k] 
-      by (meson nat_less_le)
-    obtain q' where loopless_step: "(rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)"
-    proof -
-      obtain q' where "nxt M p (pf_end x) = (q', Right)"
-      proof -
-        have "\<exists>q'. nxt M p (pf_end x) = (q', Right)"
-        proof (rule ccontr)
-          assume "\<not>?thesis"
-          then obtain q' where q'_def: "nxt M p (pf_end x) = (q', Left)"
-            by (metis (full_types) dir.exhaust old.prod.exhaust)
-          let ?rev = "rev (pf_init x)"
-          from q'_def have "(?rev, p, pf_end x # \<rangle>z\<rangle>) \<rightarrow> (tl ?rev, q', hd ?rev # pf_end x # \<rangle>z\<rangle>)" 
-            by (metis (no_types, lifting) Nil_is_append_conv Nil_is_map_conv \<open>x \<noteq> []\<close> append_Nil
-                dfa2_transition.x_is_init_app_end list.distinct(1) list.exhaust_sel list.sel(3) rev.simps(2) 
-                step_left transition_axioms(1))
-          hence "(?rev, p, pf_end x # \<rangle>z\<rangle>) \<rightarrow>(Suc 0) (tl ?rev, q', hd ?rev # pf_end x # \<rangle>z\<rangle>)" by auto
-          moreover have "length (tl ?rev) \<le> length ?rev" by simp
-          ultimately show False using x_init_loopless 
-            by (metis Suc_leI linorder_not_less nat.distinct(1) zero_less_diff)
-        qed
-        thus thesis using that by blast
-      qed
-      hence "(rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>) \<rightarrow> (pf_end x # rev (pf_init x), q', \<rangle>z\<rangle>)" by blast
-      moreover have "pf_end x # rev (pf_init x) = rev (\<langle>x\<langle>)" 
-        using dfa2_transition.x_defs[OF transition_axioms(1)]
-        by (metis dfa2_transition.x_is_init_app_end rev.simps(2) rev_rev_ident transition_axioms(1))
-      ultimately show thesis using that by simp 
-    qed
-    hence x_reaches_acc: "... \<rightarrow>(k-j-1) (u, acc M, v)" 
-      by (metis (no_types, lifting) diff_add_inverse less_iff_succ_less_eq less_imp_add_positive 
-          loopless_reaches_acc nat_add_left_cancel_le relpowp_1 stepn_decompose x_init_loopless(1))
-    then obtain us where u_app_def: "us @ rev (\<langle>x\<langle>) = u"
-      using x_init_loopless(3) loopless_reaches_acc left_to_right_impl_substring
-      by (metis "2" dfa2_transition.reachable_right_conf_impl_substring_z rev_append transition_axioms(1)
-          x_acc_reachable)         
-    from loopless_step dfa2_transition.boundary_cross_impl_T[OF transition_axioms(1)]
-    obtain qopt where "T x z qopt (Some q')" using loopless_reachable by blast
-    with T_eq have Ty: "T y z qopt (Some q')" by simp
-    show ?thesis
-    proof (cases rule: dfa2_transition.T.cases[OF transition_axioms(2) Ty])
-      case (1 p' q)
-      then have "y @ z \<rightarrow>** (rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>)" using 
-            dfa2_transition.left_steps_impl_steps[OF transition_axioms(2)] 1(3)
-        sorry 
-      also have "... \<rightarrow>* (us @ rev (\<langle>y\<langle>), acc M, v)"
-      proof -
-        have
-          "\<forall>i\<le>k-j-1. \<forall>u' q'' v'. ((rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>(i) (u', q'', v'))
-            \<longrightarrow> length (rev (\<langle>x\<langle>)) \<le> length u'"
-        proof ((rule allI)+, rule impI)+
-          fix i u' q'' v'
-          assume i_leq_kj1: "i \<le> k-j-1"
-             and stepi:  "((rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>(i) (u', q'', v'))"
-          with 1(2) loopless_step have "(rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>) \<rightarrow>(Suc i) (u', q'', v')"
-            by (meson relpowp_Suc_I2)
-          with x_init_loopless(3) i_leq_kj1 have "length (rev (pf_init x)) < length u'"  
-            by (metis Suc_diff_1 Suc_le_mono Zero_not_Suc x_init_loopless(1) zero_less_diff)
-          then show "length (rev (\<langle>x\<langle>)) \<le> length u'" using 
-              dfa2_transition.x_defs[OF transition_axioms(1)] 
-            by (metis append_butlast_last_id length_append_singleton length_rev 
-                linorder_le_less_linear list.discI not_less_eq)
-        qed
-        moreover from loopless_reachable loopless_step have
-          "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)" by auto
-        moreover from x_reaches_acc u_app_def have
-          "(rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>(k-j-1) (us @ rev (\<langle>x\<langle>), acc M, v)" by blast
-        ultimately show ?thesis using u_app_def 
-            x_reaches_acc all_geq_left_impl_left_indep relpowp_imp_rtranclp by metis
-      qed
-      finally show ?thesis unfolding language_def by blast
-    next
-      case (3 p' q p'')
-      then have "y @ z \<rightarrow>** (rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>)" using 
-            dfa2_transition.left_steps_impl_steps sorry
-      also have "... \<rightarrow>* (us @ rev (\<langle>y\<langle>), acc M, v)"
-      proof -
-        have
-          "\<forall>i\<le>k-j-1. \<forall>u' q'' v'. ((rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>(i) (u', q'', v'))
-            \<longrightarrow> length (rev (\<langle>x\<langle>)) \<le> length u'"
-        proof ((rule allI)+, rule impI)+
-          fix i u' q'' v'
-          assume i_leq_kj1: "i \<le> k-j-1"
-             and stepi:  "((rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>(i) (u', q'', v'))"
-          with loopless_step have "(rev (pf_init x), p, pf_end x # \<rangle>z\<rangle>) \<rightarrow>(Suc i) (u', q'', v')"
-            by (meson relpowp_Suc_I2)
-          with x_init_loopless(3) i_leq_kj1 have "length (rev (pf_init x)) < length u'"  
-            by (metis Suc_diff_1 Suc_le_mono Zero_not_Suc x_init_loopless(1) zero_less_diff)
-          then show "length (rev (\<langle>x\<langle>)) \<le> length u'" using 
-              dfa2_transition.x_defs[OF transition_axioms(1)] 
-            by (metis append_butlast_last_id length_append_singleton length_rev 
-                linorder_le_less_linear list.discI not_less_eq)
-        qed
-        moreover from loopless_reachable loopless_step have
-          "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)" by auto
-        moreover from x_reaches_acc u_app_def have
-          "(rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>(k-j-1) (us @ rev (\<langle>x\<langle>), acc M, v)" by blast
-        ultimately show ?thesis using u_app_def 
-            x_reaches_acc all_geq_left_impl_left_indep relpowp_imp_rtranclp by metis
-        qed
-      finally show ?thesis unfolding language_def by blast
-    qed simp+
+    from x_acc_reachable dfa2_transition.reachable_xz_impl_crossn[OF T_axioms(1)]
+    obtain n where x_crossn: "x @ z \<rightarrow>\<^sup>X*(x,n) (u, acc M, v)" by blast
+    from 2 obtain zs where zs_defs: "rev zs @ rev (\<langle>x\<langle>) = u" "zs @ v = \<rangle>z\<rangle>" 
+      by (metis T_axioms(1) dfa2_transition.reachable_right_conf_impl_substring_z rev_append
+          x_acc_reachable)
+    with T_eq_impl_rconf_reachable[OF _ not_empty T_eq] have 
+      "y @ z \<rightarrow>\<^sup>X*(y,n) (rev zs @ rev (\<langle>y\<langle>), acc M, v)"
+      using x_crossn by blast
+    then show ?thesis using dfa2_transition.crossn_impl_reachable[OF T_axioms(2)] 
+      unfolding language_def by blast
   qed
 qed
-      
-
-
-
 
 theorem two_way_dfa_lang_regular:
   "regular language"
@@ -1861,12 +2137,11 @@ proof -
     by metis
   have "(\<forall>z. x @ z \<in> language \<longleftrightarrow> y @ z \<in> language) 
              \<longleftrightarrow> (x, y) \<in> eq_app_right language" unfolding eq_app_right_def by simp
-  have "T' x = T' y \<Longrightarrow> (x, y) \<in> eq_app_right language" unfolding T'_def sorry
+  have "T' x = T' y \<Longrightarrow> (x, y) \<in> eq_app_right language" unfolding T'_def \<proof>
   have "finite (UNIV // eq_app_right language)" \<proof>
   then show "regular language" using L3_1 by auto
 qed
 
-find_theorems name: refine
   
 end
 end

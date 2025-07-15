@@ -1404,7 +1404,7 @@ lemma no_cross_impl_same_side:
   shows "left_config c0 = left_config c1"
   using assms left_config_is_not_right_config by blast
 
-lemma left_config_impl_rtol_cross[elim]:
+lemma left_config_impl_rtol_cross:
   assumes "c0 \<rightarrow>\<^sup>X(Suc n) c1"
           "left_config c1"
         obtains p q z where "c0 \<rightarrow>\<^sup>X(n) (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>)" 
@@ -1420,7 +1420,7 @@ next
   then show ?thesis using assms left_config_is_not_right_config by auto
 qed
 
-lemma right_config_impl_ltor_cross[elim]:
+lemma right_config_impl_ltor_cross:
   assumes "c0 \<rightarrow>\<^sup>X(Suc n) c1"
           "right_config c1"
         obtains p q z where "c0 \<rightarrow>\<^sup>X(n) (rev x_init, p, x_end # \<rangle>z\<rangle>)" 
@@ -1621,7 +1621,7 @@ next
   qed
 qed
   
-lemma crossn_impl_reachable:
+lemma crossn_impl_reachable[dest]:
   assumes "c0 \<rightarrow>\<^sup>X(n) c1"
   shows "c0 \<rightarrow>* c1"
   using assms by induction auto
@@ -1647,7 +1647,7 @@ qed
 lemma boundary_cross_impl_T:
   assumes "x @ z \<rightarrow>** (rev x_init, p, x_end # \<rangle>z\<rangle>)"
           "(rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)"
-  obtains q' where "T q' (Some q)"
+        obtains q' where "T q' (Some q)"
 proof (cases "x @ z \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z\<rangle>)")
   case False
   then obtain q' q'' where "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)" 
@@ -1658,6 +1658,7 @@ proof (cases "x @ z \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z\<
   hence "T (Some q'') (Some q)" using assms reachable_impl_in_states by blast
   then show ?thesis using that by simp
 qed (use that assms in blast)
+
 
 lemma left_acc_impl_T_Some_acc:
   assumes reach: "x @ z \<rightarrow>** (u, acc M, v)"
@@ -1687,7 +1688,7 @@ proof -
     case Nil
     hence u_v_is_bound: "(u, acc M, v) = (rev x_init, acc M, x_end # \<rangle>z\<rangle>)" 
       using ys_def unchanged_word[OF reach] x_defs by simp
-    have "(u, acc M, v) \<rightarrow> (rev (\<langle>x\<langle>), acc M, \<rangle>z\<rangle>)" 
+    moreover have "(u, acc M, v) \<rightarrow> (rev (\<langle>x\<langle>), acc M, \<rangle>z\<rangle>)" 
     proof -
       have "x_end \<noteq> \<stileturn>" using x_defs(2) by (simp add: last_map)
       hence "(rev x_init, acc M, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), acc M, \<rangle>z\<rangle>)"
@@ -1695,7 +1696,7 @@ proof -
         by (smt (verit, ccfv_SIG) rev_eq_Cons_iff rev_rev_ident step.simps x_is_init_app_end)
       with u_v_is_bound show ?thesis by blast
     qed
-    then show thesis using that boundary_cross_impl_T u_v_is_bound reach by blast
+    ultimately show thesis using that reach boundary_cross_impl_T by blast
   next
     case (Cons b bs)
     with acc_impl_reachable_substring[OF reach] 
@@ -1711,112 +1712,109 @@ proof -
     moreover from this have "rev ys @ u = rev x_init" using unchanged_word x_defs
       by (metis append_eq_append_conv calculation(1) dfa2.mapl_app_mapr_eq_map dfa2.unchanged_substrings dfa2_axioms
           r_into_rtranclp rev_rev_ident)
-    ultimately show thesis using that boundary_cross_impl_T by metis
+    ultimately show thesis using that reach boundary_cross_impl_T by metis
   qed
 qed
 
-
-(*Needed? (All unused until now)*)
-lemma T_func:
-  assumes "T p q"
-          "T p q'"
-        shows "q = q'" sorry 
-
-lemma T_func_conv:
-  assumes "T p q"
-          "q \<noteq> q'"
-        shows "\<not>T p q'" using assms T_func by auto 
-
-lemma T_none_none_iff_not_none_some:
+lemma T_none_none_iff_not_some:
   "(\<exists>q. T None (Some q)) \<longleftrightarrow> \<not>T None None"
 proof
   assume "\<exists>q. T None (Some q)"
-  then show "\<not> T None None"
-  proof 
-    fix q
-    assume "T None (Some q)"
-    thus "\<not> T None None"
-      using T_func by auto (*Can also be shown without T_func, although the proof is a bit more
-                          complex*)
-  qed
+  then show "\<not>T None None"
+    by (metis T_None_Some_impl_reachable init_no_tr_indep)
+
 next
   assume "\<not> T None None"
-  then obtain q z where "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" by blast
-  hence "T None (Some q)" sorry (*Infinite descent?*)
-  thus "\<exists>q. T None (Some q)" by blast
+  then obtain q z where reach: "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" by blast
+  then obtain n where "x @ z \<rightarrow>\<^sup>X*(Suc n) (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" 
+    proof -
+    from reach obtain n where ncross: "x @ z \<rightarrow>\<^sup>X*(n) (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" 
+      using reachable_xz_impl_crossn by blast
+    moreover from this obtain m where "n = Suc m"
+      proof -
+        have "\<exists>m. n = Suc m"
+        proof (rule ccontr)
+          assume "\<not>?thesis"
+          hence "n = 0" by presburger
+          with ncross have "x @ z \<rightarrow>\<^sup>X*(0) (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" by simp
+          moreover have "left_config ([], init M, \<langle>x @ z\<rangle>)" unfolding left_config_def by simp
+          moreover have "right_config (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" unfolding right_config_def by simp
+          ultimately show False 
+            using left_config_is_not_right_config no_cross_impl_same_side by auto 
+        qed
+        thus thesis using that by blast
+      qed
+     ultimately show thesis using that by blast
+   qed
+   then show "\<exists>q. T None (Some q)"
+   proof (induction n arbitrary: q rule: less_induct)
+     case (less n)
+     then show ?case
+     proof (cases n)
+       case 0
+       then obtain p p' where "x @ z \<rightarrow>\<^sup>X*(0) (rev x_init, p, x_end # \<rangle>z\<rangle>)"
+                         "(rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>)"
+                         "(rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>) \<rightarrow>\<^sup>R* (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)"
+       proof -
+         have "right_config (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" unfolding right_config_def by simp
+         from right_config_impl_ltor_cross[OF less(2) this]
+         obtain p p' z' where "x @ z \<rightarrow>\<^sup>X*(0) (rev x_init, p, x_end # \<rangle>z'\<rangle>)"
+                           "(rev x_init, p, x_end # \<rangle>z'\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), p', \<rangle>z'\<rangle>)"
+                           "(rev (\<langle>x\<langle>), p', \<rangle>z'\<rangle>) \<rightarrow>\<^sup>R* (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" using 0 by metis
+         moreover from this unchanged_word have "\<rangle>z'\<rangle> = \<rangle>z\<rangle>" 
+           by (meson right_steps_impl_steps same_append_eq unchanged_substrings)
+         ultimately show thesis using that by auto
+       qed
+       hence "T None (Some p')" 
+         by (metis Nil_is_append_conv init_tr left_config_def left_config_is_not_right_config length_0_conv
+             length_greater_0_conv no_crossE not_Cons_self2 x_is_init_app_end)
+       then show ?thesis by blast
+     next
+       case (Suc k)
+       then obtain p p' where Suc_k_cross: "x @ z \<rightarrow>\<^sup>X*(Suc k) (rev x_init, p, x_end # \<rangle>z\<rangle>)"
+                         "(rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>)"
+                         "(rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>) \<rightarrow>\<^sup>R* (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)"
+       proof -
+         have "right_config (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" unfolding right_config_def by simp
+         from right_config_impl_ltor_cross[OF less(2) this]
+         obtain p p' z' where "x @ z \<rightarrow>\<^sup>X*(Suc k) (rev x_init, p, x_end # \<rangle>z'\<rangle>)"
+                           "(rev x_init, p, x_end # \<rangle>z'\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), p', \<rangle>z'\<rangle>)"
+                           "(rev (\<langle>x\<langle>), p', \<rangle>z'\<rangle>) \<rightarrow>\<^sup>R* (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" using Suc by metis
+         moreover from this have "\<rangle>z'\<rangle> = \<rangle>z\<rangle>" 
+           by (meson right_steps_impl_steps same_append_eq unchanged_substrings)
+         ultimately show thesis using that by auto
+       qed
+       then obtain q' m where "x @ z \<rightarrow>\<^sup>X*(Suc m) (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)" 
+                              "k = Suc m"
+       proof -
+         from Suc_k_cross(1) obtain q' z' where k_steps: "x @ z \<rightarrow>\<^sup>X*(k) (rev (\<langle>x\<langle>), q', \<rangle>z'\<rangle>)" 
+           using right_config_impl_ltor_cross
+           by (smt (verit, del_insts) append.assoc append_Cons append_Nil crossn_impl_reachable
+               left_config_impl_rtol_cross left_config_is_not_right_config list.distinct(1)
+               reachable_right_conf_impl_substring_z rev.simps(2) rev_append rev_is_rev_conv rev_swap
+               self_append_conv x_is_init_app_end)
+         moreover from this have "\<rangle>z\<rangle> = \<rangle>z'\<rangle>"
+           by (metis crossn_impl_reachable reach same_append_eq unchanged_substrings)
+         moreover obtain m where "k = Suc m" 
+         proof -
+           have "k \<noteq> 0"
+           proof
+             assume "k = 0"
+             with k_steps no_cross_impl_same_side show False 
+               using left_config_def right_config_def left_config_is_not_right_config
+               by (metis (no_types, lifting) add_0 bot_nat_0.extremum le_add_same_cancel2 length_0_conv
+                   length_Suc_conv length_rev zero_less_Suc)
+           qed
+           thus thesis using that using not0_implies_Suc by auto
+         qed
+         ultimately show thesis using that by auto 
+       qed
+       then show ?thesis using less(1) Suc using less_Suc_eq by auto
+     qed
+   qed
 qed
 
 end
-
-
-context dfa2_transition
-begin
-
-definition \<T> :: "(state option \<times> state option) set" where
-  "\<T> \<equiv> {(q, p). T q p}"
-
-lemma \<T>_subset_states_none:
-  "\<T> \<subseteq> ({Some q | q. q \<in> states M} \<union> {None}) \<times> ({Some q | q. q \<in> states M} \<union> {None})"
-    (is "_ \<subseteq> ?S \<times> _")
-proof
-    fix qp :: "state option \<times> state option"
-    assume "qp \<in> \<T>"
-    then obtain q p where qp_def: "qp = (q, p)" "(q, p) \<in> \<T>"
-      by (metis surj_pair)
-    have "(q, p) \<in> ?S \<times> ?S"
-      using qp_def(2) dfa2_transition.T_impl_in_states[OF dfa2_transition_axioms] unfolding \<T>_def 
-      by fast      
-    thus "qp \<in> ?S \<times> ?S" using qp_def by simp
-qed
-
-lemma Tset_finite: "finite \<T>" 
-proof -
-  let ?S = "{Some q | q. q \<in> states M} \<union> {None}"
-  have "finite ?S" using finite by simp
-  then show ?thesis using Finite_Set.finite_subset \<T>_subset_states_none by auto
-qed
-
-lemma \<T>_card_upperbound:
-  "card \<T> \<le> (Suc (card (states M))) ^ 2"
-proof -
-  let ?S = "{Some q | q. q \<in> states M} \<union> {None}"
-  have card_eq: "card ?S = Suc (card (states M))" 
-  proof -
-    have "card (states M) = card {Some q | q. q \<in> states M}"
-    proof (rule bij_betw_same_card)
-      show "bij_betw Some (states M) {Some q | q. q \<in> states M}" 
-        by (smt (verit) bij_betwI' mem_Collect_eq option.inject)
-    qed
-    thus ?thesis using finite by auto
-  qed
-  from finite have "finite ?S" by simp
-  hence "card (\<T>) \<le> card (?S \<times> ?S)" using \<T>_subset_states_none 
-    by (meson card_mono finite_SigmaI)
-  with card_eq show ?thesis using Groups_Big.card_cartesian_product
-    by (metis power2_eq_square)
-qed
-
-
-
-
-lemma \<T>_finite_index:
-  "finite (UNIV // \<T>)" (*Nontrivial(?) and not proved in the book*)
-    (*Try: define leftlang as in Finite_Automata_HF and apply the same rule*)
-  sorry
-
-end
-
-lemma T_eq_is_\<T>_eq:
-  assumes "dfa2_transition M x"
-          "dfa2_transition M y"
-        shows "dfa2_transition.T M x = dfa2_transition.T M y 
-           \<longleftrightarrow> dfa2_transition.\<T> M x = dfa2_transition.\<T> M y"
-  unfolding dfa2_transition.\<T>_def[OF assms(1)] dfa2_transition.\<T>_def[OF assms(2)]
-  by fastforce
-
-lemma bij: "bij_betw (\<lambda>X. \<Union>(f ` X)) (A // {(x, y). f x = f y}) (f ` A)" sorry
-
-
 
 
 context dfa2
@@ -1853,11 +1851,6 @@ abbreviation crossn' :: "'a config \<Rightarrow> 'a list \<Rightarrow> nat \<Rig
 
 abbreviation word_crossn' :: "'a list \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>X*'(_,_') _" 55) where
   "w \<rightarrow>\<^sup>X*(x, n) c \<equiv> dfa2_transition.word_crossn M x w n c" 
-
-definition T' :: "'a list \<Rightarrow> (state option \<times> state option) set" where
-  "T' x = {(p, q). dfa2_transition.T M x p q}"
-
-lemma "finite (T' ` UNIV)" sorry
 
 
 lemma T_eq_impl_rconf_reachable:
@@ -2069,8 +2062,6 @@ lemma T_eq_impl_rconf_reachable:
   qed
 qed
 
-
-
 lemma T_eq_impl_right_congr:
   assumes not_empty:  "x \<noteq> []" "y \<noteq> []"
       and T_eq:       "T x = T y"
@@ -2129,16 +2120,164 @@ proof -
   qed
 qed
 
+definition \<T> :: "'a list \<Rightarrow> (state option \<times> state option) set" where
+  "\<T> x \<equiv> {(q, p). dfa2_transition M x \<and> T x q p}"
+
+
+lemma \<T>_subset_states_none:
+  shows "\<T> x \<subseteq> ({Some q | q. q \<in> states M} \<union> {None}) \<times> ({Some q | q. q \<in> states M} \<union> {None})"
+    (is "_ \<subseteq> ?S \<times> _")
+proof (cases x)
+  case Nil
+  then show ?thesis unfolding \<T>_def 
+    by (simp add: dfa2_transition_axioms_def dfa2_transition_def)
+next
+  case (Cons a as)
+  show ?thesis 
+  proof 
+    from Cons have trans: "dfa2_transition M x" 
+      unfolding dfa2_transition_axioms_def dfa2_transition_def 
+      by (simp add: dfa2_axioms)
+    fix pq :: "state option \<times> state option"
+    assume "pq \<in> \<T> x"
+    then obtain p q where pq_def: "pq = (p, q)" "(p, q) \<in> \<T> x"
+      by (metis surj_pair)
+    have "(p, q) \<in> ?S \<times> ?S"
+      using pq_def(2) dfa2_transition.T_impl_in_states[OF trans] unfolding \<T>_def 
+      by fast
+    thus "pq \<in> ?S \<times> ?S" using pq_def by simp
+  qed
+qed
+
+lemma \<T>_finite:
+  shows "finite (\<T> x)" 
+proof -
+  let ?S = "{Some q | q. q \<in> states M} \<union> {None}"
+  have "finite ?S" using finite by simp
+  then show ?thesis using Finite_Set.finite_subset \<T>_subset_states_none by auto
+qed
+
+lemma \<T>_card_upperbound:
+  assumes "dfa2_transition M x"
+  shows "card (\<T> x) \<le> (Suc (card (states M))) ^ 2"
+proof -
+  let ?S = "{Some q | q. q \<in> states M} \<union> {None}"
+  have card_eq: "card ?S = Suc (card (states M))" 
+  proof -
+    have "card (states M) = card {Some q | q. q \<in> states M}"
+    proof (rule bij_betw_same_card)
+      show "bij_betw Some (states M) {Some q | q. q \<in> states M}" 
+        by (smt (verit) bij_betwI' mem_Collect_eq option.inject)
+    qed
+    thus ?thesis using finite by auto
+  qed
+  from finite have "finite ?S" by simp
+  hence "card (\<T> x) \<le> card (?S \<times> ?S)" using \<T>_subset_states_none 
+    by (meson card_mono finite_SigmaI assms)
+  with card_eq show ?thesis using Groups_Big.card_cartesian_product
+    by (metis power2_eq_square)
+qed
+
+lemma \<T>_Nil_eq_\<T>_Nil:
+  assumes "\<T> x = \<T> []"
+  shows "x = []"
+proof (rule ccontr)
+  assume nempty: "x \<noteq> []"
+  then obtain p q where "T x p q" 
+    using dfa2_transition.T_none_none_iff_not_some 
+    by (metis dfa2_axioms dfa2_transition_axioms_def dfa2_transition_def)
+  moreover from nempty have "dfa2_transition M x" 
+    by (simp add: dfa2_axioms dfa2_transition.intro dfa2_transition_axioms_def)
+  moreover from assms have "\<T> x = {}" unfolding \<T>_def
+    by (simp add: dfa2_transition_axioms_def dfa2_transition_def) 
+  ultimately show False unfolding \<T>_def by blast 
+qed
+
+
+lemma T_eq_is_\<T>_eq:
+  assumes "dfa2_transition M x"
+          "dfa2_transition M y"
+        shows "T x = T y \<longleftrightarrow> \<T> x = \<T> y"
+  using assms \<T>_def by fastforce
+
+definition kern :: "('b \<Rightarrow> 'c) \<Rightarrow> ('b \<times> 'b) set" where
+  "kern f \<equiv> {(x, y). f x = f y}"
+
+lemma inj_on_vimage_image: "inj_on (\<lambda>b. f -` {b}) (f ` A)"
+  using inj_on_def by fastforce
+
+lemma kern_Image: "kern f `` A = f -` (f ` A)"
+  unfolding kern_def by (auto simp: rev_image_eqI)
+
+lemma quotient_kern_eq_image: "A // kern f = (\<lambda>b. f-` {b}) ` f ` A"
+  by (auto simp: quotient_def kern_Image)
+
+lemma bij_betw_image_quotient_kern: 
+  "bij_betw (\<lambda>b. f -` {b}) (f ` A) (A // kern f)"
+  unfolding bij_betw_def 
+  by (simp add: inj_on_vimage_image quotient_kern_eq_image)
+
+lemma finite_quotient_kern_iff_finite_image:
+  "finite (A // kern \<T>) = finite (\<T> ` A)"
+  by (metis bij_betw_finite bij_betw_image_quotient_kern)
+
+lemma \<T>_finite_image:
+  "finite (\<T> ` UNIV)"
+proof -
+  let ?S = "{Some q | q. q \<in> states M} \<union> {None}"
+  have finite_state_options: "finite ?S" using finite by simp 
+  hence "\<T> ` UNIV \<subseteq> Pow (?S \<times> ?S)" using \<T>_subset_states_none by blast
+  moreover have "finite (Pow (?S \<times> ?S))" using finite_state_options by simp
+  ultimately show "finite (\<T> ` UNIV)" by (simp add: finite_subset)
+qed
+
+
+
+lemma kern_\<T>_subset_eq_app_right:
+  "kern \<T> \<subseteq> eq_app_right language"
+proof 
+  fix xy
+  assume "xy \<in> kern \<T>"
+  then obtain x y where xy_def: "xy = (x, y)" "\<T> x = \<T> y" 
+    unfolding kern_def by blast
+  show "xy \<in> eq_app_right language"
+  proof (cases x)
+    case Nil
+    with xy_def have "y = []" using \<T>_Nil_eq_\<T>_Nil by simp
+    with xy_def Nil have "(x, y) = ([], [])" by simp
+    then show ?thesis using xy_def unfolding eq_app_right_def by simp
+  next
+    case (Cons a as)
+    moreover from this \<T>_Nil_eq_\<T>_Nil xy_def have "y \<noteq> []" by auto
+    ultimately have T_axioms: "dfa2_transition M x"
+                              "dfa2_transition M y"
+      by (simp add: dfa2_axioms dfa2_transition.intro
+          dfa2_transition_axioms.intro)+
+    then show ?thesis using T_eq_impl_right_congr
+      unfolding eq_app_right_def
+      by (smt (verit) T_eq_is_\<T>_eq \<T>_Nil_eq_\<T>_Nil case_prod_conv mem_Collect_eq xy_def(1,2))
+  qed
+qed
+
 theorem two_way_dfa_lang_regular:
   "regular language"
 proof -
   obtain x y :: "'a list" where not_empty: "x \<noteq> []" "y \<noteq> []" by blast
   hence "T x = T y \<Longrightarrow> \<forall>z. x @ z \<in> language \<longleftrightarrow> y @ z \<in> language" using T_eq_impl_right_congr
     by metis
-  have "(\<forall>z. x @ z \<in> language \<longleftrightarrow> y @ z \<in> language) 
+  moreover have "(\<forall>z. x @ z \<in> language \<longleftrightarrow> y @ z \<in> language) 
              \<longleftrightarrow> (x, y) \<in> eq_app_right language" unfolding eq_app_right_def by simp
-  have "T' x = T' y \<Longrightarrow> (x, y) \<in> eq_app_right language" unfolding T'_def \<proof>
-  have "finite (UNIV // eq_app_right language)" \<proof>
+  then have "finite (UNIV // eq_app_right language)" 
+  proof -
+    from \<T>_finite_image have "finite (UNIV // kern \<T>)" 
+      using finite_quotient_kern_iff_finite_image by simp
+    moreover have "equiv UNIV (kern \<T>)"
+      unfolding kern_def
+        by (simp add: equivI refl_on_def sym_def trans_def eq_app_right_def)
+      ultimately show ?thesis using finite_refines_finite kern_\<T>_subset_eq_app_right 
+          equiv_eq_app_right 
+      by blast
+  qed
   then show "regular language" using L3_1 by auto
 qed
 

@@ -4,6 +4,9 @@ theory Two_way_DFA_HF
   imports "Finite_Automata_HF.Finite_Automata_HF"
 begin
 
+
+subsection \<open>Definition of 2DFAs\<close>
+
 datatype dir = Left | Right
 
 datatype 'a symbol = Letter 'a | Marker dir (*Alternative: treat start/end of list as marker?*)
@@ -22,6 +25,9 @@ record 'a dfa2 = states :: "state set"
                  rej    :: "state"
                  nxt    :: "state \<Rightarrow> 'a symbol \<Rightarrow> state \<times> dir"
 
+text \<open>2DFA configurations. A 2DFA \<open>M\<close> is in a configuration \<open>(u, q, v)\<close> if \<open>M\<close> is reading
+      \<open>hd v\<close>, the substring \<open>rev u\<close> is to the left, \<open>tl v\<close> is to the right, and \<open>M\<close> is in state
+      \<open>q\<close>.\<close>
 type_synonym 'a config = "'a symbol list \<times> state \<times> 'a symbol list"
 
 locale dfa2 =
@@ -39,6 +45,9 @@ locale dfa2 =
       and final_nxt_r:  "\<lbrakk>x \<noteq> \<stileturn>; q = acc M \<or> q = rej M\<rbrakk> \<Longrightarrow> nxt M q x = (q, Right)"
       and final_nxt_l:  "q = acc M \<or> q = rej M \<Longrightarrow> nxt M q \<stileturn> = (q, Left)"
 begin
+
+text \<open>Some abbreviations to guarantee the validity of the input. 
+      The input for a 2DFA \<open>M\<close> with alphabet \<open>\<Sigma>\<close> is \<open>\<turnstile>w\<stileturn>\<close> for some \<open>w \<in> \<Sigma>\<^sup>*\<close>.\<close>
 
 abbreviation \<Sigma> :: "'a list \<Rightarrow>'a symbol list" where
   "\<Sigma> w \<equiv> map Letter w"
@@ -64,16 +73,18 @@ inductive_cases step_foldedE[elim]: "a \<rightarrow> b"
 inductive_cases step_leftE [elim]:  "(a#u, q, v) \<rightarrow> (u, p, a#v)"
 inductive_cases step_rightE [elim]: "(u, q, a#v) \<rightarrow> (a#u, p, v)"
 
+text \<open>The reflexive transitive closure of \<open>\<rightarrow>\<close>.\<close>
 abbreviation steps :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>*\<close> 55) where
   "steps \<equiv> step\<^sup>*\<^sup>*"
 
+text \<open>nth power of \<open>\<rightarrow>\<close>.\<close>
 abbreviation stepn :: "'a config \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" where
   "stepn c n \<equiv> (step ^^ n) c"
 
 notation stepn ("_ \<rightarrow>'(_') _" 55)
 
 
-(*Induction rule analogous to rtranclp_induct2*)
+text \<open>Induction rule analogous to rtranclp_induct2, to work with configurations.\<close>
 lemma rtranclp_induct3[consumes 1, case_names refl step]:
   "\<lbrakk>r\<^sup>*\<^sup>* (ax, ay, az) (bx, by, bz); P ax ay az;
      \<And>u p v x q z.
@@ -83,6 +94,8 @@ lemma rtranclp_induct3[consumes 1, case_names refl step]:
   by (rule rtranclp_induct[of _ "(ax, ay, az)" "(bx, by, bz)", 
         split_rule])
 
+text \<open>A config that can be reached from the initial configuration, where \<open>\<turnstile>\<close> is being read while
+      in the initial state \<open>init M\<close>.\<close>
 abbreviation reachable :: "'a list \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>**\<close> 55) where
   "w \<rightarrow>** c \<equiv> ([], init M, \<langle>w\<rangle>) \<rightarrow>* c" 
 
@@ -112,7 +125,7 @@ text \<open>The language accepted by \<open>M\<close>:\<close>
 definition Lang :: "'a list set" where
   "Lang \<equiv> {w. \<exists>u v.  w \<rightarrow>** (u, acc M, v)}" 
 
-lemma unchanged_substrings:
+lemma unchanged_substrings: (*Theorem?*)
   "(u, p, v) \<rightarrow>* (u', q, v') \<Longrightarrow> rev u @ v = rev u' @ v'"
 proof (induction rule: rtranclp_induct3)
   case (step a q' b c q'' d)
@@ -174,7 +187,8 @@ lemma left_to_right_impl_substring:
   next
     case 2
     with step(1,2) unchanged_substrings have "u = x"
-      by (metis append_eq_append_conv r_into_rtranclp rev_append rev_rev_ident)
+    by (metis rev_rev_ident rev_append[of "rev x" z] rev_append[of "rev u" v]
+        append_eq_append_conv r_into_rtranclp)
     then show thesis using step(4) by simp
   qed
 qed simp
@@ -281,11 +295,16 @@ qed simp
 
 end
 
+subsection \<open>The transition relation \<open>T\<^sub>x\<close> for a non-empty string \<open>x\<close>, which describes the behavior of 
+            a 2DFA \<open>M\<close> when it crosses the boundary between \<open>x\<close> and any string \<open>z\<close> for the 
+            input string \<open>xz\<close>.\<close> (*TODO: xz or x @ z?*)
 
 locale dfa2_transition = dfa2 +
   fixes x :: "'a list"
   assumes "x \<noteq> []"
 begin 
+
+subsubsection \<open>Basic definitions to describe the boundary:\<close>
 
 definition x_init :: "'a symbol list" where
   "x_init \<equiv> butlast (\<langle>x\<langle>)"
@@ -298,6 +317,8 @@ lemmas x_defs = x_init_def x_end_def
 lemma x_is_init_app_end:
   "\<langle>x\<langle> = x_init @ [x_end]" unfolding x_defs by simp
 
+text \<open>A 2DFA \<open>M\<close> is in a left configuration for input \<open>xz\<close> if it is currently reading \<open>x\<close>.
+      Otherwise, it is in a right configuration.\<close>
 definition left_config :: "'a config \<Rightarrow> bool" where
   "left_config c \<equiv> \<exists>u q v. c = (u, q, v) \<and> length u < length (\<langle>x\<langle>)"
 
@@ -315,45 +336,43 @@ lemma left_config_lt_right_config:
         shows "length u < length w"
   using assms left_config_def right_config_def by simp
 
+text\<open>A single left and right step respectively, where the 2DFA does not leave the current substring,
+    as well as their reflexive transitive closures, and their nth powers.\<close>
 inductive left_step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L\<close> 55) where
-  lstep [intro]: "\<lbrakk>c0 \<rightarrow> c1; left_config c0; left_config c1\<rbrakk> 
-      \<Longrightarrow> c0 \<rightarrow>\<^sup>L c1"
-                            
-inductive_cases lstepE [elim]: "c0 \<rightarrow>\<^sup>L c1"
-
-inductive right_step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>R\<close> 55) where
-  rstep [intro]: "\<lbrakk>c0 \<rightarrow> c1;
-                  right_config c0; right_config c1\<rbrakk> 
-      \<Longrightarrow> c0 \<rightarrow>\<^sup>R c1"
-
-inductive_cases rstepE [elim]: "c0 \<rightarrow>\<^sup>R c1"
+  lstep [intro]: "\<lbrakk>c0 \<rightarrow> c1; left_config c0; left_config c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>L c1"
 
 notation (ASCII) left_step (infix \<open>\<rightarrow>^L\<close> 55)
-notation (ASCII) right_step (infix \<open>\<rightarrow>^R\<close> 55)
+                            
+inductive_cases lstepE [elim]: "c0 \<rightarrow>\<^sup>L c1"
 
 abbreviation left_steps :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L*\<close> 55) where
   "left_steps \<equiv> left_step\<^sup>*\<^sup>*"
 
-abbreviation left_stepn :: "'a config \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" where
+abbreviation left_stepn :: "'a config \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>L'(_') _" 55) where
   "left_stepn c n \<equiv> (left_step ^^ n) c"
 
-notation left_stepn ("_ \<rightarrow>\<^sup>L'(_') _" 55)
+text \<open>\<open>c\<close> is left reachable by a 2DFA \<open>M\<close> if it is reachable without crossing the boundary
+      between \<open>x\<close> and \<open>z\<close>.\<close>
+abbreviation left_reachable :: "'a list \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L**\<close> 55) where
+  "w \<rightarrow>\<^sup>L** c \<equiv> ([], init M, \<langle>w\<rangle>) \<rightarrow>\<^sup>L* c" 
+
+abbreviation left_nreachable :: "'a list \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>L*'(_') _" 55) where
+  "w \<rightarrow>\<^sup>L*(n) c \<equiv> ([], init M, \<langle>w\<rangle>) \<rightarrow>\<^sup>L(n) c"  
+
+
+
+inductive right_step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>R\<close> 55) where
+  rstep [intro]: "\<lbrakk>c0 \<rightarrow> c1; right_config c0; right_config c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>R c1"
+
+notation (ASCII) right_step (infix \<open>\<rightarrow>^R\<close> 55)
+
+inductive_cases rstepE [elim]: "c0 \<rightarrow>\<^sup>R c1"
 
 abbreviation right_steps :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>R*\<close> 55) where
   "right_steps \<equiv> right_step\<^sup>*\<^sup>*"
 
-abbreviation right_stepn :: "'a config \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" where
+abbreviation right_stepn :: "'a config \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>R'(_') _" 55) where
   "right_stepn c n \<equiv> (right_step ^^ n) c"
-
-notation right_stepn ("_ \<rightarrow>\<^sup>R'(_') _" 55)
-
-abbreviation left_reachable :: "'a list \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L**\<close> 55) where
-  "w \<rightarrow>\<^sup>L** c \<equiv> ([], init M, \<langle>w\<rangle>) \<rightarrow>\<^sup>L* c" 
-
-abbreviation left_nreachable :: "'a list \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" where
-  "left_nreachable w n c \<equiv> ([], init M, \<langle>w\<rangle>) \<rightarrow>\<^sup>L(n) c" 
-
-notation left_nreachable ("_ \<rightarrow>\<^sup>L*'(_') _" 55) 
 
 
 lemma left_steps_impl_steps [dest]:
@@ -434,7 +453,7 @@ proof -
   with g_def show ?thesis by (metis relpowp_fun_conv)
 qed
 
- 
+text \<open>These propositions are necessary for the two following theorems:\<close> 
 proposition list_deconstruct1:
   assumes "m \<le> length xs"
   obtains ys zs where "length ys = m" "ys @ zs = xs" using assms 
@@ -451,10 +470,10 @@ proof -
     using list_deconstruct1 by blast
   then show thesis using list_deconstruct1 that by (auto simp: append_eq_rev_conv)
 qed
-  (*These propositions are necessary for the two following lemmas.*)
 
-
-lemma lstar_impl_substring_x:
+text\<open>If \<open>(u, p, v)\<close> is a left configuration with input \<open>xz\<close>, then \<open>v = yz\<stileturn>\<close> for some substring 
+    \<open>y\<close> of \<open>x\<close>.\<close>
+theorem lstar_impl_substring_x:
   assumes nsteps: "rev u @ v = \<langle>x @ z\<rangle>"
       and in_x:   "length u < length (\<langle>x\<langle>)"
       and lsteps: "(u, p, v) \<rightarrow>\<^sup>L* (u', q, v')"
@@ -481,8 +500,8 @@ proof -
         by (smt (verit, ccfv_SIG) app append_assoc append_eq_append_conv
             dfa2.mapl_app_mapr_eq_map dfa2_axioms)
       then have "ys @ \<rangle>z\<rangle> = v'" using xapp app 
-        by (metis (no_types, lifting) append_assoc mapl_app_mapr_eq_map
-            same_append_eq)
+        by (metis (no_types, lifting) append_assoc same_append_eq[of xs v' "ys @ \<Sigma> z @ [\<stileturn>]"] 
+            mapl_app_mapr_eq_map)
       thus thesis using that xs_is_rev xapp by presburger
     qed
     ultimately show ?case using that by simp
@@ -503,8 +522,9 @@ corollary reachable_lconfig_impl_substring_x:
   using unchanged_word[OF assms(1)] lstar_impl_substring_x assms by metis 
 
   
-
-lemma star_rconfig_impl_substring_z:
+text\<open>If \<open>(u, p, v)\<close> is a right configuration with input \<open>xz\<close>, then \<open>u = \<turnstile>xy\<close> for some substring 
+    \<open>y\<close> of \<open>z\<close>.\<close>
+theorem star_rconfig_impl_substring_z:
   assumes nsteps: "x @ z \<rightarrow>** (u, p, v)"
       and reach: "(u, p, v) \<rightarrow>* (u', q, v')"
       and rconf: "right_config (u', q, v')"
@@ -661,6 +681,7 @@ proof -
   then show ?thesis by (meson rtranclp_power)
 qed
 
+subsubsection \<open>Now the definition of \<open>T\<^sub>x\<close>:\<close>
 inductive T :: "state option \<Rightarrow> state option \<Rightarrow> bool" where
   init_tr[intro]: "\<lbrakk>x @ z \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z\<rangle>); 
               (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T None (Some q)" |
@@ -674,7 +695,6 @@ inductive T :: "state option \<Rightarrow> state option \<Rightarrow> bool" wher
   no_tr[intro]:   "\<lbrakk>p' \<in> states M; (rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, p, x_end # \<rangle>z\<rangle>); 
               \<nexists>q' q'' z. (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q', x_end # \<rangle>z\<rangle>) \<and>
               (rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q'', \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T (Some p) None" 
-(*2nd premise of some_tr and no_tr?*)
 
 
 inductive_cases init_trNoneE[elim]: "T None None"
@@ -682,6 +702,8 @@ inductive_cases init_trSomeE[elim]: "T  None (Some q)"
 inductive_cases no_trE[elim]:   "T (Some q) None"
 inductive_cases some_trE[elim]: "T (Some q) (Some p)"
 
+text \<open>Lemmas for the independence of \<open>T\<^sub>x\<close> from \<open>z\<close>. This is a fundamental property that shows
+      2DFAs accept regular languages.\<close>
 lemma init_tr_indep:
   assumes "T None (Some q)"
   obtains p where "x @ z \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z\<rangle>)"
@@ -1553,7 +1575,9 @@ qed
 
 theorem two_way_dfa_Lang_regular:
   "regular Lang"
-proof -
+  using equiv_kern equiv_eq_app_right finite_refines_finite kern_\<T>_subset_eq_app_right 
+          kern_\<T>_finite_index L3_1 by blast
+(*proof -
 (*unused. Refactor?*)
   obtain x y :: "'a list" where not_empty: "x \<noteq> []" "y \<noteq> []" by blast
   hence "T x = T y \<Longrightarrow> \<forall>z. x @ z \<in> Lang \<longleftrightarrow> y @ z \<in> Lang" using T_eq_impl_right_congr
@@ -1566,7 +1590,7 @@ proof -
     using equiv_kern equiv_eq_app_right finite_refines_finite kern_\<T>_subset_eq_app_right 
           kern_\<T>_finite_index by blast
   then show "regular Lang" using L3_1 by auto
-qed
+qed*)
 
 unused_thms
 

@@ -1554,13 +1554,13 @@ qed
 theorem two_way_dfa_Lang_regular:
   "regular Lang"
 proof -
+(*unused. Refactor?*)
   obtain x y :: "'a list" where not_empty: "x \<noteq> []" "y \<noteq> []" by blast
   hence "T x = T y \<Longrightarrow> \<forall>z. x @ z \<in> Lang \<longleftrightarrow> y @ z \<in> Lang" using T_eq_impl_right_congr
     by metis
   have "(\<forall>z. x @ z \<in> Lang \<longleftrightarrow> y @ z \<in> Lang) 
              \<longleftrightarrow> (x, y) \<in> eq_app_right Lang" unfolding eq_app_right_def by simp
-(*^Unused (Refactor?)*)
-
+(*end unused*)
 
   have "finite (UNIV // eq_app_right Lang)" 
     using equiv_kern equiv_eq_app_right finite_refines_finite kern_\<T>_subset_eq_app_right 

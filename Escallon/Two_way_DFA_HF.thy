@@ -1,3 +1,5 @@
+section \<open>Two-Way Deterministic Finite Automata\<close>
+
 theory Two_way_DFA_HF
   imports "Finite_Automata_HF.Finite_Automata_HF"
 begin
@@ -59,7 +61,7 @@ lemma mapl_app_mapr_eq_map:
 definition valid_input :: "'a symbol list \<Rightarrow> bool" where
   "valid_input xs \<equiv> \<exists>w. xs = \<langle>w\<rangle>" (*unused until now*)
 
-
+text \<open>A single \<close>
 inductive step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<close> 55) where
   step_left[intro]:  "nxt M p a = (q, Left) \<Longrightarrow> (x # xs, p, a # ys) \<rightarrow> (xs, q, x # a # ys)" |
   step_right[intro]: "nxt M p a = (q, Right) \<Longrightarrow> (xs, p, a # ys) \<rightarrow> (a # xs, q, ys)"
@@ -115,6 +117,8 @@ lemma step_length_diff:
   assumes "(u, p, v) \<rightarrow> (x, q, y)"
   shows "length v = Suc (length y) \<or> length y = Suc (length v)"
   using assms by force
+
+text \<open>The language accepted by \<open>M\<close>:\<close>
 
 definition language :: "'a list set" where
   "language \<equiv> {w. \<exists>u v.  w \<rightarrow>** (u, acc M, v)}" 
@@ -2179,6 +2183,8 @@ lemma T_eq_is_\<T>_eq:
         shows "T x = T y \<longleftrightarrow> \<T> x = \<T> y"
   using assms \<T>_def by fastforce
 
+(* TODO: rm after next release because in devel *)
+
 definition kern :: "('b \<Rightarrow> 'c) \<Rightarrow> ('b \<times> 'b) set" where
   "kern f \<equiv> {(x, y). f x = f y}"
 
@@ -2203,6 +2209,7 @@ lemma bij_betw_image_quotient_kern:
 lemma finite_quotient_kern_iff_finite_image:
   "finite (A // kern \<T>) = finite (\<T> ` A)"
   by (metis bij_betw_finite bij_betw_image_quotient_kern)
+(* end of rm *)
 
 lemma \<T>_finite_image:
   "finite (\<T> ` UNIV)"
@@ -2258,6 +2265,8 @@ proof -
   then show "regular language" using L3_1 by auto
 qed
 
-  
+unused_thms
+
 end
+
 end

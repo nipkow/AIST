@@ -55,9 +55,6 @@ abbreviation marker_mapr :: "'a list \<Rightarrow> 'a symbol list" ("\<rangle>_\
 lemma mapl_app_mapr_eq_map: 
   "\<langle>u\<langle> @ \<rangle>v\<rangle> = \<langle>u @ v\<rangle>" by simp
 
-definition valid_input :: "'a symbol list \<Rightarrow> bool" where
-  "valid_input xs \<equiv> \<exists>w. xs = \<langle>w\<rangle>" (*unused until now*)
-
 text \<open>A single \<close>
 inductive step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<close> 55) where
   step_left[intro]:  "nxt M p a = (q, Left) \<Longrightarrow> (x # xs, p, a # ys) \<rightarrow> (xs, q, x # a # ys)" |
@@ -112,8 +109,8 @@ corollary reachable_impl_in_states:
 
 text \<open>The language accepted by \<open>M\<close>:\<close>
 
-definition language :: "'a list set" where
-  "language \<equiv> {w. \<exists>u v.  w \<rightarrow>** (u, acc M, v)}" 
+definition Lang :: "'a list set" where
+  "Lang \<equiv> {w. \<exists>u v.  w \<rightarrow>** (u, acc M, v)}" 
 
 lemma unchanged_substrings:
   "(u, p, v) \<rightarrow>* (u', q, v') \<Longrightarrow> rev u @ v = rev u' @ v'"
@@ -1380,13 +1377,13 @@ qed
 lemma T_eq_impl_right_congr:
   assumes not_empty:  "x \<noteq> []" "y \<noteq> []"
       and T_eq:       "T x = T y"
-      and xz_in_lang: "x @ z \<in> language"
-    shows "y @ z \<in> language"
+      and xz_in_lang: "x @ z \<in> Lang"
+    shows "y @ z \<in> Lang"
 proof -
   from not_empty dfa2_axioms have T_axioms: "dfa2_transition M x" "dfa2_transition M y"
     using dfa2_transition_def unfolding dfa2_transition_axioms_def by auto
   with xz_in_lang obtain u v where x_acc_reachable: "x @ z \<rightarrow>** (u, acc M, v)" 
-    unfolding language_def by blast
+    unfolding Lang_def by blast
   with dfa2_transition.reachable_xz_impl_crossn[OF T_axioms(1)] 
   obtain n where "x @ z \<rightarrow>\<^sup>X*(x,n) (u, acc M, v)" by blast
   consider "left_config x (u, acc M, v)" | "right_config x (u, acc M, v)"
@@ -1419,7 +1416,7 @@ proof -
       by auto      
     hence "y @ z \<rightarrow>** (rev (\<langle>y\<langle>), acc M, \<rangle>z\<rangle>)" using dfa2_transition.crossn_impl_reachable[OF T_axioms(2)]
       by blast
-    then show ?thesis using language_def by blast
+    then show ?thesis using Lang_def by blast
   next
     case 2
     from x_acc_reachable dfa2_transition.reachable_xz_impl_crossn[OF T_axioms(1)]
@@ -1431,7 +1428,7 @@ proof -
       "y @ z \<rightarrow>\<^sup>X*(y,n) (rev zs @ rev (\<langle>y\<langle>), acc M, v)"
       using x_crossn by blast
     then show ?thesis using dfa2_transition.crossn_impl_reachable[OF T_axioms(2)] 
-      unfolding language_def by blast
+      unfolding Lang_def by blast
   qed
 qed
 
@@ -1529,13 +1526,13 @@ corollary kern_\<T>_finite_index:
   using \<T>_finite_image finite_quotient_kern_iff_finite_image by simp
 
 lemma kern_\<T>_subset_eq_app_right:
-  "kern \<T> \<subseteq> eq_app_right language"
+  "kern \<T> \<subseteq> eq_app_right Lang"
 proof 
   fix xy
   assume "xy \<in> kern \<T>"
   then obtain x y where xy_def: "xy = (x, y)" "\<T> x = \<T> y" 
     unfolding kern_def by blast
-  show "xy \<in> eq_app_right language"
+  show "xy \<in> eq_app_right Lang"
   proof (cases x)
     case Nil
     with xy_def have "y = []" using \<T>_Nil_eq_\<T>_Nil by simp
@@ -1554,21 +1551,21 @@ proof
   qed
 qed
 
-theorem two_way_dfa_lang_regular:
-  "regular language"
+theorem two_way_dfa_Lang_regular:
+  "regular Lang"
 proof -
   obtain x y :: "'a list" where not_empty: "x \<noteq> []" "y \<noteq> []" by blast
-  hence "T x = T y \<Longrightarrow> \<forall>z. x @ z \<in> language \<longleftrightarrow> y @ z \<in> language" using T_eq_impl_right_congr
+  hence "T x = T y \<Longrightarrow> \<forall>z. x @ z \<in> Lang \<longleftrightarrow> y @ z \<in> Lang" using T_eq_impl_right_congr
     by metis
-  have "(\<forall>z. x @ z \<in> language \<longleftrightarrow> y @ z \<in> language) 
-             \<longleftrightarrow> (x, y) \<in> eq_app_right language" unfolding eq_app_right_def by simp
+  have "(\<forall>z. x @ z \<in> Lang \<longleftrightarrow> y @ z \<in> Lang) 
+             \<longleftrightarrow> (x, y) \<in> eq_app_right Lang" unfolding eq_app_right_def by simp
 (*^Unused (Refactor?)*)
 
 
-  have "finite (UNIV // eq_app_right language)" 
+  have "finite (UNIV // eq_app_right Lang)" 
     using equiv_kern equiv_eq_app_right finite_refines_finite kern_\<T>_subset_eq_app_right 
           kern_\<T>_finite_index by blast
-  then show "regular language" using L3_1 by auto
+  then show "regular Lang" using L3_1 by auto
 qed
 
 unused_thms

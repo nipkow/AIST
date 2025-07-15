@@ -2157,27 +2157,6 @@ proof -
   then show ?thesis using Finite_Set.finite_subset \<T>_subset_states_none by auto
 qed
 
-lemma \<T>_card_upperbound:
-  assumes "dfa2_transition M x"
-  shows "card (\<T> x) \<le> (Suc (card (states M))) ^ 2"
-proof -
-  let ?S = "{Some q | q. q \<in> states M} \<union> {None}"
-  have card_eq: "card ?S = Suc (card (states M))" 
-  proof -
-    have "card (states M) = card {Some q | q. q \<in> states M}"
-    proof (rule bij_betw_same_card)
-      show "bij_betw Some (states M) {Some q | q. q \<in> states M}" 
-        by (smt (verit) bij_betwI' mem_Collect_eq option.inject)
-    qed
-    thus ?thesis using finite by auto
-  qed
-  from finite have "finite ?S" by simp
-  hence "card (\<T> x) \<le> card (?S \<times> ?S)" using \<T>_subset_states_none 
-    by (meson card_mono finite_SigmaI assms)
-  with card_eq show ?thesis using Groups_Big.card_cartesian_product
-    by (metis power2_eq_square)
-qed
-
 lemma \<T>_Nil_eq_\<T>_Nil:
   assumes "\<T> x = \<T> []"
   shows "x = []"
@@ -2202,6 +2181,10 @@ lemma T_eq_is_\<T>_eq:
 
 definition kern :: "('b \<Rightarrow> 'c) \<Rightarrow> ('b \<times> 'b) set" where
   "kern f \<equiv> {(x, y). f x = f y}"
+
+lemma equiv_kern:
+  "equiv UNIV (kern f)"
+  unfolding kern_def by (simp add: equivI refl_on_def sym_def trans_def eq_app_right_def)
 
 lemma inj_on_vimage_image: "inj_on (\<lambda>b. f -` {b}) (f ` A)"
   using inj_on_def by fastforce
@@ -2231,7 +2214,9 @@ proof -
   ultimately show "finite (\<T> ` UNIV)" by (simp add: finite_subset)
 qed
 
-
+corollary kern_\<T>_finite_index:
+  "finite (UNIV // kern \<T>)"
+  using \<T>_finite_image finite_quotient_kern_iff_finite_image by simp
 
 lemma kern_\<T>_subset_eq_app_right:
   "kern \<T> \<subseteq> eq_app_right language"
@@ -2268,16 +2253,8 @@ proof -
   moreover have "(\<forall>z. x @ z \<in> language \<longleftrightarrow> y @ z \<in> language) 
              \<longleftrightarrow> (x, y) \<in> eq_app_right language" unfolding eq_app_right_def by simp
   then have "finite (UNIV // eq_app_right language)" 
-  proof -
-    from \<T>_finite_image have "finite (UNIV // kern \<T>)" 
-      using finite_quotient_kern_iff_finite_image by simp
-    moreover have "equiv UNIV (kern \<T>)"
-      unfolding kern_def
-        by (simp add: equivI refl_on_def sym_def trans_def eq_app_right_def)
-      ultimately show ?thesis using finite_refines_finite kern_\<T>_subset_eq_app_right 
-          equiv_eq_app_right 
-      by blast
-  qed
+    using equiv_kern equiv_eq_app_right finite_refines_finite kern_\<T>_subset_eq_app_right 
+          kern_\<T>_finite_index by blast
   then show "regular language" using L3_1 by auto
 qed
 

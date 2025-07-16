@@ -1818,13 +1818,11 @@ proof -
 qed
 
 text \<open> Section on Grammar size \<close>
-(*WIP*)
 
 fun bad_grammar :: "'n list \<Rightarrow> ('n, nat)Prods" where
  "bad_grammar [] = {}"
 |"bad_grammar [A] = {(A, [Tm 0]), (A, [Tm 1])}"
 |"bad_grammar (A#B#As) = {(A, Nt B # [Tm 0]), (A, Nt B # [Tm 1])} \<union> (bad_grammar (B#As))"
-
 
 lemma test1: "A \<notin> set As \<Longrightarrow> triangular As (insert (A, Bs) R) = triangular As R"
   by (induction As arbitrary: Bs) (auto simp add: dep_on_def)
@@ -1851,45 +1849,118 @@ next
     by (metis rev.simps(2) set_rev)
 qed
 
-lemma test4: "dep_on R A \<inter> set As = {} \<Longrightarrow> exp_hd A As R = R"
-  by (induction As) (auto simp add: dep_on_def)
+lemma bad_gram_simp1: "A \<notin> set As \<Longrightarrow> (A, Bs) \<notin> (bad_grammar As)"
+  by (induction As rule: bad_grammar.induct) auto
 
+lemma exp_tri_simp1: "A \<notin> set As \<Longrightarrow> (A, Bs) \<in> R \<Longrightarrow> (A, Bs) \<in> exp_triangular As R"
+  by (induction As R rule: exp_triangular.induct) (auto simp add: Let_def)
 
-lemma exp_hd_triangular: "triangular As R \<Longrightarrow> exp_hd (hd As) (tl As) R = R"
+lemma exp_tri_iff1: "A \<notin> set As \<Longrightarrow> (A, Bs) \<in> exp_triangular As R \<longleftrightarrow> (A, Bs) \<in> R"
+  using exp_tri_simp1 helper_exp_tri1 by auto
+
+lemma exp_tri_insert_simp: "B \<notin> set As \<Longrightarrow> exp_triangular As (insert (B, Bs) R) = insert (B, Bs) (exp_triangular As R)"
+  by (induction As R rule: exp_triangular.induct) (auto simp add: Let_def)
+
+lemma exp_tri_bad_grammar_simp1: "distinct (A#As) \<Longrightarrow> length As \<ge> 1 \<Longrightarrow> exp_triangular As (bad_grammar (A#As)) = {(A, Nt (hd As) # [Tm 0]), (A, Nt (hd As) # [Tm 1])} \<union> (exp_triangular As (bad_grammar As))"
 proof (induction As)
   case Nil
   then show ?case by simp
 next
-  case Cons
-  then show ?case by (auto simp add: test4)
+  case Cons1: (Cons B Bs)
+  then show ?case
+  proof (cases Bs)
+    case Nil
+    then show ?thesis by auto
+  next
+    case Cons2: (Cons C Cs)
+    then show ?thesis using Cons1 exp_tri_insert_simp
+      by (smt (verit) Un_insert_left bad_grammar.elims distinct.simps(2) insert_is_Un list.distinct(1) list.inject list.sel(1))
+  qed
 qed
 
-lemma exp_hd_triangular1: "triangular (A#As) R \<Longrightarrow> exp_hd A As R = R"
-  using exp_hd_triangular 
-  by (metis list.sel(1,3))
-
-lemma solve_lrec_triangular: "A \<notin> dep_on R A \<Longrightarrow> R \<subseteq> solve_lrec A A' R"
-  by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def dep_on_def)
-
-lemma "Eps_free R \<Longrightarrow> length As \<le> length As' \<Longrightarrow> distinct (As @ As') \<Longrightarrow> triangular As R \<Longrightarrow> R \<subseteq> solve_tri As As' R"
-proof (induction As As' R rule: solve_tri.induct)
-  case (1 uu R)
-  then show ?case by auto
+lemma bad_gram_last_expanded_card: "distinct As \<Longrightarrow> length As = n \<Longrightarrow> n \<ge> 1 \<Longrightarrow> card ({v. (hd As, v) \<in> exp_triangular As (bad_grammar As)}) = 2 ^ n" 
+proof(induction As arbitrary: n rule: bad_grammar.induct)
+  case 1
+  then show ?case by simp
 next
-  case (2 A As A' As' R)
-  then show ?case sorry
+  case (2 A)
+  have 4: "{v. v = [Tm 0] \<or> v = [Tm (Suc 0)]} = {[Tm 0], [Tm 1]}" by auto
+  then show ?case using 2 by (auto simp add: 4)
 next
-  case (3 v va c)
-  then show ?case by auto
+  case (3 A C As)
+  let ?R' = "exp_triangular (C#As) (bad_grammar (A#C#As))"
+  let ?X = "{(Al,Bw) \<in> ?R'. Al=A \<and> (\<exists>w B. Bw = Nt B # w \<and> B \<in> set (C#As))}"
+  let ?Y = "{(A,v@w) |v w. \<exists>B. (A, Nt B # w) \<in> ?X \<and> (B,v) \<in> ?R'}"
+
+  let ?S = "{v. (hd (A#C#As), v) \<in> exp_triangular (A#C#As) (bad_grammar (A#C#As))}"
+
+  have 4: "(A,Bw) \<in> ?R' \<longleftrightarrow> (A, Bw) \<in> (bad_grammar (A#C#As))" for Bw using exp_tri_iff1[of "A" "C#As" Bw] 3 by (auto)
+  then have "?X = {(Al,Bw) \<in> (bad_grammar (A#C#As)). Al=A \<and> (\<exists>w B. Bw = Nt B # w \<and> B \<in> set (C#As))}" using exp_tri_iff1 by auto
+  also have "... = {(A, Nt C # [Tm 0]), (A, Nt C # [Tm 1])}" using 3 by (auto simp add: bad_gram_simp1)
+  finally have 5: "?X = {(A, [Nt C, Tm 0]), (A, [Nt C, Tm 1])}".
+  then have cons5: "?X = {(A, Nt C # [Tm 0]), (A, Nt C # [Tm 1])}" by simp
+
+  have 6: "?R' = {(A, [Nt C, Tm 0]), (A, [Nt C, Tm 1])} \<union> exp_triangular (C#As) (bad_grammar (C#As))"
+    using 3 exp_tri_bad_grammar_simp1[of A "C#As"] by auto
+  have 8: "(A, as) \<notin> exp_triangular (C#As) (bad_grammar (C#As))" for as using "3.prems" bad_gram_simp1 exp_tri_iff1
+    by (metis distinct.simps(2))
+  then have 7: "{(A, [Nt C, Tm 0]), (A, [Nt C, Tm 1])} \<inter> exp_triangular (C#As) (bad_grammar (C#As)) = {}" by auto
+    
+  have "?R' - ?X = exp_triangular (C#As) (bad_grammar (C#As))" using 7 6 5 by auto
+  then have S_from_Y: "?S = {v. (A, v) \<in> ?Y}" using 6 8 by auto
+
+  have Y_decomp: "?Y = {(A, v @ [Tm 0]) | v. (C,v) \<in> ?R'} \<union> {(A, v @ [Tm 1]) | v. (C,v) \<in> ?R'}"
+  proof
+    show "?Y \<subseteq> {(A, v @ [Tm 0]) | v. (C,v) \<in> ?R'} \<union> {(A, v @ [Tm 1]) | v. (C,v) \<in> ?R'}"
+    proof
+      fix x
+      assume assm: "x \<in> ?Y"
+      then have "\<exists>v w. x = (A, v @ w) \<and> (\<exists>B. (A, Nt B # w) \<in> ?X \<and> (B,v) \<in> ?R')" by blast
+      then obtain v w where P: "x = (A, v @ w) \<and> (\<exists>B. (A, Nt B # w) \<in> ?X \<and> (B,v) \<in> ?R')" by blast
+      then have cfact:"(A, Nt C # w) \<in> ?X \<and> (C,v) \<in> ?R'" using cons5 
+        by (metis (no_types, lifting) Pair_inject insert_iff list.inject singletonD sym.inject(1))
+      then have "w = [Tm 0] \<or> w = [Tm 1]" using cons5
+        by (metis (no_types, lifting) empty_iff insertE list.inject prod.inject)
+      then show "x \<in> {(A, v @ [Tm 0]) | v. (C,v) \<in> ?R'} \<union> {(A, v @ [Tm 1]) | v. (C,v) \<in> ?R'}" using P cfact by auto
+    qed
+  next
+    show "{(A, v @ [Tm 0]) | v. (C,v) \<in> ?R'} \<union> {(A, v @ [Tm 1]) | v. (C,v) \<in> ?R'} \<subseteq> ?Y" using cons5 by auto
+  qed
+  
+  from Y_decomp have S_decomp: "?S = {v@[Tm 0] | v. (C, v) \<in> ?R'} \<union> {v@[Tm 1] | v. (C, v) \<in> ?R'}" using S_from_Y by auto
+
+  have cardCvR: "card {v. (C, v) \<in> ?R'} = 2^(n-1)" using 3 6 by auto
+  have "bij_betw (\<lambda>x. x@[Tm 0]) {v. (C, v) \<in> ?R'} {v@[Tm 0] | v. (C, v) \<in> ?R'}" by (auto simp add: bij_betw_def inj_on_def)
+  then have cardS1: "card {v@[Tm 0] | v. (C, v) \<in> ?R'} = 2^(n-1)" using cardCvR by (auto simp add: bij_betw_same_card)
+  have "bij_betw (\<lambda>x. x@[Tm 1]) {v. (C, v) \<in> ?R'} {v@[Tm 1] | v. (C, v) \<in> ?R'}" by (auto simp add: bij_betw_def inj_on_def)
+  then have cardS2: "card {v@[Tm 1] | v. (C, v) \<in> ?R'} = 2^(n-1)" using cardCvR by (auto simp add: bij_betw_same_card)
+
+  (*proof of finiteness needed*)
+  have fin_sets: "finite {v@[Tm 0] | v. (C, v) \<in> ?R'} \<and> finite {v@[Tm 1] | v. (C, v) \<in> ?R'}" sorry
+
+  have "{v@[Tm 0] | v. (C, v) \<in> ?R'} \<inter> {v@[Tm 1] | v. (C, v) \<in> ?R'} = {}" by auto
+  then have "card ?S = 2^(n-1) + 2^(n-1)" using S_decomp cardS1 cardS2 fin_sets by (auto simp add: card_Un_disjoint)
+
+  then show ?case using 3 by auto
 qed
 
-(*incorect as A \<longrightarrow> u gets solved to A \<longrightarrow> u and A \<longrightarrow> u @ [Nt A'] even if there is no left-recursion*)
-lemma "length As \<le> length As' \<Longrightarrow> solve_tri As As' (bad_grammar As) = bad_grammar As"
-  oops
+lemma "n \<ge> 1 \<Longrightarrow> card (exp_triangular [0..<n] (bad_grammar [0..<n])) \<ge> 2^n"
+proof-
+  assume assm: "n \<ge> 1"
+  then have "length [0..<n] \<ge> 1 \<and> distinct [0..<n] \<and> length [0..<n] = n" by auto
+  then have 1: "card ({v. (hd [0..<n], v) \<in> exp_triangular [0..<n] (bad_grammar [0..<n])}) = 2 ^ n"
+    using bad_gram_last_expanded_card assm by blast
 
-lemma "length As = n \<Longrightarrow> n \<ge> 1 \<Longrightarrow> distinct (As @ As') 
-\<Longrightarrow> card (bad_grammar As) = 2*n \<and> card (exp_triangular (As' @ rev As) (solve_tri As As' (bad_grammar As))) = 2 ^ n"
-  sorry
+  let ?S = "{v. (hd [0..<n], v) \<in> exp_triangular [0..<n] (bad_grammar [0..<n])}"
+  have 2: "card ?S = card ({hd [0..<n]} \<times> ?S)"
+    by (simp add: card_cartesian_product_singleton)
+  have 3: "({hd [0..<n]} \<times> ?S) \<subseteq> (exp_triangular [0..<n] (bad_grammar [0..<n]))" by fastforce
+
+  (*proof of finiteness needed*)
+  have "finite (exp_triangular [0..<n] (bad_grammar [0..<n]))" sorry
+  then show ?thesis using 1 2 3
+    by (metis card_mono)
+qed
 
 
 

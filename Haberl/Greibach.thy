@@ -1878,6 +1878,33 @@ next
   qed
 qed
 
+lemma finite_bad_grammar: "finite (bad_grammar As)"
+  by (induction As rule: bad_grammar.induct) auto
+
+lemma finite_exp_tri: "finite R \<Longrightarrow> finite (exp_triangular As R)"
+proof (induction As R rule: exp_triangular.induct)
+  case (1 R)
+  then show ?case by simp
+next
+  case (2 S Ss R)
+  let ?S = "{(S, v @ w) |v w. \<exists>B. (S, Nt B # w) \<in> exp_triangular Ss R \<and> B \<in> set Ss \<and> (B, v) \<in> exp_triangular Ss R}"
+  let ?f = "\<lambda>((A,w),(B,v)). (A, v @ (tl w))"
+  have "?S \<subseteq> ?f ` ((exp_triangular Ss R) \<times> (exp_triangular Ss R))"
+  proof
+    fix x
+    assume "x \<in> ?S"
+    then have "\<exists>S v B w. (S, Nt B # w) \<in> exp_triangular Ss R \<and> (B, v) \<in> exp_triangular Ss R \<and> x = (S, v @ w)" by blast
+    then obtain S v B w where P: "(S, Nt B # w) \<in> exp_triangular Ss R \<and> (B, v) \<in> exp_triangular Ss R \<and> x = (S, v @ w)" by blast
+    then have 1: "((S, Nt B # w), (B ,v)) \<in> ((exp_triangular Ss R) \<times> (exp_triangular Ss R))" by auto
+    have "?f ((S, Nt B # w), (B ,v)) = (S, v @ w)" by auto
+    then have "(S, v @ w) \<in> ?f ` ((exp_triangular Ss R) \<times> (exp_triangular Ss R))" using 1 by force
+    then show "x \<in> ?f ` ((exp_triangular Ss R) \<times> (exp_triangular Ss R))" using P by simp
+  qed
+  then have "finite ?S"
+    by (meson "2.IH" "2.prems" finite_SigmaI finite_surj)
+  then show ?case using 2 by (auto simp add: Let_def)
+qed
+
 lemma bad_gram_last_expanded_card: "distinct As \<Longrightarrow> length As = n \<Longrightarrow> n \<ge> 1 \<Longrightarrow> card ({v. (hd As, v) \<in> exp_triangular As (bad_grammar As)}) = 2 ^ n" 
 proof(induction As arbitrary: n rule: bad_grammar.induct)
   case 1
@@ -1935,8 +1962,15 @@ next
   have "bij_betw (\<lambda>x. x@[Tm 1]) {v. (C, v) \<in> ?R'} {v@[Tm 1] | v. (C, v) \<in> ?R'}" by (auto simp add: bij_betw_def inj_on_def)
   then have cardS2: "card {v@[Tm 1] | v. (C, v) \<in> ?R'} = 2^(n-1)" using cardCvR by (auto simp add: bij_betw_same_card)
 
-  (*proof of finiteness needed*)
-  have fin_sets: "finite {v@[Tm 0] | v. (C, v) \<in> ?R'} \<and> finite {v@[Tm 1] | v. (C, v) \<in> ?R'}" sorry
+  have fin_R': "finite ?R'" using finite_bad_grammar finite_exp_tri by blast
+  let ?f1 = "\<lambda>(C,v). v@[Tm 0]"
+  have "{v@[Tm 0] | v. (C, v) \<in> ?R'} \<subseteq> ?f1 ` ?R'" by auto
+  then have fin1: "finite {v@[Tm 0] | v. (C, v) \<in> ?R'}" using fin_R' by (meson finite_SigmaI finite_surj)
+  let ?f2 = "\<lambda>(C,v). v@[Tm 1]"
+  have "{v@[Tm 1] | v. (C, v) \<in> ?R'} \<subseteq> ?f2 ` ?R'" by auto
+  then have fin2: "finite {v@[Tm 1] | v. (C, v) \<in> ?R'}" using fin_R' by (meson finite_SigmaI finite_surj)
+
+  have fin_sets: "finite {v@[Tm 0] | v. (C, v) \<in> ?R'} \<and> finite {v@[Tm 1] | v. (C, v) \<in> ?R'}" using fin1 fin2 by simp
 
   have "{v@[Tm 0] | v. (C, v) \<in> ?R'} \<inter> {v@[Tm 1] | v. (C, v) \<in> ?R'} = {}" by auto
   then have "card ?S = 2^(n-1) + 2^(n-1)" using S_decomp cardS1 cardS2 fin_sets by (auto simp add: card_Un_disjoint)
@@ -1956,8 +1990,7 @@ proof-
     by (simp add: card_cartesian_product_singleton)
   have 3: "({hd [0..<n]} \<times> ?S) \<subseteq> (exp_triangular [0..<n] (bad_grammar [0..<n]))" by fastforce
 
-  (*proof of finiteness needed*)
-  have "finite (exp_triangular [0..<n] (bad_grammar [0..<n]))" sorry
+  have "finite (exp_triangular [0..<n] (bad_grammar [0..<n]))" using finite_bad_grammar finite_exp_tri by blast
   then show ?thesis using 1 2 3
     by (metis card_mono)
 qed

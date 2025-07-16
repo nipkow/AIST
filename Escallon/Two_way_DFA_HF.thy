@@ -1737,19 +1737,32 @@ proof -
          "\<forall>w. (([], dfa2.init ?M, \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<langle>w\<langle>), (dfa.nextl N (dfa.init N) w, [\<stileturn>])))"
   proof
     fix w
-    show "([], dfa2.init ?M, \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<langle>w\<langle>), (dfa.nextl N (dfa.init N) w, [\<stileturn>]))"
-    proof (induction w)
-      case Nil
-      have "dfa.nextl N (dfa.init N) [] = dfa.init N" 
-        by (simp add: \<open>dfa N\<close> dfa.nextl.simps(1))
-      moreover have "([], dfa2.init ?M, \<langle>[]\<rangle>) \<rightarrow>\<lparr>?M\<rparr> (rev (\<langle>[]\<langle>), dfa.init N, [\<stileturn>])"
-        using M.step_right by force
-      ultimately show ?case using r_into_rtranclp by simp
-    next
-      case (Cons a w)
-      then show ?case sorry
+    have step: "([], dfa2.init ?M, \<langle>w\<rangle>) \<rightarrow>\<lparr>?M\<rparr> ([\<turnstile>], dfa.init N, \<rangle>w\<rangle>)"
+      using M.step_right by auto
+    have reach:
+      "\<forall>u. \<forall>q\<in>dfa.states N. ((u @ [\<turnstile>], q, \<rangle>w\<rangle>) 
+        \<rightarrow>*\<lparr>?M\<rparr> (rev (\<langle>w\<langle>), (dfa.nextl N q w, [\<stileturn>])))" 
+    proof (standard, standard)
+      fix u q
+      assume in_Q: "q \<in> dfa.states N"
+      show "(u @ [\<turnstile>], q, \<rangle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<langle>w\<langle>), (dfa.nextl N q w, [\<stileturn>]))"
+        using in_Q proof (induction w arbitrary: q u)
+        case Nil
+        then show ?case sorry
+      next
+        case (Cons x xs)
+        then show ?case sorry
+      qed
     qed
+    hence steps: "([\<turnstile>], dfa.init N, \<rangle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<langle>w\<langle>), (dfa.nextl N (dfa.init N) w, [\<stileturn>]))"
+    proof -
+      have "dfa.init N \<in> dfa.states N" using \<open>dfa N\<close> dfa.init by blast
+      with reach show ?thesis
+        by (metis (lifting) self_append_conv2)
     qed
+    with step show "([], dfa2.init ?M, \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<langle>w\<langle>), (dfa.nextl N (dfa.init N) w, [\<stileturn>]))"
+      by simp
+  qed
 
   have "M.Lang = dfa.language N"
   proof 

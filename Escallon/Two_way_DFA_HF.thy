@@ -28,21 +28,6 @@ text \<open>2DFA configurations. A 2DFA \<open>M\<close> is in a configuration \
       \<open>q\<close>.\<close>
 type_synonym 'a config = "'a symbol list \<times> state \<times> 'a symbol list"
 
-locale dfa2 =
-  fixes M :: "'a dfa2"
-  assumes init:         "init M \<in> states M"
-      and accept:       "acc M \<in> states M"
-      and reject:       "rej M \<in> states M"
-      and neq_final:    "acc M \<noteq> rej M"
-      and finite:       "finite (states M)"
-      and nxt:          "\<lbrakk>q \<in> states M; nxt M q x = (p, d)\<rbrakk> \<Longrightarrow> p \<in> states M"
-      and left_nxt:     "\<lbrakk>q \<in> states M; nxt M q \<turnstile> = (p, d)\<rbrakk> \<Longrightarrow> d = Right"
-      and right_nxt:    "\<lbrakk>q \<in> states M; nxt M q \<stileturn> = (p, d)\<rbrakk> \<Longrightarrow> d = Left"
-
-      (*Needed?*)
-      and final_nxt_r:  "\<lbrakk>x \<noteq> \<stileturn>; q = acc M \<or> q = rej M\<rbrakk> \<Longrightarrow> nxt M q x = (q, Right)"
-      and final_nxt_l:  "q = acc M \<or> q = rej M \<Longrightarrow> nxt M q \<stileturn> = (q, Left)"
-begin
 
 text \<open>Some abbreviations to guarantee the validity of the input. 
       The input for a 2DFA \<open>M\<close> with alphabet \<open>\<Sigma>\<close> is \<open>\<turnstile>w\<stileturn>\<close> for some \<open>w \<in> \<Sigma>\<^sup>*\<close>.\<close>
@@ -62,10 +47,28 @@ abbreviation marker_mapr :: "'a list \<Rightarrow> 'a symbol list" ("\<rangle>_\
 lemma mapl_app_mapr_eq_map: 
   "\<langle>u\<langle> @ \<rangle>v\<rangle> = \<langle>u @ v\<rangle>" by simp
 
+
+locale dfa2 =
+  fixes M :: "'a dfa2"
+  assumes init:         "init M \<in> states M"
+      and accept:       "acc M \<in> states M"
+      and reject:       "rej M \<in> states M"
+      and neq_final:    "acc M \<noteq> rej M"
+      and finite:       "finite (states M)"
+      and nxt:          "\<lbrakk>q \<in> states M; nxt M q x = (p, d)\<rbrakk> \<Longrightarrow> p \<in> states M"
+      and left_nxt:     "\<lbrakk>q \<in> states M; nxt M q \<turnstile> = (p, d)\<rbrakk> \<Longrightarrow> d = Right"
+      and right_nxt:    "\<lbrakk>q \<in> states M; nxt M q \<stileturn> = (p, d)\<rbrakk> \<Longrightarrow> d = Left"
+
+      (*Needed?*)
+      and final_nxt_r:  "\<lbrakk>x \<noteq> \<stileturn>; q = acc M \<or> q = rej M\<rbrakk> \<Longrightarrow> nxt M q x = (q, Right)"
+      and final_nxt_l:  "q = acc M \<or> q = rej M \<Longrightarrow> nxt M q \<stileturn> = (q, Left)"
+begin
+
 text \<open>A single \<close>
 inductive step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<close> 55) where
   step_left[intro]:  "nxt M p a = (q, Left) \<Longrightarrow> (x # xs, p, a # ys) \<rightarrow> (xs, q, x # a # ys)" |
   step_right[intro]: "nxt M p a = (q, Right) \<Longrightarrow> (xs, p, a # ys) \<rightarrow> (a # xs, q, ys)"
+
 
 inductive_cases step_foldedE[elim]: "a \<rightarrow> b"
 inductive_cases step_leftE [elim]:  "(a#u, q, v) \<rightarrow> (u, p, a#v)"
@@ -82,7 +85,6 @@ abbreviation stepn :: "'a config \<Rightarrow> nat \<Rightarrow> 'a config \<Rig
 notation stepn ("_ \<rightarrow>'(_') _" 55)
 
 
-text \<open>Induction rule analogous to rtranclp_induct2, to work with configurations.\<close>
 lemma rtranclp_induct3[consumes 1, case_names refl step]:
   "\<lbrakk>r\<^sup>*\<^sup>* (ax, ay, az) (bx, by, bz); P ax ay az;
      \<And>u p v x q z.
@@ -140,6 +142,15 @@ proof (induction rule: rtranclp_induct3)
     hence "(c, q'', d) = (hd b # a, p', tl b)" using step(2) qd_def step.simps by force
     then show ?thesis using step step.cases by fastforce
   qed
+qed simp
+
+lemma unchanged_final:
+  assumes "p = acc M \<or> p = rej M"
+  shows "(u, p, v) \<rightarrow>* (u', q, v') \<Longrightarrow> p = q"
+proof (induction rule: rtranclp_induct3)
+  case (step a q' b c q'' d)
+  then show ?case using assms
+    by (smt (verit, ccfv_SIG) dfa2_axioms dfa2_def prod.inject step_foldedE)
 qed simp
 
 corollary unchanged_word:
@@ -290,6 +301,38 @@ lemma all_geq_left_impl_left_indep:
   qed
   ultimately show ?case by auto
 qed simp
+
+lemma reachable_configs_impl_reachable:
+  assumes "c0 \<rightarrow>* c1"
+          "c0 \<rightarrow>* c2"
+        shows "c1 \<rightarrow>* c2 \<or> c2 \<rightarrow>* c1"  
+proof -
+  from assms obtain n m where "c0 \<rightarrow>(n) c1" "c0 \<rightarrow>(m) c2"
+    by (metis rtranclp_power)
+  from this(1) show ?thesis 
+  proof (induction n arbitrary: c1)
+    case 0
+    hence "c0 = c1" by simp
+    then show ?case using assms(2) by auto
+  next
+    case (Suc n)
+    then obtain c' where c'_defs: "c0 \<rightarrow>(n) c'" "c' \<rightarrow> c1" by auto
+    with Suc.IH have "c' \<rightarrow>* c2 \<or> c2 \<rightarrow>* c'" by simp
+    then consider "c' = c2" "c' \<rightarrow>* c2" | "c' \<noteq> c2" "c' \<rightarrow>* c2" | "c2 \<rightarrow>* c'" by blast
+    then show ?case
+    proof cases
+      case 1
+      then show ?thesis using c'_defs by blast
+    next
+      case 2
+      then obtain c'' where "c' \<rightarrow> c''" "c'' \<rightarrow>* c2" by (metis converse_rtranclpE)
+      then show ?thesis using c'_defs step_unique by metis
+    next
+      case 3
+      then show ?thesis using c'_defs(2) by (meson rtranclp.rtrancl_into_rtrancl)
+    qed
+  qed
+qed
 
 end
 
@@ -496,7 +539,7 @@ proof -
             mapl_app_mapr_eq_map) 
       ultimately have xs_is_rev: "xs = rev u'" 
         by (smt (verit, ccfv_SIG) app append_assoc append_eq_append_conv
-            dfa2.mapl_app_mapr_eq_map dfa2_axioms)
+            mapl_app_mapr_eq_map dfa2_axioms)
       then have "ys @ \<rangle>z\<rangle> = v'" using xapp app 
         by (metis (no_types, lifting) append_assoc same_append_eq[of xs v' "ys @ \<Sigma> z @ [\<stileturn>]"] 
             mapl_app_mapr_eq_map)
@@ -556,7 +599,7 @@ proof -
         by (metis app append_assoc append_eq_append_conv mapl_app_mapr_eq_map)
       then have x_app_xs_eq_rev_u': "\<langle>x\<langle> @ xs = rev u'" using zapp app
         by (metis (no_types, lifting) append_assoc append_eq_append_conv
-            dfa2.mapl_app_mapr_eq_map dfa2_axioms)
+            mapl_app_mapr_eq_map)
       hence "rev (\<langle>x\<langle> @ xs) = u'" by simp
       thus thesis using ys_is_v' zapp that by presburger
     qed
@@ -892,7 +935,7 @@ next
           by force+
       qed
       with assms(2,3) have "u = rev x_init" 
-        by (smt (verit, ccfv_threshold) append_assoc append_eq_append_conv dfa2.mapl_app_mapr_eq_map
+        by (smt (verit, ccfv_threshold) append_assoc append_eq_append_conv mapl_app_mapr_eq_map
             dfa2_axioms length_butlast length_rev rev_swap x_init_def x_is_init_app_end)
       from this have "v = x_end # \<rangle>z\<rangle>" 
         by (smt (verit) append.assoc append_eq_append_conv append_eq_rev_conv assms(3) mapl_app_mapr_eq_map
@@ -926,7 +969,7 @@ next
           by force+
       qed
       with assms(2,3) have "u = rev (\<langle>x\<langle>)" 
-        by (smt (verit, ccfv_threshold) append_assoc append_eq_append_conv dfa2.mapl_app_mapr_eq_map
+        by (smt (verit, ccfv_threshold) append_assoc append_eq_append_conv mapl_app_mapr_eq_map
             dfa2_axioms length_butlast length_rev rev_swap x_init_def x_is_init_app_end)
       from this have "v = \<rangle>z\<rangle>"
         by (smt (verit) append.assoc append_eq_append_conv append_eq_rev_conv assms(3) mapl_app_mapr_eq_map
@@ -1590,8 +1633,195 @@ theorem two_way_dfa_Lang_regular:
   then show "regular Lang" using L3_1 by auto
 qed*)
 
-unused_thms
-
 end
+
+abbreviation step' :: "'a config \<Rightarrow> 'a dfa2 \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<lparr>_\<rparr> _" 55) where
+  "c0 \<rightarrow>\<lparr>M\<rparr> c1 \<equiv> dfa2.step M c0 c1"
+
+abbreviation steps' :: "'a config \<Rightarrow> 'a dfa2 \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>*\<lparr>_\<rparr> _" 55) where
+  "c0 \<rightarrow>*\<lparr>M\<rparr> c1 \<equiv> dfa2.steps M c0 c1"
+
+theorem regular_language_impl_dfa2:
+  assumes "regular L"
+  obtains M where "dfa2 M" "dfa2.Lang M = L"
+proof -
+  typ "'a dfa2"
+  from assms obtain N where "dfa N" "dfa.language N = L"
+    unfolding regular_def by blast
+  then obtain q0 qa qr where q_defs:
+    "{q0, qa, qr} \<inter> dfa.states N = {}"
+    "qa \<noteq> qr" 
+    "qa \<noteq> q0"
+    "qr \<noteq> q0" sorry
+  
+  let ?d = "(\<lambda>q a. case a of 
+            Letter a' \<Rightarrow> (if q \<in> dfa.states N then ((dfa.nxt N) q a', Right) 
+                          else if q = qa then (qa, Right) else (qr, Right)) |
+            Marker Left \<Rightarrow> (if q = q0 then (dfa.init N, Right) 
+                          else if q = qa then (qa, Right) else (qr, Right)) |
+            Marker Right \<Rightarrow> (if q \<in> dfa.final N \<or> q = qa then (qa, Left) else (qr, Left)))"
+
+  let ?M = "\<lparr>dfa2.states = dfa.states N \<union> {q0, qa, qr},
+                      dfa2.init = q0,
+                      dfa2.acc = qa,
+                      dfa2.rej = qr,
+                      dfa2.nxt = ?d\<rparr>"
+    
+  interpret M: dfa2 ?M
+  proof (standard, goal_cases)
+    case (6 p a q d)
+    then show ?case 
+    proof (cases a)
+      case (Letter a')
+      with 6 have d_eq_ite: "?d p a = (if p \<in> dfa.states N then (dfa.nxt N p a', Right) 
+         else if p = qa then (qa, Right) else (qr, Right))" (is "_ = ?ite") by simp
+      then show ?thesis 
+      proof (cases "p \<in> dfa.states N")
+        case True
+        then show ?thesis using Letter dfa.nxt[OF \<open>dfa N\<close> True] 6 by fastforce
+      next
+        case False
+        then show ?thesis using 6 using Letter 
+          by (smt (verit) Un_def dfa2.select_convs(1,5) insert_compr mem_Collect_eq old.prod.inject
+              symbol.simps(5))
+      qed
+    next
+      case (Marker d')
+      then show ?thesis using 6 
+        by (smt (verit) Un_iff \<open>dfa N\<close> dfa.init dfa2.select_convs(1,5) dir.exhaust dir.simps(3,4) 
+            insertCI  old.prod.inject symbol.simps(6))
+    qed   
+  next
+    case (7 q p d)
+    then show ?case 
+      by (smt (verit, best) dfa2.select_convs(5) dir.simps(3) prod.inject symbol.simps(6))
+  next
+    case (8 q p d)
+    then show ?case 
+      by (smt (verit, best) dfa2.select_convs(5) dir.simps(4) prod.inject symbol.simps(6))
+  next
+    case (9 a q)
+    then consider (acc) "q = qa" | (rej) "q = qr" by auto
+    then show ?case
+    proof cases
+      case acc
+      then show ?thesis
+      proof (cases a)
+        case (Letter a')
+        then show ?thesis using acc q_defs by simp
+      next
+        case (Marker d)
+        then show ?thesis
+          by (smt (verit, ccfv_SIG) "9"(1) acc dfa2.select_convs(5) dir.exhaust dir.simps(3) q_defs(3)
+              symbol.simps(6))
+      qed 
+    next
+      case rej
+      then show ?thesis
+      proof (cases a)
+        case (Letter a')
+        then show ?thesis using rej q_defs by simp
+      next
+        case (Marker d)
+        then show ?thesis
+          by (smt (verit) "9"(1) dfa2.select_convs(5) dir.exhaust dir.simps(3) q_defs(4) rej
+              symbol.simps(6))
+      qed
+    qed
+  next
+    case (10 q)
+    then show ?case using \<open>dfa N\<close> dfa_def q_defs(1) by auto
+  qed (use q_defs dfa.finite[OF \<open>dfa N\<close>] in simp)+
+
+  have nextl_reachable:
+         "\<forall>w. (([], dfa2.init ?M, \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<langle>w\<langle>), (dfa.nextl N (dfa.init N) w, [\<stileturn>])))"
+  proof
+    fix w
+    show "([], dfa2.init ?M, \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<langle>w\<langle>), (dfa.nextl N (dfa.init N) w, [\<stileturn>]))"
+    proof (induction w)
+      case Nil
+      have "dfa.nextl N (dfa.init N) [] = dfa.init N" 
+        by (simp add: \<open>dfa N\<close> dfa.nextl.simps(1))
+      moreover have "([], dfa2.init ?M, \<langle>[]\<rangle>) \<rightarrow>\<lparr>?M\<rparr> (rev (\<langle>[]\<langle>), dfa.init N, [\<stileturn>])"
+        using M.step_right by force
+      ultimately show ?case using r_into_rtranclp by simp
+    next
+      case (Cons a w)
+      then show ?case sorry
+    qed
+    qed
+
+  have "M.Lang = dfa.language N"
+  proof 
+    show "M.Lang \<subseteq> dfa.language N"
+    proof
+      fix w
+      assume "w \<in> M.Lang"
+      then obtain u v where acc_reachable: "([], dfa2.init ?M, \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (u, dfa2.acc ?M, v)"
+        using dfa2.Lang_def[OF M.dfa2_axioms] by blast
+      from nextl_reachable obtain q where final_state:
+        "([], dfa2.init ?M, \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<langle>w\<langle>), q, [\<stileturn>])"
+        "q \<in> dfa.states N"  "dfa.nextl N (dfa.init N) w = q" 
+        using \<open>dfa N\<close> dfa.nextl_init_state by blast
+      with acc_reachable have acc_step:
+        "(rev (\<langle>w\<langle>), q, [\<stileturn>]) \<rightarrow>\<lparr>?M\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.acc ?M, hd (rev (\<langle>w\<langle>)) # [\<stileturn>])" 
+      proof -
+        have disj: "((rev (\<langle>w\<langle>), q, [\<stileturn>]) \<rightarrow>\<lparr>?M\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.acc ?M, hd (rev (\<langle>w\<langle>)) # [\<stileturn>])) 
+              \<or> ((rev (\<langle>w\<langle>), q, [\<stileturn>]) \<rightarrow>\<lparr>?M\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.rej ?M, hd (rev (\<langle>w\<langle>)) # [\<stileturn>]))"
+              (is "?acc_step \<or> ?rej_step")
+        proof (cases "q \<in> dfa.final N")
+          case True
+          hence "nxt ?M q \<stileturn> = (dfa2.acc ?M, Left)" by auto
+          hence ?acc_step using M.step.simps by fastforce
+          then show ?thesis by simp
+        next
+          case False
+          moreover from q_defs final_state have "q \<noteq> dfa2.acc ?M" by auto
+          ultimately have "nxt ?M q \<stileturn> = (dfa2.rej ?M, Left)" by auto
+          hence ?rej_step using M.step.simps by fastforce
+          then show ?thesis by simp
+        qed
+        show ?thesis
+        proof (rule ccontr)
+          assume "\<not>?thesis"
+          with disj have ?rej_step by blast
+          hence rej_reachable: 
+            "([], dfa2.init ?M, \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.rej ?M, hd (rev (\<langle>w\<langle>)) # [\<stileturn>])"
+            using final_state by auto
+          with acc_reachable  consider 
+            "((tl (rev (\<langle>w\<langle>)), dfa2.rej ?M, hd (rev (\<langle>w\<langle>)) # [\<stileturn>]) \<rightarrow>*\<lparr>?M\<rparr> (u, dfa2.acc ?M, v))" |
+            "(u, dfa2.acc ?M, v) \<rightarrow>*\<lparr>?M\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.rej ?M, hd (rev (\<langle>w\<langle>)) # [\<stileturn>])" 
+            using dfa2.reachable_configs_impl_reachable M.dfa2_axioms by blast
+          then show False
+            by cases
+            (use dfa2.unchanged_final[OF M.dfa2_axioms] M.neq_final in fastforce)+  
+          qed
+      qed
+      have "q \<in> dfa.final N"
+      proof (rule ccontr)
+        assume "q \<notin> dfa.final N"
+        with final_state(2) have "dfa2.nxt ?M q \<stileturn> = (dfa2.rej ?M, Left)" 
+          using q_defs(1) by auto
+        with acc_step show False using q_defs(2) by fastforce
+      qed
+      thus "w \<in> dfa.language N" 
+        using final_state(3) dfa.language_def[OF \<open>dfa N\<close>] by blast
+    qed
+  next
+    show "dfa.language N \<subseteq> M.Lang" 
+    proof
+      fix w
+      assume "w \<in> dfa.language N"
+      then obtain q where "dfa.nextl N (dfa.init N) w = q" and in_final: "q \<in> dfa.final N"
+        by (simp add: \<open>dfa N\<close> dfa.language_def)
+      with nextl_reachable have "([], dfa2.init ?M, \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<langle>w\<langle>), q, [\<stileturn>])"
+        by blast
+      also from this in_final have "... \<rightarrow>\<lparr>?M\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.acc ?M, hd (rev (\<langle>w\<langle>)) # [\<stileturn>])"
+        using M.step.simps by auto
+      finally show "w \<in> M.Lang" unfolding M.Lang_def by blast
+    qed
+  qed
+  then show thesis using that \<open>dfa.language N = L\<close> M.dfa2_axioms by auto
+qed
 
 end

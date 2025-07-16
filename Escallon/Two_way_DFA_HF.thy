@@ -1584,10 +1584,6 @@ proof -
   ultimately show "finite (\<T> ` UNIV)" by (simp add: finite_subset)
 qed
 
-corollary kern_\<T>_finite_index:
-  "finite (UNIV // kern \<T>)"
-  using \<T>_finite_image finite_quotient_kern_iff_finite_image by simp
-
 lemma kern_\<T>_subset_eq_app_right:
   "kern \<T> \<subseteq> eq_app_right Lang"
 proof 
@@ -1613,25 +1609,17 @@ proof
       by (smt (verit) T_eq_is_\<T>_eq \<T>_Nil_eq_\<T>_Nil case_prod_conv mem_Collect_eq xy_def(1,2))
   qed
 qed
-
+               
 theorem two_way_dfa_Lang_regular:
   "regular Lang"
-  using equiv_kern equiv_eq_app_right finite_refines_finite kern_\<T>_subset_eq_app_right 
-          kern_\<T>_finite_index L3_1 by blast
-(*proof -
-(*unused. Refactor?*)
-  obtain x y :: "'a list" where not_empty: "x \<noteq> []" "y \<noteq> []" by blast
-  hence "T x = T y \<Longrightarrow> \<forall>z. x @ z \<in> Lang \<longleftrightarrow> y @ z \<in> Lang" using T_eq_impl_right_congr
-    by metis
-  have "(\<forall>z. x @ z \<in> Lang \<longleftrightarrow> y @ z \<in> Lang) 
-             \<longleftrightarrow> (x, y) \<in> eq_app_right Lang" unfolding eq_app_right_def by simp
-(*end unused*)
-
-  have "finite (UNIV // eq_app_right Lang)" 
+proof -
+  from \<T>_finite_image have "finite (UNIV // kern \<T>)"
+    using finite_quotient_kern_iff_finite_image by blast
+  then have "finite (UNIV // eq_app_right Lang)" 
     using equiv_kern equiv_eq_app_right finite_refines_finite kern_\<T>_subset_eq_app_right 
-          kern_\<T>_finite_index by blast
+    by blast
   then show "regular Lang" using L3_1 by auto
-qed*)
+qed
 
 end
 
@@ -1740,25 +1728,36 @@ proof -
     have step: "([], dfa2.init ?M, \<langle>w\<rangle>) \<rightarrow>\<lparr>?M\<rparr> ([\<turnstile>], dfa.init N, \<rangle>w\<rangle>)"
       using M.step_right by auto
     have reach:
-      "\<forall>u. \<forall>q\<in>dfa.states N. ((u @ [\<turnstile>], q, \<rangle>w\<rangle>) 
-        \<rightarrow>*\<lparr>?M\<rparr> (rev (\<langle>w\<langle>), (dfa.nextl N q w, [\<stileturn>])))" 
+      "\<forall>u. \<forall>q\<in>dfa.states N. ((u, q, \<rangle>w\<rangle>) 
+        \<rightarrow>*\<lparr>?M\<rparr> (rev (\<Sigma> w) @ u, dfa.nextl N q w, [\<stileturn>]))" 
     proof (standard, standard)
       fix u q
       assume in_Q: "q \<in> dfa.states N"
-      show "(u @ [\<turnstile>], q, \<rangle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<langle>w\<langle>), (dfa.nextl N q w, [\<stileturn>]))"
+      show "(u, q, \<rangle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<Sigma> w) @ u, (dfa.nextl N q w, [\<stileturn>]))"
         using in_Q proof (induction w arbitrary: q u)
         case Nil
-        then show ?case sorry
+        moreover from this have "dfa.nextl N q [] = q" 
+          by (simp add: \<open>dfa N\<close> dfa.nextl.simps(1))
+        moreover from this have "(u, q, \<rangle>[]\<rangle>) = (rev (\<Sigma> []) @ u, dfa.nextl N q [], [\<stileturn>])" by simp
+        ultimately show ?case by simp 
       next
         case (Cons x xs)
-        then show ?case sorry
+        from Cons(2) have step1: "(u, q, \<rangle>x # xs\<rangle>) \<rightarrow>\<lparr>?M\<rparr> (Letter x # u, dfa.nxt N q x, \<rangle>xs\<rangle>)"
+                          "dfa.nxt N q x \<in> dfa.states N"
+          using M.step.simps by (auto simp add: \<open>dfa N\<close> dfa.nxt)
+        with Cons(1) have 
+          "(Letter x # u, dfa.nxt N q x, \<rangle>xs\<rangle>) 
+            \<rightarrow>*\<lparr>?M\<rparr> (rev (\<Sigma> xs) @ (Letter x # u), dfa.nextl N (dfa.nxt N q x) xs, [\<stileturn>])"
+          by simp
+        moreover have "... = (rev (\<Sigma> (x # xs)) @ u, dfa.nextl N q (x # xs), [\<stileturn>])"
+          by (simp add: \<open>dfa N\<close> dfa.nextl.simps(2))
+        ultimately show ?case using step1 by auto
       qed
     qed
     hence steps: "([\<turnstile>], dfa.init N, \<rangle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<langle>w\<langle>), (dfa.nextl N (dfa.init N) w, [\<stileturn>]))"
     proof -
       have "dfa.init N \<in> dfa.states N" using \<open>dfa N\<close> dfa.init by blast
-      with reach show ?thesis
-        by (metis (lifting) self_append_conv2)
+      with reach show ?thesis by simp
     qed
     with step show "([], dfa2.init ?M, \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<langle>w\<langle>), (dfa.nextl N (dfa.init N) w, [\<stileturn>]))"
       by simp

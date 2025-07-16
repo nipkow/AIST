@@ -1,5 +1,3 @@
-section \<open>Two-Way Deterministic Finite Automata\<close>
-
 theory Two_way_DFA_HF
   imports "Finite_Automata_HF.Finite_Automata_HF"
 begin

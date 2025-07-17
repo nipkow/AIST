@@ -1,9 +1,14 @@
+(* Author: Felipe Escallon and Tobias Nipkow *)
+
 theory Two_way_DFA_HF
   imports "Finite_Automata_HF.Finite_Automata_HF"
 begin
 
+text \<open>A formalization of two-way deterministic finite automata using hereditarily finite sets, 
+      as well as proof that they accept regular languages. Both the definition of 2DFAs and the
+      proof follow \<^cite>\<open>Kozen\<close>.\<close>
 
-section \<open>Definition of Two-Way Finite Automata\<close>
+section \<open>Definition of Two-Way Deterministic Finite Automata\<close>
 
 subsection \<open>Basic Definitions\<close>
 
@@ -163,7 +168,7 @@ lemma step_tl_indep:
   using assms(1) proof cases
   case (step_left a x ys)
   with assms obtain as where "w = a # as" by (meson append_eq_Cons_conv) 
-  moreover from this step_left have "(u, p, w @ v') \<rightarrow> (y, q, x # w @ v')" by auto
+  moreover with step_left have "(u, p, w @ v') \<rightarrow> (y, q, x # w @ v')" by auto
   ultimately show ?thesis using step_left by auto
 next
   case (step_right a)
@@ -272,7 +277,7 @@ lemma all_geq_left_impl_left_indep:
   proof -
     from Suc(2) obtain y q' x' where nstep: 
       "(u, p, v) \<rightarrow>(n) (y, q', x')" "(y, q', x') \<rightarrow> (vs @ u, q, x)" by auto
-    moreover from this Suc(3) have y_gt_u: "length y \<ge> length u" by (meson Suc_leD order_refl)
+    moreover with Suc(3) have y_gt_u: "length y \<ge> length u" by (meson Suc_leD order_refl)
     ultimately obtain vs' where "y = vs' @ u" using left_to_right_impl_substring 
       by (metis relpowp_imp_rtranclp)
     then show thesis using nstep that by blast
@@ -490,7 +495,7 @@ proof -
   with g_def show ?thesis by (metis relpowp_fun_conv)
 qed
 
-text \<open>These propositions are necessary for the two following theorems:\<close> 
+(*These propositions are necessary for the two following theorems*)
 proposition list_deconstruct1:
   assumes "m \<le> length xs"
   obtains ys zs where "length ys = m" "ys @ zs = xs" using assms 
@@ -524,13 +529,13 @@ proof -
     case refl 
     from unchanged_word nsteps lsteps have app: "\<langle>x @ z\<rangle> = rev u' @ v'"
       by (metis left_steps_impl_steps unchanged_substrings)
-    moreover from this u'_lt_x
+    moreover with u'_lt_x
     obtain y where "rev u' @ y = \<langle>x\<langle>" "y @ \<rangle>z\<rangle> = v'"
     proof -
       from u'_lt_x list_deconstruct1
       obtain xs ys where "length xs = length u'" and xapp: "xs @ ys = \<langle>x\<langle>"
         using Nat.less_imp_le_nat by metis
-      moreover from this have "length (ys @ \<rangle>z\<rangle>) = length v'" using app 
+      moreover then have  "length (ys @ \<rangle>z\<rangle>) = length v'" using app 
         by (smt (verit) append_assoc append_eq_append_conv length_rev
             mapl_app_mapr_eq_map) 
       ultimately have xs_is_rev: "xs = rev u'" 
@@ -574,7 +579,7 @@ proof -
     case refl
     from unchanged_word nsteps have app: "\<langle>x @ z\<rangle> = rev u' @ v'"
       by (metis reach unchanged_substrings)
-    moreover from this u'_ge_x
+    moreover with u'_ge_x
     obtain x' where "rev (\<langle>x\<langle> @ x') = u'" "x' @ v' = \<rangle>z\<rangle>"
     proof -
       have "length v' \<le> length (\<rangle>z\<rangle>)" 
@@ -680,7 +685,7 @@ proof -
       from Suc(2) obtain u' p v'' 
         where "x @ y \<rightarrow>\<^sup>L*(n) (u', p, v'')"
               "(u', p, v'') \<rightarrow>\<^sup>L(1) (u, q, v @ \<rangle>y\<rangle>)" by auto
-      moreover from this left_reachable_impl_substring_x obtain v' where "v'' = v' @ \<rangle>y\<rangle>" 
+      moreover with left_reachable_impl_substring_x obtain v' where "v'' = v' @ \<rangle>y\<rangle>" 
         using rtranclp_power by metis
       ultimately show thesis using that by blast
     qed
@@ -838,7 +843,7 @@ next
       have "y = rev (\<langle>x\<langle>)" 
         using \<open>length y = length (\<turnstile> # \<Sigma> x)\<close> \<open>u = rev x_init\<close> \<open>v = x_end # \<Sigma> z @ [\<stileturn>]\<close> assms(1,2) c1_def
           x_is_init_app_end by auto
-      moreover from this have "w = \<rangle>z\<rangle>" 
+      moreover then have "w = \<rangle>z\<rangle>" 
         using \<open>length u = length (\<turnstile> # \<Sigma> x) - 1\<close> \<open>v = x_end # \<Sigma> z @ [\<stileturn>]\<close> assms(1,2) c1_def by auto
       ultimately have "c1 = (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" using c1_def by simp
       moreover have "c0 = (rev x_init, p, x_end # \<rangle>z\<rangle>)" 
@@ -872,7 +877,7 @@ next
       have "y = rev x_init" 
         using \<open>length y = length (\<turnstile> # \<Sigma> x) - 1\<close> \<open>u = rev (\<langle>x\<langle>)\<close> \<open>v = \<Sigma> z @ [\<stileturn>]\<close> assms(1,2) c1_def
           x_is_init_app_end by auto
-      moreover from this have "w = x_end # \<rangle>z\<rangle>" 
+      moreover then have "w = x_end # \<rangle>z\<rangle>" 
         by (smt (verit) \<open>length u = length (\<turnstile> # \<Sigma> x)\<close> \<open>length y = length (\<turnstile> # \<Sigma> x) - 1\<close>
             \<open>u = rev (\<turnstile> # \<Sigma> x)\<close> \<open>v = \<Sigma> z @ [\<stileturn>]\<close> assms(1,2) c1_def diff_le_self impossible_Cons last_snoc
             prod.inject rev_eq_Cons_iff step_foldedE x_end_def)
@@ -952,12 +957,12 @@ next
   from c'_cross show ?case
   proof cases
     case (crossn_rtol r w s)
-    moreover from this c0_nm_cross crossn_no_cross_eq_crossn have 
+    moreover with c0_nm_cross crossn_no_cross_eq_crossn have 
       "c0 \<rightarrow>\<^sup>X(n+m) (rev (\<langle>x\<langle>), r, \<rangle>w\<rangle>)" by blast
     ultimately show ?thesis by auto
   next
     case (crossn_ltor r w s)
-    moreover from this c0_nm_cross crossn_no_cross_eq_crossn have
+    moreover with c0_nm_cross crossn_no_cross_eq_crossn have
       "c0 \<rightarrow>\<^sup>X(n+m) (rev x_init, r, x_end # \<rangle>w\<rangle>)" by blast
     ultimately show ?thesis by auto
   qed
@@ -980,7 +985,7 @@ next
   case (step c1 c2)
   then obtain n where ncross: "c0 \<rightarrow>\<^sup>X(n) c1" by blast
   obtain w q y where "c1 = (w, q, y)" using prod_cases3 by blast
-  moreover from this have "rev w @ y = \<langle>x @ z\<rangle>" 
+  moreover then have "rev w @ y = \<langle>x @ z\<rangle>" 
      using unchanged_substrings step(1,5,6) by simp
   ultimately obtain m where "c1 \<rightarrow>\<^sup>X(m) c2" using step(2) step_impl_crossn by metis
   then show ?case using ncross crossn_trans step(4) by blast
@@ -1643,6 +1648,31 @@ abbreviation step' :: "'a config \<Rightarrow> 'a dfa2 \<Rightarrow> 'a config \
 abbreviation steps' :: "'a config \<Rightarrow> 'a dfa2 \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>*\<lparr>_\<rparr> _" 55) where
   "c0 \<rightarrow>*\<lparr>M\<rparr> c1 \<equiv> dfa2.steps M c0 c1"
 
+(*Explain auxiliary lemmas?*)
+proposition ex_finite_disj_set_if_infinite:
+  assumes "infinite(UNIV::'a set)" 
+          "finite (S::'a set)"
+  shows "\<exists>T. finite T \<and> card T = n \<and> S \<inter> T = {}" (is "\<exists>T. ?P n T")
+proof (induction n)
+   case 0 then show ?case by fastforce
+ next
+   case (Suc n)
+   then obtain T where "?P n T" by blast
+   moreover then obtain x where "x \<notin> S \<union> T" using Suc.prems assms
+     by (metis UNIV_eq_I finite_Un)
+   ultimately have "?P (Suc n) (insert x T)" by simp
+   then show ?case by blast
+ qed
+
+proposition card_3_impl_distinct:
+  assumes "card S = Suc(Suc(Suc 0))"
+  obtains a b c where "S = {a,b,c}" "distinct [a,b,c]"
+  using assms by (auto simp: card_Suc_eq)
+
+lemma infinite_UNIV_state: "infinite(UNIV :: state set)"
+  using hmem_HF_iff by blast
+
+(*Refactor?*)
 theorem regular_language_impl_dfa2:
   assumes "regular L"
   obtains M where "dfa2 M" "dfa2.Lang M = L"
@@ -1655,7 +1685,15 @@ proof -
     "qa \<noteq> qr" 
     "qa \<noteq> q0"
     "qr \<noteq> q0"
-    sorry
+  proof -
+    from dfa.finite[OF \<open>dfa N\<close>] obtain Q where
+      "card Q = Suc (Suc (Suc 0))"
+      "Q \<inter> dfa.states N = {}"
+      using infinite_UNIV_state
+      by (metis ex_finite_disj_set_if_infinite inf_commute)
+    thus thesis using card_3_impl_distinct that distinct_def
+      by (smt (verit, ccfv_SIG) card_Suc_eq insertCI)
+  qed
   
   let ?d = "(\<lambda>q a. case a of 
             Letter a' \<Rightarrow> (if q \<in> dfa.states N then ((dfa.nxt N) q a', Right) 
@@ -1751,9 +1789,9 @@ proof -
       show "(u, q, \<rangle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<Sigma> w) @ u, (dfa.nextl N q w, [\<stileturn>]))"
         using in_Q proof (induction w arbitrary: q u)
         case Nil
-        moreover from this have "dfa.nextl N q [] = q" 
+        moreover then have "dfa.nextl N q [] = q" 
           by (simp add: \<open>dfa N\<close> dfa.nextl.simps(1))
-        moreover from this have "(u, q, \<rangle>[]\<rangle>) = (rev (\<Sigma> []) @ u, dfa.nextl N q [], [\<stileturn>])" by simp
+        moreover then have "(u, q, \<rangle>[]\<rangle>) = (rev (\<Sigma> []) @ u, dfa.nextl N q [], [\<stileturn>])" by simp
         ultimately show ?case by simp 
       next
         case (Cons x xs)

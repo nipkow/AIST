@@ -387,8 +387,8 @@ lemma left_config_lt_right_config:
         shows "length u < length w"
   using assms left_config_def right_config_def by simp
 
-text\<open>For configurations \<open>c\<^sub>0\<close> and \<open>c\<^sub>1\<close>, a step \<open>c\<^sub>0 \<rightarrow> c\<^sub>1\<close> is a left step \<open>c\<^sub>0 \<rightarrow>\<^sup>L c\<^sub>1\<close> if both \<open>c\<^sub>0\<close> and \<open>c\<^sub>1\<close>
-    are in \<open>x\<close>:\<close>
+text\<open>For configurations \<open>c\<^sub>0\<close> and \<open>c\<^sub>1\<close>, a step \<open>c\<^sub>0 \<rightarrow> c\<^sub>1\<close> is a left step \<open>c\<^sub>0 \<rightarrow>\<^sup>L c\<^sub>1\<close> if both \<open>c\<^sub>0\<close> and 
+    \<open>c\<^sub>1\<close> are in \<open>x\<close>:\<close>
 inductive left_step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L\<close> 55) where
   lstep [intro]: "\<lbrakk>c0 \<rightarrow> c1; left_config c0; left_config c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>L c1"
 
@@ -396,7 +396,7 @@ notation (ASCII) left_step (infix \<open>\<rightarrow>^L\<close> 55)
                             
 inductive_cases lstepE [elim]: "c0 \<rightarrow>\<^sup>L c1"
 
-text \<open>The reflexive transitive closure and the nth power of \<open>\<rightarrow>\<^sup>L\<close>\<close>
+text \<open>The reflexive transitive closure and the nth power of \<open>\<rightarrow>\<^sup>L\<close>:\<close>
 abbreviation left_steps :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L*\<close> 55) where
   "left_steps \<equiv> left_step\<^sup>*\<^sup>*"
 
@@ -1108,7 +1108,7 @@ next
 qed
 
 text \<open>With \<open>crossn\<close> we show there is always a first boundary cross if a 2DFA ever crosses the 
-      boundary.\<close>
+      boundary:\<close>
 lemma T_none_none_iff_not_some:
   "(\<exists>q. T None (Some q)) \<longleftrightarrow> \<not>T None None"
 proof
@@ -1221,7 +1221,7 @@ abbreviation "left_reachable \<equiv> dfa2_transition.left_reachable M"
 abbreviation "left_config \<equiv> dfa2_transition.left_config"
 abbreviation "right_config \<equiv> dfa2_transition.right_config" 
 abbreviation "pf_init \<equiv> dfa2_transition.x_init"
-abbreviation "pf_end \<equiv> dfa2_transition.x_end" (*Poor style?*)
+abbreviation "pf_end \<equiv> dfa2_transition.x_end" 
 
 abbreviation left_step' :: "'a config \<Rightarrow> 'a list \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>L\<lparr>_\<rparr> _" 55) where
   "c0 \<rightarrow>\<^sup>L\<lparr>x\<rparr> c1 \<equiv> dfa2_transition.left_step M x c0 c1"
@@ -1671,7 +1671,7 @@ lemma card_3_impl_distinct:
 lemma infinite_UNIV_state: "infinite(UNIV :: state set)"
   using hmem_HF_iff by blast
 
-(*Refactor?*)
+
 theorem regular_language_impl_dfa2:
   assumes "regular L"
   obtains M where "dfa2 M" "dfa2.Lang M = L"

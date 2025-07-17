@@ -1663,11 +1663,6 @@ lemma finite_arbitrarily_large_disj:
 using infinite_arbitrarily_large[of "UNIV - A"]
 by fastforce
 
-lemma card_3_impl_distinct:
-  assumes "card S = Suc(Suc(Suc 0))"
-  obtains a b c where "S = {a,b,c}" "distinct [a,b,c]"
-  using assms by (auto simp: card_Suc_eq)
-
 lemma infinite_UNIV_state: "infinite(UNIV :: state set)"
   using hmem_HF_iff by blast
 
@@ -1690,7 +1685,7 @@ proof -
       "Q \<inter> dfa.states N = {}"
       using infinite_UNIV_state
       by (metis finite_arbitrarily_large_disj inf_commute)
-    thus thesis using card_3_impl_distinct that distinct_def
+    thus thesis using that distinct_def
       by (smt (verit, ccfv_SIG) card_Suc_eq insertCI)
   qed
   

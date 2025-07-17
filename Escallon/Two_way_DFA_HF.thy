@@ -999,7 +999,7 @@ subsection \<open>The Transition Relation \<open>T\<^sub>x\<close>\<close>
 
 text \<open>\<open>T\<^sub>x p q\<close> for a non-empty string \<open>x\<close> describes the behavior of 
       a 2DFA \<open>M\<close> when it crosses the boundary between \<open>x\<close> and any string \<open>z\<close> for the 
-      input string \<open>xz\<close>. Intuitively, \<open>T\<^sub>x (Some p) (Some q)\<close> if \<open>M\<close> enters \<open>x\<close> from the right in 
+      input string \<open>xz\<close>. Intuitively, \<open>T\<^sub>x (Some p) (Some q)\<close> if whenever \<open>M\<close> enters \<open>x\<close> from the right in 
       state \<open>p\<close>, when it re-enters \<open>z\<close> in the future, it will do so in state \<open>q\<close>. 
       \<open>T\<^sub>x None (Some q)\<close> denotes the state in which \<open>M\<close> first enters \<open>z\<close>, while \<open>T\<^sub>x (Some p) None\<close> 
       denotes that if \<open>M\<close> ever enters \<open>x\<close> in state \<open>p\<close>, it will never enter \<open>z\<close> in the future, and 

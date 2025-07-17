@@ -1626,7 +1626,7 @@ proof
   qed
 qed
 
-text \<open>Lastly, eq_app_right is of finite index, from which the theorem follows by Myhill-Nerode:\<close>
+text \<open>Lastly, \<open>eq_app_right\<close> is of finite index, from which the theorem follows by Myhill-Nerode:\<close>
 theorem dfa2_Lang_regular:
   "regular Lang"
 proof -

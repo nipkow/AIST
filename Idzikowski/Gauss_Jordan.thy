@@ -293,10 +293,7 @@ fun solves :: "'a list list ⇒ 'a list list ⇒ 'a list list" where
  (let sol = solve1 c cs;
       eqs' = map (subst sol) eqs;
       sols' = sol # map (subst sol) sols
-  in solves sols' eqs')" |
-(*totality*)
-"solves _ _ = []"
-
+  in solves sols' eqs')"
 
 lemma length_subst:
   "⟦ length sol = length cs - 1; length cs ≠ 0 ⟧ ⟹  length(subst sol cs) = length sol"
@@ -446,6 +443,8 @@ proof(induction sols eqns arbitrary: Xs Ys n m b rule: solves.induct)
   have "mx m (b-1) (map (subst sol) sols)" using "2.prems"(3) ‹length sol = b - 1› ‹length sol > 0› length_map_subst by blast
   then have "mx (m+1) (b-1) sols'" using sols'_def by (simp add: ‹length sol = b - 1› mx_def)
 
+
+
   have "is_sols ((Xs @ [y]) @ ys) (rev (solves sols ((c # cs) # eqs))) []"
     using ‹is_sols (Xs @ Ys) (rev (solves sols ((c # cs) # eqs))) []› yys by simp
   then have "is_sols ((Xs @ [y]) @ ys) (rev (solves sols' eqs')) []"
@@ -465,14 +464,14 @@ proof(induction sols eqns arbitrary: Xs Ys n m b rule: solves.induct)
   then have "is_sol y (c#cs) (y#ys)"
     using solve1_correct by simp
 
-  have "eq y (dot sol (ys @ [1]))"
+  moreover have "eq y (dot sol (ys @ [1]))"
     using ‹is_sol y sol ys›
     unfolding is_sol_def by simp
 
-  have "is_sols (rev Xs) (map (subst sol) sols) ys"
+  moreover have "is_sols (rev Xs) (map (subst sol) sols) ys"
     using ‹is_sols (y # rev Xs) (sol # map (subst sol) sols) ys› by simp
   then have "is_sols (rev Xs) sols (y# ys)"
-    using map_subst_correct[of m "b-2" ,OF _ _ _ ‹eq y (dot sol (ys @ [1]))› ‹is_sols (rev Xs) (map (subst sol) sols) ys›]
+    using map_subst_correct[OF _ _ _ ‹eq y (dot sol (ys @ [1]))› ‹is_sols (rev Xs) (map (subst sol) sols) ys›]
     by (metis "2.prems"(1,3) Suc_eq_plus1 \<open>b - 1 = n - 1 + 1\<close> \<open>length sol = b - 1\<close> \<open>length ys = n - 1\<close> add_2_eq_Suc' add_implies_diff)
 
   moreover have "is_sols ys (map (subst sol) eqs) ys"
@@ -481,7 +480,7 @@ proof(induction sols eqns arbitrary: Xs Ys n m b rule: solves.induct)
     using map_subst_correct[OF _ _ _ ‹eq y (dot sol (ys @ [1]))› ‹is_sols ys (map (subst sol) eqs) ys›]
     by (metis "2.prems"(1,4) One_nat_def Suc_eq_plus1 \<open>b - 1 = n - 1 + 1\<close> \<open>length sol = b - 1\<close> \<open>length ys = n - 1\<close> \<open>mx (n - 1) b eqs\<close> add_2_eq_Suc' list.size(4) yys)
 
-  ultimately show ?case using yys ‹is_sol y (c # cs) (y # ys)› is_sols.simps(1) by blast
+  ultimately show ?case using yys by auto
 next
   case (1 sols)
   have "n = 0" using ‹mx n b []› mx_def by (metis length_0_conv)

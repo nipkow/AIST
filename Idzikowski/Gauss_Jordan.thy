@@ -61,6 +61,18 @@ lemma dot_mult:
   qed simp
 qed simp
 
+lemma dot_map2_plus:
+  assumes "length as = length bs"
+  and "length bs = length cs"
+  shows "dot (map2 (+) as bs) (cs :: 't :: semiring_1 list) = dot as cs + dot bs cs"
+  using assms unfolding dot_def proof(induction as bs cs rule: list_induct3)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons x xs y ys z zs)
+    then show ?case apply auto by (simp add: add.assoc add.left_commute combine_common_factor)
+  qed
+
 lemma γ_map2_sum:
   fixes γ :: "'a :: {one, zero, plus, times} ⇒ 'b :: semiring_1"
   assumes γ_add: "\<And>a b. γ (a + b) = γ a + γ b"
@@ -176,7 +188,7 @@ fun subst :: "'a list ⇒ 'a list ⇒ 'a list" where
 
 (*not true in general for regexes*)
 lemma solve1_unique: "\<lbrakk> length cs > 0; is_sol X (c#cs) (X#Xs) \<rbrakk> \<Longrightarrow>  is_sol X (solve1 c cs) Xs"
-  unfolding is_sol_def sorry
+  unfolding is_sol_def oops
 
 lemma solve1_correct: "\<lbrakk> is_sol X (solve1 c cs) Xs \<rbrakk> \<Longrightarrow>  is_sol X (c#cs) (X#Xs) "
   unfolding is_sol_def using solve1_c by (simp add: length_solve1)
@@ -201,35 +213,20 @@ lemma subst_unique:
   and "is_sol Y es (X#Xs)"
   shows "is_sol Y (subst ds es) Xs"
 using assms unfolding is_sol_def
-  sorry
+  oops
 
 lemma map_subst_unique: "⟦
   is_sol y ds ys ;
   is_sols xs eqs (y#ys)
 ⟧ ⟹  is_sols xs (map (subst ds) eqs) ys"
-sorry
-
-find_theorems "zip (take ?n ?xs) (take ?n ?ys)"
-
-
-lemma dot_map2_plus:
-  assumes "length as = length bs"
-  and "length bs = length cs"
-  shows "dot (map2 (+) as bs) (cs :: 't :: semiring_1 list) = dot as cs + dot bs cs"
-  using assms unfolding dot_def proof(induction as bs cs rule: list_induct3)
-    case Nil
-    then show ?case by simp
-  next
-    case (Cons x xs y ys z zs)
-    then show ?case apply auto by (simp add: add.assoc add.left_commute combine_common_factor)
-  qed
+oops
 
 
 lemma subst_correct: "⟦
   length ds = length cs ;
   length cs = length ys + 1;
   eq y (dot ds (ys@[1])) ;
-is_sol x (subst ds (c#cs)) ys
+  is_sol x (subst ds (c#cs)) ys
 ⟧ ⟹  is_sol x (c#cs) (y#ys)"
   unfolding eq.simps is_sol_def subst.simps eq.simps proof(standard, goal_cases)
     case 1
@@ -296,7 +293,10 @@ fun solves :: "'a list list ⇒ 'a list list ⇒ 'a list list" where
  (let sol = solve1 c cs;
       eqs' = map (subst sol) eqs;
       sols' = sol # map (subst sol) sols
-  in solves sols' eqs')"
+  in solves sols' eqs')" |
+(*totality*)
+"solves _ _ = []"
+
 
 lemma length_subst:
   "⟦ length sol = length cs - 1; length cs ≠ 0 ⟧ ⟹  length(subst sol cs) = length sol"
@@ -381,56 +381,7 @@ theorem solves_unique:
     is_sols Ys eqns Ys;
     is_sols (rev Xs) sols Ys ⟧
     ⟹  is_sols (Xs@Ys) (rev (solves sols eqns)) []"
-proof(induction sols eqns arbitrary: Xs Ys n m b rule: solves.induct)
-  case (1 sols)
-  then have "Ys = []" using is_sols_length by fastforce
-  then show ?case using 1 unfolding is_sols2_eqiv by (simp add: list_all2_rev1)
-next
-  case (2 sols c cs eqs)
-  obtain sol where sol: "sol = solve1 c cs" by auto
-  obtain eqs' where eqs': "eqs' = map (subst sol) eqs" by auto
-  obtain sols' where sols': "sols' = sol # map (subst sol) sols" by auto
-
-  obtain y ys where yys: "y#ys = Ys" by (metis "2.prems"(4) is_sols.simps(4) neq_Nil_conv)
-
-  have "length cs = b - 1"
-    by (metis "2.prems"(2) One_nat_def add_diff_cancel_right' list.set_intros(1) list.size(4) mx_def)
-  then have "length sol = b - 1"
-    using length_solve1 sol by presburger
-  have "length sol > 0" using "2.prems"(1,2) \<open>length sol = b - 1\<close> mx_def by force
-
-  have "mx (n-1) b eqs" using ‹mx n b ((c # cs) # eqs)› unfolding mx_def by auto
-  then have "mx (n-1) (b-1) (map (subst sol) eqs)" using length_map_subst ‹length sol = b - 1› ‹length sol > 0› by simp
-  then have "mx (n-1) (b-1) eqs'" using eqs' by simp
-
-  have "b-1 = n-1+1" using ‹b = n + 1› by (metis "2.prems"(2) One_nat_def add_diff_cancel_right' list.size(4) mx_def)
-
-  have "length cs > 0"
-    using \<open>length sol > 0\<close> length_solve1 sol by auto
-  have "mx m (b-1) (map (subst sol) sols)" using "2.prems"(3) ‹length sol = b - 1› ‹length sol > 0› length_map_subst by blast
-  then have "mx (m+1) (b-1) sols'" using sols' by (simp add: ‹length sol = b - 1› mx_def)
-
-
-  have "is_sol y (c#cs) (y#ys)" using yys ‹is_sols Ys ((c # cs) # eqs) Ys›
-    by auto
-  then have "is_sol y sol ys"
-    using solve1_unique[OF ‹length cs > 0›] sol by simp
-
-  have "is_sols ys eqs (y#ys)" using ‹is_sols Ys ((c # cs) # eqs) Ys› yys by auto
-  then have "is_sols ys eqs' ys" using eqs' map_subst_unique[OF ‹is_sol y sol ys› ‹is_sols ys eqs (y#ys)›] by simp
-
-  have "is_sols (rev Xs) (map (subst sol) sols) ys" using ‹is_sols (rev Xs) sols Ys› map_subst_unique ‹is_sol y sol ys› yys by blast
-  then have "is_sols (rev (Xs @ [y])) sols' ys" by (simp add: ‹is_sol y sol ys› sols')
-
-
-  show ?case using "2.IH"[OF sol eqs' sols' ‹b-1 = n-1+1› ‹mx (n - 1) (b - 1) eqs'› ‹mx (m+1) (b - 1) sols'› ‹is_sols ys eqs' ys› ‹is_sols (rev (Xs @ [y])) sols' ys›]
-    by (metis append_Cons append_assoc eq_Nil_appendI eqs' sol sols' solves.simps(2) yys)
-next
-  case (3 a va)
-  have "b = 0" using ‹mx n b ([] # va)› unfolding mx_def by simp
-  then have "Ys = []" by (simp add: "3.prems"(1))
-  then show ?case using "3.prems"(4) by auto
-qed
+oops
 
 lemma is_sol_eq: "is_sol x ds xs \<Longrightarrow> eq x y \<Longrightarrow> is_sol y ds xs"
   unfolding eq.simps is_sol_def by simp
@@ -453,86 +404,84 @@ lemma solves_correct_step: "
 "
 proof(goal_cases)
   case 1
-
   have "is_sol x (solve1 c cs) xs"
     using 1 by simp
-
-
-  thm solve1_correct[OF ‹is_sol x (solve1 c cs) xs›]
-
-  have "is_sols xs (map (subst ds) eqs) xs"
+  moreover have "is_sols xs (map (subst ds) eqs) xs"
     using 1 by simp
-
-  have "eq x (dot ds (xs @ [1]))"
+  moreover have "eq x (dot ds (xs @ [1]))"
     using ‹ds = solve1 c cs› \<open>is_sol x (solve1 c cs) xs\<close> is_sol_def by blast
-
-  have "is_sols xs eqs (x # xs)"
-    using map_subst_correct[OF ‹mx n (b+2) eqs› ‹length ds = b + 1› ‹length xs = b› ‹eq x (dot ds (xs @ [1]))› ‹is_sols xs (map (subst ds) eqs) xs›]
+  ultimately have "is_sols xs eqs (x # xs)"
+    using map_subst_correct[OF ‹mx n (b+2) eqs› ‹length ds = b + 1› ‹length xs = b›]
     by simp
-
   then show ?case using \<open>is_sol x (solve1 c cs) xs\<close> solve1_correct by auto
 qed
 
 
-
 theorem solves_correct:
   "⟦ b = n+1; mx n b eqns; mx m b sols; length Ys = n;
-    is_sols (Xs@Ys) (rev (solves sols eqns)) [];
-    is_sols (rev Xs) sols Ys
+    is_sols (Xs@Ys) (rev (solves sols eqns)) []
     ⟧ \<Longrightarrow>
-    is_sols Ys eqns Ys
+    is_sols Ys eqns Ys ∧ is_sols (rev Xs) sols Ys
      "
 proof(induction sols eqns arbitrary: Xs Ys n m b rule: solves.induct)
   case (2 sols c cs eqs)
   define sol where "sol = solve1 c cs"
-  obtain eqs' where eqs': "eqs' = map (subst sol) eqs" by auto
-  obtain sols' where sols': "sols' = sol # map (subst sol) sols" by auto
+  define eqs' where "eqs' = map (subst sol) eqs"
+  define sols' where "sols' = sol # map (subst sol) sols"
 
   obtain y ys where yys: "y#ys = Ys" by (metis "2.prems"(2,4) length_Cons list.size(3) mx_def nat.simps(3) neq_Nil_conv)
 
   have "length ys = n - 1" using ‹length Ys = n› yys by auto
-
   have "length cs = b - 1"
     by (metis "2.prems"(2) One_nat_def add_diff_cancel_right' list.set_intros(1) list.size(4) mx_def)
   then have "length sol = b - 1"
     using length_solve1 sol_def by presburger
   have "length sol > 0" using "2.prems"(1,2) \<open>length sol = b - 1\<close> mx_def by force
-
   have "mx (n-1) b eqs" using ‹mx n b ((c # cs) # eqs)› unfolding mx_def by auto
   then have "mx (n-1) (b-1) (map (subst sol) eqs)" using length_map_subst ‹length sol = b - 1› ‹length sol > 0› by simp
-  then have "mx (n-1) (b-1) eqs'" using eqs' by simp
-
+  then have "mx (n-1) (b-1) eqs'" using eqs'_def by simp
   have "b-1 = n-1+1" using ‹b = n + 1› by (metis "2.prems"(2) One_nat_def add_diff_cancel_right' list.size(4) mx_def)
-
   have "length cs > 0"
     using \<open>length sol > 0\<close> length_solve1 sol_def by auto
   have "mx m (b-1) (map (subst sol) sols)" using "2.prems"(3) ‹length sol = b - 1› ‹length sol > 0› length_map_subst by blast
-  then have "mx (m+1) (b-1) sols'" using sols' by (simp add: ‹length sol = b - 1› mx_def)
-
-  (*
-  have "is_sols (rev Ys @ rev Xs) (solves sols ((c # cs) # eqs)) []"
-    using ‹is_sols (Xs @ Ys) (rev (solves sols ((c # cs) # eqs))) []› is_sols_rev by fastforce
-  then have "is_sols (y # rev ys @ rev Xs) (solves sols ((c # cs) # eqs)) []"
-    using yys by auto
-  then have "is_sols (y # rev ys @ rev Xs) (solves sols' eqs') []"
-    by (metis eqs' sol sols' solves.simps(2))
-  *)
+  then have "mx (m+1) (b-1) sols'" using sols'_def by (simp add: ‹length sol = b - 1› mx_def)
 
   have "is_sols ((Xs @ [y]) @ ys) (rev (solves sols ((c # cs) # eqs))) []"
     using ‹is_sols (Xs @ Ys) (rev (solves sols ((c # cs) # eqs))) []› yys by simp
   then have "is_sols ((Xs @ [y]) @ ys) (rev (solves sols' eqs')) []"
-    by (metis eqs' sol_def sols' solves.simps(2))
+    by (metis eqs'_def sol_def sols'_def solves.simps(2))
 
-  have "True"
-    using solve1_correct sorry
+  have IH: "is_sols ys eqs' ys \<and> is_sols (rev (Xs @ [y])) sols' ys"
+    using "2.IH"[OF sol_def eqs'_def sols'_def ‹b-1 = n-1+1› ‹mx (n-1) (b-1) eqs'› ‹mx (m+1) (b - 1) sols'› ‹length ys = n - 1› ‹is_sols ((Xs @ [y]) @ ys) (rev (solves sols' eqs')) []›]
+    by simp
 
-  thm "2.prems"
-  thm map_subst_correct[OF]
-  thm map_subst_unique[OF]
 
-  thm "2.IH"[OF sol_def eqs' sols' ‹b-1 = n-1+1› ‹mx (n-1) (b-1) eqs'› ‹mx (m+1) (b - 1) sols'› ‹length ys = n - 1› ‹is_sols ((Xs @ [y]) @ ys) (rev (solves sols' eqs')) []›]
+  have "is_sols (y # rev Xs) (sol # map (subst sol) sols) ys"
+    using IH sols'_def by simp
+  then have "is_sol y sol ys"
+    by simp
+  then have "is_sol y (solve1 c cs) ys"
+    using sol_def by simp
+  then have "is_sol y (c#cs) (y#ys)"
+    using solve1_correct by simp
 
-  then show ?case sorry
+  have "eq y (dot sol (ys @ [1]))"
+    using ‹is_sol y sol ys›
+    unfolding is_sol_def by simp
+
+  have "is_sols (rev Xs) (map (subst sol) sols) ys"
+    using ‹is_sols (y # rev Xs) (sol # map (subst sol) sols) ys› by simp
+  then have "is_sols (rev Xs) sols (y# ys)"
+    using map_subst_correct[of m "b-2" ,OF _ _ _ ‹eq y (dot sol (ys @ [1]))› ‹is_sols (rev Xs) (map (subst sol) sols) ys›]
+    by (metis "2.prems"(1,3) Suc_eq_plus1 \<open>b - 1 = n - 1 + 1\<close> \<open>length sol = b - 1\<close> \<open>length ys = n - 1\<close> add_2_eq_Suc' add_implies_diff)
+
+  moreover have "is_sols ys (map (subst sol) eqs) ys"
+    using eqs'_def IH by simp
+  then have "is_sols ys eqs (y#ys)"
+    using map_subst_correct[OF _ _ _ ‹eq y (dot sol (ys @ [1]))› ‹is_sols ys (map (subst sol) eqs) ys›]
+    by (metis "2.prems"(1,4) One_nat_def Suc_eq_plus1 \<open>b - 1 = n - 1 + 1\<close> \<open>length sol = b - 1\<close> \<open>length ys = n - 1\<close> \<open>mx (n - 1) b eqs\<close> add_2_eq_Suc' list.size(4) yys)
+
+  ultimately show ?case using yys ‹is_sol y (c # cs) (y # ys)› is_sols.simps(1) by blast
 next
   case (1 sols)
   have "n = 0" using ‹mx n b []› mx_def by (metis length_0_conv)

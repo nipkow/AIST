@@ -367,7 +367,7 @@ lemma x_is_init_app_end:
 
 subsubsection \<open>Left steps, right steps, and their reachabilities\<close>
 
-text \<open>A 2DFA \<open>M\<close> is in a left configuration for input \<open>xz\<close> if it is currently reading \<open>x\<close>.
+text \<open>A 2DFA is in a left configuration for input \<open>xz\<close> if it is currently reading \<open>x\<close>.
       Otherwise, it is in a right configuration:\<close>
 definition left_config :: "'a config \<Rightarrow> bool" where
   "left_config c \<equiv> \<exists>u q v. c = (u, q, v) \<and> length u < length (\<langle>x\<langle>)"

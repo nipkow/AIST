@@ -102,10 +102,6 @@ and γ_add: "γ (a + b) = γ a + γ b"
 and γ_mul: "γ (a * b) = γ a * γ b"
 and γ_zero: "γ 0 = 0"
 and γ_one: "γ 1 = 1"
-(* TODO: kann / will ich hier is_sol benutzen? *)
-(*
-and solve1_u: "length cs > 0 \<Longrightarrow> γ X = γ (dot (c#cs) (X#Xs@[1])) \<Longrightarrow>  γ X = γ (dot (solve1 c cs) (Xs@[1]))"
-*)
 and solve1_c: "γ X = γ (dot (solve1 c cs) (Xs@[1])) \<Longrightarrow> γ X = γ (dot (c#cs) (X#Xs@[1]))"
 
 begin

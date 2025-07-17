@@ -118,6 +118,20 @@ next
     using pre_star_word by simp
 qed
 
+subsection\<open>Properties of Non-Terminal Symbols\<close>
+
+definition is_reachable :: "'n \<Rightarrow> bool" where
+  "is_reachable X \<equiv> (\<exists>\<alpha> \<beta>. [Nt S] \<Rightarrow>\<^sup>* (\<alpha>@[Nt X]@\<beta>))"
+
+definition is_productive :: "'n \<Rightarrow> bool" where
+  "is_productive X \<equiv> (\<exists>w. [Nt X] \<Rightarrow>\<^sup>* map_word w)"
+
+definition is_useful :: "'n \<Rightarrow> bool" where
+  "is_useful X \<equiv> is_reachable X \<and> is_productive X"
+
+definition (in CFG) is_nullable :: "'n \<Rightarrow> bool" where
+  "is_nullable X \<equiv> ([Nt X] \<Rightarrow>\<^sup>* [])"
+
 end \<comment>\<open>end-locale CFG\<close>
 
 end \<comment>\<open>end-theory Definition\<close>

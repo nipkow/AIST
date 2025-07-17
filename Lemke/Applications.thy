@@ -1,7 +1,7 @@
 section\<open>Applications\<close>
 
 theory Applications
-  imports Definition "HOL-Data_Structures.Define_Time_Function"
+  imports Definition Finiteness
 begin \<comment>\<open>begin-theory Applications\<close>
 
 subsection\<open>The Membership Problem\<close>
@@ -38,9 +38,6 @@ qed
 
 subsection\<open>Computing Useless Variables\<close>
 
-definition (in CFG) is_reachable :: "'n \<Rightarrow> bool" where
-  "is_reachable X \<equiv> (\<exists>\<alpha> \<beta>. [Nt S] \<Rightarrow>\<^sup>* (\<alpha>@[Nt X]@\<beta>))"
-
 theorem (in CFG) "is_reachable X \<longleftrightarrow> [Nt S] \<in> pre_star { \<alpha>@[Nt X]@\<beta> | \<alpha> \<beta>. True }"
 proof -
   define L where "L \<equiv> { (\<alpha>::('n, 't) syms)@[Nt X]@\<beta> | \<alpha> \<beta>. True }"
@@ -51,9 +48,6 @@ proof -
   finally show ?thesis
     by (simp add: is_reachable_def L_def)
 qed
-
-definition (in CFG) is_productive :: "'n \<Rightarrow> bool" where
-  "is_productive X \<equiv> (\<exists>w. [Nt X] \<Rightarrow>\<^sup>* map_word w)"
 
 theorem (in CFG) "is_productive X \<longleftrightarrow> [Nt X] \<in> pre_star { map_word w | w. True }"
 proof -
@@ -66,13 +60,7 @@ proof -
     by (simp add: is_productive_def L_def)
 qed
 
-definition (in CFG) is_useful :: "'n \<Rightarrow> bool" where
-  "is_useful X \<equiv> is_reachable X \<and> is_productive X"
-
 subsection\<open>Computing Nullable Variables\<close>
-
-definition (in CFG) is_nullable :: "'n \<Rightarrow> bool" where
-  "is_nullable X \<equiv> ([Nt X] \<Rightarrow>\<^sup>* [])"
 
 theorem (in CFG) "is_nullable X \<longleftrightarrow> [Nt X] \<in> pre_star {[]}"
 proof -
@@ -84,6 +72,13 @@ qed
 
 subsection\<open>The Finiteness Problem\<close>
 
-(* TODO *)
+lemma (in CFG) is_infinite_check:
+  "is_infinite \<longleftrightarrow> (\<exists>X. [Nt X] \<in> pre_star { \<alpha>@[Nt X]@\<beta> | \<alpha> \<beta>. \<alpha>@\<beta> \<noteq> [] })"
+  unfolding is_infinite_def using pre_star_term by auto
+
+theorem (in CFG) is_infinite_by_prestar:
+  assumes "is_useful_all" and "is_non_nullable_all"
+  shows "finite (Lang P S) \<longleftrightarrow> (\<forall>X. [Nt X] \<notin> pre_star { \<alpha>@[Nt X]@\<beta> | \<alpha> \<beta>. \<alpha>@\<beta> \<noteq> [] })"
+  using assms is_infinite is_infinite_check by blast
 
 end \<comment>\<open>end-theory Applications\<close>

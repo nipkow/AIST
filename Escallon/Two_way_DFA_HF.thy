@@ -37,7 +37,8 @@ type_synonym 'a config = "'a symbol list \<times> state \<times> 'a symbol list"
 
 
 text \<open>Some abbreviations to guarantee the validity of the input. 
-      The input for a 2DFA with alphabet \<open>\<Sigma>\<close> is \<open>\<turnstile>w\<stileturn>\<close> for some \<open>w \<in> \<Sigma>\<^sup>*\<close>:\<close>
+      The input for a 2DFA with alphabet \<open>\<Sigma>\<close> is \<open>\<turnstile>w\<stileturn>\<close> for some \<open>w \<in> \<Sigma>\<^sup>*\<close>. 
+      Note that \<open>\<turnstile>,\<stileturn> \<notin> \<Sigma>\<close>:\<close>
 
 abbreviation \<Sigma> :: "'a list \<Rightarrow>'a symbol list" where
   "\<Sigma> w \<equiv> map Letter w"
@@ -127,7 +128,7 @@ subsection \<open>Basic Properties of 2DFAs\<close>
 
 text \<open>The language accepted by \<open>M\<close>:\<close>
 
-definition Lang :: "'a list set" where (*Rename to language for consistency?*)
+definition Lang :: "'a list set" where
   "Lang \<equiv> {w. \<exists>u v.  w \<rightarrow>** (u, acc M, v)}" 
 
 lemma unchanged_substrings:

@@ -31,14 +31,13 @@ record 'a dfa2 = states :: "state set"
                  nxt    :: "state \<Rightarrow> 'a symbol \<Rightarrow> state \<times> dir"
 
 
-text \<open>2DFA configurations. A 2DFA \<open>M\<close> is in a configuration \<open>(u, q, v)\<close> if \<open>M\<close> is reading
-      \<open>hd v\<close>, the substring \<open>rev u\<close> is to the left, \<open>tl v\<close> is to the right, and \<open>M\<close> is in state
-      \<open>q\<close>:\<close>
+text \<open>2DFA configurations. A 2DFA \<open>M\<close> is in a configuration \<open>(u, q, v)\<close> if \<open>M\<close> is in state \<open>q\<close>,
+      reading \<open>hd v\<close>, the substring \<open>rev u\<close> is to the left and \<open>tl v\<close> is to the right:\<close>
 type_synonym 'a config = "'a symbol list \<times> state \<times> 'a symbol list"
 
 
 text \<open>Some abbreviations to guarantee the validity of the input. 
-      The input for a 2DFA \<open>M\<close> with alphabet \<open>\<Sigma>\<close> is \<open>\<turnstile>w\<stileturn>\<close> for some \<open>w \<in> \<Sigma>\<^sup>*\<close>:\<close>
+      The input for a 2DFA with alphabet \<open>\<Sigma>\<close> is \<open>\<turnstile>w\<stileturn>\<close> for some \<open>w \<in> \<Sigma>\<^sup>*\<close>:\<close>
 
 abbreviation \<Sigma> :: "'a list \<Rightarrow>'a symbol list" where
   "\<Sigma> w \<equiv> map Letter w"
@@ -124,12 +123,12 @@ corollary reachable_impl_in_states:
   shows   "q \<in> states M"
   using assms dfa2_def dfa2_axioms by (blast intro: steps_impl_in_states)
 
+subsection \<open>Basic Properties of 2DFAs\<close>
+
 text \<open>The language accepted by \<open>M\<close>:\<close>
 
 definition Lang :: "'a list set" where (*Rename to language for consistency?*)
   "Lang \<equiv> {w. \<exists>u v.  w \<rightarrow>** (u, acc M, v)}" 
-
-subsection \<open>Basic Properties of Two-Way Automata\<close>
 
 lemma unchanged_substrings: (*Theorem?*)
   "(u, p, v) \<rightarrow>* (u', q, v') \<Longrightarrow> rev u @ v = rev u' @ v'"
@@ -365,6 +364,8 @@ lemmas x_defs = x_init_def x_end_def
 lemma x_is_init_app_end:
   "\<langle>x\<langle> = x_init @ [x_end]" unfolding x_defs by simp
 
+subsubsection \<open>Left steps, right steps, and their reachabilities\<close>
+
 text \<open>A 2DFA \<open>M\<close> is in a left configuration for input \<open>xz\<close> if it is currently reading \<open>x\<close>.
       Otherwise, it is in a right configuration:\<close>
 definition left_config :: "'a config \<Rightarrow> bool" where
@@ -423,6 +424,7 @@ abbreviation right_steps :: "'a config \<Rightarrow> 'a config \<Rightarrow> boo
 abbreviation right_stepn :: "'a config \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>R'(_') _" 55) where
   "right_stepn c n \<equiv> (right_step ^^ n) c"
 
+subsubsection \<open>Properties of left and right steps\<close>
 
 lemma left_steps_impl_steps [dest]:
   "c0 \<rightarrow>\<^sup>L* c1 \<Longrightarrow> c0 \<rightarrow>* c1"

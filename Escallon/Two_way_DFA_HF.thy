@@ -1,12 +1,12 @@
 (* Author: Felipe Escallon and Tobias Nipkow *)
 
-theory Two_way_DFA_HF
+theory Two_way_DFA_HF       
   imports "Finite_Automata_HF.Finite_Automata_HF"
 begin
 
-text \<open>A formalization of two-way deterministic finite automata using hereditarily finite sets, 
-      as well as proof that they accept regular languages. Both the definition of 2DFAs and the
-      proof follow Kozen \<^cite>\<open>Kozen\<close>.\<close>
+text \<open>A formalization of two-way deterministic finite automata (2DFA), 
+based on Paulson's theory of DFAs using hereditarily finite sets.
+Both the definition of 2DFAs and the proof follow Kozen \<^cite>\<open>Kozen\<close>.\<close>
 
 section \<open>Definition of Two-Way Deterministic Finite Automata\<close>
 
@@ -130,7 +130,7 @@ text \<open>The language accepted by \<open>M\<close>:\<close>
 definition Lang :: "'a list set" where (*Rename to language for consistency?*)
   "Lang \<equiv> {w. \<exists>u v.  w \<rightarrow>** (u, acc M, v)}" 
 
-lemma unchanged_substrings: (*Theorem?*)
+lemma unchanged_substrings:
   "(u, p, v) \<rightarrow>* (u', q, v') \<Longrightarrow> rev u @ v = rev u' @ v'"
 proof (induction rule: rtranclp_induct3)
   case (step a q' b c q'' d)
@@ -345,9 +345,10 @@ end
 section \<open>Boundary Crossings\<close>
 
 subsection \<open>Basic Definitions\<close>
-text \<open>In order to describe boundary crossings in general, we describe the behavior of \<open>M\<close> for a 
+
+text \<open>In order to describe boundary crossings in general, we describe the behavior of \<open>M\<close> for a
       fixed, non-empty string \<open>x\<close> and  input word \<open>xz\<close>, where \<open>z\<close> is an arbitrary string:\<close>
-      (*xz or x @ z?*)
+
 locale dfa2_transition = dfa2 +
   fixes x :: "'a list"
   assumes "x \<noteq> []"
@@ -510,7 +511,6 @@ proposition list_deconstruct1:
   obtains ys zs where "length ys = m" "ys @ zs = xs" using assms 
   by (metis add_diff_cancel_right' append_take_drop_id le_iff_add length_drop 
       length_rev rev_eq_append_conv)
-
 
 proposition list_deconstruct2:
   assumes "m \<le> length xs"
@@ -1026,7 +1026,7 @@ inductive_cases no_trE[elim]:   "T (Some q) None"
 inductive_cases some_trE[elim]: "T (Some q) (Some p)"
 
 text \<open>Lemmas for the independence of \<open>T\<^sub>x\<close> from \<open>z\<close>. This is a fundamental property to show
-      the main theorem:\<close> (*Wording?*)
+      the main theorem:\<close>
 lemma init_tr_indep:
   assumes "T None (Some q)"
   obtains p where "x @ z \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z\<rangle>)"
@@ -1209,7 +1209,9 @@ qed
 end
 
 section \<open>2DFAs and Regular Languages\<close>
+
 subsection \<open>Every Language Accepted by 2DFAs is Regular\<close>
+
 context dfa2
 begin
 
@@ -1646,7 +1648,7 @@ qed
 
 end
 
-subsection \<open>Every regular language L is Accepted by Some 2DFA\<close>
+subsection \<open>Every Regular Language is Accepted by Some 2DFA\<close>
 
 abbreviation step' :: "'a config \<Rightarrow> 'a dfa2 \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<lparr>_\<rparr> _" 55) where
   "c0 \<rightarrow>\<lparr>M\<rparr> c1 \<equiv> dfa2.step M c0 c1"
@@ -1654,21 +1656,11 @@ abbreviation step' :: "'a config \<Rightarrow> 'a dfa2 \<Rightarrow> 'a config \
 abbreviation steps' :: "'a config \<Rightarrow> 'a dfa2 \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>*\<lparr>_\<rparr> _" 55) where
   "c0 \<rightarrow>*\<lparr>M\<rparr> c1 \<equiv> dfa2.steps M c0 c1"
 
-(*Explain auxiliary lemmas?*)
-proposition ex_finite_disj_set_if_infinite:
-  assumes "infinite(UNIV::'a set)" 
-          "finite (S::'a set)"
-  shows "\<exists>T. finite T \<and> card T = n \<and> S \<inter> T = {}" (is "\<exists>T. ?P n T")
-proof (induction n)
-   case 0 then show ?case by fastforce
- next
-   case (Suc n)
-   then obtain T where "?P n T" by blast
-   moreover then obtain x where "x \<notin> S \<union> T" using Suc.prems assms
-     by (metis UNIV_eq_I finite_Un)
-   ultimately have "?P (Suc n) (insert x T)" by simp
-   then show ?case by blast
- qed
+(* TODO rm after next release *)
+lemma finite_arbitrarily_large_disj:
+  "\<lbrakk> infinite(UNIV::'a set); finite (A::'a set) \<rbrakk> \<Longrightarrow> \<exists>B. finite B \<and> card B = n \<and> A \<inter> B = {}"
+using infinite_arbitrarily_large[of "UNIV - A"]
+by fastforce
 
 proposition card_3_impl_distinct:
   assumes "card S = Suc(Suc(Suc 0))"
@@ -1696,7 +1688,7 @@ proof -
       "card Q = Suc (Suc (Suc 0))"
       "Q \<inter> dfa.states N = {}"
       using infinite_UNIV_state
-      by (metis ex_finite_disj_set_if_infinite inf_commute)
+      by (metis finite_arbitrarily_large_disj inf_commute)
     thus thesis using card_3_impl_distinct that distinct_def
       by (smt (verit, ccfv_SIG) card_Suc_eq insertCI)
   qed

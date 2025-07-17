@@ -505,14 +505,14 @@ proof -
   with g_def show ?thesis by (metis relpowp_fun_conv)
 qed
 
-(*These propositions are necessary for the two following theorems*)
-proposition list_deconstruct1:
+text \<open>These \<open>list\<close> lemmas are necessary for the two following \<open>substring\<close> lemmas:\<close>
+lemma list_deconstruct1:
   assumes "m \<le> length xs"
   obtains ys zs where "length ys = m" "ys @ zs = xs" using assms 
   by (metis add_diff_cancel_right' append_take_drop_id le_iff_add length_drop 
       length_rev rev_eq_append_conv)
 
-proposition list_deconstruct2:
+lemma list_deconstruct2:
   assumes "m \<le> length xs"
   obtains ys zs where "length zs = m" "ys @ zs = xs"
 proof -
@@ -522,7 +522,7 @@ proof -
   then show thesis using list_deconstruct1 that by (auto simp: append_eq_rev_conv)
 qed
 
-theorem lstar_impl_substring_x:
+lemma lstar_impl_substring_x:
   assumes app_eq: "rev u @ v = \<langle>x @ z\<rangle>"
       and in_x:   "length u < length (\<langle>x\<langle>)"
       and lsteps: "(u, p, v) \<rightarrow>\<^sup>L* (u', q, v')"
@@ -570,7 +570,7 @@ corollary reachable_lconfig_impl_substring_x:
     obtains y where " rev u' @ y = \<langle>x\<langle>" "y @ \<rangle>z\<rangle> = v'" 
   using unchanged_word[OF assms(1)] lstar_impl_substring_x assms by metis 
 
-theorem star_rconfig_impl_substring_z:
+lemma star_rconfig_impl_substring_z:
   assumes app_eq: "x @ z \<rightarrow>** (u, p, v)"
       and reach: "(u, p, v) \<rightarrow>* (u', q, v')"
       and rconf: "right_config (u', q, v')"
@@ -1460,7 +1460,7 @@ qed
 
 
 text \<open>The initial implication:\<close>
-lemma T_eq_impl_eq_app_right:
+theorem T_eq_impl_eq_app_right:
   assumes not_empty:  "x \<noteq> []" "y \<noteq> []"
       and T_eq:       "T x = T y"
       and xz_in_lang: "x @ z \<in> Lang"
@@ -1598,7 +1598,7 @@ lemma finite_quotient_kern_iff_finite_image:
   by (metis bij_betw_finite bij_betw_image_quotient_kern)
 (* end of rm *)
 
-lemma \<T>_finite_image:
+theorem \<T>_finite_image:
   "finite (\<T> ` UNIV)"
 proof -
   let ?S = "{Some q | q. q \<in> states M} \<union> {None}"
@@ -1662,7 +1662,7 @@ lemma finite_arbitrarily_large_disj:
 using infinite_arbitrarily_large[of "UNIV - A"]
 by fastforce
 
-proposition card_3_impl_distinct:
+lemma card_3_impl_distinct:
   assumes "card S = Suc(Suc(Suc 0))"
   obtains a b c where "S = {a,b,c}" "distinct [a,b,c]"
   using assms by (auto simp: card_Suc_eq)

@@ -408,7 +408,7 @@ abbreviation left_reachable :: "'a list \<Rightarrow> 'a config \<Rightarrow> bo
 abbreviation left_nreachable :: "'a list \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>L*'(_') _" 55) where
   "w \<rightarrow>\<^sup>L*(n) c \<equiv> ([], init M, \<langle>w\<rangle>) \<rightarrow>\<^sup>L(n) c"  
 
-
+text \<open>Right steps are defined analogously:\<close>
 
 inductive right_step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>R\<close> 55) where
   rstep [intro]: "\<lbrakk>c0 \<rightarrow> c1; right_config c0; right_config c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>R c1"

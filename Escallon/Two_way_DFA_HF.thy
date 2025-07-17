@@ -193,15 +193,15 @@ lemma left_to_right_impl_substring:
         obtains us where "us @ u = w"
   using assms proof (induction arbitrary: thesis rule: rtranclp_induct3)
   case (step u' p' v' x q z)
-  then consider "length u < length x" | "length u = length x" by linarith
+  then consider (len_u_lt_x) "length u < length x" | (len_u_eq_x) "length u = length x" by linarith
   then show ?case
   proof cases
-    case 1
+    case len_u_lt_x
     then have "length u \<le> length u'" using step by fastforce
     with step(3) obtain us where us_app_u: "us @ u = u'" by blast
     then show thesis by (cases us) (use step us_app_u in auto)
   next
-    case 2
+    case len_u_eq_x
     with step(1,2) unchanged_substrings have "u = x"
     by (metis rev_rev_ident rev_append[of "rev x" z] rev_append[of "rev u" v]
         append_eq_append_conv r_into_rtranclp)
@@ -217,10 +217,11 @@ lemma acc_impl_reachable_substring:
   using assms
 proof (induction v arbitrary: u xs ys)
   case (Cons a v)
-  consider b where "a = Letter b \<or> a = \<turnstile>" | "a = \<stileturn>"  by (metis dir.exhaust symbol.exhaust)
+  consider (not_right_marker) b where "a = Letter b \<or> a = \<turnstile>" | (right_marker) "a = \<stileturn>"  
+    by (metis dir.exhaust symbol.exhaust)
   then show ?case 
   proof cases
-    case 1
+    case not_right_marker
     hence step: "(u, acc M, a # v) \<rightarrow> (a # u, acc M, v)" using final_nxt_r by auto
     with Cons(3) have reach: "w \<rightarrow>** (a # u, acc M, v)" by simp
     from this obtain xs' where xs'_def: "v = xs' @ ys" 
@@ -228,7 +229,7 @@ proof (induction v arbitrary: u xs ys)
     from xs'_def Cons(2) have "a # xs' = xs" by simp
     then show ?thesis using Cons Cons(1)[of xs' ys "a # u", OF xs'_def reach] step by fastforce
   next
-    case 2
+    case right_marker
     note unchanged = unchanged_word[OF Cons(3)]
     have "v = []"
     proof -
@@ -237,25 +238,22 @@ proof (induction v arbitrary: u xs ys)
         assume "length u \<noteq> length (\<langle>w\<langle>)"
         with unchanged obtain n where n_len: "n < length (\<langle>w\<langle>)"
                                   and n_idx: "(rev u @ a # v) ! n = \<stileturn>"
-          using 2
+          using right_marker
           by (metis append_assoc length_Cons length_append length_append_singleton length_rev 
               length_tl linorder_neqE_nat list.sel(3) not_add_less1 nth_append_length)
         have "(\<langle>w\<rangle>) ! n \<noteq> \<stileturn>"
-        proof -
-          consider "n = 0" | "0 < n" by blast
-          then show ?thesis
-          proof cases
-            case 1
-            then show ?thesis by simp
-          next
-            case 2
-            hence "(\<langle>w\<rangle>) ! n = (\<langle>w\<langle>) ! n" using n_len
-              by (simp add: nth_append_left)
-            also have "... = \<Sigma> w ! (n - 1)" using 2 by simp
-            finally show ?thesis
-              by (metis "2" One_nat_def Suc_less_eq Suc_pred length_Cons length_map n_len nth_map
-                  symbol.distinct(1))
-          qed
+        proof (cases n)
+          case 0
+          then show ?thesis by simp
+        next
+          case (Suc k)
+          hence n_gt_0: "n > 0" by simp
+          hence "(\<langle>w\<rangle>) ! n = (\<langle>w\<langle>) ! n" using n_len
+            by (simp add: nth_append_left)
+          also have "... = \<Sigma> w ! (n - 1)" using Suc by simp
+          finally show ?thesis
+            by (metis n_gt_0 One_nat_def Suc_less_eq Suc_pred length_Cons length_map n_len nth_map
+                symbol.distinct(1))
         qed
         with n_idx unchanged show False by argo 
       qed
@@ -263,7 +261,7 @@ proof (induction v arbitrary: u xs ys)
         by (metis add_left_cancel length_Cons length_append length_rev list.size(3,4))
       thus ?thesis by simp
     qed
-    then show ?thesis using Cons 2 by (metis append_assoc snoc_eq_iff_butlast)
+    then show ?thesis using Cons right_marker by (metis append_assoc snoc_eq_iff_butlast)
   qed
 qed simp
 
@@ -325,17 +323,19 @@ proof -
     case (Suc n)
     then obtain c' where c'_defs: "c0 \<rightarrow>(n) c'" "c' \<rightarrow> c1" by auto
     with Suc.IH have "c' \<rightarrow>* c2 \<or> c2 \<rightarrow>* c'" by simp
-    then consider "c' = c2" "c' \<rightarrow>* c2" | "c' \<noteq> c2" "c' \<rightarrow>* c2" | "c2 \<rightarrow>* c'" by blast
+    then consider (c'_eq_c2) "c' = c2" "c' \<rightarrow>* c2" | 
+                  (c'_reaches_c2) "c' \<noteq> c2" "c' \<rightarrow>* c2" | 
+                  (c2_reaches_c') "c2 \<rightarrow>* c'" by blast
     then show ?case
     proof cases
-      case 1
+      case c'_eq_c2
       then show ?thesis using c'_defs by blast
     next
-      case 2
+      case c'_reaches_c2
       then obtain c'' where "c' \<rightarrow> c''" "c'' \<rightarrow>* c2" by (metis converse_rtranclpE)
       then show ?thesis using c'_defs step_unique by metis
     next
-      case 3
+      case c2_reaches_c'
       then show ?thesis using c'_defs(2) by (meson rtranclp.rtrancl_into_rtrancl)
     qed
   qed
@@ -821,18 +821,19 @@ proof (cases "left_config c0 = left_config c1")
       (simp add: left_config_is_not_right_config no_crossr r_into_rtranclp rstep))
 next
   case False
-  consider "left_config c0" | "right_config c0" using left_config_is_not_right_config by blast
+  consider (left) "left_config c0" | (right) "right_config c0" 
+    using left_config_is_not_right_config by blast
   then show ?thesis
   proof cases
-    case 1
+    case left
     with False obtain q where "c0 = (rev x_init, p, x_end # \<rangle>z\<rangle>)"
                                   "c1 = (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)"
     proof -
       obtain y q w where c1_def: "c1 = (y, q, w)" using prod_cases3 by blast
       have "length u = length (\<langle>x\<langle>) - 1" "length y = length (\<langle>x\<langle>)" 
       proof -
-        from 1 assms(2) have "length u < length (\<langle>x\<langle>)" using left_config_def by auto
-        moreover from 1 False right_config_def c1_def have "length y \<ge> length (\<langle>x\<langle>)" 
+        from left assms(2) have "length u < length (\<langle>x\<langle>)" using left_config_def by auto
+        moreover from left False right_config_def c1_def have "length y \<ge> length (\<langle>x\<langle>)" 
           using left_config_is_not_right_config by simp
         moreover from assms(1,2) c1_def have "length u = Suc (length y) \<or> length y = Suc (length u)"
           by fastforce
@@ -858,15 +859,15 @@ next
     then show ?thesis
       using assms(1) dfa2_transition.self_nocross dfa2_transition_axioms by blast
   next
-    case 2
+    case right
     with False obtain q where "c0 = (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>)"
                               "c1 = (rev x_init, q, x_end # \<rangle>z\<rangle>)"
     proof -
       obtain y q w where c1_def: "c1 = (y, q, w)" using prod_cases3 by blast
       have "length u = length (\<langle>x\<langle>)" "length y = length (\<langle>x\<langle>) - 1" 
       proof -
-        from 2 assms(2) have "length u \<ge> length (\<langle>x\<langle>)" using right_config_def by auto
-        moreover from 2 False left_config_def c1_def have "length y < length (\<langle>x\<langle>)" 
+        from right assms(2) have "length u \<ge> length (\<langle>x\<langle>)" using right_config_def by auto
+        moreover from right False left_config_def c1_def have "length y < length (\<langle>x\<langle>)" 
           using left_config_is_not_right_config by blast
         moreover from assms(1,2) c1_def have "length u = Suc (length y) \<or> length y = Suc (length u)"
           by fastforce
@@ -1473,19 +1474,19 @@ proof -
     unfolding Lang_def by blast
   with dfa2_transition.reachable_xz_impl_crossn[OF T_axioms(1)] 
   obtain n where "x @ z \<rightarrow>\<^sup>X*(x,n) (u, acc M, v)" by blast
-  consider "left_config x (u, acc M, v)" | "right_config x (u, acc M, v)"
+  consider (left) "left_config x (u, acc M, v)" | (right) "right_config x (u, acc M, v)"
     unfolding dfa2_transition.left_config_def[OF T_axioms(1)]
               dfa2_transition.right_config_def[OF T_axioms(1)] 
     by fastforce
   then show ?thesis
   proof cases
-    case 1
+    case left
     then obtain xs where "rev u @ xs = \<langle>x\<langle>" "xs @ \<rangle>z\<rangle> = v" "xs \<noteq> []"
     proof -
       obtain xs where "rev u @ xs = \<langle>x\<langle>" "xs @ \<rangle>z\<rangle> = v"
-        by (smt (verit, ccfv_threshold) "1" T_axioms(1) dfa2_transition.left_config_def
+        by (smt (verit, ccfv_threshold) left T_axioms(1) dfa2_transition.left_config_def
             dfa2_transition.reachable_lconfig_impl_substring_x rtranclp.rtrancl_refl x_acc_reachable)
-      moreover from this 1 have "xs \<noteq> []" using dfa2_transition.left_config_def[OF T_axioms(1)] by auto
+      moreover from this left have "xs \<noteq> []" using dfa2_transition.left_config_def[OF T_axioms(1)] by auto
       ultimately show thesis using that by blast
     qed
     with acc_impl_reachable_substring have revxsu_reach: "x @ z \<rightarrow>** (rev xs @ u, acc M, \<rangle>z\<rangle>)" 
@@ -1505,10 +1506,10 @@ proof -
       by blast
     then show ?thesis using Lang_def by blast
   next
-    case 2
+    case right
     from x_acc_reachable dfa2_transition.reachable_xz_impl_crossn[OF T_axioms(1)]
     obtain n where x_crossn: "x @ z \<rightarrow>\<^sup>X*(x,n) (u, acc M, v)" by blast
-    from 2 obtain zs where zs_defs: "rev zs @ rev (\<langle>x\<langle>) = u" "zs @ v = \<rangle>z\<rangle>" 
+    from right obtain zs where zs_defs: "rev zs @ rev (\<langle>x\<langle>) = u" "zs @ v = \<rangle>z\<rangle>" 
       by (metis T_axioms(1) dfa2_transition.reachable_right_conf_impl_substring_z rev_append
           x_acc_reachable)
     with T_eq_impl_rconf_reachable[OF _ not_empty T_eq] have 
@@ -1852,8 +1853,7 @@ proof -
             "(u, dfa2.acc ?M, v) \<rightarrow>*\<lparr>?M\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.rej ?M, hd (rev (\<langle>w\<langle>)) # [\<stileturn>])" 
             using dfa2.reachable_configs_impl_reachable M.dfa2_axioms by blast
           then show False
-            by cases
-            (use dfa2.unchanged_final[OF M.dfa2_axioms] M.neq_final in fastforce)+  
+            by cases (use dfa2.unchanged_final[OF M.dfa2_axioms] M.neq_final in fastforce)+  
           qed
       qed
       have "q \<in> dfa.final N"

@@ -3,7 +3,9 @@ theory Two_way_DFA_HF
 begin
 
 
-subsection \<open>Definition of 2DFAs\<close>
+section \<open>Definition of Two-Way Finite Automata\<close>
+
+subsection \<open>Basic Definitions\<close>
 
 datatype dir = Left | Right
 
@@ -47,7 +49,6 @@ abbreviation marker_mapr :: "'a list \<Rightarrow> 'a symbol list" ("\<rangle>_\
 lemma mapl_app_mapr_eq_map: 
   "\<langle>u\<langle> @ \<rangle>v\<rangle> = \<langle>u @ v\<rangle>" by simp
 
-
 locale dfa2 =
   fixes M :: "'a dfa2"
   assumes init:         "init M \<in> states M"
@@ -58,11 +59,11 @@ locale dfa2 =
       and nxt:          "\<lbrakk>q \<in> states M; nxt M q x = (p, d)\<rbrakk> \<Longrightarrow> p \<in> states M"
       and left_nxt:     "\<lbrakk>q \<in> states M; nxt M q \<turnstile> = (p, d)\<rbrakk> \<Longrightarrow> d = Right"
       and right_nxt:    "\<lbrakk>q \<in> states M; nxt M q \<stileturn> = (p, d)\<rbrakk> \<Longrightarrow> d = Left"
-
-      (*Needed?*)
       and final_nxt_r:  "\<lbrakk>x \<noteq> \<stileturn>; q = acc M \<or> q = rej M\<rbrakk> \<Longrightarrow> nxt M q x = (q, Right)"
       and final_nxt_l:  "q = acc M \<or> q = rej M \<Longrightarrow> nxt M q \<stileturn> = (q, Left)"
 begin
+
+subsection \<open>Steps and Reachability\<close>
 
 text \<open>A single \<close>
 inductive step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<close> 55) where
@@ -79,10 +80,8 @@ abbreviation steps :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (in
   "steps \<equiv> step\<^sup>*\<^sup>*"
 
 text \<open>nth power of \<open>\<rightarrow>\<close>.\<close>
-abbreviation stepn :: "'a config \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" where
+abbreviation stepn :: "'a config \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>'(_') _" 55) where
   "stepn c n \<equiv> (step ^^ n) c"
-
-notation stepn ("_ \<rightarrow>'(_') _" 55)
 
 
 lemma rtranclp_induct3[consumes 1, case_names refl step]:
@@ -99,10 +98,8 @@ text \<open>A config that can be reached from the initial configuration, where \
 abbreviation reachable :: "'a list \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>**\<close> 55) where
   "w \<rightarrow>** c \<equiv> ([], init M, \<langle>w\<rangle>) \<rightarrow>* c" 
 
-abbreviation nreachable :: "'a list \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" where
+abbreviation nreachable :: "'a list \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>*'(_') _" 55) where
   "nreachable w n c \<equiv> ([], init M, \<langle>w\<rangle>) \<rightarrow>(n) c"
-
-notation nreachable ("_ \<rightarrow>*'(_') _" 55)
 
 lemma step_unique:
   assumes "c0 \<rightarrow> c1"
@@ -122,8 +119,10 @@ corollary reachable_impl_in_states:
 
 text \<open>The language accepted by \<open>M\<close>:\<close>
 
-definition Lang :: "'a list set" where
+definition Lang :: "'a list set" where (*Rename to language for consistency?*)
   "Lang \<equiv> {w. \<exists>u v.  w \<rightarrow>** (u, acc M, v)}" 
+
+subsection \<open>Basic Properties of Two-Way Automata\<close>
 
 lemma unchanged_substrings: (*Theorem?*)
   "(u, p, v) \<rightarrow>* (u', q, v') \<Longrightarrow> rev u @ v = rev u' @ v'"
@@ -336,16 +335,13 @@ qed
 
 end
 
-subsection \<open>The transition relation \<open>T\<^sub>x\<close> for a non-empty string \<open>x\<close>, which describes the behavior of 
-            a 2DFA \<open>M\<close> when it crosses the boundary between \<open>x\<close> and any string \<open>z\<close> for the 
-            input string \<open>xz\<close>.\<close> (*TODO: xz or x @ z?*)
+section \<open>Boundary Crossings\<close>
 
+subsection \<open>Basic Definitions\<close>
 locale dfa2_transition = dfa2 +
   fixes x :: "'a list"
   assumes "x \<noteq> []"
 begin 
-
-subsubsection \<open>Basic definitions to describe the boundary:\<close>
 
 definition x_init :: "'a symbol list" where
   "x_init \<equiv> butlast (\<langle>x\<langle>)"
@@ -378,7 +374,7 @@ lemma left_config_lt_right_config:
   using assms left_config_def right_config_def by simp
 
 text\<open>A single left and right step respectively, where the 2DFA does not leave the current substring,
-    as well as their reflexive transitive closures, and their nth powers.\<close>
+    as well as their reflexive transitive closures, and their nth powers:\<close>
 inductive left_step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L\<close> 55) where
   lstep [intro]: "\<lbrakk>c0 \<rightarrow> c1; left_config c0; left_config c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>L c1"
 
@@ -722,108 +718,9 @@ proof -
   then show ?thesis by (meson rtranclp_power)
 qed
 
-subsubsection \<open>Now the definition of \<open>T\<^sub>x\<close>:\<close>
-inductive T :: "state option \<Rightarrow> state option \<Rightarrow> bool" where
-  init_tr[intro]: "\<lbrakk>x @ z \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z\<rangle>); 
-              (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T None (Some q)" |
+subsection \<open>A Formal Definition of Boundary Crossings\<close>
 
-  init_no_tr[intro]: "\<nexists>q z. x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>) \<Longrightarrow> T None None" |
-
-  some_tr[intro]: "\<lbrakk>p' \<in> states M; (rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, p, x_end # \<rangle>z\<rangle>); 
-              (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q', x_end # \<rangle>z\<rangle>); 
-              (rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T (Some p) (Some q)" |
-                                                       
-  no_tr[intro]:   "\<lbrakk>p' \<in> states M; (rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, p, x_end # \<rangle>z\<rangle>); 
-              \<nexists>q' q'' z. (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q', x_end # \<rangle>z\<rangle>) \<and>
-              (rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q'', \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T (Some p) None" 
-
-
-inductive_cases init_trNoneE[elim]: "T None None"
-inductive_cases init_trSomeE[elim]: "T  None (Some q)"
-inductive_cases no_trE[elim]:   "T (Some q) None"
-inductive_cases some_trE[elim]: "T (Some q) (Some p)"
-
-text \<open>Lemmas for the independence of \<open>T\<^sub>x\<close> from \<open>z\<close>. This is a fundamental property that shows
-      2DFAs accept regular languages.\<close>
-lemma init_tr_indep:
-  assumes "T None (Some q)"
-  obtains p where "x @ z \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z\<rangle>)"
-                  "(rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)"
-proof -
-  from assms obtain p z' where prems: "x @ z' \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z'\<rangle>)"
-                               "(rev x_init, p, x_end # \<rangle>z'\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z'\<rangle>)"
-    by auto
-  with left_reachable_indep[of _ _ _ "[x_end]"] have "x @ z \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z\<rangle>)" 
-    by auto
-  moreover from prems(2) have "(rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)"
-    by fastforce
-  ultimately show thesis using that by simp
-qed
-
-lemma init_no_tr_indep:
-  assumes "T None None"
-  shows "\<nexists>q. x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" 
-  using assms by auto
-
-lemma some_tr_indep:
-  assumes "T (Some p) (Some q)"
-  obtains q' where "(rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q', x_end # \<rangle>z\<rangle>)"
-                   "(rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)"
-proof -
-  from assms obtain p' q' z' where prems:
-    "(rev (\<langle>x\<langle>), p', \<rangle>z'\<rangle>) \<rightarrow> (rev x_init, p, x_end # \<rangle>z'\<rangle>)"
-    "(rev x_init, p, x_end # \<rangle>z'\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q', x_end # \<rangle>z'\<rangle>)"
-    "(rev x_init, q', x_end # \<rangle>z'\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z'\<rangle>)" by auto
-  with lsteps_indep[of "rev x_init" p "[x_end]" z' "rev x_init" q' "[x_end]" z] have
-            "(rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q', x_end # \<rangle>z\<rangle>)"
-            "(rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" 
-      using x_is_init_app_end by auto
-  thus thesis using that by simp
-qed
-
-lemma T_None_Some_impl_reachable:
-  assumes "T None (Some q)"
-  shows "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)"
-proof -
- obtain q' z' where "x @ z' \<rightarrow>\<^sup>L** (rev x_init, q', x_end # \<rangle>z'\<rangle>)"
-                               "(rev x_init, q', x_end # \<rangle>z'\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z'\<rangle>)" 
-    using assms by auto
-  with left_reachable_indep[of z' "rev x_init" q' "[x_end]"] have "x @ z \<rightarrow>\<^sup>L** (rev x_init, q', x_end # \<rangle>z\<rangle>)"
-                               "(rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" 
-    by fastforce+
-  thus "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" by auto
-qed
-
-lemma T_impl_in_states:
-  assumes "T p q"
-  shows "p = Some p' \<Longrightarrow> p' \<in> states M"
-        "q = Some q' \<Longrightarrow> q' \<in> states M"
-proof -
-  assume somep: "p = Some p'"
-  with assms obtain p'' z where
-      "p'' \<in> states M"
-      "(rev (\<langle>x\<langle>), p'', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, p', x_end # \<rangle>z\<rangle>)"
-    by (cases q) auto
-  then show "p' \<in> states M" using nxt by blast
-next
-  assume someq: "q = Some q'"
-  then show "q' \<in> states M" 
-  proof (cases p)
-    case None
-    then show ?thesis using reachable_impl_in_states assms someq
-      using T_None_Some_impl_reachable by blast
-  next
-    case (Some a)
-    with someq assms obtain p' z where
-      "p' \<in> states M"
-      "(rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, a, x_end # \<rangle>z\<rangle>)"
-      "(rev x_init, a, x_end # \<rangle>z\<rangle>) \<rightarrow>* (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)"
-      by (smt (verit) T.cases left_steps_impl_steps option.discI option.inject
-          rtranclp.rtrancl_into_rtrancl)
-    then show ?thesis using steps_impl_in_states by blast
-  qed
-qed
-
+text \<open>\<open>c0 \<rightarrow>\<^sup>X(n) c1\<close> if c0 reaches c1 with n boundary crossings.\<close>
 inductive crossn :: "'a config \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>X'(_') _" 55) where
   no_crossl[intro]:   "\<lbrakk>left_config c0; c0 \<rightarrow>\<^sup>L* c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>X(0) c1" |
   no_crossr[intro]:   "\<lbrakk>right_config c0; c0 \<rightarrow>\<^sup>R* c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>X(0) c1" |
@@ -838,10 +735,8 @@ inductive crossn :: "'a config \<Rightarrow> nat \<Rightarrow> 'a config \<Right
 inductive_cases no_crossE[elim]: "c0 \<rightarrow>\<^sup>X(0) c1"
 inductive_cases crossE[elim]: "c0 \<rightarrow>\<^sup>X(Suc n) c1"
 
-abbreviation word_crossn :: "'a list \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" where
+abbreviation word_crossn :: "'a list \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>X*'(_') _" 55) where
   "word_crossn w n c \<equiv> ([], init M, \<langle>w\<rangle>) \<rightarrow>\<^sup>X(n) c" 
-
-notation word_crossn ("_ \<rightarrow>\<^sup>X*'(_') _" 55)
 
 lemma self_nocross[simp]:
   "c \<rightarrow>\<^sup>X(0) c" using left_config_is_not_right_config by blast
@@ -1091,6 +986,118 @@ next
   then show ?case using ncross crossn_trans step(4) by blast
 qed
 
+subsection \<open>The Transition Relation \<open>T\<^sub>x\<close>\<close>
+
+text \<open>\<open>T\<^sub>x p q\<close> for a non-empty string \<open>x\<close> describes the behavior of 
+      a 2DFA \<open>M\<close> when it crosses the boundary between \<open>x\<close> and any string \<open>z\<close> for the 
+      input string \<open>xz\<close>. Intuitively, if \<open>M\<close> enters \<open>x\<close> from the right in state \<open>p\<close>,
+      when it re-enters \<open>z\<close> in the future, it will do so in state \<open>q\<close>. 
+      \<open>T\<^sub>x None q\<close> denotes the state in which \<open>M\<close> first enters \<open>z\<close>, while \<open>T\<^sub>x p None\<close> 
+      denotes that if \<open>M\<close> ever enters \<open>x\<close> in state \<open>p\<close>, it will never leave \<open>x\<close> and 
+      therefore not terminate.\<close>
+inductive T :: "state option \<Rightarrow> state option \<Rightarrow> bool" where
+  init_tr[intro]: "\<lbrakk>x @ z \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z\<rangle>); 
+              (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T None (Some q)" |
+
+  init_no_tr[intro]: "\<nexists>q z. x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>) \<Longrightarrow> T None None" |
+
+  some_tr[intro]: "\<lbrakk>p' \<in> states M; (rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, p, x_end # \<rangle>z\<rangle>); 
+              (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q', x_end # \<rangle>z\<rangle>); 
+              (rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T (Some p) (Some q)" |
+                                                       
+  no_tr[intro]:   "\<lbrakk>p' \<in> states M; (rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, p, x_end # \<rangle>z\<rangle>); 
+              \<nexists>q' q'' z. (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q', x_end # \<rangle>z\<rangle>) \<and>
+              (rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q'', \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T (Some p) None" 
+
+
+inductive_cases init_trNoneE[elim]: "T None None"
+inductive_cases init_trSomeE[elim]: "T  None (Some q)"
+inductive_cases no_trE[elim]:   "T (Some q) None"
+inductive_cases some_trE[elim]: "T (Some q) (Some p)"
+
+text \<open>Lemmas for the independence of \<open>T\<^sub>x\<close> from \<open>z\<close>. This is a fundamental property that shows
+      2DFAs accept regular languages.\<close>
+lemma init_tr_indep:
+  assumes "T None (Some q)"
+  obtains p where "x @ z \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z\<rangle>)"
+                  "(rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)"
+proof -
+  from assms obtain p z' where prems: "x @ z' \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z'\<rangle>)"
+                               "(rev x_init, p, x_end # \<rangle>z'\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z'\<rangle>)"
+    by auto
+  with left_reachable_indep[of _ _ _ "[x_end]"] have "x @ z \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z\<rangle>)" 
+    by auto
+  moreover from prems(2) have "(rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)"
+    by fastforce
+  ultimately show thesis using that by simp
+qed
+
+lemma init_no_tr_indep:
+  assumes "T None None"
+  shows "\<nexists>q. x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" 
+  using assms by auto
+
+lemma some_tr_indep:
+  assumes "T (Some p) (Some q)"
+  obtains q' where "(rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q', x_end # \<rangle>z\<rangle>)"
+                   "(rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)"
+proof -
+  from assms obtain p' q' z' where prems:
+    "(rev (\<langle>x\<langle>), p', \<rangle>z'\<rangle>) \<rightarrow> (rev x_init, p, x_end # \<rangle>z'\<rangle>)"
+    "(rev x_init, p, x_end # \<rangle>z'\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q', x_end # \<rangle>z'\<rangle>)"
+    "(rev x_init, q', x_end # \<rangle>z'\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z'\<rangle>)" by auto
+  with lsteps_indep[of "rev x_init" p "[x_end]" z' "rev x_init" q' "[x_end]" z] have
+            "(rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q', x_end # \<rangle>z\<rangle>)"
+            "(rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" 
+      using x_is_init_app_end by auto
+  thus thesis using that by simp
+qed
+
+lemma T_None_Some_impl_reachable:
+  assumes "T None (Some q)"
+  shows "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)"
+proof -
+ obtain q' z' where "x @ z' \<rightarrow>\<^sup>L** (rev x_init, q', x_end # \<rangle>z'\<rangle>)"
+                               "(rev x_init, q', x_end # \<rangle>z'\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z'\<rangle>)" 
+    using assms by auto
+  with left_reachable_indep[of z' "rev x_init" q' "[x_end]"] have "x @ z \<rightarrow>\<^sup>L** (rev x_init, q', x_end # \<rangle>z\<rangle>)"
+                               "(rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" 
+    by fastforce+
+  thus "x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" by auto
+qed
+
+lemma T_impl_in_states:
+  assumes "T p q"
+  shows "p = Some p' \<Longrightarrow> p' \<in> states M"
+        "q = Some q' \<Longrightarrow> q' \<in> states M"
+proof -
+  assume somep: "p = Some p'"
+  with assms obtain p'' z where
+      "p'' \<in> states M"
+      "(rev (\<langle>x\<langle>), p'', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, p', x_end # \<rangle>z\<rangle>)"
+    by (cases q) auto
+  then show "p' \<in> states M" using nxt by blast
+next
+  assume someq: "q = Some q'"
+  then show "q' \<in> states M" 
+  proof (cases p)
+    case None
+    then show ?thesis using reachable_impl_in_states assms someq
+      using T_None_Some_impl_reachable by blast
+  next
+    case (Some a)
+    with someq assms obtain p' z where
+      "p' \<in> states M"
+      "(rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, a, x_end # \<rangle>z\<rangle>)"
+      "(rev x_init, a, x_end # \<rangle>z\<rangle>) \<rightarrow>* (rev (\<langle>x\<langle>), q', \<rangle>z\<rangle>)"
+      by (smt (verit) T.cases left_steps_impl_steps option.discI option.inject
+          rtranclp.rtrancl_into_rtrancl)
+    then show ?thesis using steps_impl_in_states by blast
+  qed
+qed
+
+text \<open>With \<open>crossn\<close> we show there is always a first boundary cross if a 2DFA ever crosses the 
+      boundary.\<close>
 lemma T_none_none_iff_not_some:
   "(\<exists>q. T None (Some q)) \<longleftrightarrow> \<not>T None None"
 proof
@@ -1191,7 +1198,8 @@ qed
 
 end
 
-
+section \<open>2DFAs and Regular Languages\<close>
+subsection \<open>Every Language Accepted by 2DFAs is Regular\<close>
 context dfa2
 begin
 
@@ -1227,7 +1235,7 @@ abbreviation crossn' :: "'a config \<Rightarrow> 'a list \<Rightarrow> nat \<Rig
 abbreviation word_crossn' :: "'a list \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>X*'(_,_') _" 55) where
   "w \<rightarrow>\<^sup>X*(x, n) c \<equiv> dfa2_transition.word_crossn M x w n c" 
 
-
+text \<open>The initial implication:\<close>
 lemma T_eq_impl_rconf_reachable:
   assumes x_stepn:    "x @ z \<rightarrow>\<^sup>X*(x,n) (zs @ rev (\<langle>x\<langle>), q, v)"
       and not_empty:  "x \<noteq> []" "y \<noteq> []"
@@ -1308,7 +1316,8 @@ lemma T_eq_impl_rconf_reachable:
         from stepi_y obtain f where f_def:
           "f 0 = (rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>)"
           "f i = (zs @ rev (\<langle>y\<langle>), q, v)"
-          "\<forall>n<i. f n \<rightarrow> f (Suc n)" by (metis relpowp_fun_conv)
+          "\<forall>n<i. f n \<rightarrow> f (Suc n)" 
+          by (metis relpowp_fun_conv[of i "(\<rightarrow>)" "(rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>)" "(zs @ rev (\<langle>y\<langle>), q, v)"])
         hence "\<forall>n<i. (f 0 \<rightarrow>(n) f n)"
           by (metis Suc_lessD less_trans_Suc relpowp_fun_conv)
         have rstepn_fn: "\<forall>n<i. ((rev (\<langle>y\<langle>), q', \<rangle>z\<rangle>) \<rightarrow>\<^sup>R(y,n) f n)"
@@ -1437,7 +1446,8 @@ lemma T_eq_impl_rconf_reachable:
   qed
 qed
 
-lemma T_eq_impl_right_congr:
+
+lemma T_eq_impl_eq_app_right:
   assumes not_empty:  "x \<noteq> []" "y \<noteq> []"
       and T_eq:       "T x = T y"
       and xz_in_lang: "x @ z \<in> Lang"
@@ -1495,6 +1505,7 @@ proof -
   qed
 qed
 
+text \<open>There are finitely many transitions:\<close>
 definition \<T> :: "'a list \<Rightarrow> (state option \<times> state option) set" where
   "\<T> x \<equiv> {(q, p). dfa2_transition M x \<and> T x q p}"
 
@@ -1604,13 +1615,14 @@ proof
                               "dfa2_transition M y"
       by (simp add: dfa2_axioms dfa2_transition.intro
           dfa2_transition_axioms.intro)+
-    then show ?thesis using T_eq_impl_right_congr
+    then show ?thesis using T_eq_impl_eq_app_right
       unfolding eq_app_right_def
       by (smt (verit) T_eq_is_\<T>_eq \<T>_Nil_eq_\<T>_Nil case_prod_conv mem_Collect_eq xy_def(1,2))
   qed
 qed
-               
-theorem two_way_dfa_Lang_regular:
+
+text \<open>Lastly, eq_app_right is of finite index, from which the theorem follows by Myhill-Nerode:\<close>
+theorem dfa2_Lang_regular:
   "regular Lang"
 proof -
   from \<T>_finite_image have "finite (UNIV // kern \<T>)"
@@ -1622,6 +1634,8 @@ proof -
 qed
 
 end
+
+subsection \<open>Every regular language L is Accepted by Some 2DFA\<close>
 
 abbreviation step' :: "'a config \<Rightarrow> 'a dfa2 \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<lparr>_\<rparr> _" 55) where
   "c0 \<rightarrow>\<lparr>M\<rparr> c1 \<equiv> dfa2.step M c0 c1"
@@ -1640,7 +1654,8 @@ proof -
     "{q0, qa, qr} \<inter> dfa.states N = {}"
     "qa \<noteq> qr" 
     "qa \<noteq> q0"
-    "qr \<noteq> q0" sorry
+    "qr \<noteq> q0"
+    sorry
   
   let ?d = "(\<lambda>q a. case a of 
             Letter a' \<Rightarrow> (if q \<in> dfa.states N then ((dfa.nxt N) q a', Right) 
@@ -1835,5 +1850,12 @@ proof -
   qed
   then show thesis using that \<open>dfa.language N = L\<close> M.dfa2_axioms by auto
 qed
+
+text \<open>The equality follows trivially:\<close>
+
+corollary dfa2_accepts_regular_languages:
+  "regular L = (\<exists>M. dfa2 M \<and> dfa2.Lang M = L)"
+  using dfa2.dfa2_Lang_regular regular_language_impl_dfa2 by metis
+
 
 end

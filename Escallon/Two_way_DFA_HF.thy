@@ -6,7 +6,7 @@ begin
 
 text \<open>A formalization of two-way deterministic finite automata using hereditarily finite sets, 
       as well as proof that they accept regular languages. Both the definition of 2DFAs and the
-      proof follow \<^cite>\<open>Kozen\<close>.\<close>
+      proof follow Kozen \<^cite>\<open>Kozen\<close>.\<close>
 
 section \<open>Definition of Two-Way Deterministic Finite Automata\<close>
 
@@ -30,14 +30,15 @@ record 'a dfa2 = states :: "state set"
                  rej    :: "state"
                  nxt    :: "state \<Rightarrow> 'a symbol \<Rightarrow> state \<times> dir"
 
+
 text \<open>2DFA configurations. A 2DFA \<open>M\<close> is in a configuration \<open>(u, q, v)\<close> if \<open>M\<close> is reading
       \<open>hd v\<close>, the substring \<open>rev u\<close> is to the left, \<open>tl v\<close> is to the right, and \<open>M\<close> is in state
-      \<open>q\<close>.\<close>
+      \<open>q\<close>:\<close>
 type_synonym 'a config = "'a symbol list \<times> state \<times> 'a symbol list"
 
 
 text \<open>Some abbreviations to guarantee the validity of the input. 
-      The input for a 2DFA \<open>M\<close> with alphabet \<open>\<Sigma>\<close> is \<open>\<turnstile>w\<stileturn>\<close> for some \<open>w \<in> \<Sigma>\<^sup>*\<close>.\<close>
+      The input for a 2DFA \<open>M\<close> with alphabet \<open>\<Sigma>\<close> is \<open>\<turnstile>w\<stileturn>\<close> for some \<open>w \<in> \<Sigma>\<^sup>*\<close>:\<close>
 
 abbreviation \<Sigma> :: "'a list \<Rightarrow>'a symbol list" where
   "\<Sigma> w \<equiv> map Letter w"
@@ -54,6 +55,8 @@ abbreviation marker_mapr :: "'a list \<Rightarrow> 'a symbol list" ("\<rangle>_\
 lemma mapl_app_mapr_eq_map: 
   "\<langle>u\<langle> @ \<rangle>v\<rangle> = \<langle>u @ v\<rangle>" by simp
 
+subsection \<open>Steps and Reachability\<close>
+
 locale dfa2 =
   fixes M :: "'a dfa2"
   assumes init:         "init M \<in> states M"
@@ -68,7 +71,6 @@ locale dfa2 =
       and final_nxt_l:  "q = acc M \<or> q = rej M \<Longrightarrow> nxt M q \<stileturn> = (q, Left)"
 begin
 
-subsection \<open>Steps and Reachability\<close>
 
 text \<open>A single \<close>
 inductive step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<close> 55) where
@@ -80,11 +82,11 @@ inductive_cases step_foldedE[elim]: "a \<rightarrow> b"
 inductive_cases step_leftE [elim]:  "(a#u, q, v) \<rightarrow> (u, p, a#v)"
 inductive_cases step_rightE [elim]: "(u, q, a#v) \<rightarrow> (a#u, p, v)"
 
-text \<open>The reflexive transitive closure of \<open>\<rightarrow>\<close>.\<close>
+text \<open>The reflexive transitive closure of \<open>\<rightarrow>\<close>:\<close>
 abbreviation steps :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>*\<close> 55) where
   "steps \<equiv> step\<^sup>*\<^sup>*"
 
-text \<open>nth power of \<open>\<rightarrow>\<close>.\<close>
+text \<open>And the nth power of \<open>\<rightarrow>\<close>:\<close>
 abbreviation stepn :: "'a config \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>'(_') _" 55) where
   "stepn c n \<equiv> (step ^^ n) c"
 
@@ -98,8 +100,8 @@ lemma rtranclp_induct3[consumes 1, case_names refl step]:
   by (rule rtranclp_induct[of _ "(ax, ay, az)" "(bx, by, bz)", 
         split_rule])
 
-text \<open>A config that can be reached from the initial configuration, where \<open>\<turnstile>\<close> is being read while
-      in the initial state \<open>init M\<close>.\<close>
+text \<open>A configuration \<open>c\<close> is reachable by a word \<open>w\<close> if \<open>c\<close> can be reached by \<open>M\<close> on input \<open>w\<close>
+      from the initial configuration, where \<open>\<turnstile>\<close> is being read while in the initial state \<open>init M\<close>:\<close>
 abbreviation reachable :: "'a list \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>**\<close> 55) where
   "w \<rightarrow>** c \<equiv> ([], init M, \<langle>w\<rangle>) \<rightarrow>* c" 
 
@@ -158,8 +160,9 @@ proof (induction rule: rtranclp_induct3)
 qed simp
 
 corollary unchanged_word:
-  "([], p, w) \<rightarrow>* (u, q, v) \<Longrightarrow> w = rev u @ v"
-  using unchanged_substrings by force
+  assumes "([], p, w) \<rightarrow>* (u, q, v)"
+  shows "w = rev u @ v"
+  using assms unchanged_substrings by force
 
 lemma step_tl_indep:
   assumes "(u, p, w @ v) \<rightarrow> (y, q, z @ v)"
@@ -343,6 +346,9 @@ end
 section \<open>Boundary Crossings\<close>
 
 subsection \<open>Basic Definitions\<close>
+text \<open>In order to describe boundary crossings in general, we describe the behavior of \<open>M\<close> for a 
+      fixed, non-empty string \<open>x\<close> and  input word \<open>xz\<close>, where \<open>z\<close> is an arbitrary string:\<close>
+      (*xz or x @ z?*)
 locale dfa2_transition = dfa2 +
   fixes x :: "'a list"
   assumes "x \<noteq> []"
@@ -360,7 +366,7 @@ lemma x_is_init_app_end:
   "\<langle>x\<langle> = x_init @ [x_end]" unfolding x_defs by simp
 
 text \<open>A 2DFA \<open>M\<close> is in a left configuration for input \<open>xz\<close> if it is currently reading \<open>x\<close>.
-      Otherwise, it is in a right configuration.\<close>
+      Otherwise, it is in a right configuration:\<close>
 definition left_config :: "'a config \<Rightarrow> bool" where
   "left_config c \<equiv> \<exists>u q v. c = (u, q, v) \<and> length u < length (\<langle>x\<langle>)"
 
@@ -378,8 +384,8 @@ lemma left_config_lt_right_config:
         shows "length u < length w"
   using assms left_config_def right_config_def by simp
 
-text\<open>A single left and right step respectively, where the 2DFA does not leave the current substring,
-    as well as their reflexive transitive closures, and their nth powers:\<close>
+text\<open>For configurations \<open>c\<^sub>0\<close> and \<open>c\<^sub>1\<close>, a step \<open>c\<^sub>0 \<rightarrow> c\<^sub>1\<close> is a left step \<open>c\<^sub>0 \<rightarrow>\<^sup>L c\<^sub>1\<close> if both \<open>c\<^sub>0\<close> and \<open>c\<^sub>1\<close>
+    are in \<open>x\<close>:\<close>
 inductive left_step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L\<close> 55) where
   lstep [intro]: "\<lbrakk>c0 \<rightarrow> c1; left_config c0; left_config c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>L c1"
 
@@ -387,14 +393,15 @@ notation (ASCII) left_step (infix \<open>\<rightarrow>^L\<close> 55)
                             
 inductive_cases lstepE [elim]: "c0 \<rightarrow>\<^sup>L c1"
 
+text \<open>The reflexive transitive closure and the nth power of \<open>\<rightarrow>\<^sup>L\<close>\<close>
 abbreviation left_steps :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L*\<close> 55) where
   "left_steps \<equiv> left_step\<^sup>*\<^sup>*"
 
 abbreviation left_stepn :: "'a config \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>L'(_') _" 55) where
   "left_stepn c n \<equiv> (left_step ^^ n) c"
 
-text \<open>\<open>c\<close> is left reachable by a 2DFA \<open>M\<close> if it is reachable without crossing the boundary
-      between \<open>x\<close> and \<open>z\<close>.\<close>
+text \<open>\<open>c\<close> is left reachable by a word \<open>w\<close> if \<open>w \<rightarrow>** c\<close> and \<open>M\<close> does not cross the boundary
+      before reaching \<open>c\<close>:\<close>
 abbreviation left_reachable :: "'a list \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L**\<close> 55) where
   "w \<rightarrow>\<^sup>L** c \<equiv> ([], init M, \<langle>w\<rangle>) \<rightarrow>\<^sup>L* c" 
 
@@ -513,10 +520,8 @@ proof -
   then show thesis using list_deconstruct1 that by (auto simp: append_eq_rev_conv)
 qed
 
-text\<open>If \<open>(u, p, v)\<close> is a left configuration with input \<open>xz\<close>, then \<open>v = yz\<stileturn>\<close> for some substring 
-    \<open>y\<close> of \<open>x\<close>.\<close>
 theorem lstar_impl_substring_x:
-  assumes nsteps: "rev u @ v = \<langle>x @ z\<rangle>"
+  assumes app_eq: "rev u @ v = \<langle>x @ z\<rangle>"
       and in_x:   "length u < length (\<langle>x\<langle>)"
       and lsteps: "(u, p, v) \<rightarrow>\<^sup>L* (u', q, v')"
   obtains y where " rev u' @ y = \<langle>x\<langle>" "y @ \<rangle>z\<rangle> = v'" 
@@ -527,7 +532,7 @@ proof -
   from lsteps show thesis
   proof (induction arbitrary: u p v rule: rtranclp_induct3)
     case refl 
-    from unchanged_word nsteps lsteps have app: "\<langle>x @ z\<rangle> = rev u' @ v'"
+    from unchanged_word app_eq lsteps have app: "\<langle>x @ z\<rangle> = rev u' @ v'"
       by (metis left_steps_impl_steps unchanged_substrings)
     moreover with u'_lt_x
     obtain y where "rev u' @ y = \<langle>x\<langle>" "y @ \<rangle>z\<rangle> = v'"
@@ -563,11 +568,8 @@ corollary reachable_lconfig_impl_substring_x:
     obtains y where " rev u' @ y = \<langle>x\<langle>" "y @ \<rangle>z\<rangle> = v'" 
   using unchanged_word[OF assms(1)] lstar_impl_substring_x assms by metis 
 
-  
-text\<open>If \<open>(u, p, v)\<close> is a right configuration with input \<open>xz\<close>, then \<open>u = \<turnstile>xy\<close> for some substring 
-    \<open>y\<close> of \<open>z\<close>.\<close>
 theorem star_rconfig_impl_substring_z:
-  assumes nsteps: "x @ z \<rightarrow>** (u, p, v)"
+  assumes app_eq: "x @ z \<rightarrow>** (u, p, v)"
       and reach: "(u, p, v) \<rightarrow>* (u', q, v')"
       and rconf: "right_config (u', q, v')"
     obtains y where " rev (\<langle>x\<langle> @ y) = u'" "y @ v' = \<rangle>z\<rangle>"
@@ -577,7 +579,7 @@ proof -
   from reach show thesis
   proof (induction arbitrary: u p v rule: rtranclp_induct3)
     case refl
-    from unchanged_word nsteps have app: "\<langle>x @ z\<rangle> = rev u' @ v'"
+    from unchanged_word app_eq have app: "\<langle>x @ z\<rangle> = rev u' @ v'"
       by (metis reach unchanged_substrings)
     moreover with u'_ge_x
     obtain x' where "rev (\<langle>x\<langle> @ x') = u'" "x' @ v' = \<rangle>z\<rangle>"
@@ -725,7 +727,7 @@ qed
 
 subsection \<open>A Formal Definition of Boundary Crossings\<close>
 
-text \<open>\<open>c0 \<rightarrow>\<^sup>X(n) c1\<close> if c0 reaches c1 with n boundary crossings.\<close>
+text \<open>\<open>c\<^sub>0 \<rightarrow>\<^sup>X(n) c\<^sub>1\<close> if \<open>c\<^sub>0\<close> reaches \<open>c\<^sub>1\<close> crossing the boundary \<open>n\<close> times:\<close>
 inductive crossn :: "'a config \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>X'(_') _" 55) where
   no_crossl[intro]:   "\<lbrakk>left_config c0; c0 \<rightarrow>\<^sup>L* c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>X(0) c1" |
   no_crossr[intro]:   "\<lbrakk>right_config c0; c0 \<rightarrow>\<^sup>R* c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>X(0) c1" |
@@ -995,11 +997,12 @@ subsection \<open>The Transition Relation \<open>T\<^sub>x\<close>\<close>
 
 text \<open>\<open>T\<^sub>x p q\<close> for a non-empty string \<open>x\<close> describes the behavior of 
       a 2DFA \<open>M\<close> when it crosses the boundary between \<open>x\<close> and any string \<open>z\<close> for the 
-      input string \<open>xz\<close>. Intuitively, if \<open>M\<close> enters \<open>x\<close> from the right in state \<open>p\<close>,
-      when it re-enters \<open>z\<close> in the future, it will do so in state \<open>q\<close>. 
-      \<open>T\<^sub>x None q\<close> denotes the state in which \<open>M\<close> first enters \<open>z\<close>, while \<open>T\<^sub>x p None\<close> 
-      denotes that if \<open>M\<close> ever enters \<open>x\<close> in state \<open>p\<close>, it will never leave \<open>x\<close> and 
-      therefore not terminate.\<close>
+      input string \<open>xz\<close>. Intuitively, \<open>T\<^sub>x (Some p) (Some q)\<close> if \<open>M\<close> enters \<open>x\<close> from the right in 
+      state \<open>p\<close>, when it re-enters \<open>z\<close> in the future, it will do so in state \<open>q\<close>. 
+      \<open>T\<^sub>x None (Some q)\<close> denotes the state in which \<open>M\<close> first enters \<open>z\<close>, while \<open>T\<^sub>x (Some p) None\<close> 
+      denotes that if \<open>M\<close> ever enters \<open>x\<close> in state \<open>p\<close>, it will never enter \<open>z\<close> in the future, and 
+      therefore does not terminate.\<close>
+
 inductive T :: "state option \<Rightarrow> state option \<Rightarrow> bool" where
   init_tr[intro]: "\<lbrakk>x @ z \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z\<rangle>); 
               (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T None (Some q)" |
@@ -1020,8 +1023,8 @@ inductive_cases init_trSomeE[elim]: "T  None (Some q)"
 inductive_cases no_trE[elim]:   "T (Some q) None"
 inductive_cases some_trE[elim]: "T (Some q) (Some p)"
 
-text \<open>Lemmas for the independence of \<open>T\<^sub>x\<close> from \<open>z\<close>. This is a fundamental property that shows
-      2DFAs accept regular languages.\<close>
+text \<open>Lemmas for the independence of \<open>T\<^sub>x\<close> from \<open>z\<close>. This is a fundamental property to show
+      the main theorem:\<close> (*Wording?*)
 lemma init_tr_indep:
   assumes "T None (Some q)"
   obtains p where "x @ z \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z\<rangle>)"
@@ -1240,7 +1243,6 @@ abbreviation crossn' :: "'a config \<Rightarrow> 'a list \<Rightarrow> nat \<Rig
 abbreviation word_crossn' :: "'a list \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>X*'(_,_') _" 55) where
   "w \<rightarrow>\<^sup>X*(x, n) c \<equiv> dfa2_transition.word_crossn M x w n c" 
 
-text \<open>The initial implication:\<close>
 lemma T_eq_impl_rconf_reachable:
   assumes x_stepn:    "x @ z \<rightarrow>\<^sup>X*(x,n) (zs @ rev (\<langle>x\<langle>), q, v)"
       and not_empty:  "x \<noteq> []" "y \<noteq> []"
@@ -1452,6 +1454,8 @@ lemma T_eq_impl_rconf_reachable:
 qed
 
 
+
+text \<open>The initial implication:\<close>
 lemma T_eq_impl_eq_app_right:
   assumes not_empty:  "x \<noteq> []" "y \<noteq> []"
       and T_eq:       "T x = T y"

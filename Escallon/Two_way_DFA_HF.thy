@@ -12,17 +12,20 @@ section \<open>Definition of Two-Way Deterministic Finite Automata\<close>
 
 subsection \<open>Basic Definitions\<close>
 
+type_synonym state = hf
+
 datatype dir = Left | Right
 
-datatype 'a symbol = Letter 'a | Marker dir (*Alternative: treat start/end of list as marker?*)
+text \<open>Left and right markers to prevent the 2DFA from reading out of bounds. The input for a 2DFA 
+      with alphabet \<open>\<Sigma>\<close> is \<open>\<turnstile>w\<stileturn>\<close> for some \<open>w \<in> \<Sigma>\<^sup>*\<close>. Note that \<open>\<turnstile>,\<stileturn> \<notin> \<Sigma>\<close>:\<close>
+
+datatype 'a symbol = Letter 'a | Marker dir
 
 abbreviation left_marker :: "'a symbol" ("\<turnstile>") where
   "\<turnstile> \<equiv> Marker Left"
 
 abbreviation right_marker :: "'a symbol" ("\<stileturn>") where
   "\<stileturn> \<equiv> Marker Right"
-
-type_alias state = hf
 
 record 'a dfa2 = states :: "state set"
                  init   :: "state"
@@ -33,12 +36,10 @@ record 'a dfa2 = states :: "state set"
 
 text \<open>2DFA configurations. A 2DFA \<open>M\<close> is in a configuration \<open>(u, q, v)\<close> if \<open>M\<close> is in state \<open>q\<close>,
       reading \<open>hd v\<close>, the substring \<open>rev u\<close> is to the left and \<open>tl v\<close> is to the right:\<close>
+
 type_synonym 'a config = "'a symbol list \<times> state \<times> 'a symbol list"
 
-
-text \<open>Some abbreviations to guarantee the validity of the input. 
-      The input for a 2DFA with alphabet \<open>\<Sigma>\<close> is \<open>\<turnstile>w\<stileturn>\<close> for some \<open>w \<in> \<Sigma>\<^sup>*\<close>. 
-      Note that \<open>\<turnstile>,\<stileturn> \<notin> \<Sigma>\<close>:\<close>
+text \<open>Some abbreviations to guarantee the validity of the input:\<close>
 
 abbreviation \<Sigma> :: "'a list \<Rightarrow>'a symbol list" where
   "\<Sigma> w \<equiv> map Letter w"

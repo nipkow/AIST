@@ -1,23 +1,93 @@
 section \<open>Greibach Normal Form\<close>
 
 theory Greibach
-imports "Context_Free_Grammar.Context_Free_Grammar"
+imports "Context_Free_Grammar.Context_Free_Grammar" Fresh_Identifiers.Fresh_Nat
 begin
 
-(* The algorithms and an initial part of the proof. So far I have only tried to show that
-the result is of the right form (triangular). The first important result you should try to prove
-is lemma triangular_solve_tri (below).
-I have not tried to show that the language stays unchanged. That will be harder.
+(* Import of additional theories undoes this deletion in \<open>Context_Free_Grammar\<close>: *)
+declare relpowp.simps(2)[simp del] 
 
-Warning: until everything is proved, there may still be problems in the algorithms!
-*)
 
-(* The "real" functions are on sets, but there is often a list version as well.
-The list version is intended for quickcheck test only (because quickcheck cannot deal with set comprehension {x. ...}.
-Sometimes I have proved equivalence with the set version, but that is merely a sanity check.
-Testing with nitpick is possible also for sets, but seems to work less well than quickcheck *)
+text \<open>This theory formalizes a method to transform a set of productions into the Greibach Normal Form (GNF) \<^cite>\<open>Greibach\<close>.
+For purposes of this theory we weaken GNF to only mean that every production starts with a Tm. This means that the tail of a Rhs can contain other terminals.
+To express this we have defined the formalisation of \<open>GNF_hd\<close> which only checks this property.
 
-subsection \<open>Function Definitions\<close>
+The main idea is to bring the productions into a \<open>triangular\<close> form, where Nt \<open>Ai\<close> does not depend on Nts \<open>Ai, \<dots>, An\<close>.
+This is accomplished by \<open>solve_tri\<close>.
+Then every \<open>A0\<close> production must already start with a Tm and we can bring all productions into GNF by expanding the head Nts in order, starting with A1 productions.
+This is done by \<open>expand_tri\<close>.\<close>
+
+subsection \<open>Fresh Nonterminals:\<close>
+
+(* TODO rm after next release (is in AFP/devel/CFG) *)
+definition nts_syms_list :: "('n,'t)syms \<Rightarrow> 'n list \<Rightarrow> 'n list" where
+"nts_syms_list sys = foldr (\<lambda>sy ns. case sy of Nt A \<Rightarrow> List.insert A ns | Tm _ \<Rightarrow> ns) sys"
+
+definition nts_prods_list :: "('n,'t)prods \<Rightarrow> 'n list" where
+"nts_prods_list ps = foldr (\<lambda>(A,sys) ns. List.insert A (nts_syms_list sys ns)) ps []"
+
+lemma set_nts_syms_list: "set(nts_syms_list sys ns) = nts_syms sys \<union> set ns"
+unfolding nts_syms_list_def
+by(induction sys arbitrary: ns) (auto split: sym.split)
+
+lemma set_nts_prods_list: "set(nts_prods_list ps) = nts ps"
+by(induction ps) (auto simp: nts_prods_list_def Nts_def set_nts_syms_list split: prod.splits)
+
+lemma distinct_nts_syms_list: "distinct(nts_syms_list sys ns) = distinct ns"
+unfolding nts_syms_list_def
+by(induction sys arbitrary: ns) (auto split: sym.split)
+
+lemma distinct_nts_prods_list: "distinct(nts_prods_list ps)"
+by(induction ps) (auto simp: nts_prods_list_def distinct_nts_syms_list split: sym.split)
+(* end rm *)
+
+(* TODO: unify fresh and fresh0 *)
+class fresh0 = fresh +
+  fixes fresh0 :: "'a set \<Rightarrow> 'a"
+  assumes fresh0: "finite X \<Longrightarrow> fresh0 X \<notin> X"
+
+instantiation nat :: fresh0
+begin
+
+definition fresh0_nat :: "nat set \<Rightarrow> nat" where
+"fresh0_nat X \<equiv> fresh X 0"
+
+instance by standard (simp add: fresh0_nat_def fresh_notIn)
+
+end
+
+(* TODO integrate into the Fresh theories in the AFP *)
+fun freshs :: "('a::fresh0) set \<Rightarrow> nat \<Rightarrow> 'a list" where
+"freshs X 0 = []" |
+"freshs X (Suc n) = (let x = fresh0 X in x # freshs (insert x X) n)"
+
+declare freshs.simps(1)[code]
+
+lemma freshs_Suc_Code[code]:
+  "freshs (set xs) (Suc n) = (let x = fresh0 (set xs) in x # freshs (set(x # xs)) n)"
+by simp
+
+value "freshs {0,1,3,5,7::nat} 4"
+
+lemma length_freshs: "finite X \<Longrightarrow> length(freshs X n) = n"
+by(induction n arbitrary: X a)(auto simp: fresh_notIn Let_def)
+
+lemma freshs_disj: "finite X \<Longrightarrow> X \<inter> set(freshs X n) = {}"
+proof(induction n arbitrary: X)
+  case (Suc n)
+  then show ?case by(simp add: fresh0 Let_def) blast
+qed simp
+
+lemma freshs_distinct: "finite X \<Longrightarrow> distinct (freshs X n)"
+proof(induction n arbitrary: X)
+  case (Suc n)
+  then show ?case
+    using freshs_disj[of "insert (fresh0 X) X" n]
+    by(auto simp: fresh0 Let_def)
+qed simp
+(* end freshs *)
+
+subsection \<open>Function Definitions:\<close>
 
 abbreviation lrec_Prods :: "('n,'t)Prods \<Rightarrow> 'n \<Rightarrow> 'n set \<Rightarrow> ('n,'t)Prods" where
 "lrec_Prods R A S \<equiv> {(A',Bw) \<in> R. A'=A \<and> (\<exists>w B. Bw = Nt B # w \<and> B \<in> S)}"
@@ -25,7 +95,7 @@ abbreviation lrec_Prods :: "('n,'t)Prods \<Rightarrow> 'n \<Rightarrow> 'n set \
 abbreviation subst_hd :: "('n,'t)Prods \<Rightarrow> ('n,'t)Prods \<Rightarrow> 'n \<Rightarrow> ('n,'t)Prods" where
 "subst_hd R X A \<equiv>  {(A,v@w) |v w. \<exists>B. (A,Nt B # w) \<in> X \<and> (B,v) \<in> R}"
 
-text \<open>"Expand head: Replace all rules \<open>A \<rightarrow> B w\<close> where \<open>B \<in> Ss\<close> (\<open>Ss\<close> = solved Nts)
+text \<open>Expand head: Replace all rules \<open>A \<rightarrow> B w\<close> where \<open>B \<in> Ss\<close> (\<open>Ss\<close> = solved Nts in \<open>triangular\<close> form)
 by \<open>A \<rightarrow> v w\<close> where \<open>B \<rightarrow> v\<close>. Starting from the end of \<open>Ss\<close>.\<close>
 fun expand_hd :: "'n \<Rightarrow> 'n list \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t)Prods" where
 "expand_hd A [] R = R" |
@@ -34,8 +104,6 @@ fun expand_hd :: "'n \<Rightarrow> 'n list \<Rightarrow> ('n,'t)Prods \<Rightarr
       X = lrec_Prods R' A {S};
       Y = subst_hd R' X A
   in R' - X \<union> Y)"
-
-text \<open>Code:\<close>
 
 lemma Rhss_code[code]: "Rhss P A = snd ` {Aw \<in> P. fst Aw = A}"
 by(auto simp add: Rhss_def image_iff)
@@ -48,7 +116,7 @@ lemma expand_hd_Cons_code[code]: "expand_hd A (S#Ss) R =
   in R' - ({A} \<times> X) \<union> Y)"
 by(simp add: Rhss_def Let_def neq_Nil_conv Ball_def hd_append split: if_splits, safe, force+)
 
-text \<open>Rm_lrec: Remove left-recursive rules \<open>A \<rightarrow> A w\<close>:\<close>
+text \<open>Remove left-recursions: Remove left-recursive rules \<open>A \<rightarrow> A w\<close>:\<close>
 definition rm_lrec ::  "'n \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t)Prods" where
 "rm_lrec A R = R - {(A,Nt A # v)|v. True}"
 
@@ -56,7 +124,7 @@ lemma rm_lrec_code[code]:
   "rm_lrec A R = {Aw \<in> R. let (A',w) = Aw in A' \<noteq> A \<or> w = [] \<or> hd w \<noteq> Nt A}"
 by(auto simp add: rm_lrec_def neq_Nil_conv)
 
-text \<open>Rrec_of_Lrec: Conversion from left-recursion to right-recursion:
+text \<open>Make right-recursion of left-recursion: Conversion from left-recursion to right-recursion:
 Split \<open>A\<close>-rules into \<open>A \<rightarrow> u\<close> and \<open>A \<rightarrow> A v\<close>.
 Keep \<open>A \<rightarrow> u\<close> but replace \<open>A \<rightarrow> A v\<close> by \<open>A \<rightarrow> u A'\<close>, \<open>A' \<rightarrow> v\<close>, \<open>A' \<rightarrow> v A'\<close>:\<close>
 definition rrec_of_lrec ::  "'n \<Rightarrow> 'n \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t)Prods" where
@@ -72,50 +140,42 @@ lemma rrec_of_lrec_code[code]: "rrec_of_lrec A A' R =
   in ({A} \<times> U) \<union> (\<Union>u\<in>U. {(A,u@[Nt A'])}) \<union> ({A'} \<times> V) \<union> (\<Union>v\<in>V. {(A',v @ [Nt A'])}))"
 by(auto simp add: rrec_of_lrec_def Let_def Rhss_def neq_Nil_conv)
 
-text \<open>Solve_lrec: Solves the left-recursion of Nt \<open>A\<close> by replacing it with a right-recursion on a fresh Nt \<open>A'\<close>.
-The fresh \<open>Nt A'\<close> is also given as a parameter.\<close>
+text \<open>Solve left-recursions: Solves the left-recursion of Nt \<open>A\<close> by replacing it with a right-recursion on a fresh Nt \<open>A'\<close>.
+The fresh Nt \<open>A'\<close> is also given as a parameter.\<close>
 definition solve_lrec ::  "'n \<Rightarrow> 'n \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t)Prods" where
 "solve_lrec A A' R = rm_lrec A R \<union> rrec_of_lrec A A' R"
 
-text \<open>Solve_tri: Put \<open>R\<close> into triangular form wrt \<open>As\<close> (using the new Nts \<open>As'\<close>).
-That means that \<open>As\<close> are the Nts that still have to be solved.
-In each step \<open>A#As\<close>, first the remaining \<open>As\<close> are solved, then \<open>A\<close> is solved.
-This should mean that in the result of the outermost \<open>expand_hd A As\<close>, \<open>A\<close> only depends on \<open>A\<close>,
-i.e. the \<open>A\<close> rules in the result of \<open>solve_lrec A A'\<close> are already in GNF. More precisely:
-the result should be in triangular form.\<close>
+text \<open>Solve triangular: Put \<open>R\<close> into triangular form wrt \<open>As\<close> (using the new Nts \<open>As'\<close>).
+In each step \<open>A#As\<close>, first the remaining Nts in \<open>As\<close> are solved, then \<open>A\<close> is solved.
+This should mean that in the result of the outermost \<open>expand_hd A As\<close>, \<open>A\<close> only depends on \<open>A\<close>.
+Then the \<open>A\<close> rules in the result of \<open>solve_lrec A A'\<close> are already in GNF. More precisely:
+the result should be in \<open>triangular\<close> form.\<close>
 fun solve_tri :: "'a list \<Rightarrow> 'a list \<Rightarrow> ('a, 'b) Prods \<Rightarrow> ('a, 'b) Prods" where
 "solve_tri [] _ R = R" |
 "solve_tri (A#As) (A'#As') R = solve_lrec A A' (expand_hd A As (solve_tri As As' R))"
 
-text \<open>Dep_on: \<open>A\<close> depends on \<open>B\<close> if there is a rule \<open>A \<rightarrow> B w\<close>:\<close>
+text \<open>Depend on: \<open>A\<close> depends on \<open>B\<close> if there is a rule \<open>A \<rightarrow> B w\<close>:\<close>
 definition dep_on :: "('n,'t) Prods \<Rightarrow> 'n \<Rightarrow> 'n set" where
 "dep_on R A = {B. \<exists>w. (A,Nt B # w) \<in> R}"
 
-definition dep_on_list :: "('n,'t) prod list \<Rightarrow> 'n \<Rightarrow> 'n list" where
-"dep_on_list R A = [B. (Al,Nt B # _) \<leftarrow> R, Al=A]"
-
 text \<open>Triangular form wrt \<open>[A1,\<dots>,An]\<close> means that \<open>Ai\<close> must not depend on \<open>Ai, \<dots>, An\<close>.
-In particular: \<open>A0\<close> does not depend on any \<open>Ai\<close>: its rules are already in GNF.
-Therefore one can convert a triangular form into GNF by backwards substitution:
-the rules for \<open>Ai\<close> are used to expand the heads of all \<open>A(i+1),\<dots>,An\<close> rules,
+In particular: \<open>A0\<close> does not depend on any \<open>Ai\<close>, its rules are already in GNF.
+Therefore one can convert a \<open>triangular\<close> form into GNF by backwards substitution:
+The rules for \<open>Ai\<close> are used to expand the heads of all \<open>A(i+1),\<dots>,An\<close> rules,
 starting with \<open>A0\<close>.\<close>
-
 fun triangular :: "'n list \<Rightarrow> ('n \<times> ('n, 't) sym list) set \<Rightarrow> bool" where
 "triangular [] R = True" |
 "triangular (A#As) R = (dep_on R A \<inter> ({A} \<union> set As) = {} \<and> triangular As R)"
 
-fun triangular_list :: "'a list \<Rightarrow> ('a \<times> ('a, 'b) sym list) list \<Rightarrow> bool" where
-"triangular_list [] R = True" |
-"triangular_list (A#As) R = (set(dep_on_list R A) \<inter> ({A} \<union> set As) = {} \<and> triangular_list As R)"
-
-text \<open>Rem_self_loops: Removes all productions of the form \<open>A \<rightarrow> A\<close>.\<close>
+text \<open>Remove self loops: Removes all productions of the form \<open>A \<rightarrow> A\<close>.\<close>
 definition rem_self_loops :: "('n,'t) Prods \<Rightarrow> ('n,'t) Prods" where
   "rem_self_loops P = P - {x. (\<exists>A. x = (A, [Nt A]) \<and> x \<in> P)}"
 
-text \<open>Expand_tri: Expands all head-Nts of productions with a Lhs in \<open>As\<close>.
-In each step all remaining \<open>As\<close> are expanded, then every rule \<open>A \<rightarrow> B w\<close> is expanded if \<open>B \<in> set As\<close>.
-If the productions were in a triangular form wrt \<open>rev As\<close> then \<open>Ai\<close> only depends on \<open>Ai, \<dots>, An\<close> 
-which have already been expanded and the result is in GNF.\<close>
+text \<open>Expand triangular: Expands all head-Nts of productions with a Lhs in \<open>As\<close> (\<open>triangular (rev As)\<close>).
+In each step \<open>A#As\<close> first all Nts in \<open>As\<close> are expanded, then every rule \<open>A \<rightarrow> B w\<close> is expanded if \<open>B \<in> set As\<close>.
+If the productions were in \<open>triangular\<close> form wrt \<open>rev As\<close> then \<open>Ai\<close> only depends on \<open>A(i+1), \<dots>, An\<close> 
+which have already been expanded in the first part of the step and are in GNF.
+Then the all \<open>A\<close>-productions are also is in GNF after expansion.\<close>
 fun expand_tri :: "'n list \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t)Prods" where
 "expand_tri [] R = R" |
 "expand_tri (A#As) R =
@@ -136,12 +196,16 @@ text \<open>GNF property: All productions start with a terminal.\<close>
 definition GNF_hd :: "('n,'t)Prods \<Rightarrow> bool" where 
 "GNF_hd R = (\<forall>(A, w) \<in> R. \<exists>t. hd w = Tm t)"
 
-text \<open>GNF property: Expressed using dep_on, every Nt depends on no Nt.\<close>
+text \<open>GNF property: Expressed using \<open>dep_on\<close>, every Nt depends on no Nt.\<close>
 definition GNF_hd_dep_on :: "('n,'t)Prods \<Rightarrow> bool" where
 "GNF_hd_dep_on R = (\<forall>A \<in> Nts R. dep_on R A = {})"
- 
-fun GNF :: "('n,'t)Prods \<Rightarrow> bool" where 
-"GNF R = (GNF_hd R)" 
+
+text \<open>Gnf head: Brings productions into GNF form using \<open>solve_tri\<close> and \<open>expand_tri\<close>:\<close>
+definition gnf_hd :: "('n::fresh0,'t)prods \<Rightarrow> ('n,'t)Prods" where
+"gnf_hd ps =
+  (let As = nts_prods_list ps;
+       As' = freshs (set As) (length As)
+   in expand_tri (As' @ rev As) (solve_tri As As' (set ps)))"
 
 subsection \<open>General Lemmas about Eps_free and Nts:\<close>
 
@@ -165,16 +229,15 @@ lemma Eps_free_solve_tri: "Eps_free R \<Longrightarrow> length As \<le> length A
 lemma Eps_free_expand_tri: "Eps_free R \<Longrightarrow> Eps_free (expand_tri As R)"
   by (induction As R rule: expand_tri.induct) (auto simp add: Let_def Eps_free_def)
 
-
-subsubsection "TODO"
+subsubsection \<open>Lemmas about Nts in the productions and \<open>dep_on\<close>:\<close>
 
 lemma dep_on_Un: "dep_on (R \<union> S) A = dep_on R A \<union> dep_on S A"
 by(auto simp add: dep_on_def)
 
 lemma expand_hd_preserves_neq: "B \<noteq> A \<Longrightarrow> (B,w) \<in> expand_hd A Ss R \<longleftrightarrow> (B,w) \<in> R"
-  by(induction A Ss R rule: expand_hd.induct)  (auto simp add: Let_def)text \<open>Expand_hd preserves epsilon free-ness.\<close>
+  by(induction A Ss R rule: expand_hd.induct)  (auto simp add: Let_def)
 
-text \<open>Let \<open>R\<close> be epsilon-free and in triangular form wrt \<open>Bs\<close>.
+text \<open>Let \<open>R\<close> be epsilon-free and in \<open>triangular\<close> form wrt \<open>Bs\<close>.
 After \<open>expand_hd A Bs R\<close>, \<open>A\<close> depends only on what \<open>A\<close> depended on before or
 what one of the \<open>B \<in> Bs\<close> depends on, but \<open>A\<close> does not depend on the \<open>Bs\<close>:\<close>
 lemma dep_on_expand_hd:
@@ -189,16 +252,12 @@ next
     by(fastforce simp add: Let_def dep_on_def Cons_eq_append_conv Eps_free_expand_hd Eps_free_Nil expand_hd_preserves_neq set_eq_iff)
 qed
 
-
-subsubsection \<open>Lemmas about Nts in the productions\<close>
-
 lemma Nts_set_dif_subset: "Nts (G - H) \<subseteq> Nts G"
   by (auto simp add: Nts_def)
 
 lemma dep_on_subs_Nts: "dep_on R A \<subseteq> Nts R"
   by (auto simp add: Nts_def dep_on_def)
 
-text \<open>Expand_hd does not add any new Nts.\<close>
 lemma Nts_expand_hd_sub: "Nts (expand_hd A As R) \<subseteq> Nts R"
 proof (induction A As R rule: expand_hd.induct)
   case (1 A R)
@@ -220,7 +279,7 @@ next
   then show ?case using Nts_set_dif_subset[of ?R' ?X] 2 by (auto simp add: Let_def Nts_Un)
 qed
   
-text \<open>Nts of solve_lrec are a subset of Nts R and the newly added one.\<close>
+text \<open>Nts of \<open>solve_lrec\<close> are a subset of Nts of \<open>R\<close> and the newly added one.\<close>
 lemma Nts_solve_lrec_sub: "Nts (solve_lrec A A' R) \<subseteq> Nts R \<union> {A'}"
 proof-
   have 1: "Nts (rm_lrec A R) \<subseteq> Nts R" using Nts_set_dif_subset[of R] by (auto simp add: rm_lrec_def)
@@ -232,7 +291,7 @@ proof-
   then show ?thesis using 1 by (auto simp add: solve_lrec_def Nts_Un)
 qed
 
-text \<open>Nts of solve_tri are a subset of Nts R and newly added ones.\<close>
+text \<open>Nts of \<open>solve_tri\<close> are a subset of Nts of \<open>R\<close> and newly added ones.\<close>
 lemma Nts_solve_tri_sub: "length As \<le> length As' \<Longrightarrow> Nts (solve_tri As As' R) \<subseteq> Nts R \<union> set As'"
 proof (induction As As' R rule: solve_tri.induct)
   case (1 uu R)
@@ -249,7 +308,7 @@ next
   then show ?case by simp
 qed
 
-subsection \<open>Subsection proof of functionality of \<open>solve_tri\<close>:\<close>
+subsection \<open>Proof of functionality of \<open>solve_tri\<close>:\<close>
 
 text \<open>Lemmas about rule inclusions in \<open>solve_lrec\<close>:\<close>
 lemma solve_lrec_rule_simp1: "A \<noteq> B \<Longrightarrow> A \<noteq> B' \<Longrightarrow> (A, w) \<in> solve_lrec B B' R \<longleftrightarrow> (A, w) \<in> R"
@@ -298,11 +357,11 @@ lemma dep_on_solve_lrec_simp2: "A \<noteq> B \<Longrightarrow> A' \<noteq> B \<L
   by (auto simp add: solve_lrec_def dep_on_def rm_lrec_def rrec_of_lrec_def Let_def)
 
 
-text  \<open>Expand_hd keeps the triangular property, if it does not expand a Nt considered in \<open>triangular\<close>.\<close>
+text  \<open>\<open>expand_hd\<close> keeps the \<open>triangular\<close> property, if it does not expand a Nt considered in \<open>triangular\<close>.\<close>
 lemma triangular_expand_hd: "\<lbrakk>A \<notin> set As; triangular As R\<rbrakk> \<Longrightarrow> triangular As (expand_hd A Bs R)"
   by (induction As) (auto simp add: dep_on_expand_hd_simp2)
 
-text \<open>Solving a Nt not considered by \<open>triangular\<close> preserves the triangular property.\<close>
+text \<open>Solving a Nt not considered by \<open>triangular\<close> preserves the \<open>triangular\<close> property.\<close>
 lemma triangular_solve_lrec: "\<lbrakk>A \<notin> set As; A' \<notin> set As; triangular As R\<rbrakk> \<Longrightarrow> triangular As (solve_lrec A A' R)"
 proof(induction As)
   case Nil
@@ -316,7 +375,7 @@ next
   then show ?case using Cons by auto
 qed
 
-text \<open>Solving more Nts does not remove the triangular property of previously solved Nts.\<close>
+text \<open>Solving more Nts does not remove the \<open>triangular\<close> property of previously solved Nts.\<close>
 lemma part_triangular_induct_step: "\<lbrakk>Eps_free R; distinct ((A#As)@(A'#As')); triangular As (solve_tri As As' R)\<rbrakk>
    \<Longrightarrow> triangular As (solve_tri (A#As) (A'#As') R)"
 proof(cases "As = []")
@@ -328,7 +387,7 @@ next
   then show ?thesis by (auto simp add: triangular_expand_hd triangular_solve_lrec)
 qed
 
-text \<open>Couple of small lemmas about dep_on and the solving of left-recursion.\<close>
+text \<open>Couple of small lemmas about \<open>dep_on\<close> and the solving of left-recursion.\<close>
 lemma rm_lrec_rem_own_dep: "A \<notin> dep_on (rm_lrec A R) A"
   by (auto simp add: dep_on_def rm_lrec_def)
 
@@ -399,7 +458,7 @@ next
   finally show ?thesis by auto
 qed
 
-text \<open>\<open>solve_tri\<close> brings an epsilon free grammar into triangular form.\<close>
+text \<open>\<open>solve_tri\<close> brings an epsilon free grammar into \<open>triangular\<close> form.\<close>
 lemma triangular_solve_tri:  "\<lbrakk> Eps_free R; length As \<le> length As'; distinct(As @ As')\<rbrakk>
   \<Longrightarrow> triangular As (solve_tri As As' R)"
 proof(induction As As' R rule: solve_tri.induct)
@@ -422,8 +481,8 @@ qed
 
 subsection \<open>Language equivalence of \<open>solve_tri\<close>:\<close>
 
-
-text \<open>Subset Relation of all Derivations implies a Subset Relation of the Languages.\<close>
+(*TODO mv*)
+text \<open>Helper lemma which could be moved to CFG.thy.\<close>
 lemma Ders_sub_Lang_sub: "Ders R A \<subseteq> Ders R' A \<Longrightarrow> Lang R A \<subseteq> Lang R' A"
   by (auto simp add: Lang_def Ders_def)
 
@@ -690,8 +749,8 @@ proof (induction n arbitrary: p q rule: nat_less_induct)
       have deriveln_from_singleton: "R \<turnstile> [Nt B] \<Rightarrow>l(Suc n1) v1" using v1_tms derive_from_singleton
         by (simp add: deriveln_iff_deriven)
 
-      text \<open> This is the interesting bit where we use other lemmas to prove that we can replace 
-              a specific part of the derivation which is a left-recursion by a right-recursion in the new productions \<close>
+      text \<open>This is the interesting bit where we use other lemmas to prove that we can replace 
+              a specific part of the derivation which is a left-recursion by a right-recursion in the new productions.\<close>
       let ?S = "{x. (\<exists>v. x = (B, v) \<and> x \<in> R)}"
       have "\<exists>u w m k. ?S \<turnstile> [Nt B] \<Rightarrow>l(m) Nt B # u \<and> ?S \<turnstile> Nt B # u \<Rightarrow>l w \<and> hd w \<noteq> Nt B \<and> R \<turnstile> w \<Rightarrow>l(k) v1 \<and> Suc n1 = m + k + 1"
         using deriveln_from_singleton v1_hd 1 lrec_decomp[of ?S B R "[Nt B]" v1 "Suc n1"] by auto
@@ -728,7 +787,7 @@ proof (induction n arbitrary: p q rule: nat_less_induct)
       then have 2: "solve_lrec B B' R \<turnstile> [Nt B] \<Rightarrow>* w2" using solve_lrec_subset
         by (simp add: derives_mono)
 
-      text \<open> from here on all the smaller derivations are concatenated again after applying the IH \<close>
+      text \<open>From here on all the smaller derivations are concatenated again after applying the IH.\<close>
       have fact2: "R \<turnstile> w2 \<Rightarrow>l(k) v1 \<and> Suc n1 = m2 + k + 1" using l_decomp by auto
       then have "k < n"
         using decomp by linarith
@@ -766,7 +825,7 @@ proof (induction n arbitrary: p q rule: nat_less_induct)
   qed
 qed
 
-text \<open>Language inclusion of \<open>R\<close> in \<open>solve_lrec B B' R\<close>\<close>
+text \<open>Language inclusion of \<open>R\<close> in \<open>solve_lrec B B' R\<close>.\<close>
 lemma Lang_incl_Lang_solve_lrec: "\<lbrakk> Eps_free R; B \<noteq> B'; B' \<notin> Nts R\<rbrakk> \<Longrightarrow> Lang (solve_lrec B B' R) A \<supseteq> Lang R A"
 proof
   fix x
@@ -781,8 +840,6 @@ qed
 
 
 subsubsection \<open>Language of \<open>solve_lrec A A' R\<close> is a subset of Language of \<open>R\<close>:\<close>
-
-text \<open>Right recursive lemmas for \<open>solve_lrec A A' R\<close>.\<close>
 
 text \<open>Restricted to right-recursive productions of one Nt (\<open>A' \<rightarrow> w @ [Nt A']\<close>)
       if there is a right-derivation from \<open>u\<close> to \<open>v @ [Nt A']\<close> then u ends in Nt \<open>A'\<close>.\<close>
@@ -857,7 +914,7 @@ next
 qed
 
 text \<open>Restricted to right-recursive productions of one Nt (\<open>A' \<rightarrow> w @ [Nt A']\<close>)
-      if there is a restricted right-derivation in solve_lrec from \<open>[Nt A']\<close> to \<open>u @ [Nt A']\<close> 
+      if there is a restricted right-derivation in \<open>solve_lrec\<close> from \<open>[Nt A']\<close> to \<open>u @ [Nt A']\<close> 
       then there exists a derivation in \<open>R\<close> from \<open>[Nt A]\<close> to \<open>A # u\<close>.\<close>
 lemma rrec_lemma3: "S = {x. (\<exists>v. x = (A', v @ [Nt A']) \<and> x \<in> solve_lrec A A' R)} \<Longrightarrow> Eps_free R \<Longrightarrow> A' \<notin> Nts R \<Longrightarrow> A \<noteq> A' \<Longrightarrow> S \<turnstile> [Nt A'] \<Rightarrow>r(n) u @ [Nt A'] \<Longrightarrow> R \<turnstile> [Nt A] \<Rightarrow>(n) Nt A # u"
 proof(induction n arbitrary: u)
@@ -1191,7 +1248,7 @@ proof -
 qed
 
 
-text \<open>This lemma expects a Set of quadruples \<open>(A, a1, B, a2)\<close>. 
+text \<open>This lemma expects a set of quadruples \<open>(A, a1, B, a2)\<close>. 
   Each quadruple encodes a specific Nt in a specific rule \<open>A \<rightarrow> a1 @ Nt B # a2\<close> (this encodes Nt \<open>B\<close>)
    which should be expanded, by replacing the Nt with every rule for that Nt and then removing the original rule.
   This expansion contains the original productions Language.\<close>
@@ -1462,7 +1519,7 @@ next
   then show ?case by simp
 qed
 
-text \<open>If two parts of the productions are triangular and no Nts from the first part depend on ones of the second they are also triangular when put together.\<close>
+text \<open>If two parts of the productions are \<open>triangular\<close> and no Nts from the first part depend on ones of the second they are also \<open>triangular\<close> when put together.\<close>
 lemma triangular_append: "triangular As R \<Longrightarrow> triangular Bs R \<Longrightarrow> \<forall>A\<in>set As. dep_on R A \<inter> set Bs = {} \<Longrightarrow> triangular (As@Bs) R"
   by (induction As) auto
 
@@ -1477,7 +1534,7 @@ next
   then show ?case using Cons by auto
 qed
 
-text \<open>The newly added Nts in \<open>solve_lrec\<close> are in triangular form wrt \<open>rev As'\<close>.\<close>
+text \<open>The newly added Nts in \<open>solve_lrec\<close> are in \<open>triangular\<close> form wrt \<open>rev As'\<close>.\<close>
 lemma triangular_rev_As'_solve_tri: "set As' \<inter> Nts R = {} \<Longrightarrow> distinct (As @ As') \<Longrightarrow> length As \<le> length As' \<Longrightarrow> triangular (rev As') (solve_tri As As' R)"
 proof (induction As As' R rule: solve_tri.induct)
   case (1 uu R)
@@ -1510,7 +1567,7 @@ next
   then show ?case by auto
 qed
 
-text \<open>The entire set of productions is in triangular form after solve_tri wrt \<open>As@(rev As')\<close>.\<close>
+text \<open>The entire set of productions is in \<open>triangular\<close> form after \<open>solve_tri\<close> wrt \<open>As@(rev As')\<close>.\<close>
 lemma triangular_As_As'_solve_tri: "\<lbrakk> Eps_free R; length As \<le> length As'; distinct(As @ As'); Nts R \<subseteq> set As\<rbrakk> \<Longrightarrow> triangular (As@(rev As')) (solve_tri As As' R)"
 proof-
   assume assms: "Eps_free R" "length As \<le> length As'" "distinct (As@As')" "Nts R \<subseteq> set As"
@@ -1618,7 +1675,7 @@ qed
 lemma Nts_expand_tri: "Nts (expand_tri As R) \<subseteq> Nts R"
   by (metis Lhss_expand_tri Nts_Lhss_Rhs_Nts Rhs_Nts_expand_tri Un_mono)
 
-text \<open>If the entire triangular form is expanded the full set of productions is in GNF form.\<close>
+text \<open>If the entire \<open>triangular\<close> form is expanded the full set of productions is in GNF form.\<close>
 lemma GNF_hd_expand_tri: "\<lbrakk>Eps_free R; triangular (rev As) R; distinct As; Nts R \<subseteq> set As\<rbrakk> \<Longrightarrow> GNF_hd (expand_tri As R)"
 proof -
   assume assms: "Eps_free R" "triangular (rev As) R" "distinct As" "Nts R \<subseteq> set As"
@@ -1636,7 +1693,7 @@ qed
 
 text \<open>Any set of productions can be transformed into GNF via \<open>expand_tri (solve_tri)\<close>.\<close>
 theorem GNF_of_R: "\<lbrakk>Eps_free R; distinct (As @ As'); Nts R \<subseteq> set As; length As \<le> length As'\<rbrakk> 
-\<Longrightarrow> GNF (expand_tri (As' @ rev As) (solve_tri As As' R))"
+\<Longrightarrow> GNF_hd (expand_tri (As' @ rev As) (solve_tri As As' R))"
 proof -
   assume assms: "Eps_free R" "distinct (As @ As')" "Nts R \<subseteq> set As" "length As \<le> length As'"
   then have tri: "triangular (As @ rev As') (solve_tri As As' R)"
@@ -1646,7 +1703,7 @@ proof -
 qed
 
 subsection \<open>Section on Language equivalence of \<open>expand_tri\<close>:\<close>
-text \<open>similar to the proof of Language equivalence of \<open>expand_hd\<close>.\<close>
+text \<open>Similar to the proof of Language equivalence of \<open>expand_hd\<close>.\<close>
 
 text \<open>All productions in \<open>expand_tri As R\<close> are derivable by \<open>R\<close>.\<close>
 lemma expand_tri_prods_deirvable: "(B, bs) \<in> (expand_tri As R) \<Longrightarrow> R \<turnstile> [Nt B] \<Rightarrow>* bs"
@@ -1718,7 +1775,7 @@ qed
 subsection \<open>All epsilon free grammars can be put into GNF while preserving their language:\<close>
 
 text \<open>Putting the productions into GNF via \<open>expand_tri (solve_tri)\<close> preserves the language.\<close>
-theorem GNF_of_R_Lang: "\<lbrakk>Eps_free R; distinct (As @ As'); Nts R \<inter> set As' = {}; A \<notin> set As'; length As \<le> length As'\<rbrakk> 
+lemma GNF_of_R_Lang: "\<lbrakk>Eps_free R; distinct (As @ As'); Nts R \<inter> set As' = {}; A \<notin> set As'; length As \<le> length As'\<rbrakk> 
 \<Longrightarrow> Lang (expand_tri (As' @ rev As) (solve_tri As As' R)) A = Lang R A"
 proof -
   assume "Eps_free R" "distinct (As @ As')" "Nts R \<inter> set As' = {}" "A \<notin> set As'" "length As \<le> length As'"
@@ -1726,20 +1783,26 @@ proof -
   then show ?thesis using expand_tri_Lang[of "(As' @ rev As)"] by auto
 qed
 
-text \<open>Putting an epsilon free Grammar into GNF preserves the Language.\<close>
-lemma GNF_Lang: "\<lbrakk>Eps_free (Prods G); distinct (As @ As'); Nts (Prods G) \<subseteq> set As; Start G \<notin> set As'; length As \<le> length As'\<rbrakk>
- \<Longrightarrow> Lang (Prods G) (Start G) = Lang (expand_tri (As' @ rev As) (solve_tri As As' (Prods G))) (Start G) 
-      \<and> GNF ((expand_tri (As' @ rev As) (solve_tri As As' (Prods G))))"
-proof -
-  assume assms: "Eps_free (Prods G)" "distinct (As @ As')" "Nts (Prods G) \<subseteq> set As" "Start G \<notin> set As'" "length As \<le> length As'"
-  then have "Nts (Prods G) \<inter> set As' = {} \<and> (Start G) \<notin> set As'" by (auto simp add: Nts_def)
-  then show ?thesis using GNF_of_R_Lang[of "(Prods G)"] GNF_of_R[of "(Prods G)"] assms by auto  
-qed
+text \<open>Any epsilon free Grammar can be brought into GNF.\<close>
+theorem GNF_hd_gnf_hd: "eps_free ps \<Longrightarrow> GNF_hd (gnf_hd ps)"
+by(simp add: gnf_hd_def Let_def GNF_of_R[simplified]
+  distinct_nts_prods_list freshs_distinct finite_nts freshs_disj set_nts_prods_list length_freshs)
+
+lemma distinct_app_freshs: "\<lbrakk> As = nts_prods_list ps; As' = freshs (set As) (length As) \<rbrakk> \<Longrightarrow>
+   distinct (As @ As')"
+using freshs_disj[of "set As" "length As"]
+by (auto simp: distinct_nts_prods_list freshs_distinct)
+
+text \<open>Bringing a grammar into GNF preserves the Language.\<close>
+theorem Lang_gnf_hd: "\<lbrakk> eps_free ps; A \<in> nts ps \<rbrakk> \<Longrightarrow> Lang (gnf_hd ps) A = lang ps A"
+unfolding gnf_hd_def Let_def
+by (metis GNF_of_R_Lang IntI distinct_app_freshs empty_iff finite_nts freshs_disj length_freshs order_refl
+      set_nts_prods_list)
 
 
-subsection \<open>Section on possible GNF grammar size:\<close>
+subsection \<open>Possible exponential GNF grammar size:\<close>
 
-text \<open>Bad_grammar: Constructs a grammar which leads to a exponential blowup when expanded using \<open>expand_tri\<close>:\<close>
+text \<open>Bad grammar: Constructs a grammar which leads to a exponential blowup when expanded using \<open>expand_tri\<close>:\<close>
 fun bad_grammar :: "'n list \<Rightarrow> ('n, nat)Prods" where
  "bad_grammar [] = {}"
 |"bad_grammar [A] = {(A, [Tm 0]), (A, [Tm 1])}"
@@ -1893,10 +1956,10 @@ proof-
     by (metis card_mono)
 qed
 
-text \<open> Unused lemmas \<close>
+subsection \<open>Unused lemmas:\<close>
 
-text \<open> This lemma shows that a derivation from a single non-terminal must have a last step as well, where a non-terminal is replaced by only terminals
-  unsure if this be will usefull anywhere\<close>
+text \<open>This lemma shows that a derivation from a single non-terminal must have a last step as well, where a non-terminal is replaced by only terminals
+  unsure if this be will usefull anywhere.\<close>
 lemma last_derive_is_term: "(derive R^^(Suc n)) [Nt S] (map Tm x) \<Longrightarrow> \<exists>x1 N x2 t. R \<turnstile> [Nt S] \<Rightarrow>(Suc n) (map Tm x) \<and> (map Tm x) = x1 @ t @ x2 \<and> R \<turnstile> [Nt S] \<Rightarrow>(n) (x1@[Nt N]@x2) \<and> (N, t) \<in> R \<and> nts_syms t = {}" for S n
   proof -
     assume assm: "(derive R^^(Suc n)) [Nt S] (map Tm x)"
@@ -1920,107 +1983,11 @@ lemma last_derive_is_term: "(derive R^^(Suc n)) [Nt S] (map Tm x) \<Longrightarr
       using assm derivern_imp_deriven by fastforce
   qed
 
-(* should be moved to CFG.thy *)
-text \<open> Helper lemma which could be moved to CFG.thy \<close>
+(*TODO mv*)
+text \<open>Helper lemma which could be moved to CFG.thy.\<close>
 lemma deriven_Tm_prepend: "R \<turnstile> map Tm t @ u \<Rightarrow>(n) v \<Longrightarrow> \<exists>v1. v = map Tm t @ v1 \<and> R \<turnstile> u \<Rightarrow>(n) v1"
   by (induction t arbitrary: v) (auto simp add: deriven_Tm_Cons)  
 
 unused_thms
-
-text \<open>Part about Fresh Nonterminals which does not work\<close>
-
-import Fresh_Identifiers.Fresh_Nat
-
-subsection \<open>Fresh Nonterminals\<close>
-
-(* TODO rm after next release (is in AFP/devel/CFG) *)
-definition nts_syms_list :: "('n,'t)syms \<Rightarrow> 'n list \<Rightarrow> 'n list" where
-"nts_syms_list sys = foldr (\<lambda>sy ns. case sy of Nt A \<Rightarrow> List.insert A ns | Tm _ \<Rightarrow> ns) sys"
-
-definition nts_prods_list :: "('n,'t)prods \<Rightarrow> 'n list" where
-"nts_prods_list ps = foldr (\<lambda>(A,sys) ns. List.insert A (nts_syms_list sys ns)) ps []"
-
-lemma set_nts_syms_list: "set(nts_syms_list sys ns) = nts_syms sys \<union> set ns"
-unfolding nts_syms_list_def
-by(induction sys arbitrary: ns) (auto split: sym.split)
-
-lemma set_nts_prods_list: "set(nts_prods_list ps) = nts ps"
-by(induction ps) (auto simp: nts_prods_list_def Nts_def set_nts_syms_list split: prod.splits)
-
-lemma distinct_nts_syms_list: "distinct(nts_syms_list sys ns) = distinct ns"
-unfolding nts_syms_list_def
-by(induction sys arbitrary: ns) (auto split: sym.split)
-
-lemma distinct_nts_prods_list: "distinct(nts_prods_list ps)"
-by(induction ps) (auto simp: nts_prods_list_def distinct_nts_syms_list split: sym.split)
-(* end rm *)
-
-(* TODO: unify fresh and fresh0 *)
-class fresh0 = fresh +
-  fixes fresh0 :: "'a set \<Rightarrow> 'a"
-  assumes fresh0: "finite X \<Longrightarrow> fresh0 X \<notin> X"
-
-instantiation nat :: fresh0
-begin
-
-definition fresh0_nat :: "nat set \<Rightarrow> nat" where
-"fresh0_nat X \<equiv> fresh X 0"
-
-instance by standard (simp add: fresh0_nat_def fresh_notIn)
-
-end
-
-(* TODO integrate into the Fresh theories in the AFP *)
-fun freshs :: "('a::fresh0) set \<Rightarrow> nat \<Rightarrow> 'a list" where
-"freshs X 0 = []" |
-"freshs X (Suc n) = (let x = fresh0 X in x # freshs (insert x X) n)"
-
-declare freshs.simps(1)[code]
-
-lemma freshs_Suc_Code[code]:
-  "freshs (set xs) (Suc n) = (let x = fresh0 (set xs) in x # freshs (set(x # xs)) n)"
-by simp
-
-value "freshs {0,1,3,5,7::nat} 4"
-
-lemma length_freshs: "finite X \<Longrightarrow> length(freshs X n) = n"
-by(induction n arbitrary: X a)(auto simp: fresh_notIn Let_def)
-
-lemma freshs_disj: "finite X \<Longrightarrow> X \<inter> set(freshs X n) = {}"
-proof(induction n arbitrary: X)
-  case (Suc n)
-  then show ?case by(simp add: fresh0 Let_def) blast
-qed simp
-
-lemma freshs_distinct: "finite X \<Longrightarrow> distinct (freshs X n)"
-proof(induction n arbitrary: X)
-  case (Suc n)
-  then show ?case
-    using freshs_disj[of "insert (fresh0 X) X" n]
-    by(auto simp: fresh0 Let_def)
-qed simp
-(* end freshs *)
-
-text \<open>Gnf_hd: Brings productions into GNF form using \<open>expand_tri (solve_tri)\<close>:\<close>
-definition gnf_hd :: "('n::fresh0,'t)prods \<Rightarrow> ('n,'t)Prods" where
-"gnf_hd ps =
-  (let As = nts_prods_list ps;
-       As' = freshs (set As) (length As)
-   in expand_tri (As' @ rev As) (solve_tri As As' (set ps)))"
-
-lemma GNF_hd_gnf_hd: "eps_free ps \<Longrightarrow> GNF_hd (gnf_hd ps)"
-by(simp add: gnf_hd_def Let_def GNF_of_R[simplified]
-  distinct_nts_prods_list freshs_distinct finite_nts freshs_disj set_nts_prods_list length_freshs)
-
-lemma distinct_app_freshs: "\<lbrakk> As = nts_prods_list ps; As' = freshs (set As) (length As) \<rbrakk> \<Longrightarrow>
-   distinct (As @ As')"
-using freshs_disj[of "set As" "length As"]
-by (auto simp: distinct_nts_prods_list freshs_distinct)
-
-text \<open>Any epsilon free Grammar can be brought into GNF while preserving the Language.\<close>
-theorem Lang_gnf_hd: "\<lbrakk> eps_free ps; A \<in> nts ps \<rbrakk> \<Longrightarrow> Lang (gnf_hd ps) A = lang ps A"
-unfolding gnf_hd_def Let_def
-by (metis GNF_of_R_Lang IntI distinct_app_freshs empty_iff finite_nts freshs_disj length_freshs order_refl
-      set_nts_prods_list)
 
 end

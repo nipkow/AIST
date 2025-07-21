@@ -80,7 +80,7 @@ definition gnf_hd :: "('n::fresh0,'t)prods \<Rightarrow> ('n,'t)Prods" where
 "gnf_hd ps =
   (let As = nts_prods_list ps;
        As' = freshs (set As) (length As)
-   in exp_triangular (As' @ rev As) (solve_tri As As' (set ps)))"
+   in expand_tri (As' @ rev As) (solve_tri As As' (set ps)))"
 
 lemma GNF_hd_gnf_hd: "eps_free ps \<Longrightarrow> GNF_hd (gnf_hd ps)"
 by(simp add: gnf_hd_def Let_def GNF_of_R[simplified]
@@ -99,14 +99,14 @@ by (metis GNF_of_R_Lang IntI distinct_app_freshs empty_iff finite_nts freshs_dis
 
 text "Examples"
 
-value "exp_hd 0 [1] {(0,[Nt 1,Tm 2]), (1,[Tm 3])} :: (nat,int)Prods"
+value "expand_hd 0 [1] {(0,[Nt 1,Tm 2]), (1,[Tm 3])} :: (nat,int)Prods"
 
 definition P1 :: "(nat,int)Prods" where
 "P1 = {(1, [Tm 2, Tm 1]), (1, [Nt 2, Nt 2]),
    (2, [Nt 1, Nt 2]), (2, [Tm 2])}"
 
 value "solve_tri [1,2] [5,6] P1"
-value "exp_triangular ([5,6] @ rev [1,2]) (solve_tri [1,2] [5,6] P1)"
+value "expand_tri ([5,6] @ rev [1,2]) (solve_tri [1,2] [5,6] P1)"
 
 definition P2 :: "(nat,int)Prods" where
 "P2 = {(1, [Nt 2, Nt 3]),
@@ -114,6 +114,6 @@ definition P2 :: "(nat,int)Prods" where
    (3, [Nt 1, Nt 2]), (3, [Tm 1])}"
 
 value "solve_tri [1,2,3] [5,6,7] P2"
-value "exp_triangular ([5,6,7] @ rev [1,2,3]) (solve_tri [1,2,3] [5,6,7] P2)"
+value "expand_tri ([5,6,7] @ rev [1,2,3]) (solve_tri [1,2,3] [5,6,7] P2)"
 
 end

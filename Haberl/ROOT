@@ -8,6 +8,6 @@ session "Greibach" = Context_Free_Grammar +
     Greibach_Code
 
 (* Dependencies on document source files: *)
-  (*document_files
+  document_files
     "root.bib"
-    "root.tex"*)
+    (*"root.tex"*)

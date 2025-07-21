@@ -7,30 +7,39 @@ imports
 begin
 
 text ‹Solver for a system of linear equations ‹xi = a0 * x0 + ... + an*xn + b›
-where ‹+, * :: 'a ⇒ 'a ⇒ 'a› are parameters.
+where ‹+, * :: 'a ⇒ 'a ⇒ 'a› are type classes.
 The system is represented in matrix form: ‹X = A*X + B› where the matrix is of type ‹'a list list›
 and we work with only a single matrix ‹A› augmented with the vector ‹B›.
 In each step, the solver eliminates one variable. This step must be supplied as a parameter
 ‹solve1› that solves ‹x = a * x + rest› for ‹x›. Here, ‹rest› is of the form ‹ak*xk + ... + an*xn+b›
 and given as the list ‹[ak,...,an,b]›.
 The solution is returned in fully substituted, not triangular form.
-The order of the variables/equations is reversed.›
+The order of the variables/equations is reversed.
+
+We work with equivalence classes given by an abstraction function ‹φ› which must be supplied as a parameter.
+This is needed because regular expressions do not have the required algebraic structure.
+Only the languages they represent do.
+›
 
 definition "mx m n xss = (length xss = m ∧ (∀xs ∈ set xss. length xs = n))"
 
 
-fun mult where "mult a b = a * b"
-
+text ‹scalar * vector›
 definition mult1 where
-"mult1 = map o mult"
+"mult1 = map o times"
 
 (*
 foldl can be used here for more efficient code
 but this may make the proofs easier
 *)
 definition dot :: "'a :: {zero, plus, times} list ⇒ 'a list ⇒ 'a" where
-"dot as bs = foldr (+) (map2 mult as bs) 0"
+"dot as bs = foldr (+) (map2 times as bs) 0"
 
+
+text ‹
+Distributivity lemmas for φ.
+They are provided outside the locale, because they are useful for proving ‹solve1› correct.
+›
 lemma φ_dot:
   fixes φ :: "'a :: {one, zero, plus, times} ⇒ 'b :: semiring_1"
   assumes φ_add: "⋀a b. φ (a + b) = φ a + φ b"
@@ -39,7 +48,7 @@ lemma φ_dot:
   shows "φ (dot as bs) = dot (map φ as) (map φ bs)"
 unfolding dot_def using assms proof(induction as arbitrary: bs)
     case (Cons a as)
-    then show ?case using assms apply(cases bs) by simp+
+    then show ?case apply(cases bs) by simp+
 qed simp
 
 lemma φ_dot_Cons:
@@ -51,7 +60,7 @@ lemma φ_dot_Cons:
     unfolding dot_def by (simp add: assms)
 
 lemma dot_mult:
-  shows "(c :: 'a :: semiring_1) * (dot as bs) = (dot (map (mult c) as) bs)"
+  shows "(c :: 'a :: semiring_1) * (dot as bs) = (dot (map (times c) as) bs)"
   unfolding dot_def proof(induction as arbitrary: bs)
   case (Cons a as)
   then show ?case proof(cases bs)
@@ -82,7 +91,7 @@ lemma φ_map_mult:
   assumes φ_add: "⋀a b. φ (a + b) = φ a + φ b"
   and φ_mul: "⋀a b. φ (a * b) = φ a * φ b"
   and φ_zero: "φ 0 = 0"
-shows"map φ (map (mult c) as) = map (mult (φ c)) (map φ as)"
+shows"map φ (map (times c) as) = map (times (φ c)) (map φ as)"
   apply(induction as)
   using assms by simp+
 
@@ -99,7 +108,7 @@ lemma φ_dot_mult:
   assumes φ_add: "⋀a b. φ (a + b) = φ a + φ b"
   and φ_mul: "⋀a b. φ (a * b) = φ a * φ b"
   and φ_zero: "φ 0 = 0"
-  shows "φ c * φ (dot as bs) = φ (dot (map (mult c) as) bs)"
+  shows "φ c * φ (dot as bs) = φ (dot (map (times c) as) bs)"
 unfolding φ_dot[OF assms] φ_map_mult[OF assms] using dot_mult by blast
 
 locale Gauss =
@@ -110,7 +119,7 @@ and φ_add: "φ (a + b) = φ a + φ b"
 and φ_mul: "φ (a * b) = φ a * φ b"
 and φ_zero: "φ 0 = 0"
 and φ_one: "φ 1 = 1"
-and solve1_c: "φ X = φ (dot (solve1 c cs) (Xs@[1])) ⟹ φ X = φ (dot (c#cs) (X#Xs@[1]))"
+and solve1_c: "φ X = φ (dot (solve1 c cs) (Xs@[1])) ⟹  φ X = φ (dot (c#cs) (X#Xs@[1]))"
 
 begin
 text ‹We work on a matrix representation of ‹X = A*X+B› where the matrix is ‹(A|B)›.
@@ -120,16 +129,18 @@ In each step, ‹solve1 a b› solves an equation ‹X_i = a*X_i + b›
 lemmas φ0 = φ_add φ_mul φ_zero
 lemmas φ = φ0 φ_one
 
-fun eq where "eq a b = (φ a = φ b) "
+text ‹We define our equality relation based on φ›
+fun eq where "eq a b = (φ a = φ b)"
 
-(*
-is_sol x ds xs :=   x = ds * (xs @ [1])
-*)
+text ‹
+‹is_sol x cs xs› holds when ‹x› \<equiv> ‹a1*x1 + ... + an*xn + b›
+‹cs› are the coefficients  ‹[a1, \<dots>, an, b]›
+›
 definition is_sol :: "'a ⇒ 'a list ⇒ 'a list ⇒ bool" where
-"is_sol a cs sol = (Suc (length sol) = length cs ∧ eq a (dot cs (sol @ [1])))"
+"is_sol x cs xs = (Suc (length xs) = length cs ∧ eq x (dot cs (xs @ [1])))"
 
 (*
-is_sols ys M xs :=  ys = M * (xs @ [1])
+is_sols ys A xs :=  ys = A * (xs @ [1])
 
 *)
 fun is_sols :: "'a list ⇒ 'a list list ⇒ 'a list ⇒ bool" where
@@ -138,6 +149,13 @@ fun is_sols :: "'a list ⇒ 'a list list ⇒ 'a list ⇒ bool" where
 "is_sols _  [] sol = False" |
 "is_sols []  _ sol = False"
 
+text ‹equivalent formulations›
+fun is_sols2 where
+"is_sols2 as eqns sol = (length as = length eqns ∧ list_all2 (λs eq. is_sol s eq sol) as eqns)"
+fun is_sols3 where
+"is_sols3 sol eqns = (length sol = length eqns ∧ list_all2 (λs eq. is_sol s eq sol) sol eqns)"
+
+(*
 lemma is_sols_length: "is_sols as eqns sol ⟹  length as = length eqns"
   apply(induction as eqns sol rule: is_sols.induct )
   by auto
@@ -145,19 +163,15 @@ lemma is_sols_length: "is_sols as eqns sol ⟹  length as = length eqns"
 lemma is_sols_append: "is_sols as1 eqns1 sol ⟹  is_sols as2 eqns2 sol ⟹  is_sols (as1@as2) (eqns1@eqns2) sol"
   apply(induction as1 eqns1 sol rule: is_sols.induct)
   by auto
+*)
 
-fun is_sols2 where
-"is_sols2 as eqns sol = (length as = length eqns ∧ list_all2 (λs eq. is_sol s eq sol) as eqns)"
-
-(*maybe better with ∀*)
-fun is_sols3 where
-"is_sols3 sol eqns = (length sol = length eqns ∧ list_all2 (λs eq. is_sol s eq sol) sol eqns)"
 
 lemma wrong_len_not_sol: "length sol ≠ length eqns ⟹  ¬is_sols sol eqns sol2"
   apply(induction rule: is_sols.induct)
   by simp+
 
 
+text ‹equivalence proof›
 lemma is_sols2_eqiv: "is_sols sol eqns sol' = is_sols2 sol eqns sol'"
 proof(cases "length sol = length eqns")
   case True
@@ -176,47 +190,28 @@ qed (simp add: wrong_len_not_sol)
 corollary is_sols3_eqiv: "is_sols3 sols eqns = is_sols sols eqns sols"
   by (simp add: is_sols2_eqiv)
 
+text ‹
+Elimination of a variable.
 
+Given the equations:
+xi \<equiv> c0 * x0 + c1 * x1 + ... + cn * xn + b
+x0 \<equiv> d1 * x1 + ... + dn * xn + b
+
+one can substitute to get
+
+xi \<equiv> e1 * x1 + ... + en * xn + b
+
+eliminating the variable x0
+
+where ‹ds› = [d1, ..., dn, b]
+      ‹cs› = [c1, ..., cn, b]
+      ‹c›  = c0
+      ‹es› = [e1, ..., en, b]
+
+return coefficients es
+›
 fun subst :: "'a list ⇒ 'a list ⇒ 'a list" where
-"subst sol (c#cs) = map2 (+) (mult1 c sol) cs"
-
-
-
-(*not true in general for regexes*)
-lemma solve1_unique: "⟦ length cs > 0; is_sol X (c#cs) (X#Xs) ⟧ ⟹  is_sol X (solve1 c cs) Xs"
-  unfolding is_sol_def oops
-
-lemma solve1_correct: "⟦ is_sol X (solve1 c cs) Xs ⟧ ⟹  is_sol X (c#cs) (X#Xs) "
-  unfolding is_sol_def using solve1_c by (simp add: length_solve1)
-
-(*
-
-‹X#Xs› are a solution of the system of equations
-they exist but are not known to the algo
-
-(c#cs) are the coefficients of the first equation
-ds     are the coefficients with the first variable eliminated
-    aka where the system has been solve1 ed for that variable
-
-(e#es)   are the coefficients of some other equation
-  where we want to eleminate the first variable
-
-Y is the solution of that equation
-
-*)
-lemma subst_unique:
-  assumes "is_sol X ds Xs"
-  and "is_sol Y es (X#Xs)"
-  shows "is_sol Y (subst ds es) Xs"
-using assms unfolding is_sol_def
-  oops
-
-lemma map_subst_unique: "⟦
-  is_sol y ds ys ;
-  is_sols xs eqs (y#ys)
-⟧ ⟹  is_sols xs (map (subst ds) eqs) ys"
-oops
-
+"subst ds (c#cs) = map2 (+) (mult1 c ds) cs"
 
 lemma subst_correct: "⟦
   length ds = length cs ;
@@ -282,14 +277,60 @@ unfolding is_sols2_eqiv is_sols2.simps proof(goal_cases)
 qed
 
 
+
+
+(*
+I think these properties hold.
+But additional assumptions about lengths might be needed
+they are not required for the correctness proof
+*)
+lemma subst_unique:
+  assumes "is_sol X ds Xs"
+  and "is_sol Y es (X#Xs)"
+  shows "is_sol Y (subst ds es) Xs"
+using assms unfolding is_sol_def
+  oops
+
+lemma map_subst_unique: "⟦
+  is_sol y ds ys ;
+  is_sols xs eqs (y#ys)
+⟧ ⟹  is_sols xs (map (subst ds) eqs) ys"
+oops
+
+
+(*
+
+‹X#Xs› are a solution of the system of equations
+they exist but are not known to the algo
+
+(c#cs) are the coefficients of the first equation
+ds     are the coefficients with the first variable eliminated
+    aka where the system has been solve1 ed for that variable
+
+(e#es)   are the coefficients of some other equation
+  where we want to eliminate the first variable
+
+Y is the solution of that equation
+
+*)
+
+text ‹
+  ‹solves [] eqns› solves the system of equations given by eqns
+  using an accumulator
+
+  In each step the current equation is solved using solve1
+  then the variable is eliminated in all equations
+›
+
 fun solves :: "'a list list ⇒ 'a list list ⇒ 'a list list" where
-(* would it be a good idea to map hd here? *)
 "solves sols [] = sols" |
 "solves sols ((c # cs) # eqs) =
  (let sol = solve1 c cs;
       eqs' = map (subst sol) eqs;
       sols' = sol # map (subst sol) sols
   in solves sols' eqs')"
+
+
 
 lemma length_subst:
   "⟦ length sol = length cs - 1; length cs ≠ 0 ⟧ ⟹  length(subst sol cs) = length sol"
@@ -318,6 +359,13 @@ next
     by(auto simp add: length_solve1 length_subst mx_def Let_def)
 qed (auto simp: mx_def)
 
+lemma mx_solves:
+  assumes "mx n (Suc n) eqns"
+    and "mx m (Suc n) sols"
+  shows "mx (n+m) (Suc 0) (solves sols eqns)"
+  using length_in_solves[OF assms] mx_def length_solves[OF assms] by blast
+
+
 lemma length_map_subst: "⟦ mx n b eqns; length sol = b-1 ; length sol ≠ 0 ⟧ ⟹  mx n (b-1) (map (subst sol) eqns)"
 unfolding mx_def
 apply(induction eqns)
@@ -326,22 +374,21 @@ apply auto
 apply (metis One_nat_def linordered_nonzero_semiring_class.zero_le_one list.size(3))
 by (metis One_nat_def le0 length_subst)
 
-find_theorems "rev (?x # ?xs)"
-
-lemma is_sols_rev: "is_sols (rev Ys) (rev eqns) Xs = is_sols Ys eqns Xs"
-  unfolding is_sols2_eqiv by simp
-
 lemma dot_one: "φ (dot (x#xs) [1]) = φ x"
   unfolding dot_def apply auto
   unfolding φ_add φ_zero φ_mul φ_one
   by simp
 
-lemma dot_one_hd: "length xs > 0 ⟹ φ (dot xs [1]) = φ (hd xs)"
+lemma dot_one_hd: "length xs > 0 ⟹  φ (dot xs [1]) = φ (hd xs)"
   using dot_one apply(cases xs) by simp+
 
-find_theorems "list_all2 ?P ?a ?b ⟹ ?C"
 
-lemma is_sols_trivial: "is_sols ys eqns [] ⟹ map φ ys = map (φ o hd) eqns"
+text ‹
+The solutions of systems of equations with 0 variables
+are trivial to obtain
+›
+
+lemma is_sols_trivial: "is_sols ys eqns [] ⟹  map φ ys = map (φ o hd) eqns"
 unfolding is_sols2_eqiv is_sols2.simps is_sol_def eq.simps
 proof-
   assume "length ys = length eqns ∧ list_all2 (λs eq. Suc (length []) = length eq ∧ φ s = φ (dot eq ([] @ [1]))) ys eqns"
@@ -353,80 +400,37 @@ proof-
     apply(induction) by simp+
 qed
 
-lemma is_sols_trivial2: "list_all (λeq. length eq = 1) eqns ⟹ map φ ys = map (φ o hd) eqns ⟹ is_sols ys eqns []"
+lemma is_sols_trivial2: "list_all (λeq. length eq = 1) eqns ⟹  map φ ys = map (φ o hd) eqns ⟹  is_sols ys eqns []"
 unfolding is_sols2_eqiv is_sols2.simps is_sol_def eq.simps
 proof-
   assume l: "list_all (λeq. length eq = 1) eqns"
-     and "map φ ys = map (φ ∘ hd) eqns"
+     and mp: "map φ ys = map (φ ∘ hd) eqns"
   then have len: "length ys = length eqns"
     using map_eq_imp_length_eq by simp
 
-
-  then have "list_all2 (λs eq. 1 = length eq ∧ φ s = φ (hd eq)) ys eqns"
-    sorry
+  then have l2: "list_all2 (λs eq. 1 = length eq ∧ φ s = φ (hd eq)) ys eqns"
+    using mp l apply(induction ys eqns rule: list_induct2) by simp+
+  then have "list_all2 (λs eq. 0 < length eq ∧ φ s = φ (hd eq)) ys eqns"
+    by (metis (mono_tags, lifting) less_numeral_extra(1) list_all2_mono)
+  then have "list_all2 (λs eq. φ s = φ (dot eq [1])) ys eqns"
+    using dot_one_hd list_all2_mono by force
   then have "list_all2 (λs eq. 1 = length eq ∧ φ s = φ (dot eq [1])) ys eqns"
-    using dot_one_hd sorry
+    by (smt (verit, ccfv_SIG) l2 dot_one_hd less_numeral_extra(1) list_all2_mono)
   then show "length ys = length eqns ∧ list_all2 (λs eq. Suc (length []) = length eq ∧ φ s = φ (dot eq ([] @ [1]))) ys eqns"
-    using len by simp
+    using len l by simp
 qed
 
 
-(*
-
-  the assumption about shape is only correct at the algo start
-  mx h (Suc n + m) eqns
-  mx h (Suc n + m) sols
-
-  during the algo we can only say that
-
-  mx n b eqns
-  mx m b sols
-  b > 0
-
-
-  the 2 Xs do not stay the same, only sublists
-*)
-
-theorem solves_unique:
-  shows "⟦ b = n+1; mx n b eqns; mx m b sols;
-    is_sols Ys eqns Ys;
-    is_sols (rev Xs) sols Ys ⟧
-    ⟹  is_sols (Xs@Ys) (rev (solves sols eqns)) []"
-oops
-
-lemma is_sol_eq: "is_sol x ds xs ⟹ eq x y ⟹ is_sol y ds xs"
+lemma is_sol_eq: "is_sol x ds xs ⟹  eq x y ⟹  is_sol y ds xs"
   unfolding eq.simps is_sol_def by simp
 
-lemma solves_correct_step: "
-⟦
-  mx n (b+2) eqs;
-  length ds = b + 1;
-  length xs = b;
+lemma solve1_correct: "⟦ is_sol X (solve1 c cs) Xs ⟧ ⟹  is_sol X (c#cs) (X#Xs) "
+  unfolding is_sol_def using solve1_c by (simp add: length_solve1)
 
-  is_sols xs eqs' xs;
-  is_sols (x#Ys) sols' xs;
-
-  ds = solve1 c cs;
-  eqs' = map (subst ds) eqs;
-  sols' = ds # map (subst ds) sols
-
-⟧ ⟹
-    is_sols (x#xs) ((c#cs)#eqs) (x#xs)
-"
-proof(goal_cases)
-  case 1
-  have "is_sol x (solve1 c cs) xs"
-    using 1 by simp
-  moreover have "is_sols xs (map (subst ds) eqs) xs"
-    using 1 by simp
-  moreover have "eq x (dot ds (xs @ [1]))"
-    using ‹ds = solve1 c cs› ‹is_sol x (solve1 c cs) xs› is_sol_def by blast
-  ultimately have "is_sols xs eqs (x # xs)"
-    using map_subst_correct[OF ‹mx n (b+2) eqs› ‹length ds = b + 1› ‹length xs = b›]
-    by simp
-  then show ?case using ‹is_sol x (solve1 c cs) xs› solve1_correct by auto
-qed
-
+text ‹
+To prove that a solution of the trivial system returned by the algorithm
+is also a solution of the input, we need to generalize to non-empty accumulator values.
+›
 
 theorem solves_correct:
   "⟦ b = n+1; mx n b eqns; mx m b sols; length Ys = n;
@@ -445,27 +449,28 @@ proof(induction sols eqns arbitrary: Xs Ys n m b rule: solves.induct)
   have [simp]: "length ys = n - 1" using ‹length Ys = n› yys by auto
   have "length cs = b - 1"
     by (metis "2.prems"(2) One_nat_def add_diff_cancel_right' list.set_intros(1) list.size(4) mx_def)
-  then have "length sol = b - 1"
+  then have [simp]: "length sol = b - 1"
     using length_solve1 sol_def by presburger
-  have "length sol > 0" using "2.prems"(1,2) ‹length sol = b - 1› mx_def by force
-  have "mx (n-1) b eqs" using ‹mx n b ((c # cs) # eqs)› unfolding mx_def by auto
+  then have "length sol > 0" using "2.prems"(1,2) mx_def by force
+
+  have mx_eqs: "mx (n-1) b eqs" using "2.prems" unfolding mx_def by auto
   then have "mx (n-1) (b-1) (map (subst sol) eqs)" using length_map_subst ‹length sol = b - 1› ‹length sol > 0› by simp
-  then have "mx (n-1) (b-1) eqs'" using eqs'_def by simp
-  have [simp]: "b-1 = n-1+1" using ‹b = n + 1› by (metis "2.prems"(2) One_nat_def add_diff_cancel_right' list.size(4) mx_def)
+  then have mx_eqs'[simp]: "mx (n-1) (b-1) eqs'" using eqs'_def by simp
+  have "b-1 = n-1+1" using ‹b = n + 1› by (metis "2.prems"(2) One_nat_def add_diff_cancel_right' list.size(4) mx_def)
   have "length cs > 0"
     using ‹length sol > 0› length_solve1 sol_def by auto
   have "mx m (b-1) (map (subst sol) sols)" using "2.prems"(3) ‹length sol = b - 1› ‹length sol > 0› length_map_subst by blast
-  then have "mx (m+1) (b-1) sols'" using sols'_def by (simp add: ‹length sol = b - 1› mx_def)
+  then have mx_sols'[simp]: "mx (m+1) (b-1) sols'" using sols'_def by (simp add: ‹length sol = b - 1› mx_def)
 
 
 
   have "is_sols ((Xs @ [y]) @ ys) (rev (solves sols ((c # cs) # eqs))) []"
-    using ‹is_sols (Xs @ Ys) (rev (solves sols ((c # cs) # eqs))) []› yys by simp
+    using "2.prems" yys by simp
   then have "is_sols ((Xs @ [y]) @ ys) (rev (solves sols' eqs')) []"
     by (metis eqs'_def sol_def sols'_def solves.simps(2))
-
-  have IH: "is_sols ys eqs' ys ∧ is_sols (rev (Xs @ [y])) sols' ys"
-    using "2.IH"[OF sol_def eqs'_def sols'_def ‹b-1 = n-1+1› ‹mx (n-1) (b-1) eqs'› ‹mx (m+1) (b - 1) sols'› _ ‹is_sols ((Xs @ [y]) @ ys) (rev (solves sols' eqs')) []›]
+  then have IH: "is_sols ys eqs' ys ∧ is_sols (rev (Xs @ [y])) sols' ys"
+    using "2.IH"[of sol eqs' sols' "b-1" "n-1" "m+1" ys "Xs @ [y]"]
+    using sol_def eqs'_def sols'_def ‹b-1 = n-1+1› mx_eqs' mx_sols'
     by simp
 
 
@@ -491,8 +496,8 @@ proof(induction sols eqns arbitrary: Xs Ys n m b rule: solves.induct)
   moreover have "is_sols ys (map (subst sol) eqs) ys"
     using eqs'_def IH by simp
   then have "is_sols ys eqs (y#ys)"
-    using map_subst_correct[OF _ _ _ ‹eq y (dot sol (ys @ [1]))› ‹is_sols ys (map (subst sol) eqs) ys›]
-    by (metis "2.prems"(1,4) One_nat_def Suc_eq_plus1 ‹b - 1 = n - 1 + 1› ‹length sol = b - 1› ‹length ys = n - 1› ‹mx (n - 1) b eqs› add_2_eq_Suc' list.size(4) yys)
+    using map_subst_correct[OF _ _ _ ‹eq y (dot sol (ys @ [1]))› ‹is_sols ys (map (subst sol) eqs) ys›, of "n-1" "n-1"]
+    by (metis "2.prems"(1,4) One_nat_def Suc_eq_plus1 ‹b - 1 = n - 1 + 1› ‹length sol = b - 1› ‹length ys = n - 1› mx_eqs add_2_eq_Suc' list.size(4) yys)
 
   ultimately show ?case using yys by auto
 next
@@ -510,7 +515,7 @@ next
 qed
 
 corollary solves_correct': "
-  ⟦ mx n (n+1) eqns; length Ys = n;
+  ⟦ mx n (Suc n) eqns; length Ys = n;
     is_sols Ys (rev (solves [] eqns)) []
     ⟧ ⟹
     is_sols Ys eqns Ys
@@ -518,8 +523,29 @@ corollary solves_correct': "
 using solves_correct[of "n+1" n eqns 0 "[]" Ys "[]"] by (simp add: mx_def)
 
 
-lemma "Ys = rev (map hd (solves [] eqns)) ⟹  is_sols Ys eqns Ys"
-  sorry
+lemma
+assumes mx_eqns: "mx n (Suc n) eqns"
+  and Ys: "Ys = rev (map hd (solves [] eqns))"
+  shows "is_sols Ys eqns Ys"
+proof-
+
+  have mx_sols: "mx 0 (Suc n) []"
+    using mx_def by fastforce
+
+  thm mx_solves[OF mx_eqns mx_sols]
+
+  have len1: "list_all (\<lambda>eq. length eq = 1) (solves [] eqns)"
+    using mx_solves[OF mx_eqns mx_sols] by (simp add: Ball_set mx_def)
+
+  have "map \<phi> Ys = map (\<phi> \<circ> hd) (solves [] eqns)" sorry
+
+  thm is_sols_trivial2[OF len1]
+
+  thm solves_correct'[OF mx_eqns]
+
+  show "is_sols Ys eqns Ys"
+    sorry
+qed
 
 (*
 vieleicht wäre hier noch gut
@@ -530,9 +556,9 @@ elementweise equivalenz von Ys und (rev (solves [] eqns))
 
 end
 
+text ‹Lang wrapper to define + and *›
 datatype 'a langR = Lang "'a list set"
 fun unLang where "unLang (Lang x) = x"
-
 abbreviation L where "L ≡ λx. Lang (lang x)"
 
 instantiation langR :: (type) semiring_1
@@ -600,31 +626,22 @@ proof -
   finally show ?thesis .
 qed
 
-lemma Ardens2: "[] ∉ A ⟹  X = A @@ X ∪ B ⟹  X = star A @@ B"
-  using Arden_sol_is_star by auto
-
-lemma Ardens3: "X = star A @@ B ⟹  X = A @@ X ∪ B"
-  using Ardens by auto
-
 instantiation rexp :: (type) plus begin
-  definition plus_rexp where "plus_rexp ≡ Plus"
-  instance ..
+  definition plus_rexp where "plus_rexp ≡ Plus" instance ..
 end
 instantiation rexp :: (type) zero begin
-  definition zero_rexp where "zero_rexp ≡ Zero"
-  instance ..
+  definition zero_rexp where "zero_rexp ≡ Zero" instance ..
 end
 instantiation rexp :: (type) one begin
-  definition one_rexp where "one_rexp ≡ One"
-  instance ..
+  definition one_rexp where "one_rexp ≡ One" instance ..
 end
 instantiation rexp :: (type) times begin
-  definition times_rexp where "times_rexp ≡ Times"
-  instance ..
+  definition times_rexp where "times_rexp ≡ Times" instance ..
 end
 
-global_interpretation Gauss where
-solve1 = "λr cs. map (λc. Times (Star r) c) cs" and φ = "λr. Lang (lang r)"
+global_interpretation Gauss
+where solve1 = "λr cs. map (λc. Times (Star r) c) cs"
+  and φ = "λr. Lang (lang r)"
 defines solves_r = solves and subst_r = subst and mult1_r = mult1
 proof (standard, goal_cases)
   case (1 a cs)
@@ -644,8 +661,8 @@ next
 next
   fix cs X c Xs
   assume "L X = L (dot (map (Times (Star c)) cs) (Xs @ [1]))"
-  then have "L X = L (dot (map (mult (Star c)) cs) (Xs @ [1]))"
-    by (metis map_eq_conv mult.simps times_rexp_def)
+  then have "L X = L (dot (map (times (Star c)) cs) (Xs @ [1]))"
+    by (metis map_eq_conv times_rexp_def)
 
   then have "L X = L (Star c) * L (dot cs (Xs@[1]))"
     using φ_dot_mult[of L] unfolding plus_langR_def plus_rexp_def times_langR_def times_rexp_def zero_langR_def zero_rexp_def

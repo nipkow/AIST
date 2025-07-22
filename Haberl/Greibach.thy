@@ -207,9 +207,9 @@ definition gnf_hd :: "('n::fresh0,'t)prods \<Rightarrow> ('n,'t)Prods" where
        As' = freshs (set As) (length As)
    in expand_tri (As' @ rev As) (solve_tri As As' (set ps)))"
 
-subsection \<open>General Lemmas about Eps_free and Nts:\<close>
+subsection \<open>General Lemmas about \<open>eps_free\<close> and Nts:\<close>
 
-subsubsection \<open>Eps_free preservation:\<close>
+subsubsection \<open>\<open>eps_free\<close> preservation:\<close>
 
 lemma Eps_free_expand_hd: "Eps_free R \<Longrightarrow> Eps_free (expand_hd A Ss R)"
 proof (induction A Ss R rule: expand_hd.induct)
@@ -871,7 +871,7 @@ proof (rule ccontr)
   qed
 qed
 
-text \<open>Solve_lrec does not add productions of the form \<open>A' \<rightarrow> Nt A'\<close>.\<close>
+text \<open>\<open>solve_lrec\<close> does not add productions of the form \<open>A' \<rightarrow> Nt A'\<close>.\<close>
 lemma solve_lrec_no_self_loop: "Eps_free R \<Longrightarrow> A' \<notin> Nts R \<Longrightarrow> (A', [Nt A']) \<notin> solve_lrec A A' R"
   by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Eps_free_def Nts_def split: prod.splits)
 

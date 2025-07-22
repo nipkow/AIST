@@ -10,4 +10,4 @@ session "Greibach" = Context_Free_Grammar +
 (* Dependencies on document source files: *)
   document_files
     "root.bib"
-    (*"root.tex"*)
+    "root.tex"

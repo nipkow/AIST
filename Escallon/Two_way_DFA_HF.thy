@@ -1673,10 +1673,17 @@ text \<open>Let \<open>L \<subseteq> \<Sigma>\<^sup>*\<close> be regular. Then t
       We construct the 2DFA \<open>M' = (Q \<union> {q\<^sub>0', q\<^sub>a, q\<^sub>r}, q\<^sub>0', q\<^sub>a, q\<^sub>r, \<delta>')\<close> where\newline
       \[ 
       \delta'(q,a) = \begin{cases} 
+
           (\delta(q,a), Right) & \text{if } q \in Q \text{ and } a \in \Sigma \\
+          (q_a, Right) & \text{if } q = q_a \text{ and } a \in \Sigma \\
+          (q_r, Right) & \text{if } q \in \{q_0', q_r\} \text{ and } a \in \Sigma \\
+
           (q_0, Right) & \text{if } (q,a) = (q_0', \vdash) \\
-          (q_a, Left) & \text{if } q \in F \text{ and } a = \dashv \\
-          (q_r, Left) & \text{if } q \notin F \text{ and } a = \dashv
+          (q_a, Right) & \text{if } (q,a) = (q_a, \vdash) \\
+          (q_r, Right) & \text{if } q \in Q \cup \{q_r\} \text{ and } a = \vdash \\
+
+          (q_a, Left) & \text{if } q \in F \cup \{q_a\} \text{ and } a = \dashv \\
+          (q_r, Left) & \text{otherwise}
           \end{cases}
       \]\newline
       Finally, we show that \<open>L(M') = L(M)\<close>:\<close>

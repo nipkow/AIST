@@ -544,7 +544,7 @@ proof -
       from u'_lt_x list_deconstruct1
       obtain xs ys where "length xs = length u'" and xapp: "xs @ ys = \<langle>x\<langle>"
         using Nat.less_imp_le_nat by metis
-      moreover then have  "length (ys @ \<rangle>z\<rangle>) = length v'" using app 
+      moreover from this have  "length (ys @ \<rangle>z\<rangle>) = length v'" using app 
         by (smt (verit) append_assoc append_eq_append_conv length_rev
             mapl_app_mapr_eq_map) 
       ultimately have xs_is_rev: "xs = rev u'" 
@@ -850,7 +850,7 @@ next
       have "y = rev (\<langle>x\<langle>)" 
         using \<open>length y = length (\<turnstile> # \<Sigma> x)\<close> \<open>u = rev x_init\<close> \<open>v = x_end # \<Sigma> z @ [\<stileturn>]\<close> assms(1,2) c1_def
           x_is_init_app_end by auto
-      moreover then have "w = \<rangle>z\<rangle>" 
+      moreover from this have "w = \<rangle>z\<rangle>" 
         using \<open>length u = length (\<turnstile> # \<Sigma> x) - 1\<close> \<open>v = x_end # \<Sigma> z @ [\<stileturn>]\<close> assms(1,2) c1_def by auto
       ultimately have "c1 = (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" using c1_def by simp
       moreover have "c0 = (rev x_init, p, x_end # \<rangle>z\<rangle>)" 
@@ -884,7 +884,7 @@ next
       have "y = rev x_init" 
         using \<open>length y = length (\<turnstile> # \<Sigma> x) - 1\<close> \<open>u = rev (\<langle>x\<langle>)\<close> \<open>v = \<Sigma> z @ [\<stileturn>]\<close> assms(1,2) c1_def
           x_is_init_app_end by auto
-      moreover then have "w = x_end # \<rangle>z\<rangle>" 
+      moreover from this have "w = x_end # \<rangle>z\<rangle>" 
         by (smt (verit) \<open>length u = length (\<turnstile> # \<Sigma> x)\<close> \<open>length y = length (\<turnstile> # \<Sigma> x) - 1\<close>
             \<open>u = rev (\<turnstile> # \<Sigma> x)\<close> \<open>v = \<Sigma> z @ [\<stileturn>]\<close> assms(1,2) c1_def diff_le_self impossible_Cons last_snoc
             prod.inject rev_eq_Cons_iff step_foldedE x_end_def)
@@ -992,7 +992,7 @@ next
   case (step c1 c2)
   then obtain n where ncross: "c0 \<rightarrow>\<^sup>X(n) c1" by blast
   obtain w q y where "c1 = (w, q, y)" using prod_cases3 by blast
-  moreover then have "rev w @ y = \<langle>x @ z\<rangle>" 
+  moreover from this have "rev w @ y = \<langle>x @ z\<rangle>" 
      using unchanged_substrings step(1,5,6) by simp
   ultimately obtain m where "c1 \<rightarrow>\<^sup>X(m) c2" using step(2) step_impl_crossn by metis
   then show ?case using ncross crossn_trans step(4) by blast
@@ -1821,9 +1821,9 @@ proof -
       show "(u, q, \<rangle>w\<rangle>) \<rightarrow>*\<lparr>?M'\<rparr> (rev (\<Sigma> w) @ u, (dfa.nextl M q w, [\<stileturn>]))"
         using in_Q proof (induction w arbitrary: q u)
         case Nil
-        moreover then have "dfa.nextl M q [] = q" 
+        moreover from this have "dfa.nextl M q [] = q" 
           by (simp add: \<open>dfa M\<close> dfa.nextl.simps(1))
-        moreover then have "(u, q, \<rangle>[]\<rangle>) = (rev (\<Sigma> []) @ u, dfa.nextl M q [], [\<stileturn>])" by simp
+        moreover from this have "(u, q, \<rangle>[]\<rangle>) = (rev (\<Sigma> []) @ u, dfa.nextl M q [], [\<stileturn>])" by simp
         ultimately show ?case by simp 
       next
         case (Cons x xs)

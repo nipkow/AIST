@@ -1673,7 +1673,7 @@ text \<open>Let \<open>L \<subseteq> \<Sigma>\<^sup>*\<close> be regular. Then t
       We construct the 2DFA \<open>M' = (Q \<union> {q\<^sub>0', q\<^sub>a, q\<^sub>r}, q\<^sub>0', q\<^sub>a, q\<^sub>r, \<delta>')\<close> where\newline
       \[ 
       \delta'(q,a) = \begin{cases} 
-          (\delta(q,a), \text{Right}) & \text{if } q \in Q \text{ and } a \in \Sigma \\
+          (\delta(q,a), Right) & \text{if } q \in Q \text{ and } a \in \Sigma \\
           (q_0, Right) & \text{if } (q,a) = (q_0', \vdash) \\
           (q_a, Left) & \text{if } q \in F \text{ and } a = \dashv \\
           (q_r, Left) & \text{if } q \notin F \text{ and } a = \dashv
@@ -1911,7 +1911,7 @@ proof -
     qed
   qed
   then show thesis using that \<open>dfa.language M = L\<close> M.dfa2_axioms M_def q_defs by presburger
-qed
+qed 
 
 text \<open>The equality follows trivially:\<close>
 

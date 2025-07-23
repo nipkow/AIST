@@ -1720,7 +1720,7 @@ proof -
       by (smt (verit, ccfv_SIG) card_Suc_eq insertCI)
   qed
   
-  let ?d = "(\<lambda>q a. case a of 
+  let ?\<delta> = "(\<lambda>q a. case a of 
             Letter a' \<Rightarrow> (if q \<in> dfa.states M then ((dfa.nxt M) q a', Right) 
                           else if q = qa then (qa, Right) else (qr, Right)) |
             Marker Left \<Rightarrow> (if q = q0 then (dfa.init M, Right) 
@@ -1731,7 +1731,7 @@ proof -
                       dfa2.init = q0,
                       dfa2.acc = qa,
                       dfa2.rej = qr,
-                      dfa2.nxt = ?d\<rparr>"
+                      dfa2.nxt = ?\<delta>\<rparr>"
     
   interpret M: dfa2 ?M'
   proof (standard, goal_cases)
@@ -1739,7 +1739,7 @@ proof -
     then show ?case 
     proof (cases a)
       case (Letter a')
-      with 6 have d_eq_ite: "?d p a = (if p \<in> dfa.states M then (dfa.nxt M p a', Right) 
+      with 6 have d_eq_ite: "?\<delta> p a = (if p \<in> dfa.states M then (dfa.nxt M p a', Right) 
          else if p = qa then (qa, Right) else (qr, Right))" (is "_ = ?ite") by simp
       then show ?thesis 
       proof (cases "p \<in> dfa.states M")

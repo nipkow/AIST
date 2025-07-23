@@ -1668,23 +1668,35 @@ by fastforce
 lemma infinite_UNIV_state: "infinite(UNIV :: state set)"
   using hmem_HF_iff by blast
 
-
+text \<open>Let \<open>L \<subseteq> \<Sigma>\<^sup>*\<close> be regular. Then there exists a DFA \<open>M = (Q, q\<^sub>0, F, \<delta>)\<close> that accepts \<open>L\<close>. 
+      Furthermore, let \<open>q\<^sub>0, q\<^sub>a, q\<^sub>r \<notin> Q\<close> be pairwise distinct states.
+      We construct the 2DFA \<open>M' = (Q \<union> {q\<^sub>0', q\<^sub>a, q\<^sub>r}, q\<^sub>0', q\<^sub>a, q\<^sub>r, \<delta>')\<close> where\newline
+      \[ 
+      \delta'(q,a) = \begin{cases} 
+          (\delta(q,a), \text{Right}) & \text{if } q \in Q \text{ and } a \in \Sigma \\
+          (q_0, Right) & \text{if } (q,a) = (q_0', \vdash) \\
+          (q_a, Left) & \text{if } q \in F \text{ and } a = \dashv \\
+          (q_r, Left) & \text{if } q \notin F \text{ and } a = \dashv
+          \end{cases}
+      \]\newline
+      Finally, we show that \<open>L(M') = L(M)\<close>:\<close>
+      
 theorem regular_language_impl_dfa2:
   assumes "regular L"
   obtains M where "dfa2 M" "dfa2.Lang M = L"
 proof -
   typ "'a dfa2"
-  from assms obtain N where "dfa N" "dfa.language N = L"
+  from assms obtain M where "dfa M" "dfa.language M = L"
     unfolding regular_def by blast
   then obtain q0 qa qr where q_defs:
-    "{q0, qa, qr} \<inter> dfa.states N = {}"
+    "{q0, qa, qr} \<inter> dfa.states M = {}"
     "qa \<noteq> qr" 
     "qa \<noteq> q0"
     "qr \<noteq> q0"
   proof -
-    from dfa.finite[OF \<open>dfa N\<close>] obtain Q where
+    from dfa.finite[OF \<open>dfa M\<close>] obtain Q where
       "card Q = Suc (Suc (Suc 0))"
-      "Q \<inter> dfa.states N = {}"
+      "Q \<inter> dfa.states M = {}"
       using infinite_UNIV_state
       by (metis finite_arbitrarily_large_disj inf_commute)
     thus thesis using that distinct_def
@@ -1692,30 +1704,30 @@ proof -
   qed
   
   let ?d = "(\<lambda>q a. case a of 
-            Letter a' \<Rightarrow> (if q \<in> dfa.states N then ((dfa.nxt N) q a', Right) 
+            Letter a' \<Rightarrow> (if q \<in> dfa.states M then ((dfa.nxt M) q a', Right) 
                           else if q = qa then (qa, Right) else (qr, Right)) |
-            Marker Left \<Rightarrow> (if q = q0 then (dfa.init N, Right) 
+            Marker Left \<Rightarrow> (if q = q0 then (dfa.init M, Right) 
                           else if q = qa then (qa, Right) else (qr, Right)) |
-            Marker Right \<Rightarrow> (if q \<in> dfa.final N \<or> q = qa then (qa, Left) else (qr, Left)))"
+            Marker Right \<Rightarrow> (if q \<in> dfa.final M \<or> q = qa then (qa, Left) else (qr, Left)))"
 
-  let ?M = "\<lparr>dfa2.states = dfa.states N \<union> {q0, qa, qr},
+  let ?M' = "\<lparr>dfa2.states = dfa.states M \<union> {q0, qa, qr},
                       dfa2.init = q0,
                       dfa2.acc = qa,
                       dfa2.rej = qr,
                       dfa2.nxt = ?d\<rparr>"
     
-  interpret M: dfa2 ?M
+  interpret M: dfa2 ?M'
   proof (standard, goal_cases)
     case (6 p a q d)
     then show ?case 
     proof (cases a)
       case (Letter a')
-      with 6 have d_eq_ite: "?d p a = (if p \<in> dfa.states N then (dfa.nxt N p a', Right) 
+      with 6 have d_eq_ite: "?d p a = (if p \<in> dfa.states M then (dfa.nxt M p a', Right) 
          else if p = qa then (qa, Right) else (qr, Right))" (is "_ = ?ite") by simp
       then show ?thesis 
-      proof (cases "p \<in> dfa.states N")
+      proof (cases "p \<in> dfa.states M")
         case True
-        then show ?thesis using Letter dfa.nxt[OF \<open>dfa N\<close> True] 6 by fastforce
+        then show ?thesis using Letter dfa.nxt[OF \<open>dfa M\<close> True] 6 by fastforce
       next
         case False
         then show ?thesis using 6 using Letter 
@@ -1725,7 +1737,7 @@ proof -
     next
       case (Marker d')
       then show ?thesis using 6 
-        by (smt (verit) Un_iff \<open>dfa N\<close> dfa.init dfa2.select_convs(1,5) dir.exhaust dir.simps(3,4) 
+        by (smt (verit) Un_iff \<open>dfa M\<close> dfa.init dfa2.select_convs(1,5) dir.exhaust dir.simps(3,4) 
             insertCI  old.prod.inject symbol.simps(6))
     qed   
   next
@@ -1767,78 +1779,78 @@ proof -
     qed
   next
     case (10 q)
-    then show ?case using \<open>dfa N\<close> dfa_def q_defs(1) by auto
-  qed (use q_defs dfa.finite[OF \<open>dfa N\<close>] in simp)+
+    then show ?case using \<open>dfa M\<close> dfa_def q_defs(1) by auto
+  qed (use q_defs dfa.finite[OF \<open>dfa M\<close>] in simp)+
 
   have nextl_reachable:
-         "\<forall>w. (([], dfa2.init ?M, \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<langle>w\<langle>), (dfa.nextl N (dfa.init N) w, [\<stileturn>])))"
+         "\<forall>w. (([], dfa2.init ?M', \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M'\<rparr> (rev (\<langle>w\<langle>), (dfa.nextl M (dfa.init M) w, [\<stileturn>])))"
   proof
     fix w
-    have step: "([], dfa2.init ?M, \<langle>w\<rangle>) \<rightarrow>\<lparr>?M\<rparr> ([\<turnstile>], dfa.init N, \<rangle>w\<rangle>)"
+    have step: "([], dfa2.init ?M', \<langle>w\<rangle>) \<rightarrow>\<lparr>?M'\<rparr> ([\<turnstile>], dfa.init M, \<rangle>w\<rangle>)"
       using M.step_right by auto
     have reach:
-      "\<forall>u. \<forall>q\<in>dfa.states N. ((u, q, \<rangle>w\<rangle>) 
-        \<rightarrow>*\<lparr>?M\<rparr> (rev (\<Sigma> w) @ u, dfa.nextl N q w, [\<stileturn>]))" 
+      "\<forall>u. \<forall>q\<in>dfa.states M. ((u, q, \<rangle>w\<rangle>) 
+        \<rightarrow>*\<lparr>?M'\<rparr> (rev (\<Sigma> w) @ u, dfa.nextl M q w, [\<stileturn>]))" 
     proof (standard, standard)
       fix u q
-      assume in_Q: "q \<in> dfa.states N"
-      show "(u, q, \<rangle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<Sigma> w) @ u, (dfa.nextl N q w, [\<stileturn>]))"
+      assume in_Q: "q \<in> dfa.states M"
+      show "(u, q, \<rangle>w\<rangle>) \<rightarrow>*\<lparr>?M'\<rparr> (rev (\<Sigma> w) @ u, (dfa.nextl M q w, [\<stileturn>]))"
         using in_Q proof (induction w arbitrary: q u)
         case Nil
-        moreover then have "dfa.nextl N q [] = q" 
-          by (simp add: \<open>dfa N\<close> dfa.nextl.simps(1))
-        moreover then have "(u, q, \<rangle>[]\<rangle>) = (rev (\<Sigma> []) @ u, dfa.nextl N q [], [\<stileturn>])" by simp
+        moreover then have "dfa.nextl M q [] = q" 
+          by (simp add: \<open>dfa M\<close> dfa.nextl.simps(1))
+        moreover then have "(u, q, \<rangle>[]\<rangle>) = (rev (\<Sigma> []) @ u, dfa.nextl M q [], [\<stileturn>])" by simp
         ultimately show ?case by simp 
       next
         case (Cons x xs)
-        from Cons(2) have step1: "(u, q, \<rangle>x # xs\<rangle>) \<rightarrow>\<lparr>?M\<rparr> (Letter x # u, dfa.nxt N q x, \<rangle>xs\<rangle>)"
-                          "dfa.nxt N q x \<in> dfa.states N"
-          using M.step.simps by (auto simp add: \<open>dfa N\<close> dfa.nxt)
+        from Cons(2) have step1: "(u, q, \<rangle>x # xs\<rangle>) \<rightarrow>\<lparr>?M'\<rparr> (Letter x # u, dfa.nxt M q x, \<rangle>xs\<rangle>)"
+                          "dfa.nxt M q x \<in> dfa.states M"
+          using M.step.simps by (auto simp add: \<open>dfa M\<close> dfa.nxt)
         with Cons(1) have 
-          "(Letter x # u, dfa.nxt N q x, \<rangle>xs\<rangle>) 
-            \<rightarrow>*\<lparr>?M\<rparr> (rev (\<Sigma> xs) @ (Letter x # u), dfa.nextl N (dfa.nxt N q x) xs, [\<stileturn>])"
+          "(Letter x # u, dfa.nxt M q x, \<rangle>xs\<rangle>) 
+            \<rightarrow>*\<lparr>?M'\<rparr> (rev (\<Sigma> xs) @ (Letter x # u), dfa.nextl M (dfa.nxt M q x) xs, [\<stileturn>])"
           by simp
-        moreover have "... = (rev (\<Sigma> (x # xs)) @ u, dfa.nextl N q (x # xs), [\<stileturn>])"
-          by (simp add: \<open>dfa N\<close> dfa.nextl.simps(2))
+        moreover have "... = (rev (\<Sigma> (x # xs)) @ u, dfa.nextl M q (x # xs), [\<stileturn>])"
+          by (simp add: \<open>dfa M\<close> dfa.nextl.simps(2))
         ultimately show ?case using step1 by auto
       qed
     qed
-    hence steps: "([\<turnstile>], dfa.init N, \<rangle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<langle>w\<langle>), (dfa.nextl N (dfa.init N) w, [\<stileturn>]))"
+    hence steps: "([\<turnstile>], dfa.init M, \<rangle>w\<rangle>) \<rightarrow>*\<lparr>?M'\<rparr> (rev (\<langle>w\<langle>), (dfa.nextl M (dfa.init M) w, [\<stileturn>]))"
     proof -
-      have "dfa.init N \<in> dfa.states N" using \<open>dfa N\<close> dfa.init by blast
+      have "dfa.init M \<in> dfa.states M" using \<open>dfa M\<close> dfa.init by blast
       with reach show ?thesis by simp
     qed
-    with step show "([], dfa2.init ?M, \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<langle>w\<langle>), (dfa.nextl N (dfa.init N) w, [\<stileturn>]))"
+    with step show "([], dfa2.init ?M', \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M'\<rparr> (rev (\<langle>w\<langle>), (dfa.nextl M (dfa.init M) w, [\<stileturn>]))"
       by simp
   qed
 
-  have "M.Lang = dfa.language N"
+  have "M.Lang = dfa.language M"
   proof 
-    show "M.Lang \<subseteq> dfa.language N"
+    show "M.Lang \<subseteq> dfa.language M"
     proof
       fix w
       assume "w \<in> M.Lang"
-      then obtain u v where acc_reachable: "([], dfa2.init ?M, \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (u, dfa2.acc ?M, v)"
+      then obtain u v where acc_reachable: "([], dfa2.init ?M', \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M'\<rparr> (u, dfa2.acc ?M', v)"
         using dfa2.Lang_def[OF M.dfa2_axioms] by blast
       from nextl_reachable obtain q where final_state:
-        "([], dfa2.init ?M, \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<langle>w\<langle>), q, [\<stileturn>])"
-        "q \<in> dfa.states N"  "dfa.nextl N (dfa.init N) w = q" 
-        using \<open>dfa N\<close> dfa.nextl_init_state by blast
+        "([], dfa2.init ?M', \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M'\<rparr> (rev (\<langle>w\<langle>), q, [\<stileturn>])"
+        "q \<in> dfa.states M"  "dfa.nextl M (dfa.init M) w = q" 
+        using \<open>dfa M\<close> dfa.nextl_init_state by blast
       with acc_reachable have acc_step:
-        "(rev (\<langle>w\<langle>), q, [\<stileturn>]) \<rightarrow>\<lparr>?M\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.acc ?M, hd (rev (\<langle>w\<langle>)) # [\<stileturn>])" 
+        "(rev (\<langle>w\<langle>), q, [\<stileturn>]) \<rightarrow>\<lparr>?M'\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.acc ?M', hd (rev (\<langle>w\<langle>)) # [\<stileturn>])" 
       proof -
-        have disj: "((rev (\<langle>w\<langle>), q, [\<stileturn>]) \<rightarrow>\<lparr>?M\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.acc ?M, hd (rev (\<langle>w\<langle>)) # [\<stileturn>])) 
-              \<or> ((rev (\<langle>w\<langle>), q, [\<stileturn>]) \<rightarrow>\<lparr>?M\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.rej ?M, hd (rev (\<langle>w\<langle>)) # [\<stileturn>]))"
+        have disj: "((rev (\<langle>w\<langle>), q, [\<stileturn>]) \<rightarrow>\<lparr>?M'\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.acc ?M', hd (rev (\<langle>w\<langle>)) # [\<stileturn>])) 
+              \<or> ((rev (\<langle>w\<langle>), q, [\<stileturn>]) \<rightarrow>\<lparr>?M'\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.rej ?M', hd (rev (\<langle>w\<langle>)) # [\<stileturn>]))"
               (is "?acc_step \<or> ?rej_step")
-        proof (cases "q \<in> dfa.final N")
+        proof (cases "q \<in> dfa.final M")
           case True
-          hence "nxt ?M q \<stileturn> = (dfa2.acc ?M, Left)" by auto
+          hence "nxt ?M' q \<stileturn> = (dfa2.acc ?M', Left)" by auto
           hence ?acc_step using M.step.simps by fastforce
           then show ?thesis by simp
         next
           case False
-          moreover from q_defs final_state have "q \<noteq> dfa2.acc ?M" by auto
-          ultimately have "nxt ?M q \<stileturn> = (dfa2.rej ?M, Left)" by auto
+          moreover from q_defs final_state have "q \<noteq> dfa2.acc ?M'" by auto
+          ultimately have "nxt ?M' q \<stileturn> = (dfa2.rej ?M', Left)" by auto
           hence ?rej_step using M.step.simps by fastforce
           then show ?thesis by simp
         qed
@@ -1847,41 +1859,41 @@ proof -
           assume "\<not>?thesis"
           with disj have ?rej_step by blast
           hence rej_reachable: 
-            "([], dfa2.init ?M, \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.rej ?M, hd (rev (\<langle>w\<langle>)) # [\<stileturn>])"
+            "([], dfa2.init ?M', \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M'\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.rej ?M', hd (rev (\<langle>w\<langle>)) # [\<stileturn>])"
             using final_state by auto
           with acc_reachable  consider 
-            "((tl (rev (\<langle>w\<langle>)), dfa2.rej ?M, hd (rev (\<langle>w\<langle>)) # [\<stileturn>]) \<rightarrow>*\<lparr>?M\<rparr> (u, dfa2.acc ?M, v))" |
-            "(u, dfa2.acc ?M, v) \<rightarrow>*\<lparr>?M\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.rej ?M, hd (rev (\<langle>w\<langle>)) # [\<stileturn>])" 
+            "((tl (rev (\<langle>w\<langle>)), dfa2.rej ?M', hd (rev (\<langle>w\<langle>)) # [\<stileturn>]) \<rightarrow>*\<lparr>?M'\<rparr> (u, dfa2.acc ?M', v))" |
+            "(u, dfa2.acc ?M', v) \<rightarrow>*\<lparr>?M'\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.rej ?M', hd (rev (\<langle>w\<langle>)) # [\<stileturn>])" 
             using dfa2.reachable_configs_impl_reachable M.dfa2_axioms by blast
           then show False
             by cases (use dfa2.unchanged_final[OF M.dfa2_axioms] M.neq_final in fastforce)+  
           qed
       qed
-      have "q \<in> dfa.final N"
+      have "q \<in> dfa.final M"
       proof (rule ccontr)
-        assume "q \<notin> dfa.final N"
-        with final_state(2) have "dfa2.nxt ?M q \<stileturn> = (dfa2.rej ?M, Left)" 
+        assume "q \<notin> dfa.final M"
+        with final_state(2) have "dfa2.nxt ?M' q \<stileturn> = (dfa2.rej ?M', Left)" 
           using q_defs(1) by auto
         with acc_step show False using q_defs(2) by fastforce
       qed
-      thus "w \<in> dfa.language N" 
-        using final_state(3) dfa.language_def[OF \<open>dfa N\<close>] by blast
+      thus "w \<in> dfa.language M" 
+        using final_state(3) dfa.language_def[OF \<open>dfa M\<close>] by blast
     qed
   next
-    show "dfa.language N \<subseteq> M.Lang" 
+    show "dfa.language M \<subseteq> M.Lang" 
     proof
       fix w
-      assume "w \<in> dfa.language N"
-      then obtain q where "dfa.nextl N (dfa.init N) w = q" and in_final: "q \<in> dfa.final N"
-        by (simp add: \<open>dfa N\<close> dfa.language_def)
-      with nextl_reachable have "([], dfa2.init ?M, \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M\<rparr> (rev (\<langle>w\<langle>), q, [\<stileturn>])"
+      assume "w \<in> dfa.language M"
+      then obtain q where "dfa.nextl M (dfa.init M) w = q" and in_final: "q \<in> dfa.final M"
+        by (simp add: \<open>dfa M\<close> dfa.language_def)
+      with nextl_reachable have "([], dfa2.init ?M', \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M'\<rparr> (rev (\<langle>w\<langle>), q, [\<stileturn>])"
         by blast
-      also from this in_final have "... \<rightarrow>\<lparr>?M\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.acc ?M, hd (rev (\<langle>w\<langle>)) # [\<stileturn>])"
+      also from this in_final have "... \<rightarrow>\<lparr>?M'\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.acc ?M', hd (rev (\<langle>w\<langle>)) # [\<stileturn>])"
         using M.step.simps by auto
       finally show "w \<in> M.Lang" unfolding M.Lang_def by blast
     qed
   qed
-  then show thesis using that \<open>dfa.language N = L\<close> M.dfa2_axioms by auto
+  then show thesis using that \<open>dfa.language M = L\<close> M.dfa2_axioms by auto
 qed
 
 text \<open>The equality follows trivially:\<close>

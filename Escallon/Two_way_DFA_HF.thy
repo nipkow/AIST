@@ -1683,10 +1683,27 @@ text \<open>Let \<open>L \<subseteq> \<Sigma>\<^sup>*\<close> be regular. Then t
       
 theorem regular_language_impl_dfa2:
   assumes "regular L"
-  obtains M where "dfa2 M" "dfa2.Lang M = L"
+  obtains M M' q0 qa qr where 
+    "dfa M" "dfa.language M = L"
+    "{q0, qa, qr} \<inter> dfa.states M = {}"
+    "qa \<noteq> qr" 
+    "qa \<noteq> q0"
+    "qr \<noteq> q0"
+    "dfa2 M'" "dfa2.Lang M' = L"
+    "M' = (let \<delta> = (\<lambda>q a. case a of 
+            Letter a' \<Rightarrow> (if q \<in> dfa.states M then ((dfa.nxt M) q a', Right) 
+                          else if q = qa then (qa, Right) else (qr, Right)) |
+            Marker Left \<Rightarrow> (if q = q0 then (dfa.init M, Right) 
+                          else if q = qa then (qa, Right) else (qr, Right)) |
+            Marker Right \<Rightarrow> (if q \<in> dfa.final M \<or> q = qa then (qa, Left) else (qr, Left))) 
+          in \<lparr>dfa2.states = dfa.states M \<union> {q0, qa, qr},
+                      dfa2.init = q0,
+                      dfa2.acc = qa,
+                      dfa2.rej = qr,
+                      dfa2.nxt = \<delta>\<rparr>)"
 proof -
   typ "'a dfa2"
-  from assms obtain M where "dfa M" "dfa.language M = L"
+  from assms obtain M where M_def: "dfa M" "dfa.language M = L"
     unfolding regular_def by blast
   then obtain q0 qa qr where q_defs:
     "{q0, qa, qr} \<inter> dfa.states M = {}"
@@ -1893,14 +1910,14 @@ proof -
       finally show "w \<in> M.Lang" unfolding M.Lang_def by blast
     qed
   qed
-  then show thesis using that \<open>dfa.language M = L\<close> M.dfa2_axioms by auto
+  then show thesis using that \<open>dfa.language M = L\<close> M.dfa2_axioms M_def q_defs by presburger
 qed
 
 text \<open>The equality follows trivially:\<close>
 
 corollary dfa2_accepts_regular_languages:
   "regular L = (\<exists>M. dfa2 M \<and> dfa2.Lang M = L)"
-  using dfa2.dfa2_Lang_regular regular_language_impl_dfa2 by metis
+  using dfa2.dfa2_Lang_regular regular_language_impl_dfa2 by fastforce
 
 
 end

@@ -5,7 +5,7 @@ theory Two_way_DFA_HF
 begin
 
 text \<open>A formalization of two-way deterministic finite automata (2DFA), 
-based on Paulson's theory of DFAs using hereditarily finite sets.
+based on Paulson's theory of DFAs using hereditarily finite sets \<^cite>\<open>Paulson\<close>.
 Both the definition of 2DFAs and the proof follow Kozen \<^cite>\<open>Kozen\<close>.\<close>
 
 section \<open>Definition of Two-Way Deterministic Finite Automata\<close>

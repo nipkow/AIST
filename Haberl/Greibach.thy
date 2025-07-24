@@ -2018,29 +2018,37 @@ section \<open>Complexity\<close>
 text \<open>Our method has exponential complexity, which we demonstrate below.
 Alternative polynomial methods are described in the literature \cite{BlumK99}.
 
-We prove formally that \<open>expand_tri\<close> can cause exponential blowup.\<close>
+We start with an informal proof that the blowup of the whole method can be as bad
+as $2^{n^2}$, where $n$ is ....
 
-text \<open>Here is also an informal proof that the blowup can be up to 2^(n^2):
+Consider this grammar, where \<open>a\<close> and \<open>b\<close> are terminals and we use nested alternatives in the obvious way:
 
-Consider this grammar:
-\<open>A0\<close> \<rightarrow> \<open>A1\<close> Tm 0 | \<open>A1\<close> Tm 1 | \<open>A2\<close> Tm 0 | \<open>A2\<close> Tm 1 | ... | \<open>An\<close> Tm 0 | \<open>An\<close> Tm 1 | Tm 0 | Tm 1
-\<open>Ai\<close> \<rightarrow> \<open>A(i-1)\<close> Tm 0 | \<open>A(i-1)\<close> Tm 1; i > 0
+\<open>A0 \<rightarrow> A1 (a | b) | A2 (a | b) | ... | An (a | b) | a | b\<close>
 
-When bringing this grammar triangular form, starting with \<open>A0\<close> gives that after expansion \<open>Ai\<close> has 
-2^(i+1) productions of the form [\<open>Ak\<close> (Tm 0 | Tm1)^(i+1)] for k > i, 
-2^(i+1) productions of the form (Tm 0 | Tm 1)^(i+1) 
-2^(i+1) productions of the form [\<open>Ai\<close> (Tm 0 | Tm 1)^(i+1)].
+\<open>A(i+1) \<rightarrow> Ai (a | b)\<close>
 
-We ill not consider the productions introduced by solving the left-recursion.
-In the triangular form every \<open>Ai\<close> has 2^(i+1) productions only consisting of terminals and 2^(i+1)
-productions starting with \<open>A(i+1)\<close>.
+When converting this grammar into triangular form, starting with \<open>A0\<close> yields that after expansion \<open>Ai\<close> has
 
-Then when expanding the triangular form starting from \<open>An\<close> we get that the number of productions of 
-\<open>Ai\<close> (#Ai) = #Ai * #A(i+1). This then gives that #Ai \<ge> 2^((k+1) + (k+2) + ... + (n+1)). 
-Then \<open>A0\<close> would have at least 2^(1 + 2 + ... + n + (n+1)) ~ 2^((n+1)^2) number of productions.\<close>
+  \<^item> \<open>2^(i+1)\<close> productions with rhs \<open>Ak (a | b)^(i+1)\<close> for \<open>k > i\<close>,
+
+  \<^item> \<open>2^(i+1)\<close> productions with rhs \<open>(a | b)^(i+1)\<close>,
+
+  \<^item> \<open>2^(i+1)\<close> productions with rhs \<open>Ai (a | b)^(i+1)\<close>.
+
+Note that \<open>(a | b)^(i+1)\<close> represents all words of length \<open>i+1\<close> over \<open>{a,b}\<close>.
+We will not consider the productions of the newly introduced nonterminals.
+
+In the triangular form, every \<open>Ai\<close> has \<open>2^(i+1)\<close> productions consisting only of terminals
+and \<open>2^(i+1)\<close> productions starting with \<open>A(i+1)\<close>.
+
+When expanding the triangular form starting from \<open>An\<close>, we observe that the number of productions of 
+\<open>Ai\<close> (denoted by \<open>#Ai\<close>) is \<open>#Ai * #A(i+1)\<close>. This yields that \<open>#Ai \<ge> 2^((k+1) + (k+2) + ... + (n+1))\<close>.
+Thus \<open>A0\<close> has at least \<open>2^(1 + 2 + ... + n + (n+1)) ~ 2^((n+1)^2)\<close> number of productions.
+
+Below we prove formally that \<open>expand_tri\<close> can cause exponential blowup.\<close>
 
 text \<open>Bad grammar: Constructs a grammar which leads to a exponential blowup when expanded 
-      using \<open>expand_tri\<close>:\<close>
+      by \<open>expand_tri\<close>:\<close>
 fun bad_grammar :: "'n list \<Rightarrow> ('n, nat)Prods" where
  "bad_grammar [] = {}"
 |"bad_grammar [A] = {(A, [Tm 0]), (A, [Tm 1])}"

@@ -1687,8 +1687,21 @@ text \<open>Let \<open>L \<subseteq> \<Sigma>\<^sup>*\<close> be regular. Then t
           (q_r, Left) & \text{otherwise}
           \end{cases}
       \]\newline
-      Finally, we show that \<open>L(M') = L(M)\<close>:\<close>
-      
+      Intuitively, \<open>M'\<close> executes \<open>M\<close> on a word \<open>w \<in> \<Sigma>\<^sup>*\<close>, and accepts it if and only if \<open>M\<close> does so:\newline
+      Recall that the input of \<open>M'\<close> for \<open>w\<close> is \<open>\<turnstile>w\<stileturn>\<close>, and therefore, \<open>M'\<close> always reads \<open>\<turnstile>\<close> in its 
+      initial configuration. The start state of \<open>M'\<close>, \<open>q\<^sub>0'\<close>, moves the head of \<open>M'\<close> to the 
+      first character of \<open>w\<close>, and \<open>M'\<close> goes into state \<open>q\<^sub>0\<close>, the start state of \<open>M\<close>. Then, \<open>M'\<close>
+      reads each character of \<open>w\<close> moving exclusively to the right, mimicking the behavior of a 
+      traditional DFA. Since \<open>M'\<close> computes its next state with \<open>\<delta>\<close>, it behaves exactly like \<open>M\<close> until 
+      the entire word is read.\newline When \<open>M'\<close> finishes reading \<open>w\<close>, the head is on \<open>\<stileturn>\<close>, and its 
+      current state is the same state \<open>M\<close> is in after reading \<open>w\<close>. It is worth noting that, since
+      the markers aren't in \<open>\<Sigma>\<close>, \<open>M'\<close> will not reach \<open>\<stileturn>\<close> while simulating the execution of \<open>M\<close>.
+      Hence, if the state of \<open>M'\<close> when reading \<open>\<stileturn>\<close> is in \<open>F\<close>, \<open>M\<close> accepts \<open>w\<close>, and \<open>M'\<close> goes into its accepting state, \<open>q\<^sub>a\<close>.
+      Otherwise, it goes into its rejecting state \<open>q\<^sub>r\<close>. At this point, the simulation of \<open>M\<close> is over,
+      and \<open>M'\<close> behaves in accordance to the formal definition of 2DFAs. In particular, it always
+      remains in its current state, and it moves to the right for all symbols except for \<open>\<stileturn>\<close>.\newline
+      We now formally prove that \<open>L(M') = L(M)\<close>:\<close>
+     
 theorem regular_language_impl_dfa2:
   assumes "regular L"
   obtains M M' q0 qa qr where 

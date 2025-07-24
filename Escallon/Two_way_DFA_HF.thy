@@ -1926,5 +1926,4 @@ corollary dfa2_accepts_regular_languages:
   "regular L = (\<exists>M. dfa2 M \<and> dfa2.Lang M = L)"
   using dfa2.dfa2_Lang_regular regular_language_impl_dfa2 by fastforce
 
-
 end

@@ -42,9 +42,6 @@ lemma non_word_has_first_Nt: "nts_syms w \<noteq> {} \<Longrightarrow> \<exists>
   using nts_syms_rev non_word_has_last_Nt[of "rev w"]
   by (metis append.assoc append_Cons append_Nil rev.simps(2) rev_eq_append_conv rev_map)
 
-lemma deriven_Tm_prepend: "R \<turnstile> map Tm t @ u \<Rightarrow>(n) v \<Longrightarrow> \<exists>v1. v = map Tm t @ v1 \<and> R \<turnstile> u \<Rightarrow>(n) v1"
-  by (induction t arbitrary: v) (auto simp add: deriven_Tm_Cons)  
-
 text \<open>If there exists a derivation from \<open>u\<close> to \<open>v\<close> then there exists one which does not use
   productions of the form \<open>A \<rightarrow> A\<close>.\<close>
 lemma no_self_loops_derivels: "P \<turnstile> u \<Rightarrow>l(n) v \<Longrightarrow> {p\<in>P. \<not>(\<exists>A. p = (A,[Nt A]))} \<turnstile> u \<Rightarrow>l* v"

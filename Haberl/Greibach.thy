@@ -2020,6 +2020,25 @@ Alternative polynomial methods are described in the literature \cite{BlumK99}.
 
 We prove formally that \<open>expand_tri\<close> can cause exponential blowup.\<close>
 
+text \<open>Here is also an informal proof that the blowup can be up to 2^(n^2):
+
+Consider this grammar:
+\<open>A0\<close> \<rightarrow> \<open>A1\<close> Tm 0 | \<open>A1\<close> Tm 1 | \<open>A2\<close> Tm 0 | \<open>A2\<close> Tm 1 | ... | \<open>An\<close> Tm 0 | \<open>An\<close> Tm 1 | Tm 0 | Tm 1
+\<open>Ai\<close> \<rightarrow> \<open>A(i-1)\<close> Tm 0 | \<open>A(i-1)\<close> Tm 1; i > 0
+
+When bringing this grammar triangular form, starting with \<open>A0\<close> gives that after expansion \<open>Ai\<close> has 
+2^(i+1) productions of the form [\<open>Ak\<close> (Tm 0 | Tm1)^(i+1)] for k > i, 
+2^(i+1) productions of the form (Tm 0 | Tm 1)^(i+1) 
+2^(i+1) productions of the form [\<open>Ai\<close> (Tm 0 | Tm 1)^(i+1)].
+
+We ill not consider the productions introduced by solving the left-recursion.
+In the triangular form every \<open>Ai\<close> has 2^(i+1) productions only consisting of terminals and 2^(i+1)
+productions starting with \<open>A(i+1)\<close>.
+
+Then when expanding the triangular form starting from \<open>An\<close> we get that the number of productions of 
+\<open>Ai\<close> (#Ai) = #Ai * #A(i+1). This then gives that #Ai \<ge> 2^((k+1) + (k+2) + ... + (n+1)). 
+Then \<open>A0\<close> would have at least 2^(1 + 2 + ... + n + (n+1)) ~ 2^((n+1)^2) number of productions.\<close>
+
 text \<open>Bad grammar: Constructs a grammar which leads to a exponential blowup when expanded 
       using \<open>expand_tri\<close>:\<close>
 fun bad_grammar :: "'n list \<Rightarrow> ('n, nat)Prods" where

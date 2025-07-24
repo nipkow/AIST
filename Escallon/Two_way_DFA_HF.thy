@@ -5,7 +5,7 @@ theory Two_way_DFA_HF
 begin
 
 text \<open>A formalization of two-way deterministic finite automata (2DFA), 
-based on Paulson's theory of DFAs using hereditarily finite sets.
+based on Paulson's theory of DFAs using hereditarily finite sets \<^cite>\<open>Paulson\<close>.
 Both the definition of 2DFAs and the proof follow Kozen \<^cite>\<open>Kozen\<close>.\<close>
 
 section \<open>Definition of Two-Way Deterministic Finite Automata\<close>
@@ -101,8 +101,9 @@ lemma rtranclp_induct3[consumes 1, case_names refl step]:
   by (rule rtranclp_induct[of _ "(ax, ay, az)" "(bx, by, bz)", 
         split_rule])
 
-text \<open>A configuration \<open>c\<close> is reachable by a word \<open>w\<close> if \<open>c\<close> can be reached by \<open>M\<close> on input \<open>w\<close>
-      from the initial configuration, where \<open>\<turnstile>\<close> is being read while in the initial state \<open>init M\<close>:\<close>
+text \<open>The initial configuration of \<open>M\<close> for an input word \<open>w \<in> \<Sigma>\<^sup>*\<close> is \<open>([], init M, \<turnstile>w\<stileturn>)\<close>. 
+      A configuration \<open>c\<close> is reachable by a word \<open>w\<close> if the initial configuration of \<open>M\<close> for \<open>w\<close>
+      reaches \<open>c\<close>:\<close>
 abbreviation reachable :: "'a list \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>**\<close> 55) where
   "w \<rightarrow>** c \<equiv> ([], init M, \<langle>w\<rangle>) \<rightarrow>* c" 
 
@@ -1925,6 +1926,5 @@ text \<open>The equality follows trivially:\<close>
 corollary dfa2_accepts_regular_languages:
   "regular L = (\<exists>M. dfa2 M \<and> dfa2.Lang M = L)"
   using dfa2.dfa2_Lang_regular regular_language_impl_dfa2 by fastforce
-
 
 end

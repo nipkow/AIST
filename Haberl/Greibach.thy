@@ -379,13 +379,8 @@ section \<open>Some Basic Lemmas\<close>
 subsection \<open>\<open>Eps_free\<close> preservation\<close>
 
 lemma Eps_free_expand_hd: "Eps_free R \<Longrightarrow> Eps_free (expand_hd A Ss R)"
-proof (induction A Ss R rule: expand_hd.induct)
-  case (1 A R)
-  then show ?case by simp
-next
-  case (2 A S Ss R)
-  then show ?case by (auto simp add: Eps_free_def Let_def)
-qed
+  by (induction A Ss R rule: expand_hd.induct)
+    (auto simp add: Eps_free_def Let_def)
 
 lemma Eps_free_solve_lrec: "Eps_free R \<Longrightarrow> Eps_free (solve_lrec A A' R)"
   by (auto simp add: solve_lrec_def rrec_of_lrec_def Eps_free_def Let_def rm_lrec_def)
@@ -587,21 +582,15 @@ text \<open>Solving more Nts does not remove the \<open>triangular\<close> prope
 lemma part_triangular_induct_step: 
   "\<lbrakk>Eps_free R; distinct ((A#As)@(A'#As')); triangular As (solve_tri As As' R)\<rbrakk> 
   \<Longrightarrow> triangular As (solve_tri (A#As) (A'#As') R)"
-proof(cases "As = []")
-  case True
-  then show ?thesis by auto
-next
-  case False
-  assume assms: "Eps_free R" "triangular As (solve_tri As As' R)" "distinct ((A#As)@(A'#As'))"
-  then show ?thesis by (auto simp add: triangular_expand_hd triangular_solve_lrec)
-qed
+  by (cases "As = []")
+    (auto simp add: triangular_expand_hd triangular_solve_lrec)
 
 text \<open>Couple of small lemmas about \<open>dep_on\<close> and the solving of left-recursion.\<close>
 lemma rm_lrec_rem_own_dep: "A \<notin> dep_on (rm_lrec A R) A"
   by (auto simp add: dep_on_def rm_lrec_def)
 
 lemma rrec_of_lrec_has_no_own_dep: "A \<noteq> A' \<Longrightarrow> A \<notin> dep_on (rrec_of_lrec A A' R) A"
-by (auto simp add: dep_on_def rrec_of_lrec_def Let_def Cons_eq_append_conv)
+  by (auto simp add: dep_on_def rrec_of_lrec_def Let_def Cons_eq_append_conv)
 
 lemma solve_lrec_no_own_dep: "A \<noteq> A' \<Longrightarrow> A \<notin> dep_on (solve_lrec A A' R) A"
   by (auto simp add: solve_lrec_def rm_lrec_rem_own_dep rrec_of_lrec_has_no_own_dep)

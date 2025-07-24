@@ -2014,8 +2014,22 @@ unfolding gnf_hd_def Let_def
   by (metis GNF_of_R_Lang IntI distinct_app_freshs empty_iff finite_nts freshs_disj 
       length_freshs order_refl set_nts_prods_list)
 
+text \<open>Two simple examples:\<close>
 
-section \<open>Complexity: \<open>expand_tri\<close> Can Cause Exponential Explosion\<close>
+lemma "gnf_hd [(0, [Nt(0::nat), Tm (1::int)])] = {(1, [Tm 1]), (1, [Tm 1, Nt 1])}"
+  by eval
+
+lemma "gnf_hd [(0, [Nt(0::nat), Tm (1::int)]), (0, [Tm 2])] =
+  { (0, [Tm 2, Nt 1]), (0, [Tm 2]), (1, [Tm 1, Nt 1]), (1, [Tm 1]) }"
+  by eval
+
+
+section \<open>Complexity\<close>
+
+text \<open>Our method has exponential complexity, which we demonstrate below.
+Alternative polynomial methods are described in the literature \cite{BlumK99}.
+
+We prove formally that \<open>expand_tri\<close> can cause exponential blowup.\<close>
 
 text \<open>Bad grammar: Constructs a grammar which leads to a exponential blowup when expanded 
       using \<open>expand_tri\<close>:\<close>

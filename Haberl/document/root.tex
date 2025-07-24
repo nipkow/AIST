@@ -24,11 +24,14 @@
 \maketitle
 
 \begin{abstract}
-This theory formalizes a method to transform a set of productions into the Greibach Normal Form (GNF) \cite{Greibach}. For purposes of this theory, we only consider one part of the GNF definition, that every production starts with a terminal. This means that the tail of a right-hand side can contain other terminals. To express this, we have defined the formalisation of $GNF\_hd$, which only checks this property.
+This theory formalizes a method to transform a set of productions into 
+Greibach Normal Form (GNF) \cite{Greibach}. We concentrate on the essential property of the GNF:
+every production starts with a terminal; the tail of a rhs may contain further terminals.
 
-The main idea behind this method is to bring the productions into a $triangular$ form, where nonterminal $Ai$ does not depend on nonterminals $A_i, …, A_n$. Then every $A_0$ production must already start with a terminal, and we can bring all productions into GNF by expanding the head nonterminals in order, starting with A1 productions.
-
-A drawback of this approach is that the resulting GNF grammar can have exponential size, with respect to the number of productions, which is caused by the successive expansion of the head nonterminals.
+Our algorithm consists of two phases: In a first phase, left-recursion is eliminated
+and the productions are converted into a triangular form. In a second phase,
+the triangular form is converted into GNF by back substitution.
+The complexity can be exponential.
 \end{abstract}
 
 % sane default for proof documents

@@ -2026,8 +2026,8 @@ Consider this grammar, where \<open>a\<close> and \<open>b\<close> are terminals
 
 Expanding all alternatives makes this a grammar of size $4n$.
 
-When converting this grammar into triangular form, starting with \<open>A0\<close> we get that \<open>A0\<close> remains the
-same after \<open>expand_hd\<close> and \<open>solve_lrec\<close> introduces a new additional production for every \<open>A0\<close> production,
+When converting this grammar into triangular form, starting with \<open>A0\<close>, we find that \<open>A0\<close> remains the
+same after \<open>expand_hd\<close>, and \<open>solve_lrec\<close> introduces a new additional production for every \<open>A0\<close> production,
 which we will ignore to simplify things:
 
 Then every \<open>expand_hd\<close> step yields for \<open>Ai\<close> these number of productions:
@@ -2039,7 +2039,7 @@ Then every \<open>expand_hd\<close> step yields for \<open>Ai\<close> these numb
   (3) \<open>2^(i+1)\<close> productions with rhs \<open>Ai (a | b)^(i+1)\<close>.
 
 Note that \<open>(a | b)^(i+1)\<close> represents all words of length \<open>i+1\<close> over \<open>{a,b}\<close>.
-Solving the left recursion again introduces a new additional production for every production of (1) and (2),
+Solving the left recursion again introduces a new additional production for every production of form (1) and (2),
 which we will again ignore for simplicity. 
 The productions of (3) get removed by \<open>solve_lrec\<close>.
 We will not consider the productions of the newly introduced nonterminals.
@@ -2047,7 +2047,7 @@ We will not consider the productions of the newly introduced nonterminals.
 In the triangular form, every \<open>Ai\<close> has at least \<open>2^(i+1)\<close> productions starting with terminals (2)
 and \<open>2^(i+1)\<close> productions with rhs starting with \<open>Ak\<close> for every \<open>k \<in> [i+1, n]\<close>.
 
-When expanding the triangular form starting from \<open>An\<close> which has at least the \<open>2^(i+1)\<close> productions from (2),
+When expanding the triangular form starting from \<open>An\<close>, which has at least the \<open>2^(i+1)\<close> productions from (2),
 we observe that the number of productions of \<open>Ai\<close> (denoted by \<open>#Ai\<close>) is  \<open>#Ai \<ge> 2^(i+1) * #A(i+1)\<close> 
 (Only considering the productions of the form \<open>A(i+1) (a | b)^(i+1)\<close>).
 This yields that \<open>#Ai \<ge> 2^(i+1) * 2^((i+2) + ... + (n+1)) = 2^((i+1) + (i+2) + ... (n+1))\<close>.

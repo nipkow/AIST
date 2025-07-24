@@ -101,8 +101,9 @@ lemma rtranclp_induct3[consumes 1, case_names refl step]:
   by (rule rtranclp_induct[of _ "(ax, ay, az)" "(bx, by, bz)", 
         split_rule])
 
-text \<open>A configuration \<open>c\<close> is reachable by a word \<open>w\<close> if \<open>c\<close> can be reached by \<open>M\<close> on input \<open>w\<close>
-      from the initial configuration, where \<open>\<turnstile>\<close> is being read while in the initial state \<open>init M\<close>:\<close>
+text \<open>The initial configuration of \<open>M\<close> for an input word \<open>w \<in> \<Sigma>\<^sup>*\<close> is \<open>([], init M, \<turnstile>w\<stileturn>)\<close>. 
+      A configuration \<open>c\<close> is reachable by a word \<open>w\<close> if the initial configuration of \<open>M\<close> for \<open>w\<close>
+      reaches \<open>c\<close>:\<close>
 abbreviation reachable :: "'a list \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>**\<close> 55) where
   "w \<rightarrow>** c \<equiv> ([], init M, \<langle>w\<rangle>) \<rightarrow>* c" 
 

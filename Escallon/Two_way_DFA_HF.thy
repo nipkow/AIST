@@ -1669,8 +1669,10 @@ by fastforce
 lemma infinite_UNIV_state: "infinite(UNIV :: state set)"
   using hmem_HF_iff by blast
 
-text \<open>Let \<open>L \<subseteq> \<Sigma>\<^sup>*\<close> be regular. Then there exists a DFA \<open>M = (Q, q\<^sub>0, F, \<delta>)\<close> that accepts \<open>L\<close>. 
-      Furthermore, let \<open>q\<^sub>0, q\<^sub>a, q\<^sub>r \<notin> Q\<close> be pairwise distinct states.
+text \<open>Let \<open>L \<subseteq> \<Sigma>\<^sup>*\<close> be regular. Then there exists a DFA \<open>M = (Q, q\<^sub>0, F, \<delta>)\<close>\footnote{We define automata
+      in accordance with the records @{typ "'a dfa"} and @{typ "'a dfa2"}, which do not define an
+      alphabet explicitly. Hence, we implicitly set \<open>\<Sigma>\<close> as the input alphabet for \<open>M\<close> and \<open>M'\<close>.} 
+      that accepts \<open>L\<close>. Furthermore, let \<open>q\<^sub>0, q\<^sub>a, q\<^sub>r \<notin> Q\<close> be pairwise distinct states.
       We construct the 2DFA \<open>M' = (Q \<union> {q\<^sub>0', q\<^sub>a, q\<^sub>r}, q\<^sub>0', q\<^sub>a, q\<^sub>r, \<delta>')\<close> where\newline
       \[ 
       \delta'(q,a) = \begin{cases} 

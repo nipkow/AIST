@@ -20,6 +20,9 @@ text\<open>
 
 subsection\<open>Preliminaries\<close>
 
+context CFG
+begin \<comment>\<open>begin-context CFG\<close>
+
 text\<open>
   For the criterion to be correct, it is required that the context-free grammar only
   contains useful non-terminals (i.e. every non-terminal is reachable and productive),
@@ -39,27 +42,27 @@ text\<open>
   and expand them to all non-terminals.
 \<close>
 
-definition (in CFG) is_useful_all :: "bool" where
+definition is_useful_all :: "bool" where
   "is_useful_all \<equiv> (\<forall>X::'n. is_useful X)"
 
-definition (in CFG) is_non_nullable_all :: "bool" where
+definition is_non_nullable_all :: "bool" where
   "is_non_nullable_all \<equiv> (\<forall>X::'n. \<not> is_nullable X)"
 
 text\<open>
   A few lemmas are needed for more elegant reasoning of transitions.
 \<close>
 
-lemma (in CFG) derives_concat:
+lemma derives_concat:
   assumes "X\<^sub>1 \<Rightarrow>\<^sup>* w\<^sub>1" and "X\<^sub>2 \<Rightarrow>\<^sup>* w\<^sub>2"
   shows "(X\<^sub>1@X\<^sub>2) \<Rightarrow>\<^sup>* (w\<^sub>1@w\<^sub>2)"
   using assms derives_append_decomp derives_eq by blast
 
-lemma (in CFG) derives_split:
+lemma derives_split:
   assumes "X \<Rightarrow>\<^sup>* w"
   shows "\<exists>X\<^sub>1 X\<^sub>2 w\<^sub>1 w\<^sub>2. X = X\<^sub>1@X\<^sub>2 \<and> w = w\<^sub>1@w\<^sub>2 \<and> X\<^sub>1 \<Rightarrow>\<^sup>* w\<^sub>1 \<and> X\<^sub>2 \<Rightarrow>\<^sup>* w\<^sub>2"
   using assms by blast
 
-lemma (in CFG) derives_step:
+lemma derives_step:
   assumes "X \<Rightarrow>\<^sup>* (\<alpha>@w\<^sub>1@\<beta>)" and "w\<^sub>1 \<Rightarrow>\<^sup>* w\<^sub>2"
   shows "X \<Rightarrow>\<^sup>* (\<alpha>@w\<^sub>2@\<beta>)"
   by (meson assms CFG_axioms derives_concat Nitpick.rtranclp_unfold rtranclp_trans)
@@ -73,7 +76,7 @@ text\<open>
   which contains an unresolvable non-terminal, practically leading to a dead end.
 \<close>
 
-lemma (in CFG) is_useful_all_derive:
+lemma is_useful_all_derive:
   assumes "is_useful_all"
   shows "\<exists>w. xs \<Rightarrow>\<^sup>* map_word w"
 using assms proof (induction xs)
@@ -117,7 +120,7 @@ text\<open>
   an arbitrary length, before resolving it to only terminals, without loosing any length to it.
 \<close>
 
-lemma (in CFG) is_non_nullable_all_derive:
+lemma is_non_nullable_all_derive:
   assumes "is_non_nullable_all" and "xs \<Rightarrow>\<^sup>* w"
   shows "xs = [] \<longleftrightarrow> w = []"
 proof -
@@ -155,28 +158,70 @@ text\<open>
   of the language set, uses the criterion introduced above.
 \<close>
 
-definition (in CFG) is_infinite :: "bool" where
-  "is_infinite \<equiv> (\<exists>X \<alpha> \<beta>. [Nt X] \<Rightarrow>\<^sup>* (\<alpha>@[Nt X]@\<beta>) \<and> \<alpha>@\<beta> \<noteq> [])"
+definition is_reachable_step :: "'n \<Rightarrow> 'n \<Rightarrow> bool" (infix "\<rightarrow>\<^sup>?" 80) where
+  "(X \<rightarrow>\<^sup>? Y) \<equiv> (\<exists>\<alpha> \<beta>. [Nt X] \<Rightarrow>\<^sup>* (\<alpha>@[Nt Y]@\<beta>) \<and> \<alpha>@\<beta> \<noteq> [])"
 
-fun (in CFG) is_infinite_derives :: "'n \<Rightarrow> ('n, 't) sym list \<Rightarrow> ('n, 't) sym list \<Rightarrow> nat \<Rightarrow> ('n, 't) sym list" where
+definition is_infinite :: "bool" where
+  "is_infinite \<equiv> (\<exists>X. X \<rightarrow>\<^sup>? X)"
+
+fun is_infinite_derives :: "'n \<Rightarrow> ('n, 't) sym list \<Rightarrow> ('n, 't) sym list \<Rightarrow> nat \<Rightarrow> ('n, 't) sym list" where
   "is_infinite_derives X \<alpha> \<beta> (Suc n) = \<alpha>@(is_infinite_derives X \<alpha> \<beta> n)@\<beta>" |
   "is_infinite_derives X \<alpha> \<beta> 0 = [Nt X]"
 
-fun (in CFG) is_infinite_words :: "'t list \<Rightarrow> 't list \<Rightarrow> 't list \<Rightarrow> nat \<Rightarrow> 't list" where
+fun is_infinite_words :: "'t list \<Rightarrow> 't list \<Rightarrow> 't list \<Rightarrow> nat \<Rightarrow> 't list" where
   "is_infinite_words w\<^sub>X w\<^sub>\<alpha> w\<^sub>\<beta> (Suc n) = w\<^sub>\<alpha>@(is_infinite_words w\<^sub>X w\<^sub>\<alpha> w\<^sub>\<beta> n)@w\<^sub>\<beta>" |
   "is_infinite_words w\<^sub>X w\<^sub>\<alpha> w\<^sub>\<beta> 0 = w\<^sub>X"
 
-theorem (in CFG) is_infinite:
+theorem is_infinite:
   assumes "is_useful_all" and "is_non_nullable_all"
   shows "\<not> finite (Lang P S) \<longleftrightarrow> is_infinite"
-proof
-  assume "\<not> finite (Lang P S)"
-  show "is_infinite"
-    sorry \<comment>\<open>This proof seems rather difficult.\<close>
+proof (standard, erule contrapos_pp)
+  assume assm: "\<not> is_infinite"
+
+  text\<open>
+    We know that the productions of the CFG form a finite set.
+    Thus we can represent them as a list and perform induction over them.
+  \<close>
+
+  have "finite P"
+    using CFG_axioms CFG_def by blast
+  then obtain Ps where "set Ps = P"
+    using finite_list by blast
+
+  then show "\<not> infinite (Lang P S)"
+  proof (induction Ps arbitrary: P)
+    case Nil thus ?case
+      by (simp add: Lang_empty_if_notin_Lhss)
+  next
+    case (Cons p Ps)
+
+    define P' where "P' = set Ps"
+    then have "P = P' \<union> {p}"
+      using Cons(2) by simp
+
+    have "\<not> infinite (Lang P' S)"
+      using P'_def Cons(1) by blast
+    have "\<And>w. w \<in> (Lang P' S) \<longleftrightarrow> [Nt S] \<Rightarrow>\<^sup>* map_word w"
+      sorry
+
+    obtain X \<alpha> where p_def: "p = (X, \<alpha>)"
+      by force
+
+    with Cons show ?case proof (induction \<alpha>)
+      case Nil
+      then show ?case sorry
+    next
+      case (Cons x xs)
+      then show ?case sorry
+    qed
+
+  qed
 next
   assume "is_infinite"
-  then obtain X \<alpha> \<beta> where deriveX: "[Nt X] \<Rightarrow>\<^sup>* (\<alpha>@[Nt X]@\<beta>)" and "\<alpha>@\<beta> \<noteq> []"
+  then obtain X where "X \<rightarrow>\<^sup>? X"
     unfolding is_infinite_def by blast
+  then obtain \<alpha> \<beta> where deriveX: "[Nt X] \<Rightarrow>\<^sup>* (\<alpha>@[Nt X]@\<beta>)" and "\<alpha>@\<beta> \<noteq> []"
+    unfolding is_reachable_step_def by blast
 
   obtain w\<^sub>X where w\<^sub>X_def: "[Nt X] \<Rightarrow>\<^sup>* map_word w\<^sub>X"
     using assms(1) is_useful_all_derive by blast
@@ -192,7 +237,7 @@ next
   have "is_reachable X"
     using assms(1) by (simp add: is_useful_all_def is_useful_def)
   then obtain p s where "[Nt S] \<Rightarrow>\<^sup>* (p@[Nt X]@s)"
-    unfolding is_reachable_def by blast
+    unfolding is_reachable_def is_reachable_from_def by blast
   moreover obtain w\<^sub>p where w\<^sub>p_def: "p \<Rightarrow>\<^sup>* map_word w\<^sub>p"
     using assms(1) is_useful_all_derive by blast
   moreover obtain w\<^sub>s where w\<^sub>s_def: "s \<Rightarrow>\<^sup>* map_word w\<^sub>s"
@@ -255,5 +300,9 @@ next
     by simp
 qed
 
+\<comment>\<open>Notation only used in this theory.\<close>
+no_notation is_reachable_step (infix "\<rightarrow>\<^sup>?" 80)
+
+end \<comment>\<open>end-context CFG\<close>
 end \<comment>\<open>end-theory Finiteness\<close>
  

@@ -26,7 +26,7 @@ definition "mx m n xss = (length xss = m ∧ (∀xs ∈ set xss. length xs = n))
 
 text ‹scalar * vector›
 definition mult1 where
-"mult1 = map o times"
+"mult1 = map \<circ> times"
 
 (*
 foldl can be used here for more efficient code
@@ -523,35 +523,34 @@ corollary solves_correct': "
 using solves_correct[of "n+1" n eqns 0 "[]" Ys "[]"] by (simp add: mx_def)
 
 
-lemma
+lemma is_sols_rev: "is_sols (rev Ys) (rev eqns) Xs = is_sols Ys eqns Xs"
+  unfolding is_sols2_eqiv by simp
+
+lemma solves_correct'':
 assumes mx_eqns: "mx n (Suc n) eqns"
   and Ys: "Ys = rev (map hd (solves [] eqns))"
   shows "is_sols Ys eqns Ys"
 proof-
-
   have mx_sols: "mx 0 (Suc n) []"
     using mx_def by fastforce
+
+  have lenYs: "length Ys = n"
+    using Ys length_solves mx_eqns mx_sols by fastforce
 
   thm mx_solves[OF mx_eqns mx_sols]
 
   have len1: "list_all (\<lambda>eq. length eq = 1) (solves [] eqns)"
     using mx_solves[OF mx_eqns mx_sols] by (simp add: Ball_set mx_def)
-
-  have "map \<phi> Ys = map (\<phi> \<circ> hd) (solves [] eqns)" sorry
-
-  thm is_sols_trivial2[OF len1]
-
-  thm solves_correct'[OF mx_eqns]
-
-  show "is_sols Ys eqns Ys"
-    sorry
+  have "map \<phi> (rev Ys) = map (\<phi> \<circ> hd) (solves [] eqns)"
+    by (simp add: Ys)
+  then have "is_sols (rev Ys) (solves [] eqns) []"
+    using is_sols_trivial2[OF len1] by simp
+  then have "is_sols Ys (rev (solves [] eqns)) []"
+    using is_sols_rev by fastforce
+  then show "is_sols Ys eqns Ys"
+    using solves_correct'[OF mx_eqns lenYs]
+    by simp
 qed
-
-(*
-vieleicht wäre hier noch gut
-elementweise equivalenz von Ys und (rev (solves [] eqns))
-*)
-
 
 
 end

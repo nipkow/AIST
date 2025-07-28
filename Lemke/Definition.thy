@@ -27,6 +27,8 @@ locale CFG =
   fixes P :: "('n, 't) Prods"
     and S :: "'n"
   assumes "finite P" (* not sure if we need this, but have this for completeness *)
+    and "finite (UNIV::'n set)"
+    and "finite (UNIV::'t set)"
 begin \<comment>\<open>begin-locale CFG\<close>
 
 definition "transition_relation \<equiv> prods_to_lts P"
@@ -117,6 +119,23 @@ next
   then show "[Nt S] \<notin> pre_star (map_lang L)"
     using pre_star_word by simp
 qed
+
+subsection\<open>Properties of Non-Terminal Symbols\<close>
+
+definition is_reachable_from :: "'n \<Rightarrow> 'n \<Rightarrow> bool" (infix "\<Rightarrow>\<^sup>?" 80) where
+  "(X \<Rightarrow>\<^sup>? Y) \<equiv> (\<exists>\<alpha> \<beta>. [Nt X] \<Rightarrow>\<^sup>* (\<alpha>@[Nt Y]@\<beta>))"
+
+definition is_reachable :: "'n \<Rightarrow> bool" where
+  "is_reachable X \<equiv> (S \<Rightarrow>\<^sup>? X)"
+
+definition is_productive :: "'n \<Rightarrow> bool" where
+  "is_productive X \<equiv> (\<exists>w. [Nt X] \<Rightarrow>\<^sup>* map_word w)"
+
+definition is_useful :: "'n \<Rightarrow> bool" where
+  "is_useful X \<equiv> is_reachable X \<and> is_productive X"
+
+definition (in CFG) is_nullable :: "'n \<Rightarrow> bool" where
+  "is_nullable X \<equiv> ([Nt X] \<Rightarrow>\<^sup>* [])"
 
 end \<comment>\<open>end-locale CFG\<close>
 

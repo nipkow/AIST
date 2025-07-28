@@ -4,13 +4,16 @@
 *)
 
 session PreStar = CFG +
-  options [document = pdf, document_output = "output"]
+  options [document = pdf, document_output = "output", quick_and_dirty = true]
   sessions
     "HOL-Data_Structures"
     "Labeled_Transition_Systems"
     "Pushdown_Systems"
   theories
     Definition
+    Finiteness
+    FiniteAutomaton
+    Algorithm
     Applications
   theories [document = false]
     PreStar

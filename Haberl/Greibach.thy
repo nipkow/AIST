@@ -1,5 +1,7 @@
 theory Greibach
-imports "Context_Free_Grammar.Context_Free_Grammar" Fresh_Identifiers.Fresh_Nat
+imports
+  "Context_Free_Grammar.Context_Free_Grammar"
+  Fresh_Identifiers.Fresh_Nat
 begin
 
 (* Import of additional theories undoes this deletion in \<open>Context_Free_Grammar\<close>: *)
@@ -166,16 +168,23 @@ qed
 text \<open>This theory formalizes a method to transform a set of productions into 
 Greibach Normal Form (GNF) \<^cite>\<open>Greibach\<close>. We concentrate on the essential property of the GNF:
 every production starts with a \<open>Tm\<close>; the tail of a rhs can contain further terminals.
-This is formalized as \<open>GNF_hd\<close> below.
+This is formalized as \<open>GNF_hd\<close> below. This more liberal definition of GNF is also found elsewhere
+\cite{BlumK99}.
 
-Our algorithm consists of two phases:
-\<^item> \<open>solve_tri\<close> converts the productions into a \<open>triangular\<close> form, where Nt \<open>Ai\<close> does not 
+The algorithm consists of two phases:
+
+  \<^item> \<open>solve_tri\<close> converts the productions into a \<open>triangular\<close> form, where Nt \<open>Ai\<close> does not 
   depend on Nts \<open>Ai, \<dots>, An\<close>. This involves the elimination of left-recursion and is the heart
   of the algorithm.
-\<^item> \<open>expand_tri\<close> expands the triangular form by substituting in:
+
+  \<^item> \<open>expand_tri\<close> expands the triangular form by substituting in:
   Due to triangular form, \<open>A0\<close> productions satisfy \<open>GNF_hd\<close> and we can substitute
   them into the heads of the remaining productions. Now all \<open>A1\<close> productions satisfy \<open>GNF_hd\<close>,
-  and we continue until all productions satisfy \<open>GNF_hd\<close>.\<close>
+  and we continue until all productions satisfy \<open>GNF_hd\<close>.
+
+This is essentially the algorithm given by Hopcroft and Ullman \cite{HopcroftU79},
+except that we can drop the conversion to Chomsky Normal Form because of our more liberal \<open>GNF_hd\<close>.
+\<close>
 
 
 section \<open>Fresh Nonterminals\<close>
@@ -307,6 +316,8 @@ definition rrec_of_lrec ::  "'n \<Rightarrow> 'n \<Rightarrow> ('n,'t)Prods \<Ri
   (let V = {v. (A,Nt A # v) \<in> R \<and> v \<noteq> []};
        U = {u. (A,u) \<in> R \<and> \<not>(\<exists>v. u = Nt A # v) }
   in (\<Union>u\<in>U. {(A,u)}) \<union> (\<Union>u\<in>U. {(A,u@[Nt A'])}) \<union> (\<Union>v\<in>V. {(A',v)}) \<union> (\<Union>v\<in>V. {(A',v @ [Nt A'])}))"
+text \<open>Possible optimization: if there is no left-recursion, we don't need to do anything:
+ \<open>in if V = {} then R else \<dots>\<close>.\<close>
 
 lemma rrec_of_lrec_code[code]: "rrec_of_lrec A A' R =
   (let RA = Rhss R A;

@@ -27,10 +27,7 @@
 This theory formalizes a method to transform a set of productions into 
 Greibach Normal Form (GNF) \cite{Greibach}. We concentrate on the essential property of the GNF:
 every production starts with a terminal; the tail of a rhs may contain further terminals.
-
-Our algorithm consists of two phases: In a first phase, left-recursion is eliminated
-and the productions are converted into a triangular form. In a second phase,
-the triangular form is converted into GNF by back substitution.
+We verify the algorithm by Hopcroft and Ullman \cite{HopcroftU79}.
 The complexity can be exponential.
 \end{abstract}
 

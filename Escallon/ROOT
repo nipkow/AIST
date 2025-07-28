@@ -1,8 +1,10 @@
-session Two_way_DFA_HF = Finite_Automata_HF +
-  options [document = pdf, document_output = "output"]
+chapter AFP
+
+session Two_Way_DFA_HF = Finite_Automata_HF +
+  options [timeout = 300]
 
   theories
-    Two_way_DFA_HF
+    Two_Way_DFA_HF
 
   document_files
     "root.tex"

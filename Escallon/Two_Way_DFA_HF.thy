@@ -1,6 +1,6 @@
 (* Author: Felipe Escallon and Tobias Nipkow *)
 
-theory Two_way_DFA_HF       
+theory Two_Way_DFA_HF       
   imports "Finite_Automata_HF.Finite_Automata_HF"
 begin
 
@@ -1725,7 +1725,6 @@ theorem regular_language_impl_dfa2:
                       dfa2.rej = qr,
                       dfa2.nxt = \<delta>\<rparr>)"
 proof -
-  typ "'a dfa2"
   from assms obtain M where M_def: "dfa M" "dfa.language M = L"
     unfolding regular_def by blast
   then obtain q0 qa qr where q_defs:

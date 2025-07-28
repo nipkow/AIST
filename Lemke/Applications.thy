@@ -46,7 +46,7 @@ proof -
   also have "... \<longleftrightarrow> (\<exists>\<alpha> \<beta>. [Nt S] \<Rightarrow>\<^sup>* (\<alpha>@[Nt X]@\<beta>))"
     unfolding L_def by blast
   finally show ?thesis
-    by (simp add: is_reachable_def L_def)
+    by (simp add: is_reachable_def is_reachable_from_def L_def)
 qed
 
 theorem (in CFG) "is_productive X \<longleftrightarrow> [Nt X] \<in> pre_star { map_word w | w. True }"
@@ -74,7 +74,7 @@ subsection\<open>The Finiteness Problem\<close>
 
 lemma (in CFG) is_infinite_check:
   "is_infinite \<longleftrightarrow> (\<exists>X. [Nt X] \<in> pre_star { \<alpha>@[Nt X]@\<beta> | \<alpha> \<beta>. \<alpha>@\<beta> \<noteq> [] })"
-  unfolding is_infinite_def using pre_star_term by auto
+  unfolding is_infinite_def is_reachable_step_def by (auto simp: pre_star_term)
 
 theorem (in CFG) is_infinite_by_prestar:
   assumes "is_useful_all" and "is_non_nullable_all"

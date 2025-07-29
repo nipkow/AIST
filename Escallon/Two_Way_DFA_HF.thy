@@ -72,7 +72,6 @@ locale dfa2 =
       and final_nxt_l:  "q = acc M \<or> q = rej M \<Longrightarrow> nxt M q \<stileturn> = (q, Left)"
 begin
 
-
 text \<open>A single \<close>
 inductive step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<close> 55) where
   step_left[intro]:  "nxt M p a = (q, Left) \<Longrightarrow> (x # xs, p, a # ys) \<rightarrow> (xs, q, x # a # ys)" |
@@ -91,15 +90,13 @@ text \<open>And the nth power of \<open>\<rightarrow>\<close>:\<close>
 abbreviation stepn :: "'a config \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>'(_') _" 55) where
   "stepn c n \<equiv> (step ^^ n) c"
 
-
 lemma rtranclp_induct3[consumes 1, case_names refl step]:
   "\<lbrakk>r\<^sup>*\<^sup>* (ax, ay, az) (bx, by, bz); P ax ay az;
      \<And>u p v x q z.
         \<lbrakk>r\<^sup>*\<^sup>* (ax, ay, az) (u, p, v); r (u, p, v) (x, q, z); P u p v\<rbrakk>
         \<Longrightarrow> P x q z\<rbrakk>
     \<Longrightarrow> P bx by bz"
-  by (rule rtranclp_induct[of _ "(ax, ay, az)" "(bx, by, bz)", 
-        split_rule])
+by (rule rtranclp_induct[of _ "(ax, ay, az)" "(bx, by, bz)", split_rule])
 
 text \<open>The initial configuration of \<open>M\<close> on input word \<open>w \<in> \<Sigma>\<^sup>*\<close> is \<open>([], init M, \<turnstile>w\<stileturn>)\<close>. 
       A configuration \<open>c\<close> is reachable by \<open>w\<close> if the initial configuration of \<open>M\<close> on input \<open>w\<close>
@@ -111,20 +108,18 @@ abbreviation nreachable :: "'a list \<Rightarrow> nat \<Rightarrow> 'a config \<
   "nreachable w n c \<equiv> ([], init M, \<langle>w\<rangle>) \<rightarrow>(n) c"
 
 lemma step_unique:
-  assumes "c0 \<rightarrow> c1"
-          "c0 \<rightarrow> c2"
-        shows "c1 = c2"
-  using assms by fastforce
+  "\<lbrakk> c0 \<rightarrow> c1; c0 \<rightarrow> c2 \<rbrakk> \<Longrightarrow> c1 = c2"
+by fastforce
 
 lemma steps_impl_in_states:
   assumes "p \<in> states M"
   shows "(u, p, v) \<rightarrow>* (u', q, v') \<Longrightarrow> q \<in> states M"
-  by (induction rule: rtranclp_induct3) (use assms nxt in auto)
+by (induction rule: rtranclp_induct3) (use assms nxt in auto)
 
 corollary reachable_impl_in_states:
-  assumes "w \<rightarrow>** (u, q, v)"
-  shows   "q \<in> states M"
-  using assms dfa2_def dfa2_axioms by (blast intro: steps_impl_in_states)
+  "w \<rightarrow>** (u, q, v) \<Longrightarrow> q \<in> states M"
+using init steps_impl_in_states by blast
+
 
 subsection \<open>Basic Properties of 2DFAs\<close>
 
@@ -147,7 +142,7 @@ proof (induction rule: rtranclp_induct3)
       using step.IH step.hyps(2) by fastforce
   next
     case Right
-    hence "(c, q'', d) = (hd b # a, p', tl b)" using step(2) qd_def step.simps by force
+    hence "(c, q'', d) = (hd b # a, p', tl b)" using step(2) qd_def step.simps by fastforce
     then show ?thesis using step step.cases by fastforce
   qed
 qed simp
@@ -157,20 +152,19 @@ lemma unchanged_final:
   shows "(u, p, v) \<rightarrow>* (u', q, v') \<Longrightarrow> p = q"
 proof (induction rule: rtranclp_induct3)
   case (step a q' b c q'' d)
-  then show ?case using assms
-    by (smt (verit, ccfv_SIG) dfa2_axioms dfa2_def prod.inject step_foldedE)
+  then show ?case
+    by (smt (verit) assms final_nxt_l final_nxt_r prod.inject step.cases)
 qed simp
 
 corollary unchanged_word:
-  assumes "([], p, w) \<rightarrow>* (u, q, v)"
-  shows "w = rev u @ v"
-  using assms unchanged_substrings by force
+  "([], p, w) \<rightarrow>* (u, q, v) \<Longrightarrow> w = rev u @ v"
+using unchanged_substrings by fastforce
 
 lemma step_tl_indep:
   assumes "(u, p, w @ v) \<rightarrow> (y, q, z @ v)"
           "w \<noteq> []"
-        shows "(u, p, w @ v') \<rightarrow> (y, q, z @ v')"
-  using assms(1) proof cases
+  shows "(u, p, w @ v') \<rightarrow> (y, q, z @ v')"
+using assms(1) proof cases
   case (step_left a x ys)
   with assms obtain as where "w = a # as" by (meson append_eq_Cons_conv) 
   moreover with step_left have "(u, p, w @ v') \<rightarrow> (y, q, x # w @ v')" by auto
@@ -192,8 +186,8 @@ qed simp
 lemma left_to_right_impl_substring:
   assumes "(u, p, v) \<rightarrow>* (w, q, y)"
           "length u \<le> length w"
-        obtains us where "us @ u = w"
-  using assms proof (induction arbitrary: thesis rule: rtranclp_induct3)
+  obtains us where "us @ u = w"
+using assms proof (induction arbitrary: thesis rule: rtranclp_induct3)
   case (step u' p' v' x q z)
   then consider (len_u_lt_x) "length u < length x" | (len_u_eq_x) "length u = length x" by linarith
   then show ?case
@@ -216,7 +210,7 @@ lemma acc_impl_reachable_substring:
           "xs \<noteq> []"
           "ys \<noteq> []"
   shows "v = xs @ ys \<Longrightarrow> (u, acc M, v) \<rightarrow>* (rev xs @ u, acc M, ys)"
-  using assms
+using assms
 proof (induction v arbitrary: u xs ys)
   case (Cons a v)
   consider (not_right_marker) b where "a = Letter b \<or> a = \<turnstile>" | (right_marker) "a = \<stileturn>"  
@@ -271,9 +265,9 @@ lemma all_geq_left_impl_left_indep:
   assumes upv_reachable: "w \<rightarrow>** (u, p, v)"
       and "(u, p, v) \<rightarrow>(n) (vs @ u, q, x)"
           "\<forall>i\<le>n. \<forall>u' p' v'. ((u, p, v) \<rightarrow>(i) (u', p', v')) \<longrightarrow> length u' \<ge> length u"
-        shows "((u', p, v) \<rightarrow>(n) (vs @ u', q, x))
-               \<and> (\<forall>i\<le>n. \<forall>y p' v'. ((u', p, v) \<rightarrow>(i) (y, p', v')) \<longrightarrow> length y \<ge> length u')"
-  using assms(2,3) proof (induction n arbitrary: vs q x)
+  shows "((u', p, v) \<rightarrow>(n) (vs @ u', q, x))
+         \<and> (\<forall>i\<le>n. \<forall>y p' v'. ((u', p, v) \<rightarrow>(i) (y, p', v')) \<longrightarrow> length y \<ge> length u')"
+using assms(2,3) proof (induction n arbitrary: vs q x)
   case (Suc n)
   then obtain vs' q' x' where 
     nsteps: "(u, p, v) \<rightarrow>(n) (vs' @ u, q', x')" "(vs' @ u, q', x') \<rightarrow> (vs @ u, q, x)"
@@ -312,7 +306,7 @@ qed simp
 lemma reachable_configs_impl_reachable:
   assumes "c0 \<rightarrow>* c1"
           "c0 \<rightarrow>* c2"
-        shows "c1 \<rightarrow>* c2 \<or> c2 \<rightarrow>* c1"  
+  shows "c1 \<rightarrow>* c2 \<or> c2 \<rightarrow>* c1"  
 proof -
   from assms obtain n m where "c0 \<rightarrow>(n) c1" "c0 \<rightarrow>(m) c2"
     by (metis rtranclp_power)
@@ -344,6 +338,7 @@ proof -
 qed
 
 end
+
 
 section \<open>Boundary Crossings\<close>
 
@@ -380,33 +375,28 @@ definition right_config :: "'a config \<Rightarrow> bool" where
 
 lemma left_config_is_not_right_config:
   "left_config c \<longleftrightarrow> \<not>right_config c"
-  unfolding left_config_def right_config_def
-  by (metis linorder_not_less prod.inject prod_cases3)
+unfolding left_config_def right_config_def
+by (metis linorder_not_less prod.inject prod_cases3)
 
 lemma left_config_lt_right_config:
-  assumes "left_config (u, p, v)"
-          "right_config (w, q, y)"
-        shows "length u < length w"
-  using assms left_config_def right_config_def by simp
+  "\<lbrakk> left_config (u, p, v); right_config (w, q, y) \<rbrakk> \<Longrightarrow> length u < length w"
+using left_config_def right_config_def by simp
 
-text\<open>For configurations \<open>c\<^sub>0\<close> and \<open>c\<^sub>1\<close>, a step \<open>c\<^sub>0 \<rightarrow> c\<^sub>1\<close> is a left step \<open>c\<^sub>0 \<rightarrow>\<^sup>L c\<^sub>1\<close> if both \<open>c\<^sub>0\<close> and 
-    \<open>c\<^sub>1\<close> are in \<open>x\<close>:\<close>
+text\<open>For configurations \<open>c\<^sub>0\<close> and \<open>c\<^sub>1\<close>, a step \<open>c\<^sub>0 \<rightarrow> c\<^sub>1\<close> is a left step \<open>c\<^sub>0 \<rightarrow>\<^sup>L c\<^sub>1\<close>
+     if both \<open>c\<^sub>0\<close> and \<open>c\<^sub>1\<close> are in \<open>x\<close>:\<close>
 inductive left_step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L\<close> 55) where
   lstep [intro]: "\<lbrakk>c0 \<rightarrow> c1; left_config c0; left_config c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>L c1"
-
-notation (ASCII) left_step (infix \<open>\<rightarrow>^L\<close> 55)
-                            
+                     
 inductive_cases lstepE [elim]: "c0 \<rightarrow>\<^sup>L c1"
 
-text \<open>The reflexive transitive closure and the nth power of \<open>\<rightarrow>\<^sup>L\<close>:\<close>
 abbreviation left_steps :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L*\<close> 55) where
   "left_steps \<equiv> left_step\<^sup>*\<^sup>*"
 
 abbreviation left_stepn :: "'a config \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>L'(_') _" 55) where
   "left_stepn c n \<equiv> (left_step ^^ n) c"
 
-text \<open>\<open>c\<close> is left reachable by a word \<open>w\<close> if \<open>w \<rightarrow>** c\<close> and \<open>M\<close> does not cross the boundary
-      before reaching \<open>c\<close>:\<close>
+text \<open>\<open>c\<close> is left reachable by a word \<open>w\<close>
+      if \<open>w \<rightarrow>** c\<close> and \<open>M\<close> does not cross the boundary before reaching \<open>c\<close>:\<close>
 abbreviation left_reachable :: "'a list \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>L**\<close> 55) where
   "w \<rightarrow>\<^sup>L** c \<equiv> ([], init M, \<langle>w\<rangle>) \<rightarrow>\<^sup>L* c" 
 
@@ -417,8 +407,6 @@ text \<open>Right steps are defined analogously:\<close>
 
 inductive right_step :: "'a config \<Rightarrow> 'a config \<Rightarrow> bool" (infix \<open>\<rightarrow>\<^sup>R\<close> 55) where
   rstep [intro]: "\<lbrakk>c0 \<rightarrow> c1; right_config c0; right_config c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>R c1"
-
-notation (ASCII) right_step (infix \<open>\<rightarrow>^R\<close> 55)
 
 inductive_cases rstepE [elim]: "c0 \<rightarrow>\<^sup>R c1"
 
@@ -432,50 +420,38 @@ subsubsection \<open>Properties of left and right steps\<close>
 
 lemma left_steps_impl_steps [dest]:
   "c0 \<rightarrow>\<^sup>L* c1 \<Longrightarrow> c0 \<rightarrow>* c1"
-   by (induction rule: rtranclp_induct) auto
+by (induction rule: rtranclp_induct) auto
 
 lemma right_steps_impl_steps [dest]:
-   "c0 \<rightarrow>\<^sup>R* c1 \<Longrightarrow> c0 \<rightarrow>* c1"
-    by (induction rule: rtranclp_induct) auto
+  "c0 \<rightarrow>\<^sup>R* c1 \<Longrightarrow> c0 \<rightarrow>* c1"
+by (induction rule: rtranclp_induct) auto
 
 lemma left_steps_impl_left_config[dest]:
-  "\<lbrakk>c0 \<rightarrow>\<^sup>L* c1; left_config c0\<rbrakk> 
-    \<Longrightarrow> left_config c1"
-  by (induction rule: rtranclp_induct) auto
+  "\<lbrakk>c0 \<rightarrow>\<^sup>L* c1; left_config c0\<rbrakk> \<Longrightarrow> left_config c1"
+by (induction rule: rtranclp_induct) auto
 
 lemma left_steps_impl_left_config_conv[dest]:
-  "\<lbrakk>c0 \<rightarrow>\<^sup>L* c1; left_config c1\<rbrakk> 
-    \<Longrightarrow> left_config c0" 
-  by (induction rule: rtranclp_induct) auto
+  "\<lbrakk>c0 \<rightarrow>\<^sup>L* c1; left_config c1\<rbrakk> \<Longrightarrow> left_config c0" 
+by (induction rule: rtranclp_induct) auto
 
 lemma left_reachable_impl_left_config:
   "w \<rightarrow>\<^sup>L** c \<Longrightarrow> left_config c" 
-  using left_config_def left_steps_impl_left_config by auto
+using left_config_def left_steps_impl_left_config by auto
 
 lemma right_steps_impl_right_config[dest]: 
-  "\<lbrakk>c0 \<rightarrow>\<^sup>R* c1; right_config c0\<rbrakk> 
-    \<Longrightarrow> right_config c1"
-  by (induction rule: rtranclp_induct) auto
+  "\<lbrakk>c0 \<rightarrow>\<^sup>R* c1; right_config c0\<rbrakk> \<Longrightarrow> right_config c1"
+by (induction rule: rtranclp_induct) auto
 
 lemma left_step_tl_indep:
-  assumes "(u, p, w @ v) \<rightarrow>\<^sup>L (y, q, z @ v)"
-          "w \<noteq> []"
-        shows "(u, p, w @ v') \<rightarrow>\<^sup>L (y, q, z @ v')"
-  using step_tl_indep assms 
-  by (meson dual_order.irrefl left_config_is_not_right_config left_config_lt_right_config
-      left_step.cases lstep)
-
-lemma right_step_step_unique:
-  assumes "c0 \<rightarrow> c1"
-          "c0 \<rightarrow>\<^sup>R c2"
-        shows "c1 = c2" 
-  using assms by (meson right_step.cases step_unique)
+  "\<lbrakk> (u, p, w @ v) \<rightarrow>\<^sup>L (y, q, z @ v); w \<noteq> [] \<rbrakk> \<Longrightarrow> (u, p, w @ v') \<rightarrow>\<^sup>L (y, q, z @ v')"
+using step_tl_indep left_config_is_not_right_config left_config_lt_right_config left_step.cases lstep
+by (meson order.irrefl)
 
 lemma right_stepn_impl_interm_right_stepn:
   assumes "c0 \<rightarrow>\<^sup>R(n) c2"
           "c0 \<rightarrow>(m) c1"
           "m \<le> n"
-        shows "c0 \<rightarrow>\<^sup>R(m) c1"
+  shows "c0 \<rightarrow>\<^sup>R(m) c1"
 proof -
   from assms(1) obtain f where f_def:
     "f 0 = c0"
@@ -487,23 +463,17 @@ proof -
     "g m = c1"
     "\<forall>i<m. g i \<rightarrow> g (Suc i)"
     by (metis relpowp_fun_conv)
-  have "\<forall>i<m. g i = f i"
-  proof (rule allI, rule impI)
-    fix i
-    assume i_lt_m: "i < m"
-    then show "g i = f i"
-    proof (induction i)
-      case 0
-      then show ?case using f_def g_def by blast
-    next
-      case (Suc n)
-      then have "g n = f n" by linarith
-      with Suc f_def g_def show ?case
-        by (metis assms(3) dual_order.strict_trans2 not_less_eq order.asym
-            right_step_step_unique)
-    qed
+  have "i<m \<Longrightarrow> g i = f i" for i
+  proof (induction i)
+    case 0
+    then show ?case using f_def g_def by blast
+  next
+    case (Suc n)
+    then have "g n = f n" by linarith
+    with Suc f_def g_def show ?case using right_step.cases step_unique
+      by (metis Suc_lessD assms(3) order_less_le_trans)
   qed
-  with f_def g_def have "\<forall>i<m. g i \<rightarrow>\<^sup>R g (Suc i)" using right_step_step_unique
+  with f_def g_def have "\<forall>i<m. g i \<rightarrow>\<^sup>R g (Suc i)" using right_step.cases step_unique
     by (metis assms(3) order_less_le_trans)
   with g_def show ?thesis by (metis relpowp_fun_conv)
 qed
@@ -511,9 +481,8 @@ qed
 text \<open>These \<open>list\<close> lemmas are necessary for the two following \<open>substring\<close> lemmas:\<close>
 lemma list_deconstruct1:
   assumes "m \<le> length xs"
-  obtains ys zs where "length ys = m" "ys @ zs = xs" using assms 
-  by (metis add_diff_cancel_right' append_take_drop_id le_iff_add length_drop 
-      length_rev rev_eq_append_conv)
+  obtains ys zs where "length ys = m" "ys @ zs = xs" using assms
+by (metis append_take_drop_id dual_order.eq_iff length_take min_def) 
 
 lemma list_deconstruct2:
   assumes "m \<le> length xs"
@@ -532,8 +501,7 @@ lemma lstar_impl_substring_x:
   obtains y where " rev u' @ y = \<langle>x\<langle>" "y @ \<rangle>z\<rangle> = v'" 
 proof -
   have leftconfig: "left_config (u, p, v)" unfolding left_config_def using in_x by blast
-  hence u'_lt_x: "length u' < length (\<langle>x\<langle>)" using lsteps
-    using left_config_def by force
+  hence u'_lt_x: "length u' < length (\<langle>x\<langle>)" using lsteps left_config_def by force
   from lsteps show thesis
   proof (induction arbitrary: u p v rule: rtranclp_induct3)
     case refl 
@@ -548,12 +516,10 @@ proof -
       moreover from this have  "length (ys @ \<rangle>z\<rangle>) = length v'" using app 
         by (smt (verit) append_assoc append_eq_append_conv length_rev
             mapl_app_mapr_eq_map) 
-      ultimately have xs_is_rev: "xs = rev u'" 
-        by (smt (verit, ccfv_SIG) app append_assoc append_eq_append_conv
-            mapl_app_mapr_eq_map dfa2_axioms)
-      then have "ys @ \<rangle>z\<rangle> = v'" using xapp app 
-        by (metis (no_types, lifting) append_assoc same_append_eq[of xs v' "ys @ \<Sigma> z @ [\<stileturn>]"] 
-            mapl_app_mapr_eq_map)
+      ultimately have xs_is_rev: "xs = rev u'"
+        by (metis (no_types) app append_Cons append_assoc append_eq_append_conv map_append) 
+      then have "ys @ \<rangle>z\<rangle> = v'" using xapp app
+        by (metis (no_types) append_assoc same_append_eq[of xs v' "ys @ \<Sigma> z @ [\<stileturn>]"] mapl_app_mapr_eq_map)
       thus thesis using that xs_is_rev xapp by presburger
     qed
     ultimately show ?case using that by simp
@@ -563,21 +529,20 @@ qed
 corollary left_reachable_impl_substring_x:
   assumes "x @ z \<rightarrow>\<^sup>L** (u, q, v)"
   obtains y where " rev u @ y = \<langle>x\<langle>" "y @ \<rangle>z\<rangle> = v"
-  using lstar_impl_substring_x assms left_config_def 
-    left_reachable_impl_left_config by blast
+using lstar_impl_substring_x assms left_config_def left_reachable_impl_left_config by blast
 
 corollary reachable_lconfig_impl_substring_x:
   assumes "x @ z \<rightarrow>** (u, p, v)"
       and "length u < length (\<langle>x\<langle>)"
       and "(u, p, v) \<rightarrow>\<^sup>L* (u', q, v')"
-    obtains y where " rev u' @ y = \<langle>x\<langle>" "y @ \<rangle>z\<rangle> = v'" 
-  using unchanged_word[OF assms(1)] lstar_impl_substring_x assms by metis 
+  obtains y where " rev u' @ y = \<langle>x\<langle>" "y @ \<rangle>z\<rangle> = v'" 
+using unchanged_word[OF assms(1)] lstar_impl_substring_x assms by metis 
 
 lemma star_rconfig_impl_substring_z:
   assumes app_eq: "x @ z \<rightarrow>** (u, p, v)"
       and reach: "(u, p, v) \<rightarrow>* (u', q, v')"
       and rconf: "right_config (u', q, v')"
-    obtains y where " rev (\<langle>x\<langle> @ y) = u'" "y @ v' = \<rangle>z\<rangle>"
+  obtains y where " rev (\<langle>x\<langle> @ y) = u'" "y @ v' = \<rangle>z\<rangle>"
 proof -
   from right_config_def have u'_ge_x: "length (\<langle>x\<langle>) \<le> length u'"
     using rconf by force
@@ -618,13 +583,13 @@ qed
 corollary reachable_right_conf_impl_substring_z:
   assumes "x @ z \<rightarrow>** (u, q, v)"
           "right_config (u, q, v)"
-        obtains y where "rev (\<langle>x\<langle> @ y) = u" "y @ v = \<rangle>z\<rangle>"
-  using assms star_rconfig_impl_substring_z right_config_def by blast
+  obtains y where "rev (\<langle>x\<langle> @ y) = u" "y @ v = \<rangle>z\<rangle>"
+using assms star_rconfig_impl_substring_z right_config_def by blast
 
 lemma lsteps_indep:
   assumes "(u, p, v @ \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (w, q, y @ \<rangle>z\<rangle>)"
           "rev u @ v @ \<rangle>z\<rangle> = \<langle>x @ z\<rangle>"
-        shows "(u, p, v @ \<rangle>z'\<rangle>) \<rightarrow>\<^sup>L* (w, q, y @ \<rangle>z'\<rangle>)"
+  shows "(u, p, v @ \<rangle>z'\<rangle>) \<rightarrow>\<^sup>L* (w, q, y @ \<rangle>z'\<rangle>)"
 proof -
   from assms obtain n where nsteps: "(u, p, v @ \<rangle>z\<rangle>) \<rightarrow>\<^sup>L(n) (w, q, y @ \<rangle>z\<rangle>)" 
     using rtranclp_power by meson
@@ -734,15 +699,16 @@ subsection \<open>A Formal Definition of Boundary Crossings\<close>
 
 text \<open>\<open>c\<^sub>0 \<rightarrow>\<^sup>X(n) c\<^sub>1\<close> if \<open>c\<^sub>0\<close> reaches \<open>c\<^sub>1\<close> crossing the boundary \<open>n\<close> times:\<close>
 inductive crossn :: "'a config \<Rightarrow> nat \<Rightarrow> 'a config \<Rightarrow> bool" ("_ \<rightarrow>\<^sup>X'(_') _" 55) where
-  no_crossl[intro]:   "\<lbrakk>left_config c0; c0 \<rightarrow>\<^sup>L* c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>X(0) c1" |
-  no_crossr[intro]:   "\<lbrakk>right_config c0; c0 \<rightarrow>\<^sup>R* c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>X(0) c1" |
-  crossn_rtol[intro]:  "\<lbrakk>c0 \<rightarrow>\<^sup>X(n) (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>); 
-                      (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>) \<rightarrow> (rev x_init, q, x_end # \<rangle>z\<rangle>);
-                      (rev x_init, q, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>X(Suc n) c1" |
-  crossn_ltor[intro]:  "\<lbrakk> c0 \<rightarrow>\<^sup>X(n) (rev x_init, p, x_end # \<rangle>z\<rangle>); 
-                      (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>);
-                      (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>) \<rightarrow>\<^sup>R* c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>X(Suc n) c1"
+  no_crossl:   "\<lbrakk>left_config c0; c0 \<rightarrow>\<^sup>L* c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>X(0) c1" |
+  no_crossr:   "\<lbrakk>right_config c0; c0 \<rightarrow>\<^sup>R* c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>X(0) c1" |
+  crossn_rtol:  "\<lbrakk>c0 \<rightarrow>\<^sup>X(n) (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>); 
+                  (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>) \<rightarrow> (rev x_init, q, x_end # \<rangle>z\<rangle>);
+                  (rev x_init, q, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>X(Suc n) c1" |
+  crossn_ltor:  "\<lbrakk> c0 \<rightarrow>\<^sup>X(n) (rev x_init, p, x_end # \<rangle>z\<rangle>); 
+                   (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>);
+                   (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>) \<rightarrow>\<^sup>R* c1\<rbrakk> \<Longrightarrow> c0 \<rightarrow>\<^sup>X(Suc n) c1"
 
+declare crossn.intros[intro]
 
 inductive_cases no_crossE[elim]: "c0 \<rightarrow>\<^sup>X(0) c1"
 inductive_cases crossE[elim]: "c0 \<rightarrow>\<^sup>X(Suc n) c1"
@@ -754,17 +720,16 @@ lemma self_nocross[simp]:
   "c \<rightarrow>\<^sup>X(0) c" using left_config_is_not_right_config by blast
 
 lemma no_cross_impl_same_side:
-  assumes "c0 \<rightarrow>\<^sup>X(0) c1"
-  shows "left_config c0 = left_config c1"
-  using assms left_config_is_not_right_config by blast
+  "c0 \<rightarrow>\<^sup>X(0) c1 \<Longrightarrow> left_config c0 = left_config c1"
+using left_config_is_not_right_config by blast
 
 lemma left_config_impl_rtol_cross:
   assumes "c0 \<rightarrow>\<^sup>X(Suc n) c1"
           "left_config c1"
-        obtains p q z where "c0 \<rightarrow>\<^sup>X(n) (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>)" 
-                          "(rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>) \<rightarrow> (rev x_init, q, x_end # \<rangle>z\<rangle>)"
-                          "(rev x_init, q, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* c1"
-  using assms(1) proof cases
+  obtains p q z where "c0 \<rightarrow>\<^sup>X(n) (rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>)" 
+                      "(rev (\<langle>x\<langle>), p, \<rangle>z\<rangle>) \<rightarrow> (rev x_init, q, x_end # \<rangle>z\<rangle>)"
+                      "(rev x_init, q, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* c1"
+using assms(1) proof cases
   case (crossn_rtol p z q)
   then show ?thesis using that by blast
 next
@@ -777,10 +742,10 @@ qed
 lemma right_config_impl_ltor_cross:
   assumes "c0 \<rightarrow>\<^sup>X(Suc n) c1"
           "right_config c1"
-        obtains p q z where "c0 \<rightarrow>\<^sup>X(n) (rev x_init, p, x_end # \<rangle>z\<rangle>)" 
-                          "(rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)"
-                          "(rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>) \<rightarrow>\<^sup>R* c1"
-  using assms(1) proof cases
+  obtains p q z where "c0 \<rightarrow>\<^sup>X(n) (rev x_init, p, x_end # \<rangle>z\<rangle>)" 
+                      "(rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)"
+                      "(rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>) \<rightarrow>\<^sup>R* c1"
+using assms(1) proof cases
   case (crossn_rtol p z q)
   from crossn_rtol(3) have "left_config c1" 
     using left_config_def left_steps_impl_left_config
@@ -807,7 +772,6 @@ next
         (use crossn_ltor in auto)
   ultimately show ?thesis using that by blast
 qed 
-
 
 lemma step_impl_crossn:
   assumes "c0 \<rightarrow> c1"
@@ -844,7 +808,7 @@ next
       qed
       with assms(2,3) have "u = rev x_init" 
         by (smt (verit, ccfv_threshold) append_assoc append_eq_append_conv mapl_app_mapr_eq_map
-            dfa2_axioms length_butlast length_rev rev_swap x_init_def x_is_init_app_end)
+             length_butlast length_rev rev_swap x_init_def x_is_init_app_end)
       from this have "v = x_end # \<rangle>z\<rangle>" 
         by (smt (verit) append.assoc append_eq_append_conv append_eq_rev_conv assms(3) mapl_app_mapr_eq_map
             rev.simps(2) rev_rev_ident rev_singleton_conv x_is_init_app_end)
@@ -878,7 +842,7 @@ next
       qed
       with assms(2,3) have "u = rev (\<langle>x\<langle>)" 
         by (smt (verit, ccfv_threshold) append_assoc append_eq_append_conv mapl_app_mapr_eq_map
-            dfa2_axioms length_butlast length_rev rev_swap x_init_def x_is_init_app_end)
+             length_butlast length_rev rev_swap x_init_def x_is_init_app_end)
       from this have "v = \<rangle>z\<rangle>"
         by (smt (verit) append.assoc append_eq_append_conv append_eq_rev_conv assms(3) mapl_app_mapr_eq_map
             rev.simps(2) rev_rev_ident rev_singleton_conv x_is_init_app_end)
@@ -899,12 +863,11 @@ next
   qed
 qed
 
-
 lemma crossn_no_cross_eq_crossn:
   assumes "c0 \<rightarrow>\<^sup>X(n) c1"
           "c1 \<rightarrow>\<^sup>X(0) c2"
-        shows "c0 \<rightarrow>\<^sup>X(n) c2"
-  using assms(1) proof cases
+  shows "c0 \<rightarrow>\<^sup>X(n) c2"
+using assms(1) proof cases
   case no_crossl
   then show ?thesis using left_steps_impl_left_config 
     assms left_config_is_not_right_config by (meson crossn.no_crossl no_crossE rtranclp_trans)
@@ -926,11 +889,10 @@ next
   then show ?thesis using crossn_ltor by auto
 qed    
 
-
 lemma crossn_trans:
   assumes "c0 \<rightarrow>\<^sup>X(n) c1"
   shows "c1 \<rightarrow>\<^sup>X(m) c2 \<Longrightarrow> c0 \<rightarrow>\<^sup>X(n+m) c2"
-  proof (induction m arbitrary: c2)
+proof (induction m arbitrary: c2)
   case 0
   from assms show ?case 
   proof cases
@@ -976,16 +938,16 @@ next
   qed
 qed
   
-lemma crossn_impl_reachable[dest]:
+lemma crossn_impl_reachable:
   assumes "c0 \<rightarrow>\<^sup>X(n) c1"
   shows "c0 \<rightarrow>* c1"
-  using assms by induction auto
+using assms by induction auto
 
 lemma reachable_xz_impl_crossn:
   assumes "c0 \<rightarrow>* c1"
           "c0 = (u, p, v)"
           "rev u @ v = \<langle>x @ z\<rangle>"
-        obtains n where "c0 \<rightarrow>\<^sup>X(n) c1"
+  obtains n where "c0 \<rightarrow>\<^sup>X(n) c1"
 using assms proof (induction arbitrary: u p v thesis)
   case base
   then show ?case using self_nocross by blast
@@ -1010,19 +972,20 @@ text \<open>\<open>T\<^sub>x p q\<close> for a non-empty string \<open>x\<close>
       therefore does not terminate.\<close>
 
 inductive T :: "state option \<Rightarrow> state option \<Rightarrow> bool" where
-  init_tr[intro]: "\<lbrakk>x @ z \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z\<rangle>); 
-              (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T None (Some q)" |
+  init_tr: "\<lbrakk> x @ z \<rightarrow>\<^sup>L** (rev x_init, p, x_end # \<rangle>z\<rangle>); 
+             (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T None (Some q)" |
 
-  init_no_tr[intro]: "\<nexists>q z. x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>) \<Longrightarrow> T None None" |
+  init_no_tr: "\<nexists>q z. x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>) \<Longrightarrow> T None None" |
 
-  some_tr[intro]: "\<lbrakk>p' \<in> states M; (rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, p, x_end # \<rangle>z\<rangle>); 
-              (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q', x_end # \<rangle>z\<rangle>); 
-              (rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T (Some p) (Some q)" |
-                                                       
-  no_tr[intro]:   "\<lbrakk>p' \<in> states M; (rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, p, x_end # \<rangle>z\<rangle>); 
+  some_tr: "\<lbrakk> p' \<in> states M; (rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, p, x_end # \<rangle>z\<rangle>); 
+             (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q', x_end # \<rangle>z\<rangle>); 
+             (rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T (Some p) (Some q)" |
+                             
+  no_tr:   "\<lbrakk> p' \<in> states M; (rev (\<langle>x\<langle>), p', \<rangle>z\<rangle>) \<rightarrow> (rev x_init, p, x_end # \<rangle>z\<rangle>); 
               \<nexists>q' q'' z. (rev x_init, p, x_end # \<rangle>z\<rangle>) \<rightarrow>\<^sup>L* (rev x_init, q', x_end # \<rangle>z\<rangle>) \<and>
               (rev x_init, q', x_end # \<rangle>z\<rangle>) \<rightarrow> (rev (\<langle>x\<langle>), q'', \<rangle>z\<rangle>)\<rbrakk> \<Longrightarrow> T (Some p) None" 
 
+declare T.intros[intro]
 
 inductive_cases init_trNoneE[elim]: "T None None"
 inductive_cases init_trSomeE[elim]: "T  None (Some q)"
@@ -1047,9 +1010,8 @@ proof -
 qed
 
 lemma init_no_tr_indep:
-  assumes "T None None"
-  shows "\<nexists>q. x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" 
-  using assms by auto
+  "T None None \<Longrightarrow> \<nexists>q. x @ z \<rightarrow>** (rev (\<langle>x\<langle>), q, \<rangle>z\<rangle>)" 
+by auto
 
 lemma some_tr_indep:
   assumes "T (Some p) (Some q)"
@@ -1212,6 +1174,7 @@ qed
 
 end
 
+
 section \<open>2DFAs and Regular Languages\<close>
 
 subsection \<open>Every Language Accepted by 2DFAs is Regular\<close>
@@ -1256,7 +1219,7 @@ lemma T_eq_impl_rconf_reachable:
       and not_empty:  "x \<noteq> []" "y \<noteq> []"
       and T_eq:       "T x = T y"
     shows "y @ z \<rightarrow>\<^sup>X*(y,n) (zs @ rev (\<langle>y\<langle>), q, v)"
-  using x_stepn proof (induction n arbitrary: zs q v rule: less_induct)
+using x_stepn proof (induction n arbitrary: zs q v rule: less_induct)
   case (less n)
   have T_axioms: "dfa2_transition M x" "dfa2_transition M y" using not_empty
      dfa2_axioms dfa2_transition_axioms_def dfa2_transition_def by auto
@@ -1526,7 +1489,6 @@ text \<open>There are finitely many transitions:\<close>
 definition \<T> :: "'a list \<Rightarrow> (state option \<times> state option) set" where
   "\<T> x \<equiv> {(q, p). dfa2_transition M x \<and> T x q p}"
 
-
 lemma \<T>_subset_states_none:
   shows "\<T> x \<subseteq> ({Some q | q. q \<in> states M} \<union> {None}) \<times> ({Some q | q. q \<in> states M} \<union> {None})"
     (is "_ \<subseteq> ?S \<times> _")
@@ -1566,7 +1528,6 @@ proof (rule ccontr)
     by (simp add: dfa2_transition_axioms_def dfa2_transition_def) 
   ultimately show False unfolding \<T>_def by blast 
 qed
-
 
 lemma T_eq_is_\<T>_eq:
   assumes "dfa2_transition M x"
@@ -1630,8 +1591,7 @@ proof
     moreover from this \<T>_Nil_eq_\<T>_Nil xy_def have "y \<noteq> []" by auto
     ultimately have T_axioms: "dfa2_transition M x"
                               "dfa2_transition M y"
-      by (simp add: dfa2_axioms dfa2_transition.intro
-          dfa2_transition_axioms.intro)+
+      by (simp add: dfa2_axioms dfa2_transition.intro dfa2_transition_axioms.intro)+
     then show ?thesis using T_eq_impl_eq_app_right
       unfolding eq_app_right_def
       by (smt (verit) T_eq_is_\<T>_eq \<T>_Nil_eq_\<T>_Nil case_prod_conv mem_Collect_eq xy_def(1,2))
@@ -1651,6 +1611,7 @@ proof -
 qed
 
 end
+
 
 subsection \<open>Every Regular Language is Accepted by Some 2DFA\<close>
 
@@ -1870,7 +1831,7 @@ proof -
       fix w
       assume "w \<in> M.Lang"
       then obtain u v where acc_reachable: "([], dfa2.init ?M', \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M'\<rparr> (u, dfa2.acc ?M', v)"
-        using dfa2.Lang_def[OF M.dfa2_axioms] by blast
+        using M.Lang_def by blast
       from nextl_reachable obtain q where final_state:
         "([], dfa2.init ?M', \<langle>w\<rangle>) \<rightarrow>*\<lparr>?M'\<rparr> (rev (\<langle>w\<langle>), q, [\<stileturn>])"
         "q \<in> dfa.states M"  "dfa.nextl M (dfa.init M) w = q" 
@@ -1903,9 +1864,9 @@ proof -
           with acc_reachable  consider 
             "((tl (rev (\<langle>w\<langle>)), dfa2.rej ?M', hd (rev (\<langle>w\<langle>)) # [\<stileturn>]) \<rightarrow>*\<lparr>?M'\<rparr> (u, dfa2.acc ?M', v))" |
             "(u, dfa2.acc ?M', v) \<rightarrow>*\<lparr>?M'\<rparr> (tl (rev (\<langle>w\<langle>)), dfa2.rej ?M', hd (rev (\<langle>w\<langle>)) # [\<stileturn>])" 
-            using dfa2.reachable_configs_impl_reachable M.dfa2_axioms by blast
+            using M.reachable_configs_impl_reachable by blast
           then show False
-            by cases (use dfa2.unchanged_final[OF M.dfa2_axioms] M.neq_final in fastforce)+  
+            by cases (use M.unchanged_final M.neq_final in fastforce)+  
           qed
       qed
       have "q \<in> dfa.final M"
@@ -1939,6 +1900,6 @@ text \<open>The equality follows trivially:\<close>
 
 corollary dfa2_accepts_regular_languages:
   "regular L = (\<exists>M. dfa2 M \<and> dfa2.Lang M = L)"
-  using dfa2.dfa2_Lang_regular regular_language_impl_dfa2 by fastforce
+using dfa2.dfa2_Lang_regular regular_language_impl_dfa2 by fastforce
 
 end

@@ -313,18 +313,32 @@ Split \<open>A\<close>-rules into \<open>A \<rightarrow> u\<close> and \<open>A 
 Keep \<open>A \<rightarrow> u\<close> but replace \<open>A \<rightarrow> A v\<close> by \<open>A \<rightarrow> u A'\<close>, \<open>A' \<rightarrow> v\<close>, \<open>A' \<rightarrow> v A'\<close>:\<close>
 definition rrec_of_lrec ::  "'n \<Rightarrow> 'n \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t)Prods" where
 "rrec_of_lrec A A' R =
-  (let V = {v. (A,Nt A # v) \<in> R \<and> v \<noteq> []};
+  (let W = {w. (A,Nt A # w) \<in> R};
+       V = {v. v \<in> W \<and> v \<noteq> []};
        U = {u. (A,u) \<in> R \<and> \<not>(\<exists>v. u = Nt A # v) }
-  in (\<Union>u\<in>U. {(A,u)}) \<union> (\<Union>u\<in>U. {(A,u@[Nt A'])}) \<union> (\<Union>v\<in>V. {(A',v)}) \<union> (\<Union>v\<in>V. {(A',v @ [Nt A'])}))"
-text \<open>Possible optimization: if there is no left-recursion, we don't need to do anything:
- \<open>in if V = {} then R else \<dots>\<close>.\<close>
+  in if W = {} then R else (\<Union>u\<in>U. {(A,u)}) \<union> (\<Union>u\<in>U. {(A,u@[Nt A'])}) \<union> (\<Union>v\<in>V. {(A',v)}) \<union> (\<Union>v\<in>V. {(A',v @ [Nt A'])}))"
 
 lemma rrec_of_lrec_code[code]: "rrec_of_lrec A A' R =
   (let RA = Rhss R A;
-       V = (\<Union> w \<in> RA. if w \<noteq> [] \<and> hd w = Nt A \<and> tl w \<noteq> [] then {tl w} else {});
+       W = (\<Union> w \<in> RA. if w \<noteq> [] \<and> hd w = Nt A then {tl w} else {});
+       V = (\<Union> w \<in> W. if w \<noteq> [] then {w} else {});
        U = {u \<in> RA. u = [] \<or> hd u \<noteq> Nt A }
-  in ({A} \<times> U) \<union> (\<Union>u\<in>U. {(A,u@[Nt A'])}) \<union> ({A'} \<times> V) \<union> (\<Union>v\<in>V. {(A',v @ [Nt A'])}))"
-by(auto simp add: rrec_of_lrec_def Let_def Rhss_def neq_Nil_conv)
+  in if W = {} then R else ({A} \<times> U) \<union> (\<Union>u\<in>U. {(A,u@[Nt A'])}) \<union> ({A'} \<times> V) \<union> (\<Union>v\<in>V. {(A',v @ [Nt A'])}))"
+proof -
+  let ?RA = "Rhss R A"
+  let ?Wc = "(\<Union> w \<in> ?RA. if w \<noteq> [] \<and> hd w = Nt A then {tl w} else {})"
+  let ?Vc = "(\<Union> w \<in> ?Wc. if w \<noteq> [] then {w} else {})"
+  let ?Uc = "{u \<in> ?RA. u = [] \<or> hd u \<noteq> Nt A }"
+
+  let ?W = "{w. (A,Nt A # w) \<in> R}"
+  let ?V = "{v. v \<in> ?W \<and> v \<noteq> []}"
+  let ?U = "{u. (A,u) \<in> R \<and> \<not>(\<exists>v. u = Nt A # v) }"
+  have 1: "?W = ?Wc" by (auto simp add: Rhss_def neq_Nil_conv)
+  then have 2: "?V = ?Vc" by auto
+  have 3: "?U = ?Uc" by (auto simp add: Rhss_def neq_Nil_conv)
+
+  then show ?thesis by (auto simp add: rrec_of_lrec_def if_split_mem2 Let_def 1)
+qed
 
 text \<open>Solve left-recursions: Solves the left-recursion of Nt \<open>A\<close> by replacing it with a 
 right-recursion on a fresh Nt \<open>A'\<close>. The fresh Nt \<open>A'\<close> is also given as a parameter.\<close>
@@ -512,22 +526,24 @@ lemma solve_lrec_rule_simp1: "A \<noteq> B \<Longrightarrow> A \<noteq> B' \<Lon
 
 lemma solve_lrec_rule_simp2: "A \<noteq> A' \<Longrightarrow> A' \<notin> Nts R \<Longrightarrow> w \<noteq> [] \<Longrightarrow> last w \<noteq> Nt A' 
   \<Longrightarrow> (A, w) \<in> solve_lrec A A' R \<Longrightarrow> (A, w) \<in> R"
-  by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def)
+  by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def if_split_mem2)
 
 lemma solve_lrec_rule_simp3: "A \<noteq> A' \<Longrightarrow> A' \<notin> Nts R \<Longrightarrow> Eps_free R 
   \<Longrightarrow> (A, [Nt A']) \<notin> solve_lrec A A' R"
   by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def Eps_free_def)
 
 lemma solve_lrec_rule_simp4: "A' \<notin> Nts R \<Longrightarrow> (A, w @ [Nt A']) \<in> solve_lrec A A' R \<Longrightarrow> (A, w) \<in> R"
-  by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def)
+  by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def if_split_mem2)
 
 lemma solve_lrec_rule_simp5: "A' \<notin> Nts R \<Longrightarrow> (A',w @ [Nt A']) \<in> (solve_lrec A A' R) 
   \<Longrightarrow> A' \<notin> nts_syms w"
-  by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def nts_syms_def)
+  by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def nts_syms_def 
+      if_split_mem2)
 
 lemma solve_lrec_rule_simp6: "A' \<notin> Nts R \<Longrightarrow> last w \<noteq> Nt A'  \<Longrightarrow> (A',w) \<in> (solve_lrec A A' R) 
   \<Longrightarrow> A' \<notin> nts_syms w"
-  by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def nts_syms_def)
+  by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def nts_syms_def 
+      if_split_mem2)
 
 lemma solve_lrec_rule_simp7: "A' \<noteq> A \<Longrightarrow> A' \<notin> Nts R \<Longrightarrow> (A', Nt A' # w) \<notin> solve_lrec A A' R"
 proof (rule ccontr)
@@ -547,7 +563,7 @@ proof (rule ccontr)
   qed
   then show "False" using assms 
     by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def nts_syms_def 
-        split: prod.splits)
+        if_split_mem2 split: prod.splits)
 qed
 
 lemma solve_lrec_rule_simp8: "A' \<notin> Nts R \<Longrightarrow> B \<noteq> A' \<Longrightarrow> B \<noteq> A 
@@ -983,139 +999,148 @@ lemma tm_derive_impl_solve_lrec_derive:
 proof (induction n arbitrary: p q rule: nat_less_induct)
   case (1 n)
   then show ?case
-  proof (cases "nts_syms p = {}")
+  proof (cases "solve_lrec B B' R = R")
     case True
-    then obtain pt where "p = map Tm pt" using nts_syms_empty_iff by blast
-    then have "map Tm q = p"
-      using deriven_from_TmsD "1.prems"(5) by blast
-    then show ?thesis by simp
-  next
-    case False
-    then have "\<exists>C pt p2. p = map Tm pt @ Nt C # p2" using non_word_has_first_Nt[of p] by auto
-    then obtain C pt p2 where P: "p = map Tm pt @ Nt C # p2" by blast
-    then have "R \<turnstile> map Tm pt @ Nt C # p2 \<Rightarrow>l(n) map Tm q" 
-      using 1 by (simp add: deriveln_iff_deriven)
-    then have "\<exists>q2. map Tm q = map Tm pt @ q2 \<and> R \<turnstile> Nt C # p2 \<Rightarrow>l(n) q2"
-      by (simp add: deriveln_map_Tm_append[of "n" R "pt" "Nt C # p2" "map Tm q"])
-    then obtain q2 where P1: "map Tm q = map Tm pt @ q2 \<and> R \<turnstile> Nt C # p2 \<Rightarrow>l(n) q2" by blast
-    then have "n \<noteq> 0"
-      by (metis False P nts_syms_map_Tm relpowp_0_E)
-    then have "\<exists>m. n = Suc m"
-      by (meson old.nat.exhaust)
-    then obtain m where n_Suc: "n = Suc m" by blast
-    have "\<exists>q2t. q2 = map Tm q2t"
-      by (metis P1 append_eq_map_conv)
-    then obtain q2t where q2_tms: "q2 = map Tm q2t" by blast
     then show ?thesis
-    proof (cases "C = B")
+      by (metis "1.prems"(5) relpowp_imp_rtranclp)
+  next
+    case solve_lrec_not_R: False
+    then show ?thesis
+    proof (cases "nts_syms p = {}")
       case True
-      then have n_derive: "R \<turnstile> Nt B # p2 \<Rightarrow>(n) q2" using P1
-        by (simp add: deriveln_imp_deriven)
-      have "\<nexists>v2. q2 = Nt B #v2 \<and> R \<turnstile> p2 \<Rightarrow>(n) v2" using q2_tms by auto
-      then have "\<exists>n1 n2 w v1 v2. n = Suc (n1 + n2) \<and> q2 = v1 @ v2 \<and>
-          (B,w) \<in> R \<and> R \<turnstile> w \<Rightarrow>(n1) v1 \<and> R \<turnstile> p2 \<Rightarrow>(n2) v2" using n_derive deriven_Cons_decomp
-        by (smt (verit) sym.inject(1))
-      then obtain n1 n2 w v1 v2 where decomp: "n = Suc (n1 + n2) \<and> q2 = v1 @ v2 \<and>
-          (B,w) \<in> R \<and> R \<turnstile> w \<Rightarrow>(n1) v1 \<and> R \<turnstile> p2 \<Rightarrow>(n2) v2" by blast
-      then have derive_from_singleton: "R \<turnstile> [Nt B] \<Rightarrow>(Suc n1) v1"
-        using deriven_Suc_decomp_left by force
-
-      have "v1 \<noteq> []"
-        using "1.prems"(1) Eps_free_deriven_Nil derive_from_singleton by auto
-      then have "\<exists>v1t. v1 = map Tm v1t"
-        using decomp append_eq_map_conv q2_tms by blast
-      then obtain v1t where v1_tms: "v1 = map Tm v1t" by blast
-      then have v1_hd: "hd v1 \<noteq> Nt B"
-        by (metis Nil_is_map_conv \<open>v1 \<noteq> []\<close> hd_map sym.distinct(1))
-
-      have deriveln_from_singleton: "R \<turnstile> [Nt B] \<Rightarrow>l(Suc n1) v1" using v1_tms derive_from_singleton
-        by (simp add: deriveln_iff_deriven)
-
-      text \<open>This is the interesting bit where we use other lemmas to prove that we can replace a 
-            specific part of the derivation which is a left-recursion by a right-recursion in the 
-            new productions.\<close>
-      let ?S = "{x. (\<exists>v. x = (B, v) \<and> x \<in> R)}"
-      have "\<exists>u w m k. ?S \<turnstile> [Nt B] \<Rightarrow>l(m) Nt B # u \<and> ?S \<turnstile> Nt B # u \<Rightarrow>l w \<and> 
-         hd w \<noteq> Nt B \<and> R \<turnstile> w \<Rightarrow>l(k) v1 \<and> Suc n1 = m + k + 1"
-        using deriveln_from_singleton v1_hd 1 lrec_decomp[of ?S B R "[Nt B]" v1 "Suc n1"] by auto
-      then obtain u w2 m2 k where l_decomp: "?S \<turnstile> [Nt B] \<Rightarrow>l(m2) Nt B # u \<and> ?S \<turnstile> Nt B # u \<Rightarrow>l w2 \<and> 
-         hd w2 \<noteq> Nt B \<and> R \<turnstile> w2 \<Rightarrow>l(k) v1 \<and> Suc n1 = m2 + k + 1" 
-        by blast
-      then have "\<exists>w2'. (B,w2') \<in> ?S \<and> w2 = w2' @ u" by (simp add: derivel_Nt_Cons)
-      then obtain w2' where w2'_prod: "(B,w2') \<in> ?S \<and> w2 = w2' @ u" by blast
-      then have w2'_props: "w2' \<noteq> [] \<and> hd w2' \<noteq> Nt B"
-        by (metis (mono_tags, lifting) "1.prems"(1) Eps_free_Nil l_decomp hd_append mem_Collect_eq)
-
-      have solve_lrec_subset: "solve_lrec B B' ?S \<subseteq> solve_lrec B B' R" 
-        by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def)
-
-      have "solve_lrec B B' ?S \<turnstile> [Nt B] \<Rightarrow>* w2"
-        proof(cases "u = []")
-          case True
-          have "(B, w2') \<in> solve_lrec B B' ?S"
-            using  w2'_props w2'_prod 
-            by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def)
-          then show ?thesis
-            by (simp add: True bu_prod derives_if_bu w2'_prod)
-        next
-          case False
-          have solved_prod: "(B, w2' @ [Nt B']) \<in> solve_lrec B B' ?S"
-            using  w2'_props w2'_prod
-            by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def)
-          have "rm_self_loops ?S \<turnstile> [Nt B] \<Rightarrow>l* Nt B # u"
-            using l_decomp rm_self_loops_derivels by auto
-          then have "\<exists>ln. rm_self_loops ?S \<turnstile> [Nt B] \<Rightarrow>l(ln) Nt B # u"
-            by (simp add: rtranclp_power)
-          then obtain ln where "rm_self_loops ?S \<turnstile> [Nt B] \<Rightarrow>l(ln) Nt B # u" by blast
-          then have "(solve_lrec B B' ?S) \<turnstile> [Nt B'] \<Rightarrow>(ln) u"
-            using lrec_lemma3[of ?S B R ln u] 1 False by auto
-          then have rrec_derive: "(solve_lrec B B' ?S) \<turnstile> w2' @ [Nt B'] \<Rightarrow>(ln) w2' @ u"
-            by (simp add: deriven_prepend)
-          have "(solve_lrec B B' ?S) \<turnstile> [Nt B] \<Rightarrow> w2' @ [Nt B']"
-            using solved_prod by (simp add: derive_singleton)
-          then have "(solve_lrec B B' ?S) \<turnstile> [Nt B] \<Rightarrow>* w2' @ u"
-            using rrec_derive by (simp add: converse_rtranclp_into_rtranclp relpowp_imp_rtranclp)
-          then show ?thesis using w2'_prod by auto
-        qed
-        then have 2: "solve_lrec B B' R \<turnstile> [Nt B] \<Rightarrow>* w2"
-          using solve_lrec_subset by (simp add: derives_mono)
-
-      text \<open>From here on all the smaller derivations are concatenated again after applying the IH.\<close>
-      have fact2: "R \<turnstile> w2 \<Rightarrow>l(k) v1 \<and> Suc n1 = m2 + k + 1" using l_decomp by auto
-      then have "k < n"
-        using decomp by linarith
-      then have 3: "solve_lrec B B' R \<turnstile> w2 \<Rightarrow>* v1" using "1.IH" 1 v1_tms fact2
-        by (metis deriveln_iff_deriven derives_from_empty relpowp_imp_rtranclp)
-
-      have 4: "solve_lrec B B' R \<turnstile> [Nt B] \<Rightarrow>* v1" using 2 3
-        by auto
-
-      have "\<exists>v2t. v2 = map Tm v2t" using decomp append_eq_map_conv q2_tms by blast
-      then obtain v2t where v2_tms: "v2 = map Tm v2t" by blast
-      have "n2 < n" using decomp by auto
-      then have 5: "solve_lrec B B' R \<turnstile> p2 \<Rightarrow>* v2" using "1.IH" 1 decomp v2_tms
-        by (metis derives_from_empty relpowp_imp_rtranclp)
-
-      have "solve_lrec B B' R \<turnstile> Nt B # p2 \<Rightarrow>* q2" using 4 5 decomp
-        by (metis append_Cons append_Nil derives_append_decomp)
-      then show ?thesis
-        by (simp add: P P1 True derives_prepend)
+      then obtain pt where "p = map Tm pt" using nts_syms_empty_iff by blast
+      then have "map Tm q = p"
+        using deriven_from_TmsD "1.prems"(5) by blast
+      then show ?thesis by simp
     next
-      case C_not_B: False
-      then have "\<exists>w. (C, w) \<in> R \<and> R \<turnstile> w @ p2 \<Rightarrow>l(m) q2"
-        by (metis P1 derivel_Nt_Cons relpowp_Suc_D2 n_Suc)
-      then obtain w where P2: "(C, w) \<in> R \<and> R \<turnstile> w @ p2 \<Rightarrow>l(m) q2" by blast
-      then have rule_in_solve_lrec: "(C, w) \<in> (solve_lrec B B' R)" 
-        using C_not_B by (auto simp add: solve_lrec_def rm_lrec_def)
-      have derivem: "R \<turnstile> w @ p2 \<Rightarrow>(m) q2" using q2_tms P2 by (auto simp add: deriveln_iff_deriven)
-      have "w @ p2 \<noteq> []"
-        using "1.prems"(1) Eps_free_Nil P2 by fastforce
-      then have "(solve_lrec B B' R) \<turnstile> w @ p2 \<Rightarrow>* q2" using 1 q2_tms n_Suc derivem
-        by auto
-      then have "(solve_lrec B B' R) \<turnstile> Nt C # p2 \<Rightarrow>* q2" 
-        using rule_in_solve_lrec by (auto simp add: derives_Cons_rule)
+      case False
+      then have "\<exists>C pt p2. p = map Tm pt @ Nt C # p2" using non_word_has_first_Nt[of p] by auto
+      then obtain C pt p2 where P: "p = map Tm pt @ Nt C # p2" by blast
+      then have "R \<turnstile> map Tm pt @ Nt C # p2 \<Rightarrow>l(n) map Tm q" 
+        using 1 by (simp add: deriveln_iff_deriven)
+      then have "\<exists>q2. map Tm q = map Tm pt @ q2 \<and> R \<turnstile> Nt C # p2 \<Rightarrow>l(n) q2"
+        by (simp add: deriveln_map_Tm_append[of "n" R "pt" "Nt C # p2" "map Tm q"])
+      then obtain q2 where P1: "map Tm q = map Tm pt @ q2 \<and> R \<turnstile> Nt C # p2 \<Rightarrow>l(n) q2" by blast
+      then have "n \<noteq> 0"
+        by (metis False P nts_syms_map_Tm relpowp_0_E)
+      then have "\<exists>m. n = Suc m"
+        by (meson old.nat.exhaust)
+      then obtain m where n_Suc: "n = Suc m" by blast
+      have "\<exists>q2t. q2 = map Tm q2t"
+        by (metis P1 append_eq_map_conv)
+      then obtain q2t where q2_tms: "q2 = map Tm q2t" by blast
       then show ?thesis
-        by (simp add: P P1 derives_prepend)
+      proof (cases "C = B")
+        case True
+        then have n_derive: "R \<turnstile> Nt B # p2 \<Rightarrow>(n) q2" using P1
+          by (simp add: deriveln_imp_deriven)
+        have "\<nexists>v2. q2 = Nt B #v2 \<and> R \<turnstile> p2 \<Rightarrow>(n) v2" using q2_tms by auto
+        then have "\<exists>n1 n2 w v1 v2. n = Suc (n1 + n2) \<and> q2 = v1 @ v2 \<and>
+            (B,w) \<in> R \<and> R \<turnstile> w \<Rightarrow>(n1) v1 \<and> R \<turnstile> p2 \<Rightarrow>(n2) v2" using n_derive deriven_Cons_decomp
+          by (smt (verit) sym.inject(1))
+        then obtain n1 n2 w v1 v2 where decomp: "n = Suc (n1 + n2) \<and> q2 = v1 @ v2 \<and>
+            (B,w) \<in> R \<and> R \<turnstile> w \<Rightarrow>(n1) v1 \<and> R \<turnstile> p2 \<Rightarrow>(n2) v2" by blast
+        then have derive_from_singleton: "R \<turnstile> [Nt B] \<Rightarrow>(Suc n1) v1"
+          using deriven_Suc_decomp_left by force
+  
+        have "v1 \<noteq> []"
+          using "1.prems"(1) Eps_free_deriven_Nil derive_from_singleton by auto
+        then have "\<exists>v1t. v1 = map Tm v1t"
+          using decomp append_eq_map_conv q2_tms by blast
+        then obtain v1t where v1_tms: "v1 = map Tm v1t" by blast
+        then have v1_hd: "hd v1 \<noteq> Nt B"
+          by (metis Nil_is_map_conv \<open>v1 \<noteq> []\<close> hd_map sym.distinct(1))
+  
+        have deriveln_from_singleton: "R \<turnstile> [Nt B] \<Rightarrow>l(Suc n1) v1" using v1_tms derive_from_singleton
+          by (simp add: deriveln_iff_deriven)
+  
+        text \<open>This is the interesting bit where we use other lemmas to prove that we can replace a 
+              specific part of the derivation which is a left-recursion by a right-recursion in the 
+              new productions.\<close>
+        let ?S = "{x. (\<exists>v. x = (B, v) \<and> x \<in> R)}"
+        have "\<exists>u w m k. ?S \<turnstile> [Nt B] \<Rightarrow>l(m) Nt B # u \<and> ?S \<turnstile> Nt B # u \<Rightarrow>l w \<and> 
+           hd w \<noteq> Nt B \<and> R \<turnstile> w \<Rightarrow>l(k) v1 \<and> Suc n1 = m + k + 1"
+          using deriveln_from_singleton v1_hd 1 lrec_decomp[of ?S B R "[Nt B]" v1 "Suc n1"] by auto
+        then obtain u w2 m2 k where l_decomp: "?S \<turnstile> [Nt B] \<Rightarrow>l(m2) Nt B # u \<and> ?S \<turnstile> Nt B # u \<Rightarrow>l w2 
+            \<and> hd w2 \<noteq> Nt B \<and> R \<turnstile> w2 \<Rightarrow>l(k) v1 \<and> Suc n1 = m2 + k + 1" 
+          by blast
+        then have "\<exists>w2'. (B,w2') \<in> ?S \<and> w2 = w2' @ u" by (simp add: derivel_Nt_Cons)
+        then obtain w2' where w2'_prod: "(B,w2') \<in> ?S \<and> w2 = w2' @ u" by blast
+        then have w2'_props: "w2' \<noteq> [] \<and> hd w2' \<noteq> Nt B"
+          by (metis (mono_tags, lifting) "1.prems"(1) Eps_free_Nil l_decomp 
+              hd_append mem_Collect_eq)
+  
+        have solve_lrec_subset: "solve_lrec B B' ?S \<subseteq> solve_lrec B B' R" 
+          by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def)
+  
+        have "solve_lrec B B' ?S \<turnstile> [Nt B] \<Rightarrow>* w2"
+          proof(cases "u = []")
+            case True
+            have "(B, w2') \<in> solve_lrec B B' ?S"
+              using  w2'_props w2'_prod 
+              by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def)
+            then show ?thesis
+              by (simp add: True bu_prod derives_if_bu w2'_prod)
+          next
+            case False
+            have solved_prod: "(B, w2' @ [Nt B']) \<in> solve_lrec B B' ?S"
+              using  w2'_props w2'_prod solve_lrec_not_R
+              by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def if_split_mem2)
+            have "rm_self_loops ?S \<turnstile> [Nt B] \<Rightarrow>l* Nt B # u"
+              using l_decomp rm_self_loops_derivels by auto
+            then have "\<exists>ln. rm_self_loops ?S \<turnstile> [Nt B] \<Rightarrow>l(ln) Nt B # u"
+              by (simp add: rtranclp_power)
+            then obtain ln where "rm_self_loops ?S \<turnstile> [Nt B] \<Rightarrow>l(ln) Nt B # u" by blast
+            then have "(solve_lrec B B' ?S) \<turnstile> [Nt B'] \<Rightarrow>(ln) u"
+              using lrec_lemma3[of ?S B R ln u] 1 False by auto
+            then have rrec_derive: "(solve_lrec B B' ?S) \<turnstile> w2' @ [Nt B'] \<Rightarrow>(ln) w2' @ u"
+              by (simp add: deriven_prepend)
+            have "(solve_lrec B B' ?S) \<turnstile> [Nt B] \<Rightarrow> w2' @ [Nt B']"
+              using solved_prod by (simp add: derive_singleton)
+            then have "(solve_lrec B B' ?S) \<turnstile> [Nt B] \<Rightarrow>* w2' @ u"
+              using rrec_derive by (simp add: converse_rtranclp_into_rtranclp relpowp_imp_rtranclp)
+            then show ?thesis using w2'_prod by auto
+          qed
+          then have 2: "solve_lrec B B' R \<turnstile> [Nt B] \<Rightarrow>* w2"
+            using solve_lrec_subset by (simp add: derives_mono)
+  
+        text \<open>From here on all the smaller derivations are concatenated after applying the IH.\<close>
+        have fact2: "R \<turnstile> w2 \<Rightarrow>l(k) v1 \<and> Suc n1 = m2 + k + 1" using l_decomp by auto
+        then have "k < n"
+          using decomp by linarith
+        then have 3: "solve_lrec B B' R \<turnstile> w2 \<Rightarrow>* v1" using "1.IH" 1 v1_tms fact2
+          by (metis deriveln_iff_deriven derives_from_empty relpowp_imp_rtranclp)
+  
+        have 4: "solve_lrec B B' R \<turnstile> [Nt B] \<Rightarrow>* v1" using 2 3
+          by auto
+  
+        have "\<exists>v2t. v2 = map Tm v2t" using decomp append_eq_map_conv q2_tms by blast
+        then obtain v2t where v2_tms: "v2 = map Tm v2t" by blast
+        have "n2 < n" using decomp by auto
+        then have 5: "solve_lrec B B' R \<turnstile> p2 \<Rightarrow>* v2" using "1.IH" 1 decomp v2_tms
+          by (metis derives_from_empty relpowp_imp_rtranclp)
+  
+        have "solve_lrec B B' R \<turnstile> Nt B # p2 \<Rightarrow>* q2" using 4 5 decomp
+          by (metis append_Cons append_Nil derives_append_decomp)
+        then show ?thesis
+          by (simp add: P P1 True derives_prepend)
+      next
+        case C_not_B: False
+        then have "\<exists>w. (C, w) \<in> R \<and> R \<turnstile> w @ p2 \<Rightarrow>l(m) q2"
+          by (metis P1 derivel_Nt_Cons relpowp_Suc_D2 n_Suc)
+        then obtain w where P2: "(C, w) \<in> R \<and> R \<turnstile> w @ p2 \<Rightarrow>l(m) q2" by blast
+        then have rule_in_solve_lrec: "(C, w) \<in> (solve_lrec B B' R)" 
+          using C_not_B by (auto simp add: solve_lrec_def rm_lrec_def)
+        have derivem: "R \<turnstile> w @ p2 \<Rightarrow>(m) q2" using q2_tms P2 by (auto simp add: deriveln_iff_deriven)
+        have "w @ p2 \<noteq> []"
+          using "1.prems"(1) Eps_free_Nil P2 by fastforce
+        then have "(solve_lrec B B' R) \<turnstile> w @ p2 \<Rightarrow>* q2" using 1 q2_tms n_Suc derivem
+          by auto
+        then have "(solve_lrec B B' R) \<turnstile> Nt C # p2 \<Rightarrow>* q2" 
+          using rule_in_solve_lrec by (auto simp add: derives_Cons_rule)
+        then show ?thesis
+          by (simp add: P P1 derives_prepend)
+      qed
     qed
   qed
 qed
@@ -1394,7 +1419,7 @@ proof (induction arbitrary: p q rule: nat_less_induct)
         then have "(B, Nt B # v') \<in> R"
           using "1.prems" rec_decomp
           by (auto simp add: solve_lrec_def rm_lrec_def rrec_of_lrec_def Let_def Nts_def
-              nts_syms_def)
+              nts_syms_def if_split_mem2)
         then have "R \<turnstile> [Nt B] \<Rightarrow> Nt B # v'"
           by (simp add: derive_singleton)
         then have "R \<turnstile> [Nt B] @ v' \<Rightarrow>* Nt B # u @ v'"

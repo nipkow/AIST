@@ -316,7 +316,7 @@ definition rrec_of_lrec ::  "'n \<Rightarrow> 'n \<Rightarrow> ('n,'t)Prods \<Ri
   (let W = {w. (A,Nt A # w) \<in> R};
        V = {v. v \<in> W \<and> v \<noteq> []};
        U = {u. (A,u) \<in> R \<and> \<not>(\<exists>v. u = Nt A # v) }
-  in if W = {} then R else (\<Union>u\<in>U. {(A,u)}) \<union> (\<Union>u\<in>U. {(A,u@[Nt A'])}) \<union> (\<Union>v\<in>V. {(A',v)}) \<union> (\<Union>v\<in>V. {(A',v @ [Nt A'])}))"
+  in if W = {} then R else ({A} \<times> U) \<union> (\<Union>u\<in>U. {(A,u@[Nt A'])}) \<union> ({A'} \<times> V) \<union> (\<Union>v\<in>V. {(A',v @ [Nt A'])}))"
 
 lemma rrec_of_lrec_code[code]: "rrec_of_lrec A A' R =
   (let RA = Rhss R A;
@@ -334,10 +334,11 @@ proof -
   let ?V = "{v. v \<in> ?W \<and> v \<noteq> []}"
   let ?U = "{u. (A,u) \<in> R \<and> \<not>(\<exists>v. u = Nt A # v) }"
   have 1: "?W = ?Wc" by (auto simp add: Rhss_def neq_Nil_conv)
-  then have 2: "?V = ?Vc" by auto
-  have 3: "?U = ?Uc" by (auto simp add: Rhss_def neq_Nil_conv)
+  moreover then have 2: "?V = ?Vc" by auto
+  moreover have 3: "?U = ?Uc" by (auto simp add: Rhss_def neq_Nil_conv)
 
-  then show ?thesis by (auto simp add: rrec_of_lrec_def if_split_mem2 Let_def 1)
+  ultimately show ?thesis
+    unfolding rrec_of_lrec_def Let_def by presburger
 qed
 
 text \<open>Solve left-recursions: Solves the left-recursion of Nt \<open>A\<close> by replacing it with a 

@@ -310,32 +310,32 @@ by(auto simp add: rm_lrec_def neq_Nil_conv)
 
 text \<open>Make right-recursion of left-recursion: Conversion from left-recursion to right-recursion:
 Split \<open>A\<close>-rules into \<open>A \<rightarrow> u\<close> and \<open>A \<rightarrow> A v\<close>.
-Keep \<open>A \<rightarrow> u\<close> but replace \<open>A \<rightarrow> A v\<close> by \<open>A \<rightarrow> u A'\<close>, \<open>A' \<rightarrow> v\<close>, \<open>A' \<rightarrow> v A'\<close>:\<close>
+Keep \<open>A \<rightarrow> u\<close> but replace \<open>A \<rightarrow> A v\<close> by \<open>A \<rightarrow> u A'\<close>, \<open>A' \<rightarrow> v\<close>, \<open>A' \<rightarrow> v A'\<close>.
+
+The then part of the if statement is only an optimisation, so that we do not introduce the 
+\<open>A \<rightarrow> u A'\<close> rules if we do not introduce any \<open>A'\<close> rules, but the function also works, if we always 
+enter the else part.\<close>
 definition rrec_of_lrec ::  "'n \<Rightarrow> 'n \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t)Prods" where
 "rrec_of_lrec A A' R =
-  (let W = {w. (A,Nt A # w) \<in> R};
-       V = {v. v \<in> W \<and> v \<noteq> []};
+  (let V = {v. (A,Nt A # v) \<in> R \<and> v \<noteq> []};
        U = {u. (A,u) \<in> R \<and> \<not>(\<exists>v. u = Nt A # v) }
-  in if W = {} then R else ({A} \<times> U) \<union> (\<Union>u\<in>U. {(A,u@[Nt A'])}) \<union> ({A'} \<times> V) \<union> (\<Union>v\<in>V. {(A',v @ [Nt A'])}))"
+  in if V = {} then R - {(A, [Nt A])} else ({A} \<times> U) \<union> (\<Union>u\<in>U. {(A,u@[Nt A'])}) \<union> ({A'} \<times> V) \<union> (\<Union>v\<in>V. {(A',v @ [Nt A'])}))"
 
 lemma rrec_of_lrec_code[code]: "rrec_of_lrec A A' R =
   (let RA = Rhss R A;
-       W = (\<Union> w \<in> RA. if w \<noteq> [] \<and> hd w = Nt A then {tl w} else {});
-       V = (\<Union> w \<in> W. if w \<noteq> [] then {w} else {});
+       V = (\<Union> w \<in> RA. if w \<noteq> [] \<and> hd w = Nt A \<and> tl w \<noteq> [] then {tl w} else {});
        U = {u \<in> RA. u = [] \<or> hd u \<noteq> Nt A }
-  in if W = {} then R else ({A} \<times> U) \<union> (\<Union>u\<in>U. {(A,u@[Nt A'])}) \<union> ({A'} \<times> V) \<union> (\<Union>v\<in>V. {(A',v @ [Nt A'])}))"
+  in if V = {} then R - {(A, [Nt A])} else ({A} \<times> U) \<union> (\<Union>u\<in>U. {(A,u@[Nt A'])}) \<union> ({A'} \<times> V) \<union> (\<Union>v\<in>V. {(A',v @ [Nt A'])}))"
 proof -
   let ?RA = "Rhss R A"
-  let ?Wc = "(\<Union> w \<in> ?RA. if w \<noteq> [] \<and> hd w = Nt A then {tl w} else {})"
-  let ?Vc = "(\<Union> w \<in> ?Wc. if w \<noteq> [] then {w} else {})"
+  let ?Vc = "(\<Union> w \<in> ?RA. if w \<noteq> [] \<and> hd w = Nt A \<and> tl w \<noteq> [] then {tl w} else {})"
   let ?Uc = "{u \<in> ?RA. u = [] \<or> hd u \<noteq> Nt A }"
 
-  let ?W = "{w. (A,Nt A # w) \<in> R}"
-  let ?V = "{v. v \<in> ?W \<and> v \<noteq> []}"
+  let ?V = "{v. (A,Nt A # v) \<in> R \<and> v \<noteq> []}"
   let ?U = "{u. (A,u) \<in> R \<and> \<not>(\<exists>v. u = Nt A # v) }"
-  have 1: "?W = ?Wc" by (auto simp add: Rhss_def neq_Nil_conv)
-  moreover then have 2: "?V = ?Vc" by auto
-  moreover have 3: "?U = ?Uc" by (auto simp add: Rhss_def neq_Nil_conv)
+
+  have 1: "?V = ?Vc" by (auto simp add: Rhss_def neq_Nil_conv)
+  moreover have 2: "?U = ?Uc" by (auto simp add: Rhss_def neq_Nil_conv)
 
   ultimately show ?thesis
     unfolding rrec_of_lrec_def Let_def by presburger
@@ -1000,10 +1000,14 @@ lemma tm_derive_impl_solve_lrec_derive:
 proof (induction n arbitrary: p q rule: nat_less_induct)
   case (1 n)
   then show ?case
-  proof (cases "solve_lrec B B' R = R")
+  proof (cases "solve_lrec B B' R = R - {(B, [Nt B])}")
     case True
-    then show ?thesis
-      by (metis "1.prems"(5) relpowp_imp_rtranclp)
+    have 2: "rm_self_loops R \<subseteq> R - {(B, [Nt B])}" by (auto simp add: rm_self_loops_def)
+    have "rm_self_loops R \<turnstile> p \<Rightarrow>* map Tm q" 
+      using rm_self_loops_derivels "1.prems"(5) deriveln_iff_deriven derivels_imp_derives 
+      by blast
+    then show ?thesis 
+      using 2 by (simp add: True derives_mono)
   next
     case solve_lrec_not_R: False
     then show ?thesis

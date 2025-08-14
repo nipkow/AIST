@@ -303,7 +303,7 @@ proof(induction sols eqs arbitrary: k n rule: solves.induct)
 next
   case (2 sols c cs eqs)
   show ?case using "2.prems" "2.IH"[OF refl refl refl, of "k-1" "n+1"]
-    by(auto simp add: length_solve1 length_subst mx_def Let_def)
+    by(auto simp: length_solve1 length_subst mx_def Let_def)
 qed (auto simp: mx_def)
 
 lemma length_in_solves:
@@ -315,7 +315,7 @@ next
   case (2 sols c cs eqs as)
   show ?case using "2.prems"
     using  "2.IH"[OF refl refl refl, of "k-1" "n+1" as]
-    by(auto simp add: length_solve1 length_subst mx_def Let_def)
+    by(auto simp: length_solve1 length_subst mx_def Let_def)
 qed (auto simp: mx_def)
 
 lemma mx_solves:
@@ -339,7 +339,7 @@ lemma dot_one_hd: "length xs > 0 ⟹  φ (dot xs [1]) = φ (hd xs)"
 
 
 text ‹
-The solutions of systems of equations with 0 variables
+The solutions of systems of equations with no variables
 are trivial to obtain
 ›
 
@@ -387,7 +387,7 @@ To prove that a solution of the trivial system returned by the algorithm
 is also a solution of the input, we need to generalize to non-empty accumulator values.
 ›
 
-theorem solves_correct:
+theorem solves_sound_generalization:
   "⟦ mx n (Suc n) eqns; mx m (Suc n) sols; length Ys = n;
     is_sols (Xs@Ys) (rev (solves sols eqns)) []
     ⟧ ⟹
@@ -466,19 +466,20 @@ next
   then show ?case by (simp add: mx_def)
 qed
 
-corollary solves_correct': "
+text ‹The special case we are actually interested in›
+corollary solves_sound: "
   ⟦ mx n (Suc n) eqns; length Ys = n;
     is_sols Ys (rev (solves [] eqns)) []
     ⟧ ⟹
     is_sols Ys eqns Ys
      "
-using solves_correct[of n eqns 0 "[]" Ys "[]"] by (simp add: mx_def)
+using solves_sound_generalization[of n eqns 0 "[]" Ys "[]"] by (simp add: mx_def)
 
 
 lemma is_sols_rev: "is_sols (rev Ys) (rev eqns) Xs = is_sols Ys eqns Xs"
   unfolding is_sols2_eqiv by simp
 
-lemma solves_correct'':
+lemma solves_sound':
 assumes mx_eqns: "mx n (Suc n) eqns"
   and Ys: "Ys = rev (map hd (solves [] eqns))"
   shows "is_sols Ys eqns Ys"
@@ -498,7 +499,7 @@ proof-
   then have "is_sols Ys (rev (solves [] eqns)) []"
     using is_sols_rev by fastforce
   then show "is_sols Ys eqns Ys"
-    using solves_correct'[OF mx_eqns lenYs]
+    using solves_sound[OF mx_eqns lenYs]
     by simp
 qed
 
@@ -518,6 +519,8 @@ definition plus_langR :: "'a langR ⇒ 'a langR ⇒ 'a langR"
   where "A + B ≡ Lang (unLang A ∪ unLang B)"
 definition zero_langR where "zero_langR ≡ Lang {}"
 definition one_langR where "one_langR ≡ Lang {[]}"
+
+lemmas langR_defs = plus_langR_def times_langR_def zero_langR_def
 
 instance proof(standard, goal_cases)
   case (1 a b c)
@@ -575,6 +578,8 @@ instantiation rexp :: (type) times begin
   definition times_rexp where "times_rexp ≡ Times" instance ..
 end
 
+lemmas rexp_defs = times_rexp_def plus_rexp_def zero_rexp_def
+
 global_interpretation Abstraction
 where φ = "λr. Lang (lang r)"
 proof(standard, goal_cases)
@@ -618,17 +623,17 @@ next
     by (metis times_rexp_def)
 
   then have "L X = L (Star c) * L (dot cs (Xs@[1]))"
-    using φ_dot_mult unfolding plus_langR_def plus_rexp_def times_langR_def times_rexp_def zero_langR_def zero_rexp_def
+    using φ_dot_mult unfolding langR_defs rexp_defs
     by fastforce
   then have "lang X = star (lang c) @@ unLang (L (dot cs (Xs@[1])))"
     by (simp add: times_langR_def)
   then have "lang X = lang c @@ lang X ∪ unLang (L (dot cs (Xs@[1])))"
     using Ardens by auto
   then have "L X = L c * L X + L (dot (cs) ((Xs@[1])))"
-    by (simp add: plus_langR_def times_langR_def)
+    by (simp add: langR_defs)
   then show "L X = L (dot (c # cs) (X # Xs @ [1]))"
-    using φ_dot_Cons unfolding plus_langR_def plus_rexp_def times_langR_def times_rexp_def zero_langR_def zero_rexp_def
-    by fastforce
+    unfolding φ_dot_Cons langR_defs rexp_defs
+    by simp
 qed
 
 value "solves_r [] [[a00,a01,b0], [a10,a11,b1]]"

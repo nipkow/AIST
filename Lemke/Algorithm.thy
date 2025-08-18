@@ -7,7 +7,7 @@ begin \<comment>\<open>begin-theory Algorithm\<close>
 context CFG
 begin \<comment>\<open>begin-context CFG\<close>
 
-
+subsection\<open>Preliminaries\<close>
 
 definition prestar_step :: "('s \<times> ('n, 't) sym \<times> 's) set \<Rightarrow> ('s \<times> ('n, 't) sym \<times> 's) set" where
   "prestar_step T \<equiv> { (q, Nt A, q') | q q' A. \<exists>\<beta>. (A, \<beta>) \<in> P \<and> q' \<in> steps T \<beta> q }"
@@ -15,30 +15,30 @@ definition prestar_step :: "('s \<times> ('n, 't) sym \<times> 's) set \<Rightar
 definition prestar_while :: "('s \<times> ('n, 't) sym \<times> 's) set \<Rightarrow> ('s \<times> ('n, 't) sym \<times> 's) set option" where
   "prestar_while \<equiv> while_option (\<lambda>T. T \<union> prestar_step T \<noteq> T) (\<lambda>T. T \<union> prestar_step T)"
 
-
+subsection\<open>Monotonicity and Termination\<close>
 
 lemma nfa_mono':
   assumes "T\<^sub>1 \<subseteq> T\<^sub>2" and "q\<^sub>1 \<subseteq> q\<^sub>2"
-  shows "steps' T\<^sub>1 w q\<^sub>1 \<subseteq> steps' T\<^sub>2 w q\<^sub>2"
+  shows "Steps T\<^sub>1 w q\<^sub>1 \<subseteq> Steps T\<^sub>2 w q\<^sub>2"
 proof (insert assms(2); induction w arbitrary: q\<^sub>1 q\<^sub>2)
-  case Nil thus ?case by simp
+  case Nil thus ?case by (simp add: Steps_def)
 next
   case (Cons w ws)
-  have "step' T\<^sub>1 w q\<^sub>1 \<subseteq> step' T\<^sub>2 w q\<^sub>2"
-    using assms(1) Cons(2) by auto
-  then have "steps' T\<^sub>1 ws (step' T\<^sub>1 w q\<^sub>1) \<subseteq> steps' T\<^sub>1 ws (step' T\<^sub>2 w q\<^sub>2)"
-    by (rule steps'_mono)
-  then have "steps' T\<^sub>1 ws (step' T\<^sub>1 w q\<^sub>1) \<subseteq> steps' T\<^sub>2 ws (step' T\<^sub>2 w q\<^sub>2)"
+  have "Step T\<^sub>1 w q\<^sub>1 \<subseteq> Step T\<^sub>2 w q\<^sub>2"
+    unfolding Step_def step_def using assms(1) Cons(2) by blast
+  then have "Steps T\<^sub>1 ws (Step T\<^sub>1 w q\<^sub>1) \<subseteq> Steps T\<^sub>1 ws (Step T\<^sub>2 w q\<^sub>2)"
+    by (rule Steps_mono)
+  then have "Steps T\<^sub>1 ws (Step T\<^sub>1 w q\<^sub>1) \<subseteq> Steps T\<^sub>2 ws (Step T\<^sub>2 w q\<^sub>2)"
     using Cons(1) by blast
   then show ?case
-    by simp
+    by (simp add: Steps_def)
 qed
 
 lemma nfa_mono: "T\<^sub>1 \<subseteq> T\<^sub>2 \<Longrightarrow> steps T\<^sub>1 w q \<subseteq> steps T\<^sub>2 w q"
   using nfa_mono'[of T\<^sub>1 T\<^sub>2 "{q}" "{q}" w] by simp
 
 lemma nfa_lang_mono: "T\<^sub>1 \<subseteq> T\<^sub>2 \<Longrightarrow> lang' T\<^sub>1 s f \<subseteq> lang' T\<^sub>2 s f"
-  unfolding lang'_def accepts_def using nfa_mono[of T\<^sub>1 T\<^sub>2] by fast
+  unfolding lang'_def using nfa_mono[of T\<^sub>1 T\<^sub>2] by fast
 
 
 
@@ -125,7 +125,7 @@ proof -
   then show ?thesis .
 qed
 
-
+subsection\<open>Saturation\<close>
 
 lemma prestar_saturated_step:
   assumes "X\<^sub>1 \<Rightarrow> X\<^sub>2" and "q' \<in> steps T\<^sub>0 X\<^sub>2 q"
@@ -135,19 +135,19 @@ proof -
   obtain \<alpha> w\<^sub>1 w\<^sub>2 \<beta> where X\<^sub>1_def: "X\<^sub>1 = \<alpha>@[Nt w\<^sub>1]@\<beta>" and X\<^sub>2_def: "X\<^sub>2 = \<alpha>@w\<^sub>2@\<beta>" and "(w\<^sub>1, w\<^sub>2) \<in> P"
     by (metis (mono_tags, opaque_lifting) assms(1) prods_to_lts.cases step_relp_def transition_relation_def)
   obtain s s' where "s \<in> steps T\<^sub>0 \<alpha> q" and "s' \<in> steps T\<^sub>0 w\<^sub>2 s" and "q' \<in> steps T\<^sub>0 \<beta> s'"
-    using steps_split3 assms(2) X\<^sub>2_def by fastforce
+    using Steps_split3 assms(2) X\<^sub>2_def by fastforce
   then have "(s, Nt w\<^sub>1, s') \<in> prestar_step T\<^sub>0"
     unfolding prestar_step_def using \<open>(w\<^sub>1, w\<^sub>2) \<in> P\<close> by blast
   then have "(s, Nt w\<^sub>1, s') \<in> T"
     by simp
   then have "s' \<in> steps T [Nt w\<^sub>1] s"
-    by simp
+    by (simp add: Steps_def Step_def step_def)
   moreover have "s \<in> steps T \<alpha> q"
     using \<open>s \<in> steps T\<^sub>0 \<alpha> q\<close> T_def nfa_mono[of T\<^sub>0 T] by blast
   moreover have "q' \<in> steps T \<beta> s'"
     using \<open>q' \<in> steps T\<^sub>0 \<beta> s'\<close> T_def nfa_mono[of T\<^sub>0 T] by blast
   ultimately have "q' \<in> steps T (\<alpha>@[Nt w\<^sub>1]@\<beta>) q"
-    using steps_join3 by fast
+    using Steps_join3 by fast
   then show ?thesis
     using X\<^sub>1_def by simp
 qed
@@ -185,11 +185,11 @@ proof (standard)
     then have "z \<in> lang' T s F"
       by simp
     then obtain q\<^sub>f where "q\<^sub>f \<in> steps T z s" and "q\<^sub>f \<in> F"
-      unfolding lang'_def accepts_def by fastforce
+      unfolding lang'_def by fastforce
     then have "q\<^sub>f \<in> steps T y s" and "q\<^sub>f \<in> F"
       using assms step(1) prestar_saturated[of y z q\<^sub>f T s] by simp+
     then show ?case
-      unfolding lang'_def accepts_def by fastforce
+      unfolding lang'_def by fastforce
   qed
 qed
 
@@ -218,7 +218,7 @@ proof (standard)
   proof (induction w arbitrary: s)
     case Nil
     then have "[] \<in> lang' T s F"
-      by (simp add: lang'_def accepts_def)
+      by (simp add: lang'_def Steps_def)
     moreover have "[] \<Rightarrow>\<^sup>* []"
       by simp
     ultimately show ?case
@@ -236,14 +236,14 @@ proof (standard)
       unfolding pre_star_def by blast
 
     have "(s, w, s') \<in> T \<or> (s, w, s') \<in> prestar_step T"
-      using s'_step by simp
+      using s'_step by (simp add: Steps_def Step_def step_def)
     then show ?case
     proof (standard)
       assume "(s, w, s') \<in> T"
       then have "s' \<in> step T w s"
-        by simp
+        by (simp add: step_def)
       then have "s' \<in> steps T [w] s"
-        by simp
+        by (simp add: Steps_def Step_def)
       moreover note \<open>ws' \<in> lang' T s' F\<close>
       ultimately have "(w#ws') \<in> lang' T s F"
         using nfa_lang_trans by fastforce
@@ -282,7 +282,7 @@ next
     using prestar_triple_trans by blast
 qed
 
-
+subsection\<open>Correctness\<close>
 
 lemma prestar_while_lang:
   assumes "prestar_while T\<^sub>0 = Some T"

@@ -4,12 +4,12 @@ theory Applications
   imports Definition Finiteness
 begin \<comment>\<open>begin-theory Applications\<close>
 
-subsection\<open>The Membership Problem\<close>
+subsection\<open>Membership Problem\<close>
 
 theorem (in CFG) "w \<in> Lang P S \<longleftrightarrow> [(Nt S)] \<in> pre_star {map_word w}"
   unfolding Lang_def pre_star_def by (simp add: derives_eq)
 
-subsection\<open>The Subset Problem\<close>
+subsection\<open>Subset Problem\<close>
 
 theorem (in CFG) "Lang P S \<subseteq> L \<longleftrightarrow> [(Nt S)] \<notin> pre_star (map_lang (-L))"
 proof -
@@ -19,12 +19,12 @@ proof -
     by (simp add: pre_star_lang)
 qed
 
-subsection\<open>The Disjointness Problem\<close>
+subsection\<open>Disjointness Problem\<close>
 
 theorem (in CFG) "Lang P S \<inter> L = {} \<longleftrightarrow> [(Nt S)] \<notin> pre_star (map_lang L)"
   by (simp add: pre_star_lang)
 
-subsection\<open>The Emptiness Problem\<close>
+subsection\<open>Emptiness Problem\<close>
 
 theorem (in CFG) "Lang P S = {} \<longleftrightarrow> [(Nt S)] \<notin> pre_star (map_lang UNIV)"
 proof -
@@ -36,7 +36,7 @@ proof -
     using pre_star_lang[of UNIV] by simp
 qed
 
-subsection\<open>Computing Useless Variables\<close>
+subsection\<open>Useless Variables\<close>
 
 theorem (in CFG) "is_reachable X \<longleftrightarrow> [Nt S] \<in> pre_star { \<alpha>@[Nt X]@\<beta> | \<alpha> \<beta>. True }"
 proof -
@@ -60,7 +60,7 @@ proof -
     by (simp add: is_productive_def L_def)
 qed
 
-subsection\<open>Computing Nullable Variables\<close>
+subsection\<open>Nullable Variables\<close>
 
 theorem (in CFG) "is_nullable X \<longleftrightarrow> [Nt X] \<in> pre_star {[]}"
 proof -
@@ -70,7 +70,7 @@ proof -
     by (simp add: is_nullable_def)
 qed
 
-subsection\<open>The Finiteness Problem\<close>
+subsection\<open>Finiteness Problem\<close>
 
 lemma (in CFG) is_infinite_check:
   "is_infinite \<longleftrightarrow> (\<exists>X. [Nt X] \<in> pre_star { \<alpha>@[Nt X]@\<beta> | \<alpha> \<beta>. \<alpha>@\<beta> \<noteq> [] })"

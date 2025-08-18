@@ -1,4 +1,4 @@
-section\<open>A Criterion the for Finiteness of Context-Free Languages\<close>
+section\<open>Finiteness of Context-Free Languages\<close>
 
 theory Finiteness
   imports Definition
@@ -151,7 +151,7 @@ proof -
     using thm1 thm2 by blast
 qed
 
-subsection\<open>The Criteria\<close>
+subsection\<open>Criterion of Finiteness\<close>
 
 text\<open>
   Finally, we introduce the definition @{term is_infinite}, which instead of making use

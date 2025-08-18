@@ -176,45 +176,18 @@ theorem is_infinite:
   assumes "is_useful_all" and "is_non_nullable_all"
   shows "\<not> finite (Lang P S) \<longleftrightarrow> is_infinite"
 proof (standard, erule contrapos_pp)
+  (* \<not>\<exists>. X \<rightarrow>* aXb \<Longrightarrow> finite *)
   assume assm: "\<not> is_infinite"
-
-  text\<open>
-    We know that the productions of the CFG form a finite set.
-    Thus we can represent them as a list and perform induction over them.
-  \<close>
 
   have "finite P"
     using CFG_axioms CFG_def by blast
-  then obtain Ps where "set Ps = P"
-    using finite_list by blast
-
   then show "\<not> infinite (Lang P S)"
-  proof (induction Ps arbitrary: P)
-    case Nil thus ?case
+  proof (induction P)
+    case empty thus ?case 
       by (simp add: Lang_empty_if_notin_Lhss)
   next
-    case (Cons p Ps)
-
-    define P' where "P' = set Ps"
-    then have "P = P' \<union> {p}"
-      using Cons(2) by simp
-
-    have "\<not> infinite (Lang P' S)"
-      using P'_def Cons(1) by blast
-    have "\<And>w. w \<in> (Lang P' S) \<longleftrightarrow> [Nt S] \<Rightarrow>\<^sup>* map_word w"
-      sorry
-
-    obtain X \<alpha> where p_def: "p = (X, \<alpha>)"
-      by force
-
-    with Cons show ?case proof (induction \<alpha>)
-      case Nil
-      then show ?case sorry
-    next
-      case (Cons x xs)
-      then show ?case sorry
-    qed
-
+    case (insert p P)
+    then show ?case sorry
   qed
 next
   assume "is_infinite"

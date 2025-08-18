@@ -117,15 +117,44 @@ lemma steps_join3:
   shows "q\<^sub>f \<in> steps T (w\<^sub>1@w\<^sub>2@w\<^sub>3) q\<^sub>0"
   using assms steps_join by metis
 
-fun accepts :: "('s, 't) nfa \<Rightarrow> 't list \<Rightarrow> bool" where
-  "accepts M w = (steps (transitions M) w (start M) \<inter> finals M \<noteq> {})"
+definition accepts :: "('s \<times> 't \<times> 's) set \<Rightarrow> 's \<Rightarrow> 's set \<Rightarrow> 't list \<Rightarrow> bool" where
+  "accepts T S F w \<equiv> (steps T w S \<inter> F \<noteq> {})"
 
 lemma accepts_split3:
-  assumes "accepts M (w\<^sub>1@w\<^sub>2@w\<^sub>3)"
-  shows "\<exists>q' q'' q\<^sub>f. q' \<in> steps (transitions M) w\<^sub>1 (start M) \<and> q'' \<in> steps (transitions M) w\<^sub>2 q' \<and> q\<^sub>f \<in> steps (transitions M) w\<^sub>3 q'' \<and> q\<^sub>f \<in> finals M"
-  using assms steps_split3 accepts.simps by (metis Int_emptyI)
+  assumes "accepts T S F (w\<^sub>1@w\<^sub>2@w\<^sub>3)"
+  shows "\<exists>q' q'' q\<^sub>f. q' \<in> steps T w\<^sub>1 S \<and> q'' \<in> steps T w\<^sub>2 q' \<and> q\<^sub>f \<in> steps T w\<^sub>3 q'' \<and> q\<^sub>f \<in> F"
+  using assms steps_split3 accepts_def by (metis Int_emptyI)
 
-definition lang :: "('s, 't) nfa \<Rightarrow> ('t list) set" where
-  "lang M \<equiv> { w | w. accepts M w }"
+definition lang' :: "('s \<times> 't \<times> 's) set \<Rightarrow> 's \<Rightarrow> 's set \<Rightarrow> ('t list) set" where
+  "lang' T S F \<equiv> { w | w. accepts T S F w }"
+
+abbreviation lang :: "('s, 't) nfa \<Rightarrow> ('t list) set" where
+  "lang M \<equiv> lang' (transitions M) (start M) (finals M)"
+
+lemma nfa_lang_trans:
+  assumes "s' \<in> steps T w\<^sub>1 s" and "w\<^sub>2 \<in> lang' T s' F"
+  shows "(w\<^sub>1@w\<^sub>2) \<in> lang' T s F"
+proof -
+  obtain q\<^sub>f where "q\<^sub>f \<in> steps T w\<^sub>2 s'" and "q\<^sub>f \<in> F"
+    using assms(2) unfolding lang'_def accepts_def by blast
+  moreover have "q\<^sub>f \<in> steps T (w\<^sub>1@w\<^sub>2) s"
+    using assms(1) \<open>q\<^sub>f \<in> steps T w\<^sub>2 s'\<close> by (rule steps_join)
+  ultimately show ?thesis
+    unfolding lang'_def accepts_def using \<open>q\<^sub>f \<in> F\<close> by blast
+qed
+
+lemma nfa_lang_split:
+  assumes "(w\<^sub>1@w\<^sub>2) \<in> lang' T q F"
+  obtains q' where "q' \<in> steps T w\<^sub>1 q" and "w\<^sub>2 \<in> lang' T q' F"
+proof -
+  obtain q\<^sub>f where "q\<^sub>f \<in> steps T (w\<^sub>1@w\<^sub>2) q" and "q\<^sub>f \<in> F"
+    using assms unfolding lang'_def accepts_def by blast
+  then obtain q' where "q' \<in> steps T w\<^sub>1 q" and "q\<^sub>f \<in> steps T w\<^sub>2 q'"
+    using steps_split by fast
+  moreover have "w\<^sub>2 \<in> lang' T q' F"
+    unfolding lang'_def accepts_def using \<open>q\<^sub>f \<in> F\<close> calculation by blast
+  ultimately show ?thesis
+    using that by blast
+qed
 
 end \<comment>\<open>end-theory FiniteAutomaton\<close>

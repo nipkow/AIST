@@ -53,7 +53,6 @@ text ‹
 Distributivity lemmas for the abstraction function φ.
 They are provided outside the Gauss locale, because they are useful for proving ‹solve1› correct.
 ›
-(*TODO: would it be correct to describe φ as a homomorphism?*)
 locale Abstraction =
 fixes φ :: "'a :: {one, zero, plus, times} ⇒ 'b :: semiring_1"
 assumes φ_add: "φ (a + b) = φ a + φ b"
@@ -83,6 +82,11 @@ lemma φ_mult1: "map φ (mult1 c as) = (mult1 (φ c) (map φ as))"
 lemma φ_dot_mult: "φ c * φ (dot as bs) = φ (dot (map (times c) as) bs)"
   by (metis \<phi>_dot \<phi>_map_mult dot_mult)
 
+lemma dot_one: "φ (dot (x#xs) [1]) = φ x"
+  unfolding dot_def by (auto simp add: φ)
+
+lemma dot_one_hd: "length xs > 0 ⟹  φ (dot xs [1]) = φ (hd xs)"
+  using dot_one proof(cases xs) qed simp+
 
 end
 
@@ -97,7 +101,7 @@ text ‹We work on a matrix representation of ‹X = A*X+B› where the matrix i
 In each step, ‹solve1 a b› solves an equation ‹X_i = a*X_i + b›
  where b is a list of coefficients of the remaining variables (and the additive constant).›
 
-text ‹We define our equality relation based on φ›
+text ‹We define our equality relation based on ‹φ››
 fun eq where "eq a b = (φ a = φ b)"
 
 text ‹
@@ -110,8 +114,9 @@ definition is_sol :: "'a ⇒ 'a list ⇒ 'a list ⇒ bool" where
 text‹
 ‹is_sols ys A xs› holds when ‹ys = A * (xs @ [1])›
 In words ‹is_sols› holds when ‹ys› is the vector obtained by plugging ‹xs› into the system of equations ‹A›.
-In the final solution ys and xs are equivalent, but the more general version is needed
-to describe the state, while the algorithm is running
+Since we are solving fixed point equations ys and xs should be equivalent once we have found a solution,
+but the more general version is needed to describe the state,
+while the algorithm is running
 ›
 fun is_sols :: "'a list ⇒ 'a list list ⇒ 'a list ⇒ bool" where
 "is_sols (a#as) (eqn # eqns) sol = (is_sol a eqn sol ∧ is_sols as eqns sol)" |
@@ -256,23 +261,6 @@ lemma map_subst_unique: "⟦
 ⟧ ⟹  is_sols xs (map (subst ds) eqs) ys"
 oops
 
-
-(*
-
-‹X#Xs› are a solution of the system of equations
-they exist but are not known to the algo
-
-(c#cs) are the coefficients of the first equation
-ds     are the coefficients with the first variable eliminated
-    aka where the system has been solve1 ed for that variable
-
-(e#es)   are the coefficients of some other equation
-  where we want to eliminate the first variable
-
-Y is the solution of that equation
-
-*)
-
 text ‹
   ‹solves [] eqns› solves the system of equations given by eqns
   using an accumulator
@@ -331,11 +319,6 @@ proof(induction eqns)
   then show ?case by (simp add: length_subst)
 qed simp
 
-lemma dot_one: "φ (dot (x#xs) [1]) = φ x"
-  unfolding dot_def by (auto simp add: φ)
-
-lemma dot_one_hd: "length xs > 0 ⟹  φ (dot xs [1]) = φ (hd xs)"
-  using dot_one proof(cases xs) qed simp+
 
 
 text ‹
@@ -433,10 +416,8 @@ proof(induction sols eqns arbitrary: Xs Ys n m rule: solves.induct)
     using IH sols'_def by simp
   then have "is_sol y sol ys"
     by simp
-  then have "is_sol y (solve1 c cs) ys"
-    using sol_def by simp
   then have "is_sol y (c#cs) (y#ys)"
-    using solve1_correct by simp
+    using sol_def solve1_correct by simp
 
   moreover have y: "eq y (dot sol (ys @ [1]))"
     using ‹is_sol y sol ys›
@@ -479,6 +460,8 @@ using solves_sound_generalization[of n eqns 0 "[]" Ys "[]"] by (simp add: mx_def
 lemma is_sols_rev: "is_sols (rev Ys) (rev eqns) Xs = is_sols Ys eqns Xs"
   unfolding is_sols2_eqiv by simp
 
+text ‹finally we can show, that the output of the algorithm is a solution›
+
 lemma solves_sound':
 assumes mx_eqns: "mx n (Suc n) eqns"
   and Ys: "Ys = rev (map hd (solves [] eqns))"
@@ -505,6 +488,8 @@ qed
 
 
 end
+
+text ‹We now instantiate the locales for regular expressions›
 
 text ‹Lang wrapper to define + and *›
 datatype 'a langR = Lang "'a list set"
@@ -609,6 +594,8 @@ proof -
     by (simp only: conc_assoc)
   finally show ?thesis .
 qed
+
+text‹We use Ardens lemma to prove solve1 correct›
 
 global_interpretation Gauss
 where φ = "λr. Lang (lang r)" and solve1 = "λr cs. map (λc. Times (Star r) c) cs"

@@ -23,7 +23,7 @@ definition "mx m n xss = (length xss = m ∧ (∀xs ∈ set xss. length xs = n))
 
 text ‹scalar * vector›
 definition mult1 where
-"mult1 = map \<circ> times"
+"mult1 = map ∘ times"
 
 (*
 foldl can be used here for more efficient code
@@ -80,7 +80,7 @@ lemma φ_mult1: "map φ (mult1 c as) = (mult1 (φ c) (map φ as))"
   by (simp add: mult1_def comp_def φ0 φ_map_mult)
 
 lemma φ_dot_mult: "φ c * φ (dot as bs) = φ (dot (map (times c) as) bs)"
-  by (metis \<phi>_dot \<phi>_map_mult dot_mult)
+  by (metis φ_dot φ_map_mult dot_mult)
 
 lemma dot_one: "φ (dot (x#xs) [1]) = φ x"
   unfolding dot_def by (auto simp add: φ)
@@ -105,8 +105,8 @@ text ‹We define our equality relation based on ‹φ››
 fun eq where "eq a b = (φ a = φ b)"
 
 text ‹
-‹is_sol x cs xs› holds when ‹x› \<equiv> ‹a1*x1 + ... + an*xn + b›
-‹cs› are the coefficients  ‹[a1, \<dots>, an, b]›
+‹is_sol x cs xs› holds when ‹x› ≡ ‹a1*x1 + ... + an*xn + b›
+‹cs› are the coefficients  ‹[a1, …, an, b]›
 ›
 definition is_sol :: "'a ⇒ 'a list ⇒ 'a list ⇒ bool" where
 "is_sol x cs xs = (Suc (length xs) = length cs ∧ eq x (dot cs (xs @ [1])))"
@@ -157,12 +157,12 @@ text ‹
 Elimination of a variable.
 
 Given the equations:
-xi \<equiv> c0 * x0 + c1 * x1 + ... + cn * xn + b
-x0 \<equiv> d1 * x1 + ... + dn * xn + b
+xi ≡ c0 * x0 + c1 * x1 + ... + cn * xn + b
+x0 ≡ d1 * x1 + ... + dn * xn + b
 
 one can substitute to get
 
-xi \<equiv> e1 * x1 + ... + en * xn + b
+xi ≡ e1 * x1 + ... + en * xn + b
 
 eliminating the variable x0
 
@@ -192,15 +192,15 @@ lemma subst_correct: "⟦
     have l2: "length (map φ cs) = length (map φ ys @ [1])"
       using 2(2) by simp
     have  "φ x = φ (dot (map2 (+) (mult1 c ds) cs) (ys @ [1]))" using 2(4) by auto
-    also have "\<dots> = dot (map φ (map2 (+) (mult1 c ds) cs)) (map φ (ys @ [1]))" unfolding φ_dot by simp
-    also have "\<dots> = dot (map φ (map2 (+) (mult1 c ds) cs)) (map φ ys @ [1])" using φ by simp
-    also have "\<dots> = dot (map2 (+) (map φ (mult1 c ds)) (map φ cs)) (map φ ys @ [1])" unfolding φ_map2_sum by simp
-    also have "\<dots> = dot (map2 (+) (mult1 (φ c) (map φ ds)) (map φ cs)) (map φ ys @ [1])" using φ_mult1 by simp
-    also have "\<dots> = dot (mult1 (φ c) (map φ ds)) (map φ ys @ [1]) + dot (map φ cs) (map φ ys @ [1])" using dot_map2_plus[OF l1 l2] by simp
-    also have "\<dots> = φ c * dot (map φ ds) (map φ ys @ [1]) + dot (map φ cs) (map φ ys @ [1])" unfolding mult1_def comp_def dot_mult by simp
-    also have "\<dots> = φ c * φ (dot ds (ys @ [1])) + φ (dot cs (ys @ [1]))" using φ_dot φ by simp
-    also have "\<dots> = φ c * φ y + φ (dot cs (ys @ [1]))" using 2(3) by simp
-    also have "\<dots> = φ (dot (c # cs) (y # (ys@ [1])))" using φ_dot_Cons by simp
+    also have "… = dot (map φ (map2 (+) (mult1 c ds) cs)) (map φ (ys @ [1]))" unfolding φ_dot by simp
+    also have "… = dot (map φ (map2 (+) (mult1 c ds) cs)) (map φ ys @ [1])" using φ by simp
+    also have "… = dot (map2 (+) (map φ (mult1 c ds)) (map φ cs)) (map φ ys @ [1])" unfolding φ_map2_sum by simp
+    also have "… = dot (map2 (+) (mult1 (φ c) (map φ ds)) (map φ cs)) (map φ ys @ [1])" using φ_mult1 by simp
+    also have "… = dot (mult1 (φ c) (map φ ds)) (map φ ys @ [1]) + dot (map φ cs) (map φ ys @ [1])" using dot_map2_plus[OF l1 l2] by simp
+    also have "… = φ c * dot (map φ ds) (map φ ys @ [1]) + dot (map φ cs) (map φ ys @ [1])" unfolding mult1_def comp_def dot_mult by simp
+    also have "… = φ c * φ (dot ds (ys @ [1])) + φ (dot cs (ys @ [1]))" using φ_dot φ by simp
+    also have "… = φ c * φ y + φ (dot cs (ys @ [1]))" using 2(3) by simp
+    also have "… = φ (dot (c # cs) (y # (ys@ [1])))" using φ_dot_Cons by simp
     finally show "φ x = φ (dot (c # cs) ((y # ys) @ [1]))" by simp
   qed
 
@@ -473,9 +473,9 @@ proof-
   have lenYs: "length Ys = n"
     using Ys length_solves mx_eqns mx_sols by fastforce
 
-  have len1: "list_all (\<lambda>eq. length eq = 1) (solves [] eqns)"
+  have len1: "list_all (λeq. length eq = 1) (solves [] eqns)"
     using mx_solves[OF mx_eqns mx_sols] by (simp add: Ball_set mx_def)
-  have "map \<phi> (rev Ys) = map (\<phi> \<circ> hd) (solves [] eqns)"
+  have "map φ (rev Ys) = map (φ ∘ hd) (solves [] eqns)"
     by (simp add: Ys)
   then have "is_sols (rev Ys) (solves [] eqns) []"
     using is_sols_trivial2[OF len1] by simp

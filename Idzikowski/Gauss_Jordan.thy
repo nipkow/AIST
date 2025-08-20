@@ -123,20 +123,18 @@ Elimination of a variable.
 
 Given the equations:
 \<open>xi = c0 * x0 + c1 * x1 + ... + cn * xn + b\<close>
-\<open>x0 = d1 * x1 + ... + dn * xn + b\<close>
+\<open>x0 = d1 * x1 + ... + dn * xn + d\<close> (the result of solving the original \<open>x0 = a0*x0 + ...\<close>)
 
-one can substitute to get
+one can substitute for \<open>x0\<close> in the \<open>xi\<close> equation to get
 
-\<open>xi = e1 * x1 + ... + en * xn + b\<close>
+\<open>xi = e1 * x1 + ... + en * xn + e\<close>
 
-eliminating the variable \<open>x0\<close>
+where, \<open>ej\<close> = \<open>c0 * dj + cj\<close>, \<open>e\<close> = \<open>c0 * d + b\<close>, thus eliminating the variable \<open>x0\<close>.
 
-where \<open>ds\<close> = \<open>[d1, ..., dn, b]\<close>
+where \<open>ds\<close> = \<open>[d1, ..., dn, d]\<close>
       \<open>cs\<close> = \<open>[c1, ..., cn, b]\<close>
       \<open>c\<close>  = \<open>c0\<close>
-      \<open>es\<close> = \<open>[e1, ..., en, b]\<close>
-
-return coefficients \<open>es\<close>
+      \<open>es\<close> = \<open>[e1, ..., en, e]\<close>
 \<close>
 fun subst :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list" where
 "subst ds (c#cs) = map2 (+) (mult1 c ds) cs"

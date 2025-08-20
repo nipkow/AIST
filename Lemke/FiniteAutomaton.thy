@@ -1,7 +1,7 @@
 section\<open>Finite Automata\<close>
 
 theory FiniteAutomaton
-  imports "HOL-Data_Structures.Define_Time_Function"
+  imports Main
 begin \<comment>\<open>begin-theory FiniteAutomaton\<close>
 
 subsection\<open>Definition\<close>
@@ -14,16 +14,19 @@ record ('s, 't) nfa =
 subsection\<open>Step Relation\<close>
 
 definition step :: "('s \<times> 't \<times> 's) set \<Rightarrow> 't \<Rightarrow> 's \<Rightarrow> 's set" where
-  "step T c s = { s' | s'. (s, c, s') \<in> T }"
+  "step T c s = { s'. (s, c, s') \<in> T }"
 
 definition Step :: "('s \<times> 't \<times> 's) set \<Rightarrow> 't \<Rightarrow> 's set \<Rightarrow> 's set" where
-  "Step T c s = { s' | s'. \<exists>s\<^sub>0 \<in> s. s' \<in> step T c s\<^sub>0 }"
+  "Step T c s = { s'. \<exists>s\<^sub>0 \<in> s. s' \<in> step T c s\<^sub>0 }"
 
 definition Steps :: "('s \<times> 't \<times> 's) set \<Rightarrow> 't list \<Rightarrow> 's set \<Rightarrow> 's set" where
   "Steps T w s = fold (Step T) w s"
 
 abbreviation steps :: "('s \<times> 't \<times> 's) set \<Rightarrow> 't list \<Rightarrow> 's \<Rightarrow> 's set" where
   "steps T w s \<equiv> Steps T w {s}"
+
+lemma Step_union: "Step T w (S\<^sub>1 \<union> S\<^sub>2) = Step T w S\<^sub>1 \<union> Step T w S\<^sub>2"
+  unfolding Step_def by blast
 
 lemma Steps_mono:
   assumes "s\<^sub>1 \<subseteq> s\<^sub>2"

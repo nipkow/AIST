@@ -3,12 +3,11 @@
   isabelle jedit -d .. -d . <filename>
 *)
 
-session PreStar = CFG +
+session PreStar = HOL +
   options [document = pdf, document_output = "output", quick_and_dirty = true]
   sessions
-    "HOL-Data_Structures"
+    "Context_Free_Grammar"
     "Labeled_Transition_Systems"
-    "Pushdown_Systems"
   theories
     Definition
     Finiteness

@@ -323,18 +323,18 @@ definition rrec_of_lrec ::  "'n \<Rightarrow> 'n \<Rightarrow> ('n,'t)Prods \<Ri
 
 lemma rrec_of_lrec_code[code]: "rrec_of_lrec A A' R =
   (let RA = Rhss R A;
-       V = (\<Union> w \<in> RA. if w \<noteq> [] \<and> hd w = Nt A \<and> tl w \<noteq> [] then {tl w} else {});
+       V = tl ` {w \<in> RA. w \<noteq> [] \<and> hd w = Nt A \<and> tl w \<noteq> []};
        U = {u \<in> RA. u = [] \<or> hd u \<noteq> Nt A }
   in if V = {} then R - {(A, [Nt A])} else ({A} \<times> U) \<union> (\<Union>u\<in>U. {(A,u@[Nt A'])}) \<union> ({A'} \<times> V) \<union> (\<Union>v\<in>V. {(A',v @ [Nt A'])}))"
 proof -
   let ?RA = "Rhss R A"
-  let ?Vc = "(\<Union> w \<in> ?RA. if w \<noteq> [] \<and> hd w = Nt A \<and> tl w \<noteq> [] then {tl w} else {})"
+  let ?Vc = "tl ` {w \<in> ?RA. w \<noteq> [] \<and> hd w = Nt A \<and> tl w \<noteq> []}"
   let ?Uc = "{u \<in> ?RA. u = [] \<or> hd u \<noteq> Nt A }"
 
   let ?V = "{v. (A,Nt A # v) \<in> R \<and> v \<noteq> []}"
   let ?U = "{u. (A,u) \<in> R \<and> \<not>(\<exists>v. u = Nt A # v) }"
 
-  have 1: "?V = ?Vc" by (auto simp add: Rhss_def neq_Nil_conv)
+  have 1: "?V = ?Vc" by (auto simp add: Rhss_def neq_Nil_conv image_def)
   moreover have 2: "?U = ?Uc" by (auto simp add: Rhss_def neq_Nil_conv)
 
   ultimately show ?thesis

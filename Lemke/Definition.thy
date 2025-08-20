@@ -2,7 +2,7 @@ section\<open>Constructing $pre^*(L)$\<close>
 
 theory Definition
 imports
-  "CFG.CFG"
+  "Context_Free_Grammar.Context_Free_Grammar"
   "Labeled_Transition_Systems.LTS"
 begin \<comment>\<open>begin-theory Definition\<close>
 

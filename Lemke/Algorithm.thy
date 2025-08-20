@@ -168,7 +168,7 @@ qed
 lemma prestar_saturated_lang:
   assumes "prestar_while T\<^sub>0 = Some T"
   shows "pre_star (lang' T\<^sub>0 s F) \<subseteq> lang' T s F"
-proof (standard)
+proof
   fix w
   assume "w \<in> pre_star (lang' T\<^sub>0 s F)"
   then obtain w' where "w \<Rightarrow>\<^sup>* w'" and "w' \<in> lang' T\<^sub>0 s F"
@@ -292,8 +292,7 @@ lemma prestar_while_lang:
 definition prestar_nfa :: "('s, ('n, 't) sym) nfa \<Rightarrow> ('s, ('n, 't) sym) nfa" where
   "prestar_nfa M \<equiv> (
     case prestar_while (transitions M) of
-      Some t \<Rightarrow> M \<lparr> transitions := t \<rparr> |
-      None \<Rightarrow> undefined
+      Some t \<Rightarrow> M \<lparr> transitions := t \<rparr>
   )"
 
 theorem prestar_nfa_lang:

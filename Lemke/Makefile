@@ -1,5 +1,5 @@
 build:
-	isabelle build -d .. -D . -v
+	isabelle build -D . -v
 
 edit:
-	isabelle jedit -d .. -d .
+	isabelle jedit -d .

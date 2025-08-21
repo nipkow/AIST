@@ -7,6 +7,8 @@ begin
 (* Import of additional theories undoes this deletion in \<open>Context_Free_Grammar\<close>: *)
 declare relpowp.simps(2)[simp del] 
 
+section \<open>Aux Lemmas\<close>
+
 (* TODO: rm after next release, are in devel *)
 
 lemma Nts_mono: "G \<subseteq> H \<Longrightarrow> Nts G \<subseteq> Nts H"
@@ -2279,6 +2281,31 @@ proof-
     by (metis card_mono)
 qed
 
-unused_thms
+text \<open>Example 4.10 \cite{HopcroftU79}:
+ \<open>P0\<close> is the input; \<open>P1\<close> is the result after Step 1; \<open>P3\<close> is the result after Step 2 and 3.\<close>
+
+lemma
+  "let
+     P0 =
+       [(1::int, [Nt 2, Nt 3]), (2,[Nt 3, Nt 1]), (2, [Tm (1::int)]), (3,[Nt 1, Nt 2]), (3,[Tm 0])];
+     P1 =
+       [(1, [Nt 2, Nt 3]), (2, [Nt 3, Nt 1]), (2, [Tm 1]),
+        (3, [Tm 1, Nt 3, Nt 2, Nt 4]), (3, [Tm 0, Nt 4]), (3, [Tm 1, Nt 3, Nt 2]), (3, [Tm 0]),
+        (4, [Nt 1, Nt 3, Nt 2]), (4, [Nt 1, Nt 3, Nt 2, Nt 4])];
+     P2 =
+       [(1, [Tm 1, Nt 3, Nt 2, Nt 4, Nt 1, Nt 3]), (1, [Tm 1, Nt 3, Nt 2, Nt 1, Nt 3]),
+        (1, [Tm 0, Nt 4, Nt 1, Nt 3]), (1, [Tm 0, Nt 1, Nt 3]), (1, [Tm 1, Nt 3]),
+        (2, [Tm 1, Nt 3, Nt 2, Nt 4, Nt 1]), (2, [Tm 1, Nt 3, Nt 2, Nt 1]),
+        (2, [Tm 0, Nt 4, Nt 1]), (2, [Tm 0, Nt 1]), (2, [Tm 1]),
+        (3, [Tm 1, Nt 3, Nt 2, Nt 4]), (3, [Tm 1, Nt 3, Nt 2]),
+        (3, [Tm 0, Nt 4]), (3, [Tm 0]),
+        (4, [Tm 1, Nt 3, Nt 2, Nt 4, Nt 1, Nt 3, Nt 3, Nt 2, Nt 4]), (4, [Tm 1, Nt 3, Nt 2, Nt 4, Nt 1, Nt 3, Nt 3, Nt 2]),
+        (4, [Tm 0, Nt 4, Nt 1, Nt 3, Nt 3, Nt 2, Nt 4]), (4, [Tm 0, Nt 4, Nt 1, Nt 3, Nt 3, Nt 2]),
+        (4, [Tm 1, Nt 3, Nt 3, Nt 2, Nt 4]), (4, [Tm 1, Nt 3, Nt 3, Nt 2]),
+        (4, [Tm 1, Nt 3, Nt 2, Nt 1, Nt 3, Nt 3, Nt 2, Nt 4]), (4, [Tm 1, Nt 3, Nt 2, Nt 1, Nt 3, Nt 3, Nt 2]),
+        (4, [Tm 0, Nt 1, Nt 3, Nt 3, Nt 2, Nt 4]), (4, [Tm 0, Nt 1, Nt 3, Nt 3, Nt 2])]
+   in
+     solve_tri [3,2,1] [4,5,6] (set P0) = set P1 \<and> expand_tri [4,1,2,3] (set P1) = set P2"
+by eval
 
 end

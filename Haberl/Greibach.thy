@@ -1,3 +1,5 @@
+(* Authors: Alexander Haberl, Tobias Nipkow, Akihisa Yamada *)
+
 theory Greibach
 imports
   "Context_Free_Grammar.Context_Free_Grammar"

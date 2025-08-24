@@ -1,0 +1,132 @@
+theory Complement_DPDA_HU
+  imports DPDA_HU
+begin
+
+datatype 'q st_extended = OST 'q | Q0' | D | F
+
+instance st_extended :: (finite) finite
+proof
+  have *: "UNIV = {t. \<exists>q. t = OST q} \<union> {Q0', D, F}"
+    by auto (metis st_extended.exhaust)
+  show "finite (UNIV :: 'a st_extended set)"
+    by (simp add: * full_SetCompr_eq)
+qed
+
+datatype 's sym_extended = OSYM 's | X0
+
+instance sym_extended :: (finite) finite
+proof
+  have *: "UNIV = {t. \<exists>q. t = OSYM q} \<union> {X0}"
+    by auto (metis sym_extended.exhaust)
+  show "finite (UNIV :: 'a sym_extended set)"
+    by (simp add: * full_SetCompr_eq)
+qed
+
+context dpda begin
+
+definition scan_dpda_final_states :: "'q st_extended set" where
+  "scan_dpda_final_states \<equiv> OST ` final_states M \<union> {F}"
+
+definition epath_nonfinal :: "'q \<Rightarrow> 's \<Rightarrow> bool" where
+  "epath_nonfinal p Z \<equiv> \<forall>i. \<exists>q \<gamma>. det_stepn i (p, [], [Z]) = Some (q, [], \<gamma>) \<and> q \<notin> final_states M"
+
+definition epath_final :: "'q \<Rightarrow> 's \<Rightarrow> bool" where
+  "epath_final p Z \<equiv> (\<forall>i. \<exists>q \<gamma>. det_stepn i (p, [], [Z]) = Some (q, [], \<gamma>)) \<and> 
+                      (\<exists>i q \<gamma>. det_stepn i (p, [], [Z]) = Some (q, [], \<gamma>) \<and> q \<in> final_states M)"
+
+fun scan_dpda_trans_fun :: "'q st_extended \<Rightarrow> 'a \<Rightarrow> 's sym_extended \<Rightarrow> ('q st_extended \<times> 's sym_extended list) set" where
+  "scan_dpda_trans_fun (OST q) _ X0 = {(D, [X0])}"
+| "scan_dpda_trans_fun (OST q) a (OSYM Z) = (if trans_fun M q a Z = {} \<and> eps_fun M q Z = {} then {(D, [OSYM Z])} else
+                                              (\<lambda>(p, \<alpha>). (OST p, map OSYM \<alpha>)) ` trans_fun M q a Z)"
+| "scan_dpda_trans_fun D a Z = {(D, [Z])}"
+| "scan_dpda_trans_fun _ _ _ = {}"
+
+fun scan_dpda_eps_fun :: "'q st_extended \<Rightarrow> 's sym_extended \<Rightarrow> ('q st_extended \<times> 's sym_extended list) set" where
+  "scan_dpda_eps_fun Q0' X0 = {(OST (init_state M), [OSYM (init_symbol M), X0])}" 
+| "scan_dpda_eps_fun (OST q) (OSYM Z) = (if epath_nonfinal q Z then {(D, [OSYM Z])} else
+                                          if epath_final q Z then {(F, [OSYM Z])} else
+                                            (\<lambda>(p, \<alpha>). (OST p, map OSYM \<alpha>)) ` eps_fun M q Z)"
+| "scan_dpda_eps_fun F Z = {(D, [Z])}"
+| "scan_dpda_eps_fun _ _ = {}"
+
+definition scan_dpda :: "('q st_extended, 'a, 's sym_extended) pda" where
+  "scan_dpda \<equiv> \<lparr> init_state = Q0', init_symbol = X0, final_states = scan_dpda_final_states,
+                  trans_fun = scan_dpda_trans_fun, eps_fun = scan_dpda_eps_fun \<rparr>"
+
+lemma dpda_scan: "dpda scan_dpda"
+  sorry
+
+lemma lang_scan_dpda: "pda.final_accept scan_dpda = pda.final_accept M"
+  sorry
+
+lemma scan_dpda_scans: 
+"\<exists>n q \<gamma>. dpda.det_stepn scan_dpda n (init_state scan_dpda, w, [init_symbol scan_dpda]) = Some (q, [], \<gamma>)"
+  sorry
+
+end
+
+datatype 'q st_num = S1 'q | S2 'q | S3 'q
+
+instance st_num :: (finite) finite
+proof
+  have *: "UNIV = {t. \<exists>q. t = S1 q} \<union> {t. \<exists>q. t = S2 q} \<union> {t. \<exists>q. t = S3 q}"
+    by auto (metis st_num.exhaust)
+  show "finite (UNIV :: 'a st_num set)"
+    by (simp add: * full_SetCompr_eq)
+qed
+
+locale complement_dpda =
+  fixes M :: "('q :: finite, 'a :: finite, 's :: finite) pda"
+  assumes "dpda M" 
+      and "\<exists>n q \<gamma>. dpda.det_stepn M n (init_state M, w, [init_symbol M]) = Some (q, [], \<gamma>)"
+begin
+
+definition complement_dpda_init_state :: "'q st_num" where
+  "complement_dpda_init_state \<equiv> if init_state M \<in> final_states M then S1 (init_state M) else S2 (init_state M)"
+
+definition complement_dpda_final_states :: "'q st_num set" where
+  "complement_dpda_final_states \<equiv> S3 ` final_states M"
+
+fun complement_dpda_trans_fun :: "'q st_num \<Rightarrow> 'a \<Rightarrow> 's \<Rightarrow> ('q st_num \<times> 's list) set" where
+  "complement_dpda_trans_fun (S1 q) a Z = (\<lambda>(p, \<alpha>). if p \<in> final_states M then (S1 p, \<alpha>) else (S2 p, \<alpha>)) ` trans_fun M q a Z"
+| "complement_dpda_trans_fun (S3 q) a Z = (\<lambda>(p, \<alpha>). if p \<in> final_states M then (S1 p, \<alpha>) else (S2 p, \<alpha>)) ` trans_fun M q a Z"
+| "complement_dpda_trans_fun (S2 q) _ _ = {}"
+
+fun complement_dpda_eps_fun :: "'q st_num \<Rightarrow> 's \<Rightarrow> ('q st_num \<times> 's list) set" where
+  "complement_dpda_eps_fun (S1 q) Z = (\<lambda>(p, \<alpha>). (S1 p, \<alpha>)) ` eps_fun M q Z"
+| "complement_dpda_eps_fun (S2 q) Z = (\<lambda>(p, \<alpha>). if p \<in> final_states M then (S1 p, \<alpha>) else (S2 p, \<alpha>)) ` eps_fun M q Z \<union>
+                                        (\<lambda>(p, \<alpha>). (S3 q, [Z])) ` (\<Union>a. trans_fun M q a Z)"
+| "complement_dpda_eps_fun (S3 q) Z = {}"
+
+definition complement_dpda :: "('q st_num, 'a, 's) pda" where
+  "complement_dpda \<equiv> \<lparr> init_state = complement_dpda_init_state, init_symbol = init_symbol M, final_states = complement_dpda_final_states,
+                        trans_fun = complement_dpda_trans_fun, eps_fun = complement_dpda_eps_fun \<rparr>"
+
+lemma dpda_complement: "dpda complement_dpda"
+  sorry
+
+lemma lang_complement_dpda: "pda.final_accept complement_dpda = UNIV - pda.final_accept M"
+  sorry
+
+end
+
+lemma complement_dpda_ex:
+  assumes "dpda (M :: ('q :: finite, 'a :: finite, 's :: finite) pda)"
+  shows "\<exists>(M' :: ('q st_extended st_num, 'a, 's sym_extended) pda). dpda M' \<and> pda.final_accept M' = UNIV - pda.final_accept M"
+proof -
+  let ?SM = "dpda.scan_dpda M :: ('q st_extended, 'a, 's sym_extended) pda"
+  have dpda_sm: "dpda ?SM"
+    using dpda.dpda_scan[OF assms] .
+  have *: "\<And>w. \<exists>n q \<gamma>. dpda.det_stepn ?SM n (init_state ?SM, w, [init_symbol ?SM]) = Some (q, [], \<gamma>)"
+    using dpda.scan_dpda_scans[OF assms] .
+  have L1: "pda.final_accept ?SM = pda.final_accept M"
+    using dpda.lang_scan_dpda[OF assms] .
+  let ?CM = "complement_dpda.complement_dpda ?SM :: ('q st_extended st_num, 'a, 's sym_extended) pda"
+  from dpda_sm * have dpda_cm: "dpda ?CM"
+    using complement_dpda_def complement_dpda.dpda_complement by blast
+  from dpda_sm * have L2: "pda.final_accept ?CM = UNIV - pda.final_accept ?SM"
+    using complement_dpda_def complement_dpda.lang_complement_dpda by blast
+  from dpda_cm L1 L2 show ?thesis by blast
+qed
+
+end

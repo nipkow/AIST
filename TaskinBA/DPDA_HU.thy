@@ -69,10 +69,17 @@ lemma det_step\<^sub>1_rule_ext: "det_step\<^sub>1 (p, w, \<alpha>) = Some (q, y
 lemma step\<^sub>1_det_step\<^sub>1_none: "(\<forall>q y \<gamma>. \<not>step\<^sub>1 (p, w, \<alpha>) (q, y, \<gamma>)) \<longleftrightarrow> det_step\<^sub>1 (p, w, \<alpha>) = None"
   by (auto simp: the_elem_opt_def split: if_splits)
 
+lemma det_step\<^sub>1_op_rule: "(\<forall>q y \<gamma>. (\<forall>\<beta>. y \<noteq> w \<or> \<gamma> \<noteq> \<beta>@\<alpha> \<or> (q, \<beta>) \<notin> eps_fun M p Z) 
+                            \<and> (\<forall>a \<beta>. w \<noteq> a # y \<or> \<gamma> \<noteq> \<beta>@\<alpha> \<or> (q, \<beta>) \<notin> trans_fun M p a Z)) \<longleftrightarrow> det_step\<^sub>1 (p, w, Z#\<alpha>) = None"
+  using step\<^sub>1_det_step\<^sub>1_none step\<^sub>1_rule by metis
+
 fun det_stepn :: "nat \<Rightarrow> 'q \<times> 'a list \<times> 's list \<Rightarrow> ('q \<times> 'a list \<times> 's list) option" where
   "det_stepn 0 (p, w, \<alpha>) = Some (p, w, \<alpha>)"
 | "det_stepn (Suc n) (p, w, \<alpha>) = 
     (case det_step\<^sub>1 (p, w, \<alpha>) of None \<Rightarrow> None | Some (q, y, \<gamma>) \<Rightarrow> det_stepn n (q, y, \<gamma>))"
+
+lemma det_step\<^sub>1_detstepn_one: "det_step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) = Some (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<longleftrightarrow> det_stepn 1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) = Some (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)"
+  by (auto split: option.splits)
 
 lemma stepn_det_stepn_some: "stepn n (p, w, \<alpha>) (q, y, \<gamma>) \<longleftrightarrow> det_stepn n (p, w, \<alpha>) = Some (q, y, \<gamma>)" (is "?l \<longleftrightarrow> ?r")
 proof

@@ -54,7 +54,51 @@ definition scan_dpda :: "('q st_extended, 'a, 's sym_extended) pda" where
                   trans_fun = scan_dpda_trans_fun, eps_fun = scan_dpda_eps_fun \<rparr>"
 
 lemma dpda_scan: "dpda scan_dpda"
-  sorry
+proof (standard, goal_cases)
+  case (1 p a Z)
+  have "finite (scan_dpda_trans_fun p a Z)"
+    by (induction p a Z rule: scan_dpda_trans_fun.induct) (auto simp: finite_trans)
+  then show ?case
+    by (simp add: scan_dpda_def)
+next
+  case (2 p Z)
+  have "finite (scan_dpda_eps_fun p Z)"
+    by (induction p Z rule: scan_dpda_eps_fun.induct) (auto simp: finite_eps)
+  then show ?case
+    by (simp add: scan_dpda_def)
+next
+  case (3 q a Z)
+  have "scan_dpda_trans_fun q a Z = {} \<or> (\<exists>p \<gamma>. scan_dpda_trans_fun q a Z = {(p, \<gamma>)})"
+    by (induction q a Z rule: scan_dpda_trans_fun.induct, auto) (use true_sgn in force)+
+  then show ?case
+    by (simp add: scan_dpda_def)
+next
+  case (4 q Z)
+  have "scan_dpda_eps_fun q Z = {} \<or> (\<exists>p \<gamma>. scan_dpda_eps_fun q Z = {(p, \<gamma>)})"
+    by (induction q Z rule: scan_dpda_eps_fun.induct, auto) (use eps_sgn in force)
+  then show ?case
+    by (simp add: scan_dpda_def)
+next
+  case (5 q a Z)
+  hence "scan_dpda_trans_fun q a Z \<noteq> {}"
+    by (simp add: scan_dpda_def)
+  then show ?case proof (induction q a Z rule: scan_dpda_trans_fun.induct)
+    case (2 q a Z)
+    hence eps: "eps_fun M q Z = {}" proof (cases)
+      assume "\<not>(trans_fun M q a Z = {} \<and> eps_fun M q Z = {})"
+      with 2 have "trans_fun M q a Z \<noteq> {}" by simp
+      then show ?thesis
+        by (simp add: true_or_eps)
+    qed simp
+    from eps have "det_step\<^sub>1 (q, [], [Z]) = None"
+      using det_step\<^sub>1_op_rule by blast
+    hence "det_stepn 1 (q, [], [Z]) = None" by simp
+    hence "\<not>epath_nonfinal q Z \<and> \<not>epath_final q Z"
+      unfolding epath_nonfinal_def epath_final_def using not_None_eq by blast
+    with eps show ?case
+      by (simp add: scan_dpda_def)
+  qed (simp_all add: scan_dpda_def)
+qed
 
 lemma lang_scan_dpda: "pda.final_accept scan_dpda = pda.final_accept M"
   sorry
@@ -95,15 +139,87 @@ fun complement_dpda_trans_fun :: "'q st_num \<Rightarrow> 'a \<Rightarrow> 's \<
 fun complement_dpda_eps_fun :: "'q st_num \<Rightarrow> 's \<Rightarrow> ('q st_num \<times> 's list) set" where
   "complement_dpda_eps_fun (S1 q) Z = (\<lambda>(p, \<alpha>). (S1 p, \<alpha>)) ` eps_fun M q Z"
 | "complement_dpda_eps_fun (S2 q) Z = (\<lambda>(p, \<alpha>). if p \<in> final_states M then (S1 p, \<alpha>) else (S2 p, \<alpha>)) ` eps_fun M q Z \<union>
-                                        (\<lambda>(p, \<alpha>). (S3 q, [Z])) ` (\<Union>a. trans_fun M q a Z)"
+                                        (if \<exists>a. trans_fun M q a Z \<noteq> {} then {(S3 q, [Z])} else {})"
 | "complement_dpda_eps_fun (S3 q) Z = {}"
 
 definition complement_dpda :: "('q st_num, 'a, 's) pda" where
   "complement_dpda \<equiv> \<lparr> init_state = complement_dpda_init_state, init_symbol = init_symbol M, final_states = complement_dpda_final_states,
                         trans_fun = complement_dpda_trans_fun, eps_fun = complement_dpda_eps_fun \<rparr>"
 
+lemma finite_trans_M: "finite (trans_fun M q a Z)"
+  using Complement_DPDA_HU.complement_dpda_def dpda_def complement_dpda_axioms pda.finite_trans by blast
+
+lemma finite_eps_M: "finite (eps_fun M q Z)"
+  using Complement_DPDA_HU.complement_dpda_def dpda_def complement_dpda_axioms pda.finite_eps by blast
+
+lemma true_sgn_M: "trans_fun M q a Z = {} \<or> (\<exists>p \<gamma>. trans_fun M q a Z = {(p, \<gamma>)})"
+  using Complement_DPDA_HU.complement_dpda_def complement_dpda_axioms dpda.true_sgn by blast
+
+lemma eps_sgn_M: "eps_fun M q Z = {} \<or> (\<exists>p \<gamma>. eps_fun M q Z = {(p, \<gamma>)})"
+  using Complement_DPDA_HU.complement_dpda_def complement_dpda_axioms dpda.eps_sgn by blast
+
+lemma true_or_eps_M: "trans_fun M q a Z \<noteq> {} \<Longrightarrow> eps_fun M q Z = {}"
+  using Complement_DPDA_HU.complement_dpda_def complement_dpda_axioms dpda.true_or_eps by blast
+
 lemma dpda_complement: "dpda complement_dpda"
-  sorry
+proof (standard, goal_cases)
+  case (1 p a Z)
+  have "finite (complement_dpda_trans_fun p a Z)"
+    by (induction p a Z rule: complement_dpda_trans_fun.induct) (auto simp: finite_trans_M)
+  then show ?case
+    by (simp add: complement_dpda_def)
+next
+  case (2 p Z)
+  have "finite (complement_dpda_eps_fun p Z)"
+    by (induction p Z rule: complement_dpda_eps_fun.induct) (auto simp: finite_eps_M)
+  then show ?case
+    by (simp add: complement_dpda_def)
+next
+  case (3 q a Z)
+  have "complement_dpda_trans_fun q a Z = {} \<or> (\<exists>p \<gamma>. complement_dpda_trans_fun q a Z = {(p, \<gamma>)})"
+    by (induction q a Z rule: complement_dpda_trans_fun.induct, auto) (metis (lifting) empty_iff image_empty image_insert surj_pair true_sgn_M)+
+  then show ?case
+    by (simp add: complement_dpda_def)
+next
+  case (4 q Z)
+  have "complement_dpda_eps_fun q Z = {} \<or> (\<exists>p \<gamma>. complement_dpda_eps_fun q Z = {(p, \<gamma>)})"
+  proof (induction q Z rule: complement_dpda_eps_fun.induct)
+    case (1 q Z)
+    then show ?case
+      using eps_sgn_M by fastforce
+  next
+    case (2 q Z)
+    let ?rh = "(\<lambda>(p, \<alpha>). if p \<in> final_states M then (S1 p, \<alpha>) else (S2 p, \<alpha>)) ` eps_fun M q Z \<union>
+                                        (if \<exists>a. trans_fun M q a Z \<noteq> {} then {(S3 q, [Z])} else {})"
+    have "?rh = {} \<or> (\<exists>p \<gamma>. ?rh = {(p, \<gamma>)})" proof (cases)
+      assume a: "\<exists>a. trans_fun M q a Z \<noteq> {}" 
+      hence "eps_fun M q Z = {}"
+        using true_or_eps_M by blast
+      with a have "?rh = {(S3 q, [Z])}" by simp
+      then show ?thesis by blast 
+    next
+      assume "\<nexists>a. trans_fun M q a Z \<noteq> {}"
+      hence "?rh = (\<lambda>(p, \<alpha>). if p \<in> final_states M then (S1 p, \<alpha>) else (S2 p, \<alpha>)) ` eps_fun M q Z" by simp
+      then show ?thesis
+        by (metis (lifting) image_empty image_insert surj_pair eps_sgn_M)
+    qed
+    then show ?case by simp
+  qed simp
+  then show ?case
+    by (simp add: complement_dpda_def)
+next
+  case (5 q a Z)
+  hence "complement_dpda_trans_fun q a Z \<noteq> {}"
+    by (simp add: complement_dpda_def)
+  then show ?case proof (induction q a Z rule: complement_dpda_trans_fun.induct)
+    case (1 q a Z)
+    hence "trans_fun M q a Z \<noteq> {}" by simp
+    hence "eps_fun M q Z = {}"
+      by (simp add: true_or_eps_M)
+    then show ?case
+      by (simp add: complement_dpda_def)
+  qed (simp_all add: complement_dpda_def)
+qed
 
 lemma lang_complement_dpda: "pda.final_accept complement_dpda = UNIV - pda.final_accept M"
   sorry

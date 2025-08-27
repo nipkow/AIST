@@ -9,9 +9,8 @@ begin
 (* Import of additional theories undoes this deletion in \<open>Context_Free_Grammar\<close>: *)
 declare relpowp.simps(2)[simp del] 
 
+(* TODO: rm after next release, are in AFP/devel/CFG *)
 section \<open>Aux Lemmas\<close>
-
-(* TODO: rm after next release, are in devel *)
 
 lemma Nts_mono: "G \<subseteq> H \<Longrightarrow> Nts G \<subseteq> Nts H"
 by (auto simp add: Nts_def)
@@ -29,7 +28,6 @@ by (metis Eps_free_derives_Nil relpowp_imp_rtranclp)
 lemma nts_syms_empty_iff: "nts_syms w = {} \<longleftrightarrow> (\<exists>u. w = map Tm u)"
 by(induction w) (auto simp: ex_map_conv split: sym.split)
 
-text \<open>Sentential form contains a \<open>Nt\<close> must have a last \<open>Nt\<close>:\<close>
 lemma non_word_has_last_Nt: "nts_syms w \<noteq> {} \<Longrightarrow> \<exists>u A v. w = u @ [Nt A] @ map Tm v"
 proof (induction w)
   case Nil
@@ -75,7 +73,6 @@ next
       by (metis (lifting) converse_rtranclp_into_rtranclp derivel.intros prod)
   qed
 qed
-
 
 text \<open>A decomposition of a derivation from a sentential form to a word into multiple 
       derivations that derive words.\<close>
@@ -166,7 +163,50 @@ proof -
   then show ?thesis using P2 by blast
 qed
 
-(* end TODO *)
+
+definition nts_syms_list :: "('n,'t)syms \<Rightarrow> 'n list \<Rightarrow> 'n list" where
+"nts_syms_list sys = foldr (\<lambda>sy ns. case sy of Nt A \<Rightarrow> List.insert A ns | Tm _ \<Rightarrow> ns) sys"
+
+definition nts_prods_list :: "('n,'t)prods \<Rightarrow> 'n list" where
+"nts_prods_list ps = foldr (\<lambda>(A,sys) ns. List.insert A (nts_syms_list sys ns)) ps []"
+
+lemma set_nts_syms_list: "set(nts_syms_list sys ns) = nts_syms sys \<union> set ns"
+unfolding nts_syms_list_def
+by(induction sys arbitrary: ns) (auto split: sym.split)
+
+lemma set_nts_prods_list: "set(nts_prods_list ps) = nts ps"
+by(induction ps) (auto simp: nts_prods_list_def Nts_def set_nts_syms_list split: prod.splits)
+
+lemma distinct_nts_syms_list: "distinct(nts_syms_list sys ns) = distinct ns"
+unfolding nts_syms_list_def
+by(induction sys arbitrary: ns) (auto split: sym.split)
+
+lemma distinct_nts_prods_list: "distinct(nts_prods_list ps)"
+by(induction ps) (auto simp: nts_prods_list_def distinct_nts_syms_list split: sym.split)
+(* end TODO rm *)
+
+(* TODO rm after next release (is in AFP/devel/Fresh_Identifiers) *)
+
+fun freshs :: "('a::fresh) set \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+"freshs X [] = []" |
+"freshs X (a#as) = (let a' = fresh X a in a' # freshs (insert a' X) as)"
+
+lemma length_freshs: "finite X \<Longrightarrow> length(freshs X as) = length as"
+by(induction as arbitrary: X)(auto simp: fresh_notIn Let_def)
+
+lemma freshs_disj: "finite X \<Longrightarrow> X \<inter> set(freshs X as) = {}"
+proof(induction as arbitrary: X)
+  case Cons
+  then show ?case using fresh_notIn by(auto simp add: Let_def)
+qed simp
+
+lemma freshs_distinct: "finite X \<Longrightarrow> distinct (freshs X as)"
+proof(induction as arbitrary: X)
+  case (Cons a as)
+  then show ?case
+    using freshs_disj[of "insert (fresh X a) X" as] fresh_notIn by(auto simp add: Let_def)
+qed simp
+(* end rm freshs *)
 
 
 text \<open>This theory formalizes a method to transform a set of productions into 
@@ -189,77 +229,6 @@ The algorithm consists of two phases:
 This is essentially the algorithm given by Hopcroft and Ullman \cite{HopcroftU79},
 except that we can drop the conversion to Chomsky Normal Form because of our more liberal \<open>GNF_hd\<close>.
 \<close>
-
-
-section \<open>Fresh Nonterminals\<close>
-
-(* TODO rm after next release (is in AFP/devel/CFG) *)
-definition nts_syms_list :: "('n,'t)syms \<Rightarrow> 'n list \<Rightarrow> 'n list" where
-"nts_syms_list sys = foldr (\<lambda>sy ns. case sy of Nt A \<Rightarrow> List.insert A ns | Tm _ \<Rightarrow> ns) sys"
-
-definition nts_prods_list :: "('n,'t)prods \<Rightarrow> 'n list" where
-"nts_prods_list ps = foldr (\<lambda>(A,sys) ns. List.insert A (nts_syms_list sys ns)) ps []"
-
-lemma set_nts_syms_list: "set(nts_syms_list sys ns) = nts_syms sys \<union> set ns"
-unfolding nts_syms_list_def
-by(induction sys arbitrary: ns) (auto split: sym.split)
-
-lemma set_nts_prods_list: "set(nts_prods_list ps) = nts ps"
-by(induction ps) (auto simp: nts_prods_list_def Nts_def set_nts_syms_list split: prod.splits)
-
-lemma distinct_nts_syms_list: "distinct(nts_syms_list sys ns) = distinct ns"
-unfolding nts_syms_list_def
-by(induction sys arbitrary: ns) (auto split: sym.split)
-
-lemma distinct_nts_prods_list: "distinct(nts_prods_list ps)"
-by(induction ps) (auto simp: nts_prods_list_def distinct_nts_syms_list split: sym.split)
-(* end rm *)
-
-(* TODO: unify fresh and fresh0 *)
-class fresh0 = fresh +
-  fixes fresh0 :: "'a set \<Rightarrow> 'a"
-  assumes fresh0: "finite X \<Longrightarrow> fresh0 X \<notin> X"
-
-instantiation nat :: fresh0
-begin
-
-definition fresh0_nat :: "nat set \<Rightarrow> nat" where
-"fresh0_nat X \<equiv> fresh X 0"
-
-instance by standard (simp add: fresh0_nat_def fresh_notIn)
-
-end
-
-(* TODO integrate into the Fresh theories in the AFP *)
-fun freshs :: "('a::fresh0) set \<Rightarrow> nat \<Rightarrow> 'a list" where
-"freshs X 0 = []" |
-"freshs X (Suc n) = (let x = fresh0 X in x # freshs (insert x X) n)"
-
-declare freshs.simps(1)[code]
-
-lemma freshs_Suc_Code[code]:
-  "freshs (set xs) (Suc n) = (let x = fresh0 (set xs) in x # freshs (set(x # xs)) n)"
-by simp
-
-value "freshs {0,1,3,5,7::nat} 4"
-
-lemma length_freshs: "finite X \<Longrightarrow> length(freshs X n) = n"
-by(induction n arbitrary: X)(auto simp: fresh_notIn Let_def)
-
-lemma freshs_disj: "finite X \<Longrightarrow> X \<inter> set(freshs X n) = {}"
-proof(induction n arbitrary: X)
-  case (Suc n)
-  then show ?case by(simp add: fresh0 Let_def) blast
-qed simp
-
-lemma freshs_distinct: "finite X \<Longrightarrow> distinct (freshs X n)"
-proof(induction n arbitrary: X)
-  case (Suc n)
-  then show ?case
-    using freshs_disj[of "insert (fresh0 X) X" n]
-    by(auto simp: fresh0 Let_def)
-qed simp
-(* end freshs *)
 
 
 section \<open>Function Definitions\<close>
@@ -396,10 +365,10 @@ lemma expand_tri_Cons_code[code]: "expand_tri (S#Ss) R =
 by(simp add: Let_def Rhss_def neq_Nil_conv Ball_def, safe, force+)
 
 text \<open>The main function \<open>gnf_hd\<close> converts into \<open>GNF_hd\<close>:\<close>
-definition gnf_hd :: "('n::fresh0,'t)prods \<Rightarrow> ('n,'t)Prods" where
+definition gnf_hd :: "('n::fresh,'t)prods \<Rightarrow> ('n,'t)Prods" where
 "gnf_hd ps =
   (let As = nts_prods_list ps;
-       As' = freshs (set As) (length As)
+       As' = freshs (set As) As
    in expand_tri (As' @ rev As) (solve_tri As As' (set ps)))"
 
 
@@ -1963,9 +1932,9 @@ theorem GNF_hd_gnf_hd: "eps_free ps \<Longrightarrow> GNF_hd (gnf_hd ps)"
 by(simp add: gnf_hd_def Let_def GNF_of_R[simplified]
   distinct_nts_prods_list freshs_distinct finite_nts freshs_disj set_nts_prods_list length_freshs)
 
-lemma distinct_app_freshs: "\<lbrakk> As = nts_prods_list ps; As' = freshs (set As) (length As) \<rbrakk> \<Longrightarrow>
+lemma distinct_app_freshs: "\<lbrakk> As = nts_prods_list ps; As' = freshs (set As) As \<rbrakk> \<Longrightarrow>
    distinct (As @ As')"
-using freshs_disj[of "set As" "length As"]
+using freshs_disj[of "set As" As]
 by (auto simp: distinct_nts_prods_list freshs_distinct)
 
 text \<open>\<open>gnf_hd\<close> preserves the language:\<close>

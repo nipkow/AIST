@@ -91,7 +91,7 @@ end
 locale Gauss = Abstraction \<phi> for \<phi>:: "'a :: {one, zero, plus, times} \<Rightarrow> 'b :: semiring_1"  +
 fixes solve1 :: "'a :: {one, zero, plus, times} \<Rightarrow> 'a list \<Rightarrow> 'a list"
 assumes length_solve1: "length(solve1 a cs) = length cs"
-and solve1_c: "\<phi> X = \<phi> (dot (solve1 c cs) (Xs@[1])) \<Longrightarrow>  \<phi> X = \<phi> (dot (c#cs) (X#Xs@[1]))"
+and solve1_c: "\<phi> X = \<phi> (dot (solve1 c cs) Xs) \<Longrightarrow>  \<phi> X = \<phi> (dot (c#cs) (X#Xs))"
 
 begin
 text \<open>We work on a matrix representation of \<open>X = A*X+B\<close> where the matrix is \<open>(A|B)\<close>.
@@ -498,19 +498,19 @@ proof (standard, goal_cases)
   then show ?case by auto
 next
   case (2 X c cs Xs)
-  assume "L X = L (dot (map (Times (Star c)) cs) (Xs @ [1]))"
-  then have "L X = L (dot (map (times (Star c)) cs) (Xs @ [1]))"
+  assume "L X = L (dot (map (Times (Star c)) cs) Xs)"
+  then have "L X = L (dot (map (times (Star c)) cs) Xs)"
     by (metis times_rexp_def)
 
-  then have "L X = L (Star c) * L (dot cs (Xs@[1]))"
+  then have "L X = L (Star c) * L (dot cs Xs)"
     by (metis \<phi>_dot_mult)
-  then have "lang X = star (lang c) @@ unLang (L (dot cs (Xs@[1])))"
+  then have "lang X = star (lang c) @@ unLang (L (dot cs Xs))"
     by (simp add: times_langR_def)
-  then have "lang X = lang c @@ lang X \<union> unLang (L (dot cs (Xs@[1])))"
+  then have "lang X = lang c @@ lang X \<union> unLang (L (dot cs Xs))"
     using Arden_star_is_sol by auto
-  then have "L X = L c * L X + L (dot (cs) ((Xs@[1])))"
+  then have "L X = L c * L X + L (dot cs Xs)"
     by (simp add: plus_langR_def times_langR_def)
-  then show "L X = L (dot (c # cs) (X # Xs @ [1]))"
+  then show "L X = L (dot (c # cs) (X # Xs))"
     by (simp add: \<phi>_dot_Cons)
 qed
 

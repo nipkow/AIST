@@ -1,50 +1,53 @@
-chapter ‹Alternating Finite Automata using the Hereditarily Finite Sets›
+chapter ‹Alternating Finite Automata using the Hereditarily Finite Sets› 
 
 theory Alternating_Finite_Automata_HF
   imports Main Finite_Automata_HF.Finite_Automata_HF 
 begin
 
-text‹at the top positive Boolean formulas and the related modelling relation are formalized
-then you will find a set of lemmas about working with hfs
-after that you will find a formalization of afa, within which you will find a definition for a
-power_nfa which recognizes the same language as the afa, this equivalence is also proven›
+text‹This theory formalizes alternating finite automata (AFA) based on hereditarily
+finite sets. The main result is that every AFA can be converted into an NFA.
+Our formalization is based on positive boolean formulas rather than functions,
+following the textbook Automatentheory und Logik by Hofmann and Lange.
 
-section‹positive Boolean formulas and the related modelling relation›
+The theory starts with positive boolean formulas (type ‹'a and_or_exp›). The
+main body of the theory is concerned with AFAs and their translation to NFAs.›
+
+section‹Positive Boolean formulas and the related modeling relation›
 datatype 'a and_or_exp =
   Var 'a 
   | And "'a and_or_exp" "'a and_or_exp" 
   | Or "'a and_or_exp" "'a and_or_exp" 
   | MT
 
-inductive modells :: "hf set ⇒ hf and_or_exp ⇒ bool" where
-  "q ∈ Q ⟹ modells Q (Var q)"
-| "modells Q q1 ∨ modells Q q2 ⟹ modells Q (Or q1 q2)"
-| "modells Q q1 ∧ modells Q q2 ⟹ modells Q (And q1 q2)"
+inductive models :: "hf set ⇒ hf and_or_exp ⇒ bool" where
+  "q ∈ Q ⟹ models Q (Var q)"
+| "models Q q1 ∨ models Q q2 ⟹ models Q (Or q1 q2)"
+| "models Q q1 ∧ models Q q2 ⟹ models Q (And q1 q2)"
 
-subsection‹some lemmas about models›
-lemma anding1 : "modells qs a ⟹ modells qs b ⟹ modells qs (And a b)"
-  using modells.intros(3) by blast
+subsection‹Some lemmas about models›
+lemma anding1 : "models qs a ⟹ models qs b ⟹ models qs (And a b)"
+  using models.intros(3) by blast
 
-lemma anding2 : "modells qs (And a b) ⟹ modells qs a"
-  using modells.cases by fastforce
+lemma anding2 : "models qs (And a b) ⟹ models qs a"
+  using models.cases by fastforce
 
-lemma anding3 : "modells qs (And a b) ⟹ modells qs b"
-  using modells.cases by fastforce
+lemma anding3 : "models qs (And a b) ⟹ models qs b"
+  using models.cases by fastforce
 
-lemma modellinc: "modells qs a ⟹ qs ⊆ qs' ⟹ modells qs' a"
-proof (induction rule: modells.induct)
+lemma modelinc: "models qs a ⟹ qs ⊆ qs' ⟹ models qs' a"
+proof (induction rule: models.induct)
   case (1 q Q)
-  then show ?case using modells.intros by auto
+  then show ?case using models.intros by auto
 next
   case (2 Q q1 q2)
-  then show ?case using modells.intros by auto
+  then show ?case using models.intros by auto
 next
   case (3 Q q1 q2)
-  then show ?case using modells.intros by auto
+  then show ?case using models.intros by auto
 qed
 
-lemma mod_has: "modells qs a ⟹ qs ≠ {}"
-proof (induction rule: modells.induct)
+lemma mod_has: "models qs a ⟹ qs ≠ {}"
+proof (induction rule: models.induct)
   case (1 q Q)
   then show ?case by auto
 next
@@ -56,7 +59,7 @@ next
 qed
   
 
-lemma mod_has': "∄ab. modells {} ab"
+lemma mod_has': "∄ab. models {} ab"
   using mod_has by blast
 
 text‹Returns set of variables used in the given and or expression›
@@ -89,23 +92,67 @@ fixes M :: "'a afa"
       and finite: "finite (states M)"
 begin
 
+text‹Returns whether starting from a node, a (rest)word is accepted›
+fun A :: "'a list ⇒ hf ⇒ bool" where
+  "A [] q = (q ∈ final M)"
+| "A (a#w) q = ((q ∈ states M) ∧ (models {q' ∈ states M. A w q'} (nxt M q a)))"
+
+text‹The language of the afa›
+definition lang :: "'a list set" where
+  "lang ≡ {as. A as (init M)}"
 
 text‹Verifies that a set of states are a valid set of children for a given node and character›
 text‹It also verifies whether the given nodes are valid›
 fun valid_children :: "hf ⇒ hf set ⇒ 'a ⇒ bool" where
-  "valid_children q qs a = ((qs ⊆ states M) ∧ (q ∈ states M) ∧ (modells qs (nxt M q a)))"
+  "valid_children q qs a = ((qs ⊆ states M) ∧ (q ∈ states M) ∧ (models qs (nxt M q a)))"
 
 
-text‹Returns whether starting from a node, a (rest)word is accepted›
-text‹It takes a layer wise recursive approach on the tree›
+text‹Equivalent to A (Returns whether a respective accepting tree exists)›
+text‹It takes a layer wise recursive approach on the tree, 
+  verifying the existence of a valid set of children which can each be root to an accepting tree for the rest word›
 fun acc_i :: "'a list ⇒ hf ⇒ bool" where
   "acc_i [] q = (q ∈ final M)"
 | "acc_i (a#as) q = (∃qs. (valid_children q qs a) ∧ (∀q' ∈ qs. acc_i as q'))"
 
 
-text‹The language of the afa›
-definition lang :: "'a list set" where
-  "lang ≡ {as. acc_i as (init M)}"
+text‹Equivalence of acc_i and A›
+lemma acc_i_A_eq: "acc_i as q = A as q"
+proof (induction rule: acc_i.induct)
+  case (1 q)
+  then show ?case by simp
+next
+  case (2 a as q)
+  then show ?case proof (cases "acc_i (a#as) q")
+    case t1: True
+    have h1: "(∃qs. (valid_children q qs a) ∧ (∀q' ∈ qs. acc_i as q'))"
+      using t1 by force
+    then obtain qs where o1: "(valid_children q qs a) ∧ (∀q' ∈ qs. acc_i as q')" by auto
+    then have h2: "(∀q' ∈ qs. A as q')"
+      using "2" by blast
+    then have h3: "qs ⊆ {q' ∈ states M. A as q'}"
+      using o1 by auto
+    then have h4: "models {q' ∈ states M. A as q'} (nxt M q a)"
+      using modelinc o1 valid_children.simps by blast
+    then show ?thesis
+      using t1 by auto
+  next
+    case f1: False
+    then show ?thesis proof (cases "A (a#as) q")
+      case True
+      then have h11: "(valid_children q {q' ∈ states M. A as q'} a) ∧ (∀q' ∈ {q' ∈ states M. A as q'}. acc_i as q')"
+        using "2" by auto
+      then show ?thesis
+        using acc_i.simps(2) f1 by blast
+    next
+      case False
+      then show ?thesis
+        using f1 by blast
+    qed 
+  qed
+   
+qed
+
+
 
 text‹Returns the conjunction of all (nxt M x a) for all xs in a list›
 fun anded :: "hf list ⇒ 'a ⇒ hf and_or_exp" where
@@ -113,8 +160,8 @@ fun anded :: "hf list ⇒ 'a ⇒ hf and_or_exp" where
 | "anded [x] a = nxt M x a"
 | "anded (x#xs) a = And (nxt M x a) (anded xs a)"
 
-subsection‹an equivalency about anded›
-lemma andingeq1: "(∀q ∈ set (p#qs). modells qs' (nxt M q a)) ⟹ modells qs' (anded (p#qs) a)"
+subsection‹An equivalency about anded›
+lemma andingeq1: "(∀q ∈ set (p#qs). models qs' (nxt M q a)) ⟹ models qs' (anded (p#qs) a)"
 proof (induction qs)
   case Nil
   then show ?case by simp
@@ -125,21 +172,21 @@ next
 qed
   
 
-lemma andingeq2: "modells qs' (anded (p#qs) a) ⟹ (∀q ∈ set (p#qs). modells qs' (nxt M q a))"
+lemma andingeq2: "models qs' (anded (p#qs) a) ⟹ (∀q ∈ set (p#qs). models qs' (nxt M q a))"
 proof (induction qs)
   case Nil
   then show ?case by simp
 next
   case (Cons a qs)
   then show ?case
-    by (metis anded.simps(2,3) anding2 anding3 list.set_intros(2) modells.intros(3) neq_Nil_conv
+    by (metis anded.simps(2,3) anding2 anding3 list.set_intros(2) models.intros(3) neq_Nil_conv
         set_ConsD)
 qed 
 
 text‹Verifies whether a set of states (qs') is a valid next level for another set of states (qs)›
 text‹It is used to define an equivalent language(langalt) to lang›
 fun nxt_lvl_set_valid :: "hf set ⇒ hf set ⇒ 'a ⇒ bool" where
-  "nxt_lvl_set_valid qs qs' a = ((qs ≠ {}) ∧ (qs ⊆ states M) ∧ (qs' ⊆ states M) ∧ (∃qsl. ((set qsl = qs) ∧ (distinct qsl) ∧ modells qs' (anded qsl a))))"
+  "nxt_lvl_set_valid qs qs' a = ((qs ≠ {}) ∧ (qs ⊆ states M) ∧ (qs' ⊆ states M) ∧ (∃qsl. ((set qsl = qs) ∧ (distinct qsl) ∧ models qs' (anded qsl a))))"
 
 
 text‹Verifies whether a (rest)word will be accepted from a given level using nxt_lvl_set_valid›
@@ -150,20 +197,20 @@ fun acc_i_set :: "'a list ⇒ hf set ⇒ bool" where
 
 text‹An equivalent function to nxt_lvl_set_valid helping to prove equivalence of langalt (defined later) and lang›
 fun nxt_lvl_set_valid' :: "hf set ⇒ hf set ⇒ 'a ⇒ bool" where
-  "nxt_lvl_set_valid' qs qs' a = ((qs ≠ {}) ∧ (qs ⊆ states M) ∧ (qs' ⊆ states M) ∧ (∀q ∈ qs. modells qs' (nxt M q a)))"
+  "nxt_lvl_set_valid' qs qs' a = ((qs ≠ {}) ∧ (qs ⊆ states M) ∧ (qs' ⊆ states M) ∧ (∀q ∈ qs. models qs' (nxt M q a)))"
 
 
-text‹like acc_i_set but using nxt_lvl_set_valid' instead of nxt_lvl_set_valid›
+text‹Like acc_i_set but using nxt_lvl_set_valid' instead of nxt_lvl_set_valid›
 fun acc_i_set' :: "'a list ⇒ hf set ⇒ bool" where
    "acc_i_set' [] qs = (qs ⊆ (final M))"
 |  "acc_i_set' (a#as) qs = (∃qs'. (nxt_lvl_set_valid' qs qs' a) ∧ (acc_i_set' as qs'))"
 
 
-subsection‹equivalence of nxt_lvl_set_valid and nxt_lvl_set_valid'›
+subsection‹Equivalence of nxt_lvl_set_valid and nxt_lvl_set_valid'›
 lemma eq_nlsv1: "nxt_lvl_set_valid qs qs' a ⟹ nxt_lvl_set_valid' qs qs' a"
 proof -
   assume A: "nxt_lvl_set_valid qs qs' a"
-  have h1: "⋀xqs xqs' xa. (finite xqs ⟹ xqs ≠ {} ⟹ (∃qsl. ((set qsl = xqs) ∧ (distinct qsl) ∧ modells xqs' (anded qsl xa))) ⟹ (∀q ∈ xqs. modells xqs' (nxt M q xa)))"
+  have h1: "⋀xqs xqs' xa. (finite xqs ⟹ xqs ≠ {} ⟹ (∃qsl. ((set qsl = xqs) ∧ (distinct qsl) ∧ models xqs' (anded qsl xa))) ⟹ (∀q ∈ xqs. models xqs' (nxt M q xa)))"
     by (metis andingeq2 empty_set remdups_adj.cases)
   show ?thesis using A h1 by auto
 qed
@@ -174,7 +221,7 @@ lemma eq_nlsv2: "nxt_lvl_set_valid' qs qs' a ⟹ nxt_lvl_set_valid qs qs' a"
       local.finite nxt_lvl_set_valid'.elims(1) nxt_lvl_set_valid.elims(1)
       set_empty)
 
-subsection‹equivalence of acc_i_set and acc_i_set'›
+subsection‹Equivalence of acc_i_set and acc_i_set'›
 lemma eq_ais1: "acc_i_set as q ⟹ acc_i_set' as q"
 proof (induction rule: acc_i_set.induct)
   case (1 qs)
@@ -196,7 +243,7 @@ qed
   
 
 
-subsection‹relations between acc_i and acc_i_set'›
+subsection‹Relations between acc_i and acc_i_set'›
 lemma aiais1: "qs ≠ {} ⟹ (∀q ∈ qs. acc_i as q) ⟹ acc_i_set' as qs"
 proof -
   assume A: "qs ≠ {}" and B: "(∀q ∈ qs. acc_i as q)"
@@ -209,7 +256,7 @@ proof -
       using B by simp
     let ?xs = "{q'∈(states M). acc_i as q'}"
     have inc_vc: "⋀xqs xqs' xq xa. (xqs ⊆ xqs' ⟹ xqs' ⊆ states M ⟹ valid_children xq xqs xa ⟹ valid_children xq xqs' xa)"
-      by (meson modellinc valid_children.elims(2,3))
+      by (meson modelinc valid_children.elims(2,3))
     have h4: "∀q ∈ qs. (valid_children q ?xs a)"
     proof (intro ballI)
       fix q
@@ -248,7 +295,7 @@ text‹Returns possible options for the next level given the possible options fo
 fun nxt_lvl_set_opt_ext :: "hf set set ⇒ 'a ⇒ hf set set" where
   "nxt_lvl_set_opt_ext qss a = {qs'. ∃qs∈qss. nxt_lvl_set_valid qs qs' a}"
 
-subsection‹some lemmas about nxt_lvl_set_opt_ext›
+subsection‹Some lemmas about nxt_lvl_set_opt_ext›
 lemma no_mt: "{} ∉ (nxt_lvl_set_opt_ext qss a)"
   using mod_has' by fastforce
 
@@ -271,7 +318,7 @@ fun acc_i_set_sim :: "'a list ⇒ hf set ⇒ bool" where
    "acc_i_set_sim [] qs = (qs ∈ acc_set)"
 |  "acc_i_set_sim (a#as) qs = (∃qs' ∈ (nxt_lvl_set_opt_ext {qs} a). (acc_i_set_sim as qs'))"
 
-subsection‹equivalence of acc_i_set_sim and acc_i_set›
+subsection‹Equivalence of acc_i_set_sim and acc_i_set›
 lemma aiss_eq1: "acc_i_set_sim as qs ⟹ acc_i_set as qs"
 proof (induction rule: acc_i_set_sim.induct)
   case (1 qs)
@@ -300,7 +347,7 @@ fun nxt_lvl_set_opt_ext_l :: "hf set set ⇒ 'a list ⇒ hf set set" where
 | "nxt_lvl_set_opt_ext_l qss (a#as) = nxt_lvl_set_opt_ext_l (nxt_lvl_set_opt_ext qss a) as"
 
 
-text‹helper lemma about nxt_lvl_set_opt_ext_l›
+text‹Helper lemma about nxt_lvl_set_opt_ext_l›
 lemma elem_fin: "x ∈ nxt_lvl_set_opt_ext_l qs xs ⟹ (∀y∈qs. finite y) ⟹ finite x"
 proof (induction rule: nxt_lvl_set_opt_ext_l.induct)
   case (1 qss)
@@ -310,7 +357,7 @@ next
   then show ?case by (metis elemfin nxt_lvl_set_opt_ext_l.simps(2))
 qed
   
-subsection‹relations between nxt_lvl_set_opt_ext_l and acc_i_set_sim or acc_i_set›
+subsection‹Relations between nxt_lvl_set_opt_ext_l and acc_i_set_sim or acc_i_set›
 
 lemma helper1: "∃x ∈ (nxt_lvl_set_opt_ext_l qss as). (x ∈ acc_set) ⟹ ∃qs ∈ qss. acc_i_set_sim as qs"
 proof (induction rule: nxt_lvl_set_opt_ext_l.induct)
@@ -355,13 +402,13 @@ definition langalt :: "'a list set" where
   "langalt ≡ {as. (nxt_lvl_set_opt_ext_l {{init M}} as) ∩ (acc_set) ≠ {}}"
 
 
-subsection‹equivalence of lang and langalt›
+subsection‹Equivalence of lang and langalt›
 lemma langeq1: "lang ⊆ langalt"
   unfolding lang_def langalt_def
-  by (simp add: Collect_mono_iff aiais1 eq_ais2 langeq1_helper)
+  by (simp add: Collect_mono_iff aiais1 eq_ais2 langeq1_helper acc_i_A_eq)
 
 lemma langeq2: "langalt ⊆ lang"
-  unfolding lang_def langalt_def using langeq2_helper aiais2 eq_ais1 by blast
+  unfolding lang_def langalt_def using langeq2_helper aiais2 eq_ais1 acc_i_A_eq by blast
 
 subsection‹The Powerset Construction›
 
@@ -369,7 +416,7 @@ definition Power_nfa :: "'a nfa" where
   "Power_nfa = ⦇nfa.states = {HF Q | Q. Q ∈ Pow (states M)},
                      init  = {HF {init M}},
                      final = {HF Q | Q. Q ⊆ final M},
-                     nxt   = (λQ x. {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset Q) ∧ (distinct Qsl) ∧ modells Q' (anded Qsl x))))}),
+                     nxt   = (λQ x. {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset Q) ∧ (distinct Qsl) ∧ models Q' (anded Qsl x))))}),
                      eps = {}⦈"
 
 
@@ -389,7 +436,7 @@ next
     unfolding Power_nfa_def using finite by simp
 qed
 
-subsection‹helper lemmas on Power_nfa›
+subsection‹Helper lemmas on Power_nfa›
 lemma neps: "q ⊆ nfa.states Power_nfa ⟹ Power.epsclo q = q"
   using Power.epsclo_trivial Power_nfa_def by auto
 
@@ -400,10 +447,10 @@ lemma nfa_init: "(HF {}) ∉ (nfa.init Power_nfa)"
 text‹Works similar to Power.nextl, defined to help prove equivalence of Power.language and langalt›
 fun lnextl' :: "hf set ⇒ 'a list ⇒ hf set" where
   "lnextl' Q []     = Q"
-| "lnextl' Q (x#xs) = lnextl' (⋃q ∈ Q. {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ modells Q' (anded Qsl x))))}) xs"
+| "lnextl' Q (x#xs) = lnextl' (⋃q ∈ Q. {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ models Q' (anded Qsl x))))}) xs"
 
 
-text‹relationship of lnextl' and Power.nextl›
+text‹Relationship of lnextl' and Power.nextl›
 lemma nextl_cond_eq: "q ⊆ nfa.states Power_nfa ⟹ lnextl' q as = Power.nextl q as"
 proof (induction as arbitrary: q)
   case Nil
@@ -413,14 +460,14 @@ next
   have h1: "(⋃q∈q. {HF Q' |Q'.
                  Q' ⊆ afa.states M ∧
                  (∃Qsl. set Qsl = hfset q ∧
-                        distinct Qsl ∧ modells Q' (anded Qsl a))})
+                        distinct Qsl ∧ models Q' (anded Qsl a))})
                 = (⋃q∈q. nfa.nxt Power_nfa q a)" by (simp add: Power_nfa_def)
   have h2: "(⋃q∈Power.epsclo q. nfa.nxt Power_nfa q a) ⊆ nfa.states Power_nfa"
     using Cons.prems Power.nxt neps by auto
   have h3: "lnextl'
      (⋃q∈q. {HF Q' |Q'.
               Q' ⊆ afa.states M ∧
-              (∃Qsl. set Qsl = hfset q ∧ distinct Qsl ∧ modells Q' (anded Qsl a))})
+              (∃Qsl. set Qsl = hfset q ∧ distinct Qsl ∧ models Q' (anded Qsl a))})
      as =
     Power.nextl (⋃q∈Power.epsclo q. nfa.nxt Power_nfa q a) as"
     using h1 Cons.IH(1)[OF h2]
@@ -429,19 +476,19 @@ next
 qed
 
 
-subsection‹relationships between lnextl' and nxt_lvl_set_opt_ext_l›
+subsection‹Relationships between lnextl' and nxt_lvl_set_opt_ext_l›
 
 text‹A helper lemma›
-lemma cond_eq_helper: "(HF {}) ∉ Q ⟹ Q ⊆ (nfa.states Power_nfa) ⟹ hfset ` (⋃q ∈ Q. {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ modells Q' (anded Qsl x))))})
+lemma cond_eq_helper: "(HF {}) ∉ Q ⟹ Q ⊆ (nfa.states Power_nfa) ⟹ hfset ` (⋃q ∈ Q. {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ models Q' (anded Qsl x))))})
     = nxt_lvl_set_opt_ext (hfset ` Q) x"
 proof -
   assume X: "(HF {}) ∉ Q" and Y: "Q ⊆ (nfa.states Power_nfa)"
-  have hpll1: "hfset ` (⋃q ∈ Q. {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ modells Q' (anded Qsl x))))})
+  have hpll1: "hfset ` (⋃q ∈ Q. {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ models Q' (anded Qsl x))))})
             =
-              {qs'. ∃qs∈ (hfset ` Q). ((qs ≠ {}) ∧ (qs ⊆ states M) ∧ (qs' ⊆ states M) ∧ (∃qsl. ((set qsl = qs) ∧ (distinct qsl) ∧ modells qs' (anded qsl x))))}"
+              {qs'. ∃qs∈ (hfset ` Q). ((qs ≠ {}) ∧ (qs ⊆ states M) ∧ (qs' ⊆ states M) ∧ (∃qsl. ((set qsl = qs) ∧ (distinct qsl) ∧ models qs' (anded qsl x))))}"
   proof -
-    have hpll16: "(⋃qs ∈ Q. {qs'. ((hfset qs ≠ {}) ∧ (hfset qs ⊆ states M) ∧ (qs' ⊆ states M) ∧ (∃qsl. ((set qsl = hfset qs) ∧ (distinct qsl) ∧ modells qs' (anded qsl x))))})
-      = (⋃qs ∈ Q. {qs'. ((qs' ⊆ states M) ∧ (∃qsl. ((set qsl = hfset qs) ∧ (distinct qsl) ∧ modells qs' (anded qsl x))))})" 
+    have hpll16: "(⋃qs ∈ Q. {qs'. ((hfset qs ≠ {}) ∧ (hfset qs ⊆ states M) ∧ (qs' ⊆ states M) ∧ (∃qsl. ((set qsl = hfset qs) ∧ (distinct qsl) ∧ models qs' (anded qsl x))))})
+      = (⋃qs ∈ Q. {qs'. ((qs' ⊆ states M) ∧ (∃qsl. ((set qsl = hfset qs) ∧ (distinct qsl) ∧ models qs' (anded qsl x))))})" 
       proof -
         have h1: "⋀qs. (qs ∈ Q ⟹ (hfset qs ≠ {}))" using X by (metis HF_hfset)
         have h2: "⋀qs. (qs ∈ Q ⟹ hfset qs ⊆ states M)"
@@ -457,23 +504,23 @@ proof -
           qed
           show ?thesis using h1 h2 X Y by simp
       qed
-      have hpll11: "hfset ` (⋃q ∈ Q. {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ modells Q' (anded Qsl x))))})
-                = (⋃q ∈ Q. hfset ` {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ modells Q' (anded Qsl x))))})"
+      have hpll11: "hfset ` (⋃q ∈ Q. {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ models Q' (anded Qsl x))))})
+                = (⋃q ∈ Q. hfset ` {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ models Q' (anded Qsl x))))})"
         by auto
-      have hpll12: "(⋃q ∈ Q. hfset ` {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ modells Q' (anded Qsl x))))})
-                = (⋃q ∈ Q. {hfset (HF Q') | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ modells Q' (anded Qsl x))))})"
+      have hpll12: "(⋃q ∈ Q. hfset ` {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ models Q' (anded Qsl x))))})
+                = (⋃q ∈ Q. {hfset (HF Q') | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ models Q' (anded Qsl x))))})"
         by auto
-      have hpll13: "(⋃q ∈ Q. {hfset (HF Q') | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ modells Q' (anded Qsl x))))})
-                = (⋃q ∈ Q. {Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ modells Q' (anded Qsl x))))})"
+      have hpll13: "(⋃q ∈ Q. {hfset (HF Q') | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ models Q' (anded Qsl x))))})
+                = (⋃q ∈ Q. {Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ models Q' (anded Qsl x))))})"
         proof -
-          have "⋀q. ({hfset (HF Q') | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ modells Q' (anded Qsl x))))}
-              = {Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ modells Q' (anded Qsl x))))})"
+          have "⋀q. ({hfset (HF Q') | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ models Q' (anded Qsl x))))}
+              = {Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ models Q' (anded Qsl x))))})"
             by (metis finite_subset hfset_HF local.finite)
           then show ?thesis by simp
         qed
-        have hpll14: "{qs'. ∃qs∈ (hfset ` Q). ((qs ≠ {}) ∧ (qs ⊆ states M) ∧ (qs' ⊆ states M) ∧ (∃qsl. ((set qsl = qs) ∧ (distinct qsl) ∧ modells qs' (anded qsl x))))}
+        have hpll14: "{qs'. ∃qs∈ (hfset ` Q). ((qs ≠ {}) ∧ (qs ⊆ states M) ∧ (qs' ⊆ states M) ∧ (∃qsl. ((set qsl = qs) ∧ (distinct qsl) ∧ models qs' (anded qsl x))))}
               =
-              (⋃qs ∈ (hfset ` Q). {qs'. ((qs ≠ {}) ∧ (qs ⊆ states M) ∧ (qs' ⊆ states M) ∧ (∃qsl. ((set qsl = qs) ∧ (distinct qsl) ∧ modells qs' (anded qsl x))))})"
+              (⋃qs ∈ (hfset ` Q). {qs'. ((qs ≠ {}) ∧ (qs ⊆ states M) ∧ (qs' ⊆ states M) ∧ (∃qsl. ((set qsl = qs) ∧ (distinct qsl) ∧ models qs' (anded qsl x))))})"
           by blast
         show ?thesis using hpll16 hpll14 hpll13 hpll12 hpll11 X Y by auto
       qed
@@ -506,10 +553,10 @@ next
   x ∈ lnextl' (HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) as ⟹
   hfset x ∈ nxt_lvl_set_opt_ext_l (hfset ` HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) as"
       using A[of "(HF ` (nxt_lvl_set_opt_ext (hfset ` qs) a))" x] by blast
-    have h4: "x ∈ (lnextl' (⋃q ∈ qs. {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ modells Q' (anded Qsl a))))}) as)"
+    have h4: "x ∈ (lnextl' (⋃q ∈ qs. {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ models Q' (anded Qsl a))))}) as)"
       using Cons.prems(3) lnextl'.simps(2) by blast
     have h5: "(HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) =
-              (⋃q ∈ qs. {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ modells Q' (anded Qsl a))))})"
+              (⋃q ∈ qs. {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ models Q' (anded Qsl a))))})"
       using cond_eq_helper[OF B C] althf
       by (metis (lifting)) 
     have h6: "x ∈ lnextl' (HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) as"
@@ -550,10 +597,10 @@ next
     have h4: "hfset x ∈ nxt_lvl_set_opt_ext_l (nxt_lvl_set_opt_ext (hfset ` qs) a) as"
       using D nxt_lvl_set_opt_ext_l.simps(2) by blast
     have h5: "(HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) =
-              (⋃q ∈ qs. {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ modells Q' (anded Qsl a))))})"
+              (⋃q ∈ qs. {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ models Q' (anded Qsl a))))})"
       using cond_eq_helper[OF B C] althf
       by (metis (lifting))
-    have h6: "hfset x ∈ nxt_lvl_set_opt_ext_l (hfset ` (⋃q ∈ qs. {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ modells Q' (anded Qsl a))))})) as"
+    have h6: "hfset x ∈ nxt_lvl_set_opt_ext_l (hfset ` (⋃q ∈ qs. {HF Q' | Q'. ((Q' ⊆ (states M)) ∧ (∃Qsl. ((set Qsl = hfset q) ∧ (distinct Qsl) ∧ models Q' (anded Qsl a))))})) as"
       using B C h4 cond_eq_helper by presburger
     have h7: "hfset x ∈ nxt_lvl_set_opt_ext_l (hfset ` HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) as"
       using h6 h5 by argo
@@ -563,7 +610,7 @@ qed
 
 
 
-subsection‹some helper lemmas›
+subsection‹Some helper lemmas›
 
 lemma langs_innerset_eq_help1: "(HF {}) ∉ qs ⟹ qs ⊆ nfa.states Power_nfa ⟹ x ∈ (nxt_lvl_set_opt_ext_l (hfset ` qs) as) ⟹ HF x ∈ lnextl' qs as"
   by (simp add: cond_eq2 elem_fin)
@@ -607,7 +654,7 @@ qed
 
 text‹The main theorem›
 text‹Power_nfa accepts the same language as the afa.›
-lemma Power_language: "Power.language = lang" 
+theorem Power_language: "Power.language = lang"
 proof -
   have fin: "Power.language ⊆ langalt"
     unfolding Power.language_def langalt_def acc_set_def using langs_innerset_eq langs_secondset_eq by fast

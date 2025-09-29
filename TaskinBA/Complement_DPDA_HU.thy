@@ -104,7 +104,7 @@ lemma lang_scan_dpda: "pda.final_accept scan_dpda = pda.final_accept M"
   sorry
 
 lemma scan_dpda_scans: 
-"\<exists>n q \<gamma>. dpda.det_stepn scan_dpda n (init_state scan_dpda, w, [init_symbol scan_dpda]) = Some (q, [], \<gamma>)"
+"\<exists>q n \<gamma>. dpda.det_stepn scan_dpda n (init_state scan_dpda, w, [init_symbol scan_dpda]) = Some (q, [], \<gamma>)"
   sorry
 
 end
@@ -122,7 +122,7 @@ qed
 locale complement_dpda =
   fixes M :: "('q :: finite, 'a :: finite, 's :: finite) pda"
   assumes "dpda M" 
-      and "\<exists>n q \<gamma>. dpda.det_stepn M n (init_state M, w, [init_symbol M]) = Some (q, [], \<gamma>)"
+      and "\<exists>q n \<gamma>. dpda.det_stepn M n (init_state M, w, [init_symbol M]) = Some (q, [], \<gamma>)"
 begin
 
 definition complement_dpda_init_state :: "'q st_num" where
@@ -146,20 +146,26 @@ definition complement_dpda :: "('q st_num, 'a, 's) pda" where
   "complement_dpda \<equiv> \<lparr> init_state = complement_dpda_init_state, init_symbol = init_symbol M, final_states = complement_dpda_final_states,
                         trans_fun = complement_dpda_trans_fun, eps_fun = complement_dpda_eps_fun \<rparr>"
 
+lemma dpda_M: "dpda M"
+  using Complement_DPDA_HU.complement_dpda_def complement_dpda_axioms by blast
+
+lemma pda_M: "pda M"
+  using dpda_M dpda_def by blast
+
 lemma finite_trans_M: "finite (trans_fun M q a Z)"
-  using Complement_DPDA_HU.complement_dpda_def dpda_def complement_dpda_axioms pda.finite_trans by blast
+  using dpda_M dpda_def pda.finite_trans by blast
 
 lemma finite_eps_M: "finite (eps_fun M q Z)"
-  using Complement_DPDA_HU.complement_dpda_def dpda_def complement_dpda_axioms pda.finite_eps by blast
+  using dpda_M dpda_def pda.finite_eps by blast
 
 lemma true_sgn_M: "trans_fun M q a Z = {} \<or> (\<exists>p \<gamma>. trans_fun M q a Z = {(p, \<gamma>)})"
-  using Complement_DPDA_HU.complement_dpda_def complement_dpda_axioms dpda.true_sgn by blast
+  using dpda_M dpda.true_sgn by blast
 
 lemma eps_sgn_M: "eps_fun M q Z = {} \<or> (\<exists>p \<gamma>. eps_fun M q Z = {(p, \<gamma>)})"
-  using Complement_DPDA_HU.complement_dpda_def complement_dpda_axioms dpda.eps_sgn by blast
+  using dpda_M dpda.eps_sgn by blast
 
 lemma true_or_eps_M: "trans_fun M q a Z \<noteq> {} \<Longrightarrow> eps_fun M q Z = {}"
-  using Complement_DPDA_HU.complement_dpda_def complement_dpda_axioms dpda.true_or_eps by blast
+  using dpda_M dpda.true_or_eps by blast
 
 lemma dpda_complement: "dpda complement_dpda"
 proof (standard, goal_cases)
@@ -221,6 +227,14 @@ next
   qed (simp_all add: complement_dpda_def)
 qed
 
+declare dpda.det_step\<^sub>1.simps[OF dpda_M, simp]
+declare dpda.det_stepn.simps[OF dpda_M, simp]
+declare dpda.det_step\<^sub>1.simps[OF dpda_complement, simp]
+declare dpda.det_stepn.simps[OF dpda_complement, simp]
+
+lemma pda_complement: "pda complement_dpda"
+  using dpda_complement dpda_def by blast
+
 lemma lang_complement_dpda: "pda.final_accept complement_dpda = UNIV - pda.final_accept M"
   sorry
 
@@ -233,7 +247,7 @@ proof -
   let ?SM = "dpda.scan_dpda M :: ('q st_extended, 'a, 's sym_extended) pda"
   have dpda_sm: "dpda ?SM"
     using dpda.dpda_scan[OF assms] .
-  have *: "\<And>w. \<exists>n q \<gamma>. dpda.det_stepn ?SM n (init_state ?SM, w, [init_symbol ?SM]) = Some (q, [], \<gamma>)"
+  have *: "\<And>w. \<exists>q n \<gamma>. dpda.det_stepn ?SM n (init_state ?SM, w, [init_symbol ?SM]) = Some (q, [], \<gamma>)"
     using dpda.scan_dpda_scans[OF assms] .
   have L1: "pda.final_accept ?SM = pda.final_accept M"
     using dpda.lang_scan_dpda[OF assms] .

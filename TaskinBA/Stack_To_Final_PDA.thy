@@ -329,3 +329,4 @@ lemma stack_to_final: "pda.stack_accept M = pda.final_accept stack_to_final_pda"
   unfolding stack_accept_def pda.final_accept_def[OF pda_stack_to_final] using accepted_stack_to_final by blast
 
 end
+end

@@ -44,8 +44,6 @@ locale dpda = pda M for M :: "('q :: finite, ('a :: finite) input_with_marker, '
       and init_eps: "(q, \<alpha>) \<in> eps_fun M p (init_symbol M) \<Longrightarrow> \<exists>\<alpha>'. \<alpha> = \<alpha>' @ [init_symbol M]"
 begin
 
-(* TODO: show that every pda with the assumption det has a dpda accepting the same set and vice versa *)
-
 lemma trans_or_eps_singleton: 
     "(\<exists>p \<alpha>. trans_fun M q a Z = {} \<and> eps_fun M q Z = {(p, \<alpha>)}) \<or>
        (\<exists>p \<alpha>. trans_fun M q a Z = {(p, \<alpha>)} \<and> eps_fun M q Z = {})"

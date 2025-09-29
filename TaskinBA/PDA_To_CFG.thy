@@ -1,5 +1,5 @@
 theory PDA_To_CFG
-  imports PDA Context_Free_Grammar.Context_Free_Language
+  imports PDA Context_Free_Grammar.Context_Free_Grammar
 begin
 
 datatype ('q, 's) pda_nt = Start_sym | Single_sym 'q 's 'q | List_sym 'q "'s list" 'q
@@ -508,9 +508,6 @@ next
       by (simp add: Lang_def)
   qed
 qed
-
-(* shows lemmas that are actually used? *)
-unused_thms
 
 end
 end

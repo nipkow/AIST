@@ -1,5 +1,5 @@
 theory CFG_To_PDA
-  imports PDA "Context_Free_Grammar.Context_Free_Language"
+  imports PDA Context_Free_Grammar.Context_Free_Grammar
 begin
 
 datatype sing_st = Q_loop

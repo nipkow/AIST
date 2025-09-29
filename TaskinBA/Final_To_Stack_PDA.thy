@@ -432,3 +432,4 @@ lemma final_to_stack:
   unfolding final_accept_def pda.stack_accept_def[OF pda_final_to_stack] using accepted_final_to_stack by blast
 
 end
+end

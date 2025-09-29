@@ -231,7 +231,6 @@ next
   qed simp
 qed
 
-(* TODO: How to generalize these kind of lemmas to all lemmas in the locale? *)
 lemmas det_stepn_reads_input = 
   stepn_reads_input[simplified stepn_det_stepn_some step\<^sub>1_det_step\<^sub>1_some]
   pda.stepn_reads_input[OF pda_end_check, simplified dpda.stepn_det_stepn_some[OF dpda_end_check] dpda.step\<^sub>1_det_step\<^sub>1_some[OF dpda_end_check]]

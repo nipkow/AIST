@@ -26,10 +26,10 @@ fun models :: "hf set \<Rightarrow> hf and_or_exp \<Rightarrow> bool" where
 "models Q (And q1 q2) \<longleftrightarrow> models Q q1 \<and> models Q q2" |
 "models Q MT \<longleftrightarrow> False"
 
-lemma modelinc: "models qs a \<Longrightarrow> qs \<subseteq> qs' \<Longrightarrow> models qs' a"
+lemma modelinc: "models Q a \<Longrightarrow> Q \<subseteq> Q' \<Longrightarrow> models Q' a"
 by (induction a) auto
 
-lemma mod_has: "models qs a \<Longrightarrow> qs \<noteq> {}"
+lemma mod_has: "models Q a \<Longrightarrow> Q \<noteq> {}"
 by (induction a) auto
 
 lemma mod_has': "\<nexists>ab. models {} ab"
@@ -83,7 +83,7 @@ definition lang :: "'a list set" where
 text\<open>Verifies that a set of states are a valid set of children for a given node and character\<close>
 text\<open>It also verifies whether the given nodes are valid\<close>
 fun valid_children :: "hf \<Rightarrow> hf set \<Rightarrow> 'a \<Rightarrow> bool" where
-  "valid_children q qs a = ((qs \<subseteq> states M) \<and> (q \<in> states M) \<and> (models qs (nxt M q a)))"
+  "valid_children q Q a = ((Q \<subseteq> states M) \<and> (q \<in> states M) \<and> (models Q (nxt M q a)))"
 
 
 text\<open>Equivalent to \<open>acc\<close> (Returns whether a respective accepting tree exists)\<close>
@@ -91,7 +91,7 @@ text\<open>It takes a layer wise recursive approach on the tree,
   verifying the existence of a valid set of children which can each be root to an accepting tree for the rest word\<close>
 fun acc_i :: "'a list \<Rightarrow> hf \<Rightarrow> bool" where
   "acc_i [] q = (q \<in> final M)"
-| "acc_i (a#as) q = (\<exists>qs. (valid_children q qs a) \<and> (\<forall>q' \<in> qs. acc_i as q'))"
+| "acc_i (a#as) q = (\<exists>Q. (valid_children q Q a) \<and> (\<forall>q' \<in> Q. acc_i as q'))"
 
 
 text\<open>Equivalence of \<open>acc_i\<close> and \<open>acc\<close>\<close>
@@ -103,12 +103,12 @@ next
   case (2 a as q)
   then show ?case proof (cases "acc_i (a#as) q")
     case t1: True
-    have h1: "(\<exists>qs. (valid_children q qs a) \<and> (\<forall>q' \<in> qs. acc_i as q'))"
+    have h1: "(\<exists>Q. (valid_children q Q a) \<and> (\<forall>q' \<in> Q. acc_i as q'))"
       using t1 by force
-    then obtain qs where o1: "(valid_children q qs a) \<and> (\<forall>q' \<in> qs. acc_i as q')" by auto
-    then have h2: "(\<forall>q' \<in> qs. acc as q')"
+    then obtain Q where o1: "(valid_children q Q a) \<and> (\<forall>q' \<in> Q. acc_i as q')" by auto
+    then have h2: "(\<forall>q' \<in> Q. acc as q')"
       using "2" by blast
-    then have h3: "qs \<subseteq> {q' \<in> states M. acc as q'}"
+    then have h3: "Q \<subseteq> {q' \<in> states M. acc as q'}"
       using o1 by auto
     then have h4: "models {q' \<in> states M. acc as q'} (nxt M q a)"
       using modelinc o1 valid_children.simps by blast
@@ -138,7 +138,7 @@ fun anded :: "hf list \<Rightarrow> 'a \<Rightarrow> hf and_or_exp" where
 | "anded [x] a = nxt M x a"
 | "anded (x#xs) a = And (nxt M x a) (anded xs a)"
 
-lemma models_anded: "qs \<noteq> [] \<Longrightarrow> models qs' (anded (qs) a) \<longleftrightarrow> (\<forall>q \<in> set (qs). models qs' (nxt M q a))"
+lemma models_anded: "qs \<noteq> [] \<Longrightarrow> models Q' (anded qs a) \<longleftrightarrow> (\<forall>q \<in> set qs. models Q' (nxt M q a))"
 proof (induction qs)
   case Nil
   then show ?case by simp
@@ -152,44 +152,44 @@ abbreviation "ex_same_nxt_list Q Q' a \<equiv> (\<exists>qs. set qs = Q \<and> d
 text\<open>Verifies whether a set of states \<open>qs'\<close> is a valid next level for another set of states \<open>qs\<close>.
 It is used to define an equivalent language\<open>langalt\<close> to \<open>lang\<close>\<close>
 fun nxt_lvl_set_valid :: "hf set \<Rightarrow> hf set \<Rightarrow> 'a \<Rightarrow> bool" where
-  "nxt_lvl_set_valid qs qs' a = (qs \<noteq> {} \<and> qs \<subseteq> states M \<and> qs' \<subseteq> states M \<and> ex_same_nxt_list qs qs' a)"
+  "nxt_lvl_set_valid Q Q' a = (Q \<noteq> {} \<and> Q \<subseteq> states M \<and> Q' \<subseteq> states M \<and> ex_same_nxt_list Q Q' a)"
 
 
 text\<open>Verifies whether a word will be accepted from a given level using \<open>nxt_lvl_set_valid\<close>\<close>
 fun acc_i_set :: "'a list \<Rightarrow> hf set \<Rightarrow> bool" where
-   "acc_i_set [] qs = (qs \<subseteq> (final M))"
-|  "acc_i_set (a#as) qs = (\<exists>qs'. nxt_lvl_set_valid qs qs' a \<and> acc_i_set as qs')"
+   "acc_i_set [] Q = (Q \<subseteq> (final M))"
+|  "acc_i_set (a#as) Q = (\<exists>Q'. nxt_lvl_set_valid Q Q' a \<and> acc_i_set as Q')"
 
 
 text\<open>An equivalent function to \<open>nxt_lvl_set_valid\<close>
 helping to prove equivalence of \<open>langalt\<close> (defined later) and \<open>lang\<close>\<close>
 fun nxt_lvl_set_valid' :: "hf set \<Rightarrow> hf set \<Rightarrow> 'a \<Rightarrow> bool" where
-  "nxt_lvl_set_valid' qs qs' a = ((qs \<noteq> {}) \<and> (qs \<subseteq> states M) \<and> (qs' \<subseteq> states M) \<and> (\<forall>q \<in> qs. models qs' (nxt M q a)))"
+  "nxt_lvl_set_valid' Q Q' a = ((Q \<noteq> {}) \<and> (Q \<subseteq> states M) \<and> (Q' \<subseteq> states M) \<and> (\<forall>q \<in> Q. models Q' (nxt M q a)))"
 
 
 text\<open>Like \<open>acc_i_set\<close> but using \<open>nxt_lvl_set_valid'\<close> instead of \<open>nxt_lvl_set_valid\<close>\<close>
 fun acc_i_set' :: "'a list \<Rightarrow> hf set \<Rightarrow> bool" where
-   "acc_i_set' [] qs = (qs \<subseteq> (final M))"
-|  "acc_i_set' (a#as) qs = (\<exists>qs'. nxt_lvl_set_valid' qs qs' a \<and> acc_i_set' as qs')"
+   "acc_i_set' [] Q = (Q \<subseteq> (final M))"
+|  "acc_i_set' (a#as) Q = (\<exists>Q'. nxt_lvl_set_valid' Q Q' a \<and> acc_i_set' as Q')"
 
 
 subsection\<open>Equivalence of \<open>acc_i_set\<close> and \<open>acc_i_set'\<close>\<close>
 
 lemma eq_ais1: "acc_i_set as q \<Longrightarrow> acc_i_set' as q"
 proof (induction rule: acc_i_set.induct)
-  case (1 qs)
+  case (1 Q)
   then show ?case by simp
 next
-  case (2 a as qs)
+  case (2 a as Q)
   then show ?case using models_anded by auto
 qed
   
 lemma eq_ais2: "acc_i_set' as q \<Longrightarrow> acc_i_set as q"
 proof (induction rule: acc_i_set'.induct)
-  case (1 qs)
+  case (1 Q)
   then show ?case by simp
 next
-  case (2 a as qs)
+  case (2 a as Q)
   then show ?case
       by (simp) (metis empty_set finite_distinct_list finite_subset local.finite models_anded)
 qed
@@ -197,18 +197,18 @@ qed
 
 subsection\<open>Relations between \<open>acc_i\<close> and \<open>acc_i_set'\<close>\<close>
 
-lemma acc_i_set_if_acc_i: "qs \<noteq> {} \<Longrightarrow> \<forall>q \<in> qs. acc_i as q \<Longrightarrow> acc_i_set' as qs"
-proof (induction as arbitrary: qs)
+lemma acc_i_set_if_acc_i: "Q \<noteq> {} \<Longrightarrow> \<forall>q \<in> Q. acc_i as q \<Longrightarrow> acc_i_set' as Q"
+proof (induction as arbitrary: Q)
   case Nil
   then show ?case by auto
 next
   case (Cons a as)
-  then have h3: "\<forall>q \<in> qs. \<exists>xqs. ((valid_children q xqs a) \<and> (\<forall>q' \<in> xqs. acc_i as q'))"
+  then have h3: "\<forall>q \<in> Q. \<exists>xqs. ((valid_children q xqs a) \<and> (\<forall>q' \<in> xqs. acc_i as q'))"
     using Cons.prems(2) by simp
   let ?xs = "{q'\<in>(states M). acc_i as q'}"
   have inc_vc: "\<And>xqs xqs' xq xa. (xqs \<subseteq> xqs' \<Longrightarrow> xqs' \<subseteq> states M \<Longrightarrow> valid_children xq xqs xa \<Longrightarrow> valid_children xq xqs' xa)"
     by (meson modelinc valid_children.elims(2,3))
-  have h4: "valid_children q ?xs a" if asm: "q \<in> qs" for q
+  have h4: "valid_children q ?xs a" if asm: "q \<in> Q" for q
   proof -
     have H1: "\<exists>xqs. ((valid_children q xqs a) \<and> (\<forall>q' \<in> xqs. acc_i as q'))" using asm h3 by simp
     then obtain xqs where O1: "((valid_children q xqs a) \<and> (\<forall>q' \<in> xqs. acc_i as q'))" by blast
@@ -216,7 +216,7 @@ next
     show ?thesis using H2 O1 inc_vc by blast
   qed
 
-  have hr: "nxt_lvl_set_valid' qs ?xs a"
+  have hr: "nxt_lvl_set_valid' Q ?xs a"
     using Cons.prems(1) h4 by force
 
   then have "?xs \<noteq> {}"
@@ -227,12 +227,12 @@ next
     using acc_i_set'.simps(2) hr by blast
 qed
   
-lemma acc_i_if_acc_i_set: "acc_i_set' as qs \<Longrightarrow> (\<forall>q \<in> qs. acc_i as q)"
+lemma acc_i_if_acc_i_set: "acc_i_set' as Q \<Longrightarrow> (\<forall>q \<in> Q. acc_i as q)"
 proof (induction rule: acc_i_set'.induct)
-  case (1 qs)
+  case (1 Q)
   then show ?case by fastforce
 next
-  case (2 a as qs)
+  case (2 a as Q)
   then show ?case by fastforce
 qed
 
@@ -240,97 +240,97 @@ qed
 
 text\<open>Returns possible options for the next level given the possible options for some level of the tree\<close>
 fun nxt_lvl_set_opt_ext :: "hf set set \<Rightarrow> 'a \<Rightarrow> hf set set" where
-  "nxt_lvl_set_opt_ext qss a = {qs'. \<exists>qs\<in>qss. nxt_lvl_set_valid qs qs' a}"
+  "nxt_lvl_set_opt_ext QQ a = {Q'. \<exists>Q\<in>QQ. nxt_lvl_set_valid Q Q' a}"
 
 subsection\<open>Some lemmas about \<open>nxt_lvl_set_opt_ext\<close>\<close>
-lemma no_mt: "{} \<notin> (nxt_lvl_set_opt_ext qss a)"
+lemma no_mt: "{} \<notin> (nxt_lvl_set_opt_ext QQ a)"
   using mod_has' by fastforce
 
-lemma cond_fin: "finite qs \<Longrightarrow> finite (nxt_lvl_set_opt_ext qs a)"
+lemma cond_fin: "finite Q \<Longrightarrow> finite (nxt_lvl_set_opt_ext Q a)"
   using local.finite by auto
 
-lemma elemfin': "\<forall>y\<in>(nxt_lvl_set_opt_ext qs a). finite y"
+lemma elemfin': "\<forall>y\<in>(nxt_lvl_set_opt_ext Q a). finite y"
   using local.finite rev_finite_subset by auto
 
-lemma elemfin: "x \<in> (nxt_lvl_set_opt_ext qss a) \<Longrightarrow> finite x"
+lemma elemfin: "x \<in> (nxt_lvl_set_opt_ext QQ a) \<Longrightarrow> finite x"
   using elemfin' by blast
 
 
 text\<open>An equivalent to \<open>acc_i_set\<close> using \<open>nxt_lvl_set_opt_ext\<close> and \<open>acc_set\<close>\<close>
 fun acc_i_set_sim :: "'a list \<Rightarrow> hf set \<Rightarrow> bool" where
-   "acc_i_set_sim [] qs = (qs \<subseteq> final M)"
-|  "acc_i_set_sim (a#as) qs = (\<exists>qs' \<in> nxt_lvl_set_opt_ext {qs} a. acc_i_set_sim as qs')"
+   "acc_i_set_sim [] Q = (Q \<subseteq> final M)"
+|  "acc_i_set_sim (a#as) Q = (\<exists>Q' \<in> nxt_lvl_set_opt_ext {Q} a. acc_i_set_sim as Q')"
 
 subsection\<open>Equivalence of \<open>acc_i_set_sim\<close> and \<open>acc_i_set\<close>\<close>
-lemma aiss_eq1: "acc_i_set_sim as qs \<Longrightarrow> acc_i_set as qs"
+lemma aiss_eq1: "acc_i_set_sim as Q \<Longrightarrow> acc_i_set as Q"
 proof (induction rule: acc_i_set_sim.induct)
-  case (1 qs)
+  case (1 Q)
   then show ?case by (simp)
 next
-  case (2 a as qs)
-  have h1: "(\<exists>qs' \<in> (nxt_lvl_set_opt_ext {qs} a). (acc_i_set_sim as qs'))"
+  case (2 a as Q)
+  have h1: "(\<exists>Q' \<in> (nxt_lvl_set_opt_ext {Q} a). (acc_i_set_sim as Q'))"
     using "2.prems" acc_i_set_sim.simps(2) by blast
-  then obtain qs' where o1: "qs' \<in> (nxt_lvl_set_opt_ext {qs} a) \<and> (acc_i_set_sim as qs')" by blast
-  then show ?case using 2(1)[of qs'] by auto
+  then obtain Q' where o1: "Q' \<in> (nxt_lvl_set_opt_ext {Q} a) \<and> (acc_i_set_sim as Q')" by blast
+  then show ?case using 2(1)[of Q'] by auto
 qed
 
-lemma aiss_eq2: "acc_i_set as qs \<Longrightarrow> acc_i_set_sim as qs"
+lemma aiss_eq2: "acc_i_set as Q \<Longrightarrow> acc_i_set_sim as Q"
 proof (induction rule: acc_i_set.induct)
-  case (1 qs)
+  case (1 Q)
   then show ?case by (simp)
 next
-  case (2 a as qs)
+  case (2 a as Q)
   then show ?case by auto
 qed
 
 
 text\<open>Returns possible options for the level reached after processing a word from given options for starting level\<close>
 fun nxt_lvl_set_opt_ext_l :: "hf set set \<Rightarrow> 'a list \<Rightarrow> hf set set" where
-  "nxt_lvl_set_opt_ext_l qss [] = qss"  
-| "nxt_lvl_set_opt_ext_l qss (a#as) = nxt_lvl_set_opt_ext_l (nxt_lvl_set_opt_ext qss a) as"
+  "nxt_lvl_set_opt_ext_l QQ [] = QQ"  
+| "nxt_lvl_set_opt_ext_l QQ (a#as) = nxt_lvl_set_opt_ext_l (nxt_lvl_set_opt_ext QQ a) as"
 
 
 text\<open>Helper lemma about \<open>nxt_lvl_set_opt_ext_l\<close>\<close>
-lemma elem_fin: "x \<in> nxt_lvl_set_opt_ext_l qs xs \<Longrightarrow> (\<forall>y\<in>qs. finite y) \<Longrightarrow> finite x"
+lemma elem_fin: "x \<in> nxt_lvl_set_opt_ext_l Q xs \<Longrightarrow> (\<forall>y\<in>Q. finite y) \<Longrightarrow> finite x"
 proof (induction rule: nxt_lvl_set_opt_ext_l.induct)
-  case (1 qss)
+  case (1 QQ)
   then show ?case by simp
 next
-  case (2 qss a as)
+  case (2 QQ a as)
   then show ?case by (metis elemfin nxt_lvl_set_opt_ext_l.simps(2))
 qed
   
 subsection\<open>Relations between \<open>nxt_lvl_set_opt_ext_l\<close> and \<open>acc_i_set_sim\<close> or \<open>acc_i_set\<close>\<close>
 
-lemma helper1: "\<exists>x \<in> (nxt_lvl_set_opt_ext_l qss as). x \<subseteq> final M \<Longrightarrow> \<exists>qs \<in> qss. acc_i_set_sim as qs"
+lemma helper1: "\<exists>x \<in> (nxt_lvl_set_opt_ext_l QQ as). x \<subseteq> final M \<Longrightarrow> \<exists>Q \<in> QQ. acc_i_set_sim as Q"
 proof (induction rule: nxt_lvl_set_opt_ext_l.induct)
-  case (1 qss)
+  case (1 QQ)
   then show ?case by simp
 next
-  case (2 qss a as)
-  then have H1: "\<exists>qs'\<in>nxt_lvl_set_opt_ext qss a. acc_i_set_sim as qs'" by simp
-  then obtain qs' where O1: "qs'\<in>nxt_lvl_set_opt_ext qss a \<and> acc_i_set_sim as qs'" by blast
-  then have H2: "\<exists>qs\<in>qss. nxt_lvl_set_valid qs qs' a" by simp
-  then obtain qs where O2: "qs\<in>qss \<and> nxt_lvl_set_valid qs qs' a" by blast
-  have H3: "qs'\<in>nxt_lvl_set_opt_ext {qs} a"
+  case (2 QQ a as)
+  then have H1: "\<exists>Q'\<in>nxt_lvl_set_opt_ext QQ a. acc_i_set_sim as Q'" by simp
+  then obtain Q' where O1: "Q'\<in>nxt_lvl_set_opt_ext QQ a \<and> acc_i_set_sim as Q'" by blast
+  then have H2: "\<exists>Q\<in>QQ. nxt_lvl_set_valid Q Q' a" by simp
+  then obtain Q where O2: "Q\<in>QQ \<and> nxt_lvl_set_valid Q Q' a" by blast
+  have H3: "Q'\<in>nxt_lvl_set_opt_ext {Q} a"
     using O2 by auto 
   show ?case using H3 O1 O2 acc_i_set_sim.simps(2) by blast
 qed
 
 
-lemma helper2: "qs \<in> qss \<Longrightarrow> acc_i_set_sim as qs \<Longrightarrow> \<exists>x \<in> nxt_lvl_set_opt_ext_l qss as. x \<subseteq> final M"
-proof (induction as arbitrary: qss qs)
+lemma helper2: "Q \<in> QQ \<Longrightarrow> acc_i_set_sim as Q \<Longrightarrow> \<exists>x \<in> nxt_lvl_set_opt_ext_l QQ as. x \<subseteq> final M"
+proof (induction as arbitrary: QQ Q)
   case Nil
   then show ?case by auto
 next
   case (Cons a as)
-  have h1: "(\<exists>qs' \<in> (nxt_lvl_set_opt_ext {qs} a). (acc_i_set_sim as qs'))"
+  have h1: "(\<exists>Q' \<in> (nxt_lvl_set_opt_ext {Q} a). (acc_i_set_sim as Q'))"
     using Cons.prems(2) acc_i_set_sim.simps(2) by blast
-  then obtain qs' where o1: "(qs' \<in> (nxt_lvl_set_opt_ext {qs} a) \<and> (acc_i_set_sim as qs'))" by blast
-  then have h2: "qs' \<in> (nxt_lvl_set_opt_ext qss a)"
+  then obtain Q' where o1: "(Q' \<in> (nxt_lvl_set_opt_ext {Q} a) \<and> (acc_i_set_sim as Q'))" by blast
+  then have h2: "Q' \<in> (nxt_lvl_set_opt_ext QQ a)"
     using Cons.prems(1) by fastforce
   then show ?case 
-    using Cons(1)[of qs' "(nxt_lvl_set_opt_ext qss a)"] o1 h2 by simp 
+    using Cons(1)[of Q' "(nxt_lvl_set_opt_ext QQ a)"] o1 h2 by simp 
 qed
 
 lemma langeq2_helper: "nxt_lvl_set_opt_ext_l {{init M}} as \<inter> Pow(final M) \<noteq> {} \<Longrightarrow> acc_i_set as {init M}"
@@ -360,7 +360,7 @@ definition Power_nfa :: "'a nfa" where
   "Power_nfa = \<lparr>nfa.states = HF ` Pow (states M),
                      init  = {HF {init M}},
                      final = HF ` Pow(final M),
-                     nxt   = (\<lambda>Q x. HF ` {Q'. Q' \<subseteq> (states M) \<and> (\<exists>Qsl. set Qsl = hfset Q \<and> distinct Qsl \<and> models Q' (anded Qsl x))}),
+                     nxt   = (\<lambda>Q x. HF ` {Q'. Q' \<subseteq> (states M) \<and> ex_same_nxt_list (hfset Q) Q' x}),
                      eps = {}\<rparr>"
 
 
@@ -428,13 +428,13 @@ proof -
   let ?P = "\<lambda>Q' q. ?P' Q' (hfset q)"
   let ?PQ = "\<lambda>q. {Q'. ?P Q' q}"
   have hpll1: "hfset ` (\<Union>q \<in> Q. HF ` ?PQ q) =
-              {qs'. \<exists>qs\<in> (hfset ` Q). qs \<noteq> {} \<and> qs \<subseteq> states M \<and> ?P' qs' qs}"
+              {Q'. \<exists>Q\<in> (hfset ` Q). Q \<noteq> {} \<and> Q \<subseteq> states M \<and> ?P' Q' Q}"
   proof -
-    have hpll16: "(\<Union>qs \<in> Q. {qs'. hfset qs \<noteq> {} \<and> hfset qs \<subseteq> states M \<and> ?P qs' qs})
-      = (\<Union>qs \<in> Q. ?PQ qs)" 
+    have hpll16: "(\<Union>q \<in> Q. {Q'. hfset q \<noteq> {} \<and> hfset q \<subseteq> states M \<and> ?P Q' q})
+      = (\<Union>q \<in> Q. ?PQ q)" 
     proof -
-      have h1: "\<And>qs. qs \<in> Q \<Longrightarrow> hfset qs \<noteq> {}" using assms(1) by (metis HF_hfset)
-      have h2: "\<And>qs. qs \<in> Q \<Longrightarrow> hfset qs \<subseteq> states M"
+      have h1: "\<And>q. q \<in> Q \<Longrightarrow> hfset q \<noteq> {}" using assms(1) by (metis HF_hfset)
+      have h2: "\<And>q. q \<in> Q \<Longrightarrow> hfset q \<subseteq> states M"
             using assms(2) hfset_HF local.finite mem_Collect_eq nfa.select_convs(1)
                   rev_finite_subset unfolding Power_nfa_def Pow_def by force
       show ?thesis using h1 h2 assms by simp
@@ -447,75 +447,75 @@ proof -
         by (metis finite_subset hfset_HF local.finite)
       then show ?thesis by simp
     qed
-    have hpll14: "{qs'. \<exists>qs\<in> hfset ` Q. qs \<noteq> {} \<and> qs \<subseteq> states M \<and> ?P' qs' qs}
+    have hpll14: "{Q'. \<exists>H\<in> hfset ` Q. H \<noteq> {} \<and> H \<subseteq> states M \<and> ?P' Q' H}
             =
-            (\<Union>qs \<in> hfset ` Q. {qs'. qs \<noteq> {} \<and> qs \<subseteq> states M \<and> ?P' qs' qs})"
+            (\<Union>H \<in> hfset ` Q. {Q'. H \<noteq> {} \<and> H \<subseteq> states M \<and> ?P' Q' H})"
       by blast
     show ?thesis using hpll16 hpll14 hpll13 hpll11 assms by auto
   qed
   show ?thesis using hpll1 assms by simp
 qed
 
-lemma cond_eq1: "HF {} \<notin> qs \<Longrightarrow> qs \<subseteq> nfa.states Power_nfa \<Longrightarrow> x \<in> lnextl' qs as \<Longrightarrow> hfset x \<in> (nxt_lvl_set_opt_ext_l (hfset ` qs) as)"
-proof (induction as arbitrary: qs x)
+lemma cond_eq1: "HF {} \<notin> Q \<Longrightarrow> Q \<subseteq> nfa.states Power_nfa \<Longrightarrow> x \<in> lnextl' Q as \<Longrightarrow> hfset x \<in> (nxt_lvl_set_opt_ext_l (hfset ` Q) as)"
+proof (induction as arbitrary: Q x)
   case Nil
   then show ?case by simp
 next
   case (Cons a as)
-  have h1: "HF {} \<notin> HF ` (nxt_lvl_set_opt_ext (hfset ` qs) a)"
-    using no_mt[of "(hfset ` qs)" a] elemfin' cond_fin
+  have h1: "HF {} \<notin> HF ` (nxt_lvl_set_opt_ext (hfset ` Q) a)"
+    using no_mt[of "(hfset ` Q)" a] elemfin' cond_fin
     by (metis Zero_hf_def chainhf hfset_0 image_eqI)
-  have h21: "\<forall>x\<in>(nxt_lvl_set_opt_ext (hfset ` qs) a). x \<subseteq> states M"
+  have h21: "\<forall>x\<in>(nxt_lvl_set_opt_ext (hfset ` Q) a). x \<subseteq> states M"
     by auto
-  then have h2: "(HF ` (nxt_lvl_set_opt_ext (hfset ` qs) a)) \<subseteq> (nfa.states Power_nfa)"
+  then have h2: "(HF ` (nxt_lvl_set_opt_ext (hfset ` Q) a)) \<subseteq> (nfa.states Power_nfa)"
     using Power_nfa_def by auto
-  have h3: "HF {} \<notin> HF ` nxt_lvl_set_opt_ext (hfset ` qs) a \<Longrightarrow>
-  HF ` nxt_lvl_set_opt_ext (hfset ` qs) a \<subseteq> nfa.states Power_nfa \<Longrightarrow>
-  x \<in> lnextl' (HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) as \<Longrightarrow>
-  hfset x \<in> nxt_lvl_set_opt_ext_l (hfset ` HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) as"
-    using Cons.IH[of "(HF ` (nxt_lvl_set_opt_ext (hfset ` qs) a))" x] by blast
-  have h4: "x \<in> (lnextl' (\<Union>q \<in> qs. HF ` {Q'. Q' \<subseteq> states M \<and> ex_same_nxt_list (hfset q) Q' a}) as)"
+  have h3: "HF {} \<notin> HF ` nxt_lvl_set_opt_ext (hfset ` Q) a \<Longrightarrow>
+  HF ` nxt_lvl_set_opt_ext (hfset ` Q) a \<subseteq> nfa.states Power_nfa \<Longrightarrow>
+  x \<in> lnextl' (HF ` nxt_lvl_set_opt_ext (hfset ` Q) a) as \<Longrightarrow>
+  hfset x \<in> nxt_lvl_set_opt_ext_l (hfset ` HF ` nxt_lvl_set_opt_ext (hfset ` Q) a) as"
+    using Cons.IH[of "(HF ` (nxt_lvl_set_opt_ext (hfset ` Q) a))" x] by blast
+  have h4: "x \<in> (lnextl' (\<Union>q \<in> Q. HF ` {Q'. Q' \<subseteq> states M \<and> ex_same_nxt_list (hfset q) Q' a}) as)"
     using Cons.prems(3) lnextl'.simps(2) by blast
-  have h5: "(HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) =
-            (\<Union>q \<in> qs. HF ` {Q'. Q' \<subseteq> states M \<and> ex_same_nxt_list (hfset q) Q' a})"
+  have h5: "(HF ` nxt_lvl_set_opt_ext (hfset ` Q) a) =
+            (\<Union>q \<in> Q. HF ` {Q'. Q' \<subseteq> states M \<and> ex_same_nxt_list (hfset q) Q' a})"
     using cond_eq_helper[OF Cons.prems(1,2)] althf
     by (metis (lifting)) 
-  have h6: "x \<in> lnextl' (HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) as"
+  have h6: "x \<in> lnextl' (HF ` nxt_lvl_set_opt_ext (hfset ` Q) a) as"
     using h4 h5 by presburger
   show ?case using h3[OF h1 h2 h6]
     by (metis (no_types, lifting) Cons.prems(1,2) cond_eq_helper althf nxt_lvl_set_opt_ext_l.simps(2))
 qed
 
 
-lemma cond_eq2: "HF {} \<notin> qs \<Longrightarrow> qs \<subseteq> nfa.states Power_nfa \<Longrightarrow> hfset x \<in> (nxt_lvl_set_opt_ext_l (hfset ` qs) as) \<Longrightarrow> x \<in> lnextl' qs as"
-proof (induction as arbitrary: qs x)
+lemma cond_eq2: "HF {} \<notin> Q \<Longrightarrow> Q \<subseteq> nfa.states Power_nfa \<Longrightarrow> hfset x \<in> (nxt_lvl_set_opt_ext_l (hfset ` Q) as) \<Longrightarrow> x \<in> lnextl' Q as"
+proof (induction as arbitrary: Q x)
   case Nil
   then show ?case
     using HF_hfset
     by (metis image_iff lnextl'.simps(1) nxt_lvl_set_opt_ext_l.simps(1))
 next
   case (Cons a as)
-  have h1: "HF {} \<notin> HF ` (nxt_lvl_set_opt_ext (hfset ` qs) a)"
-    using no_mt[of "(hfset ` qs)" a] elemfin' cond_fin 
+  have h1: "HF {} \<notin> HF ` (nxt_lvl_set_opt_ext (hfset ` Q) a)"
+    using no_mt[of "(hfset ` Q)" a] elemfin' cond_fin 
     by (metis Zero_hf_def chainhf hfset_0 image_eqI)
-  have h21: "\<forall>x\<in>(nxt_lvl_set_opt_ext (hfset ` qs) a). x \<subseteq> states M"
+  have h21: "\<forall>x\<in>(nxt_lvl_set_opt_ext (hfset ` Q) a). x \<subseteq> states M"
     by auto
-  then have h2: "(HF ` (nxt_lvl_set_opt_ext (hfset ` qs) a)) \<subseteq> (nfa.states Power_nfa)"
+  then have h2: "(HF ` (nxt_lvl_set_opt_ext (hfset ` Q) a)) \<subseteq> (nfa.states Power_nfa)"
     using Power_nfa_def by auto
-  have h3: "HF {} \<notin> HF ` nxt_lvl_set_opt_ext (hfset ` qs) a \<Longrightarrow>
-  HF ` nxt_lvl_set_opt_ext (hfset ` qs) a \<subseteq> nfa.states Power_nfa \<Longrightarrow>
-  hfset x \<in> nxt_lvl_set_opt_ext_l (hfset ` HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) as
-  \<Longrightarrow> x \<in> lnextl' (HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) as"
-    using Cons.IH[of "HF ` (nxt_lvl_set_opt_ext (hfset ` qs) a)" x] by blast
-  have h4: "hfset x \<in> nxt_lvl_set_opt_ext_l (nxt_lvl_set_opt_ext (hfset ` qs) a) as"
+  have h3: "HF {} \<notin> HF ` nxt_lvl_set_opt_ext (hfset ` Q) a \<Longrightarrow>
+  HF ` nxt_lvl_set_opt_ext (hfset ` Q) a \<subseteq> nfa.states Power_nfa \<Longrightarrow>
+  hfset x \<in> nxt_lvl_set_opt_ext_l (hfset ` HF ` nxt_lvl_set_opt_ext (hfset ` Q) a) as
+  \<Longrightarrow> x \<in> lnextl' (HF ` nxt_lvl_set_opt_ext (hfset ` Q) a) as"
+    using Cons.IH[of "HF ` (nxt_lvl_set_opt_ext (hfset ` Q) a)" x] by blast
+  have h4: "hfset x \<in> nxt_lvl_set_opt_ext_l (nxt_lvl_set_opt_ext (hfset ` Q) a) as"
     using Cons.prems(3) nxt_lvl_set_opt_ext_l.simps(2) by blast
-  have h5: "(HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) =
-            (\<Union>q \<in> qs. HF ` {Q'. Q' \<subseteq> states M \<and> ex_same_nxt_list (hfset q) Q' a})"
+  have h5: "(HF ` nxt_lvl_set_opt_ext (hfset ` Q) a) =
+            (\<Union>q \<in> Q. HF ` {Q'. Q' \<subseteq> states M \<and> ex_same_nxt_list (hfset q) Q' a})"
     using cond_eq_helper[OF Cons.prems(1,2)] althf
     by (metis (lifting))
-  have h6: "hfset x \<in> nxt_lvl_set_opt_ext_l (hfset ` (\<Union>q \<in> qs. HF ` {Q'. Q' \<subseteq> states M \<and> ex_same_nxt_list (hfset q) Q' a})) as"
+  have h6: "hfset x \<in> nxt_lvl_set_opt_ext_l (hfset ` (\<Union>q \<in> Q. HF ` {Q'. Q' \<subseteq> states M \<and> ex_same_nxt_list (hfset q) Q' a})) as"
     using Cons.prems(1,2) h4 cond_eq_helper by presburger
-  have h7: "hfset x \<in> nxt_lvl_set_opt_ext_l (hfset ` HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) as"
+  have h7: "hfset x \<in> nxt_lvl_set_opt_ext_l (hfset ` HF ` nxt_lvl_set_opt_ext (hfset ` Q) a) as"
     using h6 h5 by argo
   show ?case using h3[OF h1 h2 h7] h5 by fastforce
 qed

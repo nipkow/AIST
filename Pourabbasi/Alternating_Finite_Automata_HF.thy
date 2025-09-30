@@ -164,7 +164,7 @@ fun acc_i_set :: "'a list \<Rightarrow> hf set \<Rightarrow> bool" where
 text\<open>An equivalent function to \<open>nxt_lvl_set_valid\<close>
 helping to prove equivalence of \<open>langalt\<close> (defined later) and \<open>lang\<close>\<close>
 fun nxt_lvl_set_valid' :: "hf set \<Rightarrow> hf set \<Rightarrow> 'a \<Rightarrow> bool" where
-  "nxt_lvl_set_valid' Q Q' a = ((Q \<noteq> {}) \<and> (Q \<subseteq> states M) \<and> (Q' \<subseteq> states M) \<and> (\<forall>q \<in> Q. models Q' (nxt M q a)))"
+  "nxt_lvl_set_valid' Q Q' a = (Q \<noteq> {} \<and> Q \<subseteq> states M \<and> Q' \<subseteq> states M \<and> (\<forall>q \<in> Q. models Q' (nxt M q a)))"
 
 
 text\<open>Like \<open>acc_i_set\<close> but using \<open>nxt_lvl_set_valid'\<close> instead of \<open>nxt_lvl_set_valid\<close>\<close>
@@ -203,16 +203,16 @@ proof (induction as arbitrary: Q)
   then show ?case by auto
 next
   case (Cons a as)
-  then have h3: "\<forall>q \<in> Q. \<exists>xqs. ((valid_children q xqs a) \<and> (\<forall>q' \<in> xqs. acc_i as q'))"
+  then have h3: "\<forall>q \<in> Q. \<exists>Q'. valid_children q Q' a \<and> (\<forall>q' \<in> Q'. acc_i as q')"
     using Cons.prems(2) by simp
-  let ?xs = "{q'\<in>(states M). acc_i as q'}"
-  have inc_vc: "\<And>xqs xqs' xq xa. (xqs \<subseteq> xqs' \<Longrightarrow> xqs' \<subseteq> states M \<Longrightarrow> valid_children xq xqs xa \<Longrightarrow> valid_children xq xqs' xa)"
+  let ?xs = "{q' \<in> states M. acc_i as q'}"
+  have inc_vc: "\<And>Q Q' q a. (Q \<subseteq> Q' \<Longrightarrow> Q' \<subseteq> states M \<Longrightarrow> valid_children q Q a \<Longrightarrow> valid_children q Q' a)"
     by (meson modelinc valid_children.elims(2,3))
   have h4: "valid_children q ?xs a" if asm: "q \<in> Q" for q
   proof -
-    have H1: "\<exists>xqs. ((valid_children q xqs a) \<and> (\<forall>q' \<in> xqs. acc_i as q'))" using asm h3 by simp
-    then obtain xqs where O1: "((valid_children q xqs a) \<and> (\<forall>q' \<in> xqs. acc_i as q'))" by blast
-    then have H2: "xqs \<subseteq> ?xs" by auto
+    have H1: "\<exists>Q. valid_children q Q a \<and> (\<forall>q' \<in> Q. acc_i as q')" using asm h3 by simp
+    then obtain Q where O1: "valid_children q Q a \<and> (\<forall>q' \<in> Q. acc_i as q')" by blast
+    then have H2: "Q \<subseteq> ?xs" by auto
     show ?thesis using H2 O1 inc_vc by blast
   qed
 
@@ -270,7 +270,7 @@ next
   case (2 a as Q)
   have h1: "(\<exists>Q' \<in> (nxt_lvl_set_opt_ext {Q} a). (acc_i_set_sim as Q'))"
     using "2.prems" acc_i_set_sim.simps(2) by blast
-  then obtain Q' where o1: "Q' \<in> (nxt_lvl_set_opt_ext {Q} a) \<and> (acc_i_set_sim as Q')" by blast
+  then obtain Q' where o1: "Q' \<in> nxt_lvl_set_opt_ext {Q} a \<and> acc_i_set_sim as Q'" by blast
   then show ?case using 2(1)[of Q'] by auto
 qed
 
@@ -326,11 +326,11 @@ next
   case (Cons a as)
   have h1: "(\<exists>Q' \<in> (nxt_lvl_set_opt_ext {Q} a). (acc_i_set_sim as Q'))"
     using Cons.prems(2) acc_i_set_sim.simps(2) by blast
-  then obtain Q' where o1: "(Q' \<in> (nxt_lvl_set_opt_ext {Q} a) \<and> (acc_i_set_sim as Q'))" by blast
-  then have h2: "Q' \<in> (nxt_lvl_set_opt_ext QQ a)"
+  then obtain Q' where o1: "Q' \<in> nxt_lvl_set_opt_ext {Q} a \<and> acc_i_set_sim as Q'" by blast
+  then have h2: "Q' \<in> nxt_lvl_set_opt_ext QQ a"
     using Cons.prems(1) by fastforce
   then show ?case 
-    using Cons(1)[of Q' "(nxt_lvl_set_opt_ext QQ a)"] o1 h2 by simp 
+    using Cons(1)[of Q' "nxt_lvl_set_opt_ext QQ a"] o1 h2 by simp 
 qed
 
 lemma langeq2_helper: "nxt_lvl_set_opt_ext_l {{init M}} as \<inter> Pow(final M) \<noteq> {} \<Longrightarrow> acc_i_set as {init M}"
@@ -391,7 +391,7 @@ lemma nfa_init: "HF {} \<notin> (nfa.init Power_nfa)"
 text\<open>Works similar to Power.nextl, defined to help prove equivalence of Power.language and langalt\<close>
 fun lnextl' :: "hf set \<Rightarrow> 'a list \<Rightarrow> hf set" where
   "lnextl' Q []     = Q"
-| "lnextl' Q (x#xs) = lnextl' (\<Union>q \<in> Q. HF ` {Q'. Q' \<subseteq> states M \<and> (\<exists>Qsl. set Qsl = hfset q \<and> distinct Qsl \<and> models Q' (anded Qsl x))}) xs"
+| "lnextl' Q (x#xs) = lnextl' (\<Union>q \<in> Q. HF ` {Q'. Q' \<subseteq> states M \<and> ex_same_nxt_list (hfset q) Q' x}) xs"
 
 
 text\<open>Relationship of lnextl' and Power.nextl\<close>
@@ -421,7 +421,7 @@ subsection\<open>Relationships between \<open>lnextl'\<close> and \<open>nxt_lvl
 text\<open>A helper lemma\<close>
 lemma cond_eq_helper:
   assumes "HF {} \<notin> Q" "Q \<subseteq> nfa.states Power_nfa"
-  shows "hfset ` (\<Union>q \<in> Q. HF ` {Q'. Q' \<subseteq> (states M) \<and> ex_same_nxt_list (hfset q) Q' x})
+  shows "hfset ` (\<Union>q \<in> Q. HF ` {Q'. Q' \<subseteq> states M \<and> ex_same_nxt_list (hfset q) Q' x})
     = nxt_lvl_set_opt_ext (hfset ` Q) x"
 proof -
   let ?P' = "\<lambda>Q' q. Q' \<subseteq> states M \<and> ex_same_nxt_list q Q' x"
@@ -525,7 +525,7 @@ subsection\<open>Some helper lemmas\<close>
 
 lemma langs_innerset_eq_help:
   assumes "x \<in> nxt_lvl_set_opt_ext_l {{init M}} xs"
-  shows "x \<in> hfset ` (lnextl' (nfa.init Power_nfa) xs)"
+  shows "x \<in> hfset ` lnextl' (nfa.init Power_nfa) xs"
 proof -
   have llc3z: "\<And>y. (hfset y \<in> nxt_lvl_set_opt_ext_l {{init M}} xs \<Longrightarrow> y \<in> (lnextl' (nfa.init Power_nfa) xs))"
     using Power.init Power_nfa_def cond_eq2 nfa_init by auto
@@ -535,14 +535,14 @@ proof -
 qed
 
 
-lemma langs_secondset_eq: "hfset ` (nfa.final Power_nfa) = Pow(final M)"
+lemma langs_secondset_eq: "hfset ` nfa.final Power_nfa = Pow(final M)"
 unfolding Power_nfa_def  nfa.select_convs(3)
 by (metis (mono_tags, lifting) Pow_iff chainhf final finite_subset finite)
 
 lemma langs_innerset_eq:
-  "nxt_lvl_set_opt_ext_l {{init M}} xs = hfset ` (Power.nextl (nfa.init Power_nfa) xs)"
+  "nxt_lvl_set_opt_ext_l {{init M}} xs = hfset ` Power.nextl (nfa.init Power_nfa) xs"
 proof -
-  have llc2: "hfset ` (lnextl' (nfa.init Power_nfa) xs) \<subseteq> nxt_lvl_set_opt_ext_l {{init M}} xs"
+  have llc2: "hfset ` lnextl' (nfa.init Power_nfa) xs \<subseteq> nxt_lvl_set_opt_ext_l {{init M}} xs"
     using cond_eq1[OF nfa_init]
     using Power.init Power_nfa_def by auto
   have llc3'': "nxt_lvl_set_opt_ext_l {{init M}} xs \<subseteq> hfset ` (lnextl' (nfa.init Power_nfa) xs)"
@@ -558,8 +558,8 @@ proof -
     unfolding Power.language_def langalt_def using langs_innerset_eq langs_secondset_eq by fast
   have finr: "langalt \<subseteq> Power.language"
     proof -
-      have hpfinr: "\<And>as. (nxt_lvl_set_opt_ext_l {{init M}} as \<inter> Pow(final M) =
-                   hfset ` (Power.nextl (nfa.init Power_nfa) as \<inter> nfa.final Power_nfa))"
+      have hpfinr: "\<And>as. nxt_lvl_set_opt_ext_l {{init M}} as \<inter> Pow(final M) =
+                   hfset ` (Power.nextl (nfa.init Power_nfa) as \<inter> nfa.final Power_nfa)"
         using langs_innerset_eq langs_secondset_eq HF_hfset
           by (metis image_Int inj_on_def)
       show ?thesis unfolding Power.language_def langalt_def

@@ -65,10 +65,16 @@ fixes M :: "'a afa"
       and finite: "finite (states M)"
 begin
 
+(* see Chandra, Kozen and Stockmeyer
+fun H :: "'a list \<Rightarrow> hf \<Rightarrow> hf set \<Rightarrow> bool" where
+"H [] p = (\<lambda>Q. p \<in> Q)" |
+"H (a#w) p = (\<lambda>Q. models {q. H w q Q} (nxt M p a))"
+*)
+
 text\<open>Returns whether starting from a node, a word is accepted\<close>
 fun acc :: "'a list \<Rightarrow> hf \<Rightarrow> bool" where
   "acc [] q = (q \<in> final M)"
-| "acc (a#w) q = ((q \<in> states M) \<and> (models {q' \<in> states M. acc w q'} (nxt M q a)))"
+| "acc (a#w) q = ((q \<in> states M) \<and> models {q' \<in> states M. acc w q'} (nxt M q a))"
 
 text\<open>The language of an AFA\<close>
 definition lang :: "'a list set" where
@@ -141,16 +147,18 @@ next
   then show ?case by(cases qs) auto
 qed 
 
+abbreviation "ex_same_nxt_list Q Q' a \<equiv> (\<exists>qs. set qs = Q \<and> distinct qs \<and> models Q' (anded qs a))"
+
 text\<open>Verifies whether a set of states \<open>qs'\<close> is a valid next level for another set of states \<open>qs\<close>.
 It is used to define an equivalent language\<open>langalt\<close> to \<open>lang\<close>\<close>
 fun nxt_lvl_set_valid :: "hf set \<Rightarrow> hf set \<Rightarrow> 'a \<Rightarrow> bool" where
-  "nxt_lvl_set_valid qs qs' a = ((qs \<noteq> {}) \<and> (qs \<subseteq> states M) \<and> (qs' \<subseteq> states M) \<and> (\<exists>qsl. ((set qsl = qs) \<and> (distinct qsl) \<and> models qs' (anded qsl a))))"
+  "nxt_lvl_set_valid qs qs' a = (qs \<noteq> {} \<and> qs \<subseteq> states M \<and> qs' \<subseteq> states M \<and> ex_same_nxt_list qs qs' a)"
 
 
 text\<open>Verifies whether a word will be accepted from a given level using \<open>nxt_lvl_set_valid\<close>\<close>
 fun acc_i_set :: "'a list \<Rightarrow> hf set \<Rightarrow> bool" where
    "acc_i_set [] qs = (qs \<subseteq> (final M))"
-|  "acc_i_set (a#as) qs = (\<exists>qs'. (nxt_lvl_set_valid qs qs' a) \<and> (acc_i_set as qs'))"
+|  "acc_i_set (a#as) qs = (\<exists>qs'. nxt_lvl_set_valid qs qs' a \<and> acc_i_set as qs')"
 
 
 text\<open>An equivalent function to \<open>nxt_lvl_set_valid\<close>
@@ -162,7 +170,7 @@ fun nxt_lvl_set_valid' :: "hf set \<Rightarrow> hf set \<Rightarrow> 'a \<Righta
 text\<open>Like \<open>acc_i_set\<close> but using \<open>nxt_lvl_set_valid'\<close> instead of \<open>nxt_lvl_set_valid\<close>\<close>
 fun acc_i_set' :: "'a list \<Rightarrow> hf set \<Rightarrow> bool" where
    "acc_i_set' [] qs = (qs \<subseteq> (final M))"
-|  "acc_i_set' (a#as) qs = (\<exists>qs'. (nxt_lvl_set_valid' qs qs' a) \<and> (acc_i_set' as qs'))"
+|  "acc_i_set' (a#as) qs = (\<exists>qs'. nxt_lvl_set_valid' qs qs' a \<and> acc_i_set' as qs')"
 
 
 subsection\<open>Equivalence of \<open>acc_i_set\<close> and \<open>acc_i_set'\<close>\<close>
@@ -310,7 +318,7 @@ next
 qed
 
 
-lemma helper2: "qs \<in> qss \<Longrightarrow> acc_i_set_sim as qs \<Longrightarrow> \<exists>x \<in> (nxt_lvl_set_opt_ext_l qss as). x \<subseteq> final M"
+lemma helper2: "qs \<in> qss \<Longrightarrow> acc_i_set_sim as qs \<Longrightarrow> \<exists>x \<in> nxt_lvl_set_opt_ext_l qss as. x \<subseteq> final M"
 proof (induction as arbitrary: qss qs)
   case Nil
   then show ?case by auto
@@ -394,14 +402,12 @@ proof (induction as arbitrary: q)
 next
   case (Cons a as)
   have h1: "(\<Union>q\<in>q. HF ` {Q'.
-                 Q' \<subseteq> states M \<and>
-                 (\<exists>Qsl. set Qsl = hfset q \<and> distinct Qsl \<and> models Q' (anded Qsl a))})
+                 Q' \<subseteq> states M \<and> ex_same_nxt_list (hfset q) Q' a})
                 = (\<Union>q\<in>q. nfa.nxt Power_nfa q a)" by (auto simp add: Power_nfa_def)
   have h2: "(\<Union>q\<in>Power.epsclo q. nfa.nxt Power_nfa q a) \<subseteq> nfa.states Power_nfa"
     using Cons.prems Power.nxt neps by auto
   have h3: "lnextl'
-     (\<Union>q\<in>q. HF ` {Q'.
-              Q' \<subseteq> states M \<and> (\<exists>Qsl. set Qsl = hfset q \<and> distinct Qsl \<and> models Q' (anded Qsl a))})
+     (\<Union>q\<in>q. HF ` {Q'. Q' \<subseteq> states M \<and> ex_same_nxt_list (hfset q) Q' a})
      as =
     Power.nextl (\<Union>q\<in>Power.epsclo q. nfa.nxt Power_nfa q a) as"
     using h1 Cons.IH(1)[OF h2]
@@ -415,15 +421,16 @@ subsection\<open>Relationships between \<open>lnextl'\<close> and \<open>nxt_lvl
 text\<open>A helper lemma\<close>
 lemma cond_eq_helper:
   assumes "HF {} \<notin> Q" "Q \<subseteq> nfa.states Power_nfa"
-  shows "hfset ` (\<Union>q \<in> Q. HF ` {Q'. Q' \<subseteq> (states M) \<and> (\<exists>Qsl. set Qsl = hfset q \<and> distinct Qsl \<and> models Q' (anded Qsl x))})
+  shows "hfset ` (\<Union>q \<in> Q. HF ` {Q'. Q' \<subseteq> (states M) \<and> ex_same_nxt_list (hfset q) Q' x})
     = nxt_lvl_set_opt_ext (hfset ` Q) x"
 proof -
-  let ?P = "\<lambda>Q' q. Q' \<subseteq> states M \<and> (\<exists>Qsl. set Qsl = hfset q \<and> distinct Qsl \<and> models Q' (anded Qsl x))"
+  let ?P' = "\<lambda>Q' q. Q' \<subseteq> states M \<and> ex_same_nxt_list q Q' x"
+  let ?P = "\<lambda>Q' q. ?P' Q' (hfset q)"
   let ?PQ = "\<lambda>q. {Q'. ?P Q' q}"
   have hpll1: "hfset ` (\<Union>q \<in> Q. HF ` ?PQ q) =
-              {qs'. \<exists>qs\<in> (hfset ` Q). qs \<noteq> {} \<and> qs \<subseteq> states M \<and> qs' \<subseteq> states M \<and> (\<exists>qsl. set qsl = qs \<and> distinct qsl \<and> models qs' (anded qsl x))}"
+              {qs'. \<exists>qs\<in> (hfset ` Q). qs \<noteq> {} \<and> qs \<subseteq> states M \<and> ?P' qs' qs}"
   proof -
-    have hpll16: "(\<Union>qs \<in> Q. {qs'. ((hfset qs \<noteq> {}) \<and> (hfset qs \<subseteq> states M) \<and> (qs' \<subseteq> states M) \<and> (\<exists>qsl. ((set qsl = hfset qs) \<and> (distinct qsl) \<and> models qs' (anded qsl x))))})
+    have hpll16: "(\<Union>qs \<in> Q. {qs'. hfset qs \<noteq> {} \<and> hfset qs \<subseteq> states M \<and> ?P qs' qs})
       = (\<Union>qs \<in> Q. ?PQ qs)" 
     proof -
       have h1: "\<And>qs. qs \<in> Q \<Longrightarrow> hfset qs \<noteq> {}" using assms(1) by (metis HF_hfset)
@@ -440,9 +447,9 @@ proof -
         by (metis finite_subset hfset_HF local.finite)
       then show ?thesis by simp
     qed
-    have hpll14: "{qs'. \<exists>qs\<in> hfset ` Q. qs \<noteq> {} \<and> qs \<subseteq> states M \<and> qs' \<subseteq> states M \<and> (\<exists>qsl. set qsl = qs \<and> distinct qsl \<and> models qs' (anded qsl x))}
+    have hpll14: "{qs'. \<exists>qs\<in> hfset ` Q. qs \<noteq> {} \<and> qs \<subseteq> states M \<and> ?P' qs' qs}
             =
-            (\<Union>qs \<in> hfset ` Q. {qs'. qs \<noteq> {} \<and> qs \<subseteq> states M \<and> qs' \<subseteq> states M \<and> (\<exists>qsl. set qsl = qs \<and> distinct qsl \<and> models qs' (anded qsl x))})"
+            (\<Union>qs \<in> hfset ` Q. {qs'. qs \<noteq> {} \<and> qs \<subseteq> states M \<and> ?P' qs' qs})"
       by blast
     show ?thesis using hpll16 hpll14 hpll13 hpll11 assms by auto
   qed
@@ -467,10 +474,10 @@ next
   x \<in> lnextl' (HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) as \<Longrightarrow>
   hfset x \<in> nxt_lvl_set_opt_ext_l (hfset ` HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) as"
     using Cons.IH[of "(HF ` (nxt_lvl_set_opt_ext (hfset ` qs) a))" x] by blast
-  have h4: "x \<in> (lnextl' (\<Union>q \<in> qs. HF ` {Q'. ((Q' \<subseteq> (states M)) \<and> (\<exists>Qsl. ((set Qsl = hfset q) \<and> (distinct Qsl) \<and> models Q' (anded Qsl a))))}) as)"
+  have h4: "x \<in> (lnextl' (\<Union>q \<in> qs. HF ` {Q'. Q' \<subseteq> states M \<and> ex_same_nxt_list (hfset q) Q' a}) as)"
     using Cons.prems(3) lnextl'.simps(2) by blast
   have h5: "(HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) =
-            (\<Union>q \<in> qs. HF ` {Q'. ((Q' \<subseteq> (states M)) \<and> (\<exists>Qsl. ((set Qsl = hfset q) \<and> (distinct Qsl) \<and> models Q' (anded Qsl a))))})"
+            (\<Union>q \<in> qs. HF ` {Q'. Q' \<subseteq> states M \<and> ex_same_nxt_list (hfset q) Q' a})"
     using cond_eq_helper[OF Cons.prems(1,2)] althf
     by (metis (lifting)) 
   have h6: "x \<in> lnextl' (HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) as"
@@ -503,10 +510,10 @@ next
   have h4: "hfset x \<in> nxt_lvl_set_opt_ext_l (nxt_lvl_set_opt_ext (hfset ` qs) a) as"
     using Cons.prems(3) nxt_lvl_set_opt_ext_l.simps(2) by blast
   have h5: "(HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) =
-            (\<Union>q \<in> qs. HF ` {Q'. ((Q' \<subseteq> (states M)) \<and> (\<exists>Qsl. ((set Qsl = hfset q) \<and> (distinct Qsl) \<and> models Q' (anded Qsl a))))})"
+            (\<Union>q \<in> qs. HF ` {Q'. Q' \<subseteq> states M \<and> ex_same_nxt_list (hfset q) Q' a})"
     using cond_eq_helper[OF Cons.prems(1,2)] althf
     by (metis (lifting))
-  have h6: "hfset x \<in> nxt_lvl_set_opt_ext_l (hfset ` (\<Union>q \<in> qs. HF ` {Q'. Q' \<subseteq> states M \<and> (\<exists>Qsl. set Qsl = hfset q \<and> distinct Qsl \<and> models Q' (anded Qsl a))})) as"
+  have h6: "hfset x \<in> nxt_lvl_set_opt_ext_l (hfset ` (\<Union>q \<in> qs. HF ` {Q'. Q' \<subseteq> states M \<and> ex_same_nxt_list (hfset q) Q' a})) as"
     using Cons.prems(1,2) h4 cond_eq_helper by presburger
   have h7: "hfset x \<in> nxt_lvl_set_opt_ext_l (hfset ` HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) as"
     using h6 h5 by argo

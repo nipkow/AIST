@@ -428,21 +428,11 @@ proof -
     proof -
       have h1: "\<And>qs. qs \<in> Q \<Longrightarrow> hfset qs \<noteq> {}" using assms(1) by (metis HF_hfset)
       have h2: "\<And>qs. qs \<in> Q \<Longrightarrow> hfset qs \<subseteq> states M"
-      proof -
-        fix qs
-        show "qs \<in> Q \<Longrightarrow> hfset qs \<subseteq> states M"
-        proof -
-          assume a2: "qs \<in> Q"
-          show ?thesis
-            using assms(2) a2 hfset_HF local.finite mem_Collect_eq nfa.select_convs(1)
+            using assms(2) hfset_HF local.finite mem_Collect_eq nfa.select_convs(1)
                   rev_finite_subset unfolding Power_nfa_def Pow_def by force
-        qed
-      qed
       show ?thesis using h1 h2 assms by simp
     qed
-    have hpll11: "hfset ` (\<Union>q \<in> Q. HF ` ?PQ q) = (\<Union>q \<in> Q. hfset ` HF ` ?PQ q)"
-      by auto
-    have hpll12: "(\<Union>q \<in> Q. hfset ` HF ` ?PQ q) = (\<Union>q \<in> Q. {hfset (HF Q') | Q'. ?P Q' q})"
+    have hpll11: "hfset ` (\<Union>q \<in> Q. HF ` ?PQ q) = (\<Union>q \<in> Q. {hfset (HF Q') | Q'. ?P Q' q})"
       by auto
     have hpll13: "(\<Union>q \<in> Q. {hfset (HF Q') | Q'. ?P Q' q}) = (\<Union>q \<in> Q. ?PQ q)"
     proof -
@@ -454,48 +444,39 @@ proof -
             =
             (\<Union>qs \<in> hfset ` Q. {qs'. qs \<noteq> {} \<and> qs \<subseteq> states M \<and> qs' \<subseteq> states M \<and> (\<exists>qsl. set qsl = qs \<and> distinct qsl \<and> models qs' (anded qsl x))})"
       by blast
-    show ?thesis using hpll16 hpll14 hpll13 hpll12 hpll11 assms by auto
+    show ?thesis using hpll16 hpll14 hpll13 hpll11 assms by auto
   qed
   show ?thesis using hpll1 assms by simp
 qed
 
-lemma cond_eq1: "(HF {}) \<notin> qs \<Longrightarrow> qs \<subseteq> nfa.states Power_nfa \<Longrightarrow> x \<in> lnextl' qs as \<Longrightarrow> hfset x \<in> (nxt_lvl_set_opt_ext_l (hfset ` qs) as)"
+lemma cond_eq1: "HF {} \<notin> qs \<Longrightarrow> qs \<subseteq> nfa.states Power_nfa \<Longrightarrow> x \<in> lnextl' qs as \<Longrightarrow> hfset x \<in> (nxt_lvl_set_opt_ext_l (hfset ` qs) as)"
 proof (induction as arbitrary: qs x)
   case Nil
   then show ?case by simp
 next
   case (Cons a as)
-  then show ?case 
-  proof -
-    assume A: "(\<And>qs x.
-        HF {} \<notin> qs \<Longrightarrow>
-        qs \<subseteq> nfa.states Power_nfa \<Longrightarrow>
-        x \<in> lnextl' qs as \<Longrightarrow> hfset x \<in> nxt_lvl_set_opt_ext_l (hfset ` qs) as)"
-      and B: "HF {} \<notin> qs" and C: "qs \<subseteq> nfa.states Power_nfa" and D: "x \<in> lnextl' qs (a # as)"
-    
-    have h1: "HF {} \<notin> HF ` (nxt_lvl_set_opt_ext (hfset ` qs) a)"
-      using no_mt[of "(hfset ` qs)" a] elemfin' cond_fin
-      by (metis Zero_hf_def chainhf hfset_0 image_eqI)
-    have h21: "\<forall>x\<in>(nxt_lvl_set_opt_ext (hfset ` qs) a). x \<subseteq> states M"
-      by auto
-    then have h2: "(HF ` (nxt_lvl_set_opt_ext (hfset ` qs) a)) \<subseteq> (nfa.states Power_nfa)"
-      using Power_nfa_def by auto
-    have h3: "HF {} \<notin> HF ` nxt_lvl_set_opt_ext (hfset ` qs) a \<Longrightarrow>
+  have h1: "HF {} \<notin> HF ` (nxt_lvl_set_opt_ext (hfset ` qs) a)"
+    using no_mt[of "(hfset ` qs)" a] elemfin' cond_fin
+    by (metis Zero_hf_def chainhf hfset_0 image_eqI)
+  have h21: "\<forall>x\<in>(nxt_lvl_set_opt_ext (hfset ` qs) a). x \<subseteq> states M"
+    by auto
+  then have h2: "(HF ` (nxt_lvl_set_opt_ext (hfset ` qs) a)) \<subseteq> (nfa.states Power_nfa)"
+    using Power_nfa_def by auto
+  have h3: "HF {} \<notin> HF ` nxt_lvl_set_opt_ext (hfset ` qs) a \<Longrightarrow>
   HF ` nxt_lvl_set_opt_ext (hfset ` qs) a \<subseteq> nfa.states Power_nfa \<Longrightarrow>
   x \<in> lnextl' (HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) as \<Longrightarrow>
   hfset x \<in> nxt_lvl_set_opt_ext_l (hfset ` HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) as"
-      using A[of "(HF ` (nxt_lvl_set_opt_ext (hfset ` qs) a))" x] by blast
-    have h4: "x \<in> (lnextl' (\<Union>q \<in> qs. HF ` {Q'. ((Q' \<subseteq> (states M)) \<and> (\<exists>Qsl. ((set Qsl = hfset q) \<and> (distinct Qsl) \<and> models Q' (anded Qsl a))))}) as)"
-      using Cons.prems(3) lnextl'.simps(2) by blast
-    have h5: "(HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) =
-              (\<Union>q \<in> qs. HF ` {Q'. ((Q' \<subseteq> (states M)) \<and> (\<exists>Qsl. ((set Qsl = hfset q) \<and> (distinct Qsl) \<and> models Q' (anded Qsl a))))})"
-      using cond_eq_helper[OF B C] althf
-      by (metis (lifting)) 
-    have h6: "x \<in> lnextl' (HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) as"
-      using h4 h5 by presburger
-    show ?thesis using h3[OF h1 h2 h6]
-      by (metis (no_types, lifting) B C cond_eq_helper althf nxt_lvl_set_opt_ext_l.simps(2))
-  qed
+    using Cons.IH[of "(HF ` (nxt_lvl_set_opt_ext (hfset ` qs) a))" x] by blast
+  have h4: "x \<in> (lnextl' (\<Union>q \<in> qs. HF ` {Q'. ((Q' \<subseteq> (states M)) \<and> (\<exists>Qsl. ((set Qsl = hfset q) \<and> (distinct Qsl) \<and> models Q' (anded Qsl a))))}) as)"
+    using Cons.prems(3) lnextl'.simps(2) by blast
+  have h5: "(HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) =
+            (\<Union>q \<in> qs. HF ` {Q'. ((Q' \<subseteq> (states M)) \<and> (\<exists>Qsl. ((set Qsl = hfset q) \<and> (distinct Qsl) \<and> models Q' (anded Qsl a))))})"
+    using cond_eq_helper[OF Cons.prems(1,2)] althf
+    by (metis (lifting)) 
+  have h6: "x \<in> lnextl' (HF ` nxt_lvl_set_opt_ext (hfset ` qs) a) as"
+    using h4 h5 by presburger
+  show ?case using h3[OF h1 h2 h6]
+    by (metis (no_types, lifting) Cons.prems(1,2) cond_eq_helper althf nxt_lvl_set_opt_ext_l.simps(2))
 qed
 
 
@@ -548,18 +529,11 @@ qed
 
 
 lemma langs_secondset_eq: "hfset ` (nfa.final Power_nfa) = Pow(final M)"
-proof -
-  have hpfin121': "\<And>Q. (Q \<subseteq> final M \<Longrightarrow> finite Q)"
-    by (meson final finite_subset local.finite)
-  have hpfin12: "hfset ` HF ` {Q. Q \<subseteq> final M} = {Q. Q \<subseteq> final M}"
-    by (simp add: chainhf hpfin121')
-  have h1: "hfset ` HF ` {Q. Q \<subseteq> final M} = {Q. Q \<subseteq> final M}"
-    using hpfin12 by metis
-  show ?thesis
-    by (simp add: Pow_def Power_nfa_def h1)
-qed
+unfolding Power_nfa_def  nfa.select_convs(3)
+by (metis (mono_tags, lifting) Pow_iff chainhf final finite_subset finite)
 
-lemma langs_innerset_eq: "nxt_lvl_set_opt_ext_l {{init M}} xs = hfset ` (Power.nextl (nfa.init Power_nfa) xs)"
+lemma langs_innerset_eq:
+  "nxt_lvl_set_opt_ext_l {{init M}} xs = hfset ` (Power.nextl (nfa.init Power_nfa) xs)"
 proof -
   have llc2: "hfset ` (lnextl' (nfa.init Power_nfa) xs) \<subseteq> nxt_lvl_set_opt_ext_l {{init M}} xs"
     using cond_eq1[OF nfa_init]

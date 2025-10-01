@@ -1,5 +1,11 @@
-session "TaskinBA" = Context_Free_Grammar +
+session Pushdown_Automata = Context_Free_Grammar +
   options [document = pdf, document_output = "output"]
 
   sessions
     "HOL-IMP"
+    Context_Free_Grammar
+  theories
+    CFG_To_PDA
+    PDA_To_CFG
+    Final_To_Stack_PDA
+    Stack_To_Final_PDA

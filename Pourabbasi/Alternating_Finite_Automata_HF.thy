@@ -61,7 +61,7 @@ locale afa =
 fixes M :: "'a afa"
   assumes init: "init M \<in> states M"
       and final: "final M \<subseteq> states M"
-      and nxt:   "\<And>q x. q \<in> states M \<Longrightarrow> elems (nxt M q x) \<subseteq> states M"
+      (*and nxt:   "\<And>q x. q \<in> states M \<Longrightarrow> elems (nxt M q x) \<subseteq> states M"*)
       and finite: "finite (states M)"
 begin
 

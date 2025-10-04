@@ -1,20 +1,18 @@
-(*
-  Open all theories like this:
-  isabelle jedit -d .. -d . <filename>
-*)
-
 session PreStar = HOL +
-  options [document = pdf, document_output = "output", quick_and_dirty = true]
+  options [document = pdf, document_output = "output"]
   sessions
     "Context_Free_Grammar"
-    "Labeled_Transition_Systems"
   theories
     Definition
-    Finiteness
     FiniteAutomaton
     Algorithm
     Applications
+    Finiteness
+    ImprovedAlgorithm
   theories [document = false]
+    Example01
+    Example02
     PreStar
   document_files
+    root.bib
     root.tex

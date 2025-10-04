@@ -4,144 +4,101 @@ theory Finiteness
   imports Definition
 begin \<comment>\<open>begin-theory Finiteness\<close>
 
-text\<open>
-  A later result of a possible application of \<open>pre\<^sup>*\<close> will be determining whether a
-  context-free language is finite or infinite.
-  To formally prove this a criterion describing the finiteness of a context-free language
-  has to be established first.
-  Let \<open>G = (V, T, P, S)\<close> be a context-free language.
-  In this section we will show, that \<open>L(G)\<close> is infinite if, and only if, there exists
-  a non-terminal \<open>X \<in> V\<close> for which there exists a production:
-  $$X \; \Rightarrow^* \; \alpha X \beta$$
-  with \<open>\<alpha>, \<beta> \<in> (V \<union> T)\<^sup>*\<close> and \<open>\<alpha>\<beta> \<noteq> \<epsilon>\<close>.
-  This represents the widely used criterion for the finiteness of a context-free language,
-  however it has yet to be formally verified.
-\<close>
+subsection\<open>Preliminaries and Assumptions\<close>
 
-subsection\<open>Preliminaries\<close>
-
-context CFG
-begin \<comment>\<open>begin-context CFG\<close>
-
-text\<open>
-  For the criterion to be correct, it is required that the context-free grammar only
-  contains useful non-terminals (i.e. every non-terminal is reachable and productive),
-  and that every non-terminal is non-nullable.
-  In general, there exist algorithms that can reduce an arbitrary context-free grammar \<open>G\<close>
-  to another context-free grammar \<open>G'\<close> with \<open>L(G') = L(G) \<setminus> {\<epsilon>}\<close> that only contains useful
-  and non-nullable terminals.
-  The language is only altered if \<open>\<epsilon> \<in> L(G)\<close>, otherwise it remains identical.
-  This can be circumvented by explicitely allowing the single production \<open>S \<Rightarrow> \<epsilon>\<close>.
-  However, for this specific use-case, we can generally ignore this edge case,
-  since \<open>|L(G)| = \<infinity> \<longleftrightarrow> |L(G) \<setminus> {\<epsilon>}| = |L(G')| = \<infinity>\<close>,
-  i.e. removing a single word does not affect the finiteness.
-\<close>
-
-text\<open>
-  We use the definitions @{term is_useful} and @{term is_nullable} from the previous section
-  and expand them to all non-terminals.
-\<close>
+locale CFG =
+  fixes P :: "('n, 't) Prods"
+    and S :: 'n
+  assumes cnf: "\<And>p. p \<in> P \<Longrightarrow> (\<exists>A a. p = (A, [Tm a]) \<or> (\<exists>A B C. p = (A, [Nt B, Nt C])))"
+begin
 
 definition is_useful_all :: "bool" where
-  "is_useful_all \<equiv> (\<forall>X::'n. is_useful X)"
+  "is_useful_all \<equiv> (\<forall>X::'n. is_useful P S X)"
 
 definition is_non_nullable_all :: "bool" where
-  "is_non_nullable_all \<equiv> (\<forall>X::'n. \<not> is_nullable X)"
-
-text\<open>
-  A few lemmas are needed for more elegant reasoning of transitions.
-\<close>
+  "is_non_nullable_all \<equiv> (\<forall>X::'n. \<not> is_nullable P X)"
 
 lemma derives_concat:
-  assumes "X\<^sub>1 \<Rightarrow>\<^sup>* w\<^sub>1" and "X\<^sub>2 \<Rightarrow>\<^sup>* w\<^sub>2"
-  shows "(X\<^sub>1@X\<^sub>2) \<Rightarrow>\<^sup>* (w\<^sub>1@w\<^sub>2)"
-  using assms derives_append_decomp derives_eq by blast
+  assumes "P \<turnstile> X\<^sub>1 \<Rightarrow>* w\<^sub>1" and "P \<turnstile> X\<^sub>2 \<Rightarrow>* w\<^sub>2"
+  shows "P \<turnstile> (X\<^sub>1@X\<^sub>2) \<Rightarrow>* (w\<^sub>1@w\<^sub>2)"
+  using assms derives_append_decomp by blast
 
 lemma derives_split:
-  assumes "X \<Rightarrow>\<^sup>* w"
-  shows "\<exists>X\<^sub>1 X\<^sub>2 w\<^sub>1 w\<^sub>2. X = X\<^sub>1@X\<^sub>2 \<and> w = w\<^sub>1@w\<^sub>2 \<and> X\<^sub>1 \<Rightarrow>\<^sup>* w\<^sub>1 \<and> X\<^sub>2 \<Rightarrow>\<^sup>* w\<^sub>2"
+  assumes "P \<turnstile> X \<Rightarrow>* w"
+  shows "\<exists>X\<^sub>1 X\<^sub>2 w\<^sub>1 w\<^sub>2. X = X\<^sub>1@X\<^sub>2 \<and> w = w\<^sub>1@w\<^sub>2 \<and> P \<turnstile> X\<^sub>1 \<Rightarrow>* w\<^sub>1 \<and> P \<turnstile> X\<^sub>2 \<Rightarrow>* w\<^sub>2"
   using assms by blast
 
 lemma derives_step:
-  assumes "X \<Rightarrow>\<^sup>* (\<alpha>@w\<^sub>1@\<beta>)" and "w\<^sub>1 \<Rightarrow>\<^sup>* w\<^sub>2"
-  shows "X \<Rightarrow>\<^sup>* (\<alpha>@w\<^sub>2@\<beta>)"
-  by (meson assms CFG_axioms derives_concat Nitpick.rtranclp_unfold rtranclp_trans)
-
-text\<open>
-  The necessity of only having useful non-terminals comes from the implication we will
-  prove now: that every non-terminal can be resolved to a word.
-  This can be extended to the following fact: every list of non-terminals and terminals
-  can be resolved to a word.
-  This removes the unfortunate case of ending up with a string of non-terminals and terminals,
-  which contains an unresolvable non-terminal, practically leading to a dead end.
-\<close>
+  assumes "P \<turnstile> X \<Rightarrow>* (\<alpha>@w\<^sub>1@\<beta>)" and "P \<turnstile> w\<^sub>1 \<Rightarrow>* w\<^sub>2"
+  shows "P \<turnstile> X \<Rightarrow>* (\<alpha>@w\<^sub>2@\<beta>)"
+proof -
+  have "P \<turnstile> w\<^sub>1@\<beta> \<Rightarrow>* w\<^sub>2@\<beta>"
+    using assms(2) by (simp add: derives_concat)
+  then have "P \<turnstile> \<alpha>@w\<^sub>1@\<beta> \<Rightarrow>* \<alpha>@w\<^sub>2@\<beta>"
+    by (simp add: derives_concat)
+  then show ?thesis
+    using assms(1) by simp
+qed
 
 lemma is_useful_all_derive:
   assumes "is_useful_all"
-  shows "\<exists>w. xs \<Rightarrow>\<^sup>* map_word w"
+  shows "\<exists>w. P \<turnstile> xs \<Rightarrow>* map_word w"
 using assms proof (induction xs)
   case Nil
-  moreover have "[] \<Rightarrow>\<^sup>* map_word []"
+  moreover have "P \<turnstile> [] \<Rightarrow>* map_word []"
     by simp
   ultimately show ?case
     by (elim exI)
 next
   case (Cons a xs)
-  then obtain w' where w'_def: "xs \<Rightarrow>\<^sup>* map_word w'"
+  then obtain w' where w'_def: "P \<turnstile> xs \<Rightarrow>* map_word w'"
     by blast
 
-  have "\<exists>w. [a] \<Rightarrow>\<^sup>* map_word w"
+  have "\<exists>w. P \<turnstile> [a] \<Rightarrow>* map_word w"
   proof (cases a)
     case (Nt X)
-    then have "is_productive X"
+    then have "is_productive P X"
       using Cons(2) by (simp add: is_useful_all_def is_useful_def)
     then show ?thesis
       by (simp add: Nt is_productive_def)
   next
     case (Tm c)
-    then have "[Tm c] \<Rightarrow>\<^sup>* map_word [c]"
+    then have "P \<turnstile> [Tm c] \<Rightarrow>* map_word [c]"
       by simp
     then show ?thesis
       using Tm by blast
   qed
-  then obtain w where w_def: "[a] \<Rightarrow>\<^sup>* map_word w"
+  then obtain w where w_def: "P \<turnstile> [a] \<Rightarrow>* map_word w"
     by blast
 
-  from w_def w'_def have "(a#xs) \<Rightarrow>\<^sup>* map_word (w@w')"
+  from w_def w'_def have "P \<turnstile> (a#xs) \<Rightarrow>* map_word (w@w')"
     using derives_concat by fastforce
   then show ?case
     by blast
 qed
 
-text\<open>
-  The second requirement, having no nullable non-terminals, has the benefit of preventing
-  any string of non-terminals and terminals to shrink.
-  This allows the criterion for the finiteness to be able to ``pump'' a string up to
-  an arbitrary length, before resolving it to only terminals, without loosing any length to it.
-\<close>
-
 lemma is_non_nullable_all_derive:
-  assumes "is_non_nullable_all" and "xs \<Rightarrow>\<^sup>* w"
+  assumes "is_non_nullable_all" and "P \<turnstile> xs \<Rightarrow>* w"
   shows "xs = [] \<longleftrightarrow> w = []"
 proof -
-  have "\<And>X. \<not> [Nt X] \<Rightarrow>\<^sup>* []"
+  have "\<And>X. \<not> P \<turnstile> [Nt X] \<Rightarrow>* []"
     using assms(1) by (simp add: is_non_nullable_all_def is_nullable_def)
-  moreover have "\<And>c. \<not> [Tm c] \<Rightarrow>\<^sup>* []"
-    using derives_eq by force
-  ultimately have nonNullAll: "\<And>x. \<not> [x] \<Rightarrow>\<^sup>* []"
+  moreover have "\<And>c. \<not> P \<turnstile> [Tm c] \<Rightarrow>* []"
+    by simp
+  ultimately have nonNullAll: "\<And>x. \<not> P \<turnstile> [x] \<Rightarrow>* []"
     using sym.exhaust by metis
 
   have thm1: "xs = [] \<Longrightarrow> w = []"
-    using assms(2) derives_eq derives_from_empty by blast
+    using assms(2) derives_from_empty by blast
 
   have thm2: "xs \<noteq> [] \<Longrightarrow> w \<noteq> []"
   proof
     assume "xs \<noteq> []"
     then obtain x xs' where "xs = x#xs'"
       using list.exhaust by blast
-    moreover have "([x]@xs') \<Rightarrow>\<^sup>* [] \<Longrightarrow> ([x] \<Rightarrow>\<^sup>* [] \<and> xs' \<Rightarrow>\<^sup>* [])"
-      using derives_split by (metis Nil_is_append_conv derives_append_decomp derives_eq)
-    moreover have "\<not> [x] \<Rightarrow>\<^sup>* []"
+    moreover have "P \<turnstile> ([x]@xs') \<Rightarrow>* [] \<Longrightarrow> (P \<turnstile> [x] \<Rightarrow>* [] \<and> P \<turnstile> xs' \<Rightarrow>* [])"
+      using derives_split by (metis Nil_is_append_conv derives_append_decomp)
+    moreover have "\<not> P \<turnstile> [x] \<Rightarrow>* []"
       by (simp add: nonNullAll)
     ultimately show "w = [] \<Longrightarrow> False"
       using assms(2) by simp
@@ -159,7 +116,7 @@ text\<open>
 \<close>
 
 definition is_reachable_step :: "'n \<Rightarrow> 'n \<Rightarrow> bool" (infix "\<rightarrow>\<^sup>?" 80) where
-  "(X \<rightarrow>\<^sup>? Y) \<equiv> (\<exists>\<alpha> \<beta>. [Nt X] \<Rightarrow>\<^sup>* (\<alpha>@[Nt Y]@\<beta>) \<and> \<alpha>@\<beta> \<noteq> [])"
+  "(X \<rightarrow>\<^sup>? Y) \<equiv> (\<exists>\<alpha> \<beta>. P \<turnstile> [Nt X] \<Rightarrow>* (\<alpha>@[Nt Y]@\<beta>) \<and> \<alpha>@\<beta> \<noteq> [])"
 
 definition is_infinite :: "bool" where
   "is_infinite \<equiv> (\<exists>X. X \<rightarrow>\<^sup>? X)"
@@ -172,34 +129,209 @@ fun is_infinite_words :: "'t list \<Rightarrow> 't list \<Rightarrow> 't list \<
   "is_infinite_words w\<^sub>X w\<^sub>\<alpha> w\<^sub>\<beta> (Suc n) = w\<^sub>\<alpha>@(is_infinite_words w\<^sub>X w\<^sub>\<alpha> w\<^sub>\<beta> n)@w\<^sub>\<beta>" |
   "is_infinite_words w\<^sub>X w\<^sub>\<alpha> w\<^sub>\<beta> 0 = w\<^sub>X"
 
-theorem is_infinite:
-  assumes "is_useful_all" and "is_non_nullable_all"
+definition reachable_rel :: "('n \<times> 'n) set" where
+  "reachable_rel \<equiv> {(X\<^sub>2, X\<^sub>1). \<exists>\<alpha> \<beta>. (X\<^sub>1, \<alpha>@[Nt X\<^sub>2]@\<beta>) \<in> P}"
+
+lemma cnf_implies_pumping:
+  assumes "(Y, \<alpha>@[Nt X]@\<beta>) \<in> P"
+  shows "Y \<rightarrow>\<^sup>? X"
+proof -
+  consider "\<exists>a. (\<alpha>@[Nt X]@\<beta>) = [Tm a]" | "\<exists>B C. (\<alpha>@[Nt X]@\<beta>) = [Nt B, Nt C]"
+    using assms cnf by blast
+  then show ?thesis
+  proof (cases)
+    case 1
+    then have "False"
+      by (simp add: append_eq_Cons_conv)
+    then show ?thesis
+      by simp
+  next
+    case 2
+    then obtain B C where BC_def: "(\<alpha>@[Nt X]@\<beta>) = [Nt B, Nt C]"
+      by blast
+    then have "X = B \<or> X = C"
+      by (metis Nil_is_append_conv append_Cons in_set_conv_decomp in_set_conv_decomp_first set_ConsD sym.inject(1))
+    then have "P \<turnstile> [Nt Y] \<Rightarrow> []@[Nt X]@[Nt C] | P \<turnstile> [Nt Y] \<Rightarrow> [Nt B]@[Nt X]@[]"
+      using BC_def assms(1) derive_singleton by force
+    then show ?thesis
+      unfolding is_reachable_step_def by (rule disjE) blast+
+  qed
+qed
+
+lemma reachable_rel_tran: "(X, Y) \<in> reachable_rel\<^sup>+ \<Longrightarrow> Y \<rightarrow>\<^sup>? X"
+proof (induction rule: trancl.induct)
+  case (r_into_trancl X Y)
+  then show "Y \<rightarrow>\<^sup>? X"
+    using cnf cnf_implies_pumping by (auto simp: reachable_rel_def)
+next
+  case (trancl_into_trancl X Y Z)
+  then have "Z \<rightarrow>\<^sup>? Y"
+    using cnf cnf_implies_pumping by (auto simp: reachable_rel_def)
+  with trancl_into_trancl(3) have "Z \<rightarrow>\<^sup>? X"
+  proof -
+    assume "Z \<rightarrow>\<^sup>? Y" and "Y \<rightarrow>\<^sup>? X"
+
+    obtain \<alpha>\<^sub>Z \<beta>\<^sub>Z where z_der: "P \<turnstile> [Nt Z] \<Rightarrow>* (\<alpha>\<^sub>Z@[Nt Y]@\<beta>\<^sub>Z)" and "\<alpha>\<^sub>Z@\<beta>\<^sub>Z \<noteq> []"
+      using \<open>Z \<rightarrow>\<^sup>? Y\<close>[unfolded is_reachable_step_def] by blast
+    obtain \<alpha>\<^sub>Y \<beta>\<^sub>Y where y_der: "P \<turnstile> [Nt Y] \<Rightarrow>* (\<alpha>\<^sub>Y@[Nt X]@\<beta>\<^sub>Y)" and "\<alpha>\<^sub>Y@\<beta>\<^sub>Y \<noteq> []"
+      using \<open>Y \<rightarrow>\<^sup>? X\<close>[unfolded is_reachable_step_def] by blast
+
+    have "P \<turnstile> [Nt Z] \<Rightarrow>* (\<alpha>\<^sub>Z@\<alpha>\<^sub>Y@[Nt X]@\<beta>\<^sub>Y@\<beta>\<^sub>Z)"
+      using z_der y_der by (metis append.assoc derives_step)
+    moreover have "\<alpha>\<^sub>Z@\<alpha>\<^sub>Y@\<beta>\<^sub>Y@\<beta>\<^sub>Z \<noteq> []"
+      using \<open>\<alpha>\<^sub>Z@\<beta>\<^sub>Z \<noteq> []\<close> \<open>\<alpha>\<^sub>Y@\<beta>\<^sub>Y \<noteq> []\<close> by simp
+    ultimately show "Z \<rightarrow>\<^sup>? X"
+      unfolding is_reachable_step_def by (metis append.assoc)
+  qed
+  then show ?case
+    by simp
+qed
+
+lemma reachable_rel_wf:
+  assumes "finite P"
+    and cnf: "\<And>p. p \<in> P \<Longrightarrow> (\<exists>A a. p = (A, [Tm a]) \<or> (\<exists>A B C. p = (A, [Nt B, Nt C])))"
+    and loopfree: "\<And>X. \<not> X \<rightarrow>\<^sup>? X"
+  shows "wf reachable_rel"
+proof -
+  define Nt2 :: "'n \<times> 'n \<Rightarrow> ('n, 't) sym \<times> ('n, 't) sym"
+    where "Nt2 \<equiv> (\<lambda>(a,b). (Nt a, Nt b))"
+  define S :: "(('n, 't) sym \<times> ('n, 't) sym) set"
+    where "S \<equiv> \<Union>(set ` snd ` P) \<times> (Nt ` fst ` P)"
+
+  have "finite (\<Union>(set ` snd ` P))"
+    by (rule finite_Union; use assms(1) in blast)
+  moreover have "finite (fst ` P)"
+    using assms(1) by simp
+  ultimately have "finite S"
+    unfolding S_def by blast
+  moreover have "(Nt2 ` reachable_rel) \<subseteq> S"
+    unfolding reachable_rel_def Nt2_def S_def by (auto split: prod.splits sym.splits, force)
+  ultimately have "finite (Nt2 ` reachable_rel)"
+    using finite_subset by blast
+  moreover have "inj_on Nt2 reachable_rel"
+    unfolding inj_on_def Nt2_def by fast
+  ultimately have finite: "finite reachable_rel"
+    using finite_image_iff by blast
+
+  have acyclic: "acyclic reachable_rel"
+  proof (simp add: acyclic_def, standard)
+    fix X
+    have "\<not> X \<rightarrow>\<^sup>? X"
+      by (simp add: loopfree)
+    then show "(X, X) \<notin> reachable_rel\<^sup>+"
+      using cnf reachable_rel_tran by blast
+  qed
+
+  show "wf reachable_rel"
+    using finite acyclic by (rule finite_acyclic_wf)
+qed
+
+lemma is_infinite_implies_finite:
+  assumes "finite P"
+    and loopfree: "\<And>X. \<not> X \<rightarrow>\<^sup>? X"
+  shows "finite {w. P \<turnstile> [Nt X] \<Rightarrow>* w}"
+proof -
+  have "wf reachable_rel"
+    using assms cnf by (simp add: reachable_rel_wf)
+  then show ?thesis
+  proof (induction)
+    case (less X)
+
+    have "{w. \<exists>a. (X, [Tm a]) \<in> P \<and> P \<turnstile> [Tm a] \<Rightarrow>* w} = snd ` {(Y, \<beta>) \<in> P. X = Y \<and> (\<exists>a. \<beta> = [Tm a])}"
+      by force
+    then have finA: "finite {w. \<exists>a. (X, [Tm a]) \<in> P \<and> P \<turnstile> [Tm a] \<Rightarrow>* w}"
+      using assms(1) by (metis (no_types, lifting) case_prod_conv finite_imageI mem_Collect_eq old.prod.exhaust rev_finite_subset subsetI)
+
+    have "\<And>B C. (X, [Nt B, Nt C]) \<in> P \<Longrightarrow> finite {w. P \<turnstile> [Nt B, Nt C] \<Rightarrow>* w}"
+    proof -
+      fix B and C
+      assume "(X, [Nt B, Nt C]) \<in> P"
+      then have "(X, []@[Nt B]@[Nt C]) \<in> P" and "(X, [Nt B]@[Nt C]@[]) \<in> P"
+        by simp+
+      then have "(B, X) \<in> reachable_rel" and "(C, X) \<in> reachable_rel"
+        unfolding reachable_rel_def by blast+
+      then have "finite {w. P \<turnstile> [Nt B] \<Rightarrow>* w}" and "finite {w. P \<turnstile> [Nt C] \<Rightarrow>* w}"
+        using less by simp+
+      moreover have "{w. P \<turnstile> [Nt B, Nt C] \<Rightarrow>* w} = (\<lambda>(b,c). b@c) ` ({w. P \<turnstile> [Nt B] \<Rightarrow>* w} \<times> {w. P \<turnstile> [Nt C] \<Rightarrow>* w})"
+      proof (standard; standard)
+        fix w
+        assume "w \<in> {w. P \<turnstile> [Nt B, Nt C] \<Rightarrow>* w}"
+        then have "P \<turnstile> [Nt B]@[Nt C] \<Rightarrow>* w"
+          by simp
+        then obtain b c where "P \<turnstile> [Nt B] \<Rightarrow>* b" and "P \<turnstile> [Nt C] \<Rightarrow>* c" and "w = b@c"
+          using derives_append_decomp by blast
+        then show "w \<in> (\<lambda>(b,c). b@c) ` ({w. P \<turnstile> [Nt B] \<Rightarrow>* w} \<times> {w. P \<turnstile> [Nt C] \<Rightarrow>* w})"
+          by blast
+      next
+        fix w
+        assume "w \<in> (\<lambda>(b,c). b@c) ` ({w. P \<turnstile> [Nt B] \<Rightarrow>* w} \<times> {w. P \<turnstile> [Nt C] \<Rightarrow>* w})"
+        then obtain b c where "P \<turnstile> [Nt B] \<Rightarrow>* b" and "P \<turnstile> [Nt C] \<Rightarrow>* c" and "w = b@c"
+          by fast
+        then have "P \<turnstile> [Nt B]@[Nt C] \<Rightarrow>* w"
+          using derives_concat by blast
+        then show "w \<in> {w. P \<turnstile> [Nt B, Nt C] \<Rightarrow>* w}"
+          by simp
+      qed
+      ultimately show "finite {w. P \<turnstile> [Nt B, Nt C] \<Rightarrow>* w}"
+        by simp
+    qed
+    moreover have "finite {(B, C). (X, [Nt B, Nt C]) \<in> P}"
+    proof -
+      define S :: "('n \<times> ('n, 't) sym list) set" where
+          "S \<equiv> ((\<lambda>(B,C). (X, [Nt B, Nt C])) ` {(B, C). (X, [Nt B, Nt C]) \<in> P})"
+      have subP: "S \<subseteq> P"
+        unfolding S_def by fast
+      with assms(1) have "finite S"
+        by (elim finite_subset)
+      then show ?thesis
+        unfolding S_def by (rule finite_imageD, simp add: inj_on_def)
+    qed
+    ultimately have "finite (\<Union>((\<lambda>(B,C). {w. P \<turnstile> [Nt B, Nt C] \<Rightarrow>* w}) ` {(B,C). (X, [Nt B, Nt C]) \<in> P}))"
+      by (intro finite_Union; fast)
+    moreover have "{w. \<exists>B C. (X, [Nt B, Nt C]) \<in> P \<and> P \<turnstile> [Nt B, Nt C] \<Rightarrow>* w}
+        = (\<Union>((\<lambda>(B,C). {w. P \<turnstile> [Nt B, Nt C] \<Rightarrow>* w}) ` {(B,C). (X, [Nt B, Nt C]) \<in> P}))"
+      by blast
+    ultimately have finB: "finite {w. \<exists>B C. (X, [Nt B, Nt C]) \<in> P \<and> P \<turnstile> [Nt B, Nt C] \<Rightarrow>* w}"
+      by simp
+
+    let ?P = "\<lambda>w \<beta>. (X, \<beta>) \<in> P \<and> P \<turnstile> \<beta> \<Rightarrow>* w"
+    have un: "{w. \<exists>\<beta>. ?P w \<beta>} = {w. \<exists>a. ?P w [Tm a]} \<union> {w. \<exists>B C. ?P w [Nt B, Nt C]}"
+      using cnf by blast
+    have "finite {w. \<exists>\<beta>. (X, \<beta>) \<in> P \<and> P \<turnstile> \<beta> \<Rightarrow>* w}"
+      unfolding un by (intro finite_UnI; use finA finB in simp)
+    moreover have "\<And>X. {w. P \<turnstile> [Nt X] \<Rightarrow>* w} = {[Nt X]} \<union> {w. \<exists>\<beta>. (X, \<beta>) \<in> P \<and> P \<turnstile> \<beta> \<Rightarrow>* w}"
+      by (auto split: prod.splits simp: derives_Cons_decomp)
+    ultimately show ?case
+      by simp
+  qed
+qed
+
+theorem is_infinite_correct:
+  assumes "is_useful_all" and "is_non_nullable_all" and "finite P"
   shows "\<not> finite (Lang P S) \<longleftrightarrow> is_infinite"
 proof (standard, erule contrapos_pp)
-  (* \<not>\<exists>. X \<rightarrow>* aXb \<Longrightarrow> finite *)
-  assume assm: "\<not> is_infinite"
-
-  have "finite P"
-    using CFG_axioms CFG_def by blast
+  assume "\<not> is_infinite"
+  then have finA: "finite {w. P \<turnstile> [Nt S] \<Rightarrow>* w}"
+    using is_infinite_implies_finite assms(3) by (simp add: is_infinite_def)
+  have "finite (map_word ` {w. P \<turnstile> [Nt S] \<Rightarrow>* map_word w}::('n, 't) sym list set)"
+    by (rule finite_subset[where B="{w. P \<turnstile> [Nt S] \<Rightarrow>* w}"]; use finA in blast)
+  moreover have "inj_on map_word {w. P \<turnstile> [Nt S] \<Rightarrow>* map_word w}"
+    by (simp add: inj_on_def)
+  ultimately have "finite {w. P \<turnstile> [Nt S] \<Rightarrow>* map_word w}"
+    using finite_image_iff[where f=map_word] by blast
   then show "\<not> infinite (Lang P S)"
-  proof (induction P)
-    case empty thus ?case 
-      by (simp add: Lang_empty_if_notin_Lhss)
-  next
-    case (insert p P)
-    then show ?case sorry
-  qed
+    by (simp add: Lang_def)
 next
   assume "is_infinite"
   then obtain X where "X \<rightarrow>\<^sup>? X"
     unfolding is_infinite_def by blast
-  then obtain \<alpha> \<beta> where deriveX: "[Nt X] \<Rightarrow>\<^sup>* (\<alpha>@[Nt X]@\<beta>)" and "\<alpha>@\<beta> \<noteq> []"
+  then obtain \<alpha> \<beta> where deriveX: "P \<turnstile> [Nt X] \<Rightarrow>* (\<alpha>@[Nt X]@\<beta>)" and "\<alpha>@\<beta> \<noteq> []"
     unfolding is_reachable_step_def by blast
 
-  obtain w\<^sub>X where w\<^sub>X_def: "[Nt X] \<Rightarrow>\<^sup>* map_word w\<^sub>X"
+  obtain w\<^sub>X where w\<^sub>X_def: "P \<turnstile> [Nt X] \<Rightarrow>* map_word w\<^sub>X"
     using assms(1) is_useful_all_derive by blast
 
-  obtain w\<^sub>\<alpha> w\<^sub>\<beta> where w\<^sub>\<alpha>_def: "\<alpha> \<Rightarrow>\<^sup>* map_word w\<^sub>\<alpha>" and w\<^sub>\<beta>_def: "\<beta> \<Rightarrow>\<^sup>* map_word w\<^sub>\<beta>"
+  obtain w\<^sub>\<alpha> w\<^sub>\<beta> where w\<^sub>\<alpha>_def: "P \<turnstile> \<alpha> \<Rightarrow>* map_word w\<^sub>\<alpha>" and w\<^sub>\<beta>_def: "P \<turnstile> \<beta> \<Rightarrow>* map_word w\<^sub>\<beta>"
     using assms(1) is_useful_all_derive by blast+
   then have "w\<^sub>\<alpha>@w\<^sub>\<beta> \<noteq> []"
     using \<open>\<alpha>@\<beta> \<noteq> []\<close> by (simp add: assms(2) is_non_nullable_all_derive)
@@ -207,38 +339,38 @@ next
   define f\<^sub>d where "f\<^sub>d \<equiv> is_infinite_derives X \<alpha> \<beta>"
   define f\<^sub>w where "f\<^sub>w \<equiv> is_infinite_words w\<^sub>X w\<^sub>\<alpha> w\<^sub>\<beta>"
 
-  have "is_reachable X"
+  have "P \<turnstile> S \<Rightarrow>\<^sup>? X"
     using assms(1) by (simp add: is_useful_all_def is_useful_def)
-  then obtain p s where "[Nt S] \<Rightarrow>\<^sup>* (p@[Nt X]@s)"
-    unfolding is_reachable_def is_reachable_from_def by blast
-  moreover obtain w\<^sub>p where w\<^sub>p_def: "p \<Rightarrow>\<^sup>* map_word w\<^sub>p"
+  then obtain p s where "P \<turnstile> [Nt S] \<Rightarrow>* (p@[Nt X]@s)"
+    unfolding is_reachable_from_def by blast
+  moreover obtain w\<^sub>p where w\<^sub>p_def: "P \<turnstile> p \<Rightarrow>* map_word w\<^sub>p"
     using assms(1) is_useful_all_derive by blast
-  moreover obtain w\<^sub>s where w\<^sub>s_def: "s \<Rightarrow>\<^sup>* map_word w\<^sub>s"
+  moreover obtain w\<^sub>s where w\<^sub>s_def: "P \<turnstile> s \<Rightarrow>* map_word w\<^sub>s"
     using assms(1) is_useful_all_derive by blast
-  ultimately have fromS: "[Nt S] \<Rightarrow>\<^sup>* (map_word w\<^sub>p@[Nt X]@map_word w\<^sub>s)"
+  ultimately have fromS: "P \<turnstile> [Nt S] \<Rightarrow>* (map_word w\<^sub>p@[Nt X]@map_word w\<^sub>s)"
     by (meson local.derives_concat rtranclp.rtrancl_refl rtranclp_trans)
 
-  have "\<And>i. [Nt X] \<Rightarrow>\<^sup>* f\<^sub>d i"
+  have "\<And>i. P \<turnstile> [Nt X] \<Rightarrow>* f\<^sub>d i"
     subgoal for i
       apply (induction i; simp_all add: f\<^sub>d_def)
       apply (meson deriveX local.derives_concat rtranclp.rtrancl_refl rtranclp_trans)
       done
     done
-  moreover have "\<And>i. f\<^sub>d i \<Rightarrow>\<^sup>* map_word (f\<^sub>w i)"
+  moreover have "\<And>i. P \<turnstile> f\<^sub>d i \<Rightarrow>* map_word (f\<^sub>w i)"
     subgoal for i
-      by (induction i; simp add: f\<^sub>d_def f\<^sub>w_def w\<^sub>X_def w\<^sub>\<alpha>_def w\<^sub>\<beta>_def CFG_axioms derives_concat)
+      by (induction i; simp add: f\<^sub>d_def f\<^sub>w_def w\<^sub>X_def w\<^sub>\<alpha>_def w\<^sub>\<beta>_def derives_concat)
     done
-  ultimately have "\<And>i. [Nt X] \<Rightarrow>\<^sup>* map_word (f\<^sub>w i)"
+  ultimately have "\<And>i. P \<turnstile> [Nt X] \<Rightarrow>* map_word (f\<^sub>w i)"
     using rtranclp_trans by fast
-  then have "\<And>i. [Nt S] \<Rightarrow>\<^sup>* (map_word w\<^sub>p@map_word (f\<^sub>w i)@map_word w\<^sub>s)"
+  then have "\<And>i. P \<turnstile> [Nt S] \<Rightarrow>* (map_word w\<^sub>p@map_word (f\<^sub>w i)@map_word w\<^sub>s)"
     using fromS derives_step by presburger
-  then have "\<And>i. [Nt S] \<Rightarrow>\<^sup>* (map_word (w\<^sub>p@(f\<^sub>w i)@w\<^sub>s))"
+  then have "\<And>i. P \<turnstile> [Nt S] \<Rightarrow>* (map_word (w\<^sub>p@(f\<^sub>w i)@w\<^sub>s))"
     by simp
   moreover define f\<^sub>w' where f\<^sub>w'_def: "f\<^sub>w' = (\<lambda>i. w\<^sub>p @ (f\<^sub>w i) @ w\<^sub>s)"
-  ultimately have "\<And>i. [Nt S] \<Rightarrow>\<^sup>* map_word (f\<^sub>w' i)"
+  ultimately have "\<And>i. P \<turnstile> [Nt S] \<Rightarrow>* map_word (f\<^sub>w' i)"
     by simp
   then have "\<And>i. f\<^sub>w' i \<in> Lang P S"
-    by (simp add: Lang_def derives_eq)
+    by (simp add: Lang_def)
   then have "range f\<^sub>w' \<subseteq> Lang P S"
     by blast
 
@@ -275,6 +407,17 @@ qed
 
 \<comment>\<open>Notation only used in this theory.\<close>
 no_notation is_reachable_step (infix "\<rightarrow>\<^sup>?" 80)
+
+subsection\<open>Finiteness Problem\<close>
+
+lemma is_infinite_check:
+  "is_infinite \<longleftrightarrow> (\<exists>X. [Nt X] \<in> pre_star P { \<alpha>@[Nt X]@\<beta> | \<alpha> \<beta>. \<alpha>@\<beta> \<noteq> [] })"
+  unfolding is_infinite_def is_reachable_step_def by (auto simp: pre_star_term)
+
+theorem is_infinite_by_prestar:
+  assumes "is_useful_all" and "is_non_nullable_all" and "finite P"
+  shows "finite (Lang P S) \<longleftrightarrow> (\<forall>X. [Nt X] \<notin> pre_star P { \<alpha>@[Nt X]@\<beta> | \<alpha> \<beta>. \<alpha>@\<beta> \<noteq> [] })"
+  using assms is_infinite_correct is_infinite_check by blast
 
 end \<comment>\<open>end-context CFG\<close>
 end \<comment>\<open>end-theory Finiteness\<close>

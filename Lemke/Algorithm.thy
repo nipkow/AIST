@@ -1,319 +1,390 @@
-section\<open>Computing $pre^*(L)$\<close>
+section\<open>Computation\<close>
 
 theory Algorithm
   imports Definition FiniteAutomaton "HOL-Library.While_Combinator"
 begin \<comment>\<open>begin-theory Algorithm\<close>
 
-context CFG
-begin \<comment>\<open>begin-context CFG\<close>
+subsection\<open>Definition as Fixpoint\<close>
 
-subsection\<open>Preliminaries\<close>
+definition prestar_step :: "('n, 't) Prods \<Rightarrow> 's set \<Rightarrow> ('s, ('n, 't) sym) Trans \<Rightarrow> ('s, ('n, 't) sym) Trans" where
+  "prestar_step P Q \<delta> \<equiv> { (q, Nt A, q') | q q' A. \<exists>\<beta>. (A, \<beta>) \<in> P \<and> q' \<in> steps \<delta> \<beta> q \<and> q \<in> Q \<and> q' \<in> Q }"
 
-definition prestar_step :: "('s \<times> ('n, 't) sym \<times> 's) set \<Rightarrow> ('s \<times> ('n, 't) sym \<times> 's) set" where
-  "prestar_step T \<equiv> { (q, Nt A, q') | q q' A. \<exists>\<beta>. (A, \<beta>) \<in> P \<and> q' \<in> steps T \<beta> q }"
+definition prestar_step' :: "('n, 't) Prods \<Rightarrow> 's set \<Rightarrow> ('s, ('n, 't) sym) Trans \<Rightarrow> ('s, ('n, 't) sym) Trans" where
+  "prestar_step' P Q \<delta> \<equiv> (\<lambda>(q, q', A, \<beta>). (q, Nt A, q')) ` {(q, q', A, \<beta>) \<in> Q \<times> Q \<times> P. q' \<in> steps \<delta> \<beta> q}"
 
-definition prestar_while :: "('s \<times> ('n, 't) sym \<times> 's) set \<Rightarrow> ('s \<times> ('n, 't) sym \<times> 's) set option" where
-  "prestar_while \<equiv> while_option (\<lambda>T. T \<union> prestar_step T \<noteq> T) (\<lambda>T. T \<union> prestar_step T)"
+definition prestar_while :: "('n, 't) Prods \<Rightarrow> 's set \<Rightarrow> ('s, ('n, 't) sym) Trans \<Rightarrow> ('s, ('n, 't) sym) Trans option" where
+  "prestar_while P Q \<equiv> while_option (\<lambda>\<delta>. \<delta> \<union> prestar_step P Q \<delta> \<noteq> \<delta>) (\<lambda>\<delta>. \<delta> \<union> prestar_step P Q \<delta>)"
 
-subsection\<open>Monotonicity and Termination\<close>
+lemma prestar_while_rule:
+  assumes "(\<And>\<delta>. H \<delta> \<Longrightarrow> \<delta> \<union> prestar_step P Q \<delta> \<noteq> \<delta> \<Longrightarrow> H (\<delta> \<union> prestar_step P Q \<delta>))"
+    and "prestar_while P Q \<delta> = Some \<delta>'" and "H \<delta>"
+  shows "H \<delta>'"
+  using assms unfolding prestar_while_def by (rule while_option_rule)
 
-lemma nfa_mono':
-  assumes "T\<^sub>1 \<subseteq> T\<^sub>2" and "q\<^sub>1 \<subseteq> q\<^sub>2"
-  shows "Steps T\<^sub>1 w q\<^sub>1 \<subseteq> Steps T\<^sub>2 w q\<^sub>2"
-proof (insert assms(2); induction w arbitrary: q\<^sub>1 q\<^sub>2)
-  case Nil thus ?case by (simp add: Steps_def)
-next
-  case (Cons w ws)
-  have "Step T\<^sub>1 w q\<^sub>1 \<subseteq> Step T\<^sub>2 w q\<^sub>2"
-    unfolding Step_def step_def using assms(1) Cons(2) by blast
-  then have "Steps T\<^sub>1 ws (Step T\<^sub>1 w q\<^sub>1) \<subseteq> Steps T\<^sub>1 ws (Step T\<^sub>2 w q\<^sub>2)"
-    by (rule Steps_mono)
-  then have "Steps T\<^sub>1 ws (Step T\<^sub>1 w q\<^sub>1) \<subseteq> Steps T\<^sub>2 ws (Step T\<^sub>2 w q\<^sub>2)"
-    using Cons(1) by blast
-  then show ?case
-    by (simp add: Steps_def)
-qed
+lemma prestar_while_fp: "prestar_while P Q \<delta> = Some \<delta>' \<Longrightarrow> \<delta>' \<union> (prestar_step P Q \<delta>') = \<delta>'"
+  unfolding prestar_while_def using while_option_stop by fast
 
-lemma nfa_mono: "T\<^sub>1 \<subseteq> T\<^sub>2 \<Longrightarrow> steps T\<^sub>1 w q \<subseteq> steps T\<^sub>2 w q"
-  using nfa_mono'[of T\<^sub>1 T\<^sub>2 "{q}" "{q}" w] by simp
+lemma prestar_while_mono: "prestar_while P Q \<delta> = Some \<delta>' \<Longrightarrow> \<delta> \<subseteq> \<delta>'"
+  by (rule prestar_while_rule) blast+
 
-lemma nfa_lang_mono: "T\<^sub>1 \<subseteq> T\<^sub>2 \<Longrightarrow> lang' T\<^sub>1 s f \<subseteq> lang' T\<^sub>2 s f"
-  unfolding lang'_def using nfa_mono[of T\<^sub>1 T\<^sub>2] by fast
+subsection\<open>Propagation of Reachability\<close>
 
+lemma prestar_step_reachable:
+  "reachable_from \<delta> q = reachable_from (\<delta> \<union> prestar_step P Q \<delta>) q"
+  unfolding prestar_step_def by (rule reachable_add_trans) blast
 
+lemma prestar_while_reachable:
+  assumes "prestar_while P Q \<delta> = Some \<delta>'"
+  shows "reachable_from \<delta> q = reachable_from \<delta>' q"
+  by (rule prestar_while_rule; use assms prestar_step_reachable in fast)
 
-lemma prestar_while_mono:
-  assumes "prestar_while T\<^sub>0 = Some T'"
-  shows "T\<^sub>0 \<subseteq> T'"
-  unfolding prestar_while_def
-proof (rule while_option_rule[where P = "\<lambda>T. T\<^sub>0 \<subseteq> T", OF _ assms[unfolded prestar_while_def]])
-  show "T\<^sub>0 \<subseteq> T\<^sub>0"
-    by blast
-next
-  fix T
-  assume "T\<^sub>0 \<subseteq> T" and "T \<union> prestar_step T \<noteq> T"
-  then show "T\<^sub>0 \<subseteq> T \<union> prestar_step T"
-    by blast
-qed
-
-lemma prestar_step_mono: "mono (\<lambda>T. T \<union> prestar_step T)"
-proof -
-  have "\<And>A B. A \<subseteq> B \<Longrightarrow> prestar_step A \<subseteq> prestar_step B"
-  proof (standard)
-    fix A :: "('s \<times> ('n, 't) sym \<times> 's) set" and B and w
-    assume assm1: "A \<subseteq> B" and assm2: "w \<in> prestar_step A"
-    obtain q q' \<alpha> \<beta> where [simp]: "w = (q, Nt \<alpha>, q')" and [simp]: "(\<alpha>, \<beta>) \<in> P" and "q' \<in> steps A \<beta> q"
-      using assm2 prestar_step_def by (smt (verit, best) mem_Collect_eq)
-    then have "q' \<in> steps B \<beta> q"
-      using nfa_mono[of A B] assm1 by blast
-    then show "w \<in> prestar_step B"
-      unfolding prestar_step_def by force
-  qed
-  then show ?thesis
-    by (intro monoI, blast)
-qed
-
-
-
-lemma finite_univ_tuple[intro]:
-  assumes "finite (UNIV::'a set)" and "finite (UNIV::'b set)"
-  shows "finite (UNIV::('a \<times> 'b) set)"
-  by (simp add: assms(1,2) finite_Prod_UNIV)
-
-lemma prestar_while_terminates:
-  fixes T\<^sub>0 :: "('s \<times> ('n, 't) sym \<times> 's) set"
-  assumes "finite (UNIV::'s set)"
-  shows "\<exists>T. prestar_while T\<^sub>0 = Some T"
-proof -
-  have "finite ({ Nt x | x::'n. True } \<union> { Tm x | x::'t. True })"
-  proof (rule finite_UnI)
-    have "inj_on (\<lambda>x. (Nt x::('n, 't) sym)) (UNIV::'n set)"
-      by (rule injI, simp)
-    moreover have "finite (UNIV::'n set)"
-      using CFG_axioms by (simp add: CFG_def)
-    ultimately show "finite ({ Nt x | x. True }::('n, 't) sym set)"
-      using finite_image_iff by (simp add: full_SetCompr_eq)
-  next
-    have "inj_on (\<lambda>x. (Tm x::('n, 't) sym)) (UNIV::'t set)"
-      by (rule injI, simp)
-    moreover have "finite (UNIV::'t set)"
-      using CFG_axioms by (simp add: CFG_def)
-    ultimately show "finite ({ Tm x | x. True }::('n, 't) sym set)"
-      using finite_image_iff by (simp add: full_SetCompr_eq)
-  qed
-  then have "finite (UNIV::('n, 't) sym set)"
-    by (smt (verit, ccfv_threshold) UNIV_eq_I Un_def mem_Collect_eq sym.exhaust)
-  then have "finite (UNIV::('s \<times> ('n, 't) sym \<times> 's) set)"
-    using assms by blast
-  then have "finite (UNIV::(('s \<times> ('n, 't) sym \<times> 's) set) set)"
-    by (simp add: Finite_Set.finite_set)
-  moreover have "T\<^sub>0 \<le> T\<^sub>0 \<union> prestar_step T\<^sub>0"
-    by simp
-  ultimately show ?thesis
-    unfolding prestar_while_def
-    using prestar_step_mono by (intro while_option_finite_increasing_Some; simp_all)
-qed
-
-lemma prestar_while_fixpoint:
-  assumes "prestar_while T\<^sub>0 = Some T"
-  shows "T \<union> prestar_step T = T"
-proof -
-  have "\<not> (T \<union> prestar_step T \<noteq> T)"
-    by (insert assms[unfolded prestar_while_def], rule while_option_stop)
-  then have "T \<union> prestar_step T = T"
-    by simp
-  then show ?thesis .
-qed
-
-subsection\<open>Saturation\<close>
-
-lemma prestar_saturated_step:
-  assumes "X\<^sub>1 \<Rightarrow> X\<^sub>2" and "q' \<in> steps T\<^sub>0 X\<^sub>2 q"
-  shows "q' \<in> steps (T\<^sub>0 \<union> prestar_step T\<^sub>0) X\<^sub>1 q"
-proof -
-  define T where [simp]: "T \<equiv> T\<^sub>0 \<union> prestar_step T\<^sub>0"
-  obtain \<alpha> w\<^sub>1 w\<^sub>2 \<beta> where X\<^sub>1_def: "X\<^sub>1 = \<alpha>@[Nt w\<^sub>1]@\<beta>" and X\<^sub>2_def: "X\<^sub>2 = \<alpha>@w\<^sub>2@\<beta>" and "(w\<^sub>1, w\<^sub>2) \<in> P"
-    by (metis (mono_tags, opaque_lifting) assms(1) prods_to_lts.cases step_relp_def transition_relation_def)
-  obtain s s' where "s \<in> steps T\<^sub>0 \<alpha> q" and "s' \<in> steps T\<^sub>0 w\<^sub>2 s" and "q' \<in> steps T\<^sub>0 \<beta> s'"
-    using Steps_split3 assms(2) X\<^sub>2_def by fastforce
-  then have "(s, Nt w\<^sub>1, s') \<in> prestar_step T\<^sub>0"
-    unfolding prestar_step_def using \<open>(w\<^sub>1, w\<^sub>2) \<in> P\<close> by blast
-  then have "(s, Nt w\<^sub>1, s') \<in> T"
-    by simp
-  then have "s' \<in> steps T [Nt w\<^sub>1] s"
-    by (simp add: Steps_def Step_def step_def)
-  moreover have "s \<in> steps T \<alpha> q"
-    using \<open>s \<in> steps T\<^sub>0 \<alpha> q\<close> T_def nfa_mono[of T\<^sub>0 T] by blast
-  moreover have "q' \<in> steps T \<beta> s'"
-    using \<open>q' \<in> steps T\<^sub>0 \<beta> s'\<close> T_def nfa_mono[of T\<^sub>0 T] by blast
-  ultimately have "q' \<in> steps T (\<alpha>@[Nt w\<^sub>1]@\<beta>) q"
-    using Steps_join3 by fast
-  then show ?thesis
-    using X\<^sub>1_def by simp
-qed
-
-lemma prestar_saturated:
-  assumes "X\<^sub>1 \<Rightarrow> X\<^sub>2" and "q' \<in> steps T X\<^sub>2 q"
-    and "prestar_while T\<^sub>0 = Some T"
-  shows "q' \<in> steps T X\<^sub>1 q"
-proof -
-  have "T \<union> prestar_step T = T"
-    using prestar_while_fixpoint assms(3) by blast
-  moreover have "q' \<in> steps (T \<union> prestar_step T) X\<^sub>1 q"
-    using assms prestar_saturated_step by fast
-  ultimately show ?thesis
-    by simp
-qed
-
-lemma prestar_saturated_lang:
-  assumes "prestar_while T\<^sub>0 = Some T"
-  shows "pre_star (lang' T\<^sub>0 s F) \<subseteq> lang' T s F"
-proof
-  fix w
-  assume "w \<in> pre_star (lang' T\<^sub>0 s F)"
-  then obtain w' where "w \<Rightarrow>\<^sup>* w'" and "w' \<in> lang' T\<^sub>0 s F"
-    unfolding pre_star_def by blast
-  then show "w \<in> lang' T s F"
-  proof (induction rule: converse_rtranclp_induct[where r="(\<Rightarrow>)"])
-    case base
-    moreover have "T\<^sub>0 \<subseteq> T"
-      by (simp add: assms prestar_while_mono)
-    ultimately show ?case
-      using nfa_lang_mono[of T\<^sub>0 T s F] by blast
-  next
-    case (step y z)
-    then have "z \<in> lang' T s F"
-      by simp
-    then obtain q\<^sub>f where "q\<^sub>f \<in> steps T z s" and "q\<^sub>f \<in> F"
-      unfolding lang'_def by fastforce
-    then have "q\<^sub>f \<in> steps T y s" and "q\<^sub>f \<in> F"
-      using assms step(1) prestar_saturated[of y z q\<^sub>f T s] by simp+
-    then show ?case
-      unfolding lang'_def by fastforce
-  qed
-qed
-
-
-
-lemma prestar_triple_trans[trans]:
-  assumes "A \<subseteq> pre_star B"
-    and "B \<subseteq> pre_star C"
-  shows "A \<subseteq> pre_star C"
-proof -
-  have "\<forall>w \<in> A. \<exists>w' \<in> B. w \<Rightarrow>\<^sup>* w'"
-    using assms(1) pre_star_def by blast
-  moreover have "\<forall>w \<in> B. \<exists>w' \<in> C. w \<Rightarrow>\<^sup>* w'"
-    using assms(2) pre_star_def by blast
-  ultimately have "\<forall>w \<in> A. \<exists>w' \<in> C. w \<Rightarrow>\<^sup>* w'"
-    using rtranclp_trans by fast
-  then show ?thesis
-    unfolding pre_star_def by blast
-qed
-
-lemma prestar_saturator: "lang' (T \<union> prestar_step T) s F \<subseteq> pre_star (lang' T s F)"
-proof (standard)
-  fix w
-  assume "w \<in> lang' (T \<union> prestar_step T) s F"
-  then show "w \<in> pre_star (lang' T s F)"
-  proof (induction w arbitrary: s)
-    case Nil
-    then have "[] \<in> lang' T s F"
-      by (simp add: lang'_def Steps_def)
-    moreover have "[] \<Rightarrow>\<^sup>* []"
-      by simp
-    ultimately show ?case
-      unfolding pre_star_def by blast
-  next
-    case (Cons w ws)
-    then have "[w]@ws \<in> lang' (T \<union> prestar_step T) s F"
-      by simp
-    then obtain s' where s'_step: "s' \<in> steps (T \<union> prestar_step T) [w] s"
-        and "ws \<in> lang' (T \<union> prestar_step T) s' F"
-      by (rule nfa_lang_split, simp)
-    then have "ws \<in> pre_star (lang' T s' F)"
-      by (simp add: Cons(1))
-    then obtain ws' where "ws \<Rightarrow>\<^sup>* ws'" and ws'_lang: "ws' \<in> lang' T s' F"
-      unfolding pre_star_def by blast
-
-    have "(s, w, s') \<in> T \<or> (s, w, s') \<in> prestar_step T"
-      using s'_step by (simp add: Steps_def Step_def step_def)
-    then show ?case
-    proof (standard)
-      assume "(s, w, s') \<in> T"
-      then have "s' \<in> step T w s"
-        by (simp add: step_def)
-      then have "s' \<in> steps T [w] s"
-        by (simp add: Steps_def Step_def)
-      moreover note \<open>ws' \<in> lang' T s' F\<close>
-      ultimately have "(w#ws') \<in> lang' T s F"
-        using nfa_lang_trans by fastforce
-      then show "(w#ws) \<in> pre_star (lang' T s F)"
-        unfolding pre_star_def using \<open>ws \<Rightarrow>\<^sup>* ws'\<close> derives_Cons derives_eq by blast
-    next
-      assume "(s, w, s') \<in> prestar_step T"
-      then obtain A \<beta> where "w = Nt A" and "(A, \<beta>) \<in> P" and "s' \<in> steps T \<beta> s"
-        unfolding prestar_step_def by blast
-      moreover note \<open>ws' \<in> lang' T s' F\<close>
-      ultimately have "(\<beta>@ws') \<in> lang' T s F"
-        using nfa_lang_trans by fastforce
-      moreover have "(w#ws) \<Rightarrow>\<^sup>* (\<beta>@ws')"
-        using \<open>w = Nt A\<close> \<open>(A, \<beta>) \<in> P\<close> \<open>ws \<Rightarrow>\<^sup>* ws'\<close>
-        by (meson derives_Cons_rule derives_eq derives_prepend)
-      ultimately show "(w#ws) \<in> pre_star (lang' T s F)"
-        unfolding pre_star_def by blast
-    qed
-  qed
-qed
-
-lemma prestar_saturator_lang:
-  assumes "prestar_while T\<^sub>0 = Some T"
-  shows "lang' T s F \<subseteq> pre_star (lang' T\<^sub>0 s F)"
-  unfolding prestar_while_def
-proof (rule while_option_rule[where P = "\<lambda>T. lang' T s F \<subseteq> pre_star (lang' T\<^sub>0 s F)", OF _ assms[unfolded prestar_while_def]])
-  show "lang' T\<^sub>0 s F \<subseteq> pre_star (lang' T\<^sub>0 s F)"
-    unfolding pre_star_def by blast
-next
-  fix T
-  assume "lang' T s F \<subseteq> pre_star (lang' T\<^sub>0 s F)"
-    and "T \<union> prestar_step T \<noteq> T"
-  moreover have "lang' (T \<union> prestar_step T) s F \<subseteq> pre_star (lang' T s F)"
-    by (rule prestar_saturator)
-  ultimately show "lang' (T \<union> prestar_step T) s F \<subseteq> pre_star (lang' T\<^sub>0 s F)"
-    using prestar_triple_trans by blast
-qed
+lemma prestar_while_inQ:
+  assumes "prestar_while P Q \<delta> = Some \<delta>'" and "\<forall>(q,_,q') \<in> \<delta>. q \<in> Q \<and> q' \<in> Q"
+  shows "\<forall>(q,_,q') \<in> \<delta>'. q \<in> Q \<and> q' \<in> Q"
+  apply (rule prestar_while_rule)
+  unfolding prestar_step_def by (use assms in fast)+
 
 subsection\<open>Correctness\<close>
 
-lemma prestar_while_lang:
-  assumes "prestar_while T\<^sub>0 = Some T"
-  shows "lang' T s F = pre_star (lang' T\<^sub>0 s F)"
-  using prestar_saturated_lang prestar_saturator_lang assms by fast
+lemma prestar_step_keeps:
+  assumes "q' \<in> steps \<delta> \<beta> q"
+  shows "q' \<in> steps (\<delta> \<union> prestar_step P Q \<delta>) \<beta> q"
+  using assms nfa_mono by (metis insert_absorb insert_subset sup_ge1)
 
-definition prestar_nfa :: "('s, ('n, 't) sym) nfa \<Rightarrow> ('s, ('n, 't) sym) nfa" where
-  "prestar_nfa M \<equiv> (
-    case prestar_while (transitions M) of
-      Some t \<Rightarrow> M \<lparr> transitions := t \<rparr>
-  )"
+lemma prestar_step_prod:
+  assumes "(A, \<beta>) \<in> P" and "q \<in> Q" and "q' \<in> Q" and "q' \<in> steps \<delta> \<beta> q"
+  shows "q' \<in> steps (\<delta> \<union> prestar_step P Q \<delta>) [Nt A] q"
+  using assms unfolding prestar_step_def Steps_def Step_def step_def by force
 
-theorem prestar_nfa_lang:
-  fixes M :: "('s, ('n, 't) sym) nfa"
-  assumes "finite (UNIV::'s set)"
-  shows "lang (prestar_nfa M) = pre_star (lang M)"
+lemma prestar_step_pre:
+  assumes "P \<turnstile> w\<^sub>\<alpha> \<Rightarrow> w\<^sub>\<beta>" and "reachable_from \<delta> q \<subseteq> Q" and "q' \<in> steps \<delta> w\<^sub>\<beta> q"
+  shows "q' \<in> steps (\<delta> \<union> prestar_step P Q \<delta>) w\<^sub>\<alpha> q"
 proof -
-  define T\<^sub>0 where [simp]: "T\<^sub>0 = transitions M"
-  define M' where [simp]: "M' = prestar_nfa M"
-  define T where [simp]: "T = transitions M'"
+  obtain w\<^sub>p w\<^sub>s A \<beta> where prod: "(A, \<beta>) \<in> P"
+      and w\<^sub>\<alpha>_split: "w\<^sub>\<alpha> = w\<^sub>p@[Nt A]@w\<^sub>s"
+      and w\<^sub>\<beta>_split: "w\<^sub>\<beta> = w\<^sub>p@\<beta>@w\<^sub>s"
+    using assms(1) by (meson derive.cases)
 
-  have "\<exists>T. prestar_while T\<^sub>0 = Some T"
-    using assms by (rule prestar_while_terminates)
-  then have "prestar_while T\<^sub>0 = Some T"
-    by (auto simp: prestar_nfa_def)
-  moreover have "start M = start M'" and "finals M = finals M'"
-    unfolding M'_def prestar_nfa_def using calculation by simp+
-  ultimately show ?thesis
-    by (simp add: prestar_while_lang)
+  obtain q1 q2 where step_w\<^sub>p: "q1 \<in> steps \<delta> w\<^sub>p q"
+      and step_\<beta>: "q2 \<in> steps \<delta> \<beta> q1"
+      and step_w\<^sub>s: "q' \<in> steps \<delta> w\<^sub>s q2"
+    using Steps_split3 assms(3)[unfolded w\<^sub>\<beta>_split] by fast
+  then have q1_reach: "q1 \<in> reachable_from \<delta> q" and "q2 \<in> reachable_from \<delta> q1"
+    using assms(2) unfolding reachable_from_def by blast+
+  then have q2_reach: "q2 \<in> reachable_from \<delta> q"
+    using assms(2) reachable_from_trans by fast
+
+  have "q2 \<in> steps (\<delta> \<union> prestar_step P Q \<delta>) [Nt A] q1"
+    by (rule prestar_step_prod; use q1_reach q2_reach assms(2) prod step_\<beta> in blast)
+  moreover have "q1 \<in> steps (\<delta> \<union> prestar_step P Q \<delta>) w\<^sub>p q"
+      and "q' \<in> steps (\<delta> \<union> prestar_step P Q \<delta>) w\<^sub>s q2"
+    using step_w\<^sub>p step_w\<^sub>s prestar_step_keeps by fast+
+  ultimately have "q' \<in> steps (\<delta> \<union> prestar_step P Q \<delta>) w\<^sub>\<alpha> q"
+    unfolding w\<^sub>\<alpha>_split using Steps_join3 by fast
+  then show ?thesis .
 qed
 
-end \<comment>\<open>end-context CFG\<close>
+lemma prestar_step_fp:
+  assumes "P \<turnstile> w\<^sub>\<alpha> \<Rightarrow>* w\<^sub>\<beta>" and "reachable_from \<delta> q \<subseteq> Q" and "q' \<in> steps \<delta> w\<^sub>\<beta> q"
+    and fp: "\<delta> \<union> prestar_step P Q \<delta> = \<delta>"
+  shows "q' \<in> steps \<delta> w\<^sub>\<alpha> q"
+proof (insert assms, induction rule: converse_rtranclp_induct[where r="derive P"])
+  case base thus ?case by simp
+next
+  case (step y z)
+  then show ?case
+    using prestar_step_pre by fastforce
+qed
+
+lemma prestar_step_while:
+  assumes "P \<turnstile> w\<^sub>\<alpha> \<Rightarrow>* w\<^sub>\<beta>" and "reachable_from \<delta> q \<subseteq> Q" and "q' \<in> steps \<delta> w\<^sub>\<beta> q"
+    and "prestar_while P Q \<delta> = Some \<delta>'"
+  shows "q' \<in> steps \<delta>' w\<^sub>\<alpha> q"
+proof -
+  have "\<delta>' \<union> prestar_step P Q \<delta>' = \<delta>'"
+    using assms(4) by (rule prestar_while_fp)
+  moreover have "reachable_from \<delta>' q \<subseteq> Q"
+    using assms(2,4) prestar_while_reachable by fast
+  moreover have "q' \<in> steps \<delta>' w\<^sub>\<beta> q"
+    by (rule nfa_steps_mono[where \<delta>\<^sub>1=\<delta>]; use assms(3,4) prestar_while_mono in blast)
+  ultimately show ?thesis
+    using assms(1) prestar_step_fp by fast
+qed
+
+lemma prestar_step_sub_aux:
+  assumes "q' \<in> steps (\<delta> \<union> prestar_step P Q \<delta>) w q"
+  shows "\<exists>w'. P \<turnstile> w \<Rightarrow>* w' \<and> q' \<in> steps \<delta> w' q"
+proof (insert assms, induction w arbitrary: q)
+  case Nil
+  then show ?case
+    by (simp add: Steps_def)
+next
+  case (Cons c w)
+  then obtain q1 where step_w: "q' \<in> steps (\<delta> \<union> prestar_step P Q \<delta>) w q1"
+      and step_c: "q1 \<in> steps (\<delta> \<union> prestar_step P Q \<delta>) [c] q"
+    using Steps_split by (metis (no_types, lifting) append_Cons append_Nil)
+
+  obtain w' where "q' \<in> steps \<delta> w' q1" and "P \<turnstile> w \<Rightarrow>* w'"
+    using Cons step_w by blast
+
+  have "\<exists>c'. q1 \<in> steps \<delta> c' q \<and> P \<turnstile> [c] \<Rightarrow>* c'"
+  proof (cases "q1 \<in> steps \<delta> [c] q")
+    case True
+    then show ?thesis
+      by blast
+  next
+    case False
+    then have "q1 \<in> steps (prestar_step P Q \<delta>) [c] q"
+      using step_c unfolding Steps_def Step_def step_def by force
+    then have "(q, c, q1) \<in> prestar_step P Q \<delta>"
+      by (auto simp: Steps_def Step_def step_def)
+    then obtain A \<beta> where "(A, \<beta>) \<in> P" and "c = Nt A" and "q1 \<in> steps \<delta> \<beta> q"
+      unfolding prestar_step_def by blast
+    moreover have "P \<turnstile> [c] \<Rightarrow>* \<beta>"
+      using calculation by (simp add: derive_singleton r_into_rtranclp)
+    ultimately show ?thesis
+      by blast
+  qed
+  then obtain c' where "q1 \<in> steps \<delta> c' q" and "P \<turnstile> [c] \<Rightarrow>* c'"
+    by blast
+
+  have "q' \<in> steps \<delta> (c'@w') q"
+    using \<open>q1 \<in> steps \<delta> c' q\<close> \<open>q' \<in> steps \<delta> w' q1\<close> Steps_join by fast
+  moreover have "P \<turnstile> (c#w) \<Rightarrow>* (c'@w')"
+    using \<open>P \<turnstile> [c] \<Rightarrow>* c'\<close> \<open>P \<turnstile> w \<Rightarrow>* w'\<close>
+    by (metis (no_types, opaque_lifting) Cons_eq_appendI derives_append_decomp self_append_conv2)
+  ultimately show ?case
+    by blast
+qed
+
+lemma prestar_step_sub:
+  assumes "\<forall>w. (q' \<in> steps \<delta>' w q) \<longrightarrow> (\<exists>w'. P \<turnstile> w \<Rightarrow>* w' \<and> q' \<in> steps \<delta> w' q)"
+    and "q' \<in> steps (\<delta>' \<union> prestar_step P Q \<delta>') w q"
+  shows "\<exists>w'. P \<turnstile> w \<Rightarrow>* w' \<and> q' \<in> steps \<delta> w' q"
+proof -
+  obtain w' where "P \<turnstile> w \<Rightarrow>* w'" and "q' \<in> steps \<delta>' w' q"
+    using prestar_step_sub_aux assms by fast
+  then obtain w'' where "P \<turnstile> w' \<Rightarrow>* w''" and "q' \<in> steps \<delta> w'' q"
+    using assms(1) by blast
+  moreover have "P \<turnstile> w \<Rightarrow>* w''"
+    using \<open>P \<turnstile> w \<Rightarrow>* w'\<close> calculation(1) by simp
+  ultimately show ?thesis
+    by blast
+qed
+
+lemma prestar_while_sub:
+  assumes "prestar_while P Q \<delta> = Some \<delta>'"
+  shows "(q' \<in> steps \<delta>' w q) \<Longrightarrow> (\<exists>w'. P \<turnstile> w \<Rightarrow>* w' \<and> q' \<in> steps \<delta> w' q)"
+proof -
+  let ?I = "\<lambda>\<delta>'. \<forall>w. (q' \<in> steps \<delta>' w q) \<longrightarrow> (\<exists>w'. P \<turnstile> w \<Rightarrow>* w' \<and> q' \<in> steps \<delta> w' q)"
+  have "\<And>\<delta>'. ?I \<delta>' \<Longrightarrow> ?I (\<delta>' \<union> prestar_step P Q \<delta>')"
+    by (simp add: prestar_step_sub[where \<delta>=\<delta>])
+  then have "?I \<delta>'"
+    by (rule prestar_while_rule[where \<delta>=\<delta> and \<delta>'=\<delta>']; use assms in blast)
+  then show "(q' \<in> steps \<delta>' w q) \<Longrightarrow> (\<exists>w'. P \<turnstile> w \<Rightarrow>* w' \<and> q' \<in> steps \<delta> w' q)"
+    by simp
+qed
+
+lemma prestar_while_correct:                 
+  assumes "reachable_from \<delta> q\<^sub>0 \<subseteq> Q" and "prestar_while P Q \<delta> = Some \<delta>'"
+  shows "lang' \<delta>' q\<^sub>0 F = pre_star P (lang' \<delta> q\<^sub>0 F)"
+proof (standard; standard)
+  fix w
+  assume "w \<in> lang' \<delta>' q\<^sub>0 F"
+  then obtain q\<^sub>f where "q\<^sub>f \<in> steps \<delta>' w q\<^sub>0" and "q\<^sub>f \<in> F"
+    (* TODO: find/create actual lemma for this *)
+    by (metis (mono_tags, lifting) Int_emptyI lang'_def mem_Collect_eq)
+  then obtain w' where "P \<turnstile> w \<Rightarrow>* w'" and "q\<^sub>f \<in> steps \<delta> w' q\<^sub>0"
+    using prestar_while_sub assms by fast
+  moreover have "w' \<in> lang' \<delta> q\<^sub>0 F"
+    using calculation \<open>q\<^sub>f \<in> F\<close> unfolding lang'_def by blast
+  ultimately show "w \<in> pre_star P (lang' \<delta> q\<^sub>0 F)"
+    unfolding pre_star_def by blast
+next
+  fix w
+  assume "w \<in> pre_star P (lang' \<delta> q\<^sub>0 F)"
+  then obtain w' where "P \<turnstile> w \<Rightarrow>* w'" and "w' \<in> lang' \<delta> q\<^sub>0 F"
+    unfolding pre_star_def by blast
+  then obtain q\<^sub>f where "q\<^sub>f \<in> steps \<delta> w' q\<^sub>0" and "q\<^sub>f \<in> F"
+    (* TODO: find/create actual lemma for this *)
+    by (metis (mono_tags, lifting) Int_emptyI lang'_def mem_Collect_eq)
+  then have "q\<^sub>f \<in> steps \<delta>' w' q\<^sub>0"
+    using nfa_mono prestar_while_mono assms by (metis in_mono)
+  moreover have "reachable_from \<delta>' q\<^sub>0 \<subseteq> Q"
+    using assms prestar_while_reachable by fast
+  moreover have "\<delta>' \<union> prestar_step P Q \<delta>' = \<delta>'"
+    by (rule prestar_while_fp; use assms(2) in simp)
+  moreover note \<open>P \<turnstile> w \<Rightarrow>* w'\<close>
+  ultimately have "q\<^sub>f \<in> steps \<delta>' w q\<^sub>0"
+    by (elim prestar_step_fp) simp+
+  with \<open>q\<^sub>f \<in> F\<close> show "w \<in> lang' \<delta>' q\<^sub>0 F"
+    unfolding lang'_def by blast
+qed
+
+subsection\<open>Termination\<close>
+
+lemma while_option_finite_subset_Some':
+  fixes C :: "'a set"
+  assumes "mono f" and "\<And>X. X \<subseteq> C \<Longrightarrow> f X \<subseteq> C" and "finite C" and "S \<subseteq> C" and "\<And>X. X \<subseteq> f X"
+  shows "\<exists>P. while_option (\<lambda>A. f A \<noteq> A) f S = Some P"
+proof (rule measure_while_option_Some[where
+    f= "%A::'a set. card C - card A" and P= "%A. A \<subseteq> C \<and> A \<subseteq> f A" and s=S])
+  fix A assume A: "A \<subseteq> C \<and> A \<subseteq> f A" "f A \<noteq> A"
+  show "(f A \<subseteq> C \<and> f A \<subseteq> f (f A)) \<and> card C - card (f A) < card C - card A"
+    (is "?L \<and> ?R")
+  proof
+    show ?L by (metis A(1) assms(2) monoD[OF \<open>mono f\<close>])
+    show ?R by (metis A assms(2,3) card_seteq diff_less_mono2 equalityI linorder_le_less_linear rev_finite_subset)
+  qed
+qed (simp add: assms)
+
+lemma prestar_while_terminates:
+  fixes P :: "('n, 't) Prods" and Q :: "'s set" and \<delta>\<^sub>0 :: "('s, ('n, 't) sym) Trans"
+  assumes "finite P" and "finite Q" and "finite \<delta>\<^sub>0"
+  shows "\<exists>\<delta>. prestar_while P Q \<delta>\<^sub>0 = Some \<delta>"
+proof -
+  define b :: "('s, ('n, 't) sym) Trans \<Rightarrow> bool" where
+    [simp]: "b = (\<lambda>\<delta>. \<delta> \<union> prestar_step P Q \<delta> \<noteq> \<delta>)"
+  define f :: "('s, ('n, 't) sym) Trans \<Rightarrow> ('s, ('n, 't) sym) Trans" where
+    [simp]: "f = (\<lambda>\<delta>. \<delta> \<union> prestar_step P Q \<delta>)"
+  then have "mono f"
+    unfolding mono_def prestar_step_def
+    by (smt (verit, ccfv_threshold) UnCI UnE in_mono mem_Collect_eq nfa_mono' subsetI)
+
+  define U :: "('s, ('n, 't) sym) Trans" where
+    "U = { (q, Nt A, q') | q q' A. \<exists>\<beta>. (A, \<beta>) \<in> P \<and> q \<in> Q \<and> q' \<in> Q } \<union> \<delta>\<^sub>0"
+  moreover have "\<And>\<delta>. prestar_step P Q \<delta> \<subseteq> U"
+    unfolding U_def prestar_step_def by blast
+  ultimately have U_bounds: "\<And>X. X \<subseteq> U \<Longrightarrow> f X \<subseteq> U"
+    by simp
+
+  have "finite U"
+  proof -
+    define U' :: "('s, ('n, 't) sym) Trans" where
+      [simp]: "U' = Q \<times> ((\<lambda>(A,_). Nt A) ` P) \<times> Q"
+    have "finite ((\<lambda>(A,_). Nt A) ` P)"
+      using assms(1) by simp
+    then have "finite U'"
+      using assms(2) U'_def by blast
+
+    define \<delta>' :: "('s, ('n, 't) sym) Trans" where
+      [simp]: "\<delta>' = { (q,Nt A,q') | q q' A. \<exists>\<beta>. (A, \<beta>) \<in> P \<and> q \<in> Q \<and> q' \<in> Q }"
+    then have "\<delta>' \<subseteq> U'"
+      unfolding \<delta>'_def U'_def using assms(1) by fast
+    moreover note \<open>finite U'\<close>
+    ultimately have "finite \<delta>'"
+      using rev_finite_subset[of U' \<delta>'] by blast
+    then show "finite U"
+      by (simp add: U_def assms(3))
+  qed
+
+  note criteria = \<open>finite U\<close> U_def f_def U_bounds \<open>mono f\<close>
+  have "\<exists>P. while_option (\<lambda>A. f A \<noteq> A) f \<delta>\<^sub>0 = Some P"
+    by (rule while_option_finite_subset_Some'[where C=U]; use criteria in blast)
+  then show ?thesis
+    by (simp add: prestar_while_def)
+qed
+
+subsection\<open>Computability\<close>
+
+text\<open>
+  While the definition of @{term prestar_step} is semantically correct,
+  Isabelle cannot automatically compute it.
+\<close>
+
+text\<open>
+  The following code equations ensure computability,
+  as long as \<open>P\<close>, \<open>Q\<close> and \<open>\<delta>\<close> are finite, which is guaranteed by the definition of NFAs and CFGs.
+\<close>
+
+definition c_prestar_step_prod :: "('s, ('n, 't) sym) Trans \<Rightarrow> 's set \<Rightarrow> ('n, 't) prod \<Rightarrow> ('s, ('n, 't) sym) Trans" where
+  "c_prestar_step_prod \<delta> Q p \<equiv> (\<lambda>(s\<^sub>1, s\<^sub>2). (s\<^sub>1, Nt (fst p), s\<^sub>2)) ` {(s\<^sub>1, s\<^sub>2) \<in> Q \<times> Q. s\<^sub>2 \<in> steps \<delta> (snd p) s\<^sub>1}"
+
+definition c_prestar_step :: "('s, ('n, 't) sym) Trans \<Rightarrow> 's set \<Rightarrow> ('n, 't) Prods \<Rightarrow> ('s, ('n, 't) sym) Trans" where
+  "c_prestar_step \<delta> Q P \<equiv> \<Union>(c_prestar_step_prod \<delta> Q ` P)"
+
+lemma c_prestar_step_prod_correct:
+  "c_prestar_step_prod \<delta> Q p = { (q, Nt (fst p), q') | q q'. q' \<in> steps \<delta> (snd p) q \<and> q \<in> Q \<and> q' \<in> Q }"
+  by (auto simp: c_prestar_step_prod_def)
+
+lemma c_prestar_step_correct: "(q, X, q') \<in> c_prestar_step \<delta> Q P \<longleftrightarrow> (q, X, q') \<in> prestar_step P Q \<delta>"
+  unfolding c_prestar_step_def prestar_step_def c_prestar_step_prod_correct by (cases X; force)
+
+lemma prestar_step_code[code]: "prestar_step P Q \<delta> = c_prestar_step \<delta> Q P"
+  using c_prestar_step_correct by fast
+
+definition compute_prestar :: "('n, 't) Prods \<Rightarrow> ('s, ('n, 't) sym) nfa \<Rightarrow> ('s, ('n, 't) sym) nfa" where
+  "compute_prestar P M \<equiv> (
+    let Q = {start M} \<union> (snd ` snd ` (transitions M)) in
+    case prestar_while P Q (transitions M) of
+      Some \<delta>' \<Rightarrow> M \<lparr> transitions := \<delta>' \<rparr>
+  )"
+
+lemma compute_prestar_correct:
+  assumes "finite P" and "finite (transitions M)"
+  shows "lang (compute_prestar P M) = pre_star P (lang M)"
+proof -
+  define \<delta> where "\<delta> \<equiv> transitions M"
+  define Q where "Q \<equiv> {start M} \<union> (snd ` snd ` \<delta>)"
+  then have "finite Q"
+    unfolding \<delta>_def using assms(2) by simp
+  then have "reachable_from \<delta> (start M) \<subseteq> Q"
+    using reachable_from_computable Q_def by fast
+  moreover obtain \<delta>' where \<delta>'_def: "prestar_while P Q \<delta> = Some \<delta>'"
+    using prestar_while_terminates assms \<open>finite Q\<close> \<delta>_def by blast
+  ultimately have "lang' \<delta>' (start M) (finals M) = pre_star P (lang' \<delta> (start M) (finals M))"
+    by (rule prestar_while_correct)
+  then have "lang (M \<lparr> transitions := \<delta>' \<rparr>) = pre_star P (lang M)"
+    by (simp add: \<delta>_def)
+  then show ?thesis
+    unfolding compute_prestar_def using Q_def \<delta>'_def \<delta>_def by force
+qed
+
+subsection\<open>Properties\<close>
+
+lemma prestar_while_refl:
+  assumes "prestar_while P Q \<delta> = Some \<delta>'" and "(A, []) \<in> P" and "q \<in> Q"
+  shows "(q, Nt A, q) \<in> \<delta>'"
+proof -
+  have "q \<in> steps \<delta>' [] q"
+    unfolding Steps_def using assms by force
+  then have "(q, Nt A, q) \<in> prestar_step P Q \<delta>'"
+    unfolding prestar_step_def using assms by blast
+  moreover have "\<delta>' = \<delta>' \<union> (prestar_step P Q \<delta>')"
+    using prestar_while_fp assms(1) by blast
+  ultimately show ?thesis
+    by blast
+qed
+
+lemma prestar_while_singleton:
+  assumes "prestar_while P Q \<delta> = Some \<delta>'" and "(A, [B]) \<in> P"
+    and "(q, B, q') \<in> \<delta>'" and "q \<in> Q" and "q' \<in> Q"
+  shows "(q, Nt A, q') \<in> \<delta>'"
+proof -
+  have "q' \<in> steps \<delta>' [B] q"
+    unfolding Steps_def Step_def step_def using assms by force
+  then have "(q, Nt A, q') \<in> prestar_step P Q \<delta>'"
+    unfolding prestar_step_def using assms by blast
+  moreover have "\<delta>' = \<delta>' \<union> (prestar_step P Q \<delta>')"
+    using prestar_while_fp assms(1) by blast
+  ultimately show ?thesis
+    by blast
+qed
+
+lemma prestar_while_impl:
+  assumes "prestar_while P Q \<delta> = Some \<delta>'" and "(A, [B, C]) \<in> P"
+    and "(q, B, q') \<in> \<delta>'" and "(q', C, q'') \<in> \<delta>'"
+    and "q \<in> Q" and "q' \<in> Q" and "q'' \<in> Q"
+  shows "(q, Nt A, q'') \<in> \<delta>'"
+proof -
+  have "q'' \<in> steps \<delta>' [B, C] q"
+    unfolding Steps_def Step_def step_def using assms by force
+  then have "(q, Nt A, q'') \<in> prestar_step P Q \<delta>'"
+    unfolding prestar_step_def using assms by blast
+  moreover have "\<delta>' = \<delta>' \<union> (prestar_step P Q \<delta>')"
+    using prestar_while_fp assms(1) by blast
+  ultimately show ?thesis
+    by blast
+qed
 
 end \<comment>\<open>end-theory Algorithm\<close>

@@ -1,142 +1,91 @@
-section\<open>Constructing $pre^*(L)$\<close>
+section\<open>Definition\<close>
 
 theory Definition
 imports
   "Context_Free_Grammar.Context_Free_Grammar"
-  "Labeled_Transition_Systems.LTS"
 begin \<comment>\<open>begin-theory Definition\<close>
 
 text\<open>
-  For the remainder of this work we will implicitely work with an arbitrary context-free grammar
-  \<open>G = (V, T, P, S)\<close>, where \<open>V\<close> are the variables, \<open>T\<close> the terminal symbols, \<open>P\<close> is the set
-  of productions and \<open>S \<in> V\<close> is the start symbol. We define \<open>\<Sigma> := V \<union> T\<close>.
+  The predecessors of a set of strings \<open>C\<close> is defined, with respect to a context-free grammar
+  \<open>G = (V, \<Sigma>, P, S)\<close>, as the set of all strings \<open>c'\<close>, for which there exists at least one \<open>c \<in> C\<close>,
+  such that \<open>c\<close> can be derived from \<open>c'\<close> using the productions of \<open>G\<close>:
 \<close>
 
-subsection\<open>Conversion to a Labeled Transition System\<close>
+definition "pre_star P C \<equiv> {c'. \<exists>c \<in> C. P \<turnstile> c' \<Rightarrow>* c}"
 
-(*
-  's is \<Sigma> = V \<union> T
+text\<open>
+  In general, the @{typ "('n, 't) syms"} datatype is used, which combines both non-terminals \<open>V\<close>
+  and terminals \<open>\<Sigma>\<close>. This is because the productions \<open>P\<close> generally produce both during derivation.
+\<close>
 
-  Assume \<alpha> and \<gamma> \<in> \<Sigma>\<^sup>*:
-  If A \<rightarrow> \<beta> \<in> P, then \<alpha>A\<gamma> \<Rightarrow> \<alpha>\<beta>\<gamma> is a transition.
-*)
-inductive_set prods_to_lts :: "('n, 't) Prods \<Rightarrow> (('n,'t) syms, unit) transition set" for P where
-  "(A, \<beta>) \<in> P \<Longrightarrow> (\<alpha>@[Nt A]@\<gamma>, (), \<alpha>@\<beta>@\<gamma>) \<in> prods_to_lts P"
-
-locale CFG =
-  fixes P :: "('n, 't) Prods"
-    and S :: "'n"
-  assumes "finite P" (* not sure if we need this, but have this for completeness *)
-    and "finite (UNIV::'n set)"
-    and "finite (UNIV::'t set)"
-begin \<comment>\<open>begin-locale CFG\<close>
-
-definition "transition_relation \<equiv> prods_to_lts P"
-
-sublocale LTS transition_relation .
-
-notation step_relp (infix \<open>\<Rightarrow>\<close> 80)
-notation step_starp (infix \<open>\<Rightarrow>\<^sup>*\<close> 80)
-
-lemma
-  fixes \<alpha> :: "('n,'t) syms" and \<gamma> :: "('n,'t) syms"
-  assumes "(A, \<beta>) \<in> P"
-  shows "(\<alpha>@[Nt A]@\<gamma>) \<Rightarrow> (\<alpha>@\<beta>@\<gamma>)"
-  unfolding transition_relation_def LTS.step_relp_def
-  using assms prods_to_lts.simps by blast
+text\<open>
+  However, sometimes a strict string containing only terminals is required.
+  These strings specify the words within a context-free language \<open>L(G)\<close>.
+  To convert these strings back into the dual-datatype,
+  the following two abbreviations are introduced for convenience:
+\<close>
 
 abbreviation map_word :: "'t list \<Rightarrow> ('n, 't) syms" where
   "map_word w \<equiv> map Tm w"
 
 abbreviation map_lang :: "'t list set \<Rightarrow> ('n, 't) syms set" where
-  "map_lang L \<equiv> {map_word w | w. w \<in> L}"
-
-subsection\<open>Simple Derivation Rules\<close>
-
-lemma derive_eq: "(P \<turnstile> a \<Rightarrow> b) \<longleftrightarrow> a \<Rightarrow> b"
-  (* by (simp add: derive.simps prods_to_lts.simps LTS.step_relp_def transition_relation_def) *)
-proof (auto)
-  assume assm: "P \<turnstile> a \<Rightarrow> b"
-  then have "(a, (), b) \<in> prods_to_lts P"
-    by (simp add: derive.simps prods_to_lts.simps)
-  then show "a \<Rightarrow> b"
-    by (simp add: LTS.step_relp_def transition_relation_def)
-next
-  assume "a \<Rightarrow> b"
-  then have "(a, (), b) \<in> prods_to_lts P"
-    by (simp add: LTS.step_relp_def transition_relation_def)
-  then show "P \<turnstile> a \<Rightarrow> b"
-    by (simp add: derive.simps prods_to_lts.simps)
-qed
-
-lemma derives_eq: "(P \<turnstile> \<alpha> \<Rightarrow>* \<gamma>) \<longleftrightarrow> \<alpha> \<Rightarrow>\<^sup>* \<gamma>"
-  (* by (auto; induction set: rtranclp; simp add: derive_eq) *)
-proof (auto)
-  assume "P \<turnstile> \<alpha> \<Rightarrow>* \<gamma>" thus "\<alpha> \<Rightarrow>\<^sup>* \<gamma>"
-  proof (induction set: rtranclp)
-    case base thus ?case by simp
-  next
-    case (step y z)
-    thus ?case by (simp add: derive_eq)
-  qed
-next
-  assume "\<alpha> \<Rightarrow>\<^sup>* \<gamma>" thus "P \<turnstile> \<alpha> \<Rightarrow>* \<gamma>"
-  proof (induction set: rtranclp)
-    case base thus ?case by simp
-  next
-    case (step y z)
-    thus ?case by (simp add: derive_eq)
-  qed
-qed
+  "map_lang L \<equiv> map_word ` L"
 
 subsection\<open>General Properties\<close>
 
-lemma pre_star_subset:
-  assumes "L\<^sub>1 \<subseteq> L\<^sub>2"
-  shows "pre_star L\<^sub>1 \<subseteq> pre_star L\<^sub>2"
-  unfolding pre_star_def using assms by blast
+text\<open>
+  A straight-forward property is monotonicity:
+\<close>
 
-lemma pre_star_word:
-  "[Nt S] \<in> pre_star (map_lang L) \<longleftrightarrow> (\<exists>w. w \<in> L \<and> w \<in> Lang P S)"
-  unfolding Lang_def pre_star_def derives_eq by blast
+lemma pre_star_subset: "L\<^sub>1 \<subseteq> L\<^sub>2 \<Longrightarrow> pre_star P L\<^sub>1 \<subseteq> pre_star P L\<^sub>2"
+  unfolding pre_star_def by blast
+
+lemma pre_star_mono[mono]: "mono (pre_star P)"
+  unfolding mono_def using pre_star_subset by blast
+
+text\<open>
+  Furthermore, checking whether certain strings are contained within \<open>pre\<^sup>*(L)\<close> of a given \<open>L\<close>
+  provides a criterion for different properties of the context-free grammar itself:
+\<close>
 
 lemma pre_star_term:
-  "x \<in> pre_star L \<longleftrightarrow> (\<exists>w. w \<in> L \<and> x \<Rightarrow>\<^sup>* w)"
-  unfolding Lang_def pre_star_def derives_eq by blast
+  "x \<in> pre_star P L \<longleftrightarrow> (\<exists>w. w \<in> L \<and> P \<turnstile> x \<Rightarrow>* w)"
+  unfolding pre_star_def by blast
 
-lemma pre_star_lang: "Lang P S \<inter> L = {} \<longleftrightarrow> [(Nt S)] \<notin> pre_star (map_lang L)"
-  (* using pre_star_word by blast *)
-proof (standard)
-  assume "[Nt S] \<notin> pre_star (map_lang L)"
-  then have "\<nexists>w. w \<in> L \<and> w \<in> Lang P S"
-    using pre_star_word by simp
-  then show "Lang P S \<inter> L = {}"
-    by blast
-next
-  assume "Lang P S \<inter> L = {}"
-  then have "\<nexists>w. w \<in> L \<and> w \<in> Lang P S"
-    by blast
-  then show "[Nt S] \<notin> pre_star (map_lang L)"
-    using pre_star_word by simp
-qed
+lemma pre_star_word:
+  "[Nt S] \<in> pre_star P (map_lang L) \<longleftrightarrow> (\<exists>w. w \<in> L \<and> w \<in> Lang P S)"
+  unfolding Lang_def pre_star_def by blast
+
+lemma pre_star_lang:
+  "Lang P S \<inter> L = {} \<longleftrightarrow> [(Nt S)] \<notin> pre_star P (map_lang L)"
+  using pre_star_word[where P=P] by blast
+
+text\<open>
+  We will later show in section \ref{sec:applications}, that these properties can be used
+  to formulate different problems of context-free languages.
+\<close>
 
 subsection\<open>Properties of Non-Terminal Symbols\<close>
 
-definition is_reachable_from :: "'n \<Rightarrow> 'n \<Rightarrow> bool" (infix "\<Rightarrow>\<^sup>?" 80) where
-  "(X \<Rightarrow>\<^sup>? Y) \<equiv> (\<exists>\<alpha> \<beta>. [Nt X] \<Rightarrow>\<^sup>* (\<alpha>@[Nt Y]@\<beta>))"
+text\<open>
+  Some properties of non-terminals are also of interest, particularly reachability,
+  productiveness, usefulness and nullability.
+\<close>
 
-definition is_reachable :: "'n \<Rightarrow> bool" where
-  "is_reachable X \<equiv> (S \<Rightarrow>\<^sup>? X)"
+definition is_reachable_from :: "('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> 'n \<Rightarrow> bool"
+    ("(2_ \<turnstile>/ (_/ \<Rightarrow>\<^sup>? / _))" [50, 0, 50] 50) where
+  "(P \<turnstile> X \<Rightarrow>\<^sup>? Y) \<equiv> (\<exists>\<alpha> \<beta>. P \<turnstile> [Nt X] \<Rightarrow>* (\<alpha>@[Nt Y]@\<beta>))"
 
-definition is_productive :: "'n \<Rightarrow> bool" where
-  "is_productive X \<equiv> (\<exists>w. [Nt X] \<Rightarrow>\<^sup>* map_word w)"
+\<comment>\<open>\<open>X \<in> V\<close> is productive, iff a string of terminals \<open>w \<in> \<Sigma>\<^sup>*\<close> can be derived:\<close>
+definition is_productive :: "('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> bool" where
+  "is_productive P X \<equiv> (\<exists>w. P \<turnstile> [Nt X] \<Rightarrow>* map_word w)"
 
-definition is_useful :: "'n \<Rightarrow> bool" where
-  "is_useful X \<equiv> is_reachable X \<and> is_productive X"
+\<comment>\<open>\<open>X \<in> V\<close> is useful, iff \<open>V\<close> can be reached from \<open>S\<close> and it is productive:\<close>
+definition is_useful :: "('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> 'n \<Rightarrow> bool" where
+  "is_useful P S X \<equiv> (P \<turnstile> S \<Rightarrow>\<^sup>? X) \<and> is_productive P X"
 
-definition (in CFG) is_nullable :: "'n \<Rightarrow> bool" where
-  "is_nullable X \<equiv> ([Nt X] \<Rightarrow>\<^sup>* [])"
-
-end \<comment>\<open>end-locale CFG\<close>
+\<comment>\<open>\<open>X \<in> V\<close> is nullable, iff \<open>\<epsilon>\<close> can be derived:\<close>
+definition is_nullable :: "('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> bool" where
+  "is_nullable P X \<equiv> (P \<turnstile> [Nt X] \<Rightarrow>* [])"
 
 end \<comment>\<open>end-theory Definition\<close>

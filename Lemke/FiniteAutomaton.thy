@@ -16,14 +16,22 @@ subsection\<open>Step Relation\<close>
 definition step :: "('s \<times> 't \<times> 's) set \<Rightarrow> 't \<Rightarrow> 's \<Rightarrow> 's set" where
   "step T c s = { s'. (s, c, s') \<in> T }"
 
+lemma step_code[code]: "step T c s = (snd o snd) ` {t \<in> T. case t of (st,ct,st') \<Rightarrow> st = s \<and> ct = c}"
+  unfolding step_def by (auto simp: image_iff split: prod.splits)
+
 definition Step :: "('s \<times> 't \<times> 's) set \<Rightarrow> 't \<Rightarrow> 's set \<Rightarrow> 's set" where
   "Step T c s = { s'. \<exists>s\<^sub>0 \<in> s. s' \<in> step T c s\<^sub>0 }"
+
+lemma Step_code[code]: "Step T c s = (\<Union>s\<^sub>0 \<in> s. step T c s\<^sub>0)"
+  unfolding Step_def by (auto)
 
 definition Steps :: "('s \<times> 't \<times> 's) set \<Rightarrow> 't list \<Rightarrow> 's set \<Rightarrow> 's set" where
   "Steps T w s = fold (Step T) w s"
 
 abbreviation steps :: "('s \<times> 't \<times> 's) set \<Rightarrow> 't list \<Rightarrow> 's \<Rightarrow> 's set" where
   "steps T w s \<equiv> Steps T w {s}"
+
+value "steps {(0,CHR ''a'',0)} ([CHR ''a'',CHR ''a'']::char list) (0::int)"
 
 lemma Step_union: "Step T w (S\<^sub>1 \<union> S\<^sub>2) = Step T w S\<^sub>1 \<union> Step T w S\<^sub>2"
   unfolding Step_def by blast
@@ -127,6 +135,14 @@ subsection\<open>Language\<close>
 
 abbreviation accepts :: "('s \<times> 't \<times> 's) set \<Rightarrow> 's \<Rightarrow> 's set \<Rightarrow> 't list \<Rightarrow> bool" where
   "accepts T s F w \<equiv> (steps T w s \<inter> F \<noteq> {})"
+
+(* Two example evaluations/tests *)
+
+lemma "accepts {(0::int,CHR ''a'',0), (0::int,CHR ''a'',1)} 0 {0} [CHR ''a'',CHR ''a'']"
+  by eval
+
+lemma "\<not> accepts {(0::int,CHR ''a'',0), (0::int,CHR ''b'',1)} 0 {0} [CHR ''b'',CHR ''a'']"
+  by eval
 
 lemma accepts_split3:
   assumes "accepts T s F (w\<^sub>1@w\<^sub>2@w\<^sub>3)"

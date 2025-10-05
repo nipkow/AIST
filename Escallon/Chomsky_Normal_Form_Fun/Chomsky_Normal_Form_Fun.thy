@@ -103,7 +103,7 @@ proof (induction xs)
   finally show ?case .
 qed simp
 
-lemma uniformize_fun_ps0_app:
+lemma uniformize_fun_ps0_uniform_app:
   assumes "A = fresh (nts ps)"
           "\<forall>(l,r)\<in>set xs. Tm t \<notin> set r \<or> length r < 2"
   shows "uniformize_fun t A (xs@ys) ps = xs @ uniformize_fun t A ys ps"
@@ -189,7 +189,7 @@ lemma uniformize_fun_uniformizes_fst:
         shows
     "uniformize_fun t A ps ps = ((removeAll (l,r) ps) @ [(A, [Tm t]), (l, replace_tm t A r)])" 
 proof -
-  from assms(3,4) uniformize_fun_ps0_app[OF assms(6)] 
+  from assms(3,4) uniformize_fun_ps0_uniform_app[OF assms(6)] 
       uniformize_fun_uniform_prepend have
     "uniformize_fun t A ps ps = q @ uniformize_fun t A ([(l,r)]@s) ([(l,r)]@s)" by fastforce
   also have "... = q @ (removeAll (l,r) ([(l,r)]@s)) @ [(A, [Tm t]), (l, replace_tm t A r)]"
@@ -203,7 +203,7 @@ proof -
   finally show ?thesis .
 qed
 
-lemma uniformize_single_is_uniformized:
+lemma uniformize_fun_is_uniformized:
   assumes "uniformize_fun t A ps ps \<noteq> ps"
           "A = fresh (nts ps \<union> {S})"
   shows "uniformize A t S ps (uniformize_fun t A ps ps)"

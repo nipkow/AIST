@@ -73,13 +73,16 @@ qed simp
 
 
   
-(*Define separate uniformize_fun :: ['t, 'n, ('n,'t) prods] \<Rightarrow> ('n,'t) prods?*)
+
+(*The current implementation corresponds to uniformize as defined in 
+  Context_Free_Grammar.Chomsky_Normal_Form. This can be simplified with maps.*)
 fun uniformize_fun :: "['t, 'n, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
   "uniformize_fun _ _ ps0 [] = ps0" |
   "uniformize_fun t A ps0 ((l,r) # ps) = 
     (let r' = replace_tm t A r in 
       if r = r' \<or> length r < 2 then uniformize_fun t A ps0 ps
-      else (removeAll (l,r) ps0) @ [(A, [Tm t]), (l,r')])" 
+      else (removeAll (l,r) ps0) @ [(A, [Tm t]), (l,r')])"
+(*Define separate uniformize_fun :: ['t, 'n, ('n,'t) prods] \<Rightarrow> ('n,'t) prods?*)
 
 lemma uniformize_fun_id:
   assumes "\<forall>(l,r)\<in>set ps. Tm t \<notin> set r \<or> length r < 2"

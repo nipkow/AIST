@@ -234,7 +234,7 @@ qed
 
 definition "uniformize_rt = undefined" (*TODO*)
 
-lemma "(\<lambda>x y. \<exists>A t. uniformize A t S x y)^** ps (uniformize_rt A t x y)" (*TODO*)
+lemma "(\<lambda>x y. \<exists>A t. uniformize A t S x y)^** ps (uniformize_rt A t ps ps)" (*TODO*)
   sorry
 
 end

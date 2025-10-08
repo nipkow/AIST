@@ -25,70 +25,91 @@ proof -
   finally show ?thesis .
 qed
 
-fun replace_tm :: "['n, ('n,'t) syms] \<Rightarrow> ('n,'t) syms" where
-  "replace_tm A [] = []" |
-  "replace_tm A (s#sms) = (case s of Tm t \<Rightarrow> Nt A # sms | Nt _ \<Rightarrow> s # replace_tm A sms)"
+fun replace_tm :: "['n, ('n,'t) syms] \<Rightarrow> 't option \<times> ('n,'t) syms" where
+  "replace_tm A [] = (None, [])" |
+  "replace_tm A (s#sms) = (case s of 
+    Tm t \<Rightarrow> (Some t, Nt A # sms) | 
+    Nt _ \<Rightarrow> (let (t_opt,sms') = replace_tm A sms in 
+            (t_opt,s#sms')))"
 
 
 lemma replace_tm_length_unchanged[simp]: 
-  "length (replace_tm A sms) = length sms"
-  by (induction sms) (auto split: sym.split)
+  "replace_tm A sms = (t,sms') \<Longrightarrow> length sms' = length sms"
+  by (induction sms arbitrary: sms')(auto split: sym.splits prod.splits)
+
   
 
 lemma replace_tm_id_iff_tm_notin_syms:
-  shows "(\<forall>t. Tm t \<notin> set sms) \<longleftrightarrow> replace_tm A sms = sms"
-  by (induction sms) (auto split: sym.splits)
+  assumes "replace_tm A sms = (t,sms')"
+  shows "(\<forall>t. Tm t \<notin> set sms) \<longleftrightarrow> sms = sms'"
+  using assms by (induction sms arbitrary: sms') (auto split: sym.splits prod.splits)
 
 
 (*Proofs break with iff lemma. Fix?*)
 lemma tm_notin_syms_impl_replace_tm_id:
   assumes "\<forall>t. Tm t \<notin> set sms" 
-  shows "replace_tm A sms = sms"
+          "replace_tm A sms = (t,sms')"
+  shows "sms = sms'"
   using assms replace_tm_id_iff_tm_notin_syms by fast
 lemma replace_tm_id_impl_tm_notin_syms:
-  assumes "replace_tm A sms = sms"
+  assumes "replace_tm A sms = (t,sms)" 
   shows "\<forall>t. Tm t \<notin> set sms"
   using assms replace_tm_id_iff_tm_notin_syms by fast
 
+lemma replace_tm_none_impl_id:
+  shows "replace_tm A sms = (None,sms') \<Longrightarrow> sms = sms'"
+  by (induction sms arbitrary: sms')(auto split: sym.splits prod.splits)
+
+lemma replace_tm_not_id_impl_some:
+  assumes "replace_tm A sms = (t_opt,sms')"
+          "sms \<noteq> sms'"
+        obtains t where "t_opt = Some t"
+  using assms replace_tm_none_impl_id option.exhaust by metis
+
+lemma replace_tm_some_impl_not_id:
+  assumes "replace_tm A sms = (Some t,sms')"
+  shows "sms \<noteq> sms'"
+  using assms by (induction sms arbitrary: sms') (auto split: sym.splits prod.splits)
+
 (*Strengthen with "Tm t \<notin> set p?*)
 lemma replace_tm_replaces_single:
-  assumes "replace_tm A sms \<noteq> sms"
+  assumes "replace_tm A sms = (Some t,sms')"
   obtains p s t where "sms = p@[Tm t]@s"
-                    "replace_tm A sms = p@[Nt A]@s"
-using assms proof (induction sms arbitrary: thesis)
+                    "sms' = p@[Nt A]@s"
+using assms proof (induction sms arbitrary: thesis sms' t)
   case (Cons s sms)
   consider (tm) "\<exists>t. s = Tm t" | (nt) "\<forall>t. s \<noteq> Tm t" by blast
   then show ?case 
   proof cases
     case tm
     then obtain p q t where "s = Tm t" "s#sms = p@[Tm t]@q" "p = []" by auto
-    moreover from this(1) have "replace_tm A (s#sms) = Nt A#sms" by simp
+    moreover from this(1) Cons(3) have "sms' = Nt A#sms" by simp
     ultimately show thesis using Cons(2) by fastforce
   next
     case nt
-    with Cons(3) have "replace_tm A sms \<noteq> sms" 
-      by (metis replace_tm_id_iff_tm_notin_syms set_ConsD)
+    with Cons(3) obtain t sms'' where sms''_def: "replace_tm A sms = (Some t,sms'')" 
+      using  replace_tm_not_id_impl_some
+      by (metis old.prod.exhaust replace_tm_id_iff_tm_notin_syms replace_tm_some_impl_not_id
+          set_ConsD)
     with Cons(1)  
-    obtain p q t where pq_defs: "sms = p@[Tm t]@q" "replace_tm A sms = p@[Nt A]@q" 
+    obtain p q t' where pq_defs: "sms = p@[Tm t']@q" "sms'' = p@[Nt A]@q" 
       by metis
     with nt obtain n where "s = Nt n" using sym.exhaust by meson
-    with pq_defs(2) have "replace_tm A (s#sms) = (s#p)@[Nt A]@q" by simp
-    then show ?thesis using Cons(2) pq_defs by (meson Cons_eq_appendI)
+    with pq_defs(2) Cons(3) sms''_def have "sms' = (s#p)@[Nt A]@q" by simp
+    then show ?thesis using Cons(2,3) pq_defs by (metis Cons_eq_appendI)
   qed
 qed simp
 
-
-(*TODO: Redefine uniformize_fun. Problem: t not accessible*)
 
 (*The current implementation corresponds to uniformize as defined in 
   Context_Free_Grammar.Chomsky_Normal_Form. This can be simplified with maps.*)
 fun uniformize_fun :: "['n::infinite, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
   "uniformize_fun S ps0 [] = ps0" |
-  "uniformize_fun _ _ _ = undefined"
-  (*"uniformize_fun S ps0 ((l,r) # ps) = 
-    (let A = fresh (nts ps0 \<union> {S}) in let r' = replace_tm A r in 
-      if r = r' \<or> length r < 2 then uniformize_fun S ps0 ps
-      else (removeAll (l,r) ps0) @ [(A, [Tm t]), (l,r')])"*)
+  "uniformize_fun S ps0 ((l,r) # ps) = 
+    (let A = fresh (nts ps0 \<union> {S}) in case replace_tm A r of
+    (None,_) \<Rightarrow> uniformize_fun S ps0 ps |
+    (Some t, r') \<Rightarrow> if r = r' \<or> length r < 2 then uniformize_fun S ps0 ps
+      else (removeAll (l,r) ps0) @ [(A, [Tm t]), (l,r')])"
 
 lemma uniformize_fun_id:
   assumes "\<forall>(l,r)\<in>set ps. Tm t \<notin> set r \<or> length r < 2"

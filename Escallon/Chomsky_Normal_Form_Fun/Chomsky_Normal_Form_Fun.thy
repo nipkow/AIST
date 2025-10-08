@@ -1,6 +1,9 @@
 theory Chomsky_Normal_Form_Fun
-  imports "Context_Free_Grammar.Chomsky_Normal_Form" HOL.List
+  imports Context_Free_Grammar.Chomsky_Normal_Form
 begin
+
+definition uniformize' :: "['n::infinite, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> bool" where
+  "uniformize' S ps ps' \<equiv> \<exists>A t. uniformize A t S ps ps'"
 
 fun tm_list_of_prods :: "('n,'t) prods \<Rightarrow> 't list" where
   "tm_list_of_prods ps = 
@@ -22,66 +25,70 @@ proof -
   finally show ?thesis .
 qed
 
-fun replace_tm :: "['n, 't, ('n,'t) syms] \<Rightarrow> ('n,'t) syms" where
-  "replace_tm A t [] = []" |
-  "replace_tm A t (s # sms) = (if s = Tm t then Nt A # sms else s # replace_tm A t sms)"
+fun replace_tm :: "['n, ('n,'t) syms] \<Rightarrow> ('n,'t) syms" where
+  "replace_tm A [] = []" |
+  "replace_tm A (s#sms) = (case s of Tm t \<Rightarrow> Nt A # sms | Nt _ \<Rightarrow> s # replace_tm A sms)"
+
 
 lemma replace_tm_length_unchanged[simp]: 
-  "length (replace_tm A t sms) = length sms"
-  by (induction sms) auto
+  "length (replace_tm A sms) = length sms"
+  by (induction sms) (auto split: sym.split)
   
 
 lemma replace_tm_id_iff_tm_notin_syms:
-  shows "Tm t \<notin> set sms \<longleftrightarrow> replace_tm A t sms = sms"
-  by (induction sms) auto
+  shows "(\<forall>t. Tm t \<notin> set sms) \<longleftrightarrow> replace_tm A sms = sms"
+  by (induction sms) (auto split: sym.splits)
+
 
 (*Proofs break with iff lemma. Fix?*)
 lemma tm_notin_syms_impl_replace_tm_id:
-  assumes "Tm t \<notin> set sms" 
-  shows "replace_tm A t sms = sms"
+  assumes "\<forall>t. Tm t \<notin> set sms" 
+  shows "replace_tm A sms = sms"
   using assms replace_tm_id_iff_tm_notin_syms by fast
 lemma replace_tm_id_impl_tm_notin_syms:
-  assumes "replace_tm A t sms = sms"
-  shows "Tm t \<notin> set sms"
+  assumes "replace_tm A sms = sms"
+  shows "\<forall>t. Tm t \<notin> set sms"
   using assms replace_tm_id_iff_tm_notin_syms by fast
 
 (*Strengthen with "Tm t \<notin> set p?*)
 lemma replace_tm_replaces_single:
-  assumes "replace_tm A t sms \<noteq> sms"
-  obtains p s where "sms = p@[Tm t]@s"
-                    "replace_tm A t sms = p@[Nt A]@s"
+  assumes "replace_tm A sms \<noteq> sms"
+  obtains p s t where "sms = p@[Tm t]@s"
+                    "replace_tm A sms = p@[Nt A]@s"
 using assms proof (induction sms arbitrary: thesis)
   case (Cons s sms)
-  from Cons(3) have t_in_ssms: "Tm t \<in> set (s#sms)" using replace_tm_id_iff_tm_notin_syms by fast
-  consider (eq) "s = Tm t" | (neq) "s \<noteq> Tm t" by blast
+  consider (tm) "\<exists>t. s = Tm t" | (nt) "\<forall>t. s \<noteq> Tm t" by blast
   then show ?case 
   proof cases
-    case eq
-    then obtain p q where "s#sms = p@[Tm t]@q" "p = []" by auto
-    moreover from eq have "replace_tm A t (s#sms) = Nt A#sms" by simp
+    case tm
+    then obtain p q t where "s = Tm t" "s#sms = p@[Tm t]@q" "p = []" by auto
+    moreover from this(1) have "replace_tm A (s#sms) = Nt A#sms" by simp
     ultimately show thesis using Cons(2) by fastforce
   next
-    case neq
-    with t_in_ssms have "Tm t \<in> set sms" 
-      by simp
-    with Cons(1) replace_tm_id_iff_tm_notin_syms 
-    obtain p q where pq_defs: "sms = p@[Tm t]@q" "replace_tm A t sms = p@[Nt A]@q" by metis
-    with neq have "replace_tm A t (s#sms) = (s#p)@[Nt A]@q" by auto
+    case nt
+    with Cons(3) have "replace_tm A sms \<noteq> sms" 
+      by (metis replace_tm_id_iff_tm_notin_syms set_ConsD)
+    with Cons(1)  
+    obtain p q t where pq_defs: "sms = p@[Tm t]@q" "replace_tm A sms = p@[Nt A]@q" 
+      by metis
+    with nt obtain n where "s = Nt n" using sym.exhaust by meson
+    with pq_defs(2) have "replace_tm A (s#sms) = (s#p)@[Nt A]@q" by simp
     then show ?thesis using Cons(2) pq_defs by (meson Cons_eq_appendI)
   qed
 qed simp
 
 
-  
+(*TODO: Redefine uniformize_fun. Problem: t not accessible*)
 
 (*The current implementation corresponds to uniformize as defined in 
   Context_Free_Grammar.Chomsky_Normal_Form. This can be simplified with maps.*)
-fun uniformize_fun :: "['n, 't, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
-  "uniformize_fun _ _ ps0 [] = ps0" |
-  "uniformize_fun A t ps0 ((l,r) # ps) = 
-    (let r' = replace_tm A t r in 
-      if r = r' \<or> length r < 2 then uniformize_fun A t ps0 ps
-      else (removeAll (l,r) ps0) @ [(A, [Tm t]), (l,r')])"
+fun uniformize_fun :: "['n::infinite, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+  "uniformize_fun S ps0 [] = ps0" |
+  "uniformize_fun _ _ _ = undefined"
+  (*"uniformize_fun S ps0 ((l,r) # ps) = 
+    (let A = fresh (nts ps0 \<union> {S}) in let r' = replace_tm A r in 
+      if r = r' \<or> length r < 2 then uniformize_fun S ps0 ps
+      else (removeAll (l,r) ps0) @ [(A, [Tm t]), (l,r')])"*)
 
 lemma uniformize_fun_id:
   assumes "\<forall>(l,r)\<in>set ps. Tm t \<notin> set r \<or> length r < 2"
@@ -232,8 +239,19 @@ proof -
     unfolding uniformize_def using assms by blast
 qed
 
-fun uniformize_rt :: "['n, 't, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
-  "uniformize_rt _ = undefined"(*TODO*)
+
+
+fun uniformize_each :: "['n, 't, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+  "uniformize_each A t ps = 
+    (let ps' = uniformize_fun A t ps ps in
+      if ps' = ps then ps else uniformize_each A t ps')"
+termination
+proof        
+  let ?R = "measure (\<lambda>(A,t,ps). sum_list (map (\<lambda>xs. count_list xs (Tm t)) (map snd ps)))"
+  have "wf ?R" ..
+  fix A :: 'n
+  have "(A,t,ps) \<in> ?R"
+        
 
 lemma "(\<lambda>x y. \<exists>A t. uniformize A t S x y)^** ps (uniformize_rt A t ps ps)" (*TODO*)
   sorry

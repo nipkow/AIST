@@ -1,0 +1,15 @@
+(*session Base = Context_Free_Grammar +
+  theories
+    Sugar*)
+
+session Paper = Context_Free_Grammar +
+  options [document = pdf, show_question_marks = false, names_short = true,
+    document_output = "generated"]
+  theories
+    Paper
+  document_files
+    "root.tex"
+(*    "root.bib"*)
+    "llncs.cls"
+    "splncs04.bst"
+    "orcidlink.sty"

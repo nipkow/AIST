@@ -1,3 +1,9 @@
+section \<open>Equivalence of Final and Stack Acceptance\<close>
+
+subsection \<open>Stack Acceptance to Final Acceptance\<close>
+
+text \<open>Following Kozen's proof\cite{kozen2007automata}, we construct an equivalent pushdown automaton that accepts by final state out of a given pushdown automaton that accepts by empty stack.\<close>
+
 theory Stack_To_Final_PDA
   imports PDA 
 begin
@@ -26,6 +32,8 @@ context pda begin
 fun stack_to_final_trans_fun :: "'q st_extended \<Rightarrow> 'a \<Rightarrow> 's sym_extended \<Rightarrow> ('q st_extended \<times> 's sym_extended list) set" where
   "stack_to_final_trans_fun (Old_st q) a (Old_sym Z) = (\<lambda>(p, \<alpha>). (Old_st p, map Old_sym \<alpha>)) ` (trans_fun M q a Z)"
 | "stack_to_final_trans_fun _ _ _ = {}"
+
+text \<open>We slight modify the transition function from Kozen's proof to simplify the formalization (see \isa{stack\_to\_final\_pda\_last\_step}):\<close>
 
 fun stack_to_final_eps_fun :: "'q st_extended \<Rightarrow> 's sym_extended \<Rightarrow> ('q st_extended \<times> 's sym_extended list) set" where
   "stack_to_final_eps_fun (Old_st q) (Old_sym Z) = (\<lambda>(p, \<alpha>). (Old_st p, map Old_sym \<alpha>)) ` (eps_fun M q Z)"
@@ -220,6 +228,9 @@ lemma stack_to_final_pda_first_step:
   assumes "pda.step\<^sub>1 stack_to_final_pda (New_init, w\<^sub>1, [New_sym]) (p\<^sub>2, w\<^sub>2, \<alpha>)"
   shows "p\<^sub>2 = Old_st (init_state M) \<and> w\<^sub>2 = w\<^sub>1 \<and> \<alpha> = [Old_sym (init_symbol M), New_sym]"
 using assms pda.step\<^sub>1_rule[OF pda_stack_to_final] by (simp add: stack_to_final_pda_def)
+
+text \<open>By not allowing any moves from the new final state, we obtain a distinct last step, which simplifies 
+the argument about splitting the path that the constructed automaton takes upon accepting a word:\<close>
 
 lemma stack_to_final_pda_last_step:
   assumes "pda.step\<^sub>1 stack_to_final_pda (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (New_final, w\<^sub>2, \<alpha>\<^sub>2)"

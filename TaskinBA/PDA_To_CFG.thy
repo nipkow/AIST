@@ -1,3 +1,9 @@
+subsection \<open>Pushdown Automata to Context-Free Grammars\<close>
+
+text \<open>Given a pushdown automata that accepts by empty stack, we construct a context-free grammar whose language corresponds to the set of
+words accepted by the automaton. Additionally, we show that the production set of the grammar is finite. 
+This formalization has been integrated from Leichtfried's Lean formalization\cite{lean}.\<close>
+
 theory PDA_To_CFG
   imports PDA Context_Free_Grammar.Context_Free_Grammar
 begin

@@ -4,8 +4,14 @@ session Pushdown_Automata = Context_Free_Grammar +
   sessions
     "HOL-IMP"
     Context_Free_Grammar
+
   theories
+    PDA
+    Stack_To_Final_PDA
+    Final_To_Stack_PDA
     CFG_To_PDA
     PDA_To_CFG
-    Final_To_Stack_PDA
-    Stack_To_Final_PDA
+
+  document_files
+    "root.bib"
+    "root.tex"

@@ -1,3 +1,8 @@
+subsection \<open>Final Acceptance to Stack Acceptance\<close>
+
+text \<open>Given any pushdown automaton that accepts by final state, we construct an equivalent pushdown 
+automaton that accepts by empty stack. The proof we follow is from Kozen\cite{kozen2007automata}.\<close>
+
 theory Final_To_Stack_PDA
   imports PDA 
 begin

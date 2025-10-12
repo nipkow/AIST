@@ -1,3 +1,10 @@
+section \<open>Equivalence of Context-Free Grammars and Pushdown Automata\<close>
+
+subsection \<open>Context-Free Grammars to Pushdown Automata\<close>
+
+text \<open>Given a context-free grammar, we construct a single-state pushdown automaton that only accepts words
+from the grammar's language. This formalization has been integrated from Leichtfried's Lean formalization\cite{lean}.\<close>
+
 theory CFG_To_PDA
   imports PDA Context_Free_Grammar.Context_Free_Grammar
 begin

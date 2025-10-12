@@ -1,6 +1,17 @@
+section \<open>Formal Definition and Acceptance\<close>
+
 theory PDA
   imports "HOL-IMP.Star"
 begin
+
+subsection \<open>Formal Definition\<close>
+
+text \<open>In the following, we will formally define the pushdown automata and show some basic properties of them.
+This formalization has been integrated from the Lean formalization done by Leichtfried\cite{lean}.\<close>
+
+text \<open>We will represent the transition function $\delta$ by splitting it into two different functions 
+$\delta_1 : Q \times \Sigma \times \Gamma \rightarrow Q \times \Gamma^*$ and $\delta_2 : Q \times \Gamma \rightarrow
+Q \times \Gamma^*$, where $\delta_1(q, a, Z) := \delta(q, a, Z)$ and $\delta_2(q, Z) := \delta(q, \epsilon, Z)$.\<close>
 
 record ('q,'a,'s) pda = init_state    :: 'q
                         init_symbol   :: 's 
@@ -394,8 +405,14 @@ proof (induction n arbitrary: p\<^sub>1 w\<^sub>1 \<alpha>\<^sub>1)
   qed
 qed blast
 
+subsection \<open>Acceptance\<close>
+
+text \<open>The language accepted by empty stack:\<close>
+
 definition stack_accept :: "'a list set" where
   "stack_accept \<equiv> {w | w q. steps (init_state M, w, [init_symbol M]) (q, [], [])}"
+
+text \<open>The language accepted by final state:\<close>
 
 definition final_accept :: "'a list set" where 
   "final_accept \<equiv> {w | w q \<gamma>. q \<in> final_states M \<and> steps (init_state M, w, [init_symbol M]) (q, [], \<gamma>)}"

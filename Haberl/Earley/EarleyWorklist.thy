@@ -9,7 +9,6 @@ value "while_option (\<lambda>(as,bs). as \<noteq> []) (step_fun Bs) ([], [])"
 context Earley_Gw
 begin
 
-
 (* must not be empty, otherwise by def step_rel is always false *)
 definition step_rel :: "('n, 'a) state set list \<Rightarrow> ('n, 'a) state set \<times> ('n, 'a) state set \<Rightarrow> ('n, 'a) state set \<times> ('n, 'a) state set \<Rightarrow> bool" where
 "step_rel  \<equiv> Close2"
@@ -25,14 +24,14 @@ definition step_rel :: "('n, 'a) state set list \<Rightarrow> ('n, 'a) state set
   "Predict_L x k = Predict_L_help ps x k"*)
 
 definition Predict_L :: "('n,'a) state \<Rightarrow> nat \<Rightarrow> ('n,'a) state list" where
-  [code_unfold]: "Predict_L x k = map (\<lambda> p. State p 0 k) (filter (\<lambda> p. next_sym_Nt x (lhs p)) ps)"
+  "Predict_L x k = map (\<lambda>p. State p 0 k) (filter (\<lambda>p. next_sym_Nt x (lhs p)) ps)"
 
 (*fun Complete_L_help :: "('n, 'a) state list \<Rightarrow> ('n, 'a) state \<Rightarrow> ('n, 'a) state list" where
   "Complete_L_help [] y = []"
 | "Complete_L_help (b#bs) y = (let acc = Complete_L_help bs y in (if next_sym_Nt b (lhs(prod y)) then (mv_dot b) # acc else acc))"*)
 
 definition Complete_L :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) state \<Rightarrow> ('n, 'a) state list" where
-  [code_unfold]: "Complete_L Bs y = map mv_dot (filter (\<lambda> b. next_sym_Nt b (lhs(prod y))) (Bs ! from y))"
+  "Complete_L Bs y = map mv_dot (filter (\<lambda> b. next_sym_Nt b (lhs(prod y))) (Bs ! from y))"
  (*= Complete_L_help (Bs ! from y) y"*)
 
 definition Init_L :: "('n,'a) state list" where
@@ -56,7 +55,18 @@ lemma minus_L_set[simp]: "set (As -l Bs) = set As - set Bs"
 
 
 fun step_fun :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) state list * ('n, 'a) state list \<Rightarrow> ('n, 'a) state list * ('n, 'a) state list" where
+  "step_fun Bs ([], C) = undefined" |
   "step_fun Bs ((b#bs), C) = ( (List.union bs (if is_complete b then Complete_L Bs b else Predict_L b (length Bs))) -l (b # C) , (b # C)) "
+
+definition steps :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) state list \<times> ('n, 'a) state list \<Rightarrow> (('n, 'a)state list \<times> ('n, 'a) state list) option" where
+  "steps Bs asbs = while_option (\<lambda>(as,bs). as \<noteq> []) (step_fun Bs) asbs"
+
+definition close2_L :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) state list \<Rightarrow> ('n, 'a) state list" where
+"close2_L Bs B = snd (the (steps Bs (B,[])))"
+
+fun bins_L :: "nat \<Rightarrow> ('n,'a) state list list" where
+"bins_L 0 = [close2_L [] Init_L]" |
+"bins_L (Suc k) = (let Bs = bins_L k in Bs @ [close2_L Bs (Scan_L (last Bs) k)])"
 
 (*definition "wf_binL B k = (list_all (\<lambda> x. wf_state1 x k) B)"
 
@@ -81,7 +91,7 @@ lemma Predict_eq: "set (Predict_L st k) = Predict st k"
 lemma Complete_eq: "from st < length Bs \<Longrightarrow> set (Complete_L Bs st) = Complete (map set Bs) st"
   by (auto simp add: Complete_L_def Complete_def nths_map)
 
-lemma step_fun: "as \<noteq> [] \<Longrightarrow> wf_bin1 (set as) (length Bs) \<Longrightarrow> step_fun Bs (as,bs) = (as',bs') \<Longrightarrow> step_rel (map set Bs) (set as,set bs) (set as', set bs')"
+lemma step_fun_sound: "as \<noteq> [] \<Longrightarrow> wf_bin1 (set as) (length Bs) \<Longrightarrow> step_fun Bs (as,bs) = (as',bs') \<Longrightarrow> step_rel (map set Bs) (set as,set bs) (set as', set bs')"
 proof-
   assume assms: "as \<noteq> []" and wf: "wf_bin1 (set as) (length Bs)" and sf: "step_fun Bs (as,bs) = (as',bs')"
   have comp: "\<forall>a \<in> set as. is_complete a \<longrightarrow> from a < length Bs" using wf by (auto simp add: wf_bin1_def wf_state1_def)
@@ -129,29 +139,20 @@ lemma step_fun_wf: " as \<noteq> [] \<Longrightarrow> wf_bins1 (map set Bs) \<Lo
 proof -
   assume assms: "as \<noteq> []" "wf_bins1 (map set Bs)" "wf_bin1 (set as) (length Bs)" "step_fun Bs (as, bs) = (as', bs')"
   then show ?thesis using assms Close2_step_pres1 length_map
-    by (metis step_fun step_rel_def)
+    by (metis step_fun_sound step_rel_def)
 qed
 
 lemma step_fun_wf2: 
   assumes "as \<noteq> []" "wf_bins1 (map set Bs)" "wf_bin1 (set as) (length Bs)" "wf_bin1 (set bs) (length Bs)" "step_fun Bs (as, bs) = (as', bs')"
   shows "wf_bin1 (set bs') (length Bs)"
-  using assms Close2_step_pres2 length_map step_fun step_rel_def by metis
+  using assms Close2_step_pres2 length_map step_fun_sound step_rel_def by metis
   
-
-definition steps :: "('a, 'b) state list list \<Rightarrow> ('a, 'b) state list \<times> ('a, 'b) state list \<Rightarrow> (('a, 'b)state list \<times> ('a, 'b) state list) option" where
-"steps Bs asbs = while_option (\<lambda>(as,bs). as \<noteq> []) (step_fun Bs) asbs"
-
-
-
-
-definition close2_L :: "('a, 'b) state list list \<Rightarrow> ('a, 'b) state list \<Rightarrow> ('a, 'b) state list" where
-"close2_L Bs B = snd (the (steps Bs (B,[])))"
 
 lemma steps_sound: assumes "wf_bin1 (set B) (length Bs)" "wf_bin1 (set C) (length Bs)" "wf_bins1 (map set Bs)" "steps Bs (B,C) = Some (B',C')" shows "((step_rel (map set Bs))^**) (set B, set C) ({},set C')"
 proof -
   let ?P = "\<lambda>(B',C'). ((step_rel (map set Bs))^**) (set B, set C) (set B',set C') \<and> wf_bin1 (set B') (length Bs) \<and> wf_bins1 (map set Bs)" 
-  show ?thesis using while_option_rule[where P="?P"] assms[unfolded steps_def] step_fun step_fun_wf 
-    by (smt (verit, ccfv_SIG) case_prodE case_prodI2 empty_set old.prod.case rtranclp.simps step_fun
+  show ?thesis using while_option_rule[where P="?P"] assms[unfolded steps_def] step_fun_sound step_fun_wf 
+    by (smt (verit, ccfv_SIG) case_prodE case_prodI2 empty_set old.prod.case rtranclp.simps step_fun_sound
         while_option_stop)
 qed
 
@@ -213,7 +214,7 @@ proof-
   let ?C' = "snd (step_fun Bs (B,C))"
   have 1: "(?B', ?C') = step_fun Bs (B, C) " by simp
   have "Close2 (map set Bs) (set B, set C) (set ?B', set ?C')"
-    using step_fun step_rel_def
+    using step_fun_sound step_rel_def
     by (simp add: assms(1,3))
   then show ?thesis using assms Close2_less_step step_fun_less_eq 1
     by (metis length_map) 
@@ -279,10 +280,6 @@ lemma close2_L_eq_close2: "wf_bins1 (map set Bs) \<Longrightarrow> wf_bin1 (set 
 lemma close2_L_eq_Close: "wf_bins1 (map set Bs) \<Longrightarrow> wf_bin1 (set B) (length Bs) \<Longrightarrow> set (close2_L Bs B) = Close (map set Bs) (set B) "
   by (auto simp add: close2_L_eq_Close1 Close1_eq_Close)
 
-fun bins_L :: "nat \<Rightarrow> ('a,'b) state list list" where
-"bins_L 0 = [close2_L [] Init_L]" |
-"bins_L (Suc k) = (let Bs = bins_L k in Bs @ [close2_L Bs (Scan_L (last Bs) k)])"
-
 lemma set_last: "As \<noteq> [] \<Longrightarrow> set (last As) = last (map set As)"
   by (induction As) auto
 
@@ -326,17 +323,33 @@ by(simp flip: Close1_eq_Close add: close2_eq_Close1 wf_bins1_bins wf_bin1_Scan w
 
 end
 
-definition ps where "ps = [(0, [Tm (1::nat)]), (0, [Nt 0, Nt 0])]"
+definition ps where "ps = [((0::nat), [Tm (1::int)]), (0, [Nt (0::nat), Nt 0])]"
 definition S :: nat where "S = 0"
-definition w1 where "w1 = [1, 1, 1]"
+definition w1 where "w1 = [1, 1, (1 :: int)]"
 
 interpretation Earley_Gw_eps
-  where ps = ps and S = S and w0 = w1
+  where ps = ps and S = S and w0 = w1 
 proof
   show "Earley_Gw.\<epsilon>_free ps" by (auto simp add: Earley_Gw.\<epsilon>_free_def ps_def rhs_def)
 qed
 
+declare Earley_Gw.Predict_L_def[code]
+declare Earley_Gw.mv_dot_def[code]
+declare Earley_Gw.Complete_L_def[code]
+declare Earley_Gw.Scan_L_def[code]
+declare Earley_Gw.minus_L_def[code]
+declare Earley_Gw.Init_L_def[code]
+declare Earley_Gw.step_fun.simps[code]
+declare Earley_Gw.steps_def[code]
+declare Earley_Gw.close2_L_def[code]
+declare Earley_Gw.bins_L.simps[code]
+declare Earley_Gw.w_def[code]
 
+
+value "bins_L 0"
+value "bins_L 1"
+value "bins_L 2"
+value "bins_L 3"
 
 unused_thms
 

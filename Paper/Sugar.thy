@@ -113,20 +113,37 @@ setup \<open>
       end)
 \<close>
 
+ML \<open>
+fun dummy_pats_style (wrap $ (eq $ lhs $ rhs)) =
+  let
+    val rhs_vars = Term.add_vars rhs [];
+    fun dummy (t as Var (v as (_, T))) =
+          if member ((=) ) rhs_vars v then t else Const (@{const_name DUMMY}, T)
+      | dummy (t $ u) = dummy t $ dummy u
+      | dummy (Abs (n, T, b)) = Abs (n, T, dummy b)
+      | dummy t = t;
+  in wrap $ (eq $ dummy lhs $ rhs) end
+\<close>
+
 setup\<open>
-let
-  fun dummy_pats (wrap $ (eq $ lhs $ rhs)) =
-    let
-      val rhs_vars = Term.add_vars rhs [];
-      fun dummy (v as Var (ixn as (_, T))) =
-            if member ((=) ) rhs_vars ixn then v else Const (\<^const_name>\<open>DUMMY\<close>, T)
-        | dummy (t $ u) = dummy t $ dummy u
-        | dummy (Abs (n, T, b)) = Abs (n, T, dummy b)
-        | dummy t = t;
-    in wrap $ (eq $ dummy lhs $ rhs) end
-in
-  Term_Style.setup \<^binding>\<open>dummy_pats\<close> (Scan.succeed (K dummy_pats))
-end
+Term_Style.setup @{binding dummy_pats} (Scan.succeed (K dummy_pats_style))
+\<close>
+
+(* Dummy vars on lhs in case expressions: *)
+syntax (output)
+  "_case1'" :: "['a, 'b] \<Rightarrow> case_syn"  ("(2_ \<Rightarrow>/ _)" 10)
+
+print_ast_translation \<open>
+  let
+    fun vars (Ast.Constant _) = []
+      | vars (Ast.Variable x) = [x]
+      | vars (Ast.Appl ts) = flat(map vars ts);
+    fun dummy vs (Ast.Appl ts) = Ast.Appl(map (dummy vs) ts)
+      | dummy vs (Ast.Variable x) = Ast.Variable (if member (op =) vs x then x else "_")
+      | dummy _ c = c
+    fun case1_tr' [l,r] =
+          Ast.Appl [Ast.Constant @{syntax_const "_case1'"}, dummy (vars r) l, r]
+  in [(\<^syntax_const>\<open>_case1\<close>, K case1_tr')] end
 \<close>
 
 setup \<open>
@@ -140,19 +157,94 @@ fun eta_expand Ts t xs = case t of
       let
         val (a,ts) = strip_comb t (* assume a atomic *)
         val (ts',xs') = fold_map (eta_expand Ts) ts xs
-        val t' = list_comb (a, ts');
         val Bs = binder_types (fastype_of1 (Ts,t));
         val n = Int.min (length Bs, length xs');
         val bs = map Bound ((n - 1) downto 0);
         val xBs = ListPair.zip (xs',Bs);
         val xs'' = drop n xs';
+        val t' = incr_boundvars n (list_comb (a, ts'));
         val t'' = fold_rev Term.abs xBs (list_comb(t', bs))
       in (t'', xs'') end
 
 val style_eta_expand =
   (Scan.repeat Args.name) >> (fn xs => fn ctxt => fn t => fst (eta_expand [] t xs))
 
-in Term_Style.setup \<^binding>\<open>eta_expand\<close> style_eta_expand end
+in Term_Style.setup @{binding eta_expand} style_eta_expand end
+\<close>
+
+setup \<open>
+  Document_Output.antiquotation_pretty_embedded \<^binding>\<open>const_name\<close>
+    (Args.const {proper = true, strict = false})
+    (fn ctxt => fn c => Pretty.mark_str (Markup.const, Proof_Context.extern_const ctxt c))
+\<close>
+
+ML \<open>
+fun pretty_const_typ ctxt (c, maybe_typ) : Pretty.T =
+  (*taken from Prog_Prove/LaTeXsugar.thy*)
+  let
+    val tc = Proof_Context.read_const {proper = true, strict = false} ctxt c
+    val pretty_typ =
+      (case maybe_typ of
+        NONE => Syntax.pretty_typ ctxt (fastype_of tc)
+      | SOME typ =>
+        let val typ_instance = Type.typ_instance o Proof_Context.tsig_of in
+          if typ_instance ctxt (typ, fastype_of tc) then Syntax.pretty_typ ctxt typ
+          else error ("constant " ^ quote (Proof_Context.markup_const ctxt c) ^ " is not of type " ^
+            quote (Syntax.string_of_typ ctxt typ))
+        end)
+  in
+    Pretty.block [Document_Output.pretty_term ctxt tc, Pretty.str " ::",
+    Pretty.brk 1, pretty_typ]
+  end
+
+fun pretty_eqs_style (f:Proof.context -> string -> term list) ctxt (style, (name, maybe_thms)) : Pretty.T =
+  let val eq = Document_Output.pretty_term ctxt o style
+  in
+    (case maybe_thms of
+      SOME thms => map eq thms |> Pretty.chunks
+    | NONE =>
+      f ctxt name
+      |> map eq
+      |> Pretty.chunks)
+  end
+
+fun separate_texts (sep: Latex.text) (texts: Latex.text list) : Latex.text =
+  separate sep texts |> List.concat
+
+fun pretty_funs_style_generic f ctxt (style, names) : Latex.text =
+  names
+  |> map (fn ((name, typ), eqs) =>
+    let
+      val thy_output = Document_Output.pretty ctxt
+      val equations = pretty_eqs_style f ctxt (dummy_pats_style o style, (name, eqs)) |> thy_output
+ (*     val header = pretty_const_typ ctxt (name, typ) |> thy_output*)
+    in separate_texts (Latex.string "\\\\[\\funheadersep]" ) [(*header,*) equations] end)
+  |> separate_texts (Latex.string "\\\\\\\\")
+  |> XML.enclose "{\\parindent0pt" "}"
+\<close>
+
+setup \<open>
+let
+ val parse =
+  Args.const {proper = true, strict = false} --
+  Scan.option (Scan.lift (Args.$$$ "::") |-- Args.typ) --
+  Scan.option (Scan.lift (Args.$$$ "[") |-- (Attrib.thms >> map Thm.full_prop_of) --| Scan.lift (Args.$$$ "]"))
+ fun eqns suf ctxt n = map Thm.full_prop_of (Proof_Context.get_thms ctxt (n ^ suf))
+ fun input_eqns ctxt n = #input_eqns (Function.get_info ctxt (Syntax.read_term ctxt n))
+in
+  Document_Output.antiquotation_raw \<^binding>\<open>def\<close>
+    (Term_Style.parse -- Parse.and_list1' parse)
+      (Config.put Document_Antiquotation.thy_output_break true
+      #> pretty_funs_style_generic (eqns "_def"))
+  #> Document_Output.antiquotation_raw \<^binding>\<open>fun\<close>
+    (Term_Style.parse -- Parse.and_list1' parse)
+      (Config.put Document_Antiquotation.thy_output_break true
+      #> pretty_funs_style_generic (eqns ".simps"))
+  #> Document_Output.antiquotation_raw \<^binding>\<open>fun_input\<close>
+    (Term_Style.parse -- Parse.and_list1' parse)
+      (Config.put Document_Antiquotation.thy_output_break true
+      #> pretty_funs_style_generic input_eqns)
+end
 \<close>
 
 (* Suc *)

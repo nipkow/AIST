@@ -2,7 +2,7 @@
   theories
     Sugar*)
 
-session Paper = Context_Free_Grammar +
+session Paper = Greibach_Normal_Form +
   options [document = pdf, show_question_marks = false, names_short = true,
     document_output = "generated"]
   theories

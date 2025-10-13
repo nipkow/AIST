@@ -2,6 +2,7 @@
 theory Paper
 imports Greibach_Normal_Form.Greibach_Normal_Form Sugar
 begin
+declare [[show_question_marks=false]]
 (*>*)
 text \<open>
 \section{Introduction}
@@ -55,6 +56,8 @@ the terminals and nonterminals are part of the type and the start symbol is irre
 
 @{prop "P \<turnstile> u \<Rightarrow> w"} and @{prop "P \<turnstile> u \<Rightarrow>* w"}
 
+Set vs list, example @{const Lang} and @{const lang}
+
 \subsection{Chomsky Normal Form}
 \subsection{Pushdown Automata}
 \subsection{Pumping Lemma}
@@ -64,7 +67,11 @@ the terminals and nonterminals are part of the type and the start symbol is irre
 
 \section{Pre*}
 
-\section{Greibach}
+\section{Greibach}%AY
+
+@{def gnf_hd}
+
+@{thm Lang_gnf_hd}
 
 \section{Chomsky-Sch\"utzenberger}
 

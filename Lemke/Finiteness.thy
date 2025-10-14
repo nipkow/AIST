@@ -4,13 +4,30 @@ theory Finiteness
   imports Definition
 begin \<comment>\<open>begin-theory Finiteness\<close>
 
+text\<open>
+  Another interesting application, particularly for context-free grammars in
+  chomsky normal-form (CNF), is the detection of ``cyclic'' non-terminals.
+\<close>
+
+text\<open>
+  Particularly, if all non-terminals are reachable (can be reached from the starting symbol)
+  and productive (i.e., a terminal word can be derived from each symbol), the following holds:
+\<close>
+
+text\<open>\<open>L(C) = \<infinity> \<longleftrightarrow> \<exists>X \<alpha> \<beta>. X \<Rightarrow>\<^sup>* \<alpha>X\<beta> \<and> a\<beta> \<noteq> \<epsilon>\<close>\<close>
+
+text\<open>
+  Since we have a decision-procedure for derivability, we can work towards also automating this process.
+  However, to keep proofs simple, this theory only focuses on grammars in CNF, meaning a conversion
+  is required a priori.
+\<close>
+
 subsection\<open>Preliminaries and Assumptions\<close>
 
 locale CFG =
-  fixes P :: "('n, 't) Prods"
-    and S :: 'n
+  fixes P :: "('n, 't) Prods" and S :: 'n
   assumes cnf: "\<And>p. p \<in> P \<Longrightarrow> (\<exists>A a. p = (A, [Tm a]) \<or> (\<exists>A B C. p = (A, [Nt B, Nt C])))"
-begin
+begin \<comment>\<open>begin-context CFG\<close>
 
 definition is_useful_all :: "bool" where
   "is_useful_all \<equiv> (\<forall>X::'n. is_useful P S X)"

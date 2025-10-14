@@ -6,12 +6,12 @@ session PreStar = HOL +
     Definition
     FiniteAutomaton
     Algorithm
+    AlgorithmExample
     Applications
+    ApplicationsExample
     Finiteness
     ImprovedAlgorithm
   theories [document = false]
-    Example01
-    Example02
     PreStar
   document_files
     root.bib

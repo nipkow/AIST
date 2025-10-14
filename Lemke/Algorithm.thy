@@ -1,18 +1,48 @@
 section\<open>Computation\<close>
 
+text\<open>
+  In this theory, we show a core theorem: the predecessors of a regular language w.r.t. to
+  a context-free grammar is also regular.
+\<close>
+
 theory Algorithm
   imports Definition FiniteAutomaton "HOL-Library.While_Combinator"
 begin \<comment>\<open>begin-theory Algorithm\<close>
 
+text\<open>
+  Particularly, we formalise an algorithm proposed by Book and Otto \<^cite>\<open>book1993string\<close>,
+  which takes as input a non-deterministic finite automaton \<open>M\<close> and modifies it to
+  another automaton \<open>M'\<close> such that \<open>L(M') = pre\<^sup>*(L(M))\<close>.
+\<close>
+
 subsection\<open>Definition as Fixpoint\<close>
 
-definition prestar_step :: "('n, 't) Prods \<Rightarrow> 's set \<Rightarrow> ('s, ('n, 't) sym) Trans \<Rightarrow> ('s, ('n, 't) sym) Trans" where
-  "prestar_step P Q \<delta> \<equiv> { (q, Nt A, q') | q q' A. \<exists>\<beta>. (A, \<beta>) \<in> P \<and> q' \<in> steps \<delta> \<beta> q \<and> q \<in> Q \<and> q' \<in> Q }"
+text\<open>
+  The algorithm works by repeatedly adding transitions, such that at after every step,
+  the NFA accepts the original language and its \textbf{direct} predecessors.
+\<close>
 
-definition prestar_step' :: "('n, 't) Prods \<Rightarrow> 's set \<Rightarrow> ('s, ('n, 't) sym) Trans \<Rightarrow> ('s, ('n, 't) sym) Trans" where
-  "prestar_step' P Q \<delta> \<equiv> (\<lambda>(q, q', A, \<beta>). (q, Nt A, q')) ` {(q, q', A, \<beta>) \<in> Q \<times> Q \<times> P. q' \<in> steps \<delta> \<beta> q}"
+text\<open>
+  Since no new states are added, the amount of transitions that can ever be added are finitely bounded,
+  which allow to both prove termination and the property of a fixpoint:
+  At some point, adding another layor of direct predecessors no-longer changes anything,
+  so the reflexive transitive closure of \<open>pre\<^sup>*\<close> is achieved.
+\<close>
 
-definition prestar_while :: "('n, 't) Prods \<Rightarrow> 's set \<Rightarrow> ('s, ('n, 't) sym) Trans \<Rightarrow> ('s, ('n, 't) sym) Trans option" where
+type_synonym ('s, 't) Trans = "('s \<times> 't \<times> 's) set"
+
+definition prestar_step :: "('n, 't) Prods \<Rightarrow> 's set
+    \<Rightarrow> ('s, ('n, 't) sym) Trans \<Rightarrow> ('s, ('n, 't) sym) Trans" where
+  "prestar_step P Q \<delta> \<equiv> { (q, Nt A, q') | q q' A. \<exists>\<beta>.
+    (A, \<beta>) \<in> P \<and> q' \<in> steps \<delta> \<beta> q \<and> q \<in> Q \<and> q' \<in> Q }"
+
+definition prestar_step' :: "('n, 't) Prods \<Rightarrow> 's set
+    \<Rightarrow> ('s, ('n, 't) sym) Trans \<Rightarrow> ('s, ('n, 't) sym) Trans" where
+  "prestar_step' P Q \<delta> \<equiv> (\<lambda>(q, q', A, \<beta>).
+    (q, Nt A, q')) ` {(q, q', A, \<beta>) \<in> Q \<times> Q \<times> P. q' \<in> steps \<delta> \<beta> q}"
+
+definition prestar_while :: "('n, 't) Prods \<Rightarrow> 's set
+    \<Rightarrow> ('s, ('n, 't) sym) Trans \<Rightarrow> ('s, ('n, 't) sym) Trans option" where
   "prestar_while P Q \<equiv> while_option (\<lambda>\<delta>. \<delta> \<union> prestar_step P Q \<delta> \<noteq> \<delta>) (\<lambda>\<delta>. \<delta> \<union> prestar_step P Q \<delta>)"
 
 lemma prestar_while_rule:
@@ -29,6 +59,11 @@ lemma prestar_while_mono: "prestar_while P Q \<delta> = Some \<delta>' \<Longrig
 
 subsection\<open>Propagation of Reachability\<close>
 
+text\<open>
+  No new states are added. Expressing this fact within the used NFA model is to show that the
+  set of reachable states from any given starting state remains unaltered.
+\<close>
+
 lemma prestar_step_reachable:
   "reachable_from \<delta> q = reachable_from (\<delta> \<union> prestar_step P Q \<delta>) q"
   unfolding prestar_step_def by (rule reachable_add_trans) blast
@@ -42,7 +77,7 @@ lemma prestar_while_inQ:
   assumes "prestar_while P Q \<delta> = Some \<delta>'" and "\<forall>(q,_,q') \<in> \<delta>. q \<in> Q \<and> q' \<in> Q"
   shows "\<forall>(q,_,q') \<in> \<delta>'. q \<in> Q \<and> q' \<in> Q"
   apply (rule prestar_while_rule)
-  unfolding prestar_step_def by (use assms in fast)+
+  unfolding prestar_step_def by (use assms prestar_step_def in fast)+
 
 subsection\<open>Correctness\<close>
 
@@ -187,27 +222,25 @@ qed
 
 lemma prestar_while_correct:                 
   assumes "reachable_from \<delta> q\<^sub>0 \<subseteq> Q" and "prestar_while P Q \<delta> = Some \<delta>'"
-  shows "lang' \<delta>' q\<^sub>0 F = pre_star P (lang' \<delta> q\<^sub>0 F)"
+  shows "trans_lang \<delta>' q\<^sub>0 F = pre_star P (trans_lang \<delta> q\<^sub>0 F)"
 proof (standard; standard)
   fix w
-  assume "w \<in> lang' \<delta>' q\<^sub>0 F"
+  assume "w \<in> trans_lang \<delta>' q\<^sub>0 F"
   then obtain q\<^sub>f where "q\<^sub>f \<in> steps \<delta>' w q\<^sub>0" and "q\<^sub>f \<in> F"
-    (* TODO: find/create actual lemma for this *)
-    by (metis (mono_tags, lifting) Int_emptyI lang'_def mem_Collect_eq)
+    by blast
   then obtain w' where "P \<turnstile> w \<Rightarrow>* w'" and "q\<^sub>f \<in> steps \<delta> w' q\<^sub>0"
     using prestar_while_sub assms by fast
-  moreover have "w' \<in> lang' \<delta> q\<^sub>0 F"
-    using calculation \<open>q\<^sub>f \<in> F\<close> unfolding lang'_def by blast
-  ultimately show "w \<in> pre_star P (lang' \<delta> q\<^sub>0 F)"
+  moreover have "w' \<in> trans_lang \<delta> q\<^sub>0 F"
+    using calculation \<open>q\<^sub>f \<in> F\<close> by blast
+  ultimately show "w \<in> pre_star P (trans_lang \<delta> q\<^sub>0 F)"
     unfolding pre_star_def by blast
 next
   fix w
-  assume "w \<in> pre_star P (lang' \<delta> q\<^sub>0 F)"
-  then obtain w' where "P \<turnstile> w \<Rightarrow>* w'" and "w' \<in> lang' \<delta> q\<^sub>0 F"
+  assume "w \<in> pre_star P (trans_lang \<delta> q\<^sub>0 F)"
+  then obtain w' where "P \<turnstile> w \<Rightarrow>* w'" and "w' \<in> trans_lang \<delta> q\<^sub>0 F"
     unfolding pre_star_def by blast
   then obtain q\<^sub>f where "q\<^sub>f \<in> steps \<delta> w' q\<^sub>0" and "q\<^sub>f \<in> F"
-    (* TODO: find/create actual lemma for this *)
-    by (metis (mono_tags, lifting) Int_emptyI lang'_def mem_Collect_eq)
+    by blast
   then have "q\<^sub>f \<in> steps \<delta>' w' q\<^sub>0"
     using nfa_mono prestar_while_mono assms by (metis in_mono)
   moreover have "reachable_from \<delta>' q\<^sub>0 \<subseteq> Q"
@@ -217,8 +250,8 @@ next
   moreover note \<open>P \<turnstile> w \<Rightarrow>* w'\<close>
   ultimately have "q\<^sub>f \<in> steps \<delta>' w q\<^sub>0"
     by (elim prestar_step_fp) simp+
-  with \<open>q\<^sub>f \<in> F\<close> show "w \<in> lang' \<delta>' q\<^sub>0 F"
-    unfolding lang'_def by blast
+  with \<open>q\<^sub>f \<in> F\<close> show "w \<in> trans_lang \<delta>' q\<^sub>0 F"
+    by blast
 qed
 
 subsection\<open>Termination\<close>
@@ -293,8 +326,8 @@ text\<open>
 \<close>
 
 text\<open>
-  The following code equations ensure computability,
-  as long as \<open>P\<close>, \<open>Q\<close> and \<open>\<delta>\<close> are finite, which is guaranteed by the definition of NFAs and CFGs.
+  The following code equations ensure computability, as long as \<open>P\<close>, \<open>Q\<close> and \<open>\<delta>\<close> are finite,
+  which is guaranteed by the definition of NFAs and CFGs.
 \<close>
 
 definition c_prestar_step_prod :: "('s, ('n, 't) sym) Trans \<Rightarrow> 's set \<Rightarrow> ('n, 't) prod \<Rightarrow> ('s, ('n, 't) sym) Trans" where
@@ -322,7 +355,7 @@ definition compute_prestar :: "('n, 't) Prods \<Rightarrow> ('s, ('n, 't) sym) n
 
 lemma compute_prestar_correct:
   assumes "finite P" and "finite (transitions M)"
-  shows "lang (compute_prestar P M) = pre_star P (lang M)"
+  shows "nfa_lang (compute_prestar P M) = pre_star P (nfa_lang M)"
 proof -
   define \<delta> where "\<delta> \<equiv> transitions M"
   define Q where "Q \<equiv> {start M} \<union> (snd ` snd ` \<delta>)"
@@ -332,9 +365,9 @@ proof -
     using reachable_from_computable Q_def by fast
   moreover obtain \<delta>' where \<delta>'_def: "prestar_while P Q \<delta> = Some \<delta>'"
     using prestar_while_terminates assms \<open>finite Q\<close> \<delta>_def by blast
-  ultimately have "lang' \<delta>' (start M) (finals M) = pre_star P (lang' \<delta> (start M) (finals M))"
+  ultimately have "trans_lang \<delta>' (start M) (finals M) = pre_star P (trans_lang \<delta> (start M) (finals M))"
     by (rule prestar_while_correct)
-  then have "lang (M \<lparr> transitions := \<delta>' \<rparr>) = pre_star P (lang M)"
+  then have "nfa_lang (M \<lparr> transitions := \<delta>' \<rparr>) = pre_star P (nfa_lang M)"
     by (simp add: \<delta>_def)
   then show ?thesis
     unfolding compute_prestar_def using Q_def \<delta>'_def \<delta>_def by force

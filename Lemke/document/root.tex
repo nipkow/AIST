@@ -5,6 +5,7 @@
 \usepackage[a4paper]{geometry}
 %\usepackage{showframe} %This line can be used to clearly show the new margins
 
+%\newgeometry{hmargin={25mm}}
 %\newgeometry{vmargin={30mm}, hmargin={25mm}}
 
 % further packages required for unusual symbols (see also
@@ -41,25 +42,32 @@
 
 \begin{document}
 
-\title{Computation of regular predecessors of context-free grammars}
+\title{The computation and regularity of predecessors of context-free grammars}
 \author{Tassilo Lemke and Tobias Nipkow}
 \maketitle
 
 \begin{abstract}
-  TODO
+  When analyzing context-free grammars, an interesting fact is the set of of predecessors of
+  any given string. Further, the set of predecessors of a set of strings $L$, $pre^*(L)$, allows for
+  interesting applications. One first key result is the regularity: if $L$ is regular, then so is
+  $pre^*(L)$. Secondly, this method can be used to provide solutions to many different problems
+  regarding context-free grammars, such as the word-problem, emptiness problem, and more.
+
+  We formalize two algorithms to compute $pre^*(L)$ for a regular $L$ (using NFAs as representation).
+  While the second algorithm is specifically tailored to grammars in extended-CNF, the former
+  is generally applicable. We design the formalization to be automatically executable,
+  allowing many different problems on context-free grammars to be solved automatically.
 \end{abstract}
 
 \newpage
 \tableofcontents
 
-% sane default for proof documents
 \parindent 0pt\parskip 0.5ex
 
-% generated text of all theories
 \newpage
 \input{session}
 
-% optional bibliography
+\addcontentsline{toc}{section}{References}
 \bibliographystyle{alpha}
 \bibliography{root}
 

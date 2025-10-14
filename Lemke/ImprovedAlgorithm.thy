@@ -4,6 +4,15 @@ theory ImprovedAlgorithm
   imports Algorithm
 begin \<comment>\<open>begin-theory ImprovedAlgorithm\<close>
 
+text\<open>
+  Bouajjani et al. have proposed in \<^cite>\<open>bouajjani2000efficient\<close> an improved algorithm
+  for grammars in extended chomsky normal-form.
+\<close>
+
+text\<open>
+  This theory proves core properties (correctness and termination) of the algorithm.
+\<close>
+
 subsection\<open>Prelimanaries\<close>
 
 definition is_cnf :: "('n, 't) Prods \<Rightarrow> bool" where
@@ -870,7 +879,7 @@ definition compute_prestar_cnf :: "('n, 't) Prods \<Rightarrow> ('s, ('n, 't) sy
 
 lemma compute_prestar_cnf_correct:
   assumes "finite P" and "finite (transitions M)" and cnf: "is_cnf P"
-  shows "lang (compute_prestar_cnf P M) = pre_star P (lang M)"
+  shows "nfa_lang (compute_prestar_cnf P M) = pre_star P (nfa_lang M)"
 proof -
   define Q where "Q \<equiv> {start M} \<union> (snd ` snd ` (transitions M))"
   have "finite Q"
@@ -895,7 +904,7 @@ proof -
     unfolding compute_prestar_def compute_prestar_cnf_def
     using \<delta>'_def S'_def \<open>rel S' = \<delta>'\<close> unfolding S_def Q_def by simp
   then show ?thesis
-    using compute_prestar_correct assms(1,2) by force
+    using compute_prestar_correct assms(1,2) by metis
 qed
 
 end \<comment>\<open>end-theory ImprovedAlgorithm\<close>

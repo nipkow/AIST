@@ -186,10 +186,8 @@ proof
     by (induction rule: stepn.induct) auto
 next
   show "?r \<Longrightarrow> ?l"
-    apply (induction "Suc n" "(p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1)" "(p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)" arbitrary: n p\<^sub>2 w\<^sub>2 \<alpha>\<^sub>2 rule: stepn.induct)
-    apply (case_tac n) 
-     apply fastforce+
-    done
+    by (induction "Suc n" "(p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1)" "(p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)" arbitrary: n p\<^sub>2 w\<^sub>2 \<alpha>\<^sub>2 rule: stepn.induct)
+       (metis old.nat.exhaust refl\<^sub>n step\<^sub>n stepn_zeroE)
 qed
 
 lemma stepn_induct[consumes 1, case_names basen stepn]:

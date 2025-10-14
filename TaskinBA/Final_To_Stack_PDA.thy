@@ -11,6 +11,9 @@ begin
 datatype 'q st_extended = Old_st 'q | New_init | New_final 
 datatype 's sym_extended = Old_sym 's | New_sym
 
+lemma inj_Old_sym: "inj Old_sym"
+by (meson injI sym_extended.inject)
+
 instance st_extended :: (finite) finite
 proof
   have *: "UNIV = {t. \<exists>q. t = Old_st q} \<union> {New_init, New_final}"
@@ -64,18 +67,11 @@ qed
 lemma stack_of_final_pda_trans:
   "(p, \<beta>) \<in> trans_fun M q a Z \<longleftrightarrow> 
           (Old_st p, map Old_sym \<beta>) \<in> trans_fun stack_of_final_pda (Old_st q) a (Old_sym Z)"
-  apply (rule iffI)
-   apply (auto simp: stack_of_final_pda_def)
-  apply (metis list.inj_map_strong sym_extended.inject)
-  done
+by (auto simp: stack_of_final_pda_def inj_map_eq_map[OF inj_Old_sym])
 
 lemma stack_of_final_pda_eps:
   "(p, \<beta>) \<in> eps_fun M q Z \<longleftrightarrow> (Old_st p, map Old_sym \<beta>) \<in> eps_fun stack_of_final_pda (Old_st q) (Old_sym Z)"
-  apply (rule iffI)
-   apply (auto simp: stack_of_final_pda_def)
-   apply (meson empty_iff prod.inject singletonD st_extended.distinct(3))
-  apply (metis list.inj_map_strong sym_extended.inject)
-  done
+by (auto simp: stack_of_final_pda_def inj_map_eq_map[OF inj_Old_sym] split: if_splits)
 
 lemma stack_of_final_pda_step:
   "pda.step\<^sub>1 M (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<longleftrightarrow>

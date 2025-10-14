@@ -1,17 +1,18 @@
-section \<open>Formal Definition and Acceptance\<close>
+section \<open>Pushdown Automaton (PDA)\<close>
 
 theory PDA
-  imports "HOL-IMP.Star"
+  imports Main
 begin
 
-subsection \<open>Formal Definition\<close>
+subsection \<open>Definitions\<close>
 
-text \<open>In the following, we will formally define the pushdown automata and show some basic properties of them.
-This formalization has been integrated from the Lean formalization done by Leichtfried\cite{lean}.\<close>
+text \<open>In the following, we define \emph{pushdown automata} and show some basic properties of them.
+The formalization is based on the Lean formalization by Leichtfried\cite{lean}.\<close>
 
-text \<open>We will represent the transition function $\delta$ by splitting it into two different functions 
-$\delta_1 : Q \times \Sigma \times \Gamma \rightarrow Q \times \Gamma^*$ and $\delta_2 : Q \times \Gamma \rightarrow
-Q \times \Gamma^*$, where $\delta_1(q, a, Z) := \delta(q, a, Z)$ and $\delta_2(q, Z) := \delta(q, \epsilon, Z)$.\<close>
+text \<open>We represent the transition function $\delta$ by splitting it into two different functions
+$\delta_1 : Q \times \Sigma \times \Gamma \rightarrow Q \times \Gamma^*$ and
+$\delta_2 : Q \times \Gamma \rightarrow Q \times \Gamma^*$,
+where $\delta_1(q, a, Z) := \delta(q, a, Z)$ and $\delta_2(q, Z) := \delta(q, \epsilon, Z)$.\<close>
 
 record ('q,'a,'s) pda = init_state    :: 'q
                         init_symbol   :: 's 
@@ -30,6 +31,34 @@ fun step :: "'q \<times> 'a list \<times> 's list \<Rightarrow> ('q \<times> 'a 
                         \<union> {(q, a#w, \<beta>@\<alpha>) | q \<beta>. (q, \<beta>) \<in> eps_fun M p Z}"
 | "step (p, [], Z#\<alpha>) = {(q, [], \<beta>@\<alpha>) | q \<beta>. (q, \<beta>) \<in> eps_fun M p Z}"
 | "step (_, _, []) = {}"
+
+fun step\<^sub>1 :: "'q \<times> 'a list \<times> 's list \<Rightarrow> 'q \<times> 'a list \<times> 's list \<Rightarrow> bool" where
+  "step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) = ((p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<in> step (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1))"
+
+definition steps :: "'q \<times> 'a list \<times> 's list \<Rightarrow> 'q \<times> 'a list \<times> 's list \<Rightarrow> bool" where
+  "steps \<equiv> step\<^sub>1 ^**"
+
+(* TODO:
+definition stepn :: "nat \<Rightarrow> 'q \<times> 'a list \<times> 's list \<Rightarrow> 'q \<times> 'a list \<times> 's list \<Rightarrow> bool" where
+"stepn n = step\<^sub>1^^n"
+*)
+inductive stepn :: "nat \<Rightarrow> 'q \<times> 'a list \<times> 's list \<Rightarrow> 'q \<times> 'a list \<times> 's list \<Rightarrow> bool" where
+refl\<^sub>n: "stepn 0 (p, w, \<alpha>) (p, w, \<alpha>)" |
+step\<^sub>n: "stepn n (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> step\<^sub>1 (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3) \<Longrightarrow> stepn (Suc n) (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3)"
+
+text \<open>The language accepted by empty stack:\<close>
+
+definition accept_stack :: "'a list set" where
+  "accept_stack \<equiv> {w. \<exists>q. steps (init_state M, w, [init_symbol M]) (q, [], [])}"
+
+text \<open>The language accepted by final state:\<close>
+
+definition accept_final :: "'a list set" where 
+  "accept_final \<equiv> {w. \<exists>q \<gamma>. q \<in> final_states M \<and> steps (init_state M, w, [init_symbol M]) (q, [], \<gamma>)}"
+
+subsection \<open>Basic Lemmas\<close>
+
+subsubsection \<open>\<^const>\<open>step\<close> and \<^const>\<open>step\<^sub>1\<close>\<close>
 
 lemma card_trans_step: "card (trans_fun M p a Z) = card {(q, w, \<beta>@\<alpha>) | q \<beta>. (q, \<beta>) \<in> trans_fun M p a Z}"
   by (rule bij_betw_same_card[where ?f = "\<lambda>(q,\<beta>). (q, w, \<beta>@\<alpha>)"]) (auto simp: bij_betw_def inj_on_def)
@@ -57,32 +86,82 @@ lemma card_nonempty_step: "card (step (p, a#w, Z#\<alpha>)) = card (trans_fun M 
 lemma finite_step: "finite (step (p, w, Z#\<alpha>))"
   by (cases w) (auto simp: finite_trans_step finite_eps_step)
 
-fun step\<^sub>1 :: "'q \<times> 'a list \<times> 's list \<Rightarrow> 'q \<times> 'a list \<times> 's list \<Rightarrow> bool" where
-  "step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) = ((p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<in> step (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1))"
+lemma step\<^sub>1_nonempty_stack: "step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> \<exists>Z' \<alpha>'. \<alpha>\<^sub>1 = Z'#\<alpha>'"
+  by (cases \<alpha>\<^sub>1) auto
 
-definition steps :: "'q \<times> 'a list \<times> 's list \<Rightarrow> 'q \<times> 'a list \<times> 's list \<Rightarrow> bool" where
-  "steps \<equiv> star step\<^sub>1"
+lemma step\<^sub>1_empty_stack: "\<not>step\<^sub>1 (p\<^sub>1, w\<^sub>1, []) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)"
+  by simp
 
-lemma steps_induct[consumes 1, case_names base step]:
-  assumes "steps x1 x2"
-      and "\<And>p w \<alpha>. P (p, w, \<alpha>) (p, w, \<alpha>)"
-      and "\<And>p\<^sub>1 w\<^sub>1 \<alpha>\<^sub>1 p\<^sub>2 w\<^sub>2 \<alpha>\<^sub>2 p\<^sub>3 w\<^sub>3 \<alpha>\<^sub>3. step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> steps (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3) \<Longrightarrow> 
-                P (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3) \<Longrightarrow> P (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3)"
-    shows "P x1 x2"
-using assms[unfolded steps_def] star.induct[of step\<^sub>1] by (metis prod_cases3)
+lemma step\<^sub>1_rule: "step\<^sub>1 (p\<^sub>1, w\<^sub>1, Z#\<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<longleftrightarrow> (\<exists>\<beta>. w\<^sub>2 = w\<^sub>1 \<and> \<alpha>\<^sub>2 = \<beta>@\<alpha>\<^sub>1 \<and> (p\<^sub>2, \<beta>) \<in> eps_fun M p\<^sub>1 Z) 
+                                                   \<or> (\<exists>a \<beta>. w\<^sub>1 = a # w\<^sub>2 \<and> \<alpha>\<^sub>2 = \<beta>@\<alpha>\<^sub>1 \<and> (p\<^sub>2, \<beta>) \<in> trans_fun M p\<^sub>1 a Z)"
+  by (cases w\<^sub>1) auto
+
+lemma step\<^sub>1_rule_ext: "step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<longleftrightarrow> (\<exists>Z' \<alpha>'. \<alpha>\<^sub>1 = Z'#\<alpha>' \<and> ((\<exists>\<beta>. w\<^sub>2 = w\<^sub>1 \<and> \<alpha>\<^sub>2 = \<beta>@\<alpha>' \<and> (p\<^sub>2, \<beta>) \<in> eps_fun M p\<^sub>1 Z') 
+                                                   \<or> (\<exists>a \<beta>. w\<^sub>1 = a # w\<^sub>2 \<and> \<alpha>\<^sub>2 = \<beta>@\<alpha>' \<and> (p\<^sub>2, \<beta>) \<in> trans_fun M p\<^sub>1 a Z')))" (is "?l \<longleftrightarrow> ?r")
+  apply (rule iffI)
+   apply (metis step\<^sub>1_nonempty_stack step\<^sub>1_rule)
+  apply (use step\<^sub>1_rule in force)
+  done
+
+lemma step\<^sub>1_stack_app: "step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1 @ \<gamma>) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2 @ \<gamma>)"
+  using step\<^sub>1_rule_ext by auto
+
+
+subsubsection \<open>\<^const>\<open>steps\<close>\<close>
 
 lemma steps_refl: "steps (p, w, \<alpha>) (p, w, \<alpha>)"
   by (simp add: steps_def)
 
 lemma steps_trans: "steps (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> steps (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3) \<Longrightarrow> steps (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3)"
-  unfolding steps_def using star_trans[where ?r = step\<^sub>1] by blast
+  unfolding steps_def using rtranclp_trans[where ?r = step\<^sub>1] by blast
 
 lemma step\<^sub>1_steps: "step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> steps (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)"
-  by (simp add: steps_def)
+  by (simp add: steps_def r_into_rtranclp)
 
-inductive stepn :: "nat \<Rightarrow> 'q \<times> 'a list \<times> 's list \<Rightarrow> 'q \<times> 'a list \<times> 's list \<Rightarrow> bool" where
-refl\<^sub>n: "stepn 0 (p, w, \<alpha>) (p, w, \<alpha>)" |
-step\<^sub>n: "stepn n (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> step\<^sub>1 (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3) \<Longrightarrow> stepn (Suc n) (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3)"
+lemma steps_empty_stack: "steps (p\<^sub>1, w\<^sub>1, []) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> p\<^sub>1 = p\<^sub>2 \<and> w\<^sub>1 = w\<^sub>2 \<and> \<alpha>\<^sub>2 = []"
+  unfolding steps_def using converse_rtranclpE2 by fastforce
+
+lemma steps_induct2[consumes 1]:
+  assumes "steps x1 x2"
+      and "\<And>p w \<alpha>. P (p, w, \<alpha>) (p, w, \<alpha>)"
+      and "\<And>p\<^sub>1 w\<^sub>1 \<alpha>\<^sub>1 p\<^sub>2 w\<^sub>2 \<alpha>\<^sub>2 p\<^sub>3 w\<^sub>3 \<alpha>\<^sub>3. step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> steps (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3) \<Longrightarrow> 
+                P (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3) \<Longrightarrow> P (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3)"
+    shows "P x1 x2"
+using assms[unfolded steps_def]
+proof(induction rule: converse_rtranclp_induct)
+  case base thus ?case by (metis prod_cases3)
+next
+  case step thus ?case by simp (metis prod_cases3 step\<^sub>1.simps)
+qed
+
+lemma steps_induct2_bw[consumes 1, case_names base step]:
+  assumes "steps x1 x2"
+      and "\<And>p w \<alpha>. P (p, w, \<alpha>) (p, w, \<alpha>)"
+      and "\<And>p\<^sub>1 w\<^sub>1 \<alpha>\<^sub>1 p\<^sub>2 w\<^sub>2 \<alpha>\<^sub>2 p\<^sub>3 w\<^sub>3 \<alpha>\<^sub>3. steps (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> step\<^sub>1 (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3) \<Longrightarrow> 
+                P (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> P (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3)"
+    shows "P x1 x2"
+  using assms[unfolded steps_def]
+proof(induction rule: rtranclp_induct)
+  case base
+  then show ?case by (metis prod_cases3)
+next
+  case (step)
+  then show ?case by simp (metis prod_cases3 step\<^sub>1.simps)
+qed
+
+lemmas converse_rtranclp_induct3_aux =
+  converse_rtranclp_induct [of step\<^sub>1 "(ax, ay, az)" "(bx, by, bz)", split_rule]
+lemmas steps_induct =
+  converse_rtranclp_induct3_aux [of M, folded steps_def,consumes 1, case_names refl step]
+
+lemma step\<^sub>1_word_app: "step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<longleftrightarrow> step\<^sub>1 (p\<^sub>1, w\<^sub>1 @ w, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2 @ w, \<alpha>\<^sub>2)"
+  using step\<^sub>1_rule_ext by simp
+
+lemma decreasing_word: "steps (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> \<exists>w. w\<^sub>1 = w @ w\<^sub>2"
+  by (induction rule: steps_induct) (use step\<^sub>1_rule_ext in auto)
+
+
+subsubsection \<open>\<^const>\<open>stepn\<close>\<close>
 
 inductive_cases stepn_zeroE[elim!]: "stepn 0 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)"
 thm stepn_zeroE
@@ -158,47 +237,6 @@ next
     by (induction rule: steps_induct) (use stepn_split_first in blast)+
 qed
 
-lemma steps_induct2[consumes 1, case_names base2 step2]:
-  assumes "steps x1 x2"
-      and "\<And>p w \<alpha>. P (p, w, \<alpha>) (p, w, \<alpha>)"
-      and "\<And>p\<^sub>1 w\<^sub>1 \<alpha>\<^sub>1 p\<^sub>2 w\<^sub>2 \<alpha>\<^sub>2 p\<^sub>3 w\<^sub>3 \<alpha>\<^sub>3. steps (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> step\<^sub>1 (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3) \<Longrightarrow> 
-                P (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> P (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>3, w\<^sub>3, \<alpha>\<^sub>3)"
-    shows "P x1 x2"
-proof -
-  from assms(1) obtain n where "stepn n x1 x2"
-    using stepn_steps by (metis prod_cases3)
-  from this assms(2,3) show ?thesis proof (induction rule: stepn.induct)
-    case (step\<^sub>n n p\<^sub>1 w\<^sub>1 \<alpha>\<^sub>1 p\<^sub>2 w\<^sub>2 \<alpha>\<^sub>2 p\<^sub>3 w\<^sub>3 \<alpha>\<^sub>3)
-    from step\<^sub>n(1) have *: "steps (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)"
-      using stepn_steps by blast
-    from step\<^sub>n(3)[OF step\<^sub>n(4,5)] have **: "P (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)" by simp
-    from step\<^sub>n(5)[OF * step\<^sub>n(2) **] show ?case .
-  qed
-qed
-
-lemma step\<^sub>1_nonempty_stack: "step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> \<exists>Z' \<alpha>'. \<alpha>\<^sub>1 = Z'#\<alpha>'"
-  by (cases \<alpha>\<^sub>1) auto
-
-lemma steps_empty_stack: "steps (p\<^sub>1, w\<^sub>1, []) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> p\<^sub>1 = p\<^sub>2 \<and> w\<^sub>1 = w\<^sub>2 \<and> \<alpha>\<^sub>2 = []"
-  unfolding steps_def using star.cases by fastforce
-
-lemma step\<^sub>1_rule: "step\<^sub>1 (p\<^sub>1, w\<^sub>1, Z#\<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<longleftrightarrow> (\<exists>\<beta>. w\<^sub>2 = w\<^sub>1 \<and> \<alpha>\<^sub>2 = \<beta>@\<alpha>\<^sub>1 \<and> (p\<^sub>2, \<beta>) \<in> eps_fun M p\<^sub>1 Z) 
-                                                   \<or> (\<exists>a \<beta>. w\<^sub>1 = a # w\<^sub>2 \<and> \<alpha>\<^sub>2 = \<beta>@\<alpha>\<^sub>1 \<and> (p\<^sub>2, \<beta>) \<in> trans_fun M p\<^sub>1 a Z)"
-  by (cases w\<^sub>1) auto
-
-lemma step\<^sub>1_rule_ext: "step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<longleftrightarrow> (\<exists>Z' \<alpha>'. \<alpha>\<^sub>1 = Z'#\<alpha>' \<and> ((\<exists>\<beta>. w\<^sub>2 = w\<^sub>1 \<and> \<alpha>\<^sub>2 = \<beta>@\<alpha>' \<and> (p\<^sub>2, \<beta>) \<in> eps_fun M p\<^sub>1 Z') 
-                                                   \<or> (\<exists>a \<beta>. w\<^sub>1 = a # w\<^sub>2 \<and> \<alpha>\<^sub>2 = \<beta>@\<alpha>' \<and> (p\<^sub>2, \<beta>) \<in> trans_fun M p\<^sub>1 a Z')))" (is "?l \<longleftrightarrow> ?r")
-  apply (rule iffI)
-   apply (metis step\<^sub>1_nonempty_stack step\<^sub>1_rule)
-  apply (use step\<^sub>1_rule in force)
-  done
-
-lemma step\<^sub>1_word_app: "step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<longleftrightarrow> step\<^sub>1 (p\<^sub>1, w\<^sub>1 @ w, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2 @ w, \<alpha>\<^sub>2)"
-  using step\<^sub>1_rule_ext by simp
-
-lemma decreasing_word: "steps (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> \<exists>w. w\<^sub>1 = w @ w\<^sub>2"
-  by (induction "(p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1)" "(p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)" arbitrary: p\<^sub>1 w\<^sub>1 \<alpha>\<^sub>1 rule: steps_induct) (use step\<^sub>1_rule_ext in auto)
-
 lemma stepn_word_app: "stepn n (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<longleftrightarrow> stepn n (p\<^sub>1, w\<^sub>1 @ w, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2 @ w, \<alpha>\<^sub>2)" (is "?l \<longleftrightarrow> ?r")
 proof
   show "?l \<Longrightarrow> ?r"
@@ -257,12 +295,6 @@ lemma steps_not_refl_split_last:
       and "(p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) \<noteq> (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)"
     shows "\<exists>p' w' \<alpha>'. steps (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p', w', \<alpha>') \<and> step\<^sub>1 (p', w', \<alpha>') (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)"
 using assms stepn_steps stepn_not_refl_split_last by metis
-
-lemma step\<^sub>1_empty_stack: "\<not>step\<^sub>1 (p\<^sub>1, w\<^sub>1, []) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)"
-  by simp
-
-lemma step\<^sub>1_stack_app: "step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> step\<^sub>1 (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1 @ \<gamma>) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2 @ \<gamma>)"
-  using step\<^sub>1_rule_ext by auto
 
 lemma stepn_stack_app: "stepn n (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2) \<Longrightarrow> stepn n (p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1 @ \<beta>) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2 @ \<beta>)"
   by (induction n "(p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1)" "(p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)" arbitrary: p\<^sub>2 w\<^sub>2 \<alpha>\<^sub>2 rule: stepn.induct) (fastforce intro: step\<^sub>1_stack_app)+
@@ -405,17 +437,6 @@ proof (induction n arbitrary: p\<^sub>1 w\<^sub>1 \<alpha>\<^sub>1)
   qed
 qed blast
 
-subsection \<open>Acceptance\<close>
-
-text \<open>The language accepted by empty stack:\<close>
-
-definition stack_accept :: "'a list set" where
-  "stack_accept \<equiv> {w | w q. steps (init_state M, w, [init_symbol M]) (q, [], [])}"
-
-text \<open>The language accepted by final state:\<close>
-
-definition final_accept :: "'a list set" where 
-  "final_accept \<equiv> {w | w q \<gamma>. q \<in> final_states M \<and> steps (init_state M, w, [init_symbol M]) (q, [], \<gamma>)}"
-
 end
+
 end

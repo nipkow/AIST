@@ -1,8 +1,7 @@
-subsection \<open>Pushdown Automata to Context-Free Grammars\<close>
+subsection \<open>PDA to CFG\<close>
 
-text \<open>Given a pushdown automata that accepts by empty stack, we construct a context-free grammar whose language corresponds to the set of
-words accepted by the automaton. Additionally, we show that the production set of the grammar is finite. 
-This formalization has been integrated from Leichtfried's Lean formalization\cite{lean}.\<close>
+text \<open>Starting from a PDA that accepts by empty stack, we construct an equivalent CFG.
+The formalization is based on the Lean formalization by Leichtfried\cite{lean}.\<close>
 
 theory PDA_To_CFG
   imports PDA Context_Free_Grammar.Context_Free_Grammar
@@ -13,7 +12,7 @@ datatype ('q, 's) pda_nt = Start_sym | Single_sym 'q 's 'q | List_sym 'q "'s lis
 context pda begin
 
 abbreviation all_pushes :: "'s list set" where 
-  "all_pushes \<equiv> {\<alpha>| p \<alpha> q a z. (p, \<alpha>) \<in> trans_fun M q a z} \<union> {\<alpha>| p \<alpha> q z. (p, \<alpha>) \<in> eps_fun M q z}"
+  "all_pushes \<equiv> {\<alpha>. \<exists> p q a z. (p, \<alpha>) \<in> trans_fun M q a z} \<union> {\<alpha>.\<exists>p q z. (p, \<alpha>) \<in> eps_fun M q z}"
 
 abbreviation max_push :: nat where 
   "max_push \<equiv> Suc (Max (length ` all_pushes))"
@@ -115,8 +114,9 @@ proof -
 qed
 
 lemma split_rule_simp:
-  "(A, w) \<in> split_rule q nt \<longleftrightarrow> (\<exists>p\<^sub>0 Z \<alpha> p\<^sub>1. nt = (List_sym p\<^sub>0 (Z#\<alpha>) p\<^sub>1) \<and> 
-                                  A = List_sym p\<^sub>0 (Z#\<alpha>) p\<^sub>1 \<and> w = [Nt (Single_sym p\<^sub>0 Z q), Nt (List_sym q \<alpha> p\<^sub>1)])"
+  "(A, w) \<in> split_rule q nt \<longleftrightarrow>
+   (\<exists>p\<^sub>0 Z \<alpha> p\<^sub>1. nt = (List_sym p\<^sub>0 (Z#\<alpha>) p\<^sub>1) \<and> 
+                A = List_sym p\<^sub>0 (Z#\<alpha>) p\<^sub>1 \<and> w = [Nt (Single_sym p\<^sub>0 Z q), Nt (List_sym q \<alpha> p\<^sub>1)])"
 by (induction q nt rule: split_rule.induct) auto
 
 lemma pda_to_cfg_derive_empty:
@@ -151,7 +151,8 @@ proof -
 qed
 
 lemma pda_to_cfg_derive_split:
- "Prods G \<turnstile> [Nt (List_sym p\<^sub>1 (Z#\<alpha>) p\<^sub>2)] \<Rightarrow> w \<longleftrightarrow> (\<exists>q. length (Z#\<alpha>) \<le> max_push \<and> w = [Nt (Single_sym p\<^sub>1 Z q), Nt (List_sym q \<alpha> p\<^sub>2)])"
+ "Prods G \<turnstile> [Nt (List_sym p\<^sub>1 (Z#\<alpha>) p\<^sub>2)] \<Rightarrow> w \<longleftrightarrow>
+  (\<exists>q. length (Z#\<alpha>) \<le> max_push \<and> w = [Nt (Single_sym p\<^sub>1 Z q), Nt (List_sym q \<alpha> p\<^sub>2)])"
 (is "?l \<longleftrightarrow> ?r")
 proof
   assume ?l
@@ -443,7 +444,8 @@ using assms proof (induction n arbitrary: x p q \<gamma> rule: less_induct)
         using less(1)[OF m2_lessn m2_path] .
 
       ultimately show ?thesis
-        unfolding steps_def by (meson star.step star_trans)
+        unfolding steps_def
+        by (meson converse_rtranclp_into_rtranclp rtranclp_trans)
     next
       assume ?r
       then obtain q'' \<alpha>'' where eps: "(q'', \<alpha>'') \<in> eps_fun M q Z" and  
@@ -472,7 +474,7 @@ using assms proof (induction n arbitrary: x p q \<gamma> rule: less_induct)
   qed
 qed
 
-lemma pda_to_cfg: "LangS G = stack_accept" (is "?L = ?P")
+lemma pda_to_cfg: "LangS G = accept_stack" (is "?L = ?P")
 proof
   show "?L \<subseteq> ?P"
   proof
@@ -489,7 +491,7 @@ proof
     hence "steps (init_state M, x, [init_symbol M]) (q, [], [])"
       using pda_to_cfg_steps_if_derivel by simp
     thus "x \<in> ?P"
-      by (auto simp: stack_accept_def)
+      by (auto simp: accept_stack_def)
   qed
 next
   show "?P \<subseteq> ?L"
@@ -497,7 +499,7 @@ next
     fix x
     assume "x \<in> ?P"
     then obtain q where "steps (init_state M, x, [init_symbol M]) (q, [], [])"
-      by (auto simp: stack_accept_def)
+      by (auto simp: accept_stack_def)
     then obtain n where "stepn n (init_state M, x, [init_symbol M]) (q, [], [])"
       using stepn_steps by blast
 

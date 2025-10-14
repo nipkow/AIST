@@ -2,7 +2,9 @@ section \<open>Equivalence of Final and Stack Acceptance\<close>
 
 subsection \<open>Stack Acceptance to Final Acceptance\<close>
 
-text \<open>Following Kozen's proof\cite{kozen2007automata}, we construct an equivalent pushdown automaton that accepts by final state out of a given pushdown automaton that accepts by empty stack.\<close>
+text \<open>Starting from a PDA that accepts by empty stack
+we construct an equivalent PDA that accepts by final state,
+following Kozen \cite{kozen2007automata}.\<close>
 
 theory Stack_To_Final_PDA
   imports PDA 
@@ -154,7 +156,7 @@ lemma stack_to_final_pda_no_step_final:
 lemma stack_to_final_pda_from_oldn:
   assumes "pda.steps stack_to_final_pda (Old_st p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1) (p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)"
   shows "\<exists>q'. p\<^sub>2 = Old_st q' \<or> p\<^sub>2 = New_final"
-by (induction "(Old_st p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1)" "(p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)" arbitrary: p\<^sub>2 w\<^sub>2 \<alpha>\<^sub>2 rule: pda.steps_induct2[OF pda_stack_to_final])
+by (induction "(Old_st p\<^sub>1, w\<^sub>1, \<alpha>\<^sub>1)" "(p\<^sub>2, w\<^sub>2, \<alpha>\<^sub>2)" arbitrary: p\<^sub>2 w\<^sub>2 \<alpha>\<^sub>2 rule: pda.steps_induct2_bw[OF pda_stack_to_final])
   (use assms stack_to_final_pda_from_old stack_to_final_pda_no_step_final in blast)+
 
 lemma stack_to_final_pda_to_old:
@@ -167,7 +169,7 @@ lemma stack_to_final_pda_bottom_elem:
                                          (Old_st p\<^sub>2, w\<^sub>2, \<gamma>)"
   shows "\<exists>\<alpha>. \<gamma> = \<alpha>_with_new \<alpha>"
 using assms proof (induction "(Old_st p\<^sub>1, w\<^sub>1, \<alpha>_with_new \<alpha>\<^sub>1)" "(Old_st p\<^sub>2, w\<^sub>2, \<gamma>)" arbitrary: p\<^sub>2 w\<^sub>2 \<gamma>
-                          rule: pda.steps_induct2[OF pda_stack_to_final])
+                          rule: pda.steps_induct2_bw[OF pda_stack_to_final])
   case (3 p\<^sub>2 w\<^sub>2 \<alpha>\<^sub>2 w\<^sub>3 \<alpha>\<^sub>3 p\<^sub>3)
   obtain p\<^sub>2' where p\<^sub>2_def: "p\<^sub>2 = Old_st p\<^sub>2'"
     using stack_to_final_pda_from_oldn[OF 3(1)] stack_to_final_pda_to_old[OF 3(2)] by blast
@@ -336,8 +338,8 @@ next
     using stepn_steps by blast
 qed
 
-lemma stack_to_final: "pda.stack_accept M = pda.final_accept stack_to_final_pda"
-  unfolding stack_accept_def pda.final_accept_def[OF pda_stack_to_final] using accepted_stack_to_final by blast
+lemma stack_to_final: "pda.accept_stack M = pda.accept_final stack_to_final_pda"
+  unfolding accept_stack_def pda.accept_final_def[OF pda_stack_to_final] using accepted_stack_to_final by blast
 
 end
 end

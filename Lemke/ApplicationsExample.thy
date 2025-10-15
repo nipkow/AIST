@@ -83,7 +83,23 @@ text\<open>
 \<comment>\<open>Language obviously not empty:\<close>
 lemma "\<not> Lang P A = {}"
   unfolding is_empty_def[symmetric] by eval
-                 
+
+text\<open>
+  Virtually equivalent is the productiveness of non-terminals:
+\<close>
+
+lemma "is_productive P A"
+  by eval
+
+lemma "is_productive P B"
+  by eval
+
+lemma "is_productive P C"
+  by eval
+
+lemma "is_productive P D"
+  by eval
+
 text\<open>
   Similar to derivability, reachability (i.e., derivability with an arbitrary prefix and suffix),
   can also be automated:

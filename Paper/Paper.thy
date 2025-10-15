@@ -64,7 +64,7 @@ A production is a pair of \<open>A :: 'n\<close> and a \<open>w :: sym list\<clo
 \end{quote}
 Our theory is primarily based on sets of productions rather than grammars:
 the start symbol is irrelevant most of the time.
-\emph{For succinctness, we often use \concept{grammar} to refer to a set (or list) of productions.}
+\emph{For succinctness, we use \concept{grammar} to refer to a set (or list) of productions.}
 Moreover, we only restrict to finite sets of productions when necessary.
 However, some constructions are hard or impossible even for finite grammars,
 unless we have some order on them: if we need to create new variables that appear in the output,
@@ -74,7 +74,8 @@ We work with sets whenever possible (because of their abstractness) and with lis
 Function \<^const>\<open>set\<close> converts in one direction, but we cannot convert from sets to lists
 in a computable manner (unless we impose some order on something).
 
-Sets of productions \<open>P\<close> induce a single step derivation relation on \<open>syms\<close> in the standard manner:
+The identifier \<open>P\<close> is reserved for sets of productions.
+Every \<open>P\<close> induces a single step derivation relation on \<open>syms\<close> in the standard manner:
 \begin{quote}
 @{thm derive.intros}
 \end{quote}
@@ -95,12 +96,16 @@ and @{term "freshs X As"} (generates variants of the names in list \<open>As\<cl
 
 \subsection{Chomsky Normal Form}
 
-Naturally we have shown that a finite \<open>Prods\<close> has an equivalent \<open>Prods\<close> (modulo \<open>[]\<close>) in Chomsky Normal Form:
+Naturally we have shown that a finite grammar has an equivalent (modulo \<open>[]\<close>) finite grammar in Chomsky Normal Form:
 \begin{quote}
 @{thm CNF_def}\\
 @{thm cnf_exists}
 \end{quote}
-Also by \<^cite>\<open>JHofmann\<close>.
+A constructive formalization is due to Hofmann \<^cite>\<open>JHofmann\<close>.
+Ramos \cite{RamosAMQ} also formalized four applications, two of which we also formalized
+(non-context freeness of $a^nb^nc^n$ and non-closedness of context-free languages under intersection)
+using only 10--15\% of the number of lines.
+
 
 \subsection{Pushdown Automata}
 \subsection{Pumping Lemma}

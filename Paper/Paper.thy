@@ -185,7 +185,9 @@ but their Example 4.10 performs this optimization implicitly.
 
 \section{Chomsky-Sch\"utzenberger}
 
-\section{Parikh}
+\section{Parikh}%FL
+
+We follow the proof by Pilling \cite{Pilling}.
 \<close>
 (*<*)
 end

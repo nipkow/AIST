@@ -1,7 +1,5 @@
-session PreStar = HOL +
+session PreStar = Context_Free_Grammar +
   options [document = pdf, document_output = "output"]
-  sessions
-    "Context_Free_Grammar"
   theories
     Definition
     FiniteAutomaton

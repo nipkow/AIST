@@ -6,6 +6,12 @@ imports
   Sugar
 begin
 declare [[show_question_marks=false]]
+lemma expand_hd_simp2: "expand_hd A (S#Ss) R =
+ (let R' = expand_hd A Ss R;
+      X = {r \<in> R'. \<exists>w. r = (A, Nt S # w)}
+  in R' - X \<union> subst_hd R' X)"
+  by simp
+
 (*>*)
 text \<open>
 \section{Introduction}
@@ -117,9 +123,65 @@ using only 10--15\% of the number of lines.
 
 \section{Greibach}%AY
 
-@{def gnf_hd}
+\begin{definition}
+A grammar \<open>R\<close> is in \emph{(head) Greibach normal form (GNF)} if
+every right-hand side in \<open>R\<close> starts with a terminal symbol.
+Formally,
+\begin{quote}
+@{def GNF_hd}
+\end{quote}
+\end{definition}
 
+The main result of this section is the construction of the function @{const gnf_hd},
+which turns a grammar into GNF while preserving the language modulo \<open>\<epsilon>\<close>.
+\begin{theorem}
+@{thm GNF_hd_gnf_hd}\\
 @{thm Lang_gnf_hd}
+\end{theorem}
+
+The main ingredient of @{const gnf_hd} is the removal of \emph{direct left recursions},
+i.e., rules of form \<open>A \<rightarrow> A v \<in> R\<close>.
+Let \<open>V\<close> collect all such \<open>v\<close>,
+and let \<open>U\<close> collect all \<open>u\<close> of \<open>A \<rightarrow> u \<in> R\<close> that does not start with \<open>A\<close>.
+Then the language of \<open>A\<close> is \<open>U \<union> U V\<^sup>+\<close>;
+hence we introduce a fresh nonterminal \<open>A'\<close> whose language is \<open>V\<^sup>+\<close>.
+
+\begin{quote}
+@{def rrec_of_lrec}
+\end{quote}
+
+\begin{quote}
+@{def solve_lrec[solve_lrec_def[unfolded rm_lrec_def]]}
+\end{quote}
+
+The formalization is almost the same as the textual description,
+except that
+if @{prop \<open>V = {}\<close>}, then @{term "solve_lrec A A'"} returns the original \<open>A\<close>-productions
+(excluding useless \<open>A \<rightarrow> A\<close> production).
+This optimization is not present in \<^cite>\<open>HopcroftU79\<close>,
+but their Example 4.10 performs this optimization implicitly.
+
+
+\begin{quote}
+@{abbrev "subst_hd R X"}
+\end{quote}
+
+\begin{quote}
+@{fun expand_hd[expand_hd.simps(1) expand_hd_simp2]}
+\end{quote}
+
+\begin{quote}
+@{fun solve_tri}
+\end{quote}
+
+\begin{quote}
+@{fun expand_tri}
+\end{quote}
+
+\begin{definition}
+@{def gnf_hd}
+\end{definition}
+
 
 \section{Chomsky-Sch\"utzenberger}
 

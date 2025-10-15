@@ -36,11 +36,6 @@ definition prestar_step :: "('n, 't) Prods \<Rightarrow> 's set
   "prestar_step P Q \<delta> \<equiv> { (q, Nt A, q') | q q' A. \<exists>\<beta>.
     (A, \<beta>) \<in> P \<and> q' \<in> steps \<delta> \<beta> q \<and> q \<in> Q \<and> q' \<in> Q }"
 
-definition prestar_step' :: "('n, 't) Prods \<Rightarrow> 's set
-    \<Rightarrow> ('s, ('n, 't) sym) Trans \<Rightarrow> ('s, ('n, 't) sym) Trans" where
-  "prestar_step' P Q \<delta> \<equiv> (\<lambda>(q, q', A\<beta>).
-    (q, Nt (fst A\<beta>), q')) ` {(q, q', A\<beta>) \<in> Q \<times> Q \<times> P. q' \<in> steps \<delta> (snd A\<beta>) q}"
-
 lemma prestar_step_code'[code]: "prestar_step P Q \<delta> =
    (\<lambda>(q, q', A\<beta>). (q, Nt (fst A\<beta>), q')) ` {(q, q', A\<beta>) \<in> Q \<times> Q \<times> P. q' \<in> steps \<delta> (snd A\<beta>) q}"
   unfolding prestar_step_def image_def by(auto)

@@ -337,7 +337,7 @@ lemma prestar_step_prod_code_correct:
   by (auto simp: prestar_step_prod_code_def)
 
 lemma prestar_step_code_correct: "(q, X, q') \<in> prestar_step_code \<delta> Q P \<longleftrightarrow> (q, X, q') \<in> prestar_step P Q \<delta>"
-  unfolding prestar_step_code_def prestar_step_def prestar_step_prod_code_correct by (cases X; force)
+  unfolding prestar_step_code_def prestar_step_def prestar_step_prod_code_correct by force
 
 lemma prestar_step_code[code]: "prestar_step P Q \<delta> = prestar_step_code \<delta> Q P"
   using prestar_step_code_correct by fast

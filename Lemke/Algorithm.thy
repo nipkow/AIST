@@ -44,7 +44,7 @@ definition prestar_while :: "('n, 't) Prods \<Rightarrow> 's set
     \<Rightarrow> ('s, ('n, 't) sym) Trans \<Rightarrow> ('s, ('n, 't) sym) Trans option" where
   "prestar_while P Q \<equiv> while_option (\<lambda>\<delta>. \<delta> \<union> prestar_step P Q \<delta> \<noteq> \<delta>) (\<lambda>\<delta>. \<delta> \<union> prestar_step P Q \<delta>)"
 
-(* A random example, needs that types! *)
+(* A random example, needs the types! *)
 value "prestar_while {(0::int,[Tm(1::nat)])} {True} {}"
 
 lemma prestar_while_rule:

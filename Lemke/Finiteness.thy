@@ -59,19 +59,19 @@ qed
 
 lemma is_useful_all_derive:
   assumes "is_useful_all"
-  shows "\<exists>w. P \<turnstile> xs \<Rightarrow>* map_word w"
+  shows "\<exists>w. P \<turnstile> xs \<Rightarrow>* map Tm w"
 using assms proof (induction xs)
   case Nil
-  moreover have "P \<turnstile> [] \<Rightarrow>* map_word []"
+  moreover have "P \<turnstile> [] \<Rightarrow>* map Tm []"
     by simp
   ultimately show ?case
     by (elim exI)
 next
   case (Cons a xs)
-  then obtain w' where w'_def: "P \<turnstile> xs \<Rightarrow>* map_word w'"
+  then obtain w' where w'_def: "P \<turnstile> xs \<Rightarrow>* map Tm w'"
     by blast
 
-  have "\<exists>w. P \<turnstile> [a] \<Rightarrow>* map_word w"
+  have "\<exists>w. P \<turnstile> [a] \<Rightarrow>* map Tm w"
   proof (cases a)
     case (Nt X)
     then have "is_productive P X"
@@ -80,15 +80,15 @@ next
       by (simp add: Nt is_productive_def)
   next
     case (Tm c)
-    then have "P \<turnstile> [Tm c] \<Rightarrow>* map_word [c]"
+    then have "P \<turnstile> [Tm c] \<Rightarrow>* map Tm [c]"
       by simp
     then show ?thesis
       using Tm by blast
   qed
-  then obtain w where w_def: "P \<turnstile> [a] \<Rightarrow>* map_word w"
+  then obtain w where w_def: "P \<turnstile> [a] \<Rightarrow>* map Tm w"
     by blast
 
-  from w_def w'_def have "P \<turnstile> (a#xs) \<Rightarrow>* map_word (w@w')"
+  from w_def w'_def have "P \<turnstile> (a#xs) \<Rightarrow>* map Tm (w@w')"
     using derives_concat by fastforce
   then show ?case
     by blast
@@ -330,12 +330,12 @@ proof (standard, erule contrapos_pp)
   assume "\<not> is_infinite"
   then have finA: "finite {w. P \<turnstile> [Nt S] \<Rightarrow>* w}"
     using is_infinite_implies_finite assms(3) by (simp add: is_infinite_def)
-  have "finite (map_word ` {w. P \<turnstile> [Nt S] \<Rightarrow>* map_word w}::('n, 't) sym list set)"
+  have "finite (map Tm ` {w. P \<turnstile> [Nt S] \<Rightarrow>* map Tm w}::('n, 't) sym list set)"
     by (rule finite_subset[where B="{w. P \<turnstile> [Nt S] \<Rightarrow>* w}"]; use finA in blast)
-  moreover have "inj_on map_word {w. P \<turnstile> [Nt S] \<Rightarrow>* map_word w}"
+  moreover have "inj_on (map Tm) {w. P \<turnstile> [Nt S] \<Rightarrow>* map Tm w}"
     by (simp add: inj_on_def)
-  ultimately have "finite {w. P \<turnstile> [Nt S] \<Rightarrow>* map_word w}"
-    using finite_image_iff[where f=map_word] by blast
+  ultimately have "finite {w. P \<turnstile> [Nt S] \<Rightarrow>* map Tm w}"
+    using finite_image_iff[where f="map Tm"] by blast
   then show "\<not> infinite (Lang P S)"
     by (simp add: Lang_def)
 next
@@ -345,10 +345,10 @@ next
   then obtain \<alpha> \<beta> where deriveX: "P \<turnstile> [Nt X] \<Rightarrow>* (\<alpha>@[Nt X]@\<beta>)" and "\<alpha>@\<beta> \<noteq> []"
     unfolding is_reachable_step_def by blast
 
-  obtain w\<^sub>X where w\<^sub>X_def: "P \<turnstile> [Nt X] \<Rightarrow>* map_word w\<^sub>X"
+  obtain w\<^sub>X where w\<^sub>X_def: "P \<turnstile> [Nt X] \<Rightarrow>* map Tm w\<^sub>X"
     using assms(1) is_useful_all_derive by blast
 
-  obtain w\<^sub>\<alpha> w\<^sub>\<beta> where w\<^sub>\<alpha>_def: "P \<turnstile> \<alpha> \<Rightarrow>* map_word w\<^sub>\<alpha>" and w\<^sub>\<beta>_def: "P \<turnstile> \<beta> \<Rightarrow>* map_word w\<^sub>\<beta>"
+  obtain w\<^sub>\<alpha> w\<^sub>\<beta> where w\<^sub>\<alpha>_def: "P \<turnstile> \<alpha> \<Rightarrow>* map Tm w\<^sub>\<alpha>" and w\<^sub>\<beta>_def: "P \<turnstile> \<beta> \<Rightarrow>* map Tm w\<^sub>\<beta>"
     using assms(1) is_useful_all_derive by blast+
   then have "w\<^sub>\<alpha>@w\<^sub>\<beta> \<noteq> []"
     using \<open>\<alpha>@\<beta> \<noteq> []\<close> by (simp add: assms(2) is_non_nullable_all_derive)
@@ -360,11 +360,11 @@ next
     using assms(1) by (simp add: is_useful_all_def is_useful_def)
   then obtain p s where "P \<turnstile> [Nt S] \<Rightarrow>* (p@[Nt X]@s)"
     unfolding is_reachable_from_def by blast
-  moreover obtain w\<^sub>p where w\<^sub>p_def: "P \<turnstile> p \<Rightarrow>* map_word w\<^sub>p"
+  moreover obtain w\<^sub>p where w\<^sub>p_def: "P \<turnstile> p \<Rightarrow>* map Tm w\<^sub>p"
     using assms(1) is_useful_all_derive by blast
-  moreover obtain w\<^sub>s where w\<^sub>s_def: "P \<turnstile> s \<Rightarrow>* map_word w\<^sub>s"
+  moreover obtain w\<^sub>s where w\<^sub>s_def: "P \<turnstile> s \<Rightarrow>* map Tm w\<^sub>s"
     using assms(1) is_useful_all_derive by blast
-  ultimately have fromS: "P \<turnstile> [Nt S] \<Rightarrow>* (map_word w\<^sub>p@[Nt X]@map_word w\<^sub>s)"
+  ultimately have fromS: "P \<turnstile> [Nt S] \<Rightarrow>* (map Tm w\<^sub>p@[Nt X]@map Tm w\<^sub>s)"
     by (meson local.derives_concat rtranclp.rtrancl_refl rtranclp_trans)
 
   have "\<And>i. P \<turnstile> [Nt X] \<Rightarrow>* f\<^sub>d i"
@@ -373,18 +373,18 @@ next
       apply (meson deriveX local.derives_concat rtranclp.rtrancl_refl rtranclp_trans)
       done
     done
-  moreover have "\<And>i. P \<turnstile> f\<^sub>d i \<Rightarrow>* map_word (f\<^sub>w i)"
+  moreover have "\<And>i. P \<turnstile> f\<^sub>d i \<Rightarrow>* map Tm (f\<^sub>w i)"
     subgoal for i
       by (induction i; simp add: f\<^sub>d_def f\<^sub>w_def w\<^sub>X_def w\<^sub>\<alpha>_def w\<^sub>\<beta>_def derives_concat)
     done
-  ultimately have "\<And>i. P \<turnstile> [Nt X] \<Rightarrow>* map_word (f\<^sub>w i)"
+  ultimately have "\<And>i. P \<turnstile> [Nt X] \<Rightarrow>* map Tm (f\<^sub>w i)"
     using rtranclp_trans by fast
-  then have "\<And>i. P \<turnstile> [Nt S] \<Rightarrow>* (map_word w\<^sub>p@map_word (f\<^sub>w i)@map_word w\<^sub>s)"
+  then have "\<And>i. P \<turnstile> [Nt S] \<Rightarrow>* (map Tm w\<^sub>p@map Tm (f\<^sub>w i)@map Tm w\<^sub>s)"
     using fromS derives_step by presburger
-  then have "\<And>i. P \<turnstile> [Nt S] \<Rightarrow>* (map_word (w\<^sub>p@(f\<^sub>w i)@w\<^sub>s))"
+  then have "\<And>i. P \<turnstile> [Nt S] \<Rightarrow>* (map Tm (w\<^sub>p@(f\<^sub>w i)@w\<^sub>s))"
     by simp
   moreover define f\<^sub>w' where f\<^sub>w'_def: "f\<^sub>w' = (\<lambda>i. w\<^sub>p @ (f\<^sub>w i) @ w\<^sub>s)"
-  ultimately have "\<And>i. P \<turnstile> [Nt S] \<Rightarrow>* map_word (f\<^sub>w' i)"
+  ultimately have "\<And>i. P \<turnstile> [Nt S] \<Rightarrow>* map Tm (f\<^sub>w' i)"
     by simp
   then have "\<And>i. f\<^sub>w' i \<in> Lang P S"
     by (simp add: Lang_def)

@@ -25,12 +25,6 @@ text\<open>
   the following two abbreviations are introduced for convenience:
 \<close>
 
-abbreviation map_word :: "'t list \<Rightarrow> ('n, 't) syms" where
-  "map_word w \<equiv> map Tm w"
-
-abbreviation map_lang :: "'t list set \<Rightarrow> ('n, 't) syms set" where
-  "map_lang L \<equiv> map_word ` L"
-
 subsection\<open>General Properties\<close>
 
 text\<open>
@@ -53,11 +47,11 @@ lemma pre_star_term:
   unfolding pre_star_def by blast
 
 lemma pre_star_word:
-  "[Nt S] \<in> pre_star P (map_lang L) \<longleftrightarrow> (\<exists>w. w \<in> L \<and> w \<in> Lang P S)"
+  "[Nt S] \<in> pre_star P (map Tm ` L) \<longleftrightarrow> (\<exists>w. w \<in> L \<and> w \<in> Lang P S)"
   unfolding Lang_def pre_star_def by blast
 
 lemma pre_star_lang:
-  "Lang P S \<inter> L = {} \<longleftrightarrow> [(Nt S)] \<notin> pre_star P (map_lang L)"
+  "Lang P S \<inter> L = {} \<longleftrightarrow> [(Nt S)] \<notin> pre_star P (map Tm ` L)"
   using pre_star_word[where P=P] by blast
 
 text\<open>
@@ -78,7 +72,7 @@ definition is_reachable_from :: "('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> '
 
 \<comment>\<open>\<open>X \<in> V\<close> is productive, iff a string of terminals \<open>w \<in> \<Sigma>\<^sup>*\<close> can be derived:\<close>
 definition is_productive :: "('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> bool" where
-  "is_productive P X \<equiv> (\<exists>w. P \<turnstile> [Nt X] \<Rightarrow>* map_word w)"
+  "is_productive P X \<equiv> (\<exists>w. P \<turnstile> [Nt X] \<Rightarrow>* map Tm w)"
 
 \<comment>\<open>\<open>X \<in> V\<close> is useful, iff \<open>V\<close> can be reached from \<open>S\<close> and it is productive:\<close>
 definition is_useful :: "('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> 'n \<Rightarrow> bool" where

@@ -54,7 +54,7 @@ qed
 subsection\<open>Membership Problem\<close>
 
 \<comment> \<open>Directly follows from derivability:\<close>
-lemma pre_star_membership[code_unfold]: "(w \<in> Lang P S) = (P \<turnstile> [Nt S] \<Rightarrow>* map_word w)"
+lemma pre_star_membership[code_unfold]: "(w \<in> Lang P S) = (P \<turnstile> [Nt S] \<Rightarrow>* map Tm w)"
   by (simp add: Lang_def)
 
 subsection\<open>Nullable Variables\<close>
@@ -189,14 +189,14 @@ proof -
     using pre_star_reachable unfolding M_def nfa_fixc_ps_lang by fastforce
 qed
 
-theorem
+theorem pre_star_productive:
   fixes P :: "('n, 't) Prods"
-  shows "is_productive P X \<longleftrightarrow> [Nt X] \<in> pre_star P (map_lang UNIV)"
+  shows "is_productive P X \<longleftrightarrow> [Nt X] \<in> pre_star P (map Tm ` UNIV)"
 proof -
-  define L :: "('n, 't) sym list set" where "L \<equiv> map_lang UNIV"
+  define L :: "('n, 't) sym list set" where "L \<equiv> map Tm ` UNIV"
   have "[Nt X] \<in> pre_star P L \<longleftrightarrow> (\<exists>w. w \<in> L \<and> P \<turnstile> [Nt X] \<Rightarrow>* w)"
     by (simp add: pre_star_term)
-  also have "... \<longleftrightarrow> (\<exists>w. P \<turnstile> [Nt X] \<Rightarrow>* map_word w)"
+  also have "... \<longleftrightarrow> (\<exists>w. P \<turnstile> [Nt X] \<Rightarrow>* map Tm w)"
     unfolding L_def by blast
   finally show ?thesis
     by (simp add: is_productive_def L_def)
@@ -204,10 +204,10 @@ qed
 
 subsection\<open>Disjointness and Subset Problem\<close>
 
-theorem pre_star_disjointness: "Lang P S \<inter> L = {} \<longleftrightarrow> [(Nt S)] \<notin> pre_star P (map_lang L)"
+theorem pre_star_disjointness: "Lang P S \<inter> L = {} \<longleftrightarrow> [(Nt S)] \<notin> pre_star P (map Tm ` L)"
   by (simp add: pre_star_lang)
 
-theorem pre_star_subset: "Lang P S \<subseteq> L \<longleftrightarrow> [(Nt S)] \<notin> pre_star P (map_lang (-L))"
+theorem pre_star_subset: "Lang P S \<subseteq> L \<longleftrightarrow> [(Nt S)] \<notin> pre_star P (map Tm ` (-L))"
 proof -
   have "Lang P S \<subseteq> L \<longleftrightarrow> Lang P S \<inter> -L = {}"
     by blast

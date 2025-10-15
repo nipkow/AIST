@@ -1,8 +1,8 @@
 section\<open>Computation\<close>
 
-text\<open>
-  In this theory, we show a core theorem: the predecessors of a regular language w.r.t. to
-  a context-free grammar is also regular.
+text\<open>In this theory, we show a core theorem:
+the predecessors of a regular language w.r.t. to a context-free grammar
+also form a regular language. The regular languages are represented as automata.
 \<close>
 
 theory Algorithm
@@ -38,12 +38,19 @@ definition prestar_step :: "('n, 't) Prods \<Rightarrow> 's set
 
 definition prestar_step' :: "('n, 't) Prods \<Rightarrow> 's set
     \<Rightarrow> ('s, ('n, 't) sym) Trans \<Rightarrow> ('s, ('n, 't) sym) Trans" where
-  "prestar_step' P Q \<delta> \<equiv> (\<lambda>(q, q', A, \<beta>).
-    (q, Nt A, q')) ` {(q, q', A, \<beta>) \<in> Q \<times> Q \<times> P. q' \<in> steps \<delta> \<beta> q}"
+  "prestar_step' P Q \<delta> \<equiv> (\<lambda>(q, q', A\<beta>).
+    (q, Nt (fst A\<beta>), q')) ` {(q, q', A\<beta>) \<in> Q \<times> Q \<times> P. q' \<in> steps \<delta> (snd A\<beta>) q}"
+
+lemma prestar_step_code'[code]: "prestar_step P Q \<delta> =
+   (\<lambda>(q, q', A\<beta>). (q, Nt (fst A\<beta>), q')) ` {(q, q', A\<beta>) \<in> Q \<times> Q \<times> P. q' \<in> steps \<delta> (snd A\<beta>) q}"
+  unfolding prestar_step_def image_def by(auto)
 
 definition prestar_while :: "('n, 't) Prods \<Rightarrow> 's set
     \<Rightarrow> ('s, ('n, 't) sym) Trans \<Rightarrow> ('s, ('n, 't) sym) Trans option" where
   "prestar_while P Q \<equiv> while_option (\<lambda>\<delta>. \<delta> \<union> prestar_step P Q \<delta> \<noteq> \<delta>) (\<lambda>\<delta>. \<delta> \<union> prestar_step P Q \<delta>)"
+
+(* A random example, needs that types! *)
+value "prestar_while {(0::int,[Tm(1::nat)])} {True} {}"
 
 lemma prestar_while_rule:
   assumes "(\<And>\<delta>. H \<delta> \<Longrightarrow> \<delta> \<union> prestar_step P Q \<delta> \<noteq> \<delta> \<Longrightarrow> H (\<delta> \<union> prestar_step P Q \<delta>))"

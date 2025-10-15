@@ -191,15 +191,30 @@ qed
 
 theorem pre_star_productive:
   fixes P :: "('n, 't) Prods"
-  shows "is_productive P X \<longleftrightarrow> [Nt X] \<in> pre_star P (map Tm ` UNIV)"
+  shows "is_productive P X \<longleftrightarrow> [(Nt X)] \<in> pre_star P {w. set w \<subseteq> Tm ` Tms P}"
 proof -
-  define L :: "('n, 't) sym list set" where "L \<equiv> map Tm ` UNIV"
-  have "[Nt X] \<in> pre_star P L \<longleftrightarrow> (\<exists>w. w \<in> L \<and> P \<turnstile> [Nt X] \<Rightarrow>* w)"
-    by (simp add: pre_star_term)
-  also have "... \<longleftrightarrow> (\<exists>w. P \<turnstile> [Nt X] \<Rightarrow>* map Tm w)"
-    unfolding L_def by blast
-  finally show ?thesis
-    by (simp add: is_productive_def L_def)
+  have "is_productive P X \<longleftrightarrow> (\<exists>w. P \<turnstile> [Nt X] \<Rightarrow>* map Tm w)"
+    by (simp add: is_productive_def)
+  also have "... \<longleftrightarrow> (\<exists>w. P \<turnstile> [Nt X] \<Rightarrow>* map Tm w \<and> set w \<subseteq> Tms P)"
+    using cfg_lang_univ by fast
+  also have "... \<longleftrightarrow> (\<exists>w. P \<turnstile> [Nt X] \<Rightarrow>* w \<and> set w \<subseteq> Tm ` Tms P)"
+    by (smt (verit, best) cfg_lang_univ ex_map_conv imageE image_mono list.set_map subset_iff)
+  also have "... \<longleftrightarrow> [Nt X] \<in> pre_star P {w. set w \<subseteq> Tm ` Tms P}"
+    unfolding pre_star_def by blast
+  finally show ?thesis .
+qed
+
+lemma pre_star_productive_code[code]:
+  fixes P :: "('n, 't) prods"
+  shows "is_productive (set P) X = ([Nt X] \<in> lang_nfa (prestar_code (set P) (nfa_univ (Tm ` Tms (set P)))))"
+proof -
+  define M :: "(unit, ('n, 't) sym) nfa" where [simp]: "M \<equiv> nfa_univ (Tm ` Tms (set P))"
+  have "finite (Tm ` Tms (set P))"
+    using finite_Tms by blast
+  then have "lang_nfa (prestar_code (set P) M) = pre_star (set P) (lang_nfa M)"
+    by (intro prestar_code_correct; auto simp: nfa_univ_def intro: nfa_univ_trans_fin)
+  then show ?thesis
+    using pre_star_productive unfolding M_def nfa_univ_lang by fastforce
 qed
 
 subsection\<open>Disjointness and Subset Problem\<close>

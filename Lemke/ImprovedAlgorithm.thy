@@ -870,8 +870,8 @@ qed
 
 subsection\<open>Final Algorithm\<close>
 
-definition compute_prestar_cnf :: "('n, 't) Prods \<Rightarrow> ('s, ('n, 't) sym) nfa \<Rightarrow> ('s, ('n, 't) sym) nfa" where
-  "compute_prestar_cnf P M \<equiv> (
+definition prestar_code_cnf :: "('n, 't) Prods \<Rightarrow> ('s, ('n, 't) sym) nfa \<Rightarrow> ('s, ('n, 't) sym) nfa" where
+  "prestar_code_cnf P M \<equiv> (
     \<comment>\<open>Construct the set of ``interesting'' states:\<close>
     let Q = {start M} \<union> (snd ` snd ` (transitions M)) in
     let S = alg_state_new P Q (transitions M) in
@@ -879,9 +879,9 @@ definition compute_prestar_cnf :: "('n, 't) Prods \<Rightarrow> ('s, ('n, 't) sy
       Some S' \<Rightarrow> M \<lparr> transitions := (rel S') \<rparr>
   )"
 
-lemma compute_prestar_cnf_correct:
+lemma prestar_code_cnf_correct:
   assumes "finite P" and "finite (transitions M)" and cnf: "CNF1 P"
-  shows "nfa_lang (compute_prestar_cnf P M) = pre_star P (nfa_lang M)"
+  shows "lang_nfa (prestar_code_cnf P M) = pre_star P (lang_nfa M)"
 proof -
   define Q where "Q \<equiv> {start M} \<union> (snd ` snd ` (transitions M))"
   have "finite Q"
@@ -902,11 +902,11 @@ proof -
   ultimately have "rel S' = \<delta>'"
     by simp
 
-  have "compute_prestar P M = compute_prestar_cnf P M"
-    unfolding compute_prestar_def compute_prestar_cnf_def
+  have "prestar_code P M = prestar_code_cnf P M"
+    unfolding prestar_code_def prestar_code_cnf_def
     using \<delta>'_def S'_def \<open>rel S' = \<delta>'\<close> unfolding S_def Q_def by simp
   then show ?thesis
-    using compute_prestar_correct assms(1,2) by metis
+    using prestar_code_correct assms(1,2) by metis
 qed
 
 end \<comment>\<open>end-theory ImprovedAlgorithm\<close>

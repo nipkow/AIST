@@ -11,12 +11,16 @@ text\<open>
   inherently decidable, as are many other problems.
   To reason about regular languages, a simple model of a non-deterministic finite automaton (NFA)
   without \<open>\<epsilon>\<close>-transitions is defined.
+
+This model of NFAs is not meant as a most general such model.
+We use it to describe and reason about a naive set-based version of \<open>pre\<^sup>*\<close>.
+More efficient algorithms also need more refined data structures.
 \<close>
 
 subsection\<open>Definition\<close>
 
 text\<open>
-  In this theory, an NFA \<open>M\<close> is defined as the \<open>3\<close>-tuple \<open>(\<delta>, S, F)\<close>, where \<open>\<delta>\<close> are the transitions,
+  In this theory, an NFA \<open>M\<close> is defined as the triple \<open>(\<delta>, S, F)\<close>, where \<open>\<delta>\<close> are the transitions,
   \<open>S\<close> is the starting symbol and \<open>F\<close> are the final states. The state-domain \<open>Q\<close> and alphabet \<open>\<Sigma>\<close>
   are not explicitly given, since the type-theory still allows for proof of formal correctness.
 \<close>
@@ -33,11 +37,11 @@ text\<open>
   \<open>2\<close>-tuples and \<open>3\<close>-tuples, which will be used thouroughly within this project.
 \<close>
 
-lemma [code_unfold]:
+lemma Collect_pair_code[code_unfold]:
   "{(x,y) \<in> A. P x y} = {p \<in> A. P (fst p) (snd p)}"
   by fastforce
 
-lemma [code_unfold]:
+lemma Collect_triple_code[code_unfold]:
   "{(x,y,z) \<in> A. P x y z} = {p \<in> A. P (fst p) (fst (snd p)) (snd (snd p))}"
   by fastforce
 
@@ -213,15 +217,15 @@ lemma accepts_split3:
   shows "\<exists>q' q'' q\<^sub>f. q' \<in> steps T w\<^sub>1 s \<and> q'' \<in> steps T w\<^sub>2 q' \<and> q\<^sub>f \<in> steps T w\<^sub>3 q'' \<and> q\<^sub>f \<in> F"
   using assms Steps_split3 by fast
 
-abbreviation trans_lang :: "('s \<times> 't \<times> 's) set \<Rightarrow> 's \<Rightarrow> 's set \<Rightarrow> ('t list) set" where
-  "trans_lang T S F \<equiv> { w. trans_accepts T S F w }"
+abbreviation lang_trans :: "('s \<times> 't \<times> 's) set \<Rightarrow> 's \<Rightarrow> 's set \<Rightarrow> ('t list) set" where
+  "lang_trans T S F \<equiv> { w. trans_accepts T S F w }"
 
-abbreviation nfa_lang :: "('s, 't) nfa \<Rightarrow> ('t list) set" where
-  "nfa_lang M \<equiv> trans_lang (transitions M) (start M) (finals M)"
+abbreviation lang_nfa :: "('s, 't) nfa \<Rightarrow> ('t list) set" where
+  "lang_nfa M \<equiv> lang_trans (transitions M) (start M) (finals M)"
 
-lemma nfa_lang_trans:
-  assumes "s' \<in> steps T w\<^sub>1 s" and "w\<^sub>2 \<in> trans_lang T s' F"
-  shows "(w\<^sub>1@w\<^sub>2) \<in> trans_lang T s F"
+lemma lang_nfa_trans:
+  assumes "s' \<in> steps T w\<^sub>1 s" and "w\<^sub>2 \<in> lang_trans T s' F"
+  shows "(w\<^sub>1@w\<^sub>2) \<in> lang_trans T s F"
 proof -
   obtain q\<^sub>f where "q\<^sub>f \<in> steps T w\<^sub>2 s'" and "q\<^sub>f \<in> F"
     using assms(2) by blast
@@ -231,15 +235,15 @@ proof -
     using \<open>q\<^sub>f \<in> F\<close> by blast
 qed
 
-lemma nfa_lang_split:
-  assumes "(w\<^sub>1@w\<^sub>2) \<in> trans_lang T q F"
-  obtains q' where "q' \<in> steps T w\<^sub>1 q" and "w\<^sub>2 \<in> trans_lang T q' F"
+lemma lang_nfa_split:
+  assumes "(w\<^sub>1@w\<^sub>2) \<in> lang_trans T q F"
+  obtains q' where "q' \<in> steps T w\<^sub>1 q" and "w\<^sub>2 \<in> lang_trans T q' F"
 proof -
   obtain q\<^sub>f where "q\<^sub>f \<in> steps T (w\<^sub>1@w\<^sub>2) q" and "q\<^sub>f \<in> F"
     using assms by blast
   then obtain q' where "q' \<in> steps T w\<^sub>1 q" and "q\<^sub>f \<in> steps T w\<^sub>2 q'"
     using Steps_split by fast
-  moreover have "w\<^sub>2 \<in> trans_lang T q' F"
+  moreover have "w\<^sub>2 \<in> lang_trans T q' F"
     using \<open>q\<^sub>f \<in> F\<close> calculation by blast
   ultimately show ?thesis
     using that by blast
@@ -282,7 +286,7 @@ proof -
     by (rule nfa_steps_mono)
 qed
 
-lemma nfa_lang_mono: "T\<^sub>1 \<subseteq> T\<^sub>2 \<Longrightarrow> trans_lang T\<^sub>1 s f \<subseteq> trans_lang T\<^sub>2 s f"
+lemma lang_nfa_mono: "T\<^sub>1 \<subseteq> T\<^sub>2 \<Longrightarrow> lang_trans T\<^sub>1 s f \<subseteq> lang_trans T\<^sub>2 s f"
   using nfa_mono[of T\<^sub>1 T\<^sub>2] by fast
 
 subsection\<open>Reachable States\<close>
@@ -565,7 +569,7 @@ definition nfa_univ :: "'a set \<Rightarrow> (unit, 'a) nfa" where
     finals = {()}
   \<rparr>"
 
-lemma nfa_univ_lang[simp]: "nfa_lang (nfa_univ U) = {w. set w \<subseteq> U}"
+lemma nfa_univ_lang[simp]: "lang_nfa (nfa_univ U) = {w. set w \<subseteq> U}"
 proof -
   define \<delta> where "\<delta> \<equiv> nfa_univ_trans () U"
   have "\<And>w. set w \<subseteq> U \<longleftrightarrow> () \<in> steps \<delta> w ()"
@@ -632,7 +636,7 @@ definition nfa_fixc_ps :: "'a \<Rightarrow> 'a set \<Rightarrow> (nat, 'a) nfa" 
     finals = {1}
   \<rparr>"
 
-lemma nfa_fixc_ps_lang: "nfa_lang (nfa_fixc_ps c U) = { \<alpha>@[c]@\<beta> | \<alpha> \<beta>. set \<alpha> \<subseteq> U \<and> set \<beta> \<subseteq> U }"
+lemma nfa_fixc_ps_lang: "lang_nfa (nfa_fixc_ps c U) = { \<alpha>@[c]@\<beta> | \<alpha> \<beta>. set \<alpha> \<subseteq> U \<and> set \<beta> \<subseteq> U }"
   using nfa_fixc_ps_trans_correct unfolding nfa_fixc_ps_def
   by (metis (lifting) disjoint_insert(2) inf_bot_right select_convs(1,2,3))
 
@@ -731,7 +735,7 @@ qed
 
 lemmas nfa_word_trans_correct = nfa_word_trans_correct1 nfa_word_trans_correct2
 
-lemma nfa_word_lang[simp]: "nfa_lang (nfa_word w) = {w}"
+lemma nfa_word_lang[simp]: "lang_nfa (nfa_word w) = {w}"
   unfolding nfa_word_def using nfa_word_trans_correct[of w] by fastforce
 
 lemma nfa_word_finite_trans: "finite (transitions (nfa_word w))"

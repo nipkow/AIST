@@ -222,22 +222,22 @@ qed
 
 lemma prestar_while_correct:                 
   assumes "reachable_from \<delta> q\<^sub>0 \<subseteq> Q" and "prestar_while P Q \<delta> = Some \<delta>'"
-  shows "trans_lang \<delta>' q\<^sub>0 F = pre_star P (trans_lang \<delta> q\<^sub>0 F)"
+  shows "lang_trans \<delta>' q\<^sub>0 F = pre_star P (lang_trans \<delta> q\<^sub>0 F)"
 proof (standard; standard)
   fix w
-  assume "w \<in> trans_lang \<delta>' q\<^sub>0 F"
+  assume "w \<in> lang_trans \<delta>' q\<^sub>0 F"
   then obtain q\<^sub>f where "q\<^sub>f \<in> steps \<delta>' w q\<^sub>0" and "q\<^sub>f \<in> F"
     by blast
   then obtain w' where "P \<turnstile> w \<Rightarrow>* w'" and "q\<^sub>f \<in> steps \<delta> w' q\<^sub>0"
     using prestar_while_sub assms by fast
-  moreover have "w' \<in> trans_lang \<delta> q\<^sub>0 F"
+  moreover have "w' \<in> lang_trans \<delta> q\<^sub>0 F"
     using calculation \<open>q\<^sub>f \<in> F\<close> by blast
-  ultimately show "w \<in> pre_star P (trans_lang \<delta> q\<^sub>0 F)"
+  ultimately show "w \<in> pre_star P (lang_trans \<delta> q\<^sub>0 F)"
     unfolding pre_star_def by blast
 next
   fix w
-  assume "w \<in> pre_star P (trans_lang \<delta> q\<^sub>0 F)"
-  then obtain w' where "P \<turnstile> w \<Rightarrow>* w'" and "w' \<in> trans_lang \<delta> q\<^sub>0 F"
+  assume "w \<in> pre_star P (lang_trans \<delta> q\<^sub>0 F)"
+  then obtain w' where "P \<turnstile> w \<Rightarrow>* w'" and "w' \<in> lang_trans \<delta> q\<^sub>0 F"
     unfolding pre_star_def by blast
   then obtain q\<^sub>f where "q\<^sub>f \<in> steps \<delta> w' q\<^sub>0" and "q\<^sub>f \<in> F"
     by blast
@@ -250,7 +250,7 @@ next
   moreover note \<open>P \<turnstile> w \<Rightarrow>* w'\<close>
   ultimately have "q\<^sub>f \<in> steps \<delta>' w q\<^sub>0"
     by (elim prestar_step_fp) simp+
-  with \<open>q\<^sub>f \<in> F\<close> show "w \<in> trans_lang \<delta>' q\<^sub>0 F"
+  with \<open>q\<^sub>f \<in> F\<close> show "w \<in> lang_trans \<delta>' q\<^sub>0 F"
     by blast
 qed
 
@@ -323,39 +323,35 @@ subsection\<open>Computability\<close>
 text\<open>
   While the definition of @{term prestar_step} is semantically correct,
   Isabelle cannot automatically compute it.
+  The following code equations ensure computability, as long as \<open>P\<close>, \<open>Q\<close> and \<open>\<delta>\<close> are finite.
 \<close>
 
-text\<open>
-  The following code equations ensure computability, as long as \<open>P\<close>, \<open>Q\<close> and \<open>\<delta>\<close> are finite,
-  which is guaranteed by the definition of NFAs and CFGs.
-\<close>
+definition prestar_step_prod_code :: "('s, ('n, 't) sym) Trans \<Rightarrow> 's set \<Rightarrow> ('n, 't) prod \<Rightarrow> ('s, ('n, 't) sym) Trans" where
+  "prestar_step_prod_code \<delta> Q p \<equiv> (\<lambda>(s\<^sub>1, s\<^sub>2). (s\<^sub>1, Nt (fst p), s\<^sub>2)) ` {(s\<^sub>1, s\<^sub>2) \<in> Q \<times> Q. s\<^sub>2 \<in> steps \<delta> (snd p) s\<^sub>1}"
 
-definition c_prestar_step_prod :: "('s, ('n, 't) sym) Trans \<Rightarrow> 's set \<Rightarrow> ('n, 't) prod \<Rightarrow> ('s, ('n, 't) sym) Trans" where
-  "c_prestar_step_prod \<delta> Q p \<equiv> (\<lambda>(s\<^sub>1, s\<^sub>2). (s\<^sub>1, Nt (fst p), s\<^sub>2)) ` {(s\<^sub>1, s\<^sub>2) \<in> Q \<times> Q. s\<^sub>2 \<in> steps \<delta> (snd p) s\<^sub>1}"
+definition prestar_step_code :: "('s, ('n, 't) sym) Trans \<Rightarrow> 's set \<Rightarrow> ('n, 't) Prods \<Rightarrow> ('s, ('n, 't) sym) Trans" where
+  "prestar_step_code \<delta> Q P \<equiv> \<Union>(prestar_step_prod_code \<delta> Q ` P)"
 
-definition c_prestar_step :: "('s, ('n, 't) sym) Trans \<Rightarrow> 's set \<Rightarrow> ('n, 't) Prods \<Rightarrow> ('s, ('n, 't) sym) Trans" where
-  "c_prestar_step \<delta> Q P \<equiv> \<Union>(c_prestar_step_prod \<delta> Q ` P)"
+lemma prestar_step_prod_code_correct:
+  "prestar_step_prod_code \<delta> Q p = { (q, Nt (fst p), q') | q q'. q' \<in> steps \<delta> (snd p) q \<and> q \<in> Q \<and> q' \<in> Q }"
+  by (auto simp: prestar_step_prod_code_def)
 
-lemma c_prestar_step_prod_correct:
-  "c_prestar_step_prod \<delta> Q p = { (q, Nt (fst p), q') | q q'. q' \<in> steps \<delta> (snd p) q \<and> q \<in> Q \<and> q' \<in> Q }"
-  by (auto simp: c_prestar_step_prod_def)
+lemma prestar_step_code_correct: "(q, X, q') \<in> prestar_step_code \<delta> Q P \<longleftrightarrow> (q, X, q') \<in> prestar_step P Q \<delta>"
+  unfolding prestar_step_code_def prestar_step_def prestar_step_prod_code_correct by (cases X; force)
 
-lemma c_prestar_step_correct: "(q, X, q') \<in> c_prestar_step \<delta> Q P \<longleftrightarrow> (q, X, q') \<in> prestar_step P Q \<delta>"
-  unfolding c_prestar_step_def prestar_step_def c_prestar_step_prod_correct by (cases X; force)
+lemma prestar_step_code[code]: "prestar_step P Q \<delta> = prestar_step_code \<delta> Q P"
+  using prestar_step_code_correct by fast
 
-lemma prestar_step_code[code]: "prestar_step P Q \<delta> = c_prestar_step \<delta> Q P"
-  using c_prestar_step_correct by fast
-
-definition compute_prestar :: "('n, 't) Prods \<Rightarrow> ('s, ('n, 't) sym) nfa \<Rightarrow> ('s, ('n, 't) sym) nfa" where
-  "compute_prestar P M \<equiv> (
+definition prestar_code :: "('n, 't) Prods \<Rightarrow> ('s, ('n, 't) sym) nfa \<Rightarrow> ('s, ('n, 't) sym) nfa" where
+  "prestar_code P M \<equiv> (
     let Q = {start M} \<union> (snd ` snd ` (transitions M)) in
     case prestar_while P Q (transitions M) of
       Some \<delta>' \<Rightarrow> M \<lparr> transitions := \<delta>' \<rparr>
   )"
 
-lemma compute_prestar_correct:
+lemma prestar_code_correct:
   assumes "finite P" and "finite (transitions M)"
-  shows "nfa_lang (compute_prestar P M) = pre_star P (nfa_lang M)"
+  shows "lang_nfa (prestar_code P M) = pre_star P (lang_nfa M)"
 proof -
   define \<delta> where "\<delta> \<equiv> transitions M"
   define Q where "Q \<equiv> {start M} \<union> (snd ` snd ` \<delta>)"
@@ -365,12 +361,12 @@ proof -
     using reachable_from_computable Q_def by fast
   moreover obtain \<delta>' where \<delta>'_def: "prestar_while P Q \<delta> = Some \<delta>'"
     using prestar_while_terminates assms \<open>finite Q\<close> \<delta>_def by blast
-  ultimately have "trans_lang \<delta>' (start M) (finals M) = pre_star P (trans_lang \<delta> (start M) (finals M))"
+  ultimately have "lang_trans \<delta>' (start M) (finals M) = pre_star P (lang_trans \<delta> (start M) (finals M))"
     by (rule prestar_while_correct)
-  then have "nfa_lang (M \<lparr> transitions := \<delta>' \<rparr>) = pre_star P (nfa_lang M)"
+  then have "lang_nfa (M \<lparr> transitions := \<delta>' \<rparr>) = pre_star P (lang_nfa M)"
     by (simp add: \<delta>_def)
   then show ?thesis
-    unfolding compute_prestar_def using Q_def \<delta>'_def \<delta>_def by force
+    unfolding prestar_code_def using Q_def \<delta>'_def \<delta>_def by force
 qed
 
 subsection\<open>Properties\<close>

@@ -9,8 +9,6 @@ session PreStar = Context_Free_Grammar +
     ApplicationsExample
     Finiteness
     ImprovedAlgorithm
-  theories [document = false]
-    PreStar
   document_files
     root.bib
     root.tex

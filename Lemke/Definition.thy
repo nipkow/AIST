@@ -7,7 +7,7 @@ begin \<comment>\<open>begin-theory Definition\<close>
 
 text\<open>
   The predecessors of a set of strings \<open>C\<close> is defined, with respect to a context-free grammar
-  \<open>G = (V, \<Sigma>, P, S)\<close>, as the set of all strings \<open>c'\<close>, for which there exists at least one \<open>c \<in> C\<close>,
+  \<open>G\<close>, as the set of all strings \<open>c'\<close>, for which there exists a \<open>c \<in> C\<close>,
   such that \<open>c\<close> can be derived from \<open>c'\<close> using the productions of \<open>G\<close>:
 \<close>
 

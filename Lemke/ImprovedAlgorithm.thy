@@ -1,22 +1,24 @@
 section\<open>Reduced Complexity for Grammars in CNF\<close>
 
 theory ImprovedAlgorithm
-  imports Algorithm
+  imports Algorithm Context_Free_Grammar.Chomsky_Normal_Form
 begin \<comment>\<open>begin-theory ImprovedAlgorithm\<close>
 
 text\<open>
   Bouajjani et al. have proposed in \<^cite>\<open>bouajjani2000efficient\<close> an improved algorithm
-  for grammars in extended chomsky normal-form.
+  for grammars in extended Chomsky Normal Form.
 \<close>
 
 text\<open>
   This theory proves core properties (correctness and termination) of the algorithm.
 \<close>
 
-subsection\<open>Prelimanaries\<close>
+subsection\<open>Preliminaries\<close>
 
-definition is_cnf :: "('n, 't) Prods \<Rightarrow> bool" where
-  "is_cnf P \<equiv> (\<forall>(A, \<beta>) \<in> P.
+text \<open>Extended Chomsky Normal Form:\<close>
+
+definition CNF1 :: "('n, 't) Prods \<Rightarrow> bool" where
+  "CNF1 P \<equiv> (\<forall>(A, \<beta>) \<in> P.
     \<comment>\<open>1. \<open>A \<rightarrow> \<epsilon>\<close>\<close>
     (\<beta> = []) \<or>
     \<comment>\<open>2. \<open>A \<rightarrow> a\<close>\<close>
@@ -560,7 +562,7 @@ lemma prestar_alg_sup:
   defines "S \<equiv> alg_state_new P Q \<delta>"
   assumes "alg_outer S = Some S'"
     and "prestar_while P Q \<delta> = Some \<delta>'"
-    and "is_cnf P"
+    and "CNF1 P"
   shows "\<delta>' \<subseteq> rel S'"
 proof -
   \<comment>\<open>If \<open>t \<in> \<delta>\<close>, then \<open>t\<close> is eventually added to \<open>rel\<close>:\<close>
@@ -589,7 +591,7 @@ proof -
     moreover have q_in: "q \<in> Q \<and> q' \<in> Q"
       using t_src calculation by (auto simp: prestar_step_def)
     ultimately consider "\<beta> = []" | "\<exists>X. \<beta> = [X]" | "\<exists>B C. \<beta> = [Nt B, Nt C]"
-      using assms(5)[unfolded is_cnf_def] by fast
+      using assms(5)[unfolded CNF1_def] by fast
     then have "(q, Nt A, q') \<in> rel S'" proof (cases)
       case 1
       then have "q = q'"
@@ -878,7 +880,7 @@ definition compute_prestar_cnf :: "('n, 't) Prods \<Rightarrow> ('s, ('n, 't) sy
   )"
 
 lemma compute_prestar_cnf_correct:
-  assumes "finite P" and "finite (transitions M)" and cnf: "is_cnf P"
+  assumes "finite P" and "finite (transitions M)" and cnf: "CNF1 P"
   shows "nfa_lang (compute_prestar_cnf P M) = pre_star P (nfa_lang M)"
 proof -
   define Q where "Q \<equiv> {start M} \<union> (snd ` snd ` (transitions M))"

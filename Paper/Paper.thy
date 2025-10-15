@@ -6,10 +6,16 @@ imports
   Sugar
 begin
 declare [[show_question_marks=false]]
-lemma expand_hd_simp2: "expand_hd A (S#Ss) R =
- (let R' = expand_hd A Ss R;
-      X = {r \<in> R'. \<exists>w. r = (A, Nt S # w)}
-  in R' - X \<union> subst_hd R' X)"
+lemma expand_hd_simp2: "expand_hd A (S#Ss) P =
+ (let P' = expand_hd A Ss P;
+      X = {r \<in> P'. \<exists>w. r = (A, Nt S # w)}
+  in P' - X \<union> subst_hd P' X)"
+  by simp
+
+lemma expand_tri_simp2: "expand_tri (A#As) P =
+ (let P' = expand_tri As P;
+      X = {r \<in> P'. \<exists>w B. r = (A, Nt B # w) \<and> B \<in> set As}
+  in P' - X \<union> subst_hd P' X)"
   by simp
 
 (*>*)
@@ -124,8 +130,8 @@ using only 10--15\% of the number of lines.
 \section{Greibach}%AY
 
 \begin{definition}
-A grammar \<open>R\<close> is in \emph{(head) Greibach normal form (GNF)} if
-every right-hand side in \<open>R\<close> starts with a terminal symbol.
+A grammar \<open>P\<close> is in \emph{(head) Greibach normal form (GNF)} if
+every right-hand side in \<open>P\<close> starts with a terminal symbol.
 Formally,
 \begin{quote}
 @{def GNF_hd}
@@ -139,10 +145,21 @@ which turns a grammar into GNF while preserving the language modulo \<open>\<eps
 @{thm Lang_gnf_hd}
 \end{theorem}
 
+The outline of the definition of @{const gnf_hd} is as follows:
+\begin{definition}
+@{def gnf_hd}
+\end{definition}
+
+
+Note that @{const gnf_hd} takes grammar in a list representation \<open>ps\<close>,
+because the algorithm depends on the order of productions.
+Moreover, because the translation introduces fresh nonterminals,
+the language preservation is restricted to nonterminals
+which already appear in the original grammar (\<open>A \<in> nts ps\<close>).
 The main ingredient of @{const gnf_hd} is the removal of \emph{direct left recursions},
-i.e., rules of form \<open>A \<rightarrow> A v \<in> R\<close>.
+i.e.\ rules of form \<open>A \<rightarrow> A v \<in> P\<close>.
 Let \<open>V\<close> collect all such \<open>v\<close>,
-and let \<open>U\<close> collect all \<open>u\<close> of \<open>A \<rightarrow> u \<in> R\<close> that does not start with \<open>A\<close>.
+and let \<open>U\<close> collect all \<open>u\<close> of \<open>A \<rightarrow> u \<in> P\<close> that does not start with \<open>A\<close>.
 Then the language of \<open>A\<close> is \<open>U \<union> U V\<^sup>+\<close>;
 hence we introduce a fresh nonterminal \<open>A'\<close> whose language is \<open>V\<^sup>+\<close>.
 
@@ -156,14 +173,20 @@ hence we introduce a fresh nonterminal \<open>A'\<close> whose language is \<ope
 
 The formalization is almost the same as the textual description,
 except that
-if @{prop \<open>V = {}\<close>}, then @{term "solve_lrec A A'"} returns the original \<open>A\<close>-productions
-(excluding useless \<open>A \<rightarrow> A\<close> production).
+we do not introduce extra productions if @{prop \<open>V = {}\<close>}.
 This optimization is not present in \<^cite>\<open>HopcroftU79\<close>,
-but their Example 4.10 performs this optimization implicitly.
+although their Example 4.10 performs this implicitly.
+
+Using @{const solve_lrec},
+@{const solve_tri} function a grammar into
+\emph{triangular form}, 
+\begin{quote}
+@{fun solve_tri}
+\end{quote}
 
 
 \begin{quote}
-@{abbrev "subst_hd R X"}
+@{abbrev "subst_hd P X"}
 \end{quote}
 
 \begin{quote}
@@ -171,16 +194,8 @@ but their Example 4.10 performs this optimization implicitly.
 \end{quote}
 
 \begin{quote}
-@{fun solve_tri}
+@{fun expand_tri[expand_tri.simps(1) expand_tri_simp2]}
 \end{quote}
-
-\begin{quote}
-@{fun expand_tri}
-\end{quote}
-
-\begin{definition}
-@{def gnf_hd}
-\end{definition}
 
 
 \section{Chomsky-Sch\"utzenberger}

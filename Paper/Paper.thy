@@ -277,8 +277,14 @@ Always word in lang
 
 \section{Greibach}\label{sec:GNF}%AY
 
+--- notes ---\\
+\<^cite>\<open>BlumK99\<close> defines Greibach as our head Greibach.
+\<^cite>\<open>ReghizziBM19\<close> calls it real-time.
+\\--- note ends ---\\
+
+
 \begin{definition}
-A grammar \<open>P\<close> is in \emph{(head) Greibach normal form (GNF)} if
+A grammar \<open>P\<close> is in \emph{head Greibach normal form (GNF)} if
 every right-hand side in \<open>P\<close> starts with a terminal symbol.
 Formally,
 \begin{quote}
@@ -292,22 +298,31 @@ which turns a grammar into GNF while preserving the language modulo \<open>\<eps
 @{thm GNF_hd_gnf_hd}\\
 @{thm Lang_gnf_hd}
 \end{theorem}
-
-The outline of the definition of @{const gnf_hd} is as follows:
-\begin{definition}
-@{def gnf_hd}
-\end{definition}
-
-It first lists the nonterminals as \<open>As\<close>, and make fresh copies as \<open>As'\<close>.
-Then it takes three steps: first eliminate \<open>\<epsilon>\<close>-productions (@{const eps_elim}),
-then obtain triangular form (@{const solve_tri}),
-and finally obtain GNF (@{const expand_tri}).
-
 Note that @{const gnf_hd} takes grammar in a list representation \<open>ps\<close>,
 because the algorithm depends on the order of productions.
 Moreover, because the translation introduces fresh nonterminals,
 the language preservation is restricted to nonterminals
 which already appear in the original grammar (\<open>A \<in> nts ps\<close>).
+(This will not be relevant if one fixes the start symbol.)
+
+The outline of the definition of @{const gnf_hd} is as follows:
+\begin{definition}
+@{def gnf_hd}
+\end{definition}
+It first enumerates the nonterminals as a list \<open>As\<close>,
+and make their fresh copies as \<open>As'\<close>.
+Then it takes three steps of conversions:
+first eliminate \<open>\<epsilon>\<close>-productions (@{const Eps_elim}),
+then transform to a triangular form (@{const solve_tri}),
+and finally obtain head GNF (@{const expand_tri}).
+The last two steps follow textbook algorithms for deriving
+GNF~\cite{Harrison78,HopcroftU79},
+except that we do not require input in Chomsky normal form
+but only eliminate \<open>\<epsilon>\<close>-productions.
+As a result we arrive at head GNF, and turning them into GNF is easy.
+!!TODO!!
+
+
 The main ingredient of @{const gnf_hd} is the removal of \emph{direct left recursions},
 i.e.\ rules of form \<open>A \<rightarrow> A v \<in> P\<close>.
 Let \<open>V\<close> collect all such \<open>v\<close>,
@@ -330,8 +345,8 @@ This optimization is not present in \<^cite>\<open>HopcroftU79\<close>,
 although their Example 4.10 performs this implicitly.
 
 Using @{const solve_lrec},
-@{const solve_tri} function a grammar into
-\emph{triangular form}, 
+@{const solve_tri} function transforms a grammar into
+\emph{triangular form}.
 \begin{quote}
 @{fun solve_tri}
 \end{quote}
@@ -348,6 +363,16 @@ Using @{const solve_lrec},
 \begin{quote}
 @{fun expand_tri[expand_tri.simps(1) expand_tri_simp2]}
 \end{quote}
+
+\subsection{Complexity}
+
+The size of (head) GNF after the transformation is exponential to the size of initial grammar.
+
+This is demonstrated by the family \<open>{P\<^sub>n}\<^sub>n\<close> of grammars 
+where
+
+!!TODO!! Make the example into CNF?
+
 
 
 \section{Chomsky-Sch\"utzenberger}\label{sec:ChSch}

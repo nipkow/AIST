@@ -298,6 +298,10 @@ The outline of the definition of @{const gnf_hd} is as follows:
 @{def gnf_hd}
 \end{definition}
 
+It first lists the nonterminals as \<open>As\<close>, and make fresh copies as \<open>As'\<close>.
+Then it takes three steps: first eliminate \<open>\<epsilon>\<close>-productions (@{const eps_elim}),
+then obtain triangular form (@{const solve_tri}),
+and finally obtain GNF (@{const expand_tri}).
 
 Note that @{const gnf_hd} takes grammar in a list representation \<open>ps\<close>,
 because the algorithm depends on the order of productions.

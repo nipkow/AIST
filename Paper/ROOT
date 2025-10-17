@@ -1,4 +1,8 @@
-session Paper = Greibach_Normal_Form +
+session Base in "../Lemke" = Greibach_Normal_Form +
+  theories
+    Definition
+
+session Paper = Base +
   options [document = pdf, show_question_marks = false, names_short = true,
     document_output = "generated"]
   theories

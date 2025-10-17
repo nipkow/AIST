@@ -3,6 +3,7 @@ theory Paper
 imports
   Context_Free_Grammar.Pumping_Lemma_CFG
   Greibach_Normal_Form.Greibach_Normal_Form
+  Base.Definition
   Sugar
 begin
 declare [[show_question_marks=false]]
@@ -20,6 +21,8 @@ lemma expand_tri_simp2: "expand_tri (A#As) P =
 
 (*>*)
 text \<open>
+\newcommand{\prestar}{$\mathit{pre}^*$}
+
 \section{Introduction}
 
 This paper reports on a concerted formalization of large parts of the basic of 
@@ -31,10 +34,14 @@ unified in a single formalization, available in the Archive of Formal Proofs as 
 
 %rebase LL1 parser on CFG!
 
-The main specific novelty of our work is the proof of an executable transformation into
-Greibach Normal Form (Sect.~\ref{sec:GNF}),
-and the proof of two foundational theorems of context-free languages that have not been formalized before:
+The main contributions of our work are:
+\begin{itemize}
+\item a verified executable transformation into Greibach Normal Form (Sect.~\ref{sec:GNF}),
+\item a verified \prestar\ algorithm for solving many CFG problems automatically
+ (e.g.\ the word problem), and
+\item the verification of two foundational theorems of context-free languages that had not been formalized before:
 the Chomsky-Sch\"utzenberger Theorem (Sect.~\ref{sec:ChSch}) and Parikh's Theorem (Sect.~\ref{sec:Parikh}).
+\end{itemize}
 
 Of course only textbook+, no parsing (separate).
 
@@ -154,7 +161,20 @@ and are found here \cite{AFP}.
 
 2DFA AFA?
 
-\section{Pre*}
+
+\section{\prestar}
+
+Bouajjani \emph{et al.} \cite{Bouajjani} realized that a device that Book and Otto \cite{}
+had used to solve problems
+for string rewriting systems can also be applied to a number of standard CFG problems,
+e.g.\ is the generated language empty.
+The key insight is that the predecessors (\prestar) of a regular language w.r.t.\ a CFG
+\[ \mbox{\prestar}(L) = \{w \mid \} \]
+is again regular. Note that if \<open>P :: ('n,'t) prods\<close>, then \<open>L :: 't list set\<close>
+and the result is of type \<open>('n,'t) sym list set\<close>.
+The beauty of this insight is that \prestar\ can be computed very easily if \<open>L\<close> is given as
+an NFA \<open>M\<close>: given a production \<open>A \<rightarrow> \<alpha>\<close>, if \<open>M\<close> has a sequence of transitions from state \<open>p\<close>
+to state \<open>q\<close> labeled with \<open>\<alpha>\<close>, we add the transition \<open>(p, A, q)\<close>
 
 \section{Greibach}\label{sec:GNF}%AY
 

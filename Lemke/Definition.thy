@@ -2,8 +2,8 @@ section\<open>Definition\<close>
 
 theory Definition
 imports
-  "Context_Free_Grammar.Context_Free_Grammar"
-begin \<comment>\<open>begin-theory Definition\<close>
+  Context_Free_Grammar.Context_Free_Grammar
+begin
 
 text\<open>
   The predecessors of a set of strings \<open>C\<close> is defined, with respect to a context-free grammar
@@ -11,7 +11,8 @@ text\<open>
   such that \<open>c\<close> can be derived from \<open>c'\<close> using the productions of \<open>G\<close>:
 \<close>
 
-definition "pre_star P C \<equiv> {c'. \<exists>c \<in> C. P \<turnstile> c' \<Rightarrow>* c}"
+definition pre_star :: "('n,'t)Prods \<Rightarrow> ('n,'t) syms set \<Rightarrow> ('n,'t) syms set" where
+"pre_star P L \<equiv> {\<alpha>. \<exists>\<beta> \<in> L. P \<turnstile> \<alpha> \<Rightarrow>* \<beta>}"
 
 text\<open>
   In general, the @{typ "('n, 't) syms"} datatype is used, which combines both non-terminals \<open>V\<close>

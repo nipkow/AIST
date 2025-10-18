@@ -214,22 +214,54 @@ lemma uniformize_fun_decreases_badTmsCount:
   assumes "uniformize_fun A t ps ps \<noteq> ps"
           "A \<notin> nts ps \<union> {S}"
   shows "badTmsCount (uniformize_fun A t ps ps) < badTmsCount ps"
-    using assms uniformize_fun_is_uniformized lemma6_a by fast
+  using assms uniformize_fun_is_uniformized lemma6_a by fast
 
 
-fun uniformize_rt :: "['n::infinite, 't, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
-  "uniformize_rt A t ps = (let ps' = uniformize_fun A t ps ps in 
-      if ps = ps' then ps else uniformize_rt A t ps')"
+function uniformize_rt :: "['n::infinite, 't, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+  "uniformize_rt S t ps = 
+    (let ps' = uniformize_fun (fresh (nts ps \<union> {S})) t ps ps in 
+        if ps = ps' then ps else uniformize_rt S t ps')"
+  by auto
 termination
-proof - 
-  (*TODO: Define count func for only Tm t and use as measure. Case distinction when uniformize_fun is id?*)
-  let ?R = "measure (\<lambda>(A,t,ps0,ps). count_list (uniformize_fun A t ps0 ps) (Tm t))"
+proof 
+  let ?R = "measure (\<lambda>(S,t,ps). badTmsCount ps)"
   show "wf ?R" ..
-
-
+  fix S :: "'n::infinite" 
+    and t :: 't 
+    and x ps :: "('n,'t) prods" 
+  let ?A = "fresh (nts ps \<union> {S})"
+  assume "x = uniformize_fun ?A t ps ps"
+         "ps \<noteq> x"
+  moreover have "?A \<notin>  nts ps \<union> {S}" using fresh_finite 
+    by (metis finite_Un finite_insert finite_nts insert_is_Un)
+  ultimately show "((S,t,x), S,t,ps) \<in> ?R"
+    using uniformize_fun_decreases_badTmsCount by force 
 qed
 
-lemma "(\<lambda>x y. uniformize S x y)^** ps (uniformize_rt A t ps ps)" (*TODO*)
-  sorry
+lemma "(\<lambda>x y. \<exists>A. uniformize A t S x y)^** ps (uniformize_rt S t ps)"
+proof (induction "badTmsCount ps" arbitrary: ps rule: less_induct)
+  case less
+  let ?A = "fresh (nts ps \<union> {S})"
+  consider (eq) "uniformize_fun ?A t ps ps = ps" |
+           (neq) "uniformize_fun ?A t ps ps \<noteq> ps" by blast
+  then show ?case 
+  proof cases
+    case neq
+    let ?ps' = "uniformize_fun ?A t ps ps"
+    from neq have "badTmsCount ?ps' < badTmsCount ps"
+      using uniformize_fun_decreases_badTmsCount fresh_finite 
+      by (metis finite.emptyI finite.insertI finite_nts infinite_Un)
+    with less have uniformize_rtrancl: 
+      "(\<lambda>x y. \<exists>A. uniformize A t S x y)\<^sup>*\<^sup>* ?ps' (uniformize_rt S t ?ps')" by simp
+    moreover have "uniformize ?A t S ps ?ps'"
+    proof -
+      from fresh_finite have "?A \<notin> nts ps \<union> {S}" 
+        by (metis finite.emptyI finite.insertI finite_nts infinite_Un)
+      with uniformize_fun_is_uniformized[OF neq] show ?thesis by simp 
+    qed
+    ultimately show ?thesis
+      by (smt (verit, best) converse_rtranclp_into_rtranclp uniformize_rt.simps)
+  qed auto
+qed
 
 end

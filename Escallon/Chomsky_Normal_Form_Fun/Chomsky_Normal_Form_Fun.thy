@@ -2,26 +2,6 @@ theory Chomsky_Normal_Form_Fun
   imports Chomsky_Normal_Form
 begin
 
-fun tm_list_of_prods :: "('n,'t) prods \<Rightarrow> 't list" where
-  "tm_list_of_prods ps = 
-    (let rs = map snd ps in map destTm (filter isTm (concat rs)))"
-
-lemma tm_list_of_prods_is_tms:
-  "tm \<in> set (tm_list_of_prods ps) \<longleftrightarrow> tm \<in> tms ps"
-proof -
-  have "tm \<in> set (tm_list_of_prods ps) = 
-    (tm \<in> set (map destTm (filter isTm (concat (map snd ps)))))"
-    by force
-  also have "... = (Tm tm \<in> set (filter isTm (concat (map snd ps))))" 
-    using destTm_o_Tm
-    by (smt (verit, best) destTm.simps filter_set in_set_conv_nth isTm_def length_map member_filter
-        nth_map nth_mem)
-  also have "... = (tm \<in> (\<Union>(A,w)\<in>(set ps). tms_syms w))"
-    using tms_syms_def by fastforce
-  also have "... = (tm \<in> tms ps)" unfolding Tms_def by blast
-  finally show ?thesis .
-qed
-
 fun replace_tm :: "['n, 't, ('n,'t) syms] \<Rightarrow> ('n,'t) syms" where
   "replace_tm A t [] = []" |
   "replace_tm A t (s # sms) = (if s = Tm t then Nt A # sms else s # replace_tm A t sms)"
@@ -236,7 +216,6 @@ lemma uniformize_fun_decreases_badTmsCount:
   shows "badTmsCount (uniformize_fun A t ps ps) < badTmsCount ps"
     using assms uniformize_fun_is_uniformized lemma6_a by fast
 
-  term count_list
 
 fun uniformize_rt :: "['n::infinite, 't, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
   "uniformize_rt A t ps = (let ps' = uniformize_fun A t ps ps in 

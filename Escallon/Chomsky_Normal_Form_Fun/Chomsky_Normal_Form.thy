@@ -6,8 +6,7 @@ Based on HOL4 theories by Aditi Barthwal
 section \<open>Conversion to Chomsky Normal Form\<close>
 
 theory Chomsky_Normal_Form
-  imports Context_Free_Grammar.Unit_Elimination 
-          Context_Free_Grammar.Epsilon_Elimination
+imports Context_Free_Grammar.Unit_Elimination Context_Free_Grammar.Epsilon_Elimination
 begin
 
 definition CNF :: "('n, 't) Prods \<Rightarrow> bool" where

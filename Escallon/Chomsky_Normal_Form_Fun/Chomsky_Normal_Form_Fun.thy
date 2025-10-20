@@ -1,26 +1,6 @@
 theory Chomsky_Normal_Form_Fun
-  imports "Context_Free_Grammar.Chomsky_Normal_Form" HOL.List
+  imports Chomsky_Normal_Form
 begin
-
-fun tm_list_of_prods :: "('n,'t) prods \<Rightarrow> 't list" where
-  "tm_list_of_prods ps = 
-    (let rs = map snd ps in map destTm (filter isTm (concat rs)))"
-
-lemma tm_list_of_prods_is_tms:
-  "tm \<in> set (tm_list_of_prods ps) \<longleftrightarrow> tm \<in> tms ps"
-proof -
-  have "tm \<in> set (tm_list_of_prods ps) = 
-    (tm \<in> set (map destTm (filter isTm (concat (map snd ps)))))"
-    by force
-  also have "... = (Tm tm \<in> set (filter isTm (concat (map snd ps))))" 
-    using destTm_o_Tm
-    by (smt (verit, best) destTm.simps filter_set in_set_conv_nth isTm_def length_map member_filter
-        nth_map nth_mem)
-  also have "... = (tm \<in> (\<Union>(A,w)\<in>(set ps). tms_syms w))"
-    using tms_syms_def by fastforce
-  also have "... = (tm \<in> tms ps)" unfolding Tms_def by blast
-  finally show ?thesis .
-qed
 
 fun replace_tm :: "['n, 't, ('n,'t) syms] \<Rightarrow> ('n,'t) syms" where
   "replace_tm A t [] = []" |
@@ -76,7 +56,7 @@ qed simp
 
 (*The current implementation corresponds to uniformize as defined in 
   Context_Free_Grammar.Chomsky_Normal_Form. This can be simplified with maps.*)
-fun uniformize_fun :: "['n, 't, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+fun uniformize_fun :: "['n::infinite, 't, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
   "uniformize_fun _ _ ps0 [] = ps0" |
   "uniformize_fun A t ps0 ((l,r) # ps) = 
     (let r' = replace_tm A t r in 
@@ -184,8 +164,6 @@ lemma uniformize_fun_uniformizes_fst:
           "ps = q@[(l,r)]@s"
           "\<forall>(l,r)\<in>set q. Tm t \<notin> set r \<or> length r < 2"
           "length r \<ge> 2"
-          "A = fresh P"
-          "nts ps \<subseteq> P"
         shows
     "uniformize_fun A t ps ps = ((removeAll (l,r) ps) @ [(A, [Tm t]), (l, replace_tm A t r)])" 
 proof -
@@ -205,7 +183,7 @@ qed
 
 lemma uniformize_fun_is_uniformized:
   assumes "uniformize_fun A t ps ps \<noteq> ps"
-          "A = fresh (nts ps \<union> {S})"
+          "A \<notin> (nts ps \<union> {S})"
   shows "uniformize A t S ps (uniformize_fun A t ps ps)"
 proof -
   from assms obtain l r q s  where lr_in_ps: "(l,r) \<in> set ps"
@@ -226,16 +204,64 @@ proof -
     with len_lb show thesis using that by fastforce
   qed
   moreover have "uniformize_fun A t ps ps = removeAll (l,r) ps @ [(A, [Tm t]), (l, p @ [Nt A] @ s')]" 
-    using uniformize_fun_uniformizes_fst[OF lr_in_ps replace_neq ps_qs _ len_lb assms(2)] 
+    using uniformize_fun_uniformizes_fst[OF lr_in_ps replace_neq ps_qs _ len_lb] 
     replace_eq_p_Nt_s q_uniform by auto
   ultimately show ?thesis
     unfolding uniformize_def using assms by blast
 qed
 
-fun uniformize_rt :: "['n, 't, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
-  "uniformize_rt _ = undefined"(*TODO*)
+lemma uniformize_fun_decreases_badTmsCount:
+  assumes "uniformize_fun A t ps ps \<noteq> ps"
+          "A \<notin> nts ps \<union> {S}"
+  shows "badTmsCount (uniformize_fun A t ps ps) < badTmsCount ps"
+  using assms uniformize_fun_is_uniformized lemma6_a by fast
 
-lemma "(\<lambda>x y. \<exists>A t. uniformize A t S x y)^** ps (uniformize_rt A t ps ps)" (*TODO*)
-  sorry
+
+function uniformize_rt :: "['n::infinite, 't, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+  "uniformize_rt S t ps = 
+    (let ps' = uniformize_fun (fresh (nts ps \<union> {S})) t ps ps in 
+        if ps = ps' then ps else uniformize_rt S t ps')"
+  by auto
+termination
+proof 
+  let ?R = "measure (\<lambda>(S,t,ps). badTmsCount ps)"
+  show "wf ?R" ..
+  fix S :: "'n::infinite" 
+    and t :: 't 
+    and x ps :: "('n,'t) prods" 
+  let ?A = "fresh (nts ps \<union> {S})"
+  assume "x = uniformize_fun ?A t ps ps"
+         "ps \<noteq> x"
+  moreover have "?A \<notin>  nts ps \<union> {S}" using fresh_finite 
+    by (metis finite_Un finite_insert finite_nts insert_is_Un)
+  ultimately show "((S,t,x), S,t,ps) \<in> ?R"
+    using uniformize_fun_decreases_badTmsCount by force 
+qed
+
+lemma "(\<lambda>x y. \<exists>A. uniformize A t S x y)^** ps (uniformize_rt S t ps)"
+proof (induction "badTmsCount ps" arbitrary: ps rule: less_induct)
+  case less
+  let ?A = "fresh (nts ps \<union> {S})"
+  consider (eq) "uniformize_fun ?A t ps ps = ps" |
+           (neq) "uniformize_fun ?A t ps ps \<noteq> ps" by blast
+  then show ?case 
+  proof cases
+    case neq
+    let ?ps' = "uniformize_fun ?A t ps ps"
+    from neq have "badTmsCount ?ps' < badTmsCount ps"
+      using uniformize_fun_decreases_badTmsCount fresh_finite 
+      by (metis finite.emptyI finite.insertI finite_nts infinite_Un)
+    with less have uniformize_rtrancl: 
+      "(\<lambda>x y. \<exists>A. uniformize A t S x y)\<^sup>*\<^sup>* ?ps' (uniformize_rt S t ?ps')" by simp
+    moreover have "uniformize ?A t S ps ?ps'"
+    proof -
+      from fresh_finite have "?A \<notin> nts ps \<union> {S}" 
+        by (metis finite.emptyI finite.insertI finite_nts infinite_Un)
+      with uniformize_fun_is_uniformized[OF neq] show ?thesis by simp 
+    qed
+    ultimately show ?thesis
+      by (smt (verit, best) converse_rtranclp_into_rtranclp uniformize_rt.simps)
+  qed auto
+qed
 
 end

@@ -3,7 +3,7 @@ theory Paper
 imports
   Context_Free_Grammar.Pumping_Lemma_CFG
   Greibach_Normal_Form.Greibach_Normal_Form
-  Base.Definition
+  Base.Algorithm
   Sugar
 begin
 declare [[show_question_marks=false]]
@@ -92,7 +92,8 @@ Symbols are a tagged union type:
 For compactness we usually drop the \<open>'n\<close> and \<open>'t\<close> parameters everywhere,
 e.g.\ we write \<open>sym\<close> instead of \<open>('n,'t)sym\<close>.
 
-A production is a pair of \<open>A :: 'n\<close> and a \<open>w :: sym list\<close>. We use the following abbreviations:
+A production, informally written \<open>A \<rightarrow> w\<close>, is a pair of \<open>A :: 'n\<close> and a \<open>w\<close> \<open>::\<close> \mbox{\<open>sym list\<close>}.
+We use the following abbreviations:
 \begin{quote}
 \<open>syms = sym list\<close> \quad \<open>prod = ('n \<times> syms)\<close> \quad \<open>Prods = prod set\<close>
 \end{quote}
@@ -155,7 +156,7 @@ Pushdown automata and the standard equivalence proofs
 (with CFGs, and equivalence of acceptance by empty stack and final state)
 were first formalized by Barthwal and Norrish \cite{wollic/BarthwalN10}.
 Our proofs are largely based on this online Lean formalization \cite{Leichtfried}
-and are found here \cite{AFP}.
+and are found here \cite{Pushdown_Automata-AFP}.
 
 \subsection{Automata}
 
@@ -164,17 +165,49 @@ and are found here \cite{AFP}.
 
 \section{\prestar}
 
-Bouajjani \emph{et al.} \cite{Bouajjani} realized that a device that Book and Otto \cite{}
+Bouajjani \emph{et al.} \cite{BouajjaniEFMRWW00} realized that a device that Book and Otto \cite{BookO93}
 had used to solve problems
-for string rewriting systems can also be applied to a number of standard CFG problems,
-e.g.\ is the generated language empty.
-The key insight is that the predecessors (\prestar) of a regular language w.r.t.\ a CFG
-\[ \mbox{\prestar}(L) = \{w \mid \} \]
-is again regular. Note that if \<open>P :: ('n,'t) prods\<close>, then \<open>L :: 't list set\<close>
-and the result is of type \<open>('n,'t) sym list set\<close>.
-The beauty of this insight is that \prestar\ can be computed very easily if \<open>L\<close> is given as
-an NFA \<open>M\<close>: given a production \<open>A \<rightarrow> \<alpha>\<close>, if \<open>M\<close> has a sequence of transitions from state \<open>p\<close>
-to state \<open>q\<close> labeled with \<open>\<alpha>\<close>, we add the transition \<open>(p, A, q)\<close>
+for string rewriting systems can also be applied to a number of standard CFG problems
+(e.g.\ determining if some nonterminal is productive).
+Let \<open>P :: ('n,'t) Prods\<close> and \<open>L :: ('n,'t) list set\<close>.
+Then @{term "pre_star P L"} is the set of predecessors of words in \<open>L\<close>
+w.r.t.\ @{prop "P \<turnstile> DUMMY \<Rightarrow>* DUMMY"}:
+\begin{quote}
+@{thm pre_star_def}
+\end{quote}
+The two key insights are that (if \<open>P\<close> finite):
+ if \<open>L\<close> is regular, so is \<open>pre_star P L\<close>, and if \<open>L\<close> is given as an NFA \<open>M\<close>,
+an NFA for \<open>pre_star P L\<close> can be computed \<open>M\<close>.
+
+Why does this help to decide, for example, the productivity problem?
+Let \<open>P\<close> be a grammar over a terminal alphabet \<open>\<Sigma>\<close>.
+Build an automaton \<open>U\<close> that accepts exactly \<open>\<Sigma>\<^sup>*\<close> (but no mixed word!);
+this requires only a single state.
+We want to decide if @{prop "Lang P A \<noteq> {}"} for some \<open>A\<close>.
+This is the case iff there is a word \<open>w \<in> \<Sigma>\<^sup>*\<close> such that @{prop "P \<turnstile> [Nt A] \<Rightarrow>* w"},
+which is the case iff @{text "[Nt A] \<in> pre_star P \<Sigma>\<^sup>*"} \<open>=: L\<close>. But because \<open>U\<close> accepts \<open>\<Sigma>\<^sup>*\<close>
+we can compute an automaton for \<open>L\<close> from \<open>U\<close> (as claimed above) and we only need to check
+if that automaton accepts @{term \<open>[Nt A]\<close>}.
+
+The algorithm for computing @{const pre_star} on the level of an NFA \<open>M\<close>
+extends \<open>M\<close> with new transitions as long as possible.
+Given a production \<open>A \<rightarrow> \<alpha>\<close> in \<open>P\<close>, if \<open>M\<close> has a sequence of transitions from state \<open>p\<close>
+to state \<open>p'\<close> labeled with \<open>\<alpha>\<close>, we add the transition \<open>(p, Nt A, p')\<close>. Now comes
+the formalization.
+
+Our NFAs are over some state type \<open>'s\<close>. Each transition is a triple of type \<^typ>\<open>'s \<times> ('n,'t)sym \<times> 's\<close>.
+The transitions of an NFA are a set of such triples and are usually denoted by \<open>T\<close>.
+It is easy to define a function @{const steps} of type
+@{typ "('s \<times> ('n,'t)sym \<times> 's) set \<Rightarrow> ('n,'t)syms \<Rightarrow> 's \<Rightarrow> 's set"}
+such that @{term "steps T \<alpha> p"} is the set of states reachable from \<open>p\<close> via \<open>\<alpha>\<close> using \<open>T\<close>.
+
+Function @{const prestar_step} adds all possible new transitions to a set of transitions \<open>T\<close>
+using the production \<open>P\<close> backwards:
+\begin{quote}
+@{thm [break] prestar_step_def[of _ _ T]}
+\end{quote}
+
+
 
 \section{Greibach}\label{sec:GNF}%AY
 

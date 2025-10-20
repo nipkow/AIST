@@ -1,6 +1,6 @@
 session Base in "../Lemke" = Greibach_Normal_Form +
   theories
-    Definition
+    Algorithm
 
 session Paper = Base +
   options [document = pdf, show_question_marks = false, names_short = true,

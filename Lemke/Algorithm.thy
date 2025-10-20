@@ -7,10 +7,10 @@ also form a regular language. The regular languages are represented as automata.
 
 theory Algorithm
   imports Definition FiniteAutomaton "HOL-Library.While_Combinator"
-begin \<comment>\<open>begin-theory Algorithm\<close>
+begin
 
 text\<open>
-  Particularly, we formalise an algorithm proposed by Book and Otto \<^cite>\<open>book1993string\<close>,
+  Particularly, we formalise an algorithm proposed by Book and Otto \cite{book1993string},
   which takes as input a non-deterministic finite automaton \<open>M\<close> and modifies it to
   another automaton \<open>M'\<close> such that \<open>L(M') = pre\<^sup>*(L(M))\<close>.
 \<close>
@@ -33,7 +33,7 @@ type_synonym ('s, 't) Trans = "('s \<times> 't \<times> 's) set"
 
 definition prestar_step :: "('n, 't) Prods \<Rightarrow> 's set
     \<Rightarrow> ('s, ('n, 't) sym) Trans \<Rightarrow> ('s, ('n, 't) sym) Trans" where
-  "prestar_step P Q \<delta> \<equiv> { (q, Nt A, q') | q q' A. \<exists>\<beta>.
+  "prestar_step P Q \<delta> = { (q, Nt A, q') | q q' A. \<exists>\<beta>.
     (A, \<beta>) \<in> P \<and> q' \<in> steps \<delta> \<beta> q \<and> q \<in> Q \<and> q' \<in> Q }"
 
 lemma prestar_step_code'[code]: "prestar_step P Q \<delta> =

@@ -89,7 +89,9 @@ Symbols are a tagged union type:
 \begin{quote}
 @{datatype sym}
 \end{quote}
-For compactness we usually drop the \<open>'n\<close> and \<open>'t\<close> parameters everywhere,
+Variable convention:
+ \<open>a, b, c :: 't\<close>, \<open>A, B, C :: 'n\<close> and  \<open>x, y, z :: ('n,'t) sym\<close>.
+For compactness we sometimes drop the \<open>'n\<close> and \<open>'t\<close> parameters,
 e.g.\ we write \<open>sym\<close> instead of \<open>('n,'t)sym\<close>.
 
 A production, informally written \<open>A \<rightarrow> w\<close>, is a pair of \<open>A :: 'n\<close> and a \<open>w\<close> \<open>::\<close> \mbox{\<open>sym list\<close>}.
@@ -97,6 +99,11 @@ We use the following abbreviations:
 \begin{quote}
 \<open>syms = sym list\<close> \quad \<open>prod = ('n \<times> syms)\<close> \quad \<open>Prods = prod set\<close>
 \end{quote}
+Variable convention:
+\<open>u, v, w\<close> are \<open>syms\<close> of the form @{term "map Tm"} \<open>\<dots>\<close>, which we call \concept{words};
+\<open>\<alpha>, \<beta>, \<gamma> :: syms\<close>; \<open>syms\<close> are sometimes called \concept{sentential forms}.
+
+
 Our theory is primarily based on sets of productions rather than grammars:
 the start symbol is irrelevant most of the time.
 \emph{For succinctness, we use \concept{grammar} to refer to a set (or list) of productions.}
@@ -165,6 +172,8 @@ and are found here \cite{Pushdown_Automata-AFP}.
 
 \section{\prestar}
 
+\subsection{Informal Introduction}
+
 Bouajjani \emph{et al.} \cite{BouajjaniEFMRWW00} realized that a device that Book and Otto \cite{BookO93}
 had used to solve problems
 for string rewriting systems can also be applied to a number of standard CFG problems
@@ -195,16 +204,18 @@ Given a production \<open>A \<rightarrow> \<alpha>\<close> in \<open>P\<close>, 
 to state \<open>p'\<close> labeled with \<open>\<alpha>\<close>, we add the transition \<open>(p, Nt A, p')\<close>. Now comes
 the formalization.
 
+\subsection{Formalization}
+
 Our NFAs are over some state type \<open>'s\<close>. Each transition is a triple of type \<^typ>\<open>'s \<times> ('n,'t)sym \<times> 's\<close>.
-The transitions of an NFA are a set of such triples and are usually denoted by \<open>T\<close>.
+The transitions of an NFA are a set of such triples and are usually denoted by \<open>\<delta>\<close>.
 It is easy to define a function @{const steps} of type
 @{typ "('s \<times> ('n,'t)sym \<times> 's) set \<Rightarrow> ('n,'t)syms \<Rightarrow> 's \<Rightarrow> 's set"}
-such that @{term "steps T \<alpha> p"} is the set of states reachable from \<open>p\<close> via \<open>\<alpha>\<close> using \<open>T\<close>.
+such that @{term "steps \<delta> \<alpha> p"} is the set of states reachable from \<open>p\<close> via \<open>\<alpha>\<close> using \<open>\<delta>\<close>.
 
 Function @{const prestar_step} adds all possible new transitions to a set of transitions \<open>T\<close>
 using the production \<open>P\<close> backwards:
 \begin{quote}
-@{thm [break] prestar_step_def[of _ _ T]}
+@{thm [break] prestar_step_def}
 \end{quote}
 
 

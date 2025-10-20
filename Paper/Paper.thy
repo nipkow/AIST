@@ -21,7 +21,9 @@ lemma expand_tri_simp2: "expand_tri (A#As) P =
 
 (*>*)
 text \<open>
-\newcommand{\prestar}{$\mathit{pre}^*$}
+% TODO no ==, just =
+
+%rebase LL1 parser on CFG!
 
 \section{Introduction}
 
@@ -31,8 +33,7 @@ The formalization is unified in the sense that many of the topics that were
 previously formalized independently (and in different provers) are now
 unified in a single formalization, available in the Archive of Formal Proofs as separate entries
 \cite{Context_Free_Grammar-AFP,Pushdown_Automata-AFP,Greibach_Normal_Form-AFP,Chomsky_Schuetzenberger-AFP,Parikh-AFP}.
-
-%rebase LL1 parser on CFG!
+%TODO pre*
 
 The main contributions of our work are:
 \begin{itemize}
@@ -119,7 +120,7 @@ in a computable manner (unless we impose some order on something).
 The identifier \<open>P\<close> is reserved for sets of productions.
 Every \<open>P\<close> induces a single step derivation relation on \<open>syms\<close> in the standard manner:
 \begin{quote}
-@{thm derive.intros}
+@{thm derive.intros[of _ \<beta> _ \<alpha> \<gamma>]}
 \end{quote}
 Its transitive-reflexive closure is denoted by @{prop "P \<turnstile> u \<Rightarrow>* w"}.
 
@@ -204,21 +205,62 @@ Given a production \<open>A \<rightarrow> \<alpha>\<close> in \<open>P\<close>, 
 to state \<open>p'\<close> labeled with \<open>\<alpha>\<close>, we add the transition \<open>(p, Nt A, p')\<close>. Now comes
 the formalization.
 
-\subsection{Formalization}
 
-Our NFAs are over some state type \<open>'s\<close>. Each transition is a triple of type \<^typ>\<open>'s \<times> ('n,'t)sym \<times> 's\<close>.
-The transitions of an NFA are a set of such triples and are usually denoted by \<open>\<delta>\<close>.
+\subsection{Executable Formalization}
+%TODO reachable_from -> reachable
+%TODO lang_nfa -> Lang_nfa
+
+For the purpose of computing \prestar\, we represent NFAs over some state type \<open>'s\<close> by
+transitions of type \<^typ>\<open>'s \<times> ('n,'t)sym \<times> 's\<close>. A set of such triples is usually denoted by \<open>\<delta>\<close>.
 It is easy to define a function @{const steps} of type
 @{typ "('s \<times> ('n,'t)sym \<times> 's) set \<Rightarrow> ('n,'t)syms \<Rightarrow> 's \<Rightarrow> 's set"}
 such that @{term "steps \<delta> \<alpha> p"} is the set of states reachable from \<open>p\<close> via \<open>\<alpha>\<close> using \<open>\<delta>\<close>.
+An NFA \<open>M\<close> consists of some \<open>\<delta>\<close>, an initial state and a final state set.
+We also define @{text "lang_nfa M"}, the words accepted by \<open>M\<close>, and @{term "reachable_from \<delta> q"},
+the states reachable from \<open>q\<close> via \<open>\<delta>\<close>.
 
-Function @{const prestar_step} adds all possible new transitions to a set of transitions \<open>T\<close>
+Function @{const prestar_step} adds all possible new transitions to a set of transitions \<open>\<delta>\<close>
 using the production \<open>P\<close> backwards:
 \begin{quote}
-@{thm [break] prestar_step_def}
+@{thm [break] prestar_step_def}% beta -> alpha?
 \end{quote}
 
+%TODO while -> lfp
+The closure of some \<open>\<delta>\<close> under @{const prestar_step} can be defined by repeated application like this:
+\begin{quote}
+@{thm [break] prestar_while_def}
+\end{quote}
+using the predefined combinator @{const_typ while_option} \cite{Nipkow11}.
+We do not dwell on its definition but it is executable because it obeys this recursion equation:
+\begin{quote}
+@{thm [break] while_option_unfold}
+\end{quote}
+In case the recursion does not terminate, the mathematical value is @{const None}.
+Hence proving that the return value is always @{const Some} amounts to proving termination.
 
+Using the lemma library for @{const while_option}, we proved correctness and termination
+of @{const prestar_while}. Correctness essentiall says that the result of @{const prestar_while}
+is the analogue of @{const pre_star} on the level of transition relations:
+\begin{quote}
+@{thm [break] prestar_while_correct}
+\end{quote}
+%TODO wait for new version
+%define lang_trans
+
+%This combinator comes with an partial correctness proof rule for showing that some invariant \<open>P\<close>
+%holds for the output \<open>t\<close> if it holds for the input \<open>s\<close>:
+%\begin{quote}
+%{thm [break] while_option_rule}
+%\end{quote}
+%Termination can be guaranteed if a) \<open>c\<close> is a monotone function on sets and b)
+%there is finite bounding set \<open>C\<close> (the closure) such that @{prop "X \<subseteq> C \<Longrightarrow> f X \<subseteq> C"}.
+Termination can be guaranteed under the obvious finiteness assumptions:
+\begin{quote}
+@{thm prestar_while_terminates}
+\end{quote}
+
+This is the core of the theory which is then lifted to the level of NFAs.
+The key point is that the correctness  
 
 \section{Greibach}\label{sec:GNF}%AY
 

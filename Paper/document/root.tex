@@ -37,12 +37,12 @@
 \newcommand{\noquotes}[1]{{\renewcommand{\isachardoublequote}{}\renewcommand{\isachardoublequoteopen}{}\renewcommand{\isachardoublequoteclose}{}#1}}
 
 % no right margin in quote:
-\renewenvironment{quote}
-{\list{}{}%
-\item\relax}
-{\endlist}
+%\renewenvironment{quote}
+%{\list{}{}%
+%\item\relax}
+%{\endlist}
 % no margins in quote:
-\newenvironment{quoteni}%
+\renewenvironment{quote}%
 {\list{}{\leftmargin=0mm\rightmargin=0mm}\item[]}%
 {\endlist}
 
@@ -57,6 +57,8 @@
 \setlength{\funheadersep}{\smallskipamount}
 
 \hyphenation{Isa-belle}
+
+\newcommand{\prestar}{$\mathit{pre}^*$}
 
 \begin{document}
 \title{A Unified Formalization of Context-Free Grammar Theory}
@@ -101,19 +103,19 @@ formalizations of a translation into Greibach Normal Form, the Chomsky-Sch\"utze
 
 \input{Paper}
 
-%\begin{credits}
-%\subsubsection{\ackname} A bold run-in heading in small font size at
-%the end of the paper is used for general acknowledgments, for
-%example: This study was funded by X (grant number Y).
+\begin{credits}
+\subsubsection{\ackname}
+We thank Alexander Haberl and Tassilo Lemke for their work on Greibach and \prestar, respectively.
+We are grateful to AIST for funding two research visits by the first author.
 
-%\subsubsection{\discintname}
+\subsubsection{\discintname}
 %It is now necessary to declare any competing interests or to specifically
 %state that the authors have no competing interests. Please place the
 %statement with a bold run-in heading in small font size beneath the
 %(optional) acknowledgments
-%for example: The authors have no competing interests to declare that are
-%relevant to the content of this article.
-%\end{credits}
+%for example:
+The authors have no competing interests to declare that are relevant to the content of this article.
+\end{credits}
 
 \bibliographystyle{splncs04}
 \bibliography{root}

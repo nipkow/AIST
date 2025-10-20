@@ -7,18 +7,18 @@ imports
   Sugar
 begin
 declare [[show_question_marks=false]]
+
 lemma expand_hd_simp2: "expand_hd A (S#Ss) P =
  (let P' = expand_hd A Ss P;
       X = {r \<in> P'. \<exists>w. r = (A, Nt S # w)}
   in P' - X \<union> subst_hd P' X)"
-  by simp
+by (simp add: subst_hd_def)
 
 lemma expand_tri_simp2: "expand_tri (A#As) P =
  (let P' = expand_tri As P;
       X = {r \<in> P'. \<exists>w B. r = (A, Nt B # w) \<and> B \<in> set As}
   in P' - X \<union> subst_hd P' X)"
-  by simp
-
+by (simp add: subst_hd_def)
 (*>*)
 text \<open>
 % TODO no ==, just =
@@ -260,7 +260,19 @@ Termination can be guaranteed under the obvious finiteness assumptions:
 \end{quote}
 
 This is the core of the theory which is then lifted to the level of NFAs.
-The key point is that the correctness  
+
+\subsection{Applications}
+
+Membership or Word Problem: generalize to derivability:
+pre_star_derivability:
+  \<open>P \<turnstile> \<alpha> \<Rightarrow>* \<beta> \<longleftrightarrow> \<alpha> \<in> pre_star P {\<beta>}\<close>
+build NFA B for \<open>{\<beta>}\<close>, compute A = prestar-nfa B, decide if A accepts \<open>\<alpha>\<close>
+
+Nullability reduces to can \<open>[]\<close> be derived.
+
+Productivity: \<open>[Nt A]\<close> in pre_star P UNIV
+
+Always word in lang
 
 \section{Greibach}\label{sec:GNF}%AY
 
@@ -321,7 +333,7 @@ Using @{const solve_lrec},
 
 
 \begin{quote}
-@{abbrev "subst_hd P X"}
+@{def subst_hd}
 \end{quote}
 
 \begin{quote}

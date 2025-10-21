@@ -23,10 +23,10 @@ lemma expand_tri_simp2: "expand_tri (A#As) P =
 definition lang_nfa where "lang_nfa = FiniteAutomaton.lang_nfa"
 hide_const (open) FiniteAutomaton.lang_nfa
 
-lemma prestar_code_correct:
+lemma prestar_nfa_correct:
   assumes "finite P" and "finite (transitions M)"
-  shows "lang_nfa (prestar_code P M) = pre_star P (lang_nfa M)"
-using assms prestar_code_correct unfolding lang_nfa_def by blast
+  shows "lang_nfa (prestar_nfa P M) = pre_star P (lang_nfa M)"
+using assms prestar_nfa_correct unfolding lang_nfa_def by blast
 
 lemma pre_star_emptiness':
   fixes P :: "('n, 't) Prods"
@@ -67,6 +67,9 @@ the three related formalizations that are closest to our work: the work by
 Barthwal and Norrish \cite{csl/BarthwalN10,wollic/BarthwalN10,BarthwalN14} (in HOL4),
 Hofmann \cite{JHofmann} (in Coq) and Ramos \emph{et al.} \cite{RamosAMQ,RamosAMQ16,RamosQMA16} (in Coq).
 
+When we use the term executability we mean that the definitions (or derived lemmas!) form
+a functional program and that Isabelle can generate programs in various functional
+languages (Haskell, OCaml and SML) \cite{HaftmannN10}.
 
 \subsection{Isabelle Notation} \label{sec:isabelle}
 
@@ -180,9 +183,8 @@ were first formalized by Barthwal and Norrish \cite{wollic/BarthwalN10}.
 Our proofs are largely based on this online Lean formalization \cite{Leichtfried}
 and are found here \cite{Pushdown_Automata-AFP}.
 
-\subsection{Automata}
-
-2DFA AFA?
+%\subsection{Automata}
+%2DFA AFA?
 
 
 \section{\prestar}
@@ -193,15 +195,15 @@ Bouajjani \emph{et al.} \cite{BouajjaniEFMRWW00} realized that a device that Boo
 had used to solve problems
 for string rewriting systems can also be applied to a number of standard CFG problems
 (e.g.\ determining if some nonterminal is productive).
-Let \<open>P :: ('n,'t) Prods\<close> and \<open>L :: ('n,'t) list set\<close>.
+Let \<open>P :: ('n,'t) Prods\<close> and \<open>L :: ('n,'t) syms set\<close>.
 Then @{term "pre_star P L"} is the set of predecessors of words in \<open>L\<close>
 w.r.t.\ @{prop "P \<turnstile> DUMMY \<Rightarrow>* DUMMY"}:
 \begin{quote}
 @{thm pre_star_def}
 \end{quote}
-The two key insights are that (if \<open>P\<close> finite):
+The two key insights are (if \<open>P\<close> finite):
  if \<open>L\<close> is regular, so is \<open>pre_star P L\<close>, and if \<open>L\<close> is given as an NFA \<open>M\<close>,
-an NFA for \<open>pre_star P L\<close> can be computed \<open>M\<close>.
+an NFA for \<open>pre_star P L\<close> can be computed from \<open>M\<close>.
 
 Why does this help to decide, for example, the productivity problem?
 Let \<open>P\<close> be a grammar over a terminal alphabet \<open>\<Sigma>\<close>.
@@ -216,16 +218,14 @@ if that automaton accepts @{term \<open>[Nt A]\<close>}.
 The algorithm for computing @{const pre_star} on the level of an NFA \<open>M\<close>
 extends \<open>M\<close> with new transitions as long as possible.
 Given a production \<open>A \<rightarrow> \<alpha>\<close> in \<open>P\<close>, if \<open>M\<close> has a sequence of transitions from state \<open>p\<close>
-to state \<open>p'\<close> labeled with \<open>\<alpha>\<close>, we add the transition \<open>(p, Nt A, p')\<close>. Now comes
-the formalization.
+to state \<open>p'\<close> labeled with \<open>\<alpha>\<close>, we add the transition \<open>(p, Nt A, p')\<close>.
 
 
 \subsection{Executable Formalization}
 %TODO reachable_from -> reachable
 %TODO lang_nfa -> Lang_nfa
-%prestar_code -> prestar_nfa?
 
-For the purpose of computing \prestar\, we represent NFAs over some state type \<open>'s\<close> by
+For the purpose of computing @{const pre_star}, we represent NFAs over some state type \<open>'s\<close> by
 transitions of type \<^typ>\<open>'s \<times> ('n,'t)sym \<times> 's\<close>. A set of such triples is usually denoted by \<open>\<delta>\<close>.
 It is easy to define a function @{const steps} of type
 @{typ "('s \<times> ('n,'t)sym \<times> 's) set \<Rightarrow> ('n,'t)syms \<Rightarrow> 's \<Rightarrow> 's set"}
@@ -276,31 +276,30 @@ Termination can be guaranteed under the obvious finiteness assumptions:
 This is the core of the theory which is then lifted to the level of NFAs, which provides
 the obvious @{const lang_nfa}. This is the final correctness theorem:
 \begin{theorem}\label{prestar_code_correct}
-@{thm (concl) prestar_code_correct} if \<open>P\<close> and the transitions of \<open>M\<close> are finite.
+@{thm (concl) prestar_nfa_correct} if \<open>P\<close> and the transitions of \<open>M\<close> are finite.
 \end{theorem}
 
 
 \subsection{Applications}
 
-We show how the membership (in \<open>Lang P\<close>) problem, the nullability problem, the productivity
-can be solved automatically.
+We show how the membership (in \<open>Lang P A\<close>), nullability and productivity problems can be decided.
 Of course the theoretical insight is due to Bouajjani \emph{et al.} \cite{BouajjaniEFMRWW00}.
-All of these problems can be reduced to problems of the form @{prop \<open>\<alpha> \<in> pre_star L P\<close>}
+All of these problems can be reduced to problems of the form \<open>\<alpha> \<in>\<close> \mbox{@{term "pre_star L P"}}
 for a suitable regular language \<open>L\<close>. Given an NFA \<open>M\<close> with @{prop \<open>lang_nfa M = L\<close>},
 Theorem~\ref{prestar_code_correct} translates @{prop \<open>\<alpha> \<in> pre_star L P\<close>} into
-@{prop \<open>\<alpha> \<in> lang_nfa (prestar_code M P)\<close>}, which can be executed because @{const prestar_code}
+@{prop \<open>\<alpha> \<in> lang_nfa (prestar_nfa M P)\<close>}, which can be executed because @{const prestar_nfa}
 and membership in @{const lang_nfa} are executable.
 
 The membership problem easily generalizes to derivability because
 @{thm [mode=iffSpace] pre_star_derivability}. That is, in order to decide @{prop \<open>P \<turnstile> \<alpha> \<Rightarrow>* \<beta>\<close>}
-build an NFA \<open>M\<close> for @{term "{\<beta>}"} and execute @{prop "\<alpha> \<in> lang_nfa(prestar_code M P)"}.
+build an NFA \<open>M\<close> for @{term "{\<beta>}"} and execute @{prop "\<alpha> \<in> lang_nfa(prestar_nfs M P)"}.
 As a special case, nullability of \<open>A\<close> is equivalent to @{prop \<open>P \<turnstile> [Nt A] \<Rightarrow>* []\<close>}.
 
-Productivity of \<open>A\<close>, i.e.\ reachability of some @{const Tm} word, can be expressed like this:
+Productivity of \<open>A\<close>, i.e.\ reachability of some terminal word, can be expressed like this:
 @{thm [mode=iffSpace] pre_star_emptiness'}
 where @{term "lists (Tm ` Tms P)"} is the language of all words
-over the @{const Tm} symbols in \<open>P\<close>. That language is accepted by an simple NFA \<open>M\<close>
-and we can evaluate @{prop "[Nt A] \<in> lang_nfa(prestar_code M P)"} to determine productivity.
+over the terminal symbols in \<open>P\<close>. That language is accepted by an simple NFA \<open>M\<close>
+and we can evaluate @{prop "[Nt A] \<in> lang_nfa(prestar_nfa M P)"} to determine productivity.
 
 Because @{thm [mode=iffSpace] pre_star_disjointness[where S=A]},
 the test for disjointness from and containment in a regular language

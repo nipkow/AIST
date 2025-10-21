@@ -264,16 +264,34 @@ proof (induction "badTmsCount ps" arbitrary: ps rule: less_induct)
   qed auto
 qed
 
+(*Simplifying the first two cases complicates proofs*)
 fun replaceNts :: "['n::infinite, 'n, 'n, ('n,'t) syms] \<Rightarrow> ('n,'t) syms" where
+  "replaceNts A B\<^sub>1 B\<^sub>2 [] = []" |
+  "replaceNts A B\<^sub>1 B\<^sub>2 [s] = [s]" |
   "replaceNts A B\<^sub>1 B\<^sub>2 (s\<^sub>1#s\<^sub>2#sms) = 
     (if s\<^sub>1 = Nt B\<^sub>1 \<and> s\<^sub>2 = Nt B\<^sub>2 then Nt A # sms 
-    else replaceNts A B\<^sub>1 B\<^sub>2 (s\<^sub>2#sms))" |
-  "replaceNts A B\<^sub>1 B\<^sub>2 sms = sms"
+    else s\<^sub>1 # replaceNts A B\<^sub>1 B\<^sub>2 (s\<^sub>2#sms))"
 
 lemma replaceNts_replaces_single:
   assumes "replaceNts A B\<^sub>1 B\<^sub>2 sms \<noteq> sms"
   obtains p s where "sms = p@[Nt B\<^sub>1, Nt B\<^sub>2]@s"
-                    "replaceNts A B\<^sub>1 B\<^sub>2 sms = p@[Nt A]@s" sorry
+                    "replaceNts A B\<^sub>1 B\<^sub>2 sms = p@[Nt A]@s" 
+  using assms proof (induction sms arbitrary: thesis rule: replaceNts.induct)
+  case (3 A B\<^sub>1 B\<^sub>2 s\<^sub>1 s\<^sub>2 sms)
+  consider (hd) "s\<^sub>1 = Nt B\<^sub>1 \<and> s\<^sub>2 = Nt B\<^sub>2" | 
+            (tl) "s\<^sub>1 \<noteq> Nt B\<^sub>1 \<or> s\<^sub>2 \<noteq> Nt B\<^sub>2" by blast
+  then show ?case 
+  proof cases
+    case tl
+    hence "replaceNts A B\<^sub>1 B\<^sub>2 (s\<^sub>1#s\<^sub>2#sms) = s\<^sub>1 # replaceNts A B\<^sub>1 B\<^sub>2 (s\<^sub>2#sms)" by fastforce
+    moreover with tl 3 obtain p s where "replaceNts A B\<^sub>1 B\<^sub>2 (s\<^sub>2#sms) = p@[Nt A]@s"
+                                        "s\<^sub>2#sms = p@[Nt B\<^sub>1, Nt B\<^sub>2]@s" 
+      by metis 
+    ultimately have "replaceNts A B\<^sub>1 B\<^sub>2 (s\<^sub>1#s\<^sub>2#sms) = (s\<^sub>1#p)@[Nt A]@s"
+                    "s\<^sub>1#s\<^sub>2#sms = (s\<^sub>1#p)@[Nt B\<^sub>1, Nt B\<^sub>2]@s" by simp+
+    then show ?thesis using 3(2) by blast
+  qed (use 3 in force)
+qed simp+
 
 fun binarizeNt_fun :: "['n::infinite, 'n, 'n, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
   "binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps0 [] = ps0" |
@@ -285,12 +303,30 @@ fun binarizeNt_fun :: "['n::infinite, 'n, 'n, ('n,'t) prods, ('n,'t) prods] \<Ri
 lemma binarizeNt_binarizes:
   assumes "binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps0 ps \<noteq> ps0"
   obtains l r p s r' where
-    "(l,r) \<in> set ps0"
+    "(l,r) \<in> set ps"
     "length r > 2"
     "replaceNts A B\<^sub>1 B\<^sub>2 r = r'"
     "r \<noteq> r'"
     "binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps0 ps = (removeAll (l,r) ps0) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, r')]"
-  sorry
+  using assms proof (induction ps arbitrary: thesis)
+  case (Cons p ps)
+  obtain l r r' where lr_defs: "p = (l,r)"  "r' = replaceNts A B\<^sub>1 B\<^sub>2 r" 
+    by fastforce
+  consider (hd) "r \<noteq> r' \<and> length r > 2" | (tl) "r = r' \<or> length r < 3"  by fastforce
+  then show ?case 
+  proof cases
+    case hd
+    moreover from this have 
+      "binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps0 (p#ps) = (removeAll (l,r) ps0) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, r')]" 
+      using lr_defs by (smt (verit, best) Suc_numeral binarizeNt_fun.simps(2) not_less_eq
+          semiring_norm(5))
+    ultimately show ?thesis using Cons(2) lr_defs by (meson list.set_intros(1))
+  next
+    case tl
+    with lr_defs have "binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps0 (p#ps) = binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps0 ps" by simp
+    with Cons show ?thesis using lr_defs by auto
+  qed
+qed simp
 
 lemma binarizeNt_fun_binarized:
   assumes "A \<notin> nts ps \<union> {S}"

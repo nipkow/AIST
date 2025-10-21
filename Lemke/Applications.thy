@@ -42,11 +42,11 @@ theorem pre_star_derivability:
 
 lemma pre_star_derivability_code[code]:
   fixes P :: "('n, 't) prods"
-  shows "is_derivable (set P) \<alpha> \<beta> = (\<alpha> \<in> lang_nfa (prestar_code (set P) (nfa_word \<beta>)))"
+  shows "is_derivable (set P) \<alpha> \<beta> = (\<alpha> \<in> lang_nfa (prestar_nfa (set P) (nfa_word \<beta>)))"
 proof -
   define M where [simp]: "M \<equiv> nfa_word \<beta>"
-  have "lang_nfa (prestar_code (set P) M) = pre_star (set P) (lang_nfa M)"
-    by (intro prestar_code_correct; simp add: nfa_word_finite_trans)
+  have "lang_nfa (prestar_nfa (set P) M) = pre_star (set P) (lang_nfa M)"
+    by (intro prestar_nfa_correct; simp add: nfa_word_finite_trans)
   then show ?thesis
     using pre_star_derivability by force
 qed
@@ -133,13 +133,13 @@ qed
 
 lemma pre_star_emptiness_code[code]:
   fixes P :: "('n, 't) prods"
-  shows "is_empty (set P) S = ([Nt S] \<notin> lang_nfa (prestar_code (set P) (nfa_univ (Tm ` Tms (set P)))))"
+  shows "is_empty (set P) S = ([Nt S] \<notin> lang_nfa (prestar_nfa (set P) (nfa_univ (Tm ` Tms (set P)))))"
 proof -
   define M :: "(unit, ('n, 't) sym) nfa" where [simp]: "M \<equiv> nfa_univ (Tm ` Tms (set P))"
   have "finite (Tm ` Tms (set P))"
     using finite_Tms by blast
-  then have "lang_nfa (prestar_code (set P) M) = pre_star (set P) (lang_nfa M)"
-    by (intro prestar_code_correct; auto simp: nfa_univ_def intro: nfa_univ_trans_fin)
+  then have "lang_nfa (prestar_nfa (set P) M) = pre_star (set P) (lang_nfa M)"
+    by (intro prestar_nfa_correct; auto simp: nfa_univ_def intro: nfa_univ_trans_fin)
   then show ?thesis
     using pre_star_emptiness unfolding M_def nfa_univ_lang by fastforce
 qed
@@ -178,13 +178,13 @@ qed
 
 lemma pre_star_reachable_code[code]:
   fixes P :: "('n, 't) prods"
-  shows "((set P) \<turnstile> S \<Rightarrow>\<^sup>? X) = ([Nt S] \<in> lang_nfa (prestar_code (set P) (nfa_fixc_ps (Nt X) (Syms (set P)))))"
+  shows "((set P) \<turnstile> S \<Rightarrow>\<^sup>? X) = ([Nt S] \<in> lang_nfa (prestar_nfa (set P) (nfa_fixc_ps (Nt X) (Syms (set P)))))"
 proof -
   define M :: "(nat, ('n, 't) sym) nfa" where [simp]: "M \<equiv> nfa_fixc_ps (Nt X) (Syms (set P))"
   have "finite (Syms (set P))"
     unfolding Syms_def by fast
-  then have "lang_nfa (prestar_code (set P) M) = pre_star (set P) (lang_nfa M)"
-    by (intro prestar_code_correct; auto simp: nfa_fixc_ps_def intro: nfa_fixc_ps_trans_fin)
+  then have "lang_nfa (prestar_nfa (set P) M) = pre_star (set P) (lang_nfa M)"
+    by (intro prestar_nfa_correct; auto simp: nfa_fixc_ps_def intro: nfa_fixc_ps_trans_fin)
   then show ?thesis
     using pre_star_reachable unfolding M_def nfa_fixc_ps_lang by fastforce
 qed
@@ -206,13 +206,13 @@ qed
 
 lemma pre_star_productive_code[code]:
   fixes P :: "('n, 't) prods"
-  shows "is_productive (set P) X = ([Nt X] \<in> lang_nfa (prestar_code (set P) (nfa_univ (Tm ` Tms (set P)))))"
+  shows "is_productive (set P) X = ([Nt X] \<in> lang_nfa (prestar_nfa (set P) (nfa_univ (Tm ` Tms (set P)))))"
 proof -
   define M :: "(unit, ('n, 't) sym) nfa" where [simp]: "M \<equiv> nfa_univ (Tm ` Tms (set P))"
   have "finite (Tm ` Tms (set P))"
     using finite_Tms by blast
-  then have "lang_nfa (prestar_code (set P) M) = pre_star (set P) (lang_nfa M)"
-    by (intro prestar_code_correct; auto simp: nfa_univ_def intro: nfa_univ_trans_fin)
+  then have "lang_nfa (prestar_nfa (set P) M) = pre_star (set P) (lang_nfa M)"
+    by (intro prestar_nfa_correct; auto simp: nfa_univ_def intro: nfa_univ_trans_fin)
   then show ?thesis
     using pre_star_productive unfolding M_def nfa_univ_lang by fastforce
 qed

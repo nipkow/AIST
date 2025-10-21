@@ -36,7 +36,7 @@ definition prestar_step :: "('n, 't) Prods \<Rightarrow> 's set
   "prestar_step P Q \<delta> = { (q, Nt A, q') | q q' A. \<exists>\<beta>.
     (A, \<beta>) \<in> P \<and> q' \<in> steps \<delta> \<beta> q \<and> q \<in> Q \<and> q' \<in> Q }"
 
-lemma prestar_step_code'[code]: "prestar_step P Q \<delta> =
+lemma prestar_step_code[code]: "prestar_step P Q \<delta> =
    (\<lambda>(q, q', A\<beta>). (q, Nt (fst A\<beta>), q')) ` {(q, q', A\<beta>) \<in> Q \<times> Q \<times> P. q' \<in> steps \<delta> (snd A\<beta>) q}"
   unfolding prestar_step_def image_def by(auto)
 
@@ -320,40 +320,16 @@ proof -
     by (simp add: prestar_while_def)
 qed
 
-subsection\<open>Computability\<close>
-
-text\<open>
-  While the definition of @{term prestar_step} is semantically correct,
-  Isabelle cannot automatically compute it.
-  The following code equations ensure computability, as long as \<open>P\<close>, \<open>Q\<close> and \<open>\<delta>\<close> are finite.
-\<close>
-
-definition prestar_step_prod_code :: "('s, ('n, 't) sym) Trans \<Rightarrow> 's set \<Rightarrow> ('n, 't) prod \<Rightarrow> ('s, ('n, 't) sym) Trans" where
-  "prestar_step_prod_code \<delta> Q p \<equiv> (\<lambda>(s\<^sub>1, s\<^sub>2). (s\<^sub>1, Nt (fst p), s\<^sub>2)) ` {(s\<^sub>1, s\<^sub>2) \<in> Q \<times> Q. s\<^sub>2 \<in> steps \<delta> (snd p) s\<^sub>1}"
-
-definition prestar_step_code :: "('s, ('n, 't) sym) Trans \<Rightarrow> 's set \<Rightarrow> ('n, 't) Prods \<Rightarrow> ('s, ('n, 't) sym) Trans" where
-  "prestar_step_code \<delta> Q P \<equiv> \<Union>(prestar_step_prod_code \<delta> Q ` P)"
-
-lemma prestar_step_prod_code_correct:
-  "prestar_step_prod_code \<delta> Q p = { (q, Nt (fst p), q') | q q'. q' \<in> steps \<delta> (snd p) q \<and> q \<in> Q \<and> q' \<in> Q }"
-  by (auto simp: prestar_step_prod_code_def)
-
-lemma prestar_step_code_correct: "(q, X, q') \<in> prestar_step_code \<delta> Q P \<longleftrightarrow> (q, X, q') \<in> prestar_step P Q \<delta>"
-  unfolding prestar_step_code_def prestar_step_def prestar_step_prod_code_correct by force
-
-lemma prestar_step_code[code]: "prestar_step P Q \<delta> = prestar_step_code \<delta> Q P"
-  using prestar_step_code_correct by fast
-
-definition prestar_code :: "('n, 't) Prods \<Rightarrow> ('s, ('n, 't) sym) nfa \<Rightarrow> ('s, ('n, 't) sym) nfa" where
-  "prestar_code P M \<equiv> (
+definition prestar_nfa :: "('n, 't) Prods \<Rightarrow> ('s, ('n, 't) sym) nfa \<Rightarrow> ('s, ('n, 't) sym) nfa" where
+  "prestar_nfa P M \<equiv> (
     let Q = {start M} \<union> (snd ` snd ` (transitions M)) in
     case prestar_while P Q (transitions M) of
       Some \<delta>' \<Rightarrow> M \<lparr> transitions := \<delta>' \<rparr>
   )"
 
-lemma prestar_code_correct:
+lemma prestar_nfa_correct[intro]:
   assumes "finite P" and "finite (transitions M)"
-  shows "lang_nfa (prestar_code P M) = pre_star P (lang_nfa M)"
+  shows "lang_nfa (prestar_nfa P M) = pre_star P (lang_nfa M)"
 proof -
   define \<delta> where "\<delta> \<equiv> transitions M"
   define Q where "Q \<equiv> {start M} \<union> (snd ` snd ` \<delta>)"
@@ -368,7 +344,7 @@ proof -
   then have "lang_nfa (M \<lparr> transitions := \<delta>' \<rparr>) = pre_star P (lang_nfa M)"
     by (simp add: \<delta>_def)
   then show ?thesis
-    unfolding prestar_code_def using Q_def \<delta>'_def \<delta>_def by force
+    unfolding prestar_nfa_def using Q_def \<delta>'_def \<delta>_def by force
 qed
 
 subsection\<open>Properties\<close>

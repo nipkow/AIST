@@ -902,11 +902,11 @@ proof -
   ultimately have "rel S' = \<delta>'"
     by simp
 
-  have "prestar_code P M = prestar_code_cnf P M"
-    unfolding prestar_code_def prestar_code_cnf_def
+  have "prestar_nfa P M = prestar_code_cnf P M"
+    unfolding prestar_nfa_def prestar_code_cnf_def
     using \<delta>'_def S'_def \<open>rel S' = \<delta>'\<close> unfolding S_def Q_def by simp
   then show ?thesis
-    using prestar_code_correct assms(1,2) by metis
+    using prestar_nfa_correct assms(1,2) by metis
 qed
 
 end \<comment>\<open>end-theory ImprovedAlgorithm\<close>

@@ -5,6 +5,7 @@ imports
   Greibach_Normal_Form.Greibach_Normal_Form
   Base.Algorithm
   Sugar
+  PreStar
 begin
 declare [[show_question_marks=false]]
 

@@ -238,7 +238,7 @@ proof
     using uniformize_fun_decreases_badTmsCount by force 
 qed
 
-lemma "(\<lambda>x y. \<exists>A. uniformize A t S x y)^** ps (uniformize_rt S t ps)"
+lemma "(\<lambda>x y. \<exists>A. uniformize A t S x y)\<^sup>*\<^sup>* ps (uniformize_rt S t ps)"
 proof (induction "badTmsCount ps" arbitrary: ps rule: less_induct)
   case less
   let ?A = "fresh (nts ps \<union> {S})"
@@ -300,7 +300,7 @@ fun binarizeNt_fun :: "['n::infinite, 'n, 'n, ('n,'t) prods, ('n,'t) prods] \<Ri
       if r = r' \<or> length r < 3 then binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps0 ps
       else (removeAll (l,r) ps0) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, r')])"
 
-lemma binarizeNt_binarizes:
+lemma binarizeNt_fun_binarizes:
   assumes "binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps0 ps \<noteq> ps0"
   obtains l r p s r' where
     "(l,r) \<in> set ps"
@@ -333,17 +333,23 @@ lemma binarizeNt_fun_binarized:
           "binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps ps \<noteq> ps"
   shows "binarizeNt A B\<^sub>1 B\<^sub>2 S ps (binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps ps)"
 proof -
-  from binarizeNt_binarizes[OF assms(2)] obtain l r r' where
+  from binarizeNt_fun_binarizes[OF assms(2)] obtain l r r' where
     "(l,r) \<in> set ps"
     "length r > 2"
     "replaceNts A B\<^sub>1 B\<^sub>2 r = r'"
     "r \<noteq> r'"
     "binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps ps = (removeAll (l,r) ps) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, r')]"
-    using binarizeNt_binarizes by auto
+    using binarizeNt_fun_binarizes by auto
   moreover from this obtain p s where "r = p@[Nt B\<^sub>1, Nt B\<^sub>2]@s"  "r' = p@[Nt A]@s" 
     using replaceNts_replaces_single by metis 
   ultimately show ?thesis unfolding binarizeNt_def using assms(1) by auto
 qed
+
+lemma binarizeNt_fun_dec_badNtsCount:
+  assumes "binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps ps \<noteq> ps" 
+          "A \<notin> nts ps \<union> {S}"
+  shows "badNtsCount (binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps ps) < badNtsCount ps"
+  using lemma6_b binarizeNt_fun_binarized assms by blast
 
 function binarizeNt_rt :: "['n::infinite, 'n, 'n, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
   "binarizeNt_rt S B\<^sub>1 B\<^sub>2 ps = 
@@ -361,9 +367,32 @@ proof
          and neq: "ps \<noteq> ps'"
   moreover with fresh_finite have "?A \<notin> nts ps \<union> {S}" 
     by (metis finite_Un finite_insert finite_nts insert_is_Un)
-  ultimately have "badNtsCount ps' < badNtsCount ps" using lemma6_b binarizeNt_fun_binarized
-    by metis
-  thus "((S,B\<^sub>1,B\<^sub>2,ps'),(S,B\<^sub>1,B\<^sub>2,ps)) \<in> ?R" by auto
+  ultimately show "((S,B\<^sub>1,B\<^sub>2,ps'),(S,B\<^sub>1,B\<^sub>2,ps)) \<in> ?R" 
+    using binarizeNt_fun_dec_badNtsCount by force
+qed
+
+lemma "(\<lambda>x y. \<exists>A. binarizeNt A B\<^sub>1 B\<^sub>2 S x y)\<^sup>*\<^sup>* ps (binarizeNt_rt S B\<^sub>1 B\<^sub>2 ps)"
+proof (induction "badNtsCount ps" arbitrary: ps rule: less_induct)
+  case less
+  let ?A = "fresh (nts ps \<union> {S})"
+  have A_notin_nts: "?A \<notin> nts ps \<union> {S}"
+    using fresh_finite by (metis finite_Un finite_insert finite_nts insert_is_Un)
+  consider (eq) "binarizeNt_fun ?A B\<^sub>1 B\<^sub>2 ps ps = ps" |
+           (neq) "binarizeNt_fun ?A B\<^sub>1 B\<^sub>2 ps ps \<noteq> ps" by blast
+  then show ?case 
+  proof cases
+    case neq
+    let ?ps' = "binarizeNt_fun ?A B\<^sub>1 B\<^sub>2 ps ps"
+    from binarizeNt_fun_dec_badNtsCount[OF neq A_notin_nts] have
+      "badNtsCount ?ps' < badNtsCount ps" .
+    with less have "(\<lambda>x y. \<exists>A. binarizeNt A B\<^sub>1 B\<^sub>2 S x y)\<^sup>*\<^sup>* ?ps' (binarizeNt_rt S B\<^sub>1 B\<^sub>2 ?ps')"
+      by blast
+    moreover from neq A_notin_nts have "binarizeNt ?A B\<^sub>1 B\<^sub>2 S ps ?ps'"
+      using binarizeNt_fun_binarized by blast
+    ultimately show ?thesis 
+      by (smt (verit, ccfv_SIG) binarizeNt_rt.simps
+          converse_rtranclp_into_rtranclp)
+  qed simp
 qed
 
 end

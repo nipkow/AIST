@@ -2,51 +2,51 @@ theory Chomsky_Normal_Form_Fun
   imports Chomsky_Normal_Form
 begin
 
-fun replace_tm :: "['n, 't, ('n,'t) syms] \<Rightarrow> ('n,'t) syms" where
-  "replace_tm A t [] = []" |
-  "replace_tm A t (s # sms) = (if s = Tm t then Nt A # sms else s # replace_tm A t sms)"
+fun replaceTm :: "['n, 't, ('n,'t) syms] \<Rightarrow> ('n,'t) syms" where
+  "replaceTm A t [] = []" |
+  "replaceTm A t (s # sms) = (if s = Tm t then Nt A # sms else s # replaceTm A t sms)"
 
-lemma replace_tm_length_unchanged[simp]: 
-  "length (replace_tm A t sms) = length sms"
+lemma replaceTm_length_unchanged[simp]: 
+  "length (replaceTm A t sms) = length sms"
   by (induction sms) auto
   
 
-lemma replace_tm_id_iff_tm_notin_syms:
-  shows "Tm t \<notin> set sms \<longleftrightarrow> replace_tm A t sms = sms"
+lemma replaceTm_id_iff_tm_notin_syms:
+  shows "Tm t \<notin> set sms \<longleftrightarrow> replaceTm A t sms = sms"
   by (induction sms) auto
 
 (*Proofs break with iff lemma. Fix?*)
-lemma tm_notin_syms_impl_replace_tm_id:
+lemma tm_notin_syms_impl_replaceTm_id:
   assumes "Tm t \<notin> set sms" 
-  shows "replace_tm A t sms = sms"
-  using assms replace_tm_id_iff_tm_notin_syms by fast
-lemma replace_tm_id_impl_tm_notin_syms:
-  assumes "replace_tm A t sms = sms"
+  shows "replaceTm A t sms = sms"
+  using assms replaceTm_id_iff_tm_notin_syms by fast
+lemma replaceTm_id_impl_tm_notin_syms:
+  assumes "replaceTm A t sms = sms"
   shows "Tm t \<notin> set sms"
-  using assms replace_tm_id_iff_tm_notin_syms by fast
+  using assms replaceTm_id_iff_tm_notin_syms by fast
 
 (*Strengthen with "Tm t \<notin> set p?*)
-lemma replace_tm_replaces_single:
-  assumes "replace_tm A t sms \<noteq> sms"
+lemma replaceTm_replaces_single:
+  assumes "replaceTm A t sms \<noteq> sms"
   obtains p s where "sms = p@[Tm t]@s"
-                    "replace_tm A t sms = p@[Nt A]@s"
+                    "replaceTm A t sms = p@[Nt A]@s"
 using assms proof (induction sms arbitrary: thesis)
   case (Cons s sms)
-  from Cons(3) have t_in_ssms: "Tm t \<in> set (s#sms)" using replace_tm_id_iff_tm_notin_syms by fast
+  from Cons(3) have t_in_ssms: "Tm t \<in> set (s#sms)" using replaceTm_id_iff_tm_notin_syms by fast
   consider (eq) "s = Tm t" | (neq) "s \<noteq> Tm t" by blast
   then show ?case 
   proof cases
     case eq
     then obtain p q where "s#sms = p@[Tm t]@q" "p = []" by auto
-    moreover from eq have "replace_tm A t (s#sms) = Nt A#sms" by simp
+    moreover from eq have "replaceTm A t (s#sms) = Nt A#sms" by simp
     ultimately show thesis using Cons(2) by fastforce
   next
     case neq
     with t_in_ssms have "Tm t \<in> set sms" 
       by simp
-    with Cons(1) replace_tm_id_iff_tm_notin_syms 
-    obtain p q where pq_defs: "sms = p@[Tm t]@q" "replace_tm A t sms = p@[Nt A]@q" by metis
-    with neq have "replace_tm A t (s#sms) = (s#p)@[Nt A]@q" by auto
+    with Cons(1) replaceTm_id_iff_tm_notin_syms 
+    obtain p q where pq_defs: "sms = p@[Tm t]@q" "replaceTm A t sms = p@[Nt A]@q" by metis
+    with neq have "replaceTm A t (s#sms) = (s#p)@[Nt A]@q" by auto
     then show ?thesis using Cons(2) pq_defs by (meson Cons_eq_appendI)
   qed
 qed simp
@@ -59,14 +59,14 @@ qed simp
 fun uniformize_fun :: "['n::infinite, 't, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
   "uniformize_fun _ _ ps0 [] = ps0" |
   "uniformize_fun A t ps0 ((l,r) # ps) = 
-    (let r' = replace_tm A t r in 
+    (let r' = replaceTm A t r in 
       if r = r' \<or> length r < 2 then uniformize_fun A t ps0 ps
       else (removeAll (l,r) ps0) @ [(A, [Tm t]), (l,r')])"
 
 lemma uniformize_fun_id:
   assumes "\<forall>(l,r)\<in>set ps. Tm t \<notin> set r \<or> length r < 2"
   shows "uniformize_fun A t ps0 ps = ps0"
-  using assms tm_notin_syms_impl_replace_tm_id by (induction ps) fastforce+
+  using assms tm_notin_syms_impl_replaceTm_id by (induction ps) fastforce+
 
 lemma uniformize_fun_uniform_prepend:
    "\<forall>(l,r)\<in>set xs. Tm t \<notin> set r \<or> length r < 2 \<Longrightarrow>
@@ -78,7 +78,7 @@ proof (induction xs)
   also have "... = uniformize_fun A t ps0 (xs@ps)"
   proof -
     from Cons(2) lr_def have "Tm t \<notin> set r \<or> length r < 2" by simp
-    hence "replace_tm A t r = r \<or> length r < 2" using tm_notin_syms_impl_replace_tm_id by fast
+    hence "replaceTm A t r = r \<or> length r < 2" using tm_notin_syms_impl_replaceTm_id by fast
     thus ?thesis by auto
   qed
   also have "... = uniformize_fun A t ps0 ps" using Cons by simp
@@ -99,18 +99,18 @@ proof (induction ps)
     case not_unif
     with assms(1) lr_def have p_notin_xs: "p \<notin> set xs" by auto
     from not_unif lr_def have "uniformize_fun A t (xs@ys) (p#ps) 
-                      = removeAll p (xs@ys) @ [(A, [Tm t]), (l,replace_tm A t r)]" 
-      by (smt (verit) replace_tm_id_iff_tm_notin_syms uniformize_fun.simps(2)
+                      = removeAll p (xs@ys) @ [(A, [Tm t]), (l,replaceTm A t r)]" 
+      by (smt (verit) replaceTm_id_iff_tm_notin_syms uniformize_fun.simps(2)
           verit_comp_simplify1(3))
-    also have "... = xs @ removeAll p ys @ [(A, [Tm t]), (l,replace_tm A t r)]"
+    also have "... = xs @ removeAll p ys @ [(A, [Tm t]), (l,replaceTm A t r)]"
       using p_notin_xs by simp
     also have "... = xs @ uniformize_fun A t ys (p#ps)" using not_unif 
-      by (smt (verit) lr_def replace_tm_id_impl_tm_notin_syms
+      by (smt (verit) lr_def replaceTm_id_impl_tm_notin_syms
           uniformize_fun.simps(2) verit_comp_simplify1(3))
     finally show ?thesis .
   next
     case unif
-    hence unif_ite: "replace_tm A t r = r \<or> length r < 2" using tm_notin_syms_impl_replace_tm_id 
+    hence unif_ite: "replaceTm A t r = r \<or> length r < 2" using tm_notin_syms_impl_replaceTm_id 
       by fast
     with lr_def have "uniformize_fun A t (xs@ys) (p#ps) = uniformize_fun A t (xs@ys) ps" 
       by fastforce
@@ -124,7 +124,7 @@ qed simp
 lemma uniformize_fun_neq_ps0_impl_uniformized:
   assumes "uniformize_fun A t ps0 ps \<noteq> ps0"
   obtains l r q s where "(l,r) \<in> set ps"
-                    "r \<noteq> replace_tm A t r"
+                    "r \<noteq> replaceTm A t r"
                     "length r \<ge> 2"
                     "ps = q@[(l,r)]@s"
                     "\<forall>(l,r)\<in>set q. length r < 2 \<or> Tm t \<notin> set r"
@@ -137,10 +137,10 @@ using assms proof (induction ps arbitrary: thesis)
   proof cases
     case not_fst
     hence "uniformize_fun A t ps0 (p#ps) = uniformize_fun A t ps0 ps"
-      using lr0_def tm_notin_syms_impl_replace_tm_id by fastforce
+      using lr0_def tm_notin_syms_impl_replaceTm_id by fastforce
     then obtain l r q s where lrqs_defs: 
                               "(l,r) \<in> set ps"
-                              "r \<noteq> replace_tm A t r"
+                              "r \<noteq> replaceTm A t r"
                               "length r \<ge> 2"
                               "ps = q@[(l,r)]@s"
                               "\<forall>(l,r)\<in>set q. length r < 2 \<or> Tm t \<notin> set r"
@@ -152,54 +152,54 @@ using assms proof (induction ps arbitrary: thesis)
     ultimately show ?thesis using Cons(2) by blast
   next
     case fst
-    hence "r0 \<noteq> replace_tm A t r0" find_theorems name:replace_tm
-      using replace_tm_id_impl_tm_notin_syms by metis
+    hence "r0 \<noteq> replaceTm A t r0" find_theorems name:replaceTm
+      using replaceTm_id_impl_tm_notin_syms by metis
     with fst lr0_def show ?thesis using Cons(2)[of _ _ "[]"] by simp
   qed
 qed simp
 
 lemma uniformize_fun_uniformizes_fst:
   assumes "(l,r) \<in> set ps"
-          "r \<noteq> replace_tm A t r"
+          "r \<noteq> replaceTm A t r"
           "ps = q@[(l,r)]@s"
           "\<forall>(l,r)\<in>set q. Tm t \<notin> set r \<or> length r < 2"
           "length r \<ge> 2"
         shows
-    "uniformize_fun A t ps ps = ((removeAll (l,r) ps) @ [(A, [Tm t]), (l, replace_tm A t r)])" 
+    "uniformize_fun A t ps ps = ((removeAll (l,r) ps) @ [(A, [Tm t]), (l, replaceTm A t r)])" 
 proof -
   from assms(3,4) uniformize_fun_ps0_uniform_app 
       uniformize_fun_uniform_prepend have
     "uniformize_fun A t ps ps = q @ uniformize_fun A t ([(l,r)]@s) ([(l,r)]@s)" by fastforce
-  also have "... = q @ (removeAll (l,r) ([(l,r)]@s)) @ [(A, [Tm t]), (l, replace_tm A t r)]"
+  also have "... = q @ (removeAll (l,r) ([(l,r)]@s)) @ [(A, [Tm t]), (l, replaceTm A t r)]"
     using assms(2,5) by fastforce
-  also have "... = removeAll (l,r) ps @ [(A, [Tm t]), (l, replace_tm A t r)]"
+  also have "... = removeAll (l,r) ps @ [(A, [Tm t]), (l, replaceTm A t r)]"
   proof -
     have "(l,r) \<notin> set q" 
-      using assms(2,4,5) tm_notin_syms_impl_replace_tm_id by fastforce 
+      using assms(2,4,5) tm_notin_syms_impl_replaceTm_id by fastforce 
     thus ?thesis using assms(3) by simp
   qed
   finally show ?thesis .
 qed
 
-lemma uniformize_fun_is_uniformized:
+lemma uniformize_fun_uniformized:
   assumes "uniformize_fun A t ps ps \<noteq> ps"
           "A \<notin> (nts ps \<union> {S})"
   shows "uniformize A t S ps (uniformize_fun A t ps ps)"
 proof -
   from assms obtain l r q s  where lr_in_ps: "(l,r) \<in> set ps"
-                          and replace_neq: "r \<noteq> replace_tm A t r"
+                          and replace_neq: "r \<noteq> replaceTm A t r"
                           and len_lb: "length r \<ge> 2"
                           and ps_qs: "ps = q@[(l,r)]@s"
                           and q_uniform: "\<forall>(l,r)\<in>set q. length r < 2 \<or> Tm t \<notin> set r"
     using uniformize_fun_neq_ps0_impl_uniformized 
     by (smt (verit, del_insts) case_prodI2 case_prod_conv)
   moreover obtain p s' where "r = p@[Tm t]@s'"
-                        and replace_eq_p_Nt_s: "replace_tm A t r = p@[Nt A]@s'"
+                        and replace_eq_p_Nt_s: "replaceTm A t r = p@[Nt A]@s'"
                         and "p \<noteq> [] \<or> s' \<noteq> []"
   proof -
-    from replace_tm_replaces_single replace_neq obtain p s' where
+    from replaceTm_replaces_single replace_neq obtain p s' where
       "r = p@[Tm t]@s'"
-      "replace_tm A t r = p@[Nt A]@s'"
+      "replaceTm A t r = p@[Nt A]@s'"
       by metis
     with len_lb show thesis using that by fastforce
   qed
@@ -214,7 +214,7 @@ lemma uniformize_fun_decreases_badTmsCount:
   assumes "uniformize_fun A t ps ps \<noteq> ps"
           "A \<notin> nts ps \<union> {S}"
   shows "badTmsCount (uniformize_fun A t ps ps) < badTmsCount ps"
-  using assms uniformize_fun_is_uniformized lemma6_a by fast
+  using assms uniformize_fun_uniformized lemma6_a by fast
 
 
 function uniformize_rt :: "['n::infinite, 't, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
@@ -257,11 +257,56 @@ proof (induction "badTmsCount ps" arbitrary: ps rule: less_induct)
     proof -
       from fresh_finite have "?A \<notin> nts ps \<union> {S}" 
         by (metis finite.emptyI finite.insertI finite_nts infinite_Un)
-      with uniformize_fun_is_uniformized[OF neq] show ?thesis by simp 
+      with uniformize_fun_uniformized[OF neq] show ?thesis by simp 
     qed
     ultimately show ?thesis
       by (smt (verit, best) converse_rtranclp_into_rtranclp uniformize_rt.simps)
   qed auto
+qed
+
+fun replaceNts :: "['n::infinite, 'n, 'n, ('n,'t) syms] \<Rightarrow> ('n,'t) syms" where
+  "replaceNts A B\<^sub>1 B\<^sub>2 (s\<^sub>1#s\<^sub>2#sms) = 
+    (if s\<^sub>1 = Nt B\<^sub>1 \<and> s\<^sub>2 = Nt B\<^sub>2 then Nt A # sms 
+    else replaceNts A B\<^sub>1 B\<^sub>2 (s\<^sub>2#sms))" |
+  "replaceNts A B\<^sub>1 B\<^sub>2 sms = sms"
+
+lemma replaceNts_replaces_single:
+  assumes "replaceNts A B\<^sub>1 B\<^sub>2 sms \<noteq> sms"
+  obtains p s where "sms = p@[Nt B\<^sub>1, Nt B\<^sub>2]@s"
+                    "replaceNts A B\<^sub>1 B\<^sub>2 sms = p@[Nt A]@s" sorry
+
+fun binarizeNt_fun :: "['n::infinite, 'n, 'n, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+  "binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps0 [] = ps0" |
+  "binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps0 ((l,r)#ps) = 
+    (let r' = replaceNts A B\<^sub>1 B\<^sub>2 r in
+      if r = r' \<or> length r < 3 then binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps0 ps
+      else (removeAll (l,r) ps0) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, r')])"
+
+lemma binarizeNt_binarizes:
+  assumes "binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps0 ps \<noteq> ps0"
+  obtains l r p s r' where
+    "(l,r) \<in> set ps0"
+    "length r > 2"
+    "replaceNts A B\<^sub>1 B\<^sub>2 r = r'"
+    "r \<noteq> r'"
+    "binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps0 ps = (removeAll (l,r) ps0) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, r')]"
+  sorry
+
+lemma binarizeNt_fun_binarized:
+  assumes "A \<notin> nts ps \<union> {S}"
+          "binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps ps \<noteq> ps"
+  shows "binarizeNt A B\<^sub>1 B\<^sub>2 S ps (binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps ps)"
+proof -
+  from binarizeNt_binarizes[OF assms(2)] obtain l r r' where
+    "(l,r) \<in> set ps"
+    "length r > 2"
+    "replaceNts A B\<^sub>1 B\<^sub>2 r = r'"
+    "r \<noteq> r'"
+    "binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps ps = (removeAll (l,r) ps) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, r')]"
+    using binarizeNt_binarizes by auto
+  moreover from this obtain p s where "r = p@[Nt B\<^sub>1, Nt B\<^sub>2]@s"  "r' = p@[Nt A]@s" 
+    using replaceNts_replaces_single by metis 
+  ultimately show ?thesis unfolding binarizeNt_def using assms(1) by auto
 qed
 
 end

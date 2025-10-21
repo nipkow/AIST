@@ -103,6 +103,11 @@ syntax (IfThenNoBox output)
   "_asms" :: "prop \<Rightarrow> asms \<Rightarrow> asms" ("_ /\<^latex>\<open>{\\normalsize \\,\<close>and\<^latex>\<open>\\,}\<close>/ _")
   "_asm" :: "prop \<Rightarrow> asms" ("_")
 
+abbreviation (iffSpace)
+  iffSpace :: "[bool, bool] => bool"  (infixr "\<^latex>\<open>\\ \<close>\<longleftrightarrow>\<^latex>\<open>\\ \<close>" 25)
+where
+  "iffSpace A B == A = B"
+
 setup \<open>
   Document_Output.antiquotation_pretty_source_embedded \<^binding>\<open>const_typ\<close>
     (Scan.lift Parse.embedded_inner_syntax)

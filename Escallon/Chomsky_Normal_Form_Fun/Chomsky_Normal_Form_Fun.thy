@@ -210,7 +210,7 @@ proof -
     unfolding uniformize_def using assms by blast
 qed
 
-lemma uniformize_fun_decreases_badTmsCount:
+lemma uniformize_fun_dec_badTmsCount:
   assumes "uniformize_fun A t ps ps \<noteq> ps"
           "A \<notin> nts ps \<union> {S}"
   shows "badTmsCount (uniformize_fun A t ps ps) < badTmsCount ps"

@@ -9,17 +9,16 @@ imports
 begin
 declare [[show_question_marks=false]]
 
-lemma expand_hd_simp2: "expand_hd A (S#Ss) P =
- (let P' = expand_hd A Ss P;
-      X = {r \<in> P'. \<exists>w. r = (A, Nt S # w)}
-  in P' - X \<union> subst_hd P' X)"
-by (simp add: subst_hd_def)
+lemma expand_hd_simp2: "expand_hd A (B#Bs) P =
+ (let P' = expand_hd A Bs P
+  in subst_hd P' {r \<in> P'. \<exists>w. r = (A, Nt B # w)})"
+  by simp
 
 lemma expand_tri_simp2: "expand_tri (A#As) P =
- (let P' = expand_tri As P;
-      X = {r \<in> P'. \<exists>w B. r = (A, Nt B # w) \<and> B \<in> set As}
-  in P' - X \<union> subst_hd P' X)"
-by (simp add: subst_hd_def)
+ (let P' = expand_tri As P
+  in subst_hd P' {r \<in> P'. \<exists>w B. r = (A, Nt B # w) \<and> B \<in> set As})"
+  by simp
+
 (*>*)
 text \<open>
 % TODO no ==, just =
@@ -322,9 +321,22 @@ but only eliminate \<open>\<epsilon>\<close>-productions.
 As a result we arrive at head GNF, and turning them into GNF is easy.
 !!TODO!!
 
+We say a grammar \<open>P\<close> is \emph{triangular on} a list \<open>[A\<^sub>1,...,A\<^sub>n]\<close> of nonterminals,
+if \<open>A\<^sub>i \<rightarrow> A\<^sub>j \<alpha> \<in> P\<close> implies \<open>i > j\<close>.
+Inductively, \<open>P\<close> is triangular on \<open>[]\<close>,
+and on \<open>A#As\<close> if it is on \<open>As\<close> and \<open>A \<rightarrow> B \<alpha> \<in> P\<close> implies \<open>B \<notin> set As\<close>.
 
-The main ingredient of @{const gnf_hd} is the removal of \emph{direct left recursions},
-i.e.\ rules of form \<open>A \<rightarrow> A v \<in> P\<close>.
+To make triangular grammar \<open>P\<close> on \<open>As\<close> triangular on \<open>A#As\<close>,
+first, repeatedly expand \<open>A \<rightarrow> B \<alpha> \<in> P\<close> for all \<open>B \<in> set As\<close>
+with respect to the \<open>B\<close>-productions in \<open>P\<close>.
+Formally,
+\begin{quote}
+@{def "subst_hd"}\\
+@{fun expand_hd[expand_hd.simps(1) expand_hd_simp2]}
+\end{quote}
+
+
+Afterwards productions of form \<open>A \<rightarrow> A v \<in> P\<close> remain to be solved.
 Let \<open>V\<close> collect all such \<open>v\<close>,
 and let \<open>U\<close> collect all \<open>u\<close> of \<open>A \<rightarrow> u \<in> P\<close> that does not start with \<open>A\<close>.
 Then the language of \<open>A\<close> is \<open>U \<union> U V\<^sup>+\<close>;
@@ -338,27 +350,35 @@ hence we introduce a fresh nonterminal \<open>A'\<close> whose language is \<ope
 @{def solve_lrec[solve_lrec_def[unfolded rm_lrec_def]]}
 \end{quote}
 
-The formalization is almost the same as the textual description,
+The above formalization is almost the same as the textual description,
 except that
 we do not introduce extra productions if @{prop \<open>V = {}\<close>}.
 This optimization is not present in \<^cite>\<open>HopcroftU79\<close>,
 although their Example 4.10 performs this implicitly.
 
-Using @{const solve_lrec},
-@{const solve_tri} function transforms a grammar into
-\emph{triangular form}.
+Recursively applying @{const solve_lrec} and @{const expand_hd}
+transforms a grammar into a triangular form.
 \begin{quote}
 @{fun solve_tri}
 \end{quote}
 
+\begin{theorem}
+Assume @{thm(prem 1) triangular_solve_tri},
+@{thm(prem 2) triangular_solve_tri},
+and @{thm(prem 3) triangular_solve_tri}.
+Then @{thm(concl) triangular_solve_tri}.
+If moreover @{thm(prem 4) solve_tri_Lang}
+and @{thm(prem 5) solve_tri_Lang},
+then @{thm(concl) solve_tri_Lang}.
+\end{theorem}
 
+<<<<<<< Updated upstream
 \begin{quote}
 @{def subst_hd}
 \end{quote}
+=======
+>>>>>>> Stashed changes
 
-\begin{quote}
-@{fun expand_hd[expand_hd.simps(1) expand_hd_simp2]}
-\end{quote}
 
 \begin{quote}
 @{fun expand_tri[expand_tri.simps(1) expand_tri_simp2]}
@@ -366,12 +386,21 @@ Using @{const solve_lrec},
 
 \subsection{Complexity}
 
-The size of (head) GNF after the transformation is exponential to the size of initial grammar.
+It is known that the textbook algorithms for deriving GNF has
+exponential worst-case complexity~\cite{?},
+and the situation is the same for our head GNF transformation.
 
-This is demonstrated by the family \<open>{P\<^sub>n}\<^sub>n\<close> of grammars 
-where
+This is demonstrated by the family \<open>bad_grammar\<close> of grammars 
+where each @{term "bad_grammar n"}
+consists of \<open>A\<^sub>0 \<rightarrow> a | b\<close> and $A_{i+1} \to A_i a \mid A_i b$ for \<open>i < n\<close>.
 
-!!TODO!! Make the example into CNF?
+While @{term "bad_grammar n"} is already triangular and consisting of only $2n$ rules,
+we formally verify that
+the expansion step yields $2^{n+1}$ productions for \<open>A\<^sub>n\<close>.
+
+\begin{theorem}
+@{thm expand_tri_blowup}
+\end{theorem}
 
 
 

@@ -109,7 +109,7 @@ Variable convention:
 For compactness we sometimes drop the \<open>'n\<close> and \<open>'t\<close> parameters,
 e.g.\ we write \<open>sym\<close> instead of \<open>('n,'t)sym\<close>.
 
-A production, informally written \<open>A \<rightarrow> w\<close>, is a pair of \<open>A :: 'n\<close> and a \<open>w\<close> \<open>::\<close> \mbox{\<open>sym list\<close>}.
+A production, informally written \<open>A \<rightarrow> \<alpha>\<close>, is a pair of \<open>A :: 'n\<close> and a \<open>\<alpha>\<close> \<open>::\<close> \mbox{\<open>sym list\<close>}.
 We use the following abbreviations:
 \begin{quote}
 \<open>syms = sym list\<close> \quad \<open>prod = ('n \<times> syms)\<close> \quad \<open>Prods = prod set\<close>

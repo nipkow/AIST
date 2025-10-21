@@ -345,4 +345,25 @@ proof -
   ultimately show ?thesis unfolding binarizeNt_def using assms(1) by auto
 qed
 
+function binarizeNt_rt :: "['n::infinite, 'n, 'n, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+  "binarizeNt_rt S B\<^sub>1 B\<^sub>2 ps = 
+    (let ps' = binarizeNt_fun (fresh (nts ps \<union> {S})) B\<^sub>1 B\<^sub>2 ps ps in
+    if ps = ps' then ps else binarizeNt_rt S B\<^sub>1 B\<^sub>2 ps')"
+  by auto
+termination
+proof
+  let ?R = "measure (\<lambda>(S,B\<^sub>1,B\<^sub>2,ps). badNtsCount ps)"
+  show "wf ?R" by fast
+  fix S B\<^sub>1 B\<^sub>2 :: "'n::infinite"
+  and ps ps' :: "('n,'t) prods"
+  let ?A = "fresh (nts ps \<union> {S})"
+  assume ps'_def: "ps' = binarizeNt_fun ?A B\<^sub>1 B\<^sub>2 ps ps"
+         and neq: "ps \<noteq> ps'"
+  moreover with fresh_finite have "?A \<notin> nts ps \<union> {S}" 
+    by (metis finite_Un finite_insert finite_nts insert_is_Un)
+  ultimately have "badNtsCount ps' < badNtsCount ps" using lemma6_b binarizeNt_fun_binarized
+    by metis
+  thus "((S,B\<^sub>1,B\<^sub>2,ps'),(S,B\<^sub>1,B\<^sub>2,ps)) \<in> ?R" by auto
+qed
+
 end

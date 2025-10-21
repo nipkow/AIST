@@ -20,6 +20,19 @@ lemma expand_tri_simp2: "expand_tri (A#As) P =
       X = {r \<in> P'. \<exists>w B. r = (A, Nt B # w) \<and> B \<in> set As}
   in P' - X \<union> subst_hd P' X)"
 by (simp add: subst_hd_def)
+
+(* problem with eta-contraction of lang_nfa abberv. Make original lang_nfa a def? *)
+definition lang_nfa where "lang_nfa = FiniteAutomaton.lang_nfa"
+hide_const (open) FiniteAutomaton.lang_nfa
+
+lemma prestar_code_correct:
+  assumes "finite P" and "finite (transitions M)"
+  shows "lang_nfa (prestar_code P M) = pre_star P (lang_nfa M)"
+using assms prestar_code_correct unfolding lang_nfa_def by blast
+
+lemma "finite P \<Longrightarrow> finite (transitions M) \<Longrightarrow> lang_nfa M = L \<Longrightarrow> \<alpha> \<in> lang_nfa (prestar_code P M) \<Longrightarrow> \<alpha> \<in> pre_star P L"
+  using prestar_code_correct by blast
+
 (*>*)
 text \<open>
 % TODO no ==, just =
@@ -210,6 +223,7 @@ the formalization.
 \subsection{Executable Formalization}
 %TODO reachable_from -> reachable
 %TODO lang_nfa -> Lang_nfa
+%prestar_code -> prestar_nfa?
 
 For the purpose of computing \prestar\, we represent NFAs over some state type \<open>'s\<close> by
 transitions of type \<^typ>\<open>'s \<times> ('n,'t)sym \<times> 's\<close>. A set of such triples is usually denoted by \<open>\<delta>\<close>.
@@ -245,8 +259,7 @@ is the analogue of @{const pre_star} on the level of transition relations:
 \begin{quote}
 @{thm [break] prestar_while_correct}
 \end{quote}
-%TODO wait for new version
-%define lang_trans
+%TODO wait for new version? ?
 
 %This combinator comes with an partial correctness proof rule for showing that some invariant \<open>P\<close>
 %holds for the output \<open>t\<close> if it holds for the input \<open>s\<close>:
@@ -262,16 +275,26 @@ Termination can be guaranteed under the obvious finiteness assumptions:
 
 This is the core of the theory which is then lifted to the level of NFAs.
 
+Key correctness theorem:
+\begin{theorem}
+@{thm (concl,eta_expand a b c) prestar_code_correct[of P M,eta_contract=false]} if \<open>P\<close> and the transitions of \<open>M\<close> are finite.
+\end{theorem}
+
+
 \subsection{Applications}
 
+We show how the membership (in \<open>Lang P\<close>) problem, the nullability problem, the productivity
+can be solved automatically by executing @{const prestar_code} and membership in @{const lang_nfa}
+
 Membership or Word Problem: generalize to derivability:
-pre_star_derivability:
-  \<open>P \<turnstile> \<alpha> \<Rightarrow>* \<beta> \<longleftrightarrow> \<alpha> \<in> pre_star P {\<beta>}\<close>
+@{thm pre_star_derivability}:
+  @{prop \<open>P \<turnstile> \<alpha> \<Rightarrow>* \<beta> \<longleftrightarrow> \<alpha> \<in> pre_star P {\<beta>}\<close>}
+
 build NFA B for \<open>{\<beta>}\<close>, compute A = prestar-nfa B, decide if A accepts \<open>\<alpha>\<close>
 
 Nullability reduces to can \<open>[]\<close> be derived.
 
-Productivity: \<open>[Nt A]\<close> in pre_star P UNIV
+Productivity: \<open>[Nt A]\<close> in prestar P UNIV
 
 Always word in lang
 

@@ -372,14 +372,6 @@ and @{thm(prem 5) solve_tri_Lang},
 then @{thm(concl) solve_tri_Lang}.
 \end{theorem}
 
-<<<<<<< Updated upstream
-\begin{quote}
-@{def subst_hd}
-\end{quote}
-=======
->>>>>>> Stashed changes
-
-
 \begin{quote}
 @{fun expand_tri[expand_tri.simps(1) expand_tri_simp2]}
 \end{quote}

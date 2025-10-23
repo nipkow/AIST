@@ -11,12 +11,12 @@ declare [[show_question_marks=false]]
 
 lemma expand_hd_simp2: "expand_hd A (B#Bs) P =
  (let P' = expand_hd A Bs P
-  in subst_hd P' {r \<in> P'. \<exists>w. r = (A, Nt B # w)})"
+  in subst_hd P' {r \<in> P'. \<exists>\<alpha>. r = (A, Nt B # \<alpha>)})"
   by simp
 
 lemma expand_tri_simp2: "expand_tri (A#As) P =
  (let P' = expand_tri As P
-  in subst_hd P' {r \<in> P'. \<exists>w B. r = (A, Nt B # w) \<and> B \<in> set As})"
+  in subst_hd P' {r \<in> P'. \<exists>\<alpha> B. r = (A, Nt B # \<alpha>) \<and> B \<in> set As})"
   by simp
 
 (* problem with eta-contraction of lang_nfa abberv. Make original lang_nfa a def? *)
@@ -306,73 +306,58 @@ the test for disjointness from and containment in a regular language
 (given by an NFA) can also be automated.
 
 
-\section{Greibach}\label{sec:GNF}%AY
+\section{Greibach Normal Forms}\label{sec:GNF}%AY
 
---- notes ---\\
-\<^cite>\<open>BlumK99\<close> defines Greibach as our head Greibach.
-\<^cite>\<open>ReghizziBM19\<close> calls it real-time.
-\\--- note ends ---\\
-
-
-\begin{definition}
-A grammar \<open>P\<close> is in \emph{head Greibach normal form (GNF)} if
-every right-hand side in \<open>P\<close> starts with a terminal symbol.
-Formally,
+Any \<open>\<epsilon>\<close>-free context-free language has a
+\emph{Greibach Normal Form (GNF)} representation,
+where every right-hand side is a terminal followed by nonterminals.
+The same holds for 
+a general version of GNF, which we call \emph{head GNF},\footnote{
+This notion is sometimes just called GNF~\cite{BlumK99} or real-time form~\cite{ReghizziBM19}.
+}
+where
+every right-hand side starts with a terminal symbol.
 \begin{quote}
 @{def GNF_hd}
 \end{quote}
-\end{definition}
 
-The main result of this section is the construction of the function @{const gnf_hd},
-which turns a grammar into GNF while preserving the language modulo \<open>\<epsilon>\<close>.
-\begin{theorem}
-@{thm GNF_hd_gnf_hd}\\
-@{thm Lang_gnf_hd}
-\end{theorem}
-Note that @{const gnf_hd} takes grammar in a list representation \<open>ps\<close>,
-because the algorithm depends on the order of productions.
-Moreover, because the translation introduces fresh nonterminals,
-the language preservation is restricted to nonterminals
-which already appear in the original grammar (\<open>A \<in> nts ps\<close>).
-(This will not be relevant if one fixes the start symbol.)
+In this section we define an executable function @{const Gnf_hd},
+which turns a grammar into head GNF while preserving the language modulo \<open>\<epsilon>\<close>.
+It is easy to turn head GNF into GNF by introducing nonterminals for terminals that appear
+at non-head position of right-hand sides.
 
-The outline of the definition of @{const gnf_hd} is as follows:
-\begin{definition}
-@{def gnf_hd}
-\end{definition}
-It first enumerates the nonterminals as a list \<open>As\<close>,
-and make their fresh copies as \<open>As'\<close>.
-Then it takes three steps of conversions:
+The procedure takes three steps of conversions:
 first eliminate \<open>\<epsilon>\<close>-productions (@{const Eps_elim}),
 then transform to a triangular form (@{const solve_tri}),
 and finally obtain head GNF (@{const expand_tri}).
-The last two steps follow textbook algorithms for deriving
-GNF~\cite{Harrison78,HopcroftU79},
-except that we do not require input in Chomsky normal form
+
+The last two steps follow textbook algorithms~\cite{Harrison78,HopcroftU79} for deriving GNF,
+except that
+we do not require input in Chomsky normal form
 but only eliminate \<open>\<epsilon>\<close>-productions.
-As a result we arrive at head GNF, and turning them into GNF is easy.
-!!TODO!!
+As a result we arrive at head GNF.
 
 We say a grammar \<open>P\<close> is \emph{triangular on} a list \<open>[A\<^sub>1,...,A\<^sub>n]\<close> of nonterminals,
 if \<open>A\<^sub>i \<rightarrow> A\<^sub>j \<alpha> \<in> P\<close> implies \<open>i > j\<close>.
-Inductively, \<open>P\<close> is triangular on \<open>[]\<close>,
-and on \<open>A#As\<close> if it is on \<open>As\<close> and \<open>A \<rightarrow> B \<alpha> \<in> P\<close> implies \<open>B \<notin> set As\<close>.
+Defined inductively, \<open>P\<close> is triangular on \<open>[]\<close>,
+and on \<open>A#As\<close> if it is so on \<open>As\<close> and \<open>A \<rightarrow> B \<alpha> \<in> P\<close> implies \<open>B \<notin> set As\<close>.
 
-To make triangular grammar \<open>P\<close> on \<open>As\<close> triangular on \<open>A#As\<close>,
-first, repeatedly expand \<open>A \<rightarrow> B \<alpha> \<in> P\<close> for all \<open>B \<in> set As\<close>
+We inductively make grammar which is triangular on \<open>As\<close> also triangular on \<open>A#As\<close>.
+First, repeatedly expand productions of form \<open>A \<rightarrow> B \<alpha>\<close> for all \<open>B \<in> set As\<close>
 with respect to the \<open>B\<close>-productions in \<open>P\<close>.
 Formally,
 \begin{quote}
-@{def "subst_hd"}\\
-@{fun expand_hd[expand_hd.simps(1) expand_hd_simp2]}
+@{def[margin=70] "subst_hd"}\\
+@{fun[margin=70] expand_hd[expand_hd.simps(1) expand_hd_simp2]}
 \end{quote}
 
 
-Afterwards productions of form \<open>A \<rightarrow> A v \<in> P\<close> remain to be solved.
+Afterwards productions of form \<open>A \<rightarrow> A v\<close> remain to be solved.
 Let \<open>V\<close> collect all such \<open>v\<close>,
-and let \<open>U\<close> collect all \<open>u\<close> of \<open>A \<rightarrow> u \<in> P\<close> that does not start with \<open>A\<close>.
-Then the language of \<open>A\<close> is \<open>U \<union> U V\<^sup>+\<close>;
-hence we introduce a fresh nonterminal \<open>A'\<close> whose language is \<open>V\<^sup>+\<close>.
+and let \<open>U\<close> collect all \<open>u\<close> of productions \<open>A \<rightarrow> u\<close> that does not start with \<open>A\<close>.
+Then the language of \<open>A\<close> is that of \<open>U \<union> U V\<^sup>+\<close>;
+hence we introduce a fresh nonterminal \<open>A'\<close> whose language corresponds to \<open>V\<^sup>+\<close>,
+and replace \<open>A \<rightarrow> A v\<close> productions by \<open>A \<rightarrow> U A'\<close>.
 
 \begin{quote}
 @{def rrec_of_lrec}
@@ -388,31 +373,53 @@ we do not introduce extra productions if @{prop \<open>V = {}\<close>}.
 This optimization is not present in \<^cite>\<open>HopcroftU79\<close>,
 although their Example 4.10 performs this implicitly.
 
-Recursively applying @{const solve_lrec} and @{const expand_hd}
-transforms a grammar into a triangular form.
+Recursively applying @{const expand_hd} and @{const solve_lrec}
+transforms \<open>\<epsilon>\<close>-free grammars into triangular forms.
 \begin{quote}
-@{fun solve_tri}
+@{thm[break] solve_tri.simps(1)}
 \end{quote}
 
-\begin{theorem}
-Assume @{thm(prem 1) triangular_solve_tri},
-@{thm(prem 2) triangular_solve_tri},
-and @{thm(prem 3) triangular_solve_tri}.
-Then @{thm(concl) triangular_solve_tri}.
+\begin{lemma}
+Suppose that
+\begin{itemize}
+\item \<open>P\<close> is \<open>\<epsilon>\<close>-free (@{thm(prem 1) triangular_As_As'_solve_tri}),
+\item \<open>As'\<close> has as many nonterminals as \<open>As\<close> (@{thm(prem 2) triangular_As_As'_solve_tri}),
+\item there are no duplicates in \<open>As\<close> and \<open>As'\<close> (@{thm(prem 3) triangular_As_As'_solve_tri}), and
+\item nonterminals of \<open>P\<close> are in \<open>As\<close> (@{thm(prem 4) triangular_As_As'_solve_tri}).
+\end{itemize}
+Then @{thm(concl) triangular_As_As'_solve_tri}.
 If moreover @{thm(prem 4) solve_tri_Lang}
 and @{thm(prem 5) solve_tri_Lang},
 then @{thm(concl) solve_tri_Lang}.
+\end{lemma}
+Besides the clarification of the conditions,
+clarifying the list \<open>As @ rev As'\<close> the result is triangular on required some effort.
+
+!!TODO!!
+
+From a triangular form,
+expanding head nonterminals in the right order turns the grammar into head GNF.
+\begin{quote}
+@{fun expand_tri[expand_tri.simps(1) expand_tri_simp2]}\\
+\end{quote}
+\begin{definition}
+@{def Gnf_hd}
+\end{definition}
+
+Because the procedure processes nonterminals one by one,
+we explicitly give a list of nonterminals as an argument to @{const Gnf_hd}.
+We also provide a version which computes such a list by
+taking the input grammar in the list representation.
+It first makes fresh copies \<open>As'\<close> of nonterminals in \<open>As\<close>.
+
+\begin{theorem}
+Let \<open>As\<close> be a list of distinct nonterminals in \<open>P\<close>.
+Then @{thm(concl) GNF_hd_Gnf_hd}.
+For all @{thm(prem 3) Lang_Gnf_hd}, @{thm(concl) Lang_Gnf_hd}.
 \end{theorem}
 
-\begin{quote}
-@{fun expand_tri[expand_tri.simps(1) expand_tri_simp2]}
-\end{quote}
-
-\subsection{Complexity}
-
-It is known that the textbook algorithms for deriving GNF has
-exponential worst-case complexity~\cite{?},
-and the situation is the same for our head GNF transformation.
+We close the section with demonstrating the exponential complexity of
+the (head) GNF translation algorithm~\cite{?}.
 
 This is demonstrated by the family \<open>bad_grammar\<close> of grammars 
 where each @{term "bad_grammar n"}

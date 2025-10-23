@@ -74,10 +74,10 @@ next
   have "\<exists>w. P \<turnstile> [a] \<Rightarrow>* map Tm w"
   proof (cases a)
     case (Nt X)
-    then have "is_productive P X"
+    then have "Lang P X \<noteq> {}"
       using Cons(2) by (simp add: is_useful_all_def is_useful_def)
     then show ?thesis
-      by (simp add: Nt is_productive_def)
+      by (simp add: Nt Lang_def)
   next
     case (Tm c)
     then have "P \<turnstile> [Tm c] \<Rightarrow>* map Tm [c]"

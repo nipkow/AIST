@@ -71,13 +71,9 @@ definition is_reachable_from :: "('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> '
     ("(2_ \<turnstile>/ (_/ \<Rightarrow>\<^sup>? / _))" [50, 0, 50] 50) where
   "(P \<turnstile> X \<Rightarrow>\<^sup>? Y) \<equiv> (\<exists>\<alpha> \<beta>. P \<turnstile> [Nt X] \<Rightarrow>* (\<alpha>@[Nt Y]@\<beta>))"
 
-\<comment>\<open>\<open>X \<in> V\<close> is productive, iff a string of terminals \<open>w \<in> \<Sigma>\<^sup>*\<close> can be derived:\<close>
-definition is_productive :: "('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> bool" where
-  "is_productive P X \<equiv> (\<exists>w. P \<turnstile> [Nt X] \<Rightarrow>* map Tm w)"
-
 \<comment>\<open>\<open>X \<in> V\<close> is useful, iff \<open>V\<close> can be reached from \<open>S\<close> and it is productive:\<close>
 definition is_useful :: "('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> 'n \<Rightarrow> bool" where
-  "is_useful P S X \<equiv> (P \<turnstile> S \<Rightarrow>\<^sup>? X) \<and> is_productive P X"
+  "is_useful P S X \<equiv> (P \<turnstile> S \<Rightarrow>\<^sup>? X) \<and> Lang P X \<noteq> {}"
 
 \<comment>\<open>\<open>X \<in> V\<close> is nullable, iff \<open>\<epsilon>\<close> can be derived:\<close>
 definition is_nullable :: "('n, 't) Prods \<Rightarrow> 'n \<Rightarrow> bool" where

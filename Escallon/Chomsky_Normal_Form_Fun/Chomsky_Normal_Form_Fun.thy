@@ -235,7 +235,7 @@ proof
   moreover have "?A \<notin>  nts ps \<union> {S}" using fresh_finite 
     by (metis finite_Un finite_insert finite_nts insert_is_Un)
   ultimately show "((S,t,x), S,t,ps) \<in> ?R"
-    using uniformize_fun_decreases_badTmsCount by force 
+    using uniformize_fun_dec_badTmsCount by force 
 qed
 
 lemma "(\<lambda>x y. \<exists>A. uniformize A t S x y)\<^sup>*\<^sup>* ps (uniformize_rt S t ps)"
@@ -249,7 +249,7 @@ proof (induction "badTmsCount ps" arbitrary: ps rule: less_induct)
     case neq
     let ?ps' = "uniformize_fun ?A t ps ps"
     from neq have "badTmsCount ?ps' < badTmsCount ps"
-      using uniformize_fun_decreases_badTmsCount fresh_finite 
+      using uniformize_fun_dec_badTmsCount fresh_finite 
       by (metis finite.emptyI finite.insertI finite_nts infinite_Un)
     with less have uniformize_rtrancl: 
       "(\<lambda>x y. \<exists>A. uniformize A t S x y)\<^sup>*\<^sup>* ?ps' (uniformize_rt S t ?ps')" by simp
@@ -390,9 +390,13 @@ proof (induction "badNtsCount ps" arbitrary: ps rule: less_induct)
     moreover from neq A_notin_nts have "binarizeNt ?A B\<^sub>1 B\<^sub>2 S ps ?ps'"
       using binarizeNt_fun_binarized by blast
     ultimately show ?thesis 
-      by (smt (verit, ccfv_SIG) binarizeNt_rt.simps
+      by (smt (verit, best) binarizeNt_rt.simps
           converse_rtranclp_into_rtranclp)
   qed simp
 qed
+
+
+
+
 
 end

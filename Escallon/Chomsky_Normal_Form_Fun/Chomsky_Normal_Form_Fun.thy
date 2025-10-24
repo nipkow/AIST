@@ -2,6 +2,8 @@ theory Chomsky_Normal_Form_Fun
   imports Chomsky_Normal_Form
 begin
 
+
+
 fun replaceTm :: "['n, 't, ('n,'t) syms] \<Rightarrow> ('n,'t) syms" where
   "replaceTm A t [] = []" |
   "replaceTm A t (s # sms) = (if s = Tm t then Nt A # sms else s # replaceTm A t sms)"
@@ -236,9 +238,11 @@ proof
     by (metis finite_Un finite_insert finite_nts insert_is_Un)
   ultimately show "((S,t,x), S,t,ps) \<in> ?R"
     using uniformize_fun_dec_badTmsCount by force 
+  
 qed
 
-lemma "(\<lambda>x y. \<exists>A. uniformize A t S x y)\<^sup>*\<^sup>* ps (uniformize_rt S t ps)"
+lemma uniformize_rt_rtrancl:
+  "(\<lambda>x y. \<exists>A. uniformize A t S x y)\<^sup>*\<^sup>* ps (uniformize_rt S t ps)"
 proof (induction "badTmsCount ps" arbitrary: ps rule: less_induct)
   case less
   let ?A = "fresh (nts ps \<union> {S})"
@@ -263,6 +267,44 @@ proof (induction "badTmsCount ps" arbitrary: ps rule: less_induct)
       by (smt (verit, best) converse_rtranclp_into_rtranclp uniformize_rt.simps)
   qed auto
 qed
+
+fun uniformize_all :: "['n::infinite, 't list, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+  "uniformize_all _ [] ps = ps" |
+  "uniformize_all S (t#ts) ps = (let ps' = uniformize_rt S t ps in uniformize_all S ts ps')"
+
+fun tm_list_of_prods :: "('n,'t) prods \<Rightarrow> 't list" where
+"tm_list_of_prods ps = (let rs = map snd ps in map destTm (filter isTm (concat rs)))"
+
+
+lemma tm_list_of_prods_is_tms:
+  "tm \<in> set (tm_list_of_prods ps) \<longleftrightarrow> tm \<in> tms ps"
+proof -
+  have "tm \<in> set (tm_list_of_prods ps) = 
+    (tm \<in> set (map destTm (filter isTm (concat (map snd ps)))))"
+    by force
+  also have "... = (Tm tm \<in> set (filter isTm (concat (map snd ps))))" 
+    using destTm_o_Tm
+    by (smt (verit, best) destTm.simps filter_set in_set_conv_nth isTm_def length_map member_filter
+        nth_map nth_mem)
+  also have "... = (tm \<in> (\<Union>(A,w)\<in> (set ps). tms_syms w))"
+    using tms_syms_def by fastforce
+  also have "... = (tm \<in> tms ps)" unfolding Tms_def by blast
+  finally show ?thesis .
+qed
+
+lemma uniformize_all_rtrancl:
+  "(\<lambda>x y. \<exists>A t. uniformize A t S x y)\<^sup>*\<^sup>* ps (uniformize_all S ts ps)"
+  proof (induction ts arbitrary: ps)
+    case (Cons t ts)
+    let ?ps' = "uniformize_rt S t ps"
+  have "uniformize_all S (t#ts) ps = uniformize_all S ts ?ps'" by simp
+  moreover from Cons have "(\<lambda>x y. \<exists>A t. uniformize A t S x y)\<^sup>*\<^sup>* ?ps' (uniformize_all S ts ?ps')" 
+    by simp
+  moreover have "(\<lambda>x y. \<exists>A t. uniformize A t S x y)\<^sup>*\<^sup>* ps ?ps'"
+    using uniformize_rt_uniformized_rt by (smt (verit, ccfv_threshold) mono_rtranclp)
+  ultimately show ?case by simp
+qed simp
+
 
 (*Simplifying the first two cases complicates proofs*)
 fun replaceNts :: "['n::infinite, 'n, 'n, ('n,'t) syms] \<Rightarrow> ('n,'t) syms" where
@@ -318,8 +360,7 @@ lemma binarizeNt_fun_binarizes:
     case hd
     moreover from this have 
       "binarizeNt_fun A B\<^sub>1 B\<^sub>2 ps0 (p#ps) = (removeAll (l,r) ps0) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, r')]" 
-      using lr_defs by (smt (verit, best) Suc_numeral binarizeNt_fun.simps(2) not_less_eq
-          semiring_norm(5))
+      using lr_defs by force
     ultimately show ?thesis using Cons(2) lr_defs by (meson list.set_intros(1))
   next
     case tl
@@ -394,9 +435,5 @@ proof (induction "badNtsCount ps" arbitrary: ps rule: less_induct)
           converse_rtranclp_into_rtranclp)
   qed simp
 qed
-
-
-
-
 
 end

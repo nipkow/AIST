@@ -9,14 +9,14 @@ imports
 begin
 declare [[show_question_marks=false]]
 
-lemma expand_hd_simp2: "expand_hd A (B#Bs) P =
- (let P' = expand_hd A Bs P
-  in subst_hd P' {r \<in> P'. \<exists>\<alpha>. r = (A, Nt B # \<alpha>)})"
+lemma Expand_hd_simp2: "Expand_hd A (B#Bs) P =
+ (let P' = Expand_hd A Bs P
+  in Subst_hd P' {r \<in> P'. \<exists>\<alpha>. r = (A, Nt B # \<alpha>)})"
   by simp
 
-lemma expand_tri_simp2: "expand_tri (A#As) P =
- (let P' = expand_tri As P
-  in subst_hd P' {r \<in> P'. \<exists>\<alpha> B. r = (A, Nt B # \<alpha>) \<and> B \<in> set As})"
+lemma Expand_tri_simp2: "Expand_tri (A#As) P =
+ (let P' = Expand_tri As P
+  in Subst_hd P' {r \<in> P'. \<exists>\<alpha> B. r = (A, Nt B # \<alpha>) \<and> B \<in> set As})"
   by simp
 
 (* problem with eta-contraction of lang_nfa abberv. Make original lang_nfa a def? *)
@@ -318,7 +318,7 @@ This notion is sometimes just called GNF~\cite{BlumK99} or real-time form~\cite{
 where
 every right-hand side starts with a terminal symbol.
 \begin{quote}
-@{def GNF_hd}
+@{def In_GNF_hd}
 \end{quote}
 
 In this section we define an executable function @{const Gnf_hd},
@@ -329,7 +329,7 @@ at non-head position of right-hand sides.
 The procedure takes three steps of conversions:
 first eliminate \<open>\<epsilon>\<close>-productions (@{const Eps_elim}),
 then transform to a triangular form (@{const solve_tri}),
-and finally obtain head GNF (@{const expand_tri}).
+and finally obtain head GNF (@{const Expand_tri}).
 
 The last two steps follow textbook algorithms~\cite{Harrison78,HopcroftU79} for deriving GNF,
 except that
@@ -340,15 +340,16 @@ As a result we arrive at head GNF.
 We say a grammar \<open>P\<close> is \emph{triangular on} a list \<open>[A\<^sub>1,...,A\<^sub>n]\<close> of nonterminals,
 if \<open>A\<^sub>i \<rightarrow> A\<^sub>j \<alpha> \<in> P\<close> implies \<open>i > j\<close>.
 Defined inductively, \<open>P\<close> is triangular on \<open>[]\<close>,
-and on \<open>A#As\<close> if it is so on \<open>As\<close> and \<open>A \<rightarrow> B \<alpha> \<in> P\<close> implies \<open>B \<notin> set As\<close>.
+and on \<open>A#As\<close> if it is so on \<open>As\<close> and
+there exist no \<open>A \<rightarrow> B \<alpha> \<in> P\<close> with \<open>B \<in> set As\<close>.
 
-We inductively make grammar which is triangular on \<open>As\<close> also triangular on \<open>A#As\<close>.
-First, repeatedly expand productions of form \<open>A \<rightarrow> B \<alpha>\<close> for all \<open>B \<in> set As\<close>
-with respect to the \<open>B\<close>-productions in \<open>P\<close>.
-Formally,
+We inductively make a grammar which is triangular on \<open>As\<close> also triangular on \<open>A#As\<close>.
+First, we repeatedly expand productions of form \<open>A \<rightarrow> B \<alpha>\<close> for all \<open>B \<in> set As\<close>
+with respect to the \<open>B\<close>-productions in \<open>P\<close>,
+using the following function:
 \begin{quote}
-@{def[margin=70] "subst_hd"}\\
-@{fun[margin=70] expand_hd[expand_hd.simps(1) expand_hd_simp2]}
+@{def[margin=70] "Subst_hd"}\\
+@{fun[margin=70] Expand_hd[Expand_hd.simps(1) Expand_hd_simp2]}
 \end{quote}
 
 
@@ -360,47 +361,47 @@ hence we introduce a fresh nonterminal \<open>A'\<close> whose language correspo
 and replace \<open>A \<rightarrow> A v\<close> productions by \<open>A \<rightarrow> U A'\<close>.
 
 \begin{quote}
-@{def rrec_of_lrec}
+@{def Rrec_of_lrec}
 \end{quote}
 
 \begin{quote}
-@{def solve_lrec[solve_lrec_def[unfolded rm_lrec_def]]}
+@{def Solve_lrec[Solve_lrec_def[unfolded Rm_lrec_def]]}
 \end{quote}
 
 The above formalization is almost the same as the textual description,
 except that
 we do not introduce extra productions if @{prop \<open>V = {}\<close>}.
-This optimization is not present in \<^cite>\<open>HopcroftU79\<close>,
+This optimization is not explicit in \cite[Fig.\ 4.9]{HopcroftU79},
 although their Example 4.10 performs this implicitly.
 
-Recursively applying @{const expand_hd} and @{const solve_lrec}
+Recursively applying @{const Expand_hd} and @{const Solve_lrec}
 transforms \<open>\<epsilon>\<close>-free grammars into triangular forms.
 \begin{quote}
-@{thm[break] solve_tri.simps(1)}
+@{thm[break] Solve_tri.simps(1)}
 \end{quote}
 
 \begin{lemma}
 Suppose that
 \begin{itemize}
-\item \<open>P\<close> is \<open>\<epsilon>\<close>-free (@{thm(prem 1) triangular_As_As'_solve_tri}),
-\item \<open>As'\<close> has as many nonterminals as \<open>As\<close> (@{thm(prem 2) triangular_As_As'_solve_tri}),
-\item there are no duplicates in \<open>As\<close> and \<open>As'\<close> (@{thm(prem 3) triangular_As_As'_solve_tri}), and
-\item nonterminals of \<open>P\<close> are in \<open>As\<close> (@{thm(prem 4) triangular_As_As'_solve_tri}).
+\item \<open>P\<close> is \<open>\<epsilon>\<close>-free (@{thm(prem 1) Triangular_Solve_tri}),
+\item \<open>As'\<close> has as many nonterminals as \<open>As\<close> (@{thm(prem 2) Triangular_Solve_tri}),
+\item there are no duplicates in \<open>As\<close> and \<open>As'\<close> (@{thm(prem 3) Triangular_Solve_tri}), and
+\item nonterminals of \<open>P\<close> are in \<open>As\<close> (@{thm(prem 4) Triangular_Solve_tri}).
 \end{itemize}
-Then @{thm(concl) triangular_As_As'_solve_tri}.
-If moreover @{thm(prem 4) solve_tri_Lang}
-and @{thm(prem 5) solve_tri_Lang},
-then @{thm(concl) solve_tri_Lang}.
+Then @{thm(concl) Triangular_Solve_tri}.
+If moreover @{thm(prem 4) Lang_Solve_tri}
+and @{thm(prem 5) Lang_Solve_tri},
+then @{thm(concl) Lang_Solve_tri}.
 \end{lemma}
 Besides the clarification of the conditions,
-clarifying the list \<open>As @ rev As'\<close> the result is triangular on required some effort.
+clarifying the list (\<open>As @ rev As'\<close>) the result is triangular on required some effort.
 
 !!TODO!!
 
 From a triangular form,
 expanding head nonterminals in the right order turns the grammar into head GNF.
 \begin{quote}
-@{fun expand_tri[expand_tri.simps(1) expand_tri_simp2]}\\
+@{fun Expand_tri[Expand_tri.simps(1) Expand_tri_simp2]}\\
 \end{quote}
 \begin{definition}
 @{def Gnf_hd}
@@ -414,7 +415,7 @@ It first makes fresh copies \<open>As'\<close> of nonterminals in \<open>As\<clo
 
 \begin{theorem}
 Let \<open>As\<close> be a list of distinct nonterminals in \<open>P\<close>.
-Then @{thm(concl) GNF_hd_Gnf_hd}.
+Then @{thm(concl) In_GNF_hd_Gnf_hd}.
 For all @{thm(prem 3) Lang_Gnf_hd}, @{thm(concl) Lang_Gnf_hd}.
 \end{theorem}
 
@@ -430,7 +431,7 @@ we formally verify that
 the expansion step yields $2^{n+1}$ productions for \<open>A\<^sub>n\<close>.
 
 \begin{theorem}
-@{thm expand_tri_blowup}
+@{thm Expand_tri_blowup}
 \end{theorem}
 
 

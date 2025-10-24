@@ -301,7 +301,7 @@ lemma uniformize_all_rtrancl:
   moreover from Cons have "(\<lambda>x y. \<exists>A t. uniformize A t S x y)\<^sup>*\<^sup>* ?ps' (uniformize_all S ts ?ps')" 
     by simp
   moreover have "(\<lambda>x y. \<exists>A t. uniformize A t S x y)\<^sup>*\<^sup>* ps ?ps'"
-    using uniformize_rt_uniformized_rt by (smt (verit, ccfv_threshold) mono_rtranclp)
+    using uniformize_rt_rtrancl by (smt (verit, ccfv_threshold) mono_rtranclp)
   ultimately show ?case by simp
 qed simp
 

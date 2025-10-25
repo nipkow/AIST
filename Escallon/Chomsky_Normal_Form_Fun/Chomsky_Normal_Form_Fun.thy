@@ -399,10 +399,9 @@ lemma binarizeNt_fun_id_or_lt3:
   assumes 
     "replaceNts A r = (nn_opt, r')"
     "r = r' \<or> length r < 3"
-  shows "binarizeNt_fun A ps0 (p#ps) = binarizeNt_fun A ps0 ps"
-  sorry
+  shows "binarizeNt_fun A ps0 ((l,r)#ps) = binarizeNt_fun A ps0 ps"
+using assms replaceNts_id_iff_None by (cases nn_opt) auto
    
-
 
 lemma binarizeNt_fun_binarizes:
   assumes "binarizeNt_fun A ps0 ps \<noteq> ps0"
@@ -460,10 +459,10 @@ lemma binarizeNt_fun_dec_badNtsCount:
   shows "badNtsCount (binarizeNt_fun A ps ps) < badNtsCount ps"
   using lemma6_b assms binarizeNt_fun_binarized by meson
 
-function binarizeNt_rt :: "['n::infinite, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
-  "binarizeNt_rt S ps = 
+function binarizeNt_all :: "['n::infinite, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+  "binarizeNt_all S ps = 
     (let ps' = binarizeNt_fun (fresh (nts ps \<union> {S})) ps ps in
-    if ps = ps' then ps else binarizeNt_rt S ps')"
+    if ps = ps' then ps else binarizeNt_all S ps')"
   by auto
 termination
 proof
@@ -480,7 +479,8 @@ proof
     using binarizeNt_fun_dec_badNtsCount by force
 qed
 
-lemma "(\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 S x y)\<^sup>*\<^sup>* ps (binarizeNt_rt S ps)"
+lemma binarizeNt_all_rtrancl:
+  "(\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 S x y)\<^sup>*\<^sup>* ps (binarizeNt_all S ps)"
 proof (induction "badNtsCount ps" arbitrary: ps rule: less_induct)
   case less
   let ?A = "fresh (nts ps \<union> {S})"
@@ -494,12 +494,12 @@ proof (induction "badNtsCount ps" arbitrary: ps rule: less_induct)
     let ?ps' = "binarizeNt_fun ?A ps ps"
     from binarizeNt_fun_dec_badNtsCount[OF neq A_notin_nts] have
       "badNtsCount ?ps' < badNtsCount ps" .
-    with less have "(\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 S x y)\<^sup>*\<^sup>* ?ps' (binarizeNt_rt S ?ps')"
+    with less have "(\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 S x y)\<^sup>*\<^sup>* ?ps' (binarizeNt_all S ?ps')"
       by blast
     moreover from neq A_notin_nts obtain B\<^sub>1 B\<^sub>2 where "binarizeNt ?A B\<^sub>1 B\<^sub>2 S ps ?ps'"
       using binarizeNt_fun_binarized by blast
     ultimately show ?thesis 
-      by (smt (verit, best) binarizeNt_rt.simps
+      by (smt (verit, best) binarizeNt_all.simps
           converse_rtranclp_into_rtranclp)
   qed simp
 qed

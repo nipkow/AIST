@@ -642,6 +642,31 @@ lemma binarizeNt_fun_dec_badNtsCount:
   shows "badNtsCount (binarizeNt_fun A ps ps) < badNtsCount ps"
   using lemma6_b assms binarizeNt_fun_binarized by meson
 
+lemma binarizeNt_fun_preserves_uniform:
+  fixes ps :: "('n::infinite, 't) prods"
+  assumes ps_uniform: "uniform (set ps)"
+      and ps'_def: "ps' = binarizeNt_fun A ps ps"
+    shows "uniform (set ps')"
+proof -
+  consider (id) "binarizeNt_fun A ps ps = ps" | (not_id) "binarizeNt_fun A ps ps \<noteq> ps" by blast
+  then show ?thesis
+  proof cases
+    case not_id
+    from binarizeNt_fun_binarizes[OF not_id] obtain l r r' B\<^sub>1 B\<^sub>2 where lr_defs:
+      "(l,r) \<in> set ps" "length r > 2" "replaceNts A r = (Some (B\<^sub>1,B\<^sub>2), r')" 
+      "binarizeNt_fun A ps ps = removeAll (l,r) ps @ [(A,[Nt B\<^sub>1, Nt B\<^sub>2]), (l,r')]" by metis
+    moreover from ps_uniform have "uniform (set (removeAll (l,r) ps))"
+      unfolding uniform_def by simp
+    moreover have "uniform (set [(l,r')])"
+    proof -
+      from replaceNts_replaces_pair_Some[OF lr_defs(3)] obtain p q where 
+        "r = p@[Nt B\<^sub>1,Nt B\<^sub>2]@q" "r' = p@[Nt A]@q" .
+      with lr_defs ps_uniform show ?thesis unfolding uniform_def by fastforce
+    qed
+    ultimately show ?thesis using ps'_def unfolding uniform_def by auto
+  qed (use assms in simp)
+qed
+
 function binarizeNt_all :: "['n::infinite, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
   "binarizeNt_all S ps = 
     (let ps' = binarizeNt_fun (fresh (nts ps \<union> {S})) ps ps in
@@ -692,7 +717,20 @@ lemma binarizeNt_all_preserves_uniform:
   assumes ps_uniform: "uniform (set ps)"
       and ps'_def: "ps' = binarizeNt_all S ps"
     shows "uniform (set ps')"
-  sorry
+using assms proof (induction "badNtsCount ps" arbitrary: ps ps' rule: less_induct)
+  case less
+  let ?A = "fresh (nts ps \<union> {S})"
+  consider (rec) "binarizeNt_fun ?A ps ps \<noteq> ps" | (no_rec) "binarizeNt_fun ?A ps ps = ps" by blast
+  then show ?case 
+  proof cases
+    case rec
+    let ?ps' = "binarizeNt_fun ?A ps ps"
+    from rec have "binarizeNt_all S ps = binarizeNt_all S ?ps'" 
+      by (smt (verit) binarizeNt_all.elims)
+    with less binarizeNt_fun_dec_badNtsCount[OF rec] fresh_finite binarizeNt_fun_preserves_uniform
+      show ?thesis by (metis finite.emptyI finite.insertI finite_UnI finite_nts)
+  qed (use less in simp)
+qed
 
 
 lemma binarizeNt_all_binary:

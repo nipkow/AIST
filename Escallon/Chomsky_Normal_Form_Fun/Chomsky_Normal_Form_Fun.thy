@@ -219,10 +219,10 @@ lemma uniformize_fun_dec_badTmsCount:
   using assms uniformize_fun_uniformized lemma6_a by fast
 
 
-function uniformize_rt :: "['n::infinite, 't, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
-  "uniformize_rt S t ps = 
+function uniformize_tm :: "['n::infinite, 't, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+  "uniformize_tm S t ps = 
     (let ps' = uniformize_fun (fresh (nts ps \<union> {S})) t ps ps in 
-        if ps = ps' then ps else uniformize_rt S t ps')"
+        if ps = ps' then ps else uniformize_tm S t ps')"
   by auto
 termination
 proof 
@@ -238,11 +238,15 @@ proof
     by (metis finite_Un finite_insert finite_nts insert_is_Un)
   ultimately show "((S,t,x), S,t,ps) \<in> ?R"
     using uniformize_fun_dec_badTmsCount by force 
-  
 qed
 
-lemma uniformize_rt_rtrancl:
-  "(\<lambda>x y. \<exists>A. uniformize A t S x y)\<^sup>*\<^sup>* ps (uniformize_rt S t ps)"
+lemma uniformize_tm_no_bad_t:
+  fixes ps :: "('n::infinite, 't) prods"
+  assumes "ps' = uniformize_tm S t ps"
+  shows "\<forall>p\<in>set ps'. Tm t \<notin> set (snd p) \<or> length (snd p) \<le> 1" sorry
+              
+lemma uniformize_tm_unifRtc:
+  "(\<lambda>x y. \<exists>A. uniformize A t S x y)\<^sup>*\<^sup>* ps (uniformize_tm S t ps)"
 proof (induction "badTmsCount ps" arbitrary: ps rule: less_induct)
   case less
   let ?A = "fresh (nts ps \<union> {S})"
@@ -256,7 +260,7 @@ proof (induction "badTmsCount ps" arbitrary: ps rule: less_induct)
       using uniformize_fun_dec_badTmsCount fresh_finite 
       by (metis finite.emptyI finite.insertI finite_nts infinite_Un)
     with less have uniformize_rtrancl: 
-      "(\<lambda>x y. \<exists>A. uniformize A t S x y)\<^sup>*\<^sup>* ?ps' (uniformize_rt S t ?ps')" by simp
+      "(\<lambda>x y. \<exists>A. uniformize A t S x y)\<^sup>*\<^sup>* ?ps' (uniformize_tm S t ?ps')" by simp
     moreover have "uniformize ?A t S ps ?ps'"
     proof -
       from fresh_finite have "?A \<notin> nts ps \<union> {S}" 
@@ -264,17 +268,17 @@ proof (induction "badTmsCount ps" arbitrary: ps rule: less_induct)
       with uniformize_fun_uniformized[OF neq] show ?thesis by simp 
     qed
     ultimately show ?thesis
-      by (smt (verit, best) converse_rtranclp_into_rtranclp uniformize_rt.simps)
+      by (smt (verit, best) converse_rtranclp_into_rtranclp uniformize_tm.simps)
   qed auto
 qed
 
+
 fun uniformize_all :: "['n::infinite, 't list, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
   "uniformize_all _ [] ps = ps" |
-  "uniformize_all S (t#ts) ps = (let ps' = uniformize_rt S t ps in uniformize_all S ts ps')"
+  "uniformize_all S (t#ts) ps = (let ps' = uniformize_tm S t ps in uniformize_all S ts ps')"
 
 fun tm_list_of_prods :: "('n,'t) prods \<Rightarrow> 't list" where
 "tm_list_of_prods ps = (let rs = map snd ps in map destTm (filter isTm (concat rs)))"
-
 
 lemma tm_list_of_prods_is_tms:
   "tm \<in> set (tm_list_of_prods ps) \<longleftrightarrow> tm \<in> tms ps"
@@ -292,16 +296,58 @@ proof -
   finally show ?thesis .
 qed
 
-lemma uniformize_all_rtrancl:
+lemma uniformize_all_unchanged_tms:
+  "tms ps = tms (uniformize_all S ts ps)" sorry
+
+lemma uniformize_all_no_new_badTms:
+    "\<lbrakk>\<forall>p\<in>set ps. Tm t \<notin> set (snd p) \<or> length (snd p) \<le> 1; ps' = uniformize_all S ts ps\<rbrakk> 
+      \<Longrightarrow> \<forall>p\<in>set ps'. Tm t \<notin> set (snd p) \<or> length (snd p) \<le> 1"
+proof (induction ts arbitrary: ps ps')
+  case (Cons t' ts)
+  then show ?case sorry
+qed simp (* TODO *)
+
+
+
+lemma uniformize_all_no_badTms:
+  assumes "ts = tm_list_of_prods ps" 
+          "ps' = uniformize_all S ts ps"
+  shows "badTmsCount ps' = 0"
+proof -
+  have "\<forall>t\<in>set ts. \<forall>p\<in>set ps'. Tm t \<notin> set (snd p) \<or> length (snd p) \<le> 1"
+    using assms(2) proof (induction ts arbitrary: ps ps')
+    case (Cons t ts)
+    from Cons(2) have rec: "ps' = uniformize_all S ts (uniformize_tm S t ps)" by simp
+    with Cons(1) have "\<forall>t\<in>set ts. \<forall>p\<in>set ps'. Tm t \<notin> set (snd p) \<or> length (snd p) \<le> 1" by fast
+    moreover from rec have "\<forall>p\<in>set ps'. Tm t \<notin> set (snd p) \<or> length (snd p) \<le> 1" 
+      using uniformize_tm_no_bad_t uniformize_all_no_new_badTms by fast
+    ultimately show ?case by fastforce
+  qed simp
+  with tm_list_of_prods_is_tms uniformize_all_unchanged_tms have 
+    "\<forall>t\<in>tms ps'. \<forall>p\<in>set ps'. Tm t \<notin> set (snd p) \<or> length (snd p) \<le> 1"
+    using assms by fast
+  with assms show ?thesis unfolding Tms_def tms_syms_def
+    by (metis (no_types, lifting) One_nat_def UnionI badTmsCountNot0 bot_nat_0.not_eq_extremum leD
+        le_imp_less_Suc mem_Collect_eq numeral_2_eq_2 pair_imageI snd_conv)
+qed
+
+
+lemma uniformize_all_uniform:
+  assumes "ts = tm_list_of_prods ps"
+  shows "uniform (set(uniformize_all S ts ps))"
+  using uniformize_all_no_badTms[OF assms] uniform_badTmsCount by blast
+
+
+lemma uniformize_all_unifRtc:
   "(\<lambda>x y. \<exists>A t. uniformize A t S x y)\<^sup>*\<^sup>* ps (uniformize_all S ts ps)"
   proof (induction ts arbitrary: ps)
     case (Cons t ts)
-    let ?ps' = "uniformize_rt S t ps"
+    let ?ps' = "uniformize_tm S t ps"
   have "uniformize_all S (t#ts) ps = uniformize_all S ts ?ps'" by simp
   moreover from Cons have "(\<lambda>x y. \<exists>A t. uniformize A t S x y)\<^sup>*\<^sup>* ?ps' (uniformize_all S ts ?ps')" 
     by simp
   moreover have "(\<lambda>x y. \<exists>A t. uniformize A t S x y)\<^sup>*\<^sup>* ps ?ps'"
-    using uniformize_rt_rtrancl by (smt (verit, ccfv_threshold) mono_rtranclp)
+    using uniformize_tm_unifRtc by (smt (verit, ccfv_threshold) mono_rtranclp)
   ultimately show ?case by simp
 qed simp
 
@@ -479,7 +525,7 @@ proof
     using binarizeNt_fun_dec_badNtsCount by force
 qed
 
-lemma binarizeNt_all_rtrancl:
+lemma binarizeNt_all_binRtc:
   "(\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 S x y)\<^sup>*\<^sup>* ps (binarizeNt_all S ps)"
 proof (induction "badNtsCount ps" arbitrary: ps rule: less_induct)
   case less
@@ -503,5 +549,57 @@ proof (induction "badNtsCount ps" arbitrary: ps rule: less_induct)
           converse_rtranclp_into_rtranclp)
   qed simp
 qed
+
+lemma binarizeNt_all_preserves_uniform:
+  fixes ps :: "('n::infinite, 't) prods"
+  assumes ps_uniform: "uniform (set ps)"
+      and ps'_def: "ps' = binarizeNt_all S ps"
+    shows "uniform (set ps')"
+  sorry
+
+
+lemma binarizeNt_all_binary:
+  fixes ps :: "('n::infinite, 't) prods"
+  assumes "ts = tm_list_of_prods ps"
+      and "ps' = binarizeNt_all S ps"
+    shows "binary (set ps')"
+  sorry
+
+theorem cnf_noe_nou_funs:
+  fixes ps :: "('n::infinite, 't) prods"
+  assumes eps_free: "Eps_free (set ps)" 
+      and unit_free: "Unit_free (set ps)"
+      and ts_def: "ts = tm_list_of_prods ps"
+      and ps'_def: "ps' = (binarizeNt_all S o uniformize_all S ts) ps"
+    shows "uniform (set ps')" "binary (set ps')" "lang ps S = lang ps' S" "Eps_free (set ps')" 
+          "Unit_free (set ps')"
+proof (goal_cases uniform binary lang_eq Eps_free Unit_free)
+  case uniform
+  let ?ps_unif = "uniformize_all S ts ps"
+  from uniformize_all_uniform ts_def have "uniform (set ?ps_unif)" by fast
+  with binarizeNt_all_preserves_uniform ps'_def show ?case by auto
+next
+  case binary
+  then show ?case using assms binarizeNt_all_binary ts_def by auto
+next
+  case lang_eq
+  then show ?case using assms cnf_lemma binarizeNt_all_binRtc uniformize_all_unifRtc
+    by (metis (mono_tags, lifting) comp_apply)
+next
+  case Eps_free
+  let ?ps_unif = "uniformize_all S ts ps"
+  from uniformize_all_unifRtc[THEN uniformizeRtc_Eps_free] eps_free have "eps_free ?ps_unif" 
+    by blast
+   with binarizeNt_all_binRtc binarizeNtRtc_Eps_free show ?case using ps'_def by fastforce
+next
+  case Unit_free
+  let ?ps_unif = "uniformize_all S ts ps"
+  from uniformize_all_unifRtc[THEN uniformizeRtc_Unit_free] unit_free have "Unit_free (set ?ps_unif)" 
+    by blast
+   with binarizeNt_all_binRtc binarizeNtRtc_Unit_free show ?case using ps'_def by fastforce
+qed
+
+
+
 
 end

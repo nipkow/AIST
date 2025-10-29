@@ -580,12 +580,14 @@ fun binarizeNt_fun :: "['n::infinite, ('n,'t) prods, ('n,'t) prods] \<Rightarrow
         if length r < 3 then binarizeNt_fun A ps0 ps 
         else (removeAll (l,r) ps0) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, r')])" 
 
-lemma binarizeNt_fun_id_or_lt3:
+
+
+lemma binarizeNt_fun_rec_if_id_or_lt3:
   assumes 
     "replaceNts A r = (nn_opt, r')"
     "r = r' \<or> length r < 3"
   shows "binarizeNt_fun A ps0 ((l,r)#ps) = binarizeNt_fun A ps0 ps"
-using assms replaceNts_id_iff_None by (cases nn_opt) auto
+  using assms replaceNts_id_iff_None by (cases nn_opt) auto
    
 
 lemma binarizeNt_fun_binarizes:
@@ -611,7 +613,7 @@ lemma binarizeNt_fun_binarizes:
     ultimately show ?thesis using Cons(2) lr_defs hd by fastforce
   next
     case tl
-    with lr_defs binarizeNt_fun_id_or_lt3 
+    with lr_defs binarizeNt_fun_rec_if_id_or_lt3 
       have "binarizeNt_fun A ps0 (p#ps) = binarizeNt_fun A ps0 ps" by blast
     with Cons show ?thesis using lr_defs by (metis list.set_intros(2))
   qed
@@ -644,11 +646,74 @@ lemma binarizeNt_fun_dec_badNtsCount:
   shows "badNtsCount (binarizeNt_fun A ps ps) < badNtsCount ps"
   using lemma6_b assms binarizeNt_fun_binarized by meson
 
-lemma binarizeNt_fun_not_id_if_badNts_unif:
+(* Needed to prove the badNts_impl_binarizeNt_fun_not_id_unif *)
+lemma removeAll_app_eq_impl_removed:
+  "removeAll z xs @ ys = xs \<Longrightarrow> (\<forall>y\<in>set ys. y = z)"
+  by (induction xs) 
+    (simp, (metis member_remove removeAll_append removeAll_id remove_code(1) self_append_conv))
+
+
+lemma badNts_impl_binarizeNt_fun_not_id_unif:
   assumes "badNtsCount ps = Suc n"
-          "uniform (set ps)"
-        shows "binarizeNt_fun A ps ps \<noteq> ps"
-  sorry
+    "uniform (set ps)"
+  shows "binarizeNt_fun A ps0 ps \<noteq> ps0"
+  using assms proof (induction ps arbitrary: n)
+  case (Cons p ps)
+  obtain l r where lr_def: "(l,r) = p" using old.prod.exhaust by metis
+  consider (no_badNts_hd) "badNtsCount [p] = 0" | (Suc_badNts_hd) m where "badNtsCount [p] = Suc m"
+    using not0_implies_Suc by blast
+  then show ?case
+  proof cases
+    case no_badNts_hd
+    from Cons(3) have only_Nts: "length r = 1 \<or> (\<forall>s\<in>(set r). \<exists>n. s = Nt n)"
+      unfolding uniform_def using lr_def 
+      by (metis Cons.prems(2) One_nat_def Suc_leI badTmsCountSet isNt_def le_antisym length_pos_if_in_set
+          list.set_intros(1) noTms_prodTms0 uniform_badTmsCount)
+    have "length r < 3"
+    proof (rule ccontr)
+      assume "\<not>?thesis"
+      hence "length r \<ge> 2" by simp
+      moreover with only_Nts have "\<forall>s\<in>set r. \<exists>n. s = Nt n" by presburger
+      ultimately have "prodNts p \<noteq> 0" unfolding prodNts_def using lr_def 
+        by (metis \<open>\<not> length r < 3\<close> filter_True isNt_def le_imp_less_Suc not_numeral_le_zero numeral_2_eq_2
+            numeral_3_eq_3 snd_conv)
+      with no_badNts_hd show False by simp
+    qed
+    with lr_def have "binarizeNt_fun A ps0 (p#ps) = binarizeNt_fun A ps0 ps" 
+      using binarizeNt_fun_rec_if_id_or_lt3 by (metis old.prod.exhaust)
+    with Cons show ?thesis 
+      by (metis badNtsCountSet badTmsCountSet list.set_intros(1,2) no_badNts_hd old.nat.exhaust set_ConsD
+          uniform_badTmsCount)
+  next
+    case Suc_badNts_hd
+    with lr_def have all_Nts: "length r > 2 \<and> (\<forall>s\<in>set r. \<exists>n. s = Nt n)" using prodNts_def 
+      by (metis (no_types, lifting) ext Cons.prems(2) One_nat_def add.commute add_Suc_right
+          add_mono_thms_linordered_semiring(1) badNtsCountSet badTmsCountSet empty_iff empty_set isNt_def
+          length_Suc_conv linorder_not_less list.set_intros(1) noTms_prodTms0 numeral_2_eq_2 plus_nat.add_0
+          set_ConsD snd_conv uniform_badTmsCount zero_le)
+    moreover obtain r' B\<^sub>1 B\<^sub>2 where replace_defs: "replaceNts A r = (Some (B\<^sub>1,B\<^sub>2), r')" "r' \<noteq> r"
+    proof -
+      from all_Nts obtain ns B\<^sub>1 B\<^sub>2 where "r = [Nt B\<^sub>1, Nt B\<^sub>2] @ ns"
+        by (metis (no_types, lifting) append_Cons append_Nil le_imp_less_Suc length_Suc_conv 
+            linorder_not_less list.exhaust list.set_intros(1,2) list.size(3) not_less_iff_gr_or_eq 
+            numeral_2_eq_2)
+      thus thesis using that by simp
+    qed
+    ultimately have "binarizeNt_fun A ps0 (p#ps) = removeAll (l,r) ps0 @ [(A, [Nt B\<^sub>1, Nt B\<^sub>2]), (l,r')]"
+                    (is "_ = ?rem")
+      using lr_def by fastforce
+    also have "... \<noteq> ps0" 
+    proof
+      assume rem_eq: "... = ps0"
+      then obtain xs where "ps0 = xs @ [(A, [Nt B\<^sub>1, Nt B\<^sub>2]), (l,r')]" by metis
+      with rem_eq have "(l,r) = (l,r')" using removeAll_app_eq_impl_removed 
+        by (metis insert_iff list.set(2))
+      with replace_defs show False by blast
+    qed
+    finally show ?thesis .
+  qed
+qed simp
+
 
 lemma binarizeNt_fun_preserves_uniform:
   fixes ps :: "('n::infinite, 't) prods"
@@ -772,8 +837,8 @@ proof -
     proof (induction "badNtsCount ps" arbitrary: ps ps' n rule: less_induct)
       case less
       let ?A = "fresh (nts ps \<union> {S})"
-      from less binarizeNt_fun_not_id_if_badNts_unif have "binarizeNt_fun ?A ps ps \<noteq> ps"
-        by fast
+      from less badNts_impl_binarizeNt_fun_not_id_unif have "binarizeNt_fun ?A ps ps \<noteq> ps"
+        by fastforce
       hence badNtsCount_dec: "badNtsCount (binarizeNt_fun ?A ps ps) < badNtsCount ps" 
                               (is "badNtsCount ?ps' < _")
         using fresh_finite binarizeNt_fun_dec_badNtsCount 

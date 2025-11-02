@@ -414,20 +414,25 @@ fun uniformize_all :: "['n::infinite, 't list, ('n,'t) prods] \<Rightarrow> ('n,
 fun tm_list_of_prods :: "('n,'t) prods \<Rightarrow> 't list" where
 "tm_list_of_prods ps = (let rs = map snd ps in map destTm (filter isTm (concat rs)))"
 
-lemma tm_list_of_prods_is_tms:
-  "tm \<in> set (tm_list_of_prods ps) \<longleftrightarrow> tm \<in> tms ps"
+lemma tm_list_of_prods_is_tms[simp]:
+  "set (tm_list_of_prods ps) = tms ps"
 proof -
-  have "tm \<in> set (tm_list_of_prods ps) = 
-    (tm \<in> set (map destTm (filter isTm (concat (map snd ps)))))"
-    by force
-  also have "... = (Tm tm \<in> set (filter isTm (concat (map snd ps))))" 
-    using destTm_o_Tm
-    by (smt (verit, best) destTm.simps filter_set in_set_conv_nth isTm_def length_map member_filter
-        nth_map nth_mem)
-  also have "... = (tm \<in> (\<Union>(A,w)\<in> (set ps). tms_syms w))"
-    using tms_syms_def by fastforce
-  also have "... = (tm \<in> tms ps)" unfolding Tms_def by blast
-  finally show ?thesis .
+  have "\<forall>tm. tm \<in> set (tm_list_of_prods ps) \<longleftrightarrow> tm \<in> tms ps"
+  proof
+    fix tm
+    have "tm \<in> set (tm_list_of_prods ps) = 
+      (tm \<in> set (map destTm (filter isTm (concat (map snd ps)))))"
+      by force
+    also have "... = (Tm tm \<in> set (filter isTm (concat (map snd ps))))" 
+      using destTm_o_Tm
+      by (smt (verit, best) destTm.simps filter_set in_set_conv_nth isTm_def length_map member_filter
+          nth_map nth_mem)
+    also have "... = (tm \<in> (\<Union>(A,w)\<in> (set ps). tms_syms w))"
+      using tms_syms_def by fastforce
+    also have "... = (tm \<in> tms ps)" unfolding Tms_def by blast
+    finally show "tm \<in> set (tm_list_of_prods ps) \<longleftrightarrow> tm \<in> tms ps" by blast
+  qed
+  thus ?thesis by blast
 qed
 
 lemma uniformize_all_unchanged_tms:
@@ -876,6 +881,7 @@ proof (goal_cases uniform binary lang_eq Eps_free Unit_free)
   let ?ps_unif = "uniformize_all S ts ps"
   from uniformize_all_uniform ts_def have "uniform (set ?ps_unif)" by fast
   with binarizeNt_all_preserves_uniform ps'_def show ?case by auto
+next
   case binary
   then show ?case using assms binarizeNt_all_binary_if_uniform ts_def
     by (metis comp_apply uniform_badTmsCount uniformize_all_no_badTms)
@@ -896,8 +902,6 @@ next
     by blast
    with binarizeNt_all_binRtc binarizeNtRtc_Unit_free show ?case using ps'_def by fastforce
 qed
-
-
 
 
 end

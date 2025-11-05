@@ -6,49 +6,47 @@ begin
 
 fun replaceTm :: "['n, 't, ('n,'t) syms] \<Rightarrow> ('n,'t) syms" where
   "replaceTm A t [] = []" |
-  "replaceTm A t (s # ss) = (if s = Tm t then Nt A # ss else s # replaceTm A t ss)"
+  "replaceTm A t (s # sl) = (if s = Tm t then Nt A # sl else s # replaceTm A t sl)"
 
 lemma replaceTm_length_unchanged[simp]: 
-  "length (replaceTm A t ss) = length ss"
-  by (induction ss) auto
+  "length (replaceTm A t sl) = length sl"
+  by (induction sl) auto
   
 
 lemma replaceTm_id_iff_tm_notin_syms:
-  shows "Tm t \<notin> set ss \<longleftrightarrow> replaceTm A t ss = ss"
-  by (induction ss) auto
+  shows "Tm t \<notin> set sl \<longleftrightarrow> replaceTm A t sl = sl"
+  by (induction sl) auto
 
-(*Proofs break with iff lemma. Fix?*)
 lemma tm_notin_syms_impl_replaceTm_id:
-  assumes "Tm t \<notin> set ss" 
-  shows "replaceTm A t ss = ss"
+  assumes "Tm t \<notin> set sl" 
+  shows "replaceTm A t sl = sl"
   using assms replaceTm_id_iff_tm_notin_syms by fast
 lemma replaceTm_id_impl_tm_notin_syms:
-  assumes "replaceTm A t ss = ss"
-  shows "Tm t \<notin> set ss"
+  assumes "replaceTm A t sl = sl"
+  shows "Tm t \<notin> set sl"
   using assms replaceTm_id_iff_tm_notin_syms by fast
 
-(*Strengthen with "Tm t \<notin> set p?*)
 lemma replaceTm_replaces_single:
-  assumes "replaceTm A t ss \<noteq> ss"
-  obtains p s where "ss = p@[Tm t]@s"
-                    "replaceTm A t ss = p@[Nt A]@s"
-using assms proof (induction ss arbitrary: thesis)
-  case (Cons s ss)
-  from Cons(3) have t_in_syms: "Tm t \<in> set (s#ss)" using replaceTm_id_iff_tm_notin_syms by fast
+  assumes "replaceTm A t sl \<noteq> sl"
+  obtains p s where "sl = p@[Tm t]@s"
+                    "replaceTm A t sl = p@[Nt A]@s"
+using assms proof (induction sl arbitrary: thesis)
+  case (Cons s sl)
+  from Cons(3) have t_in_syms: "Tm t \<in> set (s#sl)" using replaceTm_id_iff_tm_notin_syms by fast
   consider (eq) "s = Tm t" | (neq) "s \<noteq> Tm t" by blast
   then show ?case 
   proof cases
     case eq
-    then obtain p q where "s#ss = p@[Tm t]@q" "p = []" by auto
-    moreover from eq have "replaceTm A t (s#ss) = Nt A#ss" by simp
+    then obtain p q where "s#sl = p@[Tm t]@q" "p = []" by auto
+    moreover from eq have "replaceTm A t (s#sl) = Nt A#sl" by simp
     ultimately show thesis using Cons(2) by fastforce
   next
     case neq
-    with t_in_syms have "Tm t \<in> set ss" 
+    with t_in_syms have "Tm t \<in> set sl" 
       by simp
     with Cons(1) replaceTm_id_iff_tm_notin_syms 
-    obtain p q where pq_defs: "ss = p@[Tm t]@q" "replaceTm A t ss = p@[Nt A]@q" by metis
-    with neq have "replaceTm A t (s#ss) = (s#p)@[Nt A]@q" by auto
+    obtain p q where pq_defs: "sl = p@[Tm t]@q" "replaceTm A t sl = p@[Nt A]@q" by metis
+    with neq have "replaceTm A t (s#sl) = (s#p)@[Nt A]@q" by auto
     then show ?thesis using Cons(2) pq_defs by (meson Cons_eq_appendI)
   qed
 qed simp
@@ -503,32 +501,32 @@ qed simp
 fun replaceNts :: "['n::fresh0, ('n,'t) syms] \<Rightarrow> ('n \<times> 'n) option \<times> ('n,'t) syms" where
   "replaceNts A [] = (None, [])" |
   "replaceNts A [s] = (None, [s])" |
-  "replaceNts A (Nt s\<^sub>1 # Nt s\<^sub>2 # ss) = (Some (s\<^sub>1, s\<^sub>2), Nt A # ss)" |
-  "replaceNts A (s#ss) = (let (nn_opt, ss') = replaceNts A ss in (nn_opt, s#ss'))"
+  "replaceNts A (Nt s\<^sub>1 # Nt s\<^sub>2 # sl) = (Some (s\<^sub>1, s\<^sub>2), Nt A # sl)" |
+  "replaceNts A (s#sl) = (let (nn_opt, sl') = replaceNts A sl in (nn_opt, s#sl'))"
 
 lemma replaceNts_tm_unchanged_opt:
   assumes 
-    "replaceNts A (s0#s1#ss) = (nn_opt, ss')"
+    "replaceNts A (s0#s1#sl) = (nn_opt, sl')"
     "\<exists>t. s0 = Tm t \<or> s1 = Tm t"
-  obtains ss'' where "replaceNts A (s1#ss) = (nn_opt, ss'')"
+  obtains sl'' where "replaceNts A (s1#sl) = (nn_opt, sl'')"
 proof -
-  obtain nn_opt' ss'' where "replaceNts A (s1#ss) = (nn_opt', ss'')"
+  obtain nn_opt' sl'' where "replaceNts A (s1#sl) = (nn_opt', sl'')"
     by fastforce
   moreover with assms have "nn_opt = nn_opt'" by fastforce
   ultimately show thesis using that by blast
 qed
 
 lemma replaceNts_id_iff_None:
-  assumes "replaceNts A ss = (nn_opt, ss')"
-  shows "nn_opt = None \<longleftrightarrow> ss = ss'"
-  using assms proof (induction ss arbitrary: nn_opt ss' rule: replaceNts.induct)
-  case ("4_1" A t s ss)
-  then obtain ss'' where rec: "replaceNts A (s#ss) = (nn_opt, ss'')"
+  assumes "replaceNts A sl = (nn_opt, sl')"
+  shows "nn_opt = None \<longleftrightarrow> sl = sl'"
+  using assms proof (induction sl arbitrary: nn_opt sl' rule: replaceNts.induct)
+  case ("4_1" A t s sl)
+  then obtain sl'' where rec: "replaceNts A (s#sl) = (nn_opt, sl'')"
     using replaceNts_tm_unchanged_opt by blast
   then show ?case using "4_1" by auto
 next
-  case ("4_2" A s t ss)
-  then obtain ss'' where rec: "replaceNts A (Tm t#ss) = (nn_opt, ss'')"
+  case ("4_2" A s t sl)
+  then obtain sl'' where rec: "replaceNts A (Tm t#sl) = (nn_opt, sl'')"
     using replaceNts_tm_unchanged_opt by blast
   then show ?case using "4_2" by auto
 qed auto
@@ -537,45 +535,45 @@ qed auto
 
 lemma replaceNts_replaces_pair:
   assumes 
-    "replaceNts A ss = (nn_opt, ss')"
+    "replaceNts A sl = (nn_opt, sl')"
     "nn_opt \<noteq> None"
   obtains p q B\<^sub>1 B\<^sub>2 where 
     "nn_opt = Some (B\<^sub>1,B\<^sub>2)"
-    "ss = p@[Nt B\<^sub>1, Nt B\<^sub>2]@q"
-    "ss' = p@[Nt A]@q" 
-  using assms proof (induction ss arbitrary: thesis nn_opt ss' rule: replaceNts.induct)
-  case ("4_1" A t s ss)
-  then obtain ss'' where 
-    "replaceNts A (s#ss) = (nn_opt, ss'')" 
-    and ss'_def: "ss' = Tm t # ss''"
+    "sl = p@[Nt B\<^sub>1, Nt B\<^sub>2]@q"
+    "sl' = p@[Nt A]@q" 
+  using assms proof (induction sl arbitrary: thesis nn_opt sl' rule: replaceNts.induct)
+  case ("4_1" A t s sl)
+  then obtain sl'' where 
+    "replaceNts A (s#sl) = (nn_opt, sl'')" 
+    and sl'_def: "sl' = Tm t # sl''"
     using replaceNts_tm_unchanged_opt
     by (metis (lifting) case_prod_conv prod.inject replaceNts.simps(4))
   with "4_1"(1,4) obtain p q B\<^sub>1 B\<^sub>2 where 
-    "nn_opt = Some (B\<^sub>1,B\<^sub>2)" "s#ss = p@[Nt B\<^sub>1,Nt B\<^sub>2]@q" "ss'' = p@[Nt A]@q" 
+    "nn_opt = Some (B\<^sub>1,B\<^sub>2)" "s#sl = p@[Nt B\<^sub>1,Nt B\<^sub>2]@q" "sl'' = p@[Nt A]@q" 
     by blast
-  moreover with ss'_def have "Tm t #s#ss = (Tm t#p)@[Nt B\<^sub>1,Nt B\<^sub>2]@q" "ss' = (Tm t#p)@[Nt A]@q"
+  moreover with sl'_def have "Tm t #s#sl = (Tm t#p)@[Nt B\<^sub>1,Nt B\<^sub>2]@q" "sl' = (Tm t#p)@[Nt A]@q"
     by auto
   ultimately show ?case using "4_1"(2) by blast
 next
-  case ("4_2" A s t ss)
-  then obtain ss'' where 
-    "replaceNts A (Tm t#ss) = (nn_opt, ss'')" 
-    and ss'_def: "ss' = s # ss''"
+  case ("4_2" A s t sl)
+  then obtain sl'' where 
+    "replaceNts A (Tm t#sl) = (nn_opt, sl'')" 
+    and sl'_def: "sl' = s # sl''"
     using replaceNts_tm_unchanged_opt
     by (metis (lifting) old.prod.case prod.inject replaceNts.simps(5))
   with "4_2"(1,4) obtain p q B\<^sub>1 B\<^sub>2 where 
-    "nn_opt = Some (B\<^sub>1,B\<^sub>2)" "Tm t#ss = p@[Nt B\<^sub>1,Nt B\<^sub>2]@q" "ss'' = p@[Nt A]@q" 
+    "nn_opt = Some (B\<^sub>1,B\<^sub>2)" "Tm t#sl = p@[Nt B\<^sub>1,Nt B\<^sub>2]@q" "sl'' = p@[Nt A]@q" 
     by blast
-  moreover with ss'_def have "s#Tm t#ss = (s#p)@[Nt B\<^sub>1,Nt B\<^sub>2]@q" "ss' = (s#p)@[Nt A]@q"
+  moreover with sl'_def have "s#Tm t#sl = (s#p)@[Nt B\<^sub>1,Nt B\<^sub>2]@q" "sl' = (s#p)@[Nt A]@q"
     by auto
   ultimately show ?case using "4_2"(2) by blast
 qed fastforce+
 
 corollary replaceNts_replaces_pair_Some:
-  assumes "replaceNts A ss = (Some (B\<^sub>1,B\<^sub>2), ss')"
+  assumes "replaceNts A sl = (Some (B\<^sub>1,B\<^sub>2), sl')"
   obtains p q where 
-    "ss = p@[Nt B\<^sub>1, Nt B\<^sub>2]@q"
-    "ss' = p@[Nt A]@q"
+    "sl = p@[Nt B\<^sub>1, Nt B\<^sub>2]@q"
+    "sl' = p@[Nt A]@q"
   using replaceNts_replaces_pair 
   by (smt (verit) assms option.distinct(1) option.inject prod.inject)
 
@@ -632,7 +630,6 @@ lemma binarizeNt_fun_binarized:
     "A \<notin> Nts (set ps) \<union> {S}"
     "binarizeNt_fun A ps ps \<noteq> ps"
   obtains B\<^sub>1 B\<^sub>2 where  "binarizeNt A B\<^sub>1 B\<^sub>2 S (set ps) (set (binarizeNt_fun A ps ps))"
-  (* shows? *)
 proof -
   from binarizeNt_fun_binarizes[OF assms(2)] obtain l r r' B\<^sub>1 B\<^sub>2 where 
   binarize_defs:
@@ -655,7 +652,7 @@ lemma binarizeNt_fun_dec_badNtsCount:
   using lemma6_b assms binarizeNt_fun_binarized 
   by (metis list.set_finite)
 
-(* Needed to prove the badNts_impl_binarizeNt_fun_not_id_unif *)
+(* Needed to prove badNts_impl_binarizeNt_fun_not_id_unif *)
 lemma removeAll_app_eq_impl_removed:
   "removeAll z xs @ ys = xs \<Longrightarrow> (\<forall>y\<in>set ys. y = z)"
   by (induction xs) 

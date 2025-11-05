@@ -915,12 +915,57 @@ next
    with binarizeNt_all_binRtc binarizeNtRtc_Unit_free show ?case using ps'_def by fastforce
  qed
 
+lemmas unit_elim_defs = unit_elim_def unit_rm_def minus_list_set_def unit_prods_def
+new_prods_def
+
+lemmas Tms_defs = Tms_def Tms_syms_def
+
+lemma Tms_mono:
+  assumes "P \<subseteq> P'"
+  shows "Tms P \<subseteq> Tms P'"
+  using assms unfolding Tms_defs by blast
+
+
+lemma unit_elim_Tms_subset:
+  "Tms (set (unit_elim ps)) \<subseteq> Tms (set ps)"
+proof 
+  fix t
+  assume "t \<in> Tms (set (unit_elim ps))"
+  with unit_elim_def consider (unit_rm) "t \<in> Tms (set (unit_rm ps))" | 
+                            (new_prods) "t \<in> Tms (set (new_prods ps))"
+    unfolding Tms_defs by (metis UN_Un Un_iff set_append)
+  then show "t \<in> Tms (set ps)"
+  proof cases
+    case unit_rm
+    moreover have "set (minus_list_set ps (unit_prods ps)) \<subseteq> set ps" by simp
+    ultimately show ?thesis using Tms_mono unit_rm_def by (metis subset_eq)
+  next
+    case new_prods
+    then show ?thesis unfolding new_prods_def Tms_defs unit_rm_def by force
+  qed
+qed
+
+
+lemma eps_elim_Tms_subset:
+  "Tms (set (eps_elim ps)) \<subseteq> Tms (set ps)"
+proof
+  fix t
+  assume "t \<in> Tms (set (eps_elim ps))"
+   with Tms_defs obtain A w where "(A,w) \<in> set (eps_elim ps)" "Tm t \<in> set w" 
+     by (metis (no_types, lifting) UN_E mem_Collect_eq mem_case_prodE)
+   moreover with eps_elim_def obtain l r where lr_defs:
+     "(l,r) \<in> set ps" 
+     "w \<in> set ((filter (\<lambda>r'. r' \<noteq> []) (eps_closure (set ps) r)))"
+     by (smt (verit, ccfv_SIG) Eps_elim_def case_prodD mem_Collect_eq set_eps_elim set_filter)
+   ultimately show "t \<in> Tms (set ps)" using set_eps_closure_subset lr_defs(1) unfolding Tms_defs 
+     by fastforce
+qed
+
 lemma unit_elim_o_eps_elim_Tms_subset:
-"Tms (set ((unit_elim o eps_elim) ps)) \<subseteq> Tms (set ps)"
-  sorry
+  "Tms (set ((unit_elim o eps_elim) ps)) \<subseteq> Tms (set ps)"
+  using unit_elim_Tms_subset eps_elim_Tms_subset by force
 
-
-theorem binarizeNt_all_uniformize_all_eps_elim_unit_elim_is_cnf:
+theorem binarizeNt_all_uniformize_all_unit_elim_eps_elim_is_cnf:
   fixes ps :: "('n::fresh0, 't) prods"
   assumes "ts = tm_list_of_prods ps"
           "ps' = (binarizeNt_all S o uniformize_all S ts o unit_elim o eps_elim) ps"

@@ -456,7 +456,7 @@ qed simp
 
 
 lemma uniformize_all_no_badTms:
-  assumes "ts = tm_list_of_prods ps" 
+  assumes "Tms (set ps) \<subseteq> set ts" 
           "ps' = uniformize_all S ts ps"
   shows "badTmsCount (set ps') = 0"
 proof -
@@ -479,7 +479,7 @@ qed
 
 
 lemma uniformize_all_uniform:
-  assumes "ts = tm_list_of_prods ps"
+  assumes "Tms (set ps) \<subseteq> set ts"
   shows "uniform (set(uniformize_all S ts ps))"
   using uniformize_all_no_badTms[OF assms] uniform_badTmsCount by blast
 
@@ -883,18 +883,20 @@ qed
 theorem cnf_noe_nou_funs:
   fixes ps :: "('n::fresh0, 't) prods"
   assumes eps_free: "Eps_free (set ps)" 
-      and unit_free: "Unit_free (set ps)"
+      and unit_free: "Unit_free (set ps)" 
+      and ts_def: "Tms (set ps) \<subseteq> (set ts)"
       and ps'_def: "ps' = (binarizeNt_all S o uniformize_all S ts) ps"
     shows "uniform (set ps')" "binary (set ps')" "Lang (set ps) S = Lang (set ps') S" 
           "Eps_free (set ps')" "Unit_free (set ps')"
 proof (goal_cases uniform binary lang_eq Eps_free Unit_free)
   case uniform
   let ?ps_unif = "uniformize_all S ts ps"
-  from uniformize_all_uniform have "uniform (set ?ps_unif)" sorry
+  from uniformize_all_uniform have "uniform (set ?ps_unif)" using ts_def by metis
   with binarizeNt_all_preserves_uniform ps'_def show ?case by auto
 next
   case binary
-  then show ?case using assms binarizeNt_all_binary_if_uniform sorry
+  then show ?case using assms binarizeNt_all_binary_if_uniform using ts_def
+    by (metis comp_apply uniformize_all_uniform)
 next
   case lang_eq
   then show ?case using assms cnf_lemma binarizeNt_all_binRtc uniformize_all_unifRtc
@@ -913,19 +915,10 @@ next
    with binarizeNt_all_binRtc binarizeNtRtc_Unit_free show ?case using ps'_def by fastforce
  qed
 
-lemma 
-  fixes P :: "('n, 't) Prods"
-  assumes "Lang P S = Lang P' S - {[]}"
-  shows "Tms P = Tms P'"
-proof
-  show "Tms P \<subseteq> Tms P'"
-  proof
-    fix t :: 't
-    assume "t \<in> Tms P"
-    with Tms_def Tms_syms_def obtain A w where "Tm t \<in> set w" "(A,w) \<in> P"
-      by (metis (no_types, lifting) UN_iff internal_case_prod_conv internal_case_prod_def mem_Collect_eq
-          old.prod.exhaust)
-    thm Lang_def
+lemma unit_elim_o_eps_elim_Tms_subset:
+"Tms (set ((unit_elim o eps_elim) ps)) \<subseteq> Tms (set ps)"
+  sorry
+
 
 theorem binarizeNt_all_uniformize_all_eps_elim_unit_elim_is_cnf:
   fixes ps :: "('n::fresh0, 't) prods"
@@ -942,7 +935,8 @@ proof -
         use Unit_free_if_unit_elim_rel ps0_def unit_elim_correct in fastforce)
   ultimately have cnf: "uniform (set ps')" "binary (set ps')" "Eps_free (set ps')" 
     "Unit_free (set ps')" and Lang_unchanged: "Lang (set ps') S = Lang (set ps) S - {[]}"
-    using cnf_noe_nou_funs assms by (metis comp_apply)+
+    using cnf_noe_nou_funs assms unit_elim_o_eps_elim_Tms_subset 
+        by (metis comp_apply tm_list_of_prods_is_Tms)+
   from Lang_unchanged show "Lang (set ps') S = Lang (set ps) S - {[]}" .
   from cnf show "CNF (set ps')"  by (simp add: CNF_eq)
 qed

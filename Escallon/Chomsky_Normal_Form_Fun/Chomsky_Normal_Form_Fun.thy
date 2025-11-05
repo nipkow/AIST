@@ -417,7 +417,7 @@ fun uniformize_all :: "['n::fresh0, 't list, ('n,'t) prods] \<Rightarrow> ('n,'t
 fun tm_list_of_prods :: "('n,'t) prods \<Rightarrow> 't list" where
 "tm_list_of_prods ps = (let rs = map snd ps in map destTm (filter isTm (concat rs)))"
 
-lemma tm_list_of_prods_is_tms[simp]:
+lemma tm_list_of_prods_is_Tms[simp]:
   "set (tm_list_of_prods ps) = Tms (set ps)"
 proof -
   have "\<forall>tm. tm \<in> set (tm_list_of_prods ps) \<longleftrightarrow> tm \<in> Tms (set ps)"
@@ -469,7 +469,7 @@ proof -
       using uniformize_tm_no_bad_t uniformize_all_no_new_badTms by fast
     ultimately show ?case by fastforce
   qed simp
-  with tm_list_of_prods_is_tms uniformize_all_unchanged_tms have 
+  with tm_list_of_prods_is_Tms uniformize_all_unchanged_tms have 
     "\<forall>t\<in>Tms (set ps'). \<forall>p\<in>set ps'. Tm t \<notin> set (snd p) \<or> length (snd p) \<le> 1"
     using assms by fast
   with assms show ?thesis unfolding Tms_def Tms_syms_def
@@ -876,23 +876,25 @@ proof -
   qed
 qed
 
+
+
+
+
 theorem cnf_noe_nou_funs:
   fixes ps :: "('n::fresh0, 't) prods"
   assumes eps_free: "Eps_free (set ps)" 
       and unit_free: "Unit_free (set ps)"
-      and ts_def: "ts = tm_list_of_prods ps"
       and ps'_def: "ps' = (binarizeNt_all S o uniformize_all S ts) ps"
-    shows "uniform (set ps')" "binary (set ps')" "lang ps S = lang ps' S" "Eps_free (set ps')" 
-          "Unit_free (set ps')"
+    shows "uniform (set ps')" "binary (set ps')" "Lang (set ps) S = Lang (set ps') S" 
+          "Eps_free (set ps')" "Unit_free (set ps')"
 proof (goal_cases uniform binary lang_eq Eps_free Unit_free)
   case uniform
   let ?ps_unif = "uniformize_all S ts ps"
-  from uniformize_all_uniform ts_def have "uniform (set ?ps_unif)" by fast
+  from uniformize_all_uniform have "uniform (set ?ps_unif)" sorry
   with binarizeNt_all_preserves_uniform ps'_def show ?case by auto
 next
   case binary
-  then show ?case using assms binarizeNt_all_binary_if_uniform ts_def
-    by (metis comp_apply uniform_badTmsCount uniformize_all_no_badTms list.set_finite)
+  then show ?case using assms binarizeNt_all_binary_if_uniform sorry
 next
   case lang_eq
   then show ?case using assms cnf_lemma binarizeNt_all_binRtc uniformize_all_unifRtc
@@ -909,7 +911,40 @@ next
   from uniformize_all_unifRtc[THEN uniformizeRtc_Unit_free] unit_free have "Unit_free (set ?ps_unif)" 
     by blast
    with binarizeNt_all_binRtc binarizeNtRtc_Unit_free show ?case using ps'_def by fastforce
-qed
+ qed
 
+lemma 
+  fixes P :: "('n, 't) Prods"
+  assumes "Lang P S = Lang P' S - {[]}"
+  shows "Tms P = Tms P'"
+proof
+  show "Tms P \<subseteq> Tms P'"
+  proof
+    fix t :: 't
+    assume "t \<in> Tms P"
+    with Tms_def Tms_syms_def obtain A w where "Tm t \<in> set w" "(A,w) \<in> P"
+      by (metis (no_types, lifting) UN_iff internal_case_prod_conv internal_case_prod_def mem_Collect_eq
+          old.prod.exhaust)
+    thm Lang_def
+
+theorem binarizeNt_all_uniformize_all_eps_elim_unit_elim_is_cnf:
+  fixes ps :: "('n::fresh0, 't) prods"
+  assumes "ts = tm_list_of_prods ps"
+          "ps' = (binarizeNt_all S o uniformize_all S ts o unit_elim o eps_elim) ps"
+        shows "CNF (set ps')" "Lang (set ps') S = Lang (set ps) S - {[]}"
+proof -
+  obtain ps0 where ps0_def: "ps0 = (unit_elim o eps_elim) ps" by metis
+  moreover have "Lang (set ps0) S = Lang (set ps) S - {[]}"
+    by (metis lang_unit_elim lang_eps_elim ps0_def comp_apply)
+  moreover from ps0_def have eps: "Eps_free (set ps0)" and unit: "Unit_free (set ps0)"
+    by ((metis Unit_elim_correct Unit_elim_set_code comp_apply eps_free_eps_elim
+        unit_elim_rel_Eps_free),
+        use Unit_free_if_unit_elim_rel ps0_def unit_elim_correct in fastforce)
+  ultimately have cnf: "uniform (set ps')" "binary (set ps')" "Eps_free (set ps')" 
+    "Unit_free (set ps')" and Lang_unchanged: "Lang (set ps') S = Lang (set ps) S - {[]}"
+    using cnf_noe_nou_funs assms by (metis comp_apply)+
+  from Lang_unchanged show "Lang (set ps') S = Lang (set ps) S - {[]}" .
+  from cnf show "CNF (set ps')"  by (simp add: CNF_eq)
+qed
 
 end

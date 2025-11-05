@@ -874,9 +874,6 @@ proof -
 qed
 
 
-
-
-
 theorem cnf_noe_nou_funs:
   fixes ps :: "('n::fresh0, 't) prods"
   assumes eps_free: "Eps_free (set ps)" 
@@ -912,15 +909,12 @@ next
    with binarizeNt_all_binRtc binarizeNtRtc_Unit_free show ?case using ps'_def by fastforce
  qed
 
-lemmas unit_elim_defs = unit_elim_def unit_rm_def minus_list_set_def unit_prods_def
-new_prods_def
 
-lemmas Tms_defs = Tms_def Tms_syms_def
 
 lemma Tms_mono:
   assumes "P \<subseteq> P'"
   shows "Tms P \<subseteq> Tms P'"
-  using assms unfolding Tms_defs by blast
+  using assms unfolding Tms_def Tms_syms_def by blast
 
 
 lemma unit_elim_Tms_subset:
@@ -930,7 +924,7 @@ proof
   assume "t \<in> Tms (set (unit_elim ps))"
   with unit_elim_def consider (unit_rm) "t \<in> Tms (set (unit_rm ps))" | 
                             (new_prods) "t \<in> Tms (set (new_prods ps))"
-    unfolding Tms_defs by (metis UN_Un Un_iff set_append)
+    unfolding Tms_def Tms_syms_def by (metis UN_Un Un_iff set_append)
   then show "t \<in> Tms (set ps)"
   proof cases
     case unit_rm
@@ -938,7 +932,7 @@ proof
     ultimately show ?thesis using Tms_mono unit_rm_def by (metis subset_eq)
   next
     case new_prods
-    then show ?thesis unfolding new_prods_def Tms_defs unit_rm_def by force
+    then show ?thesis unfolding new_prods_def Tms_def Tms_syms_def unit_rm_def by force
   qed
 qed
 
@@ -948,14 +942,14 @@ lemma eps_elim_Tms_subset:
 proof
   fix t
   assume "t \<in> Tms (set (eps_elim ps))"
-   with Tms_defs obtain A w where "(A,w) \<in> set (eps_elim ps)" "Tm t \<in> set w" 
+   with Tms_def Tms_syms_def obtain A w where "(A,w) \<in> set (eps_elim ps)" "Tm t \<in> set w" 
      by (metis (no_types, lifting) UN_E mem_Collect_eq mem_case_prodE)
    moreover with eps_elim_def obtain l r where lr_defs:
      "(l,r) \<in> set ps" 
      "w \<in> set ((filter (\<lambda>r'. r' \<noteq> []) (eps_closure (set ps) r)))"
      by (smt (verit, ccfv_SIG) Eps_elim_def case_prodD mem_Collect_eq set_eps_elim set_filter)
-   ultimately show "t \<in> Tms (set ps)" using set_eps_closure_subset lr_defs(1) unfolding Tms_defs 
-     by fastforce
+   ultimately show "t \<in> Tms (set ps)" using set_eps_closure_subset lr_defs(1) 
+     unfolding Tms_def Tms_syms_def by fastforce
 qed
 
 lemma unit_elim_o_eps_elim_Tms_subset:

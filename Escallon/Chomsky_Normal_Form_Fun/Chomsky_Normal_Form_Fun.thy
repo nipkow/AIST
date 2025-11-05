@@ -1,6 +1,6 @@
 theory Chomsky_Normal_Form_Fun
-  imports Chomsky_Normal_Form
-begin
+  imports Context_Free_Grammar.Chomsky_Normal_Form
+begin                    
 
 
 
@@ -54,20 +54,20 @@ using assms proof (induction ss arbitrary: thesis)
 qed simp
 
 lemma replaceTm_tms_changed:
-  assumes "t \<in> tms [(l,r)]"
-  shows "tms [(l,r)] = tms [(l,(replaceTm A t r))] \<union> {t}"
+  assumes "t \<in> Tms (set [(l,r)])"
+  shows "Tms (set [(l,r)]) = Tms (set [(l,(replaceTm A t r))]) \<union> {t}"
 proof -
   from assms replaceTm_id_iff_tm_notin_syms have "replaceTm A t r \<noteq> r"
-    unfolding Tms_def tms_syms_def by fastforce
+    unfolding Tms_def Tms_syms_def by fastforce
   with replaceTm_replaces_single obtain p s where "r = p@[Tm t]@s" "replaceTm A t r = p@[Nt A]@s"
     by meson
-  then show ?thesis using replaceTm_replaces_single unfolding Tms_def tms_syms_def by auto
+  then show ?thesis using replaceTm_replaces_single unfolding Tms_def Tms_syms_def by auto
 qed
 
 
 (*The current implementation corresponds to uniformize as defined in 
   Context_Free_Grammar.Chomsky_Normal_Form. This can be simplified with maps.*)
-fun uniformize_fun :: "['n::infinite, 't, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+fun uniformize_fun :: "['n::fresh0, 't, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
   "uniformize_fun _ _ ps0 [] = ps0" |
   "uniformize_fun A t ps0 ((l,r) # ps) = 
     (let r' = replaceTm A t r in 
@@ -215,8 +215,8 @@ qed
 
 lemma uniformize_fun_uniformized:
   assumes "uniformize_fun A t ps ps \<noteq> ps"
-          "A \<notin> (nts ps \<union> {S})"
-  shows "uniformize A t S ps (uniformize_fun A t ps ps)"
+          "A \<notin> (Nts (set ps) \<union> {S})"
+  shows "uniformize A t S (set ps) (set (uniformize_fun A t ps ps))"
 proof -
   from assms obtain l r q s  where lr_in_ps: "(l,r) \<in> set ps"
                           and replace_neq: "r \<noteq> replaceTm A t r"
@@ -239,17 +239,18 @@ proof -
     using uniformize_fun_uniformizes_fst[OF lr_in_ps replace_neq ps_qs _ len_lb] 
     replace_eq_p_Nt_s q_uniform by auto
   ultimately show ?thesis
-    unfolding uniformize_def using assms by blast
+    unfolding uniformize_def using assms by auto
 qed
 
 lemma uniformize_fun_dec_badTmsCount:
   assumes "uniformize_fun A t ps ps \<noteq> ps"
-          "A \<notin> nts ps \<union> {S}"
-  shows "badTmsCount (uniformize_fun A t ps ps) < badTmsCount ps"
+          "A \<notin> Nts (set ps) \<union> {S}"
+  shows "badTmsCount (set (uniformize_fun A t ps ps)) < badTmsCount (set ps)"
   using assms uniformize_fun_uniformized lemma6_a by fast
 
+
 lemma uniformize_fun_unchanged_tms:
-  "set ps \<subseteq> set ps0 \<Longrightarrow> tms ps0 = tms (uniformize_fun A t ps0 ps)"
+  "set ps \<subseteq> set ps0 \<Longrightarrow> Tms (set ps0) = Tms (set (uniformize_fun A t ps0 ps))"
 proof (induction ps)
   case (Cons p ps)
   then obtain l r where lr_def: "(l,r) = p" using old.prod.exhaust by metis
@@ -264,15 +265,15 @@ proof (induction ps)
     with lr_def have "uniformize_fun A t ps0 (p#ps) = (removeAll (l,r) ps0) @ [(A,[Tm t]),(l,?r')]" 
       by fastforce
     moreover with replaceTm_tms_changed lr_def 
-    have "tms [(A,[Tm t]),(l,?r')] = tms [(l,r)]"
+    have "Tms (set [(A,[Tm t]),(l,?r')]) = Tms (set [(l,r)])"
     proof -
-      from no_rec have "t \<in> tms [(l,r)]" unfolding Tms_def tms_syms_def 
+      from no_rec have "t \<in> Tms (set [(l,r)])" unfolding Tms_def Tms_syms_def 
         using tm_notin_syms_impl_replaceTm_id by fastforce
-      then show ?thesis using replaceTm_tms_changed unfolding Tms_def tms_syms_def by fastforce
+      then show ?thesis using replaceTm_tms_changed unfolding Tms_def Tms_syms_def by fastforce
     qed
-    moreover have "tms [(l,r)] \<subseteq> tms ps0" using Cons(2) lr_def 
-      unfolding Tms_def tms_syms_def by auto
-    ultimately show ?thesis unfolding Tms_def tms_syms_def by auto
+    moreover have "Tms (set [(l,r)]) \<subseteq> Tms (set ps0)" using Cons(2) lr_def 
+      unfolding Tms_def Tms_syms_def by auto
+    ultimately show ?thesis unfolding Tms_def Tms_syms_def by auto
   qed
 qed simp
 
@@ -303,45 +304,46 @@ proof (induction ps arbitrary: ps')
   qed (use Cons lr_def in auto)
 qed (use assms in auto)
 
-(* This special case of fresh is repeatedly used in multiple lemmas and functions. This lemma
+(* This special case of fresh0 is repeatedly used in multiple lemmas and functions. This lemma
 simplifies or avoids several sledgehammer calls *)
-lemma fresh_Nt_notin_set:
-  fixes A :: "'n::infinite"
-  assumes "A = fresh (nts ps \<union> {S})"
-  shows "A \<notin> nts ps \<union> {S}" using fresh_finite 
-  by (metis assms finite.emptyI finite_Un finite_insert finite_nts)
+lemma fresh0_Nt_notin_set:
+  fixes A :: "'n::fresh0"
+  assumes "A = fresh0 (Nts (set ps) \<union> {S})"
+  shows "A \<notin> (Nts (set ps) \<union> {S})"
+  by (metis assms fresh0_notIn Un_insert_left sup_bot_right finite_insert 
+      list.set_finite set_nts sup_commute)
 
-function uniformize_tm :: "['n::infinite, 't, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+function uniformize_tm :: "['n::fresh0, 't, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
   "uniformize_tm S t ps = 
-    (let ps' = uniformize_fun (fresh (nts ps \<union> {S})) t ps ps in 
+    (let ps' = uniformize_fun (fresh0 (Nts (set ps) \<union> {S})) t ps ps in 
         if ps = ps' then ps else uniformize_tm S t ps')"
   by auto
 termination
 proof 
-  let ?R = "measure (\<lambda>(S,t,ps). badTmsCount ps)"
+  let ?R = "measure (\<lambda>(S,t,ps). badTmsCount (set ps))"
   show "wf ?R" ..
-  fix S :: "'n::infinite" 
+  fix S :: "'n::fresh0" 
     and t :: 't 
     and x ps :: "('n,'t) prods" 
-  let ?A = "fresh (nts ps \<union> {S})"
+  let ?A = "fresh0 (Nts (set ps) \<union> {S})"
   assume "x = uniformize_fun ?A t ps ps"
          "ps \<noteq> x"
-  moreover have "?A \<notin>  nts ps \<union> {S}"  using fresh_Nt_notin_set by auto
+  moreover have "?A \<notin>  Nts (set ps) \<union> {S}"  using fresh0_Nt_notin_set by metis
   ultimately show "((S,t,x), S,t,ps) \<in> ?R"
     using uniformize_fun_dec_badTmsCount by force 
 qed
 
 lemma uniformize_tm_unchanged_tms:
-  "tms ps = tms (uniformize_tm S t ps)"
-  by (induction "badTmsCount ps" arbitrary: ps rule: less_induct)
-    (smt (verit, ccfv_SIG) fresh_Nt_notin_set dual_order.refl uniformize_fun_dec_badTmsCount 
+  "Tms (set ps) = Tms (set (uniformize_tm S t ps))"
+  by (induction "badTmsCount (set ps)" arbitrary: ps rule: less_induct)
+    (smt (verit, ccfv_SIG) fresh0_Nt_notin_set dual_order.refl uniformize_fun_dec_badTmsCount 
       uniformize_fun_unchanged_tms uniformize_tm.elims)
 
 lemma uniformize_tm_no_bad_t:
   "ps' = uniformize_tm S t ps \<Longrightarrow> \<forall>p\<in>set ps'. Tm t \<notin> set (snd p) \<or> length (snd p) \<le> 1"
-proof (induction "badTmsCount ps" arbitrary: ps ps' rule: less_induct)
+proof (induction "badTmsCount (set ps)" arbitrary: ps ps' rule: less_induct)
   case less
-  let ?A = "fresh (nts ps \<union> {S})"
+  let ?A = "fresh0 (Nts (set ps) \<union> {S})"
   consider (id) "uniformize_fun ?A t ps ps = ps" | (not_id) "uniformize_fun ?A t ps ps \<noteq> ps"
     by blast
   then show ?case 
@@ -353,8 +355,9 @@ proof (induction "badTmsCount ps" arbitrary: ps ps' rule: less_induct)
     hence "uniformize_tm S t ps = uniformize_tm S t (uniformize_fun ?A t ps ps)" 
             (is "_ = uniformize_tm _ _ ?ps'")
       by (smt (verit, best) uniformize_tm.simps)
-    moreover with uniformize_fun_dec_badTmsCount[OF not_id] have "badTmsCount ?ps' < badTmsCount ps"
-      using fresh_Nt_notin_set by blast
+    moreover with uniformize_fun_dec_badTmsCount[OF not_id] 
+      have "badTmsCount (set ?ps') < badTmsCount (set ps)"
+      using fresh0_Nt_notin_set by blast
     ultimately show ?thesis using less by blast
   qed
 qed
@@ -364,9 +367,9 @@ lemma uniformize_tm_no_new_badTms:
   assumes "ps' = uniformize_tm S t ps"
     "\<forall>p\<in>set ps. Tm t' \<notin> set (snd p) \<or> length (snd p) \<le> 1"
   shows "\<forall>p\<in>set ps'. Tm t' \<notin> set (snd p) \<or> length (snd p) \<le> 1"
-  using assms proof (induction "badTmsCount ps" arbitrary: ps ps' rule: less_induct)
+  using assms proof (induction "badTmsCount (set ps)" arbitrary: ps ps' rule: less_induct)
   case less
-  let ?A = "fresh (nts ps \<union> {S})"
+  let ?A = "fresh0 (Nts (set ps) \<union> {S})"
   consider (id) "uniformize_fun ?A t ps ps = ps" | (not_id) "uniformize_fun ?A t ps ps \<noteq> ps" 
     by blast
   then show ?case 
@@ -376,29 +379,29 @@ lemma uniformize_tm_no_new_badTms:
     from not_id have "uniformize_tm S t ps = uniformize_tm S t ?ps'" 
       by (smt (verit, ccfv_threshold) uniformize_tm.simps) 
     moreover from uniformize_fun_dec_badTmsCount[OF not_id] have 
-      "badTmsCount ?ps' < badTmsCount ps" using fresh_Nt_notin_set by blast
+      "badTmsCount (set ?ps') < badTmsCount (set ps)" using fresh0_Nt_notin_set by blast
     ultimately show ?thesis using uniformize_fun_no_new_badTms less by fast
   qed (use less in auto)
 qed
               
 lemma uniformize_tm_unifRtc:
-  "(\<lambda>x y. \<exists>A. uniformize A t S x y)\<^sup>*\<^sup>* ps (uniformize_tm S t ps)"
-proof (induction "badTmsCount ps" arbitrary: ps rule: less_induct)
+  "(\<lambda>x y. \<exists>A. uniformize A t S x y)\<^sup>*\<^sup>* (set ps) (set (uniformize_tm S t ps))"
+proof (induction "badTmsCount (set ps)" arbitrary: ps rule: less_induct)
   case less
-  let ?A = "fresh (nts ps \<union> {S})"
+  let ?A = "fresh0 (Nts (set ps) \<union> {S})"
   consider (eq) "uniformize_fun ?A t ps ps = ps" |
            (neq) "uniformize_fun ?A t ps ps \<noteq> ps" by blast
   then show ?case 
   proof cases
     case neq
     let ?ps' = "uniformize_fun ?A t ps ps"
-    from neq have "badTmsCount ?ps' < badTmsCount ps"
-      using uniformize_fun_dec_badTmsCount fresh_Nt_notin_set by fast
+    from neq have "badTmsCount (set ?ps') < badTmsCount (set ps)"
+      using uniformize_fun_dec_badTmsCount fresh0_Nt_notin_set by fast
     with less have uniformize_rtrancl: 
-      "(\<lambda>x y. \<exists>A. uniformize A t S x y)\<^sup>*\<^sup>* ?ps' (uniformize_tm S t ?ps')" by simp
-    moreover have "uniformize ?A t S ps ?ps'"
+      "(\<lambda>x y. \<exists>A. uniformize A t S x y)\<^sup>*\<^sup>* (set ?ps') (set (uniformize_tm S t ?ps'))" by simp
+    moreover have "uniformize ?A t S (set ps) (set ?ps')"
     proof -
-      from fresh_Nt_notin_set have "?A \<notin> nts ps \<union> {S}" by meson
+      from fresh0_Nt_notin_set have "?A \<notin> Nts (set ps) \<union> {S}" by meson
       with uniformize_fun_uniformized[OF neq] show ?thesis by simp 
     qed
     ultimately show ?thesis
@@ -407,7 +410,7 @@ proof (induction "badTmsCount ps" arbitrary: ps rule: less_induct)
 qed
 
 
-fun uniformize_all :: "['n::infinite, 't list, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+fun uniformize_all :: "['n::fresh0, 't list, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
   "uniformize_all _ [] ps = ps" |
   "uniformize_all S (t#ts) ps = (let ps' = uniformize_tm S t ps in uniformize_all S ts ps')"
 
@@ -415,28 +418,27 @@ fun tm_list_of_prods :: "('n,'t) prods \<Rightarrow> 't list" where
 "tm_list_of_prods ps = (let rs = map snd ps in map destTm (filter isTm (concat rs)))"
 
 lemma tm_list_of_prods_is_tms[simp]:
-  "set (tm_list_of_prods ps) = tms ps"
+  "set (tm_list_of_prods ps) = Tms (set ps)"
 proof -
-  have "\<forall>tm. tm \<in> set (tm_list_of_prods ps) \<longleftrightarrow> tm \<in> tms ps"
+  have "\<forall>tm. tm \<in> set (tm_list_of_prods ps) \<longleftrightarrow> tm \<in> Tms (set ps)"
   proof
     fix tm
     have "tm \<in> set (tm_list_of_prods ps) = 
       (tm \<in> set (map destTm (filter isTm (concat (map snd ps)))))"
       by force
     also have "... = (Tm tm \<in> set (filter isTm (concat (map snd ps))))" 
-      using destTm_o_Tm
-      by (smt (verit, best) destTm.simps filter_set in_set_conv_nth isTm_def length_map member_filter
-          nth_map nth_mem)
-    also have "... = (tm \<in> (\<Union>(A,w)\<in> (set ps). tms_syms w))"
-      using tms_syms_def by fastforce
-    also have "... = (tm \<in> tms ps)" unfolding Tms_def by blast
-    finally show "tm \<in> set (tm_list_of_prods ps) \<longleftrightarrow> tm \<in> tms ps" by blast
+      by (smt (verit, ccfv_SIG) Set.filter_eq destTm.simps filter_set imageE image_eqI isTm_def 
+          list.set_map mem_Collect_eq)
+    also have "... = (tm \<in> (\<Union>(A,w)\<in> (set ps). Tms_syms w))"
+      using Tms_syms_def by fastforce
+    also have "... = (tm \<in> Tms (set ps))" unfolding Tms_def by blast
+    finally show "tm \<in> set (tm_list_of_prods ps) \<longleftrightarrow> tm \<in> Tms (set ps)" by blast
   qed
   thus ?thesis by blast
 qed
 
 lemma uniformize_all_unchanged_tms:
-  "tms ps = tms (uniformize_all S ts ps)"
+  "Tms (set ps) = Tms (set (uniformize_all S ts ps))"
   by (induction ts arbitrary: ps) (use uniformize_tm_unchanged_tms in fastforce)+
 
 lemma uniformize_all_no_new_badTms:
@@ -456,7 +458,7 @@ qed simp
 lemma uniformize_all_no_badTms:
   assumes "ts = tm_list_of_prods ps" 
           "ps' = uniformize_all S ts ps"
-  shows "badTmsCount ps' = 0"
+  shows "badTmsCount (set ps') = 0"
 proof -
   have "\<forall>t\<in>set ts. \<forall>p\<in>set ps'. Tm t \<notin> set (snd p) \<or> length (snd p) \<le> 1"
     using assms(2) proof (induction ts arbitrary: ps ps')
@@ -468,11 +470,11 @@ proof -
     ultimately show ?case by fastforce
   qed simp
   with tm_list_of_prods_is_tms uniformize_all_unchanged_tms have 
-    "\<forall>t\<in>tms ps'. \<forall>p\<in>set ps'. Tm t \<notin> set (snd p) \<or> length (snd p) \<le> 1"
+    "\<forall>t\<in>Tms (set ps'). \<forall>p\<in>set ps'. Tm t \<notin> set (snd p) \<or> length (snd p) \<le> 1"
     using assms by fast
-  with assms show ?thesis unfolding Tms_def tms_syms_def
+  with assms show ?thesis unfolding Tms_def Tms_syms_def
     by (metis (no_types, lifting) One_nat_def UnionI badTmsCountNot0 bot_nat_0.not_eq_extremum leD
-        le_imp_less_Suc mem_Collect_eq numeral_2_eq_2 pair_imageI snd_conv)
+        le_imp_less_Suc mem_Collect_eq numeral_2_eq_2 pair_imageI snd_conv list.set_finite)
 qed
 
 
@@ -483,21 +485,22 @@ lemma uniformize_all_uniform:
 
 
 lemma uniformize_all_unifRtc:
-  "(\<lambda>x y. \<exists>A t. uniformize A t S x y)\<^sup>*\<^sup>* ps (uniformize_all S ts ps)"
+  "(\<lambda>x y. \<exists>A t. uniformize A t S x y)\<^sup>*\<^sup>* (set ps) (set (uniformize_all S ts ps))"
   proof (induction ts arbitrary: ps)
     case (Cons t ts)
     let ?ps' = "uniformize_tm S t ps"
   have "uniformize_all S (t#ts) ps = uniformize_all S ts ?ps'" by simp
-  moreover from Cons have "(\<lambda>x y. \<exists>A t. uniformize A t S x y)\<^sup>*\<^sup>* ?ps' (uniformize_all S ts ?ps')" 
+  moreover from Cons 
+    have "(\<lambda>x y. \<exists>A t. uniformize A t S x y)\<^sup>*\<^sup>* (set ?ps') (set (uniformize_all S ts ?ps'))" 
     by simp
-  moreover have "(\<lambda>x y. \<exists>A t. uniformize A t S x y)\<^sup>*\<^sup>* ps ?ps'"
+  moreover have "(\<lambda>x y. \<exists>A t. uniformize A t S x y)\<^sup>*\<^sup>* (set ps) (set ?ps')"
     using uniformize_tm_unifRtc by (smt (verit, ccfv_threshold) mono_rtranclp)
   ultimately show ?case by simp
 qed simp
 
 
 (*Simplifying the first two cases complicates proofs*)
-fun replaceNts :: "['n::infinite, ('n,'t) syms] \<Rightarrow> ('n \<times> 'n) option \<times> ('n,'t) syms" where
+fun replaceNts :: "['n::fresh0, ('n,'t) syms] \<Rightarrow> ('n \<times> 'n) option \<times> ('n,'t) syms" where
   "replaceNts A [] = (None, [])" |
   "replaceNts A [s] = (None, [s])" |
   "replaceNts A (Nt s\<^sub>1 # Nt s\<^sub>2 # ss) = (Some (s\<^sub>1, s\<^sub>2), Nt A # ss)" |
@@ -576,7 +579,7 @@ corollary replaceNts_replaces_pair_Some:
   using replaceNts_replaces_pair 
   by (smt (verit) assms option.distinct(1) option.inject prod.inject)
 
-fun binarizeNt_fun :: "['n::infinite, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+fun binarizeNt_fun :: "['n::fresh0, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
   "binarizeNt_fun A ps0 [] = ps0" |
   "binarizeNt_fun A ps0 ((l,r)#ps) = 
     (case replaceNts A r of 
@@ -626,9 +629,9 @@ qed simp
 
 lemma binarizeNt_fun_binarized:
   assumes 
-    "A \<notin> nts ps \<union> {S}"
+    "A \<notin> Nts (set ps) \<union> {S}"
     "binarizeNt_fun A ps ps \<noteq> ps"
-  obtains B\<^sub>1 B\<^sub>2 where  "binarizeNt A B\<^sub>1 B\<^sub>2 S ps (binarizeNt_fun A ps ps)"
+  obtains B\<^sub>1 B\<^sub>2 where  "binarizeNt A B\<^sub>1 B\<^sub>2 S (set ps) (set (binarizeNt_fun A ps ps))"
   (* shows? *)
 proof -
   from binarizeNt_fun_binarizes[OF assms(2)] obtain l r r' B\<^sub>1 B\<^sub>2 where 
@@ -640,39 +643,43 @@ proof -
     by metis
   moreover from this obtain p s where "r = p@[Nt B\<^sub>1, Nt B\<^sub>2]@s"  "r' = p@[Nt A]@s"
     using replaceNts_replaces_pair by blast
-  ultimately have "binarizeNt A B\<^sub>1 B\<^sub>2 S ps (binarizeNt_fun A ps ps)" 
+  ultimately have "binarizeNt A B\<^sub>1 B\<^sub>2 S (set ps) (set (binarizeNt_fun A ps ps))" 
     unfolding binarizeNt_def using assms(1) by auto
   then show thesis using that by simp
 qed
 
 lemma binarizeNt_fun_dec_badNtsCount:
   assumes "binarizeNt_fun A ps ps \<noteq> ps" 
-          "A \<notin> nts ps \<union> {S}"
-  shows "badNtsCount (binarizeNt_fun A ps ps) < badNtsCount ps"
-  using lemma6_b assms binarizeNt_fun_binarized by meson
+          "A \<notin> Nts (set ps) \<union> {S}"
+  shows "badNtsCount (set (binarizeNt_fun A ps ps)) < badNtsCount (set ps)"
+  using lemma6_b assms binarizeNt_fun_binarized 
+  by (metis list.set_finite)
 
 (* Needed to prove the badNts_impl_binarizeNt_fun_not_id_unif *)
 lemma removeAll_app_eq_impl_removed:
   "removeAll z xs @ ys = xs \<Longrightarrow> (\<forall>y\<in>set ys. y = z)"
   by (induction xs) 
-    (simp, (metis member_remove removeAll_append removeAll_id remove_code(1) self_append_conv))
+    (simp, (metis Compl_iff append_self_conv compl_set insert_code(2) insert_iff removeAll_append
+            removeAll_id))
 
 
 lemma badNts_impl_binarizeNt_fun_not_id_unif:
-  assumes "badNtsCount ps = Suc n"
+  assumes "badNtsCount (set ps) = Suc n"
     "uniform (set ps)"
   shows "binarizeNt_fun A ps0 ps \<noteq> ps0"
   using assms proof (induction ps arbitrary: n)
   case (Cons p ps)
   obtain l r where lr_def: "(l,r) = p" using old.prod.exhaust by metis
-  consider (no_badNts_hd) "badNtsCount [p] = 0" | (Suc_badNts_hd) m where "badNtsCount [p] = Suc m"
+  consider (no_badNts_hd) "badNtsCount (set [p]) = 0" | 
+          (Suc_badNts_hd) m where "badNtsCount (set [p]) = Suc m"
     using not0_implies_Suc by blast
   then show ?case
   proof cases
     case no_badNts_hd
     from Cons(3) have only_Nts: "length r = 1 \<or> (\<forall>s\<in>(set r). \<exists>n. s = Nt n)"
       unfolding uniform_def using lr_def 
-      by (metis Cons.prems(2) One_nat_def Suc_leI badTmsCountSet isNt_def le_antisym length_pos_if_in_set
+      by (metis (no_types, lifting) Cons.prems(2) One_nat_def badTmsCountSet isNt_def le_Suc_eq 
+          le_zero_eq length_0_conv length_greater_0_conv length_pos_if_in_set list.set_finite 
           list.set_intros(1) noTms_prodTms0 uniform_badTmsCount)
     have "length r < 3"
     proof (rule ccontr)
@@ -687,15 +694,15 @@ lemma badNts_impl_binarizeNt_fun_not_id_unif:
     with lr_def have "binarizeNt_fun A ps0 (p#ps) = binarizeNt_fun A ps0 ps" 
       using binarizeNt_fun_rec_if_id_or_lt3 by (metis old.prod.exhaust)
     with Cons show ?thesis 
-      by (metis badNtsCountSet badTmsCountSet list.set_intros(1,2) no_badNts_hd old.nat.exhaust set_ConsD
-          uniform_badTmsCount)
+      by (metis (no_types, lifting) badNtsCountSet bot_nat_0.not_eq_extremum gr0_conv_Suc 
+          list.set_finite list.set_intros(1,2) no_badNts_hd set_ConsD uniform_def)
   next
     case Suc_badNts_hd
     with lr_def have all_Nts: "length r > 2 \<and> (\<forall>s\<in>set r. \<exists>n. s = Nt n)" using prodNts_def 
       by (metis (no_types, lifting) ext Cons.prems(2) One_nat_def add.commute add_Suc_right
           add_mono_thms_linordered_semiring(1) badNtsCountSet badTmsCountSet empty_iff empty_set isNt_def
           length_Suc_conv linorder_not_less list.set_intros(1) noTms_prodTms0 numeral_2_eq_2 plus_nat.add_0
-          set_ConsD snd_conv uniform_badTmsCount zero_le)
+          set_ConsD snd_conv uniform_badTmsCount zero_le list.set_finite)
     moreover obtain r' B\<^sub>1 B\<^sub>2 where replace_defs: "replaceNts A r = (Some (B\<^sub>1,B\<^sub>2), r')" "r' \<noteq> r"
     proof -
       from all_Nts obtain ns B\<^sub>1 B\<^sub>2 where "r = [Nt B\<^sub>1, Nt B\<^sub>2] @ ns"
@@ -721,7 +728,7 @@ qed simp
 
 
 lemma binarizeNt_fun_preserves_uniform:
-  fixes ps :: "('n::infinite, 't) prods"
+  fixes ps :: "('n::fresh0, 't) prods"
   assumes ps_uniform: "uniform (set ps)"
       and ps'_def: "ps' = binarizeNt_fun A ps ps"
     shows "uniform (set ps')"
@@ -745,32 +752,32 @@ proof -
   qed (use assms in simp)
 qed
 
-function binarizeNt_all :: "['n::infinite, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+function binarizeNt_all :: "['n::fresh0, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
   "binarizeNt_all S ps = 
-    (let ps' = binarizeNt_fun (fresh (nts ps \<union> {S})) ps ps in
+    (let ps' = binarizeNt_fun (fresh0 (Nts (set ps) \<union> {S})) ps ps in
     if ps = ps' then ps else binarizeNt_all S ps')"
   by auto
 termination
 proof
-  let ?R = "measure (\<lambda>(S,ps). badNtsCount ps)"
+  let ?R = "measure (\<lambda>(S,ps). badNtsCount (set ps))"
   show "wf ?R" by fast
-  fix S :: "'n::infinite"
+  fix S :: "'n::fresh0"
   and ps ps' :: "('n,'t) prods"
-  let ?A = "fresh (nts ps \<union> {S})"
+  let ?A = "fresh0 (Nts (set ps) \<union> {S})"
   assume ps'_def: "ps' = binarizeNt_fun ?A ps ps"
          and neq: "ps \<noteq> ps'"
-  moreover with fresh_Nt_notin_set have "?A \<notin> nts ps \<union> {S}" by blast
+  moreover with fresh0_Nt_notin_set have "?A \<notin> Nts (set ps) \<union> {S}" by blast
   ultimately show "((S,ps'),(S,ps)) \<in> ?R" 
     using binarizeNt_fun_dec_badNtsCount by force
 qed
 
 lemma binarizeNt_all_binRtc:
-  "(\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 S x y)\<^sup>*\<^sup>* ps (binarizeNt_all S ps)"
-proof (induction "badNtsCount ps" arbitrary: ps rule: less_induct)
+  "(\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 S x y)\<^sup>*\<^sup>* (set ps) (set (binarizeNt_all S ps))"
+proof (induction "badNtsCount (set ps)" arbitrary: ps rule: less_induct)
   case less
-  let ?A = "fresh (nts ps \<union> {S})"
-  have A_notin_nts: "?A \<notin> nts ps \<union> {S}"
-    using fresh_finite by (metis finite_Un finite_insert finite_nts insert_is_Un)
+  let ?A = "fresh0 (Nts (set ps) \<union> {S})"
+  have A_notin_nts: "?A \<notin> Nts (set ps) \<union> {S}"
+    using fresh0_Nt_notin_set by metis
   consider (eq) "binarizeNt_fun ?A ps ps = ps" |
            (neq) "binarizeNt_fun ?A ps ps \<noteq> ps" by blast
   then show ?case 
@@ -778,10 +785,10 @@ proof (induction "badNtsCount ps" arbitrary: ps rule: less_induct)
     case neq
     let ?ps' = "binarizeNt_fun ?A ps ps"
     from binarizeNt_fun_dec_badNtsCount[OF neq A_notin_nts] have
-      "badNtsCount ?ps' < badNtsCount ps" .
-    with less have "(\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 S x y)\<^sup>*\<^sup>* ?ps' (binarizeNt_all S ?ps')"
+      "badNtsCount (set ?ps') < badNtsCount (set ps)" .
+    with less have "(\<lambda>x y. \<exists>A B\<^sub>1 B\<^sub>2. binarizeNt A B\<^sub>1 B\<^sub>2 S x y)\<^sup>*\<^sup>* (set ?ps') (set (binarizeNt_all S ?ps'))"
       by blast
-    moreover from neq A_notin_nts obtain B\<^sub>1 B\<^sub>2 where "binarizeNt ?A B\<^sub>1 B\<^sub>2 S ps ?ps'"
+    moreover from neq A_notin_nts obtain B\<^sub>1 B\<^sub>2 where "binarizeNt ?A B\<^sub>1 B\<^sub>2 S (set ps) (set ?ps')"
       using binarizeNt_fun_binarized by blast
     ultimately show ?thesis 
       by (smt (verit, best) binarizeNt_all.simps
@@ -790,13 +797,13 @@ proof (induction "badNtsCount ps" arbitrary: ps rule: less_induct)
 qed
 
 lemma binarizeNt_all_preserves_uniform:
-  fixes ps :: "('n::infinite, 't) prods"
+  fixes ps :: "('n::fresh0, 't) prods"
   assumes ps_uniform: "uniform (set ps)"
       and ps'_def: "ps' = binarizeNt_all S ps"
     shows "uniform (set ps')"
-using assms proof (induction "badNtsCount ps" arbitrary: ps ps' rule: less_induct)
+using assms proof (induction "badNtsCount (set ps)" arbitrary: ps ps' rule: less_induct)
   case less
-  let ?A = "fresh (nts ps \<union> {S})"
+  let ?A = "fresh0 (Nts (set ps) \<union> {S})"
   consider (rec) "binarizeNt_fun ?A ps ps \<noteq> ps" | (no_rec) "binarizeNt_fun ?A ps ps = ps" by blast
   then show ?case 
   proof cases
@@ -804,8 +811,9 @@ using assms proof (induction "badNtsCount ps" arbitrary: ps ps' rule: less_induc
     let ?ps' = "binarizeNt_fun ?A ps ps"
     from rec have "binarizeNt_all S ps = binarizeNt_all S ?ps'" 
       by (smt (verit) binarizeNt_all.elims)
-    with less binarizeNt_fun_dec_badNtsCount[OF rec] fresh_finite binarizeNt_fun_preserves_uniform
-      show ?thesis by (metis finite.emptyI finite.insertI finite_UnI finite_nts)
+    with less binarizeNt_fun_dec_badNtsCount[OF rec] fresh0_Nt_notin_set 
+      binarizeNt_fun_preserves_uniform
+      show ?thesis by metis
   qed (use less in simp)
 qed
 
@@ -814,16 +822,16 @@ lemma binarizeNt_all_preserves_binary:
       and ps'_def: "ps' = binarizeNt_all S ps"
     shows "binary (set ps')"
 proof -
-  from binary have "badNtsCount ps = 0"
+  from binary have "badNtsCount (set ps) = 0"
     by (metis badNtsCountNot0 binary_def bot_nat_0.not_eq_extremum leD le_imp_less_Suc numeral_2_eq_2
-        numeral_3_eq_3 split_conv)
-  hence "binarizeNt_all S ps = ps" using binarizeNt_fun_dec_badNtsCount fresh_Nt_notin_set 
+        numeral_3_eq_3 split_conv list.set_finite)
+  hence "binarizeNt_all S ps = ps" using binarizeNt_fun_dec_badNtsCount fresh0_Nt_notin_set 
     by (smt (verit, best) binarizeNt_all.simps bot_nat_0.extremum_strict)
   with assms show ?thesis by argo
 qed
 
 lemma binarizeNt_all_binary_if_uniform:
-  fixes ps :: "('n::infinite, 't) prods"
+  fixes ps :: "('n::fresh0, 't) prods"
   assumes ts_def: "ts = tm_list_of_prods ps"
       and ps'_def: "ps' = binarizeNt_all S ps"
       and uniform: "uniform (set ps)"
@@ -836,30 +844,30 @@ proof -
     then show ?thesis using ps'_def binarizeNt_all_preserves_binary by blast
   next
     case not_bin
-    with uniform binary_badNtsCount obtain n where Suc_badNts: "badNtsCount ps = Suc n" 
+    with uniform binary_badNtsCount obtain n where Suc_badNts: "badNtsCount (set ps) = Suc n" 
       using not0_implies_Suc by blast
     with uniform ps'_def show ?thesis 
-    proof (induction "badNtsCount ps" arbitrary: ps ps' n rule: less_induct)
+    proof (induction "badNtsCount (set ps)" arbitrary: ps ps' n rule: less_induct)
       case less
-      let ?A = "fresh (nts ps \<union> {S})"
+      let ?A = "fresh0 (Nts (set ps) \<union> {S})"
       from less badNts_impl_binarizeNt_fun_not_id_unif have "binarizeNt_fun ?A ps ps \<noteq> ps"
         by fastforce
-      hence badNtsCount_dec: "badNtsCount (binarizeNt_fun ?A ps ps) < badNtsCount ps" 
+      hence badNtsCount_dec: "badNtsCount (set (binarizeNt_fun ?A ps ps)) < badNtsCount (set ps)" 
                               (is "badNtsCount ?ps' < _")
-        using fresh_finite binarizeNt_fun_dec_badNtsCount 
-        by (metis List.finite_set finite.emptyI finite.insertI finite_Nts finite_UnI)
+        using fresh0_Nt_notin_set binarizeNt_fun_dec_badNtsCount by metis
       consider (zero_badNts) "badNtsCount ?ps' = 0" | (Suc_badNts) m where "badNtsCount ?ps' = Suc m"
         using not0_implies_Suc by blast
       then show ?case
       proof cases
         case zero_badNts
-        moreover from less.prems(1) binarizeNt_fun_preserves_uniform have "uniform (set ?ps')" 
+        moreover from less.prems(1) binarizeNt_fun_preserves_uniform have "uniform ?ps'" 
           by blast
         ultimately show ?thesis using binary_badNtsCount
-          by (smt (verit, del_insts) binarizeNt_all.simps binarizeNt_all_preserves_binary less.prems(2))
+          by (smt (verit, del_insts) binarizeNt_all.simps binarizeNt_all_preserves_binary 
+              less.prems(2) list.set_finite)
       next
         case Suc_badNts
-        moreover from less.prems(1) binarizeNt_fun_preserves_uniform have unif: "uniform (set ?ps')"
+        moreover from less.prems(1) binarizeNt_fun_preserves_uniform have unif: "uniform ?ps'"
           by blast
         ultimately show ?thesis using less(1)[OF badNtsCount_dec _ _ Suc_badNts] 
           by (smt (verit, del_insts) binarizeNt_all.simps less.prems(2))
@@ -869,7 +877,7 @@ proof -
 qed
 
 theorem cnf_noe_nou_funs:
-  fixes ps :: "('n::infinite, 't) prods"
+  fixes ps :: "('n::fresh0, 't) prods"
   assumes eps_free: "Eps_free (set ps)" 
       and unit_free: "Unit_free (set ps)"
       and ts_def: "ts = tm_list_of_prods ps"
@@ -884,7 +892,7 @@ proof (goal_cases uniform binary lang_eq Eps_free Unit_free)
 next
   case binary
   then show ?case using assms binarizeNt_all_binary_if_uniform ts_def
-    by (metis comp_apply uniform_badTmsCount uniformize_all_no_badTms)
+    by (metis comp_apply uniform_badTmsCount uniformize_all_no_badTms list.set_finite)
 next
   case lang_eq
   then show ?case using assms cnf_lemma binarizeNt_all_binRtc uniformize_all_unifRtc

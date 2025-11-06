@@ -2,7 +2,8 @@ theory Chomsky_Normal_Form_Fun
   imports Context_Free_Grammar.Chomsky_Normal_Form
 begin                    
 
-
+section \<open>Uniformize\<close>
+subsection \<open>uniformize_fun\<close>
 
 fun replaceTm :: "['n, 't, ('n,'t) syms] \<Rightarrow> ('n,'t) syms" where
   "replaceTm A t [] = []" |
@@ -302,6 +303,8 @@ proof (induction ps arbitrary: ps')
   qed (use Cons lr_def in auto)
 qed (use assms in auto)
 
+subsection \<open>uniformize_tm\<close>
+
 (* This special case of fresh0 is repeatedly used in multiple lemmas and functions. This lemma
 simplifies or avoids several sledgehammer calls *)
 lemma fresh0_Nt_notin_set:
@@ -407,6 +410,8 @@ proof (induction "badTmsCount (set ps)" arbitrary: ps rule: less_induct)
   qed auto
 qed
 
+subsection \<open>uniformize_all\<close>
+
 
 fun uniformize_all :: "['n::fresh0, 't list, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
   "uniformize_all _ [] ps = ps" |
@@ -496,6 +501,9 @@ lemma uniformize_all_unifRtc:
   ultimately show ?case by simp
 qed simp
 
+section \<open>Binarize\<close>
+subsection \<open>binarizeNt_fun\<close>
+subsubsection \<open>replaceNts\<close>
 
 (*Simplifying the first two cases complicates proofs*)
 fun replaceNts :: "['n::fresh0, ('n,'t) syms] \<Rightarrow> ('n \<times> 'n) option \<times> ('n,'t) syms" where
@@ -576,6 +584,8 @@ corollary replaceNts_replaces_pair_Some:
     "sl' = p@[Nt A]@q"
   using replaceNts_replaces_pair 
   by (smt (verit) assms option.distinct(1) option.inject prod.inject)
+
+subsubsection \<open>binarizeNt_fun\<close>
 
 fun binarizeNt_fun :: "['n::fresh0, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
   "binarizeNt_fun A ps0 [] = ps0" |
@@ -749,6 +759,8 @@ proof -
   qed (use assms in simp)
 qed
 
+subsection \<open>binarizeNt_all\<close>
+
 function binarizeNt_all :: "['n::fresh0, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
   "binarizeNt_all S ps = 
     (let ps' = binarizeNt_fun (fresh0 (Nts (set ps) \<union> {S})) ps ps in
@@ -792,6 +804,8 @@ proof (induction "badNtsCount (set ps)" arbitrary: ps rule: less_induct)
           converse_rtranclp_into_rtranclp)
   qed simp
 qed
+
+section \<open>Conversion to CNF\<close>
 
 lemma binarizeNt_all_preserves_uniform:
   fixes ps :: "('n::fresh0, 't) prods"

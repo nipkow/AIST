@@ -879,7 +879,7 @@ theorem cnf_noe_nou_funs:
   assumes eps_free: "Eps_free (set ps)" 
       and unit_free: "Unit_free (set ps)" 
       and ts_def: "Tms (set ps) \<subseteq> (set ts)"
-      and ps'_def: "ps' = (binarizeNt_all S o uniformize_all S ts) ps"
+      and ps'_def: "ps' = (binarizeNt_all S \<circ> uniformize_all S ts) ps"
     shows "uniform (set ps')" "binary (set ps')" "Lang (set ps) S = Lang (set ps') S" 
           "Eps_free (set ps')" "Unit_free (set ps')"
 proof (goal_cases uniform binary lang_eq Eps_free Unit_free)
@@ -953,16 +953,16 @@ proof
 qed
 
 lemma unit_elim_o_eps_elim_Tms_subset:
-  "Tms (set ((unit_elim o eps_elim) ps)) \<subseteq> Tms (set ps)"
+  "Tms (set ((unit_elim \<circ> eps_elim) ps)) \<subseteq> Tms (set ps)"
   using unit_elim_Tms_subset eps_elim_Tms_subset by force
 
 theorem binarizeNt_all_uniformize_all_unit_elim_eps_elim_is_cnf:
   fixes ps :: "('n::fresh0, 't) prods"
   assumes "ts = tm_list_of_prods ps"
-          "ps' = (binarizeNt_all S o uniformize_all S ts o unit_elim o eps_elim) ps"
+          "ps' = (binarizeNt_all S \<circ> uniformize_all S ts \<circ> unit_elim \<circ> eps_elim) ps"
         shows "CNF (set ps')" "Lang (set ps') S = Lang (set ps) S - {[]}"
 proof -
-  obtain ps0 where ps0_def: "ps0 = (unit_elim o eps_elim) ps" by metis
+  obtain ps0 where ps0_def: "ps0 = (unit_elim \<circ> eps_elim) ps" by metis
   moreover have "Lang (set ps0) S = Lang (set ps) S - {[]}"
     by (metis lang_unit_elim lang_eps_elim ps0_def comp_apply)
   moreover from ps0_def have eps: "Eps_free (set ps0)" and unit: "Unit_free (set ps0)"

@@ -4,6 +4,7 @@ begin
 
 section \<open>Uniformize\<close>
 subsection \<open>uniformize_fun\<close>
+subsubsection \<open>replaceTm\<close>
 
 fun replaceTm :: "['n, 't, ('n,'t) syms] \<Rightarrow> ('n,'t) syms" where
   "replaceTm A t [] = []" |
@@ -63,6 +64,7 @@ proof -
   then show ?thesis using replaceTm_replaces_single unfolding Tms_def Tms_syms_def by auto
 qed
 
+subsubsection \<open>uniformize\<close>
 
 (*The current implementation corresponds to uniformize as defined in 
   Context_Free_Grammar.Chomsky_Normal_Form. This can be simplified with maps.*)
@@ -501,7 +503,7 @@ lemma uniformize_all_unifRtc:
   ultimately show ?case by simp
 qed simp
 
-section \<open>Binarize\<close>
+section \<open>BinarizeNt\<close>
 subsection \<open>binarizeNt_fun\<close>
 subsubsection \<open>replaceNts\<close>
 
@@ -585,7 +587,7 @@ corollary replaceNts_replaces_pair_Some:
   using replaceNts_replaces_pair 
   by (smt (verit) assms option.distinct(1) option.inject prod.inject)
 
-subsubsection \<open>binarizeNt_fun\<close>
+subsubsection \<open>binarizeNt\<close>
 
 fun binarizeNt_fun :: "['n::fresh0, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
   "binarizeNt_fun A ps0 [] = ps0" |

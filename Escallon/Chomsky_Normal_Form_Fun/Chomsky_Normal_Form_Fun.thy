@@ -419,7 +419,8 @@ fun uniformize_all :: "['n::fresh0, 't list, ('n,'t) prods] \<Rightarrow> ('n,'t
   "uniformize_all _ [] ps = ps" |
   "uniformize_all S (t#ts) ps = (let ps' = uniformize_tm S t ps in uniformize_all S ts ps')"
 
-fun tm_list_of_prods :: "('n,'t) prods \<Rightarrow> 't list" where
+(* Function? *)
+definition tm_list_of_prods :: "('n,'t) prods \<Rightarrow> 't list" where
 "tm_list_of_prods ps = (let rs = map snd ps in map destTm (filter isTm (concat rs)))"
 
 lemma tm_list_of_prods_is_Tms[simp]:
@@ -430,7 +431,7 @@ proof -
     fix tm
     have "tm \<in> set (tm_list_of_prods ps) = 
       (tm \<in> set (map destTm (filter isTm (concat (map snd ps)))))"
-      by force
+      unfolding tm_list_of_prods_def by force
     also have "... = (Tm tm \<in> set (filter isTm (concat (map snd ps))))" 
       by (smt (verit, ccfv_SIG) Set.filter_eq destTm.simps filter_set imageE image_eqI isTm_def 
           list.set_map mem_Collect_eq)
@@ -665,6 +666,8 @@ lemma binarizeNt_fun_dec_badNtsCount:
   by (metis list.set_finite)
 
 (* Needed to prove badNts_impl_binarizeNt_fun_not_id_unif *)
+(* Move to different thys? *)
+
 lemma removeAll_app_eq_impl_removed:
   "removeAll z xs @ ys = xs \<Longrightarrow> (\<forall>y\<in>set ys. y = z)"
   by (induction xs) 
@@ -925,7 +928,7 @@ next
    with binarizeNt_all_binRtc binarizeNtRtc_Unit_free show ?case using ps'_def by fastforce
  qed
 
-
+(* Move to different thys? *)
 
 lemma Tms_mono:
   assumes "P \<subseteq> P'"
@@ -974,23 +977,24 @@ lemma unit_elim_o_eps_elim_Tms_subset:
 
 theorem binarizeNt_all_uniformize_all_unit_elim_eps_elim_is_cnf:
   fixes ps :: "('n::fresh0, 't) prods"
-  assumes "ts = tm_list_of_prods ps"
-          "ps' = (binarizeNt_all S \<circ> uniformize_all S ts \<circ> unit_elim \<circ> eps_elim) ps"
+  assumes ts_def: "ts = tm_list_of_prods ps"
+      and ps'_def: "ps' = (binarizeNt_all S \<circ> uniformize_all S ts \<circ> unit_elim \<circ> eps_elim) ps"
         shows "CNF (set ps')" "Lang (set ps') S = Lang (set ps) S - {[]}"
 proof -
-  obtain ps0 where ps0_def: "ps0 = (unit_elim \<circ> eps_elim) ps" by metis
-  moreover have "Lang (set ps0) S = Lang (set ps) S - {[]}"
-    by (metis lang_unit_elim lang_eps_elim ps0_def comp_apply)
-  moreover from ps0_def have eps: "Eps_free (set ps0)" and unit: "Unit_free (set ps0)"
+  obtain ps'' where ps''_def: "ps'' = (unit_elim \<circ> eps_elim) ps" by metis
+  then have Lang_ps'': "Lang (set ps'') S = Lang (set ps) S - {[]}"
+    by (metis lang_unit_elim lang_eps_elim comp_apply)
+  from ps''_def have eps: "Eps_free (set ps'')" and unit: "Unit_free (set ps'')"
     by ((metis Unit_elim_correct Unit_elim_set_code comp_apply eps_free_eps_elim
         unit_elim_rel_Eps_free),
-        use Unit_free_if_unit_elim_rel ps0_def unit_elim_correct in fastforce)
-  ultimately have cnf: "uniform (set ps')" "binary (set ps')" "Eps_free (set ps')" 
-    "Unit_free (set ps')" and Lang_unchanged: "Lang (set ps') S = Lang (set ps) S - {[]}"
-    using cnf_noe_nou_funs assms unit_elim_o_eps_elim_Tms_subset 
-        by (metis comp_apply tm_list_of_prods_is_Tms)+
-  from Lang_unchanged show "Lang (set ps') S = Lang (set ps) S - {[]}" .
-  from cnf show "CNF (set ps')"  by (simp add: CNF_eq)
+        use Unit_free_if_unit_elim_rel ps''_def unit_elim_correct in fastforce)
+  from unit_elim_o_eps_elim_Tms_subset have subs: "Tms (set ps'') \<subseteq> (set ts)" 
+    using ps''_def ts_def tm_list_of_prods_is_Tms by metis
+  moreover have ps'_eq_comp: "ps' = (binarizeNt_all S \<circ> uniformize_all S ts) ps''" 
+    unfolding ps''_def assms(2) by simp
+  ultimately show "Lang (set ps') S = Lang (set ps) S - {[]}"  "CNF (set ps')" 
+    using CNF_eq cnf_noe_nou_funs[OF eps unit subs ps'_eq_comp] 
+    Lang_ps'' by auto
 qed
 
 end

@@ -1,9 +1,7 @@
 session PreStar = Context_Free_Grammar +
   options [document = pdf, document_output = "output"]
   theories
-    Definition
-    FiniteAutomaton
-    Algorithm
+    Pre_Star
     AlgorithmExample
     Applications
     ApplicationsExample

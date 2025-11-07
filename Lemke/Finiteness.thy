@@ -1,8 +1,12 @@
 section\<open>Finiteness of Context-Free Languages\<close>
 
 theory Finiteness
-  imports Definition
-begin \<comment>\<open>begin-theory Finiteness\<close>
+  imports Applications
+begin
+
+(* This theory could be generalized from CNF to arbitrary grammars (with some work) *)
+(* The dependence on theory Applications could be minimized in the process
+   (only a few defs are needed, eg \<open>is_useful\<close>) *)
 
 text\<open>
   Another interesting application, particularly for context-free grammars in
@@ -437,5 +441,6 @@ theorem is_infinite_by_prestar:
   using assms is_infinite_correct is_infinite_check by blast
 
 end \<comment>\<open>end-context CFG\<close>
-end \<comment>\<open>end-theory Finiteness\<close>
+
+end
  

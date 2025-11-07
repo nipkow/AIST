@@ -1,8 +1,10 @@
-subsection\<open>Example\<close>
+subsection\<open>Examples\<close>
+
+(* TODO: Disjointness and Subset Problem *)
 
 theory ApplicationsExample
   imports Applications
-begin \<comment>\<open>begin-theory ApplicationsExample\<close>
+begin
 
 text\<open>Consider the following grammar, with \<open>V = {A,B,C,D}\<close> and \<open>\<Sigma> = {a,b,c,d}\<close>:\<close>
 
@@ -107,4 +109,4 @@ lemma "\<not> P \<turnstile> C \<Rightarrow>\<^sup>? A"
 lemma "\<not> P \<turnstile> C \<Rightarrow>\<^sup>? A"
   by eval
 
-end \<comment>\<open>end-theory ApplicationsExample\<close>
+end

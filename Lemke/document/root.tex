@@ -3,38 +3,15 @@
 \usepackage{isabelle,isabellesym}
 
 \usepackage[a4paper]{geometry}
-%\usepackage{showframe} %This line can be used to clearly show the new margins
-
-%\newgeometry{hmargin={25mm}}
-%\newgeometry{vmargin={30mm}, hmargin={25mm}}
-
-% further packages required for unusual symbols (see also
-% isabellesym.sty), use only when needed
 
 \usepackage{amssymb}
-  %for \<leadsto>, \<box>, \<diamond>, \<sqsupset>, \<mho>, \<Join>,
-  %\<lhd>, \<lesssim>, \<greatersim>, \<lessapprox>, \<greaterapprox>,
-  %\<triangleq>, \<yen>, \<lozenge>
-
-%\usepackage{eurosym}
-  %for \<euro>
-
-%\usepackage[only,bigsqcap,bigparallel,fatsemi,interleave,sslash]{stmaryrd}
-  %for \<Sqinter>, \<Parallel>, \<Zsemi>, \<Parallel>, \<sslash>
-
-%\usepackage{eufrak}
-  %for \<AA> ... \<ZZ>, \<aa> ... \<zz> (also included in amssymb)
-
-%\usepackage{textcomp}
-  %for \<onequarter>, \<onehalf>, \<threequarters>, \<degree>, \<cent>,
-  %\<currency>
 
 % this should be the last package used
 \usepackage{pdfsetup}
 
 % urls in roman style, theory text in math-similar italics
 \urlstyle{rm}
-\isabellestyle{it}
+\isabellestyle{liiteral}
 
 % for uniform font size
 \renewcommand{\isastyle}{\isastyleminor}
@@ -42,29 +19,50 @@
 
 \begin{document}
 
-\title{The computation and regularity of predecessors of context-free grammars}
+\title{$Pre^*$: The Predecessors of a Regular Language w.r.t.\ a CFG, with Applications to CFG Decision Problems}
 \author{Tassilo Lemke and Tobias Nipkow}
 \maketitle
 
 \begin{abstract}
-  When analyzing context-free grammars, an interesting fact is the set of of predecessors of
-  any given string. Further, the set of predecessors of a set of strings $L$, $pre^*(L)$, allows for
-  interesting applications. One first key result is the regularity: if $L$ is regular, then so is
-  $pre^*(L)$. Secondly, this method can be used to provide solutions to many different problems
-  regarding context-free grammars, such as the word-problem, emptiness problem, and more.
+Let $L$ be a language, $G$ a context-free grammar
+and let $pre^*(L)$ be the language of all predecessors (w.r.t.\ $G$) of words in $L$.
+The following fact has been rediscovered in the literature repeatedly:
+If $L$ is regular, so is $pre^*(L)$. Moreover, given an NFA $M$ for $L$, an NFA $M'$ for $pre^*(L)$
+can be computed very elegenatly from $M$. Starting from a suitable $M$, simple checks on $M'$
+provide solutions to many different decision problems concerning $G$,
+such as the word-problem, emptiness problem, and more.
 
-  We formalize two algorithms to compute $pre^*(L)$ for a regular $L$ (using NFAs as representation).
-  While the second algorithm is specifically tailored to grammars in extended-CNF, the former
-  is generally applicable. We design the formalization to be automatically executable,
-  allowing many different problems on context-free grammars to be solved automatically.
+We formalize two algorithms to compute $pre^*(L)$ for a regular $L$ (using NFAs as representation).
+The first one is very simple and elegant and works for any CFG, while the second one is
+more efficient but is restricted to CFGs in in extended-CNF.
+All our algorithms are executable,
+allowing many basic problems on context-free grammars to be solved automatically.
 \end{abstract}
 
 \newpage
+\setcounter{tocdepth}{2}
 \tableofcontents
 
 \parindent 0pt\parskip 0.5ex
 
 \newpage
+
+\section{Introduction}
+
+Given a regular language $L$ and a context-free grammar $G$,
+the language of predecessors of $L$ with respect to $G$, $pre^*(L)$, is also regular.
+This has been discovered independently by many authors
+\cite{book1993string,buchi3105regular,caucal1992regular}.
+We formalise the algorithm proposed by Book and Otto \cite{book1993string}
+which takes as input a non-deterministic finite automaton $M$, enriches it with new transitions,
+and yields a new automaton $M'$ such that $L(M') = pre^*(L(M))$.
+
+This yields a unified framework for deciding many properties of context-free grammars,
+as was detailed by Bouajjani et~al.\ \cite{bouajjani2000efficient}.
+
+The theories \textit{Labeled\_Transition\_System} and \textit{LTS\_Automata} are auxiliary;
+the formalization proper starts with theory \textit{Pre\_Star}.
+
 \input{session}
 
 \addcontentsline{toc}{section}{References}

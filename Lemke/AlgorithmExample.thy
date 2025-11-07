@@ -3,8 +3,8 @@ subsection\<open>Example\<close>
 text\<open>The algorithm is executable. This theory file shows a quick example.\<close>
 
 theory AlgorithmExample
-  imports Algorithm
-begin \<comment>\<open>begin-theory AlgorithmExample\<close>
+  imports Pre_Star
+begin
 
 text\<open>Consider the following grammar, with \<open>V = {A,B}\<close> and \<open>\<Sigma> = {a,b}\<close>:\<close>
 
@@ -23,8 +23,8 @@ definition "P \<equiv> {
 
 text\<open>The following NFA accepts the regular language, whose predecessors we want to find:\<close>
 
-definition M :: "(nat, (n, t) sym) nfa" where "M \<equiv> \<lparr>
-  transitions = {
+definition M :: "(nat, (n, t) sym) auto" where "M \<equiv> \<lparr>
+  auto.lts = {
     (0, Tm a, 1),
     (1, Tm b, 2),
     (2, Tm a, 1)
@@ -33,7 +33,12 @@ definition M :: "(nat, (n, t) sym) nfa" where "M \<equiv> \<lparr>
   finals = {0, 1, 2}
 \<rparr>"
 
-value "compute_prestar P M"
-text\<open>@{value "compute_prestar P M"}\<close>
+lemma "pre_star_auto P M =
+  \<lparr>auto.lts =
+    {(2, Tm a, 1), (1, Tm b, 2), (0, Tm a, 1), (0, Nt A, 1), (0, Nt A, 2), (0, Nt B, 2), (0, Nt A, 1),
+     (1, Nt A, 2), (1, Nt B, 2), (2, Nt A, 1), (2, Nt A, 2), (2, Nt B, 2), (2, Nt A, 1), (1, Nt A, 2),
+     (1, Nt B, 2)},
+   start = 0, finals = {0, 1, 2}\<rparr>"
+by eval
 
-end \<comment>\<open>end-theory AlgorithmExample\<close>
+end

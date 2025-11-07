@@ -1,15 +1,14 @@
 section\<open>Reduced Complexity for Grammars in CNF\<close>
 
 theory ImprovedAlgorithm
-  imports Algorithm Context_Free_Grammar.Chomsky_Normal_Form
-begin \<comment>\<open>begin-theory ImprovedAlgorithm\<close>
+imports
+  Context_Free_Grammar.Chomsky_Normal_Form
+  Pre_Star
+begin
 
 text\<open>
-  Bouajjani et al. have proposed in \<^cite>\<open>bouajjani2000efficient\<close> an improved algorithm
+  Bouajjani et al. \<^cite>\<open>bouajjani2000efficient\<close> have proposed in an improved algorithm
   for grammars in extended Chomsky Normal Form.
-\<close>
-
-text\<open>
   This theory proves core properties (correctness and termination) of the algorithm.
 \<close>
 
@@ -30,7 +29,7 @@ definition CNF1 :: "('n, 't) Prods \<Rightarrow> bool" where
   )"
 
 type_synonym ('s, 'n, 't) tran = "'s \<times> ('n, 't) sym \<times> 's" \<comment>\<open>single transition\<close>
-type_synonym ('s, 'n, 't) trans = "('s, 'n, 't) tran set" \<comment>\<open>set of transitions\<close>
+type_synonym ('s, 'n, 't) trans = "('s, 'n, 't) tran set" \<comment>\<open>set of auto.trans\<close>
 type_synonym ('s, 'n, 't) directT = "('s, 'n, 't) tran \<Rightarrow> ('s, 'n, 't) trans"
 type_synonym ('s, 'n, 't) implT = "('s, 'n, 't) tran \<Rightarrow> (('s, 'n, 't) tran \<times> ('s, 'n, 't) tran) set"
 
@@ -43,11 +42,11 @@ record ('s, 'n, 't) alg_state =
 subsection\<open>Procedure\<close>
 
 definition alg_state_new :: "('n, 't) Prods \<Rightarrow> 's set \<Rightarrow> ('s, 'n, 't) trans \<Rightarrow> ('s, 'n, 't) alg_state" where
-  "alg_state_new P Q \<delta> \<equiv> \<lparr>                                                             
+  "alg_state_new P Q T \<equiv> \<lparr>                                                             
     rel = {},
-    trans = \<delta>
+    trans = T
       \<union> { (q, Nt A, q) | q A. (A, []) \<in> P \<and> q \<in> Q }
-      \<union> { (q, Nt A, q') | q q' A. \<exists>a. (A, [Tm a]) \<in> P \<and> (q, Tm a, q') \<in> \<delta> \<and> q \<in> Q \<and> q' \<in> Q },
+      \<union> { (q, Nt A, q') | q q' A. \<exists>a. (A, [Tm a]) \<in> P \<and> (q, Tm a, q') \<in> T \<and> q \<in> Q \<and> q' \<in> Q },
     direct = (\<lambda>(q, X, q'). case X of
       Nt B \<Rightarrow> { (q, Nt A, q') | A. (A, [Nt B]) \<in> P \<and> q \<in> Q \<and> q' \<in> Q } |
       Tm b \<Rightarrow> {}
@@ -87,7 +86,7 @@ definition alg_inner_post :: "('s, 'n, 't) alg_state \<Rightarrow> ('s, 'n, 't) 
 definition alg_outer_step :: "('s, 'n, 't) alg_state \<Rightarrow> ('s, 'n, 't) tran \<Rightarrow> ('s, 'n, 't) alg_state" where
   "alg_outer_step S t \<equiv> alg_inner_post (alg_inner_pre S t) t"
 
-abbreviation "alg_outer_step_rel S t \<equiv> rel S \<union> {t}"
+abbreviation "alg_outer_step_lts S t \<equiv> rel S \<union> {t}"
 abbreviation "alg_outer_step_trans S t \<equiv> (trans S) - {t} \<union> direct S t \<union> snd ` { (t', t'') \<in> impl S t. t' \<in> rel S \<union> {t} }"
 abbreviation "alg_outer_step_trans' S t \<equiv> (trans S) - {t} \<union> direct S t \<union> {t''. \<exists>t'. (t', t'') \<in> impl S t \<and> t' \<in> rel S \<union> {t} }"
 abbreviation "alg_outer_step_direct S t \<equiv> (\<lambda>t'. ((direct S) (t := {})) t' \<union> snd ` { (t'2, t'') \<in> impl S t. t' = t'2 \<and> t' \<notin> (rel S) \<union> {t} })"
@@ -103,7 +102,7 @@ lemma alg_outer_step_direct_eq[simp]:
   by force
 
 lemma alg_outer_step_simps[simp]:
-  shows "rel (alg_outer_step S t) = alg_outer_step_rel S t"
+  shows "rel (alg_outer_step S t) = alg_outer_step_lts S t"
     and "trans (alg_outer_step S t) = alg_outer_step_trans S t"
     and "direct (alg_outer_step S t) = alg_outer_step_direct S t"
     and "impl (alg_outer_step S t) = alg_outer_step_impl S t"
@@ -175,43 +174,43 @@ subsection\<open>Correctness\<close>
 
 subsubsection\<open>Subset\<close>
 
-definition prestar_alg_sub_inv :: "('s, 'n, 't) trans \<Rightarrow> ('s, 'n, 't) alg_state \<Rightarrow> bool" where
-  "prestar_alg_sub_inv \<delta>' S \<equiv> (
-    (trans S) \<subseteq> \<delta>' \<and> (rel S) \<subseteq> \<delta>' \<and>
-    (\<forall>t' \<in> \<delta>'. \<forall>t \<in> direct S t'. t \<in> \<delta>') \<and>
-    (\<forall>t \<in> \<delta>'. \<forall>(t', t'') \<in> impl S t. t' \<in> \<delta>' \<longrightarrow> t'' \<in> \<delta>')
+definition pre_star_alg_sub_inv :: "('s, 'n, 't) trans \<Rightarrow> ('s, 'n, 't) alg_state \<Rightarrow> bool" where
+  "pre_star_alg_sub_inv T' S \<equiv> (
+    (trans S) \<subseteq> T' \<and> (rel S) \<subseteq> T' \<and>
+    (\<forall>t' \<in> T'. \<forall>t \<in> direct S t'. t \<in> T') \<and>
+    (\<forall>t \<in> T'. \<forall>(t', t'') \<in> impl S t. t' \<in> T' \<longrightarrow> t'' \<in> T')
   )"
 
 lemma alg_state_new_inv:
-  assumes "prestar_while P Q \<delta> = Some \<delta>'"
-  shows "prestar_alg_sub_inv \<delta>' (alg_state_new P Q \<delta>)"
+  assumes "pre_star_lts P Q T = Some T'"
+  shows "pre_star_alg_sub_inv T' (alg_state_new P Q T)"
 proof -
-  define S where "S = alg_state_new P Q \<delta>"
+  define S where "S = alg_state_new P Q T"
 
-  have invR: "(rel S) \<subseteq> \<delta>'"
+  have invR: "(rel S) \<subseteq> T'"
     by (simp add: S_def alg_state_new_def)
 
-  have invT: "(trans S) \<subseteq> \<delta>'"
+  have invT: "(trans S) \<subseteq> T'"
   proof (simp add: S_def alg_state_new_def, intro conjI)
-    show "\<delta> \<subseteq> \<delta>'"
-      using assms by (rule prestar_while_mono)
+    show "T \<subseteq> T'"
+      using assms by (rule pre_star_lts_mono)
   next
-    have "\<And>A q. (A, []) \<in> P \<Longrightarrow> q \<in> Q \<Longrightarrow> (q, Nt A, q) \<in> \<delta>'"
-      by (rule prestar_while_refl[of P Q \<delta>]; use assms in blast)
-    then show "{(q, Nt A, q) |q A. (A, []) \<in> P \<and> q \<in> Q} \<subseteq> \<delta>'"
+    have "\<And>A q. (A, []) \<in> P \<Longrightarrow> q \<in> Q \<Longrightarrow> (q, Nt A, q) \<in> T'"
+      by (rule pre_star_lts_refl[of P Q T]; use assms in blast)
+    then show "{(q, Nt A, q) |q A. (A, []) \<in> P \<and> q \<in> Q} \<subseteq> T'"
       by blast
   next
-    have "\<And>A a q q'. (A, [Tm a]) \<in> P \<Longrightarrow> q \<in> Q \<Longrightarrow> q' \<in> Q \<Longrightarrow> (q, Tm a, q') \<in> \<delta> \<Longrightarrow> (q, Nt A, q') \<in> \<delta>'"
-      by (rule prestar_while_singleton[of P]; use assms prestar_while_mono in blast)
-    then show "{(q, Nt A, q') |q q' A. \<exists>a. (A, [Tm a]) \<in> P \<and> (q, Tm a, q') \<in> \<delta> \<and> q \<in> Q \<and> q' \<in> Q} \<subseteq> \<delta>'"
+    have "\<And>A a q q'. (A, [Tm a]) \<in> P \<Longrightarrow> q \<in> Q \<Longrightarrow> q' \<in> Q \<Longrightarrow> (q, Tm a, q') \<in> T \<Longrightarrow> (q, Nt A, q') \<in> T'"
+      by (rule pre_star_lts_singleton[of P]; use assms pre_star_lts_mono in blast)
+    then show "{(q, Nt A, q') |q q' A. \<exists>a. (A, [Tm a]) \<in> P \<and> (q, Tm a, q') \<in> T \<and> q \<in> Q \<and> q' \<in> Q} \<subseteq> T'"
       by blast
   qed
 
-  have "\<And>q q' X t. (q, X, q') \<in> \<delta>' \<Longrightarrow> t \<in> direct S (q, X, q') \<Longrightarrow> t \<in> \<delta>'"
+  have "\<And>q q' X t. (q, X, q') \<in> T' \<Longrightarrow> t \<in> direct S (q, X, q') \<Longrightarrow> t \<in> T'"
   proof -
     fix t and q X q'
-    assume "(q, X, q') \<in> \<delta>'" and t_in: "t \<in> direct S (q, X, q')"
-    show "t \<in> \<delta>'" proof (cases X)
+    assume "(q, X, q') \<in> T'" and t_in: "t \<in> direct S (q, X, q')"
+    show "t \<in> T'" proof (cases X)
       case (Nt B)
       then have "direct S (q, X, q') = { (q, Nt A, q') | A. (A, [Nt B]) \<in> P \<and> q \<in> Q \<and> q' \<in> Q }"
         by (simp add: S_def alg_state_new_def)
@@ -219,11 +218,11 @@ proof -
           and "(A, [Nt B]) \<in> P"
           and inQ: "q \<in> Q \<and> q' \<in> Q"
         using prod_cases3 t_in by auto
-      moreover have "(q, Nt B, q') \<in> \<delta>'"
-        using \<open>(q, X, q') \<in> \<delta>'\<close> Nt by blast
+      moreover have "(q, Nt B, q') \<in> T'"
+        using \<open>(q, X, q') \<in> T'\<close> Nt by blast
       moreover note assms
-      ultimately have "(q, Nt A, q') \<in> \<delta>'"
-        by (intro prestar_while_singleton) (use inQ in blast)+
+      ultimately have "(q, Nt A, q') \<in> T'"
+        by (intro pre_star_lts_singleton) (use inQ in blast)+
       then show ?thesis
         by (simp add: t_split)
     next
@@ -234,16 +233,16 @@ proof -
         using t_in by blast
     qed
   qed
-  then have invD: "\<forall>t' \<in> \<delta>'. \<forall>t \<in> direct S t'. t \<in> \<delta>'"
+  then have invD: "\<forall>t' \<in> T'. \<forall>t \<in> direct S t'. t \<in> T'"
     by fast
 
-  have "\<And>t t' t''. t \<in> \<delta>' \<Longrightarrow> (t', t'') \<in> impl S t \<Longrightarrow> t' \<in> \<delta>' \<Longrightarrow> t'' \<in> \<delta>'"
+  have "\<And>t t' t''. t \<in> T' \<Longrightarrow> (t', t'') \<in> impl S t \<Longrightarrow> t' \<in> T' \<Longrightarrow> t'' \<in> T'"
   proof -
     fix t t' t''
-    assume "t \<in> \<delta>'" and "(t', t'') \<in> impl S t" and "t' \<in> \<delta>'"
+    assume "t \<in> T'" and "(t', t'') \<in> impl S t" and "t' \<in> T'"
     obtain q q' X\<^sub>1 where t_split: "t = (q, X\<^sub>1, q')"
       by (elim prod_cases3)
-    show "t'' \<in> \<delta>'" proof (cases X\<^sub>1)
+    show "t'' \<in> T'" proof (cases X\<^sub>1)
       case (Nt B)
       have "impl S t = {((q', Nt C, q''), (q, Nt A, q'')) |q'' A C.
           (A, [Nt B, Nt C]) \<in> P \<and> q \<in> Q \<and> q' \<in> Q \<and> q'' \<in> Q}"
@@ -254,12 +253,12 @@ proof -
         using \<open>(t', t'') \<in> impl S t\<close> by force
 
       note \<open>(A, [Nt B, Nt C]) \<in> P\<close> and assms
-      moreover have "(q', Nt C, q'') \<in> \<delta>'"
-        using \<open>t' \<in> \<delta>'\<close> by (simp add: t'_split)
-      moreover have "(q, Nt B, q') \<in> \<delta>'"
-        using \<open>t \<in> \<delta>'\<close> by (simp add: t_split Nt)
-      ultimately have "(q, Nt A, q'') \<in> \<delta>'"
-        by (intro prestar_while_impl) (use inQ in blast)+
+      moreover have "(q', Nt C, q'') \<in> T'"
+        using \<open>t' \<in> T'\<close> by (simp add: t'_split)
+      moreover have "(q, Nt B, q') \<in> T'"
+        using \<open>t \<in> T'\<close> by (simp add: t_split Nt)
+      ultimately have "(q, Nt A, q'') \<in> T'"
+        by (intro pre_star_lts_impl) (use inQ in blast)+
       then show ?thesis
         unfolding t''_split by assumption
     next
@@ -270,60 +269,60 @@ proof -
         using \<open>(t', t'') \<in> impl S t\<close> by simp
     qed
   qed
-  then have invI: "\<forall>t \<in> \<delta>'. \<forall>(t', t'') \<in> impl S t. t' \<in> \<delta>' \<longrightarrow> t'' \<in> \<delta>'"
+  then have invI: "\<forall>t \<in> T'. \<forall>(t', t'') \<in> impl S t. t' \<in> T' \<longrightarrow> t'' \<in> T'"
     by fast
 
   from invR invT invD invI show ?thesis
-    unfolding prestar_alg_sub_inv_def S_def by blast
+    unfolding pre_star_alg_sub_inv_def S_def by blast
 qed
 
 lemma alg_outer_step_inv:
-  assumes "prestar_while P Q \<delta> = Some \<delta>'" and "t \<in> trans S" and "prestar_alg_sub_inv \<delta>' S"
-  shows "prestar_alg_sub_inv \<delta>' (alg_outer_step S t)"
+  assumes "pre_star_lts P Q T = Some T'" and "t \<in> trans S" and "pre_star_alg_sub_inv T' S"
+  shows "pre_star_alg_sub_inv T' (alg_outer_step S t)"
 proof -
-  note inv[simp] = assms(3)[unfolded prestar_alg_sub_inv_def]
-  have [simp]: "t \<in> \<delta>'"
-    using assms(2) assms(3) unfolding prestar_alg_sub_inv_def by blast
-  moreover have invi: "\<forall>(t', t'') \<in> impl (alg_outer_step S t) t. t' \<in> \<delta>' \<longrightarrow> t'' \<in> \<delta>'"
+  note inv[simp] = assms(3)[unfolded pre_star_alg_sub_inv_def]
+  have [simp]: "t \<in> T'"
+    using assms(2) assms(3) unfolding pre_star_alg_sub_inv_def by blast
+  moreover have invi: "\<forall>(t', t'') \<in> impl (alg_outer_step S t) t. t' \<in> T' \<longrightarrow> t'' \<in> T'"
     by simp
-  moreover have invR: "rel (alg_outer_step S t) \<subseteq> \<delta>'"
+  moreover have invR: "rel (alg_outer_step S t) \<subseteq> T'"
     by simp
-  moreover have invT: "trans (alg_outer_step S t) \<subseteq> \<delta>'"
+  moreover have invT: "trans (alg_outer_step S t) \<subseteq> T'"
     unfolding alg_outer_step_simps(2) alg_outer_step_trans_eq 
-    using inv invi \<open>t \<in> \<delta>'\<close> by blast
-  moreover have invD: "\<forall>t' \<in> \<delta>'. \<forall>t \<in> direct (alg_outer_step S t) t'. t \<in> \<delta>'"
-    unfolding alg_outer_step_simps(3) alg_outer_step_direct_eq using inv invi \<open>t \<in> \<delta>'\<close>
+    using inv invi \<open>t \<in> T'\<close> by blast
+  moreover have invD: "\<forall>t' \<in> T'. \<forall>t \<in> direct (alg_outer_step S t) t'. t \<in> T'"
+    unfolding alg_outer_step_simps(3) alg_outer_step_direct_eq using inv invi \<open>t \<in> T'\<close>
     by (metis (no_types, lifting) Un_iff case_prod_conv empty_iff fun_upd_apply mem_Collect_eq)
-  moreover have invI: "\<forall>t\<^sub>2 \<in> \<delta>'. \<forall>(t', t'') \<in> impl (alg_outer_step S t) t\<^sub>2. t' \<in> \<delta>' \<longrightarrow> t'' \<in> \<delta>'"
+  moreover have invI: "\<forall>t\<^sub>2 \<in> T'. \<forall>(t', t'') \<in> impl (alg_outer_step S t) t\<^sub>2. t' \<in> T' \<longrightarrow> t'' \<in> T'"
     by simp
   ultimately show ?thesis
-    unfolding prestar_alg_sub_inv_def by blast
+    unfolding pre_star_alg_sub_inv_def by blast
 qed
 
 lemma alg_outer_inv:
-  assumes "prestar_while P Q \<delta> = Some \<delta>'" and "prestar_alg_sub_inv \<delta>' S"
+  assumes "pre_star_lts P Q T = Some T'" and "pre_star_alg_sub_inv T' S"
     and "alg_outer S = Some S'"
-  shows "prestar_alg_sub_inv \<delta>' S'"
+  shows "pre_star_alg_sub_inv T' S'"
 proof -
   note assms' = assms(1,2) assms(3)[unfolded alg_outer_def]
-  have "\<And>s. prestar_alg_sub_inv \<delta>' s \<Longrightarrow> trans s \<noteq> {} \<Longrightarrow>
-      prestar_alg_sub_inv \<delta>' (alg_outer_step s (SOME x. x \<in> trans s))"
+  have "\<And>s. pre_star_alg_sub_inv T' s \<Longrightarrow> trans s \<noteq> {} \<Longrightarrow>
+      pre_star_alg_sub_inv T' (alg_outer_step s (SOME x. x \<in> trans s))"
     by (rule alg_outer_step_inv; use assms someI_ex in fast)
   then show ?thesis
-    by (rule while_option_rule[where P="prestar_alg_sub_inv \<delta>'"]) (use assms' in blast)+
+    by (rule while_option_rule[where P="pre_star_alg_sub_inv T'"]) (use assms' in blast)+
 qed
 
-lemma prestar_alg_sub:
-  fixes P and \<delta>
-  assumes "alg_outer (alg_state_new P Q \<delta>) = Some S'" and "prestar_while P Q \<delta> = Some \<delta>'"
-  shows "rel S' \<subseteq> \<delta>'"
+lemma pre_star_alg_sub:
+  fixes P and T
+  assumes "alg_outer (alg_state_new P Q T) = Some S'" and "pre_star_lts P Q T = Some T'"
+  shows "rel S' \<subseteq> T'"
 proof -
-  have "prestar_alg_sub_inv \<delta>' (alg_state_new P Q \<delta>)"
+  have "pre_star_alg_sub_inv T' (alg_state_new P Q T)"
     using assms by (elim alg_state_new_inv)
-  with assms have "prestar_alg_sub_inv \<delta>' S'"
-    by (intro alg_outer_inv[where S="alg_state_new P Q \<delta>" and \<delta>'=\<delta>' and S'=S']; simp)
+  with assms have "pre_star_alg_sub_inv T' S'"
+    by (intro alg_outer_inv[where S="alg_state_new P Q T" and T'=T' and S'=S']; simp)
   then show ?thesis
-    unfolding prestar_alg_sub_inv_def by blast
+    unfolding pre_star_alg_sub_inv_def by blast
 qed
 
 subsubsection\<open>Super-Set\<close>
@@ -331,7 +330,7 @@ subsubsection\<open>Super-Set\<close>
 lemma alg_outer_fixpoint: "alg_outer S = Some S' \<Longrightarrow> alg_outer S' = Some S'"
   unfolding alg_outer_def by (metis (lifting) while_option_stop while_option_unfold)
 
-lemma prestar_alg_trans_empty: "alg_outer S = Some S' \<Longrightarrow> trans S' = {}"
+lemma pre_star_alg_trans_empty: "alg_outer S = Some S' \<Longrightarrow> trans S' = {}"
   using while_option_stop unfolding alg_outer_def by fast
 
 lemma alg_outer_step_direct: "t \<noteq> t' \<Longrightarrow> direct S t' \<subseteq> direct (alg_outer_step S t) t'"
@@ -351,7 +350,7 @@ lemma alg_outer_step_impl_to_direct[intro]:
   using assms unfolding alg_outer_step_simps alg_outer_step_direct_eq by blast
 
 \<comment>\<open>Everything from \<open>trans\<close> is eventually added to \<open>rel\<close>:\<close>
-lemma prestar_alg_trans_to_rel:
+lemma pre_star_alg_trans_to_lts:
   assumes "alg_outer S = Some S'"
   shows "trans S \<subseteq> rel S'"
 proof
@@ -360,11 +359,11 @@ proof
   have "x \<in> trans S' \<or> x \<in> rel S'"
     by (rule alg_outer_rule[where P="\<lambda>S. x \<in> trans S \<or> x \<in> rel S"]; use assms \<open>x \<in> trans S\<close> in auto)
   then show "x \<in> rel S'"
-    using assms prestar_alg_trans_empty by blast
+    using assms pre_star_alg_trans_empty by blast
 qed
 
 \<comment>\<open>If \<open>t\<close> is added to \<open>rel\<close>, then so is \<open>direct(t)\<close>:\<close>
-lemma prestar_alg_direct_to_rel:
+lemma pre_star_alg_direct_to_lts:
   fixes S\<^sub>0 :: "('s, 'n, 't) alg_state"
   assumes "alg_outer S\<^sub>0 = Some S'"
     and "t \<notin> rel S\<^sub>0" and "t \<in> rel S'"
@@ -393,11 +392,11 @@ proof -
   with assms have "?I S'"
     by (elim alg_outer_rule[where P="?I"]) simp+
   then show ?thesis
-    using assms prestar_alg_trans_empty by blast
+    using assms pre_star_alg_trans_empty by blast
 qed
 
 \<comment>\<open>If \<open>t\<close> and \<open>t'\<close> are added to \<open>rel\<close>, then so are all \<open>t''\<close> from \<open>(t', t'') \<in> impl(t)\<close>:\<close>
-lemma prestar_alg_impl_to_rel:
+lemma pre_star_alg_impl_to_lts:
   fixes S\<^sub>0 :: "('s, 'n, 't) alg_state"
   assumes "alg_outer S\<^sub>0 = Some S'"
     and "t \<notin> rel S\<^sub>0" and "t' \<notin> rel S\<^sub>0"
@@ -463,51 +462,51 @@ proof -
     moreover have "alg_outer S' = Some S'"
       using assms(1) by (rule alg_outer_fixpoint)
     ultimately show "t'' \<in> rel S'"
-      using prestar_alg_direct_to_rel assms(6) by blast
+      using pre_star_alg_direct_to_lts assms(6) by blast
   next
     assume " t'' \<in> rel S' \<union> trans S'"
     then show "t'' \<in> rel S'"
-      using assms(1) prestar_alg_trans_empty by blast
+      using assms(1) pre_star_alg_trans_empty by blast
   qed
 qed
 
-\<comment>\<open>Reflexive transitions are eventually added to \<open>rel\<close>:\<close>
-lemma prestar_alg_new_refl_to_trans:
-  assumes "S = alg_state_new P Q \<delta>" and "(A, []) \<in> P" and "q \<in> Q"
+\<comment>\<open>Reflexive auto.trans are eventually added to \<open>rel\<close>:\<close>
+lemma pre_star_alg_new_refl_to_trans:
+  assumes "S = alg_state_new P Q T" and "(A, []) \<in> P" and "q \<in> Q"
   shows "(q, Nt A, q) \<in> trans S"
   using assms by (simp add: alg_state_new_def)
 
-lemma prestar_alg_refl_to_rel:
-  assumes "alg_outer (alg_state_new P Q \<delta>) = Some S'" and "(A, []) \<in> P" and "q \<in> Q"
+lemma pre_star_alg_refl_to_lts:
+  assumes "alg_outer (alg_state_new P Q T) = Some S'" and "(A, []) \<in> P" and "q \<in> Q"
   shows "(q, Nt A, q) \<in> rel S'"
-  using assms prestar_alg_new_refl_to_trans prestar_alg_trans_to_rel by fast
+  using assms pre_star_alg_new_refl_to_trans pre_star_alg_trans_to_lts by fast
 
 \<comment>\<open>Lemmas for singleton productions, i.e. \<open>A \<rightarrow> B\<close> or \<open>A \<rightarrow> b\<close>:\<close>
-lemma prestar_alg_singleton_nt_to_rel:
-  assumes "alg_outer (alg_state_new P Q \<delta>) = Some S'"
+lemma pre_star_alg_singleton_nt_to_lts:
+  assumes "alg_outer (alg_state_new P Q T) = Some S'"
     and "(A, [Nt B]) \<in> P" and "q \<in> Q" and "q' \<in> Q"
   shows "(q, Nt B, q') \<in> rel S' \<Longrightarrow> (q, Nt A, q') \<in> rel S'"
 proof -
-  have "(q, Nt A, q') \<in> direct (alg_state_new P Q \<delta>) (q, Nt B, q')"
+  have "(q, Nt A, q') \<in> direct (alg_state_new P Q T) (q, Nt B, q')"
     using assms by (simp add: alg_state_new_def)
-  moreover have "(q, Nt B, q') \<notin> rel (alg_state_new P Q \<delta>)"
+  moreover have "(q, Nt B, q') \<notin> rel (alg_state_new P Q T)"
     by (simp add: alg_state_new_def)
   ultimately show "(q, Nt B, q') \<in> rel S' \<Longrightarrow> (q, Nt A, q') \<in> rel S'"
-    using assms(1) prestar_alg_direct_to_rel by blast
+    using assms(1) pre_star_alg_direct_to_lts by blast
 qed
 
-lemma prestar_alg_tm_only_from_delta:
+lemma pre_star_alg_tm_only_from_delta:
   fixes S' :: "('s, 'n, 't) alg_state"
-  assumes "alg_outer (alg_state_new P Q \<delta>) = Some S'"
+  assumes "alg_outer (alg_state_new P Q T) = Some S'"
     and "(q, Tm b, q') \<in> rel S'" and "q \<in> Q" and "q' \<in> Q"
-  shows "(q, Tm b, q') \<in> \<delta>"
+  shows "(q, Tm b, q') \<in> T"
 proof -
-  define i where "i \<equiv> (\<lambda>t. t = (q, Tm b::('n, 't) sym, q') \<longrightarrow> t \<in> \<delta>)"
+  define i where "i \<equiv> (\<lambda>t. t = (q, Tm b::('n, 't) sym, q') \<longrightarrow> t \<in> T)"
   define I :: "('s, 'n, 't) alg_state \<Rightarrow> bool"
     where "I \<equiv> (\<lambda>S. (\<forall>t \<in> rel S. i t) \<and> (\<forall>t \<in> trans S. i t)
       \<and> (\<forall>t. \<forall>t' \<in> direct S t. i t') \<and> (\<forall>t. \<forall>(t', t'') \<in> impl S t. i t' \<and> i t''))"
 
-  have "I (alg_state_new P Q \<delta>)"
+  have "I (alg_state_new P Q T)"
     unfolding alg_state_new_def I_def i_def
     by (auto split: sym.splits intro: sym.exhaust)
   moreover have "\<And>S t. I S \<Longrightarrow> t \<in> trans S \<Longrightarrow> I (alg_outer_step S t)"
@@ -519,33 +518,33 @@ proof -
     using assms(2) by (simp add: I_def i_def)
 qed
 
-lemma prestar_alg_singleton_tm_to_rel:
-  assumes "alg_outer (alg_state_new P Q \<delta>) = Some S'" and "(A, [Tm b]) \<in> P"
+lemma pre_star_alg_singleton_tm_to_lts:
+  assumes "alg_outer (alg_state_new P Q T) = Some S'" and "(A, [Tm b]) \<in> P"
     and "(q, Tm b, q') \<in> rel S'" and "q \<in> Q" and "q' \<in> Q"
   shows "(q, Nt A, q') \<in> rel S'"
 proof -
-  have "(q, Tm b, q') \<in> \<delta>"
-    using assms prestar_alg_tm_only_from_delta by fast
-  then have "(q, Nt A, q') \<in> trans (alg_state_new P Q \<delta>)"
+  have "(q, Tm b, q') \<in> T"
+    using assms pre_star_alg_tm_only_from_delta by fast
+  then have "(q, Nt A, q') \<in> trans (alg_state_new P Q T)"
     by (auto simp: alg_state_new_def assms)
   then show ?thesis
-    using prestar_alg_trans_to_rel assms(1) by blast
+    using pre_star_alg_trans_to_lts assms(1) by blast
 qed
 
-lemma prestar_alg_singleton_to_rel:
-  assumes "alg_outer (alg_state_new P Q \<delta>) = Some S'"
+lemma pre_star_alg_singleton_to_lts:
+  assumes "alg_outer (alg_state_new P Q T) = Some S'"
     and "(A, [X]) \<in> P" and "q \<in> Q" and "q' \<in> Q"
   shows "(q, X, q') \<in> rel S' \<Longrightarrow> (q, Nt A, q') \<in> rel S'"
-  using assms prestar_alg_singleton_nt_to_rel prestar_alg_singleton_tm_to_rel by (cases X; fast)
+  using assms pre_star_alg_singleton_nt_to_lts pre_star_alg_singleton_tm_to_lts by (cases X; fast)
 
 \<comment>\<open>Lemmas for dual productions, i.e. \<open>A \<rightarrow> AB\<close>:\<close>
-lemma prestar_alg_dual_to_rel:
-  assumes "alg_outer (alg_state_new P Q \<delta>) = Some S'" and "(A, [Nt B, Nt C]) \<in> P"
+lemma pre_star_alg_dual_to_lts:
+  assumes "alg_outer (alg_state_new P Q T) = Some S'" and "(A, [Nt B, Nt C]) \<in> P"
     and "(q, Nt B, q') \<in> rel S'" and "(q', Nt C, q'') \<in> rel S'"
     and "q \<in> Q" and "q' \<in> Q" and "q'' \<in> Q"
   shows "(q, Nt A, q'') \<in> rel S'"
 proof -
-  define S where [simp]: "S \<equiv> alg_state_new P Q \<delta>"
+  define S where [simp]: "S \<equiv> alg_state_new P Q T"
   have "(q, Nt B, q') \<notin> rel S" and "(q', Nt C, q'') \<notin> rel S"
     by (simp add: alg_state_new_def)+
   moreover have "((q', Nt C, q''), (q, Nt A, q'')) \<in> impl S (q, Nt B, q')"
@@ -553,94 +552,94 @@ proof -
   moreover have "alg_outer S = Some S'"
     by (simp add: assms(1))
   ultimately show ?thesis
-    using assms(3,4) by (elim prestar_alg_impl_to_rel; force)
+    using assms(3,4) by (elim pre_star_alg_impl_to_lts; force)
 qed
 
-lemma prestar_alg_sup:
-  fixes P and \<delta> :: "('s, 'n, 't) trans" and q\<^sub>0
-  defines "Q \<equiv> {q\<^sub>0} \<union> (snd ` snd ` \<delta>)"
-  defines "S \<equiv> alg_state_new P Q \<delta>"
+lemma pre_star_alg_sup:
+  fixes P and T :: "('s, 'n, 't) trans" and q\<^sub>0
+  defines "Q \<equiv> {q\<^sub>0} \<union> (snd ` snd ` T)"
+  defines "S \<equiv> alg_state_new P Q T"
   assumes "alg_outer S = Some S'"
-    and "prestar_while P Q \<delta> = Some \<delta>'"
+    and "pre_star_lts P Q T = Some T'"
     and "CNF1 P"
-  shows "\<delta>' \<subseteq> rel S'"
+  shows "T' \<subseteq> rel S'"
 proof -
-  \<comment>\<open>If \<open>t \<in> \<delta>\<close>, then \<open>t\<close> is eventually added to \<open>rel\<close>:\<close>
-  have base: "\<delta> \<subseteq> rel S'" and "Q = {q\<^sub>0} \<union> (snd ` snd ` \<delta>)"
+  \<comment>\<open>If \<open>t \<in> T\<close>, then \<open>t\<close> is eventually added to \<open>rel\<close>:\<close>
+  have base: "T \<subseteq> rel S'" and "Q = {q\<^sub>0} \<union> (snd ` snd ` T)"
   proof
     fix t 
-    assume "t \<in> \<delta>"
+    assume "t \<in> T"
     then have "t \<in> trans S"
       by (simp add: S_def alg_state_new_def)
     then show "t \<in> rel S'"
-      using assms(3) prestar_alg_trans_to_rel by blast
+      using assms(3) pre_star_alg_trans_to_lts by blast
   next
-    show "Q = {q\<^sub>0} \<union> (snd ` snd ` \<delta>)"
+    show "Q = {q\<^sub>0} \<union> (snd ` snd ` T)"
       by (simp add: Q_def)
   qed
 
-  define b where "b \<equiv> (\<lambda>\<delta>::('s, 'n, 't) trans. \<delta> \<union> prestar_step P Q \<delta> \<noteq> \<delta>)"
-  define c where "c \<equiv> (\<lambda>\<delta>::('s, 'n, 't) trans. \<delta> \<union> prestar_step P Q \<delta>)"
+  define b where "b \<equiv> (\<lambda>T::('s, 'n, 't) trans. T \<union> pre_lts P Q T \<noteq> T)"
+  define c where "c \<equiv> (\<lambda>T::('s, 'n, 't) trans. T \<union> pre_lts P Q T)"
 
-  have "\<And>t \<delta>. Q = {q\<^sub>0} \<union> (snd ` snd ` \<delta>) \<Longrightarrow> \<delta> \<subseteq> rel S' \<Longrightarrow> t \<in> prestar_step P Q \<delta> \<Longrightarrow> t \<in> rel S'"
+  have "\<And>t T. Q = {q\<^sub>0} \<union> (snd ` snd ` T) \<Longrightarrow> T \<subseteq> rel S' \<Longrightarrow> t \<in> pre_lts P Q T \<Longrightarrow> t \<in> rel S'"
   proof -
-    fix \<delta> and t
-    assume q_reach: "Q = {q\<^sub>0} \<union> (snd ` snd ` \<delta>)" "\<delta> \<subseteq> rel S'" and t_src: "t \<in> prestar_step P Q \<delta>"
-    then obtain q q' A \<beta> where t_split: "t = (q, Nt A, q')" and "(A, \<beta>) \<in> P" and "q' \<in> steps \<delta> \<beta> q"
-      unfolding prestar_step_def by blast
+    fix T and t
+    assume q_reach: "Q = {q\<^sub>0} \<union> (snd ` snd ` T)" "T \<subseteq> rel S'" and t_src: "t \<in> pre_lts P Q T"
+    then obtain q q' A \<beta> where t_split: "t = (q, Nt A, q')" and "(A, \<beta>) \<in> P" and "q' \<in> steps_lts T \<beta> q"
+      unfolding pre_lts_def by blast
     moreover have q_in: "q \<in> Q \<and> q' \<in> Q"
-      using t_src calculation by (auto simp: prestar_step_def)
+      using t_src calculation by (auto simp: pre_lts_def)
     ultimately consider "\<beta> = []" | "\<exists>X. \<beta> = [X]" | "\<exists>B C. \<beta> = [Nt B, Nt C]"
       using assms(5)[unfolded CNF1_def] by fast
     then have "(q, Nt A, q') \<in> rel S'" proof (cases)
       case 1
       then have "q = q'"
-        using \<open>q' \<in> steps \<delta> \<beta> q\<close> by (simp add: Steps_def)
+        using \<open>q' \<in> steps_lts T \<beta> q\<close> by (simp add: Steps_lts_def)
       moreover have "(A, []) \<in> P"
         using \<open>(A, \<beta>) \<in> P\<close>[unfolded 1] by assumption
       ultimately show ?thesis
-        using assms(2,3) q_in prestar_alg_refl_to_rel by fast
+        using assms(2,3) q_in pre_star_alg_refl_to_lts by fast
     next
       case 2
       then obtain X where \<beta>_split: "\<beta> = [X]"
         by blast
       then have "(q, X, q') \<in> rel S'"
-        using \<open>q' \<in> steps \<delta> \<beta> q\<close> \<open>\<delta> \<subseteq> rel S'\<close> by (auto simp: Steps_def Step_def step_def)
+        using \<open>q' \<in> steps_lts T \<beta> q\<close> \<open>T \<subseteq> rel S'\<close> by (auto simp: Steps_lts_def Step_lts_def step_lts_def)
       moreover have "(A, [X]) \<in> P"
         using \<open>(A, \<beta>) \<in> P\<close>[unfolded \<beta>_split] by assumption
       ultimately show ?thesis
-        using assms(2,3) q_in prestar_alg_singleton_to_rel by fast
+        using assms(2,3) q_in pre_star_alg_singleton_to_lts by fast
     next
       case 3
       then obtain B C where \<beta>_split: "\<beta> = [Nt B, Nt C]"
         by blast
-      then obtain q'' where  "q' \<in> steps \<delta> [Nt C] q''" and "q'' \<in> steps \<delta> [Nt B] q"
-        using \<beta>_split \<open>q' \<in> steps \<delta> \<beta> q\<close> Steps_split by force
+      then obtain q'' where  "q' \<in> steps_lts T [Nt C] q''" and "q'' \<in> steps_lts T [Nt B] q"
+        using \<beta>_split \<open>q' \<in> steps_lts T \<beta> q\<close> Steps_lts_split by force
       then have "(q, Nt B, q'') \<in> rel S'" and "(q'', Nt C, q') \<in> rel S'"
-        using \<open>q' \<in> steps \<delta> \<beta> q\<close> \<open>\<delta> \<subseteq> rel S'\<close> by (auto simp: Steps_def Step_def step_def)
-      moreover have "(q, Nt B, q'') \<in> \<delta>"
-        using \<open>q'' \<in> steps \<delta> [Nt B] q\<close> by (auto simp: Steps_def Step_def step_def)
+        using \<open>q' \<in> steps_lts T \<beta> q\<close> \<open>T \<subseteq> rel S'\<close> by (auto simp: steps_lts_defs)
+      moreover have "(q, Nt B, q'') \<in> T"
+        using \<open>q'' \<in> steps_lts T [Nt B] q\<close> by (auto simp: steps_lts_defs)
       moreover have "q'' \<in> Q"
         using calculation unfolding q_reach by force
       moreover have "(A, [Nt B, Nt C]) \<in> P"
         using \<open>(A, \<beta>) \<in> P\<close>[unfolded \<beta>_split] by assumption
       ultimately show ?thesis
-        using assms(2,3) q_in prestar_alg_dual_to_rel by fast
+        using assms(2,3) q_in pre_star_alg_dual_to_lts by fast
     qed
     then show "t \<in> rel S'"
       by (simp add: t_split)
   qed
-  moreover have "\<And>\<delta>. Q = {q\<^sub>0} \<union> (snd ` snd ` \<delta>) \<Longrightarrow> Q = {q\<^sub>0} \<union> (snd ` snd ` (\<delta> \<union> prestar_step P Q \<delta>))"
-    unfolding prestar_step_def by (auto split: prod.splits) force+
-  ultimately have step: "\<And>\<delta>. (\<delta> \<subseteq> rel S' \<and> Q = {q\<^sub>0} \<union> (snd ` snd ` \<delta>)) \<Longrightarrow> \<delta> \<union> prestar_step P Q \<delta> \<noteq> \<delta>
-      \<Longrightarrow> (\<delta> \<union> prestar_step P Q \<delta> \<subseteq> rel S' \<and> Q = {q\<^sub>0} \<union> (snd ` snd ` (\<delta> \<union> prestar_step P Q \<delta>)))"
+  moreover have "\<And>T. Q = {q\<^sub>0} \<union> (snd ` snd ` T) \<Longrightarrow> Q = {q\<^sub>0} \<union> (snd ` snd ` (T \<union> pre_lts P Q T))"
+    unfolding pre_lts_def by (auto split: prod.splits) force+
+  ultimately have step: "\<And>T. (T \<subseteq> rel S' \<and> Q = {q\<^sub>0} \<union> (snd ` snd ` T)) \<Longrightarrow> T \<union> pre_lts P Q T \<noteq> T
+      \<Longrightarrow> (T \<union> pre_lts P Q T \<subseteq> rel S' \<and> Q = {q\<^sub>0} \<union> (snd ` snd ` (T \<union> pre_lts P Q T)))"
     by (smt (verit, del_insts) Un_iff subset_eq)
 
   note base step
-  moreover note assms(4)[unfolded prestar_while_def] b_def c_def
-  ultimately have "\<delta>' \<subseteq> rel S' \<and> Q = {q\<^sub>0} \<union> (snd ` snd ` \<delta>')"
-    by (elim prestar_while_rule; use assms in simp)
-  then show "\<delta>' \<subseteq> rel S'"
+  moreover note assms(4)[unfolded pre_star_lts_def] b_def c_def
+  ultimately have "T' \<subseteq> rel S' \<and> Q = {q\<^sub>0} \<union> (snd ` snd ` T')"
+    by (elim pre_star_lts_rule; use assms in simp)
+  then show "T' \<subseteq> rel S'"
     by simp
 qed
 
@@ -701,21 +700,21 @@ proof (intro conjI)
   show "finite (rel (alg_outer_step S t))"
     by (simp add: assms[unfolded alg_state_fin_inv_def])
 next
-  have "{t''. \<exists>t'. (t', t'') \<in> impl S t \<and> t' \<in> alg_outer_step_rel S t} \<subseteq> snd ` impl S t"
+  have "{t''. \<exists>t'. (t', t'') \<in> impl S t \<and> t' \<in> alg_outer_step_lts S t} \<subseteq> snd ` impl S t"
     by force
   moreover have "finite (snd ` impl S t)"
     using assms[unfolded alg_state_fin_inv_def] by blast
-  ultimately have "finite {t''. \<exists>t'. (t', t'') \<in> impl S t \<and> t' \<in> alg_outer_step_rel S t}"
+  ultimately have "finite {t''. \<exists>t'. (t', t'') \<in> impl S t \<and> t' \<in> alg_outer_step_lts S t}"
     by (elim finite_subset)
   then show "finite (trans (alg_outer_step S t))"
     using assms[unfolded alg_state_fin_inv_def]
     unfolding alg_outer_step_simps alg_outer_step_trans_eq by blast
 next
-  have "\<And>t'. {t''. (t', t'') \<in> impl S t \<and> t' \<notin> alg_outer_step_rel S t} \<subseteq> snd ` impl S t"
+  have "\<And>t'. {t''. (t', t'') \<in> impl S t \<and> t' \<notin> alg_outer_step_lts S t} \<subseteq> snd ` impl S t"
     by force
   moreover have "finite (snd ` impl S t)"
     using assms[unfolded alg_state_fin_inv_def] by blast
-  ultimately have "\<And>t'. finite {t''. (t', t'') \<in> impl S t \<and> t' \<notin> alg_outer_step_rel S t}"
+  ultimately have "\<And>t'. finite {t''. (t', t'') \<in> impl S t \<and> t' \<notin> alg_outer_step_lts S t}"
     using finite_subset by blast
   moreover have "\<And>t'. finite (((direct S)(t := {})) t')"
     using assms[unfolded alg_state_fin_inv_def] by (auto simp: alg_state_m_d_def)
@@ -825,88 +824,88 @@ lemma alg_outer_terminates:
   by (intro wf_while_option_Some; use wf_alg_outer_step alg_state_fin_inv_step' assms in fast)
 
 lemma alg_state_new_fin_inv:
-  fixes \<delta> :: "('s, 'n, 't) trans"
-  assumes "finite P" and "finite Q" and "finite \<delta>"
-  shows "alg_state_fin_inv (alg_state_new P Q \<delta>)"
+  fixes T :: "('s, 'n, 't) trans"
+  assumes "finite P" and "finite Q" and "finite T"
+  shows "alg_state_fin_inv (alg_state_new P Q T)"
   unfolding alg_state_fin_inv_def
 proof (intro conjI)
-  show "finite (rel (alg_state_new P Q \<delta>))"
+  show "finite (rel (alg_state_new P Q T))"
     by (simp add: alg_state_new_def)
 next
   note assms(3)
   moreover have "finite {(q, Nt A, q) |q A. (A, []) \<in> P \<and> q \<in> Q}"
     by (rule finite_subset[where B="Q \<times> (Nt ` fst ` P) \<times> Q"]; use assms in force)
-  moreover have "finite {(q, Nt A, q') |q q' A. \<exists>a. (A, [Tm a]) \<in> P \<and> (q, Tm a, q') \<in> \<delta> \<and> q \<in> Q \<and> q' \<in> Q}"
+  moreover have "finite {(q, Nt A, q') |q q' A. \<exists>a. (A, [Tm a]) \<in> P \<and> (q, Tm a, q') \<in> T \<and> q \<in> Q \<and> q' \<in> Q}"
     by (rule finite_subset[where B="Q \<times> (Nt ` fst ` P) \<times> Q"]; use assms in force)
-  ultimately show "finite (trans (alg_state_new P Q \<delta>))"
+  ultimately show "finite (trans (alg_state_new P Q T))"
     by (simp add: alg_state_new_def)
 next
   have "\<And>q q' B. finite {(q, Nt A, q') |A. (A, [Nt B]) \<in> P \<and> q \<in> Q \<and> q' \<in> Q}"
     by (rule finite_subset[where B="Q \<times> (Nt ` fst ` P) \<times> Q"]; use assms in force)
-  then show "\<forall>t. finite (direct (alg_state_new P Q \<delta>) t)"
+  then show "\<forall>t. finite (direct (alg_state_new P Q T) t)"
     unfolding alg_state_new_def by (auto split: sym.split)
 next
-  have "alg_state_m_d (alg_state_new P Q \<delta>) \<subseteq> Q \<times> hd ` snd ` P \<times> Q"
+  have "alg_state_m_d (alg_state_new P Q T) \<subseteq> Q \<times> hd ` snd ` P \<times> Q"
     unfolding alg_state_new_def alg_state_m_d_def by (auto split: sym.splits) force
   moreover have "finite (hd ` snd ` P )"
     using assms(1) by simp
-  ultimately show "finite (alg_state_m_d (alg_state_new P Q \<delta>))"
+  ultimately show "finite (alg_state_m_d (alg_state_new P Q T))"
     using assms(2) finite_subset by blast
 next
-  have "\<And>t. impl (alg_state_new P Q \<delta>) t \<subseteq> (Q \<times> hd ` tl ` snd ` P \<times> Q) \<times> (Q \<times> Nt ` fst ` P \<times> Q)"
+  have "\<And>t. impl (alg_state_new P Q T) t \<subseteq> (Q \<times> hd ` tl ` snd ` P \<times> Q) \<times> (Q \<times> Nt ` fst ` P \<times> Q)"
     unfolding alg_state_new_def by (auto split: sym.splits) force+
   moreover have "finite ((Q \<times> hd ` tl ` snd ` P \<times> Q) \<times> (Q \<times> Nt ` fst ` P \<times> Q))"
     using assms(1,2) by simp
-  ultimately show "\<forall>t. finite (impl (alg_state_new P Q \<delta>) t)"
+  ultimately show "\<forall>t. finite (impl (alg_state_new P Q T) t)"
     using finite_subset by blast
 next
-  have "alg_state_m_i (alg_state_new P Q \<delta>) \<subseteq> Q \<times> hd ` snd ` P \<times> Q"
+  have "alg_state_m_i (alg_state_new P Q T) \<subseteq> Q \<times> hd ` snd ` P \<times> Q"
     unfolding alg_state_new_def alg_state_m_i_def by (auto split: sym.splits) force
   moreover have "finite (hd ` snd ` P )"
     using assms(1) by simp
-  ultimately show "finite (alg_state_m_i (alg_state_new P Q \<delta>))"
+  ultimately show "finite (alg_state_m_i (alg_state_new P Q T))"
     using assms(2) finite_subset by blast
 qed
 
 subsection\<open>Final Algorithm\<close>
 
-definition prestar_code_cnf :: "('n, 't) Prods \<Rightarrow> ('s, ('n, 't) sym) nfa \<Rightarrow> ('s, ('n, 't) sym) nfa" where
-  "prestar_code_cnf P M \<equiv> (
+definition pre_star_code_cnf :: "('n, 't) Prods \<Rightarrow> ('s, ('n, 't) sym) auto \<Rightarrow> ('s, ('n, 't) sym) auto" where
+  "pre_star_code_cnf P M \<equiv> (
     \<comment>\<open>Construct the set of ``interesting'' states:\<close>
-    let Q = {start M} \<union> (snd ` snd ` (transitions M)) in
-    let S = alg_state_new P Q (transitions M) in
+    let Q = {auto.start M} \<union> (snd ` snd ` (auto.lts M)) in
+    let S = alg_state_new P Q (auto.lts M) in
     case alg_outer S of
-      Some S' \<Rightarrow> M \<lparr> transitions := (rel S') \<rparr>
+      Some S' \<Rightarrow> M \<lparr> auto.lts := (rel S') \<rparr>
   )"
 
-lemma prestar_code_cnf_correct:
-  assumes "finite P" and "finite (transitions M)" and cnf: "CNF1 P"
-  shows "lang_nfa (prestar_code_cnf P M) = pre_star P (lang_nfa M)"
+lemma pre_star_code_cnf_correct:
+  assumes "finite P" and "finite (auto.lts M)" and cnf: "CNF1 P"
+  shows "Lang_auto (pre_star_code_cnf P M) = pre_star P (Lang_auto M)"
 proof -
-  define Q where "Q \<equiv> {start M} \<union> (snd ` snd ` (transitions M))"
+  define Q where "Q \<equiv> {auto.start M} \<union> (snd ` snd ` (auto.lts M))"
   have "finite Q"
     using assms(2) by (simp add: Q_def)
 
-  define S where "S \<equiv> alg_state_new P Q (transitions M)"
+  define S where "S \<equiv> alg_state_new P Q (auto.lts M)"
   have "alg_state_fin_inv S"
     using alg_state_new_fin_inv assms(1,2) \<open>finite Q\<close> by (simp add: S_def)
   then obtain S' where S'_def: "alg_outer S = Some S'"
     using alg_outer_terminates by blast
 
-  obtain \<delta>' where \<delta>'_def: "prestar_while P Q (transitions M) = Some \<delta>'"
-    using prestar_while_terminates assms(1,2) \<open>finite Q\<close> by blast
-  moreover have "rel S' \<subseteq> \<delta>'"
-    using S'_def \<delta>'_def prestar_alg_sub unfolding S_def by blast
-  moreover have "\<delta>' \<subseteq> rel S'"
-    using S'_def \<delta>'_def cnf prestar_alg_sup unfolding S_def Q_def by fast
-  ultimately have "rel S' = \<delta>'"
+  obtain T' where T'_def: "pre_star_lts P Q (auto.lts M) = Some T'"
+    using pre_star_lts_terminates assms(1,2) \<open>finite Q\<close> by blast
+  moreover have "rel S' \<subseteq> T'"
+    using S'_def T'_def pre_star_alg_sub unfolding S_def by blast
+  moreover have "T' \<subseteq> rel S'"
+    using S'_def T'_def cnf pre_star_alg_sup unfolding S_def Q_def by fast
+  ultimately have "rel S' = T'"
     by simp
 
-  have "prestar_nfa P M = prestar_code_cnf P M"
-    unfolding prestar_nfa_def prestar_code_cnf_def
-    using \<delta>'_def S'_def \<open>rel S' = \<delta>'\<close> unfolding S_def Q_def by simp
+  have "pre_star_auto P M = pre_star_code_cnf P M"
+    unfolding pre_star_auto_def pre_star_code_cnf_def
+    using T'_def S'_def \<open>rel S' = T'\<close> unfolding S_def Q_def by simp
   then show ?thesis
-    using prestar_nfa_correct assms(1,2) by metis
+    using pre_star_auto_correct assms(1,2) by metis
 qed
 
-end \<comment>\<open>end-theory ImprovedAlgorithm\<close>
+end

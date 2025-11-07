@@ -3,7 +3,6 @@ theory Paper
 imports
   Context_Free_Grammar.Pumping_Lemma_CFG
   Greibach_Normal_Form.Greibach_Normal_Form
-  Base.Algorithm
   Sugar
   PreStar
 begin
@@ -20,13 +19,13 @@ lemma Expand_tri_simp2: "Expand_tri (A#As) P =
   by simp
 
 (* problem with eta-contraction of lang_nfa abberv. Make original lang_nfa a def? *)
-definition lang_nfa where "lang_nfa = FiniteAutomaton.lang_nfa"
-hide_const (open) FiniteAutomaton.lang_nfa
+definition Lang_auto where "Lang_auto = LTS_Automata.Lang_auto"
+hide_const (open) LTS_Automata.Lang_auto
 
-lemma prestar_nfa_correct:
-  assumes "finite P" and "finite (transitions M)"
-  shows "lang_nfa (prestar_nfa P M) = pre_star P (lang_nfa M)"
-using assms prestar_nfa_correct unfolding lang_nfa_def by blast
+lemma pre_star_auto_correct:
+  assumes "finite P" and "finite (auto.lts M)"
+  shows "Lang_auto (pre_star_auto P M) = pre_star P (Lang_auto M)"
+using assms pre_star_auto_correct unfolding Lang_auto_def by blast
 
 lemma pre_star_emptiness':
   fixes P :: "('n, 't) Prods"
@@ -227,23 +226,23 @@ to state \<open>p'\<close> labeled with \<open>\<alpha>\<close>, we add the tran
 
 For the purpose of computing @{const pre_star}, we represent NFAs over some state type \<open>'s\<close> by
 transitions of type \<^typ>\<open>'s \<times> ('n,'t)sym \<times> 's\<close>. A set of such triples is usually denoted by \<open>\<delta>\<close>.
-It is easy to define a function @{const steps} of type
+It is easy to define a function @{const steps_lts} of type
 @{typ "('s \<times> ('n,'t)sym \<times> 's) set \<Rightarrow> ('n,'t)syms \<Rightarrow> 's \<Rightarrow> 's set"}
 such that @{term "steps \<delta> \<alpha> p"} is the set of states reachable from \<open>p\<close> via \<open>\<alpha>\<close> using \<open>\<delta>\<close>.
 An NFA \<open>M\<close> consists of some \<open>\<delta>\<close>, an initial state and a final state set.
 We also define @{text "lang_nfa M"}, the words accepted by \<open>M\<close>, and @{term "reachable_from \<delta> q"},
 the states reachable from \<open>q\<close> via \<open>\<delta>\<close>.
 
-Function @{const prestar_step} adds all possible new transitions to a set of transitions \<open>\<delta>\<close>
+Function @{const pre_lts} adds all possible new transitions to a set of transitions \<open>\<delta>\<close>
 using the production \<open>P\<close> backwards:
 \begin{quote}
-@{thm [break] prestar_step_def}% beta -> alpha?
+@{thm [break] pre_lts_def}% beta -> alpha?
 \end{quote}
 
 %TODO while -> lfp
-The closure of some \<open>\<delta>\<close> under @{const prestar_step} can be defined by repeated application like this:
+The closure of some \<open>\<delta>\<close> under @{const pre_lts} can be defined by repeated application like this:
 \begin{quote}
-@{thm [break] prestar_while_def}
+@{thm [break] pre_star_lts_def}
 \end{quote}
 using the predefined combinator @{const_typ while_option} \cite{Nipkow11}.
 We do not dwell on its definition but it is executable because it obeys this recursion equation:
@@ -254,10 +253,10 @@ In case the recursion does not terminate, the mathematical value is @{const None
 Hence proving that the return value is always @{const Some} amounts to proving termination.
 
 We proved correctness and termination
-of @{const prestar_while}. Correctness essentially says that the result of @{const prestar_while}
+of @{const pre_star_lts}. Correctness essentially says that the result of @{const pre_star_lts}
 is the analogue of @{const pre_star} on the level of transition relations:
 \begin{quote}
-@{thm [break] prestar_while_correct}
+@{thm [break] pre_star_lts_correct}
 \end{quote}
 %TODO wait for new version? ?
 
@@ -270,13 +269,13 @@ is the analogue of @{const pre_star} on the level of transition relations:
 %there is finite bounding set \<open>C\<close> (the closure) such that @{prop "X \<subseteq> C \<Longrightarrow> f X \<subseteq> C"}.
 Termination can be guaranteed under the obvious finiteness assumptions:
 \begin{quote}
-@{thm prestar_while_terminates}
+@{thm pre_star_lts_terminates}
 \end{quote}
 
 This is the core of the theory which is then lifted to the level of NFAs, which provides
-the obvious @{const lang_nfa}. This is the final correctness theorem:
-\begin{theorem}\label{prestar_code_correct}
-@{thm (concl) prestar_nfa_correct} if \<open>P\<close> and the transitions of \<open>M\<close> are finite.
+the obvious @{const Lang_auto}. This is the final correctness theorem:
+\begin{theorem}\label{pre_star_code_correct}
+@{thm (concl) pre_star_auto_correct} if \<open>P\<close> and the transitions of \<open>M\<close> are finite.
 \end{theorem}
 
 
@@ -285,10 +284,10 @@ the obvious @{const lang_nfa}. This is the final correctness theorem:
 We show how the membership (in \<open>Lang P A\<close>), nullability and productivity problems can be decided.
 Of course the theoretical insight is due to Bouajjani \emph{et al.} \cite{BouajjaniEFMRWW00}.
 All of these problems can be reduced to problems of the form \<open>\<alpha> \<in>\<close> \mbox{@{term "pre_star L P"}}
-for a suitable regular language \<open>L\<close>. Given an NFA \<open>M\<close> with @{prop \<open>lang_nfa M = L\<close>},
+for a suitable regular language \<open>L\<close>. Given an NFA \<open>M\<close> with @{prop \<open>Lang_auto M = L\<close>},
 Theorem~\ref{prestar_code_correct} translates @{prop \<open>\<alpha> \<in> pre_star L P\<close>} into
-@{prop \<open>\<alpha> \<in> lang_nfa (prestar_nfa M P)\<close>}, which can be executed because @{const prestar_nfa}
-and membership in @{const lang_nfa} are executable.
+@{prop \<open>\<alpha> \<in> Lang_auto (pre_star_auto M P)\<close>}, which can be executed because @{const pre_star_auto}
+and membership in @{const Lang_auto} are executable.
 
 The membership problem easily generalizes to derivability because
 @{thm [mode=iffSpace] pre_star_derivability}. That is, in order to decide @{prop \<open>P \<turnstile> \<alpha> \<Rightarrow>* \<beta>\<close>}

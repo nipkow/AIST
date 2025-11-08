@@ -5,6 +5,8 @@ session Base in "../Lemke" = Greibach_Normal_Form +
 session Paper = Base +
   options [document = pdf, show_question_marks = false, names_short = true,
     document_output = "generated"]
+  sessions
+    Chomsky_Schuetzenberger
   theories
     Paper
   document_files

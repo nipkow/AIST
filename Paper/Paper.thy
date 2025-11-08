@@ -457,6 +457,11 @@ In a nutshell, Parikh's Theorem says that if we consider words not as lists but 
 terminals, then every context-free language is regular. A simple consequence is that any CFL
 
 We follow the proof by Pilling \cite{Pilling}.
+
+
+\section{Conclusion}
+
+The total size of the formalizations discussed in the paper runs to 17 KLOC. + PreStar!
 \<close>
 (*<*)
 end

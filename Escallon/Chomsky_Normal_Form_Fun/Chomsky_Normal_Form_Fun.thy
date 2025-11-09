@@ -893,7 +893,7 @@ proof -
 qed
 
 
-theorem cnf_noe_nou_funs:
+theorem cnf_noe_nou_binarizeNt_all_uniformize_all:
   fixes ps :: "('n::fresh0, 't) prods"
   assumes eps_free: "Eps_free (set ps)" 
       and unit_free: "Unit_free (set ps)" 
@@ -975,7 +975,9 @@ lemma unit_elim_o_eps_elim_Tms_subset:
   "Tms (set ((unit_elim \<circ> eps_elim) ps)) \<subseteq> Tms (set ps)"
   using unit_elim_Tms_subset eps_elim_Tms_subset by force
 
-theorem binarizeNt_all_uniformize_all_unit_elim_eps_elim_is_cnf:
+
+
+theorem cnf_binarizeNt_all_uniformize_all_unit_elim_eps_elim:
   fixes ps :: "('n::fresh0, 't) prods"
   assumes ts_def: "ts = tm_list_of_prods ps"
       and ps'_def: "ps' = (binarizeNt_all S \<circ> uniformize_all S ts \<circ> unit_elim \<circ> eps_elim) ps"
@@ -993,8 +995,22 @@ proof -
   moreover have ps'_eq_comp: "ps' = (binarizeNt_all S \<circ> uniformize_all S ts) ps''" 
     unfolding ps''_def assms(2) by simp
   ultimately show "Lang (set ps') S = Lang (set ps) S - {[]}"  "CNF (set ps')" 
-    using CNF_eq cnf_noe_nou_funs[OF eps unit subs ps'_eq_comp] 
+    using CNF_eq cnf_noe_nou_binarizeNt_all_uniformize_all[OF eps unit subs ps'_eq_comp] 
     Lang_ps'' by auto
 qed
 
+(* alternative: wrap compositions in a separate function? *)
+
+definition cnf_of_prods :: "('n::fresh0, 't) prods \<Rightarrow> 'n \<Rightarrow> ('n,'t) prods" where
+  "cnf_of_prods ps S \<equiv> let ts = tm_list_of_prods ps in
+    (binarizeNt_all S \<circ> uniformize_all S ts \<circ> unit_elim \<circ> eps_elim) ps"
+
+theorem cnf_of_prods_is_cnf:
+  fixes ps :: "('n::fresh0, 't) prods"
+  assumes "ps' = cnf_of_prods ps S"
+  shows "CNF (set ps')" "Lang (set ps') S = Lang (set ps) S - {[]}"
+  using assms cnf_binarizeNt_all_uniformize_all_unit_elim_eps_elim 
+  unfolding cnf_of_prods_def
+  by meson+
+  
 end

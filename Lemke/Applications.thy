@@ -32,10 +32,6 @@ text\<open>
   (and its dependents) automatically executable:
 \<close>
 
-lemma nts_syms_code[code]:
-  "nts_syms w = \<Union>((\<lambda>A. case A of Nt X \<Rightarrow> {X} | _ \<Rightarrow> {}) ` set w)"
-  by (auto simp: nts_syms_def split: sym.splits)
-
 lemma tms_syms_code[code]:
   "tms_syms w = \<Union>((\<lambda>A. case A of Tm x \<Rightarrow> {x} | _ \<Rightarrow> {}) ` set w)"
   by (auto simp: tms_syms_def split: sym.splits)

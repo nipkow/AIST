@@ -417,31 +417,6 @@ fun uniformize_all :: "'n::fresh0 \<Rightarrow> 't list \<Rightarrow> ('n,'t) pr
   "uniformize_all _ [] ps = ps" |
   "uniformize_all S (t#ts) ps = (let ps' = uniformize_tm S t ps in uniformize_all S ts ps')"
 
-(* Function? *)
-(* Weaken lemmas with Tms ps \<subseteq> ts instead of ts = tm_list_of_prods? *)
-definition tm_list_of_prods :: "('n,'t) prods \<Rightarrow> 't list" where
-"tm_list_of_prods ps = (let rs = map snd ps in map destTm (filter isTm (concat rs)))"
-
-lemma tm_list_of_prods_is_Tms[simp]:
-  "set (tm_list_of_prods ps) = Tms (set ps)"
-proof -
-  have "\<forall>tm. tm \<in> set (tm_list_of_prods ps) \<longleftrightarrow> tm \<in> Tms (set ps)"
-  proof
-    fix tm
-    have "tm \<in> set (tm_list_of_prods ps) = 
-      (tm \<in> set (map destTm (filter isTm (concat (map snd ps)))))"
-      unfolding tm_list_of_prods_def by force
-    also have "... = (Tm tm \<in> set (filter isTm (concat (map snd ps))))" 
-      by (smt (verit, ccfv_SIG) Set.filter_eq destTm.simps filter_set imageE image_eqI isTm_def 
-          list.set_map mem_Collect_eq)
-    also have "... = (tm \<in> (\<Union>(A,w)\<in> (set ps). Tms_syms w))"
-      using Tms_syms_def by fastforce
-    also have "... = (tm \<in> Tms (set ps))" unfolding Tms_def by blast
-    finally show "tm \<in> set (tm_list_of_prods ps) \<longleftrightarrow> tm \<in> Tms (set ps)" by blast
-  qed
-  thus ?thesis by blast
-qed
-
 lemma uniformize_all_unchanged_tms:
   "Tms (set ps) = Tms (set (uniformize_all S ts ps))"
   by (induction ts arbitrary: ps) (use uniformize_tm_unchanged_tms in fastforce)+
@@ -474,7 +449,7 @@ proof -
       using uniformize_tm_no_bad_t uniformize_all_no_new_badTms by fast
     ultimately show ?case by fastforce
   qed simp
-  with tm_list_of_prods_is_Tms uniformize_all_unchanged_tms have 
+  with set_tms uniformize_all_unchanged_tms have 
     "\<forall>t\<in>Tms (set ps'). \<forall>p\<in>set ps'. Tm t \<notin> set (snd p) \<or> length (snd p) \<le> 1"
     using assms by fast
   with assms show ?thesis unfolding Tms_def Tms_syms_def
@@ -978,7 +953,7 @@ lemma unit_elim_o_eps_elim_Tms_subset:
 
 theorem cnf_binarizeNt_all_uniformize_all_unit_elim_eps_elim:
   fixes ps :: "('n::fresh0, 't) prods"
-  assumes ts_def: "ts = tm_list_of_prods ps"
+  assumes ts_def: "ts = tms ps"
       and ps'_def: "ps' = (binarizeNt_all S \<circ> uniformize_all S ts \<circ> unit_elim \<circ> eps_elim) ps"
         shows "CNF (set ps')" "Lang (set ps') S = Lang (set ps) S - {[]}"
 proof -
@@ -990,7 +965,7 @@ proof -
         unit_elim_rel_Eps_free),
         use Unit_free_if_unit_elim_rel ps''_def unit_elim_correct in fastforce)
   from unit_elim_o_eps_elim_Tms_subset have subs: "Tms (set ps'') \<subseteq> (set ts)" 
-    using ps''_def ts_def tm_list_of_prods_is_Tms by metis
+    using ps''_def ts_def set_tms by metis
   moreover have ps'_eq_comp: "ps' = (binarizeNt_all S \<circ> uniformize_all S ts) ps''" 
     unfolding ps''_def assms(2) by simp
   ultimately show "Lang (set ps') S = Lang (set ps) S - {[]}"  "CNF (set ps')" 
@@ -1001,7 +976,7 @@ qed
 (* alternative: wrap compositions in a separate function? *)
 
 definition cnf_of_prods :: "('n::fresh0, 't) prods \<Rightarrow> 'n \<Rightarrow> ('n,'t) prods" where
-  "cnf_of_prods ps S \<equiv> let ts = tm_list_of_prods ps in
+  "cnf_of_prods ps S \<equiv> let ts = tms ps in
     (binarizeNt_all S \<circ> uniformize_all S ts \<circ> unit_elim \<circ> eps_elim) ps"
 
 theorem cnf_of_prods_is_cnf:
@@ -1013,15 +988,14 @@ theorem cnf_of_prods_is_cnf:
   by meson+
 
 lemma "set(cnf_of_prods
-  ([(0, [Tm 2, Nt 1]), (0, [Tm 1, Nt 2]),
-    (1, [Tm 2, Nt 1, Nt 1]), (1, [Tm 1, Nt 0]), (1, [Tm 1]),
-    (2, [Tm 1, Nt 2, Nt 2]), (2, [Tm 2, Nt 0]), (2, [Tm 2])]::(nat,int)prods) 0) =
-  {(0, [Nt 3, Nt 1]), (0, [Nt 6, Nt 2]),
-   (1, [Nt 9, Nt 1]), (1, [Nt 7, Nt 0]), (1, [Tm 1]),
-   (2, [Nt 10, Nt 2]), (2, [Nt 5, Nt 0]), (2, [Tm 2]),
-   (3, [Tm 2]), (4, [Tm 2]), (5, [Tm 2]), (6, [Tm 1]), (7, [Tm 1]), (8, [Tm 1]),
-   (9, [Nt 4, Nt 1]),
-   (10, [Nt 8, Nt 2])}"
+ ([(0, [Tm 2, Nt 1]), (0, [Tm 1, Nt 2]),
+   (1, [Tm 2, Nt 1, Nt 1]), (1, [Tm 1, Nt 0]), (1, [Tm 1]),
+   (2, [Tm 1, Nt 2, Nt 2]), (2, [Tm 2, Nt 0]), (2, [Tm 2])]::(nat,int)prods) 0) =
+ {(0, [Nt 6, Nt 1]), (0, [Nt 3, Nt 2]),
+  (1, [Nt 4, Nt 0]), (1, [Nt 10, Nt 1]), (1, [Tm 1]),
+  (2, [Nt 8, Nt 0]), (2, [Nt 9, Nt 2]), (2, [Tm 2]),
+  (3, [Tm 1]), (4, [Tm 1]), (5, [Tm 1]), (6, [Tm 2]), (7, [Tm 2]), (8, [Tm 2]),
+  (9, [Nt 5, Nt 2]), (10, [Nt 7, Nt 1])}"
 by eval
 
 end

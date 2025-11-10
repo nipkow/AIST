@@ -6,7 +6,7 @@ section \<open>Uniformize\<close>
 subsection \<open>uniformize_fun\<close>
 subsubsection \<open>replaceTm\<close>
 
-fun replaceTm :: "['n, 't, ('n,'t) syms] \<Rightarrow> ('n,'t) syms" where
+fun replaceTm :: "'n \<Rightarrow> 't \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t) syms" where
   "replaceTm A t [] = []" |
   "replaceTm A t (s # sl) = (if s = Tm t then Nt A # sl else s # replaceTm A t sl)"
 
@@ -19,6 +19,7 @@ lemma replaceTm_id_iff_tm_notin_syms:
   shows "Tm t \<notin> set sl \<longleftrightarrow> replaceTm A t sl = sl"
   by (induction sl) auto
 
+(* Cleanup? *)
 lemma tm_notin_syms_impl_replaceTm_id:
   assumes "Tm t \<notin> set sl" 
   shows "replaceTm A t sl = sl"
@@ -68,16 +69,13 @@ subsubsection \<open>uniformize\<close>
 
 (*The current implementation corresponds to uniformize as defined in 
   Context_Free_Grammar.Chomsky_Normal_Form. This can be simplified with maps.*)
-fun uniformize_fun :: "['n::fresh0, 't, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+fun uniformize_fun :: "'n::fresh0 \<Rightarrow> 't \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods" where
   "uniformize_fun _ _ ps0 [] = ps0" |
   "uniformize_fun A t ps0 ((l,r) # ps) = 
     (let r' = replaceTm A t r in 
       if r = r' \<or> length r < 2 then uniformize_fun A t ps0 ps
       else (removeAll (l,r) ps0) @ [(A, [Tm t]), (l,r')])"
 
-lemma uniformize_fun_id:
-  "\<forall>(l,r)\<in>set ps. Tm t \<notin> set r \<or> length r < 2 \<Longrightarrow> uniformize_fun A t ps0 ps = ps0"
-  using tm_notin_syms_impl_replaceTm_id by (induction ps) fastforce+
 
 lemma uniformize_fun_id_conv:
   "uniformize_fun A t ps0 ps = ps0 \<Longrightarrow> \<forall>(l,r)\<in>set ps. Tm t \<notin> set r \<or> length r < 2"
@@ -316,7 +314,7 @@ lemma fresh0_Nt_notin_set:
   by (metis assms fresh0_notIn Un_insert_left sup_bot_right finite_insert 
       list.set_finite set_nts sup_commute)
 
-function uniformize_tm :: "['n::fresh0, 't, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+function uniformize_tm :: "'n::fresh0 \<Rightarrow> 't \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods" where
   "uniformize_tm S t ps = 
     (let ps' = uniformize_fun (fresh0 (Nts (set ps) \<union> {S})) t ps ps in 
         if ps = ps' then ps else uniformize_tm S t ps')"
@@ -415,11 +413,12 @@ qed
 subsection \<open>uniformize_all\<close>
 
 
-fun uniformize_all :: "['n::fresh0, 't list, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+fun uniformize_all :: "'n::fresh0 \<Rightarrow> 't list \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods" where
   "uniformize_all _ [] ps = ps" |
   "uniformize_all S (t#ts) ps = (let ps' = uniformize_tm S t ps in uniformize_all S ts ps')"
 
 (* Function? *)
+(* Weaken lemmas with Tms ps \<subseteq> ts instead of ts = tm_list_of_prods? *)
 definition tm_list_of_prods :: "('n,'t) prods \<Rightarrow> 't list" where
 "tm_list_of_prods ps = (let rs = map snd ps in map destTm (filter isTm (concat rs)))"
 
@@ -509,7 +508,7 @@ subsection \<open>binarizeNt_fun\<close>
 subsubsection \<open>replaceNts\<close>
 
 (*Simplifying the first two cases complicates proofs*)
-fun replaceNts :: "['n::fresh0, ('n,'t) syms] \<Rightarrow> ('n \<times> 'n) option \<times> ('n,'t) syms" where
+fun replaceNts :: "'n::fresh0 \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n \<times> 'n) option \<times> ('n,'t) syms" where
   "replaceNts A [] = (None, [])" |
   "replaceNts A [s] = (None, [s])" |
   "replaceNts A (Nt s\<^sub>1 # Nt s\<^sub>2 # sl) = (Some (s\<^sub>1, s\<^sub>2), Nt A # sl)" |
@@ -590,7 +589,7 @@ corollary replaceNts_replaces_pair_Some:
 
 subsubsection \<open>binarizeNt\<close>
 
-fun binarizeNt_fun :: "['n::fresh0, ('n,'t) prods, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+fun binarizeNt_fun :: "'n::fresh0 \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods" where
   "binarizeNt_fun A ps0 [] = ps0" |
   "binarizeNt_fun A ps0 ((l,r)#ps) = 
     (case replaceNts A r of 
@@ -766,7 +765,7 @@ qed
 
 subsection \<open>binarizeNt_all\<close>
 
-function binarizeNt_all :: "['n::fresh0, ('n,'t) prods] \<Rightarrow> ('n,'t) prods" where
+function binarizeNt_all :: "'n::fresh0 \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods" where
   "binarizeNt_all S ps = 
     (let ps' = binarizeNt_fun (fresh0 (Nts (set ps) \<union> {S})) ps ps in
     if ps = ps' then ps else binarizeNt_all S ps')"

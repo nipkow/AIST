@@ -19,15 +19,7 @@ lemma replaceTm_id_iff_tm_notin_syms:
   shows "Tm t \<notin> set sl \<longleftrightarrow> replaceTm A t sl = sl"
   by (induction sl) auto
 
-(* Cleanup? *)
-lemma tm_notin_syms_impl_replaceTm_id:
-  assumes "Tm t \<notin> set sl" 
-  shows "replaceTm A t sl = sl"
-  using assms replaceTm_id_iff_tm_notin_syms by fast
-lemma replaceTm_id_impl_tm_notin_syms:
-  assumes "replaceTm A t sl = sl"
-  shows "Tm t \<notin> set sl"
-  using assms replaceTm_id_iff_tm_notin_syms by fast
+
 
 lemma replaceTm_replaces_single:
   assumes "replaceTm A t sl \<noteq> sl"
@@ -86,7 +78,7 @@ proof (induction ps)
   proof (rule ccontr)
     let ?r' = "replaceTm A t r"
     assume "\<not>?thesis"
-    hence "\<not>(?r' = r \<or> length r < 2)" using replaceTm_id_impl_tm_notin_syms by fast
+    hence "\<not>(?r' = r \<or> length r < 2)" using replaceTm_id_iff_tm_notin_syms by fast
     with lr_def have "uniformize_fun A t ps0 (p#ps) = (removeAll (l,r) ps0) @ [(A, [Tm t]), (l,?r')]" 
       by auto
     then show False 
@@ -95,7 +87,8 @@ proof (induction ps)
           removeAll_id self_append_conv set_removeAll)
   qed
   moreover from this lr_def have "uniformize_fun A t ps0 (p#ps) = uniformize_fun A t ps0 ps" 
-    using tm_notin_syms_impl_replaceTm_id by fastforce
+    using replaceTm_id_iff_tm_notin_syms 
+    by (smt (verit, best) uniformize_fun.simps(2))
   ultimately show ?case using Cons by auto
 qed simp
 
@@ -109,7 +102,7 @@ proof (induction xs)
   also have "... = uniformize_fun A t ps0 (xs@ps)"
   proof -
     from Cons(2) lr_def have "Tm t \<notin> set r \<or> length r < 2" by simp
-    hence "replaceTm A t r = r \<or> length r < 2" using tm_notin_syms_impl_replaceTm_id by fast
+    hence "replaceTm A t r = r \<or> length r < 2" using replaceTm_id_iff_tm_notin_syms by fast
     thus ?thesis by auto
   qed
   also have "... = uniformize_fun A t ps0 ps" using Cons by simp
@@ -136,12 +129,12 @@ proof (induction ps)
     also have "... = xs @ removeAll p ys @ [(A, [Tm t]), (l,replaceTm A t r)]"
       using p_notin_xs by simp
     also have "... = xs @ uniformize_fun A t ys (p#ps)" using not_unif 
-      by (smt (verit) lr_def replaceTm_id_impl_tm_notin_syms
+      by (smt (verit) lr_def replaceTm_id_iff_tm_notin_syms
           uniformize_fun.simps(2) verit_comp_simplify1(3))
     finally show ?thesis .
   next
     case unif
-    hence unif_ite: "replaceTm A t r = r \<or> length r < 2" using tm_notin_syms_impl_replaceTm_id 
+    hence unif_ite: "replaceTm A t r = r \<or> length r < 2" using replaceTm_id_iff_tm_notin_syms 
       by fast
     with lr_def have "uniformize_fun A t (xs@ys) (p#ps) = uniformize_fun A t (xs@ys) ps" 
       by fastforce
@@ -168,7 +161,8 @@ using assms proof (induction ps arbitrary: thesis)
   proof cases
     case not_fst
     hence "uniformize_fun A t ps0 (p#ps) = uniformize_fun A t ps0 ps"
-      using lr0_def tm_notin_syms_impl_replaceTm_id by fastforce
+      using lr0_def replaceTm_id_iff_tm_notin_syms
+      by (smt (verit) uniformize_fun.simps(2))
     then obtain l r q s where lrqs_defs: 
                               "(l,r) \<in> set ps"
                               "r \<noteq> replaceTm A t r"
@@ -184,7 +178,7 @@ using assms proof (induction ps arbitrary: thesis)
   next
     case fst
     hence "r0 \<noteq> replaceTm A t r0" find_theorems name:replaceTm
-      using replaceTm_id_impl_tm_notin_syms by metis
+      using replaceTm_id_iff_tm_notin_syms by metis
     with fst lr0_def show ?thesis using Cons(2)[of _ _ "[]"] by simp
   qed
 qed simp
@@ -206,7 +200,8 @@ proof -
   also have "... = removeAll (l,r) ps @ [(A, [Tm t]), (l, replaceTm A t r)]"
   proof -
     have "(l,r) \<notin> set q" 
-      using assms(2,4,5) tm_notin_syms_impl_replaceTm_id by fastforce 
+      using assms(2,4,5) replaceTm_id_iff_tm_notin_syms 
+      by (metis (no_types, lifting) case_prod_conv leD)
     thus ?thesis using assms(3) by simp
   qed
   finally show ?thesis .
@@ -267,7 +262,8 @@ proof (induction ps)
     have "Tms (set [(A,[Tm t]),(l,?r')]) = Tms (set [(l,r)])"
     proof -
       from no_rec have "t \<in> Tms (set [(l,r)])" unfolding Tms_def Tms_syms_def 
-        using tm_notin_syms_impl_replaceTm_id by fastforce
+        using replaceTm_id_iff_tm_notin_syms 
+        by (metis (no_types, lifting) UN_iff case_prod_conv list.set_intros(1) mem_Collect_eq)
       then show ?thesis using replaceTm_tms_changed unfolding Tms_def Tms_syms_def by fastforce
     qed
     moreover have "Tms (set [(l,r)]) \<subseteq> Tms (set ps0)" using Cons(2) lr_def 
@@ -640,7 +636,6 @@ lemma binarizeNt_fun_dec_badNtsCount:
   by (metis list.set_finite)
 
 (* Needed to prove badNts_impl_binarizeNt_fun_not_id_unif *)
-(* Move to different thys? *)
 
 lemma removeAll_app_eq_impl_removed:
   "removeAll z xs @ ys = xs \<Longrightarrow> (\<forall>y\<in>set ys. y = z)"
@@ -902,7 +897,7 @@ next
    with binarizeNt_all_binRtc binarizeNtRtc_Unit_free show ?case using ps'_def by fastforce
  qed
 
-(* Move to different thys? *)
+(* TODO: mv *)
 
 lemma Tms_mono:
   assumes "P \<subseteq> P'"
@@ -949,9 +944,14 @@ lemma unit_elim_o_eps_elim_Tms_subset:
   "Tms (set ((unit_elim \<circ> eps_elim) ps)) \<subseteq> Tms (set ps)"
   using unit_elim_Tms_subset eps_elim_Tms_subset by force
 
+(* End TODO *)
 
 
-theorem cnf_binarizeNt_all_uniformize_all_unit_elim_eps_elim:
+definition cnf_prods :: "('n::fresh0, 't) prods \<Rightarrow> 'n \<Rightarrow> ('n,'t) prods" where
+  "cnf_prods ps S \<equiv> let ts = tms ps in
+    (binarizeNt_all S \<circ> uniformize_all S ts \<circ> unit_elim \<circ> eps_elim) ps"
+
+theorem cnf_prods_is_cnf:
   fixes ps :: "('n::fresh0, 't) prods"
   assumes ts_def: "ts = tms ps"
       and ps'_def: "ps' = (binarizeNt_all S \<circ> uniformize_all S ts \<circ> unit_elim \<circ> eps_elim) ps"
@@ -964,30 +964,17 @@ proof -
     by ((metis Unit_elim_correct Unit_elim_set_code comp_apply eps_free_eps_elim
         unit_elim_rel_Eps_free),
         use Unit_free_if_unit_elim_rel ps''_def unit_elim_correct in fastforce)
-  from unit_elim_o_eps_elim_Tms_subset have subs: "Tms (set ps'') \<subseteq> (set ts)" 
-    using ps''_def ts_def set_tms by metis
-  moreover have ps'_eq_comp: "ps' = (binarizeNt_all S \<circ> uniformize_all S ts) ps''" 
-    unfolding ps''_def assms(2) by simp
+  let ?ts = "tms ps"
+  from unit_elim_o_eps_elim_Tms_subset have subs: "Tms (set ps'') \<subseteq> (set ?ts)" 
+    using ps''_def set_tms by metis
+  moreover have ps'_eq_comp: "ps' = (binarizeNt_all S \<circ> uniformize_all S ?ts) ps''" 
+    unfolding ps''_def ps'_def cnf_prods_def ts_def by (metis comp_apply)
   ultimately show "Lang (set ps') S = Lang (set ps) S - {[]}"  "CNF (set ps')" 
     using CNF_eq cnf_noe_nou_binarizeNt_all_uniformize_all[OF eps unit subs ps'_eq_comp] 
     Lang_ps'' by auto
 qed
 
-(* alternative: wrap compositions in a separate function? *)
-
-definition cnf_of_prods :: "('n::fresh0, 't) prods \<Rightarrow> 'n \<Rightarrow> ('n,'t) prods" where
-  "cnf_of_prods ps S \<equiv> let ts = tms ps in
-    (binarizeNt_all S \<circ> uniformize_all S ts \<circ> unit_elim \<circ> eps_elim) ps"
-
-theorem cnf_of_prods_is_cnf:
-  fixes ps :: "('n::fresh0, 't) prods"
-  assumes "ps' = cnf_of_prods ps S"
-  shows "CNF (set ps')" "Lang (set ps') S = Lang (set ps) S - {[]}"
-  using assms cnf_binarizeNt_all_uniformize_all_unit_elim_eps_elim 
-  unfolding cnf_of_prods_def
-  by meson+
-
-lemma "set(cnf_of_prods
+lemma "set(cnf_prods
  ([(0, [Tm 2, Nt 1]), (0, [Tm 1, Nt 2]),
    (1, [Tm 2, Nt 1, Nt 1]), (1, [Tm 1, Nt 0]), (1, [Tm 1]),
    (2, [Tm 1, Nt 2, Nt 2]), (2, [Tm 2, Nt 0]), (2, [Tm 2])]::(nat,int)prods) 0) =

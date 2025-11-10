@@ -6,7 +6,7 @@ Based on HOL4 theories by Aditi Barthwal
 section \<open>Conversion to Chomsky Normal Form\<close>
 
 theory Chomsky_Normal_Form
-imports Unit_Elimination Epsilon_Elimination
+  imports Context_Free_Grammar.Unit_Elimination Context_Free_Grammar.Epsilon_Elimination
 begin
 
 definition CNF :: "('n, 't) Prods \<Rightarrow> bool" where
@@ -17,36 +17,67 @@ unfolding Nts_def Nts_syms_def by auto
 
 (* Chomsky Normal Form *)
 
+
+definition badProds :: "('n::infinite,'t) Prods \<Rightarrow> 't \<Rightarrow> ('n,'t) Prods" where
+  "badProds P t \<equiv> {(l,r)\<in>P. Tm t \<in> set r \<and> length r > 1}"
+
 definition uniformize :: "'n::infinite \<Rightarrow> 't \<Rightarrow> 'n \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t) Prods \<Rightarrow> bool" where 
-      "uniformize A t S P P' \<equiv> (
-    \<exists> l r p s. (l,r) \<in> P \<and> (r = p@[Tm t]@s) 
-    \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> A \<notin> Nts P \<union> {S}
-    \<and> P' = P - {(l,r)} \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})"
+      "uniformize A t S P P' \<equiv> let Q = badProds P t in Q \<noteq> {} \<and> 
+      P' =  (P - Q \<union> {(l,(map (\<lambda>s. if s = Tm t then Nt A else s) r))|l r. (l,r)\<in>Q} 
+    \<union> {(A, [Tm t])})"
+
+lemma uniformize_old_or_map:
+  assumes "uniformize A t S P P'"
+    and "(l,r) \<in> P"
+  shows "(l,r) \<in> P' \<or> (l,(map (\<lambda>s. if s = Tm t then Nt A else s) r)) \<in> P'"
+  using assms unfolding uniformize_def badProds_def by auto
+
+lemma not_badProd_impl_not_uniformized:
+  assumes "uniformize A t S P P'"
+    and "(l,r) \<in> P"
+    and "(l,r) \<notin> badProds P t"
+  shows "(l,r) \<in> P'"
+  using assms unfolding uniformize_def 
+  by (metis (lifting) DiffI UnI2 sup.commute)
+
+lemma badProd_not_preserved:
+  assumes "uniformize A t S P P'"
+    and "(l,r) \<in> P"
+    and "(l,r) \<in> badProds P t"
+  shows "(l,r) \<notin> P'"
+  using assms unfolding uniformize_def badProds_def by force
+
+lemma badProd_impl_uniformized:
+  assumes "uniformize A t S P P'"
+    and "(l,r) \<in> P"
+    and "(l,r) \<in> badProds P t"
+  shows "(l,(map (\<lambda>s. if s = Tm t then Nt A else s) r)) \<in> P'"
+  using  uniformize_old_or_map[OF assms(1,2)] badProd_not_preserved[OF assms]
+  by satx
+  
 
 lemma uniformize_Eps_free:
   assumes "Eps_free P"
     and "uniformize A t S P P'"
   shows "Eps_free P'"
-  using assms unfolding uniformize_def Eps_free_def by force
+  using assms unfolding uniformize_def badProds_def Eps_free_def by force
 
 lemma uniformize_Unit_free:
   assumes "Unit_free P"
     and "uniformize A t S P P'"
   shows "Unit_free P'"
 proof -
-  have 1: "\<nexists>l A. (l,[Nt A]) \<in> P"
-    using assms(1) unfolding Unit_free_def by simp
-  obtain l r p s where lrps: "(l,r) \<in> P \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) 
-      \<and> P' = ((P - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})"
-    using assms(2) unfolding uniformize_def by blast
-  hence "\<nexists>l' A'. (l,[Nt A']) \<in> {(A,[Tm t]), (l, p@[Nt A]@s)}" 
-    using Cons_eq_append_conv by fastforce
-  hence "\<nexists>l' A'. (l',[Nt A']) \<in> ((P - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})"
-    using 1 by simp
-  moreover have "P' = ((P - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})"
-    using lrps by simp
-  ultimately show ?thesis unfolding Unit_free_def by simp
+  let ?f = "map (\<lambda>s. if s = Tm t then Nt A else s)" 
+  
+  from assms(2) have P'_def: 
+    "P' = (P - badProds P t) \<union> {(l, ?f r)| l r. (l,r)\<in>badProds P t} 
+    \<union> {(A, [Tm t])}"
+    unfolding uniformize_def by metis
+  moreover have "Unit_free {(l, ?f r)| l r. (l,r)\<in>badProds P t}" 
+    unfolding badProds_def using assms(1) by (force simp: Unit_free_def)
+  ultimately show ?thesis using assms by (simp add: Unit_free_def)
 qed
+
 
 definition prodTms :: "('n,'t) prod \<Rightarrow> nat" where
 "prodTms p \<equiv> (if length (snd p) \<le> 1 then 0 else length (filter (isTm) (snd p)))"
@@ -200,29 +231,50 @@ lemma cnf_r1Tm:
   assumes "uniformize A t S P P'"
     and "P \<turnstile> lhs \<Rightarrow> rhs"
   shows "P' \<turnstile> lhs \<Rightarrow>* rhs"
-proof -
-  obtain p' s' B v where Bv: "lhs = p'@[Nt B]@s' \<and> rhs = p'@v@s' \<and> (B,v) \<in> P"
-    using derive.cases[OF assms(2)] by fastforce
-  obtain l r p s where lrps: "(l,r) \<in> P \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts P)
-      \<and> P' = ((P - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})"
-    using assms(1) set_removeAll unfolding uniformize_def by fastforce
-  thus ?thesis
-  proof (cases "(B, v) \<in> P'")
-    case True
-    then show ?thesis
-      using derive.intros[of B v] Bv by blast
+  using assms(2,1) proof (induction rule: derive.induct)
+  case (1 A' \<alpha> P u v)
+  consider (uniformized) "(A', \<alpha>) \<in> badProds P t" | (non_uniformized) "(A', \<alpha>) \<notin> badProds P t" 
+    by blast
+  then show ?case
+  proof cases
+    case uniformized
+    from badProd_impl_uniformized[OF 1(2,1) uniformized] obtain \<alpha>' where
+      \<alpha>'_def: "\<alpha>' = map (\<lambda>s. if s = Tm t then Nt A else s) \<alpha>"
+      and "(A', \<alpha>') \<in> P'" 
+      by metis
+    hence "P' \<turnstile> u @ [Nt A'] @ v \<Rightarrow> u @ \<alpha>' @ v" 
+      by (meson derive.intros)
+    also have "P' \<turnstile> u @ \<alpha>' @ v \<Rightarrow>* u @ \<alpha> @ v" 
+    using \<alpha>'_def proof (induction \<alpha> arbitrary: u \<alpha>')
+    case (Cons a \<alpha>)
+    moreover obtain \<alpha>'' where \<alpha>''_def: "\<alpha>'' = map (\<lambda>s. if s = Tm t then Nt A else s) \<alpha>" by blast
+    ultimately have uav: "u @ \<alpha>' @ v = (u @ [if a = Tm t then Nt A else a]) @ \<alpha>'' @ v" 
+      (is "_ = ?u' @ \<alpha>'' @ _")
+      by simp
+    with Cons(1) \<alpha>''_def have deriv:
+      "P' \<turnstile> (u @ [if a = Tm t then Nt A else a]) @ \<alpha>'' @ v \<Rightarrow>* ?u' @ \<alpha> @ v" by metis
+    show ?case
+    proof (cases "a = Tm t")
+      case True
+      hence "?u' @ \<alpha> @ v = u @ Nt A # \<alpha> @ v" by simp
+      moreover have "P' \<turnstile> ... \<Rightarrow> u @ a # \<alpha> @ v"
+      proof -
+        from 1(2) have "(A, [Tm t]) \<in> P'" unfolding uniformize_def 
+          by (metis (no_types, lifting) Un_iff singletonI)
+        with True show ?thesis using derive.intros by fastforce
+      qed
+      ultimately show ?thesis using uav deriv by simp
+    next
+      case False
+      hence "?u' @ \<alpha> @ v = u @ (a # \<alpha>) @ v" by simp
+      then show ?thesis using deriv uav by argo
+    qed
+    qed fastforce
+    finally show ?thesis .
   next
-    case False
-    hence "B = l \<and> v = p@[Tm t]@s"
-      by (simp add: lrps Bv) 
-    have 1: "P' \<turnstile> [Nt l] \<Rightarrow> p@[Nt A]@s"
-      using lrps by (simp add: derive_singleton)
-    have "P' \<turnstile> [Nt A] \<Rightarrow> [Tm t]"
-      using lrps by (simp add: derive_singleton)
-    hence "P' \<turnstile> [Nt l] \<Rightarrow>* p@[Tm t]@s"
-      using 1 derives_sub[of \<open>P'\<close>] by blast
-    then show ?thesis 
-      using False \<open>B = l \<and> v = p@[Tm t]@s\<close> Bv derives_append derives_prepend by blast
+    case non_uniformized
+    then show ?thesis using 1 not_badProd_impl_not_uniformized 
+      by (metis derive.intros r_into_rtranclp)
   qed
 qed
 

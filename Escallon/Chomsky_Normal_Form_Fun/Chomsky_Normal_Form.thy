@@ -21,10 +21,16 @@ unfolding Nts_def Nts_syms_def by auto
 definition badProds :: "('n::infinite,'t) Prods \<Rightarrow> 't \<Rightarrow> ('n,'t) Prods" where
   "badProds P t \<equiv> {(l,r)\<in>P. Tm t \<in> set r \<and> length r > 1}"
 
+lemma badProds_subset:
+  "badProds P t \<subseteq> P"
+  unfolding badProds_def by blast
+
+
+
 definition uniformize :: "'n::infinite \<Rightarrow> 't \<Rightarrow> 'n \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t) Prods \<Rightarrow> bool" where 
       "uniformize A t S P P' \<equiv> let Q = badProds P t in Q \<noteq> {} \<and> 
       P' =  (P - Q \<union> {(l,(map (\<lambda>s. if s = Tm t then Nt A else s) r))|l r. (l,r)\<in>Q} 
-    \<union> {(A, [Tm t])})"
+    \<union> {(A, [Tm t])}) \<and> A \<notin> Nts P \<union> {S}"
 
 lemma uniformize_old_or_map:
   assumes "uniformize A t S P P'"
@@ -53,8 +59,33 @@ lemma badProd_impl_uniformized:
     and "(l,r) \<in> badProds P t"
   shows "(l,(map (\<lambda>s. if s = Tm t then Nt A else s) r)) \<in> P'"
   using  uniformize_old_or_map[OF assms(1,2)] badProd_not_preserved[OF assms]
-  by satx
-  
+  by satx 
+
+
+
+lemma uniformize_not_At_impl_not_A:
+  assumes "uniformize A t S P P'"
+    and "(l,r) \<in> P' - {(A, [Tm t])}"
+  shows "l \<noteq> A"
+proof
+  let ?Q = "badProds P t"
+  assume "l = A"
+  hence "(A,r) \<in> P' - {(A, [Tm t])}" using assms by metis
+  with assms(1) consider  "(A,r) \<in> P - ?Q" | 
+    "(A,r) \<in> {(l,(map (\<lambda>s. if s = Tm t then Nt A else s) r))|l r. (l,r)\<in>?Q}"
+    unfolding uniformize_def 
+    by (metis (no_types, lifting) DiffE UnE)
+  then show False
+  proof cases
+    case 1
+    then show ?thesis using assms Nts_correct unfolding uniformize_def by force
+  next
+    case 2
+    then obtain r' where "(A,r') \<in> badProds P t" by blast
+    hence "A \<in> Nts P" using Nts_mono[OF badProds_subset] unfolding Nts_def by fast 
+    then show ?thesis using assms(1) unfolding uniformize_def by simp
+  qed
+qed
 
 lemma uniformize_Eps_free:
   assumes "Eps_free P"
@@ -313,12 +344,18 @@ lemma slemma1_1:
     and "(A, \<alpha>) \<in> P'"
   shows "\<alpha> = [Tm t]"
 proof -
-  have "A \<notin> Nts P"
-    using assms(1) unfolding uniformize_def by blast
+  have A_notin_P: "A \<notin> Nts P"
+    using assms(1) unfolding uniformize_def by force
   hence "\<nexists>\<alpha>. (A, \<alpha>) \<in> P"
     unfolding Nts_def by auto
-  hence "\<nexists>\<alpha>. \<alpha> \<noteq> [Tm t] \<and> (A, \<alpha>) \<in> P'"
-    using assms(1) unfolding uniformize_def by auto
+  have "\<nexists>\<alpha>. \<alpha> \<noteq> [Tm t] \<and> (A, \<alpha>) \<in> P'"
+  proof 
+    assume "\<exists>\<alpha>. \<alpha> \<noteq> [Tm t] \<and> (A, \<alpha>) \<in> P'"
+    then obtain \<alpha> where "\<alpha> \<noteq> [Tm t] \<and> (A,\<alpha>) \<in> P'" by metis
+    hence "(A,\<alpha>) \<in> P' - {(A,[Tm t])}" by force
+    with uniformize_not_At_impl_not_A[OF assms(1)] have "A \<in> Nts P" by metis
+    with A_notin_P show False by simp
+  qed
   thus ?thesis 
     using assms(2) by blast
 qed
@@ -354,7 +391,7 @@ lemma slemma4_4:
   shows "Nt A \<notin> set r"
 proof -
   have "A \<notin> Nts P"
-    using assms(1) unfolding uniformize_def by blast
+    using assms(1) unfolding uniformize_def by auto
   hence "\<nexists>S \<alpha>. (S, \<alpha>) \<in> P \<and> (Nt A \<in> {Nt S} \<union> set \<alpha>)"
     using Nts_correct[of A \<open>P\<close>] by blast
   thus ?thesis 

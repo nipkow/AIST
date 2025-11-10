@@ -1012,5 +1012,17 @@ theorem cnf_of_prods_is_cnf:
   using assms cnf_binarizeNt_all_uniformize_all_unit_elim_eps_elim 
   unfolding cnf_of_prods_def
   by meson+
-  
+
+lemma "set(cnf_of_prods
+  ([(0, [Tm 2, Nt 1]), (0, [Tm 1, Nt 2]),
+    (1, [Tm 2, Nt 1, Nt 1]), (1, [Tm 1, Nt 0]), (1, [Tm 1]),
+    (2, [Tm 1, Nt 2, Nt 2]), (2, [Tm 2, Nt 0]), (2, [Tm 2])]::(nat,int)prods) 0) =
+  {(0, [Nt 3, Nt 1]), (0, [Nt 6, Nt 2]),
+   (1, [Nt 9, Nt 1]), (1, [Nt 7, Nt 0]), (1, [Tm 1]),
+   (2, [Nt 10, Nt 2]), (2, [Nt 5, Nt 0]), (2, [Tm 2]),
+   (3, [Tm 2]), (4, [Tm 2]), (5, [Tm 2]), (6, [Tm 1]), (7, [Tm 1]), (8, [Tm 1]),
+   (9, [Nt 4, Nt 1]),
+   (10, [Nt 8, Nt 2])}"
+by eval
+
 end

@@ -953,9 +953,8 @@ definition cnf_prods :: "('n::fresh0, 't) prods \<Rightarrow> 'n \<Rightarrow> (
 
 theorem cnf_prods_is_cnf:
   fixes ps :: "('n::fresh0, 't) prods"
-  assumes ts_def: "ts = tms ps"
-      and ps'_def: "ps' = (binarizeNt_all S \<circ> uniformize_all S ts \<circ> unit_elim \<circ> eps_elim) ps"
-        shows "CNF (set ps')" "Lang (set ps') S = Lang (set ps) S - {[]}"
+  assumes ps'_def: "ps' = cnf_prods ps S"
+  shows "CNF (set ps')" "Lang (set ps') S = Lang (set ps) S - {[]}"
 proof -
   obtain ps'' where ps''_def: "ps'' = (unit_elim \<circ> eps_elim) ps" by metis
   then have Lang_ps'': "Lang (set ps'') S = Lang (set ps) S - {[]}"
@@ -968,7 +967,7 @@ proof -
   from unit_elim_o_eps_elim_Tms_subset have subs: "Tms (set ps'') \<subseteq> (set ?ts)" 
     using ps''_def set_tms by metis
   moreover have ps'_eq_comp: "ps' = (binarizeNt_all S \<circ> uniformize_all S ?ts) ps''" 
-    unfolding ps''_def ps'_def cnf_prods_def ts_def by (metis comp_apply)
+    unfolding ps''_def ps'_def cnf_prods_def by (metis comp_apply)
   ultimately show "Lang (set ps') S = Lang (set ps) S - {[]}"  "CNF (set ps')" 
     using CNF_eq cnf_noe_nou_binarizeNt_all_uniformize_all[OF eps unit subs ps'_eq_comp] 
     Lang_ps'' by auto

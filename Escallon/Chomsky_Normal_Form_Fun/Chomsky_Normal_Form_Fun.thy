@@ -1,6 +1,6 @@
 theory Chomsky_Normal_Form_Fun
   imports Context_Free_Grammar.Chomsky_Normal_Form
-begin                    
+begin
 
 section \<open>Uniformize\<close>
 subsection \<open>uniformize_fun\<close>

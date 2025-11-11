@@ -947,13 +947,13 @@ lemma unit_elim_o_eps_elim_Tms_subset:
 (* End TODO *)
 
 
-definition cnf_prods :: "('n::fresh0, 't) prods \<Rightarrow> 'n \<Rightarrow> ('n,'t) prods" where
-  "cnf_prods ps S \<equiv> let ts = tms ps in
+definition cnf_of :: "('n::fresh0, 't) prods \<Rightarrow> 'n \<Rightarrow> ('n,'t) prods" where
+  "cnf_of ps S \<equiv> let ts = tms ps in
     (binarizeNt_all S \<circ> uniformize_all S ts \<circ> unit_elim \<circ> eps_elim) ps"
 
-theorem cnf_prods_is_cnf:
+theorem cnf_of_CNF_Lang:
   fixes ps :: "('n::fresh0, 't) prods"
-  assumes ps'_def: "ps' = cnf_prods ps S"
+  assumes ps'_def: "ps' = cnf_of ps S"
   shows "CNF (set ps')" "Lang (set ps') S = Lang (set ps) S - {[]}"
 proof -
   obtain ps'' where ps''_def: "ps'' = (unit_elim \<circ> eps_elim) ps" by metis
@@ -967,13 +967,13 @@ proof -
   from unit_elim_o_eps_elim_Tms_subset have subs: "Tms (set ps'') \<subseteq> (set ?ts)" 
     using ps''_def set_tms by metis
   moreover have ps'_eq_comp: "ps' = (binarizeNt_all S \<circ> uniformize_all S ?ts) ps''" 
-    unfolding ps''_def ps'_def cnf_prods_def by (metis comp_apply)
+    unfolding ps''_def ps'_def cnf_of_def by (metis comp_apply)
   ultimately show "Lang (set ps') S = Lang (set ps) S - {[]}"  "CNF (set ps')" 
     using CNF_eq cnf_noe_nou_binarizeNt_all_uniformize_all[OF eps unit subs ps'_eq_comp] 
     Lang_ps'' by auto
 qed
 
-lemma "set(cnf_prods
+lemma "set(cnf_of
  ([(0, [Tm 2, Nt 1]), (0, [Tm 1, Nt 2]),
    (1, [Tm 2, Nt 1, Nt 1]), (1, [Tm 1, Nt 0]), (1, [Tm 1]),
    (2, [Tm 1, Nt 2, Nt 2]), (2, [Tm 2, Nt 0]), (2, [Tm 2])]::(nat,int)prods) 0) =

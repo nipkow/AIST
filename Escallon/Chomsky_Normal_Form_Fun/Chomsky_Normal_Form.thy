@@ -25,18 +25,28 @@ lemma badProds_subset:
   "badProds P t \<subseteq> P"
   unfolding badProds_def by blast
 
-
+definition substsTm :: "'t \<Rightarrow> 'n \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t) syms" where
+  "substsTm t A sl \<equiv> map (\<lambda>s. if s = Tm t then Nt A else s) sl"
 
 definition uniformize :: "'n::infinite \<Rightarrow> 't \<Rightarrow> 'n \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t) Prods \<Rightarrow> bool" where 
       "uniformize A t S P P' \<equiv> let Q = badProds P t in Q \<noteq> {} \<and> 
-      P' =  (P - Q \<union> {(l,(map (\<lambda>s. if s = Tm t then Nt A else s) r))|l r. (l,r)\<in>Q} 
+      P' =  (P - Q \<union> {(l,substsTm t A r)|l r. (l,r)\<in>Q} 
     \<union> {(A, [Tm t])}) \<and> A \<notin> Nts P \<union> {S}"
+
+lemmas uniformize_defs = uniformize_def substsTm_def badProds_def
 
 lemma uniformize_old_or_map:
   assumes "uniformize A t S P P'"
     and "(l,r) \<in> P"
-  shows "(l,r) \<in> P' \<or> (l,(map (\<lambda>s. if s = Tm t then Nt A else s) r)) \<in> P'"
+  shows "(l,r) \<in> P' \<or> (l, substsTm t A r) \<in> P'"
   using assms unfolding uniformize_def badProds_def by auto
+
+lemma uniformize_old_or_map_conv:
+  assumes "uniformize A t S P P'"
+    and "(l,r) \<in> P' - {(A,[Tm t])}"
+  shows "(l,r) \<in> P \<or> (\<exists>r'. r = substsTm t A r' \<and> (l,r') \<in> badProds P t)"
+  using assms unfolding uniformize_def badProds_def by auto
+
 
 lemma not_badProd_impl_not_uniformized:
   assumes "uniformize A t S P P'"
@@ -51,17 +61,19 @@ lemma badProd_not_preserved:
     and "(l,r) \<in> P"
     and "(l,r) \<in> badProds P t"
   shows "(l,r) \<notin> P'"
-  using assms unfolding uniformize_def badProds_def by force
+  using assms unfolding uniformize_defs by force
 
 lemma badProd_impl_uniformized:
   assumes "uniformize A t S P P'"
     and "(l,r) \<in> P"
     and "(l,r) \<in> badProds P t"
-  shows "(l,(map (\<lambda>s. if s = Tm t then Nt A else s) r)) \<in> P'"
+  shows "(l,(substsTm t A r)) \<in> P'"
   using  uniformize_old_or_map[OF assms(1,2)] badProd_not_preserved[OF assms]
   by satx 
 
-
+lemma substsNt_substsTm_id: (* simp? *)
+  "Nt A \<notin> set r \<Longrightarrow> substsNt A [Tm t] (substsTm t A r) = r"
+  unfolding substsTm_def by (induction r) auto
 
 lemma uniformize_not_At_impl_not_A:
   assumes "uniformize A t S P P'"
@@ -72,7 +84,7 @@ proof
   assume "l = A"
   hence "(A,r) \<in> P' - {(A, [Tm t])}" using assms by metis
   with assms(1) consider  "(A,r) \<in> P - ?Q" | 
-    "(A,r) \<in> {(l,(map (\<lambda>s. if s = Tm t then Nt A else s) r))|l r. (l,r)\<in>?Q}"
+    "(A,r) \<in> {(l,substsTm t A r)|l r. (l,r)\<in>?Q}"
     unfolding uniformize_def 
     by (metis (no_types, lifting) DiffE UnE)
   then show False
@@ -91,7 +103,7 @@ lemma uniformize_Eps_free:
   assumes "Eps_free P"
     and "uniformize A t S P P'"
   shows "Eps_free P'"
-  using assms unfolding uniformize_def badProds_def Eps_free_def by force
+  using assms unfolding uniformize_defs Eps_free_def by force
 
 lemma uniformize_Unit_free:
   assumes "Unit_free P"
@@ -103,7 +115,7 @@ proof -
   from assms(2) have P'_def: 
     "P' = (P - badProds P t) \<union> {(l, ?f r)| l r. (l,r)\<in>badProds P t} 
     \<union> {(A, [Tm t])}"
-    unfolding uniformize_def by metis
+    unfolding uniformize_defs by metis
   moreover have "Unit_free {(l, ?f r)| l r. (l,r)\<in>badProds P t}" 
     unfolding badProds_def using assms(1) by (force simp: Unit_free_def)
   ultimately show ?thesis using assms by (simp add: Unit_free_def)
@@ -272,7 +284,7 @@ lemma cnf_r1Tm:
     from badProd_impl_uniformized[OF 1(2,1) uniformized] obtain \<alpha>' where
       \<alpha>'_def: "\<alpha>' = map (\<lambda>s. if s = Tm t then Nt A else s) \<alpha>"
       and "(A', \<alpha>') \<in> P'" 
-      by metis
+      unfolding substsTm_def by metis
     hence "P' \<turnstile> u @ [Nt A'] @ v \<Rightarrow> u @ \<alpha>' @ v" 
       by (meson derive.intros)
     also have "P' \<turnstile> u @ \<alpha>' @ v \<Rightarrow>* u @ \<alpha> @ v" 
@@ -418,9 +430,9 @@ lemma lemma1:
   shows "substsNt A [Tm t] lhs = substsNt A [Tm t] rhs
     \<or> P \<turnstile> substsNt A [Tm t] lhs \<Rightarrow> substsNt A [Tm t] rhs"
 proof -
-  obtain l r p s where lrps: "(l,r) \<in> P \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts P) 
-      \<and> P' = ((P - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})"
-    using assms(1) set_removeAll unfolding uniformize_def by fastforce
+  obtain l r where lrps: "(l,r) \<in> P \<and> (Tm t \<in> set r \<and> length r > 1) \<and> (A \<notin> Nts P) 
+      \<and> (l,(map (\<lambda>s. if s = Tm t then Nt A else s) r)) \<in> P'"
+    using assms(1) set_removeAll unfolding uniformize_defs by auto
   obtain p' s' u v where uv: "lhs = p'@[Nt u]@s' \<and> rhs = p'@v@s' \<and> (u,v) \<in> P'"
     using derive.cases[OF assms(2)] by fastforce
   thus ?thesis
@@ -445,14 +457,22 @@ proof -
     then show ?thesis 
     proof (cases "(Nt A) \<in> set v")
       case True
-      hence 1: "v = p@[Nt A]@s \<and> Nt A \<notin> set p \<and> Nt A \<notin> set s" 
-        using lrps uv assms slemma4_4 by fastforce
-      hence "substsNt A [Tm t] v = substsNt A [Tm t] p @ substsNt A [Tm t] ([Nt A]@s)"
-        by simp
-      hence "substsNt A [Tm t] v = p @ [Tm t] @ s"
-        using 1 substs_append slemma4_1 slemma4_3_1 by metis
-      hence 2: "(u, substsNt A [Tm t] v) \<in> P" using lrps
-        using True uv assms(1) slemma4_4 by fastforce
+      then obtain v' where v': "substsNt A [Tm t] v = v'" by metis
+      hence 2: "(u, v') \<in> P" using lrps
+      proof -
+        from \<open>u \<noteq> A\<close> uv have "(u,v) \<in> P' - {(A,[Tm t])}" by fast
+        from uniformize_old_or_map_conv[OF assms(1) this] 
+        obtain v'' where v'': "v = substsTm t A v''" "(u,v'') \<in> badProds P t"
+          using True uniformize_defs assms(1) slemma4_4 by fastforce
+        hence "v' = v''" 
+        proof -
+          from v''(2) have "Nt A \<notin> set v''" using badProds_subset assms(1) slemma4_4 by fastforce
+          from substsNt_substsTm_id[OF this] have "substsNt A [Tm t] v = v''"
+            using v''(1) by presburger
+          with v' show ?thesis by simp
+        qed
+        then show ?thesis using v''(2) badProds_subset by fast
+      qed
       have "substsNt A [Tm t] lhs = substsNt A [Tm t] p' @ substsNt A [Tm t] ([Nt u]@s')"
         using uv by simp
       hence 3: "substsNt A [Tm t] lhs = substsNt A [Tm t] p' @ [Nt u] @ substsNt A [Tm t] s'" 
@@ -462,11 +482,26 @@ proof -
       hence "substsNt A [Tm t] rhs = substsNt A [Tm t] p' @ substsNt A [Tm t] v @ substsNt A [Tm t] s'"
         by simp
       then show ?thesis 
-        using 2 3 assms(2) uv derive.simps by fast
+        using 2 3 assms(2) uv derive.simps v' by fast
     next
       case False
-      hence 1: "(u, v) \<in> P" 
-        using assms(1) uv \<open>u \<noteq> A\<close> lrps by (simp add: in_set_conv_decomp)
+      have 1: "(u, v) \<in> P" 
+      proof -
+        have old_or_map: 
+          "(u,v) \<in> P \<or> (\<exists>v'. v = substsTm t A v' \<and> (u,v') \<in> badProds P t)"
+        proof -
+          from \<open>u \<noteq> A\<close> uv have "(u,v) \<in> P' - {(A,[Tm t])}" by fast
+          from uniformize_old_or_map_conv[OF assms(1) this] show ?thesis .
+        qed
+        show ?thesis
+        proof (rule ccontr)
+          assume "(u,v) \<notin> P"
+          with old_or_map obtain v' where v': "v = substsTm t A v'"
+            "(u,v') \<in> badProds P t" by blast
+          hence "Tm t \<in> set v'" unfolding badProds_def by simp
+          with v' show False using False assms(1) unfolding uniformize_defs by auto
+        qed
+      qed
        have "substsNt A [Tm t] lhs = substsNt A [Tm t] p' @ substsNt A [Tm t] ([Nt u]@s')"
          using uv by simp
        hence 2: "substsNt A [Tm t] lhs = substsNt A [Tm t] p' @ [Nt u] @ substsNt A [Tm t] s'"
@@ -689,28 +724,37 @@ lemma binarizeNtRtc_Unit_free:
 
 (* proofs about Nts *)
 
-lemma uniformize_Nts: 
+lemma uniformize_Nts_subset:
+  assumes "uniformize A t S P P'"
+  shows "Nts P \<subseteq> Nts P'"
+proof
+  fix n
+  assume p_in_P: "n \<in> Nts P"
+  then consider (goodNt) "n \<in> Nts (P - badProds P t)" | (badNt) "n \<in> Nts (badProds P t)"
+    using badProds_subset unfolding badProds_def Nts_def by fastforce
+  then show "n \<in> Nts P'"
+  proof cases
+    case goodNt
+    then show ?thesis using assms(1) unfolding uniformize_def
+      by (metis (no_types, lifting) Nts_Un Un_iff)
+  next
+    case badNt
+    then obtain l r where lr: "(l,r) \<in> badProds P t" "n = l \<or> Nt n \<in> set r"
+      unfolding Nts_def Nts_syms_def by blast
+    hence "n = l \<or> Nt n \<in> set (substsTm t A r)"
+      unfolding substsTm_def by auto
+    with lr(1) have "n \<in> Nts {(l, substsTm t A r)|l r. (l,r) \<in> badProds P t}" 
+      unfolding Nts_def Nts_syms_def by blast
+    then show ?thesis using assms(1) unfolding uniformize_def
+      by (metis (mono_tags, lifting) Syms_simps(3) Un_iff in_Nts_iff_in_Syms)
+  qed
+qed
+
+corollary uniformize_Nts: 
   assumes "uniformize A t S P P'" "S \<in> Nts P"
   shows "S \<in> Nts P'"
-proof -
-  obtain l r p s where lrps: "(l,r) \<in> P \<and> (r = p@[Tm t]@s) \<and> (p \<noteq> [] \<or> s \<noteq> []) \<and> (A \<notin> Nts P) 
-      \<and> P' = ((P - {(l,r)}) \<union> {(A,[Tm t]), (l, p@[Nt A]@s)})"
-    using assms(1) set_removeAll unfolding uniformize_def by fastforce
-  thus ?thesis
-  proof (cases "S \<in> Nts {(l,r)}")
-    case True
-    hence "S \<in> Nts {(A,[Tm t]), (l, p@[Nt A]@s)}"
-      unfolding Nts_def Nts_syms_def using lrps by auto
-    then show ?thesis using  lrps Nts_Un by (metis UnCI)
-  next
-    case False
-    hence "S \<in> Nts (P - {(l,r)})"
-      unfolding Nts_def using lrps 
-      by (metis UnCI UnE Un_Diff_cancel2 assms(2) Nts_Un Nts_def)
-    then show ?thesis 
-      by (simp add: lrps Nts_def)
-  qed
-qed  
+  using uniformize_Nts_subset[OF assms(1)] assms(2) by blast
+
 
 lemma uniformizeRtc_Nts: 
   assumes "(\<lambda>x y. \<exists>A t. uniformize A t S x y)^** P P'" "S \<in> Nts P"

@@ -32,24 +32,26 @@ lemma badProds_of_subset[simp]:
 definition substsTm :: "'t \<Rightarrow> 'n \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t) syms" where
   "substsTm t A sl \<equiv> map (\<lambda>s. if s = Tm t then Nt A else s) sl"
 
+definition Unif :: "'n::infinite \<Rightarrow> 't \<Rightarrow> ('n,'t) Prods \<Rightarrow> ('n,'t) Prods" where
+  "Unif A t P \<equiv> {(l,substsTm t A r)|l r. (l,r) \<in> badProds P t}"
+
 definition uniformize :: "'n::infinite \<Rightarrow> 't \<Rightarrow> 'n \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t) Prods \<Rightarrow> bool" where 
       "uniformize A t S P P' \<equiv> let Q = badProds P t in Q \<noteq> {} \<and> 
-      P' =  ((P - Q) \<union> {(l,substsTm t A r)|l r. (l,r)\<in>Q} 
-    \<union> {(A, [Tm t])}) \<and> A \<notin> Nts P \<union> {S}"
+      P' =  ((P - Q) \<union> Unif A t P \<union> {(A, [Tm t])}) \<and> A \<notin> Nts P \<union> {S}"
 
-lemmas uniformize_defs = uniformize_def substsTm_def badProds_def
+lemmas uniformize_defs = uniformize_def substsTm_def badProds_def Unif_def
 
 lemma uniformize_old_or_map:
   assumes "uniformize A t S P P'"
     and "(l,r) \<in> P"
   shows "(l,r) \<in> P' \<or> (l, substsTm t A r) \<in> P'"
-  using assms unfolding uniformize_def badProds_def by auto
+  using assms unfolding uniformize_defs by auto
 
 lemma uniformize_old_or_map_conv:
   assumes "uniformize A t S P P'"
     and "(l,r) \<in> P' - {(A,[Tm t])}"
   shows "(l,r) \<in> P \<or> (\<exists>r'. r = substsTm t A r' \<and> (l,r') \<in> badProds P t)"
-  using assms unfolding uniformize_def badProds_def by auto
+  using assms unfolding uniformize_defs by auto
 
 
 lemma not_badProd_impl_not_uniformized:
@@ -94,7 +96,7 @@ proof
   hence "(A,r) \<in> P' - {(A, [Tm t])}" using assms by metis
   with assms(1) consider  "(A,r) \<in> P - ?Q" | 
     "(A,r) \<in> {(l,substsTm t A r)|l r. (l,r)\<in>?Q}"
-    unfolding uniformize_def 
+    unfolding uniformize_defs 
     by (metis (no_types, lifting) DiffE UnE)
   then show False
   proof cases
@@ -178,6 +180,14 @@ proof -
   moreover have "?f ` ?B = ?B'" by fast
   ultimately show ?thesis unfolding bij_betw_def by simp
 qed
+
+
+lemma finite_impl_Unif_finite:
+  assumes "finite P" "A \<notin> Nts P"
+  shows "finite (Unif A t P)"
+  using assms badProds_subset badProds_bij_unif unfolding Unif_def 
+  by (metis (mono_tags, lifting) bij_betw_finite rev_finite_subset)
+
 
 lemma uniformize_Eps_free:
   assumes "Eps_free P"
@@ -830,7 +840,7 @@ proof
       unfolding substsTm_def by auto
     with lr(1) have "n \<in> Nts {(l, substsTm t A r)|l r. (l,r) \<in> badProds P t}" 
       unfolding Nts_def Nts_syms_def by blast
-    then show ?thesis using assms(1) unfolding uniformize_def
+    then show ?thesis using assms(1) unfolding uniformize_def Unif_def
       by (metis (mono_tags, lifting) Syms_simps(3) Un_iff in_Nts_iff_in_Syms)
   qed
 qed
@@ -872,7 +882,7 @@ lemma uniformize_finite:
   shows "finite P'"
 proof -
   from assms have "P' = P - badProds P t \<union> {(l, substsTm t A r)|l r. (l,r) \<in> badProds P t} \<union> {(A,[Tm t])}"
-    unfolding uniformize_def by metis
+    unfolding uniformize_defs by metis
   moreover have "finite (P - badProds P t)" using assms(1) by blast
   moreover have "finite {(A, [Tm t])}" by blast
   moreover have "finite {(l, substsTm t A r)|l r. (l,r) \<in> badProds P t}" (is "finite ?P''")
@@ -973,7 +983,7 @@ lemma lemma6_a:
 proof -
   have P': "P' = P - badProds P t \<union> {(l, substsTm t A r)|l r. (l,r) \<in> badProds P t} \<union> {(A,[Tm t])}"
     (is "P' = _ \<union> ?P'' \<union> _")
-    using assms(2) unfolding uniformize_def by metis
+    using assms(2) unfolding uniformize_defs by metis
   have "badTmsCount P' = badTmsCount (P - badProds P t) + badTmsCount ?P''"
   proof -
     have "finite P'" using uniformize_finite[OF assms] .
@@ -1189,19 +1199,21 @@ lemma list_longer3: "length l \<ge> 3 \<Longrightarrow> (\<exists>hd tl x y. l =
   by (metis Suc_le_length_iff append.left_neutral append_Cons neq_Nil_conv numeral_3_eq_3)
 
 lemma lemma8_a:
-assumes "finite P" "badTmsCount P > 0" shows "\<exists>P' A t. uniformize A t S P P' \<and> finite P'"
+  assumes "finite P" "badTmsCount P > 0" 
+  obtains P' A t where "uniformize A t S P P'" "finite P'"
 proof -
   obtain A where A: "A \<notin> Nts P \<union> {S}" using ex_new_if_finite[OF infinite_UNIV] finite_Nts[OF assms(1)]
     by blast
   then obtain l r t where lr: "(l,r) \<in> P \<and> length r \<ge> 2 \<and> Tm t \<in> set r"
     using assms badTmsCountNot0 by blast
-  then obtain p s where ps: "r = p@[Tm t]@s \<and> (p \<noteq> [] \<or> s \<noteq> [])"
-    unfolding isTm_def using lr list_longer2[of r] by blast
-  from this obtain P' where "P' = P - {(l, r)} \<union> {(A, [Tm t]), (l, p @ [Nt A] @ s)}" 
+  from this obtain P' where P'_def: "P' = P - badProds P t \<union> Unif A t P \<union> {(A, [Tm t])}" 
     by auto
-  hence "uniformize A t S P P'"
-    unfolding uniformize_def using lr ps A by auto
-  thus ?thesis unfolding \<open>P' = _\<close> using assms(1) by blast
+  moreover from lr have "badProds P t \<noteq> {}" unfolding badProds_def by force
+  ultimately have "uniformize A t S P P'"
+    unfolding uniformize_def using A by metis
+  moreover from finite_impl_Unif_finite[OF assms(1)] have "finite P'"
+    using P'_def assms(1) A by blast
+  ultimately show thesis using that by blast
 qed
 
 lemma lemma8_b:

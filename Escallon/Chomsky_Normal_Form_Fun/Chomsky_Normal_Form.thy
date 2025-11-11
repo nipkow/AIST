@@ -25,10 +25,9 @@ lemma badProds_subset:
   "badProds P t \<subseteq> P"
   unfolding badProds_def by blast
 
-lemma badProds_of_subset:
-  assumes "A \<subseteq> badProds P t"
-  shows "badProds (P - A) t = badProds P t - A"
-  sorry
+lemma badProds_of_subset[simp]:
+  "badProds (P - A) t = badProds P t - A"
+  unfolding badProds_def by blast
 
 definition substsTm :: "'t \<Rightarrow> 'n \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t) syms" where
   "substsTm t A sl \<equiv> map (\<lambda>s. if s = Tm t then Nt A else s) sl"
@@ -76,9 +75,14 @@ lemma badProd_impl_uniformized:
   using  uniformize_old_or_map[OF assms(1,2)] badProd_not_preserved[OF assms]
   by satx 
 
-lemma substsNt_substsTm_id: (* simp? *)
+lemma substsNt_substsTm_id: (* simps? *)
   "Nt A \<notin> set r \<Longrightarrow> substsNt A [Tm t] (substsTm t A r) = r"
   unfolding substsTm_def by (induction r) auto
+
+lemma substsTm_substsNt_id:
+  "Tm t \<notin> set r \<Longrightarrow> substsTm t A (substsNt A [Tm t] r) = r"
+  unfolding substsTm_def by (induction r) auto
+
 
 lemma uniformize_not_At_impl_not_A:
   assumes "uniformize A t S P P'"
@@ -107,7 +111,8 @@ qed
 lemma unif_contains_A:
   assumes "(l,r) \<in> {(l, substsTm t A r)|l r. (l,r) \<in> badProds P t}"
   shows "Nt A \<in> set r"
-  sorry
+  using assms unfolding badProds_def substsTm_def by force
+
 
 lemma uniformize_disjunct:
   assumes "uniformize A t S P P'"
@@ -153,7 +158,23 @@ lemma badProds_bij_unif:
   shows "bij_betw (\<lambda>(l,r). (l, substsTm t A r)) (badProds P t) ({(l,substsTm t A r)|l r. (l,r)\<in>badProds P t})"
     (is "bij_betw ?f ?B ?B'")
 proof -
-  have "inj_on ?f ?B" sorry
+  have "inj_on ?f ?B"
+  proof
+    fix p p'
+    assume p_bad: "p \<in> badProds P t"
+       and p'_bad: "p' \<in> badProds P t"
+       and substsTm_eq: "(case p of (l,r) \<Rightarrow> (l, substsTm t A r)) = (case p' of (l,r) \<Rightarrow> (l, substsTm t A r))" 
+    then obtain l r l' r' where lrs: "p = (l,r)" "p' = (l',r')" 
+      by force
+    with substsTm_eq have "(l, substsTm t A r) = (l', substsTm t A r')" by simp
+    hence substsNt_eq:"(l, substsNt A [Tm t] (substsTm t A r)) = (l', substsNt A [Tm t] (substsTm t A r'))"
+      by simp
+    from assms p_bad p'_bad have "Nt A \<notin> set r" "Nt A \<notin> set r'"
+      using badProds_subset unfolding Nts_def Nts_syms_def lrs by fastforce+
+    with substsNt_substsTm_id substsNt_eq have "(l,r) = (l',r')" 
+      by metis
+    with lrs show "p = p'" by simp
+  qed
   moreover have "?f ` ?B = ?B'" by fast
   ultimately show ?thesis unfolding bij_betw_def by simp
 qed

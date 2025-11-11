@@ -319,10 +319,10 @@ This notion is sometimes just called GNF~\cite{BlumK99} or real-time form~\cite{
 where
 every right-hand side starts with a terminal symbol.
 \begin{quote}
-@{def In_GNF_hd}
+@{def GNF_hd}
 \end{quote}
 
-In this section we define an executable function @{const Gnf_hd},
+In this section we define an executable function @{const GNF_hd_of},
 which turns a grammar into head GNF while preserving the language modulo \<open>\<epsilon>\<close>.
 It is easy to turn head GNF into GNF by introducing nonterminals for terminals that appear
 at non-head position of right-hand sides.
@@ -405,19 +405,19 @@ expanding head nonterminals in the right order turns the grammar into head GNF.
 @{fun Expand_tri[Expand_tri.simps(1) Expand_tri_simp2]}\\
 \end{quote}
 \begin{definition}
-@{def Gnf_hd}
+@{def GNF_hd_of}
 \end{definition}
 
 Because the procedure processes nonterminals one by one,
-we explicitly give a list of nonterminals as an argument to @{const Gnf_hd}.
+we explicitly give a list of nonterminals as an argument to @{const GNF_hd_of}.
 We also provide a version which computes such a list by
 taking the input grammar in the list representation.
 It first makes fresh copies \<open>As'\<close> of nonterminals in \<open>As\<close>.
 
 \begin{theorem}
 Let \<open>As\<close> be a list of distinct nonterminals in \<open>P\<close>.
-Then @{thm(concl) In_GNF_hd_Gnf_hd}.
-For all @{thm(prem 3) Lang_Gnf_hd}, @{thm(concl) Lang_Gnf_hd}.
+Then @{thm(concl) GNF_hd_GNF_hd_of}.
+For all @{thm(prem 3) Lang_GNF_hd_of}, @{thm(concl) Lang_GNF_hd_of}.
 \end{theorem}
 
 We close the section with demonstrating the exponential complexity of

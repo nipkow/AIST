@@ -25,12 +25,17 @@ lemma badProds_subset:
   "badProds P t \<subseteq> P"
   unfolding badProds_def by blast
 
+lemma badProds_of_subset:
+  assumes "A \<subseteq> badProds P t"
+  shows "badProds (P - A) t = badProds P t - A"
+  sorry
+
 definition substsTm :: "'t \<Rightarrow> 'n \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t) syms" where
   "substsTm t A sl \<equiv> map (\<lambda>s. if s = Tm t then Nt A else s) sl"
 
 definition uniformize :: "'n::infinite \<Rightarrow> 't \<Rightarrow> 'n \<Rightarrow> ('n,'t)Prods \<Rightarrow> ('n,'t) Prods \<Rightarrow> bool" where 
       "uniformize A t S P P' \<equiv> let Q = badProds P t in Q \<noteq> {} \<and> 
-      P' =  (P - Q \<union> {(l,substsTm t A r)|l r. (l,r)\<in>Q} 
+      P' =  ((P - Q) \<union> {(l,substsTm t A r)|l r. (l,r)\<in>Q} 
     \<union> {(A, [Tm t])}) \<and> A \<notin> Nts P \<union> {S}"
 
 lemmas uniformize_defs = uniformize_def substsTm_def badProds_def
@@ -99,6 +104,60 @@ proof
   qed
 qed
 
+lemma unif_contains_A:
+  assumes "(l,r) \<in> {(l, substsTm t A r)|l r. (l,r) \<in> badProds P t}"
+  shows "Nt A \<in> set r"
+  sorry
+
+lemma uniformize_disjunct:
+  assumes "uniformize A t S P P'"
+        shows "(P - badProds P t) \<inter> {(l, substsTm t A r)|l r. (l,r) \<in> badProds P t} = {}"
+    "(P - badProds P t) \<inter> {(A, [Tm t])} = {}"
+    "{(A, [Tm t])} \<inter> {(l, substsTm t A r)|l r. (l,r) \<in> badProds P t} = {}"
+proof -
+  let ?P'' = "{(l, substsTm t A r)|l r. (l,r) \<in> badProds P t}"
+  from assms(1) have A_notin_P: "A \<notin> Nts P" 
+    unfolding uniformize_def by force
+  show "(P - badProds P t) \<inter> ?P'' = {}"
+  proof (rule ccontr)
+    assume "(P - badProds P t) \<inter> ?P'' \<noteq> {}"
+    then obtain p where p: "p \<in> (P - badProds P t) \<inter> ?P''" by blast
+    moreover have "Nt A \<in> set (snd p)" 
+    proof -
+      from p have "p \<in> ?P''" by blast
+      with unif_contains_A show ?thesis by force
+    qed
+    ultimately have "A \<in> Nts (P - badProds P t)" unfolding Nts_def Nts_syms_def by force
+    with A_notin_P show False by (metis Nts_Un UnCI Un_Diff_Int)
+  qed
+  show "(P - badProds P t) \<inter> {(A, [Tm t])} = {}"
+    by (metis A_notin_P Int_empty_right Lhss_simps(2) Nts_Lhss_Rhs_Nts UnI1 Un_Diff_Int disjoint_insert(2)
+        insertCI insert_absorb)
+  show "{(A, [Tm t])} \<inter> ?P'' = {}"
+  proof -
+    have "\<forall>p \<in> ?P''. p \<notin> {(A, [Tm t])}" 
+    proof
+      fix p
+      assume p: "p \<in> ?P''"
+      obtain l r where lr: "p = (l,r)" by force
+      with p have "l \<in> Nts P" using badProds_subset unfolding Nts_def Nts_syms_def by fast
+      with A_notin_P have "l \<noteq> A" by metis
+      with lr show "p \<notin> {(A, [Tm t])}" by simp
+    qed
+    thus ?thesis by blast
+  qed
+qed
+
+lemma badProds_bij_unif:
+  assumes "A \<notin> Nts P"
+  shows "bij_betw (\<lambda>(l,r). (l, substsTm t A r)) (badProds P t) ({(l,substsTm t A r)|l r. (l,r)\<in>badProds P t})"
+    (is "bij_betw ?f ?B ?B'")
+proof -
+  have "inj_on ?f ?B" sorry
+  moreover have "?f ` ?B = ?B'" by fast
+  ultimately show ?thesis unfolding bij_betw_def by simp
+qed
+
 lemma uniformize_Eps_free:
   assumes "Eps_free P"
     and "uniformize A t S P P'"
@@ -132,7 +191,12 @@ fun badTmsCount :: "('n,'t) Prods \<Rightarrow> nat" where
   "badTmsCount P = sum prodTms P"
 
 lemma badTmsCountSet: "finite P \<Longrightarrow> (\<forall>p \<in> P. prodTms p = 0) \<longleftrightarrow> badTmsCount P = 0"
-by simp
+  by simp
+
+lemma badTmsCount_subsets: (* simp? *)
+  assumes "finite P" "A \<subseteq> P"
+  shows "badTmsCount (P - A) + badTmsCount A = badTmsCount P"
+  using assms by (simp add: sum.subset_diff)
 
 fun badNtsCount :: "('n,'t) Prods \<Rightarrow> nat" where
   "badNtsCount P = sum prodNts P"
@@ -779,43 +843,208 @@ theorem cnf_lemma:
   shows "Lang P S = Lang P'' S"
   using assms cnf_lemma2 cnf_lemma2Nt uniformizeRtc_Nts by fastforce
 
+
+
+lemma uniformize_finite:
+  assumes "finite P"
+    "uniformize A t S P P'"
+  shows "finite P'"
+proof -
+  from assms have "P' = P - badProds P t \<union> {(l, substsTm t A r)|l r. (l,r) \<in> badProds P t} \<union> {(A,[Tm t])}"
+    unfolding uniformize_def by metis
+  moreover have "finite (P - badProds P t)" using assms(1) by blast
+  moreover have "finite {(A, [Tm t])}" by blast
+  moreover have "finite {(l, substsTm t A r)|l r. (l,r) \<in> badProds P t}" (is "finite ?P''")
+  proof -
+    from badProds_subset assms(1) have badProds_finite: "finite (badProds P t)" 
+      by (metis finite_subset)
+    show ?thesis 
+    proof -
+      from assms(2) have "A \<notin> Nts P" unfolding uniformize_def by force
+      from badProds_bij_unif[OF this] badProds_finite show ?thesis 
+        by (meson bij_betw_finite)
+    qed
+  qed
+  ultimately show ?thesis by blast
+qed
+
+lemma substsTm_dec_prodTms:
+  assumes "Tm t \<in> set r \<and> length r > 1"
+  shows "prodTms (l, substsTm t A r) < prodTms (l,r)"
+  using assms proof (induction r)
+  case (Cons s sl)
+  consider "Tm t \<in> set sl \<and> length sl > 1" | "Tm t \<notin> set sl \<or> length sl \<le> 1" by linarith
+  then show ?case 
+  proof cases
+    case 1
+    with Cons have less: "prodTms (l, substsTm t A sl) < prodTms (l, sl)" by blast
+    then show ?thesis
+    proof (cases "isTm s")
+      case True
+      then show ?thesis 
+      proof (cases "s = Tm t")
+        case True
+        hence "substsTm t A (s # sl) = Nt A # substsTm t A sl"
+          unfolding substsTm_def by simp
+        then show ?thesis using less unfolding prodTms_def 
+          by (smt (verit, ccfv_threshold) filter.simps(2) impossible_Cons isTm_simps(1) le_trans length_map
+              linorder_not_less nle_le snd_conv uniformize_defs(2))
+      next
+        case False
+        hence "substsTm t A (s # sl) = s # substsTm t A sl" 
+          unfolding substsTm_def by simp
+        moreover from this have "prodTms (l, substsTm t A (s # sl)) = Suc (prodTms (l, substsTm t A  sl))"
+          unfolding prodTms_def isTm_def 
+          by (smt (verit, best) "1" Cons.prems True filter.simps(2) isTm_def length_Cons length_map
+              linorder_not_less snd_conv substsTm_def)
+        moreover from \<open>isTm s\<close> have "prodTms (l, s#sl) = Suc (prodTms (l,sl))"
+          unfolding prodTms_def using "1" by force
+        ultimately show ?thesis using less by linarith
+      qed
+    next
+      case False
+      then show ?thesis using less unfolding prodTms_def 
+        by (smt (verit, ccfv_SIG) "1" filter.simps(2) isTm_simps(2) length_map list.map(2) local.Cons(2)
+            not_less prod.sel(2) uniformize_defs(2))
+    qed
+  next
+    case 2
+    then consider "Tm t \<notin> set sl" | "length sl \<le> 1" by blast
+    then show ?thesis 
+    proof cases
+      case 1
+      with Cons have s_eq: "s = Tm t" by simp
+      hence s_Tm: "isTm s" unfolding isTm_def by metis
+      from s_eq 1 have "substsTm t A (s#sl) = Nt A # sl" unfolding substsTm_def 
+        by (smt (verit, ccfv_SIG) list.simps(9) map_idI)
+      moreover from s_Tm have "prodTms (l,s#sl) > prodTms (l,sl)"
+        unfolding prodTms_def using Cons.prems by auto
+      ultimately show ?thesis
+        by (metis (no_types, lifting) Cons.prems filter.simps(2) impossible_Cons isTm_simps(1) length_Cons
+            linorder_not_less prodTms_def s_Tm snd_conv)
+    next
+      case 2
+      with Cons have len: "length sl = 1" by (simp add: le_Suc_eq)
+      then show ?thesis 
+      proof (cases "Tm t \<in> set sl")
+        case True
+        with len have sl: "sl = [Tm t]" 
+          by (metis "2" One_nat_def Suc_le_length_iff in_set_conv_nth le_less_Suc_eq length_0_conv less_one
+              linorder_not_less nth_Cons_0)
+        hence "substsTm t A (s#sl) = substsTm t A [s] @ [Nt A]" 
+          unfolding substsTm_def by simp
+        then show ?thesis  by (simp add: prodTms_def sl uniformize_defs(2))
+      next
+        case False
+        hence "substsTm t A (s#sl) = substsTm t A [s] @ sl"
+          by (smt (verit, del_insts) append_Cons append_Nil map_append map_idI uniformize_defs(2))
+        then show ?thesis 
+          by (smt (verit, ccfv_threshold) Cons.prems False filter.simps(2) impossible_Cons isTm_simps(1,2) len
+              linorder_not_less list.simps(9) map_idI prodTms_def set_ConsD snd_conv uniformize_defs(2))
+      qed
+    qed
+  qed
+qed simp
+
+
 lemma lemma6_a:
   assumes "finite P" "uniformize A t S P P'" shows "badTmsCount P' < badTmsCount P"
 proof -
-  from assms obtain l r p s where lrps: "(l,r) \<in> P" "r = p@[Tm t]@s" "p \<noteq> [] \<or> s \<noteq> []" "A \<notin> Nts P" 
-    "P' = P - {(l,r)} \<union> {(A,[Tm t]), (l, p@[Nt A]@s)}"
-    unfolding uniformize_def by blast
-  hence "prodTms (l,p@[Tm t]@s) = length (filter (isTm) (p@[Tm t]@s))"
-    unfolding prodTms_def by auto
-  hence 1: "prodTms (l,p@[Tm t]@s) = Suc (length (filter isTm (p@s)))"
-    by (simp add: isTm_def)
-  have "(A,[Tm t]) \<notin> P \<and> (l, p@[Nt A]@s) \<notin> P"
-    using Nts_correct[OF \<open>A \<notin> Nts P\<close>] by fastforce
-  then have "badTmsCount P' = badTmsCount (P - {(l,r)}) + badTmsCount {(A,[Tm t]), (l, p@[Nt A]@s)}"
-    unfolding badTmsCount.simps \<open>P' = _\<close> by (simp add: assms(1) sum_Un_eq)
-  also have "\<dots> = badTmsCount (P - {(l,r)}) + badTmsCount {(A,[Tm t])} + badTmsCount{(l, p@[Nt A]@s)}"
-    using Nts_correct[OF  \<open>A \<notin> Nts P\<close>] lrps(1) by auto
-  finally have 2: "badTmsCount P' = \<dots>" .
-  have 3: "badTmsCount (P - {(l,r)}) < badTmsCount P" using 1 lrps(1,2)
-    unfolding badTmsCount.simps by (simp add: assms(1) sum.remove)
-  have "prodTms (l, p@[Nt A]@s) = length (filter isTm (p@[Nt A]@s)) \<or> prodTms (l, p@[Nt A]@s) = 0"
-    unfolding prodTms_def using lrps by simp
-  thus ?thesis
-  proof 
-    assume "prodTms (l, p@[Nt A]@s) = length (filter isTm (p@[Nt A]@s))"
-    hence "badTmsCount P' = badTmsCount (P - {(l,r)}) + prodTms (l, p@[Nt A]@s)"
-      using 2 by (simp add: prodTms_def)
-    moreover have "prodTms (l,p@[Nt A]@s) < prodTms (l,p@[Tm t]@s)"
-      using 1 \<open>prodTms (l, p @ [Nt A] @ s) = length (filter isTm (p @ [Nt A] @ s))\<close> isTm_def by auto 
-    ultimately show "badTmsCount P' < badTmsCount P"
-      by(simp add: sum.remove[OF assms(1) lrps(1)] \<open>r = _\<close>)
-  next 
-    assume "prodTms (l, p@[Nt A]@s) = 0"
-    hence "badTmsCount P' = badTmsCount (P - {(l,r)})"
-      using 2 by (simp add: prodTms_def)
-    thus "badTmsCount P' < badTmsCount P" 
-      using 3 by simp
+  have P': "P' = P - badProds P t \<union> {(l, substsTm t A r)|l r. (l,r) \<in> badProds P t} \<union> {(A,[Tm t])}"
+    (is "P' = _ \<union> ?P'' \<union> _")
+    using assms(2) unfolding uniformize_def by metis
+  have "badTmsCount P' = badTmsCount (P - badProds P t) + badTmsCount ?P''"
+  proof -
+    have "finite P'" using uniformize_finite[OF assms] .
+    with P' have "badTmsCount P' = badTmsCount (P - badProds P t) + badTmsCount ?P'' + badTmsCount {(A,[Tm t])}"
+      using uniformize_disjunct[OF assms(2)] 
+      by (simp add: sum.union_disjoint)
+    moreover have "badTmsCount {(A, [Tm t])} = 0"
+    proof -
+      have "badTmsCount {(A, [Tm t])} = prodTms (A, [Tm t])" by force
+      also have "... = 0" unfolding prodTms_def by simp
+      finally show ?thesis .
+    qed
+    ultimately show ?thesis by presburger
   qed
+  moreover have "badTmsCount P = badTmsCount (P - badProds P t) + badTmsCount (badProds P t)"
+    using badTmsCount_subsets[OF assms(1) badProds_subset] by simp
+  moreover have "badTmsCount {(l,substsTm t A r)|l r. (l,r) \<in> badProds P t} < badTmsCount (badProds P t)"
+                (is "badTmsCount ?P'' < _")
+  proof -
+    from assms have A_notin_P: "A \<notin> Nts P" unfolding uniformize_def by force
+    have bij: "bij_betw (\<lambda>(l,r). (l, substsTm t A r)) (badProds P t) ?P''"
+      (is "bij_betw ?f  _ _")
+      using A_notin_P badProds_bij_unif by (metis (lifting) ext)
+    moreover from substsTm_dec_prodTms have "\<forall>p \<in> badProds P t. prodTms (?f p) < prodTms p"
+      unfolding badProds_def by fast
+    moreover have "sum prodTms (?f ` badProds P t) < sum prodTms (badProds P t)" 
+    proof -
+      have "finite (badProds P t)" using assms badProds_subset finite_subset by metis
+      moreover from assms(2) have "badProds P t \<noteq> {}" unfolding uniformize_def by force
+      ultimately show ?thesis
+      using bij proof (induction "card (badProds P t)" arbitrary: P)
+        case (Suc n)
+        then obtain l r where lr: "(l,r) \<in> badProds P t" by fast
+        then consider (single) "card (badProds P t) = 1" | (many) "card (badProds P t) > 1"
+          using Suc by fastforce
+        then show ?case 
+        proof cases
+          case single
+          hence badProd: "badProds P t = {(l,r)}" using lr
+            by (metis card_1_singletonE singletonD)
+          hence "sum prodTms (?f ` badProds P t) = prodTms (l, substsTm t A r)" by auto
+          also have "... < prodTms (l,r)" using substsTm_dec_prodTms badProd
+            unfolding badProds_def by fast
+          also have "... = sum prodTms (badProds P t)" using badProd by simp
+          finally show ?thesis by satx
+        next
+          case many
+          let ?B = "badProds P t - {(l,r)}"
+          from Suc(2,3) have "n = card ?B" using lr by force
+          moreover with many  have "?B \<noteq> {}" using Suc(2) by fastforce
+          moreover from Suc(3) have "finite ?B" using finite_subset by fast
+          moreover have "bij_betw ?f ?B {(l, substsTm t A r) |l r. (l,r) \<in> ?B}"
+          proof -
+            from Suc(5) have "inj_on ?f ?B" unfolding bij_betw_def inj_on_def by blast
+            moreover from Suc(5) have "?f ` ?B = {(l, substsTm t A r) |l r. (l,r) \<in> ?B}"
+              unfolding bij_betw_def by fast
+            ultimately show ?thesis unfolding bij_betw_def by simp
+          qed
+          ultimately have "sum prodTms (?f ` ?B) < sum prodTms ?B" using Suc(1)[of "P - {(l,r)}"] 
+              badProds_of_subset by (smt (verit, best) Collect_cong bot.extremum insert_subset lr)
+          moreover have "prodTms (?f (l,r)) < prodTms (l,r)" using lr substsTm_dec_prodTms
+            unfolding badProds_def by fast
+          moreover have "sum prodTms (?f ` badProds P t) = sum prodTms (?f ` ?B) + prodTms (?f (l,r))"
+          proof -
+            have "?f ` badProds P t = ?f ` ?B \<union> ?f `{(l,r)}" using lr by blast
+            also have "... = ?f ` ?B \<union> {?f (l,r)}" by simp
+            finally have "sum prodTms (?f ` badProds P t) = sum prodTms (?f ` ?B \<union> {?f (l,r)})"
+              by metis
+            also have "... = sum prodTms (?f ` ?B) + sum prodTms {(?f (l,r))}" 
+            proof -
+              have "?f (l,r) \<notin> ?f ` ?B" 
+              proof
+                assume "?f (l,r) \<in> ?f ` ?B"
+                moreover from this obtain p' where "p' \<in> ?B" "?f p' = ?f (l,r)" "p' \<noteq> (l,r)"
+                  by fastforce
+                ultimately have "\<not>inj_on ?f (badProds P t)" 
+                  by (meson Diff_subset inj_on_diff inj_on_eq_iff inj_on_image_mem_iff lr)
+                with bij show False using Suc(5) unfolding bij_betw_def by satx
+              qed
+              then show ?thesis by (simp add: Suc.prems(1))
+            qed
+            finally show ?thesis by simp
+          qed
+          ultimately show ?thesis 
+            by (metis (no_types, lifting) Suc.prems(1) add.commute add_mono_thms_linordered_field(5) lr
+                sum.remove)
+        qed
+      qed auto
+    qed
+    ultimately show ?thesis unfolding bij_betw_def by simp
+  qed
+  ultimately show ?thesis by linarith
 qed
 
 lemma lemma6_b:

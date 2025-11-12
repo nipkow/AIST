@@ -54,7 +54,7 @@ lemma uniformize_old_or_map_conv:
   using assms unfolding uniformize_defs by auto
 
 
-lemma not_badProd_impl_not_uniformized:
+lemma uniformize_goodProds_preserved:
   assumes "uniformize A t S P P'"
     and "(l,r) \<in> P"
     and "(l,r) \<notin> badProds P t"
@@ -62,19 +62,19 @@ lemma not_badProd_impl_not_uniformized:
   using assms unfolding uniformize_def 
   by (metis (lifting) DiffI UnI2 sup.commute)
 
-lemma badProd_not_preserved:
+lemma uniformize_badProds_not_preserved:
   assumes "uniformize A t S P P'"
     and "(l,r) \<in> P"
     and "(l,r) \<in> badProds P t"
   shows "(l,r) \<notin> P'"
   using assms unfolding uniformize_defs by force
 
-lemma badProd_impl_uniformized:
+lemma uniformize_badProds_uniformized:
   assumes "uniformize A t S P P'"
     and "(l,r) \<in> P"
     and "(l,r) \<in> badProds P t"
   shows "(l,(substsTm t A r)) \<in> P'"
-  using  uniformize_old_or_map[OF assms(1,2)] badProd_not_preserved[OF assms]
+  using  uniformize_old_or_map[OF assms(1,2)] uniformize_badProds_not_preserved[OF assms]
   by satx 
 
 lemma substsNt_substsTm_id: (* simps? *)
@@ -376,7 +376,7 @@ lemma cnf_r1Tm:
   then show ?case
   proof cases
     case uniformized
-    from badProd_impl_uniformized[OF 1(2,1) uniformized] obtain \<alpha>' where
+    from uniformize_badProds_uniformized[OF 1(2,1) uniformized] obtain \<alpha>' where
       \<alpha>'_def: "\<alpha>' = map (\<lambda>s. if s = Tm t then Nt A else s) \<alpha>"
       and "(A', \<alpha>') \<in> P'" 
       unfolding substsTm_def by metis
@@ -411,7 +411,7 @@ lemma cnf_r1Tm:
     finally show ?thesis .
   next
     case non_uniformized
-    then show ?thesis using 1 not_badProd_impl_not_uniformized 
+    then show ?thesis using 1 uniformize_goodProds_preserved 
       by (metis derive.intros r_into_rtranclp)
   qed
 qed

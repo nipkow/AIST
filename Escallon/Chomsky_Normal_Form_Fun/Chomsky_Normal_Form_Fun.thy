@@ -955,4 +955,15 @@ lemma "set (cnf_of
     (3, [Tm 1]), (4, [Tm 2]), (5, [Nt 4, Nt 1]), (6, [Nt 3, Nt 2])}"
   by eval
 
+(* ---------------------------------------------------------------------------- *)
+
+(* Naive implementation for GNF of a single prod using uniformize_all 
+  (assumes nonempty input where rhs of prod starts with a Tm) *)
+fun gnf_of_prod :: "('n::fresh0, 't) prod \<Rightarrow> 'n \<Rightarrow> ('n, 't) prods" where
+  "gnf_of_prod (A, Tm t#sl) S = (let ps = uniformize_all S (tms [(A, sl)]) [(A, sl)] in
+    case ps of ((l,r)#ps') \<Rightarrow> ((l,Tm t#r))#ps')" |
+  "gnf_of_prod _ _ = undefined"
+
+value "gnf_of_prod ((0, [Tm 1, Nt 1, Tm 2, Tm 3, Nt 1, Nt 4, Tm 2])::(nat,int)prod) (2)"
+
 end

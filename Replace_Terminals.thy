@@ -15,7 +15,7 @@ lemma Rhss_image_Pair_inj_on:
   using inj_onD[OF f] x by (auto simp: Rhss_def)
 
 lemma Lang_Un_disj_Lhss:
-  assumes disj: "Nts P \<inter> Lhss Q = {}" and A: "A \<in> Nts P"
+  assumes disj: "Nts P \<inter> Lhss Q = {}" and A: "A \<notin> Lhss Q"
   shows "Lang (P \<union> Q) A = Lang P A"
   sorry
 
@@ -145,7 +145,7 @@ qed
 
 lemma lang_replace_Tm_tl:
   assumes inj: "inj_on f (Tms (set P))" and Nts: "Nts (set P) \<inter> f ` Tms (set P) = {}"
-    and A: "A \<in> Nts (set P)"
+    and A: "A \<notin> f ` Tms (set P)"
   shows "lang (replace_Tm_tl f P) A = lang P A"
 proof-
   have Lhss: "Lhss (set P) \<inter> f ` Tms (set P) = {}" using Nts by (auto simp: Nts_Lhss_Rhs_Nts)
@@ -181,24 +181,9 @@ proof-
   have 1: "lang (replace_Tm_tl f P) = Lang (set P \<union> Replace_Tm_new f (Tms (set P)))"
     by (simp add: replace_Tm_tl_def set_tms set_replace_Tm_new)
   have 2: "\<dots> A = lang P A"
-    apply (subst Lang_Un_disj_Lhss[OF _ A])
-     apply (simp add: Lhss_Replace_Tm_new Nts) (* !? *)
-    apply (rule refl).
+    apply (rule Lang_Un_disj_Lhss)
+    using A by (auto simp: Lhss_Replace_Tm_new Nts)
   show ?thesis by (simp add: 1 2)
-qed
-
-definition replace_Tm_tl_fresh where
-"replace_Tm_tl_fresh P = replace_Tm_tl (fresh_map (Nts (set P)) (tms P)) P"
-
-lemma lang_replace_Tm_tl_fresh:
-  assumes A: "A \<in> Nts (set P)"
-  shows "lang (replace_Tm_tl_fresh P) A = lang P A"
-proof-
-  have fin: "finite (Nts (set P))" by (auto intro!: finite_Nts)
-  from fresh_map_inj_on[OF fin, where xs = "tms P"]
-    fresh_map_notIn[OF fin, where xs="tms P"]
-  show ?thesis
-    by (auto simp: replace_Tm_tl_fresh_def set_tms intro!: lang_replace_Tm_tl[OF _ _ A])
 qed
 
 definition GNF where
@@ -219,7 +204,7 @@ lemma gnf_replace_Tm_new: "gnf (replace_Tm_new f as)"
 lemma gnf_replace_Tm_tl:
   assumes P: "gnf_hd P"
   shows "gnf (replace_Tm_tl f P)"
-  apply (unfold replace_Tm_tl_fresh_def replace_Tm_tl_def set_append GNF_Un)
+  apply (unfold replace_Tm_tl_def set_append GNF_Un)
 proof (intro conjI gnf_replace_Tm_new GNF_I)
   fix A \<alpha>' assume "(A,\<alpha>') \<in> set [(A, replace_Tm_tl_syms f \<alpha>). (A,\<alpha>) \<leftarrow> P]"
   then obtain \<alpha> where "(A,\<alpha>) \<in> set P" and \<alpha>': "\<alpha>' = replace_Tm_tl_syms f \<alpha>" by auto
@@ -232,34 +217,57 @@ proof (intro conjI gnf_replace_Tm_new GNF_I)
   then show "\<exists>a Bs. \<alpha>' = Tm a # map Nt Bs" by blast
 qed
 
-definition gnf_of where
-"gnf_of P = replace_Tm_tl (fresh_map (Nts (set P)) (tms P)) (gnf_hd_of P)"
+definition gnf_of :: "('n::fresh0,'t)prods \<Rightarrow> ('n,'t)prods" where
+"gnf_of P =
+ (let As = nts P; As' = freshs (set As) As;
+    P' = expand_tri (As' @ rev As) (solve_tri As As' (eps_elim P));
+    f = fresh_map (set As \<union> set As') (tms P)
+  in replace_Tm_tl f P')"
+
+lemma gnf_of_via_gnf_hd_of:
+  "gnf_of P =
+  (let As = nts P;
+       As' = freshs (set As) As;
+       f = fresh_map (set As \<union> set As') (tms P)
+   in replace_Tm_tl f (gnf_hd_of P))"
+  by (auto simp: gnf_of_def gnf_hd_of_def Let_def)
 
 theorem gnf_gnf_of: "gnf (gnf_of P)"
-  apply (unfold gnf_of_def)
+  apply (unfold gnf_of_via_gnf_hd_of Let_def)
   apply (rule gnf_replace_Tm_tl)
   using gnf_hd_gnf_hd_of.
 
 lemma Tms_GNF_hd_of: "Tms (GNF_hd_of As P) \<subseteq> Tms P" sorry
 
+lemma Nts_GNF_hd_of: "Nts (GNF_hd_of As P) \<subseteq> Nts P \<union> set (freshs (set As) As)"
+  sorry
+
 theorem lang_gnf_of:
   assumes A: "A \<in> set (nts P)"
   shows "lang (gnf_of P) A = lang P A - {[]}"
-  apply (fold lang_gnf_hd_of[OF A])
-  apply (unfold gnf_of_def)
-proof (rule lang_replace_Tm_tl)
-  define f where "f = fresh_map (Nts (set P)) (tms P)"
-  show "inj_on f (Tms (set (gnf_hd_of P)))"
-    apply (unfold f_def)
-    apply (rule inj_on_subset[OF fresh_map_inj_on])
-    by (simp_all add: finite_Nts set_tms set_gnf_hd_of Tms_GNF_hd_of)
-  show "Nts (set (gnf_hd_of P)) \<inter>
-    f ` Tms (set (gnf_hd_of P)) = {}"
-    apply (unfold f_def)
-    apply (fold set_tms)
-    apply (rule fresh_map_disj)
-    apply (auto simp: finite_Nts set_gnf_hd_of)
-    oops
+proof-
+  define As where "As = nts P"
+  define As' where "As' = freshs (set As) As"
+  define f where "f = fresh_map (set As \<union> set As') (tms P)"
+  show ?thesis
+    apply (unfold gnf_of_via_gnf_hd_of Let_def)
+    apply (fold As_def As'_def f_def)+
+    apply (fold lang_gnf_hd_of[OF A])
+  proof (rule lang_replace_Tm_tl[OF _ _ ])
+    show "inj_on f (Tms (set (gnf_hd_of P)))"
+      apply (unfold f_def)
+      apply (rule inj_on_subset[OF fresh_map_inj_on])
+      by (simp_all add: finite_Nts set_tms set_gnf_hd_of Tms_GNF_hd_of)
+    have "(set As \<union> set As') \<inter> f ` Tms (set (gnf_hd_of P)) = {}"
+      apply (unfold f_def)
+      apply (fold set_tms)
+      apply (rule fresh_map_disj) by (auto simp: set_tms set_gnf_hd_of Tms_GNF_hd_of)
+    with A
+    show "A \<notin> f ` Tms (set (gnf_hd_of P))"
+      and "Nts (set (gnf_hd_of P)) \<inter> f ` Tms (set (gnf_hd_of P)) = {}"
+      by (auto 0 3 simp: As_def As'_def set_nts set_gnf_hd_of dest!: subsetD[OF Nts_GNF_hd_of])
+  qed
+qed
 
 
 end

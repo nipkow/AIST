@@ -1,5 +1,5 @@
 theory Chomsky_Normal_Form_Fun
-  imports Context_Free_Grammar.Chomsky_Normal_Form
+  imports Chomsky_Normal_Form
 begin
 
 section \<open>Uniformize\<close>
@@ -59,192 +59,138 @@ qed
 
 subsubsection \<open>uniformize\<close>
 
-(*The current implementation corresponds to uniformize as defined in 
-  Context_Free_Grammar.Chomsky_Normal_Form. This can be simplified with maps.*)
-fun uniformize_fun :: "'n::fresh0 \<Rightarrow> 't \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods" where
-  "uniformize_fun _ _ ps0 [] = ps0" |
-  "uniformize_fun A t ps0 ((l,r) # ps) = 
-    (let r' = replaceTm A t r in 
-      if r = r' \<or> length r < 2 then uniformize_fun A t ps0 ps
-      else (removeAll (l,r) ps0) @ [(A, [Tm t]), (l,r')])"
 
+fun uniformize_fun :: "'n::fresh0 \<Rightarrow> 't \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods" where
+  "uniformize_fun A t [] = [(A, [Tm t])]" |
+  "uniformize_fun A t ((l,r) # ps) = 
+    (let r' = substsTm t A r in 
+      if r = r' \<or> length r < 2 then (l,r) # uniformize_fun A t ps
+      else (l,r') # uniformize_fun A t ps)"
 
-lemma uniformize_fun_id_conv:
-  "uniformize_fun A t ps0 ps = ps0 \<Longrightarrow> \<forall>(l,r)\<in>set ps. Tm t \<notin> set r \<or> length r < 2"
+lemma substsTm_eq_iff_no_t:
+  "substsTm t A r = r \<longleftrightarrow> Tm t \<notin> set r"
+  unfolding substsTm_def 
+  by (smt (verit, ccfv_SIG) isTm_simps(1,2) map_eq_conv map_ident)
+
+lemma uniformize_fun_recurses[elim]:
+  obtains p' where "uniformize_fun A t (p#ps) = p' # uniformize_fun A t ps"
+  by (smt (verit, ccfv_threshold) list.distinct(1) list.inject uniformize_fun.elims)
+
+lemma uniformize_fun_eq_iff_badProds_empty:
+  "uniformize_fun A t ps = ps @ [(A, [Tm t])] \<longleftrightarrow> badProds (set ps) t = {}"
 proof (induction ps)
+  case Nil
+  then show ?case unfolding badProds_def by simp
+next
   case (Cons p ps)
-  obtain l r where lr_def: "(l,r) = p" using old.prod.exhaust by metis
-  moreover have "Tm t \<notin> set r \<or> length r < 2"
-  proof (rule ccontr)
-    let ?r' = "replaceTm A t r"
-    assume "\<not>?thesis"
-    hence "\<not>(?r' = r \<or> length r < 2)" using replaceTm_id_iff_tm_notin_syms by fast
-    with lr_def have "uniformize_fun A t ps0 (p#ps) = (removeAll (l,r) ps0) @ [(A, [Tm t]), (l,?r')]" 
-      by auto
-    then show False 
-      by (smt (verit) Cons.prems Diff_iff \<open>\<not> (replaceTm A t r = r \<or> length r < 2)\<close> 
-          insert_iff list.distinct(1) prod.inject removeAll.simps(2) removeAll_append 
-          removeAll_id self_append_conv set_removeAll)
-  qed
-  moreover from this lr_def have "uniformize_fun A t ps0 (p#ps) = uniformize_fun A t ps0 ps" 
-    using replaceTm_id_iff_tm_notin_syms 
-    by (smt (verit, best) uniformize_fun.simps(2))
-  ultimately show ?case using Cons by auto
-qed simp
-
-lemma uniformize_fun_uniform_prepend:
-   "\<forall>(l,r)\<in>set xs. Tm t \<notin> set r \<or> length r < 2 \<Longrightarrow>
-    uniformize_fun A t ps0 (xs@ps) = uniformize_fun A t ps0 ps"
-proof (induction xs)
-  case (Cons x xs)
-  then obtain l r where lr_def: "x = (l,r)" by auto
-  hence "uniformize_fun A t ps0 ((x#xs)@ps) = uniformize_fun A t ps0 ((l,r)#xs@ps)" by simp
-  also have "... = uniformize_fun A t ps0 (xs@ps)"
-  proof -
-    from Cons(2) lr_def have "Tm t \<notin> set r \<or> length r < 2" by simp
-    hence "replaceTm A t r = r \<or> length r < 2" using replaceTm_id_iff_tm_notin_syms by fast
-    thus ?thesis by auto
-  qed
-  also have "... = uniformize_fun A t ps0 ps" using Cons by simp
+  let ?unif_id = "uniformize_fun A t ps = ps @ [(A, [Tm t])]"
+  obtain l r where lr: "p = (l,r)" by fastforce
+  then have "uniformize_fun A t (p#ps) = (p#ps) @ [(A, [Tm t])]
+        \<longleftrightarrow> uniformize_fun A t ((l,r)#ps) = (p#ps) @ [(A, [Tm t])]" by metis
+  also have "... \<longleftrightarrow> (uniformize_fun A t ((l,r)#ps) = (l,r) # uniformize_fun A t ps) \<and> ?unif_id"
+    by (metis append_Cons list.inject lr uniformize_fun_recurses)
+  also have "(uniformize_fun A t ((l,r)#ps) = (l,r) # uniformize_fun A t ps) \<and> ?unif_id
+        \<longleftrightarrow> (substsTm t A r = r \<or> length r < 2) \<and> ?unif_id" 
+    using list.inject by fastforce
+  also have "... \<longleftrightarrow> badProds {p} t = {} \<and> ?unif_id" using lr unfolding badProds_def 
+    using lr substsTm_eq_iff_no_t by force
+  also have "... \<longleftrightarrow> badProds {p} t = {} \<and> badProds (set ps) t = {}" using Cons by satx
+  also have "... \<longleftrightarrow> badProds (set (p#ps)) t = {}" unfolding badProds_def by auto
   finally show ?case .
-qed simp
+qed
 
-lemma uniformize_fun_ps0_uniform_app:
-  assumes "\<forall>(l,r)\<in>set xs. Tm t \<notin> set r \<or> length r < 2"
-  shows "uniformize_fun A t (xs@ys) ps = xs @ uniformize_fun A t ys ps"
+lemma uniformize_fun_contains_At:
+  "(A,[Tm t]) \<in> set (uniformize_fun A t ps)"
 proof (induction ps)
   case (Cons p ps)
-  then obtain l r where lr_def: "p = (l,r)" 
-    by fastforce
-  then consider (not_unif) "Tm t \<in> set r \<and> length r \<ge> 2" | (unif) "Tm t \<notin> set r \<or> length r < 2"
-    by linarith
-  then show ?case 
-  proof cases
-    case not_unif
-    with assms(1) lr_def have p_notin_xs: "p \<notin> set xs" by auto
-    from not_unif lr_def have "uniformize_fun A t (xs@ys) (p#ps) 
-                      = removeAll p (xs@ys) @ [(A, [Tm t]), (l,replaceTm A t r)]" 
-      by (smt (verit) replaceTm_id_iff_tm_notin_syms uniformize_fun.simps(2)
-          verit_comp_simplify1(3))
-    also have "... = xs @ removeAll p ys @ [(A, [Tm t]), (l,replaceTm A t r)]"
-      using p_notin_xs by simp
-    also have "... = xs @ uniformize_fun A t ys (p#ps)" using not_unif 
-      by (smt (verit) lr_def replaceTm_id_iff_tm_notin_syms
-          uniformize_fun.simps(2) verit_comp_simplify1(3))
-    finally show ?thesis .
-  next
-    case unif
-    hence unif_ite: "replaceTm A t r = r \<or> length r < 2" using replaceTm_id_iff_tm_notin_syms 
-      by fast
-    with lr_def have "uniformize_fun A t (xs@ys) (p#ps) = uniformize_fun A t (xs@ys) ps" 
-      by fastforce
-    also have "... = xs @ uniformize_fun A t ys ps" using Cons .
-    also have "... = xs @ uniformize_fun A t ys (p#ps)" using unif_ite lr_def by fastforce
-    finally show ?thesis .
-  qed
+  moreover from uniformize_fun_recurses obtain p' where 
+    "uniformize_fun A t (p#ps) = p'#uniformize_fun A t ps" by metis
+  ultimately show ?case by simp 
 qed simp
   
 
-lemma uniformize_fun_neq_ps0_impl_uniformized:
-  assumes "uniformize_fun A t ps0 ps \<noteq> ps0"
-  obtains l r q s where "(l,r) \<in> set ps"
-                    "r \<noteq> replaceTm A t r"
-                    "length r \<ge> 2"
-                    "ps = q@[(l,r)]@s"
-                    "\<forall>(l,r)\<in>set q. length r < 2 \<or> Tm t \<notin> set r"
-using assms proof (induction ps arbitrary: thesis)
+lemma uniformize_fun_goodProds_preserved:
+  "(l,r) \<in> set ps - (badProds (set ps) t) \<Longrightarrow> (l,r) \<in> set (uniformize_fun A t ps)"
+proof (induction ps)
   case (Cons p ps)
-  obtain l0 r0 where lr0_def: "p = (l0,r0)" by fastforce
-  consider (not_fst) "length r0 < 2 \<or> Tm t \<notin> set r0" | (fst) "length r0 \<ge> 2 \<and> Tm t \<in> set r0" 
-    by linarith
-  then show ?case 
-  proof cases
-    case not_fst
-    hence "uniformize_fun A t ps0 (p#ps) = uniformize_fun A t ps0 ps"
-      using lr0_def replaceTm_id_iff_tm_notin_syms
-      by (smt (verit) uniformize_fun.simps(2))
-    then obtain l r q s where lrqs_defs: 
-                              "(l,r) \<in> set ps"
-                              "r \<noteq> replaceTm A t r"
-                              "length r \<ge> 2"
-                              "ps = q@[(l,r)]@s"
-                              "\<forall>(l,r)\<in>set q. length r < 2 \<or> Tm t \<notin> set r"
-      using Cons(1,3) by (metis (lifting))
-    moreover from this not_fst lr0_def have 
-                               "(l,r) \<in> set (p#ps)" "p#ps = (p#q)@[(l,r)]@s"
-                               "\<forall>(l,r)\<in> set (p#q). length r < 2 \<or> Tm t \<notin> set r"
-      by simp+
-    ultimately show ?thesis using Cons(2) by blast
+  show ?case 
+  proof (cases "(l,r) = p")
+    case True
+    from Cons(2) have "Tm t \<notin> set r \<or> length r < 2" unfolding badProds_def by fastforce
+    with True have "uniformize_fun A t (p#ps) = (l,r) # uniformize_fun A t ps" 
+      using substsTm_eq_iff_no_t by (smt (verit, del_insts) uniformize_fun.simps(2))
+    then show ?thesis by simp
   next
-    case fst
-    hence "r0 \<noteq> replaceTm A t r0" find_theorems name:replaceTm
-      using replaceTm_id_iff_tm_notin_syms by metis
-    with fst lr0_def show ?thesis using Cons(2)[of _ _ "[]"] by simp
+    case False
+    with Cons(2) have "(l,r) \<in> set ps - badProds (set ps) t"
+      unfolding badProds_def by fastforce
+    moreover obtain p' where "uniformize_fun A t (p#ps) = p'#uniformize_fun A t ps"
+      using uniformize_fun_recurses by metis
+    ultimately show ?thesis using Cons(1) by simp
   qed
 qed simp
 
-lemma uniformize_fun_uniformizes_fst:
-  assumes "(l,r) \<in> set ps"
-          "r \<noteq> replaceTm A t r"
-          "ps = q@[(l,r)]@s"
-          "\<forall>(l,r)\<in>set q. Tm t \<notin> set r \<or> length r < 2"
-          "length r \<ge> 2"
-        shows
-    "uniformize_fun A t ps ps = (removeAll (l,r) ps) @ [(A, [Tm t]), (l, replaceTm A t r)]" 
-proof -
-  from assms(3,4) uniformize_fun_ps0_uniform_app 
-      uniformize_fun_uniform_prepend have
-    "uniformize_fun A t ps ps = q @ uniformize_fun A t ([(l,r)]@s) ([(l,r)]@s)" by fastforce
-  also have "... = q @ (removeAll (l,r) ([(l,r)]@s)) @ [(A, [Tm t]), (l, replaceTm A t r)]"
-    using assms(2,5) by fastforce
-  also have "... = removeAll (l,r) ps @ [(A, [Tm t]), (l, replaceTm A t r)]"
-  proof -
-    have "(l,r) \<notin> set q" 
-      using assms(2,4,5) replaceTm_id_iff_tm_notin_syms 
-      by (metis (no_types, lifting) case_prod_conv leD)
-    thus ?thesis using assms(3) by simp
+lemma uniformize_fun_badProds_subst:
+  "(l,r) \<in> badProds (set ps) t \<Longrightarrow> (l,substsTm t A r) \<in> set (uniformize_fun A t ps)"
+  sorry
+
+lemma P'_insert:
+  "(set ps - badProds (set ps) t) \<union> Unif A t (set ps) \<union> {(A, [Tm t])} 
+    \<subseteq> (set (p#ps) - badProds (set (p#ps)) t) \<union> Unif A t (set (p#ps)) \<union> {(A, [Tm t])}"
+  unfolding badProds_def Unif_def by auto
+
+lemma uniformize_fun_subset_P':
+  "set (uniformize_fun A t ps) \<subseteq> (set ps - badProds (set ps) t) \<union> Unif A t (set ps) \<union> {(A, [Tm t])}"
+  (is "_ \<subseteq> ?P' ps")
+proof (induction ps)
+  case (Cons p ps)
+  obtain l r where lr: "p = (l,r)" by fastforce
+  consider (id) "substsTm t A r = r \<or> length r < 2" | 
+          (subst) "substsTm t A r \<noteq> r \<and> length r \<ge> 2" by linarith
+  then show ?case 
+  proof cases
+    case id
+    hence "Tm t \<notin> set r \<or> length r \<le> 1" using substsTm_eq_iff_no_t by fastforce
+    hence "(l,r) \<in> set (p#ps) - badProds (set (p#ps)) t"
+      unfolding badProds_def using lr by fastforce
+    moreover from Cons P'_insert have 
+      "set (uniformize_fun A t ps) \<subseteq> ?P' (p#ps)" by fast
+    moreover from id have "uniformize_fun A t (p#ps) = (l,r) # uniformize_fun A t ps" 
+      using lr by fastforce
+    ultimately show ?thesis by simp
+  next
+    case subst
+    hence "uniformize_fun A t (p#ps) = (l, substsTm t A r) # uniformize_fun A t ps"
+      using lr by force
+    moreover with subst have "(l, substsTm t A r) \<in> Unif A t (set (p#ps))"
+      unfolding Unif_def badProds_def using lr substsTm_eq_iff_no_t by fastforce
+    moreover from Cons P'_insert have "set (uniformize_fun A t ps) \<subseteq> ?P' (p#ps)" by fast
+    ultimately show ?thesis by simp
   qed
-  finally show ?thesis .
-qed
+qed simp
+
+lemma uniformize_fun_uniformizes:
+  assumes "uniformize_fun A t ps \<noteq> ps @ [(A,[Tm t])]" 
+  shows "set (uniformize_fun A t ps) = (set ps - badProds (set ps) t) \<union> Unif A t (set ps) \<union> {(A,[Tm t])}"
+  using uniformize_fun_goodProds_preserved uniformize_fun_badProds_subst uniformize_fun_contains_At
+    uniformize_fun_subset_P' unfolding Unif_def by fast
 
 lemma uniformize_fun_uniformized:
-  assumes "uniformize_fun A t ps ps \<noteq> ps"
+  assumes "uniformize_fun A t ps \<noteq> ps @ [(A, [Tm t])]"
           "A \<notin> (Nts (set ps) \<union> {S})"
-  shows "uniformize A t S (set ps) (set (uniformize_fun A t ps ps))"
-proof -
-  from assms obtain l r q s  where lr_in_ps: "(l,r) \<in> set ps"
-                          and replace_neq: "r \<noteq> replaceTm A t r"
-                          and len_lb: "length r \<ge> 2"
-                          and ps_qs: "ps = q@[(l,r)]@s"
-                          and q_uniform: "\<forall>(l,r)\<in>set q. length r < 2 \<or> Tm t \<notin> set r"
-    using uniformize_fun_neq_ps0_impl_uniformized 
-    by (smt (verit, del_insts) case_prodI2 case_prod_conv)
-  moreover obtain p s' where "r = p@[Tm t]@s'"
-                        and replace_eq_p_Nt_s: "replaceTm A t r = p@[Nt A]@s'"
-                        and "p \<noteq> [] \<or> s' \<noteq> []"
-  proof -
-    from replaceTm_replaces_single replace_neq obtain p s' where
-      "r = p@[Tm t]@s'"
-      "replaceTm A t r = p@[Nt A]@s'"
-      by metis
-    with len_lb show thesis using that by fastforce
-  qed
-  moreover have "uniformize_fun A t ps ps = removeAll (l,r) ps @ [(A, [Tm t]), (l, p @ [Nt A] @ s')]" 
-    using uniformize_fun_uniformizes_fst[OF lr_in_ps replace_neq ps_qs _ len_lb] 
-    replace_eq_p_Nt_s q_uniform by auto
-  ultimately show ?thesis
-    unfolding uniformize_def using assms by auto
-qed
+  shows "uniformize A t S (set ps) (set (uniformize_fun A t ps))"
+  using assms uniformize_fun_uniformizes uniformize_fun_eq_iff_badProds_empty
+  unfolding uniformize_def by metis
 
 lemma uniformize_fun_dec_badTmsCount:
-  assumes "uniformize_fun A t ps ps \<noteq> ps"
+  assumes "uniformize_fun A t ps \<noteq> ps @ [(A, [Tm t])]"
           "A \<notin> Nts (set ps) \<union> {S}"
-  shows "badTmsCount (set (uniformize_fun A t ps ps)) < badTmsCount (set ps)"
+  shows "badTmsCount (set (uniformize_fun A t ps)) < badTmsCount (set ps)"
   using assms uniformize_fun_uniformized lemma6_a by fast
 
 
 lemma uniformize_fun_unchanged_tms:
-  "set ps \<subseteq> set ps0 \<Longrightarrow> Tms (set ps0) = Tms (set (uniformize_fun A t ps0 ps))"
+  "Tms (set ps) = Tms (set (uniformize_fun A t ps))"
 proof (induction ps)
   case (Cons p ps)
   then obtain l r where lr_def: "(l,r) = p" using old.prod.exhaust by metis

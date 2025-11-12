@@ -945,6 +945,16 @@ lemma "set(cnf_of
   (2, [Nt 8, Nt 0]), (2, [Nt 9, Nt 2]), (2, [Tm 2]),
   (3, [Tm 1]), (4, [Tm 1]), (5, [Tm 1]), (6, [Tm 2]), (7, [Tm 2]), (8, [Tm 2]),
   (9, [Nt 5, Nt 2]), (10, [Nt 7, Nt 1])}"
+  oops (* Holds true with old version *)
+
+lemma "set (cnf_of
+  ([(0, [Tm 2, Nt 1]), (0, [Tm 1, Nt 2]), 
+    (1, [Tm 2, Nt 1, Nt 1]), (1, [Tm 1, Nt 0]), (1, [Tm 1]),
+    (2, [Tm 1, Nt 2, Nt 2]), (2, [Tm 2, Nt 0]), (2, [Tm 2])]::(nat,int)prods) 0) =
+  {(0, [Nt 4, Nt 1]), (0, [Nt 3, Nt 2]), 
+    (1, [Nt 3, Nt 0]), (1, [Tm 1]), (1, [Nt 5, Nt 1]), 
+    (2, [Nt 4, Nt 0]), (2, [Tm 2]), (2, [Nt 6, Nt 2]), 
+    (3, [Tm 1]), (4, [Tm 2]), (5, [Nt 4, Nt 1]), (6, [Nt 3, Nt 2])}"
   by eval
 
 end

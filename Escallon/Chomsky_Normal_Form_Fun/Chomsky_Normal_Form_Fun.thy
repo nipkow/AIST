@@ -64,7 +64,7 @@ fun uniformize_fun :: "'n::fresh0 \<Rightarrow> 't \<Rightarrow> ('n,'t) prods \
   "uniformize_fun A t [] = [(A, [Tm t])]" |
   "uniformize_fun A t ((l,r) # ps) = 
     (let r' = substsTm t A r in 
-      if r = r' \<or> length r < 2 then (l,r) # uniformize_fun A t ps
+      if r = r' \<or> length r \<le> 1 then (l,r) # uniformize_fun A t ps
       else (l,r') # uniformize_fun A t ps)"
 
 lemma substsTm_eq_iff_no_t:
@@ -116,7 +116,7 @@ proof (induction ps)
   show ?case 
   proof (cases "(l,r) = p")
     case True
-    from Cons(2) have "Tm t \<notin> set r \<or> length r < 2" unfolding badProds_def by fastforce
+    from Cons(2) have "Tm t \<notin> set r \<or> length r \<le> 1" unfolding badProds_def by fastforce
     with True have "uniformize_fun A t (p#ps) = (l,r) # uniformize_fun A t ps" 
       using substsTm_eq_iff_no_t by (smt (verit, del_insts) uniformize_fun.simps(2))
     then show ?thesis by simp
@@ -132,7 +132,29 @@ qed simp
 
 lemma uniformize_fun_badProds_subst:
   "(l,r) \<in> badProds (set ps) t \<Longrightarrow> (l,substsTm t A r) \<in> set (uniformize_fun A t ps)"
-  sorry
+proof (induction ps)
+  case Nil
+  then show ?case unfolding badProds_def by simp (* try0 example *)
+next
+  case (Cons p ps)
+  show ?case
+  proof (cases "(l,r) = p")
+    case True
+    have "uniformize_fun A t (p#ps) = (l,substsTm t A r) # uniformize_fun A t ps"
+    proof -
+      from Cons(2) have "length r > 1 \<and> Tm t \<in> set r" unfolding badProds_def by force
+      with True show ?thesis by (smt (verit, best) linorder_not_le uniformize_fun.simps(2))
+    qed
+    then show ?thesis by simp
+  next
+    case False
+    with Cons have "(l,substsTm t A r) \<in> set (uniformize_fun A t ps)" unfolding badProds_def 
+      by simp (* try0 example *)
+    moreover from uniformize_fun_recurses obtain p' where 
+      "uniformize_fun A t (p#ps) = p' # uniformize_fun A t ps" by metis
+    ultimately show ?thesis by simp
+  qed
+qed
 
 lemma P'_insert:
   "(set ps - badProds (set ps) t) \<union> Unif A t (set ps) \<union> {(A, [Tm t])} 
@@ -188,75 +210,49 @@ lemma uniformize_fun_dec_badTmsCount:
   shows "badTmsCount (set (uniformize_fun A t ps)) < badTmsCount (set ps)"
   using assms uniformize_fun_uniformized lemma6_a by fast
 
+lemma uniformize_fun_Tms_insert:
+  "Tms (set (uniformize_fun A t ps)) \<subseteq> Tms (set (uniformize_fun A t (p#ps)))"
+  unfolding Tms_def Tms_syms_def
+  by (metis SUP_subset_mono dual_order.refl set_subset_Cons uniformize_fun_recurses)
+
 
 lemma uniformize_fun_unchanged_tms:
-  "Tms (set ps) = Tms (set (uniformize_fun A t ps))"
-proof (induction ps)
-  case (Cons p ps)
-  then obtain l r where lr_def: "(l,r) = p" using old.prod.exhaust by metis
-  let ?r' = "replaceTm A t r"
-  consider (rec) "r = ?r' \<or> length r < 2" | (no_rec) "r \<noteq> ?r' \<and> length r \<ge> 2" by linarith
-  then show ?case 
-  proof cases
-    case rec
-    then show ?thesis using Cons lr_def by force
-  next
-    case no_rec
-    with lr_def have "uniformize_fun A t ps0 (p#ps) = (removeAll (l,r) ps0) @ [(A,[Tm t]),(l,?r')]" 
-      by fastforce
-    moreover with replaceTm_tms_changed lr_def 
-    have "Tms (set [(A,[Tm t]),(l,?r')]) = Tms (set [(l,r)])"
-    proof -
-      from no_rec have "t \<in> Tms (set [(l,r)])" unfolding Tms_def Tms_syms_def 
-        using replaceTm_id_iff_tm_notin_syms 
-        by (metis (no_types, lifting) UN_iff case_prod_conv list.set_intros(1) mem_Collect_eq)
-      then show ?thesis using replaceTm_tms_changed unfolding Tms_def Tms_syms_def by fastforce
-    qed
-    moreover have "Tms (set [(l,r)]) \<subseteq> Tms (set ps0)" using Cons(2) lr_def 
-      unfolding Tms_def Tms_syms_def by auto
-    ultimately show ?thesis unfolding Tms_def Tms_syms_def by auto
-  qed
-qed simp
+  "t \<in> Tms (set ps) \<Longrightarrow> Tms (set ps) = Tms (set (uniformize_fun A t ps))"
+  using uniformize_fun_uniformizes sorry
 
 lemma uniformize_fun_no_new_badTms:
-  assumes "\<forall>p\<in>set ps0. Tm t' \<notin> set (snd p) \<or> length (snd p) \<le> 1"
-  shows "\<lbrakk>ps' = uniformize_fun A t ps0 ps; set ps \<subseteq> set ps0\<rbrakk> 
-          \<Longrightarrow> \<forall>p\<in>set ps'. Tm t' \<notin> set (snd p) \<or> length (snd p) \<le> 1"
+  "\<lbrakk>ps' = uniformize_fun A t ps; \<forall>p\<in>set ps. Tm t' \<notin> set (snd p) \<or> length (snd p) \<le> 1\<rbrakk> 
+    \<Longrightarrow> \<forall>p\<in>set ps'. Tm t' \<notin> set (snd p) \<or> length (snd p) \<le> 1"
 proof (induction ps arbitrary: ps')
   case (Cons p ps)
-  obtain l r where lr_def: "(l,r) = p" using old.prod.exhaust by metis
-  let ?r' = "replaceTm A t r" 
-  consider (rec) "?r' = r \<or> length r < 2" | (no_rec) "?r' \<noteq> r \<and> length r \<ge> 2" 
-    by linarith
-  then show ?case 
-  proof cases
-    case no_rec
-    hence "ps' = (removeAll (l,r) ps0) @ [(A, [Tm t]), (l, ?r')]" 
-      using lr_def Cons(2) by fastforce
-    moreover from assms have "\<forall>p\<in>set (removeAll (l,r) ps0). Tm t' \<notin> set (snd p) \<or> length (snd p) \<le> 1" 
-      by simp
-    moreover have "\<forall>p\<in>set ([(A,[Tm t]),(l,?r')]). Tm t' \<notin> set (snd p) \<or> length (snd p) \<le> 1"
-    proof -
-      from replaceTm_replaces_single obtain u s where "r = s@[Tm t]@u" "?r' = s@[Nt A]@u" 
-        using no_rec by meson
-      with assms Cons(3) lr_def show ?thesis by fastforce
-    qed
-    ultimately show ?thesis by auto
-  qed (use Cons lr_def in auto)
-qed (use assms in auto)
+  obtain l r where lr: "(l,r) = p" using old.prod.exhaust by metis
+  with Cons(3) have p: "Tm t' \<notin> set (snd p) \<or> length (snd p) \<le> 1" by fastforce
+  with lr have no_new_bad_t': "Tm t' \<notin> (set r) \<or> length r \<le> 1" 
+    "Tm t' \<notin> (set (substsTm t A r)) \<or> length (substsTm t A r) \<le> 1"
+    unfolding substsTm_def by (fastforce, use lr p in auto)
+  from lr consider "uniformize_fun A t ((l,r)#ps) = (l,r) # uniformize_fun A t ps" | 
+    "uniformize_fun A t ((l,r)#ps) = (l,substsTm t A r) # uniformize_fun A t ps"
+    by (smt (verit, ccfv_SIG) uniformize_fun.simps(2))
+  then show ?case by cases (use no_new_bad_t' Cons lr in auto)
+qed simp
+
+
+
 
 subsection \<open>uniformize_tm\<close>
 
-(* This special case of fresh0 is repeatedly used in multiple lemmas and functions. This lemma
-simplifies or avoids several sledgehammer calls *)
-lemma fresh0_Nt_notin_set:
-  fixes A :: "'n::fresh0"
-  assumes "A = fresh0 (Nts (set ps) \<union> {S})"
-  shows "A \<notin> (Nts (set ps) \<union> {S})"
-  by (metis assms fresh0_notIn Un_insert_left sup_bot_right finite_insert 
-      list.set_finite set_nts sup_commute)
+definition freshA :: "('n::fresh0,'t) prods \<Rightarrow> 'n \<Rightarrow> 'n" where
+  "freshA ps S = fresh0 (Nts (set ps) \<union> {S})"
 
-function uniformize_tm :: "'n::fresh0 \<Rightarrow> 't \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods" where
+lemma freshA_notin_set: (* simp? *)
+  shows "freshA ps S \<notin> (Nts (set ps) \<union> {S})"
+  unfolding freshA_def by (metis ID.set_finite finite_Un finite_nts fresh0_notIn)
+
+lemma uniformize_fun_unifRtc:
+  "(\<lambda>x y. \<exists>A. uniformize A t S x y)\<^sup>*\<^sup>* (set ps) (set (uniformize_fun A t ps))"
+  sorry
+
+(* function uniformize_tm :: "'n::fresh0 \<Rightarrow> 't \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods" where
   "uniformize_tm S t ps = 
     (let ps' = uniformize_fun (fresh0 (Nts (set ps) \<union> {S})) t ps ps in 
         if ps = ps' then ps else uniformize_tm S t ps')"
@@ -350,18 +346,26 @@ proof (induction "badTmsCount (set ps)" arbitrary: ps rule: less_induct)
     ultimately show ?thesis
       by (smt (verit, best) converse_rtranclp_into_rtranclp uniformize_tm.simps)
   qed auto
-qed
+qed *)
 
 subsection \<open>uniformize_all\<close>
 
 
 fun uniformize_all :: "'n::fresh0 \<Rightarrow> 't list \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods" where
   "uniformize_all _ [] ps = ps" |
-  "uniformize_all S (t#ts) ps = (let ps' = uniformize_tm S t ps in uniformize_all S ts ps')"
+  "uniformize_all S (t#ts) ps = (let ps' = uniformize_fun (freshA ps S) t ps in 
+    if ps' = ps @ [((freshA ps S, [Tm t]))] then uniformize_all S ts ps
+    else uniformize_all S ts ps')"
 
 lemma uniformize_all_unchanged_tms:
-  "Tms (set ps) = Tms (set (uniformize_all S ts ps))"
-  by (induction ts arbitrary: ps) (use uniformize_tm_unchanged_tms in fastforce)+
+  assumes "set ts \<subseteq> Tms (set ps)"
+  shows "Tms (set ps) = Tms (set (uniformize_all S ts ps))"
+  using assms proof (induction ts arbitrary: ps)
+  case (Cons t ts)
+  then show ?case using uniformize_fun_unchanged_tms
+    by (smt (verit, best) insert_subset list.simps(15) uniformize_all.simps(2))
+qed simp
+
 
 lemma uniformize_all_no_new_badTms:
     "\<lbrakk>\<forall>p\<in>set ps. Tm t \<notin> set (snd p) \<or> length (snd p) \<le> 1; ps' = uniformize_all S ts ps\<rbrakk> 

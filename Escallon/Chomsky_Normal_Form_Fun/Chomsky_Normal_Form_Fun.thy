@@ -958,7 +958,7 @@ lemma "set (cnf_of
 (* ---------------------------------------------------------------------------- *)
 
 (* Naive implementation for GNF of a single prod using uniformize_all 
-  (assumes nonempty input where rhs of prod starts with a Tm) *)
+  (assumes nonempty input rhs starting with a Tm) *)
 fun gnf_of_prod :: "('n::fresh0, 't) prod \<Rightarrow> 'n \<Rightarrow> ('n, 't) prods" where
   "gnf_of_prod (A, Tm t#sl) S = (let ps = uniformize_all S (tms [(A, sl)]) [(A, sl)] in
     case ps of ((l,r)#ps') \<Rightarrow> ((l,Tm t#r))#ps')" |

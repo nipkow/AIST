@@ -182,7 +182,7 @@ lemma uniformize_fun_Tms_insert:
   unfolding Tms_defs
   by (metis SUP_subset_mono dual_order.refl set_subset_Cons uniformize_fun_recurses)
 
-lemma uniformize_fun_adds_t:
+lemma uniformize_fun_unchanged_Tms:
   "t \<notin> Tms (set ps) \<Longrightarrow> Tms (set ps) = Tms (set (uniformize_fun A t ps))"
 proof (induction ps)
   case Nil
@@ -200,7 +200,7 @@ next
 qed
 
 
-lemma uniformize_fun_unchanged_tms:
+lemma uniformize_fun_removes_t:
   "t \<in> Tms (set ps) \<Longrightarrow> Tms (set ps) = Tms (set (uniformize_fun A t ps)) \<union> {t}"
 proof (induction ps)
   case Nil
@@ -247,7 +247,7 @@ next
       hence "Tms (set (uniformize_fun A t (p#ps))) \<union> {t} = Tms (set (p # uniformize_fun A t ps)) \<union> {t}" 
         by metis
       also have "... = Tms {p} \<union> Tms (set (uniformize_fun A t ps)) \<union> {t}" unfolding Tms_def by auto
-      also have "... = Tms {p} \<union> Tms (set ps) \<union> {t}" using uniformize_fun_adds_t[OF False] by simp
+      also have "... = Tms {p} \<union> Tms (set ps) \<union> {t}" using uniformize_fun_unchanged_Tms[OF False] by simp
       also have "... = Tms (set (p#ps))" using Cons.prems unfolding Tms_def by auto
       finally show ?thesis by simp
     next
@@ -264,7 +264,7 @@ next
       also have "... = Tms {p} - {t} \<union> Tms (set (uniformize_fun A t ps)) \<union> {t}" 
         using substsTm_removes_ts[of "fst p" _ _ "snd p"] by simp
       also have "... = Tms {p} - {t} \<union> Tms (set ps) \<union> {t}"
-        using uniformize_fun_adds_t[OF False] by auto
+        using uniformize_fun_unchanged_Tms[OF False] by auto
       also have "... = Tms {p} \<union> Tms (set ps)" using Cons(2) unfolding Tms_def by fastforce
       finally show ?thesis unfolding Tms_def by force
     qed
@@ -388,7 +388,7 @@ proof (induction ts arbitrary: ps)
     moreover from uniformize_fun_neq_impl_t_in_prods[OF False freshA_notin_set]
     have "Tms (set (uniformize_fun (freshA ps S) t ps @ [(freshA ps S, [Tm t])]))
           = Tms (set ps)"
-      using uniformize_fun_unchanged_tms unfolding Tms_def by fastforce
+      using uniformize_fun_removes_t unfolding Tms_def by fastforce
     ultimately show ?thesis using Cons by metis
   qed
 qed simp

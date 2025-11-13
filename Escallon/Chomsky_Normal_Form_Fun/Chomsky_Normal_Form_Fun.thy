@@ -1,3 +1,5 @@
+(* Author: Felipe Escallon and Tobias Nipkow *)
+
 theory Chomsky_Normal_Form_Fun
   imports Chomsky_Normal_Form
 begin

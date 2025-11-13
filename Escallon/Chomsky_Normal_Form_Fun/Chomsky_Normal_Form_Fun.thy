@@ -1,11 +1,16 @@
-(* Author: Felipe Escallon and Tobias Nipkow *)
+(*
+Authors: Felipe Escallon, Tobias Nipkow
+*)
+
+section \<open>An Executable Conversion to Chomsky Normal Form\<close>
 
 theory Chomsky_Normal_Form_Fun
   imports Chomsky_Normal_Form
+    Context_Free_Grammar.Context_Free_Grammar
 begin
 
-section \<open>Uniformizing Productions\<close>
-subsection \<open>uniformize_fun\<close>
+
+subsection \<open>Production Uniformization\<close>
 
 (* Checking if r = r' does not alter the output. However, this implementation follows
     the specification of uniformize more closely *)
@@ -343,8 +348,6 @@ lemma uniformize_fun_unifRtc:
   shows "(\<lambda>x y. \<exists>A. uniformize A t S x y)\<^sup>*\<^sup>* (set ps) (set (uniformize_fun A t ps @ [(A,[Tm t])]))"
   using uniformize_fun_uniformized[OF assms] by blast
 
-subsection \<open>uniformize_all\<close>
-
 fun uniformize_all :: "'n::fresh0 \<Rightarrow> 't list \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods" where
   "uniformize_all _ [] ps = ps" |
   "uniformize_all S (t#ts) ps = (let ps' = uniformize_fun (freshA ps S) t ps in 
@@ -458,8 +461,7 @@ proof (induction ts arbitrary: ps)
   qed
 qed simp
 
-section \<open>Binarizing Productions\<close>
-subsection \<open>replaceNts\<close>
+subsection \<open>Production Binarization\<close>
 
 (* Simplifying the first two cases complicates proofs *)
 fun replaceNts :: "'n::fresh0 \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n \<times> 'n) option \<times> ('n,'t) syms" where
@@ -538,8 +540,6 @@ corollary replaceNts_replaces_pair_Some:
     "sl' = p@[Nt A]@q"
   using replaceNts_replaces_pair 
   by (smt (verit) assms option.distinct(1) option.inject prod.inject)
-
-subsection \<open>binarizeNt_fun\<close>
 
 fun binarizeNt_fun :: "'n::fresh0 \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods" where
   "binarizeNt_fun A ps0 [] = ps0" |
@@ -710,8 +710,6 @@ proof -
   qed (use assms in simp)
 qed
 
-subsection \<open>binarizeNt_all\<close>
-
 function binarizeNt_all :: "'n::fresh0 \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods" where
   "binarizeNt_all S ps = 
     (let ps' = binarizeNt_fun (freshA ps S) ps ps in
@@ -756,7 +754,7 @@ proof (induction "badNtsCount (set ps)" arbitrary: ps rule: less_induct)
   qed simp
 qed
 
-section \<open>An Executable Conversion to Chomsky Normal Form\<close>
+subsection \<open>Converting to CNF\<close>
 
 lemma binarizeNt_all_preserves_uniform:
   fixes ps :: "('n::fresh0, 't) prods"

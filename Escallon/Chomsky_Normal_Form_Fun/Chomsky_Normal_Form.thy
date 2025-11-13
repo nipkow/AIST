@@ -17,7 +17,6 @@ unfolding Nts_def Nts_syms_def by auto
 
 (* Chomsky Normal Form *)
 
-
 definition badProds :: "('n::infinite,'t) Prods \<Rightarrow> 't \<Rightarrow> ('n,'t) Prods" where
   "badProds P t \<equiv> {(l,r)\<in>P. Tm t \<in> set r \<and> length r > 1}"
 
@@ -77,12 +76,8 @@ lemma uniformize_badProds_uniformized:
   using  uniformize_old_or_map[OF assms(1,2)] uniformize_badProds_not_preserved[OF assms]
   by satx 
 
-lemma substsNt_substsTm_id: (* simps? *)
+lemma substsNt_substsTm_id:
   "Nt A \<notin> set r \<Longrightarrow> substsNt A [Tm t] (substsTm t A r) = r"
-  unfolding substsTm_def by (induction r) auto
-
-lemma substsTm_substsNt_id:
-  "Tm t \<notin> set r \<Longrightarrow> substsTm t A (substsNt A [Tm t] r) = r"
   unfolding substsTm_def by (induction r) auto
 
 
@@ -200,11 +195,9 @@ lemma uniformize_Unit_free:
     and "uniformize A t S P P'"
   shows "Unit_free P'"
 proof -
-  let ?f = "map (\<lambda>s. if s = Tm t then Nt A else s)" 
-  
+  let ?f = "map (\<lambda>s. if s = Tm t then Nt A else s)"   
   from assms(2) have P'_def: 
-    "P' = (P - badProds P t) \<union> {(l, ?f r)| l r. (l,r)\<in>badProds P t} 
-    \<union> {(A, [Tm t])}"
+    "P' = (P - badProds P t) \<union> {(l, ?f r)| l r. (l,r)\<in>badProds P t} \<union> {(A, [Tm t])}"
     unfolding uniformize_defs by metis
   moreover have "Unit_free {(l, ?f r)| l r. (l,r)\<in>badProds P t}" 
     unfolding badProds_def using assms(1) by (force simp: Unit_free_def)
@@ -224,7 +217,7 @@ fun badTmsCount :: "('n,'t) Prods \<Rightarrow> nat" where
 lemma badTmsCountSet: "finite P \<Longrightarrow> (\<forall>p \<in> P. prodTms p = 0) \<longleftrightarrow> badTmsCount P = 0"
   by simp
 
-lemma badTmsCount_subsets: (* simp? *)
+lemma badTmsCount_subsets:
   assumes "finite P" "A \<subseteq> P"
   shows "badTmsCount (P - A) + badTmsCount A = badTmsCount P"
   using assms by (simp add: sum.subset_diff)
@@ -881,11 +874,11 @@ lemma uniformize_finite:
     "uniformize A t S P P'"
   shows "finite P'"
 proof -
-  from assms have "P' = P - badProds P t \<union> {(l, substsTm t A r)|l r. (l,r) \<in> badProds P t} \<union> {(A,[Tm t])}"
+  from assms have "P' = P - badProds P t \<union> Unif A t P \<union> {(A,[Tm t])}"
     unfolding uniformize_defs by metis
   moreover have "finite (P - badProds P t)" using assms(1) by blast
   moreover have "finite {(A, [Tm t])}" by blast
-  moreover have "finite {(l, substsTm t A r)|l r. (l,r) \<in> badProds P t}" (is "finite ?P''")
+  moreover have "finite (Unif A t P)"
   proof -
     from badProds_subset assms(1) have badProds_finite: "finite (badProds P t)" 
       by (metis finite_subset)
@@ -981,13 +974,13 @@ qed simp
 lemma lemma6_a:
   assumes "finite P" "uniformize A t S P P'" shows "badTmsCount P' < badTmsCount P"
 proof -
-  have P': "P' = P - badProds P t \<union> {(l, substsTm t A r)|l r. (l,r) \<in> badProds P t} \<union> {(A,[Tm t])}"
-    (is "P' = _ \<union> ?P'' \<union> _")
+  have P': "P' = P - badProds P t \<union> Unif A t P \<union> {(A,[Tm t])}"
     using assms(2) unfolding uniformize_defs by metis
-  have "badTmsCount P' = badTmsCount (P - badProds P t) + badTmsCount ?P''"
+  have "badTmsCount P' = badTmsCount (P - badProds P t) + badTmsCount (Unif A t P)"
   proof -
     have "finite P'" using uniformize_finite[OF assms] .
-    with P' have "badTmsCount P' = badTmsCount (P - badProds P t) + badTmsCount ?P'' + badTmsCount {(A,[Tm t])}"
+    with P' have "badTmsCount P' = badTmsCount (P - badProds P t) + badTmsCount (Unif A t P) 
+                  + badTmsCount {(A,[Tm t])}"
       using uniformize_disjunct[OF assms(2)] 
       unfolding Unif_def by (simp add: sum.union_disjoint)
     moreover have "badTmsCount {(A, [Tm t])} = 0"

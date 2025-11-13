@@ -754,8 +754,6 @@ proof (induction "badNtsCount (set ps)" arbitrary: ps rule: less_induct)
   qed simp
 qed
 
-subsection \<open>Converting to CNF\<close>
-
 lemma binarizeNt_all_preserves_uniform:
   fixes ps :: "('n::fresh0, 't) prods"
   assumes ps_uniform: "uniform (set ps)"
@@ -835,6 +833,8 @@ proof -
     qed
   qed
 qed
+
+subsection \<open>Converting to CNF\<close>
 
 theorem cnf_noe_nou_binarizeNt_all_uniformize_all:
   fixes ps :: "('n::fresh0, 't) prods"

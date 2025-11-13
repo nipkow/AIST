@@ -14,47 +14,6 @@ lemma Rhss_image_Pair_inj_on:
   shows "Rhss ((\<lambda>x. (f x, g x)) ` X) (f x) = {g x}"
   using inj_onD[OF f] x by (auto simp: Rhss_def)
 
-lemma Lang_Un_disj_Lhss:
-  assumes disj: "Nts P \<inter> Lhss Q = {}" and A: "A \<notin> Lhss Q"
-  shows "Lang (P \<union> Q) A = Lang P A"
-  sorry
-
-
-
-fun fresh_map :: "'a :: fresh0 set \<Rightarrow> 'b list \<Rightarrow> 'b \<Rightarrow> 'a" where
-  "fresh_map A [] = undefined"
-| "fresh_map A (x#xs) = (let a = fresh0 A in (fresh_map (insert a A) xs)(x := a))"
-
-lemma fresh_map_notIn: "finite A \<Longrightarrow> x \<in> set xs \<Longrightarrow> fresh_map A xs x \<notin> A"
-  apply (induction xs arbitrary: A)
-  by (auto simp: Let_def fresh0_notIn)
-
-lemma fresh_map_disj: "finite A \<Longrightarrow> B \<subseteq> A \<Longrightarrow> X \<subseteq> set xs \<Longrightarrow> B \<inter> fresh_map A xs ` X = {}"
-  by (force simp: fresh_map_notIn)
-
-lemma fresh_map_inj_on: "finite A \<Longrightarrow> inj_on (fresh_map A xs) (set xs)"
-proof (induction xs arbitrary: A)
-  case Nil
-  show ?case by simp
-next
-  case (Cons x xs)
-  define a where "a = fresh0 A"
-  from Cons
-  have IH: "inj_on (fresh_map (insert a A) xs) (set xs)"
-    and fin: "finite (insert a A)" by auto
-  { fix y assume "y \<in> set xs"
-    from fresh_map_notIn[OF fin this]
-    have "fresh_map (insert a A) xs y \<notin> A" "a \<noteq> fresh_map (insert a A) xs y" by auto
-  } note * = this this(2)[symmetric]
-  show ?case
-    by (auto simp flip: a_def intro!: inj_onI split: if_splits simp: inj_onD[OF IH] *)
-qed
-
-lemma fresh_map_distinct:
-  assumes fin: "finite A"
-  shows "distinct (map (fresh_map A xs) xs) \<longleftrightarrow> distinct xs" (is "?l \<longleftrightarrow> ?r")
-  using fresh_map_inj_on[OF fin] by (auto simp: distinct_map)
-
 definition Replace_Tm_new where
 "Replace_Tm_new f as = (\<lambda>a. (f a, [Tm a])) ` as"
 
@@ -131,8 +90,8 @@ definition replace_Tm_tl where
 lemma Lang_replace_Tm_tl_syms:
   assumes pre: "inj_on f as" "Lhss P \<inter> f ` as = {}" "A \<notin> f ` as"
     and \<alpha>: "Tms_syms \<alpha> \<subseteq> as"
-  defines "P' \<equiv> P \<union> Replace_Tm_new f as"
-  shows "Lang (insert (A, replace_Tm_tl_syms f \<alpha>) P') = Lang (insert (A,\<alpha>) P')"
+  shows "Lang (insert (A, replace_Tm_tl_syms f \<alpha>) (P \<union> Replace_Tm_new f as)) =
+         Lang (insert (A,\<alpha>) (P \<union> Replace_Tm_new f as))"
 proof (cases \<alpha>)
   case Nil
   then show ?thesis by (simp add: replace_Tm_tl_syms_def)
@@ -140,7 +99,7 @@ next
   case [simp]: (Cons x \<beta>)
   with \<alpha> have \<beta>: "Tms_syms \<beta> \<subseteq> as" by simp
   from Lang_replace_Tm_sym[OF pre \<beta>, where \<alpha> = "[x]"]
-  show ?thesis by (simp add: replace_Tm_tl_syms_def P'_def)
+  show ?thesis by (simp add: replace_Tm_tl_syms_def)
 qed
 
 lemma lang_replace_Tm_tl:
@@ -217,18 +176,55 @@ proof (intro conjI gnf_replace_Tm_new GNF_I)
   then show "\<exists>a Bs. \<alpha>' = Tm a # map Nt Bs" by blast
 qed
 
+fun fresh_map :: "'a :: fresh0 set \<Rightarrow> 'b list \<Rightarrow> 'b \<rightharpoonup> 'a" where
+  "fresh_map A [] = Map.empty"
+| "fresh_map A (x#xs) = (let a = fresh0 A in (fresh_map (insert a A) xs)(x \<mapsto> a))"
+
+abbreviation fresh_fun where
+"fresh_fun A xs x \<equiv> the (fresh_map A xs x)"
+
+lemma fresh_fun_notIn: "finite A \<Longrightarrow> x \<in> set xs \<Longrightarrow> fresh_fun A xs x \<notin> A"
+  apply (induction xs arbitrary: A)
+  by (auto simp: Let_def fresh0_notIn)
+
+lemma fresh_fun_disj: "finite A \<Longrightarrow> B \<subseteq> A \<Longrightarrow> X \<subseteq> set xs \<Longrightarrow> B \<inter> fresh_fun A xs ` X = {}"
+  by (force simp: fresh_fun_notIn)
+
+lemma fresh_fun_inj_on: "finite A \<Longrightarrow> inj_on (fresh_fun A xs) (set xs)"
+proof (induction xs arbitrary: A)
+  case Nil
+  show ?case by simp
+next
+  case (Cons x xs)
+  define a where "a = fresh0 A"
+  from Cons
+  have IH: "inj_on (fresh_fun (insert a A) xs) (set xs)"
+    and fin: "finite (insert a A)" by auto
+  { fix y assume "y \<in> set xs"
+    from fresh_fun_notIn[OF fin this]
+    have "fresh_fun (insert a A) xs y \<notin> A" "a \<noteq> fresh_fun (insert a A) xs y" by auto
+  } note * = this this(2)[symmetric]
+  show ?case
+    by (auto simp flip: a_def intro!: inj_onI split: if_splits simp: inj_onD[OF IH] *)
+qed
+
+lemma fresh_fun_distinct:
+  assumes fin: "finite A"
+  shows "distinct (map (fresh_fun A xs) xs) \<longleftrightarrow> distinct xs" (is "?l \<longleftrightarrow> ?r")
+  using fresh_fun_inj_on[OF fin] by (auto simp: distinct_map)
+
 definition gnf_of :: "('n::fresh0,'t)prods \<Rightarrow> ('n,'t)prods" where
 "gnf_of P =
  (let As = nts P; As' = freshs (set As) As;
     P' = expand_tri (As' @ rev As) (solve_tri As As' (eps_elim P));
-    f = fresh_map (set As \<union> set As') (tms P)
+    f = fresh_fun (set As \<union> set As') (tms P)
   in replace_Tm_tl f P')"
 
 lemma gnf_of_via_gnf_hd_of:
   "gnf_of P =
   (let As = nts P;
        As' = freshs (set As) As;
-       f = fresh_map (set As \<union> set As') (tms P)
+       f = fresh_fun (set As \<union> set As') (tms P)
    in replace_Tm_tl f (gnf_hd_of P))"
   by (auto simp: gnf_of_def gnf_hd_of_def Let_def)
 
@@ -237,18 +233,13 @@ theorem gnf_gnf_of: "gnf (gnf_of P)"
   apply (rule gnf_replace_Tm_tl)
   using gnf_hd_gnf_hd_of.
 
-lemma Tms_GNF_hd_of: "Tms (GNF_hd_of As P) \<subseteq> Tms P" sorry
-
-lemma Nts_GNF_hd_of: "Nts (GNF_hd_of As P) \<subseteq> Nts P \<union> set (freshs (set As) As)"
-  sorry
-
 theorem lang_gnf_of:
   assumes A: "A \<in> set (nts P)"
   shows "lang (gnf_of P) A = lang P A - {[]}"
 proof-
   define As where "As = nts P"
   define As' where "As' = freshs (set As) As"
-  define f where "f = fresh_map (set As \<union> set As') (tms P)"
+  define f where "f = fresh_fun (set As \<union> set As') (tms P)"
   show ?thesis
     apply (unfold gnf_of_via_gnf_hd_of Let_def)
     apply (fold As_def As'_def f_def)+
@@ -256,12 +247,12 @@ proof-
   proof (rule lang_replace_Tm_tl[OF _ _ ])
     show "inj_on f (Tms (set (gnf_hd_of P)))"
       apply (unfold f_def)
-      apply (rule inj_on_subset[OF fresh_map_inj_on])
+      apply (rule inj_on_subset[OF fresh_fun_inj_on])
       by (simp_all add: finite_Nts set_tms set_gnf_hd_of Tms_GNF_hd_of)
     have "(set As \<union> set As') \<inter> f ` Tms (set (gnf_hd_of P)) = {}"
       apply (unfold f_def)
       apply (fold set_tms)
-      apply (rule fresh_map_disj) by (auto simp: set_tms set_gnf_hd_of Tms_GNF_hd_of)
+      apply (rule fresh_fun_disj) by (auto simp: set_tms set_gnf_hd_of Tms_GNF_hd_of)
     with A
     show "A \<notin> f ` Tms (set (gnf_hd_of P))"
       and "Nts (set (gnf_hd_of P)) \<inter> f ` Tms (set (gnf_hd_of P)) = {}"
@@ -269,5 +260,9 @@ proof-
   qed
 qed
 
+value "remdups (gnf_of [
+(1::nat, [Nt 2, Nt 3]),
+(2,[Nt 3, Nt 1]), (2, [Tm (1::int)]),
+(3,[Nt 1, Nt 2]), (3,[Tm 0])])"
 
 end

@@ -2,16 +2,11 @@ theory Chomsky_Normal_Form_Fun
   imports Chomsky_Normal_Form
 begin
 
-section \<open>Uniformize\<close>
+section \<open>Uniformizing Productions\<close>
 subsection \<open>uniformize_fun\<close>
-subsubsection \<open>replaceTm\<close>
 
-
-lemmas Tms_defs = Tms_def Tms_syms_def
-
-subsubsection \<open>uniformize\<close>
-
-
+(* Checking if r = r' does not alter the output. However, this implementation follows
+    the specification of uniformize more closely *)
 fun uniformize_fun :: "'n::fresh0 \<Rightarrow> 't \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods" where
   "uniformize_fun A t [] = []" | 
   "uniformize_fun A t ((l,r) # ps) = 
@@ -25,6 +20,8 @@ lemma substsTm_eq_iff_no_t:
   unfolding substsTm_def 
   by (smt (verit, ccfv_SIG) isTm_simps(1,2) map_eq_conv map_ident)
 
+lemmas Tms_defs = Tms_def Tms_syms_def
+
 lemma substsTm_removes_ts:
   "Tms {(l,substsTm t A r)} = Tms {(l,r)} - {t}"
   unfolding substsTm_def Tms_defs by force
@@ -36,15 +33,6 @@ lemma substsTm_idem[simp]:
 lemma uniformize_fun_recurses[elim]:
   obtains p' where "uniformize_fun A t (p#ps) = p' # uniformize_fun A t ps"
   by (smt (verit, ccfv_threshold) list.distinct(1) list.inject uniformize_fun.elims)
-
-lemma uniformize_fun_length_preserved[simp]:
-  "length (uniformize_fun A t ps) = length ps"
-proof (induction ps)
-  case (Cons p ps)
-  from uniformize_fun_recurses obtain p' where "uniformize_fun A t (p#ps) = p' # uniformize_fun A t ps"
-    by metis
-  then show ?case using Cons by simp
-qed simp
 
 lemma uniformize_fun_eq_iff_badProds_empty:
   "uniformize_fun A t ps = ps \<longleftrightarrow> badProds (set ps) t = {}"
@@ -101,7 +89,7 @@ lemma uniformize_fun_badProds_subst:
   "(l,r) \<in> badProds (set ps) t \<Longrightarrow> (l,substsTm t A r) \<in> set (uniformize_fun A t ps)"
 proof (induction ps)
   case Nil
-  then show ?case unfolding badProds_def by simp (* try0 example *)
+  then show ?case unfolding badProds_def by simp
 next
   case (Cons p ps)
   show ?case
@@ -116,7 +104,7 @@ next
   next
     case False
     with Cons have "(l,substsTm t A r) \<in> set (uniformize_fun A t ps)" unfolding badProds_def 
-      by simp (* try0 example *)
+      by simp
     moreover from uniformize_fun_recurses obtain p' where 
       "uniformize_fun A t (p#ps) = p' # uniformize_fun A t ps" by metis
     ultimately show ?thesis by simp
@@ -170,17 +158,6 @@ lemma uniformize_fun_uniformized:
   shows "uniformize A t S (set ps) (set (uniformize_fun A t ps @ [(A, [Tm t])]))"
   using assms uniformize_fun_uniformizes uniformize_fun_eq_iff_badProds_empty
   unfolding uniformize_def by fastforce
-
-lemma uniformize_fun_dec_badTmsCount:
-  assumes "uniformize_fun A t ps \<noteq> ps"
-          "A \<notin> Nts (set ps) \<union> {S}"
-  shows "badTmsCount (set (uniformize_fun A t ps @ [(A, [Tm t])])) < badTmsCount (set ps)"
-  using assms uniformize_fun_uniformized lemma6_a by fast
-
-lemma uniformize_fun_Tms_insert:
-  "Tms (set (uniformize_fun A t ps)) \<subseteq> Tms (set (uniformize_fun A t (p#ps)))"
-  unfolding Tms_defs
-  by (metis SUP_subset_mono dual_order.refl set_subset_Cons uniformize_fun_recurses)
 
 lemma uniformize_fun_unchanged_Tms:
   "t \<notin> Tms (set ps) \<Longrightarrow> Tms (set ps) = Tms (set (uniformize_fun A t ps))"
@@ -354,7 +331,7 @@ lemma uniformize_fun_no_badProds:
 definition freshA :: "('n::fresh0,'t) prods \<Rightarrow> 'n \<Rightarrow> 'n" where
   "freshA ps S = fresh0 (Nts (set ps) \<union> {S})"
 
-lemma freshA_notin_set: (* simp? *)
+lemma freshA_notin_set:
   shows "freshA ps S \<notin> (Nts (set ps) \<union> {S})"
   unfolding freshA_def by (metis ID.set_finite finite_Un finite_nts fresh0_notIn)
 
@@ -365,7 +342,6 @@ lemma uniformize_fun_unifRtc:
   using uniformize_fun_uniformized[OF assms] by blast
 
 subsection \<open>uniformize_all\<close>
-
 
 fun uniformize_all :: "'n::fresh0 \<Rightarrow> 't list \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods" where
   "uniformize_all _ [] ps = ps" |
@@ -480,11 +456,10 @@ proof (induction ts arbitrary: ps)
   qed
 qed simp
 
-section \<open>BinarizeNt\<close>
-subsection \<open>binarizeNt_fun\<close>
-subsubsection \<open>replaceNts\<close>
+section \<open>Binarizing Productions\<close>
+subsection \<open>replaceNts\<close>
 
-(*Simplifying the first two cases complicates proofs*)
+(* Simplifying the first two cases complicates proofs *)
 fun replaceNts :: "'n::fresh0 \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n \<times> 'n) option \<times> ('n,'t) syms" where
   "replaceNts A [] = (None, [])" |
   "replaceNts A [s] = (None, [s])" |
@@ -517,8 +492,6 @@ next
     using replaceNts_tm_unchanged_opt by blast
   then show ?case using "4_2" by auto
 qed auto
-
-
 
 lemma replaceNts_replaces_pair:
   assumes 
@@ -564,7 +537,7 @@ corollary replaceNts_replaces_pair_Some:
   using replaceNts_replaces_pair 
   by (smt (verit) assms option.distinct(1) option.inject prod.inject)
 
-subsubsection \<open>binarizeNt\<close>
+subsection \<open>binarizeNt_fun\<close>
 
 fun binarizeNt_fun :: "'n::fresh0 \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,'t) prods" where
   "binarizeNt_fun A ps0 [] = ps0" |
@@ -575,8 +548,6 @@ fun binarizeNt_fun :: "'n::fresh0 \<Rightarrow> ('n,'t) prods \<Rightarrow> ('n,
         if length r < 3 then binarizeNt_fun A ps0 ps 
         else (removeAll (l,r) ps0) @ [(A, [Nt B\<^sub>1,Nt B\<^sub>2]), (l, r')])" 
 
-
-
 lemma binarizeNt_fun_rec_if_id_or_lt3:
   assumes 
     "replaceNts A r = (nn_opt, r')"
@@ -584,7 +555,6 @@ lemma binarizeNt_fun_rec_if_id_or_lt3:
   shows "binarizeNt_fun A ps0 ((l,r)#ps) = binarizeNt_fun A ps0 ps"
   using assms replaceNts_id_iff_None by (cases nn_opt) auto
    
-
 lemma binarizeNt_fun_binarizes:
   assumes "binarizeNt_fun A ps0 ps \<noteq> ps0"
   obtains l r r' B\<^sub>1 B\<^sub>2 where
@@ -642,7 +612,6 @@ lemma binarizeNt_fun_dec_badNtsCount:
   by (metis list.set_finite)
 
 (* Needed to prove badNts_impl_binarizeNt_fun_not_id_unif *)
-
 lemma removeAll_app_eq_impl_removed:
   "removeAll z xs @ ys = xs \<Longrightarrow> (\<forall>y\<in>set ys. y = z)"
   by (induction xs) 
@@ -785,7 +754,7 @@ proof (induction "badNtsCount (set ps)" arbitrary: ps rule: less_induct)
   qed simp
 qed
 
-section \<open>Conversion to CNF\<close>
+section \<open>An Executable Conversion to Chomsky Normal Form\<close>
 
 lemma binarizeNt_all_preserves_uniform:
   fixes ps :: "('n::fresh0, 't) prods"
@@ -867,7 +836,6 @@ proof -
   qed
 qed
 
-
 theorem cnf_noe_nou_binarizeNt_all_uniformize_all:
   fixes ps :: "('n::fresh0, 't) prods"
   assumes eps_free: "Eps_free (set ps)" 
@@ -934,17 +902,6 @@ proof -
     Lang_ps'' by auto
 qed
 
-lemma "set(cnf_of
- ([(0, [Tm 2, Nt 1]), (0, [Tm 1, Nt 2]),
-   (1, [Tm 2, Nt 1, Nt 1]), (1, [Tm 1, Nt 0]), (1, [Tm 1]),
-   (2, [Tm 1, Nt 2, Nt 2]), (2, [Tm 2, Nt 0]), (2, [Tm 2])]::(nat,int)prods) 0) =
- {(0, [Nt 6, Nt 1]), (0, [Nt 3, Nt 2]),
-  (1, [Nt 4, Nt 0]), (1, [Nt 10, Nt 1]), (1, [Tm 1]),
-  (2, [Nt 8, Nt 0]), (2, [Nt 9, Nt 2]), (2, [Tm 2]),
-  (3, [Tm 1]), (4, [Tm 1]), (5, [Tm 1]), (6, [Tm 2]), (7, [Tm 2]), (8, [Tm 2]),
-  (9, [Nt 5, Nt 2]), (10, [Nt 7, Nt 1])}"
-  oops (* Holds true with old version *)
-
 lemma "set (cnf_of
   ([(0, [Tm 2, Nt 1]), (0, [Tm 1, Nt 2]), 
     (1, [Tm 2, Nt 1, Nt 1]), (1, [Tm 1, Nt 0]), (1, [Tm 1]),
@@ -954,35 +911,5 @@ lemma "set (cnf_of
     (2, [Nt 4, Nt 0]), (2, [Tm 2]), (2, [Nt 6, Nt 2]), 
     (3, [Tm 1]), (4, [Tm 2]), (5, [Nt 4, Nt 1]), (6, [Nt 3, Nt 2])}"
   by eval
-
-(* ---------------------------------------------------------------------------- *)
-
-(* 
-  Naive implementation for GNF of a single prod using uniformize_all 
-  (assumes nonempty input rhs starting with a Tm) 
-
-  Initial problems: 
-    1. does not work if length sl = 1 due to uniformize_fun ITE 
-       Alternative fix: pass dummy Nt as hd of rhs (Nt N#sl instead of Tm t#sl)
-
-    2. fresh Nt generated by uniformize_all is only fresh w.r.t. {A, S} 
-        (pass fresh Nt as parameter to uniformize_all? 
-          Possibly: instead of passing S to uniformize_all, pass 'n set. 
-          To fix for length sl = 1, pass 'n set to gnf_of_prod instead of 'n
-          (should also be compatible with uniformize_all fix)
-*)
-
-fun gnf_of_prod :: "('n::fresh0, 't) prod \<Rightarrow> 'n \<Rightarrow> ('n, 't) prods" where
-  (* Handles problem 1, still suffers from problem 2 *)
-  "gnf_of_prod (A, [Tm t0, Tm t1]) S = (let B = fresh0 {A,S} in [(A, [Tm t0, Nt B]), (B, [Tm t1])])" |
-
-  (* Initial implementation *)
-  "gnf_of_prod (A, Tm t#sl) S = (let ps = uniformize_all S (tms [(A, sl)]) [(A, sl)] in
-    case ps of ((l,r)#ps') \<Rightarrow> ((l,Tm t#r))#ps')" |
-  "gnf_of_prod _ _ = undefined"
-
-value "gnf_of_prod ((0, [Tm 1, Nt 1, Tm 2, Tm 3, Nt 1, Nt 4, Tm 2])::(nat,int)prod) (2)"
-value "gnf_of_prod ((0, [Tm 1, Tm 2])::(nat,int)prod) (1)" (* fixed(?) *)
-value "gnf_of_prod ((0, [Tm 1])::(nat,int)prod) (0)"
 
 end

@@ -6,12 +6,6 @@ begin
 lemma inj_on_cong2: "(\<And>a. a \<in> A \<Longrightarrow> f a = g a) \<Longrightarrow> A = B \<Longrightarrow> inj_on f A \<longleftrightarrow> inj_on g B"
   by (auto simp: inj_on_def)
 
-lemma in_Nts_lhs: "(A,xs) \<in> P \<Longrightarrow> A \<in> Nts P"
-  by (auto simp: Nts_def)
-
-lemma in_Nts_rhs: "(A,xs) \<in> P \<Longrightarrow> Nt B \<in> set xs \<Longrightarrow> B \<in> Nts P"
-  by (auto simp: Nts_def Nts_syms_def)
-
 lemma Lhss_image_Pair: "Lhss ((\<lambda>x. (f x, g x)) ` X) = f ` X"
   by (auto simp: Lhss_def)
 
@@ -129,94 +123,6 @@ proof-
     apply (rule Lang_Un_disj_Lhss) using disj A by (auto simp: Lhss_image_Pair)
   finally show ?thesis.
 qed
-
-
-(*
-lemma Lang_replace_Tm_sym:
-  assumes inj: "inj_on f as" and Pfas: "Lhss P \<inter> f ` as = {}" and Afas: "A \<notin> f ` as"
-  defines "P' \<equiv> P \<union> Replace_Tm_new f as"
-  shows "Tms_syms \<beta> \<subseteq> as \<Longrightarrow>
- Lang (insert (A, \<alpha> @ map (replace_Tm_sym f) \<beta>) P') = Lang (insert (A, \<alpha> @ \<beta>) P')"
-proof (induction \<beta> arbitrary: \<alpha>)
-  case Nil
-  show ?case by simp
-next
-  case (Cons x \<beta>)
-  from Cons.prems have "Tms_syms \<beta> \<subseteq> as" by auto
-  note IH = Cons.IH[OF this, where \<alpha> = "\<alpha> @ [x]"]
-  show ?case
-  proof (cases x)
-    case (Nt A)
-    with IH show ?thesis by (simp add: replace_Tm_sym_simps)
-  next
-    case [simp]: (Tm a)
-    from Cons.prems have a: "a \<in> as" by auto
-    from a Pfas have fa: "f a \<notin> Lhss P" by auto
-    from a Afas have A: "A \<noteq> f a" by auto
-    note * = Lang_Replace_Tm_tl[OF inj a fa A]
-    from IH show ?thesis by (simp add: * P'_def)
-  qed
-qed
-
-lemma Lang_replace_Tm_tl_syms:
-  assumes pre: "inj_on f as" "Lhss P \<inter> f ` as = {}" "A \<notin> f ` as"
-    and \<alpha>: "Tms_syms \<alpha> \<subseteq> as"
-  shows "Lang (insert (A, replace_Tm_tl_syms f \<alpha>) (P \<union> Replace_Tm_new f as)) =
-         Lang (insert (A,\<alpha>) (P \<union> Replace_Tm_new f as))"
-proof (cases \<alpha>)
-  case Nil
-  then show ?thesis by (simp add: replace_Tm_tl_syms_def)
-next
-  case [simp]: (Cons x \<beta>)
-  with \<alpha> have \<beta>: "Tms_syms \<beta> \<subseteq> as" by simp
-  from Lang_replace_Tm_sym[OF pre \<beta>, where \<alpha> = "[x]"]
-  show ?thesis by (simp add: replace_Tm_tl_syms_def)
-qed
-
-lemma lang_replace_Tm_tl:
-  assumes inj: "inj_on f (Tms (set P))" and Nts: "Nts (set P) \<inter> f ` Tms (set P) = {}"
-    and A: "A \<notin> f ` Tms (set P)"
-  shows "lang (replace_Tm_tl f P) A = lang P A"
-proof-
-  have Lhss: "Lhss (set P) \<inter> f ` Tms (set P) = {}" using Nts by (auto simp: Nts_Lhss_Rhs_Nts)
-  { fix as
-    assume inj: "inj_on f as"
-      and Pfas: "Lhss (set P) \<inter> f ` as = {}"
-      and Pas: "Tms (set P) \<subseteq> as"
-    from Pfas Pas
-    have "\<And>Q. Lhss Q \<inter> f ` as = {} \<Longrightarrow> Lang (Q \<union> set [(A, replace_Tm_tl_syms f \<alpha>). (A,\<alpha>) \<leftarrow> P] \<union> Replace_Tm_new f as) = Lang (Q \<union> set P \<union> Replace_Tm_new f as)"
-      apply simp
-    proof (induction P)
-      case Nil
-      show ?case by simp
-    next
-      case (Cons p P)
-      show ?case
-      proof (cases p)
-        case [simp]: (Pair A \<alpha>)
-        from Cons
-        have Afas: "A \<notin> f ` as" and Pfas: "lhss P \<inter> f ` as = {}"
-          and Qfas: "Lhss Q \<inter> f ` as = {}"
-          and Pas: "Tms (set P) \<subseteq> as" and \<alpha>as: "Tms_syms \<alpha> \<subseteq> as"
-          by (auto simp: Tms_def)
-        from Afas Qfas have "Lhss (Q \<union> {(A,\<alpha>')}) \<inter> f ` as = {}" for \<alpha>' by (simp add: ac_simps)
-        note IH = Cons.IH[OF this Pfas Pas, simplified]
-        from Pfas Qfas have QPfas: "Lhss (Q \<union> set P) \<inter> f ` as = {}" by auto
-        note * = Lang_replace_Tm_tl_syms[OF inj QPfas Afas \<alpha>as]
-        show ?thesis by (simp add: * IH)
-      qed
-    qed
-  }
-  from this[of "set (tms P)" "{}",simplified] inj Lhss
-  have 1: "lang (replace_Tm_tl f P) = Lang (set P \<union> Replace_Tm_new f (Tms (set P)))"
-    by (simp add: replace_Tm_tl_def set_tms)
-  have 2: "\<dots> A = lang P A"
-    apply (rule Lang_Un_disj_Lhss)
-    using A by (auto simp: Lhss_image_Pair Nts)
-  show ?thesis by (simp add: 1 2)
-qed
-*)
-
 
 definition GNF where
 "GNF P = (\<forall>(A,\<alpha>) \<in> P. \<exists>a Bs. \<alpha> = Tm a # map Nt Bs)"

@@ -363,7 +363,7 @@ lemma cnf_r1Tm:
     and "P \<turnstile> lhs \<Rightarrow> rhs"
   shows "P' \<turnstile> lhs \<Rightarrow>* rhs"
   using assms(2,1) proof (induction rule: derive.induct)
-  case (1 A' \<alpha> P u v)
+  case (1 A' \<alpha> u v)
   consider (uniformized) "(A', \<alpha>) \<in> badProds P t" | (non_uniformized) "(A', \<alpha>) \<notin> badProds P t" 
     by blast
   then show ?case

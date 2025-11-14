@@ -6,7 +6,6 @@ section \<open>An Executable Conversion to Chomsky Normal Form\<close>
 
 theory Chomsky_Normal_Form_Fun
   imports Chomsky_Normal_Form
-    Context_Free_Grammar.Context_Free_Grammar
 begin
 
 
@@ -874,7 +873,7 @@ next
 lemma unit_elim_o_eps_elim_Tms_subset:
   "Tms (set ((unit_elim \<circ> eps_elim) ps)) \<subseteq> Tms (set ps)"
 unfolding comp_def  Unit_elim_set_code[of "eps_elim ps", symmetric] set_eps_elim[of ps]
-using Tms_Unit_elim_subset Tms_Eps_elim_subset by fast 
+  using Tms_Unit_elim_subset Tms_Eps_elim by fast 
 
 definition cnf_of :: "('n::fresh0, 't) prods \<Rightarrow> 'n \<Rightarrow> ('n,'t) prods" where
   "cnf_of ps S \<equiv> let ts = tms ps in

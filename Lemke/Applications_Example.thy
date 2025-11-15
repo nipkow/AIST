@@ -1,9 +1,11 @@
-subsection\<open>Examples\<close>
+(* Author: Tassilo Lemke *)
+
+subsection \<open>Examples\<close>
 
 (* TODO: Disjointness and Subset Problem *)
 
-theory ApplicationsExample
-  imports Applications
+theory Applications_Example
+imports Applications
 begin
 
 text\<open>Consider the following grammar, with \<open>V = {A,B,C,D}\<close> and \<open>\<Sigma> = {a,b,c,d}\<close>:\<close>

@@ -1,3 +1,5 @@
+(* Author: Tassilo Lemke *)
+
 section\<open>Finiteness of Context-Free Languages\<close>
 
 theory Finiteness

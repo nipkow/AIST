@@ -1,3 +1,5 @@
+(* Authors: Tassilo Lemke, Tobias Nipkow *)
+
 section\<open>Labeled Transition System\<close>
 
 text \<open>This theory could be unified with \<open>AFP/Labeled_Transition_Systems\<close>\<close>

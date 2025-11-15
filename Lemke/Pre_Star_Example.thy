@@ -1,8 +1,10 @@
-subsection\<open>Example\<close>
+(* Author: Tassilo Lemke *)
 
-text\<open>The algorithm is executable. This theory file shows a quick example.\<close>
+subsection\<open>$Pre^*$ Example\<close>
 
-theory AlgorithmExample
+text\<open>The algorithm is executable. This theory shows a quick example.\<close>
+
+theory Pre_Star_Example
   imports Pre_Star
 begin
 

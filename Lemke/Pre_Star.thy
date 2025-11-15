@@ -1,3 +1,5 @@
+(* Authors: Tassilo Lemke, Tobias Nipkow *)
+
 section \<open>$Pre^*$\<close>
 
 theory Pre_Star

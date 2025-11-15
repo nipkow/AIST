@@ -1,9 +1,9 @@
-section\<open>Reduced Complexity for Grammars in CNF\<close>
+(* Author: Tassilo Lemke *)
 
-theory ImprovedAlgorithm
-imports
-  Context_Free_Grammar.Chomsky_Normal_Form
-  Pre_Star
+section \<open>$Pre^*$ Optimized for Grammars in CNF\<close>
+
+theory Pre_Star_CNF
+imports Pre_Star
 begin
 
 text\<open>

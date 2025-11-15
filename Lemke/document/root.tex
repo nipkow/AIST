@@ -2,8 +2,6 @@
 \usepackage[T1]{fontenc}
 \usepackage{isabelle,isabellesym}
 
-\usepackage[a4paper]{geometry}
-
 \usepackage{amssymb}
 
 % this should be the last package used
@@ -49,16 +47,22 @@ allowing many basic problems on context-free grammars to be solved automatically
 
 \section{Introduction}
 
-Given a regular language $L$ and a context-free grammar $G$,
-the language of predecessors of $L$ with respect to $G$, $pre^*(L)$, is also regular.
-This has been discovered independently by many authors
-\cite{book1993string,buchi59,caucal1992regular}.
-We formalise the algorithm proposed by Book and Otto \cite{book1993string}
-which takes as input a non-deterministic finite automaton $M$, enriches it with new transitions,
-and yields a new automaton $M'$ such that $L(M') = pre^*(L(M))$.
+Given a regular language $L$ and a context-free grammar $G$, the
+language of predecessors of $L$ with respect to $G$, $pre^*(L)$, is
+also regular.  This has been discovered independently by many authors
+\cite{book1993string,buchi59,caucal1992regular}.  We formalise the
+algorithm proposed by Book and Otto \cite{book1993string} which takes
+as input a non-deterministic finite automaton $M$, enriches it with
+new transitions, and yields a new automaton $M'$ such that
+$L(M') = pre^*(L(M))$.
 
-This yields a unified framework for deciding many properties of context-free grammars,
-as was detailed by Bouajjani et~al.\ \cite{bouajjani2000efficient}.
+This yields a unified framework for deciding many elementary
+properties of context-free grammars, as was first described by Esparza
+and Rossmanith \cite{EsparzaR97}.
+
+These theories formalize $pre^*$, its applications to elementary CFG
+problems, and an improved algorithm for grammars in CNF by
+Bouajjani\emph{ et~al.} \cite{bouajjani2000efficient}.
 
 The theories \textit{Labeled\_Transition\_System} and \textit{LTS\_Automata} are auxiliary;
 the formalization proper starts with theory \textit{Pre\_Star}.

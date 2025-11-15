@@ -1,5 +1,7 @@
-session PreStar = Context_Free_Grammar +
-  options [document = pdf, document_output = "output"]
+chapter AFP
+
+session Pre_Star_CFG = Context_Free_Grammar +
+  options [timeout=3J. Richard Büchi. Regular canonical systems. Technical Report00]
   theories
     Pre_Star
     Pre_Star_Example

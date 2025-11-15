@@ -299,6 +299,25 @@ next
 qed
 
 
+definition states_lts :: "('s,'a)lts \<Rightarrow> 's set" where
+"states_lts T = (\<Union>(p,a,q)\<in>T. {p,q})"
+
+lemma Step_states_lts: "states_lts T \<subseteq> Q \<Longrightarrow> Q0 \<subseteq> Q \<Longrightarrow> Step_lts T a Q0 \<subseteq> Q"
+  unfolding Step_lts_def step_lts_def states_lts_def by auto
+
+lemma Steps_states_lts: assumes "states_lts T \<subseteq> Q" shows "Q0 \<subseteq> Q \<Longrightarrow> Steps_lts T u Q0 \<subseteq> Q"
+  unfolding Steps_lts_def
+  apply(induction u arbitrary: Q0)
+   apply simp
+  using assms by (simp add: Step_states_lts)
+
+corollary steps_states_lts: "\<lbrakk> states_lts T \<subseteq> Q; q \<in> Q \<rbrakk> \<Longrightarrow> steps_lts T u q \<subseteq> Q"
+  using Steps_states_lts[of T Q "{q}"] by blast
+
+lemma states_lts_Un: "states_lts (T \<union> T') = states_lts T \<union> states_lts T'"
+  unfolding states_lts_def by auto
+
+
 subsection\<open>Language\<close>
 
 abbreviation accepts_lts :: "('s, 'l) lts \<Rightarrow> 's \<Rightarrow> 's set \<Rightarrow> 'l list \<Rightarrow> bool" where

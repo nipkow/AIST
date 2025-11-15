@@ -1,10 +1,8 @@
 theory EarleyWorklist
 
-imports "Earley" "HOL-Library.While_Combinator" "HOL-Data_Structures.Define_Time_Function"
+imports "Earley" "HOL-Library.While_Combinator" "HOL-Data_Structures.Define_Time_Function" "HOL-Data_Structures.Set_Specs"
 
 begin
-
-value "while_option (\<lambda>(as,bs). as \<noteq> []) (step_fun Bs) ([], [])"
 
 context Earley_Gw
 begin
@@ -41,10 +39,10 @@ lemma Init_L_eq_Init: "set Init_L = Init"
   by (auto simp add: Init_L_def Init_def)
 
 definition Scan_L :: "('n,'a) state list \<Rightarrow> nat \<Rightarrow> ('n,'a) state list" where
-  "Scan_L Bs k = map mv_dot (filter (\<lambda> b. next_symbol b = Some (w!k)) Bs)"
+  "Scan_L Bs k = map mv_dot (filter (\<lambda> b. next_symbol b = Some (Tm (w0 ! k))) Bs)"
                                            
-lemma Scan_L_eq_Scan: "set (Scan_L Bs k) = Scan (set Bs) k"
-  by (auto simp add: Scan_L_def Scan_def)
+lemma Scan_L_eq_Scan: "k < length w \<Longrightarrow> set (Scan_L Bs k) = Scan (set Bs) k"
+  by (auto simp add: Scan_L_def Scan_def w_def)
 
 definition minus_L :: "'b list \<Rightarrow> 'b list \<Rightarrow> 'b list" (infix "-l" 50) where
   "minus_L As Bs = foldr (removeAll) Bs As"
@@ -52,20 +50,217 @@ definition minus_L :: "'b list \<Rightarrow> 'b list \<Rightarrow> 'b list" (inf
 lemma minus_L_set[simp]: "set (As -l Bs) = set As - set Bs"
   by (induction Bs) (auto simp add: minus_L_def)
 
+fun member :: "'c list \<Rightarrow> 'c \<Rightarrow> bool" where
+"member [] a = False"
+| "member (x#xs) a = (if x = a then True else member xs a)"
 
-fun step_fun :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) state list * ('n, 'a) state list \<Rightarrow> ('n, 'a) state list * ('n, 'a) state list" where
-  "step_fun Bs ([], C) = undefined" |
-  "step_fun Bs ((b#bs), C) = ( (List.union bs (if is_complete b then Complete_L Bs b else Predict_L b (length Bs))) -l (b # C) , (b # C)) "
+lemma member_elem: "member xs a = (a \<in> (set xs))"
+  by (induction xs) auto
 
-definition steps :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) state list \<times> ('n, 'a) state list \<Rightarrow> (('n, 'a)state list \<times> ('n, 'a) state list) option" where
-  "steps Bs asbs = while_option (\<lambda>(as,bs). as \<noteq> []) (step_fun Bs) asbs"
+(*fun list_remove :: "'c list \<Rightarrow> 'c \<Rightarrow> 'c list" where
+"list_remove [] x = []" |
+"list_remove (a#as) x = (if a = x then list_remove as x else a # (list_remove as x))"*)
 
-definition close2_L :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) state list \<Rightarrow> ('n, 'a) state list" where
-"close2_L Bs B = snd (the (steps Bs (B,[])))"
+datatype ('c,'d) WorkList = 
+  WorkList ("list": "('c,'d) state list") ("leng" : nat) ("list_map" : "('c,'d) state list list")
+
+fun WL_inv :: "('c, 'd) WorkList \<Rightarrow> bool" where
+"WL_inv (WorkList as l m) = (l = length m \<and> (\<forall>x \<in> set as. from x < l) \<and> (\<forall>x. x \<in> set as \<longleftrightarrow> x \<in> set (m ! (l - from x - 1))))"
+
+definition WL_empty :: "('c, 'd) WorkList" where
+"WL_empty = (WorkList [] 1 [[]])"
+
+fun isin :: "('c, 'd) WorkList \<Rightarrow> ('c,'d) state \<Rightarrow> bool" where
+"isin (WorkList as l m) x = (from x < l \<and> member (m ! (l - from x - 1)) x)"
+
+fun set_WorkList :: "('c, 'd) WorkList \<Rightarrow> ('c,'d) state set" where
+  "set_WorkList wl = set (list wl)"
+
+fun upsize :: "('c, 'd) WorkList \<Rightarrow> nat \<Rightarrow> ('c, 'd) WorkList" where
+"upsize wl 0 = wl" |
+"upsize (WorkList as l m) (Suc k) = upsize (WorkList as (Suc l) ([]#m)) k"
+
+fun insert :: "('c,'d) WorkList \<Rightarrow> ('c,'d) state \<Rightarrow> ('c,'d) WorkList" where
+"insert (WorkList as l m) x = (if isin (WorkList as l m) x then WorkList as l m else
+                               (let wl = (upsize (WorkList as l m) (Suc (from x) - l)) 
+                                in WorkList (x # (list wl)) (leng wl) ((list_map wl)[(leng wl) - from x - 1 := x#(list_map wl ! ((leng wl) - from x - 1))]) ))"
+
+(*fun remove_first :: "('c,'d) WorkList \<Rightarrow> ('c,'d) WorkList" where
+"remove_first (WorkList [] l m) = WorkList [] l m" |
+"remove_first (WorkList (a#as) l m) = WorkList as l (m[l - from a - 1 := list_remove (m ! (l - from a - 1)) a])"*)
+
+fun union_LWL :: "('c,'d) state list \<Rightarrow> ('c,'d) WorkList \<Rightarrow> ('c,'d) WorkList" where
+"union_LWL [] wl = wl" |
+"union_LWL (a#as) wl = insert (union_LWL as wl) a"
+
+definition union_WL :: "('c,'d) WorkList \<Rightarrow> ('c,'d) WorkList \<Rightarrow> ('c,'d) WorkList" where
+"union_WL wl1 wl2 = union_LWL (list wl1) wl2"
+
+definition WL_of_List :: "('c,'d) state list \<Rightarrow> ('c,'d) WorkList" where
+"WL_of_List as = union_LWL as WL_empty"
+
+fun minus_LWL :: "('c,'d) state list \<Rightarrow> ('c,'d) WorkList \<Rightarrow> ('c,'d) WorkList" where
+"minus_LWL [] wl = WL_empty" |
+"minus_LWL (a#as) wl = (if \<not>(isin wl a) then insert (minus_LWL as wl) a else minus_LWL as wl)"
+
+definition minus_WL :: "('c,'d) WorkList \<Rightarrow> ('c,'d) WorkList \<Rightarrow> ('c,'d) WorkList" where
+"minus_WL wl1 wl2 = minus_LWL (list wl1) wl2"
+
+
+lemma set_WL_empty: "set_WorkList WL_empty = {}" by (simp add: WL_empty_def)
+
+lemma empty_inv: "WL_inv WL_empty" by (auto simp add: WL_empty_def)
+
+lemma isin_WL: "WL_inv (WorkList as l m) \<Longrightarrow> (isin (WorkList as l m) x) = (x \<in> set_WorkList (WorkList as l m))" 
+  by (auto simp add: member_elem)
+
+lemma isin_WL1: "WL_inv wl \<Longrightarrow> (isin wl x) = (x \<in> set_WorkList wl)"
+  by (metis WL_inv.cases isin_WL)
+
+lemma WL_inv_upsize: "WL_inv (WorkList as l m) \<Longrightarrow> WL_inv (upsize (WorkList as l m) k)"
+proof (induction k arbitrary: l m)
+  case 0
+  then show ?case by auto
+next
+  case (Suc k)
+  then have "\<forall>x. x \<in> set as \<longleftrightarrow> x \<in> set ( ([]#m) ! ((Suc l) - from x - 1))"
+    by (metis (no_types, lifting) ext Earley_Gw.WL_inv.simps diff_Suc_1 diff_commute in_set_conv_nth list.size(3) not_less_zero nth_Cons' zero_less_diff)
+  then have "WL_inv (WorkList as (Suc l) ([]#m))" using Suc by auto
+  then show ?case using Suc.IH[of "Suc l" "[]#m"] by auto
+qed
+
+lemma upsize_length: "upsize (WorkList as l m) k = WorkList as' l' m' \<Longrightarrow> l' = k + l"
+proof (induction k arbitrary: m m' l l')
+  case 0
+  then show ?case by auto
+next
+  case (Suc k)
+  then have "upsize (WorkList as (Suc l) ([]#m)) k = WorkList as' l' m'" by simp
+  then show ?case using Suc.IH[of "Suc l" "[]#m"] by auto
+qed
+
+lemma upsize_list: "list (upsize (WorkList as l m) k) = as"
+  by (induction k arbitrary: l m) auto
+
+lemma upsize_list1: "list (upsize wl k) = list wl"
+  using upsize_list by (metis WL_inv.cases WorkList.sel(1))
+
+lemma set_upsize: "set_WorkList (upsize (WorkList as l m) k) = set_WorkList (WorkList as l m)"
+  by (induction k arbitrary: l m) auto
+
+lemma set_upsize1: "set_WorkList (upsize wl k) = set_WorkList wl"
+  using set_upsize by (metis WL_inv.cases)
+
+lemma WL_insert: "WL_inv (WorkList as l m) \<Longrightarrow> set_WorkList (insert (WorkList as l m) x) = set_WorkList ((WorkList as l m)) \<union> {x}"
+  using set_upsize[of _ _ _ "(Suc (from x) - l)"] by (auto simp add: Let_def isin_WL simp del: isin.simps)
+
+lemma WL_insert1: "WL_inv wl \<Longrightarrow> set_WorkList (insert wl x) = set_WorkList wl \<union> {x}"
+  using WL_insert by (metis WL_inv.cases)
+
+lemma insert_WL_inv: "WL_inv (WorkList as l m) \<Longrightarrow> WL_inv (insert (WorkList as l m) x)"
+proof -
+  let ?wl = "(upsize (WorkList as l m) (Suc (from x) - l))"
+  assume assm: "WL_inv (WorkList as l m)"
+  then have "WL_inv ?wl" by (auto simp add: WL_inv_upsize)
+  then obtain bs k n where P: "?wl = WorkList bs k n \<and> WL_inv (WorkList bs k n)"
+    by (metis Earley_Gw.WorkList.exhaust)
+  have 1: "from x < k" using P upsize_length
+    by (metis less_diff_conv less_not_refl not_less_eq)
+  have "\<forall>y. y \<in> set bs \<union> {x} \<longleftrightarrow> y \<in> set ((n[k - from x - 1 := x#(n ! (k - from x - 1))]) ! (k - from y - 1))"
+  proof
+    fix y
+    from 1 show "y \<in> set bs \<union> {x} \<longleftrightarrow> y \<in> set ((n[k - from x - 1 := x#(n ! (k - from x - 1))]) ! (k - from y - 1))"
+    proof (cases "from x = from y")
+      case True
+      then show ?thesis using P 1 by auto
+    next
+      case False
+      then have "y \<in> set (n[length n - Suc (from x) := x # n ! (length n - Suc (from x))] ! (length n - Suc (from y))) \<longleftrightarrow> y \<in> set (n ! (length n - Suc (from y)))"
+        by (metis diff_less length_greater_0_conv list.set_intros(2) list_update_nonempty nth_list_update_eq nth_list_update_neq set_ConsD zero_less_Suc)
+      then show ?thesis using P 1 by auto
+    qed  
+  qed
+  
+  then show ?thesis using P 1 by (auto simp add: Let_def)
+qed
+
+lemma insert_WL_inv1: "WL_inv wl \<Longrightarrow> WL_inv (insert wl x)"
+  using insert_WL_inv by (metis WL_inv.cases)
+
+lemma LWL_union_inv: "WL_inv wl \<Longrightarrow> WL_inv (union_LWL as wl)"
+  using insert_WL_inv1 by (induction as) auto
+
+lemma LWL_union: "WL_inv wl \<Longrightarrow> set_WorkList (union_LWL as wl) = set as \<union> set_WorkList wl"
+proof (induction as)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a as)
+  have "set_WorkList (union_LWL (a # as) wl) = set_WorkList (insert (union_LWL as wl) a)" by simp
+  also have "... = set_WorkList (union_LWL as wl) \<union> {a}" using Cons WL_insert1 LWL_union_inv by blast
+  also have "... = set as \<union> set_WorkList wl \<union> {a}" using Cons WL_insert1 LWL_union_inv by blast
+  finally show ?case by auto
+qed
+
+lemma WL_union: "WL_inv wl2 \<Longrightarrow> set_WorkList (union_WL wl1 wl2) = set_WorkList wl1 \<union> set_WorkList wl2"
+  using LWL_union by (auto simp add: union_WL_def)
+
+lemma WL_union_inv: "WL_inv wl2 \<Longrightarrow> WL_inv (union_WL wl1 wl2)"
+  using LWL_union_inv by (auto simp add: union_WL_def)
+
+lemma set_WL_of_List: "set_WorkList (WL_of_List as) = set as"
+  using LWL_union empty_inv
+  by (metis WL_of_List_def set_WL_empty sup_bot_right)
+
+lemma WL_of_List_inv: "WL_inv (WL_of_List as)"
+  using LWL_union_inv empty_inv by (auto simp add: WL_of_List_def)
+
+lemma LWL_minus_inv: "WL_inv (minus_LWL as wl)"
+  using insert_WL_inv1 empty_inv by (induction as) (auto simp add:)
+
+lemma LWL_minus: "WL_inv wl \<Longrightarrow> set_WorkList (minus_LWL as wl) = set as - set_WorkList wl"
+proof (induction as)
+  case Nil
+  then show ?case by (simp add: WL_empty_def)
+next
+  case (Cons a as)
+  then show ?case
+  proof (cases "isin wl a")
+    case True
+    then show ?thesis using Cons isin_WL1 by auto
+  next
+    case False
+    then have "set_WorkList (minus_LWL (a # as) wl) = set_WorkList (insert (minus_LWL as wl) a)" by simp
+    also have "... = set_WorkList (minus_LWL as wl) \<union> {a}" using WL_insert1 Cons LWL_minus_inv by blast
+    then show ?thesis using Cons isin_WL1 by auto
+  qed
+qed
+
+lemma WL_minus_inv: "WL_inv (minus_WL wl1 wl2)"
+  using LWL_minus_inv by (auto simp add: minus_WL_def)
+
+lemma WL_minus: "WL_inv wl2 \<Longrightarrow> set_WorkList (minus_WL wl1 wl2) = set_WorkList wl1 - set_WorkList wl2"
+  using LWL_minus by (auto simp add: minus_WL_def)
+
+abbreviation wf_WL :: "('n, 'a) WorkList \<Rightarrow> nat \<Rightarrow> bool" where
+"wf_WL wl k \<equiv> wf_bin1 (set (list wl)) k"
+
+
+fun step_fun :: "('n, 'a) state list list \<Rightarrow>  ('n, 'a) WorkList \<times> ('n, 'a) WorkList \<Rightarrow> ('n, 'a) WorkList \<times> ('n, 'a) WorkList" where
+  "step_fun Bs ((WorkList [] l m), C) = undefined" |
+  "step_fun Bs ((WorkList (b#bs) l m), C) = (let step = (if is_complete b then Complete_L Bs b else Predict_L b (length Bs)) in
+    ( minus_WL (union_LWL step (WorkList (b#bs) l m)) (insert C b), insert C b) )"
+(* (bs \<union> step) - (C \<union> {b}) *)
+
+definition steps :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) WorkList \<times> ('n, 'a) WorkList \<Rightarrow> (('n, 'a) WorkList \<times> ('n, 'a) WorkList) option" where
+  "steps Bs BC = while_option (\<lambda>(B,C). list B \<noteq> []) (step_fun Bs) BC"
+
+definition close2_L :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) WorkList \<Rightarrow> ('n, 'a) state list" where
+"close2_L Bs B = list (snd (the (steps Bs (B, WL_empty))))"
 
 fun bins_L :: "nat \<Rightarrow> ('n,'a) state list list" where
-"bins_L 0 = [close2_L [] Init_L]" |
-"bins_L (Suc k) = (let Bs = bins_L k in Bs @ [close2_L Bs (Scan_L (last Bs) k)])"
+"bins_L 0 = [close2_L [] (WL_of_List Init_L)]" |
+"bins_L (Suc k) = (let Bs = bins_L k in Bs @ [close2_L Bs (WL_of_List (Scan_L (last Bs) k))])"
 
 (*definition "wf_binL B k = (list_all (\<lambda> x. wf_state1 x k) B)"
 
@@ -90,27 +285,48 @@ lemma Predict_eq: "set (Predict_L st k) = Predict st k"
 lemma Complete_eq: "from st < length Bs \<Longrightarrow> set (Complete_L Bs st) = Complete (map set Bs) st"
   by (auto simp add: Complete_L_def Complete_def nths_map)
 
-lemma step_fun_sound: "as \<noteq> [] \<Longrightarrow> wf_bin1 (set as) (length Bs) \<Longrightarrow> step_fun Bs (as,bs) = (as',bs') \<Longrightarrow> step_rel (map set Bs) (set as,set bs) (set as', set bs')"
+lemma test:
+  assumes inv: "WL_inv (WorkList (a#as) l1 m1)" "WL_inv (WorkList bs l2 m2)"
+  and sf: "step_fun Bs ((WorkList (a#as) l1 m1),(WorkList bs l2 m2)) = ((WorkList as' l3 m3), (WorkList bs' l4 m4))"
+  shows  "set as' = (set as \<union> set ((if is_complete a then Complete_L Bs a else Predict_L a (length Bs)))) - (set bs \<union> {a})"
 proof-
-  assume assms: "as \<noteq> []" and wf: "wf_bin1 (set as) (length Bs)" and sf: "step_fun Bs (as,bs) = (as',bs')"
-  have comp: "\<forall>a \<in> set as. is_complete a \<longrightarrow> from a < length Bs" using wf by (auto simp add: wf_bin1_def wf_state1_def)
-  from assms obtain a as' where P :"as = a # as'"
-    using list.exhaust by auto 
-  show ?thesis
-   proof (cases "is_complete a")
-      case True
-      then have 1: "a \<in> set as \<and> next_symbol a = None " by (auto simp add: P next_symbol_def)
-      then have 2: "(map set Bs) \<turnstile> (set as, set bs) \<rightarrow> ((set as \<union> Complete (map set Bs) a) - (set bs \<union> {a}), (set bs \<union> {a}))"
-        using Close2.Complete by (auto)
-      then show ?thesis using 1 2 P True Nil comp sf Complete_eq step_rel_def by auto
-    next
-      case False
-      then have 1: "a \<in> set as \<and> next_symbol a \<noteq> None " by (auto simp add: P next_symbol_def)
-      then have 2: "(map set Bs) \<turnstile> (set as, set bs) \<rightarrow> (set as \<union> Predict a (length Bs) - (set bs \<union> {a}), insert a (set bs))"
-        by (metis Earley_Gw.Close2.Predict length_map)
-      then show ?thesis using 2 P False sf 1 Predict_eq step_rel_def by fastforce 
-    qed
+  let ?step = "(if is_complete a then Complete_L Bs a else Predict_L a (length Bs))"
+  have "set as' = set_WorkList (minus_WL (union_LWL ?step (WorkList (a#as) l1 m1)) (insert (WorkList bs l2 m2) a))"
+    using sf by auto
+  also have "... = (set (a#as) \<union> set ?step) - (set bs \<union> {a})" using inv
+    by (smt (verit) Earley_Gw.WorkList.sel(1) Earley_Gw.set_WorkList.simps LWL_union Un_commute WL_insert1 WL_minus insert_WL_inv1)
+  finally show ?thesis by auto
 qed
+
+lemma step_fun_sound: "as \<noteq> [] \<Longrightarrow> wf_WL (WorkList as l1 m1) (length Bs) \<Longrightarrow> WL_inv (WorkList as l1 m1) \<Longrightarrow> WL_inv (WorkList bs l2 m2)
+ \<Longrightarrow> step_fun Bs ((WorkList as l1 m1),(WorkList bs l2 m2)) = ((WorkList as' l3 m3), (WorkList bs' l4 m4))
+ \<Longrightarrow> step_rel (map set Bs) (set as,set bs) (set as', set bs')"
+proof-
+  assume assms: "as \<noteq> []" 
+    and wf: "wf_WL (WorkList as l1 m1) (length Bs)"
+    and inv: "WL_inv (WorkList as l1 m1)" "WL_inv (WorkList bs l2 m2)"
+    and sf: "step_fun Bs ((WorkList as l1 m1),(WorkList bs l2 m2)) = ((WorkList as' l3 m3), (WorkList bs' l4 m4))"
+  have comp: "\<forall>a \<in> set as. is_complete a \<longrightarrow> from a < length Bs" using wf by (auto simp add: wf_bin1_def wf_state1_def)
+  from assms obtain a ass where P :"as = a # ass"
+    using list.exhaust by auto 
+
+  let ?xs = "if is_complete a then Complete (map set Bs) a else Predict a (length Bs)"
+  let ?xsL = "if is_complete a then Complete_L Bs a else Predict_L a (length Bs)"
+
+  have "a \<in> set as \<and> (if is_complete a then next_symbol a = None else next_symbol a \<noteq> None)"
+    by (auto simp add: P next_symbol_def)
+  then have 1: "(map set Bs) \<turnstile> (set as, set bs) \<rightarrow> ((set as \<union> ?xs) - (set bs \<union> {a}), (set bs \<union> {a}))"
+    using Close2.Complete Close2.Predict
+    by (smt (verit, best) Un_insert_right boolean_algebra.disj_zero_right length_map)
+
+  have 2: "set as' = (set ass \<union> set ?xsL) - (set bs \<union> {a})"
+    using P inv sf test[of a ass l1 m1 bs l2 m2 Bs as'] by blast
+  have "set bs' = (set bs \<union> {a})" using inv sf P WL_insert1[of "(WorkList bs l2 m2)" a] by auto 
+
+  then show ?thesis using 1 2
+    using Complete_eq P Predict_eq comp step_rel_def by fastforce
+qed
+  
 end (*Earley_Gw*)
 
 context Earley_Gw_eps
@@ -131,32 +347,127 @@ proof-
     using assms(2,3) wf_state1_def by auto
   then show ?thesis
      using assms 2 Complete_L_def in_set_conv_nth wf1_Complete wf_bin1_def wf_bins1_def by fastforce  
+ qed
+
+lemma step_fun_inv1: 
+  assumes ne: "as \<noteq> []"
+  and sf: "step_fun Bs ((WorkList as l1 m1),(WorkList bs l2 m2)) = ((WorkList as' l3 m3), (WorkList bs' l4 m4))"
+shows "WL_inv (WorkList as' l3 m3)"
+proof-
+  from ne obtain a ass where P: "as = a#ass"
+    by (meson neq_Nil_conv)
+  let ?step = "(if is_complete a then Complete_L Bs a else Predict_L a (length Bs))"
+  from P show ?thesis using WL_minus_inv[of "(union_LWL ?step (WorkList (a#ass) l1 m1))" "(insert (WorkList bs l2 m2) a)"] sf by auto
+qed
+
+lemma step_fun_inv2: 
+  assumes ne: "as \<noteq> []"
+  and inv: "WL_inv (WorkList bs l2 m2)"
+  and sf: "step_fun Bs ((WorkList as l1 m1),(WorkList bs l2 m2)) = ((WorkList as' l3 m3), (WorkList bs' l4 m4))"
+shows "WL_inv (WorkList bs' l4 m4)"
+proof-
+  from ne obtain a ass where P: "as = a#ass"
+    by (meson neq_Nil_conv)
+  then show ?thesis using insert_WL_inv1[of "(WorkList bs l2 m2)" a] sf inv by auto
 qed
   
-
-lemma step_fun_wf: " as \<noteq> [] \<Longrightarrow> wf_bins1 (map set Bs) \<Longrightarrow> wf_bin1 (set as) (length Bs) \<Longrightarrow> step_fun Bs (as, bs) = (as', bs') \<Longrightarrow> wf_bin1 (set as') (length Bs)"
-proof -
-  assume assms: "as \<noteq> []" "wf_bins1 (map set Bs)" "wf_bin1 (set as) (length Bs)" "step_fun Bs (as, bs) = (as', bs')"
-  then show ?thesis using assms Close2_step_pres1 length_map
-    by (metis step_fun_sound step_rel_def)
+lemma step_fun_wf: 
+  assumes ne: "as \<noteq> []"
+  and wf: "wf_bins1 (map set Bs)" "wf_WL (WorkList as l1 m1) (length Bs)"
+  and inv: "WL_inv (WorkList as l1 m1)" "WL_inv (WorkList bs l2 m2)"
+  and sf: "step_fun Bs ((WorkList as l1 m1),(WorkList bs l2 m2)) = ((WorkList as' l3 m3), (WorkList bs' l4 m4))"  
+  shows "wf_WL (WorkList as' l3 m3) (length Bs)"
+proof -  
+  from assms obtain a ass where P: "as = a # ass"
+    by (meson neq_Nil_conv)
+  let ?step = "(if is_complete a then Complete_L Bs a else Predict_L a (length Bs))"
+  have "wf_state1 a (length Bs)" using P assms by (auto simp add: wf_bin1_def)
+  then have "wf_bin1 (set ?step) (length Bs)" using assms wf1_Predict_L wf1_Complete_L by auto
+  then have 1: "wf_bin1 ((set as \<union> set ?step) - (set bs \<union> {a})) (length Bs)" 
+    using wf_bin1_def wf by auto
+  have "set as' = (set ass \<union> set ?step) - (set bs \<union> {a})"
+    using P inv sf test[of a ass l1 m1 bs l2 m2 Bs as'] by blast
+  then show ?thesis using P 1 by auto
 qed
 
 lemma step_fun_wf2: 
-  assumes "as \<noteq> []" "wf_bins1 (map set Bs)" "wf_bin1 (set as) (length Bs)" "wf_bin1 (set bs) (length Bs)" "step_fun Bs (as, bs) = (as', bs')"
-  shows "wf_bin1 (set bs') (length Bs)"
-  using assms Close2_step_pres2 length_map step_fun_sound step_rel_def by metis
-  
-
-lemma steps_sound: assumes "wf_bin1 (set B) (length Bs)" "wf_bin1 (set C) (length Bs)" "wf_bins1 (map set Bs)" "steps Bs (B,C) = Some (B',C')" shows "((step_rel (map set Bs))^**) (set B, set C) ({},set C')"
-proof -
-  let ?P = "\<lambda>(B',C'). ((step_rel (map set Bs))^**) (set B, set C) (set B',set C') \<and> wf_bin1 (set B') (length Bs) \<and> wf_bins1 (map set Bs)" 
-  show ?thesis using while_option_rule[where P="?P"] assms[unfolded steps_def] step_fun_sound step_fun_wf 
-    by (smt (verit, ccfv_SIG) case_prodE case_prodI2 empty_set old.prod.case rtranclp.simps step_fun_sound
-        while_option_stop)
+  assumes ne: "as \<noteq> []"
+  and wf: "wf_WL (WorkList as l1 m1) (length Bs)" "wf_WL (WorkList bs l2 m2) (length Bs)"
+  and inv: "WL_inv (WorkList bs l2 m2)"
+  and sf: "step_fun Bs ((WorkList as l1 m1),(WorkList bs l2 m2)) = ((WorkList as' l3 m3), (WorkList bs' l4 m4))"
+  shows "wf_WL (WorkList bs' l4 m4) (length Bs)"
+proof-
+  from \<open>as \<noteq> []\<close> obtain a ass where P: "as = a#ass" by (meson neq_Nil_conv)
+  then have "set bs' = set bs \<union> {a}" using inv sf P WL_insert1[of "(WorkList bs l2 m2)" a] by auto
+  then show ?thesis using assms P by (auto simp add: wf_bin1_def)
 qed
 
-lemma steps_sound1: assumes "wf_bin1 (set B) (length Bs)" "wf_bins1 (map set Bs)" "steps Bs (B,[]) = Some (B',C)" shows "((step_rel (map set Bs))^**) (set B,{}) ({},set C)"
-  by (metis assms(1,2,3) empty_iff empty_set steps_sound wf_bin1_def)
+(*"wf_WL (WorkList bs l2 m2) (length Bs)"*)
+lemma steps_sound: 
+  assumes wf: "wf_WL (WorkList as l1 m1) (length Bs)"  "wf_bins1 (map set Bs)"
+  and inv: "WL_inv (WorkList as l1 m1)" "WL_inv (WorkList bs l2 m2)"
+  and step: "steps Bs ((WorkList as l1 m1),(WorkList bs l2 m2)) = Some ((WorkList as' l3 m3), (WorkList bs' l4 m4))"
+  shows "((step_rel (map set Bs))^**) (set as, set bs) ({},set bs')"
+proof -
+  let ?P1 = "\<lambda>(wl1,wl2). WL_inv wl1 \<and> WL_inv wl2"
+  let ?P2 = "\<lambda>(wl1,wl2). ((step_rel (map set Bs))^**) (set as, set bs) (set (list wl1),set (list wl2)) \<and> wf_WL wl1 (length Bs) \<and> wf_bins1 (map set Bs)"
+  let ?P = "\<lambda>(wl1,wl2). ?P1 (wl1, wl2) \<and> ?P2 (wl1, wl2)"
+  let ?b = "\<lambda>(wl1, wl2). (list wl1) \<noteq> []"
+  let ?c = "\<lambda>(wl1, wl2). step_fun Bs (wl1,wl2)"
+
+  have 1: "(?P1 (wl1,wl2) \<Longrightarrow> ?b (wl1,wl2) \<Longrightarrow> ?P1 (?c (wl1,wl2)))" for wl1 wl2
+  proof-
+    assume assm: "?P1 (wl1,wl2)" and ne: "?b (wl1,wl2)"
+    obtain xs k1 n1 ys k2 n2 where P: "wl1 = (WorkList xs k1 n1) \<and> wl2 = (WorkList ys k2 n2)"
+      by (meson Earley_Gw.WL_inv.cases)
+    obtain xs' k1' n1' ys' k2' n2' where c: "?c (wl1, wl2) = ((WorkList xs' k1' n1'), (WorkList ys' k2' n2'))"
+      by (metis Earley_Gw.WL_inv.cases surj_pair)
+    obtain x xss where "xs = x#xss" using ne P
+      using list.exhaust by auto
+    then show ?thesis using step_fun_inv1 step_fun_inv2 P c assm
+      by (metis case_prod_conv list.distinct(1))
+  qed
+
+  have 2: "(?P (wl1,wl2) \<Longrightarrow> ?b (wl1,wl2) \<Longrightarrow> ?P2 (?c (wl1,wl2)))" for wl1 wl2
+  proof-
+    assume assm: "?P (wl1,wl2)" and ne: "?b (wl1,wl2)"
+    obtain xs k1 n1 ys k2 n2 where P: "wl1 = (WorkList xs k1 n1) \<and> wl2 = (WorkList ys k2 n2)"
+      by (meson Earley_Gw.WL_inv.cases)
+    obtain xs' k1' n1' ys' k2' n2' where c: "?c (wl1, wl2) = ((WorkList xs' k1' n1'), (WorkList ys' k2' n2'))"
+      by (metis Earley_Gw.WL_inv.cases surj_pair)
+    obtain x xss where "xs = x#xss" using ne P
+      using list.exhaust by auto
+    then show ?thesis using step_fun_wf P c assm step_fun_sound
+      by (smt (verit) Earley_Gw.WorkList.sel(1) case_prod_conv list.distinct(1) rtranclp.simps)
+  qed
+
+  have "(?P (wl1,wl2) \<Longrightarrow> ?b (wl1,wl2) \<Longrightarrow> ?P1 (?c (wl1,wl2)))" for wl1 wl2
+    using 1 by auto
+  then have 3: "(?P (wl1,wl2) \<Longrightarrow> ?b (wl1,wl2) \<Longrightarrow> ?P (?c (wl1,wl2)))" for wl1 wl2
+    using 2
+    by (metis (no_types, lifting) case_prodI2)
+
+  have stop: "as' = []" using step while_option_stop[of ?b ?c "((WorkList as l1 m1),(WorkList bs l2 m2))"] by (auto simp add: steps_def)
+
+  have "?P ((WorkList as l1 m1),(WorkList bs l2 m2))" using wf inv by auto
+  then have "?P ((WorkList as' l3 m3), (WorkList bs' l4 m4))"using 
+      while_option_rule[of ?P _ _ "((WorkList as l1 m1),(WorkList bs l2 m2))" "((WorkList as' l3 m3), (WorkList bs' l4 m4))"] 3
+    by (smt (verit) case_prodE case_prod_conv local.step steps_def)
+  then show ?thesis using stop by auto     
+qed
+
+lemma steps_sound1: 
+  assumes wf: "wf_WL (WorkList as l1 m1) (length Bs)"  "wf_bins1 (map set Bs)"
+  and inv: "WL_inv (WorkList as l1 m1)"
+  and step: "steps Bs ((WorkList as l1 m1),WL_empty) = Some (B',C)" 
+shows "((step_rel (map set Bs))^**) (set as,{}) ({},set (list C))"
+proof-
+  have 1: "WL_inv WL_empty"
+    by (simp add: empty_inv)
+  have 2: "wf_WL WL_empty (length Bs)" by (simp add: WL_empty_def wf_bin1_def)
+  show ?thesis using steps_sound 1 2 assms
+    by (metis (no_types, lifting) WorkList.exhaust set_WorkList.elims set_WL_empty upsize_list upsize_list1)
+qed
 (*proof -
   let ?P = "\<lambda>(B',C'). ((step_rel (map set Bs))^** ) (set B,{}) (set B',set C') \<and> wf_bin1 (set B') (length Bs) \<and> wf_bins1 (map set Bs)" 
   show ?thesis using while_option_rule[where P="?P"] assms[unfolded steps_def] step_fun step_fun_wf 
@@ -195,10 +506,10 @@ qed
 It should really be called step_fun_less but I have kept the original name.
 I adapted it to work on lists rather that sets.
 To simplify matters, I dropped the parameter k *)
-definition step_fun_less :: "nat \<Rightarrow> ((('n, 'a) state list \<times> ('n, 'a) state list) \<times> (('n, 'a) state list \<times> ('n, 'a) state list)) set" where
-"step_fun_less k = (\<lambda>(B,C). card({x. wf_state x k} - (set B \<union> set C))) <*mlex*> inv_image finite_psubset (set o fst)"
+definition step_fun_less :: "nat \<Rightarrow> ((('n, 'a) WorkList \<times> ('n, 'a) WorkList) \<times> (('n, 'a) WorkList \<times> ('n, 'a) WorkList)) set" where
+"step_fun_less k = (\<lambda>(B,C). card({x. wf_state x k} - (set_WorkList B \<union> set_WorkList C))) <*mlex*> inv_image finite_psubset (set_WorkList o fst)"
 
-lemma step_fun_less_eq: "((A, B), (C,D)) \<in> step_fun_less k \<longleftrightarrow> ((set A, set B), (set C, set D)) \<in> Close2_less k"
+lemma step_fun_less_eq: "((A, B), (C,D)) \<in> step_fun_less k \<longleftrightarrow> ((set_WorkList A, set_WorkList B), (set_WorkList C, set_WorkList D)) \<in> Close2_less k"
   by (simp add: step_fun_less_def Close2_less_def mlex_prod_def)
 
 lemma wf_step_fun_less: "wf (step_fun_less k)"
@@ -206,17 +517,26 @@ lemma wf_step_fun_less: "wf (step_fun_less k)"
 
 (* This is the important property of step_fun: it goes down in the Close2_less relation.
    The wf_states premises may not be 100% right *)
-lemma step_fun_less_step: assumes "B\<noteq>[]" "wf_bins1 (map set Bs)" "wf_bin1 (set B) (length Bs)" "wf_bin1 (set C) (length Bs)"
-  shows "(step_fun Bs (B,C), (B,C)) \<in> (step_fun_less (length Bs))"
+lemma step_fun_less_step: 
+  assumes ne: "(list wl1) \<noteq>[]" 
+  and wf: "wf_bins1 (map set Bs)" "wf_WL wl1 (length Bs)" "wf_WL wl2 (length Bs)"
+  and inv: "WL_inv wl1" "WL_inv wl2"
+  shows "(step_fun Bs (wl1,wl2), (wl1,wl2)) \<in> (step_fun_less (length Bs))"
 proof-
-  let ?B' = "fst (step_fun Bs (B,C))"
-  let ?C' = "snd (step_fun Bs (B,C))"
-  have 1: "(?B', ?C') = step_fun Bs (B, C) " by simp
-  have "Close2 (map set Bs) (set B, set C) (set ?B', set ?C')"
-    using step_fun_sound step_rel_def
-    by (simp add: assms(1,3))
+  let ?B' = "fst (step_fun Bs (wl1,wl2))"
+  let ?C' = "snd (step_fun Bs (wl1,wl2))"
+  have 1: "(?B', ?C') = step_fun Bs (wl1,wl2) " by simp
+
+  obtain as l1 m1 bs l2 m2 where P1: "wl1 = (WorkList as l1 m1) \<and> wl2 = (WorkList bs l2 m2)"
+    by (meson Earley_Gw.WL_inv.cases)
+  obtain as' l1' m1' bs' l2' m2' where P2: "?B' = (WorkList as' l1' m1') \<and> ?C' = (WorkList bs' l2' m2')"
+    by (meson Earley_Gw.WL_inv.cases)
+
+  have "Close2 (map set Bs) (set_WorkList wl1, set_WorkList wl2) (set_WorkList ?B', set_WorkList ?C')"
+    using step_fun_sound step_rel_def assms P1 P2
+    by (metis "1" Earley_Gw.WorkList.sel(1) Earley_Gw.set_WorkList.simps)
   then show ?thesis using assms Close2_less_step step_fun_less_eq 1
-    by (metis length_map) 
+    by (metis Earley_Gw.set_WorkList.elims length_map)
 qed
 
 end (*Earley_Gw*)
@@ -225,58 +545,67 @@ context Earley_Gw_eps
 begin
 
 
-lemma step_fun_wf_states: "\<lbrakk>wf_bins1 (map set Bs); wf_bin1 (set B) (length Bs); wf_bin1 (set C) (length Bs); B \<noteq> [] \<rbrakk>
- \<Longrightarrow> \<exists>B' C'. step_fun Bs (B,C) = (B',C') \<and> wf_bin1 (set B') (length Bs) \<and> wf_bin1 (set C') (length Bs)"
-  by (metis step_fun_wf2 step_fun.elims step_fun_wf)
+lemma step_fun_wf_states: "\<lbrakk>wf_bins1 (map set Bs); wf_WL wl1 (length Bs); wf_WL wl2 (length Bs); WL_inv wl1; WL_inv wl2; (list wl1) \<noteq> [] \<rbrakk>
+ \<Longrightarrow> \<exists>B' C'. step_fun Bs (wl1,wl2) = (B',C') \<and> WL_inv B' \<and> WL_inv C' \<and> wf_WL B' (length Bs) \<and> wf_WL C' (length Bs)"
+proof-
+  assume assms: "wf_bins1 (map set Bs)" "wf_WL wl1 (length Bs)" "wf_WL wl2 (length Bs)" "WL_inv wl1" "WL_inv wl2" "(list wl1) \<noteq> []"
+  obtain as l1 m1 bs l2 m2 where P1: "wl1 = (WorkList as l1 m1) \<and> wl2 = (WorkList bs l2 m2)"
+    by (meson Earley_Gw.WL_inv.cases)
+  obtain as' l1' m1' bs' l2' m2' where P: "step_fun Bs (wl1,wl2) = ((WorkList as' l1' m1'),(WorkList bs' l2' m2'))"
+    by (metis Earley_Gw.WorkList.exhaust surj_pair)
+  then have 1: "wf_WL (WorkList as' l1' m1') (length Bs) \<and> wf_WL (WorkList bs' l2' m2') (length Bs)"
+    using step_fun_wf step_fun_wf2 assms P1
+    by (metis Earley_Gw.WorkList.sel(1))
+  have "WL_inv (WorkList as' l1' m1') \<and> WL_inv (WorkList bs' l2' m2')" using P P1
+    using assms(5,6) step_fun_inv1 step_fun_inv2
+    by (metis Earley_Gw.WorkList.sel(1))
+  then show ?thesis using P 1 by auto
+qed
 
 
-theorem Close2_L_NF: "wf_bins1 (map set Bs) \<Longrightarrow> wf_bin1 (set B) (length Bs) \<Longrightarrow> wf_bin1 (set C) (length Bs) \<Longrightarrow> \<exists>C'. steps Bs (B,C) = Some ([],C')"
+theorem Close2_L_NF: "\<lbrakk>wf_bins1 (map set Bs); wf_WL wl1 (length Bs); wf_WL wl2 (length Bs); WL_inv wl1; WL_inv wl2\<rbrakk>
+  \<Longrightarrow> \<exists>wl1' wl2'. steps Bs (wl1,wl2) = Some (wl1',wl2')"
 unfolding steps_def
 using wf_step_fun_less[of "length Bs"]
-proof (induction "(B,C)" arbitrary: B C rule: wf_induct_rule)
+proof (induction "(wl1,wl2)" arbitrary: wl1 wl2 rule: wf_induct_rule)
   case less
   show ?case
   proof cases
-    assume "B = []"
-    thus ?thesis by(simp add: while_option_unfold[of _ _ "([],C)"])
+    assume ne: "list wl1 = []"
+    thus ?thesis by(simp add: while_option_unfold[of _ _ "(wl1,wl2)"])
   next
-    let ?steps = "while_option (\<lambda>(as,bs). as \<noteq> []) (step_fun Bs)"
-    assume cons: "B \<noteq> []"
-    then obtain B' C'
-      where "(B',C') = step_fun Bs (B,C)" and wf': "wf_bin1 (set B') (length Bs)" "wf_bin1 (set C') (length Bs)"
-      using step_fun_wf_states[OF less.prems] by auto
-    then have "((B',C'), (B, C)) \<in> step_fun_less (length Bs)"
-      by (simp add: Earley_Gw.step_fun_less_step \<open>B \<noteq> []\<close> less.prems(1,2,3))
-    from less.hyps[OF this \<open>wf_bins1 (map set Bs)\<close> wf']
+    let ?steps = "while_option (\<lambda>(B, C). list B \<noteq> []) (step_fun Bs)"
+    assume cons: "list wl1 \<noteq> []"
+    then obtain wl1' wl2'
+      where "(wl1',wl2') = step_fun Bs (wl1,wl2)" and wf': "wf_WL wl1' (length Bs)" "wf_WL wl2' (length Bs)" and inv': "WL_inv wl1'" "WL_inv wl2'"
+      using step_fun_wf_states[OF less.prems] by fastforce
+    then have "((wl1',wl2'), (wl1, wl2)) \<in> step_fun_less (length Bs)"
+      by (simp add: Earley_Gw.step_fun_less_step \<open>list wl1 \<noteq> []\<close> less.prems)
+    from less.hyps[OF this \<open>wf_bins1 (map set Bs)\<close> wf' inv']
     show ?thesis
-      by (simp add: \<open>(B', C') = step_fun Bs (B, C)\<close> while_option_unfold)
+      by (simp add: \<open>(wl1',wl2') = step_fun Bs (wl1,wl2)\<close> while_option_unfold)
   qed
 qed
 
-lemma Close2_close2: "wf_bins1 Bs \<Longrightarrow> wf_bin1 B (length Bs) \<Longrightarrow> Bs \<turnstile> (B, {}) \<rightarrow>* ({}, close2 Bs B)"
-  by (metis Earley.Earley_Gw_eps.Close2_NF Earley_Gw.Close1_subset_Close2 Earley_Gw.Close2_steps_subset_Close1' Earley_Gw_eps_axioms close2_eq_Close1 empty_iff
-      subset_antisym wf_bin1_def)
-
-
-lemma close2_L_eq_Close1: "wf_bins1 (map set Bs) \<Longrightarrow> wf_bin1 (set B) (length Bs) \<Longrightarrow> set (close2_L Bs B) = Close1 (map set Bs) (set B)"
+lemma close2_L_eq_Close1: "wf_bins1 (map set Bs) \<Longrightarrow> wf_WL wl (length Bs) \<Longrightarrow> WL_inv wl \<Longrightarrow> set (close2_L Bs wl) = Close1 (map set Bs) (set (list wl))"
 proof-
-  assume assms: "wf_bins1 (map set Bs)" "wf_bin1 (set B) (length Bs)"
+  assume assms: "wf_bins1 (map set Bs)" "wf_WL wl (length Bs)" "WL_inv wl"
 
-  have "wf_bin1 (set []) (length Bs)" by (auto simp add: wf_bin1_def)
-  then obtain D where D1: "steps Bs (B,[]) = Some ([],D)" using assms Close2_L_NF
+  have "wf_WL WL_empty (length Bs) \<and> WL_inv WL_empty" by (auto simp add: wf_bin1_def WL_empty_def)
+  then obtain wl1 wl2 where D1: "steps Bs (wl,WL_empty) = Some (wl1,wl2)" using assms Close2_L_NF
     by blast
-  then have "(map set Bs) \<turnstile> (set B, {}) \<rightarrow>* ({}, set D)" using steps_sound
-    by (metis Earley_Gw.step_rel_def assms(1,2) steps_sound1)
-  then have DC1: "set D = Close1 (map set Bs) (set B)"
+  then have "(map set Bs) \<turnstile> (set (list wl), {}) \<rightarrow>* ({}, set (list wl2))" using steps_sound
+    by (metis Earley_Gw.WorkList.exhaust assms(1,2,3) step_rel_def steps_sound1 upsize_list upsize_list1)
+  then have DC1: "set (list wl2) = Close1 (map set Bs) (set (list wl))"
     by (simp add: Close1_subset_Close2 Close2_steps_subset_Close1' subset_antisym)
-  have "set D = set (close2_L Bs B)" using D1 by (auto simp add: close2_L_def)
+  have "set (list wl2) = set (close2_L Bs wl)" using D1 by (auto simp add: close2_L_def)
   then show ?thesis using DC1 by auto
 qed
 
-lemma close2_L_eq_close2: "wf_bins1 (map set Bs) \<Longrightarrow> wf_bin1 (set B) (length Bs) \<Longrightarrow> set (close2_L Bs B) = close2 (map set Bs) (set B)"
+lemma close2_L_eq_close2: "wf_bins1 (map set Bs) \<Longrightarrow> wf_WL wl (length Bs) \<Longrightarrow> WL_inv wl \<Longrightarrow> set (close2_L Bs wl) = close2 (map set Bs) (set (list wl))"
   by (auto simp add: close2_L_eq_Close1 close2_eq_Close1)
 
-lemma close2_L_eq_Close: "wf_bins1 (map set Bs) \<Longrightarrow> wf_bin1 (set B) (length Bs) \<Longrightarrow> set (close2_L Bs B) = Close (map set Bs) (set B) "
+lemma close2_L_eq_Close: "wf_bins1 (map set Bs) \<Longrightarrow> wf_WL wl (length Bs) \<Longrightarrow> WL_inv wl \<Longrightarrow> set (close2_L Bs wl) = Close (map set Bs) (set (list wl))"
   by (auto simp add: close2_L_eq_Close1 Close1_eq_Close)
 
 lemma set_last: "As \<noteq> [] \<Longrightarrow> set (last As) = last (map set As)"
@@ -290,23 +619,28 @@ proof (induction k)
   case 0
   have "wf_bins1 (map set []) \<and> wf_bin1 (set Init_L) 0"
     by (simp add: Init_L_eq_Init wf_bin1_Init wf_bins1_def)
-  then have "set (close2_L [] Init_L) = Close [] Init"
-    by (simp add: close2_L_eq_Close Earley_Gw.Init_L_eq_Init)
+  then have "wf_bins1 (map set []) \<and> wf_WL (WL_of_List Init_L) 0 \<and> WL_inv (WL_of_List Init_L)"
+    by (metis set_WorkList.simps WL_of_List_inv set_WL_of_List)
+  then have "set (close2_L [] (WL_of_List Init_L)) = Close [] Init"
+    by (auto simp add: close2_L_eq_Close Earley_Gw.Init_L_eq_Init set_WL_of_List simp flip: set_WorkList.simps)
   then show ?case by simp
 next
   case (Suc k)
   let ?Bs = "bins_L k"
-  have 1: "set (Scan_L (last ?Bs) k) = (Scan (last (map set ?Bs)) k)" using Suc
+  have kl: "k < length w" using Suc by auto
+  then have 1: "set (Scan_L (last ?Bs) k) = (Scan (last (map set ?Bs)) k)" using Suc
     by (metis Scan_L_eq_Scan Suc_leD bins_nonempty map_is_Nil_conv set_last)
   have "wf_bin1 (set (last ?Bs)) k"
     by (metis Earley_Gw.bins_nonempty Suc.IH Suc.prems Suc_leD last_map list.map_disc_iff wf_bin1_last)
-  then have 2: "wf_bin1 (set (Scan_L (last ?Bs) k)) (Suc k)"
-    using Scan_L_eq_Scan Suc.prems wf_bin1_Scan by fastforce
+  then have 2: "wf_WL (WL_of_List (Scan_L (last ?Bs) k)) (Suc k)"
+    by (metis Scan_L_eq_Scan set_WorkList.elims wf_bin1_Scan kl set_WL_of_List)
+  have 3: "WL_inv (WL_of_List (Scan_L (last ?Bs) k))"
+    by (simp add: WL_of_List_inv)
   have "wf_bins1 (map set (bins_L k))"
     by (simp add: Suc.IH Suc.prems Suc_leD wf_bins1_bins)
   
-  then have "set (close2_L ?Bs (Scan_L (last ?Bs) k)) = Close (map set ?Bs) (Scan (last (map set ?Bs)) k)"
-    using 2 by (simp add: close2_L_eq_Close length_bins_L 1)
+  then have "set (close2_L ?Bs (WL_of_List (Scan_L (last ?Bs) k))) = Close (map set ?Bs) (Scan (last (map set ?Bs)) k)"
+    using 2 3 by (auto simp add: close2_L_eq_Close[of _ "WL_of_List (Scan_L (last ?Bs) k)"] length_bins_L 1 set_WL_of_List simp flip: set_WorkList.simps)
   then show ?case using Suc by (auto simp add: Let_def)
 qed 
 
@@ -430,60 +764,118 @@ proof-
     by (metis mult.assoc power2_eq_square)
 qed
 
-
-fun T_Scan_L :: "('n,'a) state list \<Rightarrow> nat \<Rightarrow> nat" where
-"T_Scan_L Bs k = length Bs"
-
-fun T_Predict_L :: "('n,'a) state \<Rightarrow> nat \<Rightarrow> nat" where
-"T_Predict_L _ _ = length ps"
-
-fun T_Complete_L :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) state \<Rightarrow> nat" where
-"T_Complete_L Bs y = length (Bs ! from y)"
-
-definition T_Init_L where
-"T_Init_L = length ps"
-
-
-fun minus_opt :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) state list \<Rightarrow> ('n, 'a) state list" where
-"minus_opt Bs [] = []" |
-"minus_opt Bs (a#as) = (if a \<in> set (Bs ! (from a)) then minus_opt Bs as else a # (minus_opt Bs as))"
-
-lemma minus_opt_simp: "x \<in> set (minus_opt Bs xs) \<longleftrightarrow> x \<in> set xs \<and> x \<notin> set (Bs ! (from x))"
-  by (induction xs) auto
-
-lemma "\<forall>x. x \<in> xs \<longleftrightarrow> x \<in> set (Bs ! from x) \<Longrightarrow> set (minus_opt Bs ys) = (set ys - xs)"
-  by (fastforce simp add: minus_opt_simp)
-
-fun T_minus_opt where
-"T_minus_opt Bs [] = 0" |
-"T_minus_opt Bs (a#as) = (length (Bs ! from a)) + T_minus_opt Bs (as)"
-
-(*actual runtime of minus_L is currently (length Bs)^2 or smth like that, this runtime assumes optimizations using descripitons from Earley*)
-fun T_minus_L where
-"T_minus_L As Bs = length As"
-
-fun T_union where
-"T_union As Bs = length Bs"
-
-fun T_step_fun :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) state list * ('n, 'a) state list \<Rightarrow> nat" where
-"T_step_fun Bs ((b#bs), C) = (let X = (if is_complete b then Complete_L Bs b else Predict_L b (length Bs)) in
- (if is_complete b then T_Complete_L Bs b else T_Predict_L b (length Bs)) + (T_union bs X) + (T_minus_L (List.union bs X) (b # C))) "
-
-fun steps_time :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) state list \<times> ('n, 'a) state list \<Rightarrow> nat \<Rightarrow> ((('n, 'a)state list \<times> ('n, 'a) state list) \<times> nat) option" where
-"steps_time Bs asbs y = while_option (\<lambda>((as,bs),k). as \<noteq> []) (\<lambda>((as,bs),k). (step_fun Bs (as, bs), k + T_step_fun Bs (as, bs))) (asbs, y)"
-
-fun T_steps :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) state list \<times> ('n, 'a) state list \<Rightarrow> nat" where
-"T_steps Bs asbs = snd (the (steps_time Bs asbs 0))"
-
-definition T_close2_L :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) state list \<Rightarrow> nat" where
-"T_close2_L Bs B = T_steps Bs (B,[])"
-
-(*dissregards append runtime*)
-fun T_bins_L where
-"T_bins_L 0 = (T_close2_L [] Init_L) + (T_Init_L)" |
-"T_bins_L (Suc k) = (T_bins_L k) + (let Bs = bins_L k in T_close2_L Bs (Scan_L (last Bs) k) + T_Scan_L (last Bs) k) "
+unused_thms
 
 end (*Context Earley_Gw*)
+
+section "Timing functions"
+
+time_fun map
+time_fun filter
+time_fun nth
+time_fun list_update
+time_fun append
+time_fun last
+
+time_fun snd
+time_fun fst
+
+fun T_rhs where
+"T_rhs x = T_snd x"
+
+(* Copy of the length time function but with options*)
+fun T_size :: "'a list \<Rightarrow> nat option" where
+"T_size [] = Some 1" |
+"T_size (x21 # x22) = Some (the (T_size x22) + 1)"
+
+time_fun_0 Earley_Gw.w
+
+context Earley_Gw
+begin
+
+time_fun prod
+time_fun dot
+time_fun "from"
+
+time_fun WorkList.list
+time_fun WorkList.leng
+time_fun WorkList.list_map
+
+time_fun member
+time_fun isin
+time_fun upsize
+time_fun insert
+
+time_fun union_LWL
+time_fun union_WL
+time_fun WL_of_List
+time_fun minus_LWL
+time_fun minus_WL
+
+time_fun mv_dot
+time_fun is_complete
+time_fun next_symbol
+
+time_fun Scan_L
+time_fun Predict_L
+time_fun Complete_L
+
+lemma T_Scan_L_bound: "T_Scan_L Bs k = length Bs"
+  sorry
+
+lemma T_Predict_L_bound: "T_Predict_L x k = length ps"
+  sorry
+
+lemma T_Complete_L_bound: "T_Complete_L Bs y = length (Bs ! from y)"
+  sorry
+
+(*Copied from time_fun*)
+definition T_Init_L where
+"T_Init_L = T_filter T_fst ps + T_map (\<lambda>p. 0) (filter (\<lambda>p. lhs p = S) ps)"
+
+lemma T_Init_L_bound: "T_init_L = length ps"
+  sorry
+
+
+lemma T_member_bound: "T_member as a \<le> length as"
+  sorry
+
+
+(*Coppied from time_fun*)
+fun T_step_fun :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) WorkList \<times> ('n, 'a) WorkList \<Rightarrow> nat" where
+"T_step_fun Bs (WorkList [] l m, C) = undefined" |
+"T_step_fun Bs (WorkList (b # bs) l m, C) =
+    T_is_complete b + (if is_complete b then T_Complete_L Bs b else the (T_size Bs) + T_Predict_L b (length Bs)) +
+    (let step = if is_complete b then Complete_L Bs b else Predict_L b (length Bs)
+     in T_union_LWL step (WorkList (b # bs) l m) + (T_insert C b + T_minus_WL (union_LWL step (WorkList (b # bs) l m)) (local.insert C b)) + T_insert C b)"
+
+(*assumes that the stop condition check takes 0 time*)
+fun steps_time :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) WorkList \<times> ('n, 'a) WorkList \<Rightarrow> nat \<Rightarrow> ((('n, 'a) WorkList \<times> ('n, 'a) WorkList) \<times> nat) option" where
+"steps_time Bs wls y = while_option (\<lambda>((wl1,wl2),k). (list wl1) \<noteq> []) (\<lambda>((wl1,wl2),k). (step_fun Bs (wl1,wl2), k + T_step_fun Bs (wl1,wl2))) (wls, y)"
+
+fun T_steps :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) WorkList \<times> ('n, 'a) WorkList \<Rightarrow> nat" where
+"T_steps Bs wls = snd (the (steps_time Bs wls 0))"
+
+
+time_fun "the"
+
+(*coppied from time_fun*)
+fun T_close2_L :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) WorkList \<Rightarrow> nat" where
+"T_close2_L Bs B =
+    T_steps Bs (B, WL_empty) + Earley_Gw.T_the (steps Bs (B, WL_empty)) + T_snd (the (steps Bs (B, WL_empty))) +
+    T_list (snd (the (steps Bs (B, WL_empty))))"
+
+(*coppied from time_fun*)
+fun T_bins_L :: "nat \<Rightarrow> nat" where
+"T_bins_L 0 = T_WL_of_List Init_L + T_close2_L [] (WL_of_List Init_L) + 1" |
+"T_bins_L (Suc k) =
+    T_bins_L k +
+    (let Bs = bins_L k
+     in T_last Bs + T_Scan_L (last Bs) k + T_WL_of_List (Scan_L (last Bs) k) + T_close2_L Bs (WL_of_List (Scan_L (last Bs) k)) +
+        T_append Bs [close2_L Bs (WL_of_List (Scan_L (last Bs) k))]) + 1"
+
+end (*Context Earley_Gw*)
+
 
 context Earley_Gw_eps
 begin
@@ -827,6 +1219,12 @@ next
     by (smt (z3) T_Scan_L.simps T_bins_L.simps(2) mult.commute mult.left_commute)
 qed
 
+
+(* time bounds mit generierten funktionen und mit locale für n-th laufzeit*)
+
+(*korrektheit ohne Eindeutigkeits beweis aus Early.thy*)
+
+(*literature for linear runtime grammars*)
 end
 
 definition ps where "ps = [((0::nat), [Tm (1::int)]), (0, [Nt (0::nat), Nt 0])]"

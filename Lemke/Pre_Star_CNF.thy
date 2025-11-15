@@ -191,20 +191,8 @@ proof -
     by (simp add: S_def alg_state_new_def)
 
   have invT: "(trans S) \<subseteq> T'"
-  proof (simp add: S_def alg_state_new_def, intro conjI)
-    show "T \<subseteq> T'"
-      using assms by (rule pre_star_lts_mono)
-  next
-    have "\<And>A q. (A, []) \<in> P \<Longrightarrow> q \<in> Q \<Longrightarrow> (q, Nt A, q) \<in> T'"
-      by (rule pre_star_lts_refl[of P Q T]; use assms in blast)
-    then show "{(q, Nt A, q) |q A. (A, []) \<in> P \<and> q \<in> Q} \<subseteq> T'"
-      by blast
-  next
-    have "\<And>A a q q'. (A, [Tm a]) \<in> P \<Longrightarrow> q \<in> Q \<Longrightarrow> q' \<in> Q \<Longrightarrow> (q, Tm a, q') \<in> T \<Longrightarrow> (q, Nt A, q') \<in> T'"
-      by (rule pre_star_lts_singleton[of P]; use assms pre_star_lts_mono in blast)
-    then show "{(q, Nt A, q') |q q' A. \<exists>a. (A, [Tm a]) \<in> P \<and> (q, Tm a, q') \<in> T \<and> q \<in> Q \<and> q' \<in> Q} \<subseteq> T'"
-      by blast
-  qed
+    using pre_star_lts_mono[OF assms] pre_star_lts_refl[OF assms] pre_star_lts_singleton[OF assms]
+    by(auto simp add: S_def alg_state_new_def)
 
   have "\<And>q q' X t. (q, X, q') \<in> T' \<Longrightarrow> t \<in> direct S (q, X, q') \<Longrightarrow> t \<in> T'"
   proof -

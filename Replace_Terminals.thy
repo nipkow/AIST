@@ -16,6 +16,13 @@ lemma Rhss_image_Pair_inj_on:
 
 subsubsection \<open>Replacing non-head terminals\<close>
 
+text \<open>The grammar from fresh nonterminals to terminals:\<close>
+
+abbreviation Replace_Tm_new where
+"Replace_Tm_new f as \<equiv> (\<lambda>a. (f a, [Tm a])) ` as"
+
+text \<open>Replacing Tms in the old grammar:\<close>
+
 definition replace_Tm_sym where
 "replace_Tm_sym f x = (case x of Tm a \<Rightarrow> Nt (f a) | _ \<Rightarrow> x)"
 
@@ -24,9 +31,6 @@ definition replace_Tm_tl_syms where
 
 abbreviation Replace_Tm_tl_old where
 "Replace_Tm_tl_old f P \<equiv> {(A, replace_Tm_tl_syms f \<alpha>) | A \<alpha>. (A,\<alpha>) \<in> P}"
-
-abbreviation Replace_Tm_new where
-"Replace_Tm_new f as \<equiv> (\<lambda>a. (f a, [Tm a])) ` as"
 
 definition Replace_Tm_tl where
 "Replace_Tm_tl f P = Replace_Tm_tl_old f P \<union> Replace_Tm_new f (Tms P)"
@@ -47,19 +51,19 @@ lemma replace_Tm_sym_simps:
   "replace_Tm_sym f (Tm a) = Nt (f a)"
   by (auto simp: replace_Tm_sym_def)
 
-lemma Expand_all_sym_Replace_Tm_Tm:
-  "Expand_all_sym (Replace_Tm_new f as) L (Tm a) = {[Tm a]}"
-  by (auto simp: Expand_all_sym_def)
+lemma Expand_sym_Replace_Tm_Tm:
+  "Expand_sym (Replace_Tm_new f as) L (Tm a) = {[Tm a]}"
+  by (auto simp: Expand_sym_def)
 
-lemma Expand_all_sym_Replace_Tm_Nt:
+lemma Expand_sym_Replace_Tm_Nt:
   assumes inj: "inj_on f as" and A: "A \<in> L"
-  shows "Expand_all_sym (Replace_Tm_new f as) L (Nt A) = {[Nt A]}"
-  using A by (auto simp: Expand_all_sym_def)
+  shows "Expand_sym (Replace_Tm_new f as) L (Nt A) = {[Nt A]}"
+  using A by (auto simp: Expand_sym_def)
 
-lemma Expand_all_sym_Replace_Tm_new:
+lemma Expand_sym_Replace_Tm_new:
   assumes inj: "inj_on f as" and L: "L \<inter> f ` as = {}" and a: "a \<in> as"
-  shows "Expand_all_sym (Replace_Tm_new f as) L (Nt (f a)) = {[Tm a]}"
-  using a L by (auto simp: Expand_all_sym_def Rhss_image_Pair_inj_on[OF inj])
+  shows "Expand_sym (Replace_Tm_new f as) L (Nt (f a)) = {[Tm a]}"
+  using a L by (auto simp: Expand_sym_def Rhss_image_Pair_inj_on[OF inj])
 
 lemma Expand_all_syms_Replace_Tm:
   assumes inj: "inj_on f as" and L: "L \<inter> f ` as = {}"
@@ -67,7 +71,7 @@ lemma Expand_all_syms_Replace_Tm:
   shows "Expand_all_syms (Replace_Tm_new f as) L (map (replace_Tm_sym f) \<alpha>) = {\<alpha>}"
   by (insert \<alpha>, induction \<alpha>,
       auto split: sym.splits simp: replace_Tm_sym_def
-      Expand_all_sym_Replace_Tm_new[OF inj L] Expand_all_sym_Replace_Tm_Nt[OF inj] insert_conc)
+      Expand_sym_Replace_Tm_new[OF inj L] Expand_sym_Replace_Tm_Nt[OF inj] insert_conc)
 
 lemma Expand_all_syms_Replace_Tm_tl:
   assumes inj: "inj_on f as" and L: "L \<inter> f ` as = {}"
@@ -84,11 +88,11 @@ next
   proof (cases x)
     case [simp]: (Nt A)
     with \<alpha> have "A \<in> L" by auto
-    note [simp] = Expand_all_sym_Replace_Tm_Nt[OF inj this]
+    note [simp] = Expand_sym_Replace_Tm_Nt[OF inj this]
     show ?thesis by (auto simp: replace_Tm_tl_syms_def insert_conc)
   next
     case [simp]: (Tm a)
-    show ?thesis by (auto simp: replace_Tm_tl_syms_def insert_conc Expand_all_sym_Replace_Tm_Tm)
+    show ?thesis by (auto simp: replace_Tm_tl_syms_def insert_conc Expand_sym_Replace_Tm_Tm)
   qed
 qed
 

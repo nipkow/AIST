@@ -1,62 +1,13 @@
+(*<*)
 theory Expansion
   imports Context_Free_Grammar.Context_Free_Grammar "Regular-Sets.Regular_Set"
 begin
-
-lemma insert_conc: "insert w W @@ V = {w @ v | v. v \<in> V} \<union> W @@ V"
-  by auto
-
-text \<open>Language is extended over mixed words.\<close>
-
-definition Lang_of where
-"Lang_of P \<alpha> = {w. P \<turnstile> \<alpha> \<Rightarrow>* map Tm w}"
-
-lemma Lang_of_Nil[simp]: "Lang_of P [] = {[]}"
-  by (auto simp: Lang_of_def)
-
-lemma Lang_of_iff_derives: "w \<in> Lang_of P \<alpha> \<longleftrightarrow> P \<turnstile> \<alpha> \<Rightarrow>* map Tm w"
-  by (auto simp: Lang_of_def)
-
-lemma Lang_eq_iff_Lang_of_eq: "Lang P = Lang P' \<longleftrightarrow> Lang_of P = Lang_of P'"
-  by (unfold Lang_eq_iff_derives, auto simp: fun_eq_iff Lang_of_def)
-
-lemma Lang_of_Tm: "Lang_of P (Tm a # \<alpha>) = {[a]} @@ Lang_of P \<alpha>"
-  by (auto simp: Lang_of_def derives_Tm_Cons conc_def)
-
-lemma Lang_of_map_Tm: "Lang_of P (map Tm w) = {w}"
-  by (induction w, simp_all add: Lang_of_Tm insert_conc)
-
-lemma Lang_of_Nt: "Lang_of P (Nt A # \<alpha>) = Lang P A @@ Lang_of P \<alpha>"
-  by (force simp add: Lang_of_def Lang_def derives_Cons_decomp map_eq_append_conv conc_def)
-
-lemma Lang_of_Cons: "Lang_of P (x # \<alpha>) = (case x of Tm a \<Rightarrow> {[a]} | Nt A \<Rightarrow> Lang P A) @@ Lang_of P \<alpha>"
-  by (simp add: Lang_of_Tm Lang_of_Nt split: sym.splits)
-
-lemma Lang_of_append: "Lang_of P (\<alpha> @ \<beta>) = Lang_of P \<alpha> @@ Lang_of P \<beta>"
-  by (induction \<alpha> arbitrary: \<beta>, simp_all add: Lang_of_Cons conc_assoc split: sym.splits)
-
-abbreviation Lang_of_set where
-"Lang_of_set P X \<equiv> \<Union>(Lang_of P ` X)"
-
-lemma Lang_of_set_conc: "Lang_of_set P (X @@ Y) = Lang_of_set P X @@ Lang_of_set P Y"
-  by (force simp: Lang_of_append elim!: concE)
-
-lemma Lang_of_set_Rhss: "Lang_of_set P (Rhss P A) = Lang P A"
-  by (auto simp: Lang_def Lang_of_def Rhss_def converse_rtranclp_into_rtranclp derive_singleton
-      dest: derives_start1)
-
-lemma Lang_of_prod_subset: "(A,\<alpha>) \<in> P \<Longrightarrow> Lang_of P \<alpha> \<subseteq> Lang P A"
-  apply (fold Lang_of_set_Rhss) by (auto simp: Rhss_def)
-
-
-lemma Lang_of_set_pow: "Lang_of_set P (X ^^ n) = Lang_of_set P X ^^ n"
-  by (induction n, simp_all add: Lang_of_set_conc)
-
-lemma Lang_of_set_star: "Lang_of_set P (star X) = star (Lang_of_set P X)"
-  by (auto simp: star_def Lang_of_set_pow)
+(*>*)
 
 section \<open>General Expansion\<close>
 
 text \<open>We consider the set of admissible expansions of grammars.
+
 For a symbol,
 one option is not to expand it,
 and another option for (unlocked) nonterminals is to expand to the all rhss.\<close>
@@ -80,6 +31,17 @@ fun Expand_syms_ops where
 | "Expand_syms_ops P L (x#xs) =
    {\<alpha>s @@ \<beta>s | \<alpha>s \<beta>s. \<alpha>s \<in> Expand_sym_ops P L x \<and> \<beta>s \<in> Expand_syms_ops P L xs}"
 
+lemma Expand_syms_ops_self:
+  "{\<alpha>} \<in> Expand_syms_ops P L \<alpha>"
+proof (induction \<alpha>)
+  case Nil
+  show ?case by simp
+next
+  case (Cons x \<alpha>)
+  have "{x # \<alpha>} = {[x]} @@ {\<alpha>}" by (auto simp: insert_conc)
+  with Cons show ?case by (auto intro!: Expand_sym_ops_self)
+qed
+
 lemma Expand_sym_ops_Lang_of_Cons:
   assumes X: "X \<in> Expand_sym_ops P L x"
     and L: "Lhss Q \<subseteq> L"
@@ -91,15 +53,9 @@ proof-
     with Lang_of_set_Rhss[of "P \<union> Q" A]
     have "Lang_of_set (P \<union> Q) (Rhss P A) = Lang (P \<union> Q) A" by auto
   } note * = this
+  from assms
   show ?thesis
-  proof (cases "X = {[x]}")
-    case True
-    with assms show ?thesis by (simp add: Expand_sym_ops_simps Lang_of_Cons)
-  next
-    case False
-    with assms show ?thesis
-      by (cases x, simp_all add: Expand_sym_ops_simps Lang_of_Nt * split: if_splits)
-  qed
+    by (auto simp: Expand_sym_ops_simps Lang_of_Cons * split: if_splits sym.splits)
 qed
 
 lemma Expand_syms_ops_Lang_of:
@@ -131,11 +87,12 @@ lemma Rhss_Expand: "Rhss (Expand f Q) A = \<Union>(f ` Rhss Q A)"
 text \<open>When each production is expanded in an admissible way,
 then the language is preserved.\<close>
 
-lemma Lang_Expand:
+theorem Lang_Un_Expand:
   assumes f: "\<forall>(A,\<alpha>) \<in> Q. f \<alpha> \<in> Expand_syms_ops P L \<alpha>" and L: "Lhss Q \<subseteq> L"
   shows "Lang (P \<union> Expand f Q) = Lang (P \<union> Q)"
-proof (intro ext Lang_eqI_derives iffI)
-  have "P \<union> Expand f Q \<turnstile> xs \<Rightarrow>(n) map Tm w \<Longrightarrow> w \<in> Lang_of (P \<union> Q) xs" for xs w n
+  unfolding Lang_eq_iff_Lang_of_eq
+proof (safe intro!: ext elim!: Lang_ofE_deriven)
+  show "P \<union> Expand f Q \<turnstile> xs \<Rightarrow>(n) map Tm w \<Longrightarrow> w \<in> Lang_of (P \<union> Q) xs" for xs w n
   proof (induction n arbitrary: xs w rule: less_induct)
     case (less n)
     show ?case
@@ -166,7 +123,7 @@ proof (intro ext Lang_eqI_derives iffI)
           apply (rule Lang_of_prod_subset)
           using True by simp
         with u v t
-        show ?thesis by (auto simp: xs w Lang_of_append Lang_of_Nt)
+        show ?thesis by (auto simp: xs w Lang_of_append Lang_of_Nt_Cons)
       next
         case False
         with A\<delta> obtain \<alpha> where AQ: "(A,\<alpha>) \<in> Q" and \<delta>: "\<delta> \<in> f \<alpha>" by (auto simp: Expand_def)
@@ -182,14 +139,12 @@ proof (intro ext Lang_eqI_derives iffI)
           using AQ by auto
         finally have u: "u \<in> Lang (P \<union> Q) A" by auto
         with v t
-        show ?thesis by (simp add: xs w Lang_of_append Lang_of_Nt)
+        show ?thesis by (simp add: xs w Lang_of_append Lang_of_Nt_Cons)
       qed
     qed
   qed
-  then show "P \<union> Expand f Q \<turnstile> xs \<Rightarrow>* map Tm w \<Longrightarrow> P \<union> Q \<turnstile> xs \<Rightarrow>* map Tm w" for xs w
-    by (auto simp: rtranclp_power Lang_of_iff_derives)
 next
-  have "P \<union> Q \<turnstile> xs \<Rightarrow>(n) map Tm w \<Longrightarrow> w \<in> Lang_of (P \<union> Expand f Q) xs" for xs w n
+  show "P \<union> Q \<turnstile> xs \<Rightarrow>(n) map Tm w \<Longrightarrow> w \<in> Lang_of (P \<union> Expand f Q) xs" for xs w n
   proof (induction n arbitrary: xs w rule: less_induct)
     case (less n)
     show ?case
@@ -220,7 +175,7 @@ next
         from Lang_of_prod_subset[OF this] u
         have "u \<in> Lang (P \<union> Expand f Q) A" by auto
         with v w t
-        show ?thesis by (auto simp: xs w Lang_of_append Lang_of_Nt)
+        show ?thesis by (auto simp: xs w Lang_of_append Lang_of_Nt_Cons)
       next
         case False
         with A\<alpha> have A\<alpha>Q: "(A,\<alpha>) \<in> Q" by simp
@@ -234,41 +189,63 @@ next
         also have "\<dots> \<subseteq> Lang (P \<union> Expand f Q) A" using Rhss
           by (auto simp flip: Lang_of_set_Rhss simp: Rhss_Un)
         finally have "u \<in> \<dots>".
-        with v t show ?thesis by (simp add: xs w Lang_of_append Lang_of_Nt)
+        with v t show ?thesis by (simp add: xs w Lang_of_append Lang_of_Nt_Cons)
       qed
     qed
   qed
-  then show "P \<union> Q \<turnstile> xs \<Rightarrow>* map Tm w \<Longrightarrow> P \<union> Expand f Q \<turnstile> xs \<Rightarrow>* map Tm w" for xs w
-    by (auto simp: rtranclp_power Lang_of_iff_derives)
 qed
 
-lemma Lang_Expand_left:
+corollary Lang_Expand_Un:
   assumes f: "\<forall>(A,\<alpha>) \<in> Q. f \<alpha> \<in> Expand_syms_ops P L \<alpha>" and L: "Lhss Q \<subseteq> L"
   shows "Lang (Expand f Q \<union> P) = Lang (Q \<union> P)"
-  using Lang_Expand[OF f L] by (simp add: ac_simps)
+  using Lang_Un_Expand[OF f L] by (simp add: ac_simps)
 
-subsubsection \<open>Instance: Expanding all nonterminals\<close>
+subsection \<open>Instances\<close>
 
-definition Expand_all_sym :: "('n,'t) Prods \<Rightarrow> 'n set \<Rightarrow> ('n,'t) sym \<Rightarrow> ('n,'t) syms set" where
-"Expand_all_sym P L x = (case x of Nt A \<Rightarrow> if A \<in> L then {[x]} else Rhss P A | _ \<Rightarrow> {[x]})"
+text \<open>For symbols, we just provide a function to expand it.\<close>
 
-lemma Expand_all_sym_ops: "Expand_all_sym P L x \<in> Expand_sym_ops P L x"
-  by (auto simp: Expand_all_sym_def Expand_sym_ops_simps split: sym.splits)
+definition Expand_sym :: "('n,'t) Prods \<Rightarrow> 'n set \<Rightarrow> ('n,'t) sym \<Rightarrow> ('n,'t) syms set" where
+"Expand_sym P L x = (case x of Nt A \<Rightarrow> if A \<in> L then {[x]} else Rhss P A | _ \<Rightarrow> {[x]})"
+
+lemma Expand_sym_ops: "Expand_sym P L x \<in> Expand_sym_ops P L x"
+  by (auto simp: Expand_sym_def Expand_sym_ops_simps split: sym.splits)
+
+subsubsection \<open>Expanding all nonterminals\<close>
 
 fun Expand_all_syms where
   "Expand_all_syms P L [] = {[]}"
-| "Expand_all_syms P L (x#xs) = Expand_all_sym P L x @@ Expand_all_syms P L xs"
+| "Expand_all_syms P L (x#xs) = Expand_sym P L x @@ Expand_all_syms P L xs"
 
 lemma Expand_all_syms_ops: "Expand_all_syms P L xs \<in> Expand_syms_ops P L xs"
-  by (induction xs, simp, force simp: Expand_all_sym_ops)
+  by (induction xs, simp, force simp: Expand_sym_ops)
 
 abbreviation Expand_all where
 "Expand_all P L Q \<equiv> Expand (Expand_all_syms P L) Q"
 
-lemma Lang_Expand_all:
+theorem Lang_Expand_all:
   assumes "Lhss Q \<subseteq> L"
   shows "Lang (Expand_all P L Q \<union> P) = Lang (Q \<union> P)"
-  apply (rule Lang_Expand_left[OF _ assms])
+  apply (rule Lang_Expand_Un[OF _ assms])
   by (simp add: Expand_all_syms_ops)
+
+subsubsection \<open>Expanding head nonterminals\<close>
+
+definition Expand_hd_syms where
+  "Expand_hd_syms P L \<alpha> = (
+  case \<alpha> of [] \<Rightarrow> {[]}
+  | x#xs \<Rightarrow> Expand_sym P L x @@ {xs})"
+
+lemma Expand_hd_syms_ops: "Expand_hd_syms P L xs \<in> Expand_syms_ops P L xs"
+  by (auto simp:Expand_hd_syms_def intro!: Expand_sym_ops Expand_syms_ops_self split: list.split)
+
+abbreviation Expand_hd where
+"Expand_hd P L Q \<equiv> Expand (Expand_hd_syms P L) Q"
+
+theorem Lang_Expand_hd:
+  assumes "Lhss Q \<subseteq> L"
+  shows "Lang (Expand_hd P L Q \<union> P) = Lang (Q \<union> P)"
+  apply (rule Lang_Expand_Un[OF _ assms])
+  by (simp add: Expand_hd_syms_ops)
+
 
 end

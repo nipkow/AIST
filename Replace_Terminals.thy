@@ -1,10 +1,14 @@
+(*<*)
 theory Replace_Terminals
-  imports Greibach_Normal_Form.Greibach_Normal_Form Expansion
+  imports Greibach_Normal_Form.Greibach_Normal_Form Context_Free_Grammar.Expansion
 begin
+(*>*)
 
 (* unused, but a better replacement for inj_on_cong *)
 lemma inj_on_cong2: "(\<And>a. a \<in> A \<Longrightarrow> f a = g a) \<Longrightarrow> A = B \<Longrightarrow> inj_on f A \<longleftrightarrow> inj_on g B"
   by (auto simp: inj_on_def)
+
+section \<open>Replacing Terminals by (Fresh) Nonterminals\<close>
 
 lemma Lhss_image_Pair: "Lhss ((\<lambda>x. (f x, g x)) ` X) = f ` X"
   by (auto simp: Lhss_def)
@@ -14,42 +18,20 @@ lemma Rhss_image_Pair_inj_on:
   shows "Rhss ((\<lambda>x. (f x, g x)) ` X) (f x) = {g x}"
   using inj_onD[OF f] x by (auto simp: Rhss_def)
 
-subsubsection \<open>Replacing non-head terminals\<close>
-
-text \<open>The grammar from fresh nonterminals to terminals:\<close>
+text \<open>First, we define the grammar where fresh nonterminals produce the corresponding terminals.
+We abstract the map from terminals to the fresh nonterminals by \<open>f\<close>.\<close>
 
 abbreviation Replace_Tm_new where
 "Replace_Tm_new f as \<equiv> (\<lambda>a. (f a, [Tm a])) ` as"
 
-text \<open>Replacing Tms in the old grammar:\<close>
-
-definition replace_Tm_sym where
-"replace_Tm_sym f x = (case x of Tm a \<Rightarrow> Nt (f a) | _ \<Rightarrow> x)"
-
-definition replace_Tm_tl_syms where
-"replace_Tm_tl_syms f xs = (case xs of x#xs' \<Rightarrow> x # map (replace_Tm_sym f) xs' | _ \<Rightarrow> xs)"
-
-abbreviation Replace_Tm_tl_old where
-"Replace_Tm_tl_old f P \<equiv> {(A, replace_Tm_tl_syms f \<alpha>) | A \<alpha>. (A,\<alpha>) \<in> P}"
-
-definition Replace_Tm_tl where
-"Replace_Tm_tl f P = Replace_Tm_tl_old f P \<union> Replace_Tm_new f (Tms P)"
-
-definition replace_Tm_tl where
-"replace_Tm_tl f P = [(A, replace_Tm_tl_syms f \<alpha>). (A,\<alpha>) \<leftarrow> P] @ [(f a, [Tm a]). a \<leftarrow> tms P]"
-
-lemma set_replace_Tm_tl: "set (replace_Tm_tl f P) = Replace_Tm_tl f (set P)"
-  by (auto simp: replace_Tm_tl_def Replace_Tm_tl_def set_tms)
+text \<open>Expansion with respect to this grammar should preserve terminals and
+locked nonterminals,
+and the fresh nonterminals should be reverted to the original terminals.\<close>
 
 lemma Rhss_Un_Replace_Tm_new:
   assumes inj: "inj_on f as" and a: "a \<in> as" and fa: "f a \<notin> Lhss P"
   shows "Rhss (P \<union> Replace_Tm_new f as) (f a) = {[Tm a]}"
   by (simp add: Rhss_Un Rhss_image_Pair_inj_on[OF inj a] fa[unfolded notin_Lhss_iff_Rhss])
-
-lemma replace_Tm_sym_simps:
-  "replace_Tm_sym f (Nt A) = Nt A"
-  "replace_Tm_sym f (Tm a) = Nt (f a)"
-  by (auto simp: replace_Tm_sym_def)
 
 lemma Expand_sym_Replace_Tm_Tm:
   "Expand_sym (Replace_Tm_new f as) L (Tm a) = {[Tm a]}"
@@ -65,6 +47,17 @@ lemma Expand_sym_Replace_Tm_new:
   shows "Expand_sym (Replace_Tm_new f as) L (Nt (f a)) = {[Tm a]}"
   using a L by (auto simp: Expand_sym_def Rhss_image_Pair_inj_on[OF inj])
 
+text \<open>The function replacing a terminal by the corresponding fresh nonterminal is
+formalized as follows.\<close>
+
+definition replace_Tm_sym where
+"replace_Tm_sym f x = (case x of Tm a \<Rightarrow> Nt (f a) | _ \<Rightarrow> x)"
+
+lemma replace_Tm_sym_simps:
+  "replace_Tm_sym f (Nt A) = Nt A"
+  "replace_Tm_sym f (Tm a) = Nt (f a)"
+  by (auto simp: replace_Tm_sym_def)
+
 lemma Expand_all_syms_Replace_Tm:
   assumes inj: "inj_on f as" and L: "L \<inter> f ` as = {}"
     and \<alpha>: "Tms_syms \<alpha> \<subseteq> as" "Nts_syms \<alpha> \<subseteq> L"
@@ -72,6 +65,66 @@ lemma Expand_all_syms_Replace_Tm:
   by (insert \<alpha>, induction \<alpha>,
       auto split: sym.splits simp: replace_Tm_sym_def
       Expand_sym_Replace_Tm_new[OF inj L] Expand_sym_Replace_Tm_Nt[OF inj] insert_conc)
+
+
+subsection \<open>Mapping to Fresh Nonterminals\<close>
+
+text \<open>We provide an implementation of a function that maps terminals to corresponding
+fresh nonterminals.\<close>
+
+fun fresh_map :: "'a :: fresh0 set \<Rightarrow> 'b list \<Rightarrow> 'b \<rightharpoonup> 'a" where
+  "fresh_map A [] = Map.empty"
+| "fresh_map A (x#xs) = (let a = fresh0 A in (fresh_map (insert a A) xs)(x \<mapsto> a))"
+
+abbreviation fresh_fun where
+"fresh_fun A xs x \<equiv> the (fresh_map A xs x)"
+
+lemma fresh_fun_notIn: "finite A \<Longrightarrow> x \<in> set xs \<Longrightarrow> fresh_fun A xs x \<notin> A"
+  apply (induction xs arbitrary: A)
+  by (auto simp: Let_def fresh0_notIn)
+
+lemma fresh_fun_disj: "finite A \<Longrightarrow> B \<subseteq> A \<Longrightarrow> X \<subseteq> set xs \<Longrightarrow> B \<inter> fresh_fun A xs ` X = {}"
+  by (force simp: fresh_fun_notIn)
+
+lemma fresh_fun_inj_on: "finite A \<Longrightarrow> inj_on (fresh_fun A xs) (set xs)"
+proof (induction xs arbitrary: A)
+  case Nil
+  show ?case by simp
+next
+  case (Cons x xs)
+  define a where "a = fresh0 A"
+  from Cons
+  have IH: "inj_on (fresh_fun (insert a A) xs) (set xs)"
+    and fin: "finite (insert a A)" by auto
+  { fix y assume "y \<in> set xs"
+    from fresh_fun_notIn[OF fin this]
+    have "fresh_fun (insert a A) xs y \<notin> A" "a \<noteq> fresh_fun (insert a A) xs y" by auto
+  } note * = this this(2)[symmetric]
+  show ?case
+    by (auto simp flip: a_def intro!: inj_onI split: if_splits simp: inj_onD[OF IH] *)
+qed
+
+lemma fresh_fun_distinct:
+  assumes fin: "finite A"
+  shows "distinct (map (fresh_fun A xs) xs) \<longleftrightarrow> distinct xs" (is "?l \<longleftrightarrow> ?r")
+  using fresh_fun_inj_on[OF fin] by (auto simp: distinct_map)
+
+subsubsection \<open>Replacing non-head terminals\<close>
+
+definition replace_Tm_tl_syms where
+"replace_Tm_tl_syms f xs = (case xs of x#xs' \<Rightarrow> x # map (replace_Tm_sym f) xs' | _ \<Rightarrow> xs)"
+
+abbreviation Replace_Tm_tl_old where
+"Replace_Tm_tl_old f P \<equiv> {(A, replace_Tm_tl_syms f \<alpha>) | A \<alpha>. (A,\<alpha>) \<in> P}"
+
+definition Replace_Tm_tl where
+"Replace_Tm_tl f P = Replace_Tm_tl_old f P \<union> Replace_Tm_new f (Tms P)"
+
+definition replace_Tm_tl where
+"replace_Tm_tl f P = [(A, replace_Tm_tl_syms f \<alpha>). (A,\<alpha>) \<leftarrow> P] @ [(f a, [Tm a]). a \<leftarrow> tms P]"
+
+lemma set_replace_Tm_tl: "set (replace_Tm_tl f P) = Replace_Tm_tl f (set P)"
+  by (auto simp: replace_Tm_tl_def Replace_Tm_tl_def set_tms)
 
 lemma Expand_all_syms_Replace_Tm_tl:
   assumes inj: "inj_on f as" and L: "L \<inter> f ` as = {}"
@@ -128,6 +181,9 @@ proof-
   finally show ?thesis.
 qed
 
+
+
+
 definition GNF where
 "GNF P = (\<forall>(A,\<alpha>) \<in> P. \<exists>a Bs. \<alpha> = Tm a # map Nt Bs)"
 
@@ -155,43 +211,6 @@ proof (intro conjI GNF_I)
   with \<alpha>' have "\<alpha>' = Tm a # map Nt Bs" by simp
   then show "\<exists>a Bs. \<alpha>' = Tm a # map Nt Bs" by blast
 qed auto
-
-fun fresh_map :: "'a :: fresh0 set \<Rightarrow> 'b list \<Rightarrow> 'b \<rightharpoonup> 'a" where
-  "fresh_map A [] = Map.empty"
-| "fresh_map A (x#xs) = (let a = fresh0 A in (fresh_map (insert a A) xs)(x \<mapsto> a))"
-
-abbreviation fresh_fun where
-"fresh_fun A xs x \<equiv> the (fresh_map A xs x)"
-
-lemma fresh_fun_notIn: "finite A \<Longrightarrow> x \<in> set xs \<Longrightarrow> fresh_fun A xs x \<notin> A"
-  apply (induction xs arbitrary: A)
-  by (auto simp: Let_def fresh0_notIn)
-
-lemma fresh_fun_disj: "finite A \<Longrightarrow> B \<subseteq> A \<Longrightarrow> X \<subseteq> set xs \<Longrightarrow> B \<inter> fresh_fun A xs ` X = {}"
-  by (force simp: fresh_fun_notIn)
-
-lemma fresh_fun_inj_on: "finite A \<Longrightarrow> inj_on (fresh_fun A xs) (set xs)"
-proof (induction xs arbitrary: A)
-  case Nil
-  show ?case by simp
-next
-  case (Cons x xs)
-  define a where "a = fresh0 A"
-  from Cons
-  have IH: "inj_on (fresh_fun (insert a A) xs) (set xs)"
-    and fin: "finite (insert a A)" by auto
-  { fix y assume "y \<in> set xs"
-    from fresh_fun_notIn[OF fin this]
-    have "fresh_fun (insert a A) xs y \<notin> A" "a \<noteq> fresh_fun (insert a A) xs y" by auto
-  } note * = this this(2)[symmetric]
-  show ?case
-    by (auto simp flip: a_def intro!: inj_onI split: if_splits simp: inj_onD[OF IH] *)
-qed
-
-lemma fresh_fun_distinct:
-  assumes fin: "finite A"
-  shows "distinct (map (fresh_fun A xs) xs) \<longleftrightarrow> distinct xs" (is "?l \<longleftrightarrow> ?r")
-  using fresh_fun_inj_on[OF fin] by (auto simp: distinct_map)
 
 definition GNF_of :: "'n list \<Rightarrow> 't list \<Rightarrow> ('n::fresh0,'t)Prods \<Rightarrow> ('n,'t)Prods" where
 "GNF_of As as P =

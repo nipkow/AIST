@@ -10,8 +10,8 @@ begin
 declare [[show_question_marks=false]]
 declare [[names_short=true]]
 
-lemma Expand_hd_loop_simp2: "Expand_hd_loop A (B#Bs) P =
- (let P' = Expand_hd_loop A Bs P
+lemma Expand_hd_rec_simp2: "Expand_hd_rec A (B#Bs) P =
+ (let P' = Expand_hd_rec A Bs P
   in Subst_hd P' {r \<in> P'. \<exists>\<alpha>. r = (A, Nt B # \<alpha>)})"
   by simp
 
@@ -356,7 +356,7 @@ with respect to the \<open>B\<close>-productions in \<open>P\<close>,
 using the following function:
 \begin{quote}
 @{def[margin=70] "Subst_hd"}\\
-@{fun[margin=70] Expand_hd_loop[Expand_hd_loop.simps(1) Expand_hd_loop_simp2]}
+@{fun[margin=70] Expand_hd_rec[Expand_hd_rec.simps(1) Expand_hd_rec_simp2]}
 \end{quote}
 
 
@@ -381,7 +381,7 @@ we do not introduce extra productions if @{prop \<open>V = {}\<close>}.
 This optimization is not explicit in \cite[Fig.\ 4.9]{HopcroftU79},
 although their Example 4.10 performs this implicitly.
 
-Recursively applying @{const Expand_hd_loop} and @{const Solve_lrec}
+Recursively applying @{const Expand_hd_rec} and @{const Solve_lrec}
 transforms \<open>\<epsilon>\<close>-free grammars into triangular forms.
 \begin{quote}
 @{thm[break] Solve_tri.simps(1)}

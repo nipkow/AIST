@@ -21,7 +21,7 @@ lemma Rhss_image_Pair_inj_on:
 text \<open>First, we define the grammar where fresh nonterminals produce the corresponding terminals.
 We abstract the map from terminals to the fresh nonterminals by \<open>f\<close>.\<close>
 
-abbreviation Replace_Tm_new where
+abbreviation Replace_Tm_new :: "('t \<Rightarrow> 'n) \<Rightarrow> 't set \<Rightarrow> ('n,'t) Prods" where
 "Replace_Tm_new f as \<equiv> (\<lambda>a. (f a, [Tm a])) ` as"
 
 text \<open>Expansion with respect to this grammar should preserve terminals and
@@ -50,7 +50,7 @@ lemma Expand_sym_Replace_Tm_new:
 text \<open>The function replacing a terminal by the corresponding fresh nonterminal is
 formalized as follows.\<close>
 
-definition replace_Tm_sym where
+definition replace_Tm_sym :: "('t \<Rightarrow> 'n) \<Rightarrow> ('n,'t) sym \<Rightarrow> ('n,'t) sym" where
 "replace_Tm_sym f x = (case x of Tm a \<Rightarrow> Nt (f a) | _ \<Rightarrow> x)"
 
 lemma replace_Tm_sym_simps:

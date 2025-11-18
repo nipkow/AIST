@@ -24,9 +24,9 @@ We abstract the map from terminals to the fresh nonterminals by \<open>f\<close>
 abbreviation Replace_Tm_new :: "('t \<Rightarrow> 'n) \<Rightarrow> 't set \<Rightarrow> ('n,'t) Prods" where
 "Replace_Tm_new f as \<equiv> (\<lambda>a. (f a, [Tm a])) ` as"
 
-text \<open>Expansion with respect to this grammar should preserve terminals and
-locked nonterminals,
-and the fresh nonterminals should be reverted to the original terminals.\<close>
+text \<open>Expansion with respect to this grammar should
+revert the fresh nonterminals to the original terminals,
+while preserving terminals and locked nonterminals.\<close>
 
 lemma Rhss_Un_Replace_Tm_new:
   assumes inj: "inj_on f as" and a: "a \<in> as" and fa: "f a \<notin> Lhss P"
@@ -47,24 +47,77 @@ lemma Expand_sym_Replace_Tm_new:
   shows "Expand_sym (Replace_Tm_new f as) L (Nt (f a)) = {[Tm a]}"
   using a L by (auto simp: Expand_sym_def Rhss_image_Pair_inj_on[OF inj])
 
-text \<open>The function replacing a terminal by the corresponding fresh nonterminal is
-formalized as follows.\<close>
+text \<open>Admissible replacements can choose to replace or preserve each terminal.\<close>
 
-definition replace_Tm_sym :: "('t \<Rightarrow> 'n) \<Rightarrow> ('n,'t) sym \<Rightarrow> ('n,'t) sym" where
-"replace_Tm_sym f x = (case x of Tm a \<Rightarrow> Nt (f a) | _ \<Rightarrow> x)"
+fun Replace_Tm_syms_ops where
+  "Replace_Tm_syms_ops f [] = {[]}"
+| "Replace_Tm_syms_ops f (x#xs) =
+   insert [x] (case x of Tm a \<Rightarrow> {[Nt (f a)]} | _ \<Rightarrow> {}) @@ Replace_Tm_syms_ops f xs"
 
-lemma replace_Tm_sym_simps:
-  "replace_Tm_sym f (Nt A) = Nt A"
-  "replace_Tm_sym f (Tm a) = Nt (f a)"
-  by (auto simp: replace_Tm_sym_def)
+definition Replace_Tm_ops :: "('t \<Rightarrow> 'n) \<Rightarrow> (('n,'t) syms \<Rightarrow> ('n,'t) syms) set" where
+"Replace_Tm_ops f = {g. \<forall>\<alpha>. g \<alpha> \<in> Replace_Tm_syms_ops f \<alpha>}"
 
-lemma Expand_all_syms_Replace_Tm:
-  assumes inj: "inj_on f as" and L: "L \<inter> f ` as = {}"
-    and \<alpha>: "Tms_syms \<alpha> \<subseteq> as" "Nts_syms \<alpha> \<subseteq> L"
-  shows "Expand_all_syms (Replace_Tm_new f as) L (map (replace_Tm_sym f) \<alpha>) = {\<alpha>}"
-  by (insert \<alpha>, induction \<alpha>,
-      auto split: sym.splits simp: replace_Tm_sym_def
-      Expand_sym_Replace_Tm_new[OF inj L] Expand_sym_Replace_Tm_Nt[OF inj] insert_conc)
+definition Replace_Tm :: "('t \<Rightarrow> 'n) \<Rightarrow> (('n,'t) syms \<Rightarrow> ('n,'t) syms) \<Rightarrow> ('n,'t) Prods \<Rightarrow> ('n,'t) Prods" where
+"Replace_Tm f g P = {(A, g \<alpha>) | A \<alpha>. (A,\<alpha>) \<in> P} \<union> Replace_Tm_new f (Tms P)"
+
+lemma Expand_all_syms_Replace_Tm_ops:
+  assumes inj: "inj_on f as"
+    and L: "L \<inter> f ` as = {}"
+    and \<alpha>: "Tms_syms \<alpha> \<subseteq> as" "Nts_syms \<alpha> \<subseteq> L" "\<beta> \<in> Replace_Tm_syms_ops f \<alpha>"
+  shows "Expand_all_syms (Replace_Tm_new f as) L \<beta> = {\<alpha>}"
+proof (insert \<alpha>, induction \<alpha> arbitrary: \<beta>)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons x \<alpha>)
+  then have 1: "Tms_syms \<alpha> \<subseteq> as" and 2: "Nts_syms \<alpha> \<subseteq> L" by auto
+  from Cons.prems(3)
+  obtain y \<beta>' where [simp]: "\<beta> = y # \<beta>'"
+    and 3: "\<beta>' \<in> Replace_Tm_syms_ops f \<alpha>"
+    and y: "case x of Tm a \<Rightarrow> y = Nt (f a) \<or> y = x | _ \<Rightarrow> y = x"
+    by (auto simp: insert_conc split:sym.splits)
+  note IH = Cons.IH[OF 1 2 3]
+  from y Cons.prems(1,2) Expand_sym_Replace_Tm_new[OF inj L]
+  show ?case
+    by (auto split: sym.splits simp: Expand_sym_Replace_Tm_Nt[OF inj] insert_conc IH
+        Expand_sym_Replace_Tm_Tm conc_insert)
+qed
+
+lemma Expand_all_Replace_Tm_ops:
+  assumes g: "g \<in> Replace_Tm_ops f"
+    and inj: "inj_on f as"
+    and L: "L \<inter> f ` as = {}"
+    and P: "Tms P \<subseteq> as" "Rhs_Nts P \<subseteq> L"
+  shows "Expand_all (Replace_Tm_new f as) L {(A, g \<alpha>) | A \<alpha>. (A,\<alpha>) \<in> P} = P"
+proof-
+  have *: "(A,\<alpha>) \<in> P \<Longrightarrow> Expand_all_syms (Replace_Tm_new f as) L (g \<alpha>) = {\<alpha>}" for A \<alpha>
+    apply (rule Expand_all_syms_Replace_Tm_ops[OF inj L])
+    using P g by (auto simp: Tms_def Rhs_Nts_def Replace_Tm_ops_def)
+  then show ?thesis by (force simp: Expand_def)
+qed
+
+lemma Lang_Replace_Tm:
+  assumes g: "g \<in> Replace_Tm_ops f"
+    and inj: "inj_on f (Tms P)"
+    and disj: "Nts P \<inter> f ` Tms P = {}"
+    and A: "A \<notin> f ` Tms P"
+  shows "Lang (Replace_Tm f g  P) A = Lang P A"
+    (is "?l = ?r")
+proof-
+  have "?l = Lang ({(A, g \<alpha>) | A \<alpha>. (A,\<alpha>) \<in> P} \<union> Replace_Tm_new f (Tms P)) A"
+    by (simp add: Replace_Tm_def)
+  also have "\<dots> = Lang (Expand_all (Replace_Tm_new f (Tms P)) (Nts P) {(A, g \<alpha>) | A \<alpha>. (A,\<alpha>) \<in> P} \<union> Replace_Tm_new f (Tms P)) A"
+    apply (subst Lang_Expand_all)
+    by (auto simp: Nts_def Lhss_def)
+  also have "\<dots> = Lang (P \<union> Replace_Tm_new f (Tms P)) A"
+    using Expand_all_Replace_Tm_ops[OF g inj disj]
+    by (simp add: Nts_Lhss_Rhs_Nts)
+  also have "\<dots> = ?r"
+    apply (rule Lang_Un_disj_Lhss) using disj A by (auto simp: Lhss_image_Pair)
+  finally show ?thesis.
+qed
+
+
 
 
 subsection \<open>Mapping to Fresh Nonterminals\<close>
@@ -109,78 +162,57 @@ lemma fresh_fun_distinct:
   shows "distinct (map (fresh_fun A xs) xs) \<longleftrightarrow> distinct xs" (is "?l \<longleftrightarrow> ?r")
   using fresh_fun_inj_on[OF fin] by (auto simp: distinct_map)
 
+subsection \<open>Instances\<close>
+
+text \<open>The function replacing a terminal by the corresponding fresh nonterminal is
+formalized as follows.\<close>
+
+definition replace_Tm_sym :: "('t \<Rightarrow> 'n) \<Rightarrow> ('n,'t) sym \<Rightarrow> ('n,'t) sym" where
+"replace_Tm_sym f x = (case x of Tm a \<Rightarrow> Nt (f a) | _ \<Rightarrow> x)"
+
+lemma replace_Tm_sym_simps:
+  "replace_Tm_sym f (Nt A) = Nt A"
+  "replace_Tm_sym f (Tm a) = Nt (f a)"
+  by (auto simp: replace_Tm_sym_def)
+
+subsubsection \<open>Replacing all terminals\<close>
+
+definition Replace_all_Tm :: "('t \<Rightarrow> 'n) \<Rightarrow> ('n,'t) Prods \<Rightarrow> ('n,'t) Prods" where
+"Replace_all_Tm f = Replace_Tm f (map (replace_Tm_sym f))"
+
+lemma map_replace_Tm_sym_ops:
+  "map (replace_Tm_sym f) xs \<in> Replace_Tm_syms_ops f xs"
+  by (induction xs, auto split: sym.splits simp: insert_conc replace_Tm_sym_simps)
+
+lemma map_replace_Tm_ops:
+  "map (replace_Tm_sym f) \<in> Replace_Tm_ops f"
+  by (simp add: Replace_Tm_ops_def map_replace_Tm_sym_ops)
+
+corollary Lang_Replace_all_Tm:
+  assumes "inj_on f (Tms P)" "Nts P \<inter> f ` Tms P = {}" "A \<notin> f ` Tms P"
+  shows "Lang (Replace_all_Tm f P) A = Lang P A"
+  using Lang_Replace_Tm[OF map_replace_Tm_ops assms] by (simp add: Replace_all_Tm_def)
+
 subsubsection \<open>Replacing non-head terminals\<close>
 
-definition replace_Tm_tl_syms where
+definition replace_Tm_tl_syms :: "('t \<Rightarrow> 'n) \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t) syms" where
 "replace_Tm_tl_syms f xs = (case xs of x#xs' \<Rightarrow> x # map (replace_Tm_sym f) xs' | _ \<Rightarrow> xs)"
 
-abbreviation Replace_Tm_tl_old where
-"Replace_Tm_tl_old f P \<equiv> {(A, replace_Tm_tl_syms f \<alpha>) | A \<alpha>. (A,\<alpha>) \<in> P}"
+definition Replace_Tm_tl :: "('t \<Rightarrow> 'n) \<Rightarrow> ('n,'t) Prods \<Rightarrow> ('n,'t) Prods" where
+"Replace_Tm_tl f = Replace_Tm f (replace_Tm_tl_syms f)"
 
-definition Replace_Tm_tl where
-"Replace_Tm_tl f P = Replace_Tm_tl_old f P \<union> Replace_Tm_new f (Tms P)"
+lemma replace_Tm_tl_syms_ops:
+  "replace_Tm_tl_syms f xs \<in> Replace_Tm_syms_ops f xs"
+  by (auto simp: replace_Tm_tl_syms_def insert_conc map_replace_Tm_sym_ops split: list.splits)
 
-definition replace_Tm_tl where
-"replace_Tm_tl f P = [(A, replace_Tm_tl_syms f \<alpha>). (A,\<alpha>) \<leftarrow> P] @ [(f a, [Tm a]). a \<leftarrow> tms P]"
+lemma replace_Tm_tl_ops:
+  "replace_Tm_tl_syms f \<in> Replace_Tm_ops f"
+  by (simp add: Replace_Tm_ops_def replace_Tm_tl_syms_ops)
 
-lemma set_replace_Tm_tl: "set (replace_Tm_tl f P) = Replace_Tm_tl f (set P)"
-  by (auto simp: replace_Tm_tl_def Replace_Tm_tl_def set_tms)
-
-lemma Expand_all_syms_Replace_Tm_tl:
-  assumes inj: "inj_on f as" and L: "L \<inter> f ` as = {}"
-    and \<alpha>: "Tms_syms \<alpha> \<subseteq> as" "Nts_syms \<alpha> \<subseteq> L"
-  shows "Expand_all_syms (Replace_Tm_new f as) L (replace_Tm_tl_syms f \<alpha>) = {\<alpha>}"
-proof (cases \<alpha>)
-  case Nil
-  then show ?thesis by (simp add: replace_Tm_tl_syms_def)
-next
-  case [simp]: (Cons x xs)
-  from \<alpha> have xs: "Tms_syms xs \<subseteq> as" "Nts_syms xs \<subseteq> L" by auto
-  note [simp] = Expand_all_syms_Replace_Tm[OF inj L xs]
-  show ?thesis
-  proof (cases x)
-    case [simp]: (Nt A)
-    with \<alpha> have "A \<in> L" by auto
-    note [simp] = Expand_sym_Replace_Tm_Nt[OF inj this]
-    show ?thesis by (auto simp: replace_Tm_tl_syms_def insert_conc)
-  next
-    case [simp]: (Tm a)
-    show ?thesis by (auto simp: replace_Tm_tl_syms_def insert_conc Expand_sym_Replace_Tm_Tm)
-  qed
-qed
-
-lemma Expand_all_Replace_Tm_tl:
-  assumes inj: "inj_on f as" and L: "L \<inter> f ` as = {}"
-    and P: "Tms P \<subseteq> as" "Rhs_Nts P \<subseteq> L"
-  shows "Expand_all (Replace_Tm_new f as) L (Replace_Tm_tl_old f P) = P"
-proof-
-  have *: "(A,\<alpha>) \<in> P \<Longrightarrow> Expand_all_syms (Replace_Tm_new f as) L (replace_Tm_tl_syms f \<alpha>) = {\<alpha>}" for A \<alpha>
-    apply (rule Expand_all_syms_Replace_Tm_tl[OF inj L])
-    using P by (auto simp: Tms_def Rhs_Nts_def)
-  then show ?thesis by (force simp: Expand_def)
-qed
-
-lemma Lang_Replace_Tm_tl:
-  assumes inj: "inj_on f (Tms P)" and disj: "Nts P \<inter> f ` Tms P = {}"
-    and A: "A \<notin> f ` Tms P"
+corollary Lang_Replace_Tm_tl:
+  assumes "inj_on f (Tms P)" "Nts P \<inter> f ` Tms P = {}" "A \<notin> f ` Tms P"
   shows "Lang (Replace_Tm_tl f P) A = Lang P A"
-    (is "?l = ?r")
-proof-
-  from disj have L: "Lhss P \<inter> f ` Tms P = {}" and R: "Rhs_Nts P \<inter> f ` Tms P = {}"
-    by (auto simp: Nts_Lhss_Rhs_Nts)
-  have "?l = Lang (Replace_Tm_tl_old f P \<union> Replace_Tm_new f (Tms P)) A"
-    by (simp add: Replace_Tm_tl_def)
-  also have "\<dots> = Lang (Expand_all (Replace_Tm_new f (Tms P)) (Nts P) (Replace_Tm_tl_old f P) \<union> Replace_Tm_new f (Tms P)) A"
-    apply (subst Lang_Expand_all)
-    by (auto simp: Nts_def Lhss_def)
-  also have "\<dots> = Lang (P \<union> Replace_Tm_new f (Tms P)) A"
-    using Expand_all_Replace_Tm_tl[OF inj disj]
-    by (simp add: Nts_Lhss_Rhs_Nts)
-  also have "\<dots> = ?r"
-    apply (rule Lang_Un_disj_Lhss) using disj A by (auto simp: Lhss_image_Pair)
-  finally show ?thesis.
-qed
-
+  using Lang_Replace_Tm[OF replace_Tm_tl_ops assms] by (simp add: Replace_Tm_tl_def)
 
 
 

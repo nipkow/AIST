@@ -318,8 +318,13 @@ the test for disjointness from and containment in a regular language
 Any \<open>\<epsilon>\<close>-free context-free language has a
 \emph{Greibach Normal Form (GNF)} representation,
 where every right-hand side is a terminal followed by nonterminals.
-The same holds for 
-a general version of GNF, which we call \emph{head GNF},\footnote{
+\begin{quote}
+@{def GNF}
+\end{quote}
+In this section we define an executable function @{const GNF_of},
+which turns a grammar into GNF while preserving the language modulo \<open>\<epsilon>\<close>.
+
+We start with a weaker version of GNF, which we call \emph{head GNF},\footnote{
 This notion is sometimes just called GNF~\cite{BlumK99} or real-time form~\cite{ReghizziBM19}.
 }
 where
@@ -327,11 +332,6 @@ every right-hand side starts with a terminal symbol.
 \begin{quote}
 @{def GNF_hd}
 \end{quote}
-
-In this section we define an executable function @{const GNF_hd_of},
-which turns a grammar into head GNF while preserving the language modulo \<open>\<epsilon>\<close>.
-It is easy to turn head GNF into GNF by introducing nonterminals for terminals that appear
-at non-head position of right-hand sides.
 
 The procedure takes three steps of conversions:
 first eliminate \<open>\<epsilon>\<close>-productions (@{const Eps_elim}),
@@ -406,7 +406,7 @@ clarifying the list (\<open>As @ rev As'\<close>) the result is triangular on re
 !!TODO!!
 
 From a triangular form,
-expanding head nonterminals in the right order turns the grammar into head GNF.
+repeatedly expanding head nonterminals in the right order turns the grammar into head GNF.
 \begin{quote}
 @{fun Expand_tri[Expand_tri.simps(1) Expand_tri_simp2]}\\
 \end{quote}
@@ -425,6 +425,12 @@ Let \<open>As\<close> be a list of distinct nonterminals in \<open>P\<close>.
 Then @{thm(concl) GNF_hd_GNF_hd_of}.
 For all @{thm(prem 3) Lang_GNF_hd_of}, @{thm(concl) Lang_GNF_hd_of}.
 \end{theorem}
+
+It is easy to turn head GNF into GNF by introducing nonterminals for terminals that appear
+at non-head position of right-hand sides.
+
+!!TODO!!
+
 
 We close the section with demonstrating the exponential complexity of
 the (head) GNF translation algorithm~\cite{?}.

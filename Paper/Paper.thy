@@ -4,8 +4,8 @@ imports
   Context_Free_Grammar.Pumping_Lemma_CFG
   Greibach_Normal_Form.Greibach_Normal_Form
   Chomsky_Schuetzenberger.Chomsky_Schuetzenberger
+  Pre_Star_CFG.Applications
   Sugar
-  PreStar
 begin
 declare [[show_question_marks=false]]
 declare [[names_short=true]]
@@ -59,7 +59,9 @@ The main novel contributions of our work are:
 the Chomsky-Sch\"utzenberger Theorem (Sect.~\ref{sec:ChSch}) and Parikh's Theorem (Sect.~\ref{sec:Parikh}).
 \end{itemize}
 
-Of course only textbook+, no parsing (separate).
+When we use the term executability we mean that the definitions (or derived lemmas!) form
+a functional program and that Isabelle can generate programs in various functional
+languages (Haskell, OCaml and SML) \cite{HaftmannN10}.
 
 %\subsection{Related Work}
 
@@ -68,9 +70,9 @@ the three related formalizations that are closest to our work: the work by
 Barthwal and Norrish \cite{csl/BarthwalN10,wollic/BarthwalN10,BarthwalN14} (in HOL4),
 Hofmann \cite{JHofmann} (in Coq) and Ramos \emph{et al.} \cite{RamosAMQ,RamosAMQ16,RamosQMA16} (in Coq).
 
-When we use the term executability we mean that the definitions (or derived lemmas!) form
-a functional program and that Isabelle can generate programs in various functional
-languages (Haskell, OCaml and SML) \cite{HaftmannN10}.
+The one fundamental area we do not cover is parsing, which has been covered elsewhere
+(e.g.\ \cite{BarthwalN09,JourdanPL12,LasserCFR19,BlaudeauS20,RauN24}).
+
 
 \subsection{Isabelle Notation} \label{sec:isabelle}
 
@@ -92,9 +94,10 @@ The operator @{term "(@)"} appends two lists, @{term "length xs"} denotes the le
 %and @{term "take n xs"} is the prefix of length \<open>n\<close> of \<open>xs\<close>.
 
 Algebraic data types are defined using the \isakeyword{datatype} keyword. A predefined data type:
-\begin{quote}
+%\begin{quote}
 @{datatype option}
-\end{quote}
+%\end{quote}
+
 The notation \mbox{\<open>\<lbrakk>A\<^sub>1, \<dots>, A\<^sub>n\<rbrakk> \<Longrightarrow> B\<close>} denotes an implication with premises \<open>A\<^sub>1\<close>, \ldots, \<open>A\<^sub>n\<close> and conclusion \<open>B\<close>.
 Equality on type @{type bool} denotes logical equivalence.
 
@@ -158,12 +161,14 @@ but our proofs are independent of them.
 
 \subsection{Chomsky Normal Form and Pumping Lemma}
 
-Naturally we have shown that a finite grammar has an equivalent (modulo \<open>[]\<close>) finite grammar in Chomsky Normal Form:
+We have verified an executable translation into Chomsky Normal Forms:
 \begin{quote}
-@{thm CNF_def}\\
-@{thm cnf_exists}
+@{thm CNF_def}\smallskip\\
+@{thm [break]cnf_of_def}\smallskip\\
+@{thm cnf_of_CNF_Lang}
 \end{quote}
-Our proof is based on the one by Bart A constructive formalization is due to Hofmann \<^cite>\<open>JHofmann\<close>.
+Our proof is based partly on the non-constructive one by Barthwal and Norrish \cite{csl/BarthwalN10}.
+Another constructive translation was formalized by Hofmann \<^cite>\<open>JHofmann\<close>.
 Ramos \cite{RamosAMQ} also formalized four applications, two of which we also formalized
 (non-context freeness of $a^nb^nc^n$ and non-closedness of context-free languages under intersection)
 using only 10--15\% of the number of lines.
@@ -240,7 +245,7 @@ An automaton \<open>M\<close> (of type \<^typ>\<open>('s,'a) auto\<close>) consi
 If \<open>T\<close> is finite, we call \<open>M\<close> an NFA.
 We also define @{term "Lang_auto M"}, the words accepted by \<open>M\<close>, and @{term "reachable_from T q"},
 the states reachable from \<open>q\<close> via \<open>T\<close>.
-Below, the label type \<^typ>\<open>'a\<close> will always be @{typ\<open>('n,'t)sym\<close>}.
+Below, the label type \<^typ>\<open>'a\<close> will always be \mbox{@{typ\<open>('n,'t)sym\<close>}}.
 
 Function @{const pre_lts} adds all possible new transitions to a set of transitions \<open>T\<close>
 (over the state space \<open>Q\<close>) using the productions in \<open>P\<close> backwards once:
@@ -251,7 +256,7 @@ Function @{const pre_lts} adds all possible new transitions to a set of transiti
 %TODO while -> lfp
 The closure of some \<open>T\<close> under @{const pre_lts} can be defined by repeated application like this:
 \begin{quote}
-@{thm [break] pre_star_lts_def}
+@{thm [break] pre_star_lts_def[unfolded while_saturate_def]}
 \end{quote}
 using the predefined combinator @{const_typ while_option} \cite{Nipkow11}.
 We do not dwell on its definition but it is executable because it obeys this recursion equation:
@@ -277,7 +282,7 @@ is the analogue of @{const pre_star} on the level of @{type lts}:
 %there is finite bounding set \<open>C\<close> (the closure) such that @{prop "X \<subseteq> C \<Longrightarrow> f X \<subseteq> C"}.
 Termination can be guaranteed under the obvious finiteness assumptions:
 \begin{quote}
-@{thm pre_star_lts_terminates}
+@{thm [break] pre_star_lts_terminates}
 \end{quote}
 
 This is the core of the theory. It is easily lifted to the level of NFAs, yielding
@@ -311,6 +316,9 @@ and we can evaluate @{prop "[Nt A] \<in> Lang_auto(pre_star_auto M P)"} to deter
 Because @{thm [mode=iffSpace] pre_star_disjointness[where S=A]},
 the test for disjointness from and containment in a regular language
 (given by an NFA) can also be automated.
+
+Previous formalizations of \prestar\ were based on and applied to pushdown systems
+\cite{SchlichtkrullSST22,Pushdown_Systems-AFP} and networks \cite{LammichMW09}, not CFGs.
 
 
 \section{Greibach Normal Forms}\label{sec:GNF}%AY

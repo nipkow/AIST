@@ -35,10 +35,9 @@ lemma pre_star_emptiness':
 unfolding lists_eq_set using pre_star_emptiness[of P A] by blast
 (*>*)
 text \<open>
-% sf font for constants?? - if we have too much time :)
 % TODO no ==, just =
-
-%rebase LL1 parser on CFG!
+% sf font for constants?? - if we have too much time :)
+%rebase LL1 parser on CFG - if we have too much time :)
 
 \section{Introduction}
 
@@ -47,8 +46,7 @@ context-free grammars and languages (henceforth CFG and CFL).
 The formalization is unified in the sense that many of the topics that were 
 previously formalized independently (and in different provers) are now
 unified in a single formalization, available in the Archive of Formal Proofs as separate entries
-\cite{Context_Free_Grammar-AFP,Pushdown_Automata-AFP,Greibach_Normal_Form-AFP,Chomsky_Schuetzenberger-AFP,Parikh-AFP,PreStar-AFP}.
-%TODO pre*
+\cite{Context_Free_Grammar-AFP,Pushdown_Automata-AFP,Greibach_Normal_Form-AFP,Chomsky_Schuetzenberger-AFP,Parikh-AFP,Pre_Star_CFG-AFP}.
 
 The main novel contributions of our work are:
 \begin{itemize}
@@ -257,7 +255,6 @@ Function @{const pre_lts} adds all possible new transitions to a set of transiti
 @{thm [break] pre_lts_def}% beta -> alpha?
 \end{quote}
 
-%TODO while -> lfp
 The closure of some \<open>T\<close> under @{const pre_lts} can be defined by repeated application like this:
 \begin{quote}
 @{thm [break] pre_star_lts_def[unfolded while_saturate_def]}
@@ -520,15 +517,14 @@ We use the cnf form to encode the parse tree -- i.e. which productions were used
    &\pi = A \rightarrow a \,\text{ by }\, \pi' = A \rightarrow [^1_\pi \, ]^1_\pi \, [^2_\pi \, ]^2_\pi.
 \end{align*}
 %
-This nets us the new Production set $P'$ generating a new language $L'$. Note that in both cases the full production $\pi$ appears on the right hand side as a bracket index in two copies. Note additionally, that the newly introduced brackets are all to be seen terminals. This sets us up with the bracket indices %
-\[
-    @{prop \<open>\<Gamma> = P \<times> {One, Two}\<close>}.
-\]
-%
-%\begin{quote}% TODO This didn't print what i want, i put it manually, see above
-%@{thm "Chomsky_Schuetzenberger_locale.\<Gamma>_def"}
-%\end{quote}
-%
+This nets us the new Production set $P'$ generating a new language $L'$. Note that in both cases the full production $\pi$ appears on the right hand side as a bracket index in two copies. Note additionally, that the newly introduced brackets are all to be seen terminals.
+This sets us up with the bracket indices:
+\begin{quote}
+@{prop \<open>\<Gamma> = P \<times> {One, Two}\<close>}
+%@ {thm "Chomsky_Schuetzenberger_locale.\<Gamma>_def"}
+% does not work because outside the locale
+\end{quote}
+
 In Isabelle these definitions look more verbose:
 \begin{quote}
 @{fun transform_prod}\\
@@ -556,9 +552,8 @@ For example the first property asserts that after a bracket of the form $]^1_p$ 
 
 In Isabelle we realize this, by first defining the predicate @{term \<open>P1'\<close>} deciding the condition for 2 (neighbouring) input elements and then extend this to @{term \<open>P1\<close>} via the successively predicate. By design of the successively predicate, we must special case the last letter:
 
-\begin{quote}%TODO why does this print all simps instead of the defining equations?
-@{fun P1'}\\
-\\
+\begin{quote}
+@{fun_input P1'}\smallskip\\
 @{fun P1}   
 \end{quote}
 The condition @{term \<open>P5\<close>} talks only about the first letter of it's input, and asserts that this is a bracket of the form @{term \<open>[\<^sup>1\<^bsub>(A,y)\<^esub>\<close>} where $A$ is also an input to @{term \<open>P5\<close>}. It is later used with the start symbol.
@@ -579,19 +574,11 @@ The \<open>\<supseteq>\<close> direction went through as described in Kozen's pa
 \subsection{Proving regularity}
 Kozen handwaves the regularity of the $Pi$'s away to ``can be described by a regular expression''. But actually writing down the correct expressions is a surprisingly hard task, and furthermore proving the generated language equivalent to the -- otherwise very practical -- description via the $Pi$'s is a tedious task, since the regular expression contains multiple Kleene stars.
 
-A much easier approach was to use a deterministic finite automaton. The dfa would remember it's last seen bracket in it's state and the transition function makes implementing the conditions and the pairwise checking behaviour straightforward.
+A much easier approach was to use a deterministic finite automaton \cite{Paulson15}. The DFA would remember it's last seen bracket in it's state and the transition function makes implementing the conditions and the pairwise checking behaviour straightforward.
 
-We were able to use the same general automaton for @{term \<open>P2\<close>},@{term \<open>P3\<close>} and @{term \<open>P4\<close>}, since we were able to give an automaton for @{term [source] \<open>{xs. successively Q xs \<and> xs \<in> locale_P.brackets P}\<close>} for an arbitrary pairwise condition $Q$.
+We were able to use the same general automaton for @{term \<open>P2\<close>}, @{term \<open>P3\<close>} and @{term \<open>P4\<close>}, since we were able to give an automaton for @{term [source] \<open>{xs. successively Q xs \<and> xs \<in> locale_P.brackets P}\<close>} for an arbitrary pairwise condition $Q$.
 
 
-
-\subsubsection{TODO soll das ins paper?}
-\begin{enumerate}
-  \item older formalization of automata by Paulson. Discuss why he used finitary set model.
-  Obvious problems when using it via converting ad hoc. Bijection function not
-  total on type in both directions. Leads to proof finding difficultys for sledgehammer and bad readability of lemmas. Grab example from past git. 
-  \item Move to converter module. Nipkows adaptation of DFA in current AFP integrates the conversion from $('a,'s) dfa$ to $'a dfa_hf$.
-\end{enumerate}
 
 
 \section{Parikh}\label{sec:Parikh}%FL

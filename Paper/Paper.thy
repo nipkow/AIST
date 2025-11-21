@@ -562,7 +562,7 @@ The intersection of all these conditions already almost make up the regular Lang
 @{def Reg}
 \end{quote}
 But @{term \<open>Reg S\<close>} is only regular when it is known that there is only finitely many different brackets, i.e. when the Production set $P$ is finite.
-When we formally show the regularity, we will therefore only show the regularity of @{prop [source] \<open>R \<equiv> (Reg S) \<inter> (locale_P.brackets P)\<close>} for finite $P$. Here @{term [source] \<open>locale_P.brackets P\<close>} denotes the set of arbitrary words consisting of the brackets with indices in $P$.
+When we formally show the regularity, we will therefore only show the regularity of @{prop [source] \<open>R \<equiv> (Reg S) \<inter> (brackets P)\<close>} for finite $P$. Here @{term [source] \<open>brackets P\<close>} denotes the set of arbitrary words consisting of the brackets with indices in $P$.
 
 When proceded proving the \<open>\<subseteq>\<close> direction of @{prop "L = \<h> ` (R \<inter> Dyck_lang \<Gamma>)"} by proving that the regularity conditions keep holding in each derivation step.
 
@@ -576,7 +576,7 @@ Kozen handwaves the regularity of the $Pi$'s away to ``can be described by a reg
 
 A much easier approach was to use a deterministic finite automaton \cite{Paulson15}. The DFA would remember it's last seen bracket in it's state and the transition function makes implementing the conditions and the pairwise checking behaviour straightforward.
 
-We were able to use the same general automaton for @{term \<open>P2\<close>}, @{term \<open>P3\<close>} and @{term \<open>P4\<close>}, since we were able to give an automaton for @{term [source] \<open>{xs. successively Q xs \<and> xs \<in> locale_P.brackets P}\<close>} for an arbitrary pairwise condition $Q$.
+We were able to use the same general automaton for @{term \<open>P2\<close>}, @{term \<open>P3\<close>} and @{term \<open>P4\<close>}, since we were able to give an automaton for @{term [source] \<open>{xs. successively Q xs \<and> xs \<in> brackets P}\<close>} for an arbitrary pairwise condition $Q$.
 
 
 

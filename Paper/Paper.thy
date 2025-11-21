@@ -483,12 +483,12 @@ For this, the homomorphism will only need to act on a per letter basis - we will
 In order to allow arbitrary kinds of brackets, the easiest approach was to let the user supply only an index to each opening bracket, and generate the matching closing bracket automatically from this.
 The correctly bracketed words are then described by the empty, append and surround rule:
 
-\begin{quote}% TODO how to quote the inductive with it's original rules?
+\begin{quote}
 @{typ "'a bracket"} = @{typ "bool \<times> 'a"}\\
 abbreviation @{abbrev "Open a"}\\
 abbreviation @{abbrev "Close a"}\\
 \\
-@{fun "bal"}
+@{thm "bal.intros"}
 \end{quote}
 
 The Dyck Language over @{term \<open>\<Gamma>\<close>} is then the set of correctly bracketed words, where the bracket indices come from @{term \<open>\<Gamma>\<close>}:

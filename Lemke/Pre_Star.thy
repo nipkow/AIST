@@ -1,12 +1,15 @@
+(* Authors: Tassilo Lemke, Tobias Nipkow *)
+
 section \<open>$Pre^*$\<close>
 
 theory Pre_Star
 imports
-  (*Definition*)
   Context_Free_Grammar.Context_Free_Grammar
   LTS_Automata
   "HOL-Library.While_Combinator"
 begin
+
+(* Internal polishing: One could get rid of \<open>reachable_from\<close> and use \<open>states_lts \<subseteq> Q\<close> instead. *)
 
 text\<open>This theory defines \<open>pre\<^sup>*(L)\<close> (\<open>pre_star\<close> below) and verifies a simple saturation algorithm
 \<open>pre_star_auto\<close> that computes \<open>pre\<^sup>*(M)\<close> given an NFA \<open>M\<close> and a finite set of context-free productions.
@@ -27,18 +30,18 @@ text\<open>
   At some point, adding another layer of direct predecessors no-longer changes anything,
   i.e.\ the LTS is saturated and \<open>pre\<^sup>*\<close> has been reached.\<close>
 
-definition pre_lts :: "('n, 't) Prods \<Rightarrow> 's set
-    \<Rightarrow> ('s, ('n, 't) sym) lts \<Rightarrow> ('s, ('n, 't) sym) lts" where
-  "pre_lts P Q T = { (q, Nt A, q') | q q' A. \<exists>\<beta>.
-    (A, \<beta>) \<in> P \<and> q' \<in> steps_lts T \<beta> q \<and> q \<in> Q \<and> q' \<in> Q }"
+definition pre_lts :: "('n,'t) Prods \<Rightarrow> 's set \<Rightarrow> ('s, ('n,'t) sym) lts \<Rightarrow> ('s, ('n,'t) sym) lts"
+  where
+"pre_lts P Q T =
+  { (q, Nt A, q') | q q' A. q \<in> Q \<and> (\<exists>\<beta>. (A, \<beta>) \<in> P \<and> q' \<in> steps_lts T \<beta> q)}"
 
 lemma pre_lts_code[code]: "pre_lts P Q T =
-   (\<lambda>(q, q', A\<beta>). (q, Nt (fst A\<beta>), q')) ` {(q, q', A\<beta>) \<in> Q \<times> Q \<times> P. q' \<in> steps_lts T (snd A\<beta>) q}"
+   (\<Union>q \<in> Q. \<Union>(A,\<beta>) \<in> P. \<Union>q' \<in> steps_lts T \<beta> q. {(q, Nt A, q')})"
   unfolding pre_lts_def image_def by(auto)
 
 definition pre_star_lts :: "('n, 't) Prods \<Rightarrow> 's set
     \<Rightarrow> ('s, ('n, 't) sym) lts \<Rightarrow> ('s, ('n, 't) sym) lts option" where
-  "pre_star_lts P Q \<equiv> while_option (\<lambda>T. T \<union> pre_lts P Q T \<noteq> T) (\<lambda>T. T \<union> pre_lts P Q T)"
+"pre_star_lts P Q \<equiv> while_option (\<lambda>T. T \<union> pre_lts P Q T \<noteq> T) (\<lambda>T. T \<union> pre_lts P Q T)"
 
 lemma pre_star_lts_rule:
   assumes "\<And>T. H T \<Longrightarrow> T \<union> pre_lts P Q T \<noteq> T \<Longrightarrow> H (T \<union> pre_lts P Q T)"
@@ -69,11 +72,15 @@ lemma pre_star_lts_reachable:
   shows "reachable_from T q = reachable_from T' q"
   by (rule pre_star_lts_rule; use assms pre_lts_reachable in fast)
 
-lemma pre_star_lts_inQ:
-  assumes "pre_star_lts P Q T = Some T'" and "\<forall>(q,_,q') \<in> T. q \<in> Q \<and> q' \<in> Q"
-  shows "\<forall>(q,_,q') \<in> T'. q \<in> Q \<and> q' \<in> Q"
-  apply (rule pre_star_lts_rule)
-  unfolding pre_lts_def by (use assms pre_lts_def in fast)+
+lemma states_pre_lts: assumes "states_lts T \<subseteq> Q" shows "states_lts (pre_lts P Q T) \<subseteq> Q"
+using steps_states_lts[OF assms] unfolding pre_lts_def states_lts_def by auto
+
+lemma states_pre_star_lts:
+  assumes "pre_star_lts P Q T = Some T'" and "states_lts T \<subseteq> Q"
+  shows "states_lts T' \<subseteq> Q"
+apply (rule pre_star_lts_rule[OF _ assms(1)])
+ apply (simp add: states_lts_Un states_pre_lts)
+by(fact assms(2))
 
 
 subsection\<open>Correctness\<close>
@@ -271,7 +278,7 @@ qed (simp add: assms)
 
 lemma pre_star_lts_terminates:
   fixes P :: "('n, 't) Prods" and Q :: "'s set" and T\<^sub>0 :: "('s, ('n, 't) sym) lts"
-  assumes "finite P" and "finite Q" and "finite T\<^sub>0"
+  assumes "finite P" and "finite Q" and "finite T\<^sub>0" and "states_lts T\<^sub>0 \<subseteq> Q"
   shows "\<exists>T. pre_star_lts P Q T\<^sub>0 = Some T"
 proof -
   define b :: "('s, ('n, 't) sym) lts \<Rightarrow> bool" where
@@ -283,10 +290,13 @@ proof -
     by (smt (verit, ccfv_threshold) UnCI UnE in_mono mem_Collect_eq Steps_lts_mono2 subsetI)
 
   define U :: "('s, ('n, 't) sym) lts" where
-    "U = { (q, Nt A, q') | q q' A. \<exists>\<beta>. (A, \<beta>) \<in> P \<and> q \<in> Q \<and> q' \<in> Q } \<union> T\<^sub>0"
-  moreover have "\<And>T. pre_lts P Q T \<subseteq> U"
-    unfolding U_def pre_lts_def by blast
-  ultimately have U_bounds: "\<And>X. X \<subseteq> U \<Longrightarrow> f X \<subseteq> U"
+    "U = { (q, Nt A, q') | q q' A. q \<in> Q \<and> (\<exists>\<beta>. (A, \<beta>) \<in> P \<and> q' \<in> Q)} \<union> T\<^sub>0"
+  have "\<And>p a q. (p,a,q) \<in> T\<^sub>0 \<Longrightarrow> p \<in> Q \<and> q \<in> Q"
+    using assms(4) unfolding states_lts_def by auto
+  then have "pre_lts P Q T \<subseteq> U" if asm: "T \<subseteq> U" for T
+    using asm steps_states_lts[of T Q] unfolding U_def pre_lts_def states_lts_def
+    by fastforce
+  then have U_bounds: "\<And>X. X \<subseteq> U \<Longrightarrow> f X \<subseteq> U"
     by simp
 
   have "finite U"
@@ -299,14 +309,14 @@ proof -
       using assms(2) U'_def by blast
 
     define T' :: "('s, ('n, 't) sym) lts" where
-      [simp]: "T' = { (q,Nt A,q') | q q' A. \<exists>\<beta>. (A, \<beta>) \<in> P \<and> q \<in> Q \<and> q' \<in> Q }"
+      [simp]: "T' = { (q,Nt A,q') | q q' A. q \<in> Q \<and> (\<exists>\<beta>. (A, \<beta>) \<in> P \<and> q' \<in> Q)}"
     then have "T' \<subseteq> U'"
       unfolding T'_def U'_def using assms(1) by fast
     moreover note \<open>finite U'\<close>
     ultimately have "finite T'"
       using rev_finite_subset[of U' T'] by blast
     then show "finite U"
-      by (simp add: U_def assms(3))
+      by (simp add: U_def assms)
   qed
 
   note criteria = \<open>finite U\<close> U_def f_def U_bounds \<open>mono f\<close>
@@ -320,7 +330,7 @@ subsection \<open>The Automaton Level\<close>
 
 definition pre_star_auto :: "('n, 't) Prods \<Rightarrow> ('s, ('n, 't) sym) auto \<Rightarrow> ('s, ('n, 't) sym) auto" where
   "pre_star_auto P M \<equiv> (
-    let Q = {auto.start M} \<union> (snd ` snd ` (auto.lts M)) in
+    let Q = {auto.start M} \<union> states_lts (auto.lts M) in
     case pre_star_lts P Q (auto.lts M) of
       Some T' \<Rightarrow> M \<lparr> auto.lts := T' \<rparr>
   )"
@@ -330,19 +340,22 @@ lemma pre_star_auto_correct:
   shows "Lang_auto (pre_star_auto P M) = pre_star P (Lang_auto M)"
 proof -
   define T where "T \<equiv> auto.lts M"
-  define Q where "Q \<equiv> {auto.start M} \<union> (snd ` snd ` T)"
+  define Q where "Q \<equiv> {auto.start M} \<union> states_lts T"
   then have "finite Q"
-    unfolding T_def using assms(2) by simp
+    unfolding T_def states_lts_def using assms(2) by auto
+  have MQ: "states_lts (auto.lts M) \<subseteq> Q" unfolding Q_def T_def by (force)
   have "reachable_from T (auto.start M) \<subseteq> Q"
-    using reachable_from_computable Q_def by fast
+    using reachable_from_computable unfolding Q_def states_lts_def by fastforce
   moreover obtain T' where T'_def: "pre_star_lts P Q T = Some T'"
-    using pre_star_lts_terminates assms \<open>finite Q\<close> T_def by blast
-  ultimately have "Lang_lts T' (auto.start M) (auto.finals M) = pre_star P (Lang_lts T (auto.start M) (auto.finals M))"
+    using pre_star_lts_terminates[OF assms(1) \<open>finite Q\<close> assms(2) MQ] T_def by blast
+  ultimately have "Lang_lts T' (auto.start M) (auto.finals M)
+    = pre_star P (Lang_lts T (auto.start M) (auto.finals M))"
     by (rule pre_star_lts_correct)
   then have "Lang_auto (M \<lparr> auto.lts := T' \<rparr>) = pre_star P (Lang_auto M)"
     by (simp add: T_def)
   then show ?thesis
-    unfolding pre_star_auto_def using Q_def T'_def T_def by force
+    unfolding pre_star_auto_def using Q_def T'_def T_def
+    by(force)
 qed
 
 lemma pre_star_lts_refl:

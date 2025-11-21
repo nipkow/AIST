@@ -1,3 +1,5 @@
+(* Author: Tassilo Lemke *)
+
 section\<open>Finiteness of Context-Free Languages\<close>
 
 theory Finiteness
@@ -234,17 +236,10 @@ proof -
   ultimately have finite: "finite reachable_rel"
     using finite_image_iff by blast
 
-  have acyclic: "acyclic reachable_rel"
-  proof (simp add: acyclic_def, standard)
-    fix X
-    have "\<not> X \<rightarrow>\<^sup>? X"
-      by (simp add: loopfree)
-    then show "(X, X) \<notin> reachable_rel\<^sup>+"
-      using cnf reachable_rel_tran by blast
-  qed
+  have "acyclic reachable_rel"
+  unfolding acyclic_def using loopfree reachable_rel_tran by blast
 
-  show "wf reachable_rel"
-    using finite acyclic by (rule finite_acyclic_wf)
+  from finite_acyclic_wf[OF finite this] show "wf reachable_rel" .
 qed
 
 lemma is_infinite_implies_finite:
@@ -410,15 +405,8 @@ next
   then have f\<^sub>w'_order: "\<And>i\<^sub>1 i\<^sub>2. i\<^sub>1 < i\<^sub>2 \<Longrightarrow> length (f\<^sub>w' i\<^sub>1) < length (f\<^sub>w' i\<^sub>2)"
     using less_imp_add_positive by blast
 
-  have "inj f\<^sub>w'"
-  proof (simp add: inj_def, rule allI, rule allI, rule impI)
-    fix x y
-    assume "f\<^sub>w' x = f\<^sub>w' y"
-    then have "length (f\<^sub>w' x) = length (f\<^sub>w' y)"
-      by simp
-    then show "x = y"
-      using f\<^sub>w'_order by (metis linorder_cases nless_le)
-  qed
+  then have "inj f\<^sub>w'"
+    unfolding inj_def by (metis nat_neq_iff)
 
   have "infinite (Lang P S)"
     using \<open>range f\<^sub>w' \<subseteq> Lang P S\<close> \<open>inj f\<^sub>w'\<close> infinite_iff_countable_subset by blast

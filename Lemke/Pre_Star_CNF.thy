@@ -1,9 +1,9 @@
-section\<open>Reduced Complexity for Grammars in CNF\<close>
+(* Author: Tassilo Lemke *)
 
-theory ImprovedAlgorithm
-imports
-  Context_Free_Grammar.Chomsky_Normal_Form
-  Pre_Star
+section \<open>$Pre^*$ Optimized for Grammars in CNF\<close>
+
+theory Pre_Star_CNF
+imports Pre_Star
 begin
 
 text\<open>
@@ -191,20 +191,8 @@ proof -
     by (simp add: S_def alg_state_new_def)
 
   have invT: "(trans S) \<subseteq> T'"
-  proof (simp add: S_def alg_state_new_def, intro conjI)
-    show "T \<subseteq> T'"
-      using assms by (rule pre_star_lts_mono)
-  next
-    have "\<And>A q. (A, []) \<in> P \<Longrightarrow> q \<in> Q \<Longrightarrow> (q, Nt A, q) \<in> T'"
-      by (rule pre_star_lts_refl[of P Q T]; use assms in blast)
-    then show "{(q, Nt A, q) |q A. (A, []) \<in> P \<and> q \<in> Q} \<subseteq> T'"
-      by blast
-  next
-    have "\<And>A a q q'. (A, [Tm a]) \<in> P \<Longrightarrow> q \<in> Q \<Longrightarrow> q' \<in> Q \<Longrightarrow> (q, Tm a, q') \<in> T \<Longrightarrow> (q, Nt A, q') \<in> T'"
-      by (rule pre_star_lts_singleton[of P]; use assms pre_star_lts_mono in blast)
-    then show "{(q, Nt A, q') |q q' A. \<exists>a. (A, [Tm a]) \<in> P \<and> (q, Tm a, q') \<in> T \<and> q \<in> Q \<and> q' \<in> Q} \<subseteq> T'"
-      by blast
-  qed
+    using pre_star_lts_mono[OF assms] pre_star_lts_refl[OF assms] pre_star_lts_singleton[OF assms]
+    by(auto simp add: S_def alg_state_new_def)
 
   have "\<And>q q' X t. (q, X, q') \<in> T' \<Longrightarrow> t \<in> direct S (q, X, q') \<Longrightarrow> t \<in> T'"
   proof -
@@ -557,7 +545,7 @@ qed
 
 lemma pre_star_alg_sup:
   fixes P and T :: "('s, 'n, 't) trans" and q\<^sub>0
-  defines "Q \<equiv> {q\<^sub>0} \<union> (snd ` snd ` T)"
+  defines "Q \<equiv> {q\<^sub>0} \<union> states_lts T"
   defines "S \<equiv> alg_state_new P Q T"
   assumes "alg_outer S = Some S'"
     and "pre_star_lts P Q T = Some T'"
@@ -565,7 +553,7 @@ lemma pre_star_alg_sup:
   shows "T' \<subseteq> rel S'"
 proof -
   \<comment>\<open>If \<open>t \<in> T\<close>, then \<open>t\<close> is eventually added to \<open>rel\<close>:\<close>
-  have base: "T \<subseteq> rel S'" and "Q = {q\<^sub>0} \<union> (snd ` snd ` T)"
+  have base: "T \<subseteq> rel S'" and "Q = {q\<^sub>0} \<union> states_lts T"
   proof
     fix t 
     assume "t \<in> T"
@@ -574,21 +562,22 @@ proof -
     then show "t \<in> rel S'"
       using assms(3) pre_star_alg_trans_to_lts by blast
   next
-    show "Q = {q\<^sub>0} \<union> (snd ` snd ` T)"
+    show "Q = {q\<^sub>0} \<union> states_lts T"
       by (simp add: Q_def)
   qed
 
   define b where "b \<equiv> (\<lambda>T::('s, 'n, 't) trans. T \<union> pre_lts P Q T \<noteq> T)"
   define c where "c \<equiv> (\<lambda>T::('s, 'n, 't) trans. T \<union> pre_lts P Q T)"
 
-  have "\<And>t T. Q = {q\<^sub>0} \<union> (snd ` snd ` T) \<Longrightarrow> T \<subseteq> rel S' \<Longrightarrow> t \<in> pre_lts P Q T \<Longrightarrow> t \<in> rel S'"
+  have "\<And>t T. Q = {q\<^sub>0} \<union> states_lts T \<Longrightarrow> T \<subseteq> rel S' \<Longrightarrow> t \<in> pre_lts P Q T \<Longrightarrow> t \<in> rel S'"
   proof -
     fix T and t
-    assume q_reach: "Q = {q\<^sub>0} \<union> (snd ` snd ` T)" "T \<subseteq> rel S'" and t_src: "t \<in> pre_lts P Q T"
+    assume q_reach: "Q = {q\<^sub>0} \<union> states_lts T" "T \<subseteq> rel S'" and t_src: "t \<in> pre_lts P Q T"
     then obtain q q' A \<beta> where t_split: "t = (q, Nt A, q')" and "(A, \<beta>) \<in> P" and "q' \<in> steps_lts T \<beta> q"
       unfolding pre_lts_def by blast
     moreover have q_in: "q \<in> Q \<and> q' \<in> Q"
-      using t_src calculation by (auto simp: pre_lts_def)
+      using t_src calculation steps_states_lts[of T] unfolding pre_lts_def q_reach(1)
+      using fst_conv by blast
     ultimately consider "\<beta> = []" | "\<exists>X. \<beta> = [X]" | "\<exists>B C. \<beta> = [Nt B, Nt C]"
       using assms(5)[unfolded CNF1_def] by fast
     then have "(q, Nt A, q') \<in> rel S'" proof (cases)
@@ -620,8 +609,8 @@ proof -
       moreover have "(q, Nt B, q'') \<in> T"
         using \<open>q'' \<in> steps_lts T [Nt B] q\<close> by (auto simp: steps_lts_defs)
       moreover have "q'' \<in> Q"
-        using calculation unfolding q_reach by force
-      moreover have "(A, [Nt B, Nt C]) \<in> P"
+        using q_reach(1) steps_states_lts[of T Q q] q_in \<open>q'' \<in> steps_lts T [Nt B] q\<close> by blast
+     moreover have "(A, [Nt B, Nt C]) \<in> P"
         using \<open>(A, \<beta>) \<in> P\<close>[unfolded \<beta>_split] by assumption
       ultimately show ?thesis
         using assms(2,3) q_in pre_star_alg_dual_to_lts by fast
@@ -629,15 +618,16 @@ proof -
     then show "t \<in> rel S'"
       by (simp add: t_split)
   qed
-  moreover have "\<And>T. Q = {q\<^sub>0} \<union> (snd ` snd ` T) \<Longrightarrow> Q = {q\<^sub>0} \<union> (snd ` snd ` (T \<union> pre_lts P Q T))"
-    unfolding pre_lts_def by (auto split: prod.splits) force+
-  ultimately have step: "\<And>T. (T \<subseteq> rel S' \<and> Q = {q\<^sub>0} \<union> (snd ` snd ` T)) \<Longrightarrow> T \<union> pre_lts P Q T \<noteq> T
-      \<Longrightarrow> (T \<union> pre_lts P Q T \<subseteq> rel S' \<and> Q = {q\<^sub>0} \<union> (snd ` snd ` (T \<union> pre_lts P Q T)))"
+  moreover have "\<And>T. Q = {q\<^sub>0} \<union> states_lts T \<Longrightarrow> Q = {q\<^sub>0} \<union> states_lts (T \<union> pre_lts P Q T)"
+    using states_pre_lts unfolding states_lts_Un
+    by (metis Un_assoc Un_upper2 sup.order_iff)
+  ultimately have step: "\<And>T. (T \<subseteq> rel S' \<and> Q = {q\<^sub>0} \<union> states_lts T) \<Longrightarrow> T \<union> pre_lts P Q T \<noteq> T
+      \<Longrightarrow> (T \<union> pre_lts P Q T \<subseteq> rel S' \<and> Q = {q\<^sub>0} \<union> states_lts (T \<union> pre_lts P Q T))"
     by (smt (verit, del_insts) Un_iff subset_eq)
 
   note base step
   moreover note assms(4)[unfolded pre_star_lts_def] b_def c_def
-  ultimately have "T' \<subseteq> rel S' \<and> Q = {q\<^sub>0} \<union> (snd ` snd ` T')"
+  ultimately have "T' \<subseteq> rel S' \<and> Q = {q\<^sub>0} \<union> states_lts T'"
     by (elim pre_star_lts_rule; use assms in simp)
   then show "T' \<subseteq> rel S'"
     by simp
@@ -872,7 +862,7 @@ subsection\<open>Final Algorithm\<close>
 definition pre_star_code_cnf :: "('n, 't) Prods \<Rightarrow> ('s, ('n, 't) sym) auto \<Rightarrow> ('s, ('n, 't) sym) auto" where
   "pre_star_code_cnf P M \<equiv> (
     \<comment>\<open>Construct the set of ``interesting'' states:\<close>
-    let Q = {auto.start M} \<union> (snd ` snd ` (auto.lts M)) in
+    let Q = {auto.start M} \<union> states_lts (auto.lts M) in
     let S = alg_state_new P Q (auto.lts M) in
     case alg_outer S of
       Some S' \<Rightarrow> M \<lparr> auto.lts := (rel S') \<rparr>
@@ -882,9 +872,9 @@ lemma pre_star_code_cnf_correct:
   assumes "finite P" and "finite (auto.lts M)" and cnf: "CNF1 P"
   shows "Lang_auto (pre_star_code_cnf P M) = pre_star P (Lang_auto M)"
 proof -
-  define Q where "Q \<equiv> {auto.start M} \<union> (snd ` snd ` (auto.lts M))"
+  define Q where "Q \<equiv> {auto.start M} \<union> states_lts (auto.lts M)"
   have "finite Q"
-    using assms(2) by (simp add: Q_def)
+    using assms(2) by (auto simp add: states_lts_def Q_def)
 
   define S where "S \<equiv> alg_state_new P Q (auto.lts M)"
   have "alg_state_fin_inv S"
@@ -893,7 +883,8 @@ proof -
     using alg_outer_terminates by blast
 
   obtain T' where T'_def: "pre_star_lts P Q (auto.lts M) = Some T'"
-    using pre_star_lts_terminates assms(1,2) \<open>finite Q\<close> by blast
+    using pre_star_lts_terminates assms(1,2) \<open>finite Q\<close>
+    by (metis Q_def sup_ge2)
   moreover have "rel S' \<subseteq> T'"
     using S'_def T'_def pre_star_alg_sub unfolding S_def by blast
   moreover have "T' \<subseteq> rel S'"

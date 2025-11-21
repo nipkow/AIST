@@ -4,14 +4,14 @@ imports
   Context_Free_Grammar.Pumping_Lemma_CFG
   Greibach_Normal_Form.Greibach_Normal_Form
   Chomsky_Schuetzenberger.Chomsky_Schuetzenberger
+  Pre_Star_CFG.Applications
   Sugar
-  PreStar
 begin
 declare [[show_question_marks=false]]
-declare [[names_long=false]]
+declare [[names_short=true]]
 
-lemma Expand_hd_simp2: "Expand_hd A (B#Bs) P =
- (let P' = Expand_hd A Bs P
+lemma Expand_hd_rec_simp2: "Expand_hd_rec A (B#Bs) P =
+ (let P' = Expand_hd_rec A Bs P
   in Subst_hd P' {r \<in> P'. \<exists>\<alpha>. r = (A, Nt B # \<alpha>)})"
   by simp
 
@@ -42,24 +42,26 @@ text \<open>
 
 \section{Introduction}
 
-This paper reports on a concerted formalization of large parts of the basic of 
+This paper reports on a concerted formalization of large parts of the basic theory of 
 context-free grammars and languages (henceforth CFG and CFL).
 The formalization is unified in the sense that many of the topics that were 
 previously formalized independently (and in different provers) are now
 unified in a single formalization, available in the Archive of Formal Proofs as separate entries
-\cite{Context_Free_Grammar-AFP,Pushdown_Automata-AFP,Greibach_Normal_Form-AFP,Chomsky_Schuetzenberger-AFP,Parikh-AFP}.
+\cite{Context_Free_Grammar-AFP,Pushdown_Automata-AFP,Greibach_Normal_Form-AFP,Chomsky_Schuetzenberger-AFP,Parikh-AFP,PreStar-AFP}.
 %TODO pre*
 
-The main contributions of our work are:
+The main novel contributions of our work are:
 \begin{itemize}
 \item a verified executable transformation into Greibach Normal Form (Sect.~\ref{sec:GNF}),
-\item a verified \prestar\ algorithm for solving many CFG problems automatically
+\item a verified \prestar\ algorithm for solving a number of elementary CFG problems automatically
  (e.g.\ the word problem), and
 \item the verification of two foundational theorems of context-free languages that had not been formalized before:
 the Chomsky-Sch\"utzenberger Theorem (Sect.~\ref{sec:ChSch}) and Parikh's Theorem (Sect.~\ref{sec:Parikh}).
 \end{itemize}
 
-Of course only textbook+, no parsing (separate).
+When we use the term executability we mean that the definitions (or derived lemmas!) form
+a functional program and that Isabelle can generate programs in various functional
+languages (Haskell, OCaml and SML) \cite{HaftmannN10}.
 
 %\subsection{Related Work}
 
@@ -68,9 +70,9 @@ the three related formalizations that are closest to our work: the work by
 Barthwal and Norrish \cite{csl/BarthwalN10,wollic/BarthwalN10,BarthwalN14} (in HOL4),
 Hofmann \cite{JHofmann} (in Coq) and Ramos \emph{et al.} \cite{RamosAMQ,RamosAMQ16,RamosQMA16} (in Coq).
 
-When we use the term executability we mean that the definitions (or derived lemmas!) form
-a functional program and that Isabelle can generate programs in various functional
-languages (Haskell, OCaml and SML) \cite{HaftmannN10}.
+The one fundamental area we do not cover is parsing, which has been covered elsewhere
+(e.g.\ \cite{BarthwalN09,JourdanPL12,LasserCFR19,BlaudeauS20,RauN24}).
+
 
 \subsection{Isabelle Notation} \label{sec:isabelle}
 
@@ -92,9 +94,10 @@ The operator @{term "(@)"} appends two lists, @{term "length xs"} denotes the le
 %and @{term "take n xs"} is the prefix of length \<open>n\<close> of \<open>xs\<close>.
 
 Algebraic data types are defined using the \isakeyword{datatype} keyword. A predefined data type:
-\begin{quote}
+%\begin{quote}
 @{datatype option}
-\end{quote}
+%\end{quote}
+
 The notation \mbox{\<open>\<lbrakk>A\<^sub>1, \<dots>, A\<^sub>n\<rbrakk> \<Longrightarrow> B\<close>} denotes an implication with premises \<open>A\<^sub>1\<close>, \ldots, \<open>A\<^sub>n\<close> and conclusion \<open>B\<close>.
 Equality on type @{type bool} denotes logical equivalence.
 
@@ -113,15 +116,14 @@ Variable convention:
 For compactness we sometimes drop the \<open>'n\<close> and \<open>'t\<close> parameters,
 e.g.\ we write \<open>sym\<close> instead of \<open>('n,'t)sym\<close>.
 
-A production, informally written \<open>A \<rightarrow> \<alpha>\<close>, is a pair of \<open>A :: 'n\<close> and a \<open>\<alpha>\<close> \<open>::\<close> \mbox{\<open>sym list\<close>}.
+A production, informally written \<open>A \<rightarrow> \<alpha>\<close>, is a pair of \<open>A :: 'n\<close> and \<open>\<alpha>\<close> \<open>::\<close> \mbox{\<open>sym list\<close>}.
 We use the following abbreviations:
 \begin{quote}
-\<open>syms = sym list\<close> \quad \<open>prod = ('n \<times> syms)\<close> \quad \<open>Prods = prod set\<close>
+\<open>syms = sym list\<close> \quad \<open>prod = 'n \<times> syms\<close> \quad \<open>Prods = prod set\<close>
 \end{quote}
 Variable convention:
 \<open>w :: 't list\<close>; words over terminal symbols are called \concept{terminal words};
-\<open>\<alpha>, \<beta>, \<gamma> :: syms\<close>; we call \<open>syms\<close> \concept{mixed words} (aka sentential forms).
-
+\<open>\<alpha>, \<beta>, \<gamma> :: syms\<close>; elements of type @{type syms} are usually called sentential forms.
 
 Our theory is primarily based on sets of productions rather than grammars:
 the start symbol is irrelevant most of the time.
@@ -130,7 +132,7 @@ Moreover, we only restrict to finite sets of productions when necessary.
 However, some constructions are hard or impossible even for finite grammars,
 unless we have some order on them: if we need to create new variables that appear in the output,
 the order in which a grammar is processed is crucial. Therefore we work with \emph{lists} of
-productions half of the time and define \<open>prods = prod list\<close>.
+productions some of the time and define \<open>prods = prod list\<close>.
 We work with sets whenever possible (because of their abstractness) and with lists only if necessary.
 Function \<^const>\<open>set\<close> converts in one direction, but we cannot convert from sets to lists
 in a computable manner (unless we impose some order on something).
@@ -159,12 +161,14 @@ but our proofs are independent of them.
 
 \subsection{Chomsky Normal Form and Pumping Lemma}
 
-Naturally we have shown that a finite grammar has an equivalent (modulo \<open>[]\<close>) finite grammar in Chomsky Normal Form:
+We have verified an executable translation into Chomsky Normal Forms:
 \begin{quote}
-@{thm CNF_def}\\
-@{thm cnf_exists}
+@{thm CNF_def}\smallskip\\
+@{thm [break]cnf_of_def}\smallskip\\
+@{thm cnf_of_CNF_Lang}
 \end{quote}
-Our proof is based on the one by Bart A constructive formalization is due to Hofmann \<^cite>\<open>JHofmann\<close>.
+Our proof is based partly on the non-constructive one by Barthwal and Norrish \cite{csl/BarthwalN10}.
+Another constructive translation was formalized by Hofmann \<^cite>\<open>JHofmann\<close>.
 Ramos \cite{RamosAMQ} also formalized four applications, two of which we also formalized
 (non-context freeness of $a^nb^nc^n$ and non-closedness of context-free languages under intersection)
 using only 10--15\% of the number of lines.
@@ -184,35 +188,42 @@ were first formalized by Barthwal and Norrish \cite{wollic/BarthwalN10}.
 Our proofs are largely based on this online Lean formalization \cite{Leichtfried}
 and are found here \cite{Pushdown_Automata-AFP}.
 
-%\subsection{Automata}
-%2DFA AFA?
+\subsection{Right-Linear Grammars and Automata}
+
+We have shown that every right-linear grammar (production have the form \<open>A \<rightarrow> w B\<close> or \<open>A \<rightarrow> w\<close>
+where \<open>w\<close> is a sequence of terminals) can be transformed into a strongly right-linear one
+(productions have the form \<open>A \<rightarrow> a B\<close> or \<open>A \<rightarrow> \<epsilon>\<close> where \<open>a\<close> is a terminal).
+Strongly right-linear grammars are just automata in disguise.
+Building on Paulson's theory of finite automata \cite{Paulson15} we proved that
+the language of a finite strongly right-linear grammar is regular
+and every regular language can be generated by a strongly right-linear grammar.
 
 
 \section{\prestar}
 
 \subsection{Informal Introduction}
 
-Bouajjani \emph{et al.} \cite{BouajjaniEFMRWW00} realized that a device that Book and Otto \cite{BookO93}
-had used to solve problems
-for string rewriting systems can also be applied to a number of standard CFG problems
-(e.g.\ determining if some nonterminal is productive).
+%Bouajjani \emph{et al.} \cite{BouajjaniEFMRWW00}
+Esparza and Rossmanith \cite{EsparzaR97} realized that a device that Book and Otto \cite{BookO93}
+had used to solve problems for string rewriting systems can also be applied to a number of
+elementary CFG problems.
 Let \<open>P :: ('n,'t) Prods\<close> and \<open>L :: ('n,'t) syms set\<close>.
 Then @{term "pre_star P L"} is the set of predecessors of words in \<open>L\<close>
-w.r.t.\ @{prop "P \<turnstile> DUMMY \<Rightarrow>* DUMMY"}:
+w.r.t.\ \<open>\<Rightarrow>*\<close>:%{prop "P \<turnstile> DUMMY \<Rightarrow>* DUMMY"}
 \begin{quote}
 @{thm pre_star_def}
 \end{quote}
 The two key insights are (if \<open>P\<close> finite):
  if \<open>L\<close> is regular, so is \<open>pre_star P L\<close>, and if \<open>L\<close> is given as an NFA \<open>M\<close>,
 an NFA for \<open>pre_star P L\<close> can be computed from \<open>M\<close>.
+This result has been discovered multiple times \cite{Buechi64,Caucal92}
 
-Why does this help to decide, for example, the productivity problem?
+As an example, consider the productivity problem of determining if @{prop "Lang P A \<noteq> {}"}.
 Let \<open>P\<close> be a grammar over a terminal alphabet \<open>\<Sigma>\<close>.
-Build an automaton \<open>U\<close> that accepts exactly \<open>\<Sigma>\<^sup>*\<close> (but no mixed word!);
-this requires only a single state.
-We want to decide if @{prop "Lang P A \<noteq> {}"} for some \<open>A\<close>.
-This is the case iff there is a word \<open>w \<in> \<Sigma>\<^sup>*\<close> such that @{prop "P \<turnstile> [Nt A] \<Rightarrow>* w"},
-which is the case iff @{text "[Nt A] \<in> pre_star P \<Sigma>\<^sup>*"} \<open>=: L\<close>. But because \<open>U\<close> accepts \<open>\<Sigma>\<^sup>*\<close>
+Build an automaton \<open>U\<close> that accepts exactly \<open>\<Sigma>\<^sup>*\<close>, but no words containing @{const Nt}s
+(this requires only a single state).
+Clearly @{prop "Lang P A \<noteq> {}"} iff there is a word \<open>w \<in> \<Sigma>\<^sup>*\<close> such that @{prop "P \<turnstile> [Nt A] \<Rightarrow>* w"}
+iff @{text "[Nt A] \<in> pre_star P \<Sigma>\<^sup>*"} \<open>=: L\<close>. But because \<open>U\<close> accepts \<open>\<Sigma>\<^sup>*\<close>
 we can compute an automaton for \<open>L\<close> from \<open>U\<close> (as claimed above) and we only need to check
 if that automaton accepts @{term \<open>[Nt A]\<close>}.
 
@@ -224,27 +235,28 @@ to state \<open>p'\<close> labeled with \<open>\<alpha>\<close>, we add the tran
 
 \subsection{Executable Formalization}
 %TODO reachable_from -> reachable
-%TODO lang_nfa -> Lang_nfa
 
 For the purpose of computing @{const pre_star}, we represent NFAs over some state type \<open>'s\<close> by
-transitions of type \<^typ>\<open>'s \<times> ('n,'t)sym \<times> 's\<close>. A set of such triples is usually denoted by \<open>\<delta>\<close>.
-It is easy to define a function @{const steps_lts} of type
-@{typ "('s \<times> ('n,'t)sym \<times> 's) set \<Rightarrow> ('n,'t)syms \<Rightarrow> 's \<Rightarrow> 's set"}
-such that @{term "steps \<delta> \<alpha> p"} is the set of states reachable from \<open>p\<close> via \<open>\<alpha>\<close> using \<open>\<delta>\<close>.
-An NFA \<open>M\<close> consists of some \<open>\<delta>\<close>, an initial state and a final state set.
-We also define @{text "lang_nfa M"}, the words accepted by \<open>M\<close>, and @{term "reachable_from \<delta> q"},
-the states reachable from \<open>q\<close> via \<open>\<delta>\<close>.
+a \concept{labeled transition system} (usually denoted by \<open>T\<close>) of type @{typ\<open>('s,'a) lts\<close>} = \<^typ>\<open>('s \<times> ('n,'t)sym \<times> 's) set\<close>.
+It is easy to define a function @{const steps_lts} \<open>::\<close>
+@{typ "('s,'a) lts \<Rightarrow> 'a list \<Rightarrow> 's \<Rightarrow> 's set"}
+such that @{term "steps_lts T \<alpha> p"} is the set of states reachable from \<open>p\<close> via \<open>\<alpha>\<close> using \<open>T\<close>.
+An automaton \<open>M\<close> (of type \<^typ>\<open>('s,'a) auto\<close>) consists of some \<open>T\<close>, an initial state and a final state set.
+If \<open>T\<close> is finite, we call \<open>M\<close> an NFA.
+We also define @{term "Lang_auto M"}, the words accepted by \<open>M\<close>, and @{term "reachable_from T q"},
+the states reachable from \<open>q\<close> via \<open>T\<close>.
+Below, the label type \<^typ>\<open>'a\<close> will always be \mbox{@{typ\<open>('n,'t)sym\<close>}}.
 
-Function @{const pre_lts} adds all possible new transitions to a set of transitions \<open>\<delta>\<close>
-using the production \<open>P\<close> backwards:
+Function @{const pre_lts} adds all possible new transitions to a set of transitions \<open>T\<close>
+(over the state space \<open>Q\<close>) using the productions in \<open>P\<close> backwards once:
 \begin{quote}
 @{thm [break] pre_lts_def}% beta -> alpha?
 \end{quote}
 
 %TODO while -> lfp
-The closure of some \<open>\<delta>\<close> under @{const pre_lts} can be defined by repeated application like this:
+The closure of some \<open>T\<close> under @{const pre_lts} can be defined by repeated application like this:
 \begin{quote}
-@{thm [break] pre_star_lts_def}
+@{thm [break] pre_star_lts_def[unfolded while_saturate_def]}
 \end{quote}
 using the predefined combinator @{const_typ while_option} \cite{Nipkow11}.
 We do not dwell on its definition but it is executable because it obeys this recursion equation:
@@ -254,13 +266,12 @@ We do not dwell on its definition but it is executable because it obeys this rec
 In case the recursion does not terminate, the mathematical value is @{const None}.
 Hence proving that the return value is always @{const Some} amounts to proving termination.
 
-We proved correctness and termination
-of @{const pre_star_lts}. Correctness essentially says that the result of @{const pre_star_lts}
-is the analogue of @{const pre_star} on the level of transition relations:
+We proved correctness and termination of @{const pre_star_lts}.
+Correctness essentially says that the result of @{const pre_star_lts}
+is the analogue of @{const pre_star} on the level of @{type lts}:
 \begin{quote}
 @{thm [break] pre_star_lts_correct}
 \end{quote}
-%TODO wait for new version? ?
 
 %This combinator comes with an partial correctness proof rule for showing that some invariant \<open>P\<close>
 %holds for the output \<open>t\<close> if it holds for the input \<open>s\<close>:
@@ -271,40 +282,43 @@ is the analogue of @{const pre_star} on the level of transition relations:
 %there is finite bounding set \<open>C\<close> (the closure) such that @{prop "X \<subseteq> C \<Longrightarrow> f X \<subseteq> C"}.
 Termination can be guaranteed under the obvious finiteness assumptions:
 \begin{quote}
-@{thm pre_star_lts_terminates}
+@{thm [break] pre_star_lts_terminates}
 \end{quote}
 
-This is the core of the theory which is then lifted to the level of NFAs, which provides
-the obvious @{const Lang_auto}. This is the final correctness theorem:
-\begin{theorem}\label{pre_star_code_correct}
+This is the core of the theory. It is easily lifted to the level of NFAs, yielding
+this main correctness theorem:
+\begin{theorem}\label{pre_star_auto_correct}
 @{thm (concl) pre_star_auto_correct} if \<open>P\<close> and the transitions of \<open>M\<close> are finite.
 \end{theorem}
 
 
 \subsection{Applications}
 
-We show how the membership (in \<open>Lang P A\<close>), nullability and productivity problems can be decided.
-Of course the theoretical insight is due to Bouajjani \emph{et al.} \cite{BouajjaniEFMRWW00}.
+We show how the membership (in \<open>Lang P A\<close>), nullability and productivity problems can be decided
+(following Bouajjani \emph{et al.} \cite{BouajjaniEFMRWW00}).
 All of these problems can be reduced to problems of the form \<open>\<alpha> \<in>\<close> \mbox{@{term "pre_star L P"}}
 for a suitable regular language \<open>L\<close>. Given an NFA \<open>M\<close> with @{prop \<open>Lang_auto M = L\<close>},
-Theorem~\ref{prestar_code_correct} translates @{prop \<open>\<alpha> \<in> pre_star L P\<close>} into
+Theorem~\ref{pre_star_auto_correct} translates @{prop \<open>\<alpha> \<in> pre_star L P\<close>} into
 @{prop \<open>\<alpha> \<in> Lang_auto (pre_star_auto M P)\<close>}, which can be executed because @{const pre_star_auto}
 and membership in @{const Lang_auto} are executable.
 
 The membership problem easily generalizes to derivability because
 @{thm [mode=iffSpace] pre_star_derivability}. That is, in order to decide @{prop \<open>P \<turnstile> \<alpha> \<Rightarrow>* \<beta>\<close>}
-build an NFA \<open>M\<close> for @{term "{\<beta>}"} and execute @{prop "\<alpha> \<in> lang_nfa(prestar_nfs M P)"}.
+build an NFA \<open>M\<close> for @{term "{\<beta>}"} and execute @{prop "\<alpha> \<in> Lang_auto(pre_star_auto M P)"}.
 As a special case, nullability of \<open>A\<close> is equivalent to @{prop \<open>P \<turnstile> [Nt A] \<Rightarrow>* []\<close>}.
 
 Productivity of \<open>A\<close>, i.e.\ reachability of some terminal word, can be expressed like this:
 @{thm [mode=iffSpace] pre_star_emptiness'}
 where @{term "lists (Tm ` Tms P)"} is the language of all words
-over the terminal symbols in \<open>P\<close>. That language is accepted by an simple NFA \<open>M\<close>
-and we can evaluate @{prop "[Nt A] \<in> lang_nfa(prestar_nfa M P)"} to determine productivity.
+over the terminal symbols in \<open>P\<close>. That language is accepted by a simple NFA \<open>M\<close>
+and we can evaluate @{prop "[Nt A] \<in> Lang_auto(pre_star_auto M P)"} to determine productivity.
 
 Because @{thm [mode=iffSpace] pre_star_disjointness[where S=A]},
 the test for disjointness from and containment in a regular language
 (given by an NFA) can also be automated.
+
+Previous formalizations of \prestar\ were based on and applied to pushdown systems
+\cite{SchlichtkrullSST22,Pushdown_Systems-AFP} and networks \cite{LammichMW09}, not CFGs.
 
 
 \section{Greibach Normal Forms}\label{sec:GNF}%AY
@@ -312,20 +326,20 @@ the test for disjointness from and containment in a regular language
 Any \<open>\<epsilon>\<close>-free context-free language has a
 \emph{Greibach Normal Form (GNF)} representation,
 where every right-hand side is a terminal followed by nonterminals.
-The same holds for 
-a general version of GNF, which we call \emph{head GNF},\footnote{
+\begin{quote}
+@{def GNF}
+\end{quote}
+In this section we define an executable function @{const GNF_of},
+which turns a grammar into GNF while preserving the language modulo \<open>\<epsilon>\<close>.
+
+We start with a weaker version of GNF, which we call \emph{head GNF},\footnote{
 This notion is sometimes just called GNF~\cite{BlumK99} or real-time form~\cite{ReghizziBM19}.
 }
 where
 every right-hand side starts with a terminal symbol.
 \begin{quote}
-@{def In_GNF_hd}
+@{def GNF_hd}
 \end{quote}
-
-In this section we define an executable function @{const Gnf_hd},
-which turns a grammar into head GNF while preserving the language modulo \<open>\<epsilon>\<close>.
-It is easy to turn head GNF into GNF by introducing nonterminals for terminals that appear
-at non-head position of right-hand sides.
 
 The procedure takes three steps of conversions:
 first eliminate \<open>\<epsilon>\<close>-productions (@{const Eps_elim}),
@@ -350,7 +364,7 @@ with respect to the \<open>B\<close>-productions in \<open>P\<close>,
 using the following function:
 \begin{quote}
 @{def[margin=70] "Subst_hd"}\\
-@{fun[margin=70] Expand_hd[Expand_hd.simps(1) Expand_hd_simp2]}
+@{fun[margin=70] Expand_hd_rec[Expand_hd_rec.simps(1) Expand_hd_rec_simp2]}
 \end{quote}
 
 
@@ -375,7 +389,7 @@ we do not introduce extra productions if @{prop \<open>V = {}\<close>}.
 This optimization is not explicit in \cite[Fig.\ 4.9]{HopcroftU79},
 although their Example 4.10 performs this implicitly.
 
-Recursively applying @{const Expand_hd} and @{const Solve_lrec}
+Recursively applying @{const Expand_hd_rec} and @{const Solve_lrec}
 transforms \<open>\<epsilon>\<close>-free grammars into triangular forms.
 \begin{quote}
 @{thm[break] Solve_tri.simps(1)}
@@ -400,25 +414,31 @@ clarifying the list (\<open>As @ rev As'\<close>) the result is triangular on re
 !!TODO!!
 
 From a triangular form,
-expanding head nonterminals in the right order turns the grammar into head GNF.
+repeatedly expanding head nonterminals in the right order turns the grammar into head GNF.
 \begin{quote}
 @{fun Expand_tri[Expand_tri.simps(1) Expand_tri_simp2]}\\
 \end{quote}
 \begin{definition}
-@{def Gnf_hd}
+@{def GNF_hd_of}
 \end{definition}
 
 Because the procedure processes nonterminals one by one,
-we explicitly give a list of nonterminals as an argument to @{const Gnf_hd}.
+we explicitly give a list of nonterminals as an argument to @{const GNF_hd_of}.
 We also provide a version which computes such a list by
 taking the input grammar in the list representation.
 It first makes fresh copies \<open>As'\<close> of nonterminals in \<open>As\<close>.
 
 \begin{theorem}
 Let \<open>As\<close> be a list of distinct nonterminals in \<open>P\<close>.
-Then @{thm(concl) In_GNF_hd_Gnf_hd}.
-For all @{thm(prem 3) Lang_Gnf_hd}, @{thm(concl) Lang_Gnf_hd}.
+Then @{thm(concl) GNF_hd_GNF_hd_of}.
+For all @{thm(prem 3) Lang_GNF_hd_of}, @{thm(concl) Lang_GNF_hd_of}.
 \end{theorem}
+
+It is easy to turn head GNF into GNF by introducing nonterminals for terminals that appear
+at non-head position of right-hand sides.
+
+!!TODO!!
+
 
 We close the section with demonstrating the exponential complexity of
 the (head) GNF translation algorithm~\cite{?}.

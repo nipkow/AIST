@@ -1,7 +1,9 @@
+(* Authors: Tassilo Lemke, Tobias Nipkow *)
+
 section\<open>LTS-based Automata\<close>
 
 theory LTS_Automata
-  imports Labeled_Transition_System
+imports Labeled_Transition_System
 begin
 
 text\<open>An automaton \<open>M\<close> is a triple \<open>(T, S, F)\<close>, where \<open>T\<close> is the transition system,

@@ -1,11 +1,11 @@
-section\<open>Applications\<close>
+(* Authors: Tassilo Lemke, Tobias Nipkow *)
+
+section \<open>Application to Elementary CFG Problems\<close>
 text\<open>\label{sec:applications}\<close>
 
 theory Applications
-  imports Pre_Star
+imports Pre_Star
 begin
-
-(* TODO lemma "pre_star P (Lang_auto M) = Lang_auto (pre_star_auto P M)" *)
 
 text\<open>This theory turns @{const pre_star_auto} into executable decision procedures
 for different CFG problems. The methos: @{const pre_star_auto} is applied to different
@@ -25,16 +25,8 @@ lemma pre_star_lang:
   "Lang P S \<inter> L = {} \<longleftrightarrow> [(Nt S)] \<notin> pre_star P (map Tm ` L)"
   using pre_star_word[where P=P] by blast
 
+(* TODO: rm with next release: rename tms_syms \<rightarrow> Tms_syms elsewehere; rm tms_syms *)
 subsection\<open>Preliminaries\<close>
-(* TODO: not needed anymore with next release; rm *)
-text\<open>
-  The following code equations are necessary to make \texttt{nts\_syms} and \texttt{tms\_syms}
-  (and its dependents) automatically executable:
-\<close>
-
-lemma nts_syms_code[code]:
-  "nts_syms w = \<Union>((\<lambda>A. case A of Nt X \<Rightarrow> {X} | _ \<Rightarrow> {}) ` set w)"
-  by (auto simp: nts_syms_def split: sym.splits)
 
 lemma tms_syms_code[code]:
   "tms_syms w = \<Union>((\<lambda>A. case A of Tm x \<Rightarrow> {x} | _ \<Rightarrow> {}) ` set w)"
@@ -119,6 +111,7 @@ qed
 lemma inj_Tm: "inj Tm"
   by (simp add: inj_def)
 
+(* TODO: rm with next release *)
 lemma finite_tms_syms: "finite (tms_syms w)"
 proof -
   have "Tm ` {A. Tm A \<in> set w} \<subseteq> set w"

@@ -25,6 +25,7 @@ lemma pre_star_lang:
   "Lang P S \<inter> L = {} \<longleftrightarrow> [(Nt S)] \<notin> pre_star P (map Tm ` L)"
   using pre_star_word[where P=P] by blast
 
+
 subsection\<open>Derivability\<close>
 
 text\<open>A decision procedure for derivability can be constructed.\<close>

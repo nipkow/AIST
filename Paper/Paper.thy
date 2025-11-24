@@ -577,7 +577,7 @@ via the @{const successively} predicate:
 \end{quote}
 where @{term "successively Q"} \<open>[x\<^sub>0, x\<^sub>1, ...]\<close>
 means @{text "Q x\<^sub>i x\<^bsub>i+1\<^esub>"} for all neighbours, if there are any.
-To cater for lists of odd length, the last letter is treated separately.
+To enforce that a word never ends on $]^1_\pi$, the last letter is treated separately.
 
 The condition @{const P5} \<open>A u\<close> checks \<open>u\<close> is non-empty and that its first letter is of the form @{term \<open>[\<^sup>1\<^bsub>(A,DUMMY)\<^esub>\<close>}.
 It is later used with the start symbol.
@@ -629,4 +629,3 @@ The total size of the formalizations discussed in the paper runs to 17 KLOC. + P
 (*<*)
 end
 (*>*)
-

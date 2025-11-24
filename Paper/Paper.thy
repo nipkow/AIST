@@ -589,7 +589,7 @@ But @{term \<open>Reg S\<close>} is only regular if there are only finitely many
 When we formally show the regularity, we will therefore only show the regularity of @{prop \<open>R \<equiv> (Reg S) \<inter> (brackets P)\<close>} for finite \<open>P\<close>.
 Here @{term [source] \<open>brackets P\<close>} denotes the set of arbitrary words consisting of the brackets with labels in \<open>P\<close>.
 
-We proceded proving the \<open>\<subseteq>\<close> direction of @{prop "L = \<h> ` (R \<inter> Dyck_lang \<Gamma>)"} by proving that the regularity conditions keep holding in each derivation step.
+We proceded proving the \<open>\<subseteq>\<close> direction of @{prop "L = \<h> ` (R \<inter> Dyck_lang \<Gamma>)"} by proving that the regularity conditions @{const P1} -- @{const P5} keep holding in each derivation step.
 
 This of course required lifting the conditions @{const P1} -- @{const P5} to conditions @{const P1_sym} -- @{const P5_sym}
 on sentential forms. Since sentential forms are more general we needed to strengthen the induction hypothesis

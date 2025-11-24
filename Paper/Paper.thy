@@ -561,12 +561,12 @@ For the other direction we didn't succeed in solving it via induction.
 We finally settled on a constructive transformation of $P$-parse trees to a $P'$-parse trees.
 
 
-\subsection{Adaption of the regular Language}
+\subsection{Formalizing the regular Language}
 
 What remains is to show that @{prop "L = \<h> ` (R \<inter> Dyck_lang \<Gamma>)"}.
 The paper proof describes the regular Language $R$ using 5 conditions, which assert that after certain letters always/never another certain letter follows.
-For example the first property asserts that after a bracket of the form $]^1_p$ there always immediately follows the bracket $[^2_p$.
-It also asserts that $]^1_p$ can never be the end of a word.
+For example the first property asserts that after a bracket of the form $]^1_\pi$ there always immediately follows the bracket $[^2_\pi$.
+It also asserts that $]^1_\pi$ can never be the end of a word.
 
 In Isabelle we realize this by first defining the predicate @{const P1'}
 (that compares two neighbouring input elements) and then extending this to @{const P1}

@@ -530,7 +530,7 @@ This is the translation from \<open>P\<close> to \<open>P'\<close>:
 \end{align*}
 %
 Note that in both cases the full production $\pi$ appears on the right-hand side as a bracket label.
-We need two copies of these brackets to distinguish the two nonterminals \<open>A\<close> and \<open>B\<close>.
+We need two copies of these brackets to distinguish the two nonterminals \<open>B\<close> and \<open>C\<close>.
 The two copies differ by an exponent (\<open>1\<close> or \<open>2\<close>). Formally, this is our label set \<open>\<Gamma>\<close>:
 \[
 @{prop \<open>\<Gamma> = P \<times> {One, Two}\<close>}

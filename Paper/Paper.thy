@@ -561,7 +561,7 @@ For the other direction we didn't succeed in solving it via induction.
 We finally settled on a constructive transformation of $P$-parse trees to a $P'$-parse trees.
 
 
-\subsection{Formalizing the regular Language}
+\subsection{Formalizing the regular language}
 
 What remains is to show that @{prop "L = \<h> ` (R \<inter> Dyck_lang \<Gamma>)"}.
 The paper proof describes the regular Language $R$ using 5 conditions, which assert that after certain letters always/never another certain letter follows.

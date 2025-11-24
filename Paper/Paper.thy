@@ -28,6 +28,9 @@ notation (latex) P5 ("P\<^sub>5")
 
 notation (latex) P1' ("\<^latex>\<open>$P_1'$\<close>")
 notation (latex) P1_sym ("P\<^sub>1'_sym")
+notation (latex) P5_sym ("P\<^sub>5'_sym")
+notation (latex) P7_sym ("P\<^sub>7'_sym")
+notation (latex) P8_sym ("P\<^sub>8'_sym")
 
 (* problem with eta-contraction of lang_nfa abberv. Make original lang_nfa a def? *)
 definition Lang_auto where "Lang_auto = LTS_Automata.Lang_auto"
@@ -588,7 +591,7 @@ Here @{term [source] \<open>brackets P\<close>} denotes the set of arbitrary wor
 
 When proceded proving the \<open>\<subseteq>\<close> direction of @{prop "L = \<h> ` (R \<inter> Dyck_lang \<Gamma>)"} by proving that the regularity conditions keep holding in each derivation step.
 
-This of course required lifting the conditions @{const P1}--@{const P5} to conditions @{const P1_sym}--@{const P5_sym}
+This of course required lifting the conditions @{const P1} -- @{const P5} to conditions @{const P1_sym} -- @{const P5_sym}
 on sentential forms. Since sentential forms are more general we needed to strengthen the induction hypothesis
 by including two more properties @{const P7_sym} and @{const P8_sym} that localize the possible positions of nonterminals.
 %Originally we thought to also include another condition $P6$ which was later found superfluous and doesn't appear in the proof text anymore. 

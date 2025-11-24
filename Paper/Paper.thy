@@ -550,7 +550,7 @@ Note that the newly introduced brackets are all terminals.
 
 \subsection{Proving $@{prop \<open>L = \<h> ` L'\<close>}$}
 
-The homomorphism @{term \<open>\<h>\<close>} collapses $[^1_\pi \, ]^1_\pi \, [^2_\pi \, ]^2_\pi$ to $a$ if $\pi$ is of the form $\pi = A \rightarrow a$. More precisely, $[^1_\pi$ is mapped to $a$, all the other brackets to \<open>\<epsilon>\<close>.
+The homomorphism @{term \<open>\<h>\<close>} collapses $[^1_\pi \, ]^1_\pi \, [^2_\pi \, ]^2_\pi$ to $a$ if $\pi$ is of the form $\pi = A \rightarrow a$, else it is collapsed to \<open>\<epsilon>\<close>. More precisely, $[^1_\pi$ is mapped to $a$, all the other brackets to \<open>\<epsilon>\<close>.
 Since anywhere where $P$ can produce an $a$, $P'$ can produce $[^1_\pi \, ]^1_\pi \, [^2_\pi \, ]^2_\pi$, we get $@{prop \<open>L = \<h> ` L'\<close>}$.
 
 Formally proving this took more effort than we thought.

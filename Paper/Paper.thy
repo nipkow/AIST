@@ -21,10 +21,13 @@ lemma Expand_tri_simp2: "Expand_tri (A#As) P =
   by simp
 
 notation (latex) P1 ("P\<^sub>1")
+notation (latex) P2 ("P\<^sub>2")
+notation (latex) P3 ("P\<^sub>3")
+notation (latex) P4 ("P\<^sub>4")
+notation (latex) P5 ("P\<^sub>5")
+
 notation (latex) P1' ("\<^latex>\<open>$P_1'$\<close>")
 notation (latex) P1_sym ("P\<^sub>1'_sym")
-
-notation open_bracket1 ("\<^latex>\<open>[\<^sup>1\<^sub>_\<close>")
 
 (* problem with eta-contraction of lang_nfa abberv. Make original lang_nfa a def? *)
 definition Lang_auto where "Lang_auto = LTS_Automata.Lang_auto"
@@ -501,7 +504,7 @@ The Dyck language over @{term \<open>\<Gamma>\<close>} is the set of balanced wo
 \]
 
 In the proof of the Chomsky-Sch\"utzenberger Theorem we needed the following lemma,
-which we proved via a functional characterization of balanced words that
+which we proved via a functional characterization (@{const bal_stk}) of balanced words that
 uses a stack to remember opening brackets.
 \begin{quote}
 @{thm bal_Open_split}.
@@ -541,52 +544,70 @@ Note that the newly introduced brackets are all terminals.
 %{abbrev "wrap2 A B C"}
 %\end{quote}
 
-TEST @{term "open_bracket1 \<pi>"}
-
 
 \subsection{Proving $@{prop \<open>L = \<h> ` L'\<close>}$}
 
-The homomorphism @{term \<open>\<h>\<close>} collapses $[^1_\pi \, ]^1_\pi \, [^2_\pi \, ]^2_\pi$ to $a$ if $\pi$ is of the form $\pi = A \rightarrow a$. More precisely, $[^1_\pi$ is mapped to $a$, all the other brackets to $@{term \<open>\<epsilon>\<close>}$.
+The homomorphism @{term \<open>\<h>\<close>} collapses $[^1_\pi \, ]^1_\pi \, [^2_\pi \, ]^2_\pi$ to $a$ if $\pi$ is of the form $\pi = A \rightarrow a$. More precisely, $[^1_\pi$ is mapped to $a$, all the other brackets to \<open>\<epsilon>\<close>.
 Since anywhere where $P$ can produce an $a$, $P'$ can produce $[^1_\pi \, ]^1_\pi \, [^2_\pi \, ]^2_\pi$, we get $@{prop \<open>L = \<h> ` L'\<close>}$.
 
 Formally proving this took more effort than we thought.
-First, we again need a generalized version @{term \<open>\<h>\<s>\<close>} of the homomorphism that works on sentential forms, since we will encounter those during our induction step.
-The direction @{prop \<open>\<h> ` L' \<subseteq> L\<close>} went through as expected. For the other direction we didn't succeed in solving it via induction. We finally settled on a constructive transformation of the $P$-parse tree to a $P'$-parse tree using T. Nipkow's parse tree formalization which is also part of this development.
+First, we again need a generalized version @{term \<open>\<h>\<s>\<close>} of the homomorphism that works on sentential forms,
+since we will encounter those during the induction step.
+The direction @{prop \<open>\<h> ` L' \<subseteq> L\<close>} went through as expected.
+For the other direction we didn't succeed in solving it via induction.
+We finally settled on a constructive transformation of $P$-parse trees to a $P'$-parse trees.
 
 
 \subsection{Adaption of the regular Language}
 
-What remains is, to show that @{prop "L = \<h> ` (R \<inter> Dyck_lang \<Gamma>)"}.
-The paper proof describes the regular Language $R$ using 5 conditions, which assert that after certain letters always/never follows another letter.
-For example the first property asserts that after a bracket of the form $]^1_p$ there always immediately follows the bracket $[^2_p$. This also asserts that $]^1_p$ can never be the end of a word.
+What remains is to show that @{prop "L = \<h> ` (R \<inter> Dyck_lang \<Gamma>)"}.
+The paper proof describes the regular Language $R$ using 5 conditions, which assert that after certain letters always/never another certain letter follows.
+For example the first property asserts that after a bracket of the form $]^1_p$ there always immediately follows the bracket $[^2_p$.
+It also asserts that $]^1_p$ can never be the end of a word.
 
-In Isabelle we realize this, by first defining the predicate @{term \<open>P1'\<close>} deciding the condition for 2 (neighbouring) input elements and then extend this to @{term \<open>P1\<close>} via the successively predicate. By design of the successively predicate, we must special case the last letter:
-
+In Isabelle we realize this by first defining the predicate @{const P1'}
+(that compares two neighbouring input elements) and then extending this to @{const P1}
+via the @{const successively} predicate:
 \begin{quote}
 @{fun_input P1'}\smallskip\\
 @{fun P1}   
 \end{quote}
-The condition @{term \<open>P5\<close>} talks only about the first letter of it's input, and asserts that this is a bracket of the form @{term \<open>[\<^sup>1\<^bsub>(A,y)\<^esub>\<close>} where $A$ is also an input to @{term \<open>P5\<close>}. It is later used with the start symbol.
-The intersection of all these conditions already almost make up the regular Language $R$:
+where @{term "successively Q"} \<open>[x\<^sub>0, x\<^sub>1, ...]\<close>
+means @{text "Q x\<^sub>i x\<^bsub>i+1\<^esub>"} for all neighbours, if there are any.
+To cater for lists of odd length, the last letter is treated separately.
+
+The condition @{const P5} \<open>A u\<close> checks \<open>u\<close> is non-empty and that its first letter is of the form @{term \<open>[\<^sup>1\<^bsub>(A,DUMMY)\<^esub>\<close>}.
+It is later used with the start symbol.
+The intersection of all these conditions already almost make up the regular language $R$:
 \begin{quote}
-@{def Reg}
+@{term "Reg A"} = @{thm [break] (rhs) Reg_def}
 \end{quote}
-But @{term \<open>Reg S\<close>} is only regular when it is known that there is only finitely many different brackets, i.e. when the Production set $P$ is finite.
-When we formally show the regularity, we will therefore only show the regularity of @{prop [source] \<open>R \<equiv> (Reg S) \<inter> (brackets P)\<close>} for finite $P$. Here @{term [source] \<open>brackets P\<close>} denotes the set of arbitrary words consisting of the brackets with indices in $P$.
+But @{term \<open>Reg S\<close>} is only regular if there are only finitely many different brackets, i.e.\ if the set of productions \<open>P\<close> is finite.
+When we formally show the regularity, we will therefore only show the regularity of @{prop \<open>R \<equiv> (Reg S) \<inter> (brackets P)\<close>} for finite \<open>P\<close>.
+Here @{term [source] \<open>brackets P\<close>} denotes the set of arbitrary words consisting of the brackets with labels in \<open>P\<close>.
 
 When proceded proving the \<open>\<subseteq>\<close> direction of @{prop "L = \<h> ` (R \<inter> Dyck_lang \<Gamma>)"} by proving that the regularity conditions keep holding in each derivation step.
 
-This of course required an adaptation of the conditions @{term \<open>P1\<close>}--@{term \<open>P5\<close>} to conditions @{term \<open>P1_sym\<close>}--@{term \<open>P5_sym\<close>} that can be evaluated on sentential forms which have a different type. Since the mixed words are more flexible, we realized we needed to strengthen the induction hypothesis by including 2 more properties @{term \<open>P7_sym\<close>} and @{term \<open>P8_sym\<close>} which localize the possible positions of nonterminals.
-Originally we thought to also include another condition $P6$ which was later found superfluous and doesn't appear in the proof text anymore. 
+This of course required lifting the conditions @{const P1}--@{const P5} to conditions @{const P1_sym}--@{const P5_sym}
+on sentential forms. Since sentential forms are more general we needed to strengthen the induction hypothesis
+by including two more properties @{const P7_sym} and @{const P8_sym} that localize the possible positions of nonterminals.
+%Originally we thought to also include another condition $P6$ which was later found superfluous and doesn't appear in the proof text anymore. 
 
-The \<open>\<supseteq>\<close> direction went through as described in Kozen's paper proof. Here we needed to make use of the lemmas proved using @{term \<open>bal_stk\<close>} that we mentioned in \ref{subsec:dyck}.
+The \<open>\<supseteq>\<close> direction went through as described in Kozen's paper proof.
+Here we needed to make use of the lemmas proved using @{term \<open>bal_stk\<close>} that we mentioned in \ref{subsec:dyck}.
 
 \subsection{Proving regularity}
-Kozen handwaves the regularity of the $Pi$'s away to ``can be described by a regular expression''. But actually writing down the correct expressions is a surprisingly hard task, and furthermore proving the generated language equivalent to the---otherwise very practical---description via the $Pi$'s is a tedious task, since the regular expression contains multiple Kleene stars.
+Kozen handwaves the regularity of the \<open>P\<^sub>i\<close>'s away to ``can be described by a regular expression''.
+But actually writing down the correct expressions is a surprisingly hard task,
+and furthermore proving the generated language equivalent to the---otherwise very practical---description via the \<open>P\<^sub>i\<close>'s is a tedious task, since the regular expression contains multiple Kleene stars.
 
-A much easier approach was to use a deterministic finite automaton \cite{Paulson15}. The DFA would remember it's last seen bracket in it's state and the transition function makes implementing the conditions and the pairwise checking behaviour straightforward.
+A much easier approach was to use a deterministic finite automaton \cite{Paulson15}.
+The DFA would remember its last seen bracket in its state and the transition function makes implementing
+the conditions and the pairwise checking straightforward.
 
-We were able to use the same general automaton for @{term \<open>P2\<close>}, @{term \<open>P3\<close>} and @{term \<open>P4\<close>}, since we were able to give an automaton for @{term [source] \<open>{xs. successively Q xs \<and> xs \<in> brackets P}\<close>} for an arbitrary pairwise condition $Q$.
+We were able to use the same general automaton for @{const P2}, @{const P3} and @{const P4},
+since we were able to give an automaton for @{term [source] \<open>{u. successively Q u \<and> u \<in> brackets P}\<close>}
+for an arbitrary pairwise condition \<open>Q\<close>.
 
 
 

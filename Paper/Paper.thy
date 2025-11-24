@@ -562,9 +562,12 @@ We finally settled on a constructive transformation of $P$-parse trees to a $P'$
 
 
 \subsection{Formalizing The Regular Language}
-
-What remains is to show that @{prop "L = \<h> ` (R \<inter> Dyck_lang \<Gamma>)"}.
-The paper proof describes the regular Language $R$ using 5 conditions, which assert that after certain letters always/never another certain letter follows.
+To obtain @{prop "L = \<h> ` (R \<inter> Dyck_lang \<Gamma>)"} it now suffices to represent $L'$ as 
+\[
+@{prop "L' = (R \<inter> Dyck_lang \<Gamma>)"},
+\]
+where $R$ is some regular language.
+The paper proof describes the regular language $R$ using 5 conditions, which assert that after certain letters always/never another certain letter follows.
 For example the first property asserts that after a bracket of the form $]^1_\pi$ there always immediately follows the bracket $[^2_\pi$.
 It also asserts that $]^1_\pi$ can never be the end of a word.
 

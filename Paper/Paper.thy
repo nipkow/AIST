@@ -589,7 +589,7 @@ But @{term \<open>Reg S\<close>} is only regular if there are only finitely many
 When we formally show the regularity, we will therefore only show the regularity of @{prop \<open>R \<equiv> (Reg S) \<inter> (brackets P)\<close>} for finite \<open>P\<close>.
 Here @{term [source] \<open>brackets P\<close>} denotes the set of arbitrary words consisting of the brackets with labels in \<open>P\<close>.
 
-When proceded proving the \<open>\<subseteq>\<close> direction of @{prop "L = \<h> ` (R \<inter> Dyck_lang \<Gamma>)"} by proving that the regularity conditions keep holding in each derivation step.
+We proceded proving the \<open>\<subseteq>\<close> direction of @{prop "L = \<h> ` (R \<inter> Dyck_lang \<Gamma>)"} by proving that the regularity conditions keep holding in each derivation step.
 
 This of course required lifting the conditions @{const P1} -- @{const P5} to conditions @{const P1_sym} -- @{const P5_sym}
 on sentential forms. Since sentential forms are more general we needed to strengthen the induction hypothesis
@@ -597,7 +597,7 @@ by including two more properties @{const P7_sym} and @{const P8_sym} that locali
 %Originally we thought to also include another condition $P6$ which was later found superfluous and doesn't appear in the proof text anymore. 
 
 The \<open>\<supseteq>\<close> direction went through as described in Kozen's paper proof.
-Here we needed to make use of the lemmas proved using @{term \<open>bal_stk\<close>} that we mentioned in \ref{subsec:dyck}.
+Here we needed to make use of the lemma proved using @{term \<open>bal_stk\<close>} that we mentioned in \ref{subsec:dyck}.
 
 \subsection{Proving regularity}
 Kozen handwaves the regularity of the \<open>P\<^sub>i\<close>'s away to ``can be described by a regular expression''.
@@ -629,3 +629,4 @@ The total size of the formalizations discussed in the paper runs to 17 KLOC. + P
 (*<*)
 end
 (*>*)
+

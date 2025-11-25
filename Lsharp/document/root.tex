@@ -1,0 +1,113 @@
+\documentclass[runningheads]{llncs}
+\pagestyle{plain} % turn on page numbers
+\usepackage[T1]{fontenc}
+%\usepackage{graphicx}
+% Used for displaying a sample figure. If possible, figure files should
+% be included in EPS format.
+%
+% If you use the hyperref package, please uncomment the following two lines
+% to display URLs in blue roman font according to Springer's eBook style:
+%\usepackage{color}
+%\renewcommand\UrlFont{\color{blue}\rmfamily}
+%\urlstyle{rm}
+
+\usepackage{mathpartir}
+\usepackage{amsfonts}
+\usepackage{amsmath,amssymb}
+
+\usepackage{isabelle,isabellesym}
+\usepackage{latexsym}
+%because of orcidlink
+\usepackage{xcolor}
+% this should be the last package used
+\usepackage{pdfsetup}
+%clashes with pdfsetup
+\usepackage{orcidlink}
+
+\urlstyle{rm}
+\isabellestyle{literal}
+
+\renewcommand{\isadigit}[1]{{\rm #1}}
+
+% isabelle keyword, adapted from isabelle.sty
+\renewcommand{\isakeyword}[1]
+{{\normalfont\sffamily\bfseries\def\isachardot{.}\def\isacharunderscore{\isacharunderscorekeyword}%
+\def\isacharbraceleft{\{}\def\isacharbraceright{\}}#1}}
+
+\renewenvironment{quote}%
+{\list{}{\leftmargin=0mm\rightmargin=0mm}\item[]}%
+{\endlist}
+
+% for uniform font size
+\renewcommand{\isastyle}{\isastyleminor}
+
+\newcommand{\concept}[1]{\textbf{#1}}
+
+\newcommand{\eqnum}[1]{{\upshape\refstepcounter{equation}\hfill(\theequation\label{#1})}}
+
+\newlength{\funheadersep}
+\setlength{\funheadersep}{\smallskipamount}
+
+\hyphenation{Isa-belle}
+
+\begin{document}
+\title{$L^\#$ Verified}
+%\titlerunning{Abbreviated paper title}
+% If the paper title is too long for the running head, you can set
+% an abbreviated paper title here
+
+\author{Florian Bruse\orcidlink{0000-0001-6800-7135} \and Tobias Nipkow\orcidlink{0000-0003-0730-515X} \and
+Bruno Philipp}
+%
+%\authorrunning{}
+
+\institute{Technical University of Munich, Germany
+  \url{https://www.proof.cit.tum.de/~nipkow}}
+
+\maketitle
+
+\begin{abstract}
+We present a verified version of $L^\#$, a learning algorithm for Mealy machines
+due to Vaandrager \emph{et al.}
+\keywords{learning \and automaton \and Mealy machine \and proof assistant \and Isabelle}
+\end{abstract}
+
+%\begin{table}
+%\caption{Table captions should be placed above the tables.}\label{tab1}
+%\begin{tabular}{|l|l|l|}
+%\end{tabular}
+%\end{table}
+
+%\begin{theorem}
+%\end{theorem}
+% the environments 'definition', 'lemma', 'proposition', 'corollary',
+% 'remark', and 'example' are defined in the LLNCS documentclass as well.
+%
+%\begin{proof}
+%\end{proof}
+
+\section{Introduction}
+
+\cite{VaandragerGRW22}
+
+\input{Paper}
+
+\section{Conclusion}
+
+\begin{credits}
+%\subsubsection{\ackname}
+%We thank 
+%\vspace{-1ex}
+\subsubsection{\discintname}
+%It is now necessary to declare any competing interests or to specifically
+%state that the authors have no competing interests. Please place the
+%statement with a bold run-in heading in small font size beneath the
+%(optional) acknowledgments
+%for example:
+The authors have no competing interests to declare that are relevant to the content of this article.
+\end{credits}
+
+\bibliographystyle{splncs04}
+\bibliography{root}
+
+\end{document}

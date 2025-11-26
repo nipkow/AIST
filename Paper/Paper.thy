@@ -644,7 +644,7 @@ We follow the proof by Pilling \cite{Pilling}.
 
 We have presented a unified formalization of the basic theory of context-free
 languages as it is taught even in advanced introductory courses on formal languages.
-The total size of the formalizations discussed in the paper runs to 19 KLOC.
+The total size of the formalizations discussed in the paper runs to 19~KLOC.
 
 What next? Parsing? LR(k)?\<close>
 (*<*)

@@ -2819,7 +2819,7 @@ fun updateF_aux :: "('in,'out) otree \<Rightarrow> 'in list set \<Rightarrow> 'i
 
 lemma updateF_aux_def: "set (updateF_aux T S s Ilist) = {f.((\<exists> i \<in> set Ilist. f = s @ [i]) \<and> f \<notin> S \<and> outs_run T f \<noteq> None)}"
   apply (induction "Ilist")
-  using ilistI univI
+  using univI
   by auto
 
 fun updateF :: "('in,'out) otree \<Rightarrow> 'in list set \<Rightarrow> 'in list list \<Rightarrow> 'in list list" where
@@ -2831,7 +2831,7 @@ lemma updateF_def_aux: "set (updateF T sset S) = {f.((\<exists> s \<in> set S. \
   by (induction S) auto
 
 lemma updateF_def: "set (updateF T (set S) S) = frontier (set S,set F,T)"
-  using updateF_def_aux[of T "set S" S] ilistI univI
+  using updateF_def_aux[of T "set S" S] univI I_def
   by auto
 
 fun find1 :: "('in,'out) otree \<Rightarrow> 'in list list \<Rightarrow> 'in list list \<Rightarrow> 'in list option" where
@@ -2979,7 +2979,7 @@ proof(standard,goal_cases)
     then have none_aux: "find2_aux T s Ilist = None"
       using neq_Nil_conv by fastforce
     then have a: "\<not> (\<exists> i. outs_run T (s @ [i]) = None)"
-      using find2_aux_def_none ilistI univI by blast
+      using find2_aux_def_none I_def univI by blast
     then have "find2 T S F = None"
       using Cons none_aux by fastforce
     then show ?case

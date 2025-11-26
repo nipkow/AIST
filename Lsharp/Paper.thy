@@ -35,6 +35,12 @@ The notation \mbox{\<open>\<lbrakk>A\<^sub>1, \<dots>, A\<^sub>n\<rbrakk> \<Long
 Equality on type @{type bool} denotes logical equivalence.
 
 \section{Mealy Machines}
+
+\<close>
+text (in Mealy) \<open>
+\begin{quote}
+@{thm [mode=Rule] algo_step.intros}
+\end{quote}
 \<close>
 (*<*)
 end

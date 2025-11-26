@@ -8,6 +8,9 @@ declare [[show_question_marks=false]]
 declare [[names_short=true]]
 
 notation process_output_query ("add'_io")
+(*
+notation apart (infix "\<sharp>" 40)
+*)
 (*>*)
 
 text\<open>

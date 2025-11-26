@@ -33,9 +33,9 @@ definition func_sim :: "('s,'in,'out) mealy \<Rightarrow> ('in,'out) otree \<Rig
       run_trans t (f acc) is = (f (acc @ is),(drop (length acc) ops)))))"
 
 fun apart :: "('in,'out) otree \<Rightarrow> 'in list \<Rightarrow> 'in list \<Rightarrow> bool" where
-"apart q_0 t1 t2 = (\<exists> i x y. orun q_0 (t1 @ i) = Some x \<and>
-    orun q_0 (t2 @ i) = Some y \<and>
-    drop (length t1) x \<noteq> drop (length (t2)) y)"
+"apart ot is1 is2 = (\<exists> is os1 os2. orun ot (is1 @ is) = Some os1 \<and>
+    orun ot (is2 @ is) = Some os2 \<and>
+    drop (length is1) os1 \<noteq> drop (length is2) os2)"
 
 fun isolated :: "('in ,'out) otree \<Rightarrow> 'in list set \<Rightarrow> 'in list \<Rightarrow> bool" where
 "isolated q_0 S f = (\<forall> s \<in> S. apart q_0 s f)"

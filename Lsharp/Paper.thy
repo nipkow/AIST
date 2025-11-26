@@ -2,12 +2,17 @@
 theory Paper
 imports
   Lsharp
+  "HOL-Library.LaTeXsugar"
 begin
 declare [[show_question_marks=false]]
 declare [[names_short=true]]
+
+notation process_output_query ("add'_io")
 (*>*)
 
 text\<open>
+% TODO: relate our functions to those by V.?
+
 \subsection{Isabelle Notation} \label{sec:isabelle}
 
 Isabelle is based on a fragment of higher-order logic. It supports core
@@ -39,7 +44,17 @@ Equality on type @{type bool} denotes logical equivalence.
 \<close>
 text (in Mealy) \<open>
 \begin{quote}
-@{thm [mode=Rule] algo_step.intros}
+@{datatype otree}
+\end{quote}
+Function @{term "orun ot is"} yields the output list of ``running'' \<open>ot\<close> on \<open>is\<close>,
+i.e. traversing \<open>ot\<close> along \<open>is\<close> and emitting the output.
+Function @{term "add_io ot is os"} extends \<open>ot\<close> such that \<open>is\<close> is mapped to \<open>os\<close>.
+
+\begin{quote}
+@{thm [mode=Rule] algo_step.intros(1)}\medskip\\
+@{thm [mode=Rule] algo_step.intros(2)}\medskip\\
+@{thm [mode=Rule] (sub) algo_step.intros(3)}\medskip\\
+@{thm [mode=Rule] (sub) algo_step.intros(4)}
 \end{quote}
 \<close>
 (*<*)

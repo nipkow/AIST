@@ -10,53 +10,53 @@ proposed by Frits Vandraager et al. The algorithm is modeled as a transition sys
 
 datatype ('in,'out) otree = Node "'in \<Rightarrow> (('in,'out) otree \<times> 'out) option"
 
-fun run :: "('in,'out) otree \<Rightarrow> 'in  list \<Rightarrow> (('in,'out) otree \<times> 'out list) option" where
+fun run :: "('in,'out) otree \<Rightarrow> 'in list \<Rightarrow> (('in,'out) otree \<times> 'out list) option" where
 "run ot [] = Some (ot, [])" |
-"run (Node t) (i # is) = (case t i of
-    Some (n,op) \<Rightarrow> (case (run n is) of
-      Some (ot,ops) \<Rightarrow> Some (ot,op # ops) |
+"run (Node ft) (i # is) = (case ft i of
+    Some (ot,o) \<Rightarrow> (case run ot is of
+      Some (ot,os) \<Rightarrow> Some (ot,o # os) |
       None \<Rightarrow> None) |
     None \<Rightarrow> None)"
-
-fun outs_run :: "('in,'out) otree \<Rightarrow> 'in list \<Rightarrow> 'out list option" where
-"outs_run ot [] = Some []" |
-"outs_run (Node t) (i # is) = (case t i of
-    Some (n,op) \<Rightarrow>
-    (case (outs_run n is) of
-      Some ops \<Rightarrow> Some (op # ops) |
+(* TODO: run ot is = (apply ot is, orun ot is) ? ? *)
+fun orun :: "('in,'out) otree \<Rightarrow> 'in list \<Rightarrow> 'out list option" where
+"orun ot [] = Some []" |
+"orun (Node ft) (i # is) = (case ft i of
+    Some (ot,o) \<Rightarrow>
+    (case (orun ot is) of
+      Some os \<Rightarrow> Some (o # os) |
       None \<Rightarrow> None) |
     None \<Rightarrow> None)"
 
 definition func_sim :: "('s,'in,'out) mealy \<Rightarrow> ('in,'out) otree \<Rightarrow> ('in list \<Rightarrow> 's) \<Rightarrow> bool" where
 "func_sim m T f = (case m of
-    (q_0,t) \<Rightarrow> ((f [] = q_0) \<and> (\<forall> acc is ops. outs_run T (acc @ is) = Some ops \<longrightarrow>
+    (q_0,t) \<Rightarrow> ((f [] = q_0) \<and> (\<forall> acc is ops. orun T (acc @ is) = Some ops \<longrightarrow>
       run_trans t (f acc) is = (f (acc @ is),(drop (length acc) ops)))))"
 
 fun apart :: "('in,'out) otree \<Rightarrow> 'in list \<Rightarrow> 'in list \<Rightarrow> bool" where
-"apart q_0 t1 t2 = (\<exists> i x y. outs_run q_0 (t1 @ i) = Some x \<and>
-    outs_run q_0 (t2 @ i) = Some y \<and>
+"apart q_0 t1 t2 = (\<exists> i x y. orun q_0 (t1 @ i) = Some x \<and>
+    orun q_0 (t2 @ i) = Some y \<and>
     drop (length t1) x \<noteq> drop (length (t2)) y)"
 
 fun isolated :: "('in ,'out) otree \<Rightarrow> 'in list set \<Rightarrow> 'in list \<Rightarrow> bool" where
 "isolated q_0 S f = (\<forall> s \<in> S. apart q_0 s f)"
 
 fun apart_witness :: "('in,'out) otree \<Rightarrow> 'in list \<Rightarrow> 'in list \<Rightarrow> 'in  list \<Rightarrow> bool" where
-"apart_witness q_0 t1 t2 is = (\<exists> x y. outs_run q_0 (t1 @ is) = Some x \<and>
-    outs_run q_0 (t2 @ is) = Some y \<and>
+"apart_witness q_0 t1 t2 is = (\<exists> x y. orun q_0 (t1 @ is) = Some x \<and>
+    orun q_0 (t2 @ is) = Some y \<and>
     drop (length t1) x \<noteq> drop (length t2) y)"
 
 fun output_query :: "('s,'in ,'out) mealy \<Rightarrow> 'in list \<Rightarrow> 'out list" where
 "output_query (q_0,t) is = orun_trans t q_0 is"
 
 fun process_output_query :: "('in,'out) otree \<Rightarrow> 'in  list \<Rightarrow> 'out list \<Rightarrow> ('in,'out) otree" where
-"process_output_query q [] [] = q" |
-"process_output_query (Node t) (i # is) (op # ops) = (case t i of
+"process_output_query ot [] [] = ot" |
+"process_output_query (Node ft) (i # is) (o # os) = (case ft i of
     None \<Rightarrow> (Node (\<lambda> j. if j = i
-      then Some (process_output_query (Node (\<lambda> k. None)) is ops,op)
-      else t j)) |
-    Some (tree,out) \<Rightarrow> (Node (\<lambda> j. if j = i
-      then Some ((process_output_query tree is ops),out)
-      else t j)))"
+      then Some (process_output_query (Node (\<lambda> k. None)) is os,o)
+      else ft j)) |
+    Some (ot,o) \<Rightarrow> (Node (\<lambda> j. if j = i
+      then Some ((process_output_query ot is os),o)
+      else ft j)))"
 
 text \<open>@{const process_output_query} adds new knowledge about the original mealy machine to the Tree\<close>
 
@@ -68,7 +68,7 @@ fun sapart :: "('in ,'out) state \<Rightarrow> bool" where
 "sapart (S,F,T) = (\<forall> s1 \<in> S. \<forall> s2 \<in> S. s1 \<noteq> s2 \<longrightarrow> apart T s1 s2)"
 
 fun frontier :: "('in,'out) state \<Rightarrow> 'in list set" where
-"frontier (S,F,T) = {f.((\<exists> s \<in> S. \<exists> i. f = s @ [i]) \<and> f \<notin> S \<and> outs_run T f \<noteq> None)}"
+"frontier (S,F,T) = {f.((\<exists> s \<in> S. \<exists> i. f = s @ [i]) \<and> f \<notin> S \<and> orun T f \<noteq> None)}"
 
 text \<open>in the original paper the definition of the Frontier F is rather implicit we use @{term "(frontier (S,F,T))"}
   as our F in many cases\<close>
@@ -85,7 +85,7 @@ fun norm1 :: "('in ,'out) state \<Rightarrow> nat" where
 "norm1 (S,F,T) = ((card S * (card S + 1)) div 2)"
 
 fun norm2 :: "('in,'out) state \<Rightarrow> nat" where
-"norm2 (S,F,T) = card {(q,i). q \<in> S \<and> outs_run T (q @ [i]) \<noteq> None}"
+"norm2 (S,F,T) = card {(q,i). q \<in> S \<and> orun T (q @ [i]) \<noteq> None}"
 
 fun norm3 :: "('in ,'out) state \<Rightarrow> nat" where
 "norm3 (S,F,T) = card {(q,p). q \<in> S \<and> p \<in> F \<and> apart T q p}"
@@ -137,23 +137,20 @@ definition invar :: "('in,'out) state \<Rightarrow> bool" where
 "invar st = (case st of
     (S,F,T) \<Rightarrow>
     (\<forall> e. \<not> (e \<in> S \<and> e \<in> F)) \<and>
-    (\<forall> e \<in> S. outs_run T e \<noteq> None) \<and>
+    (\<forall> e \<in> S. orun T e \<noteq> None) \<and>
     finite S \<and> finite F \<and>
     sapart (S,F,T) \<and>
-    (\<forall> i. outs_run T i \<noteq> None \<longrightarrow> outs_run T i = Some (output_query M i)) \<and>
+    (\<forall> i. orun T i \<noteq> None \<longrightarrow> orun T i = Some (output_query M i)) \<and>
     (F = frontier (S,F,T)) \<and>
     [] \<in> S \<and> (\<forall> s \<in> S. s = [] \<or> (\<exists> s2 \<in> S. \<exists> i. s2 @ [i] = s)))"
 
 
-inductive algo_step :: "
-    ('in,'out) state \<Rightarrow>
-    ('in,'out) state \<Rightarrow>
-    bool" (infix "\<Rightarrow>" 50) where
+inductive algo_step :: "('in,'out) state \<Rightarrow> ('in,'out) state \<Rightarrow> bool" (infix "\<leadsto>" 50) where
 
 rule1: "\<lbrakk>f \<in> F; \<forall> s \<in> S. apart T s f\<rbrakk> \<Longrightarrow>
     algo_step (S,F,T) (S \<union> {f},frontier (S \<union> {f},F,T),T)" |
 
-rule2: "\<lbrakk>s \<in> S; (outs_run T (s @ [i]) = None);
+rule2: "\<lbrakk>s \<in> S; (orun T (s @ [i]) = None);
       output_query M (s @ [i]) = out\<rbrakk> \<Longrightarrow>
     algo_step (S,F,T) (S,F \<union> {s @ [i]},process_output_query T (s @ [i]) out)" |
 
@@ -164,15 +161,15 @@ rule3: "\<lbrakk>s1 \<in> S; s2 \<in> S; s1 \<noteq> s2; f \<in> F;
       output_query M (f @ w) = out\<rbrakk> \<Longrightarrow>
     algo_step (S,F,T) (S,F,process_output_query T (f @ w) out)" |
 
-rule4: "\<lbrakk>\<forall> s1 \<in> S. \<forall> i. outs_run T (s1 @ [i]) \<noteq> None;
+rule4: "\<lbrakk>\<forall> s1 \<in> S. \<forall> i. orun T (s1 @ [i]) \<noteq> None;
       \<forall> f1 \<in> F. \<not> (isolated T S f1);
       fs \<in> F;
       s \<in> S;
       \<not> apart T s fs;
-      difference_query M s fs = Some inp;
-      output_query M (s @ inp) = outs;
-      output_query M (fs @ inp) = outf\<rbrakk> \<Longrightarrow>
-    algo_step (S,F,T) (S,F,process_output_query (process_output_query T (s @ inp) outs) (fs @ inp) outf)"
+      difference_query M s fs = Some is;
+      output_query M (s @ is) = oss;
+      output_query M (fs @ is) = osf\<rbrakk> \<Longrightarrow>
+    algo_step (S,F,T) (S,F,process_output_query (process_output_query T (s @ is) oss) (fs @ is) osf)"
 
 text \<open>rule4 differs from the original definition by Vandraager et. al. as he compares two whole mealy machines
   while we compare only two states. this difference removes the need of further counterexample processing.\<close>
@@ -184,11 +181,11 @@ section \<open>invar\<close>
 lemma invars:
   assumes "invar (S,F,T)"
   shows "\<forall> e. \<not> (e \<in> S \<and> e \<in> F)" and
-    "\<forall> e \<in> S. outs_run T e \<noteq> None" and
+    "\<forall> e \<in> S. orun T e \<noteq> None" and
     "finite S" and
     "finite F" and
     "sapart (S,F,T)" and
-    "\<forall> i. outs_run T i \<noteq> None \<longrightarrow> outs_run T i = Some (output_query M i)" and
+    "\<forall> i. orun T i \<noteq> None \<longrightarrow> orun T i = Some (output_query M i)" and
     "F = frontier (S,F,T)" and
     "[] \<in> S" and
     "\<forall> s \<in> S. s = [] \<or> (\<exists> s2 \<in> S. \<exists> i. s2 @ [i] = s)"
@@ -199,11 +196,11 @@ lemma invars:
 
 lemma is_invar:
   assumes "\<forall> e. \<not> (e \<in> S \<and> e \<in> F)" and
-    "\<forall> e \<in> S. outs_run T e \<noteq> None" and
+    "\<forall> e \<in> S. orun T e \<noteq> None" and
     "finite S" and
     "finite F" and
     "sapart (S,F,T)" and
-    "\<forall> i. outs_run T i \<noteq> None \<longrightarrow> outs_run T i = Some (output_query M i)" and
+    "\<forall> i. orun T i \<noteq> None \<longrightarrow> orun T i = Some (output_query M i)" and
     "F = frontier (S,F,T)" and
     "[] \<in> S" and
     "\<forall> s \<in> S. s = [] \<or> (\<exists> s2 \<in> S. \<exists> i. s2 @ [i] = s)"
@@ -213,9 +210,9 @@ lemma is_invar:
     by blast
 
 
-lemma outs_run_map_empty:
+lemma orun_map_empty:
   assumes "i \<noteq> []"
-  shows "outs_run (Node (\<lambda> x. None)) i = None"
+  shows "orun (Node (\<lambda> x. None)) i = None"
     using assms
     apply (induction i)
     apply simp
@@ -225,17 +222,17 @@ lemma outs_run_map_empty:
 lemma empty_is_invar: "invar ({[]},{},Node Map.empty)"
 text \<open>@{term "({[]},{},Node Map.empty)"} is the starting point for our algorithm\<close>
 proof -
-  have a: "\<forall> i. i \<noteq> [] \<longrightarrow> outs_run (Node (\<lambda> x. None)) i = None"
-    using outs_run_map_empty
+  have a: "\<forall> i. i \<noteq> [] \<longrightarrow> orun (Node (\<lambda> x. None)) i = None"
+    using orun_map_empty
     by blast
   have "output_query M [] = []" 
     apply (induction M) 
     apply simp
     unfolding orun_trans_def 
     by simp
-  then have "outs_run (Node (\<lambda> x. None)) [] = Some (output_query M [])"
+  then have "orun (Node (\<lambda> x. None)) [] = Some (output_query M [])"
     by simp
-  then have b: "\<forall> i. (\<exists> y. outs_run (Node (\<lambda> x. None)) i = Some y) \<longrightarrow> outs_run (Node (\<lambda> x. None)) i = Some (output_query M i)"
+  then have b: "\<forall> i. (\<exists> y. orun (Node (\<lambda> x. None)) i = Some y) \<longrightarrow> orun (Node (\<lambda> x. None)) i = Some (output_query M i)"
     using a
     by (metis option.distinct(1))
   then show ?thesis
@@ -250,7 +247,6 @@ lemma invar_substring_in_s: "\<forall> s \<in> S. s = [] \<or> (\<exists> s2 \<i
 
 section \<open>frontier\<close>
 
-
 lemma finiteF:
   assumes "finite S"
   shows "finite (frontier ((S,F,T) :: ('in,'out) state))"
@@ -258,30 +254,24 @@ proof -
   have fincross: "finite (S \<times> I)"
     using assms univI
     by fastforce
-  have eq_img: "{s @ [i] |
-      s i. s \<in> S \<and> i \<in> I} = (\<lambda> (s,i). s @ [i]) ` (S \<times> I)"
+  have eq_img: "{s @ [i] | s i. s \<in> S \<and> i \<in> I} = (\<lambda> (s,i). s @ [i]) ` (S \<times> I)"
     by fast
-  have eq_different: "{s @ [i] |
-      s i. s \<in> S \<and> i \<in> I} = {f. (\<exists> s \<in> S. \<exists> i. f = s @ [i])}"
-    using univI
-    by blast
+  have eq_different: "{s @ [i] | s i. s \<in> S \<and> i \<in> I} = {f. (\<exists> s \<in> S. \<exists> i. f = s @ [i])}"
+    using univI by blast
   have "{f. (\<exists> s \<in> S. \<exists> i. f = s @ [i])} \<supseteq> frontier (S,F,T)"
     by auto
   then have "finite (frontier (S,F,T))"
-    using assms eq_img fincross finite_subset eq_different
-    by auto
+    using assms eq_img fincross finite_subset eq_different by auto
   then show ?thesis
-    using assms
-    by simp
+    using assms by simp
 qed
 
 
 section \<open>run\<close>
 
-
 lemma run_eq_out: "case run (Node r) i of
-    None \<Rightarrow> outs_run (Node r) i = None |
-    Some (n,out) \<Rightarrow> outs_run (Node r) i = Some out"
+    None \<Rightarrow> orun (Node r) i = None |
+    Some (n,out) \<Rightarrow> orun (Node r) i = Some out"
 proof (induction i arbitrary: r)
   case Nil
   then show ?case
@@ -300,18 +290,15 @@ next
     then have one: "run (Node r) (a # i) = (case run (Node r2) i of
         None \<Rightarrow> None |
         Some (node,out) \<Rightarrow> Some (node,o2 # out))"
-      using Some
-      by simp
-    have two: "outs_run (Node r) (a # i) = (case outs_run (Node r2) i of
+      using Some by simp
+    have two: "orun (Node r) (a # i) = (case orun (Node r2) i of
         None \<Rightarrow> None |
         Some out \<Rightarrow> Some (o2 # out))"
-      using Some b
-      by simp
+      using Some b by simp
     have "case run (Node r2) i of
-        None \<Rightarrow> outs_run (Node r2) i = None |
-        Some (n,out) \<Rightarrow> outs_run (Node r2) i = Some out"
-      using Cons
-      by simp
+        None \<Rightarrow> orun (Node r2) i = None |
+        Some (n,out) \<Rightarrow> orun (Node r2) i = Some out"
+      using Cons by simp
     then show ?thesis
       using one two
       apply (cases "run (Node r2) i")
@@ -319,15 +306,13 @@ next
   qed
 qed
 
-
 lemma run_eq_out_exhaust: "case run T i of
-    None \<Rightarrow> outs_run T i = None |
-    Some (n,out) \<Rightarrow> outs_run T i = Some out"
+    None \<Rightarrow> orun T i = None |
+    Some (n,out) \<Rightarrow> orun T i = Some out"
   using run_eq_out
   by (metis otree.exhaust)
 
-
-lemma out_eq_run: "\<exists> node. (case outs_run (Node r) i of
+lemma out_eq_run: "\<exists> node. (case orun (Node r) i of
     None \<Rightarrow> run (Node r) i = None |
     Some out \<Rightarrow> run (Node r) i = Some (node,out))"
 proof (induction i arbitrary: r)
@@ -345,12 +330,12 @@ next
     then obtain r2 o2 where
       b: "b = (Node r2,o2)"
       by (metis otree.exhaust surj_pair)
-    then have one: "outs_run (Node r) (a # i) = (case outs_run (Node r2) i of
+    then have one: "orun (Node r) (a # i) = (case orun (Node r2) i of
         None \<Rightarrow> None |
         Some out \<Rightarrow> Some (o2 # out))"
       using Some
       by simp
-    have two: "outs_run (Node r) (a # i) = (case outs_run (Node r2) i of
+    have two: "orun (Node r) (a # i) = (case orun (Node r2) i of
         None \<Rightarrow> None |
         Some out \<Rightarrow> Some (o2 # out))"
       using Some b
@@ -360,14 +345,14 @@ next
         Some (node,out) \<Rightarrow> Some (node,o2 # out))"
       using Some b
       by simp
-    have "\<exists> node. (case outs_run (Node r2) i of
+    have "\<exists> node. (case orun (Node r2) i of
         None \<Rightarrow> run (Node r2) i = None |
         Some out \<Rightarrow> run (Node r2) i = Some (node,out))"
       using Cons
       by simp
     then show ?thesis
       using one two three
-      apply (cases "outs_run (Node r2) i")
+      apply (cases "orun (Node r2) i")
       by auto
   qed
 qed
@@ -377,9 +362,9 @@ lemma run_induct_helper: "t i = (Some (tree,out)) \<Longrightarrow> length op = 
     run (process_output_query (Node t) (i # acc) (out # op)) (i # acc) = Some (lt,out # lout)"
   by (induction acc) auto
 
-lemma outs_run_induct_helper: "t i = (Some (tree,out)) \<Longrightarrow> length op = length acc \<Longrightarrow>
-    outs_run (process_output_query tree acc op) acc = Some lout \<Longrightarrow>
-    outs_run (process_output_query (Node t) (i # acc) (out # op)) (i # acc) = Some (out # lout)"
+lemma orun_induct_helper: "t i = (Some (tree,out)) \<Longrightarrow> length op = length acc \<Longrightarrow>
+    orun (process_output_query tree acc op) acc = Some lout \<Longrightarrow>
+    orun (process_output_query (Node t) (i # acc) (out # op)) (i # acc) = Some (out # lout)"
   by (induction acc) auto
 
 lemma run_induct_helper_none: "t i = None \<Longrightarrow> length op = length acc \<Longrightarrow>
@@ -387,15 +372,15 @@ lemma run_induct_helper_none: "t i = None \<Longrightarrow> length op = length a
     run (process_output_query (Node t) (i # acc) (out # op)) (i # acc) = Some (lt,out # lout)"
   by (induction acc) auto
 
-lemma outs_run_induct_helper_none: "t i = None \<Longrightarrow> length op = length acc \<Longrightarrow>
-    outs_run (process_output_query (Node Map.empty) acc op) acc = Some lout \<Longrightarrow>
-    outs_run (process_output_query (Node t) (i # acc) (out # op)) (i # acc) = Some (out # lout)"
+lemma orun_induct_helper_none: "t i = None \<Longrightarrow> length op = length acc \<Longrightarrow>
+    orun (process_output_query (Node Map.empty) acc op) acc = Some lout \<Longrightarrow>
+    orun (process_output_query (Node t) (i # acc) (out # op)) (i # acc) = Some (out # lout)"
   by (induction acc) auto
 
 lemma run_split_existence: "run (Node r) (a # acc) = Some (tr1,out1) \<Longrightarrow> r a \<noteq> None"
   by (auto split: prod.splits option.splits)
 
-lemma outs_run_split_existence: "outs_run (Node r) (a # acc) = Some (out1) \<Longrightarrow> r a \<noteq> None"
+lemma orun_split_existence: "orun (Node r) (a # acc) = Some (out1) \<Longrightarrow> r a \<noteq> None"
   by (auto split: prod.splits option.splits)
 
 lemma run_split_none:
@@ -486,9 +471,9 @@ next
   qed
 qed
 
-lemma outs_run_substring_not_none:
-  assumes "outs_run T (p @ k) \<noteq> None"
-  shows "outs_run T p \<noteq> None"
+lemma orun_substring_not_none:
+  assumes "orun T (p @ k) \<noteq> None"
+  shows "orun T p \<noteq> None"
 using assms proof (induction p arbitrary: T)
   case Nil
   then show ?case
@@ -507,19 +492,19 @@ next
     obtain node out where
       a: "a = (node,out)"
       by fastforce
-    then have "outs_run T ((i # is) @ k) = (case outs_run node (is @ k) of
+    then have "orun T ((i # is) @ k) = (case orun node (is @ k) of
         Some newout \<Rightarrow> Some (out # newout) |
         None \<Rightarrow> None)"
       using Some t by simp
-    then have "outs_run node (is @ k) \<noteq> None"
+    then have "orun node (is @ k) \<noteq> None"
       using Cons t by (metis option.simps(4))
-    then have not_none: "outs_run node is \<noteq> None"
+    then have not_none: "orun node is \<noteq> None"
       using Cons by blast
-    have "outs_run T (i # is) = (case outs_run node is of
+    have "orun T (i # is) = (case orun node is of
         Some newout \<Rightarrow> Some (out # newout) |
         None \<Rightarrow> None)"
       using Some t a by auto
-    then have "outs_run T (i # is) \<noteq> None"
+    then have "orun T (i # is) \<noteq> None"
       using not_none by auto
     then show ?thesis
       by blast
@@ -530,7 +515,7 @@ lemma run_substring_not_none:
   assumes "run T (p @ k) \<noteq> None"
   shows "run T p \<noteq> None"
     using assms out_eq_run run_eq_out
-    by (metis (mono_tags,lifting) otree.exhaust option.simps(4) outs_run_substring_not_none)
+    by (metis (mono_tags,lifting) otree.exhaust option.simps(4) orun_substring_not_none)
 
 lemma run_not_none_split:
   assumes "run T (s @ [i]) \<noteq> None"
@@ -543,8 +528,7 @@ proof(rule ccontr)
     trans: "run T s = Some (Node trans,out)"
     by blast
   then have "trans i = None"
-    using ass
-    by blast
+    using ass by blast
   then have "run T (s @ [i]) = None"
     by (metis local.trans otree.exhaust run_split_none)
   then show False
@@ -567,11 +551,11 @@ lemma trans_ex_aux:
 lemma exists_hypothesis:
   assumes "invar (S,F,T)" and
     "\<not> (\<exists> f \<in> F. \<forall> s \<in> S. apart T s f)" and
-    "\<not> (\<exists> s \<in> S. EX i. (outs_run T (s @ [i]) = None))"
+    "\<not> (\<exists> s \<in> S. EX i. (orun T (s @ [i]) = None))"
   shows "\<exists> t. hypothesis (S,F,T) t"
   text \<open>this lemma is equivalent to lemma 3.6 in the L sharp paper\<close>
 proof -
-  have notning_none: "\<forall> s \<in> S. \<forall> i. outs_run T (s @ [i]) \<noteq> None"
+  have notning_none: "\<forall> s \<in> S. \<forall> i. orun T (s @ [i]) \<noteq> None"
     using assms by meson
   then have nothing_none_otree: "\<forall> s \<in> S. \<forall> i. run T (s @ [i]) \<noteq> None"
     by (smt (verit) case_optionE option.discI run_eq_out run.elims)
@@ -687,15 +671,15 @@ lemma apart_sim:
     the original paper states that @{term "\<not>(eq_mealy (q_0,t) (f q) (q_0,t) (f p))"} holds.\<close>
 proof
   assume as: "f q = f p"
-  then have a: "\<forall> is ops. outs_run T (q @ is) =
+  then have a: "\<forall> is ops. orun T (q @ is) =
       Some ops \<longrightarrow> run_trans t (f q) is = (f (q @ is),(drop (length q) ops))"
     using assms
     unfolding func_sim_def
     by blast
-  have b: "\<forall> is ops. outs_run T (p @ is) =
+  have b: "\<forall> is ops. orun T (p @ is) =
       Some ops \<longrightarrow> run_trans t (f p) is = (f (p @ is),(drop (length p) ops))"
     using assms unfolding func_sim_def as by simp
-  have "\<exists> i x y. outs_run T (q @ i) = Some x \<and> outs_run T (p @ i) = Some y \<and> drop (length q) x \<noteq>
+  have "\<exists> i x y. orun T (q @ i) = Some x \<and> orun T (p @ i) = Some y \<and> drop (length q) x \<noteq>
       drop (length p) y"
     using assms by fastforce
   then show False
@@ -706,20 +690,20 @@ lemma apart_none:
   assumes "\<not> apart T f s1" and
     "\<not> apart T f s2" and
     "apart_witness T s1 s2 w"
-  shows "outs_run T (f @ w) = None"
-  text \<open>this lemma is useful as we know we can change the output for @{term "outs_run T (f @ w)"} in rule2\<close>
+  shows "orun T (f @ w) = None"
+  text \<open>this lemma is useful as we know we can change the output for @{term "orun T (f @ w)"} in rule2\<close>
 proof (rule ccontr)
-  assume ass: "outs_run T (f @ w) \<noteq> None"
+  assume ass: "orun T (f @ w) \<noteq> None"
   obtain x where
-    x: "outs_run T (s1 @ w) = Some x"
+    x: "orun T (s1 @ w) = Some x"
     using assms by auto
   obtain y where
-    y: "outs_run T (s2 @ w) = Some y"
+    y: "orun T (s2 @ w) = Some y"
     using assms by auto
   have neq: "drop (length s2) y \<noteq> drop (length s1) x"
     using assms x y by fastforce
   then obtain z where
-    z: "outs_run T (f @ w) = Some z"
+    z: "orun T (f @ w) = Some z"
     using ass by blast
   then have a: "drop (length f) z = drop (length s1) x"
     using z x assms by simp
@@ -730,7 +714,7 @@ proof (rule ccontr)
 qed
 
 lemma not_none_not_both_apart:
-  assumes "outs_run T (f @ w) = Some z" and
+  assumes "orun T (f @ w) = Some z" and
     "apart_witness T s1 s2 w"
   shows "apart T f s1 \<or> apart T f s2"
     by (metis apart_none assms option.discI)
@@ -739,13 +723,13 @@ lemma exsist_witness:
   assumes "apart T s1 s2"
   shows "\<exists> w. apart_witness T s1 s2 w"
 proof -
-  have "\<exists> i x y. outs_run T (s1 @ i) = Some x \<and>
-      outs_run T (s2 @ i) = Some y \<and>
+  have "\<exists> i x y. orun T (s1 @ i) = Some x \<and>
+      orun T (s2 @ i) = Some y \<and>
       drop (length s1) x \<noteq> drop (length (s2)) y"
     using assms by auto
   then obtain w where
-    "\<exists> x y. outs_run T (s1 @ w) = Some x \<and>
-        outs_run T (s2 @ w) = Some y \<and>
+    "\<exists> x y. orun T (s1 @ w) = Some x \<and>
+        orun T (s2 @ w) = Some y \<and>
         drop (length s1) x \<noteq> drop (length (s2)) y"
     by blast
   then have "apart_witness T s1 s2 w"
@@ -938,8 +922,8 @@ qed
 
 lemma output_query_retains_some_output:
   assumes "length ip = length op" and
-    "outs_run q_0 acc \<noteq> None"
-  shows "outs_run (process_output_query q_0 ip op) acc \<noteq> None"
+    "orun q_0 acc \<noteq> None"
+  shows "orun (process_output_query q_0 ip op) acc \<noteq> None"
 proof -
   obtain r where
     lr: "q_0 = Node r"
@@ -951,7 +935,7 @@ proof -
   obtain r2 where
     "(process_output_query q_0 ip op) = Node r2"
     using otree.exhaust by auto
-  then have "outs_run (process_output_query q_0 ip op) acc \<noteq> None"
+  then have "orun (process_output_query q_0 ip op) acc \<noteq> None"
     using run_eq_out[of r2 acc] ot by auto
   then show ?thesis
     by simp
@@ -959,14 +943,14 @@ qed
 
 lemma process_op_query_not_none_output:
   assumes "length ip = length op"
-  shows "outs_run (process_output_query (Node t) ip op) ip \<noteq> None"
+  shows "orun (process_output_query (Node t) ip op) ip \<noteq> None"
 proof -
   have ot: "run (process_output_query (Node t) ip op) ip \<noteq> None"
     using output_query_retains_some assms process_op_query_not_none by blast
   obtain r2 where
     "(process_output_query (Node t) ip op) = Node r2"
     using otree.exhaust by auto
-  then have "outs_run (process_output_query (Node t) ip op) ip \<noteq> None"
+  then have "orun (process_output_query (Node t) ip op) ip \<noteq> None"
     using run_eq_out[of r2] ot
     by (metis (full_types,lifting) option.simps(4) out_eq_run)
   then show ?thesis
@@ -975,8 +959,8 @@ qed
 
 lemma output_query_retains_some_specific:
   assumes "length ip = length op" and
-    "outs_run (Node r) acc = Some (out1)"
-  shows "outs_run (Node r) acc = outs_run (process_output_query (Node r) ip op) acc"
+    "orun (Node r) acc = Some (out1)"
+  shows "orun (Node r) acc = orun (process_output_query (Node r) ip op) acc"
 using assms proof (induction acc arbitrary: ip op r out1)
   case Nil
   then show ?case
@@ -996,13 +980,13 @@ next
       using c by (metis Suc_length_conv)
     obtain r2 outs where
       ra: "r a = Some (Node r2,outs)"
-      using c outs_run_split_existence option.exhaust by (metis otree.exhaust old.prod.exhaust)
+      using c orun_split_existence option.exhaust by (metis otree.exhaust old.prod.exhaust)
     then show ?thesis proof (cases "i = a")
       case True
-      then have "outs_run (process_output_query (Node r) ip op) (a # acc) =
-          outs_run (process_output_query (Node r) (i # ilist) (ops # olist)) (a # acc)"
+      then have "orun (process_output_query (Node r) ip op) (a # acc) =
+          orun (process_output_query (Node r) (i # ilist) (ops # olist)) (a # acc)"
         using Cons op by presburger
-      also have "\<dots> = outs_run (case r i of
+      also have "\<dots> = orun (case r i of
           None \<Rightarrow> (Node (\<lambda> j. if j = i
             then Some ((process_output_query (Node (\<lambda> k. None)) ilist olist),ops)
             else r j)) |
@@ -1010,33 +994,33 @@ next
             then Some ((process_output_query tree ilist olist),out)
             else r j))) (a # acc)"
         using True ra by simp
-      also have "\<dots> = outs_run (Node (\<lambda> j. if j = i
+      also have "\<dots> = orun (Node (\<lambda> j. if j = i
           then Some ((process_output_query (Node r2) ilist olist,outs))
           else r j)) (a # acc)"
         using ra by (simp add: True)
-      also have "\<dots> = (case outs_run (process_output_query (Node r2) ilist olist) acc of
+      also have "\<dots> = (case orun (process_output_query (Node r2) ilist olist) acc of
           Some output \<Rightarrow> Some (outs # output) |
           None \<Rightarrow> None)"
         using ra True by auto
-      finally have calc1: "outs_run (process_output_query (Node r) ip op) (a # acc) =
-          (case outs_run (process_output_query (Node r2) ilist olist) acc of
+      finally have calc1: "orun (process_output_query (Node r) ip op) (a # acc) =
+          (case orun (process_output_query (Node r2) ilist olist) acc of
             Some output \<Rightarrow> Some (outs # output) |
             None \<Rightarrow> None)"
         by blast
-      have "outs_run (process_output_query (Node r2) ilist olist) acc \<noteq> None"
+      have "orun (process_output_query (Node r2) ilist olist) acc \<noteq> None"
         using calc1 c(3) Cons True output_query_retains_some_output
         by (metis c.prems(1) option.discI option.simps(4))
       then obtain outputs1 where
-        n1: "outs_run (process_output_query (Node r2) ilist olist) acc = Some (outputs1)"
+        n1: "orun (process_output_query (Node r2) ilist olist) acc = Some (outputs1)"
         by fast
-      have calc2: "outs_run (Node r) (a # acc) = (case outs_run (Node r2) acc of
+      have calc2: "orun (Node r) (a # acc) = (case orun (Node r2) acc of
           Some output \<Rightarrow> Some (outs # output) |
           None \<Rightarrow> None)"
         using c ra True by simp
-      then have "outs_run (Node r2) acc \<noteq> None"
+      then have "orun (Node r2) acc \<noteq> None"
         using c by (metis not_Some_eq option.simps(4))
       then obtain outputs2 where
-        n2: "outs_run (Node r2) acc = Some (outputs2)"
+        n2: "orun (Node r2) acc = Some (outputs2)"
         by auto
       have "outputs1 = outputs2"
         using c.IH n1 n2 c(2) op Cons append1_eq_conv length_Cons by fastforce
@@ -1044,10 +1028,10 @@ next
         using calc1 calc2 Cons c True by (simp add: n1 n2)
     next
       case False
-      then have "outs_run (process_output_query (Node r) ip op) (a # acc) =
-          outs_run (process_output_query (Node r) (i # ilist) (ops # olist)) (a # acc)"
+      then have "orun (process_output_query (Node r) ip op) (a # acc) =
+          orun (process_output_query (Node r) (i # ilist) (ops # olist)) (a # acc)"
         using Cons op by presburger
-      also have "\<dots> = outs_run (case r i of
+      also have "\<dots> = orun (case r i of
             None \<Rightarrow> (Node (\<lambda> j. if j = i
               then Some (process_output_query (Node (\<lambda> k. None)) ilist olist,ops)
               else r j)) |
@@ -1056,12 +1040,12 @@ next
               else r j)))
           (a # acc)"
         using False ra by simp
-      also have "\<dots> = (case outs_run (Node r2) acc of
+      also have "\<dots> = (case orun (Node r2) acc of
           Some output \<Rightarrow> Some (outs # output) |
           None \<Rightarrow> None)"
         using ra False
         by (cases "r i") auto
-      also have "\<dots> = outs_run (Node r) (a # acc)"
+      also have "\<dots> = orun (Node r) (a # acc)"
         using ra by simp
       finally show ?thesis
         using c Cons by force
@@ -1071,7 +1055,7 @@ qed
 
 lemma op_query_output_not_equal:
   assumes "i \<noteq> j"
-  shows "outs_run (process_output_query (Node t) (i # is) (op # ops)) (j # js) = outs_run (Node t) (j # js)"
+  shows "orun (process_output_query (Node t) (i # is) (op # ops)) (j # js) = orun (Node t) (j # js)"
 proof -
   have "(process_output_query (Node t) (i # is) (op # ops)) = (case t i of
       None \<Rightarrow> (Node (\<lambda> j. if j = i
@@ -1088,10 +1072,10 @@ proof -
           then Some (process_output_query (Node (\<lambda> k. None)) is ops,op)
           else t j))"
       by simp
-    have "outs_run (Node (\<lambda> j. if j = i
+    have "orun (Node (\<lambda> j. if j = i
           then Some (process_output_query (Node (\<lambda> k. None)) is ops,op)
           else t j)) (j # js) =
-        outs_run (Node t) (j # js)"
+        orun (Node t) (j # js)"
       using assms by auto
     then show ?thesis
       using eq by argo
@@ -1105,10 +1089,10 @@ proof -
           then Some ((process_output_query tree is ops),out)
           else t j))"
       using Some by fastforce
-    have "outs_run (Node (\<lambda> j. if j = i
+    have "orun (Node (\<lambda> j. if j = i
           then Some ((process_output_query tree is ops),out)
           else t j)) (j # js) =
-        outs_run (Node t) (j # js)"
+        orun (Node t) (j # js)"
       using assms by auto
     then show ?thesis
       using eq by argo
@@ -1116,9 +1100,9 @@ proof -
 qed
 
 lemma substring_different_query:
-  assumes "outs_run T i = None" and
+  assumes "orun T i = None" and
     "length j = length out" and
-    "outs_run (process_output_query T j out) i \<noteq> None"
+    "orun (process_output_query T j out) i \<noteq> None"
   shows "\<exists> y. j = i @ y"
 using assms proof (induction i arbitrary: out j T)
   case Nil
@@ -1158,8 +1142,8 @@ next
               then Some (process_output_query (Node (\<lambda> k. None)) js os,op)
               else t j))"
           using node None by auto
-        then have "outs_run (process_output_query T (jfront # js) (op # os)) (a # i) =
-            outs_run (Node (\<lambda> j. if j = jfront
+        then have "orun (process_output_query T (jfront # js) (op # os)) (a # i) =
+            orun (Node (\<lambda> j. if j = jfront
               then Some (process_output_query (Node (\<lambda> k. None)) js os,op)
               else t j)) (a # i)"
           by force
@@ -1167,18 +1151,18 @@ next
               then Some (process_output_query (Node (\<lambda> k. None)) js os,op)
               else t j) a of
             Some (n,op) \<Rightarrow>
-            (case (outs_run n i) of
+            (case (orun n i) of
               Some ops \<Rightarrow> Some (op # ops) |
               None \<Rightarrow> None) |
             None \<Rightarrow> None)"
           by auto
         also have c: "\<dots> =
-            (case (outs_run (process_output_query (Node (\<lambda> k. None)) js os) i) of
+            (case (orun (process_output_query (Node (\<lambda> k. None)) js os) i) of
               Some ops \<Rightarrow> Some (op # ops) |
               None \<Rightarrow> None)"
           using eq by auto
 
-        have induc_three: "(outs_run (process_output_query (Node (\<lambda> k. None)) js os) i) \<noteq> None"
+        have induc_three: "(orun (process_output_query (Node (\<lambda> k. None)) js os) i) \<noteq> None"
           using calculation Cons proc by (metis c j option.simps(4) out)
         then show ?thesis
         proof (cases "i = []")
@@ -1190,14 +1174,14 @@ next
           obtain ifront "is" where
             "i = ifront # is"
             using False list.exhaust by auto
-          then have "(outs_run (Node (\<lambda> k. None)) i) = (case (\<lambda> k. None) ifront of
+          then have "(orun (Node (\<lambda> k. None)) i) = (case (\<lambda> k. None) ifront of
               Some (n,op) \<Rightarrow>
-              (case (outs_run n is) of
+              (case (orun n is) of
                 Some ops \<Rightarrow> Some (op # ops) |
                 None \<Rightarrow> None) |
               None \<Rightarrow> None)"
             by simp
-          then have induc_one: "(outs_run (Node (\<lambda> k. None)) i) = None"
+          then have induc_one: "(orun (Node (\<lambda> k. None)) i) = None"
             by auto
           show ?thesis
             using Cons.IH[of "Node (\<lambda> k. None)" js os] induc_one induc_two induc_three eq j by auto
@@ -1212,8 +1196,8 @@ next
               then Some ((process_output_query atree js os),aout)
               else t j)"
           using node Some by auto
-        then have "outs_run (process_output_query T (jfront # js) (op # os)) (a # i) =
-            outs_run (Node (\<lambda> j. if j = jfront
+        then have "orun (process_output_query T (jfront # js) (op # os)) (a # i) =
+            orun (Node (\<lambda> j. if j = jfront
               then Some ((process_output_query atree js os),aout)
               else t j)) (a # i)"
           by argo
@@ -1221,29 +1205,29 @@ next
               then Some ((process_output_query atree js os),aout)
               else t j) a of
             Some (n,op) \<Rightarrow>
-            (case (outs_run n i) of
+            (case (orun n i) of
               Some ops \<Rightarrow> Some (op # ops) |
               None \<Rightarrow> None) |
             None \<Rightarrow> None)"
           by simp
         also have c: "\<dots> =
-            (case (outs_run (process_output_query atree js os) i) of
+            (case (orun (process_output_query atree js os) i) of
               Some ops \<Rightarrow> Some (aout # ops) |
               None \<Rightarrow> None)"
           using eq by auto
-        finally have induc_three: "outs_run (process_output_query atree js os) i \<noteq> None"
+        finally have induc_three: "orun (process_output_query atree js os) i \<noteq> None"
           using Cons by (metis j option.simps(4) out)
         have "(case t a of
-            Some (n,op) \<Rightarrow> (case (outs_run n i) of
+            Some (n,op) \<Rightarrow> (case (orun n i) of
               Some ops \<Rightarrow> Some (op # ops) |
               None \<Rightarrow> None) |
             None \<Rightarrow> None) = None"
           using Cons node by auto
-        then have "(case (outs_run atree i) of
+        then have "(case (orun atree i) of
             Some ops \<Rightarrow> Some (aout # ops) |
             None \<Rightarrow> None) = None"
           using Some atree eq by auto
-        then have induc_one: "outs_run atree i = None"
+        then have induc_one: "orun atree i = None"
           using not_None_eq by fastforce
         then show ?thesis
           using induc_one induc_two induc_three Cons j by (simp add: eq)
@@ -1257,12 +1241,12 @@ next
 qed
 
 lemma output_query_keeps_invar_aux:
-  assumes "outs_run T i = None" and
+  assumes "orun T i = None" and
     "orun_trans t q_0 j = out" and
     "T' = process_output_query T j out" and
-    "\<forall> k y. outs_run T k = Some y \<longrightarrow> orun_trans t q_0 k = y"
-  shows "outs_run T' i \<noteq> None \<longrightarrow> outs_run T' i = Some (orun_trans t q_0 i)"
-proof (cases "outs_run T' i = None")
+    "\<forall> k y. orun T k = Some y \<longrightarrow> orun_trans t q_0 k = y"
+  shows "orun T' i \<noteq> None \<longrightarrow> orun T' i = Some (orun_trans t q_0 i)"
+proof (cases "orun T' i = None")
   case True
   then show ?thesis
     by blast
@@ -1310,9 +1294,9 @@ next
           then Some (process_output_query (Node (\<lambda> k. None)) js os,op)
           else f k))"
         using Cons None eq by auto
-      have ca:"outs_run T' (a # i) = outs_run (process_output_query (Node f) (b # js) (op # os)) (a # i)"
+      have ca:"orun T' (a # i) = orun (process_output_query (Node f) (b # js) (op # os)) (a # i)"
         using Cons j out T by argo
-      also have cb:"\<dots> = outs_run (Node (\<lambda> k. if k = b
+      also have cb:"\<dots> = orun (Node (\<lambda> k. if k = b
           then Some (process_output_query (Node (\<lambda> k. None)) js os,op)
           else f k)) (a # i)"
         using query by argo
@@ -1320,12 +1304,12 @@ next
             then Some (process_output_query (Node (\<lambda> k. None)) js os,op)
             else f k) a of
           Some (n,op) \<Rightarrow>
-          (case (outs_run n i) of
+          (case (orun n i) of
             Some ops \<Rightarrow> Some (op # ops) |
             None \<Rightarrow> None) |
           None \<Rightarrow> None)"
         by simp
-      also have ce:"\<dots> = (case outs_run (process_output_query (Node (\<lambda> k. None)) js os) i of
+      also have ce:"\<dots> = (case orun (process_output_query (Node (\<lambda> k. None)) js os) i of
           Some ops \<Rightarrow> Some (op # ops) |
           None \<Rightarrow> None)"
         by (simp add: eq)
@@ -1339,21 +1323,21 @@ next
           using Cons.prems(3) Cons.prems(4) T q' eq j out query Nil by auto
       next
         case c:(Cons c list)
-        have ih_prem2: "outs_run (Node (\<lambda> k. None)) i = None"
+        have ih_prem2: "orun (Node (\<lambda> k. None)) i = None"
           using c by fastforce
         obtain T'' where
           T'': "T'' = process_output_query (Node (\<lambda> k. None)) js os"
           by simp
-        have ih_prem4: "\<forall> k y. outs_run (Node (\<lambda> k. None)) k = Some y \<longrightarrow> orun_trans t q' k = y"
+        have ih_prem4: "\<forall> k y. orun (Node (\<lambda> k. None)) k = Some y \<longrightarrow> orun_trans t q' k = y"
           unfolding orun_trans_def 
-          by (metis option.distinct(1) option.inject outs_run.simps(1) outs_run_map_empty run_trans.simps(1) snd_conv)
-        have "(outs_run T'' i) \<noteq> None \<longrightarrow>
-            (outs_run T'' i) = Some (orun_trans t q' i)"
+          by (metis option.distinct(1) option.inject orun.simps(1) orun_map_empty run_trans.simps(1) snd_conv)
+        have "(orun T'' i) \<noteq> None \<longrightarrow>
+            (orun T'' i) = Some (orun_trans t q' i)"
           using Cons.IH[of js "Node (\<lambda> k. None)" q' os T''] ih_prem1 ih_prem2 ih_prem3
           using ih_prem4 T'' ih_prem5
           by blast
-        then have "(outs_run (process_output_query (Node (\<lambda> k. None)) js os) i) \<noteq> None \<longrightarrow>
-            (outs_run (process_output_query (Node (\<lambda> k. None)) js os) i) = Some (orun_trans t q' i)"
+        then have "(orun (process_output_query (Node (\<lambda> k. None)) js os) i) \<noteq> None \<longrightarrow>
+            (orun (process_output_query (Node (\<lambda> k. None)) js os) i) = Some (orun_trans t q' i)"
           using T'' by blast
         then show ?thesis
           using Cons.prems(3) calculation eq j out q' 
@@ -1369,53 +1353,53 @@ next
             then Some ((process_output_query nextnode js os),nextout)
             else f j))"
         using eq nextnode Some by auto
-      then have a: "outs_run (process_output_query (Node f) (b # js) (op # os)) (a # i) =
-          outs_run (Node (\<lambda> j. if j = b
+      then have a: "orun (process_output_query (Node f) (b # js) (op # os)) (a # i) =
+          orun (Node (\<lambda> j. if j = b
             then Some ((process_output_query nextnode js os),nextout)
             else f j)) (a # i)"
         by presburger
       also have b: "\<dots> = (case (\<lambda> j. if j = b
             then Some ((process_output_query nextnode js os),nextout)
             else f j) a of
-          Some (n,op) \<Rightarrow> (case (outs_run n i) of
+          Some (n,op) \<Rightarrow> (case (orun n i) of
             Some ops \<Rightarrow> Some (op # ops) |
             None \<Rightarrow> None) |
           None \<Rightarrow> None)"
         by simp
-      also have c: "\<dots> = (case (outs_run (process_output_query nextnode js os) i) of
+      also have c: "\<dots> = (case (orun (process_output_query nextnode js os) i) of
           Some ops \<Rightarrow> Some (nextout # ops) |
           None \<Rightarrow> None)"
         by (simp add: eq)
-      have "outs_run T (a # i) = (case (outs_run nextnode i) of
+      have "orun T (a # i) = (case (orun nextnode i) of
           Some ops \<Rightarrow> Some (nextout # ops) |
           None \<Rightarrow> None)"
         using T nextnode Some by auto
-      then have ih_prem2: "outs_run nextnode i = None"
+      then have ih_prem2: "orun nextnode i = None"
         using Cons by (metis not_None_eq option.simps(5))
       obtain T'' where
         T'': "T'' = process_output_query nextnode js os"
         by simp
-      have alt_nextout: "outs_run T [a] = Some [nextout]"
+      have alt_nextout: "orun T [a] = Some [nextout]"
         using Some nextnode T by simp
       have alt_out': "orun_trans t q_0 [a] = [out']"
         using q' unfolding orun_trans_def by simp
-      have "outs_run T [a] \<noteq> None \<longrightarrow> Some (orun_trans t q_0 [a]) = outs_run T [a]"
+      have "orun T [a] \<noteq> None \<longrightarrow> Some (orun_trans t q_0 [a]) = orun T [a]"
         using Cons by fastforce
       then have nextout_eq_out': "nextout = out'"
         using alt_out' alt_nextout by simp
-      have part: "\<forall> k. outs_run T (a # k) =
-          (case (outs_run nextnode k) of
+      have part: "\<forall> k. orun T (a # k) =
+          (case (orun nextnode k) of
             Some ops \<Rightarrow> Some (nextout # ops) |
             None \<Rightarrow> None)"
         using T Some nextnode by auto
       have part2: "\<forall> k. orun_trans t q_0 (a # k) = out' # orun_trans t q' k"
         using q' orun_trans_Cons by fast
-      have "\<forall> k y. outs_run T (a # k) = Some (out' # y) \<longrightarrow> orun_trans t q_0 (a # k) = (out' # y)"
+      have "\<forall> k y. orun T (a # k) = Some (out' # y) \<longrightarrow> orun_trans t q_0 (a # k) = (out' # y)"
         using Cons by fastforce
-      then have ih_prem4: "\<forall> k y. outs_run nextnode k = Some y \<longrightarrow> orun_trans t q' k = y"
+      then have ih_prem4: "\<forall> k y. orun nextnode k = Some y \<longrightarrow> orun_trans t q' k = y"
         using part q' part2 nextout_eq_out' by auto
-      have "(outs_run (process_output_query nextnode js os) i) \<noteq> None \<longrightarrow>
-          outs_run (process_output_query nextnode js os) i = Some (orun_trans t q' i)"
+      have "(orun (process_output_query nextnode js os) i) \<noteq> None \<longrightarrow>
+          orun (process_output_query nextnode js os) i = Some (orun_trans t q' i)"
         using Cons.IH[of js nextnode q' os "process_output_query nextnode js os"]
       ih_prem1 ih_prem2 ih_prem3 ih_prem4 ih_prem5 T'' nextnode Some
         by argo
@@ -1426,11 +1410,11 @@ next
 qed
 
 lemma output_query_keeps_invar:
-  assumes "outs_run T i = None" and
+  assumes "orun T i = None" and
     "output_query M j = out" and
-    "\<forall> k y. outs_run T k = Some y \<longrightarrow> output_query M k = y"
-  shows "outs_run (process_output_query T j out) i \<noteq> None \<longrightarrow> 
-  outs_run (process_output_query T j out) i = Some (output_query M i)"
+    "\<forall> k y. orun T k = Some y \<longrightarrow> output_query M k = y"
+  shows "orun (process_output_query T j out) i \<noteq> None \<longrightarrow> 
+  orun (process_output_query T j out) i = Some (output_query M i)"
 proof -
   obtain t q_0 where
     "M = (q_0,t)"
@@ -1469,7 +1453,7 @@ proof -
     by simp
   have fin_snd: "finite (S \<times> I)"
     using assms invars(3) by auto
-  have "{(q,i). q \<in> S \<and> outs_run T (q @ [i]) \<noteq> None} \<subseteq> (S \<times> I)"
+  have "{(q,i). q \<in> S \<and> orun T (q @ [i]) \<noteq> None} \<subseteq> (S \<times> I)"
     using univI by blast
   then have "norm2 (S,F,T) \<le> (card (S \<times> I))"
     using fin_snd card_mono by auto
@@ -1506,7 +1490,7 @@ proof -
 qed
 
 lemma func_sim_of_output_query:
-  assumes "\<forall> inp x. outs_run T inp = Some x \<longrightarrow> output_query M inp = x"
+  assumes "\<forall> inp x. orun T inp = Some x \<longrightarrow> output_query M inp = x"
   shows "\<exists> f. func_sim M T f"
 proof -
   obtain q_0 transmealy where
@@ -1519,29 +1503,29 @@ proof -
     by auto
   then have one: "f [] = q_0"
     by auto
-  have b: "\<forall> inp out. outs_run T inp = Some out \<longrightarrow> out = snd (run_trans transmealy q_0 inp)"
+  have b: "\<forall> inp out. orun T inp = Some out \<longrightarrow> out = snd (run_trans transmealy q_0 inp)"
     using assms m by (simp add: out_srun_trans)
   have c: "\<forall> acc is ops.
       run_trans transmealy (fst (run_trans transmealy q_0 acc)) is =
       (fst (run_trans transmealy q_0 (acc @ is)),drop (length acc) (snd (run_trans transmealy q_0 (acc @ is))))"
     using run_trans_two_nested by fast
-  then have "\<forall> acc is ops. outs_run T (acc @ is) = Some ops \<longrightarrow> ops = output_query M (acc @ is)"
+  then have "\<forall> acc is ops. orun T (acc @ is) = Some ops \<longrightarrow> ops = output_query M (acc @ is)"
     using assms by simp
-  then have "(\<forall> acc is ops. outs_run T (acc @ is) = Some ops \<longrightarrow> run_trans transmealy (f acc) is =
+  then have "(\<forall> acc is ops. orun T (acc @ is) = Some ops \<longrightarrow> run_trans transmealy (f acc) is =
         (f (acc @ is),(drop (length acc) ops))) =
-      (\<forall> acc is ops. outs_run T (acc @ is) = Some ops \<longrightarrow> ops = output_query M (acc @ is) \<longrightarrow>
+      (\<forall> acc is ops. orun T (acc @ is) = Some ops \<longrightarrow> ops = output_query M (acc @ is) \<longrightarrow>
         run_trans transmealy (f acc) is = (f (acc @ is),(drop (length acc) ops)))"
     by presburger
-  also have "\<dots> = (\<forall> acc is ops. outs_run T (acc @ is) = Some ops \<longrightarrow> ops = output_query M (acc @ is) \<longrightarrow>
+  also have "\<dots> = (\<forall> acc is ops. orun T (acc @ is) = Some ops \<longrightarrow> ops = output_query M (acc @ is) \<longrightarrow>
       run_trans transmealy (fst (run_trans transmealy q_0 acc)) is =
       (fst (run_trans transmealy q_0 (acc @ is)),(drop (length acc) ops)))"
     using f by presburger
-  also have "\<dots> = (\<forall> acc is ops. outs_run T (acc @ is) = Some ops \<longrightarrow> ops =
+  also have "\<dots> = (\<forall> acc is ops. orun T (acc @ is) = Some ops \<longrightarrow> ops =
       snd (run_trans transmealy q_0 (acc @ is)) \<longrightarrow>
       run_trans transmealy (fst (run_trans transmealy q_0 acc)) is =
       (fst (run_trans transmealy q_0 (acc @ is)),(drop (length acc) (snd (run_trans transmealy q_0 (acc @ is))))))"
     using b by (simp add: run_trans_two_nested)
-  finally have calc: "\<forall> acc is ops. outs_run T (acc @ is) = Some ops \<longrightarrow>
+  finally have calc: "\<forall> acc is ops. orun T (acc @ is) = Some ops \<longrightarrow>
       run_trans transmealy (f acc) is = (f (acc @ is),(drop (length acc) ops))"
     using c by presburger
   have "func_sim M T f"
@@ -1691,11 +1675,11 @@ using assms proof (induction rule: algo_step.induct)
     using finiteF by presburger
   have a: "\<forall> e. \<not> (e \<in> S \<union> {f} \<and> e \<in> (frontier (S \<union> {f},F,T)))"
     by force
-  have b: "\<forall> e \<in> S \<union> {f}. outs_run T e \<noteq> None"
+  have b: "\<forall> e \<in> S \<union> {f}. orun T e \<noteq> None"
     using rule1 invars(2,7) by fastforce
   have c: "sapart (S \<union> {f},frontier (S \<union> {f},F,T),T)"
     using rule1 sapart_extends invars by metis
-  have d: "\<forall> i. outs_run T i \<noteq> None \<longrightarrow> outs_run T i = Some (output_query M i)"
+  have d: "\<forall> i. orun T i \<noteq> None \<longrightarrow> orun T i = Some (output_query M i)"
     using rule1 invars by metis
   have e: "frontier (S \<union> {f},F,T) = frontier (S \<union> {f},F,T)"
     by fast
@@ -1717,35 +1701,35 @@ next
     using rule2 output_query_length by blast
   have a: "\<forall> e. \<not> (e \<in> S \<and> e \<in> (F \<union> {s @ [i]}))"
     using rule2 invars by blast
-  have outs_runS: "\<forall> e \<in> S. outs_run T e \<noteq> None"
+  have orunS: "\<forall> e \<in> S. orun T e \<noteq> None"
     using rule2 by (metis invars(2))
-  then have b: "\<forall> e \<in> S. outs_run (process_output_query T (s @ [i]) out) e \<noteq> None"
+  then have b: "\<forall> e \<in> S. orun (process_output_query T (s @ [i]) out) e \<noteq> None"
     using lens output_query_retains_some_output by metis
   have c: "sapart (S,(F \<union> {s @ [i]}),process_output_query T (s @ [i]) out)"
     using lens rule2 proc_output_query_retains_sapart invars by (metis sapart.simps)
-  have "\<forall> k y. outs_run T k = Some y \<longrightarrow> output_query M k = y"
+  have "\<forall> k y. orun T k = Some y \<longrightarrow> output_query M k = y"
     using rule2 by (metis invars(6) option.discI option.inject)
-  then have d: "\<forall> j. outs_run (process_output_query T (s @ [i]) out) j \<noteq> None \<longrightarrow>
-      outs_run (process_output_query T (s @ [i]) out) j = Some (output_query M j)"
+  then have d: "\<forall> j. orun (process_output_query T (s @ [i]) out) j \<noteq> None \<longrightarrow>
+      orun (process_output_query T (s @ [i]) out) j = Some (output_query M j)"
     using rule2 output_query_keeps_invar[of T "s @ [i]" "s @ [i]" out]
-    by (smt (verit) invars lens outs_run.elims output_query_keeps_invar output_query_retains_some_specific)
+    by (smt (verit) invars lens orun.elims output_query_keeps_invar output_query_retains_some_specific)
   have e_fst: "\<forall> f \<in> frontier (S,F,T). f \<in> frontier (S,F,(process_output_query T (s @ [i]) out))" apply simp
     using rule2 invars(1,7)
     by (metis not_Some_eq output_query_length output_query_retains_some_output)
   have e_snd: "(s @ [i]) \<in> frontier (S,F \<union> {s @ [i]},(process_output_query T (s @ [i]) out))" apply simp
-    using rule2 outs_runS process_op_query_not_none_output lens by (metis d otree.exhaust)
+    using rule2 orunS process_op_query_not_none_output lens by (metis d otree.exhaust)
   have e_aux: "\<forall> f \<in> F \<union> {s @ [i]}. f \<in> frontier (S,F \<union> {s @ [i]},(process_output_query T (s @ [i]) out))"
     using e_fst e_snd rule2 invars(7) by force
-  have s_not_none: "outs_run T s \<noteq> None"
-    using outs_runS rule2 by blast
-  then have subs_s_not_None: "\<forall> is. \<exists> y. is @ y = s \<longrightarrow> outs_run T is \<noteq> None"
-    using outs_run_substring_not_none by fast
+  have s_not_none: "orun T s \<noteq> None"
+    using orunS rule2 by blast
+  then have subs_s_not_None: "\<forall> is. \<exists> y. is @ y = s \<longrightarrow> orun T is \<noteq> None"
+    using orun_substring_not_none by fast
   then have something: "\<forall> is. (\<exists> y. is @ y = s @ [i]) \<and> \<not> (\<exists> y. is @ y = s) \<longrightarrow> is = s @ [i]"
     by (metis append_self_conv butlast_append butlast_snoc)
-  have "\<forall> is. outs_run T is = None \<and> outs_run (process_output_query T (s @ [i]) out) is \<noteq> None \<longrightarrow> (\<exists> y. is @ y = (s @ [i]))"
+  have "\<forall> is. orun T is = None \<and> orun (process_output_query T (s @ [i]) out) is \<noteq> None \<longrightarrow> (\<exists> y. is @ y = (s @ [i]))"
     using substring_different_query lens by metis
-  then have only_si_different: "\<forall> is. outs_run T is = None \<and> outs_run (process_output_query T (s @ [i]) out) is \<noteq> None \<longrightarrow> is = (s @ [i])"
-    using subs_s_not_None something by (metis outs_run_substring_not_none s_not_none)
+  then have only_si_different: "\<forall> is. orun T is = None \<and> orun (process_output_query T (s @ [i]) out) is \<noteq> None \<longrightarrow> is = (s @ [i])"
+    using subs_s_not_None something by (metis orun_substring_not_none s_not_none)
   have finF: "\<forall> f. f \<in> frontier (S,F,T) \<longrightarrow> f \<in> F"
     using rule2 invars by fast
   then have supsF: "frontier (S,F \<union> {s @ [i]},(process_output_query T (s @ [i]) out)) \<supseteq> frontier (S,F,T) \<union> {s @ [i]}"
@@ -1775,17 +1759,17 @@ next
 
   have a: "\<forall> e. \<not> (e \<in> S \<and> e \<in> F)"
     using rule3 by (meson invars)
-  have b: "\<forall> e \<in> S. outs_run (process_output_query T (f @ w) out) e \<noteq> None"
+  have b: "\<forall> e \<in> S. orun (process_output_query T (f @ w) out) e \<noteq> None"
     using rule3 by (metis invars(2) lens output_query_retains_some_output)
 
   have c: "sapart (S,F,process_output_query T (f @ w) out)"
     using lens rule3 proc_output_query_retains_sapart invars by metis
-  have helper: "\<forall> k y. outs_run T k = Some y \<longrightarrow> output_query M k = y"
+  have helper: "\<forall> k y. orun T k = Some y \<longrightarrow> output_query M k = y"
     using rule3 by (metis invars(6) option.discI option.inject)
-  then have d: "\<forall> j. outs_run (process_output_query T (f @ w) out) j \<noteq> None \<longrightarrow>
-      outs_run (process_output_query T (f @ w) out) j = Some (output_query M j)"
+  then have d: "\<forall> j. orun (process_output_query T (f @ w) out) j \<noteq> None \<longrightarrow>
+      orun (process_output_query T (f @ w) out) j = Some (output_query M j)"
     using rule3 output_query_keeps_invar
-    by (smt (verit,del_insts) invars lens outs_run.elims output_query_retains_some_specific)
+    by (smt (verit,del_insts) invars lens orun.elims output_query_retains_some_specific)
 
   have "\<forall> fs \<in> frontier (S,F,T). fs \<in> frontier (S,F,(process_output_query T (f @ w) out))"
     apply simp
@@ -1795,7 +1779,7 @@ next
     using invars(7) rule3 by fast
   have "\<forall> fs. fs \<in> frontier (S,F,T) \<longrightarrow> fs \<in> F"
     using invars(7) rule3.prems(1) by auto
-  have notnone_subs: "\<forall> s \<in> S. \<forall> i. outs_run T (s @ [i]) = None \<and> outs_run (process_output_query T (f @ w) out) (s @ [i]) \<noteq> None \<longrightarrow> (\<exists> y. (s @ [i] @ y = (f @ w)))"
+  have notnone_subs: "\<forall> s \<in> S. \<forall> i. orun T (s @ [i]) = None \<and> orun (process_output_query T (f @ w) out) (s @ [i]) \<noteq> None \<longrightarrow> (\<exists> y. (s @ [i] @ y = (f @ w)))"
     using substring_different_query[of T _ "f @ w" out] lens by (metis append_assoc)
   have fy_not_s: "\<forall> y. f @ y \<notin> S"
     using a invars(9) rule3.hyps(4) rule3.prems(1) by (meson substr_not_s)
@@ -1803,15 +1787,15 @@ next
     by (metis append_eq_append_conv2)
   then have "\<forall> s \<in> S. \<forall> i. \<exists> y. s @ [i] @ y = f @ w \<longrightarrow> run T (s @ [i]) \<noteq> None"
     by (metis append_assoc append_self_conv2 list.distinct(1))
-  have "\<forall> s \<in> S. \<forall> i. outs_run T (s @ [i]) = None \<longrightarrow> s @ [i] \<noteq> f"
+  have "\<forall> s \<in> S. \<forall> i. orun T (s @ [i]) = None \<longrightarrow> s @ [i] \<noteq> f"
     using rule3 invars(7) by fastforce
-  then have "\<forall> s \<in> S. \<forall> i. outs_run T (s @ [i]) = None \<longrightarrow> (\<nexists> y. s @ [i] @ y = f)"
-    by (metis (mono_tags,lifting) append.assoc frontier.simps invars(7) mem_Collect_eq outs_run_substring_not_none rule3.hyps(4) rule3.prems)
-  then have "\<forall> s \<in> S. \<forall> i. outs_run T (s @ [i]) = None \<and> outs_run (process_output_query T (f @ w) out) (s @ [i]) \<noteq> None \<longrightarrow>
+  then have "\<forall> s \<in> S. \<forall> i. orun T (s @ [i]) = None \<longrightarrow> (\<nexists> y. s @ [i] @ y = f)"
+    by (metis (mono_tags,lifting) append.assoc frontier.simps invars(7) mem_Collect_eq orun_substring_not_none rule3.hyps(4) rule3.prems)
+  then have "\<forall> s \<in> S. \<forall> i. orun T (s @ [i]) = None \<and> orun (process_output_query T (f @ w) out) (s @ [i]) \<noteq> None \<longrightarrow>
       \<not> (\<exists> y. s @ [i] @ y = f @ w)"
     using rule3
     by (metis (no_types,opaque_lifting) append_Cons append_eq_append_conv2 fy_not_s ins_subs_f list.inject neq_Nil_conv same_append_eq)
-  then have "\<forall> s \<in> S. \<forall> i. outs_run T (s @ [i]) = None \<longrightarrow> outs_run (process_output_query T (f @ w) out) (s @ [i]) = None"
+  then have "\<forall> s \<in> S. \<forall> i. orun T (s @ [i]) = None \<longrightarrow> orun (process_output_query T (f @ w) out) (s @ [i]) = None"
     using notnone_subs by blast
   then have "\<forall> fs. fs \<in> frontier (S,F,(process_output_query T (f @ w) out)) \<longrightarrow> fs \<in> frontier (S,F,T)"
     by fastforce
@@ -1835,29 +1819,29 @@ next
     using rule4 output_query_length by blast
   have a: "\<forall> e. \<not> (e \<in> S \<and> e \<in> frontier (S,F,(process_output_query (process_output_query T (s @ inp) outs) (fs @ inp) outf)))"
     by force
-  have b: "\<forall> e \<in> S. outs_run (process_output_query (process_output_query T (s @ inp) outs) (fs @ inp) outf) e \<noteq> None"
+  have b: "\<forall> e \<in> S. orun (process_output_query (process_output_query T (s @ inp) outs) (fs @ inp) outf) e \<noteq> None"
     using rule4
-    by (metis lenf lens outs_run_substring_not_none output_query_retains_some_output)
+    by (metis lenf lens orun_substring_not_none output_query_retains_some_output)
   have c: "sapart (S,F,(process_output_query (process_output_query T (s @ inp) outs) (fs @ inp) outf))"
     using lens lenf rule4 proc_output_query_retains_sapart invars by metis
-  have "\<forall> k y. outs_run T k = Some y \<longrightarrow> output_query M k = y"
+  have "\<forall> k y. orun T k = Some y \<longrightarrow> output_query M k = y"
     using rule4 by (metis invars(6) option.discI option.inject)
-  then have "\<forall> j. outs_run (process_output_query T (s @ inp) outs) j \<noteq> None \<longrightarrow>
-      outs_run (process_output_query T (s @ inp) outs) j = Some (output_query M j)"
+  then have "\<forall> j. orun (process_output_query T (s @ inp) outs) j \<noteq> None \<longrightarrow>
+      orun (process_output_query T (s @ inp) outs) j = Some (output_query M j)"
     using rule4 output_query_keeps_invar
-    by (smt (verit,del_insts) invars lens outs_run.elims output_query_retains_some_specific)
-  then have d: "\<forall> j. outs_run (process_output_query (process_output_query T (s @ inp) outs) (fs @ inp) outf) j \<noteq> None \<longrightarrow>
-      outs_run (process_output_query (process_output_query T (s @ inp) outs) (fs @ inp) outf) j = Some (output_query M j)"
+    by (smt (verit,del_insts) invars lens orun.elims output_query_retains_some_specific)
+  then have d: "\<forall> j. orun (process_output_query (process_output_query T (s @ inp) outs) (fs @ inp) outf) j \<noteq> None \<longrightarrow>
+      orun (process_output_query (process_output_query T (s @ inp) outs) (fs @ inp) outf) j = Some (output_query M j)"
     using rule4 output_query_keeps_invar[of "process_output_query T (s @ inp) outs" _"fs @ inp" "outf"]
-    by (smt (verit) lenf option.discI option.inject outs_run.elims
+    by (smt (verit) lenf option.discI option.inject orun.elims
     output_query_retains_some_specific process_output_query.simps(1))
-  have never_none: "\<forall> ses \<in> S. \<forall> i. outs_run T (ses @ [i]) \<noteq> None"
+  have never_none: "\<forall> ses \<in> S. \<forall> i. orun T (ses @ [i]) \<noteq> None"
     using rule4 by blast
   have feq: "F = frontier (S,F,T)"
     using rule4 invars(7) by blast
   have inf_eq: "frontier (S,F,T) = {f. ((\<exists> s \<in> S. \<exists> i. f = s @ [i]) \<and> f \<notin> S)}"
     using never_none by auto
-  have "\<forall> ses \<in> S. \<forall> i. outs_run (process_output_query (process_output_query T (s @ inp) outs) (fs @ inp) outf) (ses @ [i]) \<noteq> None"
+  have "\<forall> ses \<in> S. \<forall> i. orun (process_output_query (process_output_query T (s @ inp) outs) (fs @ inp) outf) (ses @ [i]) \<noteq> None"
     using never_none output_query_retains_some_output lenf lens by blast
   then have infnew_eq: "{f. ((\<exists> s \<in> S. \<exists> i. f = s @ [i]) \<and> f \<notin> S)} =
       frontier (S,F,(process_output_query (process_output_query T (s @ inp) outs) (fs @ inp) outf))"
@@ -1900,13 +1884,13 @@ using assms proof (induction "(S,F,T)" "(S',F',T')" rule: algo_step.induct)
     using finS finI by fast
   then have finp2: "finite {(q,i). q \<in> S \<union> {f} \<and> i \<in> I}"
     using finp by argo
-  have "{(q,i). (q = f \<or> q \<in> S) \<and> (\<exists> a b. outs_run T (q @ [i]) = Some b)} \<subseteq>
+  have "{(q,i). (q = f \<or> q \<in> S) \<and> (\<exists> a b. orun T (q @ [i]) = Some b)} \<subseteq>
       {(q,i). q \<in> S \<union> {f} \<and> i \<in> I}"
     using univI by auto
-  then have fin2: "finite {(q,i). (q = f \<or> q \<in> S) \<and> (\<exists> a b. outs_run T (q @ [i]) = Some b)}"
+  then have fin2: "finite {(q,i). (q = f \<or> q \<in> S) \<and> (\<exists> a b. orun T (q @ [i]) = Some b)}"
     using finp2 finite_subset by fast
-  have "{(q,i). q \<in> S \<and> (\<exists> b. outs_run T (q @ [i]) = Some b)} \<subseteq>
-      {(q,i). (q = f \<or> q \<in> S) \<and> (\<exists> b. outs_run T (q @ [i]) = Some b)}"
+  have "{(q,i). q \<in> S \<and> (\<exists> b. orun T (q @ [i]) = Some b)} \<subseteq>
+      {(q,i). (q = f \<or> q \<in> S) \<and> (\<exists> b. orun T (q @ [i]) = Some b)}"
     by blast
   then have "norm2 (S,F,T) \<le> norm2 (S \<union> {f},(frontier (S \<union> {f},F,T)),T)"
     using fin2 card_mono by fastforce
@@ -1984,9 +1968,9 @@ next
   have lens: "length (s @ [i]) = length out"
     using output_query_length rule2.hyps(3)
     by blast
-  then have a: "outs_run T' (s @ [i]) \<noteq> None"
+  then have a: "orun T' (s @ [i]) \<noteq> None"
     using process_op_query_not_none_output rule2 by (metis otree.exhaust)
-  have retain: "\<forall> is. outs_run T is \<noteq> None \<longrightarrow> outs_run T' is \<noteq> None"
+  have retain: "\<forall> is. orun T is \<noteq> None \<longrightarrow> orun T' is \<noteq> None"
     using rule2 lens output_query_retains_some_output by blast
   have "{q \<in> S. \<forall> i. \<exists> a b. q \<noteq> s \<and> run T' (q @ [i]) = Some (a,b)} \<subseteq> S"
     by force
@@ -1996,37 +1980,37 @@ next
     using finS finI by fast
   then have finp2: "finite {(q,i). q \<in> S \<and> i \<in> I}"
     using finp by argo
-  have "{(q,i'). \<not> (q = s \<and> i' = i) \<and> (q \<in> S) \<and> (\<exists> b. outs_run T' (q @ [i']) = Some b)} \<subseteq>
+  have "{(q,i'). \<not> (q = s \<and> i' = i) \<and> (q \<in> S) \<and> (\<exists> b. orun T' (q @ [i']) = Some b)} \<subseteq>
       {(q,i). q \<in> S \<and> i \<in> I}"
     using univI by auto
-  then have fin2: "finite {(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. outs_run T' (q @ [i']) = Some b)}"
+  then have fin2: "finite {(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. orun T' (q @ [i']) = Some b)}"
     using finp2 finite_subset by fast
-  have "{(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. outs_run T (q @ [i']) = Some b)} \<subseteq>
-      {(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. outs_run T' (q @ [i']) = Some b)}"
+  have "{(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. orun T (q @ [i']) = Some b)} \<subseteq>
+      {(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. orun T' (q @ [i']) = Some b)}"
     using retain by auto
-  then have lep: "card {(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. outs_run T (q @ [i']) = Some b)} \<le>
-      card {(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. outs_run T' (q @ [i']) = Some b)}"
+  then have lep: "card {(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. orun T (q @ [i']) = Some b)} \<le>
+      card {(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. orun T' (q @ [i']) = Some b)}"
     using card_mono fin2 by fastforce
-  have "{(q,i'). q = s \<and> i' = i \<and> (\<exists> b. outs_run T (q @ [i']) = Some b)} = {}"
+  have "{(q,i'). q = s \<and> i' = i \<and> (\<exists> b. orun T (q @ [i']) = Some b)} = {}"
     using rule2 by (smt (verit) all_not_in_conv case_prodE mem_Collect_eq not_None_eq)
-  then have same: "{(q,i). q \<in> S \<and> (\<exists> b. outs_run T (q @ [i]) = Some b)} =
-      {(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. outs_run T (q @ [i']) = Some b)}"
+  then have same: "{(q,i). q \<in> S \<and> (\<exists> b. orun T (q @ [i]) = Some b)} =
+      {(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. orun T (q @ [i']) = Some b)}"
     by auto
-  have nin: "(s,i) \<notin> {(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. outs_run T' (q @ [i']) = Some b)}"
+  have nin: "(s,i) \<notin> {(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. orun T' (q @ [i']) = Some b)}"
     by blast
-  have "{(q,i'). (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. outs_run T' (q @ [i']) = Some b)} = {(s,i)}"
+  have "{(q,i'). (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. orun T' (q @ [i']) = Some b)} = {(s,i)}"
     using a rule2 by fast
-  then have union: "{(q,i'). q \<in> S \<and> (\<exists> b. outs_run T' (q @ [i']) = Some b)} =
-      {(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. outs_run T' (q @ [i']) = Some b)} \<union> {(s,i)}"
+  then have union: "{(q,i'). q \<in> S \<and> (\<exists> b. orun T' (q @ [i']) = Some b)} =
+      {(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. orun T' (q @ [i']) = Some b)} \<union> {(s,i)}"
     by force
-  then have gt: "card ({(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. outs_run T' (q @ [i']) = Some b)} \<union> {(s,i)}) =
-      card ({(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. outs_run T' (q @ [i']) = Some b)}) + 1"
+  then have gt: "card ({(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. orun T' (q @ [i']) = Some b)} \<union> {(s,i)}) =
+      card ({(q,i'). \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. orun T' (q @ [i']) = Some b)}) + 1"
     using fin2 nin by simp
-  have "card {(q,i'). q \<in> S \<and> (\<exists> b. outs_run T (q @ [i']) = Some b)} \<le> card {(q,i').
-      \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. outs_run T' (q @ [i']) = Some b)}"
+  have "card {(q,i'). q \<in> S \<and> (\<exists> b. orun T (q @ [i']) = Some b)} \<le> card {(q,i').
+      \<not> (q = s \<and> i' = i) \<and> q \<in> S \<and> (\<exists> b. orun T' (q @ [i']) = Some b)}"
     using lep same by argo
-  then have "card {(q,i'). q \<in> S \<and> (\<exists> b. outs_run T (q @ [i']) = Some b)} <
-      card {(q,i'). q \<in> S \<and> (\<exists> b. outs_run T' (q @ [i']) = Some b)}"
+  then have "card {(q,i'). q \<in> S \<and> (\<exists> b. orun T (q @ [i']) = Some b)} <
+      card {(q,i'). q \<in> S \<and> (\<exists> b. orun T' (q @ [i']) = Some b)}"
     using gt union by presburger
   then have "norm2 (S,F,T) < norm2 (S,F',T')"
     by simp
@@ -2035,31 +2019,31 @@ next
 
   have fincross: "finite (S' \<times> F')"
     using finS' finF' by simp
-  have "{(q,p). q \<in> S' \<and> p \<in> F' \<and> (\<exists> i x. (outs_run T' (q @ i) = Some x) \<and>
-      (\<exists> y. outs_run T' (p @ i) = Some y \<and> drop (length q) x \<noteq> drop (length p) y))} \<subseteq> (S' \<times> F')"
+  have "{(q,p). q \<in> S' \<and> p \<in> F' \<and> (\<exists> i x. (orun T' (q @ i) = Some x) \<and>
+      (\<exists> y. orun T' (p @ i) = Some y \<and> drop (length q) x \<noteq> drop (length p) y))} \<subseteq> (S' \<times> F')"
     by blast
-  then have fin3: "finite {(q,p). q \<in> S' \<and> p \<in> F' \<and> (\<exists> i x. (outs_run T' (q @ i) =
-      Some x) \<and> (\<exists> y. outs_run T' (p @ i) = Some y \<and> drop (length q) x \<noteq> drop (length p) y))}"
+  then have fin3: "finite {(q,p). q \<in> S' \<and> p \<in> F' \<and> (\<exists> i x. (orun T' (q @ i) =
+      Some x) \<and> (\<exists> y. orun T' (p @ i) = Some y \<and> drop (length q) x \<noteq> drop (length p) y))}"
     using fincross by (simp add: finite_subset)
   obtain r where
     lr: "T = Node r"
     using otree.exhaust by auto
-  have front: "\<forall> p x i2. outs_run (Node r) (p @ i2) = Some x \<longrightarrow>
-      outs_run (process_output_query (Node r) (s @ [i]) out) (p @ i2) = Some x"
+  have front: "\<forall> p x i2. orun (Node r) (p @ i2) = Some x \<longrightarrow>
+      orun (process_output_query (Node r) (s @ [i]) out) (p @ i2) = Some x"
     using rule2(6) lens output_query_retains_some_specific[of "s @ [i]" out r] by presburger
-  have one: "{(q,p). q \<in> S' \<and> p \<in> F' \<and> (\<exists> i x. (outs_run T' (q @ i) = Some x) \<and>
-        (\<exists> y. outs_run T' (p @ i) = Some y \<and> drop (length q) x \<noteq> drop (length p) y))} \<supseteq>
-      {(q,p). q \<in> S' \<and> p \<in> F' \<and> (\<exists> i x. (outs_run T (q @ i) = Some x) \<and>
-        (\<exists> y. outs_run T (p @ i) = Some y \<and> drop (length q) x \<noteq> drop (length p) y))}"
+  have one: "{(q,p). q \<in> S' \<and> p \<in> F' \<and> (\<exists> i x. (orun T' (q @ i) = Some x) \<and>
+        (\<exists> y. orun T' (p @ i) = Some y \<and> drop (length q) x \<noteq> drop (length p) y))} \<supseteq>
+      {(q,p). q \<in> S' \<and> p \<in> F' \<and> (\<exists> i x. (orun T (q @ i) = Some x) \<and>
+        (\<exists> y. orun T (p @ i) = Some y \<and> drop (length q) x \<noteq> drop (length p) y))}"
     using rule2(6) lens front lr by blast
-  have "{(q,p). q \<in> S \<and> p \<in> F \<and> (\<exists> i x. (outs_run T (q @ i) = Some x) \<and>
-        (\<exists> y. outs_run T (p @ i) = Some y \<and> drop (length q) x \<noteq> drop (length p) y))} \<subseteq>
-      {(q,p). q \<in> S \<and> p \<in> F \<union> {s @ [i]} \<and> (\<exists> i x. (outs_run T (q @ i) = Some x) \<and>
-        (\<exists> y. outs_run T (p @ i) = Some y \<and> drop (length q) x \<noteq> drop (length p) y))}"
+  have "{(q,p). q \<in> S \<and> p \<in> F \<and> (\<exists> i x. (orun T (q @ i) = Some x) \<and>
+        (\<exists> y. orun T (p @ i) = Some y \<and> drop (length q) x \<noteq> drop (length p) y))} \<subseteq>
+      {(q,p). q \<in> S \<and> p \<in> F \<union> {s @ [i]} \<and> (\<exists> i x. (orun T (q @ i) = Some x) \<and>
+        (\<exists> y. orun T (p @ i) = Some y \<and> drop (length q) x \<noteq> drop (length p) y))}"
     by force
-  then have subs3: "{(q,p). q \<in> S' \<and> p \<in> F' \<and> (\<exists> i x. (outs_run T' (q @ i) = Some x) \<and>
-        (\<exists> y. outs_run T' (p @ i) = Some y \<and> drop (length q) x \<noteq> drop (length p) y))} \<supseteq>
-      {(q,p). q \<in> S \<and> p \<in> F \<and> (\<exists> i x. (outs_run T (q @ i) = Some x) \<and> (\<exists> y. outs_run T (p @ i) = Some y \<and>
+  then have subs3: "{(q,p). q \<in> S' \<and> p \<in> F' \<and> (\<exists> i x. (orun T' (q @ i) = Some x) \<and>
+        (\<exists> y. orun T' (p @ i) = Some y \<and> drop (length q) x \<noteq> drop (length p) y))} \<supseteq>
+      {(q,p). q \<in> S \<and> p \<in> F \<and> (\<exists> i x. (orun T (q @ i) = Some x) \<and> (\<exists> y. orun T (p @ i) = Some y \<and>
           drop (length q) x \<noteq> drop (length p) y))}"
     using one rule2 by blast
   then have trd: "norm3 (S,F,T) \<le> norm3 (S',F',T')"
@@ -2074,11 +2058,11 @@ next
 
   have lens: "length (f @ w) = length out"
     using output_query_length rule3 by blast
-  have retain: "\<forall> is. outs_run T is \<noteq> None \<longrightarrow> outs_run T' is \<noteq> None"
+  have retain: "\<forall> is. orun T is \<noteq> None \<longrightarrow> orun T' is \<noteq> None"
     using rule3 lens output_query_retains_some_output by blast
-  then have retain_specific: "\<forall> is x. outs_run T is = Some x \<longrightarrow> outs_run T' is = Some x"
+  then have retain_specific: "\<forall> is x. orun T is = Some x \<longrightarrow> orun T' is = Some x"
     using output_query_retains_some_specific rule3 lens
-    by (smt (verit) not_none_not_both_apart outs_run.elims)
+    by (smt (verit) not_none_not_both_apart orun.elims)
   have "finite S"
     using rule3(12) invars by blast
   then have finp: "finite (S \<times> I)"
@@ -2088,15 +2072,15 @@ next
     by fast
   then have finp2: "finite {(q,i). q \<in> S \<and> i \<in> I}"
     using finp by argo
-  have "{(q,i). q \<in> S' \<and> (\<exists> y. outs_run T' (q @ [i]) = Some y)} \<subseteq> {(q,i). q \<in> S \<and> i \<in> I}"
+  have "{(q,i). q \<in> S' \<and> (\<exists> y. orun T' (q @ [i]) = Some y)} \<subseteq> {(q,i). q \<in> S \<and> i \<in> I}"
     using rule3 univI by fast
-  then have fin2: "finite {(q,i). q \<in> S' \<and> (\<exists> y. outs_run T' (q @ [i]) = Some y)}"
+  then have fin2: "finite {(q,i). q \<in> S' \<and> (\<exists> y. orun T' (q @ [i]) = Some y)}"
     using finp2 finite_subset by fast
-  have "{(q,i). q \<in> S \<and> (\<exists> y. outs_run T (q @ [i]) = Some y)} \<subseteq>
-      {(q,i). q \<in> S' \<and> (\<exists> y. outs_run T' (q @ [i]) = Some y)}"
+  have "{(q,i). q \<in> S \<and> (\<exists> y. orun T (q @ [i]) = Some y)} \<subseteq>
+      {(q,i). q \<in> S' \<and> (\<exists> y. orun T' (q @ [i]) = Some y)}"
     using retain rule3 by fast
-  then have "card {(q,i). q \<in> S \<and> (\<exists> y. outs_run T (q @ [i]) = Some y)} \<le>
-      card {(q,i). q \<in> S' \<and> (\<exists> y. outs_run T' (q @ [i]) = Some y)}"
+  then have "card {(q,i). q \<in> S \<and> (\<exists> y. orun T (q @ [i]) = Some y)} \<le>
+      card {(q,i). q \<in> S' \<and> (\<exists> y. orun T' (q @ [i]) = Some y)}"
     using fin2 card_mono by auto
   then have snd: "norm2 (S,F,T) \<le> norm2 (S',F',T')"
     by auto
@@ -2114,7 +2098,7 @@ next
   then have fin3_subs: "finite {(q,p). q \<in> S' \<and> p \<in> F' \<and> \<not> ((q = s1 \<or> q = s2) \<and> p = f) \<and> apart T' q p}"
     using fin3 finite_subset by simp
   obtain z where
-    z: "outs_run T' (f @ w) = Some z"
+    z: "orun T' (f @ w) = Some z"
     using rule3 lens by (metis not_None_eq otree.exhaust process_op_query_not_none_output)
   have "apart_witness T' s1 s2 w"
     using retain_specific rule3(7) by auto
@@ -2174,9 +2158,9 @@ next
     using output_query_length rule4 by blast
   have lenf: "length (fs @ inp) = length outf"
     using output_query_length rule4 by blast
-  have retain: "\<forall> is. outs_run T is \<noteq> None \<longrightarrow> outs_run T' is \<noteq> None"
+  have retain: "\<forall> is. orun T is \<noteq> None \<longrightarrow> orun T' is \<noteq> None"
     using rule4 lens lenf output_query_retains_some_output by blast
-  then have retain_specific: "\<forall> is x. outs_run T is = Some x \<longrightarrow> outs_run T' is = Some x"
+  then have retain_specific: "\<forall> is x. orun T is = Some x \<longrightarrow> orun T' is = Some x"
     using rule4 lens lenf by (metis algo_step_keeps_invar assms(1) invars(6) option.distinct(1))
   have finp: "finite ({q. q \<in> S} \<times> {i. i \<in> I})"
     using rule4 by (metis Collect_mem_eq finite_SigmaI finite_code invars(3))
@@ -2184,31 +2168,31 @@ next
     by fast
   then have finp2: "finite {(q,i). q \<in> S \<and> i \<in> I}"
     using finp by argo
-  have "{(q,i). q \<in> S' \<and> (\<exists> y. outs_run T' (q @ [i]) = Some y)} \<subseteq> {(q,i). q \<in> S \<and> i \<in> I}"
+  have "{(q,i). q \<in> S' \<and> (\<exists> y. orun T' (q @ [i]) = Some y)} \<subseteq> {(q,i). q \<in> S \<and> i \<in> I}"
     using rule4 univI by blast
-  then have fin2: "finite {(q,i). q \<in> S' \<and> (\<exists> y. outs_run T' (q @ [i]) = Some y)}"
+  then have fin2: "finite {(q,i). q \<in> S' \<and> (\<exists> y. orun T' (q @ [i]) = Some y)}"
     using finp2 finite_subset by fast
-  have "{(q,i). q \<in> S \<and> (\<exists> y. outs_run T (q @ [i]) = Some y)} \<subseteq>
-      {(q,i). q \<in> S' \<and> (\<exists> y. outs_run T' (q @ [i]) = Some y)}"
+  have "{(q,i). q \<in> S \<and> (\<exists> y. orun T (q @ [i]) = Some y)} \<subseteq>
+      {(q,i). q \<in> S' \<and> (\<exists> y. orun T' (q @ [i]) = Some y)}"
     using retain rule4 by fast
-  then have "card {(q,i). q \<in> S \<and> (\<exists> y. outs_run T (q @ [i]) = Some y)} \<le>
-      card {(q,i). q \<in> S' \<and> (\<exists> y. outs_run T' (q @ [i]) = Some y)}"
+  then have "card {(q,i). q \<in> S \<and> (\<exists> y. orun T (q @ [i]) = Some y)} \<le>
+      card {(q,i). q \<in> S' \<and> (\<exists> y. orun T' (q @ [i]) = Some y)}"
     using fin2 card_mono by auto
   then have snd: "norm2 (S,F,T) \<le> norm2 (S',F',T')"
     by auto
 
   have invar: "invar (S',F',T')"
     using rule4 algo_step_keeps_invar algo_step.rule4 by metis
-  have "\<exists> x. outs_run T' (s @ inp) = Some x"
+  have "\<exists> x. orun T' (s @ inp) = Some x"
     by (metis lenf lens not_Some_eq otree.exhaust
       output_query_retains_some_output process_op_query_not_none_output rule4.hyps(11))
   then obtain new_outs where
-    new_outs: "outs_run T' (s @ inp) = Some new_outs"
+    new_outs: "orun T' (s @ inp) = Some new_outs"
     by fast
-  have "\<exists> y. outs_run T' (fs @ inp) = Some y"
+  have "\<exists> y. orun T' (fs @ inp) = Some y"
     using process_op_query_not_none_output by (metis lenf not_Some_eq otree.exhaust rule4.hyps(11))
   then obtain new_outf where
-    new_outf: "outs_run T' (fs @ inp) = Some new_outf"
+    new_outf: "orun T' (fs @ inp) = Some new_outf"
     by fast
   have query_s: "new_outs = (output_query M (s @ inp))"
     using invar new_outs invars(6) by fastforce
@@ -2300,11 +2284,11 @@ qed
 
 lemma no_step_rule2:
   assumes "\<not> (\<exists> S' F' T'. algo_step (S,F,T) (S',F',T'))"
-  shows "\<not> (\<exists> s i. s \<in> S \<and> (outs_run T (s @ [i]) = None))"
+  shows "\<not> (\<exists> s i. s \<in> S \<and> (orun T (s @ [i]) = None))"
 proof (rule ccontr)
-  assume ass: "\<not> \<not> (\<exists> s i. s \<in> S \<and> (outs_run T (s @ [i]) = None))"
+  assume ass: "\<not> \<not> (\<exists> s i. s \<in> S \<and> (orun T (s @ [i]) = None))"
   then obtain s i where
-    si: "s \<in> S \<and> (outs_run T (s @ [i]) = None)"
+    si: "s \<in> S \<and> (orun T (s @ [i]) = None)"
     by blast
   then obtain out where
     out: "output_query M (s @ [i]) = out"
@@ -2364,7 +2348,7 @@ proof (rule ccontr)
         \<not> apart T s fs \<and>
         difference_query M s fs = Some inp"
     by blast
-  have si_not_none: "\<forall> s1 \<in> S. \<forall> i. outs_run T (s1 @ [i]) \<noteq> None"
+  have si_not_none: "\<forall> s1 \<in> S. \<forall> i. orun T (s1 @ [i]) \<noteq> None"
     using no_step_rule2 assms by metis
   have "~ (\<exists> f \<in> F. isolated T S f)"
     apply (simp only: isolated.simps)
@@ -2440,7 +2424,7 @@ next
   case (Cons a inp)
   then have ass3:" \<not> apart_machines f (srun_trans f q_0 p) f q" unfolding apart_mealy_def 
     by auto
-  have not_rule2: "\<not> (\<exists> s i. s \<in> S \<and> (outs_run T (s @ [i]) = None))"
+  have not_rule2: "\<not> (\<exists> s i. s \<in> S \<and> (orun T (s @ [i]) = None))"
     using no_step_rule2 assms by blast
   then have not_rule4: "\<not> (\<exists> s fs inp. fs \<in> F \<and>
       s \<in> S \<and>
@@ -2471,11 +2455,11 @@ next
   obtain q' out2 where
     out2: "f (q,a) = (q',out2)"
     by fastforce
-  have output_same: "Some (orun_trans f q_0 (p @ [a])) = outs_run T (p @ [a])"
+  have output_same: "Some (orun_trans f q_0 (p @ [a])) = orun T (p @ [a])"
     using pa_not_none Cons(2,5) by (metis Cons.prems(6) invars(6) not_rule2 output_query.simps)
   have "run T (p @ [a]) = Some (n,op @ [out])"
     using tran nout by (metis otree.exhaust run_split)
-  then have outs_run_out: "outs_run T (p @ [a]) = Some (op @ [out])"
+  then have orun_out: "orun T (p @ [a]) = Some (op @ [out])"
     using run_eq_out[of tree "p @ [a]"] tree by simp
   obtain notapartq outq where
     run_transp: "run_trans f q_0 p = (notapartq,outq)"
@@ -2495,7 +2479,7 @@ next
   then have "orun_trans f q_0 (p @ [a]) = outq @ [out2]"
     by (simp add: out_srun_trans)
   then have out2_eq: "out2 = out"
-    using outs_run_out output_same ots run_transp by auto
+    using orun_out output_same ots run_transp by auto
   have notapartq'_alt: "srun_trans f q_0 (p @ [a]) = notapartq'"
     using out_srun_trans run_trans_pa by (metis Pair_inject)
   have "\<not> apart_machines f (fst (f (srun_trans f q_0 p,a))) f q'"
@@ -2581,7 +2565,7 @@ lemma find_not_apart_not_apart: "\<exists> s \<in> set S. \<not> apart T f s \<L
   by (induction S) auto
 
 fun hypo :: "'in list list \<Rightarrow> ('in,'out) otree \<Rightarrow> 'in list \<Rightarrow> (('in list \<times> 'in) \<Rightarrow> ('in list \<times> 'out))" where
-"hypo S T acc ([],i) = (case outs_run T (acc @ [i]) of
+"hypo S T acc ([],i) = (case orun T (acc @ [i]) of
     Some out \<Rightarrow> (if acc @ [i] \<in> set S
       then (acc @ [i],last out)
       else ((find_not_apart T (acc @ [i]) S),last out)))" |
@@ -2612,7 +2596,7 @@ using assms proof (induction s arbitrary: acc)
   case Nil
   have "run T (acc @ [i]) = Some (n,op @ [out])"
     using Nil by (metis append.right_neutral otree.exhaust run_split)
-  then have "outs_run T (acc @ [i]) = Some (op @ [out])"
+  then have "orun T (acc @ [i]) = Some (op @ [out])"
     using run_eq_out_exhaust[of T "acc @ [i]"] by simp
   then show ?case
     using Nil.prems(4) by auto
@@ -2643,7 +2627,7 @@ using assms proof(induction s arbitrary: acc)
   case Nil
   have "run T (acc @ [i]) = Some (n,op @ [out])"
     using Nil by (metis append.right_neutral otree.exhaust run_split)
-  then have "outs_run T (acc @ [i]) = Some (op @ [out])"
+  then have "orun T (acc @ [i]) = Some (op @ [out])"
     using run_eq_out_exhaust[of T "acc @ [i]"] by auto
   then have h: "hypo S T acc ([],i) = (find_not_apart T (acc @ [i]) S,out)"
     using Nil by force
@@ -2679,7 +2663,7 @@ qed
 lemma
   assumes "invar (set S,F,T)" and
     "\<not> (\<exists> f \<in> F. \<forall> s \<in> set S. apart T s f)" and
-    "\<not> (\<exists> s \<in> set S. EX i. (outs_run T (s @ [i]) = None))"
+    "\<not> (\<exists> s \<in> set S. EX i. (orun T (s @ [i]) = None))"
   shows "hypothesis (set S,F,T) (hypo S T [])"
 proof (rule ccontr)
   assume "\<not> hypothesis (set S,F,T) (hypo S T [])"
@@ -2708,8 +2692,8 @@ proof (rule ccontr)
     using assume1 si by blast
   have "tran i \<noteq> None" proof(rule ccontr)
     assume "\<not> tran i \<noteq> None"
-    then have "outs_run T (s @ [i]) = None"
-      by (smt (verit) Nil_is_append_conv case_optionE not_Cons_self2 option.discI run_eq_out run_split_none outs_run.elims tranop)
+    then have "orun T (s @ [i]) = None"
+      by (smt (verit) Nil_is_append_conv case_optionE not_Cons_self2 option.discI run_eq_out run_split_none orun.elims tranop)
     then show False
       using assms(3) si by blast
   qed
@@ -2813,11 +2797,11 @@ section \<open>function\<close>
 
 fun updateF_aux :: "('in,'out) otree \<Rightarrow> 'in list set \<Rightarrow> 'in list \<Rightarrow> 'in list \<Rightarrow> 'in list list" where
 "updateF_aux T _ s [] = []" |
-"updateF_aux T S s (i # is) = (if (s @ [i]) \<notin> S \<and> outs_run T (s @ [i]) \<noteq> None
+"updateF_aux T S s (i # is) = (if (s @ [i]) \<notin> S \<and> orun T (s @ [i]) \<noteq> None
     then (s @ [i]) # updateF_aux T S s is
     else updateF_aux T S s is)"
 
-lemma updateF_aux_def: "set (updateF_aux T S s Ilist) = {f.((\<exists> i \<in> set Ilist. f = s @ [i]) \<and> f \<notin> S \<and> outs_run T f \<noteq> None)}"
+lemma updateF_aux_def: "set (updateF_aux T S s Ilist) = {f.((\<exists> i \<in> set Ilist. f = s @ [i]) \<and> f \<notin> S \<and> orun T f \<noteq> None)}"
   apply (induction "Ilist")
   using univI
   by auto
@@ -2826,7 +2810,7 @@ fun updateF :: "('in,'out) otree \<Rightarrow> 'in list set \<Rightarrow> 'in li
 "updateF T _ [] = []" |
 "updateF T S (s # ss) = updateF_aux T S s Ilist @ (updateF T S ss)"
 
-lemma updateF_def_aux: "set (updateF T sset S) = {f.((\<exists> s \<in> set S. \<exists> i \<in> set Ilist. f = s @ [i]) \<and> f \<notin> sset \<and> outs_run T f \<noteq> None)}"
+lemma updateF_def_aux: "set (updateF T sset S) = {f.((\<exists> s \<in> set S. \<exists> i \<in> set Ilist. f = s @ [i]) \<and> f \<notin> sset \<and> orun T f \<noteq> None)}"
   using updateF_aux_def
   by (induction S) auto
 
@@ -2894,7 +2878,7 @@ lemma find1_step:
 
 fun find2_aux :: "('in,'out) otree \<Rightarrow> 'in list \<Rightarrow> 'in list \<Rightarrow> 'in list option" where
 "find2_aux T s [] = None" |
-"find2_aux T s (i # is) = (if (outs_run T (s @ [i]) = None)
+"find2_aux T s (i # is) = (if (orun T (s @ [i]) = None)
     then Some (s @ [i])
     else find2_aux T s is)"
 
@@ -2904,10 +2888,10 @@ fun find2 :: "('in,'out) otree \<Rightarrow> 'in list list \<Rightarrow> 'in lis
     Some x \<Rightarrow> Some x |
     None \<Rightarrow> find2 T ss F)"
 
-lemma find2_aux_def: "find2_aux T s Is = Some x \<longrightarrow> (\<exists> i \<in> set Is. x = s @ [i] \<and> outs_run T x = None)"
+lemma find2_aux_def: "find2_aux T s Is = Some x \<longrightarrow> (\<exists> i \<in> set Is. x = s @ [i] \<and> orun T x = None)"
   by (induction Is) auto
 
-lemma find2_aux_def_none: "find2_aux T s Is = None \<longleftrightarrow> \<not> (\<exists> i \<in> set Is. outs_run T (s @ [i]) = None)"
+lemma find2_aux_def_none: "find2_aux T s Is = None \<longleftrightarrow> \<not> (\<exists> i \<in> set Is. orun T (s @ [i]) = None)"
 proof(standard,goal_cases)
   case 1
   then show ?case proof (induction Is)
@@ -2916,9 +2900,9 @@ proof(standard,goal_cases)
       by simp
   next
     case (Cons a Is)
-    then have a: "\<not> (outs_run T (s @ [a]) = None)"
+    then have a: "\<not> (orun T (s @ [a]) = None)"
       by (metis find2_aux.simps(2) option.discI)
-    have "(if outs_run T (s @ [a]) = None
+    have "(if orun T (s @ [a]) = None
         then Some (s @ [a])
         else find2_aux T s Is) = None"
       using Cons by auto
@@ -2936,18 +2920,18 @@ next
       by fastforce
   next
     case (Cons a Is)
-    then have a: "\<not> (\<exists> i \<in> set Is. outs_run T (s @ [i]) = None)"
+    then have a: "\<not> (\<exists> i \<in> set Is. orun T (s @ [i]) = None)"
       by auto
     then have b: "find2_aux T s Is = None"
       using Cons by presburger
-    have "\<not> (outs_run T (s @ [a]) = None)"
+    have "\<not> (orun T (s @ [a]) = None)"
       using Cons by auto
     then show ?case
       using b by force
   qed
 qed
 
-lemma find2_def: "find2 T S F = Some x \<Longrightarrow> (\<exists> s \<in> set S. \<exists> i. x = s @ [i] \<and> outs_run T x = None)"
+lemma find2_def: "find2 T S F = Some x \<Longrightarrow> (\<exists> s \<in> set S. \<exists> i. x = s @ [i] \<and> orun T x = None)"
 proof (induction S)
   case Nil
   then show ?case
@@ -2967,7 +2951,7 @@ next
   qed
 qed
 
-lemma find2_def_none_aux: "(find2 T S F = None) \<longleftrightarrow> \<not> (\<exists> s \<in> set S. \<exists> i. outs_run T (s @ [i]) = None)"
+lemma find2_def_none_aux: "(find2 T S F = None) \<longleftrightarrow> \<not> (\<exists> s \<in> set S. \<exists> i. orun T (s @ [i]) = None)"
 proof(standard,goal_cases)
   case 1
   then show ?case proof(induction S)
@@ -2978,7 +2962,7 @@ proof(standard,goal_cases)
     case (Cons s S)
     then have none_aux: "find2_aux T s Ilist = None"
       using neq_Nil_conv by fastforce
-    then have a: "\<not> (\<exists> i. outs_run T (s @ [i]) = None)"
+    then have a: "\<not> (\<exists> i. orun T (s @ [i]) = None)"
       using find2_aux_def_none I_def univI by blast
     then have "find2 T S F = None"
       using Cons none_aux by fastforce
@@ -3002,7 +2986,7 @@ next
   qed
 qed
 
-lemma find2_def_none: "(find2 T S F = None) \<longleftrightarrow> (\<nexists> x. \<exists> s \<in> set S. \<exists> i. x = s @ [i] \<and> outs_run T x = None)"
+lemma find2_def_none: "(find2 T S F = None) \<longleftrightarrow> (\<nexists> x. \<exists> s \<in> set S. \<exists> i. x = s @ [i] \<and> orun T x = None)"
   using find2_def_none_aux by metis
 
 lemma find2_step:
@@ -3166,9 +3150,9 @@ proof -
     using assms find1_def_none by blast
   then have a: "\<forall> f1 \<in> set F. \<not> (isolated T (set S) f1)"
     by simp
-  have "\<nexists> x. \<exists> s \<in> set S. \<exists> i. x = s @ [i] \<and> outs_run T x = None"
+  have "\<nexists> x. \<exists> s \<in> set S. \<exists> i. x = s @ [i] \<and> orun T x = None"
     using assms find2_def_none by blast
-  then have b: "\<forall> s1 \<in> set S. \<forall> i. outs_run T (s1 @ [i]) \<noteq> None"
+  then have b: "\<forall> s1 \<in> set S. \<forall> i. orun T (s1 @ [i]) \<noteq> None"
     by auto
   have "\<exists> fs \<in> set F. \<exists> s \<in> set S. \<exists> inp.
       \<not> apart T s fs \<and>
@@ -3236,7 +3220,7 @@ using not_algostep_find_none norm_max_no_step assms by auto
 lemma any_precon_algo_step:
   assumes "algo_step (set S,set F,T) (S',F',T')"
   shows "(\<exists> x. x \<in> set F \<and> (\<forall> s \<in> set S. apart T s x)) \<or>
-      (\<exists> x. \<exists> s \<in> set S. \<exists> i. x = s @ [i] \<and> outs_run T x = None) \<or>
+      (\<exists> x. \<exists> s \<in> set S. \<exists> i. x = s @ [i] \<and> orun T x = None) \<or>
       (\<exists> x. \<exists> s1 \<in> set S. \<exists> s2 \<in> set S. \<exists> f \<in> set F. \<exists> w. x = f @ w \<and> s1 \<noteq> s2 \<and>
         \<not> apart T f s1 \<and>
         \<not> apart T f s2 \<and>
@@ -3250,7 +3234,7 @@ lemma any_precon_algo_step:
 
 lemma nex_precondition_nex_algostep:
   assumes "\<nexists> x. x \<in> set F \<and> (\<forall> s \<in> set S. apart T s x)" and
-    "\<nexists> x. \<exists> s \<in> set S. \<exists> i. x = s @ [i] \<and> outs_run T x = None" and
+    "\<nexists> x. \<exists> s \<in> set S. \<exists> i. x = s @ [i] \<and> orun T x = None" and
     "\<nexists> x. \<exists> s1 \<in> set S. \<exists> s2 \<in> set S. \<exists> f \<in> set F. \<exists> w. x = f @ w \<and> s1 \<noteq> s2 \<and>
         \<not> apart T f s1 \<and>
         \<not> apart T f s2 \<and>
@@ -3262,7 +3246,7 @@ lemma nex_precondition_nex_algostep:
 proof
   assume "\<exists> S' F' T'. algo_step (set S,set F,T) (S',F',T')"
   then have "(\<exists> x. x \<in> set F \<and> (\<forall> s \<in> set S. apart T s x)) \<or>
-      (\<exists> x. \<exists> s \<in> set S. \<exists> i. x = s @ [i] \<and> outs_run T x = None) \<or>
+      (\<exists> x. \<exists> s \<in> set S. \<exists> i. x = s @ [i] \<and> orun T x = None) \<or>
       (\<exists> x. \<exists> s1 \<in> set S. \<exists> s2 \<in> set S. \<exists> f \<in> set F. \<exists> w. x = f @ w \<and> s1 \<noteq> s2 \<and>
         \<not> apart T f s1 \<and>
         \<not> apart T f s2 \<and>

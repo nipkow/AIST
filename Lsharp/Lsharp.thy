@@ -133,17 +133,17 @@ definition I :: "'in set" where "I \<equiv> set Ilist"
 lemma univI: "I = UNIV"
   by (simp add: I_def Ilist_UNIV)
 
-definition invar :: "('in,'out) state \<Rightarrow> bool" where
-"invar st = (case st of
-    (S,F,T) \<Rightarrow>
-    (\<forall> e. \<not> (e \<in> S \<and> e \<in> F)) \<and>
+fun invar :: "('in,'out) state \<Rightarrow> bool" where
+"invar (S,F,T) =
+    (finite S \<and> finite F \<and> S \<inter> F = {} \<and>
     (\<forall> e \<in> S. orun T e \<noteq> None) \<and>
-    finite S \<and> finite F \<and>
     sapart (S,F,T) \<and>
     (\<forall> i. orun T i \<noteq> None \<longrightarrow> orun T i = Some (output_query M i)) \<and>
-    (F = frontier (S,F,T)) \<and>
+    F = frontier (S,F,T) \<and>
     [] \<in> S \<and> (\<forall> s \<in> S. s = [] \<or> (\<exists> s2 \<in> S. \<exists> i. s2 @ [i] = s)))"
 
+lemmas invar_def = invar.simps
+declare invar.simps[simp del]
 
 inductive algo_step :: "('in,'out) state \<Rightarrow> ('in,'out) state \<Rightarrow> bool" (infix "\<leadsto>" 50) where
 
@@ -151,25 +151,25 @@ rule1: "\<lbrakk>f \<in> F; \<forall> s \<in> S. apart T s f\<rbrakk> \<Longrigh
     algo_step (S,F,T) (S \<union> {f},frontier (S \<union> {f},F,T),T)" |
 
 rule2: "\<lbrakk>s \<in> S; (orun T (s @ [i]) = None);
-      output_query M (s @ [i]) = out\<rbrakk> \<Longrightarrow>
-    algo_step (S,F,T) (S,F \<union> {s @ [i]},process_output_query T (s @ [i]) out)" |
+      output_query M (s @ [i]) = os \<rbrakk> \<Longrightarrow>
+    algo_step (S,F,T) (S,F \<union> {s @ [i]},process_output_query T (s @ [i]) os)" |
 
 rule3: "\<lbrakk>s1 \<in> S; s2 \<in> S; s1 \<noteq> s2; f \<in> F;
       \<not> apart T f s1;
       \<not> apart T f s2;
       apart_witness T s1 s2 w;
-      output_query M (f @ w) = out\<rbrakk> \<Longrightarrow>
-    algo_step (S,F,T) (S,F,process_output_query T (f @ w) out)" |
+      output_query M (f @ w) = os \<rbrakk> \<Longrightarrow>
+    algo_step (S,F,T) (S,F,process_output_query T (f @ w) os)" |
 
 rule4: "\<lbrakk>\<forall> s1 \<in> S. \<forall> i. orun T (s1 @ [i]) \<noteq> None;
-      \<forall> f1 \<in> F. \<not> (isolated T S f1);
-      fs \<in> F;
+      \<forall> f \<in> F. \<not> (isolated T S f);
+      f \<in> F;
       s \<in> S;
-      \<not> apart T s fs;
-      difference_query M s fs = Some is;
+      \<not> apart T s f;
+      difference_query M s f = Some is;
       output_query M (s @ is) = oss;
-      output_query M (fs @ is) = osf\<rbrakk> \<Longrightarrow>
-    algo_step (S,F,T) (S,F,process_output_query (process_output_query T (s @ is) oss) (fs @ is) osf)"
+      output_query M (f @ is) = osf\<rbrakk> \<Longrightarrow>
+    algo_step (S,F,T) (S,F,process_output_query (process_output_query T (s @ is) oss) (f @ is) osf)"
 
 text \<open>rule4 differs from the original definition by Vandraager et. al. as he compares two whole mealy machines
   while we compare only two states. this difference removes the need of further counterexample processing.\<close>

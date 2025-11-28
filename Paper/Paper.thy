@@ -737,7 +737,7 @@ an importance prerequisite for the rest of the proof.
 \subsection{Pilling's Proof}
 
 Moving towards the actual proof by Pilling, we adjust the system of equations
-by adding the Parikh image operator on both sides such that the \<open>i\<close>th equation looks as follows:
+by adding the Parikh image operator on both sides such that the \<open>i\<close>-th equation looks as follows:
 \[\Psi X_i \supseteq \Psi f_i(X_0, \dots, X_r).\]
 In Isabelle, we do not adjust the representation of the system of equations directly but only the definition
 of its solutions, i.e.\ we use @{term "solves_ineq_sys_comm sys v"} instead of
@@ -745,7 +745,7 @@ of its solutions, i.e.\ we use @{term "solves_ineq_sys_comm sys v"} instead of
 Parikh image operator on both sides of the subset relation.
 
 Additionally, we need the notion of partial solutions: These are functions of the type
-\<open>nat \<Rightarrow> 'a rlexp\<close>, i.e.\ they map each equation to a regular language expression representing
+@{typ "nat \<Rightarrow> 'a rlexp"}, i.e.\ they map each equation to a regular language expression representing
 the solution for that equation; using regular language expression at this point allows us
 to specify solutions dependening on other variables.
 Formally, \<open>sols\<close> is a partial, minimal solution to the first \<open>n\<close> equations of \<open>sys\<close> if it

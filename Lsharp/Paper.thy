@@ -53,11 +53,15 @@ text (in Mealy) \<open>
 Observation tree is separate data type rather than a Mealy machine.
 Get tree structure for free but need to duplicate some functionality.
 Better: conversion from \<open>otree\<close> to \<open>mealy\<close>? But currently not possible
-because \<open>mealy\<close> is total.
+because \<open>mealy\<close> is total. State = input sequence (for getting there).
 
 Function @{term "orun ot is"} yields the output list of ``running'' \<open>ot\<close> on \<open>is\<close>,
-i.e. traversing \<open>ot\<close> along \<open>is\<close> and emitting the output.
+i.e.\ traversing \<open>ot\<close> along \<open>is\<close> and emitting the output.
+
 Function @{term "add_io ot is os"} extends \<open>ot\<close> such that \<open>is\<close> is mapped to \<open>os\<close>.
+
+@{prop "apart T s\<^sub>1 s\<^sub>2"} means that \<open>T\<close> cannot tell \<open>s\<^sub>1\<close> and \<open>s\<^sub>2\<close> apart
+(with some \<open>is\<close> that produces different outputs when running \<open>T\<close> from  \<open>s\<^sub>1\<close> and \<open>s\<^sub>2\<close>).
 
 \begin{quote}
 @{thm [mode=Rule] algo_step.intros(1)}\medskip\\

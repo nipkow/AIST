@@ -1,6 +1,8 @@
 session Lsharp = Main +
   options [document = pdf, show_question_marks = false, names_short = true,
     document_output = "output"]
+  sessions
+    "HOL-Library"
   theories
     Paper
   document_files

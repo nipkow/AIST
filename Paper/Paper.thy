@@ -5,6 +5,7 @@ imports
   Greibach_Normal_Form.Greibach_Normal_Form
   Chomsky_Schuetzenberger.Chomsky_Schuetzenberger
   Pre_Star_CFG.Applications
+  Parikh.Pilling
   Sugar
 begin
 declare [[show_question_marks=false]]
@@ -636,8 +637,188 @@ for an arbitrary pairwise condition \<open>Q\<close>.
 
 In a nutshell, Parikh's Theorem says that if we consider words not as lists but as multisets of
 terminals, then every context-free language is regular. A simple consequence is that any CFL
+over a single letter alphabet is regular.
 
-We follow the proof by Pilling \cite{Pilling}.
+We use the notation @{term "parikh_img L"} to refer to the Parikh image of the language
+\<open>L\<close>, i.e.\ the set of all words in \<open>L\<close> where words are multisets of terminals (instead of lists),
+or in other words @{def parikh_img}.
+Parikh's Theorem can then be formulated in the following way:
+
+\begin{theorem}
+To each context-free language \<open>L\<close> exists a regular language \<open>L'\<close> such that
+@{term "parikh_img L = parikh_img L'"}.
+\end{theorem}
+
+In order to prove this theorem, we have followed the proof by Pilling~\cite{Pilling}.
+The idea is to express a context-free grammar as a system of equations
+such that the CFG's language is a minimal solution to the system.
+By constructing a regular language which is minimal solution to the same system of equations,
+it follows that both solutions have the same Parikh image.
+
+\subsection{CFG as Systems of Equations}
+\label{sec:parikh_eq_sys}
+
+As described in~\cite{Pilling}, each context-free grammar induces a system of equation such that
+the CFG's language is a minimal solution to the system.
+If assuming that the CFG consists of the nonterminals $X_0, X_1, \dots, X_r$, the system of
+equations has the following form:
+\begin{align*}
+X_0 &\supseteq f_0(X_0, \dots, X_r)\\
+&\vdots\\
+X_r &\supseteq f_r(X_0, \dots, X_r).
+\end{align*}
+While setting up the system is straightforward, doing this in Isabelle --
+and proving that the CFG's language is a minimal solution -- requires some effort:
+Since the functions $f_i$ imitate the right-hand sides of the grammar's productions,
+we can restrict the functions to a limited set of operations, mainly concatenation and
+union of languages. This leads to the datatype of \textit{regular language expressions:}
+\begin{quote}
+@{datatype rlexp}
+\end{quote}
+@{term "Var i"} is used to refer to the variable $X_i$, @{term "Const l"} allows to use
+the constant language \<open>l\<close> -- which is primarily needed to denote terminal symbols in productions -- and
+@{term "Star r"} resembles the Kleene star.
+
+Given a regular language expression \<open>r :: 'a rlexp\<close> and a valuation \<open>v :: nat \<Rightarrow> 'a lang\<close>,
+i.e.\ a function which instantiates each variable with a concrete language,
+@{term "eval r v"} describes the language obtained by evaluating \<open>r\<close> under \<open>v\<close>.
+Furthermore, @{term "subst s r"} denotes the regular language expression which we obtain
+by substituting each occurrence of the variable \<open>i\<close> in \<open>r\<close> by the regular language expression \<open>s i\<close>;
+and @{term "vars r"} describes the set of variables occurring in \<open>r\<close>.
+A regular language expression \<open>r\<close> which contains as constants only regular languages is called
+\textit{regularly evaluating}, denoted @{term "reg_eval r"} in Isabelle.
+Such regular language expressions are of particular interest since they are guaranteed to
+evaluate to a regular language if all variables occurring in \<open>r\<close> are instantiated with a regular language.
+
+Thanks to the datatype \<open>rlexp\<close>, a system of equations \<open>sys\<close> can be represented as a list of
+regular language expressions, i.e.\ \<open>sys :: 'a rlexp list\<close>,
+where the \<open>i\<close>-th element of the list (@{term "sys ! i"})
+corresponds to the right-hand side of the \<open>i\<close>-th equation.
+Solutions to \<open>sys\<close> are defined in a straightforward way, as valuations \<open>v\<close> satisfying 
+\begin{quote}
+@{term "solves_ineq_sys sys v \<equiv> \<forall>i < length sys. eval (sys ! i) v \<subseteq> v i"}
+\end{quote}
+Furthermore, we write @{term "min_sol_ineq_sys sys v"} if the valuation \<open>v\<close> is a minimal solution
+to \<open>sys\<close>.
+
+A CFG can be translated into a system of equations as follows:
+For a single symbol (terminal symbol or nonterminal), we perform a simple pattern matching
+\begin{quote}
+@{term "(case s of Tm a \<Rightarrow> Const {[a]} | Nt A \<Rightarrow> Var (\<gamma>' A))"}
+\end{quote}
+where $\gamma$ is a fixed bijection from natural numbers to nonterminals and $\gamma'$ is its inverse.
+By concatenation and union, this definition can be lifted to an regular language expression for $f_i$,
+and doing so for every nonterminal yields a system of equations.
+It remains to prove that the CFG's language is a minimal solution to this system:
+We do not show this directly but use as an intermediate step
+the alternative characterization of a CFG's language as
+least fixpoint
+\begin{quote}
+@{def Lang_lfp}
+\end{quote}
+where @{term "subst_lang P L"} is the function substituting each occurrence of the nonterminal
+\<open>A\<close> in the set of productions \<open>P\<close> by the language \<open>L A\<close>.
+The proof proceeds in multiple steps, by first considering only a single equation and then
+lifting this to a system of equations. We do not want to go into detail at this point
+but only state the final result, namely that
+\begin{quote}
+@{term "sol \<equiv> \<lambda>i. if i < card (Nts P) then Lang_lfp P (\<gamma> i) else \<emptyset>"}
+\end{quote}
+is a minimal solution to
+some system of equations induced by the CFG:
+\begin{lemma}
+@{term [break] "\<exists>sys. (\<forall>eq \<in> set sys. reg_eval eq) \<and> (\<forall>eq \<in> set sys. \<forall>x \<in> vars eq. x < length sys)
+\<and> min_sol_ineq_sys sys sol"}
+\end{lemma}
+We have also proven that all equations of the system are regularly evaluating which is
+an importance prerequisite for the rest of the proof.
+
+
+\subsection{Pilling's Proof}
+
+Moving towards the actual proof by Pilling, we adjust the system of equations
+by adding the Parikh image operator on both sides such that the \<open>i\<close>-th equation looks as follows:
+\[\Psi X_i \supseteq \Psi f_i(X_0, \dots, X_r).\]
+In Isabelle, we do not adjust the representation of the system of equations directly but only the definition
+of its solutions, i.e.\ we use @{term "solves_ineq_sys_comm sys v"} instead of
+@{term "solves_ineq_sys sys v"} where the former essentially differs from the latter by applying the
+Parikh image operator on both sides of the subset relation.
+
+Additionally, we need the notion of partial solutions: These are functions of the type
+@{typ "nat \<Rightarrow> 'a rlexp"}, i.e.\ they map each equation to a regular language expression representing
+the solution for that equation; using regular language expression at this point allows us
+to specify solutions dependening on other variables.
+Formally, \<open>sols\<close> is a partial, minimal solution to the first \<open>n\<close> equations of \<open>sys\<close> if it
+satisfies the following definition:
+\begin{quote}
+@{term [break] "partial_min_sol_ineq_sys n sys sols \<equiv>
+    (\<forall>v. (\<forall>x. v x = eval (sols x) v) \<longrightarrow> solves_ineq_sys_comm (take n sys) v) \<and>
+    (\<forall>i \<ge> n. sols i = Var i) \<and>
+    (\<forall>i < n. \<forall>x \<in> vars (sols i). x \<ge> n \<and> x < length sys) \<and>
+    (\<forall>sols' v'. (\<forall>x. v' x = eval (sols' x) v')
+                  \<and> solves_ineq_sys_comm (take n sys) v'
+                  \<longrightarrow> (\<forall>i. \<Psi> (eval (sols i) v') \<subseteq> \<Psi> (v' i)))"}
+\end{quote}
+Here, the first part states that \<open>sols\<close> is a solution, the second part ensures that \<open>sols\<close>
+does not specify solutions to other than the first \<open>n\<close> equations, the third part formalizes
+that \<open>sols\<close> does only depend on variables greater than \<open>n-1\<close>, i.e.\ only on equations which have
+not yet been solved, and the last part expresses that \<open>sols\<close> is minimal.
+
+We call a regular language expression \<open>f\<close> \textit{bipartite}
+with respect to the variable \<open>x\<close>
+if it is the union of two regularly evaluating regular language expressions of which only one
+contains \<open>x\<close>:
+\begin{quote}
+@{term [break] "bipart_rlexp x f \<equiv> \<exists>p q. reg_eval p \<and> reg_eval q \<and> f = Union p (Concat q (Var x)) \<and> x \<notin> vars p"}
+\end{quote}
+Bipartite regular language expressions correspond to the normal form introduced in Equation~(3)
+of~\cite{Pilling}. To each regularly evaluating regular language expression \<open>f\<close> exists a bipartite
+regular language expression with identical Parikh image; this can be proven by induction on \<open>f\<close>:
+\begin{quote}
+@{thm [break] reg_eval_bipart_rlexp}
+\end{quote}
+
+Following Pilling's proof~\cite{Pilling}, we first construct a regular, minimal solution to a system
+consisting only of one equation: The above lemma allows us to assume that the right-hand side of
+the equation is bipartite; generalizing the result to arbitrary regularly evaluating regular
+language expressions is easy and thus omitted here. If the bipartite equation is called \<open>eq\<close> and
+consists of the two parts \<open>p\<close> and \<open>q\<close>,
+then @{term "sol \<equiv> Concat (Star (subst (Var(x := p)) q)) p"} is regularly evaluating and it
+is a minimal, partial solution to \<open>eq\<close>.
+The proof relies on the following homogeneous-like property of regular language expressions:
+\begin{quote}
+@{thm [break] rlexp_homogeneous_aux}
+\end{quote}
+where @{term star} denotes the Kleene star and \<open>@@\<close> the concatenation of languages.
+In contrast to our proof, Pilling claims equality but under an additional assumption which is
+more difficult to formalize.
+
+It remains to generalize this result to whole system of regularly evaluating equations.
+For this purpose, we show by induction on \<open>r\<close> that the first \<open>r\<close> equations have a minimal,
+partial solution which is regularly evaluating:
+\begin{lemma} \label{lem:parikh_ind_step}
+@{thm [break] exists_minimal_reg_sol_sys_aux}
+\end{lemma}
+The centerpiece of the induction step works as follows: Given \<open>sols :: nat \<Rightarrow> 'a rlexp\<close>, a partial,
+minimal solution to the first \<open>r\<close> equations, we can determine a partial, minimal solution \<open>r_sol\<close>
+to the \<open>r\<close>-th equation, as described above in the single-equation case. This allows us to
+substitute all occurrences of the variable \<open>r\<close> by \<open>sol_r\<close>:
+\begin{quote}
+@{term "sols' \<equiv> \<lambda>i. subst (Var (r := sol_r)) (sols i)"}
+\end{quote}
+Now, \<open>sols'\<close> contains one variable less,
+it is still regularly evaluating (since both \<open>sols\<close> and \<open>sol_r\<close> are regularly evaluating)
+and it is a partial, minimal solution to the first \<open>r+1\<close> equations of the system.
+
+If instantiating Lemma~\ref{lem:parikh_ind_step} with \<open>r = |sys|\<close>,
+the partial solution \<open>sols\<close> contains no variables anymore,
+so it is in fact a non-partial solution, i.e.\ a valuation.
+This shows that the system of equations has a regular, minimal solution.
+After proving that each solution of the system of equations induces a solution of the same system
+without Parikh images (i.e.\ of the system we have considered in Section~\ref{sec:parikh_eq_sys}),
+and that all minimal solutions to the system are identical in terms of their Parikh image,
+it follows that the CFG's language and the regular solution to the system have the same
+Parikh image.
 
 
 \section{Conclusion}

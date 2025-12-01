@@ -1,13 +1,10 @@
-(*session Base in "../Lemke" = Greibach_Normal_Form +
-  theories
-    Pre_Star*)
-
 session Paper = Greibach_Normal_Form +
   options [document = pdf, show_question_marks = false, names_short = true,
     document_output = "generated"]
   sessions
     Pre_Star_CFG
     Chomsky_Schuetzenberger
+    Parikh
   theories
     Paper
   document_files

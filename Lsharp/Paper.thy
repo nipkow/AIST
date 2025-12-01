@@ -44,7 +44,7 @@ Equality on type @{type bool} denotes logical equivalence.
 \section{Mealy Machines}
 
 \<close>
-text (in Mealy) \<open>
+text (in Lsharp_rel) \<open>
 \section{$L^\#$}
 
 \begin{quote}

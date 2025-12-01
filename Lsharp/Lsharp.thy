@@ -90,30 +90,23 @@ fun norm2 :: "('in,'out) state \<Rightarrow> nat" where
 fun norm3 :: "('in ,'out) state \<Rightarrow> nat" where
 "norm3 (S,F,T) = card {(q,p). q \<in> S \<and> p \<in> F \<and> apart T q p}"
 
-
 fun norm :: "('in ,'out) state \<Rightarrow> nat" where
 "norm st = norm1 st + norm2 st + norm3 st"
-text \<open>the norm is the same proposed in the original L sharp paper.\<close>
+text \<open>the norm is the same as proposed in the original L sharp paper.\<close>
 
-locale Mealy =
+
+section \<open>Relational Version\<close>
+
+locale Lsharp_rel =
   fixes M :: "('s :: finite,'in :: finite,'out) mealy" and
     Ilist :: "'in list" and
-    difference_query :: "('s,'in,'out) mealy \<Rightarrow> 'in list \<Rightarrow> 'in list \<Rightarrow> 'in list option" and
-    find3 :: "('in,'out) otree \<Rightarrow> 'in list list \<Rightarrow> 'in list list \<Rightarrow> 'in list option"
+    diff_query :: "('s,'in,'out) mealy \<Rightarrow> 'in list \<Rightarrow> 'in list \<Rightarrow> 'in list option"
   assumes
   Ilist_UNIV: "set Ilist = UNIV" and
-  difference_query_def: "(difference_query (q_0,f) s fs = Some x) \<longrightarrow> (drop (length s) (orun_trans f q_0 (s @ x)) \<noteq>
+  diff_query_def: "(diff_query (q_0,f) s fs = Some x) \<longrightarrow> (drop (length s) (orun_trans f q_0 (s @ x)) \<noteq>
       drop (length fs) (orun_trans f q_0 (fs @ x)))" and
-  difference_query_def_none: "(difference_query (q_0,f) s fs = None) \<longleftrightarrow> (\<nexists> x.(drop (length s) (orun_trans f q_0 (s @ x)) \<noteq>
-      drop (length fs) (orun_trans f q_0 (fs @ x))))" and
-  find3_def: "(find3 T S F = Some x) \<longrightarrow> (\<exists> s1 \<in> set S. \<exists> s2 \<in> set S. \<exists> f \<in> set F. \<exists> w. x = f @ w \<and> s1 \<noteq> s2 \<and>
-      \<not> apart T f s1 \<and>
-      \<not> apart T f s2 \<and>
-      apart_witness T s1 s2 w)" and
-  find3_def_none: "(find3 T S F = None) \<longleftrightarrow> (\<nexists> x. \<exists> s1 \<in> set S. \<exists> s2 \<in> set S. \<exists> f \<in> set F. \<exists> w. x = f @ w \<and> s1 \<noteq> s2 \<and>
-      \<not> apart T f s1 \<and>
-      \<not> apart T f s2 \<and>
-      apart_witness T s1 s2 w)"
+  diff_query_def_none: "(diff_query (q_0,f) s fs = None) \<longleftrightarrow> (\<nexists> x.(drop (length s) (orun_trans f q_0 (s @ x)) \<noteq>
+      drop (length fs) (orun_trans f q_0 (fs @ x))))"
 begin
 
 text \<open>this locale is helpful for proving the algorithm.
@@ -121,7 +114,7 @@ text \<open>this locale is helpful for proving the algorithm.
   \<^item> we assert that \<open>M\<close> can only have a finite number of states, and these states are represented as a finite datatype.
   \<^item> we fix \<open>Q\<close> as the finite Universe of the states datatype.
 \<^item> we fix \<open>I\<close> as the finite Universe of the input datatype both \<open>I\<close> and \<open>Q\<close> are helpful only to the readability of the proof.
-  \<^item> we fix \<open>difference_query\<close> as a query that returns None if the two states given are not apart and an example if they are.
+  \<^item> we fix \<open>diff_query\<close> as a query that returns None if the two states given are not apart and an example if they are.
   \<^item> we fix \<open>find3\<close> as the function that finds us a word that is applicable to rule3. explicitly it
   returns a word @{term "x = f@w"} where \<open>w\<close> is a witness to  the apartness
   of two states in \<open>S\<close>, which both are not apart from \<open>f\<close>. if no \<open>f\<close> exists that is not apart to two
@@ -166,7 +159,7 @@ rule4: "\<lbrakk>\<forall> s1 \<in> S. \<forall> i. orun T (s1 @ [i]) \<noteq> N
       f \<in> F;
       s \<in> S;
       \<not> apart T s f;
-      difference_query M s f = Some is;
+      diff_query M s f = Some is;
       output_query M (s @ is) = oss;
       output_query M (f @ is) = osf\<rbrakk> \<Longrightarrow>
     algo_step (S,F,T) (S,F,process_output_query (process_output_query T (s @ is) oss) (f @ is) osf)"
@@ -2200,7 +2193,7 @@ next
     using invar new_outf invars by (metis not_None_eq option.inject)
   have "drop (length s) (output_query M (s @ inp)) \<noteq>
       drop (length fs) (output_query M (fs @ inp))"
-    using rule4 difference_query_def by (metis output_query.elims output_query.simps)
+    using rule4 diff_query_def by (metis output_query.elims output_query.simps)
   then have "drop (length s) new_outs \<noteq> drop (length fs) new_outf"
     using rule4 query_s query_fs by argo
   then have apart_s_fs: "apart T' s fs"
@@ -2336,17 +2329,17 @@ lemma no_step_rule4:
   shows "\<not> (\<exists> s fs inp. fs \<in> F \<and>
       s \<in> S \<and>
       \<not> apart T s fs \<and>
-      difference_query M s fs = Some inp)"
+      diff_query M s fs = Some inp)"
 proof (rule ccontr)
   assume ass: "\<not> \<not> (\<exists> s fs inp. fs \<in> F \<and>
       s \<in> S \<and>
       \<not> apart T s fs \<and>
-      difference_query M s fs = Some inp)"
+      diff_query M s fs = Some inp)"
   then obtain s fs inp where
     ss: "fs \<in> F \<and>
         s \<in> S \<and>
         \<not> apart T s fs \<and>
-        difference_query M s fs = Some inp"
+        diff_query M s fs = Some inp"
     by blast
   have si_not_none: "\<forall> s1 \<in> S. \<forall> i. orun T (s1 @ [i]) \<noteq> None"
     using no_step_rule2 assms by metis
@@ -2431,7 +2424,7 @@ next
       \<not> apart T s fs \<and>
       drop (length s) (orun_trans f (q_0) (s @ inp)) \<noteq>
       drop (length fs) (orun_trans f q_0 (fs @ inp)))"
-    using no_step_rule4 assms difference_query_def difference_query_def_none by fast
+    using no_step_rule4 assms diff_query_def diff_query_def_none by fast
   have "run T p \<noteq> None"
     using assms
     by (smt (verit) Cons.prems(6) case_optionE invars option.discI run_eq_out run.elims)
@@ -2793,7 +2786,7 @@ corollary no_step_mealy_equal2:
       by single variables *)
 
 
-section \<open>function\<close>
+section \<open>Functional Version\<close>
 
 fun updateF_aux :: "('in,'out) otree \<Rightarrow> 'in list set \<Rightarrow> 'in list \<Rightarrow> 'in list \<Rightarrow> 'in list list" where
 "updateF_aux T _ s [] = []" |
@@ -2994,6 +2987,22 @@ lemma find2_step:
   shows "algo_step (set S,set F,T) (set S,set (x # F),process_output_query T x (output_query M x))"
     using assms find2_def rule2 by (metis Un_commute insert_is_Un list.simps(15))
 
+end
+
+locale Lsharp_fun = Lsharp_rel M for M :: "('s :: finite,'in :: finite,'out) mealy" +
+fixes find3 :: "('in,'out) otree \<Rightarrow> 'in list list \<Rightarrow> 'in list list \<Rightarrow> 'in list option"
+
+assumes
+  find3_def: "(find3 T S F = Some x) \<longrightarrow> (\<exists> s1 \<in> set S. \<exists> s2 \<in> set S. \<exists> f \<in> set F. \<exists> w. x = f @ w \<and> s1 \<noteq> s2 \<and>
+      \<not> apart T f s1 \<and>
+      \<not> apart T f s2 \<and>
+      apart_witness T s1 s2 w)" and
+  find3_def_none: "(find3 T S F = None) \<longleftrightarrow> (\<nexists> x. \<exists> s1 \<in> set S. \<exists> s2 \<in> set S. \<exists> f \<in> set F. \<exists> w. x = f @ w \<and> s1 \<noteq> s2 \<and>
+      \<not> apart T f s1 \<and>
+      \<not> apart T f s2 \<and>
+      apart_witness T s1 s2 w)"
+begin
+
 lemma find3_step:
   assumes "find3 T S F = Some x"
   shows "algo_step (set S,set F,T) (set S,set F,process_output_query T x (output_query M x))"
@@ -3003,7 +3012,7 @@ fun find4_aux :: "('in,'out) otree \<Rightarrow> 'in list list \<Rightarrow> 'in
 "find4_aux T [] f = None" |
 "find4_aux T (s # ss) f = (if apart T s f
     then find4_aux T ss f
-    else (case difference_query M s f of
+    else (case diff_query M s f of
       None \<Rightarrow> find4_aux T ss f |
       Some inp \<Rightarrow> Some(s @ inp,f @ inp)))"
 
@@ -3015,7 +3024,7 @@ fun find4 :: "('in,'out) otree \<Rightarrow> 'in list list \<Rightarrow> 'in lis
 
 lemma find4_aux_def: "find4_aux T S f = Some (x,y) \<Longrightarrow> (\<exists> s \<in> set S. \<exists> inp.
     \<not> apart T s f \<and>
-    difference_query M s f = Some inp \<and> x = s @ inp \<and> y = f @ inp)"
+    diff_query M s f = Some inp \<and> x = s @ inp \<and> y = f @ inp)"
 proof (induction S)
   case Nil
   then show ?case
@@ -3028,7 +3037,7 @@ next
       using Cons by force
   next
     case False
-    then show ?thesis proof (cases "difference_query M s f")
+    then show ?thesis proof (cases "diff_query M s f")
       case None
       then have "find4_aux T (s # S) f = find4_aux T S f"
         using False None by force
@@ -3047,7 +3056,7 @@ qed
 
 lemma find4_aux_def_none: "find4_aux T S fs = None \<longleftrightarrow> \<not> (\<exists> x y. \<exists> s \<in> set S. \<exists> inp.
     \<not> apart T s fs \<and>
-    difference_query M s fs = Some inp \<and> x = s @ inp \<and> y = fs @ inp)"
+    diff_query M s fs = Some inp \<and> x = s @ inp \<and> y = fs @ inp)"
 proof(standard,goal_cases)
   case 1
   then show ?case proof(induction S)
@@ -3056,9 +3065,9 @@ proof(standard,goal_cases)
       by simp
   next
     case (Cons s S)
-    have "\<not> apart T s fs \<and> difference_query M s fs \<noteq> None \<Longrightarrow> find4_aux T (s # S) fs \<noteq> None"
+    have "\<not> apart T s fs \<and> diff_query M s fs \<noteq> None \<Longrightarrow> find4_aux T (s # S) fs \<noteq> None"
       by fastforce
-    then have "apart T s fs \<or> difference_query M s fs = None"
+    then have "apart T s fs \<or> diff_query M s fs = None"
       using Cons by argo
     then have "find4_aux T (s # S) fs = find4_aux T S fs"
       by fastforce
@@ -3073,7 +3082,7 @@ next
       by simp
   next
     case (Cons s S)
-    then have "apart T s fs \<or> difference_query M s fs = None"
+    then have "apart T s fs \<or> diff_query M s fs = None"
       using Cons by force
     then have "find4_aux T (s # S) fs = find4_aux T S fs"
       by fastforce
@@ -3086,7 +3095,7 @@ qed
 lemma find4_def: "(find4 T S F = Some (x,y)) \<longrightarrow>
     (\<exists> fs \<in> set F. \<exists> s \<in> set S. \<exists> inp.
       \<not> apart T s fs \<and>
-      difference_query M s fs = Some inp \<and> x = s @ inp \<and> y = fs @ inp)"
+      diff_query M s fs = Some inp \<and> x = s @ inp \<and> y = fs @ inp)"
 proof (induction F)
   case Nil
   then show ?case
@@ -3107,7 +3116,7 @@ qed
 lemma find4_def_none: "find4 T S F = None \<longleftrightarrow>
     (\<nexists> x y. \<exists> fs \<in> set F. \<exists> s \<in> set S. \<exists> inp.
       \<not> apart T s fs \<and>
-      difference_query M s fs = Some inp \<and> x = s @ inp \<and> y = fs @ inp)"
+      diff_query M s fs = Some inp \<and> x = s @ inp \<and> y = fs @ inp)"
 proof (standard,goal_cases)
   case 1
   then show ?case proof (induction F)
@@ -3120,7 +3129,7 @@ proof (standard,goal_cases)
       using not_None_eq by fastforce
     then have "\<not> (\<exists> x y. \<exists> s \<in> set S. \<exists> inp.
         \<not> apart T s f \<and>
-        difference_query M s f = Some inp \<and> x = s @ inp \<and> y = f @ inp)"
+        diff_query M s f = Some inp \<and> x = s @ inp \<and> y = f @ inp)"
       using find4_aux_def_none by blast
     then show ?case
       using a Cons by auto
@@ -3156,7 +3165,7 @@ proof -
     by auto
   have "\<exists> fs \<in> set F. \<exists> s \<in> set S. \<exists> inp.
       \<not> apart T s fs \<and>
-      difference_query M s fs = Some inp \<and> x = s @ inp \<and> y = fs @ inp"
+      diff_query M s fs = Some inp \<and> x = s @ inp \<and> y = fs @ inp"
     using find4_def assms by blast
   then show ?thesis
     using a b rule4 by blast
@@ -3227,7 +3236,7 @@ lemma any_precon_algo_step:
         apart_witness T s1 s2 w) \<or>
       (\<exists> x y. \<exists> fs \<in> set F. \<exists> s \<in> set S. \<exists> inp.
         \<not> apart T s fs \<and>
-        difference_query M s fs = Some inp \<and> x = s @ inp \<and> y = fs @ inp)"
+        diff_query M s fs = Some inp \<and> x = s @ inp \<and> y = fs @ inp)"
     using assms
     apply (cases rule: algo_step.cases)
     by metis +
@@ -3241,7 +3250,7 @@ lemma nex_precondition_nex_algostep:
         apart_witness T s1 s2 w" and
     "\<nexists> x y. \<exists> fs \<in> set F. \<exists> s \<in> set S. \<exists> inp.
         \<not> apart T s fs \<and>
-        difference_query M s fs = Some inp \<and> x = s @ inp \<and> y = fs @ inp"
+        diff_query M s fs = Some inp \<and> x = s @ inp \<and> y = fs @ inp"
   shows "\<nexists> S' F' T'. algo_step (set S,set F,T) (S',F',T')"
 proof
   assume "\<exists> S' F' T'. algo_step (set S,set F,T) (S',F',T')"
@@ -3253,7 +3262,7 @@ proof
         apart_witness T s1 s2 w) \<or>
       (\<exists> x y. \<exists> fs \<in> set F. \<exists> s \<in> set S. \<exists> inp.
         \<not> apart T s fs \<and>
-        difference_query M s fs = Some inp \<and> x = s @ inp \<and> y = fs @ inp)"
+        diff_query M s fs = Some inp \<and> x = s @ inp \<and> y = fs @ inp)"
     using any_precon_algo_step by presburger
   then show False
     using assms by fast

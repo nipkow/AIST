@@ -673,7 +673,7 @@ Since the functions $f_i$ imitate the right-hand sides of the grammar's producti
 we can restrict the functions to a limited set of operations, mainly concatenation and
 union of languages. This leads to the datatype of \textit{regular language expressions:}
 \begin{quote}
-@{datatype rlexp}
+@{datatype [break,margin=90] rlexp}
 \end{quote}
 @{term "Var i"} is used to refer to the variable $X_i$, @{term "Const l"} allows to use
 the constant language \<open>l\<close> -- which is primarily needed to denote terminal symbols in productions -- and
@@ -696,7 +696,7 @@ where the \<open>i\<close>-th element of the list (@{term "sys ! i"})
 corresponds to the right-hand side of the \<open>i\<close>-th equation.
 Solutions to \<open>sys\<close> are defined in a straightforward way, as valuations \<open>v\<close> satisfying 
 \begin{quote}
-@{term "solves_ineq_sys sys v \<equiv> \<forall>i < length sys. eval (sys ! i) v \<subseteq> v i"}
+@{thm solves_ineq_sys_def}
 \end{quote}
 Furthermore, we write @{term "min_sol_ineq_sys sys v"} if the valuation \<open>v\<close> is a minimal solution
 to \<open>sys\<close>.
@@ -747,17 +747,11 @@ Parikh image operator on both sides of the subset relation.
 Additionally, we need the notion of partial solutions: These are functions of the type
 @{typ "nat \<Rightarrow> 'a rlexp"}, i.e.\ they map each equation to a regular language expression representing
 the solution for that equation; using regular language expression at this point allows us
-to specify solutions dependening on other variables.
+to specify solutions depending on other variables.
 Formally, \<open>sols\<close> is a partial, minimal solution to the first \<open>n\<close> equations of \<open>sys\<close> if it
 satisfies the following definition:
 \begin{quote}
-@{term [break] "partial_min_sol_ineq_sys n sys sols \<equiv>
-    (\<forall>v. (\<forall>x. v x = eval (sols x) v) \<longrightarrow> solves_ineq_sys_comm (take n sys) v) \<and>
-    (\<forall>i \<ge> n. sols i = Var i) \<and>
-    (\<forall>i < n. \<forall>x \<in> vars (sols i). x \<ge> n \<and> x < length sys) \<and>
-    (\<forall>sols' v'. (\<forall>x. v' x = eval (sols' x) v')
-                  \<and> solves_ineq_sys_comm (take n sys) v'
-                  \<longrightarrow> (\<forall>i. \<Psi> (eval (sols i) v') \<subseteq> \<Psi> (v' i)))"}
+@{thm [break] partial_min_sol_ineq_sys_def}
 \end{quote}
 Here, the first part states that \<open>sols\<close> is a solution, the second part ensures that \<open>sols\<close>
 does not specify solutions to other than the first \<open>n\<close> equations, the third part formalizes
@@ -769,7 +763,7 @@ with respect to the variable \<open>x\<close>
 if it is the union of two regularly evaluating regular language expressions of which only one
 contains \<open>x\<close>:
 \begin{quote}
-@{term [break] "bipart_rlexp x f \<equiv> \<exists>p q. reg_eval p \<and> reg_eval q \<and> f = Union p (Concat q (Var x)) \<and> x \<notin> vars p"}
+@{thm [break] bipart_rlexp_def}
 \end{quote}
 Bipartite regular language expressions correspond to the normal form introduced in Equation~(3)
 of~\cite{Pilling}. To each regularly evaluating regular language expression \<open>f\<close> exists a bipartite
@@ -796,7 +790,7 @@ more difficult to formalize.
 It remains to generalize this result to whole system of regularly evaluating equations.
 For this purpose, we show by induction on \<open>r\<close> that the first \<open>r\<close> equations have a minimal,
 partial solution which is regularly evaluating:
-\begin{lemma} \label{lem:parikh_ind_step}
+\begin{lemma} \label{lem:parikh_ind_step}~\\
 @{thm [break] exists_minimal_reg_sol_sys_aux}
 \end{lemma}
 The centerpiece of the induction step works as follows: Given \<open>sols :: nat \<Rightarrow> 'a rlexp\<close>, a partial,

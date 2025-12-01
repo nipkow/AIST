@@ -583,7 +583,7 @@ To obtain @{prop "L = \<h> ` (R \<inter> Dyck_lang \<Gamma>)"} it now suffices t
 where $R$ is some regular language.
 The paper proof describes the regular language $R$ using 5 conditions,
 which assert that after certain letters always/never another certain letter follows.
-For example, the first property asserts that a bracket of the form $]^1_\pi$ is always immediately follows by the bracket $[^2_\pi$.
+For example, the first property asserts that a bracket of the form $]^1_\pi$ is always immediately followed by the bracket $[^2_\pi$.
 It also asserts that $]^1_\pi$ can never be the end of a word.
 
 In Isabelle we realize this by first defining the predicate @{const P1'}

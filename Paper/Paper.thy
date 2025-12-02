@@ -821,7 +821,9 @@ We have presented a unified formalization of the basic theory of context-free
 languages as it is taught even in advanced introductory courses on formal languages.
 The total size of the formalizations discussed in the paper runs to 19~KLOC.
 
-What next? Parsing? LR(k)?\<close>
+The huge area of formal language theory (e.g.\ \cite{hfl/1997-1}) offers amazing possibilities for further formalizations.
+Most pressing seems to be a unified treatment of parsing.
+\<close>
 (*<*)
 end
 (*>*)

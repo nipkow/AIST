@@ -486,9 +486,9 @@ It is sometimes called the Chomsky-Schützenberger Representation Theorem to dis
 \subsection{Proof Intuition}
 
 In everything that follows, we denote by $L$ the originally given CFL.
-The proof will define a homomorphism @{term "\<h>"}, a Dyck language @{term "Dyck_lang \<Gamma>"}, and a regular language $R$, such that:
+The proof will define a homomorphism @{term "\<h>"}, a Dyck language @{term "Dyck_lang \<Gamma>"}, and a regular language $R$, such that
 \[
-  @{prop "L = \<h> ` (R \<inter> Dyck_lang \<Gamma>)"}.
+  @{prop "L = \<h> ` L'"}\quad \text{where}\ @{prop "L' = R \<inter> Dyck_lang \<Gamma>"}
 \]
 The strategy will be to impose enough structure on $L$, obtaining a language $L'$ such that the words
 of $L'$ can be identified using only regular properties $R$ and the information that its words are
@@ -576,7 +576,7 @@ We finally settled on a constructive transformation of $P$-parse trees to $P'$-p
 
 \subsection{Formalizing the Regular Language}
 
-To obtain @{prop "L = \<h> ` (R \<inter> Dyck_lang \<Gamma>)"} it now suffices to represent $L'$ as 
+To obtain @{prop "L = \<h> ` L'"} it now suffices to represent $L'$ as 
 \[
 @{prop "L' = (R \<inter> Dyck_lang \<Gamma>)"},
 \]

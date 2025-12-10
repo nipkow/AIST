@@ -64,7 +64,7 @@ unified in a single formalization, available in the Archive of Formal Proofs as 
 The main novel contributions of our work are:
 \begin{itemize}
 \item a verified executable transformation into Greibach Normal Form (Sect. \ref{sec:GNF}),
-\item a verified \prestar\ algorithm for solving a number of elementary CFG problems
+\item a verified executable \prestar\ algorithm for solving a number of elementary CFG problems
  (e.g.\ the word problem) automatically (Sect. \ref{sec:prestar}), and
 \item the verification of two foundational theorems of context-free languages that had not been formalized before:
 the Chomsky-Sch\"utzenberger Theorem (Sect. \ref{sec:ChSch}) and Parikh's Theorem (Sect. \ref{sec:Parikh}).
@@ -97,6 +97,7 @@ Functions @{const fst} and @{const snd} return the first and second components o
 Most type constructors are written postfix, such as @{typ "'a set"} and  @{typ "'a list"}, and the function
 space arrow is \<open>\<Rightarrow>\<close>.
 The image of function \<open>f\<close> over set \<open>M\<close> is denoted by \<^term>\<open>f ` M\<close>.
+Function update @{term "f(a := b)"} is short for @{thm (rhs) fun_upd_def}.
 
 Lists are constructed from the empty list @{term "[]"} using the infix cons-operator @{term "(#)"}.
 The operator @{term "(@)"} appends two lists, @{term "length xs"} denotes the length of @{term xs},
@@ -205,9 +206,9 @@ and are found here \cite{Pushdown_Automata-AFP}.
 
 \subsection{Right-Linear Grammars and Automata}
 
-We have shown that every right-linear grammar (production have the form \<open>A \<rightarrow> w B\<close> or \<open>A \<rightarrow> w\<close>
-where \<open>w\<close> is a sequence of terminals) can be transformed into a strongly right-linear one
-(productions have the form \<open>A \<rightarrow> a B\<close> or \<open>A \<rightarrow> \<epsilon>\<close> where \<open>a\<close> is a terminal).
+We have shown that every right-linear grammar (production have the form \<open>A \<rightarrow> wB\<close> or \<open>A \<rightarrow> w\<close>
+where \<open>w\<close> is a terminal word) can be transformed into a strongly right-linear one
+(productions have the form \<open>A \<rightarrow> aB\<close> or \<open>A \<rightarrow> \<epsilon>\<close> where \<open>a\<close> is a terminal symbol).
 Strongly right-linear grammars are just automata in disguise.
 Building on Paulson's theory of finite automata \cite{Paulson15} we proved that
 the language of a finite strongly right-linear grammar is regular
@@ -368,11 +369,11 @@ The two key insights are (if \<open>P\<close> finite):
 an NFA for \<open>pre_star P L\<close> can be computed from \<open>M\<close>.
 This result has been discovered multiple times \cite{Buechi64,Caucal92}
 
-As an example, consider the productivity problem of determining if @{prop "Lang P A \<noteq> {}"}.
+As an example, consider the productivity problem of determining if @{prop "mbox(Lang P A) \<noteq> {}"}.
 Let \<open>P\<close> be a grammar over a terminal alphabet \<open>\<Sigma>\<close>.
 Build an automaton \<open>U\<close> that accepts exactly \<open>\<Sigma>\<^sup>*\<close>, but no words containing @{const Nt}s
 (this requires only a single state).
-Clearly @{prop "Lang P A \<noteq> {}"} iff there is a word \<open>w \<in> \<Sigma>\<^sup>*\<close> such that @{prop "P \<turnstile> [Nt A] \<Rightarrow>* w"}
+Clearly @{prop "Lang P A \<noteq> {}"} iff there is a word \<open>w \<in> \<Sigma>\<^sup>*\<close> such that @{prop "P \<turnstile> mbox([Nt A]) \<Rightarrow>* w"}
 iff @{text "[Nt A] \<in> pre_star P \<Sigma>\<^sup>*"} \<open>=: L\<close>. But because \<open>U\<close> accepts \<open>\<Sigma>\<^sup>*\<close>
 we can compute an automaton for \<open>L\<close> from \<open>U\<close> (as claimed above) and we only need to check
 if that automaton accepts @{term \<open>[Nt A]\<close>}.
@@ -387,9 +388,9 @@ to state \<open>p'\<close> labeled with \<open>\<alpha>\<close>, we add the tran
 %TODO reachable_from -> reachable
 
 For the purpose of computing @{const pre_star}, we represent NFAs over some state type \<open>'s\<close> by
-a \concept{labeled transition system} (usually denoted by \<open>T\<close>) of type @{typ\<open>('s,'a) lts\<close>} = \<^typ>\<open>('s \<times> ('n,'t)sym \<times> 's) set\<close>.
+a \concept{labeled transition system} (usually denoted by \<open>T\<close>) of type \mbox{@{typ\<open>('s,'a) lts\<close>}} = \<^typ>\<open>('s \<times> ('n,'t)sym \<times> 's) set\<close>.
 It is easy to define a function @{const steps_lts} \<open>::\<close>
-@{typ "('s,'a) lts \<Rightarrow> 'a list \<Rightarrow> 's \<Rightarrow> 's set"}
+\mbox{@{typ "('s,'a) lts"}} \<open>\<Rightarrow>\<close> @{typ "'a list \<Rightarrow> 's \<Rightarrow> 's set"}
 such that @{term "steps_lts T \<alpha> p"} is the set of states reachable from \<open>p\<close> via \<open>\<alpha>\<close> using \<open>T\<close>.
 An automaton \<open>M\<close> (of type \<^typ>\<open>('s,'a) auto\<close>) consists of some \<open>T\<close>, an initial state and a final state set.
 If \<open>T\<close> is finite, we call \<open>M\<close> an NFA.
@@ -471,7 +472,9 @@ Previous formalizations of \prestar\ were based on and applied to pushdown syste
 
 
 \section{Chomsky-Schützenberger}\label{sec:ChSch}
-The Chomsky-Schützenberger Theorem \cite{ChomskyS} states that every CFL is the homomorphic image of the intersection of a Dyck language and a regular language, where a Dyck language is a language of properly parenthesized words over some alphabet of opening and closing parentheses,
+The Chomsky-Schützenberger Theorem \cite{ChomskyS} states that every CFL is the homomorphic image
+of the intersection of a Dyck language and a regular language, where a Dyck language is a language
+of properly bracketed words over some alphabet of opening and closing brackets,
 e.g. the set containing 
 \[  
      [_a  \qquad  ]_a  \qquad  [_b  \qquad  ]_b .
@@ -648,8 +651,7 @@ Parikh's Theorem can then be formulated in the following way:
 To each context-free language \<open>L\<close> exists a regular language \<open>L'\<close> such that
 @{term "parikh_img L = parikh_img L'"}.
 \end{theorem}
-
-In order to prove this theorem, we have followed the proof by Pilling~\cite{Pilling}.
+We have follow the proof by Pilling~\cite{Pilling}.
 The idea is to express a context-free grammar as a system of equations
 such that the CFG's language is a minimal solution to the system.
 By constructing a regular language which is minimal solution to the same system of equations,
@@ -660,24 +662,24 @@ it follows that both solutions have the same Parikh image.
 
 As described in~\cite{Pilling}, each context-free grammar induces a system of equation such that
 the CFG's language is a minimal solution to the system.
-If assuming that the CFG consists of the nonterminals $X_0, X_1, \dots, X_r$, the system of
+Let $X_0, X_1, \dots, X_r$ be the nonterminals that occur in the CFG. Then the system of
 equations has the following form:
 \begin{align*}
 X_0 &\supseteq f_0(X_0, \dots, X_r)\\
 &\vdots\\
 X_r &\supseteq f_r(X_0, \dots, X_r).
 \end{align*}
-While setting up the system is straightforward, doing this in Isabelle --
-and proving that the CFG's language is a minimal solution -- requires some effort:
+While setting up the system is straightforward, doing this in Isabelle,
+and proving that the CFG's language is a minimal solution, requires some effort:
 Since the functions $f_i$ imitate the right-hand sides of the grammar's productions,
 we can restrict the functions to a limited set of operations, mainly concatenation and
 union of languages. This leads to the datatype of \textit{regular language expressions:}
 \begin{quote}
 @{datatype [break,margin=90] rlexp}
 \end{quote}
-@{term "Var i"} is used to refer to the variable $X_i$, @{term "Const l"} allows to use
-the constant language \<open>l\<close> -- which is primarily needed to denote terminal symbols in productions -- and
-@{term "Star r"} resembles the Kleene star.
+@{term "Var i"} refers to the variable $X_i$, @{term "Const L"} represents
+the constant language \<open>L\<close> (which is primarily needed to denote terminal symbols in productions) and
+\mbox{@{term "Star r"}} represents the Kleene star.
 
 Given a regular language expression \<open>r :: 'a rlexp\<close> and a valuation \<open>v :: nat \<Rightarrow> 'a lang\<close>,
 i.e.\ a function which instantiates each variable with a concrete language,
@@ -748,8 +750,8 @@ Additionally, we need the notion of partial solutions: These are functions of th
 @{typ "nat \<Rightarrow> 'a rlexp"}, i.e.\ they map each equation to a regular language expression representing
 the solution for that equation; using regular language expression at this point allows us
 to specify solutions depending on other variables.
-Formally, \<open>sols\<close> is a partial, minimal solution to the first \<open>n\<close> equations of \<open>sys\<close> if it
-satisfies the following definition:
+Formally, \<open>sols\<close> is a partial, minimal solution to the first \<open>n\<close> equations of \<open>sys\<close> (\<^term>\<open>take n sys\<close>)
+if it satisfies the following definition:
 \begin{quote}
 @{thm [break] partial_min_sol_ineq_sys_def}
 \end{quote}

@@ -651,29 +651,29 @@ Parikh's Theorem can then be formulated in the following way:
 To each context-free language \<open>L\<close> exists a regular language \<open>L'\<close> such that
 @{term "parikh_img L = parikh_img L'"}.
 \end{theorem}
-We have follow the proof by Pilling~\cite{Pilling}.
-The idea is to express a context-free grammar as a system of equations
+We have followed the proof by Pilling~\cite{Pilling}.
+The idea is to express a context-free grammar as a system of inequalities
 such that the CFG's language is a minimal solution to the system.
-By constructing a regular language which is minimal solution to the same system of equations,
+By constructing a regular language which is minimal solution to the same system of inequalities,
 it follows that both solutions have the same Parikh image.
 
-\subsection{CFG as Systems of Equations}
+\subsection{CFGs as Systems of Inequalities}
 \label{sec:parikh_eq_sys}
 
-As described in~\cite{Pilling}, each context-free grammar induces a system of equation such that
+As described in~\cite{Pilling}, each context-free grammar induces a system of inequalities such that
 the CFG's language is a minimal solution to the system.
 Let $X_0, X_1, \dots, X_r$ be the nonterminals that occur in the CFG. Then the system of
-equations has the following form:
+inequalities has the following form:
 \begin{align*}
 X_0 &\supseteq f_0(X_0, \dots, X_r)\\
 &\vdots\\
 X_r &\supseteq f_r(X_0, \dots, X_r).
 \end{align*}
-While setting up the system is straightforward, doing this in Isabelle,
-and proving that the CFG's language is a minimal solution, requires some effort:
+While setting up the system is straightforward and is not further explained in~\cite{Pilling},
+doing this in Isabelle, and proving that the CFG's language is a minimal solution, requires some effort:
 Since the functions $f_i$ imitate the right-hand sides of the grammar's productions,
 we can restrict the functions to a limited set of operations, mainly concatenation and
-union of languages. This leads to the datatype of \textit{regular language expressions:}
+union of languages. This leads to the type of \textit{regular language expressions:}
 \begin{quote}
 @{datatype [break,margin=90] rlexp}
 \end{quote}
@@ -692,10 +692,10 @@ A regular language expression \<open>r\<close> which contains as constants only 
 Such regular language expressions are of particular interest since they are guaranteed to
 evaluate to a regular language if all variables occurring in \<open>r\<close> are instantiated with a regular language.
 
-Thanks to the datatype \<open>rlexp\<close>, a system of equations \<open>sys\<close> can be represented as a list of
+Thanks to the type \<open>rlexp\<close>, a system of inequalities \<open>sys\<close> can be represented as a list of
 regular language expressions, i.e.\ \<open>sys :: 'a rlexp list\<close>,
 where the \<open>i\<close>-th element of the list (@{term "sys ! i"})
-corresponds to the right-hand side of the \<open>i\<close>-th equation.
+corresponds to the right-hand side of the \<open>i\<close>-th inequality.
 Solutions to \<open>sys\<close> are defined in a straightforward way, as valuations \<open>v\<close> satisfying 
 \begin{quote}
 @{thm solves_ineq_sys_def}
@@ -703,14 +703,15 @@ Solutions to \<open>sys\<close> are defined in a straightforward way, as valuati
 Furthermore, we write @{term "min_sol_ineq_sys sys v"} if the valuation \<open>v\<close> is a minimal solution
 to \<open>sys\<close>.
 
-A CFG can be translated into a system of equations as follows:
+A CFG can be translated into a system of inequalities as follows:
 For a single symbol (terminal symbol or nonterminal), we perform a simple pattern matching
 \begin{quote}
 @{term "(case s of Tm a \<Rightarrow> Const {[a]} | Nt A \<Rightarrow> Var (\<gamma>' A))"}
 \end{quote}
-where $\gamma$ is a fixed bijection from natural numbers to nonterminals and $\gamma'$ is its inverse.
-By concatenation and union, this definition can be lifted to an regular language expression for $f_i$,
-and doing so for every nonterminal yields a system of equations.
+where $\gamma$ is a fixed bijection from natural numbers to nonterminals and $\gamma'$ is its inverse
+(introducing this bijection is necessary as the CFG's nonterminals can be of arbitrary type).
+By concatenation and union, the definition can be lifted to a regular language expression for $f_i$,
+and doing so for every nonterminal yields a system of inequalities.
 It remains to prove that the CFG's language is a minimal solution to this system:
 We do not show this directly but use as an intermediate step
 the alternative characterization of a CFG's language as
@@ -720,45 +721,50 @@ least fixpoint
 \end{quote}
 where @{term "subst_lang P L"} is the function substituting each occurrence of the nonterminal
 \<open>A\<close> in the set of productions \<open>P\<close> by the language \<open>L A\<close>.
-The proof proceeds in multiple steps, by first considering only a single equation and then
-lifting this to a system of equations. We do not want to go into detail at this point
+The proof proceeds in multiple steps, by first considering only a single inequality and then
+lifting this to a system of inequalities. We do not want to go into detail at this point
 but only state the final result, namely that
 \begin{quote}
 @{term "sol \<equiv> \<lambda>i. if i < card (Nts P) then Lang_lfp P (\<gamma> i) else \<emptyset>"}
 \end{quote}
 is a minimal solution to
-some system of equations induced by the CFG:
+some system of inequalities induced by the CFG:
 \begin{lemma}
 @{term [break] "\<exists>sys. (\<forall>eq \<in> set sys. reg_eval eq) \<and> (\<forall>eq \<in> set sys. \<forall>x \<in> vars eq. x < length sys)
 \<and> min_sol_ineq_sys sys sol"}
 \end{lemma}
-We have also proven that all equations of the system are regularly evaluating which is
-an importance prerequisite for the rest of the proof.
+We have also proven that all inequalities of the system are regularly evaluating which is
+an important prerequisite for the rest of the proof.
 
 
-\subsection{Pilling's Proof}
+\subsection{Systems of Inequalities with Parikh Image}
 
-Moving towards the actual proof by Pilling, we adjust the system of equations
-by adding the Parikh image operator on both sides such that the \<open>i\<close>-th equation looks as follows:
+The system of inequalities from the previous section is too strict in the
+sense that it differentiates between solutions with identical Parikh image.
+Thus, we adjust the system
+by adding the Parikh image operator on both sides such that the \<open>i\<close>-th inequality looks as follows:
 \[\Psi X_i \supseteq \Psi f_i(X_0, \dots, X_r).\]
-In Isabelle, we do not adjust the representation of the system of equations directly but only the definition
+In Isabelle, we do not adjust the representation of the system directly but only the definition
 of its solutions, i.e.\ we use @{term "solves_ineq_sys_comm sys v"} instead of
-@{term "solves_ineq_sys sys v"} where the former essentially differs from the latter by applying the
-Parikh image operator on both sides of the subset relation.
+@{term "solves_ineq_sys sys v"} where the former differs from the latter by applying the
+Parikh image operator on both sides of $\subseteq$.
 
 Additionally, we need the notion of partial solutions: These are functions of the type
-@{typ "nat \<Rightarrow> 'a rlexp"}, i.e.\ they map each equation to a regular language expression representing
-the solution for that equation; using regular language expression at this point allows us
+@{typ "nat \<Rightarrow> 'a rlexp"}, i.e.\ they map each inequality to a regular language expression representing
+the solution for that inequality; using regular language expression at this point allows us
 to specify solutions depending on other variables.
-Formally, \<open>sols\<close> is a partial, minimal solution to the first \<open>n\<close> equations of \<open>sys\<close> (\<^term>\<open>take n sys\<close>)
+Formally, \<open>sols\<close> is a partial, minimal solution to the first \<open>n\<close> inequalities of \<open>sys\<close> (\<^term>\<open>take n sys\<close>)
 if it satisfies the following definition:
 \begin{quote}
 @{thm [break] partial_min_sol_ineq_sys_def}
 \end{quote}
 Here, the first part states that \<open>sols\<close> is a solution, the second part ensures that \<open>sols\<close>
-does not specify solutions to other than the first \<open>n\<close> equations, the third part formalizes
-that \<open>sols\<close> does only depend on variables greater than \<open>n-1\<close>, i.e.\ only on equations which have
+does not specify solutions to other than the first \<open>n\<close> inequalities, the third part formalizes
+that \<open>sols\<close> only depends on variables greater than \<open>n-1\<close>, i.e.\ only on inequalities which have
 not yet been solved, and the last part expresses that \<open>sols\<close> is minimal.
+
+
+\subsection{Pilling's Proof}
 
 We call a regular language expression \<open>f\<close> \textit{bipartite}
 with respect to the variable \<open>x\<close>
@@ -775,10 +781,9 @@ regular language expression with identical Parikh image; this can be proven by i
 \end{quote}
 
 Following Pilling's proof~\cite{Pilling}, we first construct a regular, minimal solution to a system
-consisting only of one equation: The above lemma allows us to assume that the right-hand side of
-the equation is bipartite; generalizing the result to arbitrary regularly evaluating regular
-language expressions is easy and thus omitted here. If the bipartite equation is called \<open>eq\<close> and
-consists of the two parts \<open>p\<close> and \<open>q\<close>,
+consisting of a single inequality: The above lemma allows us to assume that the right-hand side of
+the inequality is bipartite.
+Thus, let \<open>eq\<close> be the bipartite inequality, consisting of the two parts \<open>p\<close> and \<open>q\<close>;
 then @{term "sol \<equiv> Concat (Star (subst (Var(x := p)) q)) p"} is regularly evaluating and it
 is a minimal, partial solution to \<open>eq\<close>.
 The proof relies on the following homogeneous-like property of regular language expressions:
@@ -789,32 +794,34 @@ where @{term star} denotes the Kleene star and \<open>@@\<close> the concatenati
 In contrast to our proof, Pilling claims equality but under an additional assumption which is
 more difficult to formalize.
 
-It remains to generalize this result to whole system of regularly evaluating equations.
-For this purpose, we show by induction on \<open>r\<close> that the first \<open>r\<close> equations have a minimal,
+It remains to generalize this result to whole systems of regularly evaluating inequalities.
+For this purpose, we show by induction on \<open>r\<close> that the first \<open>r\<close> inequalities have a minimal,
 partial solution which is regularly evaluating:
 \begin{lemma} \label{lem:parikh_ind_step}~\\
 @{thm [break] exists_minimal_reg_sol_sys_aux}
 \end{lemma}
 The centerpiece of the induction step works as follows: Given \<open>sols :: nat \<Rightarrow> 'a rlexp\<close>, a partial,
-minimal solution to the first \<open>r\<close> equations, we can determine a partial, minimal solution \<open>r_sol\<close>
-to the \<open>r\<close>-th equation, as described above in the single-equation case. This allows us to
-substitute all occurrences of the variable \<open>r\<close> by \<open>sol_r\<close>:
+minimal solution to the first \<open>r\<close> inequalities, we can determine a partial, minimal solution \<open>r_sol\<close>
+to the \<open>r\<close>-th inequality, as described above in the single-inequality case. This allows us to
+substitute all occurrences of the variable \<open>r\<close> with \<open>sol_r\<close>:
 \begin{quote}
 @{term "sols' \<equiv> \<lambda>i. subst (Var (r := sol_r)) (sols i)"}
 \end{quote}
 Now, \<open>sols'\<close> contains one variable less,
 it is still regularly evaluating (since both \<open>sols\<close> and \<open>sol_r\<close> are regularly evaluating)
-and it is a partial, minimal solution to the first \<open>r+1\<close> equations of the system.
+and it is a partial, minimal solution to the first \<open>r+1\<close> inequalities of the system.
+Notably, our proof does not rely on the Lemma presented in~\cite{Pilling};
+although Pilling suggests to apply this lemma in the induction step, we were not able to do so.
 
 If instantiating Lemma~\ref{lem:parikh_ind_step} with \<open>r = |sys|\<close>,
 the partial solution \<open>sols\<close> contains no variables anymore,
-so it is in fact a non-partial solution, i.e.\ a valuation.
-This shows that the system of equations has a regular, minimal solution.
-After proving that each solution of the system of equations induces a solution of the same system
-without Parikh images (i.e.\ of the system we have considered in Section~\ref{sec:parikh_eq_sys}),
-and that all minimal solutions to the system are identical in terms of their Parikh image,
-it follows that the CFG's language and the regular solution to the system have the same
-Parikh image.
+so it is in fact a valuation.
+This shows that the system of inequalities has a regular, minimal solution.
+After proving that each minimal solution of the system without Parikh images
+(i.e.\ of the system considered in Section~\ref{sec:parikh_eq_sys}) is also a minimal
+solution of the system with Parikh images (i.e. of the system considered in this section),
+it follows that the CFG's language and the regular solution have the same
+Parikh image since both are minimal solutions to the same system.
 
 
 \section{Conclusion}

@@ -49,6 +49,10 @@ unfolding lists_eq_set using pre_star_emptiness[of P A] by blast
 
 notation parikh_img ("\<Psi>")
 
+lemma bipart_rlexp_def:
+  "bipart_rlexp x f = (\<exists>p q. mbox0(reg_eval p \<and> reg_eval q) \<and>
+    f = Union p (Concat q (Var x)) \<and> x \<notin> vars p)"
+  by(simp add: mbox0_def bipart_rlexp_def)
 (*>*)
 text \<open>
 % TODO
@@ -721,8 +725,8 @@ the alternative characterization of a CFG's language as a least fixpoint (@{cons
 \begin{quote}
 @{def Lang_lfp}
 \end{quote}
-where @{term "subst_lang P L"} is the function substituting each occurrence of the nonterminal
-\<open>A\<close> in the set of productions \<open>P\<close> by the language \<open>L A\<close>.
+where @{term "subst_lang P L"} is the function substituting every occurrence of a nonterminal
+\<open>A\<close> on the right-hand sides of all productions in \<open>P\<close> by the language \<open>L A\<close>.
 The proof proceeds in multiple steps, by first considering only a single inequality and then
 lifting this to a system of inequalities. We do not want to go into detail at this point
 but only state the final result, namely that
@@ -745,7 +749,7 @@ The system of inequalities from the previous section is too strict in the
 sense that it differentiates between solutions with identical Parikh image.
 Thus, we adjust the system
 by adding the Parikh image operator on both sides such that the \<open>i\<close>-th inequality looks as follows:
-\[\Psi X_i \supseteq \Psi f_i(X_0, \dots, X_r).\]
+\[\Psi X_i \supseteq \Psi (f_i(X_0, \dots, X_r))\]
 In Isabelle, we do not adjust the representation of the system directly but only the definition
 of its solutions, i.e.\ we use @{prop "solves_ineq_sys_comm sys v"} instead of
 @{prop "solves_ineq_sys sys v"} where the former differs from the latter by applying the
@@ -802,7 +806,7 @@ partial solution which is regularly evaluating:
 \begin{lemma} \label{lem:parikh_ind_step}~\\
 @{thm [break] exists_minimal_reg_sol_sys_aux}
 \end{lemma}
-The centerpiece of the induction step works as follows: Given \<open>sols :: nat \<Rightarrow> 'a rlexp\<close>, a partial,
+The centerpiece of the induction step works as follows: Given \<open>sols :: nat \<Rightarrow>\<close> \mbox{\<open>'a rlexp\<close>}, a partial,
 minimal solution to the first \<open>r\<close> inequalities, we can determine a partial, minimal solution \<open>r_sol\<close>
 to the \<open>r\<close>-th inequality, as described above in the single-inequality case. This allows us to
 substitute all occurrences of the variable \<open>r\<close> with \<open>sol_r\<close>:

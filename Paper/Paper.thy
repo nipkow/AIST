@@ -32,6 +32,7 @@ notation (latex) P1_sym ("P\<^sub>1'_sym")
 notation (latex) P5_sym ("P\<^sub>5'_sym")
 notation (latex) P7_sym ("P\<^sub>7'_sym")
 notation (latex) P8_sym ("P\<^sub>8'_sym")
+notation reg_eval ("reg'_pres")
 
 (* problem with eta-contraction of lang_nfa abberv. Make original lang_nfa a def? *)
 definition Lang_auto where "Lang_auto = LTS_Automata.Lang_auto"
@@ -695,7 +696,7 @@ Furthermore, @{term "subst s r"} denotes the regular language expression which w
 by substituting each occurrence of the variable \<open>i\<close> in \<open>r\<close> by the regular language expression \<open>s i\<close>;
 and @{term "vars r"} describes the set of variables occurring in \<open>r\<close>.
 A regular language expression \<open>r\<close> which contains as constants only regular languages is called
-\textit{regularly evaluating}, denoted @{term "reg_eval r"} in Isabelle.
+\textbf{regularity preserving}, denoted @{term "reg_eval r"} in Isabelle.
 Such regular language expressions are of particular interest since they are guaranteed to
 evaluate to a regular language if all variables occurring in \<open>r\<close> are instantiated with a regular language.
 
@@ -739,7 +740,7 @@ some system of inequalities induced by the CFG:
 @{prop [break] "\<exists>sys. (\<forall>eq \<in> set sys. reg_eval eq) \<and> (\<forall>eq \<in> set sys. \<forall>x \<in> vars eq. x < length sys)
 \<and> min_sol_ineq_sys sys sol"}
 \end{lemma}
-We have also proved that all inequalities of the system are regularly evaluating which is
+We have also proved that all inequalities of the system are regularity preserving which is
 an important prerequisite for the rest of the proof.
 
 
@@ -764,7 +765,8 @@ if it satisfies the following definition:
 \begin{quote}
 @{thm [break] partial_min_sol_ineq_sys_def}
 \end{quote}
-Here, the first part states that \<open>sols\<close> is a solution, the second part ensures that \<open>sols\<close>
+The definition consists of four parts:
+The first part states that \<open>sols\<close> is a solution, the second part ensures that \<open>sols\<close>
 does not specify solutions to other than the first \<open>n\<close> inequalities, the third part formalizes
 that \<open>sols\<close> only depends on variables greater than \<open>n-1\<close>, i.e.\ only on inequalities which have
 not yet been solved, and the last part expresses that \<open>sols\<close> is minimal.
@@ -774,23 +776,25 @@ not yet been solved, and the last part expresses that \<open>sols\<close> is min
 
 We call a regular language expression \<open>f\<close> \concept{bipartite}
 with respect to the variable \<open>x\<close>
-if it is the union of two regularly evaluating regular language expressions of which only one
+if it is the union of two regularity preserving regular language expressions of which only one
 contains \<open>x\<close>:
 \begin{quote}
 @{thm [break] bipart_rlexp_def}
 \end{quote}
 Bipartite regular language expressions correspond to the normal form introduced in Equation~(3)
-of~\cite{Pilling}. To each regularly evaluating regular language expression \<open>f\<close> exists a bipartite
+of~\cite{Pilling}. To each regularity preserving regular language expression \<open>f\<close> exists a bipartite
 regular language expression with identical Parikh image; this can be proved by induction on \<open>f\<close>:
 \begin{quote}
-@{thm [break] reg_eval_bipart_rlexp}
+@{term [break] "reg_eval f \<Longrightarrow>
+    \<exists>f'. bipart_rlexp x f' \<and> vars f' = vars f \<union> {x} \<and>
+         (\<forall>v. \<Psi> (eval f v) = \<Psi> (eval f' v))"}
 \end{quote}
 
 Following Pilling's proof~\cite{Pilling}, we first construct a regular, minimal solution to a system
 consisting of a single inequality: The above lemma allows us to assume that the right-hand side of
 the inequality is bipartite.
 Thus, let \<open>eq\<close> be the bipartite inequality, consisting of the two parts \<open>p\<close> and \<open>q\<close>;
-then @{term "sol \<equiv> Concat (Star (subst (Var(x := p)) q)) p"} is regularly evaluating and it
+then @{term "sol \<equiv> Concat (Star (subst (Var(x := p)) q)) p"} is regularity preserving and it
 is a minimal, partial solution to \<open>eq\<close>.
 The proof relies on the following homogeneous-like property of regular language expressions:
 \begin{quote}
@@ -800,26 +804,26 @@ where @{term star} denotes the Kleene star and \<open>@@\<close> the concatenati
 In contrast to our proof, Pilling claims equality but under an additional assumption which is
 more difficult to formalize.
 
-It remains to generalize this result to whole systems of regularly evaluating inequalities.
-For this purpose, we show by induction on \<open>r\<close> that the first \<open>r\<close> inequalities have a minimal,
-partial solution which is regularly evaluating:
+It remains to generalize this result to whole systems of regularity preserving inequalities.
+For this purpose, we show by induction on \<open>n\<close> that the first \<open>n\<close> inequalities have a minimal,
+partial solution which is regularity preserving:
 \begin{lemma} \label{lem:parikh_ind_step}~\\
-@{thm [break] exists_minimal_reg_sol_sys_aux}
+@{thm [break] exists_minimal_reg_sol_sys_aux[of _ n]}
 \end{lemma}
 The centerpiece of the induction step works as follows: Given \<open>sols :: nat \<Rightarrow>\<close> \mbox{\<open>'a rlexp\<close>}, a partial,
-minimal solution to the first \<open>r\<close> inequalities, we can determine a partial, minimal solution \<open>r_sol\<close>
-to the \<open>r\<close>-th inequality, as described above in the single-inequality case. This allows us to
-substitute all occurrences of the variable \<open>r\<close> with \<open>sol_r\<close>:
+minimal solution to the first \<open>n\<close> inequalities, we can determine a partial, minimal solution \<open>n_sol\<close>
+to the \<open>n\<close>-th inequality, as described above in the single-inequality case. This allows us to
+substitute all occurrences of the variable \<open>n\<close> with \<open>sol_n\<close>:
 \begin{quote}
-@{term "sols' \<equiv> \<lambda>i. subst (Var (r := sol_r)) (sols i)"}
+@{term "sols' \<equiv> \<lambda>i. subst (Var (n := sol_n)) (sols i)"}
 \end{quote}
 Now, \<open>sols'\<close> contains one variable less,
-it is still regularly evaluating (since both \<open>sols\<close> and \<open>sol_r\<close> are regularly evaluating)
-and it is a partial, minimal solution to the first \<open>r+1\<close> inequalities of the system.
+it is still regularity preserving (since both \<open>sols\<close> and \<open>sol_n\<close> are regularity preserving)
+and it is a partial, minimal solution to the first \<open>n+1\<close> inequalities of the system.
 Notably, our proof does not rely on the Lemma presented in~\cite{Pilling};
 although Pilling suggests to apply this lemma in the induction step, we were not able to do so.
 
-If instantiating Lemma~\ref{lem:parikh_ind_step} with \<open>r = |sys|\<close>,
+If instantiating Lemma~\ref{lem:parikh_ind_step} with \<open>n = |sys|\<close>,
 the partial solution \<open>sols\<close> contains no variables anymore,
 so it is in fact a valuation.
 This shows that the system of inequalities has a regular, minimal solution.

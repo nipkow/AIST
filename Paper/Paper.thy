@@ -796,11 +796,12 @@ the inequality is bipartite.
 Thus, let \<open>eq\<close> be the bipartite inequality, consisting of the two parts \<open>p\<close> and \<open>q\<close>;
 then @{term "sol \<equiv> Concat (Star (subst (Var(x := p)) q)) p"} is regularity preserving and it
 is a minimal, partial solution to \<open>eq\<close>.
-The proof relies on the following homogeneous-like property of regular language expressions:
+The proof relies on the following property of regular language expressions:
 \begin{quote}
 @{thm [break] rlexp_homogeneous_aux}
 \end{quote}
-where @{term star} denotes the Kleene star and \<open>@@\<close> the concatenation of languages.
+where \<open>Y\<close> and \<open>Z\<close> are languages and @{term star} and \<open>@@\<close> denote the Kleene star and the
+concatenation of languages, respectively.
 In contrast to our proof, Pilling claims equality but under an additional assumption which is
 more difficult to formalize.
 

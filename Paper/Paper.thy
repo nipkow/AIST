@@ -32,7 +32,6 @@ notation (latex) P1_sym ("P\<^sub>1'_sym")
 notation (latex) P5_sym ("P\<^sub>5'_sym")
 notation (latex) P7_sym ("P\<^sub>7'_sym")
 notation (latex) P8_sym ("P\<^sub>8'_sym")
-notation reg_eval ("reg'_pres")
 
 (* problem with eta-contraction of lang_nfa abberv. Make original lang_nfa a def? *)
 definition Lang_auto where "Lang_auto = LTS_Automata.Lang_auto"
@@ -49,6 +48,7 @@ lemma pre_star_emptiness':
 unfolding lists_eq_set using pre_star_emptiness[of P A] by blast
 
 notation parikh_img ("\<Psi>")
+notation reg_eval ("reg'_pres")
 
 lemma bipart_rlexp_def:
   "bipart_rlexp x f = (\<exists>p q. mbox0(reg_eval p \<and> reg_eval q) \<and>

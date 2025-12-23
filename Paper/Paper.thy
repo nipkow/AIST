@@ -696,7 +696,7 @@ Furthermore, @{term "subst s r"} denotes the regular language expression which w
 by substituting each occurrence of the variable \<open>i\<close> in \<open>r\<close> by the regular language expression \<open>s i\<close>;
 and @{term "vars r"} describes the set of variables occurring in \<open>r\<close>.
 A regular language expression \<open>r\<close> which contains as constants only regular languages is called
-\textbf{regularity preserving}, denoted @{term "reg_eval r"} in Isabelle.
+\concept{regularity preserving}, denoted @{term "reg_eval r"} in Isabelle.
 Such regular language expressions are of particular interest since they are guaranteed to
 evaluate to a regular language if all variables occurring in \<open>r\<close> are instantiated with a regular language.
 
@@ -785,7 +785,7 @@ Bipartite regular language expressions correspond to the normal form introduced 
 of~\cite{Pilling}. To each regularity preserving regular language expression \<open>f\<close> exists a bipartite
 regular language expression with identical Parikh image; this can be proved by induction on \<open>f\<close>:
 \begin{quote}
-@{term [break] "reg_eval f \<Longrightarrow>
+@{prop [break] "reg_eval f \<Longrightarrow>
     \<exists>f'. bipart_rlexp x f' \<and> vars f' = vars f \<union> {x} \<and>
          (\<forall>v. \<Psi> (eval f v) = \<Psi> (eval f' v))"}
 \end{quote}

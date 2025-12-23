@@ -758,9 +758,9 @@ Parikh image operator on both sides of $\subseteq$.
 
 Additionally, we need the notion of partial solutions: These are functions of the type
 @{typ "nat \<Rightarrow> 'a rlexp"}, i.e.\ they map each inequality to a regular language expression representing
-the solution for that inequality; using regular language expression at this point allows us
+the solution for that inequality; using regular language expressions at this point allows us
 to specify solutions depending on other variables.
-Formally, \<open>sols\<close> is a partial, minimal solution to the first \<open>n\<close> inequalities of \<open>sys\<close> (\<^term>\<open>take n sys\<close>)
+Formally, \<open>sols\<close> is a partial, minimal solution to the first \<open>n\<close> inequalities of \<open>sys\<close> (i.e.\ \<^term>\<open>take n sys\<close>)
 if it satisfies the following definition:
 \begin{quote}
 @{thm [break] partial_min_sol_ineq_sys_def}
@@ -827,9 +827,9 @@ If instantiating Lemma~\ref{lem:parikh_ind_step} with \<open>n = |sys|\<close>,
 the partial solution \<open>sols\<close> contains no variables anymore,
 so it is in fact a valuation.
 This shows that the system of inequalities has a regular, minimal solution.
-After proving that each minimal solution of the system without Parikh images
+After proving that each minimal solution to the system without Parikh images
 (i.e.\ of the system considered in Section~\ref{sec:parikh_eq_sys}) is also a minimal
-solution of the system with Parikh images (i.e. of the system considered in this section),
+solution to the system with Parikh images (i.e. of the system considered in this and the previous section),
 it follows that the CFG's language and the regular solution have the same
 Parikh image since both are minimal solutions to the same system.
 

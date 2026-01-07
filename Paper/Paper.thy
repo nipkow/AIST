@@ -826,7 +826,7 @@ and it is a partial, minimal solution to the first \<open>n+1\<close> inequaliti
 Notably, our proof does not rely on the Lemma presented in~\cite{Pilling};
 although Pilling suggests to apply this lemma in the induction step, we were not able to do so.
 
-If instantiating Lemma~\ref{lem:parikh_ind_step} with \<open>n = |sys|\<close>,
+When instantiating Lemma~\ref{lem:parikh_ind_step} with \<open>n = |sys|\<close>,
 the partial solution \<open>sols\<close> contains no variables anymore,
 so it is in fact a valuation.
 This shows that the system of inequalities has a regular, minimal solution.

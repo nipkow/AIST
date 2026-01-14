@@ -195,16 +195,18 @@ We have verified an executable translation into Chomsky Normal Forms:
 \end{quote}
 Our proof is based partly on the non-constructive one by Barthwal and Norrish \cite{csl/BarthwalN10}.
 Another constructive translation was formalized by Hofmann \<^cite>\<open>JHofmann\<close>.
-Ramos \cite{RamosAMQ} also formalized four applications, two of which we also formalized
+
+The first formal proof of the Pumping Lemma is due to Barthwal \cite{BarthwalPhD},
+followed by Ramos \emph{et al.} \cite{RamosAMQ16}.
+Our proof is due to Thomas Ammer and has the unique feature that it does not require parse trees.
+He introduces these two inductive relations, assuming \<open>P\<close> is in CNF:
+@{prop "P \<turnstile> A \<Rightarrow>\<langle>p\<rangle> w"} means that \<open>p :: 'n list\<close> is a path in the (implicit!) parse tree
+of the derivation from \<open>B :: 'n\<close> to \<open>w :: 't list\<close>; @{prop "P \<turnstile> A \<Rightarrow>\<llangle>p\<rrangle> w"} is similar
+but \<open>p\<close> is the longest path.
+Ramos \emph{et al.} \cite{RamosAMQ} also formalized four applications, two of which we also formalized
 (non-context freeness of $a^nb^nc^n$ and non-closedness of context-free languages under intersection)
 using only 10--15\% of the number of lines.
 
-It is worth pointing out a detail of our proof (due to Thomas Ammer),
-namely how to avoid formalizing any kind of parse trees (as done in other formalizations).
-It suffices to introduce these two inductive relations, assuming \<open>P\<close> is in CNF:
-@{prop "P \<turnstile> A \<Rightarrow>\<langle>p\<rangle> w"} means that \<open>p :: 'n list\<close> is a path in the (implicit) parse tree
-of the derivation from \<open>B :: 'n\<close> to \<open>w :: 't list\<close>; @{prop "P \<turnstile> A \<Rightarrow>\<llangle>p\<rrangle> w"} is similar
-but \<open>p\<close> is the longest path. This avoids reasoning about trees altogether.
 
 \subsection{Pushdown Automata}
 

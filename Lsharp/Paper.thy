@@ -10,6 +10,15 @@ declare [[names_short=true]]
 notation process_output_query ("add'_io")
 
 notation apart ("(2_ \<turnstile> _ \<sharp> _)" [50,0,50] 50)
+
+lemma (in Lsharp_rel) invar_def2: "invar (S,F,T) =
+    (mbox0(finite S \<and> finite F \<and> S \<inter> F = {} \<and>
+    (\<forall> e \<in> S. orun T e \<noteq> None)) \<and>
+    sapart (S,F,T) \<and>
+    (\<forall> i. orun T i \<noteq> None \<longrightarrow> orun T i = Some (output_query M i)) \<and>
+    F = frontier (S,F,T) \<and>
+    [] \<in> S \<and> (\<forall> s \<in> S. s = [] \<or> (\<exists> s2 \<in> S. \<exists> i. s2 @ [i] = s)))"
+  unfolding mbox0_def invar_def by presburger
 (*>*)
 
 text\<open>
@@ -70,7 +79,7 @@ Function @{term "add_io ot is os"} extends \<open>ot\<close> such that \<open>is
 @{thm [mode=Rule] (sub) algo_step.intros(4)}
 \end{quote}
 \begin{quote}
-@{thm [break] (sub) invar_def[unfolded sapart.simps]}
+@{thm [break] (sub) invar_def2[unfolded sapart.simps]}
 \end{quote}
 
 \<close>

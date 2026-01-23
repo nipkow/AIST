@@ -235,7 +235,7 @@ where every right-hand side is a terminal followed by nonterminals.
 \begin{quote}
 @{def GNF}
 \end{quote}
-In this section we define an executable function @{const GNF_of},
+In this section we formalize an executable function @{const GNF_of},
 which turns a grammar into GNF while preserving the language modulo \<open>\<epsilon>\<close>.
 
 We start with a weaker version of GNF, which we call \concept{head GNF},\footnote{
@@ -269,8 +269,8 @@ First, we repeatedly expand productions of form \<open>A \<rightarrow> B\<alpha>
 with respect to the \<open>B\<close>-productions in \<open>P\<close>,
 using the following function:
 \begin{quote}
-@{def[margin=70] "Subst_hd"}\smallskip\\
-@{fun[margin=70] Expand_hd_rec[Expand_hd_rec.simps(1) Expand_hd_rec_simp2]}
+@{fun[margin=70] Expand_hd_rec[Expand_hd_rec.simps(1) Expand_hd_rec_simp2]}\smallskip\\
+@{def[margin=70] "Subst_hd"}
 \end{quote}
 
 
@@ -282,11 +282,11 @@ hence we introduce a fresh nonterminal \<open>A'\<close> whose language correspo
 and replace \<open>A \<rightarrow> Av\<close> productions by \<open>A \<rightarrow> UA'\<close>.
 
 \begin{quote}
-@{def Rrec_of_lrec}
+@{def Solve_lrec[Solve_lrec_def[unfolded Rm_lrec_def]]}
 \end{quote}
 
 \begin{quote}
-@{def Solve_lrec[Solve_lrec_def[unfolded Rm_lrec_def]]}
+@{def Rrec_of_lrec}
 \end{quote}
 
 The above formalization is almost the same as the textual description,
@@ -316,35 +316,44 @@ then @{thm(concl) Lang_Solve_tri}.
 \end{lemma}
 Besides the clarification of the conditions,
 clarifying the list (\<open>As @ rev As'\<close>) the result is triangular on required some effort.
-
-!!TODO!!
+In particular, textbook arguments do not treat triangularity
+with respect to nonterminals in \<open>As'\<close> explicitly,
+which is however necessary for formally proving the termination of the next step.
 
 From a triangular form,
-repeatedly expanding head nonterminals in the right order turns the grammar into head GNF.
+repeatedly expanding head nonterminals \emph{in the right order} (@{const Expand_tri})
+turns the grammar into head GNF.
+Thus the function @{const GNF_hd}
+first makes fresh copies \<open>As'\<close> of nonterminals in \<open>As\<close>,
+applies @{const Solve_tri} and then @{const Expand_tri} in the reversed order of
+\<open>As @ rev As'\<close> on which triangularity is ensured.
+\begin{definition}
+@{def GNF_hd_of}
 \begin{quote}
 @{fun Expand_tri[Expand_tri.simps(1) Expand_tri_simp2]}\\
 \end{quote}
-\begin{definition}
-@{def GNF_hd_of}
 \end{definition}
-
 Because the procedure processes nonterminals one by one,
 we explicitly give a list of nonterminals as an argument to @{const GNF_hd_of}.
-We also provide a version which computes such a list by
+For brevity, we present the version @{const gnf_hd_of} which computes such a list by
 taking the input grammar in the list representation.
-It first makes fresh copies \<open>As'\<close> of nonterminals in \<open>As\<close>.
 
 \begin{theorem}
-Let \<open>As\<close> be a list of distinct nonterminals in \<open>P\<close>.
-Then @{thm(concl) GNF_hd_GNF_hd_of}.
-For all @{thm(prem 3) Lang_GNF_hd_of}, @{thm(concl) Lang_GNF_hd_of}.
+For any grammar \<open>P\<close> in list representation,
+@{thm(concl) gnf_hd_gnf_hd_of[where ps = P]}.
+For all @{thm(prem 1) lang_gnf_hd_of[where ps = P]}, @{thm(concl) lang_gnf_hd_of[where ps = P]}.
 \end{theorem}
 
-It is easy to turn head GNF into GNF by introducing nonterminals for terminals that appear
-at non-head position of right-hand sides.
+Finally, we turn head GNF into GNF by introducing nonterminals for terminals
+that appear at non-head position of right-hand sides (\concept{bad terminals}).
+We prove that any occurrence of a bad terminal \<open>a\<close> can be replaced by
+fresh nonterminal $A_a$,
+provided the grammar is extended with $A_a \to a$ for each $a$.
+We also use the same function in the CNF translation.
 
-!!TODO!!
-
+\begin{theorem} @{thm gnf_gnf_of}\\
+@{thm lang_gnf_of}
+\end{theorem}
 
 We close the section with demonstrating the exponential complexity of
 the (head) GNF translation algorithm~\cite{?}.
@@ -360,6 +369,10 @@ the expansion step yields $2^{n+1}$ productions for \<open>A\<^sub>n\<close>.
 \begin{theorem}
 @{thm Expand_tri_blowup}
 \end{theorem}
+\begin{proof}[sketch]
+The core insight is that expanding $A_{i}$ in $A_{i+1} \to A_i a \mid A_i b$
+yields twice as many $A_{i+1}$-productions as $A_{i}$ productions.
+\end{proof}
 
 \section{\prestar}
 \label{sec:prestar}

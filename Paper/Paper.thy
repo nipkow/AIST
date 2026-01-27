@@ -187,11 +187,14 @@ the proof of the Chomsky-Sch\"utzenberger Theorem below.
 
 \subsection{Chomsky Normal Form and Pumping Lemma}
 
-We have verified an executable translation into Chomsky Normal Forms:
+We have defined an executable translation into Chomsky Normal Forms
 \begin{quote}
 @{thm CNF_def}\smallskip\\
-@{thm [break]cnf_of_def}\smallskip\\
-@{thm cnf_of_CNF_Lang}
+@{thm [break]cnf_of_def}
+\end{quote}
+and proved its correctness:
+\begin{quote}
+@{thm cnf_of_CNF_Lang(1)} \qquad @{thm cnf_of_CNF_Lang(2)}
 \end{quote}
 Our proof is based partly on the non-constructive one by Barthwal and Norrish \cite{csl/BarthwalN10}.
 Another constructive translation was formalized by Hofmann \<^cite>\<open>JHofmann\<close>.

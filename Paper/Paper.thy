@@ -90,7 +90,7 @@ languages (Haskell, OCaml and SML) \cite{HaftmannN10}.
 
 We will mostly discuss related work at the relevant places, but would like to mention already
 the three related formalizations that are closest to our work: the work by
-Barthwal and Norrish \cite{csl/BarthwalN10,wollic/BarthwalN10,BarthwalN14} (in HOL4),
+Barthwal and Norrish \cite{BarthwalPhD,csl/BarthwalN10,wollic/BarthwalN10,BarthwalN14} (in HOL4),
 Hofmann \cite{JHofmann} (in Coq) and Ramos \emph{et al.} \cite{RamosAMQ,RamosAMQ16,RamosQMA16} (in Coq).
 
 The one fundamental area we do not cover is parsing. Specific parsing algorithms

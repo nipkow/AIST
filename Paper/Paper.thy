@@ -21,21 +21,23 @@ lemma Expand_tri_simp2: "Expand_tri (A#As) P =
   in Subst_hd P' {r \<in> P'. \<exists>\<alpha> B. r = (A, Nt B # \<alpha>) \<and> B \<in> set As})"
   by simp
 
-notation (latex) P1 ("P\<^sub>1")
-notation (latex) P2 ("P\<^sub>2")
-notation (latex) P3 ("P\<^sub>3")
-notation (latex) P4 ("P\<^sub>4")
-notation (latex) P5 ("P\<^sub>5")
+notation (latex) P1 ("\<^latex>\<open>\\isaconst{\<close>P\<^sub>1\<^latex>\<open>}\<close>")
+notation (latex) P2 ("\<^latex>\<open>\\isaconst{\<close>P\<^sub>2\<^latex>\<open>}\<close>")
+notation (latex) P3 ("\<^latex>\<open>\\isaconst{\<close>P\<^sub>3\<^latex>\<open>}\<close>")
+notation (latex) P4 ("\<^latex>\<open>\\isaconst{\<close>P\<^sub>4\<^latex>\<open>}\<close>")
+notation (latex) P5 ("\<^latex>\<open>\\isaconst{\<close>P\<^sub>5\<^latex>\<open>}\<close>")
 
-notation (latex) P1' ("\<^latex>\<open>$P_1'$\<close>")
-notation (latex) P1_sym ("P\<^sub>1'_sym")
-notation (latex) P5_sym ("P\<^sub>5'_sym")
-notation (latex) P7_sym ("P\<^sub>7'_sym")
-notation (latex) P8_sym ("P\<^sub>8'_sym")
+notation (latex) P1' ("\<^latex>\<open>$\\isaconst{P}_1'$\<close>")
+notation (latex) P1_sym ("\<^latex>\<open>\\isaconst{\<close>P\<^sub>1'_sym\<^latex>\<open>}\<close>")
+notation (latex) P5_sym ("\<^latex>\<open>\\isaconst{\<close>P\<^sub>5'_sym\<^latex>\<open>}\<close>")
+notation (latex) P7_sym ("\<^latex>\<open>\\isaconst{\<close>P\<^sub>7'_sym\<^latex>\<open>}\<close>")
+notation (latex) P8_sym ("\<^latex>\<open>\\isaconst{\<close>P\<^sub>8'_sym\<^latex>\<open>}\<close>")
 
-notation reachable_from ("reachable'_lts")
+consts brackets :: "'a \<Rightarrow> 'b set" (* fake constant only used in formulas in text below *)
 
-(* problem with eta-contraction of lang_nfa abberv. Make original lang_nfa a def? *)
+notation reachable_from ("\<^latex>\<open>\\isaconst{\<close>reachable'_lts\<^latex>\<open>}\<close>")
+
+(* problem with eta-contraction of Lang_lts abbrv. Make Lang_lts a def? *)
 definition Lang_auto where "Lang_auto = LTS_Automata.Lang_auto"
 hide_const (open) LTS_Automata.Lang_auto
 
@@ -50,7 +52,7 @@ lemma pre_star_emptiness':
 unfolding lists_eq_set using pre_star_emptiness[of P A] by blast
 
 notation parikh_img ("\<Psi>")
-notation reg_eval ("reg'_pres")
+notation reg_eval ("\<^latex>\<open>\\isaconst{\<close>reg'_pres\<^latex>\<open>}\<close>")
 
 lemma bipart_rlexp_def:
   "bipart_rlexp x f = (\<exists>p q. mbox0(reg_eval p \<and> reg_eval q) \<and>
@@ -393,8 +395,8 @@ w.r.t.\ \<open>\<Rightarrow>*\<close>:%{prop "P \<turnstile> DUMMY \<Rightarrow>
 @{thm pre_star_def}
 \end{quote}
 The two key insights are (if \<open>P\<close> finite):
- if \<open>L\<close> is regular, so is \<open>pre_star P L\<close>, and if \<open>L\<close> is given as an NFA \<open>M\<close>,
-an NFA for \<open>pre_star P L\<close> can be computed from \<open>M\<close>.
+ if \<open>L\<close> is regular, so is @{term \<open>pre_star P L\<close>}, and if \<open>L\<close> is given as an NFA \<open>M\<close>,
+an NFA for @{term \<open>pre_star P L\<close>} can be computed from \<open>M\<close>.
 This result has been discovered multiple times \cite{Buechi64,Caucal92}
 
 As an example, consider the productivity problem of determining if @{prop "mbox(Lang P A) \<noteq> {}"}.
@@ -402,7 +404,7 @@ Let \<open>P\<close> be a grammar over a terminal alphabet \<open>\<Sigma>\<clos
 Build an automaton \<open>U\<close> that accepts exactly \<open>\<Sigma>\<^sup>*\<close>, but no words containing @{const Nt}s
 (this requires only a single state).
 Clearly @{prop "Lang P A \<noteq> {}"} iff there is a word \<open>w \<in> \<Sigma>\<^sup>*\<close> such that @{prop "P \<turnstile> mbox([Nt A]) \<Rightarrow>* w"}
-iff @{text "[Nt A] \<in> pre_star P \<Sigma>\<^sup>*"} \<open>=: L\<close>. But because \<open>U\<close> accepts \<open>\<Sigma>\<^sup>*\<close>
+iff @{term "[Nt A]"} \<open>\<in>\<close> @{term "pre_star P"} \<open>\<Sigma>\<^sup>*\<close> \<open>=: L\<close>. But because \<open>U\<close> accepts \<open>\<Sigma>\<^sup>*\<close>
 we can compute an automaton for \<open>L\<close> from \<open>U\<close> (as claimed above) and we only need to check
 if that automaton accepts @{term \<open>[Nt A]\<close>}.
 
@@ -637,7 +639,7 @@ The intersection of all these conditions already almost define the regular langu
 But @{term \<open>Reg S\<close>} is only regular if there are only finitely many different brackets, i.e.\ if the set of productions \<open>P\<close> is finite.
 When we formally show the regularity, we will therefore only show the regularity of @{prop \<open>R \<equiv> (Reg S) \<inter> (brackets P)\<close>} for finite \<open>P\<close>
 (with some start symbol \<open>S\<close>).
-Here @{term [source] \<open>brackets P\<close>} denotes the set of arbitrary words consisting of the brackets with labels in \<open>P\<close>.
+Here @{term \<open>brackets P\<close>} denotes the set of arbitrary words consisting of the brackets with labels in \<open>P\<close>.
 
 We proved the \<open>\<subseteq>\<close> direction of @{prop "L = \<h> ` (R \<inter> Dyck_lang \<Gamma>)"} by proving that the conditions @{const P1} -- @{const P5} are preserved by each derivation step.
 
@@ -650,16 +652,16 @@ The \<open>\<supseteq>\<close> direction went through as described by Kozen.
 Here we needed to make use of the lemma proved using @{term \<open>bal_stk\<close>} that we mentioned in Sect.~\ref{subsec:dyck}.
 
 \subsection{Proving Regularity}
-Kozen handwaves the regularity of the \<open>P\<^sub>i\<close>'s away to ``can be described by a regular expression''.
+Kozen handwaves the regularity of the \<open>\<^latex>\<open>\isaconst{\<close>P\<^sub>i\<^latex>\<open>}\<close>\<close>'s away to ``can be described by a regular expression''.
 But actually writing down the correct expressions is a surprisingly hard task,
-and furthermore proving the generated language equivalent to the---otherwise very practical---description via the \<open>P\<^sub>i\<close>'s is a tedious task, since the regular expression contains multiple Kleene stars.
+and furthermore proving the generated language equivalent to the---otherwise very practical---description via the \<open>\<^latex>\<open>\isaconst{\<close>P\<^sub>i\<^latex>\<open>}\<close>\<close>'s is a tedious task, since the regular expression contains multiple Kleene stars.
 
 A much easier approach was to use a deterministic finite automaton \cite{Paulson15}.
 The DFA would remember its last seen bracket in its state and the transition function makes implementing
 the conditions and the pairwise checking straightforward.
 
 We were able to use the same general automaton for @{const P2}, @{const P3} and @{const P4},
-since we were able to give an automaton for @{term [source] \<open>{u. successively Q u \<and> u \<in> brackets P}\<close>}
+since we were able to give an automaton for @{term \<open>{u. successively Q u \<and> u \<in> brackets P}\<close>}
 for an arbitrary pairwise condition \<open>Q\<close>.
 
 

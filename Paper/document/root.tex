@@ -27,7 +27,21 @@
 \urlstyle{rm}
 \isabellestyle{literal}
 
-\renewcommand{\isadigit}[1]{{\rm #1}}
+\usepackage{etoolbox}% `toggle'
+
+\newtoggle{mathprime}
+\newtoggle{SF}
+
+\let\oldisadigit\isadigit
+\let\oldisacharprime\isacharprime
+
+\renewcommand{\isaconst}[1]{\isa{\toggletrue{SF}\toggletrue{mathprime}\textsf{#1}}}
+\renewcommand{\isafree}[1]{{\toggletrue{mathprime}#1}}
+\renewcommand{\isabound}[1]{{\toggletrue{mathprime}#1}}
+\renewcommand{\isavar}[1]{{\toggletrue{mathprime}#1}}
+
+\renewcommand{\isacharprime}{\iftoggle{mathprime}{\isamath{'}}{\oldisacharprime}}
+\renewcommand{\isadigit}[1]{\iftoggle{SF}{\textsf{#1}}{\oldisadigit{#1}}}
 
 % isabelle keyword, adapted from isabelle.sty
 \renewcommand{\isakeyword}[1]

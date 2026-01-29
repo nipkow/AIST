@@ -61,7 +61,6 @@ lemma bipart_rlexp_def:
 (*>*)
 text \<open>
 % TODO
-% sf font for constants?? - if we have too much time :)
 %rebase LL1 parser on CFG - if we have too much time :)
 
 \section{Introduction}

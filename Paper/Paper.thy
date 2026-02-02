@@ -188,7 +188,7 @@ the proof of the Chomsky-Sch\"utzenberger Theorem below.
 
 \subsection{Chomsky Normal Form and Pumping Lemma}
 
-We have defined an executable translation into Chomsky Normal Forms
+We have defined an executable translation into Chomsky Normal Forms (CNFs)
 \begin{quote}
 @{thm CNF_def}\smallskip\\
 @{thm [break]cnf_of_def}
@@ -277,8 +277,8 @@ Defined inductively, \<open>P\<close> is triangular on \<open>[]\<close>,
 and on \<open>A#As\<close> if it is so on \<open>As\<close> and
 there exist no \<open>A \<rightarrow> B\<alpha> \<in> P\<close> with \<open>B \<in> set As\<close>.
 
-We inductively make a grammar which is triangular on \<open>As\<close> also
-triangular on to \<open>A#As\<close>.
+We inductively make a grammar which is triangular on \<open>As\<close>
+into a grammar triangular on \<open>A#As\<close>.
 First, we repeatedly expand productions of form \<open>A \<rightarrow> B\<alpha>\<close> for all \<open>B \<in> set As\<close>
 with respect to the \<open>B\<close>-productions in \<open>P\<close>,
 using the following function:
@@ -329,7 +329,8 @@ and @{thm(prem 5) Lang_Solve_tri},
 then @{thm(concl) Lang_Solve_tri}.
 \end{lemma}
 Besides the clarification of the conditions,
-clarifying the list (\<open>As @ rev As'\<close>) the result is triangular on required some effort.
+figuring out that the result is triangular w.r.t.\@ the list (\<open>As @ rev As'\<close>)
+required some effort.
 In particular, textbook arguments do not treat triangularity
 with respect to nonterminals in \<open>As'\<close> explicitly,
 which is however necessary for formally proving the termination of the next step.
@@ -348,7 +349,7 @@ applies @{const Solve_tri} and then @{const Expand_tri} in the reversed order of
 \end{quote}
 \end{definition}
 Because the procedure processes nonterminals one by one,
-we explicitly give a list of nonterminals as an argument to @{const GNF_hd_of}.
+we explicitly give the list \<open>As\<close> of nonterminals as an argument to @{const GNF_hd_of}.
 For brevity, we present the version @{const gnf_hd_of} which computes such a list by
 taking the input grammar in the list representation.
 
@@ -365,28 +366,34 @@ fresh nonterminal $A_a$,
 provided the grammar is extended with $A_a \to a$ for each $a$.
 We also use the same function in the CNF translation.
 
-\begin{theorem} @{thm gnf_gnf_of}\\
-@{thm lang_gnf_of}
+\begin{theorem}
+For any grammar \<open>P\<close> in list representation,
+@{thm gnf_gnf_of}.
+Moreover, for all @{thm(prem 1) lang_gnf_of},
+@{thm(concl) lang_gnf_of}.
 \end{theorem}
 
 We close the section with demonstrating the exponential complexity of
 the (head) GNF translation algorithm~\cite{?}.
 
-This is demonstrated by the family \<open>bad_grammar\<close> of grammars 
+This is demonstrated by the family @{term "bad_grammar"} of grammars 
 where each @{term "bad_grammar n"}
 consists of \<open>A\<^sub>0 \<rightarrow> a | b\<close> and $A_{i+1} \to A_i a \mid A_i b$ for \<open>i < n\<close>.
 
-While @{term "bad_grammar n"} is already triangular and consisting of only $2n$ rules,
+While @{term "bad_grammar n"} consists of only $2n$ rules,
 we formally verify that
 the expansion step yields $2^{n+1}$ productions for \<open>A\<^sub>n\<close>.
 
 \begin{theorem}
 @{thm Expand_tri_blowup}
 \end{theorem}
-\begin{proof}[sketch]
-The core insight is that expanding $A_{i}$ in $A_{i+1} \to A_i a \mid A_i b$
+
+The core insight here is that expanding $A_{i}$ in $A_{i+1} \to A_i a \mid A_i b$
 yields twice as many $A_{i+1}$-productions as $A_{i}$ productions.
-\end{proof}
+Since @{term "bad_grammar n"} is already triangular and not modified by
+@{const Solve_tri}, we conclude @{const GNF_hd_of} has exponential worst-case
+complexity.
+
 
 \section{\prestar}
 \label{sec:prestar}

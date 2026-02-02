@@ -374,7 +374,7 @@ Moreover, for all @{thm(prem 1) lang_gnf_of},
 \end{theorem}
 
 We close the section with demonstrating the exponential complexity of
-the (head) GNF translation algorithm~\cite{?}.
+the (head) GNF translation algorithm~\cite{Harrison78}.
 
 This is demonstrated by the family @{term "bad_grammar"} of grammars 
 where each @{term "bad_grammar n"}

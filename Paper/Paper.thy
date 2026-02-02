@@ -242,6 +242,15 @@ where every right-hand side is a terminal followed by nonterminals.
 In this section we formalize an executable function @{const GNF_of},
 which turns a grammar into GNF while preserving the language modulo \<open>\<epsilon>\<close>.
 
+While there already exists a HOL4-formalization of GNF transformation~\cite{BarthwalPhD},
+the previous formalization only proves
+that there exists a path of small language-preserving transformations leading to GNF,
+but does not tell how to reach GNF.
+To the best of our knowledge,
+our work is the first executable GNF transformation whose correctness is formally proved.
+In addition, our version does not require the initial CNF transformation,
+and the (exponential) complexity is also formalized.
+
 We start with a weaker version of GNF, which we call \concept{head GNF},\footnote{
 This notion is sometimes just called GNF~\cite{BlumK99} or real-time form~\cite{ReghizziBM19}.
 }
@@ -258,7 +267,7 @@ and finally obtain head GNF (@{const Expand_tri}).
 
 The last two steps follow textbook algorithms~\cite{Harrison78,HopcroftU79} for deriving GNF,
 except that
-we do not require input in Chomsky normal form
+we do not require input in CNF
 but only eliminate \<open>\<epsilon>\<close>-productions.
 As a result we arrive at head GNF.
 
@@ -268,7 +277,8 @@ Defined inductively, \<open>P\<close> is triangular on \<open>[]\<close>,
 and on \<open>A#As\<close> if it is so on \<open>As\<close> and
 there exist no \<open>A \<rightarrow> B\<alpha> \<in> P\<close> with \<open>B \<in> set As\<close>.
 
-We inductively make a grammar which is triangular on \<open>As\<close> also triangular on \<open>A#As\<close>.
+We inductively make a grammar which is triangular on \<open>As\<close> also
+triangular on to \<open>A#As\<close>.
 First, we repeatedly expand productions of form \<open>A \<rightarrow> B\<alpha>\<close> for all \<open>B \<in> set As\<close>
 with respect to the \<open>B\<close>-productions in \<open>P\<close>,
 using the following function:

@@ -360,8 +360,8 @@ For all @{thm(prem 1) lang_gnf_hd_of[where ps = P]}, @{thm(concl) lang_gnf_hd_of
 \end{theorem}
 
 Finally, we turn head GNF into GNF by introducing nonterminals for terminals
-that appear at non-head position of right-hand sides (\concept{bad terminals}).
-We prove that any occurrence of a bad terminal \<open>a\<close> can be replaced by
+that appear at non-head position of right-hand sides.
+We prove that any occurrence of such a terminal \<open>a\<close> can be replaced by
 fresh nonterminal $A_a$,
 provided the grammar is extended with $A_a \to a$ for each $a$.
 We also use the same function in the CNF translation.
@@ -373,8 +373,11 @@ Moreover, for all @{thm(prem 1) lang_gnf_of},
 @{thm(concl) lang_gnf_of}.
 \end{theorem}
 
-We close the section with demonstrating the exponential complexity of
-the (head) GNF translation algorithm~\cite{Harrison78}.
+We close the section by considering the size of the produced grammar. Like
+other standard algorithms (e.g.~\cite{Harrison78}),
+ours can produce output of exponential complexity.
+We prove that @{const Expand_tri} on its own can produce an exponential
+blowup, even if we only consider the number of productions.
 
 This is demonstrated by the family @{term "bad_grammar"} of grammars 
 where each @{term "bad_grammar n"}

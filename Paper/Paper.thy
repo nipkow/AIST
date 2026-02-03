@@ -378,8 +378,7 @@ other standard algorithms (e.g.~\cite{Harrison78}),
 ours can produce output of exponential complexity.
 We prove that @{const Expand_tri} on its own can produce an exponential
 blowup, even if we only consider the number of productions.
-
-This is demonstrated by the family @{term "bad_grammar"} of grammars 
+To wit, consider the family @{term "bad_grammar"} of grammars 
 where each @{term "bad_grammar n"}
 consists of \<open>A\<^sub>0 \<rightarrow> a | b\<close> and $A_{i+1} \to A_i a \mid A_i b$ for \<open>i < n\<close>.
 
@@ -394,8 +393,9 @@ the expansion step yields $2^{n+1}$ productions for \<open>A\<^sub>n\<close>.
 The core insight here is that expanding $A_{i}$ in $A_{i+1} \to A_i a \mid A_i b$
 yields twice as many $A_{i+1}$-productions as $A_{i}$ productions.
 Since @{term "bad_grammar n"} is already triangular and not modified by
-@{const Solve_tri}, we conclude @{const GNF_hd_of} has exponential worst-case
-complexity.
+@{const Solve_tri}, we conclude
+that the result of @{const GNF_hd_of}
+can be exponentially larger than the original grammar.
 
 
 \section{\prestar}

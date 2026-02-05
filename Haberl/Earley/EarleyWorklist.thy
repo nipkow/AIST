@@ -1,6 +1,6 @@
 theory EarleyWorklist
 
-imports "Earley" "HOL-Library.While_Combinator" "HOL-Data_Structures.Define_Time_Function" "HOL-Data_Structures.Set_Specs" "Context_Free_Grammar.Parse_Tree"
+imports "Earley" "HOL-Library.While_Combinator" "HOL-Library.Time_Commands" "HOL-Library.Time_Functions" "HOL-Data_Structures.Set_Specs" "Context_Free_Grammar.Parse_Tree"
 
 begin
 
@@ -882,36 +882,11 @@ end (*Context Earley_Gw*)
 
 section "Timing functions"
 
-time_fun map
-time_fun filter
-time_fun nth
+
 time_fun list_update
-time_fun append
 time_fun last
 
-lemma T_filter_simps [simp,code]:
-  "T_filter T_P [] = 1"
-  "T_filter T_P (x # xs) = T_P x + T_filter T_P xs + 1"
-  by (simp_all add: T_filter_def)
 
-lemma T_map_simps [simp,code]:
-  "T_map T_f [] = 1"
-  "T_map T_f (x21 # x22) = T_f x21 + T_map T_f x22 + 1"
-  by (simp_all add: T_map_def)
-
-(*should be replaced by *)
-lemma T_nth_general: "k < length as \<Longrightarrow> T_nth as k \<le> Suc k"
-proof (induction k arbitrary: as)
-  case 0
-  then obtain a as' where "as = a # as'"
-    using T_last.cases by auto
-  then show ?case by auto
-next
-  case (Suc k)
-  then obtain a as' where "as = a # as'"
-    by (metis T_last.cases list.size(3) not_less_zero)
-  then show ?case using Suc by auto
-qed
 
 lemma T_append_bound[simp]: "T_append as bs = Suc (length as)"
   by (induction as) auto
@@ -919,8 +894,6 @@ lemma T_append_bound[simp]: "T_append as bs = Suc (length as)"
 lemma T_last_bound[simp]: "as \<noteq> [] \<Longrightarrow> T_last as = length as"
   by (induction as) auto
 
-time_fun snd
-time_fun fst
 time_fun the
 
 fun T_rhs where
@@ -934,12 +907,12 @@ lemma T_snd_0[simp]: "T_snd x = 0"
 
 time_fun length
 (* Copy of the length time function but with options*)
-fun T_size :: "'a list \<Rightarrow> nat option" where
+(*fun T_size :: "'a list \<Rightarrow> nat option" where
 "T_size [] = Some 1" |
-"T_size (x21 # x22) = Some (the (T_size x22) + 1)"
+"T_size (x21 # x22) = Some (the (T_size x22) + 1)"*)
 
-lemma T_length_bound: "the (T_size as) = Suc (length as)"
-  by (induction as) auto
+(*lemma T_length_bound: "the (T_size as) = Suc (length as)"
+  by (induction as) auto*)
 
 time_fun_0 Earley_Gw.w
 
@@ -1028,39 +1001,21 @@ lemma [simp]: "T_list_map wl = 0"
   using Earley_Gw.T_list_map.elims by blast
 
 lemma T_is_complete_bound: "T_is_complete s = Suc (length (rhs (prod s)))"
-  by (auto simp add: T_length_bound)
+  by (auto simp add: T_length)
 
 lemma T_next_symbol_bound: 
   assumes "prod s \<in> set ps" shows "T_next_symbol s \<le> 2*(Suc K)"
 proof-
   have "length (rhs (prod s)) \<le> K" using prod_length_bound assms by auto
   then show ?thesis 
-    using assms T_nth_general[of "dot s" "rhs (state.prod s)"] by (auto simp add: T_length_bound is_complete_def)
+    using assms T_nth[of "dot s" "rhs (state.prod s)"] by (auto simp add: T_length is_complete_def)
 qed
 
 lemma T_filter_bound: "\<forall>x \<in> set xs. T_P x \<le> k \<Longrightarrow> T_filter T_P xs \<le> k * length xs + length xs + 1"
-proof (induction xs)
-  case Nil
-  then have "T_filter T_P [] = 1" by simp
-  then show ?case by auto
-next
-  case (Cons a xs)
-  then have "T_P a + T_filter T_P xs \<le> Suc (k + k * length xs + length xs)"
-    by (metis Suc_eq_plus1 add.commute add.left_commute add_le_mono list.set_intros(1,2))
-  then show ?case by simp
-qed
+  by (induction xs) (auto simp add: T_filter)
 
 lemma T_map_bound: "\<forall>x \<in> set xs. T_P x \<le> k \<Longrightarrow> T_map T_P xs \<le> k * length xs + length xs + 1"
-proof (induction xs)
-  case Nil
-  then have "T_filter T_P [] = 1" by simp
-  then show ?case by auto
-next
-  case (Cons a xs)
-  then have "T_P a + T_map T_P xs \<le> Suc (k + k * length xs + length xs)"
-    by (metis Suc_eq_plus1 add.commute add.left_commute add_le_mono list.set_intros(1,2))
-  then show ?case by simp
-qed
+  by (induction xs) (auto simp add: T_map)
 
 lemma T_Init_L_bound: "T_Init_L \<le> 2 * (L + 1)"
 proof-
@@ -1075,7 +1030,7 @@ lemma T_Scan_L_bound:
   assumes "k < length w0" and wf: "wf_bin1 (set Bs) l" 
   shows "T_Scan_L Bs k \<le> k + 2*(K + 2) * length Bs + 3"
 proof-
-  have 1: "T_nth w0 k \<le> k+1" using assms by (auto simp add: T_nth_general)
+  have 1: "T_nth w0 k \<le> k+1" using assms by (auto simp add: T_nth)
 
   have 2: "T_filter T_next_symbol Bs \<le> 2*(Suc K) * length Bs + length Bs + 1" 
     using T_next_symbol_bound wf T_filter_bound[of Bs T_next_symbol "2*(Suc K)"] 
@@ -1331,7 +1286,7 @@ proof-
     using assms by (simp add: WL1 bbs wf_bin1_def wf_state1_def wf_state_def)
 
   let ?step = "if is_complete b then Complete_L Bs b else Predict_L b (length Bs)"
-  let ?t_step = "(if is_complete b then T_Complete_L Bs b else the (T_size Bs) + T_Predict_L b (length Bs))"
+  let ?t_step = "(if is_complete b then T_Complete_L Bs b else T_length Bs + T_Predict_L b (length Bs))"
   have t_step: "?t_step \<le> T_nth_WL (length Bs) + 2 * (K + 2) * L * (Suc K) * (Suc (length Bs)) + 2 + Suc (length Bs)"
   proof (cases)
     assume complete: "is_complete b"
@@ -1360,14 +1315,13 @@ proof-
     assume incomplete: "\<not>is_complete b"
     have t_pred: "T_Predict_L b (length Bs) \<le> 2 * (K + 2) * L + 2" 
       using T_Predict_L_bound assms by (simp add: L_def WL1 bbs wf_bin1_def wf_state1_def wf_state_def)
-    have t_size: "the (T_size Bs) = Suc (length Bs)" by (simp add: T_length_bound)
 
-    show ?thesis using t_pred t_size incomplete by auto
+    show ?thesis using t_pred incomplete by (auto simp add: T_length)
   qed
 
-  have "the (T_size (rhs (state.prod b))) = Suc (length (rhs (prod b)))"
-    by (simp add: T_length_bound)
-  then have 6: "the (T_size (rhs (state.prod b))) \<le> Suc K" 
+  have "T_length (rhs (state.prod b)) = Suc (length (rhs (prod b)))"
+    by (simp add: T_length)
+  then have 6: "T_length (rhs (state.prod b)) \<le> Suc K" 
     using prod_length_bound[of "prod b"] assms by (auto simp add: WL1 bbs wf_bin1_def wf_state1_def wf_state_def)
 
   have wfStep: "wf_bin1 (set ?step) (length Bs)"
@@ -1421,7 +1375,7 @@ proof-
     by auto
   finally have 9: "?minus \<le> L * (Suc K) * (Suc (length Bs)) * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 5) + length Bs + 2".
 
-  have "T_step_fun Bs (wl1, wl2) \<le> the (T_size (rhs (state.prod b))) + ?t_step +
+  have "T_step_fun Bs (wl1, wl2) \<le> T_length (rhs (state.prod b)) + ?t_step +
   T_union_LWL ?step wl1 +
    T_insert wl2 b + T_minus_WL (union_LWL ?step wl1) (local.insert wl2 b) +
    T_insert wl2 b" by (auto simp add: Let_def WL1 bbs simp del: T_Complete_L.simps T_Predict_L.simps T_minus_WL.simps)
@@ -1615,7 +1569,7 @@ proof-
   obtain wl1' wl2' where "steps Bs (wl, WL_empty (length Bs)) = Some (wl1', wl2')"
     using Close2_L_NF Earley_Gw.empty_inv assms(2,4,5) wf1_WL_empty by blast
   then show ?thesis using T_steps_bound[of Bs wl "WL_empty (length Bs)"] empty_inv set_WL_empty 
-        wf1_WL_empty assms T_length_bound[of Bs] by (auto simp del: T_WL_empty.simps)
+        wf1_WL_empty assms T_length[of Bs] by (auto simp del: T_WL_empty.simps)
 qed
 
 lemma wf1_Init_L: "wf_bin1 (set Init_L) 0"
@@ -1746,8 +1700,8 @@ proof (induction k)
   then show ?case by (auto simp add: numeral_eq_Suc)
 next
   case (Suc k)
-  have 1: "the (T_size (bins_L k)) = k + 2"
-    by (auto simp add: length_bins_L T_length_bound)
+  have 1: "T_length (bins_L k) = k + 2"
+    by (auto simp add: length_bins_L T_length)
 
   have 2: "T_last (bins_L k) = Suc k"
     by (metis T_last_bound Zero_not_Suc length_bins_L list.size(3))
@@ -1992,7 +1946,7 @@ context Earley_Gw_eps_T
 begin
 
 lemma T_final_bound: "prod x \<in> set ps \<Longrightarrow> T_is_final x \<le> Suc K"
-  by (auto simp add: T_length_bound prod_length_bound)
+  by (auto simp add: T_length prod_length_bound)
 
 lemma T_recognized_bound: "wf_bin (set as) k \<Longrightarrow> T_recognized_L as \<le> Suc (length as) * (K+2)"
 proof (induction as)
@@ -2027,10 +1981,10 @@ proof-
     using T_last_bound length_bins_L
     by (metis Zero_not_Suc list.size(3))
 
-  have 4: "the (T_size w) = Suc (length w)"
-    using T_length_bound by auto
+  have 4: "T_length w = Suc (length w)"
+    using T_length by auto
 
-  have "T_earley y \<le> T_bins_L (length w) + T_last (bins_L (length w)) + T_recognized_L(last (bins_L (length w))) + the (T_size w)"
+  have "T_earley y \<le> T_bins_L (length w) + T_last (bins_L (length w)) + T_recognized_L(last (bins_L (length w))) + T_length w"
     by auto
   also have "... \<le> C1 *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_WL ((length w)+1) + Suc (length w) + Suc (length w) + Suc (L * Suc K * Suc (length w)) * (K+2)" 
     using 1 2 3 4 by linarith
@@ -3034,7 +2988,6 @@ end
 
 time_fun hd
 time_fun zip
-time_fun rev
 
 lemma T_zip_eq_len: "length xs = length ys \<Longrightarrow> T_zip xs ys = length ys + 1"
   by (induction xs ys rule: list_induct2) auto
@@ -3228,7 +3181,7 @@ proof-
   finally have 2: "T_map ?T_Pred ?filtered \<le> (2 * K * K + 1) * C + C + 1".
 
   have "T_nth Bs (from (state item)) \<le> length Bs" 
-    using assms T_nth_general[of "from (state item)" Bs] by auto
+    using assms T_nth[of "from (state item)" Bs] by auto
 
   then show ?thesis using 1 2 by (auto simp add: algebra_simps)
 qed
@@ -3237,7 +3190,7 @@ lemma T_Parse_Scan_L_bound:
   assumes "k < length w0" "wf_parse_bin (set Bs) k" 
   shows "T_Parse_Scan_L Bs k \<le> k + (2*K + 4) * (length Bs) + 3"
 proof-
-  have 1: "T_nth w0 k \<le> k + 1" using assms T_nth_general by auto
+  have 1: "T_nth w0 k \<le> k + 1" using assms by (auto simp add: T_nth)
 
   let ?T_filt = "\<lambda>y. let a = y in case a of (p, t) \<Rightarrow> T_next_symbol p"
   have "\<forall>x \<in> set Bs. ?T_filt x \<le> 2 * Suc K" 
@@ -3312,9 +3265,9 @@ proof-
   moreover have "T_Parse_Predict_L (state ?b) (length Bs) \<le> 2 * Suc K * L + 2 * L + 2" 
     using wf1_b T_Parse_Predict_L_bound by (simp add: wf_state1_def wf_state_def)
   ultimately have 3: "(if is_complete (state ?b) then T_Parse_Complete_L Bs ?b 
-    else T_fst ?b + (the (T_size Bs) + T_Parse_Predict_L (state ?b) (length Bs)))
+    else T_fst ?b + (T_length Bs + T_Parse_Predict_L (state ?b) (length Bs)))
     \<le> length Bs + (2 * K * K + 2 * K + 5) * C + 2 * Suc K * L + 2 * L + 3"  
-    by (auto simp add: T_length_bound algebra_simps)
+    by (auto simp add: T_length algebra_simps)
 
   let ?step = "if is_complete (state ?b) then Parse_Complete_L Bs ?b else Parse_Predict_L (state ?b) (length Bs)"
   have length_step: "length ?step \<le> max C L" 
@@ -3363,7 +3316,7 @@ proof-
 
   have "T_Parse_step_fun Bs (pwl1,pwl2) \<le> 
     T_is_complete (state ?b)
-    + (if is_complete (state ?b) then T_Parse_Complete_L Bs ?b else T_fst ?b + (the (T_size Bs) + T_Parse_Predict_L (state ?b) (length Bs)))
+    + (if is_complete (state ?b) then T_Parse_Complete_L Bs ?b else T_fst ?b + (T_length Bs + T_Parse_Predict_L (state ?b) (length Bs)))
     + T_union_LPWL ?step pwl1
     + 2 * T_ParseWL_insert pwl2 ?b
     + T_minus_PWL (union_LPWL ?step pwl1) (ParseWL_insert pwl2 ?b)"
@@ -3578,7 +3531,7 @@ shows "T_Parse_close2_L Bs pwl1 \<le> Suc (length Bs) + Suc (length Bs) + L * Su
     + 9 * Suc K * L + 12) +  Suc (L * Suc K * Suc (length Bs))"
 proof-
   have 2: "T_PWL_empty (length Bs) = Suc (length Bs)" by simp
-  have 3: "the (T_size Bs) = Suc (length Bs)" by (simp add: T_length_bound)
+  have 3: "T_length Bs = Suc (length Bs)" by (simp add: T_length)
 
   have empty_inv: "ParseWL_inv (PWL_empty (length Bs))" and "leng (fst (PWL_empty (length Bs))) = length Bs"
     and empty_wf: "wf_PWL (PWL_empty (length Bs)) (length Bs)"
@@ -3714,7 +3667,7 @@ next
     by (auto simp add: wf_parse_bins1_def last_conv_nth simp del: wf_item1.simps)
   then have wf_last: "wf_parse_bin (set (last ?Bs)) k" using Suc by (auto simp add: wf_state1_def)
 
-  have 1: "the (T_size ?Bs) = k + 2" by (auto simp add: T_length_bound)
+  have 1: "T_length ?Bs = k + 2" by (auto simp add: T_length)
   have 2: "T_last ?Bs = k + 1" using T_last_bound cons by auto
   have "T_Parse_Scan_L (last ?Bs) k \<le> k + (2 * K + 4) * (length (last (Parse_bins_L k))) + 3"
     using wf_last Suc T_Parse_Scan_L_bound

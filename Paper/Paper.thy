@@ -258,7 +258,7 @@ where every right-hand side starts with a terminal symbol.
 
 Our procedure takes three conversion steps:
 first eliminate \<open>\<epsilon>\<close>-productions (@{const Eps_elim}),
-then transform to a triangular form (@{const solve_tri}),
+then transform to a triangular form (@{const Solve_tri}),
 and finally obtain head GNF (@{const Expand_tri}).
 
 The last two steps follow textbook algorithms~\cite{Harrison78,HopcroftU79} for deriving GNF,
@@ -342,8 +342,9 @@ applies @{const Solve_tri} and then @{const Expand_tri} in the reversed order of
 \end{definition}
 Because the procedure processes nonterminals one by one,
 we explicitly give the list \<open>As\<close> of nonterminals as an argument to @{const GNF_hd_of}.
-For brevity, we do not present the version @{const gnf_hd_of} which computes such a list by
+Its variant @{const gnf_hd_of} computes such a list by
 taking the input grammar in the list representation.
+For brevity, we only present the correctness statement of the list version.
 
 \begin{theorem}
 For any grammar \<open>P\<close> in list representation,

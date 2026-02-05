@@ -1,6 +1,12 @@
 theory EarleyWorklist
 
-imports "Earley" "HOL-Library.While_Combinator" "HOL-Library.Time_Commands" "HOL-Library.Time_Functions" "HOL-Data_Structures.Set_Specs" "Context_Free_Grammar.Parse_Tree"
+imports 
+  "Complex_Main"
+  "Earley" 
+  "HOL-Library.While_Combinator" 
+  "HOL-Library.Time_Commands" 
+  "HOL-Library.Time_Functions"  
+  "Context_Free_Grammar.Parse_Tree"
 
 begin
 
@@ -14,7 +20,6 @@ definition step_rel :: "('n, 'a) state set list \<Rightarrow> ('n, 'a) state set
 
 definition Predict_L :: "('n,'a) state \<Rightarrow> nat \<Rightarrow> ('n,'a) state list" where
   "Predict_L x k = map (\<lambda>p. State p 0 k) (filter (\<lambda>p. next_sym_Nt x (lhs p)) ps)"
-
 
 definition Complete_L :: "('n, 'a) state list list \<Rightarrow> ('n, 'a) state \<Rightarrow> ('n, 'a) state list" where
   "Complete_L Bs y = map mv_dot (filter (\<lambda> b. next_sym_Nt b (lhs(prod y))) (Bs ! from y))"

@@ -1,0 +1,127 @@
+\documentclass[runningheads]{llncs}
+\pagestyle{plain} % turn on page numbers
+\usepackage[T1]{fontenc}
+%\usepackage{graphicx}
+% Used for displaying a sample figure. If possible, figure files should
+% be included in EPS format.
+%
+% If you use the hyperref package, please uncomment the following two lines
+% to display URLs in blue roman font according to Springer's eBook style:
+%\usepackage{color}
+%\renewcommand\UrlFont{\color{blue}\rmfamily}
+%\urlstyle{rm}
+
+\usepackage{mathpartir}
+\usepackage{amsfonts}
+\usepackage{amsmath,amssymb}
+
+\usepackage{isabelle,isabellesym}
+\usepackage{latexsym}
+%because of orcidlink
+\usepackage{xcolor}
+% this should be the last package used
+\usepackage{pdfsetup}
+%clashes with pdfsetup
+\usepackage{orcidlink}
+
+\urlstyle{rm}
+
+%%% Isabelle specific adjustments
+
+\isabellestyle{literal}
+
+\usepackage{etoolbox}% `toggle'
+
+\newtoggle{mathprime}
+\newtoggle{SF}
+
+\let\oldisadigit\isadigit
+\let\oldisacharprime\isacharprime
+
+\renewcommand{\isaconst}[1]{\isa{\toggletrue{SF}\toggletrue{mathprime}\textsf{#1}}}
+\renewcommand{\isafree}[1]{{\toggletrue{mathprime}#1}}
+\renewcommand{\isabound}[1]{{\toggletrue{mathprime}#1}}
+\renewcommand{\isavar}[1]{{\toggletrue{mathprime}#1}}
+
+\renewcommand{\isacharprime}{\iftoggle{mathprime}{\isamath{'}}{\oldisacharprime}}
+\renewcommand{\isadigit}[1]{\iftoggle{SF}{\textsf{#1}}{\oldisadigit{#1}}}
+
+\newcommand{\noquotes}[1]{{\renewcommand{\isachardoublequote}{}\renewcommand{\isachardoublequoteopen}{}\renewcommand{\isachardoublequoteclose}{}#1}}
+
+\newlength{\funheadersep}
+\setlength{\funheadersep}{\smallskipamount}
+
+%%% End of Isabelle specifics
+
+% no right margin in quote:
+%\renewenvironment{quote}
+%{\list{}{}%
+%\item\relax}
+%{\endlist}
+% no margins in quote:
+\renewenvironment{quote}%
+{\list{}{\leftmargin=0mm\rightmargin=0mm}\item[]}%
+{\endlist}
+
+\newcommand{\concept}[1]{\textbf{#1}}
+
+\newcommand{\eqnum}[1]{{\upshape\refstepcounter{equation}\hfill(\theequation\label{#1})}}
+
+\hyphenation{Isa-belle}
+
+\begin{document}
+\title{Earley's Parser: Implementation and Complexity Analysis in Isabelle/HOL}
+%\titlerunning{Abbreviated paper title}
+% If the paper title is too long for the running head, you can set
+% an abbreviated paper title here
+
+\author{Tobias Nipkow\inst{1}\orcidlink{0000-0003-0730-515X} \and
+Alexander Haberl\inst{2}}
+%
+%\authorrunning{T. Nipkow et al.}
+
+\institute{Technical University of Munich, Germany
+  \url{https://www.proof.cit.tum.de/~nipkow} \and
+  Technical University of Munich, Germany
+  \email{alexander.haberl@tum.de}}
+
+\maketitle
+
+\begin{abstract}
+This is the second installment in the development of an excutable
+Earley parser with verified running time bounds.
+\end{abstract}
+
+%\begin{table}
+%\caption{Table captions should be placed above the tables.}\label{tab1}
+%\begin{tabular}{|l|l|l|}
+%\end{tabular}
+%\end{table}
+
+%\begin{theorem}
+%\end{theorem}
+% the environments 'definition', 'lemma', 'proposition', 'corollary',
+% 'remark', and 'example' are defined in the LLNCS documentclass as well.
+%
+%\begin{proof}
+%\end{proof}
+
+\input{Paper}
+
+\begin{credits}
+%\subsubsection{\ackname}
+%We thank 
+%\vspace{-1ex}
+\subsubsection{\discintname}
+%It is now necessary to declare any competing interests or to specifically
+%state that the authors have no competing interests. Please place the
+%statement with a bold run-in heading in small font size beneath the
+%(optional) acknowledgments
+%for example:
+The authors have no competing interests to declare that are relevant to the content of this article.
+\end{credits}
+
+\bibliographystyle{splncs04}
+\bibliography{root}
+
+\end{document}

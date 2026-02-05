@@ -1,0 +1,6 @@
+session Earley = HOL +
+  sessions
+    "HOL-Library"
+    "Context_Free_Grammar"
+  theories
+    EarleyWorklist

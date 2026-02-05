@@ -242,25 +242,21 @@ where every right-hand side is a terminal followed by nonterminals.
 In this section we formalize an executable function @{const GNF_of},
 which turns a grammar into GNF while preserving the language modulo \<open>\<epsilon>\<close>.
 
-While there already exists a HOL4-formalization of GNF transformation~\cite{BarthwalPhD},
-the previous formalization only proves
-that there exists a path of small language-preserving transformations leading to GNF,
-but does not tell how to reach GNF.
-To the best of our knowledge,
-our work is the first executable GNF transformation whose correctness is formally proved.
-In addition, our version does not require the initial CNF transformation,
-and the (exponential) complexity is also formalized.
+Barthwal \cite{BarthwalPhD} verified in HOL4 that every grammar can be transformed into GNF
+and that the language is preserved.
+The transformation involves set comprehensions and reflexive transitive closures
+and is thus not directly executable. We improve on this in two respects:
+our transformation is an executable functional program and it does not require
+an initial transformation into CNF.
 
-We start with a weaker version of GNF, which we call \concept{head GNF},\footnote{
-This notion is sometimes just called GNF~\cite{BlumK99} or real-time form~\cite{ReghizziBM19}.
-}
-where
-every right-hand side starts with a terminal symbol.
+We start with a weaker version of GNF, which we call \concept{head GNF}
+(sometimes just called GNF~\cite{BlumK99} or real-time form~\cite{ReghizziBM19})
+where every right-hand side starts with a terminal symbol.
 \begin{quote}
 @{def GNF_hd}
 \end{quote}
 
-The procedure takes three steps of conversions:
+Our procedure takes three conversion steps:
 first eliminate \<open>\<epsilon>\<close>-productions (@{const Eps_elim}),
 then transform to a triangular form (@{const solve_tri}),
 and finally obtain head GNF (@{const Expand_tri}).
@@ -269,24 +265,23 @@ The last two steps follow textbook algorithms~\cite{Harrison78,HopcroftU79} for 
 except that
 we do not require input in CNF
 but only eliminate \<open>\<epsilon>\<close>-productions.
-As a result we arrive at head GNF.
+As a result we arrive at a head GNF.
 
 We say a grammar \<open>P\<close> is \concept{triangular on} a list \<open>[A\<^sub>1,...,A\<^sub>n]\<close> of nonterminals,
 if \<open>A\<^sub>i \<rightarrow> A\<^sub>j\<alpha> \<in> P\<close> implies \<open>i > j\<close>.
-Defined inductively, \<open>P\<close> is triangular on \<open>[]\<close>,
+Defined recursively, \<open>P\<close> is triangular on \<open>[]\<close>,
 and on \<open>A#As\<close> if it is so on \<open>As\<close> and
 there exist no \<open>A \<rightarrow> B\<alpha> \<in> P\<close> with \<open>B \<in> set As\<close>.
 
-We inductively make a grammar which is triangular on \<open>As\<close>
+We recursively turn a grammar that is triangular on \<open>As\<close>
 into a grammar triangular on \<open>A#As\<close>.
-First, we repeatedly expand productions of form \<open>A \<rightarrow> B\<alpha>\<close> for all \<open>B \<in> set As\<close>
+First, we expand productions of form \<open>A \<rightarrow> B\<alpha>\<close> for all \<open>B \<in> set As\<close>
 with respect to the \<open>B\<close>-productions in \<open>P\<close>,
 using the following function:
 \begin{quote}
 @{fun[margin=70] Expand_hd_rec[Expand_hd_rec.simps(1) Expand_hd_rec_simp2]}\smallskip\\
 @{def[margin=70] "Subst_hd"}
 \end{quote}
-
 
 Afterwards productions of form \<open>A \<rightarrow> Av\<close> remain to be solved.
 Let \<open>V\<close> collect all such \<open>v\<close>,
@@ -328,17 +323,14 @@ If moreover @{thm(prem 4) Lang_Solve_tri}
 and @{thm(prem 5) Lang_Solve_tri},
 then @{thm(concl) Lang_Solve_tri}.
 \end{lemma}
-Besides the clarification of the conditions,
-figuring out that the result is triangular w.r.t.\@ the list (\<open>As @ rev As'\<close>)
-required some effort.
-In particular, textbook arguments do not treat triangularity
-with respect to nonterminals in \<open>As'\<close> explicitly,
-which is however necessary for formally proving the termination of the next step.
+The triangularity on \<open>As @ rev As'\<close> in the conclusion is an essential strengthening of the textbook
+argument, which simply forgets about \<open>As'\<close>. However,
+the latter is necessary for formally proving the termination of the next step.
 
 From a triangular form,
 repeatedly expanding head nonterminals \emph{in the right order} (@{const Expand_tri})
 turns the grammar into head GNF.
-Thus the function @{const GNF_hd}
+Thus function @{const GNF_hd}
 first makes fresh copies \<open>As'\<close> of nonterminals in \<open>As\<close>,
 applies @{const Solve_tri} and then @{const Expand_tri} in the reversed order of
 \<open>As @ rev As'\<close> on which triangularity is ensured.
@@ -350,7 +342,7 @@ applies @{const Solve_tri} and then @{const Expand_tri} in the reversed order of
 \end{definition}
 Because the procedure processes nonterminals one by one,
 we explicitly give the list \<open>As\<close> of nonterminals as an argument to @{const GNF_hd_of}.
-For brevity, we present the version @{const gnf_hd_of} which computes such a list by
+For brevity, we do not present the version @{const gnf_hd_of} which computes such a list by
 taking the input grammar in the list representation.
 
 \begin{theorem}

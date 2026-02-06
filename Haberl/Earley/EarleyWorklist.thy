@@ -1,7 +1,6 @@
 theory EarleyWorklist
 
 imports 
-  "Complex_Main"
   "Earley" 
   "HOL-Library.While_Combinator" 
   "HOL-Library.Time_Commands" 
@@ -1180,7 +1179,7 @@ next
   also have "... \<le> (length as) * (3 * T_nth_WL (leng wl) + L * (Suc K) + 2) + 1 + 3 * T_nth_WL (from a) + L * (Suc K) + 1 + 1" 
     using Cons T_insert_less[of "union_LWL as wl" "leng wl" a] 1 2 by (fastforce simp add: wf_bin1_def)
   also have "... \<le> (length as) * (3 * T_nth_WL (leng wl) + L * (Suc K) + 2) + 1 + 3 * T_nth_WL (leng wl) + L * (Suc K) + 1 + 1"
-    using mono_nth 3 by (auto simp add: incseqD)
+    using mono_nth 3 by (auto simp add: monoD)
   finally show ?case by auto
 qed
 
@@ -1219,7 +1218,7 @@ next
   also have "... \<le> T_nth_WL (from a) + L * (Suc K) + 1 + (length as) * (4 * T_nth_WL k + 2*L * (Suc K) + 4) + k + 2 + length as + 3 * T_nth_WL (from a) + L * (Suc K) + 1 + 1"
     using T_insert_less[of "minus_LWL k as wl" k a] Cons 2 3 by linarith
   also have "... \<le> T_nth_WL k + L * (Suc K) + 1 + (length as) * (4 * T_nth_WL k + 2*L * (Suc K) + 4) + k + 1 + length as + 3 * T_nth_WL k + L * (Suc K) + 2 + 1"
-    using mono_nth 4 by (auto simp add: incseqD)
+    using mono_nth 4 by (auto simp add: monoD)
   also have "... \<le> (length (a#as)) * (4 * T_nth_WL k + 2*L * (Suc K) + 4) + k + 2 + (length (a#as))" by simp
   finally show ?case by simp
 qed
@@ -1313,7 +1312,7 @@ proof-
       using mult_le_mono2[OF 4]
       by (metis (no_types, lifting) ab_semigroup_mult_class.mult_ac(1) add_le_mono1 nat_add_left_cancel_le)
     also have "... \<le> T_nth_WL (length Bs) + 2 * (K + 2) * L * (Suc K) * (Suc (length Bs)) + 2"
-      using mono_nth 1 by (auto simp add: incseqD)
+      using mono_nth 1 by (auto simp add: monoD)
     finally have "T_Complete_L Bs b \<le> T_nth_WL (length Bs) + 2 * (K + 2) * L * (Suc K) * (Suc (length Bs)) + 2".
     then show ?thesis using complete by simp
   next
@@ -1346,7 +1345,7 @@ proof-
   have "T_insert wl2 b \<le> 3 * T_nth_WL (from b) + L * Suc K + 1"
     using T_insert_less[of wl2 _ b] from_b assms by auto
   also have "... \<le> 3 * T_nth_WL (length Bs) + L * Suc K + 1"
-    using mono_nth from_b by (auto simp add: incseqD)
+    using mono_nth from_b by (auto simp add: monoD)
   finally have 8: "T_insert wl2 b \<le> 3 * T_nth_WL (length Bs) + L * Suc K + 1".
 
   have wf_Comp_union: "wf1_WL (union_LWL ?step wl1) (length Bs)"
@@ -1690,12 +1689,12 @@ proof (induction k)
   finally have 2: "T_bins_L 0 \<le> 8 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_WL (0) + 3* L * Suc K + 9 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_WL (0) + 3* L * Suc K + 9 + Suc K)))".
 
   have "7 * T_nth_WL (0) + 3* L * Suc K + 9 + 2 * (K + 2)
-      \<le> 7 * T_nth_WL (1) + 3* L * Suc K + 9 + 2 * (K + 2)" using mono_nth by (auto simp add: incseq_SucD)
+      \<le> 7 * T_nth_WL (1) + 3* L * Suc K + 9 + 2 * (K + 2)" using mono_nth by (auto simp add: monoD)
   then have 3: "Suc L * Suc K * Suc L * Suc K * (7 * T_nth_WL (0) + 3* L * Suc K + 9 + 2 * (K + 2))
     \<le> Suc L * Suc K * Suc L * Suc K * (7 * T_nth_WL (1) + 3* L * Suc K + 9 + 2 * (K + 2))"
     using mult_le_mono2 by blast
   have "2 * (K + 2) + 10 * T_nth_WL (0) + 3* L * Suc K + 9 + Suc K \<le> 2 * (K + 2) + 10 * T_nth_WL (1) + 3* L * Suc K + 9 + Suc K"
-    using mono_nth by (auto simp add: incseq_SucD)
+    using mono_nth by (auto simp add: monoD)
   then have 4: "(Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_WL (0) + 3* L * Suc K + 9 + Suc K)) \<le> (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_WL (1) + 3* L * Suc K + 9 + Suc K))"
     using mult_le_mono2 by blast
 
@@ -1838,7 +1837,7 @@ next
   let ?b = "Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + Suc K)"
 
   have ff: "T_nth_WL (Suc k) \<le> T_nth_WL (Suc (Suc k))" using mono_nth
-    by (simp add: incseq_SucD)
+    by (simp add: monoD)
   then have "(7 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + 2 * (K + 2)) \<le> (7 * T_nth_WL (Suc (Suc k)) + 3* L * Suc K + 9 + 2 * (K + 2))"
     by auto
   then have a1: "?a \<le> Suc L * Suc K * Suc L * Suc K * (7 * T_nth_WL (Suc (Suc k)) + 3* L * Suc K + 9 + 2 * (K + 2))"
@@ -3092,7 +3091,7 @@ next
     using "Cons.prems"(1) PWL_T_insert_bound[of "(union_LPWL xs pwl)" "leng (fst pwl)" a] 
     by (auto simp add: wf_state1_def wf_state_def)
   then have "T_ParseWL_insert (union_LPWL xs pwl) a \<le> 4 * T_nth_WL (leng (fst pwl)) + 2* L * Suc K + 2"
-    using mono_nth a_le_leng incseqD[of T_nth_WL "from (fst a)" "leng (fst pwl)"] by (auto simp add: algebra_simps)
+    using mono_nth a_le_leng monoD[of T_nth_WL "from (fst a)" "leng (fst pwl)"] by (auto simp add: algebra_simps)
   then show ?case using ih by (auto simp add: algebra_simps)
 qed
 
@@ -3122,14 +3121,14 @@ next
     using "2.prems"(1) PWL_T_insert_bound[of "(minus_LPWL k as pwl)" k a] 
     by (auto simp add: wf_state1_def wf_state_def)
   then have 7: "T_ParseWL_insert (minus_LPWL k as pwl) a \<le> 4 * T_nth_WL k + 2* L * Suc K + 2"
-    using mono_nth a_le_k incseqD[of T_nth_WL "from (fst a)" k] by (auto simp add: algebra_simps)
+    using mono_nth a_le_k monoD[of T_nth_WL "from (fst a)" k] by (auto simp add: algebra_simps)
 
   have "T_isin (fst pwl) (fst a) \<le> T_nth_WL (from (fst a)) + L * Suc K + 1"
     using T_isin_wf
     using "2.prems"(1) "3" \<open>wf1_WL (fst pwl) k\<close> by blast
   then have "T_ParseWL_isin pwl a \<le> T_nth_WL (from (fst a)) + L * Suc K + 1" by (cases pwl, cases a) auto
   then have "T_ParseWL_isin pwl a \<le> T_nth_WL k + L * Suc K + 1" 
-    using mono_nth a_le_k incseqD[of T_nth_WL "from (fst a)" k] by (auto simp add: algebra_simps)
+    using mono_nth a_le_k monoD[of T_nth_WL "from (fst a)" k] by (auto simp add: algebra_simps)
 
 
   then show ?case using ih 7 by (auto simp add: algebra_simps)
@@ -3291,7 +3290,7 @@ proof-
   then have "T_ParseWL_insert pwl2 ?b \<le> 4 * T_nth_WL (from (state ?b)) + 2 * L * Suc K + 2"
     using PWL_T_insert_bound[of pwl2 "length Bs" ?b] dist invs wf1 P_pwl2 wf_PWL_impl_wf1_WL by auto
   also have "... \<le> 4 * T_nth_WL (length Bs) + 2 * L * Suc K + 2" using mono_nth wf1_b 
-    by (auto simp add: incseqD wf_state1_def wf_state_def)
+    by (auto simp add: monoD wf_state1_def wf_state_def)
   finally have 5: "T_ParseWL_insert pwl2 ?b \<le> 4 * T_nth_WL (length Bs) + 2 * L * Suc K + 2".
   
   have wf_PWL_union: "wf_PWL (union_LPWL ?step pwl1) (length Bs)" 
@@ -3738,7 +3737,7 @@ next
         + L * (4 * T_nth_WL (0) + 2 * L * Suc K + 2)
         + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_WL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 6 + k"
   proof-
-    have "T_nth_WL k \<le> T_nth_WL (Suc k)" using mono_nth incseqD[of T_nth_WL k "Suc k"] by simp
+    have "T_nth_WL k \<le> T_nth_WL (Suc k)" using mono_nth monoD[of T_nth_WL k "Suc k"] by simp
     then have 1: "4 * T_nth_WL (k) + 2 * L * Suc K + 2 * K + 20 \<le> 4 * T_nth_WL (Suc k) + 2 * L * Suc K + 2 * K + 20"
       by auto
     then have "17 * T_nth_WL (k) + 5 * L * Suc K + 4 * K * K + 24 

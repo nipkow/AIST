@@ -73,7 +73,7 @@ lemma slice_singleton:
 
 section \<open>Earley recognizer: Abstract inductive definition\<close>
 
-subsection \<open>Earley states\<close>
+subsection \<open>Earley items\<close>
 
 abbreviation lhs :: "('n,'a) prod \<Rightarrow> 'n" where
   "lhs \<equiv> fst"
@@ -81,24 +81,24 @@ abbreviation lhs :: "('n,'a) prod \<Rightarrow> 'n" where
 definition rhs :: "('n,'a) prod \<Rightarrow> ('n,'a) syms" where
   "rhs \<equiv> snd"
 
-datatype ('n,'a) state = 
-  State (prod: "('n,'a) prod") (dot : nat) ("from" : nat)
+datatype ('n,'a) item = 
+  Item (prod: "('n,'a) prod") (dot : nat) ("from" : nat)
 
-definition \<alpha> :: "('n,'a) state \<Rightarrow> ('n,'a) syms" where
+definition \<alpha> :: "('n,'a) item \<Rightarrow> ('n,'a) syms" where
   "\<alpha> x = take (dot x) (rhs(prod x))"
 
-definition \<beta> :: "('n,'a) state \<Rightarrow> ('n,'a) syms" where 
+definition \<beta> :: "('n,'a) item \<Rightarrow> ('n,'a) syms" where 
   "\<beta> x = drop (dot x) (rhs(prod x))"
 
-definition is_complete :: "('n,'a) state \<Rightarrow> bool" where
+definition is_complete :: "('n,'a) item \<Rightarrow> bool" where
   "is_complete x = (dot x \<ge> length (rhs(prod x)))"
 
-definition next_symbol :: "('n,'a) state \<Rightarrow> ('n,'a) sym option" where
+definition next_symbol :: "('n,'a) item \<Rightarrow> ('n,'a) sym option" where
   "next_symbol x = (if is_complete x then None else Some (rhs(prod x) ! dot x))"
 
 abbreviation "next_sym_Nt x A \<equiv> next_symbol x = Some(Nt A)"
 
-lemmas state_defs = \<alpha>_def \<beta>_def rhs_def
+lemmas item_defs = \<alpha>_def \<beta>_def rhs_def
 
 locale Earley_Gw =
 fixes ps :: "('n,'a) prods"
@@ -109,25 +109,25 @@ begin
 abbreviation "P \<equiv> set ps"
 definition w :: "('n,'a)syms" where "w \<equiv> map Tm w0"
 
-definition is_final :: "('n,'a) state \<Rightarrow> bool" where
+definition is_final :: "('n,'a) item \<Rightarrow> bool" where
   "is_final x =
     (lhs(prod x) = S \<and>
     from x = 0 \<and>
     is_complete x)"
 
-definition recognized :: "(('n,'a) state \<times> nat) set \<Rightarrow> bool" where
+definition recognized :: "(('n,'a) item \<times> nat) set \<Rightarrow> bool" where
   "recognized I \<equiv> \<exists>(x,k) \<in> I. is_final x \<and> k = length w"
 
-definition Init :: "('n,'a) state set" where
-  "Init = { State r 0 0 | r. r \<in> P \<and> lhs r = (S) }"
+definition Init :: "('n,'a) item set" where
+  "Init = { Item r 0 0 | r. r \<in> P \<and> lhs r = (S) }"
 
-definition Predict :: "('n,'a) state \<Rightarrow> nat \<Rightarrow> ('n,'a) state set" where
-  "Predict x k = { State r 0 k | r. r \<in> P \<and> next_sym_Nt x (lhs r) }"
+definition Predict :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> ('n,'a) item set" where
+  "Predict x k = { Item r 0 k | r. r \<in> P \<and> next_sym_Nt x (lhs r) }"
 
-definition mv_dot :: "('n,'a) state \<Rightarrow> ('n,'a) state" where
-"mv_dot x \<equiv> State (prod x) (dot x + 1) (from x)"
+definition mv_dot :: "('n,'a) item \<Rightarrow> ('n,'a) item" where
+"mv_dot x \<equiv> Item (prod x) (dot x + 1) (from x)"
 (* TODO use Complete and Scan? *)
-inductive_set Earley :: "(('n,'a) state \<times> nat) set" where
+inductive_set Earley :: "(('n,'a) item \<times> nat) set" where
     Init: "x \<in> Init \<Longrightarrow> (x,0) \<in> Earley"
   | Scan: "\<lbrakk> (x,j) \<in> Earley;  j < length w;  next_symbol x = Some (w!j) \<rbrakk> \<Longrightarrow>
       (mv_dot x, j + 1) \<in> Earley"
@@ -137,7 +137,7 @@ inductive_set Earley :: "(('n,'a) state \<times> nat) set" where
       next_sym_Nt x (lhs(prod y)) \<rbrakk> \<Longrightarrow>
         (mv_dot x, k) \<in> Earley"
 
-definition \<S> :: "nat \<Rightarrow> ('n,'a) state set" where
+definition \<S> :: "nat \<Rightarrow> ('n,'a) item set" where
 "\<S> i = {x. (x,i) \<in> Earley}"
 
 lemma Earley_eq_\<S>: "(x,i) \<in> Earley \<longleftrightarrow> x \<in> \<S> i"
@@ -149,8 +149,8 @@ definition accepted :: "bool" where
 
 subsection \<open>Well-formedness\<close>
 
-definition wf_state :: "('n,'a) state \<Rightarrow> nat \<Rightarrow> bool" where 
-  "wf_state x k =
+definition wf_item :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> bool" where 
+  "wf_item x k =
     (prod x \<in> P \<and> 
     dot x \<le> length (rhs(prod x)) \<and>
     from x \<le> k \<and> 
@@ -158,29 +158,29 @@ definition wf_state :: "('n,'a) state \<Rightarrow> nat \<Rightarrow> bool" wher
 
 lemma wf_Init:
   assumes "x \<in> Init"
-  shows "wf_state x 0"
-  using assms unfolding Init_def wf_state_def by auto
+  shows "wf_item x 0"
+  using assms unfolding Init_def wf_item_def by auto
 
 lemma wf_Scan:
-  assumes "wf_state x j" "w!j = a" "j < length w" "next_symbol x = Some (a)"
-  shows "wf_state (mv_dot x) (j+1)"
-  using assms unfolding wf_state_def mv_dot_def
-  by (auto simp: state_defs is_complete_def next_symbol_def split: if_splits)
+  assumes "wf_item x j" "w!j = a" "j < length w" "next_symbol x = Some (a)"
+  shows "wf_item (mv_dot x) (j+1)"
+  using assms unfolding wf_item_def mv_dot_def
+  by (auto simp: item_defs is_complete_def next_symbol_def split: if_splits)
 
 lemma wf_Predict:
-  "\<lbrakk> wf_state x k; x' \<in> Predict x k \<rbrakk> \<Longrightarrow> wf_state x' k"
-unfolding wf_state_def Predict_def by (auto)
+  "\<lbrakk> wf_item x k; x' \<in> Predict x k \<rbrakk> \<Longrightarrow> wf_item x' k"
+unfolding wf_item_def Predict_def by (auto)
 
 lemma wf_Complete:
-  assumes "wf_state x j" "j = from y" "wf_state y k"
+  assumes "wf_item x j" "j = from y" "wf_item y k"
   assumes "is_complete y" "next_sym_Nt x (lhs(prod y))"
-  shows "wf_state (mv_dot x) k"
-  using assms unfolding wf_state_def is_complete_def next_symbol_def mv_dot_def
+  shows "wf_item (mv_dot x) k"
+  using assms unfolding wf_item_def is_complete_def next_symbol_def mv_dot_def
   by (auto split: if_splits)
 
 lemma wf_Earley:
   assumes "(x,k) \<in> Earley"
-  shows "wf_state x k"
+  shows "wf_item x k"
   using assms wf_Init wf_Scan wf_Predict wf_Complete
   by (induction rule: Earley.induct) fast+
 
@@ -188,71 +188,71 @@ lemmas wf_EarleyS = wf_Earley[unfolded Earley_eq_\<S>]
 
 subsection \<open>Soundness\<close>
 
-definition sound_state :: "('n,'a) state \<Rightarrow> nat \<Rightarrow> bool" where
-  "sound_state x k = (P \<turnstile> \<alpha> x \<Rightarrow>* slice (from x) k w)"
+definition sound_item :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> bool" where
+  "sound_item x k = (P \<turnstile> \<alpha> x \<Rightarrow>* slice (from x) k w)"
 
 lemma sound_Init:
   assumes "x \<in> Init"
-  shows "sound_state x 0"
+  shows "sound_item x 0"
 proof -
   have "(lhs(prod x), rhs(prod x)) \<in> P"
-    using assms by (auto simp add: Init_def state_defs)
+    using assms by (auto simp add: Init_def item_defs)
   hence "P \<turnstile> [Nt(lhs(prod x))] \<Rightarrow>* rhs(prod x)"
     using derive_singleton by blast
-  thus "sound_state x 0"
-    using assms unfolding Init_def sound_state_def by (auto simp add: \<alpha>_def slice_empty)
+  thus "sound_item x 0"
+    using assms unfolding Init_def sound_item_def by (auto simp add: \<alpha>_def slice_empty)
 qed
 
 lemma sound_Scan:
-  assumes "x = State r d i" "wf_state x j" "sound_state x j"
+  assumes "x = Item r d i" "wf_item x j" "sound_item x j"
   assumes "w!j = a" "j < length w" "next_symbol x = Some a"
-  shows "sound_state (State r (d+1) i) (j+1)"
+  shows "sound_item (Item r (d+1) i) (j+1)"
 proof -
-  define x' where [simp]: "x' = State r (d+1) i"
+  define x' where [simp]: "x' = Item r (d+1) i"
   have *: "\<alpha> x' = \<alpha> x @ [w!j]"
-    using assms(1,4,5,6) by (auto simp: state_defs next_symbol_def is_complete_def take_Suc_conv_app_nth split: if_splits)
+    using assms(1,4,5,6) by (auto simp: item_defs next_symbol_def is_complete_def take_Suc_conv_app_nth split: if_splits)
   have "slice i (j+1) w = slice i j w @ [w!j]"
-    using * assms(1,2,5) slice_append_nth[symmetric, of i j w] by (auto simp: wf_state_def)
+    using * assms(1,2,5) slice_append_nth[symmetric, of i j w] by (auto simp: wf_item_def)
   moreover have "P \<turnstile> \<alpha> x \<Rightarrow>* slice i j w"
-    using assms(1,3) by (simp add: sound_state_def)
+    using assms(1,3) by (simp add: sound_item_def)
   ultimately show ?thesis
-    using * by (simp add: derives_append sound_state_def)
+    using * by (simp add: derives_append sound_item_def)
 qed
 
 lemma sound_Predict:
-  assumes "wf_state x k" "sound_state x k"
+  assumes "wf_item x k" "sound_item x k"
   assumes "x' \<in> Predict x k"
-  shows "sound_state x' k"
-  using assms slice_empty unfolding Predict_def sound_state_def state_defs by fastforce
+  shows "sound_item x' k"
+  using assms slice_empty unfolding Predict_def sound_item_def item_defs by fastforce
 
 lemma sound_Complete:
-  assumes "x = State r\<^sub>x d\<^sub>x i" "wf_state x j" "sound_state x j"
-  assumes "y = State r\<^sub>y d\<^sub>y j" "wf_state y k" "sound_state y k"
+  assumes "x = Item r\<^sub>x d\<^sub>x i" "wf_item x j" "sound_item x j"
+  assumes "y = Item r\<^sub>y d\<^sub>y j" "wf_item y k" "sound_item y k"
   assumes "is_complete y" "next_sym_Nt x (lhs(prod y))"
-  shows "sound_state (State r\<^sub>x (d\<^sub>x + 1) i) k"
+  shows "sound_item (Item r\<^sub>x (d\<^sub>x + 1) i) k"
 proof -
   have *: "P \<turnstile> [Nt(lhs r\<^sub>y)] \<Rightarrow> rhs r\<^sub>y"
-    using assms(4,5)unfolding rhs_def wf_state_def by (simp add: derive_singleton)
+    using assms(4,5)unfolding rhs_def wf_item_def by (simp add: derive_singleton)
   moreover have *: "P \<turnstile> rhs r\<^sub>y \<Rightarrow>* slice j k w"
-    using assms(4,6,7) by (auto simp: sound_state_def is_complete_def state_defs)
+    using assms(4,6,7) by (auto simp: sound_item_def is_complete_def item_defs)
   ultimately have "P \<turnstile> [Nt(lhs r\<^sub>y)] \<Rightarrow>* slice j k w"
     by simp
   moreover have "P \<turnstile> take d\<^sub>x (rhs r\<^sub>x) \<Rightarrow>* slice i j w"
-    using assms(1,3) by (auto simp: sound_state_def \<alpha>_def)
+    using assms(1,3) by (auto simp: sound_item_def \<alpha>_def)
   moreover have "rhs r\<^sub>x ! d\<^sub>x = Nt(lhs r\<^sub>y)" and "d\<^sub>x < length(rhs r\<^sub>x)"
     using assms(1,4,8) unfolding next_symbol_def is_complete_def by(auto split: if_splits)
   ultimately have "P \<turnstile> take (d\<^sub>x+1) (rhs r\<^sub>x) \<Rightarrow>* slice i j w @ slice j k w"
     using assms(1,8) apply(simp add: take_Suc_conv_app_nth)
     using derives_append_decomp by blast
   moreover have "i \<le> j"  "j \<le> k"
-    using assms(1,2,4,5) by (simp_all add: wf_state_def)
+    using assms(1,2,4,5) by (simp_all add: wf_item_def)
   ultimately show ?thesis
-    unfolding sound_state_def \<alpha>_def by (simp add: slice_concat)
+    unfolding sound_item_def \<alpha>_def by (simp add: slice_concat)
 qed
 
 lemma sound_Earley:
   assumes "(x,k) \<in> Earley"
-  shows "sound_state x k"
+  shows "sound_item x k"
   using assms
 proof (induction rule: Earley.induct)
   case (Init r)
@@ -268,7 +268,7 @@ next
 next
   case (Complete)
   thus ?case
-    using sound_Complete wf_Earley unfolding mv_dot_def by (metis state.collapse)
+    using sound_Complete wf_Earley unfolding mv_dot_def by (metis item.collapse)
 qed
 
 theorem soundness_Earley:
@@ -278,10 +278,10 @@ proof -
     using assms recognized_def by auto
   hence "prod x \<in> P" "lhs(prod x) = S" "from x = 0" "dot x \<ge> length (rhs(prod x))"
     "\<alpha> x = rhs(prod x)"
-    using wf_Earley[OF *] unfolding is_final_def is_complete_def wf_state_def \<alpha>_def by auto
+    using wf_Earley[OF *] unfolding is_final_def is_complete_def wf_item_def \<alpha>_def by auto
   with sound_Earley[OF *] derives_Cons_rule[of "lhs(prod x)" "rhs(prod x)"]
   show ?thesis using slice_id[of Tm_w]
-    by(auto simp add: sound_state_def rhs_def)
+    by(auto simp add: sound_item_def rhs_def)
 qed
 
 corollary accpted_sound: "accepted \<Longrightarrow> P \<turnstile> [Nt S] \<Rightarrow>* w" (* used in Paper *)
@@ -295,16 +295,16 @@ text \<open>A canonical proof:
  with a nested induction on the length of the right-hand side of the production.\<close>
 
 lemma Earley_complete_induction:
-  "\<lbrakk>j \<le> k; k \<le> length w; x = State (A,\<gamma>) d i; (x,j) \<in> Earley;
-    P \<turnstile> \<beta> x \<Rightarrow>(n) slice j k w \<rbrakk> \<Longrightarrow> (State (A,\<gamma>) (length \<gamma>) i, k) \<in> Earley"
+  "\<lbrakk>j \<le> k; k \<le> length w; x = Item (A,\<gamma>) d i; (x,j) \<in> Earley;
+    P \<turnstile> \<beta> x \<Rightarrow>(n) slice j k w \<rbrakk> \<Longrightarrow> (Item (A,\<gamma>) (length \<gamma>) i, k) \<in> Earley"
 proof (induction n arbitrary: x d i j k A \<gamma> rule: less_induct)
   case (less n)
   have "\<exists>m \<le> n. P \<turnstile> \<beta> x \<Rightarrow>(m) slice j k w" using less.prems(5) by auto
   from less.prems(1,3,4) this show ?case
   proof (induction "\<beta> x" arbitrary: x d j)
     case Nil
-    have "x = State (A,\<gamma>) (length \<gamma>) i" using Nil.hyps Nil.prems(3,4) \<open>x = _\<close> wf_Earley[of x]
-      unfolding wf_state_def state_defs by auto
+    have "x = Item (A,\<gamma>) (length \<gamma>) i" using Nil.hyps Nil.prems(3,4) \<open>x = _\<close> wf_Earley[of x]
+      unfolding wf_item_def item_defs by auto
     have "\<exists>m \<le> n. P \<turnstile> [] \<Rightarrow>(m) slice j k w"
       using Nil by auto
     hence "slice j k w = []"
@@ -312,7 +312,7 @@ proof (induction n arbitrary: x d i j k A \<gamma> rule: less_induct)
     hence "j = k"
       unfolding slice_drop_take using \<open>j \<le> k\<close> less.prems(2) by simp
     thus ?case
-      using \<open>x = State (A, \<gamma>) (length \<gamma>) i\<close> Nil.prems by blast
+      using \<open>x = Item (A, \<gamma>) (length \<gamma>) i\<close> Nil.prems by blast
   next
     case (Cons s ss)
     from Cons.prems(4) obtain m where m: "m \<le> n" "P \<turnstile> \<beta> x \<Rightarrow>(m) slice j k w" by blast
@@ -323,9 +323,9 @@ proof (induction n arbitrary: x d i j k A \<gamma> rule: less_induct)
       using deriven_append_decomp[of m P "[s]" ss "slice j k w"] slice_concat_Ex[OF \<open>j \<le> k\<close>]
         Cons.hyps(2) m(2) append_Nil[of ss] append_Cons[of s "[]" ss]
       by (metis le_add1 le_add2)
-    let ?x = "State (A, \<gamma>) (d+1) i"
+    let ?x = "Item (A, \<gamma>) (d+1) i"
     have nxt: "next_symbol x = Some s"
-      using Cons.hyps(2) unfolding state_defs(2) next_symbol_def is_complete_def
+      using Cons.hyps(2) unfolding item_defs(2) next_symbol_def is_complete_def
       by (auto, metis nth_via_drop)
     hence "(?x, j') \<in> Earley"
     proof (cases n1)
@@ -350,20 +350,20 @@ proof (induction n arbitrary: x d i j k A \<gamma> rule: less_induct)
       then obtain B where [simp]: "s = Nt B" and prod: "(B, u) \<in> P"
         using *(1)
         by (meson derive_singleton)
-      define y where y_def: "y = State (B,u) 0 j"
+      define y where y_def: "y = Item (B,u) 0 j"
       have **: "P \<turnstile> \<beta> y \<Rightarrow>(n0) slice j j' w"
-        using n0 by (auto simp: state_defs y_def)
+        using n0 by (auto simp: item_defs y_def)
       have "(y,j) \<in> Earley"
         using y_def \<open>(x,j) \<in> Earley\<close> nxt *(1) prod
-        by (auto simp: state_defs Earley.Predict Predict_def)
-      have "(State (B,u) (length u) j, j') \<in> Earley"
+        by (auto simp: item_defs Earley.Predict Predict_def)
+      have "(Item (B,u) (length u) j, j') \<in> Earley"
         using less.IH [OF _ _ _ y_def \<open>(y,j) \<in> Earley\<close> **] *(3,4,5) m(1) Suc less.prems(2)
         by linarith
       from Earley.Complete[OF this, of x] show ?thesis
         using nxt Cons.prems(2,3) by (simp add: mv_dot_def is_complete_def rhs_def)
     qed
     moreover have "ss = \<beta> ?x"
-      using Cons.hyps(2) \<open>x = _\<close> unfolding state_defs(2)
+      using Cons.hyps(2) \<open>x = _\<close> unfolding item_defs(2)
       by (auto, metis List.list.sel(3) drop_Suc drop_tl)
     ultimately show ?case
       using Cons.hyps(1) *(2,4,6) m(1) le_trans by blast
@@ -377,15 +377,15 @@ theorem Earley_complete:
 proof -
   obtain \<alpha> n where *: "(S ,\<alpha>) \<in> P" "P \<turnstile> \<alpha> \<Rightarrow>(n) w"
     by (metis assms deriven_start1 rtranclp_power w_def)
-  define x where x_def: "x = State (S, \<alpha>) 0 0"
+  define x where x_def: "x = Item (S, \<alpha>) 0 0"
   have 1: "(x,0) \<in> Earley"
     using x_def Earley.Init *(1) by (fastforce simp: Init_def)
   have 2: "P \<turnstile> (\<beta> x) \<Rightarrow>(n) (slice 0 (length w) w)"
-    using *(2) x_def by (simp add: state_defs)
-  have "(State (S,\<alpha>) (length \<alpha>) 0, length w) \<in> Earley"
+    using *(2) x_def by (simp add: item_defs)
+  have "(Item (S,\<alpha>) (length \<alpha>) 0, length w) \<in> Earley"
     using Earley_complete_induction[OF _ _ _ 1 2] x_def by auto
   thus ?thesis
-    unfolding recognized_def is_final_def by (auto simp: is_complete_def state_defs, force)
+    unfolding recognized_def is_final_def by (auto simp: is_complete_def item_defs, force)
 qed
 
 (* Completeness also if there are \<open>Nt\<close>s in the input \<open>w\<close>. Does not use \<open>w_def\<close> *)
@@ -416,15 +416,15 @@ theorem Earley_complete_NT:
 proof -
   obtain \<alpha> n where *: "(S ,\<alpha>) \<in> P" "P \<turnstile> \<alpha> \<Rightarrow>(n) w"
     using Derivation_start_nonstart assms by(metis rtranclp_imp_relpowp)
-  define x where x_def: "x = State (S, \<alpha>) 0 0"
+  define x where x_def: "x = Item (S, \<alpha>) 0 0"
   have 1: "(x,0) \<in> Earley"
     using x_def Earley.Init *(1) by (fastforce simp: Init_def)
   have 2: "P \<turnstile> (\<beta> x) \<Rightarrow>(n) (slice 0 (length w) w)"
-    using *(2) x_def by (simp add: state_defs)
-  have "(State (S,\<alpha>) (length \<alpha>) 0, length w) \<in> Earley"
+    using *(2) x_def by (simp add: item_defs)
+  have "(Item (S,\<alpha>) (length \<alpha>) 0, length w) \<in> Earley"
     using Earley_complete_induction[OF _ _ _ 1 2] x_def by auto
   thus ?thesis
-    unfolding recognized_def is_final_def by (auto simp: is_complete_def state_defs, force)
+    unfolding recognized_def is_final_def by (auto simp: is_complete_def item_defs, force)
 qed
 
 
@@ -442,27 +442,27 @@ theorem correctness_Earley_NT:
 
 subsection \<open>Finiteness\<close>
 
-fun mk_state :: "('n,'a) prod \<times> nat \<times> nat \<times> nat \<Rightarrow> ('n,'a) state \<times> nat" where
-  "mk_state (r, d, k, ends) = (State r d k, ends)" 
+fun mk_item :: "('n,'a) prod \<times> nat \<times> nat \<times> nat \<Rightarrow> ('n,'a) item \<times> nat" where
+  "mk_item (r, d, k, ends) = (Item r d k, ends)" 
 
-lemma finite_wf_state:
-  shows "finite { (x,k). wf_state x k }"
+lemma finite_wf_item:
+  shows "finite { (x,k). wf_item x k }"
 proof -
   define M where "M = Max { length (rhs r) | r. r \<in> P }"
   define Top where "Top = (P \<times> {0..M} \<times> {0..length w} \<times> {0..length w})"
   hence "finite Top"
     using finite_cartesian_product finite by blast
-  have "inj_on mk_state Top"
+  have "inj_on mk_item Top"
     unfolding Top_def inj_on_def by simp
-  hence "finite (mk_state ` Top)"
+  hence "finite (mk_item ` Top)"
     using finite_image_iff \<open>finite Top\<close> by auto
-  have "{ (x,k). wf_state x k } \<subseteq> mk_state ` Top"
+  have "{ (x,k). wf_item x k } \<subseteq> mk_item ` Top"
   proof auto
     fix x k
-    assume "wf_state x k"
-    then obtain r d j where *: "x = State r d j"
+    assume "wf_item x k"
+    then obtain r d j where *: "x = Item r d j"
       "r \<in> P" "d \<le> length (rhs(prod x))" "j \<le> k" "k \<le> length w"
-      unfolding wf_state_def using state.exhaust_sel le_trans by blast
+      unfolding wf_item_def using item.exhaust_sel le_trans by blast
     hence "length (rhs r) \<in> { length (rhs r) | r. r \<in> P }"
       using *(1,2) by blast
     moreover have "finite { length (rhs r) | r. r \<in> P }"
@@ -470,23 +470,23 @@ proof -
     ultimately have "M \<ge> length (rhs r)"
       unfolding M_def by simp
     hence "d \<le> M"
-      using *(1,3) by (metis state.sel(1) le_trans)
+      using *(1,3) by (metis item.sel(1) le_trans)
     hence "(r, d, j, k) \<in> Top"
       using *(2,4,5) unfolding Top_def by simp
-    thus "(x,k) \<in> mk_state ` Top"
+    thus "(x,k) \<in> mk_item ` Top"
       using *(1) by force
   qed
   thus ?thesis
-    using \<open>finite (mk_state ` Top)\<close> rev_finite_subset by auto
+    using \<open>finite (mk_item ` Top)\<close> rev_finite_subset by auto
 qed
 
 
 section \<open>Earley recognizer: Standard recusrive/inductive definition\<close>
 
-definition Scan :: "('n,'a) state set \<Rightarrow> nat \<Rightarrow> ('n,'a) state set" where
+definition Scan :: "('n,'a) item set \<Rightarrow> nat \<Rightarrow> ('n,'a) item set" where
   "Scan B k = { mv_dot x | x. x \<in> B \<and> next_symbol x = Some (w!k) }"
 
-inductive_set Close :: "('n,'a) state set list \<Rightarrow> ('n,'a) state set \<Rightarrow> ('n,'a) state set" for Bs B where
+inductive_set Close :: "('n,'a) item set list \<Rightarrow> ('n,'a) item set \<Rightarrow> ('n,'a) item set" for Bs B where
     Init: "x \<in> B \<Longrightarrow> x \<in> Close Bs B"
   | Predict: "\<lbrakk> x \<in> Close Bs B; x' \<in> Predict x (length Bs) \<rbrakk> \<Longrightarrow> x' \<in> Close Bs B"
   | Complete: "\<lbrakk> y \<in> Close Bs B;  is_complete y;
@@ -505,10 +505,10 @@ lemma Close_Complete:(* used in Paper *)
 apply(simp add: nth_append)
 by (metis Close.Complete diff_is_0_eq' linorder_not_le nat_neq_iff nth_Cons_0)
 
-abbreviation "wf_bin B k \<equiv> \<forall>s \<in> B. wf_state s k"
+abbreviation "wf_bin B k \<equiv> \<forall>s \<in> B. wf_item s k"
 abbreviation "wf_bins Bs \<equiv> \<forall>k < length Bs. wf_bin (Bs!k) k"
 
-fun bins :: "nat \<Rightarrow> ('n,'a) state set list" where
+fun bins :: "nat \<Rightarrow> ('n,'a) item set list" where
 "bins 0 = [Close [] Init]" |
 "bins (Suc k) = (let Bs = bins k in Bs @ [Close Bs (Scan (last Bs) k)])"
 
@@ -542,7 +542,7 @@ next
   thus ?case by(simp add: Close.Predict)
 next
   case (Complete y x)
-  thus ?case using wf_Earley[OF Complete.hyps(1)] unfolding wf_state_def
+  thus ?case using wf_Earley[OF Complete.hyps(1)] unfolding wf_item_def
     using Close.Complete[OF Complete.hyps(2,3)] by (simp)
 qed
 
@@ -552,7 +552,7 @@ apply(induction rule: Close.induct)
 apply simp
   using Earley.Predict apply blast
 apply simp
-  by (metis Earley.Complete le_zero_eq wf_Earley wf_state_def)
+  by (metis Earley.Complete le_zero_eq wf_Earley wf_item_def)
 
 lemma S0: "\<S> 0 = Close [] Init"
 unfolding \<S>_def using Close_Init_if_Earley0 Earley0_if_Close_Init
@@ -570,7 +570,7 @@ next
 next
   case (Complete y x)
   have "from y = Suc n \<or> from y < Suc n"
-    using wf_EarleyS[OF Complete.IH(1)] unfolding wf_state_def by auto
+    using wf_EarleyS[OF Complete.IH(1)] unfolding wf_item_def by auto
   with assms(1) Complete Earley.Complete show ?case unfolding \<S>_def by (auto)
 qed
 
@@ -587,7 +587,7 @@ next
 next
   case (Complete y x)
   have "from y = Suc n \<or> from y < Suc n"
-    using wf_Earley[OF Complete.hyps(1)] unfolding wf_state_def by auto
+    using wf_Earley[OF Complete.hyps(1)] unfolding wf_item_def by auto
   thus ?case
   proof
     assume "from y = Suc n"
@@ -627,15 +627,15 @@ using bins_eq_\<S>_gen[of "length w"] by blast
 
 subsection \<open>Simplification: \<open>\<epsilon>\<close>-free Grammars\<close>
 
-definition wf_state1 :: "('n,'a) state \<Rightarrow> nat \<Rightarrow> bool" where 
-"wf_state1 x k = (wf_state x k \<and> (is_complete x \<longrightarrow> from x < k))"
+definition wf_item1 :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> bool" where 
+"wf_item1 x k = (wf_item x k \<and> (is_complete x \<longrightarrow> from x < k))"
 
-definition "wf_bin1 B k = (\<forall>x \<in> B. wf_state1 x k)"
+definition "wf_bin1 B k = (\<forall>x \<in> B. wf_item1 x k)"
 definition "wf_bins1 Bs = (\<forall>k < length Bs. wf_bin1 (Bs!k) k)"
 
-text \<open>Like @{const Close}, but in \<open>Complete\<close>, only one state is from the current state set:\<close>
+text \<open>Like @{const Close}, but in \<open>Complete\<close>, only one item is from the current item set:\<close>
 
-inductive_set Close1 :: "('n,'a) state set list \<Rightarrow> ('n,'a) state set \<Rightarrow> ('n,'a) state set" for Bs B where
+inductive_set Close1 :: "('n,'a) item set list \<Rightarrow> ('n,'a) item set \<Rightarrow> ('n,'a) item set" for Bs B where
     Init: "x \<in> B \<Longrightarrow> x \<in> Close1 Bs B"
   | Predict: "\<lbrakk> x \<in> Close1 Bs B; x' \<in> Predict x (length Bs) \<rbrakk> \<Longrightarrow> x' \<in> Close1 Bs B"
   | Complete: "\<lbrakk> y \<in> Close1 Bs B;  is_complete y; x \<in> Bs ! from y;
@@ -651,19 +651,19 @@ assumes \<epsilon>: \<epsilon>_free
 begin
 
 lemma wf1_Predict:
-  "\<lbrakk> wf_state1 x k; x' \<in> Predict x k \<rbrakk> \<Longrightarrow> wf_state1 x' k"
-using \<epsilon> unfolding wf_state1_def wf_state_def Predict_def is_complete_def \<epsilon>_free_def by (auto)
+  "\<lbrakk> wf_item1 x k; x' \<in> Predict x k \<rbrakk> \<Longrightarrow> wf_item1 x' k"
+using \<epsilon> unfolding wf_item1_def wf_item_def Predict_def is_complete_def \<epsilon>_free_def by (auto)
 
 (* does not need \<epsilon> *)
 lemma wf1_Complete:
-  assumes "wf_state1 x j" "j = from y" "wf_state1 y k"
+  assumes "wf_item1 x j" "j = from y" "wf_item1 y k"
   assumes "is_complete y" "next_sym_Nt x (lhs(prod y))"
-  shows "wf_state1 (mv_dot x) k"
-  using assms unfolding wf_state1_def wf_state_def is_complete_def next_symbol_def mv_dot_def
+  shows "wf_item1 (mv_dot x) k"
+  using assms unfolding wf_item1_def wf_item_def is_complete_def next_symbol_def mv_dot_def
   by (auto split: if_splits)
 
-lemma wf_state1_Close1: assumes "wf_bins1 Bs" "wf_bin1 B (length Bs)"
-shows "y \<in> Close1 Bs B \<Longrightarrow> wf_state1 y (length Bs)"
+lemma wf_item1_Close1: assumes "wf_bins1 Bs" "wf_bin1 B (length Bs)"
+shows "y \<in> Close1 Bs B \<Longrightarrow> wf_item1 y (length Bs)"
 proof (induction rule: Close1.induct)
   case (Init x)
   thus ?case using assms(2) unfolding wf_bins1_def wf_bin1_def by blast
@@ -672,7 +672,7 @@ next
   thus ?case using Close1.Predict wf1_Predict by blast
 next
   case (Complete y x)
-  show ?case using Complete.IH Complete.hyps assms(1) wf1_Complete wf_state1_def
+  show ?case using Complete.IH Complete.hyps assms(1) wf1_Complete wf_item1_def
     unfolding wf_bins1_def wf_bin1_def by blast
 qed
 
@@ -689,7 +689,7 @@ next
   case (Complete y x)
   show ?case
     using Close.Complete[OF Complete.IH Complete.hyps(2) _ _ Complete.hyps(4)] Complete.hyps(2,3)
-      wf_state1_Close1[OF assms Complete.hyps(1)] unfolding wf_state1_def
+      wf_item1_Close1[OF assms Complete.hyps(1)] unfolding wf_item1_def
     by auto
 qed
 
@@ -706,7 +706,7 @@ next
   case (Complete y x)
   show ?case
     using Complete.IH(1) Complete.hyps(2,3) Close1.Complete[OF Complete.IH(1) Complete.hyps(2) _ Complete.hyps(4)]
-      wf_state1_Close1[OF assms] unfolding wf_state1_def by blast
+      wf_item1_Close1[OF assms] unfolding wf_item1_def by blast
 qed
 
 lemma Close1_eq_Close: assumes "wf_bins1 Bs" "wf_bin1 B (length Bs)"
@@ -727,7 +727,7 @@ definition "Complete Bs y = mv_dot ` {x. x \<in> Bs ! from y \<and> next_sym_Nt 
 
 (* TODO? Generic workset algorithm parameterized with next-function? *)
 
-inductive Close2 :: "('n,'a) state set list \<Rightarrow> ('n,'a) state set * ('n,'a) state set \<Rightarrow> ('n,'a) state set * ('n,'a) state set \<Rightarrow> bool"
+inductive Close2 :: "('n,'a) item set list \<Rightarrow> ('n,'a) item set * ('n,'a) item set \<Rightarrow> ('n,'a) item set * ('n,'a) item set \<Rightarrow> bool"
 ("(_ \<turnstile> _ \<rightarrow> _)" [50, 0, 50] 50)
   for Bs where
     Predict: "\<lbrakk> x \<in> B; next_symbol x \<noteq> None \<rbrakk> \<Longrightarrow>
@@ -855,20 +855,20 @@ qed
 corollary Close2_steps_subset_Close1': "Bs \<turnstile> (B,{}) \<rightarrow>* ({},C) \<Longrightarrow> C \<subseteq> Close1 Bs B"
 by (drule Close2_steps_subset_Close1) auto
 
-definition Close2_less :: "nat \<Rightarrow> ((('n,'a) state set \<times> ('n,'a) state set) \<times> (('n,'a) state set \<times> ('n,'a) state set)) set" where
-"Close2_less k = (\<lambda>(B,C). card({x. wf_state x k} - (B \<union> C))) <*mlex*> inv_image finite_psubset fst"
+definition Close2_less :: "nat \<Rightarrow> ((('n,'a) item set \<times> ('n,'a) item set) \<times> (('n,'a) item set \<times> ('n,'a) item set)) set" where
+"Close2_less k = (\<lambda>(B,C). card({x. wf_item x k} - (B \<union> C))) <*mlex*> inv_image finite_psubset fst"
 
 lemma wf_Close2_less: "wf (Close2_less k)"
 by (simp add: Close2_less_def wf_mlex)
 
-lemma finite_ex_wf_state: "finite ({x. wf_state x k})"
-using finite_subset[OF _  finite_imageI[OF finite_wf_state, of fst]] unfolding image_def
+lemma finite_ex_wf_item: "finite ({x. wf_item x k})"
+using finite_subset[OF _  finite_imageI[OF finite_wf_item, of fst]] unfolding image_def
 apply auto
 by (metis Collect_mono)
 
-lemma wf_states_mv_dot: "\<lbrakk> wf_bins1 Bs; wf_state1 x (length Bs); next_symbol x = None \<rbrakk> \<Longrightarrow>
-  mv_dot ` {y \<in> Bs ! from x. next_sym_Nt y (lhs (prod x))} \<subseteq> {x. wf_state x (length Bs)}"
-    using wf_Complete unfolding next_symbol_def wf_bin1_def wf_bins1_def wf_state1_def
+lemma wf_items_mv_dot: "\<lbrakk> wf_bins1 Bs; wf_item1 x (length Bs); next_symbol x = None \<rbrakk> \<Longrightarrow>
+  mv_dot ` {y \<in> Bs ! from x. next_sym_Nt y (lhs (prod x))} \<subseteq> {x. wf_item x (length Bs)}"
+    using wf_Complete unfolding next_symbol_def wf_bin1_def wf_bins1_def wf_item1_def
     by (smt (verit, ccfv_threshold) image_Collect_subsetI mem_Collect_eq option.distinct(1))
 
 lemma Close2_less_step:
@@ -879,8 +879,8 @@ shows
 proof (induction rule: Close2_induct)
   case (Predict x B C)
   let ?C = "insert x C" let ?B = "B \<union> Predict x (length Bs) - ?C"
-  have 1: "B \<subseteq> {x. wf_state x (length Bs)}"
-    using Predict.prems(1) unfolding wf_bin1_def wf_state1_def by blast
+  have 1: "B \<subseteq> {x. wf_item x (length Bs)}"
+    using Predict.prems(1) unfolding wf_bin1_def wf_item1_def by blast
   have "B \<union> C < ?B \<union> ?C \<or> B \<union> C = ?B \<union> ?C \<and> ?B < B"
     using Predict.hyps(1) by blast
   thus ?case
@@ -890,21 +890,21 @@ proof (induction rule: Close2_induct)
       apply simp
       apply(rule disjI1)
       apply(rule psubset_card_mono)
-      using Collect_mono Diff_subset_conv finite_subset[OF _ finite_ex_wf_state] sup.coboundedI2
+      using Collect_mono Diff_subset_conv finite_subset[OF _ finite_ex_wf_item] sup.coboundedI2
        apply (metis (mono_tags, lifting))
       by blast
   next
     assume "B \<union> C = ?B \<union> ?C \<and> ?B \<subset> B"
     thus ?thesis
-      using 1 finite_subset[OF _ finite_ex_wf_state] unfolding Close2_less_def mlex_iff by simp
+      using 1 finite_subset[OF _ finite_ex_wf_item] unfolding Close2_less_def mlex_iff by simp
   qed
 next
   case (Complete x B "C")
   let ?C = "insert x C" let ?B = "B \<union> Complete Bs x - ?C"
-  have 1: "B \<subseteq> {x. wf_state x (length Bs)}"
-    using Complete.prems(1) unfolding wf_bin1_def wf_state1_def by blast
-  have *: "mv_dot ` {xa \<in> Bs ! from x. next_sym_Nt xa (lhs (prod x))} \<subseteq> {x. wf_state x (length Bs)}"
-    using wf_states_mv_dot[ OF \<open>wf_bins1 Bs\<close> _ Complete.hyps(2)] Complete.hyps(1) Complete.prems(1) wf_bin1_def by auto
+  have 1: "B \<subseteq> {x. wf_item x (length Bs)}"
+    using Complete.prems(1) unfolding wf_bin1_def wf_item1_def by blast
+  have *: "mv_dot ` {xa \<in> Bs ! from x. next_sym_Nt xa (lhs (prod x))} \<subseteq> {x. wf_item x (length Bs)}"
+    using wf_items_mv_dot[ OF \<open>wf_bins1 Bs\<close> _ Complete.hyps(2)] Complete.hyps(1) Complete.prems(1) wf_bin1_def by auto
   have "B \<union> C < ?B \<union> ?C \<or> B \<union> C = ?B \<union> ?C \<and> ?B < B"
     using Complete.hyps(1) by blast
   thus ?case
@@ -915,13 +915,13 @@ next
       apply simp
       apply(rule disjI1)
       apply(rule psubset_card_mono)
-      using Collect_mono Diff_subset_conv finite_subset[OF _ finite_ex_wf_state] sup.coboundedI2
+      using Collect_mono Diff_subset_conv finite_subset[OF _ finite_ex_wf_item] sup.coboundedI2
        apply (metis (mono_tags, lifting))
       by blast
   next
     assume "B \<union> C = ?B \<union> ?C \<and> ?B \<subset> B"
     thus ?thesis
-      using 1 finite_subset[OF _ finite_ex_wf_state] unfolding Close2_less_def mlex_iff by simp
+      using 1 finite_subset[OF _ finite_ex_wf_item] unfolding Close2_less_def mlex_iff by simp
   qed
 qed
 
@@ -989,7 +989,7 @@ proof(induction rule: Close2_induct)
 next
   case (Complete x B "C")
   thus ?case using wf1_Complete assms unfolding Complete_def
-    by (smt (verit, del_insts) DiffD1 UnE image_iff mem_Collect_eq option.distinct(1) next_symbol_def wf_state1_def wf_bin1_def wf_bins1_def)
+    by (smt (verit, del_insts) DiffD1 UnE image_iff mem_Collect_eq option.distinct(1) next_symbol_def wf_item1_def wf_bin1_def wf_bins1_def)
 qed
 
 lemma Close2_step_pres2: assumes "wf_bins1 Bs"
@@ -1002,7 +1002,7 @@ next
   thus ?case unfolding wf_bin1_def by blast
 qed
 
-(* unify wf_bin1 and wf_states? *)
+(* unify wf_bin1 and wf_items? *)
 lemma Close2_NF: assumes "wf_bins1 Bs"
 shows "wf_bin1 B (length Bs) \<Longrightarrow> wf_bin1 C (length Bs) \<Longrightarrow> \<exists>C'. Bs \<turnstile> (B,C) \<rightarrow>* ({},C')"
 using wf_Close2_less[of "length Bs"]
@@ -1032,7 +1032,7 @@ proof
 qed
 
 lemma wf_bin1_Init: "wf_bin1 Init 0"
-using \<epsilon> by(auto simp add: Init_def wf_bin1_def wf_state1_def wf_state_def is_complete_def \<epsilon>_free_def)
+using \<epsilon> by(auto simp add: Init_def wf_bin1_def wf_item1_def wf_item_def is_complete_def \<epsilon>_free_def)
 
 lemma bins0_close2:(* used in Paper *) "bins 0 = [close2 [] Init]"
 by(simp flip: Close1_eq_Close add: close2_eq_Close1 wf_bins1_def wf_bin1_Init)
@@ -1055,17 +1055,17 @@ qed
 
 lemma Close_wf_bin1: "\<lbrakk> wf_bins1 Bs; wf_bin1 B (length Bs) \<rbrakk>
  \<Longrightarrow> wf_bin1 (Close Bs B) (length Bs)"
-by (metis Close1_eq_Close wf_bin1_def wf_state1_Close1)
+by (metis Close1_eq_Close wf_bin1_def wf_item1_Close1)
 
 (* \<epsilon>_free not needed! *)
 lemma wf_bin1_Scan: "\<lbrakk> k < length w; wf_bin1 B k \<rbrakk> \<Longrightarrow> wf_bin1 (Scan B k) (Suc k)"
-by(auto simp: Scan_def mv_dot_def is_complete_def next_symbol_def wf_bin1_def wf_state1_def wf_state_def)
+by(auto simp: Scan_def mv_dot_def is_complete_def next_symbol_def wf_bin1_def wf_item1_def wf_item_def)
 
 lemma wf_bins1_bins: "k \<le> length w \<Longrightarrow> wf_bins1 (bins k)"
 proof (induction k)
   case 0
   thus ?case
-    using Close_Init by (auto simp: S0 wf_EarleyS wf_bins1_def wf_bin1_def wf_state1_def)
+    using Close_Init by (auto simp: S0 wf_EarleyS wf_bins1_def wf_bin1_def wf_item1_def)
 next
   case (Suc k)
   have "wf_bins1 (bins k)" using Suc.IH Suc.prems by auto

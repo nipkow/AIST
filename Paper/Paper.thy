@@ -755,6 +755,8 @@ where $\gamma$ is a fixed bijection from natural numbers to nonterminals and $\g
 (introducing this bijection is necessary as the CFG's nonterminals can be of arbitrary type).
 By concatenation and union, the definition can be lifted to a regular language expression for $f_i$,
 and doing so for every nonterminal yields a system of inequalities.
+However, note that we cannot construct such a system explicitly since $P$ is unordered, so we only
+show its existence.
 It remains to prove that the CFG's language is a minimal solution to this system:
 We do not show this directly but use as an intermediate step
 the alternative characterization of a CFG's language as a least fixpoint (@{const lfp})
@@ -770,13 +772,11 @@ but only state the final result, namely that
 @{term "sol \<equiv> \<lambda>i. if i < card (Nts P) then Lang_lfp P (\<gamma> i) else \<emptyset>"}
 \end{quote}
 is a minimal solution to
-some system of inequalities induced by the CFG:
+some system of inequalities induced by the CFG and that furthermore all inequalities of the system
+are regularity preserving:
 \begin{lemma}
-@{prop [break] "\<exists>sys. (\<forall>eq \<in> set sys. reg_eval eq) \<and> (\<forall>eq \<in> set sys. \<forall>x \<in> vars eq. x < length sys)
-\<and> min_sol_ineq_sys sys sol"}
+@{prop [break] "\<exists>sys. min_sol_ineq_sys sys sol \<and> (\<forall>eq \<in> set sys. reg_eval eq)"}
 \end{lemma}
-We have also proved that all inequalities of the system are regularity preserving, which is
-an important prerequisite for the rest of the proof.
 
 
 \subsection{Systems of Inequalities with Parikh Image}
@@ -857,11 +857,11 @@ Now, \<open>sols'\<close> contains one variable less,
 it is still regularity preserving (since both \<open>sols\<close> and \<open>sol_n\<close> are regularity preserving)
 and it is a partial, minimal solution to the first \<open>n+1\<close> inequalities of the system.
 Notably, our proof does not rely on the Lemma presented in~\cite{Pilling};
-although Pilling suggests to apply this lemma in the induction step, we were not able to do so.
+although Pilling suggests to apply this lemma in the induction step, this was not necessary.
 
 When instantiating Lemma~\ref{lem:parikh_ind_step} with \<open>n = |sys|\<close>,
 the partial solution \<open>sols\<close> contains no variables anymore,
-so it is in fact a valuation.
+so it is in fact a regular valuation.
 This shows that the system of inequalities has a regular, minimal solution.
 After proving that each minimal solution to the system without Parikh images
 (i.e.\ of the system considered in Section~\ref{sec:parikh_eq_sys}) is also a minimal

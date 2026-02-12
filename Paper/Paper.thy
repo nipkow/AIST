@@ -347,9 +347,9 @@ taking the input grammar in the list representation.
 For brevity, we only present the correctness statement of the list version.
 
 \begin{theorem}
-For any grammar \<open>P\<close> in list representation,
-@{thm(concl) gnf_hd_gnf_hd_of[where ps = P]}.
-For all @{thm(prem 1) lang_gnf_hd_of[where ps = P]}, @{thm(concl) lang_gnf_hd_of[where ps = P]}.
+For any grammar \<open>ps\<close> in list representation,
+@{thm(concl) gnf_hd_gnf_hd_of}.
+For all @{thm(prem 1) lang_gnf_hd_of}, @{thm(concl) lang_gnf_hd_of}.
 \end{theorem}
 
 Finally, we turn head GNF into GNF by introducing nonterminals for terminals
@@ -360,10 +360,10 @@ provided the grammar is extended with $A_a \to a$ for each $a$.
 We also use the same function in the CNF translation.
 
 \begin{theorem}
-For any grammar \<open>P\<close> in list representation,
-@{thm gnf_gnf_of}.
-Moreover, for all @{thm(prem 1) lang_gnf_of},
-@{thm(concl) lang_gnf_of}.
+For any grammar \<open>ps\<close> in list representation,
+@{thm gnf_gnf_of[where P = ps]}.
+Moreover, for all @{thm(prem 1) lang_gnf_of[where P = ps]},
+@{thm(concl) lang_gnf_of[where P = ps]}.
 \end{theorem}
 
 We close the section by considering the size of the produced grammar. Like

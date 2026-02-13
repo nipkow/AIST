@@ -12,35 +12,9 @@ begin
 context Earley_Gw
 begin
 
-(* must not be empty, otherwise by def step_rel is always false *)
-definition step_rel :: "('n, 'a) item set list \<Rightarrow> ('n, 'a) item set \<times> ('n, 'a) item set \<Rightarrow> ('n, 'a) item set \<times> ('n, 'a) item set \<Rightarrow> bool" where
-"step_rel  \<equiv> Close2"
 
 
-definition Predict_L :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> ('n,'a) item list" where
-  "Predict_L x k = map (\<lambda>p. Item p 0 k) (filter (\<lambda>p. next_sym_Nt x (lhs p)) ps)"
-
-definition Complete_L :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) item \<Rightarrow> ('n, 'a) item list" where
-  "Complete_L Bs y = map mv_dot (filter (\<lambda> b. next_sym_Nt b (lhs(prod y))) (Bs ! from y))"
-
-definition Init_L :: "('n,'a) item list" where
-  "Init_L =  map (\<lambda> p. Item p 0 0) (filter (\<lambda> p. lhs p = (S)) ps)"
-
-lemma Init_L_eq_Init: "set Init_L = Init"
-  by (auto simp add: Init_L_def Init_def)
-
-definition Scan_L :: "('n,'a) item list \<Rightarrow> nat \<Rightarrow> ('n,'a) item list" where
-  "Scan_L Bs k = (let x = Some (Tm (w0 ! k)) in map mv_dot (filter (\<lambda> b. next_symbol b = x) Bs))"
-                                           
-lemma Scan_L_eq_Scan: "k < length w \<Longrightarrow> set (Scan_L Bs k) = Scan (set Bs) k"
-  by (auto simp add: Scan_L_def Scan_def w_def)
-
-definition minus_L :: "'b list \<Rightarrow> 'b list \<Rightarrow> 'b list" (infix "-l" 50) where
-  "minus_L As Bs = foldr (removeAll) Bs As"
-
-lemma minus_L_set[simp]: "set (As -l Bs) = set As - set Bs"
-  by (induction Bs) (auto simp add: minus_L_def)
-
+(*executable \<in> function for list*)
 fun member :: "'c list \<Rightarrow> 'c \<Rightarrow> bool" where
 "member [] a = False"
 | "member (x#xs) a = (if x = a then True else member xs a)"
@@ -48,6 +22,7 @@ fun member :: "'c list \<Rightarrow> 'c \<Rightarrow> bool" where
 lemma member_elem: "member xs a = (a \<in> (set xs))"
   by (induction xs) auto
 
+section \<open>WorkList definiton and functions\<close>
 
 datatype ('c,'d) WorkList = 
   WorkList ("list": "('c,'d) item list") ("leng" : nat) ("list_map" : "('c,'d) item list list")
@@ -55,7 +30,7 @@ datatype ('c,'d) WorkList =
 fun WL_inv :: "('n, 'a) WorkList \<Rightarrow> bool" where
 "WL_inv (WorkList as l m) = (Suc l = length m \<and> (\<forall>x \<in> set as. from x < Suc l) \<and> (\<forall>i < Suc l. set (m ! i) = {x \<in> set as. from x = i}) \<and> (\<forall>i < Suc l. distinct (m ! i)) \<and> distinct as)"
 
-(*TODO use replicate instead*)
+(*TODO could use replicate instead*)
 fun empty_list_map :: "nat \<Rightarrow> ('n, 'a) item list list" where
 "empty_list_map 0 = [[]]"|
 "empty_list_map (Suc k) = []#empty_list_map k"
@@ -79,10 +54,6 @@ fun insert :: "('n, 'a) WorkList \<Rightarrow> ('n, 'a) item \<Rightarrow> ('n, 
                                (let wl = (upsize (WorkList as l m) (Suc (from x) - l)) 
                                 in WorkList (x # (list wl)) (leng wl) ((list_map wl)[from x := x#(list_map wl ! from x)]) )))"
 
-(*fun remove_first :: "('c,'d) WorkList \<Rightarrow> ('c,'d) WorkList" where
-"remove_first (WorkList [] l m) = WorkList [] l m" |
-"remove_first (WorkList (a#as) l m) = WorkList as l (m[l - from a - 1 := list_remove (m ! (l - from a - 1)) a])"*)
-
 fun union_LWL :: "('n, 'a) item list \<Rightarrow> ('n, 'a) WorkList \<Rightarrow> ('n, 'a) WorkList" where
 "union_LWL [] wl = wl" |
 "union_LWL (a#as) wl = insert (union_LWL as wl) a"
@@ -100,8 +71,13 @@ fun minus_LWL :: "nat \<Rightarrow> ('n, 'a) item list \<Rightarrow> ('n, 'a) Wo
 definition minus_WL :: "('n, 'a) WorkList \<Rightarrow> ('n, 'a) WorkList \<Rightarrow> ('n, 'a) WorkList" where
 "minus_WL wl1 wl2 = minus_LWL (leng wl1) (list wl1) wl2"
 
+abbreviation wf1_WL :: "('n, 'a) WorkList \<Rightarrow> nat \<Rightarrow> bool" where
+"wf1_WL wl k \<equiv> wf_bin1 (set_WorkList wl) k"
+
 lemma wl_decomp: "\<exists>as l m. wl = WorkList as l m"
   by (meson Earley_Gw.WorkList.exhaust_sel)
+
+subsection \<open>WorkList invariant lemmas and Set function equivalences\<close>
 
 lemma set_WL_empty: "set_WorkList (WL_empty k) = {}" by (simp add: WL_empty_def)
 
@@ -127,8 +103,6 @@ next
     by (auto simp add: leng_empty_list_map)
   then show ?case using Suc by (auto simp add: WL_empty_def nth_empty_list_map)
 qed
-
-
 
 lemma WL_inv1: "WL_inv wl \<Longrightarrow> distinct (list wl) \<and> Suc (leng wl) = length (list_map wl) 
   \<and> (\<forall>x \<in> set (list wl). from x < Suc (leng wl)) 
@@ -274,10 +248,25 @@ qed
 lemma leng_LWL_union: "\<forall>x \<in> set as. from x < Suc (leng wl) \<Longrightarrow> leng (union_LWL as wl) = leng wl"
   by (induction as arbitrary: wl) (auto simp add: leng_WL_insert)
 
-abbreviation wf1_WL :: "('n, 'a) WorkList \<Rightarrow> nat \<Rightarrow> bool" where
-"wf1_WL wl k \<equiv> wf_bin1 (set_WorkList wl) k"
+section \<open>Earley WorkList algorithm\<close>
 
 
+(* must not be empty, otherwise by def step_rel is always false *)
+definition step_rel :: "('n, 'a) item set list \<Rightarrow> ('n, 'a) item set \<times> ('n, 'a) item set \<Rightarrow> ('n, 'a) item set \<times> ('n, 'a) item set \<Rightarrow> bool" where
+  "step_rel  \<equiv> Close2"
+
+definition Predict_L :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> ('n,'a) item list" where
+  "Predict_L x k = map (\<lambda>p. Item p 0 k) (filter (\<lambda>p. next_sym_Nt x (lhs p)) ps)"
+
+definition Complete_L :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) item \<Rightarrow> ('n, 'a) item list" where
+  "Complete_L Bs y = map mv_dot (filter (\<lambda> b. next_sym_Nt b (lhs(prod y))) (Bs ! from y))"
+
+definition Init_L :: "('n,'a) item list" where
+  "Init_L =  map (\<lambda> p. Item p 0 0) (filter (\<lambda> p. lhs p = (S)) ps)"
+
+definition Scan_L :: "('n,'a) item list \<Rightarrow> nat \<Rightarrow> ('n,'a) item list" where
+  "Scan_L Bs k = (let x = Some (Tm (w0 ! k)) in map mv_dot (filter (\<lambda> b. next_symbol b = x) Bs))"
+                                           
 fun step_fun :: "('n, 'a) item list list \<Rightarrow>  ('n, 'a) WorkList \<times> ('n, 'a) WorkList \<Rightarrow> ('n, 'a) WorkList \<times> ('n, 'a) WorkList" where
   "step_fun Bs ((WorkList [] l m), C) = undefined" |
   "step_fun Bs ((WorkList (b#bs) l m), C) = (let step = (if is_complete b then Complete_L Bs b else Predict_L b (length Bs)) in
@@ -288,27 +277,27 @@ definition steps :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) WorkList \<t
   "steps Bs BC = while_option (\<lambda>(B,C). list B \<noteq> []) (step_fun Bs) BC"
 
 definition close2_L :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) WorkList \<Rightarrow> ('n, 'a) item list" where
-"close2_L Bs B = list (snd (the (steps Bs (B, WL_empty (length Bs)))))"
+  "close2_L Bs B = list (snd (the (steps Bs (B, WL_empty (length Bs)))))"
 
 fun bins_L :: "nat \<Rightarrow> ('n,'a) item list list" where
-"bins_L 0 = [close2_L [] (WL_of_List 0 Init_L)]" |
-"bins_L (Suc k) = (let Bs = bins_L k in Bs @ [close2_L Bs (WL_of_List (length Bs) (Scan_L (last Bs) k))])"
+  "bins_L 0 = [close2_L [] (WL_of_List 0 Init_L)]" |
+  "bins_L (Suc k) = (let Bs = bins_L k in Bs @ [close2_L Bs (WL_of_List (length Bs) (Scan_L (last Bs) k))])"
 
-(*definition "wf_binL B k = (list_all (\<lambda> x. wf_item1 x k) B)"
+fun recognized_L :: "('n, 'a) item list \<Rightarrow> bool" where
+"recognized_L [] = False" |
+"recognized_L (a#as) = (is_final a \<or> recognized_L as)"
 
-fun wf_binsL_help where
-  "wf_binsL_help [] k = True"
-| "wf_binsL_help (B#Bs) k = (wf_binL B k \<and> wf_binsL_help Bs (Suc k))"
-definition "wf_binsL Bs = wf_binsL_help Bs 0"
+(*defined as a function for time_fun (could maybe be solved differently)*)
+definition earley_recognized where
+"earley_recognized _ = recognized_L (last (bins_L (length w)))"
 
-lemma wf_binL_eq: "wf_binL B k = wf_bin1 (set B) k"
-   by (induction B) (auto simp add: wf_bin1_def wf_binL_def)
+subsection \<open>Correctness of WorkList algorithm\<close>
 
-lemma wf_binsL_help_eq: "wf_binsL_help Bs n = (\<forall>k < length Bs. wf_binL (Bs!k) (k + n))"
-  by (induction Bs arbitrary: n) (auto simp add: less_Suc_eq_0_disj)
+lemma Init_L_eq_Init: "set Init_L = Init"
+  by (auto simp add: Init_L_def Init_def)
 
-lemma wf_binsL_eq: "wf_binsL Bs = wf_bins1 (map set Bs)" 
-  by (auto simp add: wf_binsL_def wf_bins1_def wf_binL_eq wf_binsL_help_eq)*)
+lemma Scan_L_eq_Scan: "k < length w \<Longrightarrow> set (Scan_L Bs k) = Scan (set Bs) k"
+  by (auto simp add: Scan_L_def Scan_def w_def)
 
 lemma Predict_eq: "set (Predict_L st k) = Predict st k"
   by (auto simp add: Predict_L_def Predict_def)
@@ -434,7 +423,6 @@ proof-
   then show ?thesis using assms P by (auto simp add: wf_bin1_def)
 qed
 
-(*"wf_WL (WorkList bs l2 m2) (length Bs)"*)
 lemma steps_sound:
   assumes wf: "wf1_WL (WorkList as l1 m1) (length Bs)"  "wf_bins1 (map set Bs)"
   and inv: "WL_inv (WorkList as l1 m1)" "WL_inv (WorkList bs l2 m2)"
@@ -574,47 +562,13 @@ lemma step_fun_sound_wl: "list wl1 \<noteq> [] \<Longrightarrow> wf1_WL wl1 (len
   using wl_decomp step_fun_sound
   by (metis Earley_Gw.WorkList.sel(1) set_WorkList.elims)
 
-(*lemma test3: assumes wf: "wf1_WL wl1 (length Bs)"  "wf_bins1 (map set Bs)"
-  and inv: "WL_inv wl1" "WL_inv wl2"
-  and sf: "steps Bs (wl1,wl2) = Some (wl1', wl2')"
-shows "((step_rel (map set Bs))^** ) (set_WorkList wl1, set_WorkList wl2) ({}, set_WorkList wl2')"
-  using while_option_rule[where P= "\<lambda>(wl1,wl2). ((step_rel (map set Bs))^** ) (set_WorkList wl1, set_WorkList wl2) ({}, set_WorkList wl2') \<and> wf1_WL wl1 (length Bs) \<and> WL_inv wl1 \<and> WL_inv wl2 \<and> wf_bins1 (map set Bs)"] 
-    step_fun_wf_wl step_fun_wf2_wl step_fun_inv1_wl step_fun_inv2_wl step_fun_sound_wl wf sf inv unfolding steps_def
-  sorry*)
-
-
-(*proof -
-  let ?P = "\<lambda>(B',C'). ((step_rel (map set Bs))^** ) (set B,{}) (set B',set C') \<and> wf_bin1 (set B') (length Bs) \<and> wf_bins1 (map set Bs)" 
-  show ?thesis using while_option_rule[where P="?P"] assms[unfolded steps_def] step_fun step_fun_wf 
-    by (smt (verit, ccfv_SIG) case_prodE case_prodI2 empty_set old.prod.case rtranclp.simps step_fun
-        while_option_stop)
-qed*)
-
-(*lemma steps_Some[no_atp]: assumes "wf_bin1 (set as) (length Bs)" "wf_bins1 (map set Bs)"
-  shows "\<exists>cs. steps Bs (as,bs) = Some([],cs)"
-sorry
-
-lemma close2_sound: assumes "wf_bin1 (set B) (length Bs)" "wf_bins1 (map set Bs)" shows "((step_rel (map set Bs))^** ) (set B, {}) ({}, set (close2_L Bs B))"
-using steps_sound steps_Some unfolding close2_L_def
-  by (metis assms(1,2) option.sel snd_conv)*)
-
 end (*Earley_Gw_eps*)
 
 
 context Earley_Gw
 begin
 
-(*definition wf_item where
-"wf_item = undefined"
 
-abbreviation "wf_items B \<equiv> (\<forall>x\<in>B. wf_item x)"*)
-
-(*unused*)
-lemma finite_ex_wf_item1: "finite ({x. wf_item1 x k})"
-proof -
-  have "{x. wf_item1 x k} \<subseteq> {x. wf_item x k}" by (auto simp add: wf_item1_def)
-  then show ?thesis using finite_ex_wf_item rev_finite_subset by auto
-qed
 
 
 (* This is the wellfounded relation for the termination proof.
@@ -730,7 +684,7 @@ lemma set_last: "As \<noteq> [] \<Longrightarrow> set (last As) = last (map set 
 lemma length_bins_L: "length (bins_L k) = Suc k"
   by (induction k) (auto simp add: Let_def)
 
-lemma bins_L_eq_bins: "k \<le> length w \<Longrightarrow> map set (bins_L k) = bins k"
+theorem bins_L_eq_bins: "k \<le> length w \<Longrightarrow> map set (bins_L k) = bins k"
 proof (induction k)
   case 0
   have "wf_bins1 (map set []) \<and> wf_bin1 (set Init_L) 0"
@@ -758,20 +712,42 @@ next
   then show ?case using Suc by (auto simp add: Let_def length_bins_L)
 qed 
 
-lemma bins_L_eq_\<S>: "i \<le> k \<Longrightarrow> k \<le> length w \<Longrightarrow> set (bins_L k ! i) = \<S> i"
+corollary bins_L_eq_\<S>: "i \<le> k \<Longrightarrow> k \<le> length w \<Longrightarrow> set (bins_L k ! i) = \<S> i"
   using bins_eq_\<S> bins_L_eq_bins length_bins_L
   by (metis bins_L_eq_bins bins_eq_\<S>_gen le_imp_less_Suc length_bins_L nth_map)
-(*lemma bins0_close2_L: "bins 0 = map set [close2_L [] Init_L]"
-  by(simp flip: Close1_eq_Close add: close2_L_eq_Close1 wf_bins1_def wf_bin1_Init Init_L_eq_Init)
 
-lemma binsSuc_close2_L:
-  "k < length w \<Longrightarrow> bins (Suc k) = map set (let Bs = bins_L k in Bs @ [close2_L Bs (Scan_L (last Bs) k)])"
-by(simp flip: Close1_eq_Close add: close2_eq_Close1 wf_bins1_bins wf_bin1_Scan wf_bin1_last Let_def)*) 
+lemma recognized_set: "recognized_L as = (\<exists>x \<in> set as. is_final x)"
+  by (induction as) auto
+
+lemma earley_recognized_eq_recognized_Earley: "earley_recognized y \<longleftrightarrow> recognized Earley"
+proof
+  assume "earley_recognized y"
+  then have "\<exists>x \<in> set (last (bins_L (length w))). is_final x" using recognized_set earley_recognized_def
+    by metis
+  then obtain x where P: "is_final x \<and> x \<in> set (last (bins_L (length w)))" by blast
+  then have "x \<in> \<S> (length w)" using bins_L_eq_\<S> length_bins_L last_conv_nth
+    by (metis bins_L_eq_bins bins_nonempty diff_Suc_1 map_is_Nil_conv nat_le_linear)
+  then show "recognized Earley" using P
+    using accepted_def accpted_sound correctness_Earley by auto
+next
+  assume "recognized Earley"
+  then obtain x where P: "is_final x \<and> (x, length w) \<in> Earley"
+    using recognized_def by blast
+  then have "x \<in> \<S> (length w)"
+    using Earley_eq_\<S> by auto
+  then have "x \<in> set (last (bins_L (length w)))" using bins_L_eq_\<S> length_bins_L last_conv_nth
+    by (metis bins_L_eq_bins bins_nonempty diff_Suc_1 map_is_Nil_conv nat_le_linear)
+  then have "\<exists>x \<in> set (last (bins_L (length w))). is_final x" using P by blast
+  then show "earley_recognized y" using recognized_set earley_recognized_def by metis
+qed
+
+theorem correctness_earley:
+  shows "earley_recognized y \<longleftrightarrow> P \<turnstile> [Nt S] \<Rightarrow>* w"
+  using correctness_Earley earley_recognized_eq_recognized_Earley by metis 
 
 end
 
-
-(*TODO space analyse und Zeit analyse mit eigen gesetzten laufzeiten für listenoperationen*)
+section \<open>Space analysis\<close>
 
 (*Section space analysis*)
 context Earley_Gw
@@ -830,7 +806,7 @@ lemma card_Si: "card (\<S> i) \<le> L * (Suc K) * (Suc i)"
 lemma Si_empty: "i > length w \<Longrightarrow> \<S> i = {}"
   using wf_Earley by (fastforce simp add: \<S>_def wf_item_def)
 
-lemma "card Earley \<le> L * (Suc K) * (Suc (length w))^2"
+theorem "card Earley \<le> L * (Suc K) * (Suc (length w))^2"
 proof-
   let ?X = "{x. (\<exists>i \<le> length w. x = {(y, z). wf_item y z \<and> z = i})}"
 
@@ -883,14 +859,12 @@ qed
 unused_thms
 
 end (*Context Earley_Gw*)
+section \<open>Running time analysis earley recognizer\<close>
 
-section "Timing functions"
-
+subsection \<open>Timing functions and simple bounds\<close>
 
 time_fun list_update
 time_fun last
-
-
 
 lemma T_append_bound[simp]: "T_append as bs = Suc (length as)"
   by (induction as) auto
@@ -910,13 +884,6 @@ lemma T_snd_0[simp]: "T_snd x = 0"
   by (metis T_snd.elims)
 
 time_fun length
-(* Copy of the length time function but with options*)
-(*fun T_size :: "'a list \<Rightarrow> nat option" where
-"T_size [] = Some 1" |
-"T_size (x21 # x22) = Some (the (T_size x22) + 1)"*)
-
-(*lemma T_length_bound: "the (T_size as) = Suc (length as)"
-  by (induction as) auto*)
 
 time_fun_0 Earley_Gw.w
 
@@ -968,6 +935,10 @@ fun T_steps :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) WorkList \<times>
 
 time_fun close2_L
 time_fun bins_L
+
+time_fun is_final
+time_fun recognized_L
+time_fun earley_recognized
 
 end (*Context Earley_Gw*)
 
@@ -1021,68 +992,7 @@ lemma T_filter_bound: "\<forall>x \<in> set xs. T_P x \<le> k \<Longrightarrow> 
 lemma T_map_bound: "\<forall>x \<in> set xs. T_P x \<le> k \<Longrightarrow> T_map T_P xs \<le> k * length xs + length xs + 1"
   by (induction xs) (auto simp add: T_map)
 
-lemma T_Init_L_bound: "T_Init_L \<le> 2 * (L + 1)"
-proof-
-  have 1: "\<forall>x \<in> set ps. T_fst x \<le> 0" by auto
-  have "T_map (\<lambda>p. 0) (filter (\<lambda>p. lhs p = S) ps) \<le> length (filter (\<lambda>p. lhs p = S) ps) + 1"
-    using T_map_bound[of "(filter (\<lambda>p. lhs p = S) ps)" "(\<lambda>p. 0)" 0] by auto
-  also have "... \<le> length ps + 1" by auto
-  finally show ?thesis using T_filter_bound[of ps T_fst 0] 1 by (auto simp add: T_Init_L_def L_def)
-qed
-
-lemma T_Scan_L_bound: 
-  assumes "k < length w0" and wf: "wf_bin1 (set Bs) l" 
-  shows "T_Scan_L Bs k \<le> k + 2*(K + 2) * length Bs + 3"
-proof-
-  have 1: "T_nth w0 k \<le> k+1" using assms by (auto simp add: T_nth)
-
-  have 2: "T_filter T_next_symbol Bs \<le> 2*(Suc K) * length Bs + length Bs + 1" 
-    using T_next_symbol_bound wf T_filter_bound[of Bs T_next_symbol "2*(Suc K)"] 
-    by (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
-
-  have "T_map T_mv_dot (filter (\<lambda>b. next_symbol b = Some (Tm (w0 ! k))) Bs) 
-            \<le> length (filter (\<lambda>b. next_symbol b = Some (Tm (w0 ! k))) Bs) + 1"
-    using T_map_bound[of _ T_mv_dot 0] by auto
-  also have "... \<le> length Bs + 1" by auto
-
-  finally show ?thesis using 1 2 by (auto simp add: Let_def)
-qed
-
-lemma T_Predict_L_bound: 
-  assumes "prod x \<in> set ps" shows "T_Predict_L x k \<le> 2*(K + 2)* length ps + 2"
-proof-
-  have "\<forall>p \<in> set ps. (\<lambda>p. T_next_symbol x + T_fst p) p \<le> 2*(Suc K)"
-    using assms T_next_symbol_bound[of x] by auto
-  then have 1: "T_filter (\<lambda>p. T_next_symbol x + T_fst p) ps \<le> 2*(Suc K) * length ps + length ps + 1"
-    using T_filter_bound[of ps _ "2*(Suc K)"] by auto
-
-  have "T_map (\<lambda>p. 0) (filter (\<lambda>p. next_sym_Nt x (lhs p)) ps) \<le> length (filter (\<lambda>p. next_sym_Nt x (lhs p)) ps) + 1"
-    using T_map_bound[of _ "(\<lambda>p. 0)" 0] by auto
-  also have "... \<le> length ps + 1" by auto
-  finally show ?thesis using 1 by auto
-qed
-
-
-lemma T_Complete_L_bound: 
-  assumes "from y < length Bs" "wf_bins1 (map set Bs)" 
-  shows "T_Complete_L Bs y \<le> T_nth_WL (from y) + 2*(K + 2) * length (Bs ! from y) + 2"
-proof -
-  have 1: "T_nth Bs (from y) \<le> T_nth_WL (from y)" using T_nth_Bound by simp
-  have "\<forall>x \<in> set (Bs ! from y). (\<lambda>b. T_next_symbol b + (T_prod y + T_fst (item.prod y))) x \<le> 2*(Suc K)"
-    using assms T_next_symbol_bound 
-    by (auto simp add: wf_bins1_def wf_bin1_def wf_item1_def wf_item_def)
-  then have 2: "T_filter (\<lambda>b. T_next_symbol b + (T_prod y + T_fst (item.prod y))) (Bs ! from y)
-            \<le> 2*(Suc K) * length (Bs ! from y) + length (Bs ! from y) + 1"
-    using T_filter_bound[of "(Bs ! from y)" _ "2*(Suc K)"] by auto
-
-  have "T_map T_mv_dot (filter (\<lambda>b. next_sym_Nt b (lhs (item.prod y))) (Bs ! from y))
-          \<le> length (filter (\<lambda>b. next_sym_Nt b (lhs (item.prod y))) (Bs ! from y)) + 1"
-    using T_map_bound[of _ T_mv_dot 0] by auto
-  also have "... \<le> length (Bs ! from y) + 1" by auto
-  finally show ?thesis using 1 2 by auto
-qed
-
-(* WorkList time bounds*)
+subsection \<open>WorkList time bounds\<close>
 
 lemma T_member_bound: "T_member xs x \<le> length xs + 1"
   by (induction xs) auto
@@ -1227,7 +1137,68 @@ lemma T_minus_WL_wf: "distinct ps \<Longrightarrow> wf1_WL wl1 (leng wl1) \<Long
   \<Longrightarrow> T_minus_WL wl1 wl2 \<le> (length (list wl1)) * (4 * T_nth_WL (leng wl1) + 2*L * (Suc K) + 4) + (leng wl1) + 2 + length (list wl1)"
   using T_minus_LWL_wf[of wl2 "leng wl1" "list wl1"] by auto
 
-(*List procedures are distinct*)
+subsection \<open>Earley recognizer time bounds\<close>
+
+lemma T_Init_L_bound: "T_Init_L \<le> 2 * (L + 1)"
+proof-
+  have 1: "\<forall>x \<in> set ps. T_fst x \<le> 0" by auto
+  have "T_map (\<lambda>p. 0) (filter (\<lambda>p. lhs p = S) ps) \<le> length (filter (\<lambda>p. lhs p = S) ps) + 1"
+    using T_map_bound[of "(filter (\<lambda>p. lhs p = S) ps)" "(\<lambda>p. 0)" 0] by auto
+  also have "... \<le> length ps + 1" by auto
+  finally show ?thesis using T_filter_bound[of ps T_fst 0] 1 by (auto simp add: T_Init_L_def L_def)
+qed
+
+lemma T_Scan_L_bound: 
+  assumes "k < length w0" and wf: "wf_bin1 (set Bs) l" 
+  shows "T_Scan_L Bs k \<le> k + 2*(K + 2) * length Bs + 3"
+proof-
+  have 1: "T_nth w0 k \<le> k+1" using assms by (auto simp add: T_nth)
+
+  have 2: "T_filter T_next_symbol Bs \<le> 2*(Suc K) * length Bs + length Bs + 1" 
+    using T_next_symbol_bound wf T_filter_bound[of Bs T_next_symbol "2*(Suc K)"] 
+    by (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
+
+  have "T_map T_mv_dot (filter (\<lambda>b. next_symbol b = Some (Tm (w0 ! k))) Bs) 
+            \<le> length (filter (\<lambda>b. next_symbol b = Some (Tm (w0 ! k))) Bs) + 1"
+    using T_map_bound[of _ T_mv_dot 0] by auto
+  also have "... \<le> length Bs + 1" by auto
+
+  finally show ?thesis using 1 2 by (auto simp add: Let_def)
+qed
+
+lemma T_Predict_L_bound: 
+  assumes "prod x \<in> set ps" shows "T_Predict_L x k \<le> 2*(K + 2)* length ps + 2"
+proof-
+  have "\<forall>p \<in> set ps. (\<lambda>p. T_next_symbol x + T_fst p) p \<le> 2*(Suc K)"
+    using assms T_next_symbol_bound[of x] by auto
+  then have 1: "T_filter (\<lambda>p. T_next_symbol x + T_fst p) ps \<le> 2*(Suc K) * length ps + length ps + 1"
+    using T_filter_bound[of ps _ "2*(Suc K)"] by auto
+
+  have "T_map (\<lambda>p. 0) (filter (\<lambda>p. next_sym_Nt x (lhs p)) ps) \<le> length (filter (\<lambda>p. next_sym_Nt x (lhs p)) ps) + 1"
+    using T_map_bound[of _ "(\<lambda>p. 0)" 0] by auto
+  also have "... \<le> length ps + 1" by auto
+  finally show ?thesis using 1 by auto
+qed
+
+
+lemma T_Complete_L_bound: 
+  assumes "from y < length Bs" "wf_bins1 (map set Bs)" 
+  shows "T_Complete_L Bs y \<le> T_nth_WL (from y) + 2*(K + 2) * length (Bs ! from y) + 2"
+proof -
+  have 1: "T_nth Bs (from y) \<le> T_nth_WL (from y)" using T_nth_Bound by simp
+  have "\<forall>x \<in> set (Bs ! from y). (\<lambda>b. T_next_symbol b + (T_prod y + T_fst (item.prod y))) x \<le> 2*(Suc K)"
+    using assms T_next_symbol_bound 
+    by (auto simp add: wf_bins1_def wf_bin1_def wf_item1_def wf_item_def)
+  then have 2: "T_filter (\<lambda>b. T_next_symbol b + (T_prod y + T_fst (item.prod y))) (Bs ! from y)
+            \<le> 2*(Suc K) * length (Bs ! from y) + length (Bs ! from y) + 1"
+    using T_filter_bound[of "(Bs ! from y)" _ "2*(Suc K)"] by auto
+
+  have "T_map T_mv_dot (filter (\<lambda>b. next_sym_Nt b (lhs (item.prod y))) (Bs ! from y))
+          \<le> length (filter (\<lambda>b. next_sym_Nt b (lhs (item.prod y))) (Bs ! from y)) + 1"
+    using T_map_bound[of _ T_mv_dot 0] by auto
+  also have "... \<le> length (Bs ! from y) + 1" by auto
+  finally show ?thesis using 1 2 by auto
+qed
 
 lemma distinct_Init: 
   assumes "distinct ps" shows "distinct Init_L"
@@ -1272,8 +1243,6 @@ lemma wfbin1_impl_wfbin: "wf_bin1 xs k \<Longrightarrow> wf_bin xs k"
 
 lemma mult_mono_mix: "i \<le> (j :: nat) \<Longrightarrow> k * i * l \<le> k * j * l"
   by simp
-
-(* actual time bounds*)
 
 lemma T_step_fun_bound: assumes "(list wl1) \<noteq> []" "distinct ps" "wf_bins1 (map set Bs)" "\<forall>i < length Bs. distinct (Bs ! i)" "wf1_WL wl1 (length Bs)" "WL_inv wl1" "leng wl1 = length Bs"
   "wf1_WL wl2 (length Bs)" "WL_inv wl2" "leng wl2 = length Bs"
@@ -1583,12 +1552,6 @@ lemma wf1_Scan_L: "k < length w \<Longrightarrow> wf_bin1 (set as) k \<Longright
   using wf_bin1_Scan
   by (simp add: Scan_L_eq_Scan)
 
-lemma "k < length w \<Longrightarrow> wf_bin (set as) k \<Longrightarrow> wf_bin1 (set (Scan_L as k)) (Suc k)"
-  by (auto simp add: wf_item_def wf_bin1_def Scan_L_def wf_item1_def mv_dot_def next_symbol_def is_complete_def)
-
-lemma "i < k \<and> k \<le> length w \<Longrightarrow> wf_bin (set ((bins_L k) ! i)) i"
-  by (simp add: bins_L_eq_\<S> wf_EarleyS)
-
 lemma wf_Scan_L: "k < length w \<Longrightarrow> wf_bin (set as) k \<Longrightarrow> wf_bin (set (Scan_L as k)) k"
   by (auto simp add: Scan_L_def mv_dot_def next_symbol_def wf_item_def is_complete_def)
 
@@ -1860,13 +1823,11 @@ next
   finally have "T_bins_L (Suc k)
   \<le> (k+3)^3 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_WL (Suc (Suc k)) + 3* L * Suc K + 9 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_WL (Suc (Suc k)) + 3* L * Suc K + 9 + Suc K)))".
 
-  (*  (L * Suc K * Suc (Suc k)) * (L * Suc K * Suc (Suc k) * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_WL (Suc k) + 2 * Suc (Suc k) + 2* L * Suc K + 7 + Suc K) *)
-
   then show ?case
     by (metis add_Suc_shift eval_nat_numeral(3))
 qed
-(*algebra_simps*)
+
+subsection \<open>Final nice time bounds\<close>
 
 definition C1 where "C1 = 28 * (L+1)^3 * (K+1)^3"
 definition C2 where "C2 = 17 * (L+1)^2 * (K+1)^2"
@@ -1892,62 +1853,6 @@ proof-
   finally show ?thesis by (auto simp add: C1_def C2_def)
 qed
 
-end
-
-context Earley_Gw
-begin
-
-fun recognized_L :: "('n, 'a) item list \<Rightarrow> bool" where
-"recognized_L [] = False" |
-"recognized_L (a#as) = (is_final a \<or> recognized_L as)"
-
-definition earley where
-"earley _ = recognized_L (last (bins_L (length w)))"
-
-lemma recognized_set: "recognized_L as = (\<exists>x \<in> set as. is_final x)"
-  by (induction as) auto
-
-time_fun is_final
-time_fun recognized_L
-time_fun earley
-
-(*parse Bäume für eindeutige Grammatiken*)
-(*parse-tree in AFP*)
-
-end
-
-context Earley_Gw_eps
-begin
-
-lemma earley_eq_recognized_Earley: "earley y \<longleftrightarrow> recognized Earley"
-proof
-  assume "earley y"
-  then have "\<exists>x \<in> set (last (bins_L (length w))). is_final x" using recognized_set earley_def
-    by metis
-  then obtain x where P: "is_final x \<and> x \<in> set (last (bins_L (length w)))" by blast
-  then have "x \<in> \<S> (length w)" using bins_L_eq_\<S> length_bins_L last_conv_nth
-    by (metis bins_L_eq_bins bins_nonempty diff_Suc_1 map_is_Nil_conv nat_le_linear)
-  then show "recognized Earley" using P
-    using accepted_def accpted_sound correctness_Earley by auto
-next
-  assume "recognized Earley"
-  then obtain x where P: "is_final x \<and> (x, length w) \<in> Earley"
-    using recognized_def by blast
-  then have "x \<in> \<S> (length w)"
-    using Earley_eq_\<S> by auto
-  then have "x \<in> set (last (bins_L (length w)))" using bins_L_eq_\<S> length_bins_L last_conv_nth
-    by (metis bins_L_eq_bins bins_nonempty diff_Suc_1 map_is_Nil_conv nat_le_linear)
-  then have "\<exists>x \<in> set (last (bins_L (length w))). is_final x" using P by blast
-  then show "earley y" using recognized_set earley_def by metis
-qed
-
-theorem correctness_earley:
-  shows "earley y \<longleftrightarrow> P \<turnstile> [Nt S] \<Rightarrow>* w"
-  using correctness_Earley earley_eq_recognized_Earley by metis 
-end
-
-context Earley_Gw_eps_T
-begin
 
 lemma T_final_bound: "prod x \<in> set ps \<Longrightarrow> T_is_final x \<le> Suc K"
   by (auto simp add: T_length prod_length_bound)
@@ -1965,7 +1870,7 @@ definition C1' where "C1' = 30 * (L+1)^3 * (K+1)^3"
 
 lemma 
   assumes dist: "distinct ps" 
-  shows "T_earley y \<le> C1' *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_WL ((length w)+1)"
+  shows "T_earley_recognized y \<le> C1' *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_WL ((length w)+1)"
 proof-
   have wf_last: "wf_bin1 (set (last (bins_L (length w)))) (length w)" using wf_bin1_last
     by (metis bins_L_eq_bins length_bins_L lessI less_Suc_eq_le list.size(3) not_less_zero set_last)
@@ -1988,7 +1893,7 @@ proof-
   have 4: "T_length w = Suc (length w)"
     using T_length by auto
 
-  have "T_earley y \<le> T_bins_L (length w) + T_last (bins_L (length w)) + T_recognized_L(last (bins_L (length w))) + T_length w"
+  have "T_earley_recognized y \<le> T_bins_L (length w) + T_last (bins_L (length w)) + T_recognized_L(last (bins_L (length w))) + T_length w"
     by auto
   also have "... \<le> C1 *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_WL ((length w)+1) + Suc (length w) + Suc (length w) + Suc (L * Suc K * Suc (length w)) * (K+2)" 
     using 1 2 3 4 by linarith
@@ -2002,6 +1907,8 @@ proof-
 qed
 end
 
+section \<open>Set based earley parser\<close>
+subsection \<open>parse_item definitions and set based version\<close>
 context Earley_Gw
 begin
 type_synonym ('c, 'd) item_Pt = "('c, 'd) item \<times> ('c, 'd) tree list"
@@ -2012,16 +1919,45 @@ abbreviation item :: "('n,'a) item_Pt \<Rightarrow> ('n, 'a) item" where
 abbreviation tree :: "('n,'a) item_Pt \<Rightarrow> ('n, 'a) tree list" where
   "tree \<equiv> snd"
 
-definition Parse_Predict :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> ('n,'a) item_Pt set" where 
-"Parse_Predict x k = { (Item r 0 k, []) | r. r \<in> P \<and> next_sym_Nt x (lhs r) }"
+fun wf_item_Pt :: "('n, 'a) item_Pt \<Rightarrow> nat \<Rightarrow> bool" where
+"wf_item_Pt x k = (wf_item (item x) k \<and> (\<forall>t \<in> (set (tree x)). parse_tree P t) \<and> fringes (rev (tree x)) = slice (from (item x)) k w \<and> (map root (rev (tree x)) = \<alpha> (item x)))"
 
-lemma Parse_Predict_item: "Parse_Predict x k = Predict x k \<times> {[]}"
-  by (auto simp add: Parse_Predict_def Predict_def)
+fun wf_item_Pt1 :: "('n, 'a) item_Pt \<Rightarrow> nat \<Rightarrow> bool" where
+"wf_item_Pt1 x k = (wf_item1 (item x) k \<and> (\<forall>t \<in> (set (tree x)). parse_tree P t) \<and> fringes (rev (tree x)) = slice (from (item x)) k w \<and> (map root (rev (tree x)) = \<alpha> (item x)))"
+  
+fun wf_parse_bin :: "('n, 'a) item_Pt set \<Rightarrow> nat \<Rightarrow> bool" where
+"wf_parse_bin xs k = (\<forall>x \<in> xs. wf_item_Pt x k)"
+
+fun wf_parse_bin1 :: "('n, 'a) item_Pt set \<Rightarrow> nat \<Rightarrow> bool" where
+"wf_parse_bin1 xs k = (\<forall>x \<in> xs. wf_item_Pt1 x k)"
+
+definition wf_parse_bins1 :: "('n, 'a) item_Pt set list \<Rightarrow> bool" where
+"wf_parse_bins1 Bs = (\<forall>k < length Bs. wf_parse_bin1 (Bs!k) k)"
+
+definition Parse_Predict :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> ('n,'a) item_Pt set" where 
+  "Parse_Predict x k = { (Item r 0 k, []) | r. r \<in> P \<and> next_sym_Nt x (lhs r) }"
 
 definition Parse_Complete :: "('n, 'a) item_Pt set list \<Rightarrow> ('n, 'a) item_Pt \<Rightarrow> ('n, 'a) item_Pt set" where
   "Parse_Complete Bs y = (\<lambda> (p, t). (mv_dot p, (Rule (lhs(prod (item y))) (rev (tree y)))#t)) ` {x. x \<in> Bs ! from (item y) \<and> next_sym_Nt (fst x) (lhs(prod (item y)))}"
 
+definition Parse_Init :: "('n,'a) item_Pt set" where
+  "Parse_Init = { (Item r 0 0, []) | r. r \<in> P \<and> lhs r = (S) }"
 
+definition Parse_Scan :: "('n,'a) item_Pt set \<Rightarrow> nat \<Rightarrow> ('n,'a) item_Pt set" where
+  "Parse_Scan B k = { (mv_dot (item x), (Sym (w!k))#(tree x)) | x. x \<in> B \<and> next_symbol (item x) = Some (w!k) }"
+
+inductive_set Parse_Close :: "('n,'a) item_Pt set list \<Rightarrow> ('n,'a) item_Pt set \<Rightarrow> ('n,'a) item_Pt set" for Bs B where
+    Init: "x \<in> B \<Longrightarrow> x \<in> Parse_Close Bs B"
+  | Predict: "\<lbrakk> x \<in> Parse_Close Bs B; x' \<in> Parse_Predict (item x) (length Bs) \<rbrakk> \<Longrightarrow> x' \<in> Parse_Close Bs B"
+  | Complete: "\<lbrakk> y \<in> Parse_Close Bs B; is_complete (item y); x \<in> Parse_Complete Bs y\<rbrakk> \<Longrightarrow> x \<in> Parse_Close Bs B"
+
+fun Parse_bins :: "nat \<Rightarrow> ('n, 'a) item_Pt set list" where
+  "Parse_bins 0 = [(Parse_Close [] Parse_Init)]" |
+  "Parse_bins (Suc k) = (let bs = Parse_bins k in bs @ [Parse_Close bs (Parse_Scan (last bs) k)])"
+
+
+lemma Parse_Predict_item: "Parse_Predict x k = Predict x k \<times> {[]}"
+  by (auto simp add: Parse_Predict_def Predict_def)
 
 lemma Parse_Complete_item: "from (item y) < length Bs \<Longrightarrow> item ` (Parse_Complete Bs y) = (Complete (map (\<lambda> x. item ` x) Bs) (item y))"
 proof (auto simp add: Parse_Complete_def Complete_def)
@@ -2039,15 +1975,8 @@ next
     by (metis (mono_tags, lifting) fst_conv imageI mem_Collect_eq pair_imageI)
 qed
 
-definition Parse_Init :: "('n,'a) item_Pt set" where
-  "Parse_Init = { (Item r 0 0, []) | r. r \<in> P \<and> lhs r = (S) }"
-
 lemma Parse_Init_item: "Parse_Init = Init \<times> {[]}"
   by (auto simp add: Parse_Init_def Init_def)
-
-definition Parse_Scan :: "('n,'a) item_Pt set \<Rightarrow> nat \<Rightarrow> ('n,'a) item_Pt set" where
-  "Parse_Scan B k = { (mv_dot (item x), (Sym (w!k))#(tree x)) | x. x \<in> B \<and> next_symbol (item x) = Some (w!k) }"
-
 
 lemma Parse_Scan_item: "item ` Parse_Scan B k = Scan (item ` B) k"
 proof (auto simp add: Parse_Scan_def Scan_def)
@@ -2061,21 +1990,6 @@ next
   then show "mv_dot s \<in> item ` {(mv_dot a, Sym (w ! k) # b) |a b. (a, b) \<in> B \<and> next_symbol a = Some (w ! k)}"
     by force
 qed
-
-fun wf_item_Pt :: "('n, 'a) item_Pt \<Rightarrow> nat \<Rightarrow> bool" where
-"wf_item_Pt x k = (wf_item (item x) k \<and> (\<forall>t \<in> (set (tree x)). parse_tree P t) \<and> fringes (rev (tree x)) = slice (from (item x)) k w \<and> (map root (rev (tree x)) = \<alpha> (item x)))"
-
-fun wf_item_Pt1 :: "('n, 'a) item_Pt \<Rightarrow> nat \<Rightarrow> bool" where
-"wf_item_Pt1 x k = (wf_item1 (item x) k \<and> (\<forall>t \<in> (set (tree x)). parse_tree P t) \<and> fringes (rev (tree x)) = slice (from (item x)) k w \<and> (map root (rev (tree x)) = \<alpha> (item x)))"
-  
-fun wf_parse_bin :: "('n, 'a) item_Pt set \<Rightarrow> nat \<Rightarrow> bool" where
-"wf_parse_bin xs k = (\<forall>x \<in> xs. wf_item_Pt x k)"
-
-fun wf_parse_bin1 :: "('n, 'a) item_Pt set \<Rightarrow> nat \<Rightarrow> bool" where
-"wf_parse_bin1 xs k = (\<forall>x \<in> xs. wf_item_Pt1 x k)"
-
-definition wf_parse_bins1 :: "('n, 'a) item_Pt set list \<Rightarrow> bool" where
-"wf_parse_bins1 Bs = (\<forall>k < length Bs. wf_parse_bin1 (Bs!k) k)"
 
 lemma wf_parse_init: "wf_parse_bin (Parse_Init) 0"
   by (auto simp add: Parse_Init_def slice_drop_take wf_item_def \<alpha>_def)
@@ -2132,12 +2046,9 @@ lemma wf_parse_scan:
   then show "wf_item_Pt1 x (Suc k)" using P 1 2 3 Btree by auto
 qed
 
-inductive_set Parse_Close :: "('n,'a) item_Pt set list \<Rightarrow> ('n,'a) item_Pt set \<Rightarrow> ('n,'a) item_Pt set" for Bs B where
-    Init: "x \<in> B \<Longrightarrow> x \<in> Parse_Close Bs B"
-  | Predict: "\<lbrakk> x \<in> Parse_Close Bs B; x' \<in> Parse_Predict (item x) (length Bs) \<rbrakk> \<Longrightarrow> x' \<in> Parse_Close Bs B"
-  | Complete: "\<lbrakk> y \<in> Parse_Close Bs B; is_complete (item y); x \<in> Parse_Complete Bs y\<rbrakk> \<Longrightarrow> x \<in> Parse_Close Bs B"
-
 end
+
+subsection \<open>correctness of set based earley parser\<close>
 
 context Earley_Gw_eps
 begin
@@ -2209,10 +2120,6 @@ qed
 lemma PClose_eq_Close: "wf_parse_bins1 Bs \<Longrightarrow> wf_parse_bin1 B (length Bs) \<Longrightarrow> item ` (Parse_Close Bs B) = Close (map ((`) item) Bs) (item ` B)"
   using PClose_incl_Close Close_incl_PClose image_iff by fastforce
 
-fun Parse_bins :: "nat \<Rightarrow> ('a, 'b) item_Pt set list" where
-"Parse_bins 0 = [(Parse_Close [] Parse_Init)]" |
-"Parse_bins (Suc k) = (let bs = Parse_bins k in bs @ [Parse_Close bs (Parse_Scan (last bs) k)])"
-
 lemma length_parse_bins: "length (Parse_bins k) = Suc k"
   by (induction k) (auto simp add: Let_def)
 
@@ -2270,8 +2177,6 @@ lemma item_Pbins_eq_bins: "k \<le> length w \<Longrightarrow> map ((`) item) (Pa
 lemma "k \<le> length w \<Longrightarrow> i \<le> k \<Longrightarrow> item ` (Parse_bins k ! i) = \<S> i"
   using item_Pbins_eq_bins_nth by (simp add: bins_eq_\<S>_gen)
 
-
-
 definition valid_parse_tree :: "('a, 'b) Prods \<Rightarrow> ('a, 'b) sym list \<Rightarrow> 'a \<Rightarrow> ('a,'b) tree \<Rightarrow> bool" where
 "valid_parse_tree p ws A t \<equiv> parse_tree p t \<and> root t = Nt A \<and> fringe t = ws"
 
@@ -2307,7 +2212,9 @@ proof-
   then have "wf_item_Pt (x,t) (length w)" by (auto simp add: wf_item1_def)
   then show ?thesis using P_x bins_nth wf_complete_imp_valid_tree[of "(x,t)" "length w"] by auto
 qed
-  
+
+(*would need other direction as well 
+(\<exists> s t. (s, t) \<in> Parse_bins (length w) ! (length w) \<and> valid_parse_tree P w S (Rule (lhs (prod s)) (rev t))) \<Longrightarrow> accepted*)
 
 lemma accepted_wf_cover_impl_tree: 
   assumes "accepted" "wf_parse_bin1 X (length w)" "\<forall>s \<in> \<S> (length w). \<exists>i \<in> X. fst i = s" 
@@ -2322,98 +2229,12 @@ proof-
 qed
 end
 
-context Earley_Gw
-begin 
-
-definition Parse_Predict_L :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> ('n,'a) item_Pt list" where 
-"Parse_Predict_L x k = map (\<lambda>p. (Item p 0 k, [])) (filter (\<lambda>p. next_sym_Nt x (lhs p)) ps)"
-
-
-definition Parse_Complete_L :: "('n, 'a) item_Pt list list \<Rightarrow> ('n, 'a) item_Pt \<Rightarrow> ('n, 'a) item_Pt list" where
-  "Parse_Complete_L Bs y = map (\<lambda> x. let (p,t) = x in (mv_dot p, (Rule (lhs(prod (item y))) (rev (tree y)))#t)) (filter (\<lambda> x. let (p,t) = x in next_sym_Nt p (lhs(prod (item y)))) (Bs ! from (item y)))"
-
-(*definition Parse_Complete_L :: "('n, 'a) item_Pt list list \<Rightarrow> ('n, 'a) item_Pt \<Rightarrow> ('n, 'a) item_Pt list" where
-  "Parse_Complete_L Bs y = map (\<lambda> (p, t). (mv_dot p, (Rule (lhs(prod (item y))) (rev (tree y)))#t)) (filter (\<lambda> (p, t). next_sym_Nt p (lhs(prod (item y)))) (Bs ! from (item y)))"*)
-
-definition Parse_Init_L :: "('n,'a) item_Pt list" where
-  "Parse_Init_L = map (\<lambda>p. (Item p 0 0, [])) (filter (\<lambda> p. lhs p = (S)) ps)"
-
-
-definition Parse_Scan_L :: "('n,'a) item_Pt list \<Rightarrow> nat \<Rightarrow> ('n,'a) item_Pt list" where
-  "Parse_Scan_L Bs k = (let x = Some (Tm (w0 ! k)) in map (\<lambda> y. let (p,t) = y in (mv_dot p, (Sym (the x))#t)) (filter (\<lambda> y. let (p,t) = y in next_symbol p = x) Bs))"
-
-(*fun Parse_step_fun :: "('n, 'a) item_Pt list list \<Rightarrow>  ('n, 'a) item_Pt list \<times> ('n, 'a) item_Pt list \<Rightarrow> ('n, 'a) item_Pt list \<times> ('n, 'a) item_Pt list" where
-  "Parse_step_fun Bs ([], cs) = undefined" |
-  "Parse_step_fun Bs (a#as , cs) = (let step = (if is_complete (item a) then Parse_Complete_L Bs a else Parse_Predict_L (item a) (length Bs)) in
-    ( minus_L (List.union step (a#as)) (List.insert a cs), List.insert a cs))"*)
-
-
-lemma PPredict_L_eq_Predict_L: "map item (Parse_Predict_L s k) = Predict_L s k"
-  by (auto simp add: Parse_Predict_L_def Predict_L_def)
-
-lemma PComplete_L_eq_Complete_L: 
-  assumes "from (item b) < length Bs" 
-  shows "map item (Parse_Complete_L Bs b) = Complete_L (map (map item) Bs) (item b)"
-proof-
-  have "map item (Parse_Complete_L Bs b)
-    = map mv_dot (map item (filter (\<lambda>(p, t). next_sym_Nt p (lhs (item.prod (item b)))) (Bs ! from (item b))))" by (auto simp add: Parse_Complete_L_def)
-  also have "... = map mv_dot (map item (filter (\<lambda>x. next_sym_Nt (item x) (lhs (item.prod (item b)))) (Bs ! from (item b))))"
-    by (simp add: case_prod_beta')
-  also have "... = map mv_dot (filter (\<lambda>x. next_sym_Nt x (lhs (item.prod (item b)))) (map item (Bs ! from (item b))))"
-    using filter_map
-    by (metis (no_types, lifting) ext comp_def)
-  finally show ?thesis
-    using assms by (auto simp add: Complete_L_def)
-qed
-
-lemma Parse_Init_L_eq_Init_L: "map item Parse_Init_L = Init_L"
-  by (auto simp add: Parse_Init_L_def Init_L_def)
-
-lemma Parse_Scan_L_eq_Scan_L: "map item (Parse_Scan_L Bs k) = Scan_L (map item Bs) k"
-proof-
-  have "map item (Parse_Scan_L Bs k) = map mv_dot (map item (filter (\<lambda>(p, t).  next_symbol p = Some (Tm (w0 ! k))) Bs))"
-    by (auto simp add: Parse_Scan_L_def)
-  also have "... = map mv_dot (map item (filter (\<lambda>x. next_symbol (item x) = Some (Tm (w0 ! k))) Bs))"
-    by (simp add: case_prod_beta')
-  also have "... = map mv_dot (filter (\<lambda>x. next_symbol  x = Some (Tm (w0 ! k))) (map item Bs))"
-    using filter_map
-    by (metis (no_types, lifting) ext comp_def)
-  finally show ?thesis
-    by (auto simp add: Scan_L_def)
-qed
-
-lemma PCompleteL_sub_PComplete: "from (item st) < length Bs \<Longrightarrow> set (Parse_Complete_L Bs st) \<subseteq> Parse_Complete (map set Bs) st"
-  by (auto simp add: Parse_Complete_L_def Parse_Complete_def)
-  
-lemma wf1_Parse_Complete_L: 
-  assumes "wf_parse_bins1 (map set Bs)" "wf_item_Pt1 st (length Bs)" "is_complete (item st)" 
-  shows "wf_parse_bin1 (set (Parse_Complete_L Bs st)) (length Bs)"
-proof-
-  have "set (Parse_Complete_L Bs st) \<subseteq> Parse_Complete (map set Bs) st"
-    using assms PCompleteL_sub_PComplete by (auto simp add: wf_item1_def)
-  then show ?thesis using assms wf_parse_complete[of "map set Bs" st] by auto
-qed
-
-lemma PScanL_sub_PScan: "k < length w \<Longrightarrow> set (Parse_Scan_L xs k) \<subseteq> Parse_Scan (set xs) k"
-  by (auto simp add: Parse_Scan_L_def Parse_Scan_def w_def)
-
-lemma wf1_Parse_Scan_L: "k < length w \<Longrightarrow> wf_parse_bin1 (set xs) k \<Longrightarrow> wf_parse_bin1 (set (Parse_Scan_L xs k)) (Suc k)"
-  using PScanL_sub_PScan wf_parse_scan
-  by (meson subset_code(1) wf_parse_bin1.elims(2,3))
-end
-
-context Earley_Gw_eps
-begin
-
-lemma wf1_Parse_Predict_L: "wf_item_Pt1 s k \<Longrightarrow> wf_parse_bin1 (set (Parse_Predict_L (item s) k)) k"
-  using \<epsilon> by (auto simp add: Parse_Predict_L_def wf_item1_def wf_item_def slice_drop_take \<alpha>_def is_complete_def \<epsilon>_free_def)
-
-lemma wf1_Parse_Init_L: "wf_parse_bin1 (set (Parse_Init_L)) 0"
-  using \<epsilon> by (auto simp add: Parse_Init_L_def wf_item1_def wf_item_def slice_drop_take \<alpha>_def is_complete_def \<epsilon>_free_def) 
-end
+section \<open>List based earley parser\<close>
 
 context Earley_Gw
 begin
+
+subsection \<open>ParseWorkList definition\<close>
 
 type_synonym ('c, 'd) ParseWL = "('c,'d) WorkList \<times> ('c,'d) tree list list"
 
@@ -2460,6 +2281,8 @@ fun wf_PWL :: "('n,'a) ParseWL \<Rightarrow> nat \<Rightarrow> bool" where
 
 definition PWL_map_item :: "('n, 'a) ParseWL \<Rightarrow> ('n,'a) item list" where
 "PWL_map_item pwl = list (fst pwl)"
+
+subsection \<open>ParseWorkList lemmas\<close>
 
 lemma [simp]: "list (WL_empty k) = []"
   by (simp add: WL_empty_def)
@@ -2575,11 +2398,112 @@ proof-
   then show ?thesis using assms by (cases pwl) auto
 qed
 
+
+subsection \<open>Parsing algorithm\<close>
+
+definition Parse_Predict_L :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> ('n,'a) item_Pt list" where 
+"Parse_Predict_L x k = map (\<lambda>p. (Item p 0 k, [])) (filter (\<lambda>p. next_sym_Nt x (lhs p)) ps)"
+
+
+definition Parse_Complete_L :: "('n, 'a) item_Pt list list \<Rightarrow> ('n, 'a) item_Pt \<Rightarrow> ('n, 'a) item_Pt list" where
+  "Parse_Complete_L Bs y = map (\<lambda> x. let (p,t) = x in (mv_dot p, (Rule (lhs(prod (item y))) (rev (tree y)))#t)) (filter (\<lambda> x. let (p,t) = x in next_sym_Nt p (lhs(prod (item y)))) (Bs ! from (item y)))"
+
+(*definition Parse_Complete_L :: "('n, 'a) item_Pt list list \<Rightarrow> ('n, 'a) item_Pt \<Rightarrow> ('n, 'a) item_Pt list" where
+  "Parse_Complete_L Bs y = map (\<lambda> (p, t). (mv_dot p, (Rule (lhs(prod (item y))) (rev (tree y)))#t)) (filter (\<lambda> (p, t). next_sym_Nt p (lhs(prod (item y)))) (Bs ! from (item y)))"*)
+
+definition Parse_Init_L :: "('n,'a) item_Pt list" where
+  "Parse_Init_L = map (\<lambda>p. (Item p 0 0, [])) (filter (\<lambda> p. lhs p = (S)) ps)"
+
+
+definition Parse_Scan_L :: "('n,'a) item_Pt list \<Rightarrow> nat \<Rightarrow> ('n,'a) item_Pt list" where
+  "Parse_Scan_L Bs k = (let x = Some (Tm (w0 ! k)) in map (\<lambda> y. let (p,t) = y in (mv_dot p, (Sym (the x))#t)) (filter (\<lambda> y. let (p,t) = y in next_symbol p = x) Bs))"
+
 fun Parse_step_fun :: "('n, 'a) item_Pt list list \<Rightarrow>  ('n, 'a) ParseWL \<times> ('n, 'a) ParseWL \<Rightarrow> ('n, 'a) ParseWL \<times> ('n, 'a) ParseWL" where
   "Parse_step_fun Bs ((wl1, []), pwl2) = undefined" |
   "Parse_step_fun Bs ((wl1, ts1), pwl2) = (let b = PWL_first (wl1, ts1) in 
     (let step = (if is_complete (item b) then Parse_Complete_L Bs b else Parse_Predict_L (item b) (length Bs)) in
     ( minus_PWL (union_LPWL step (wl1, ts1)) (ParseWL_insert pwl2 b), ParseWL_insert pwl2 b) ))"
+
+definition Parse_steps :: "('n, 'a) item_Pt list list \<Rightarrow> ('n, 'a) ParseWL \<times> ('n, 'a) ParseWL \<Rightarrow> (('n, 'a) ParseWL \<times> ('n, 'a) ParseWL) option" where
+  "Parse_steps Bs BC = while_option (\<lambda>(B,C). PWL_map_item B \<noteq> []) (Parse_step_fun Bs) BC"
+
+definition Parse_close2_L :: "('n, 'a) item_Pt list list \<Rightarrow> ('n, 'a) ParseWL \<Rightarrow> ('n, 'a) item_Pt list" where
+"Parse_close2_L Bs B = PWL_list (snd (the (Parse_steps Bs (B, PWL_empty (length Bs)))))"
+
+fun Parse_bins_L :: "nat \<Rightarrow> ('n,'a) item_Pt list list" where
+"Parse_bins_L 0 = [Parse_close2_L [] (PWL_of_List 0 Parse_Init_L)]" |
+"Parse_bins_L (Suc k) = (let Bs = Parse_bins_L k in Bs @ [Parse_close2_L Bs (PWL_of_List (length Bs) (Parse_Scan_L (last Bs) k))])"
+
+fun get_parse_tree :: "('n,'a) item_Pt list \<Rightarrow> ('n,'a) tree option" where
+"get_parse_tree [] = None" |
+"get_parse_tree (x#xs) = (if is_final (fst x) then Some (Rule S (rev (snd x))) else get_parse_tree xs)"
+
+lemma get_parse_tree_NF: "is_final (fst x) \<Longrightarrow> x \<in> set xs \<Longrightarrow> \<exists>s t. (s,t) \<in> set xs \<and> is_final s \<and> get_parse_tree xs = Some (Rule S (rev t))"
+  by (induction xs) auto
+
+fun parse_tree_w where
+"parse_tree_w _ = the (get_parse_tree (last (Parse_bins_L (length w))))"
+(*TODO make a definition and move outside of Context*)
+
+end
+
+subsection \<open>Correctness of list based earley parser\<close>
+
+context Earley_Gw
+begin
+
+lemma PPredict_L_eq_Predict_L: "map item (Parse_Predict_L s k) = Predict_L s k"
+  by (auto simp add: Parse_Predict_L_def Predict_L_def)
+
+lemma PComplete_L_eq_Complete_L: 
+  assumes "from (item b) < length Bs" 
+  shows "map item (Parse_Complete_L Bs b) = Complete_L (map (map item) Bs) (item b)"
+proof-
+  have "map item (Parse_Complete_L Bs b)
+    = map mv_dot (map item (filter (\<lambda>(p, t). next_sym_Nt p (lhs (item.prod (item b)))) (Bs ! from (item b))))" by (auto simp add: Parse_Complete_L_def)
+  also have "... = map mv_dot (map item (filter (\<lambda>x. next_sym_Nt (item x) (lhs (item.prod (item b)))) (Bs ! from (item b))))"
+    by (simp add: case_prod_beta')
+  also have "... = map mv_dot (filter (\<lambda>x. next_sym_Nt x (lhs (item.prod (item b)))) (map item (Bs ! from (item b))))"
+    using filter_map
+    by (metis (no_types, lifting) ext comp_def)
+  finally show ?thesis
+    using assms by (auto simp add: Complete_L_def)
+qed
+
+lemma Parse_Init_L_eq_Init_L: "map item Parse_Init_L = Init_L"
+  by (auto simp add: Parse_Init_L_def Init_L_def)
+
+lemma Parse_Scan_L_eq_Scan_L: "map item (Parse_Scan_L Bs k) = Scan_L (map item Bs) k"
+proof-
+  have "map item (Parse_Scan_L Bs k) = map mv_dot (map item (filter (\<lambda>(p, t).  next_symbol p = Some (Tm (w0 ! k))) Bs))"
+    by (auto simp add: Parse_Scan_L_def)
+  also have "... = map mv_dot (map item (filter (\<lambda>x. next_symbol (item x) = Some (Tm (w0 ! k))) Bs))"
+    by (simp add: case_prod_beta')
+  also have "... = map mv_dot (filter (\<lambda>x. next_symbol  x = Some (Tm (w0 ! k))) (map item Bs))"
+    using filter_map
+    by (metis (no_types, lifting) ext comp_def)
+  finally show ?thesis
+    by (auto simp add: Scan_L_def)
+qed
+
+lemma PCompleteL_sub_PComplete: "from (item st) < length Bs \<Longrightarrow> set (Parse_Complete_L Bs st) \<subseteq> Parse_Complete (map set Bs) st"
+  by (auto simp add: Parse_Complete_L_def Parse_Complete_def)
+  
+lemma wf1_Parse_Complete_L: 
+  assumes "wf_parse_bins1 (map set Bs)" "wf_item_Pt1 st (length Bs)" "is_complete (item st)" 
+  shows "wf_parse_bin1 (set (Parse_Complete_L Bs st)) (length Bs)"
+proof-
+  have "set (Parse_Complete_L Bs st) \<subseteq> Parse_Complete (map set Bs) st"
+    using assms PCompleteL_sub_PComplete by (auto simp add: wf_item1_def)
+  then show ?thesis using assms wf_parse_complete[of "map set Bs" st] by auto
+qed
+
+lemma PScanL_sub_PScan: "k < length w \<Longrightarrow> set (Parse_Scan_L xs k) \<subseteq> Parse_Scan (set xs) k"
+  by (auto simp add: Parse_Scan_L_def Parse_Scan_def w_def)
+
+lemma wf1_Parse_Scan_L: "k < length w \<Longrightarrow> wf_parse_bin1 (set xs) k \<Longrightarrow> wf_parse_bin1 (set (Parse_Scan_L xs k)) (Suc k)"
+  using PScanL_sub_PScan wf_parse_scan
+  by (meson subset_code(1) wf_parse_bin1.elims(2,3))
 
 lemma PWL_inv_parse_step1: "pwl1 = (wl1, t#ts) \<Longrightarrow> Parse_step_fun Bs (pwl1, pwl2) = (pwl3, pwl4) \<Longrightarrow> ParseWL_inv pwl3"
   using PWL_inv_minus_PWL by (fastforce simp add: Let_def)
@@ -2621,10 +2545,6 @@ shows "(let x = step_fun (map (map item) Bs) (fst pwl1, fst pwl2) in fst pwl3 = 
   using Pstep_fun_eq_step_fun
   by (metis PWL_map_item_def invs local.step(1,2) local.wf surjective_pairing)
 
-definition Parse_steps :: "('n, 'a) item_Pt list list \<Rightarrow> ('n, 'a) ParseWL \<times> ('n, 'a) ParseWL \<Rightarrow> (('n, 'a) ParseWL \<times> ('n, 'a) ParseWL) option" where
-  "Parse_steps Bs BC = while_option (\<lambda>(B,C). PWL_map_item B \<noteq> []) (Parse_step_fun Bs) BC"
-
-
 lemma Parse_steps_inv1: 
   assumes inv: "ParseWL_inv pwl1"
   and step: "Parse_steps Bs (pwl1,pwl2) = Some (pwl1', pwl2')"
@@ -2639,19 +2559,17 @@ shows "ParseWL_inv pwl2'"
   using while_option_rule[where P= "\<lambda>(pwl1,pwl2). ParseWL_inv pwl2 \<and> ParseWL_inv pwl1"] PWL_inv_parse_step2' PWL_inv_parse_step1' step inv unfolding Parse_steps_def
   by (smt (verit, ccfv_SIG) case_prodE case_prodI2 case_prod_conv)
 
-
-definition Parse_close2_L :: "('n, 'a) item_Pt list list \<Rightarrow> ('n, 'a) ParseWL \<Rightarrow> ('n, 'a) item_Pt list" where
-"Parse_close2_L Bs B = PWL_list (snd (the (Parse_steps Bs (B, PWL_empty (length Bs)))))"
-
-fun Parse_bins_L :: "nat \<Rightarrow> ('n,'a) item_Pt list list" where
-"Parse_bins_L 0 = [Parse_close2_L [] (PWL_of_List 0 Parse_Init_L)]" |
-"Parse_bins_L (Suc k) = (let Bs = Parse_bins_L k in Bs @ [Parse_close2_L Bs (PWL_of_List (length Bs) (Parse_Scan_L (last Bs) k))])"
-
 end
 
 
 context Earley_Gw_eps
 begin
+
+lemma wf1_Parse_Predict_L: "wf_item_Pt1 s k \<Longrightarrow> wf_parse_bin1 (set (Parse_Predict_L (item s) k)) k"
+  using \<epsilon> by (auto simp add: Parse_Predict_L_def wf_item1_def wf_item_def slice_drop_take \<alpha>_def is_complete_def \<epsilon>_free_def)
+
+lemma wf1_Parse_Init_L: "wf_parse_bin1 (set (Parse_Init_L)) 0"
+  using \<epsilon> by (auto simp add: Parse_Init_L_def wf_item1_def wf_item_def slice_drop_take \<alpha>_def is_complete_def \<epsilon>_free_def) 
 
 lemma wf_parse_step1: 
   assumes "pwl1 = (wl1, t#ts)" "Parse_step_fun Bs (pwl1, pwl2) = (pwl3, pwl4)" 
@@ -2822,9 +2740,6 @@ proof-
   then show ?thesis unfolding Parse_close2_L_def P by (auto simp del: wf_parse_bin1.simps)
 qed
 
-lemma "fst (PWL_of_List k xs) = WL_of_List k (map item xs)"
-  by (induction xs) (auto simp add: PWL_of_List_def WL_of_List_def)
-
 lemma length_Parse_bins[simp]: "length (Parse_bins_L k) = Suc k"
   by (induction k) (auto simp add: Let_def)
 
@@ -2891,21 +2806,6 @@ qed
 
 end
 
-context Earley_Gw
-begin
-fun get_parse_tree :: "('n,'a) item_Pt list \<Rightarrow> ('n,'a) tree option" where
-"get_parse_tree [] = None" |
-"get_parse_tree (x#xs) = (if is_final (fst x) then Some (Rule S (rev (snd x))) else get_parse_tree xs)"
-
-lemma get_parse_tree_NF: "is_final (fst x) \<Longrightarrow> x \<in> set xs \<Longrightarrow> \<exists>s t. (s,t) \<in> set xs \<and> is_final s \<and> get_parse_tree xs = Some (Rule S (rev t))"
-  by (induction xs) auto
-
-fun parse_tree_w where
-"parse_tree_w _ = the (get_parse_tree (last (Parse_bins_L (length w))))"
-(*TODO make a definition and move outside of Context*)
-
-end
-
 context Earley_Gw_eps
 begin
 
@@ -2940,7 +2840,7 @@ next
     by (metis get_parse_tree.simps(2) list.set_intros(1,2) option.inject surjective_pairing)
 qed
 
-lemma generated_parse_tree_is_valid: "get_parse_tree (last (Parse_bins_L (length w))) = Some t \<longrightarrow> valid_parse_tree P w S t"
+theorem generated_parse_tree_is_valid: "get_parse_tree (last (Parse_bins_L (length w))) = Some t \<longrightarrow> valid_parse_tree P w S t"
 proof
   assume "get_parse_tree (last (Parse_bins_L (length w))) = Some t"
   then obtain s ts where P_t: "(s,ts) \<in> set (last (Parse_bins_L (length w))) \<and> is_final s \<and> t = (Rule S (rev ts))" 
@@ -2953,7 +2853,7 @@ proof
     by (auto simp add: valid_parse_tree_def is_final_def wf_item1_def wf_item_def \<alpha>_def rhs_def is_complete_def)
 qed
 
-lemma find_parse_tree_iff_w_in_L: "(\<exists>t. get_parse_tree (last (Parse_bins_L (length w))) = Some t) \<longleftrightarrow> w0 \<in> Lang P S"
+theorem find_parse_tree_iff_w_in_L: "(\<exists>t. get_parse_tree (last (Parse_bins_L (length w))) = Some t) \<longleftrightarrow> w0 \<in> Lang P S"
 proof
   assume "\<exists>t. get_parse_tree (last (Parse_bins_L (length w))) = Some t"
   then obtain t where "get_parse_tree (last (Parse_bins_L (length w))) = Some t" by blast
@@ -2989,6 +2889,10 @@ proof
 qed
 
 end
+
+section \<open>Running time analysis of list based earley parser\<close>
+
+subsection \<open>Time_fun defs and simple bounds\<close>
 
 time_fun hd
 time_fun zip
@@ -3058,6 +2962,8 @@ fun T_Parse_steps :: "('a, 'b) item_Pt list list \<Rightarrow> ('a, 'b) ParseWL 
 
 time_fun Parse_close2_L
 time_fun Parse_bins_L
+
+subsection \<open>ParseWorkList time bounds\<close>
 
 lemma PWL_T_insert_simp: "T_ParseWL_insert pwl x \<le> T_isin (fst pwl) (fst x) + T_insert (fst pwl) (fst x)"
   by (cases pwl, cases x) simp
@@ -3157,6 +3063,8 @@ proof-
     using T_union_LPWL_bound[of "PWL_empty k"] assms by auto
   then show ?thesis by auto
 qed
+
+subsection \<open>Earley parser time bounds\<close>
 
 lemma T_Parse_Complete_L_bound: 
   assumes "wf_parse_bins1 (map set Bs)" "from (item item_Pt) < length Bs" "wf_item_Pt item_Pt (length Bs)" "length (Bs ! from (item item_Pt)) \<le> C"
@@ -3785,6 +3693,8 @@ next
   finally show ?case.
 qed
 
+subsection \<open>Nice time bounds\<close>
+
 definition C3 where "C3 = (L * Suc K * Suc L * Suc K * (5 * L * Suc K + 4 * K * K + 24))"
 definition C4 where "C4 = (L * Suc K * (2 * L * Suc K + 2 * K + 20) + 7)"
 definition C6 where "C6 = L * Suc K * Suc L * Suc K * 17"
@@ -3831,10 +3741,7 @@ qed
 
 end
 
-
-(*korrektheit ohne Eindeutigkeits beweis aus Early.thy*)
-
-(*literature for linear runtime grammars*)
+section \<open>Example\<close>
 
 definition ps where "ps = [((0::nat), [Tm (1::int)]), (0, [Nt (0::nat), Nt 0])]"
 definition S :: nat where "S = 0"
@@ -3850,7 +3757,6 @@ declare Earley_Gw.Predict_L_def[code]
 declare Earley_Gw.mv_dot_def[code]
 declare Earley_Gw.Complete_L_def[code]
 declare Earley_Gw.Scan_L_def[code]
-declare Earley_Gw.minus_L_def[code]
 declare Earley_Gw.Init_L_def[code]
 declare Earley_Gw.step_fun.simps[code]
 declare Earley_Gw.steps_def[code]
@@ -3873,5 +3779,5 @@ value "bins_L 1"
 value "bins_L 2"
 value "bins_L 3"
 
-unused_thms
+(*unused_thms*)
 end

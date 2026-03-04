@@ -625,7 +625,7 @@ corollary bins_eq_\<S>:(* used in Paper *) "i \<le> length w \<Longrightarrow> b
 using bins_eq_\<S>_gen[of "length w"] by blast
 
 
-subsection \<open>Simplification: \<open>\<epsilon>\<close>-free Grammars\<close>
+subsection \<open>Simplification: \<epsilon>-free Grammars\<close>
 
 definition wf_item1 :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> bool" where 
 "wf_item1 x k = (wf_item x k \<and> (is_complete x \<longrightarrow> from x < k))"
@@ -642,17 +642,46 @@ inductive_set Close1 :: "('n,'a) item set list \<Rightarrow> ('n,'a) item set \<
       next_sym_Nt x (lhs(prod y)) \<rbrakk> \<Longrightarrow>
         mv_dot x \<in> Close1 Bs B"
 
-definition "\<epsilon>_free = (\<forall>r \<in> P. length(rhs r) > 0)"
+lemma Close1_incr: "B \<subseteq> Close1 Bs B"
+by (simp add: Close1.Init subsetI)
+
+lemma Close1_mono1: assumes "B \<subseteq> B'"
+shows "x \<in> Close1 Bs B \<Longrightarrow> x \<in> Close1 Bs B'"
+proof(induction rule: Close1.induct)
+  case (Init x) thus ?case using Close1.Init assms by blast
+next
+  case (Predict x x') thus ?case using Close1.Predict by blast
+next
+  case (Complete y x) thus ?case using Close1.Complete by blast
+qed
+
+corollary  Close1_mono: "B \<subseteq> B' \<Longrightarrow> Close1 Bs B \<subseteq> Close1 Bs B'"
+using Close1_mono1 by blast
+
+lemma Close1_idemp1: "x \<in> Close1 Bs (Close1 Bs B) \<Longrightarrow> x \<in> Close1 Bs B"
+proof(induction rule: Close1.induct)
+  case (Init x) thus ?case .
+next
+  case (Predict x x') thus ?case using Close1.Predict by blast
+next
+  case (Complete y x) thus ?case using Close1.Complete by blast
+qed
+
+lemma Close1_idemp: "Close1 Bs (Close1 Bs B) \<subseteq> Close1 Bs B"
+using Close1_idemp1 by blast
 
 end (* Earley_Gw *)
 
 locale Earley_Gw_eps = Earley_Gw +
-assumes \<epsilon>: \<epsilon>_free
+assumes eps_free: "eps_free ps"
 begin
+
+lemma \<epsilon>_free: "\<forall>r \<in> P. length(rhs r) > 0"
+  using eps_free unfolding rhs_def Eps_free_def by auto
 
 lemma wf1_Predict:
   "\<lbrakk> wf_item1 x k; x' \<in> Predict x k \<rbrakk> \<Longrightarrow> wf_item1 x' k"
-using \<epsilon> unfolding wf_item1_def wf_item_def Predict_def is_complete_def \<epsilon>_free_def by (auto)
+using \<epsilon>_free unfolding wf_item1_def wf_item_def Predict_def is_complete_def by (auto)
 
 (* does not need \<epsilon> *)
 lemma wf1_Complete:
@@ -743,59 +772,16 @@ abbreviation Close2_steps ("(_ \<turnstile> _ \<rightarrow>* _)" [50, 0, 50] 50)
 
 definition "close2 Bs B = (SOME C. Bs \<turnstile> (B,{}) \<rightarrow>* ({},C))"
 
-lemma Close2_forward:
-  "\<lbrakk> Bs \<turnstile> (B,C) \<rightarrow> (B',C'); B \<inter> C = {}; x \<in> B; x \<notin> B' \<rbrakk> \<Longrightarrow>
-   ((next_symbol x \<noteq> None \<and> B' = B \<union> Predict x (length Bs) - insert x C) \<or>
-    (next_symbol x = None \<and> B' = (B \<union> Complete Bs x) - insert x C)) \<and> C' = insert x C"
-by(auto simp add: Close2.simps)
-
-lemma Close2_disj: "Bs \<turnstile> (B,C) \<rightarrow> (B',C') \<Longrightarrow> B \<inter> C = {} \<Longrightarrow> B' \<inter> C' = {}"
-by(auto simp add: Close2.simps)
-
 lemma Close2_steps_disj: "Bs \<turnstile> (B,C) \<rightarrow>* (B',C') \<Longrightarrow> B \<inter> C = {} \<Longrightarrow> B' \<inter> C' = {}"
 proof(induction rule: rtranclp_induct2)
   case refl thus ?case .
 next
   case step
-  thus ?case using Close2_disj by blast
+  thus ?case by(auto simp add: Close2.simps)
 qed
 
-lemma Close1_incr: "B \<subseteq> Close1 Bs B"
-by (simp add: Close1.Init subsetI)
 
-theorem Close2_step_incr2:
-  "Bs \<turnstile> (B,C) \<rightarrow> (B',C') \<Longrightarrow> B \<union> C \<subset> B' \<union> C' \<or> B \<union> C = B' \<union> C' \<and> B' \<subseteq> B"
-by(auto simp add: Close2.simps)
-
-theorem Close2_step_incr:
-  "Bs \<turnstile> (B,C) \<rightarrow> (B',C') \<Longrightarrow> B \<union> C \<subseteq> B' \<union> C'"
-using Close2_step_incr2 by blast
-
-theorem Close2_steps_incr2:
-  "Bs \<turnstile> (B,C) \<rightarrow>* (B',C') \<Longrightarrow> B \<union> C \<subseteq> B' \<union> C'"
-proof(induction rule: rtranclp_induct2)
-  case refl thus ?case by blast
-next
-  case (step) thus ?case using Close2_step_incr by blast
-qed
-
-theorem Close2_steps_incr:
-  "Bs \<turnstile> (B,C) \<rightarrow>* (B',C') \<Longrightarrow> B \<union> C \<subseteq> B' \<union> C'"
-using Close2_steps_incr2 by blast
-
-theorem Close2_step_C'_subset:
-  "Bs \<turnstile> (B,C) \<rightarrow> (B',C') \<Longrightarrow> C' \<subseteq> C \<union> B"
-by(auto simp: Close2.simps)
-
-theorem Close2_steps_subdivide:
-  "Bs \<turnstile> (B,C) \<rightarrow>* (B1,C1) \<Longrightarrow> x \<notin> C \<Longrightarrow> B \<inter> C = {} \<Longrightarrow> x \<in> C1 \<Longrightarrow>
-  (\<exists>B2 C2 B3 C3. Bs \<turnstile> (B,C) \<rightarrow>* (B2,C2) \<and> x \<in> B2 \<and> Bs \<turnstile> (B2,C2) \<rightarrow> (B3,C3) \<and> x \<notin> B3 \<and> Bs \<turnstile> (B3,C3) \<rightarrow>* (B1,C1))"
-proof(induction rule: rtranclp_induct2)
-  case refl thus ?case by blast
-next
-  case (step) thus ?case using Close2_step_C'_subset Close2_steps_disj
-    by (smt (verit, ccfv_threshold) IntI UnE equals0D rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl subset_eq)
-qed
+subsubsection \<open>\<open>Close2\<close> is Sound wrt \<open>Close1\<close>\<close>
 
 theorem Close2_step_subset_Close1:
   "Bs \<turnstile> (B,C) \<rightarrow> (B',C') \<Longrightarrow> B' \<union> C' \<subseteq> Close1 Bs (B \<union> C)"
@@ -816,31 +802,6 @@ next
     by blast
 qed
 
-lemma Close1_mono1: assumes "B \<subseteq> B'"
-shows "x \<in> Close1 Bs B \<Longrightarrow> x \<in> Close1 Bs B'"
-proof(induction rule: Close1.induct)
-  case (Init x) thus ?case using Close1.Init assms by blast
-next
-  case (Predict x x') thus ?case using Close1.Predict by blast
-next
-  case (Complete y x) thus ?case using Close1.Complete by blast
-qed
-
-corollary  Close1_mono: "B \<subseteq> B' \<Longrightarrow> Close1 Bs B \<subseteq> Close1 Bs B'"
-using Close1_mono1 by blast
-
-lemma Close1_idemp1: "x \<in> Close1 Bs (Close1 Bs B) \<Longrightarrow> x \<in> Close1 Bs B"
-proof(induction rule: Close1.induct)
-  case (Init x) thus ?case .
-next
-  case (Predict x x') thus ?case using Close1.Predict by blast
-next
-  case (Complete y x) thus ?case using Close1.Complete by blast
-qed
-
-lemma Close1_idemp: "Close1 Bs (Close1 Bs B) \<subseteq> Close1 Bs B"
-using Close1_idemp1 by blast
-
 theorem Close2_steps_subset_Close1:
   "Bs \<turnstile> (B,C) \<rightarrow>* (B',C') \<Longrightarrow> B' \<union> C' \<subseteq> Close1 Bs (B \<union> C)"
 proof(induction rule: rtranclp_induct2)
@@ -855,11 +816,76 @@ qed
 corollary Close2_steps_subset_Close1': "Bs \<turnstile> (B,{}) \<rightarrow>* ({},C) \<Longrightarrow> C \<subseteq> Close1 Bs B"
 by (drule Close2_steps_subset_Close1) auto
 
+theorem Close2_steps_incr:
+  "Bs \<turnstile> (B,C) \<rightarrow>* (B',C') \<Longrightarrow> B \<union> C \<subseteq> B' \<union> C'"
+proof(induction rule: rtranclp_induct2)
+  case refl thus ?case by blast
+next
+  case (step) thus ?case by(auto simp add: Close2.simps)
+qed
+
+theorem Close2_steps_subdivide: assumes "x \<notin> C" "B \<inter> C = {}"
+  shows "Bs \<turnstile> (B,C) \<rightarrow>* (B1,C1) \<Longrightarrow> x \<in> C1 \<Longrightarrow>
+  (\<exists>B2 C2 B3 C3. Bs \<turnstile> (B,C) \<rightarrow>* (B2,C2) \<and> x \<in> B2 \<and> Bs \<turnstile> (B2,C2) \<rightarrow> (B3,C3) \<and> x \<notin> B3 \<and> Bs \<turnstile> (B3,C3) \<rightarrow>* (B1,C1))"
+proof(induction rule: rtranclp_induct2)
+  case refl thus ?case using assms by blast
+next
+  case (step)
+  thus ?case using step(2)[unfolded Close2.simps] Close2_steps_disj assms rtranclp.simps
+    by (metis (no_types, lifting) Diff_iff Pair_inject Un_insert_right Un_empty_right insertE insert_iff)
+qed
+
+lemma Close2_sim_Close1:
+ shows "\<lbrakk> x \<in> Close1 Bs B;  Bs \<turnstile> (B,{}) \<rightarrow>* ({},C) \<rbrakk> \<Longrightarrow> x \<in> C"
+proof(induction rule: Close1.induct)
+  case (Init x)
+  thus ?case using Close2_steps_incr
+    by blast
+next
+  case (Predict x y)
+  from \<open>y \<in> _\<close> have n: "next_symbol x \<noteq> None"
+    unfolding Predict_def by auto
+  obtain B2 C2 B3 C3
+  where "Bs \<turnstile> (B,{}) \<rightarrow>* (B2,C2)" "x \<in> B2" "Bs \<turnstile> (B2,C2) \<rightarrow> (B3,C3)" "x \<notin> B3" "Bs \<turnstile> (B3,C3) \<rightarrow>* ({},C)"
+    using Close2_steps_subdivide[OF _ _ Predict.prems Predict.IH[OF Predict.prems]] by blast
+  have "B2 \<inter> C2 = {}" using Close2_steps_disj \<open>Bs \<turnstile> (B, {}) \<rightarrow>* (B2, C2)\<close> by blast
+  have "B3 = B2 \<union> Predict x (length Bs) - insert x C2" "C3 = insert x C2"
+    using \<open>Bs \<turnstile> (B2,C2) \<rightarrow> _\<close> \<open>B2 \<inter> C2 = {}\<close> \<open>x \<in> B2\<close> \<open>x \<notin> B3\<close> n unfolding Close2.simps by auto
+  show ?case
+    using Close2_steps_incr[OF \<open>Bs \<turnstile> (B3, C3) \<rightarrow>* _\<close>] Predict.hyps(2) \<open>B3 = _\<close> \<open>C3 = _\<close> by blast
+next
+  case (Complete x y)
+  have n: "next_symbol x = None"
+    by (simp add: Complete.hyps(2) next_symbol_def)
+  obtain B2 C2 B3 C3
+    where "Bs \<turnstile> (B,{}) \<rightarrow>* (B2,C2)" "x \<in> B2" "Bs \<turnstile> (B2,C2) \<rightarrow> (B3,C3)" "x \<notin> B3" "Bs \<turnstile> (B3,C3) \<rightarrow>* ({},C)"
+    using Close2_steps_subdivide[OF _ _ Complete.prems Complete.IH[OF Complete.prems]] by blast
+  have "B2 \<inter> C2 = {}" using Close2_steps_disj \<open>Bs \<turnstile> (B, {}) \<rightarrow>* (B2, C2)\<close> by blast
+  have "B3 = B2 \<union> Complete Bs x - insert x C2" "C3 = insert x C2"
+    using \<open>Bs \<turnstile> (B2,C2) \<rightarrow> _\<close> \<open>B2 \<inter> C2 = {}\<close> \<open>x \<in> B2\<close> \<open>x \<notin> B3\<close> n unfolding Close2.simps by auto
+  show ?case
+    using Close2_steps_incr[OF \<open>Bs \<turnstile> (B3, C3) \<rightarrow>* _\<close>] Complete.hyps \<open>B3 = _\<close> \<open>C3 = _\<close>
+    unfolding Complete_def by auto
+qed
+
+corollary Close1_subset_Close2:
+ "Bs \<turnstile> (B,{}) \<rightarrow>* ({},D) \<Longrightarrow> Close1 Bs B \<subseteq> D"
+using Close2_sim_Close1 by auto
+
+corollary close2_sound_wrt_Close1 (* unused *):
+  "Bs \<turnstile> (B,{}) \<rightarrow>* ({},C) \<Longrightarrow> C = Close1 Bs B"
+using Close1_subset_Close2 Close2_steps_subset_Close1' by blast
+
+
+subsubsection \<open>Preparation for Termination of \<open>Close2\<close>\<close>
+
+text \<open>Here we only define the well-founded relation that subsumes \<open>Close2\<close>.\<close>
+
 definition Close2_less :: "nat \<Rightarrow> ((('n,'a) item set \<times> ('n,'a) item set) \<times> (('n,'a) item set \<times> ('n,'a) item set)) set" where
 "Close2_less k = (\<lambda>(B,C). card({x. wf_item x k} - (B \<union> C))) <*mlex*> inv_image finite_psubset fst"
 
 lemma wf_Close2_less: "wf (Close2_less k)"
-by (simp add: Close2_less_def wf_mlex)
+by (simp add: Close2_less_def wf_mlex) 
 
 lemma finite_ex_wf_item: "finite ({x. wf_item x k})"
 using finite_subset[OF _  finite_imageI[OF finite_wf_item, of fst]] unfolding image_def
@@ -925,58 +951,10 @@ next
   qed
 qed
 
-lemma Close2_nonempty_step:
-  assumes "B \<noteq> {}" shows "\<exists>B' C'. Bs \<turnstile> (B,C) \<rightarrow> (B',C')"
-proof -
-  from \<open>B \<noteq> {}\<close> obtain x where "x \<in> B" by blast
-  show ?thesis
-  proof (cases "next_symbol x")
-    case None
-    thus ?thesis using Close2.Complete \<open>x \<in> B\<close> by blast
-  next
-    case (Some a)
-    thus ?thesis using Close2.Predict \<open>x \<in> B\<close> by blast
-  qed
-qed
-
-lemma Close2_sim_Close1:
- shows "\<lbrakk> x \<in> Close1 Bs B;  Bs \<turnstile> (B,{}) \<rightarrow>* ({},C) \<rbrakk> \<Longrightarrow> x \<in> C"
-proof(induction arbitrary: C rule: Close1.induct)
-  case (Init x)
-  thus ?case using Close2_steps_incr
-    by blast
-next
-  case (Predict x y)
-  from \<open>y \<in> _\<close> have n: "next_symbol x \<noteq> None"
-    unfolding Predict_def by auto
-  obtain B2 C2 B3 C3
-  where "Bs \<turnstile> (B,{}) \<rightarrow>* (B2,C2)" "x \<in> B2" "Bs \<turnstile> (B2,C2) \<rightarrow> (B3,C3)" "x \<notin> B3" "Bs \<turnstile> (B3,C3) \<rightarrow>* ({},C)"
-    using Close2_steps_subdivide[OF Predict.prems]  Predict.IH[OF Predict.prems] by blast
-  have "B2 \<inter> C2 = {}" using Close2_steps_disj \<open>Bs \<turnstile> (B, {}) \<rightarrow>* (B2, C2)\<close> by blast
-  have "B3 = B2 \<union> Predict x (length Bs) - insert x C2" "C3 = insert x C2"
-    using Close2_forward[OF \<open>Bs \<turnstile> (B2,C2) \<rightarrow> _\<close> \<open>B2 \<inter> C2 = {}\<close> \<open>x \<in> B2\<close> \<open>x \<notin> B3\<close>] n by auto
-  show ?case
-    using Close2_steps_incr2[OF \<open>Bs \<turnstile> (B3, C3) \<rightarrow>* _\<close>] Predict.hyps(2) \<open>B3 = _\<close> \<open>C3 = _\<close> by blast
-next
-  case (Complete x y)
-  have n: "next_symbol x = None"
-    by (simp add: Complete.hyps(2) next_symbol_def)
-  obtain B2 C2 B3 C3
-    where "Bs \<turnstile> (B,{}) \<rightarrow>* (B2,C2)" "x \<in> B2" "Bs \<turnstile> (B2,C2) \<rightarrow> (B3,C3)" "x \<notin> B3" "Bs \<turnstile> (B3,C3) \<rightarrow>* ({},C)"
-    using Close2_steps_subdivide[OF Complete.prems] Complete.IH[OF Complete.prems] by blast
-  have "B2 \<inter> C2 = {}" using Close2_steps_disj \<open>Bs \<turnstile> (B, {}) \<rightarrow>* (B2, C2)\<close> by blast
-  have "B3 = B2 \<union> Complete Bs x - insert x C2" "C3 = insert x C2"
-    using Close2_forward[OF \<open>Bs \<turnstile> (B2,C2) \<rightarrow> _\<close> \<open>B2 \<inter> C2 = {}\<close> \<open>x \<in> B2\<close> \<open>x \<notin> B3\<close>] n by auto
-  show ?case
-    using Close2_steps_incr2[OF \<open>Bs \<turnstile> (B3, C3) \<rightarrow>* _\<close>] Complete.hyps \<open>B3 = _\<close> \<open>C3 = _\<close>
-    unfolding Complete_def by auto
-qed
-
-corollary Close1_subset_Close2:
- "Bs \<turnstile> (B,{}) \<rightarrow>* ({},D) \<Longrightarrow> Close1 Bs B \<subseteq> D"
-using Close2_sim_Close1 by auto
-
 end (* Earley_Gw *)
+
+
+subsubsection \<open>\<open>Close2\<close> Terminates and is Complete wrt \<open>Close1\<close>\<close>
 
 context Earley_Gw_eps
 begin
@@ -1001,6 +979,10 @@ next
   case (Complete x B "C")
   thus ?case unfolding wf_bin1_def by blast
 qed
+
+lemma Close2_nonempty_step:
+  "B \<noteq> {} \<Longrightarrow> \<exists>B' C'. Bs \<turnstile> (B,C) \<rightarrow> (B',C')"
+by (meson Close2.intros ex_in_conv)
 
 (* unify wf_bin1 and wf_items? *)
 lemma Close2_NF: assumes "wf_bins1 Bs"
@@ -1032,7 +1014,7 @@ proof
 qed
 
 lemma wf_bin1_Init: "wf_bin1 Init 0"
-using \<epsilon> by(auto simp add: Init_def wf_bin1_def wf_item1_def wf_item_def is_complete_def \<epsilon>_free_def)
+using \<epsilon>_free by(auto simp add: Init_def wf_bin1_def wf_item1_def wf_item_def is_complete_def)
 
 lemma bins0_close2:(* used in Paper *) "bins 0 = [close2 [] Init]"
 by(simp flip: Close1_eq_Close add: close2_eq_Close1 wf_bins1_def wf_bin1_Init)
@@ -1042,11 +1024,11 @@ unfolding is_complete_def Init_def
 proof (induction rule: Close.induct)
   case (Init x)
   thus ?case
-    using \<epsilon> \<epsilon>_free_def by fastforce
+    using \<epsilon>_free by fastforce
 next
   case (Predict x x')
   thus ?case
-    using \<epsilon> Predict_def \<epsilon>_free_def by fastforce
+    using \<epsilon>_free Predict_def by fastforce
 next
   case (Complete y x)
   thus ?case

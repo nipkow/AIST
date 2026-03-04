@@ -2065,10 +2065,10 @@ context Earley_Gw_eps
 begin
 
 lemma wf_parse_predict1: "wf_item_Pt1 x k \<Longrightarrow> wf_parse_bin1 (Parse_Predict (item x) k) k"
-  using \<epsilon> by (auto simp add: Parse_Predict_def wf_item1_def wf_item_def is_complete_def \<epsilon>_free_def slice_drop_take \<alpha>_def )
+  using \<epsilon>_free by (auto simp add: Parse_Predict_def wf_item1_def wf_item_def is_complete_def slice_drop_take \<alpha>_def)
 
 lemma wf_parse_init1: "wf_parse_bin1 (Parse_Init) 0"
-  using \<epsilon> by (auto simp add: Parse_Init_def slice_drop_take wf_item1_def wf_item_def is_complete_def \<alpha>_def \<epsilon>_free_def)
+  using \<epsilon>_free by (auto simp add: Parse_Init_def slice_drop_take wf_item1_def wf_item_def is_complete_def \<alpha>_def)
 
 lemma wf_parse_bin_close: 
   assumes "wf_parse_bins1 Bs" "wf_parse_bin1 B (length Bs)" 
@@ -2577,10 +2577,10 @@ context Earley_Gw_eps
 begin
 
 lemma wf1_Parse_Predict_L: "wf_item_Pt1 s k \<Longrightarrow> wf_parse_bin1 (set (Parse_Predict_L (item s) k)) k"
-  using \<epsilon> by (auto simp add: Parse_Predict_L_def wf_item1_def wf_item_def slice_drop_take \<alpha>_def is_complete_def \<epsilon>_free_def)
+  using \<epsilon>_free by (auto simp add: Parse_Predict_L_def wf_item1_def wf_item_def slice_drop_take \<alpha>_def is_complete_def)
 
 lemma wf1_Parse_Init_L: "wf_parse_bin1 (set (Parse_Init_L)) 0"
-  using \<epsilon> by (auto simp add: Parse_Init_L_def wf_item1_def wf_item_def slice_drop_take \<alpha>_def is_complete_def \<epsilon>_free_def) 
+  using \<epsilon>_free by (auto simp add: Parse_Init_L_def wf_item1_def wf_item_def slice_drop_take \<alpha>_def is_complete_def) 
 
 lemma wf_parse_step1: 
   assumes "pwl1 = (wl1, t#ts)" "Parse_step_fun Bs (pwl1, pwl2) = (pwl3, pwl4)" 
@@ -3752,7 +3752,7 @@ definition w1 where "w1 = [1, 1, (1 :: int)]"
 interpretation Earley_Gw_eps
   where ps = ps and S = S and w0 = w1 
 proof
-  show "Earley_Gw.\<epsilon>_free ps" by (auto simp add: Earley_Gw.\<epsilon>_free_def ps_def rhs_def)
+  show "eps_free ps" by (auto simp add: Eps_free_def ps_def)
 qed
 
 declare Earley_Gw.Predict_L_def[code]

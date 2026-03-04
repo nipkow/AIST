@@ -759,9 +759,9 @@ definition "Complete Bs y = mv_dot ` {x. x \<in> Bs ! from y \<and> next_sym_Nt 
 inductive Close2 :: "('n,'a) item set list \<Rightarrow> ('n,'a) item set * ('n,'a) item set \<Rightarrow> ('n,'a) item set * ('n,'a) item set \<Rightarrow> bool"
 ("(_ \<turnstile> _ \<rightarrow> _)" [50, 0, 50] 50)
   for Bs where
-    Predict: "\<lbrakk> x \<in> B; next_symbol x \<noteq> None \<rbrakk> \<Longrightarrow>
+    Predict: "\<lbrakk> x \<in> B; \<not> is_complete x \<rbrakk> \<Longrightarrow>
     Close2 Bs (B,C) (B \<union> Predict x (length Bs) - (C \<union> {x}), insert x C)"
-  | Complete: "\<lbrakk> x \<in> B; next_symbol x = None \<rbrakk> \<Longrightarrow>
+  | Complete: "\<lbrakk> x \<in> B; is_complete x \<rbrakk> \<Longrightarrow>
     Close2 Bs (B,C) ((B \<union> Complete Bs x) - (C \<union> {x}), (C \<union> {x}))"
 (* Better: (todo - {x}) \<union> (Predict x (length Bs) - insert x done) *)
 
@@ -843,8 +843,8 @@ proof(induction rule: Close1.induct)
     by blast
 next
   case (Predict x y)
-  from \<open>y \<in> _\<close> have n: "next_symbol x \<noteq> None"
-    unfolding Predict_def by auto
+  from \<open>y \<in> _\<close> have n: "\<not> is_complete x"
+    unfolding Predict_def next_symbol_def by auto
   obtain B2 C2 B3 C3
   where "Bs \<turnstile> (B,{}) \<rightarrow>* (B2,C2)" "x \<in> B2" "Bs \<turnstile> (B2,C2) \<rightarrow> (B3,C3)" "x \<notin> B3" "Bs \<turnstile> (B3,C3) \<rightarrow>* ({},C)"
     using Close2_steps_subdivide[OF _ _ Predict.prems Predict.IH[OF Predict.prems]] by blast
@@ -855,7 +855,7 @@ next
     using Close2_steps_incr[OF \<open>Bs \<turnstile> (B3, C3) \<rightarrow>* _\<close>] Predict.hyps(2) \<open>B3 = _\<close> \<open>C3 = _\<close> by blast
 next
   case (Complete x y)
-  have n: "next_symbol x = None"
+  have n: "is_complete x"
     by (simp add: Complete.hyps(2) next_symbol_def)
   obtain B2 C2 B3 C3
     where "Bs \<turnstile> (B,{}) \<rightarrow>* (B2,C2)" "x \<in> B2" "Bs \<turnstile> (B2,C2) \<rightarrow> (B3,C3)" "x \<notin> B3" "Bs \<turnstile> (B3,C3) \<rightarrow>* ({},C)"
@@ -892,7 +892,7 @@ using finite_subset[OF _  finite_imageI[OF finite_wf_item, of fst]] unfolding im
 apply auto
 by (metis Collect_mono)
 
-lemma wf_items_mv_dot: "\<lbrakk> wf_bins1 Bs; wf_item1 x (length Bs); next_symbol x = None \<rbrakk> \<Longrightarrow>
+lemma wf_items_mv_dot: "\<lbrakk> wf_bins1 Bs; wf_item1 x (length Bs); is_complete x \<rbrakk> \<Longrightarrow>
   mv_dot ` {y \<in> Bs ! from x. next_sym_Nt y (lhs (prod x))} \<subseteq> {x. wf_item x (length Bs)}"
     using wf_Complete unfolding next_symbol_def wf_bin1_def wf_bins1_def wf_item1_def
     by (smt (verit, ccfv_threshold) image_Collect_subsetI mem_Collect_eq option.distinct(1))
@@ -930,7 +930,7 @@ next
   have 1: "B \<subseteq> {x. wf_item x (length Bs)}"
     using Complete.prems(1) unfolding wf_bin1_def wf_item1_def by blast
   have *: "mv_dot ` {xa \<in> Bs ! from x. next_sym_Nt xa (lhs (prod x))} \<subseteq> {x. wf_item x (length Bs)}"
-    using wf_items_mv_dot[ OF \<open>wf_bins1 Bs\<close> _ Complete.hyps(2)] Complete.hyps(1) Complete.prems(1) wf_bin1_def by auto
+    using wf_items_mv_dot[OF \<open>wf_bins1 Bs\<close> _ Complete.hyps(2)] Complete.hyps(1) Complete.prems(1) wf_bin1_def by auto
   have "B \<union> C < ?B \<union> ?C \<or> B \<union> C = ?B \<union> ?C \<and> ?B < B"
     using Complete.hyps(1) by blast
   thus ?case

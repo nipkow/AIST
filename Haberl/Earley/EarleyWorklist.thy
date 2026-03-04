@@ -306,9 +306,9 @@ definition Init_L :: "('n,'a) item list" where
 
 definition Scan_L :: "('n,'a) item list \<Rightarrow> nat \<Rightarrow> ('n,'a) item list" where
   "Scan_L Bs k = (let x = Some (Tm (w0 ! k)) in map mv_dot (filter (\<lambda> b. next_symbol b = x) Bs))"
-                                           
+
 fun step_fun :: "('n, 'a) item list list \<Rightarrow>  ('n, 'a) WorkList \<times> ('n, 'a) WorkList \<Rightarrow> ('n, 'a) WorkList \<times> ('n, 'a) WorkList" where
-  "step_fun Bs ((WorkList [] l m), C) = undefined" |
+(* Why? "step_fun Bs ((WorkList [] l m), C) = undefined" |*)
   "step_fun Bs ((WorkList (b#bs) l m), C) = (let step = (if is_complete b then Complete_L Bs b else Predict_L b (length Bs)) in
     ( minus_WL (union_LWL step (WorkList (b#bs) l m)) (insert C b), insert C b) )"
 (* (bs \<union> step) - (C \<union> {b}) *)
@@ -373,7 +373,7 @@ proof-
   let ?xs = "if is_complete a then Complete (map set Bs) a else Predict a (length Bs)"
   let ?xsL = "if is_complete a then Complete_L Bs a else Predict_L a (length Bs)"
 
-  have "a \<in> set as \<and> (if is_complete a then next_symbol a = None else next_symbol a \<noteq> None)"
+  have "a \<in> set as"
     by (auto simp add: P next_symbol_def)
   then have 1: "(map set Bs) \<turnstile> (set as, set bs) \<rightarrow> ((set as \<union> ?xs) - (set bs \<union> {a}), (set bs \<union> {a}))"
     using Close2.Complete Close2.Predict

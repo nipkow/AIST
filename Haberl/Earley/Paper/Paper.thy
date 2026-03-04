@@ -213,14 +213,77 @@ In the end we proved the following correctness theorem:
 \subsection{Epsilon-free Closure}
 
 To simplify the computation of @{const Close}, we follow Jones and assume that @{const P}
-is \<open>\<epsilon>\<close>-free in the rest of the paper. In that case, in the completion rule for @{const Close},
+is epsilon-free in the rest of the paper, i.e. there is no production in @{const P} with an empty @{const rhs}.
+In that case, in the completion rule for @{const Close},
 @{prop "x \<in> mbox((Bs @ [Close Bs B])) ! from y"} can be simplified to
 @{prop "x \<in> Bs ! from y"}. Formally, we define a variant @{const Close1} of @{const Close}
 with the simplified completion rule and prove their equivalence:
 \begin{quote}
 @{thm Close1_eq_Close}
 \end{quote}
-We ignore wellformedness preconditions in this paper.
+We mostly ignore wellformedness conditions in this paper but the crucial point of
+@{prop "wf_bin1 B (length Bs)"} is that all complete items in \<open>B\<close> have a @{const from}
+index of \<open><\<close> @{term \<open>length Bs\<close>}. Thus completion only needs to consult \<open>Bs\<close> and not
+the current bin \<open>B\<close>.
+
+
+\subsection{One-Pass Closure}
+
+Our previous work concludes with an abstract one-pass formulation of @{const Close1}.
+It is still on the level of sets and intentionally nondeterministic.
+
+We formulate the one-pass closure as a transition system @{prop "Bs \<turnstile> (B,C) \<rightarrow> mbox(B',C')"}
+where \<open>B\<close>, \<open>C\<close>, \<open>B'\<close>, \<open>C'\<close> are sets of states: \<open>B\<close> is the current set whose closure is to be computed
+(the ``worklist''), \<open>C\<close> is the accumulator for the closure, and \mbox{\<open>(B', C')\<close>} is the result
+of a) moving some state @{prop "x \<in> B"} to the accumulator (i.e.\ @{prop "C' = C \<union> {x}"}
+and b) extending the worklist with all results of prediction or completion (depending on \<open>x\<close>).
+The definition is again inductive:
+\begin{quote}
+@{thm [mode=Rule] Close2.Predict}
+\bigskip
+
+@{thm [mode=Rule] Close2.Complete}
+\bigskip
+
+@{thm [break] Complete_def}
+\end{quote}
+where @{prop "f ` A = {b. \<exists>a\<in>A. f a = b}"}.
+The full closure algorithm consists of the stepwise reduction of \<open>B\<close> to the empty set:
+\begin{quote}
+@{thm close2_def}
+\end{quote}
+where \<open>SOME\<close> is Hilbert's epsilon operator: @{term "SOME x. Q"} denotes an arbitrary (but fixed!)
+\<open>x\<close> that satisfies \<open>Q\<close> (if such an \<open>x\<close> exists). In our case it does exist, as witnessed by the following
+lemma:
+\begin{quote}
+@{thm [break,margin=70] Close2_NF}
+\end{quote}
+The proof is by induction on a suitable wellfounded relation (that is based on the fact that
+ there are only finitely many wellformed states).
+Although it is not obvious, there is a unique \<open>C'\<close> such that @{prop "Bs \<turnstile> (B, C) \<rightarrow>* ({}, C')"},
+i.e.\ the result of @{const close2} is independent of which result \<open>SOME\<close> chooses.
+
+As for @{const Close} and @{const Close1}, we can also prove the equivalence of @{const Close1} and @{const close2}:
+\begin{quote}
+@{thm close2_eq_Close1}
+\end{quote}
+
+We will sketch the proof because it is omitted in \cite{NipkowR-CBJ24}.
+
+
+Get rid of this:?
+
+Finally we can replace @{const Close} by @{const close2} in the definition of @{const bins}
+and obtain (by proof)
+\begin{quote}
+@{thm (concl) bins0_close2}\\
+@{thm (concl) binsSuc_close2}
+\end{quote}
+where we need to assume that @{prop "k < length w"}. This assumption does no harm
+because by definition of @{const accepted}, we only need to compute the bins up to @{term "length w"}.
+
+Of course, we have not yet arrived at an executable formulation because of the presence of \<open>SOME\<close>
+in @{const close2}.
 \<close>
 (*<*)
 end

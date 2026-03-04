@@ -79,7 +79,7 @@ abbreviation lhs :: "('n,'a) prod \<Rightarrow> 'n" where
   "lhs \<equiv> fst"
 
 definition rhs :: "('n,'a) prod \<Rightarrow> ('n,'a) syms" where
-  "rhs \<equiv> snd"
+  "rhs p = snd p"
 
 datatype ('n,'a) item = 
   Item (prod: "('n,'a) prod") (dot : nat) ("from" : nat)

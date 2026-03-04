@@ -1,13 +1,53 @@
 theory EarleyWorklist
 
-imports 
-  "Earley" 
+imports
+  "Earley"
   "HOL-Library.While_Combinator" 
-  "HOL-Library.Time_Commands" 
   "HOL-Library.Time_Functions"  
   "Context_Free_Grammar.Parse_Tree"
 
 begin
+
+(* TODO mv *)
+lemma T_fst_0[simp]: "T_fst x = 0"
+  by (metis T_fst.elims)
+
+lemma T_snd_0[simp]: "T_snd x = 0"
+  by (metis T_snd.elims)
+
+time_fun the
+
+declare T_append[simp]
+
+time_fun list_update
+time_fun last
+
+lemma T_last[simp]: "as \<noteq> [] \<Longrightarrow> T_last as = length as"
+  by (induction as) auto
+
+(* [simp] ? *)
+lemma T_filter_eq_T_map: "T_filter T_f xs = T_map T_f xs"
+by (simp add: T_filter T_map)
+
+lemma sum_list_bound: "\<forall>n \<in> set ns. n \<le> k \<Longrightarrow> sum_list ns \<le> k * length ns"
+by (induction ns) auto
+
+lemma T_map_bound:
+  "\<forall>x \<in> set xs. T_P x \<le> k \<Longrightarrow> T_map T_P xs \<le> k * length xs + length xs + 1"
+using sum_list_bound[of "map T_P xs"] by(simp add: T_map)
+
+lemma T_filter_bound:
+  "\<forall>x \<in> set xs. T_P x \<le> k \<Longrightarrow> T_filter T_P xs \<le> k * length xs + length xs + 1"
+by (metis T_filter_eq_T_map T_map_bound)
+
+time_fun hd
+time_fun zip
+
+lemma T_zip: "length xs = length ys \<Longrightarrow> T_zip xs ys = length ys + 1"
+  by (induction xs ys rule: list_induct2) auto
+
+lemma T_rev_bound: "T_rev xs \<le> 2*length xs * length xs + 1"
+  by (induction xs) auto
 
 context Earley_Gw
 begin
@@ -863,27 +903,7 @@ section \<open>Running time analysis earley recognizer\<close>
 
 subsection \<open>Timing functions and simple bounds\<close>
 
-time_fun list_update
-time_fun last
-
-lemma T_append_bound[simp]: "T_append as bs = Suc (length as)"
-  by (induction as) auto
-
-lemma T_last_bound[simp]: "as \<noteq> [] \<Longrightarrow> T_last as = length as"
-  by (induction as) auto
-
-time_fun the
-
-fun T_rhs where
-"T_rhs x = T_snd x"
-
-lemma T_fst_0[simp]: "T_fst x = 0"
-  by (metis T_fst.elims)
-
-lemma T_snd_0[simp]: "T_snd x = 0"
-  by (metis T_snd.elims)
-
-time_fun length
+time_fun rhs
 
 time_fun_0 Earley_Gw.w
 
@@ -963,9 +983,6 @@ lemma T_from_0[simp]: "T_from x = 0"
 lemma T_mv_dot_0[simp]: "T_mv_dot s = 0"
   by simp
 
-lemma T_the_0[simp]: "T_the (Some x) = 0"
-  by simp
-
 lemma [simp]: "T_list wl = 0"
   using Earley_Gw.T_list.elims by blast
 
@@ -985,12 +1002,6 @@ proof-
   then show ?thesis 
     using assms T_nth[of "dot s" "rhs (item.prod s)"] by (auto simp add: T_length is_complete_def)
 qed
-
-lemma T_filter_bound: "\<forall>x \<in> set xs. T_P x \<le> k \<Longrightarrow> T_filter T_P xs \<le> k * length xs + length xs + 1"
-  by (induction xs) (auto simp add: T_filter)
-
-lemma T_map_bound: "\<forall>x \<in> set xs. T_P x \<le> k \<Longrightarrow> T_map T_P xs \<le> k * length xs + length xs + 1"
-  by (induction xs) (auto simp add: T_map)
 
 subsection \<open>WorkList time bounds\<close>
 
@@ -1671,7 +1682,7 @@ next
     by (auto simp add: length_bins_L T_length)
 
   have 2: "T_last (bins_L k) = Suc k"
-    by (metis T_last_bound Zero_not_Suc length_bins_L list.size(3))
+    by (metis T_last Zero_not_Suc length_bins_L list.size(3))
 
   have wf_last: "wf_bin1 (set (last (bins_L k))) k" using Suc wf_bin1_last
     by (metis Suc_leD Zero_not_Suc bins_L_eq_bins length_bins_L list.size(3) set_last)
@@ -1887,7 +1898,7 @@ proof-
     using nice_T_bins_L_bound by auto
 
   have 3: "T_last (bins_L (length w)) = Suc (length w)"
-    using T_last_bound length_bins_L
+    using T_last length_bins_L
     by (metis Zero_not_Suc list.size(3))
 
   have 4: "T_length w = Suc (length w)"
@@ -2894,15 +2905,6 @@ section \<open>Running time analysis of list based earley parser\<close>
 
 subsection \<open>Time_fun defs and simple bounds\<close>
 
-time_fun hd
-time_fun zip
-
-lemma T_zip_eq_len: "length xs = length ys \<Longrightarrow> T_zip xs ys = length ys + 1"
-  by (induction xs ys rule: list_induct2) auto
-
-lemma T_rev_bound: "T_rev xs \<le> 2*length xs * length xs + 1"
-  by (induction xs) auto
-
 
 
 context Earley_Gw_eps_T
@@ -2939,7 +2941,7 @@ proof-
 qed
 
 lemma [simp]: "ParseWL_inv pwl \<Longrightarrow> T_PWL_list pwl = (length (snd pwl)) + 1"
-  using T_zip_eq_len by (cases pwl) auto
+  using T_zip by (cases pwl) auto
 
 lemma [simp]: 
   assumes "snd pwl \<noteq> []" "ParseWL_inv pwl" shows "T_PWL_first pwl = 0"
@@ -3463,7 +3465,7 @@ proof-
   moreover have res_inv: "ParseWL_inv ?result_PWL" using  Parse_steps_inv2 invs empty_inv empty_wf
     by (metis Parse_steps_NF eq_snd_iff option.sel wf1(1,2))
   ultimately have "length (list (fst ?result_PWL)) \<le> L * Suc K * Suc (length Bs)" using length_fst_PWL by auto
-  then have "T_PWL_list ?result_PWL \<le> Suc (L * Suc K * Suc (length Bs))" using res_inv T_zip_eq_len 
+  then have "T_PWL_list ?result_PWL \<le> Suc (L * Suc K * Suc (length Bs))" using res_inv T_zip 
     by (cases ?result_PWL) fastforce
   moreover have "T_the (Parse_steps Bs (pwl1, PWL_empty (length Bs))) = 0" using Some_Psteps by auto
   moreover have "T_snd (the (Parse_steps Bs (pwl1, PWL_empty (length Bs)))) = 0" by simp
@@ -3580,7 +3582,7 @@ next
   then have wf_last: "wf_parse_bin (set (last ?Bs)) k" using Suc by (auto simp add: wf_item1_def)
 
   have 1: "T_length ?Bs = k + 2" by (auto simp add: T_length)
-  have 2: "T_last ?Bs = k + 1" using T_last_bound cons by auto
+  have 2: "T_last ?Bs = k + 1" using T_last cons by auto
   have "T_Parse_Scan_L (last ?Bs) k \<le> k + (2 * K + 4) * (length (last (Parse_bins_L k))) + 3"
     using wf_last Suc T_Parse_Scan_L_bound
     by (auto simp add: w_def simp del: T_Parse_Scan_L.simps)

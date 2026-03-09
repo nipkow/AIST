@@ -816,6 +816,8 @@ qed
 corollary Close2_steps_subset_Close1': "Bs \<turnstile> (B,{}) \<rightarrow>* ({},C) \<Longrightarrow> C \<subseteq> Close1 Bs B"
 by (drule Close2_steps_subset_Close1) auto
 
+subsubsection \<open>\<open>Close2\<close> is Complete wrt \<open>Close1\<close>\<close>
+
 theorem Close2_steps_incr:
   "Bs \<turnstile> (B,C) \<rightarrow>* (B',C') \<Longrightarrow> B \<union> C \<subseteq> B' \<union> C'"
 proof(induction rule: rtranclp_induct2)
@@ -825,8 +827,8 @@ next
 qed
 
 theorem Close2_steps_subdivide: assumes "x \<notin> C" "B \<inter> C = {}"
-  shows "Bs \<turnstile> (B,C) \<rightarrow>* (B1,C1) \<Longrightarrow> x \<in> C1 \<Longrightarrow>
-  (\<exists>B2 C2 B3 C3. Bs \<turnstile> (B,C) \<rightarrow>* (B2,C2) \<and> x \<in> B2 \<and> Bs \<turnstile> (B2,C2) \<rightarrow> (B3,C3) \<and> x \<notin> B3 \<and> Bs \<turnstile> (B3,C3) \<rightarrow>* (B1,C1))"
+  shows "Bs \<turnstile> (B,C) \<rightarrow>* (B',C') \<Longrightarrow> x \<in> C' \<Longrightarrow>
+  (\<exists>B1 C1 B2 C2. Bs \<turnstile> (B,C) \<rightarrow>* (B1,C1) \<and> x \<in> B1 \<and> Bs \<turnstile> (B1,C1) \<rightarrow> (B2,C2) \<and> x \<notin> B2 \<and> Bs \<turnstile> (B2,C2) \<rightarrow>* (B',C'))"
 proof(induction rule: rtranclp_induct2)
   case refl thus ?case using assms by blast
 next
@@ -872,7 +874,7 @@ corollary Close1_subset_Close2:
  "Bs \<turnstile> (B,{}) \<rightarrow>* ({},D) \<Longrightarrow> Close1 Bs B \<subseteq> D"
 using Close2_sim_Close1 by auto
 
-corollary close2_sound_wrt_Close1 (* unused *):
+corollary Close2_eq_Close1 (* unused *):
   "Bs \<turnstile> (B,{}) \<rightarrow>* ({},C) \<Longrightarrow> C = Close1 Bs B"
 using Close1_subset_Close2 Close2_steps_subset_Close1' by blast
 
@@ -980,10 +982,6 @@ next
   thus ?case unfolding wf_bin1_def by blast
 qed
 
-lemma Close2_nonempty_step:
-  "B \<noteq> {} \<Longrightarrow> \<exists>B' C'. Bs \<turnstile> (B,C) \<rightarrow> (B',C')"
-by (meson Close2.intros ex_in_conv)
-
 (* unify wf_bin1 and wf_items? *)
 lemma Close2_NF: assumes "wf_bins1 Bs"
 shows "wf_bin1 B (length Bs) \<Longrightarrow> wf_bin1 C (length Bs) \<Longrightarrow> \<exists>C'. Bs \<turnstile> (B,C) \<rightarrow>* ({},C')"
@@ -996,7 +994,7 @@ proof (induction "(B,C)" arbitrary: B C rule: wf_induct_rule)
     thus ?thesis by blast
   next
     assume "B \<noteq> {}"
-    then obtain B' C' where step: "Bs \<turnstile> (B,C) \<rightarrow> (B',C')" using Close2_nonempty_step by blast
+    then obtain B' C' where step: "Bs \<turnstile> (B,C) \<rightarrow> (B',C')" by (meson Close2.intros equals0I)
     note 1 = Close2_step_pres1[OF assms step less.prems(1)]
     note 2 = Close2_step_pres2[OF assms step less.prems]
     from less(1)[OF Close2_less_step [OF \<open>wf_bins1 Bs\<close> step]] less.prems

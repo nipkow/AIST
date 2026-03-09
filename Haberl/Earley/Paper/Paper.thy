@@ -29,6 +29,7 @@ text\<open>
 
 \section{Isabelle Notation} \label{sec:isabelle}
 
+@{term "xs ! n"}
 
 \subsection{Context-Free Grammars}
 
@@ -225,6 +226,7 @@ We mostly ignore wellformedness conditions in this paper but the crucial point o
 @{prop "wf_bin1 B (length Bs)"} is that all complete items in \<open>B\<close> have a @{const from}
 index of \<open><\<close> @{term \<open>length Bs\<close>}. Thus completion only needs to consult \<open>Bs\<close> and not
 the current bin \<open>B\<close>.
+Moreover @{term "wf_bins1 Bs"} \<open>\<equiv>\<close> @{prop "\<forall>k < length Bs. wf_bin1 (Bs!k) k"}.
 
 
 \subsection{One-Pass Closure}
@@ -269,9 +271,43 @@ As for @{const Close} and @{const Close1}, we can also prove the equivalence of 
 \end{quote}
 
 We will sketch the proof because it is omitted in \cite{NipkowR-CBJ24}.
+All proofs are by obvious inductions.
+
+The following lemmas are generally useful:
+\begin{quote}
+@{thm Close2_steps_disj}\\
+@{thm Close2_steps_incr}
+\end{quote}
+
+Soundness (@{thm Close2_steps_subset_Close1'}) follows in two obvious steps:
+\begin{quote}
+@{thm Close2_step_subset_Close1}\\
+@{thm Close2_steps_subset_Close1}
+\end{quote}
+
+Completeness is a bit trickier. The key lemma says that in an \<open>\<rightarrow>\<close> sequence. where an element \<open>x\<close>
+starts in \<open>B\<close> and ends up in \<open>C'\<close>, there is a \<open>\<rightarrow>\<close> step where that transition takes place.
+Completeness can be proved from this lemma.
+\begin{quote}
+@{thm [break,margin=75] (sub) Close2_steps_subdivide}\smallskip\\
+@{thm Close2_sim_Close1}
+\end{quote}
+
+Altogether this yields the desired
+\begin{quote}
+@{thm Close2_eq_Close1}
+\end{quote}
+
+Of course we still need to show termination of \<open>\<rightarrow>\<close>.
+This follows because the set of well-formed items (let us call it \<open>I\<close>) is finite,
+because there are only finitely many dotted productions and @{const from} fields.
+In each \<open>(B,C) \<rightarrow> (B',C')\<close> step, either @{term "card (I - (B \<union> C))"} decreases
+or @{prop "B' \<subset> B"}, which implies termination.
+By induction on this wellfounded relation it follows that eventually @{prop "B={}"}
+because if not, either prediction or completion applies.
 
 
-Get rid of this:?
+TODO Get rid of this:?
 
 Finally we can replace @{const Close} by @{const close2} in the definition of @{const bins}
 and obtain (by proof)

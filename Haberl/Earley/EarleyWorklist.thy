@@ -2188,7 +2188,7 @@ lemma item_Pbins_eq_bins: "k \<le> length w \<Longrightarrow> map ((`) item) (Pa
 lemma "k \<le> length w \<Longrightarrow> i \<le> k \<Longrightarrow> item ` (Parse_bins k ! i) = \<S> i"
   using item_Pbins_eq_bins_nth by (simp add: bins_eq_\<S>_gen)
 
-definition valid_parse_tree :: "('a, 'b) Prods \<Rightarrow> ('a, 'b) sym list \<Rightarrow> 'a \<Rightarrow> ('a,'b) tree \<Rightarrow> bool" where
+definition valid_parse_tree :: "('n, 'a) Prods \<Rightarrow> ('n, 'a) sym list \<Rightarrow> 'n \<Rightarrow> ('n,'a) tree \<Rightarrow> bool" where
 "valid_parse_tree p ws A t \<equiv> parse_tree p t \<and> root t = Nt A \<and> fringe t = ws"
 
 lemma valid_parse_tree_iff_derived: "(\<exists> t. valid_parse_tree p ws A t) \<longleftrightarrow> p \<turnstile> [Nt A] \<Rightarrow>* ws"
@@ -2204,7 +2204,7 @@ next
 qed
 
 
-definition unambiguous :: "('a, 'b) Cfg \<Rightarrow> bool" where
+definition unambiguous :: "('n, 'a) Cfg \<Rightarrow> bool" where
 "unambiguous g \<equiv> \<forall>w \<in> LangS g. \<forall> t1 t2. (valid_parse_tree (Prods g) (map Tm w) (Start g) t1 \<and> valid_parse_tree (Prods g) (map Tm w) (Start g) t2) \<longrightarrow> t1 = t2"
 
 lemma wf_complete_imp_valid_tree: "wf_item_Pt x k \<Longrightarrow> is_complete (item x) \<Longrightarrow> valid_parse_tree P (slice (from (item x)) k w) (lhs (prod (item x))) (Rule (lhs (prod (item x))) (rev (tree x)))"

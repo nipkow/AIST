@@ -672,7 +672,7 @@ using Close1_idemp1 by blast
 
 end (* Earley_Gw *)
 
-locale Earley_Gw_eps = Earley_Gw +
+locale Earley_Gw_eps = Earley_Gw where ps = ps for ps :: "('n,'a) prods" +
 assumes eps_free: "eps_free ps"
 begin
 
@@ -959,7 +959,7 @@ end (* Earley_Gw *)
 subsubsection \<open>\<open>Close2\<close> Terminates and is Complete wrt \<open>Close1\<close>\<close>
 
 context Earley_Gw_eps
-begin
+begin           
 
 lemma Close2_step_pres1: assumes "wf_bins1 Bs"
 shows "Bs \<turnstile> (B,C) \<rightarrow> (B',C') \<Longrightarrow> wf_bin1 B (length Bs) \<Longrightarrow> wf_bin1 B' (length Bs)"
@@ -1065,6 +1065,148 @@ by(simp add: last_conv_nth[OF bins_nonempty] wf_bins1_def)
 lemma binsSuc_close2:(* used in Paper *)
   "k < length w \<Longrightarrow> bins (Suc k) = (let Bs = bins k in Bs @ [close2 Bs (Scan (last Bs) k)])"
 by(simp flip: Close1_eq_Close add: close2_eq_Close1 wf_bins1_bins wf_bin1_Scan wf_bin1_last Let_def)
+
+(* List
+
+definition Predict_L :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> ('n,'a) item list" where
+  "Predict_L x k = map (\<lambda>p. Item p 0 k) (filter (\<lambda>p. next_sym_Nt x (lhs p)) ps)"
+
+definition Complete_L :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) item \<Rightarrow> ('n, 'a) item list" where
+  "Complete_L Bs y = map mv_dot (filter (\<lambda> b. next_sym_Nt b (lhs(prod y))) (Bs ! from y))"
+
+fun diff_list :: "'b list \<Rightarrow> 'b list \<Rightarrow> 'b list"  where
+"diff_list [] ys = []" |
+"diff_list (x#xs) ys = (if List.member ys x then diff_list xs ys else List.insert x (diff_list xs ys))"
+
+lemma set_diff_list[simp]: "set(diff_list xs ys) = set xs - set ys"
+by (induction xs) auto
+
+lemma set_Predict_L: "set (Predict_L x k) = Predict x k"
+by(auto simp: Predict_L_def Predict_def)
+
+lemma set_Complete_L: "is_complete x \<Longrightarrow> wf_item1 x (length Bs) \<Longrightarrow>
+  set (Complete_L Bs x) = Complete (map set Bs) x"
+by(auto simp: Complete_L_def Complete_def wf_item1_def wf_item_def)
+
+inductive Close2L :: "('n,'a) item list list \<Rightarrow> ('n,'a) item list * ('n,'a) item list \<Rightarrow> ('n,'a) item list * ('n,'a) item list \<Rightarrow> bool"
+  for Bs where
+    Predict: "\<not> is_complete x \<Longrightarrow>
+    Close2L Bs (x#B,C) (diff_list (Predict_L x (length Bs) @ B) (List.insert x C), List.insert x C)"
+  | Complete: "is_complete x \<Longrightarrow>
+    Close2L Bs (x#B,C) (diff_list (Complete_L Bs x @ B) (List.insert x C), List.insert x C)"
+
+lemma Close2_if_Close2L:
+  "\<lbrakk> Close2L Bs (B,C) (B',C'); \<forall>x\<in>set B. wf_item1 x (length Bs) \<rbrakk>
+  \<Longrightarrow> Close2 (map set Bs) (set B,set C) (set B',set C')"
+by(auto simp: set_Predict_L set_Complete_L Close2L.simps Close2.simps)
+*)
+(*
+lemma Close2L_if_Close2:
+  "\<lbrakk> Close2 (map set Bs) (B,C) (B',C');
+         \<forall>x\<in>B. wf_item1 x (length Bs); \<forall>x\<in>C. wf_item1 x (length Bs) \<rbrakk>
+  \<Longrightarrow> \<exists>x\<in>B. \<forall>BL CL BL' CL'. B = {x} \<union> set BL \<and> distinct BL \<and> C = set CL \<and> distinct CL
+if is_complete x then  \<and> B' = set BL' \<and> C' = set CL'
+  \<longrightarrow> Close2L Bs (BL,CL) (BL',CL')"
+  unfolding Close2L.simps Close2.simps
+  apply(clarsimp)
+  apply(erule disjE)
+  apply(clarsimp)
+   apply(subgoal_tac "finite B")
+  prefer 2
+  apply (metis Earley_Gw.finite_ex_wf_item Earley_Gw.wf_item1_def mem_Collect_eq rev_finite_subset
+      subsetI)
+   apply(subgoal_tac "\<exists>bs. B = insert x (set bs) \<and> x \<notin> set bs")
+  prefer 2
+    apply (metis finite_insert finite_list mk_disjoint_insert)
+  apply clarsimp
+  apply(rule_tac x = "x#bs" in exI)
+   apply simp
+   apply(subgoal_tac "finite C")
+  prefer 2
+  apply (metis Earley_Gw.finite_ex_wf_item Earley_Gw.wf_item1_def mem_Collect_eq rev_finite_subset
+      subsetI)
+   apply(subgoal_tac "\<exists>cs. C = set cs")
+  prefer 2
+    apply (metis finite_list)
+  apply clarsimp
+  apply(rule_tac x = "cs" in exI)
+   apply simp
+  using set_Predict_L apply auto[1]
+  apply clarsimp
+   apply(subgoal_tac "finite B")
+  prefer 2
+  apply (metis Earley_Gw.finite_ex_wf_item Earley_Gw.wf_item1_def mem_Collect_eq rev_finite_subset
+      subsetI)
+   apply(subgoal_tac "\<exists>bs. B = insert x (set bs) \<and> x \<notin> set bs")
+  prefer 2
+    apply (metis finite_insert finite_list mk_disjoint_insert)
+  apply clarsimp
+  apply(rule_tac x = "x#bs" in exI)
+   apply simp
+   apply(subgoal_tac "finite C")
+  prefer 2
+  apply (metis Earley_Gw.finite_ex_wf_item Earley_Gw.wf_item1_def mem_Collect_eq rev_finite_subset
+      subsetI)
+   apply(subgoal_tac "\<exists>cs. C = set cs")
+  prefer 2
+    apply (metis finite_list)
+  apply clarsimp
+  apply(rule_tac x = "cs" in exI)
+   apply simp
+  using set_Complete_L by auto
+
+lemma Close2L_if_Close2:
+  "\<lbrakk> Close2 (map set Bs) (B,C) (B',C');
+         \<forall>x\<in>B. wf_item1 x (length Bs); \<forall>x\<in>C. wf_item1 x (length Bs) \<rbrakk>
+  \<Longrightarrow> \<exists>x BL CL BL' CL'. B = set BL \<and> C = set CL \<and> B' = set BL' \<and> C' = set CL' \<and> Close2L Bs (BL,CL) (BL',CL')"
+  unfolding Close2L.simps Close2.simps
+  apply(clarsimp)
+  apply(erule disjE)
+  apply(clarsimp)
+   apply(subgoal_tac "finite B")
+  prefer 2
+  apply (metis Earley_Gw.finite_ex_wf_item Earley_Gw.wf_item1_def mem_Collect_eq rev_finite_subset
+      subsetI)
+   apply(subgoal_tac "\<exists>bs. B = insert x (set bs) \<and> x \<notin> set bs")
+  prefer 2
+    apply (metis finite_insert finite_list mk_disjoint_insert)
+  apply clarsimp
+  apply(rule_tac x = "x#bs" in exI)
+   apply simp
+   apply(subgoal_tac "finite C")
+  prefer 2
+  apply (metis Earley_Gw.finite_ex_wf_item Earley_Gw.wf_item1_def mem_Collect_eq rev_finite_subset
+      subsetI)
+   apply(subgoal_tac "\<exists>cs. C = set cs")
+  prefer 2
+    apply (metis finite_list)
+  apply clarsimp
+  apply(rule_tac x = "cs" in exI)
+   apply simp
+  using set_Predict_L apply auto[1]
+  apply clarsimp
+   apply(subgoal_tac "finite B")
+  prefer 2
+  apply (metis Earley_Gw.finite_ex_wf_item Earley_Gw.wf_item1_def mem_Collect_eq rev_finite_subset
+      subsetI)
+   apply(subgoal_tac "\<exists>bs. B = insert x (set bs) \<and> x \<notin> set bs")
+  prefer 2
+    apply (metis finite_insert finite_list mk_disjoint_insert)
+  apply clarsimp
+  apply(rule_tac x = "x#bs" in exI)
+   apply simp
+   apply(subgoal_tac "finite C")
+  prefer 2
+  apply (metis Earley_Gw.finite_ex_wf_item Earley_Gw.wf_item1_def mem_Collect_eq rev_finite_subset
+      subsetI)
+   apply(subgoal_tac "\<exists>cs. C = set cs")
+  prefer 2
+    apply (metis finite_list)
+  apply clarsimp
+  apply(rule_tac x = "cs" in exI)
+   apply simp
+  using set_Complete_L by auto
+*)
 
 end (* Earley_Gw_eps *)
 

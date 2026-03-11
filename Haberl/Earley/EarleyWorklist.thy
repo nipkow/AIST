@@ -295,12 +295,13 @@ section \<open>Earley WorkList algorithm\<close>
 definition step_rel :: "('n, 'a) item set list \<Rightarrow> ('n, 'a) item set \<times> ('n, 'a) item set \<Rightarrow> ('n, 'a) item set \<times> ('n, 'a) item set \<Rightarrow> bool" where
   "step_rel  \<equiv> Close2"
 
+(* now already in Earley
 definition Predict_L :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> ('n,'a) item list" where
   "Predict_L x k = map (\<lambda>p. Item p 0 k) (filter (\<lambda>p. next_sym_Nt x (lhs p)) ps)"
 
 definition Complete_L :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) item \<Rightarrow> ('n, 'a) item list" where
   "Complete_L Bs y = map mv_dot (filter (\<lambda> b. next_sym_Nt b (lhs(prod y))) (Bs ! from y))"
-
+*)
 definition Init_L :: "('n,'a) item list" where
   "Init_L =  map (\<lambda> p. Item p 0 0) (filter (\<lambda> p. lhs p = (S)) ps)"
 
@@ -339,9 +340,10 @@ lemma Init_L_eq_Init: "set Init_L = Init"
 lemma Scan_L_eq_Scan: "k < length w \<Longrightarrow> set (Scan_L Bs k) = Scan (set Bs) k"
   by (auto simp add: Scan_L_def Scan_def w_def)
 
+(* now already in Earley as set_Predict_L
 lemma Predict_eq: "set (Predict_L st k) = Predict st k"
   by (auto simp add: Predict_L_def Predict_def)
-
+*)
 
 lemma Complete_eq: "from st < length Bs \<Longrightarrow> set (Complete_L Bs st) = Complete (map set Bs) st"
   by (auto simp add: Complete_L_def Complete_def nths_map)
@@ -384,7 +386,7 @@ proof-
   have "set bs' = (set bs \<union> {a})" using inv sf P WL_insert1[of "(WorkList bs l2 m2)" a] by auto 
 
   then show ?thesis using 1 2
-    using Complete_eq P Predict_eq comp step_rel_def by fastforce
+    using Complete_eq P set_Predict_L comp step_rel_def by fastforce
 qed
   
 end (*Earley_Gw*)
@@ -393,7 +395,7 @@ context Earley_Gw_eps
 begin
 
 lemma wf1_Predict_L: "wf_item1 st k \<Longrightarrow> wf_bin1 (set (Predict_L st k)) k"
-  using wf1_Predict Predict_eq by (auto simp add: wf_bin1_def)
+  using wf1_Predict set_Predict_L by (auto simp add: wf_bin1_def)
 
 lemma wf1_Complete_L: 
   assumes "wf_bins1 (map set Bs)" "wf_item1 st (length Bs)" "is_complete st" 
@@ -718,9 +720,6 @@ lemma close2_L_eq_close2: "wf_bins1 (map set Bs) \<Longrightarrow> wf1_WL wl (le
 lemma close2_L_eq_Close: "wf_bins1 (map set Bs) \<Longrightarrow> wf1_WL wl (length Bs) \<Longrightarrow> WL_inv wl \<Longrightarrow> set (close2_L Bs wl) = Close (map set Bs) (set (list wl))"
   by (auto simp add: close2_L_eq_Close1 Close1_eq_Close)
 
-lemma set_last: "As \<noteq> [] \<Longrightarrow> set (last As) = last (map set As)"
-  by (induction As) auto
-
 lemma length_bins_L: "length (bins_L k) = Suc k"
   by (induction k) (auto simp add: Let_def)
 
@@ -739,7 +738,7 @@ next
   let ?Bs = "bins_L k"
   have kl: "k < length w" using Suc by auto
   then have 1: "set (Scan_L (last ?Bs) k) = (Scan (last (map set ?Bs)) k)" using Suc
-    by (metis Scan_L_eq_Scan Suc_leD bins_nonempty map_is_Nil_conv set_last)
+    by (metis Scan_L_eq_Scan Suc_leD bins_nonempty map_is_Nil_conv last_map)
   have "wf_bin1 (set (last ?Bs)) k"
     by (metis Earley_Gw.bins_nonempty Suc.IH Suc.prems Suc_leD last_map list.map_disc_iff wf_bin1_last)
   then have 2: "wf1_WL (WL_of_List (Suc k) (Scan_L (last ?Bs) k)) (Suc k)"
@@ -1685,7 +1684,7 @@ next
     by (metis T_last Zero_not_Suc length_bins_L list.size(3))
 
   have wf_last: "wf_bin1 (set (last (bins_L k))) k" using Suc wf_bin1_last
-    by (metis Suc_leD Zero_not_Suc bins_L_eq_bins length_bins_L list.size(3) set_last)
+    by (metis Suc_leD Zero_not_Suc bins_L_eq_bins length_bins_L list.size(3) last_map)
   then have length_last: "length (last (bins_L k)) \<le> L * Suc K * Suc k"
     using distinct_bins_L card_wf_bin1 last_conv_nth length_bins_L
     by (metis Suc.prems(1,2) Suc_leD diff_Suc_1 distinct_card length_greater_0_conv lessI zero_less_Suc)
@@ -1884,7 +1883,7 @@ lemma
   shows "T_earley_recognized y \<le> C1' *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_WL ((length w)+1)"
 proof-
   have wf_last: "wf_bin1 (set (last (bins_L (length w)))) (length w)" using wf_bin1_last
-    by (metis bins_L_eq_bins length_bins_L lessI less_Suc_eq_le list.size(3) not_less_zero set_last)
+    by (metis bins_L_eq_bins length_bins_L lessI less_Suc_eq_le list.size(3) not_less_zero last_map)
   then have length_last: "length (last (bins_L (length w))) \<le> L * Suc K * Suc (length w)"
     using distinct_bins_L card_wf_bin1 last_conv_nth length_bins_L distinct_card
     by (metis diff_Suc_1 dist interval_class.less_imp_less_eq_dec lessI list.size(3) nat.distinct(1))

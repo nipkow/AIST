@@ -1,5 +1,6 @@
 theory Earley
-imports "Context_Free_Grammar.Context_Free_Grammar"
+  imports "Context_Free_Grammar.Context_Free_Grammar"
+  "HOL-Library.While_Combinator"
 begin
 
 section \<open>Slices\<close>
@@ -481,7 +482,7 @@ proof -
 qed
 
 
-section \<open>Earley recognizer: Standard recusrive/inductive definition\<close>
+section \<open>Earley recognizer: Standard recursive/inductive definition\<close>
 
 definition Scan :: "('n,'a) item set \<Rightarrow> nat \<Rightarrow> ('n,'a) item set" where
   "Scan B k = { mv_dot x | x. x \<in> B \<and> next_symbol x = Some (w!k) }"
@@ -498,11 +499,12 @@ text \<open>Cannot just write \<open>x \<in> (Bs @ [Close Bs B]) ! from y\<close
 The monotonicity prover cannot deal with it and it is unclear what \<open>monos\<close> one would
 need to add. However, we can derive that version easily:\<close>
 
+definition "Complete Bs y = mv_dot ` {x \<in> Bs ! from y. next_sym_Nt x (lhs(prod y))}"
+
 lemma Close_Complete:(* used in Paper *)
-  "\<lbrakk> y \<in> Close Bs B;  is_complete y; x \<in> (Bs @ [Close Bs B]) ! from y;
-     next_sym_Nt x (lhs(prod y))
-   \<rbrakk> \<Longrightarrow> mv_dot x \<in> Close Bs B"
-apply(simp add: nth_append)
+  "\<lbrakk> y \<in> Close Bs B;  is_complete y; x' \<in> Complete (Bs @ [Close Bs B]) y
+   \<rbrakk> \<Longrightarrow> x' \<in> Close Bs B"
+apply(simp add: Complete_def image_def nth_append)
 by (metis Close.Complete diff_is_0_eq' linorder_not_le nat_neq_iff nth_Cons_0)
 
 abbreviation "wf_bin B k \<equiv> \<forall>s \<in> B. wf_item s k"
@@ -690,7 +692,12 @@ lemma wf1_Complete:
   shows "wf_item1 (mv_dot x) k"
   using assms unfolding wf_item1_def wf_item_def is_complete_def next_symbol_def mv_dot_def
   by (auto split: if_splits)
-
+(*
+lemma wf1_Complete': "\<lbrakk> wf_bins1 Bs; is_complete x; wf_item1 x (length Bs); y \<in> Complete Bs x\<rbrakk>
+       \<Longrightarrow> wf_item1 y (length Bs)"
+using wf1_Complete unfolding Complete_def wf_bin1_def wf_bins1_def wf_item1_def
+by blast
+*)
 lemma wf_item1_Close1: assumes "wf_bins1 Bs" "wf_bin1 B (length Bs)"
 shows "y \<in> Close1 Bs B \<Longrightarrow> wf_item1 y (length Bs)"
 proof (induction rule: Close1.induct)
@@ -751,8 +758,6 @@ subsection "Towards a single-pass worklist completion algorithm"
 
 context Earley_Gw
 begin
-
-definition "Complete Bs y = mv_dot ` {x. x \<in> Bs ! from y \<and> next_sym_Nt x (lhs(prod y))}"
 
 (* TODO? Generic workset algorithm parameterized with next-function? *)
 
@@ -1066,20 +1071,25 @@ lemma binsSuc_close2:(* used in Paper *)
   "k < length w \<Longrightarrow> bins (Suc k) = (let Bs = bins k in Bs @ [close2 Bs (Scan (last Bs) k)])"
 by(simp flip: Close1_eq_Close add: close2_eq_Close1 wf_bins1_bins wf_bin1_Scan wf_bin1_last Let_def)
 
-(* List
+end
+
+(* List *)
+
+
+definition diff_list :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list"  where
+"diff_list xs ys = filter (Not o List.member ys) xs"
+
+lemma set_diff_list[simp]: "set(diff_list xs ys) = set xs - set ys"
+unfolding diff_list_def by auto
+
+context Earley_Gw
+begin
 
 definition Predict_L :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> ('n,'a) item list" where
   "Predict_L x k = map (\<lambda>p. Item p 0 k) (filter (\<lambda>p. next_sym_Nt x (lhs p)) ps)"
 
 definition Complete_L :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) item \<Rightarrow> ('n, 'a) item list" where
   "Complete_L Bs y = map mv_dot (filter (\<lambda> b. next_sym_Nt b (lhs(prod y))) (Bs ! from y))"
-
-fun diff_list :: "'b list \<Rightarrow> 'b list \<Rightarrow> 'b list"  where
-"diff_list [] ys = []" |
-"diff_list (x#xs) ys = (if List.member ys x then diff_list xs ys else List.insert x (diff_list xs ys))"
-
-lemma set_diff_list[simp]: "set(diff_list xs ys) = set xs - set ys"
-by (induction xs) auto
 
 lemma set_Predict_L: "set (Predict_L x k) = Predict x k"
 by(auto simp: Predict_L_def Predict_def)
@@ -1096,117 +1106,116 @@ inductive Close2L :: "('n,'a) item list list \<Rightarrow> ('n,'a) item list * (
     Close2L Bs (x#B,C) (diff_list (Complete_L Bs x @ B) (List.insert x C), List.insert x C)"
 
 lemma Close2_if_Close2L:
-  "\<lbrakk> Close2L Bs (B,C) (B',C'); \<forall>x\<in>set B. wf_item1 x (length Bs) \<rbrakk>
+  "\<lbrakk> Close2L Bs (B,C) (B',C'); wf_bin1 (set B) (length Bs) \<rbrakk>
   \<Longrightarrow> Close2 (map set Bs) (set B,set C) (set B',set C')"
-by(auto simp: set_Predict_L set_Complete_L Close2L.simps Close2.simps)
-*)
-(*
-lemma Close2L_if_Close2:
-  "\<lbrakk> Close2 (map set Bs) (B,C) (B',C');
-         \<forall>x\<in>B. wf_item1 x (length Bs); \<forall>x\<in>C. wf_item1 x (length Bs) \<rbrakk>
-  \<Longrightarrow> \<exists>x\<in>B. \<forall>BL CL BL' CL'. B = {x} \<union> set BL \<and> distinct BL \<and> C = set CL \<and> distinct CL
-if is_complete x then  \<and> B' = set BL' \<and> C' = set CL'
-  \<longrightarrow> Close2L Bs (BL,CL) (BL',CL')"
-  unfolding Close2L.simps Close2.simps
-  apply(clarsimp)
-  apply(erule disjE)
-  apply(clarsimp)
-   apply(subgoal_tac "finite B")
-  prefer 2
-  apply (metis Earley_Gw.finite_ex_wf_item Earley_Gw.wf_item1_def mem_Collect_eq rev_finite_subset
-      subsetI)
-   apply(subgoal_tac "\<exists>bs. B = insert x (set bs) \<and> x \<notin> set bs")
-  prefer 2
-    apply (metis finite_insert finite_list mk_disjoint_insert)
-  apply clarsimp
-  apply(rule_tac x = "x#bs" in exI)
-   apply simp
-   apply(subgoal_tac "finite C")
-  prefer 2
-  apply (metis Earley_Gw.finite_ex_wf_item Earley_Gw.wf_item1_def mem_Collect_eq rev_finite_subset
-      subsetI)
-   apply(subgoal_tac "\<exists>cs. C = set cs")
-  prefer 2
-    apply (metis finite_list)
-  apply clarsimp
-  apply(rule_tac x = "cs" in exI)
-   apply simp
-  using set_Predict_L apply auto[1]
-  apply clarsimp
-   apply(subgoal_tac "finite B")
-  prefer 2
-  apply (metis Earley_Gw.finite_ex_wf_item Earley_Gw.wf_item1_def mem_Collect_eq rev_finite_subset
-      subsetI)
-   apply(subgoal_tac "\<exists>bs. B = insert x (set bs) \<and> x \<notin> set bs")
-  prefer 2
-    apply (metis finite_insert finite_list mk_disjoint_insert)
-  apply clarsimp
-  apply(rule_tac x = "x#bs" in exI)
-   apply simp
-   apply(subgoal_tac "finite C")
-  prefer 2
-  apply (metis Earley_Gw.finite_ex_wf_item Earley_Gw.wf_item1_def mem_Collect_eq rev_finite_subset
-      subsetI)
-   apply(subgoal_tac "\<exists>cs. C = set cs")
-  prefer 2
-    apply (metis finite_list)
-  apply clarsimp
-  apply(rule_tac x = "cs" in exI)
-   apply simp
-  using set_Complete_L by auto
+by(auto simp: set_Predict_L set_Complete_L wf_bin1_def Close2L.simps Close2.simps)
 
-lemma Close2L_if_Close2:
-  "\<lbrakk> Close2 (map set Bs) (B,C) (B',C');
-         \<forall>x\<in>B. wf_item1 x (length Bs); \<forall>x\<in>C. wf_item1 x (length Bs) \<rbrakk>
-  \<Longrightarrow> \<exists>x BL CL BL' CL'. B = set BL \<and> C = set CL \<and> B' = set BL' \<and> C' = set CL' \<and> Close2L Bs (BL,CL) (BL',CL')"
-  unfolding Close2L.simps Close2.simps
-  apply(clarsimp)
-  apply(erule disjE)
-  apply(clarsimp)
-   apply(subgoal_tac "finite B")
-  prefer 2
-  apply (metis Earley_Gw.finite_ex_wf_item Earley_Gw.wf_item1_def mem_Collect_eq rev_finite_subset
-      subsetI)
-   apply(subgoal_tac "\<exists>bs. B = insert x (set bs) \<and> x \<notin> set bs")
-  prefer 2
-    apply (metis finite_insert finite_list mk_disjoint_insert)
-  apply clarsimp
-  apply(rule_tac x = "x#bs" in exI)
-   apply simp
-   apply(subgoal_tac "finite C")
-  prefer 2
-  apply (metis Earley_Gw.finite_ex_wf_item Earley_Gw.wf_item1_def mem_Collect_eq rev_finite_subset
-      subsetI)
-   apply(subgoal_tac "\<exists>cs. C = set cs")
-  prefer 2
-    apply (metis finite_list)
-  apply clarsimp
-  apply(rule_tac x = "cs" in exI)
-   apply simp
-  using set_Predict_L apply auto[1]
-  apply clarsimp
-   apply(subgoal_tac "finite B")
-  prefer 2
-  apply (metis Earley_Gw.finite_ex_wf_item Earley_Gw.wf_item1_def mem_Collect_eq rev_finite_subset
-      subsetI)
-   apply(subgoal_tac "\<exists>bs. B = insert x (set bs) \<and> x \<notin> set bs")
-  prefer 2
-    apply (metis finite_insert finite_list mk_disjoint_insert)
-  apply clarsimp
-  apply(rule_tac x = "x#bs" in exI)
-   apply simp
-   apply(subgoal_tac "finite C")
-  prefer 2
-  apply (metis Earley_Gw.finite_ex_wf_item Earley_Gw.wf_item1_def mem_Collect_eq rev_finite_subset
-      subsetI)
-   apply(subgoal_tac "\<exists>cs. C = set cs")
-  prefer 2
-    apply (metis finite_list)
-  apply clarsimp
-  apply(rule_tac x = "cs" in exI)
-   apply simp
-  using set_Complete_L by auto
-*)
+end
+
+context Earley_Gw_eps
+begin
+
+lemma wf1_Complete': "\<lbrakk> wf_bins1 Bs; is_complete x; wf_item1 x (length Bs); y \<in> Complete Bs x\<rbrakk>
+       \<Longrightarrow> wf_item1 y (length Bs)"
+using wf1_Complete unfolding Complete_def wf_bin1_def wf_bins1_def wf_item1_def
+by blast
+
+lemma wf1_Close2L_1:
+  "\<lbrakk> Close2L Bs (B,C) (B',C');
+     wf_bins1 (map set Bs); wf_bin1 (set B) (length Bs) \<rbrakk>
+  \<Longrightarrow> wf_bin1 (set B') (length Bs)"
+apply(auto simp: set_Predict_L set_Complete_L wf_bin1_def Close2L.simps)
+  using wf1_Predict apply blast
+  using wf1_Complete' by (metis length_map)
+
+lemma wf1_Close2L_2:
+  "\<lbrakk> Close2L Bs (B,C) (B',C');
+     wf_bin1 (set B) (length Bs); wf_bin1 (set C) (length Bs) \<rbrakk>
+  \<Longrightarrow> wf_bin1 (set C') (length Bs)"
+by(auto simp: set_Predict_L set_Complete_L wf_bin1_def Close2L.simps)
+
+lemma wf1_Close2Ls:
+  "\<lbrakk> (Close2L Bs)^** (B,C) (B',C'); wf_bins1 (map set Bs); wf_bin1 (set B) (length Bs) \<rbrakk>
+  \<Longrightarrow> wf_bin1 (set B') (length Bs)"
+proof(induction rule: rtranclp_induct2)
+  case refl thus ?case by blast
+next
+  case (step) thus ?case by(auto intro: wf1_Close2L_1)
+qed
+
+lemma Close2s_if_Close2Ls: "\<lbrakk> (Close2L Bs)^** (B,C) (B',C');
+   wf_bins1 (map set Bs); wf_bin1 (set B) (length Bs) \<rbrakk>
+  \<Longrightarrow> map set Bs \<turnstile> (set B,set C) \<rightarrow>* (set B',set C')"
+proof(induction rule: rtranclp_induct2)
+  case refl thus ?case by blast
+next
+  case (step) thus ?case apply(auto)
+    by (meson Close2_if_Close2L rtranclp.rtrancl_into_rtrancl wf1_Close2Ls)
+qed
+
+lemma Close2L_NF: assumes "wf_bins1 (map set Bs)"
+  shows "\<lbrakk> wf_bin1 (set B) (length Bs); wf_bin1 (set C) (length Bs) \<rbrakk>
+  \<Longrightarrow> \<exists>C'. (Close2L Bs)^** (B,C) ([],C')"
+using wf_Close2_less[of "length Bs"]
+proof (induction "(set B,set C)" arbitrary: B C rule: wf_induct_rule)
+  case less
+  show ?case
+  proof (cases B)
+    case Nil thus ?thesis by blast
+  next
+    case (Cons x bs)
+    then obtain B' C' where step: "Close2L Bs (B,C) (B',C')"
+      using Close2L.intros by blast
+    note 1 = wf1_Close2L_1[OF step assms less.prems(1)]
+    note 2 = wf1_Close2L_2[OF step less.prems]
+    from less(1)[OF Close2_less_step[OF assms Close2_if_Close2L[OF step less(2)], simplified, OF less.prems] 1 2]
+    show ?thesis by (meson converse_rtranclp_into_rtranclp step)
+  qed
+qed
+
+lemma assumes "wf_bins1 (map set Bs)" "wf_bin1 (set B) (length Bs)"
+  "(Close2L Bs)^** (B,[]) ([],C1)" "map set Bs \<turnstile> (set B,{}) \<rightarrow>* ({},C2)" shows "set C1 = C2"
+using Close2_eq_Close1 Close2s_if_Close2Ls[OF assms(3,1,2),simplified] assms(4)
+  by blast
+
+(* While *)
+
+fun step2L :: "('n,'a) item list list \<Rightarrow> ('n,'a)item list \<times> ('n,'a) item list \<Rightarrow> ('n,'a) item list \<times> ('n,'a) item list" where
+"step2L Bs (x#B, C) =
+  (let nexts = (if is_complete x then Complete_L Bs x else Predict_L x (length Bs)) in
+     (diff_list (nexts @ B) (List.insert x C), List.insert x C) )"
+
+definition close2L :: "('n, 'a) item list list \<Rightarrow> ('n,'a)item list \<times> ('n, 'a) item list \<Rightarrow> (('n, 'a) item list \<times> ('n, 'a) item list) option" where
+"close2L Bs = while_option (\<lambda>(B,C). B \<noteq> []) (step2L Bs)"
+
+lemma Close2L_iff_step2L: "Close2L Bs (B,C) (B',C') \<longleftrightarrow> B \<noteq> [] \<and> step2L Bs (B,C) = (B',C')"
+by(auto simp: neq_Nil_conv Close2L.simps)
+
+lemma close2L_Some_if_Close2Ls: assumes "wf_bins1 (map set Bs)"
+  shows "(Close2L Bs)^** (B,C) ([],C') \<Longrightarrow> wf_bin1 (set B) (length Bs) \<Longrightarrow> close2L Bs (B,C) = Some ([],C')"
+proof(induction rule: converse_rtranclp_induct2)
+  case refl
+  then show ?case by (simp add: close2L_def while_option_unfold)
+next
+  case (step B C B' C')
+  show ?case using step.IH[OF wf1_Close2L_1[OF step(1) assms step.prems]] step.hyps Close2L_iff_step2L
+    by (simp add: close2L_def while_option_unfold)
+qed
+
+lemma Close2Ls_if_close2L_Some:
+  assumes "close2L Bs (B,C) = Some ([],C')"
+  shows "(Close2L Bs)^** (B,C) ([],C')"
+proof -
+  let ?P = "\<lambda>BC'. (Close2L Bs)^** (B,C) (BC')"
+  have "\<And>B C. B\<noteq>[] \<Longrightarrow> ?P (B,C) \<Longrightarrow> ?P (step2L Bs (B,C))"
+    by (metis Close2L_iff_step2L old.prod.exhaust rtranclp.rtrancl_into_rtrancl)
+  thus ?thesis using while_option_rule[where P = ?P, OF _ assms(1)[unfolded close2L_def]]
+    by blast
+qed
+
+corollary close2L_Some_iff_Close2Ls: "\<lbrakk> wf_bins1 (map set Bs); wf_bin1 (set B) (length Bs) \<rbrakk> \<Longrightarrow>
+  close2L Bs (B,[]) = Some ([],C) \<longleftrightarrow> (Close2L Bs)^** (B,[]) ([],C)"
+using Close2Ls_if_close2L_Some close2L_Some_if_Close2Ls by blast
 
 end (* Earley_Gw_eps *)
 

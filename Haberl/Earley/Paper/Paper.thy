@@ -31,6 +31,9 @@ text\<open>
 
 @{term "xs ! n"}
 
+where @{prop "f ` A = {b. \<exists>a\<in>A. f a = b}"}.
+
+
 \subsection{Context-Free Grammars}
 
 All our types are parameterized by type variables \<open>'n\<close> and \<open>'t\<close>, the types of \concept{nonterminals} and \concept{terminals}.
@@ -107,6 +110,7 @@ production but not the @{const from} component of the item.
 
 \item[@{const next_sym} \<open>x s\<close>] is true iff \<open>x\<close> is of the form \<open>(A \<rightarrow> \<alpha>\<Zspot>s\<beta>, i)\<close>.
 \end{description}
+Note that @{prop "next_sym x s"} implies @{prop "\<not> is_complete x"}.
 
 Next we give an abstract inductive definition of @{const Earley}, a set
 of pairs @{term "(x,j)"} of items and an index. However, it is more intuitive
@@ -194,15 +198,15 @@ In each step, it takes the (currently) last bin, generates a set of new itemss b
 \end{quote}
 and closes this set under prediction and completion.
 The closure operator @{const Close} takes two arguments: the current list of bins and the
-result of scanning. It is defined in the obvious way:
+result of scanning. It is defined in analogy with {\sc Predict} and {\sc Complete}:
 \begin{quote}
 @{thm [mode=Rule] Close.Init}
 \qquad
 @{thm [mode=Rule] Close.Predict}
 \bigskip
 
-{\mprset {sep=1.5em}\mbox{}\inferrule{@{thm (prem 1) Close_Complete} \and @{thm (prem 2) Close_Complete} \\
-  @{thm (prem 3) Close_Complete} \and @{thm (prem 4) Close_Complete}}{@{thm (concl) Close_Complete}}\mbox{}}
+@{thm [mode=Rule] Close_Complete}\smallskip\\
+@{thm Complete_def}
 \end{quote}
 
 In the end we proved the following correctness theorem:
@@ -245,12 +249,9 @@ The definition is again inductive:
 \bigskip
 
 @{thm [mode=Rule] Close2.Complete}
-\bigskip
-
-@{thm [break] Complete_def}
 \end{quote}
-where @{prop "f ` A = {b. \<exists>a\<in>A. f a = b}"}.
-The full closure algorithm consists of the stepwise reduction of \<open>B\<close> to the empty set:
+
+The full closure ``algorithm'' consists of the stepwise reduction of \<open>B\<close> to the empty set:
 \begin{quote}
 @{thm close2_def}
 \end{quote}

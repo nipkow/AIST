@@ -21,6 +21,25 @@ unfolding id_def accepted_def by(rule refl)
 lemma accepted_complete: "P \<turnstile> [Nt S] \<Rightarrow>* w \<Longrightarrow> accepted"
 using Earley_complete
 by(auto simp: accepted_def recognized_def \<S>_def)
+
+context Earley_Gw
+begin
+
+lemma Close2L_Predict: "\<lbrakk> \<not> is_complete x; C' = List.insert x C \<rbrakk> \<Longrightarrow>
+    Close2L Bs (x#B,C) (diff_list (Predict_L x (length Bs) @ B) C', C')"
+  using Close2L.Predict by blast
+
+lemma Close2L_Complete: "\<lbrakk> is_complete x; C' = List.insert x C \<rbrakk> \<Longrightarrow>
+    Close2L Bs (x#B,C) (diff_list (Complete_L Bs x @ B) C', C')"
+  using Close2L.Complete by blast
+
+notation Predict_L ("\<^latex>\<open>\\textsf{\<close>Predict\<^sub>L\<^latex>\<open>}\<close>")
+notation Complete_L ("\<^latex>\<open>\\textsf{\<close>Complete\<^sub>L\<^latex>\<open>}\<close>")
+
+end
+
+notation leng ("\<^latex>\<open>\\textsf{\<close>len\<^latex>\<open>}\<close>")
+notation list_map ("\<^latex>\<open>\\textsf{\<close>froms\<^latex>\<open>}\<close>")
 (*>*)
 
 text\<open>
@@ -246,10 +265,14 @@ and b) extending the worklist with all results of prediction or completion (depe
 The definition is again inductive:
 \begin{quote}
 @{thm [mode=Rule] Close2.Predict}
-\bigskip
+\medskip
 
 @{thm [mode=Rule] Close2.Complete}
 \end{quote}
+Note that a more efficient version of @{term "B \<union> Predict x (length Bs) - (C \<union> {x})"}
+would be @{term "(B - {x}) \<union> (Predict x (length Bs) - (C \<union> {x}))"}
+(and similarly for @{const Complete})
+because \<open>B\<close> and \<open>C\<close> should be disjoint. For simplicity we have ignored this optimization.
 
 The full closure ``algorithm'' consists of the stepwise reduction of \<open>B\<close> to the empty set:
 \begin{quote}
@@ -321,6 +344,67 @@ because by definition of @{const accepted}, we only need to compute the bins up 
 
 Of course, we have not yet arrived at an executable formulation because of the presence of \<open>SOME\<close>
 in @{const close2}.
+
+
+\section{Refinement to Worklist}
+
+\subsection{From Set to List}
+
+\begin{quote}
+@{thm [mode=Rule] Close2L_Predict}
+\medskip
+
+@{thm [mode=Rule] Close2L_Complete}
+\medskip
+
+@{thm Predict_L_def}\\
+@{thm [break] Complete_L_def}
+\end{quote}
+where @{const List.insert} and @{const diff_list} satisfies the characteristic equations
+\begin{quote}
+@{thm set_insert} \qquad
+@{thm set_diff_list}
+\end{quote}
+
+Correctness and termination, omitting the obvious well-formedness assumptions:
+\begin{quote}
+@{thm (prem 1,sub) Close2s_if_Close2Ls}\<open>\<Longrightarrow>\<close> @{thm (concl,sub) Close2s_if_Close2Ls}
+\medskip
+
+@{thm (concl) Close2L_NF}
+\end{quote}
+
+
+\subsection{From Inductive to Recursive}
+
+\begin{quote}
+@{thm close2L_def}
+\medskip
+
+@{thm [break] step2L.simps}
+\end{quote}
+
+Correctness and termination, omitting the obvious well-formedness assumptions:
+\begin{quote}
+@{thm (prem 3,sub) close2L_Some_iff_Close2s}
+\<open>\<Longrightarrow>\<close> @{thm (concl,sub) close2L_Some_iff_Close2s}
+\medskip
+
+@{thm (concl) close2L_Some}
+\end{quote}
+
+\subsection{Efficient Access to Bins}
+
+Problem: diff-list quadratic. size of bin: k(P) * n(from).
+When processing the \<open>i\<close>-th input character, i.e. @{term \<open>i = length Bs\<close>},
+augment \<open>B\<close> with a list (think array) \<open>F\<close> of size \<open>i\<close> where each element is a lists of items such that
+@{term "F ! j"} is a list of all @{prop \<open>x \<in> B\<close>} where @{prop \<open>from x = j\<close>}.
+Size of @{term "F ! j"} depends only on @{const P}, not on @{term "length w"}.
+
+\begin{quote}
+@{datatype [break] WorkList}
+\end{quote}
+with the three projection functions @{const list}, @{const leng} and @{const list_map}
 \<close>
 (*<*)
 end

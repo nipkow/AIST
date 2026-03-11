@@ -281,7 +281,7 @@ proof -
     "\<alpha> x = rhs(prod x)"
     using wf_Earley[OF *] unfolding is_final_def is_complete_def wf_item_def \<alpha>_def by auto
   with sound_Earley[OF *] derives_Cons_rule[of "lhs(prod x)" "rhs(prod x)"]
-  show ?thesis using slice_id[of Tm_w]
+  show ?thesis
     by(auto simp add: sound_item_def rhs_def)
 qed
 
@@ -1099,11 +1099,15 @@ lemma set_Complete_L: "is_complete x \<Longrightarrow> wf_item1 x (length Bs) \<
 by(auto simp: Complete_L_def Complete_def wf_item1_def wf_item_def)
 
 inductive Close2L :: "('n,'a) item list list \<Rightarrow> ('n,'a) item list * ('n,'a) item list \<Rightarrow> ('n,'a) item list * ('n,'a) item list \<Rightarrow> bool"
+("(_ \<turnstile>\<^sub>L _ \<rightarrow> _)" [50, 0, 50] 50)
   for Bs where
     Predict: "\<not> is_complete x \<Longrightarrow>
     Close2L Bs (x#B,C) (diff_list (Predict_L x (length Bs) @ B) (List.insert x C), List.insert x C)"
   | Complete: "is_complete x \<Longrightarrow>
     Close2L Bs (x#B,C) (diff_list (Complete_L Bs x @ B) (List.insert x C), List.insert x C)"
+
+abbreviation Close2L_steps ("(_ \<turnstile>\<^sub>L _ \<rightarrow>* _)" [50, 0, 50] 50) where
+"Bs \<turnstile>\<^sub>L p \<rightarrow>* p' \<equiv> (Close2L Bs)^** p p'"
 
 lemma Close2_if_Close2L:
   "\<lbrakk> Close2L Bs (B,C) (B',C'); wf_bin1 (set B) (length Bs) \<rbrakk>
@@ -1173,7 +1177,7 @@ proof (induction "(set B,set C)" arbitrary: B C rule: wf_induct_rule)
   qed
 qed
 
-lemma assumes "wf_bins1 (map set Bs)" "wf_bin1 (set B) (length Bs)"
+lemma Close2L_Close2: assumes "wf_bins1 (map set Bs)" "wf_bin1 (set B) (length Bs)"
   "(Close2L Bs)^** (B,[]) ([],C1)" "map set Bs \<turnstile> (set B,{}) \<rightarrow>* ({},C2)" shows "set C1 = C2"
 using Close2_eq_Close1 Close2s_if_Close2Ls[OF assms(3,1,2),simplified] assms(4)
   by blast
@@ -1202,6 +1206,12 @@ next
     by (simp add: close2L_def while_option_unfold)
 qed
 
+corollary close2L_Some:
+  assumes "wf_bins1 (map set Bs)" "wf_bin1 (set B) (length Bs)"
+  shows "\<exists>C'. close2L Bs (B,[]) = Some ([],C')"
+using assms close2L_Some_if_Close2Ls[of Bs B "[]"] Close2L_NF[of Bs B "[]"]
+by (auto simp add: wf_bin1_def)
+
 lemma Close2Ls_if_close2L_Some:
   assumes "close2L Bs (B,C) = Some ([],C')"
   shows "(Close2L Bs)^** (B,C) ([],C')"
@@ -1216,6 +1226,10 @@ qed
 corollary close2L_Some_iff_Close2Ls: "\<lbrakk> wf_bins1 (map set Bs); wf_bin1 (set B) (length Bs) \<rbrakk> \<Longrightarrow>
   close2L Bs (B,[]) = Some ([],C) \<longleftrightarrow> (Close2L Bs)^** (B,[]) ([],C)"
 using Close2Ls_if_close2L_Some close2L_Some_if_Close2Ls by blast
+
+corollary close2L_Some_iff_Close2s: "\<lbrakk> wf_bins1 (map set Bs); wf_bin1 (set B) (length Bs) \<rbrakk> \<Longrightarrow>
+  close2L Bs (B,[]) = Some ([],C) \<Longrightarrow> (Close2 (map set Bs))^** (set B,{}) ({},set C)"
+by (metis Close2s_if_Close2Ls close2L_Some_iff_Close2Ls empty_set)
 
 end (* Earley_Gw_eps *)
 

@@ -6,7 +6,7 @@ imports
 begin
 declare [[show_question_marks=false]]
 declare [[names_short=true]]
-(* TODO get rid of set_WorkList; in step_fun: rename it, and let step \<rightarrow> let nexts*)
+(* in step_fun: rename it, and let step \<rightarrow> let nexts*)
 
 (* rename? *)
 hide_const (open) \<alpha>
@@ -48,9 +48,6 @@ notation step2L ("\<^latex>\<open>\\textsf{\<close>step2\<^sub>L\<^latex>\<open>
 notation close2L ("\<^latex>\<open>\\textsf{\<close>close2\<^sub>L\<^latex>\<open>}\<close>")
 
 end
-
-notation leng ("\<^latex>\<open>\\textsf{\<close>len\<^latex>\<open>}\<close>")
-notation list_map ("\<^latex>\<open>\\textsf{\<close>froms\<^latex>\<open>}\<close>")
 (*>*)
 
 text\<open>
@@ -458,29 +455,27 @@ augment \<open>B\<close> (and \<open>C\<close>) with a list (think array) \<open
 @{term "F ! j"} is a list of all @{prop \<open>x \<in> B\<close>} where @{prop \<open>from x = j\<close>}.
 
 \begin{quote}
-@{datatype [break] WorkList}
+@{datatype [break] efficientItemList}
 \end{quote}
-with the three projection functions @{const list}, @{const leng} and @{const list_map}
-@{term froms}
+with the projection functions @{const list} and @{const froms}.
+
 invariant:
 \begin{quote}
-@{thm [break] WL_inv.simps}
+@{thm [break] inv_IL.simps}
 \end{quote}
-
+                   
 Set interface to WL:
 \begin{quote}
-@{thm member.simps}\smallskip\\
-@{thm [break] isin.simps}\smallskip\\
-@{thm set_WorkList.simps}\smallskip\\
+@{thm [break] EarleyWorklist.isin.simps}\smallskip\\
 @{thm [break] insert.simps}\smallskip\\
-@{thm union_LWL.simps}\smallskip\\
-@{thm (sub) union_WL_def}\smallskip\\
-@{thm WL_of_List_def}\smallskip\\
-@{thm [break]minus_LWL.simps}\smallskip\\
-@{thm [break](sub)minus_WL_def}\smallskip\\
+@{thm union_LIL.simps}\smallskip\\
+@{thm (sub) union_IL_def}\smallskip\\
+@{thm IL_of_List_def}\smallskip\\
+@{thm [break]minus_LIL.simps}\smallskip\\
+@{thm [break](sub)minus_IL_def}\smallskip\\
 \end{quote}
 
-The algorithm:
+The algorithm: w0 !!!
 \begin{quote}
 @{thm Init_L_def}\smallskip\\
 @{thm [break] Scan_L_def}\smallskip\\

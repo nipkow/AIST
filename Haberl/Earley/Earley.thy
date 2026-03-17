@@ -1085,7 +1085,8 @@ text \<open>Most of the following functions are already in theory \<open>List\<c
 because either to clarify their timing behaviour (\<open>List.member\<close> uses sets)
 or simply for uniform naming.\<close>
 
-fun isin_list :: "'a list \<Rightarrow> 'a \<Rightarrow> bool"  where
+(* TODO: this 'c is some silly conflict of the 'a in the locales; pull effItemList out! *)
+fun isin_list :: "'c list \<Rightarrow> 'c \<Rightarrow> bool"  where
 "isin_list [] a = False" |
 "isin_list (x#xs) a = (if x=a then True else isin_list xs a)"
 
@@ -1215,39 +1216,6 @@ lemma Close2L_Close2: assumes "wf_bins1 (map set Bs)" "wf_bin1 (set B) (length B
   "(Close2L Bs)^** (B,[]) ([],C1)" "map set Bs \<turnstile> (set B,{}) \<rightarrow>* ({},C2)" shows "set C1 = C2"
 using Close2_eq_Close1 Close2s_if_Close2Ls[OF assms(3,1,2),simplified] assms(4)
   by blast
-(*
-(* mv to List Lib ? *)
-lemma distinct_insert_list: "distinct xs \<Longrightarrow> distinct (insert_list x xs)"
-by(simp add: insert_list_def)
-
-lemma distinct_diff_listI: "distinct xs \<Longrightarrow> distinct (diff_list xs ys)"
-by(simp add: diff_list_def)
-
-(* rm in EarleyWorkList *)
-lemma distinct_Predict_L: 
-  assumes "distinct ps" shows "distinct (Predict_L x k)"
-proof -                                           
-  have "inj_on (\<lambda>p. Item p 0 k) (set ps)"
-    using inj_on_def by auto
-  then have "distinct (map (\<lambda> p. Item p 0 k) ps)" using assms by (simp add: distinct_map)
-  then show ?thesis using assms by (simp add: Predict_L_def distinct_map_filter)
-qed
-
-lemma distinct_Complete_L: 
-  assumes "distinct (Bs ! from y)" shows "distinct (Complete_L Bs y)"
-proof -                                           
-  have "inj_on mv_dot (set (Bs ! from y))"
-    using inj_on_def mv_dot_def
-    by (smt (verit, ccfv_threshold) add_right_cancel item.expand item.inject)
-  then have "distinct (map mv_dot (Bs ! from y))" using assms by (simp add: distinct_map)
-  then show ?thesis using assms by (simp add: Complete_L_def distinct_map_filter)
-qed
-
-lemma Close2L_distinct:
-  "\<lbrakk> Close2L Bs (B,C) (B',C'); distinct B; distinct C \<rbrakk>
-  \<Longrightarrow> distinct B' \<and> distinct C'"
-apply(auto simp: set_Predict_L set_Complete_L Close2L.simps distinct_diff_listI)
-*)
 
 end
 

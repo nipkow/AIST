@@ -22,8 +22,13 @@ declare T_append[simp]
 time_fun list_update
 time_fun last
 
+time_fun replicate
+
 lemma T_last[simp]: "as \<noteq> [] \<Longrightarrow> T_last as = length as"
   by (induction as) auto
+
+lemma T_replicate[simp]: "T_replicate k x = Suc k"
+  by (induction k) auto
 
 (* [simp] ? *)
 lemma T_filter_eq_T_map: "T_filter T_f xs = T_map T_f xs"
@@ -58,233 +63,188 @@ fun member :: "'c list \<Rightarrow> 'c \<Rightarrow> bool" where
 lemma member_elem: "member xs a = (a \<in> (set xs))"
   by (induction xs) auto
 
-section \<open>WorkList definiton and functions\<close>
+section \<open>ItemList definiton and functions\<close>
 
-datatype ('n,'a) WorkList = 
-  WorkList ("list": "('n,'a) item list") ("leng" : nat) ("list_map" : "('n,'a) item list list")
+datatype ('n,'a) efficientItemList = 
+  ItemList ("list": "('n,'a) item list") ("froms" : "('n,'a) item list list")
 
-fun WL_inv :: "('n, 'a) WorkList \<Rightarrow> bool" where
-"WL_inv (WorkList as l m) = (Suc l = length m \<and> (\<forall>x \<in> set as. from x < Suc l) \<and> (\<forall>i < Suc l. set (m ! i) = {x \<in> set as. from x = i}) \<and> (\<forall>i < Suc l. distinct (m ! i)) \<and> distinct as)"
+fun IL_inv :: "('n, 'a) efficientItemList \<Rightarrow> bool" where
+"IL_inv (ItemList as m) = (length m > 0 
+                            \<and> (\<forall>x \<in> set as. from x < length m) 
+                            \<and> (\<forall>i < length m. set (m ! i) = {x \<in> set as. from x = i}) 
+                            \<and> (\<forall>i < length m. distinct (m ! i)) 
+                            \<and> distinct as)"
 
-(*TODO could use replicate instead*)
-fun empty_list_map :: "nat \<Rightarrow> ('n, 'a) item list list" where
-"empty_list_map 0 = [[]]"|
-"empty_list_map (Suc k) = []#empty_list_map k"
+fun isin :: "('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) item \<Rightarrow> bool" where
+"isin (ItemList as m) x = member (m ! from x) x"
 
-definition WL_empty :: "nat \<Rightarrow> ('n, 'a) WorkList" where
-"WL_empty k = (WorkList [] k (empty_list_map k))"
-
-fun isin :: "('n, 'a) WorkList \<Rightarrow> ('n, 'a) item \<Rightarrow> bool" where
-"isin (WorkList as l m) x = (if from x < Suc l then member (m ! from x) x else False)"
+definition IL_empty :: "nat \<Rightarrow> ('n, 'a) efficientItemList" where
+"IL_empty k = (ItemList [] (replicate (Suc k) []))"
 
 context Earley_Gw
 begin
 
-fun set_WorkList :: "('n, 'a) WorkList \<Rightarrow> ('n, 'a) item set" where
-"set_WorkList wl = set (list wl)"
+fun set_ItemList :: "('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) item set" where
+"set_ItemList il = set (list il)"
 
-fun upsize :: "('n, 'a) WorkList \<Rightarrow> nat \<Rightarrow> ('n, 'a) WorkList" where
-"upsize wl 0 = wl" |
-"upsize wl (Suc k) = WorkList (list wl) (leng wl + (Suc k)) ((list_map wl) @ empty_list_map k)"
+fun insert :: "('n, 'a) item \<Rightarrow> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList" where
+"insert x (ItemList as m) = (if isin (ItemList as m) x then ItemList as m else
+                                ItemList (x#as) (m[from x := x#(m ! from x)]))"
 
-fun insert :: "('n, 'a) WorkList \<Rightarrow> ('n, 'a) item \<Rightarrow> ('n, 'a) WorkList" where
-"insert (WorkList as l m) x = (if isin (WorkList as l m) x then WorkList as l m else
-                                (if from x < Suc l then WorkList (x#as) l (m[from x := x#(m ! from x)]) else
-                               (let wl = (upsize (WorkList as l m) (Suc (from x) - l)) 
-                                in WorkList (x # (list wl)) (leng wl) ((list_map wl)[from x := x#(list_map wl ! from x)]) )))"
+fun union_LIL :: "('n, 'a) item list \<Rightarrow> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList" where
+"union_LIL [] il = il" |
+"union_LIL (a#as) il = insert a (union_LIL as il)"
 
-fun union_LWL :: "('n, 'a) item list \<Rightarrow> ('n, 'a) WorkList \<Rightarrow> ('n, 'a) WorkList" where
-"union_LWL [] wl = wl" |
-"union_LWL (a#as) wl = insert (union_LWL as wl) a"
+definition union_IL :: "('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList" where
+"union_IL il1 il2 = union_LIL (list il1) il2"
 
-definition union_WL :: "('n, 'a) WorkList \<Rightarrow> ('n, 'a) WorkList \<Rightarrow> ('n, 'a) WorkList" where
-"union_WL wl1 wl2 = union_LWL (list wl1) wl2"
+definition IL_of_List :: "nat \<Rightarrow> ('n, 'a) item list \<Rightarrow> ('n, 'a) efficientItemList" where
+"IL_of_List k as = union_LIL as (IL_empty k)"
 
-definition WL_of_List :: "nat \<Rightarrow> ('n, 'a) item list \<Rightarrow> ('n, 'a) WorkList" where
-"WL_of_List k as = union_LWL as (WL_empty k)"
+fun minus_LIL :: "nat \<Rightarrow> ('n, 'a) item list \<Rightarrow> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList" where
+"minus_LIL k [] il = IL_empty k" |
+"minus_LIL k (a#as) il = (if \<not>(isin il a) then insert a (minus_LIL k as il) else minus_LIL k as il)"
 
-fun minus_LWL :: "nat \<Rightarrow> ('n, 'a) item list \<Rightarrow> ('n, 'a) WorkList \<Rightarrow> ('n, 'a) WorkList" where
-"minus_LWL k [] wl = WL_empty k" |
-"minus_LWL k (a#as) wl = (if \<not>(isin wl a) then insert (minus_LWL k as wl) a else minus_LWL k as wl)"
+definition minus_IL :: "('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList" where
+"minus_IL il1 il2 = minus_LIL (length (froms il1) - 1) (list il1) il2"
 
-definition minus_WL :: "('n, 'a) WorkList \<Rightarrow> ('n, 'a) WorkList \<Rightarrow> ('n, 'a) WorkList" where
-"minus_WL wl1 wl2 = minus_LWL (leng wl1) (list wl1) wl2"
+abbreviation wf_IL :: "('n, 'a) efficientItemList \<Rightarrow> nat \<Rightarrow> bool" where
+"wf_IL il k \<equiv> wf_bin (set_ItemList il) k"
 
-lemma wl_decomp: "\<exists>as l m. wl = WorkList as l m"
-  by (meson WorkList.exhaust_sel)
+abbreviation wf1_IL :: "('n, 'a) efficientItemList \<Rightarrow> nat \<Rightarrow> bool" where
+"wf1_IL il k \<equiv> wf_bin1 (set_ItemList il) k"
 
-subsection \<open>WorkList invariant lemmas and Set function equivalences\<close>
+lemma il_decomp: "\<exists>as m. il = ItemList as m"
+  by (meson efficientItemList.exhaust_sel)
 
-lemma set_WL_empty: "set_WorkList (WL_empty k) = {}" by (simp add: WL_empty_def)
+subsection \<open>ItemList invariant lemmas and Set function equivalences\<close>
 
-lemma leng_empty_list_map: "length (empty_list_map k) = Suc k"
-  by(induction k) auto
+lemma set_IL_empty: "set_ItemList (IL_empty k) = {}" by (simp add: IL_empty_def)
 
-lemma nth_empty_list_map: "i < Suc k \<Longrightarrow> (empty_list_map k) ! i = []"
-proof (induction k arbitrary: i)
-  case 0
-  then show ?case by simp
-next
-  case (Suc k)
-  then show ?case by (cases "i") (auto simp flip: nth_Cons_Suc)
-qed
+lemma empty_inv: "IL_inv (IL_empty k)"
+  by (induction k) (auto simp add: IL_empty_def simp del: replicate.simps)
 
-lemma empty_inv: "WL_inv (WL_empty k)"
-proof (induction k)
-  case 0
-  then show ?case by (simp add: WL_empty_def)
-next
-  case (Suc k)
-  have "Suc (length (empty_list_map k)) = length (empty_list_map (length (empty_list_map k)))"
-    by (auto simp add: leng_empty_list_map)
-  then show ?case using Suc by (auto simp add: WL_empty_def nth_empty_list_map)
-qed
+lemma length_IL_empty[simp]: "length (froms (IL_empty k)) = Suc k"
+  by (induction k) (auto simp add: IL_empty_def)
 
-lemma WL_inv1: "WL_inv wl \<Longrightarrow> distinct (list wl) \<and> Suc (leng wl) = length (list_map wl) 
-  \<and> (\<forall>x \<in> set (list wl). from x < Suc (leng wl)) 
-  \<and> (\<forall>i < Suc (leng wl). set ((list_map wl) ! i) = {x \<in> set (list wl). from x = i}) 
-  \<and> (\<forall>i < Suc (leng wl). distinct ((list_map wl) ! i))"
-  using WL_inv.simps[of "list wl" "leng wl" "list_map wl"] by auto
+lemma IL_inv1: "IL_inv il \<Longrightarrow> distinct (list il) 
+  \<and> (\<forall>x \<in> set (list il). from x < length (froms il)) 
+  \<and> (\<forall>i < length (froms il). set ((froms il) ! i) = {x \<in> set (list il). from x = i}) 
+  \<and> (\<forall>i < length (froms il). distinct ((froms il) ! i))"
+  using IL_inv.simps[of "list il" "froms il"] by auto
     
-lemma isin_WL: "WL_inv (WorkList as l m) \<Longrightarrow> (isin (WorkList as l m) x) = (x \<in> set_WorkList (WorkList as l m))" 
+lemma isin_IL: "IL_inv (ItemList as m) \<Longrightarrow> from x < length m \<Longrightarrow> (isin (ItemList as m) x) = (x \<in> set_ItemList (ItemList as m))" 
   by (auto simp add: member_elem)
 
-lemma isin_WL1: "WL_inv wl \<Longrightarrow> (isin wl x) = (x \<in> set_WorkList wl)"
-  by (metis WL_inv.cases isin_WL)
+lemma isin_IL1: "IL_inv il \<Longrightarrow> from x < length (froms il) \<Longrightarrow> (isin il x) = (x \<in> set_ItemList il)"
+  by (metis efficientItemList.exhaust_sel isin_IL)
 
-lemma WL_inv_upsize: 
-  assumes "WL_inv (WorkList as l m)" shows "WL_inv (upsize (WorkList as l m) k)"
-proof -
-  show ?thesis 
-  proof (cases k)
-    case 0
-    then show ?thesis using assms by auto
-  next
-    case (Suc n)
-    have 1: "i < Suc l + k \<Longrightarrow> set ((m @ empty_list_map n) ! i) = {x \<in> set as. from x = i}" for i
-      using assms Suc by (cases "i < length m") (auto simp add: nth_append_left nth_append_right nth_empty_list_map)
-    have "i < Suc l + k \<Longrightarrow> distinct ((m @ empty_list_map n) ! i)" for i
-      using assms Suc by (cases "i < length m") (auto simp add: nth_append_left nth_append_right nth_empty_list_map)
-    then show ?thesis using assms Suc 1 by (auto simp add: leng_empty_list_map)
-  qed
-qed
+lemma IL_insert: "IL_inv (ItemList as m) \<Longrightarrow> from x < length m \<Longrightarrow> set_ItemList (insert x (ItemList as m)) = set_ItemList ((ItemList as m)) \<union> {x}"
+  by (auto simp add: Let_def isin_IL simp del: isin.simps)
 
-lemma upsize_length: "upsize (WorkList as l m) k = WorkList as' l' m' \<Longrightarrow> l' = k + l"
-  by (metis WorkList.sel(2) Earley_Gw.upsize.elims add.commute add_cancel_left_left)
-
-lemma upsize_list: "list (upsize (WorkList as l m) k) = as"
-  by (cases k) auto
-
-lemma upsize_list1[simp]: "list (upsize wl k) = list wl"
-  using upsize_list by (metis WL_inv.cases WorkList.sel(1))
-
-lemma set_upsize: "set_WorkList (upsize (WorkList as l m) k) = set_WorkList (WorkList as l m)"
-  by (cases k) auto
-
-lemma set_upsize1: "set_WorkList (upsize wl k) = set_WorkList wl"
-  using set_upsize by (metis WL_inv.cases)
-
-lemma WL_insert: "WL_inv (WorkList as l m) \<Longrightarrow> set_WorkList (insert (WorkList as l m) x) = set_WorkList ((WorkList as l m)) \<union> {x}"
-  using set_upsize[of _ _ _ "(Suc (from x) - l)"] by (auto simp add: Let_def isin_WL simp del: isin.simps)
-
-lemma WL_insert1: "WL_inv wl \<Longrightarrow> set_WorkList (insert wl x) = set_WorkList wl \<union> {x}"
-  using WL_insert by (metis WL_inv.cases)
+lemma IL_insert1: "IL_inv il \<Longrightarrow> from x < length (froms il) \<Longrightarrow> set_ItemList (insert x il) = set_ItemList il \<union> {x}"
+  using IL_insert by (metis efficientItemList.collapse)
 
 lemma list_map_inv: 
-  assumes "x \<notin> set as" "from x < Suc l" "WL_inv (WorkList as l m)" 
-  shows "WL_inv (WorkList (x#as) l (m[from x := x#(m!from x)]))"
+  assumes "x \<notin> set as" "from x < length m" "IL_inv (ItemList as m)" 
+  shows "IL_inv (ItemList (x#as) (m[from x := x#(m!from x)]))"
 proof -
-  have 1: "i < Suc l \<Longrightarrow> set (m[from x := x#(m!from x)] ! i) = {y \<in> set (x#as). from y = i}" for i
+  have 1: "i < length m \<Longrightarrow> set (m[from x := x#(m!from x)] ! i) = {y \<in> set (x#as). from y = i}" for i
     using assms by (cases "i = from x") auto
-  have "i < Suc l \<Longrightarrow> distinct (m[from x := x#(m!from x)] ! i)" for i
+  have "i < length m \<Longrightarrow> distinct (m[from x := x#(m!from x)] ! i)" for i
       using assms by (cases "i = from x") auto 
   then show ?thesis using assms 1 by auto
 qed
 
-lemma insert_WL_inv: 
-  assumes "WL_inv (WorkList as l m)" shows "WL_inv (insert (WorkList as l m) x)"
-proof -
-  let ?wl = "(upsize (WorkList as l m) (Suc (from x) - l))"
-  have "WL_inv ?wl" using assms by (auto simp add: WL_inv_upsize)
-  then obtain k n where P: "?wl = WorkList as k n \<and> WL_inv (WorkList as k n)"
-    by (metis WL_inv.cases upsize_list upsize_list1)
-  have 1: "from x < k" using P upsize_length
-    by (metis less_diff_conv less_not_refl not_less_eq)
+lemma insert_IL_inv: 
+  assumes "IL_inv (ItemList as m)" "from x < length m" shows "IL_inv (insert x (ItemList as m))"
+  using assms list_map_inv by (auto simp add: isin_IL simp del: IL_inv.simps isin.simps)
 
-  then show ?thesis using assms P list_map_inv 
-    by (auto simp add: isin_WL simp del: WL_inv.simps isin.simps)
-qed
+lemma insert_IL_inv1: "IL_inv il \<Longrightarrow> from x < length (froms il) \<Longrightarrow> IL_inv (insert x il)"
+  using insert_IL_inv
+  by (metis efficientItemList.sel(2) il_decomp)
 
-lemma insert_WL_inv1: "WL_inv wl \<Longrightarrow> WL_inv (insert wl x)"
-  using insert_WL_inv by (metis WL_inv.cases)
+lemma length_IL_insert[simp]: 
+ "length (froms (insert x il)) = length(froms il)" by (cases il) auto
 
-lemma LWL_union_inv: "WL_inv wl \<Longrightarrow> WL_inv (union_LWL as wl)"
-  using insert_WL_inv1 by (induction as) auto
+lemma length_LIL_union[simp]: "length (froms (union_LIL as il)) = length (froms il)"
+  by (induction as arbitrary: il) (auto simp add: length_IL_insert)
 
-lemma LWL_union: "WL_inv wl \<Longrightarrow> set_WorkList (union_LWL as wl) = set as \<union> set_WorkList wl"
+lemma LIL_union_inv: "IL_inv il \<Longrightarrow> \<forall>a \<in> set as. from a < length (froms il) \<Longrightarrow> IL_inv (union_LIL as il)"
+  using insert_IL_inv1 by (induction as) (auto simp add: wf_item_def length_LIL_union)
+
+lemma LIL_union: "IL_inv il \<Longrightarrow> \<forall>a \<in> set as. from a < length (froms il) \<Longrightarrow> set_ItemList (union_LIL as il) = set as \<union> set_ItemList il"
 proof (induction as)
   case Nil
   then show ?case by simp
 next
   case (Cons a as)
-  have "set_WorkList (union_LWL (a # as) wl) = set_WorkList (insert (union_LWL as wl) a)" by simp
-  also have "... = set_WorkList (union_LWL as wl) \<union> {a}" using Cons WL_insert1 LWL_union_inv by blast
-  also have "... = set as \<union> set_WorkList wl \<union> {a}" using Cons WL_insert1 LWL_union_inv by blast
+  have "set_ItemList (union_LIL (a # as) il) = set_ItemList (insert a (union_LIL as il))" by simp
+  also have "... = set_ItemList (union_LIL as il) \<union> {a}" using Cons IL_insert1 LIL_union_inv by simp
+  also have "... = set as \<union> set_ItemList il \<union> {a}" using Cons IL_insert1 LIL_union_inv by simp
   finally show ?case by auto
 qed
 
-lemma WL_union: "WL_inv wl2 \<Longrightarrow> set_WorkList (union_WL wl1 wl2) = set_WorkList wl1 \<union> set_WorkList wl2"
-  using LWL_union by (auto simp add: union_WL_def)
+lemma IL_union: "IL_inv il2 \<Longrightarrow> \<forall>a \<in> set_ItemList il1. from a < length (froms il2) \<Longrightarrow> set_ItemList (union_IL il1 il2) = set_ItemList il1 \<union> set_ItemList il2"
+  using LIL_union by (auto simp add: union_IL_def)
 
-lemma WL_union_inv: "WL_inv wl2 \<Longrightarrow> WL_inv (union_WL wl1 wl2)"
-  using LWL_union_inv by (auto simp add: union_WL_def)
+lemma IL_union_inv: "IL_inv il2 \<Longrightarrow> \<forall>a \<in> set_ItemList il1. from a < length (froms il2) \<Longrightarrow> IL_inv (union_IL il1 il2)"
+  using LIL_union_inv by (auto simp add: union_IL_def)
 
-lemma set_WL_of_List: "set_WorkList (WL_of_List k as) = set as"
-  using LWL_union empty_inv
-  by (metis WL_of_List_def set_WL_empty sup_bot_right)
+lemma set_IL_of_List: "\<forall>a \<in> set as. from a < Suc k \<Longrightarrow> set_ItemList (IL_of_List k as) = set as"
+  using LIL_union[of "IL_empty k" as] empty_inv set_IL_empty
+  by (auto simp add: IL_of_List_def)
 
-lemma WL_of_List_inv: "WL_inv (WL_of_List k as)"
-  using LWL_union_inv empty_inv by (auto simp add: WL_of_List_def)
+lemma IL_of_List_inv: "\<forall>a \<in> set as. from a < Suc k \<Longrightarrow> IL_inv (IL_of_List k as)"
+  using LIL_union_inv[of "IL_empty k"] empty_inv by (auto simp add: IL_of_List_def)
 
-lemma LWL_minus_inv: "WL_inv (minus_LWL k as wl)"
-  using insert_WL_inv1 empty_inv by (induction as) (auto simp add:)
+lemma length_IL_of_List[simp]: "length (froms (IL_of_List k as)) = Suc k"
+  using IL_of_List_def length_LIL_union by auto
 
-lemma LWL_minus: "WL_inv wl \<Longrightarrow> set_WorkList (minus_LWL k as wl) = set as - set_WorkList wl"
+lemma length_minus_LIL[simp]: "length (froms (minus_LIL k as il)) = Suc k"
+  using length_IL_insert by (induction as) auto
+
+lemma LIL_minus_inv: "\<forall>a \<in> set as. from a < Suc k \<Longrightarrow> IL_inv (minus_LIL k as il)"
+  using insert_IL_inv1 empty_inv by (induction as) (auto simp add: wf_item_def length_minus_LIL)
+
+lemma LIL_minus: "IL_inv il \<Longrightarrow> \<forall>a \<in> set as. from a < Suc k \<Longrightarrow> length (froms il) \<ge> Suc k \<Longrightarrow> set_ItemList (minus_LIL k as il) = set as - set_ItemList il"
 proof (induction as)
   case Nil
-  then show ?case by (simp add: WL_empty_def)
+  then show ?case by (simp add: IL_empty_def)
 next
   case (Cons a as)
   then show ?case
-  proof (cases "isin wl a")
+  proof (cases "isin il a")
     case True
-    then show ?thesis using Cons isin_WL1 by auto
+    then show ?thesis using Cons isin_IL1 by auto
   next
     case False
-    then have "set_WorkList (minus_LWL k (a # as) wl) = set_WorkList (insert (minus_LWL k as wl) a)" by simp
-    also have "... = set_WorkList (minus_LWL k as wl) \<union> {a}" using WL_insert1 Cons LWL_minus_inv by blast
-    then show ?thesis using Cons isin_WL1 by auto
+    then have "set_ItemList (minus_LIL k (a # as) il) = set_ItemList (insert a (minus_LIL k as il))" by simp
+    also have "... = set_ItemList (minus_LIL k as il) \<union> {a}" using IL_insert1 Cons LIL_minus_inv by simp
+    then show ?thesis using Cons isin_IL1 by auto
   qed
 qed
 
-lemma WL_minus_inv: "WL_inv (minus_WL wl1 wl2)"
-  using LWL_minus_inv by (auto simp add: minus_WL_def)
+lemma IL_minus_inv: "IL_inv il1 \<Longrightarrow> length (froms il2) \<ge> length (froms il1) \<Longrightarrow> IL_inv (minus_IL il1 il2)"
+  using LIL_minus_inv by (cases il1) (auto simp add: minus_IL_def)
 
-lemma WL_minus: "WL_inv wl2 \<Longrightarrow> set_WorkList (minus_WL wl1 wl2) = set_WorkList wl1 - set_WorkList wl2"
-  using LWL_minus by (auto simp add: minus_WL_def)
+lemma IL_minus: "IL_inv il2 \<Longrightarrow> IL_inv il1 \<Longrightarrow> length (froms il2) \<ge> length (froms il1) 
+  \<Longrightarrow> set_ItemList (minus_IL il1 il2) = set_ItemList il1 - set_ItemList il2"
+  using LIL_minus by (cases il1) (auto simp add: minus_IL_def)
 
-lemma leng_WL_insert: 
-  assumes "from a < Suc (leng wl)" shows "leng (insert wl a) = leng wl"
+lemma length_IL_minus: 
+  assumes inv: "IL_inv il1" shows "length (froms (minus_IL il1 il2)) = length (froms il1)"
 proof-
-  obtain as l m where "wl = WorkList as l m"
-    using WL_inv.cases by blast
-  then show ?thesis using assms by auto
+  obtain as m where "il1 = ItemList as m"
+    using il_decomp by blast
+  then show ?thesis using inv length_minus_LIL by (auto simp add: minus_IL_def)
 qed
 
-lemma leng_LWL_union: "\<forall>x \<in> set as. from x < Suc (leng wl) \<Longrightarrow> leng (union_LWL as wl) = leng wl"
-  by (induction as arbitrary: wl) (auto simp add: leng_WL_insert)
+lemma length_IL_minus1: "length (froms il1) > 0 \<Longrightarrow> length (froms (minus_IL il1 il2)) = length (froms il1)" 
+  by (auto simp add: minus_IL_def)
 
-section \<open>Earley WorkList algorithm\<close>
+
+section \<open>Earley ItemList algorithm\<close>
 
 
 (* must not be empty, otherwise by def step_rel is always false *)
@@ -304,21 +264,21 @@ definition Init_L :: "('n,'a) item list" where
 definition Scan_L :: "('n,'a) item list \<Rightarrow> nat \<Rightarrow> ('n,'a) item list" where
   "Scan_L Bs k = (let x = Some (Tm (w0 ! k)) in map mv_dot (filter (\<lambda> b. next_symbol b = x) Bs))"
 
-fun step_fun :: "('n, 'a) item list list \<Rightarrow>  ('n, 'a) WorkList \<times> ('n, 'a) WorkList \<Rightarrow> ('n, 'a) WorkList \<times> ('n, 'a) WorkList" where
-(* Why? "step_fun Bs ((WorkList [] l m), C) = undefined" |*)
-  "step_fun Bs ((WorkList (b#bs) l m), C) = (let step = (if is_complete b then Complete_L Bs b else Predict_L b (length Bs)) in
-    ( minus_WL (union_LWL step (WorkList (b#bs) l m)) (insert C b), insert C b) )"
+fun step_fun :: "('n, 'a) item list list \<Rightarrow>  ('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList" where
+(* Why? "step_fun Bs ((ItemList [] l m), C) = undefined" |*)
+  "step_fun Bs ((ItemList (b#bs) m), C) = (let step = (if is_complete b then Complete_L Bs b else Predict_L b (length Bs)) in
+    ( minus_IL (union_LIL step (ItemList (b#bs) m)) (insert b C), insert b C) )"
 (* (bs \<union> step) - (C \<union> {b}) *)
 
-definition steps :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) WorkList \<times> ('n, 'a) WorkList \<Rightarrow> (('n, 'a) WorkList \<times> ('n, 'a) WorkList) option" where
+definition steps :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList \<Rightarrow> (('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList) option" where
   "steps Bs BC = while_option (\<lambda>(B,C). list B \<noteq> []) (step_fun Bs) BC"
 
-definition close2_L :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) WorkList \<Rightarrow> ('n, 'a) item list" where
-  "close2_L Bs B = list (snd (the (steps Bs (B, WL_empty (length Bs)))))"
+definition close2_L :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) item list" where
+  "close2_L Bs B = list (snd (the (steps Bs (B, IL_empty (length Bs)))))"
 
 fun bins_L :: "nat \<Rightarrow> ('n,'a) item list list" where
-  "bins_L 0 = [close2_L [] (WL_of_List 0 Init_L)]" |
-  "bins_L (Suc k) = (let Bs = bins_L k in Bs @ [close2_L Bs (WL_of_List (length Bs) (Scan_L (last Bs) k))])"
+  "bins_L 0 = [close2_L [] (IL_of_List 0 Init_L)]" |
+  "bins_L (Suc k) = (let Bs = bins_L k in Bs @ [close2_L Bs (IL_of_List (length Bs) (Scan_L (last Bs) k))])"
 
 fun recognized_L :: "('n, 'a) item list \<Rightarrow> bool" where
 "recognized_L [] = False" |
@@ -328,7 +288,7 @@ fun recognized_L :: "('n, 'a) item list \<Rightarrow> bool" where
 definition earley_recognized where
 "earley_recognized _ = recognized_L (last (bins_L (length w)))"
 
-subsection \<open>Correctness of WorkList algorithm\<close>
+subsection \<open>Correctness of ItemList algorithm\<close>
 
 lemma Init_L_eq_Init: "set Init_L = Init"
   by (auto simp add: Init_L_def Init_def)
@@ -343,52 +303,7 @@ lemma Predict_eq: "set (Predict_L st k) = Predict st k"
 
 lemma Complete_eq: "from st < length Bs \<Longrightarrow> set (Complete_L Bs st) = Complete (map set Bs) st"
   by (auto simp add: Complete_L_def Complete_def nths_map)
-
-abbreviation wf1_WL :: "('n, 'a) WorkList \<Rightarrow> nat \<Rightarrow> bool" where
-"wf1_WL wl k \<equiv> wf_bin1 (set_WorkList wl) k"
-
-lemma test:
-  assumes inv: "WL_inv (WorkList (a#as) l1 m1)" "WL_inv (WorkList bs l2 m2)"
-  and sf: "step_fun Bs ((WorkList (a#as) l1 m1),(WorkList bs l2 m2)) = ((WorkList as' l3 m3), (WorkList bs' l4 m4))"
-  shows  "set as' = (set as \<union> set ((if is_complete a then Complete_L Bs a else Predict_L a (length Bs)))) - (set bs \<union> {a})"
-proof-
-  let ?step = "(if is_complete a then Complete_L Bs a else Predict_L a (length Bs))"
-  have "set as' = set_WorkList (minus_WL (union_LWL ?step (WorkList (a#as) l1 m1)) (insert (WorkList bs l2 m2) a))"
-    using sf by auto
-  also have "... = (set (a#as) \<union> set ?step) - (set bs \<union> {a})" using inv
-    by (smt (verit) WorkList.sel(1) Earley_Gw.set_WorkList.simps LWL_union Un_commute WL_insert1 WL_minus insert_WL_inv1)
-  finally show ?thesis by auto
-qed
-
-lemma step_fun_sound: 
-  assumes cons: "as \<noteq> []" 
-  and wf: "wf1_WL (WorkList as l1 m1) (length Bs)"
-  and inv: "WL_inv (WorkList as l1 m1)" "WL_inv (WorkList bs l2 m2)"
-  and sf: "step_fun Bs ((WorkList as l1 m1),(WorkList bs l2 m2)) = ((WorkList as' l3 m3), (WorkList bs' l4 m4))"
-shows "step_rel (map set Bs) (set as,set bs) (set as', set bs')"
-proof-
-  have comp: "\<forall>a \<in> set as. is_complete a \<longrightarrow> from a < length Bs" using wf by (auto simp add: wf_bin1_def wf_item1_def)
-  from cons obtain a ass where P :"as = a # ass"
-    using list.exhaust by auto 
-
-  let ?xs = "if is_complete a then Complete (map set Bs) a else Predict a (length Bs)"
-  let ?xsL = "if is_complete a then Complete_L Bs a else Predict_L a (length Bs)"
-
-  have "a \<in> set as"
-    by (auto simp add: P next_symbol_def)
-  then have 1: "(map set Bs) \<turnstile> (set as, set bs) \<rightarrow> ((set as \<union> ?xs) - (set bs \<union> {a}), (set bs \<union> {a}))"
-    using Close2.Complete Close2.Predict
-    by (smt (verit, best) Un_insert_right boolean_algebra.disj_zero_right length_map)
-
-  have 2: "set as' = (set ass \<union> set ?xsL) - (set bs \<union> {a})"
-    using P inv sf test[of a ass l1 m1 bs l2 m2 Bs as'] by blast
-  have "set bs' = (set bs \<union> {a})" using inv sf P WL_insert1[of "(WorkList bs l2 m2)" a] by auto 
-
-  then show ?thesis using 1 2
-    using Complete_eq P set_Predict_L comp step_rel_def by fastforce
-qed
-  
-end (*Earley_Gw*)
+end
 
 context Earley_Gw_eps
 begin
@@ -411,34 +326,105 @@ proof-
      using assms 2 Complete_L_def in_set_conv_nth wf1_Complete wf_bin1_def wf_bins1_def by fastforce  
  qed
 
+lemma forall_from_Suc: "wf_bin1 as k \<Longrightarrow> \<forall>a \<in> as. from a < (Suc k)"
+  by (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
+
+lemma test:
+  assumes inv: "IL_inv (ItemList (a#as) m1)" "IL_inv (ItemList bs m2)"
+  and leng: "length m1 = Suc (length Bs)" "length m2 = Suc (length Bs)"
+  and wf: "wf_bins1 (map set Bs)" "wf_item1 a (length Bs)"
+  and sf: "step_fun Bs ((ItemList (a#as) m1),(ItemList bs m2)) = ((ItemList as' m3), (ItemList bs' m4))"
+  shows  "set as' = (set as \<union> set ((if is_complete a then Complete_L Bs a else Predict_L a (length Bs)))) - (set bs \<union> {a})"
+proof-
+  let ?step = "(if is_complete a then Complete_L Bs a else Predict_L a (length Bs))"
+  have wf_step: "wf_bin1 (set ?step) (length Bs)" using wf wf1_Predict_L wf1_Complete_L by auto
+  then have 1: "IL_inv (union_LIL ?step (ItemList (a#as) m1))" using LIL_union_inv[of "(ItemList (a#as) m1)" ?step] inv(1) leng(1)
+    forall_from_Suc[of "set ?step" "length Bs"] by auto
+  have 2: "IL_inv (insert a (ItemList bs m2))" using insert_IL_inv[of bs m2 a] inv(2) wf(2)
+    by (fastforce simp add: wf_item1_def wf_item_def leng(2))
+  have "set as' = set_ItemList (minus_IL (union_LIL ?step (ItemList (a#as) m1)) (insert a (ItemList bs m2)))"
+    using sf by auto
+  also have "... = set_ItemList (union_LIL ?step (ItemList (a#as) m1)) - set_ItemList (insert a (ItemList bs m2))"
+    using IL_minus leng 1 2 by auto
+  also have "... = (set (a#as) \<union> set ?step) - set_ItemList (insert a (ItemList bs m2))" 
+    using LIL_union[of "ItemList (a#as) m1" ?step] wf_step forall_from_Suc[of "set ?step" "length Bs"] inv(1)
+    by (metis Un_commute efficientItemList.sel(1,2) leng(1) set_ItemList.simps)
+  also have "... = (set (a#as) \<union> set ?step) - (set bs \<union> {a})" using IL_insert1[of "ItemList bs m2" a] 
+     inv by (auto simp add: leng)
+
+  finally show ?thesis by auto
+qed
+
+lemma step_fun_sound: 
+  assumes cons: "as \<noteq> []" 
+  and wf: "wf1_IL (ItemList as m1) (length Bs)" "wf_bins1 (map set Bs)"
+  and inv: "IL_inv (ItemList as m1)" "IL_inv (ItemList bs m2)"
+  and leng: "length m1 = Suc (length Bs)" "length m2 = Suc (length Bs)"
+  and sf: "step_fun Bs ((ItemList as m1),(ItemList bs m2)) = ((ItemList as' m3), (ItemList bs' m4))"
+shows "step_rel (map set Bs) (set as,set bs) (set as', set bs')"
+proof-
+  have comp: "\<forall>a \<in> set as. is_complete a \<longrightarrow> from a < length Bs" using wf by (auto simp add: wf_bin1_def wf_item1_def)
+  from cons obtain a ass where P :"as = a # ass"
+    using list.exhaust by auto 
+
+  let ?xs = "if is_complete a then Complete (map set Bs) a else Predict a (length Bs)"
+  let ?xsL = "if is_complete a then Complete_L Bs a else Predict_L a (length Bs)"
+
+  have "a \<in> set as"
+    by (auto simp add: P next_symbol_def)
+  then have 1: "(map set Bs) \<turnstile> (set as, set bs) \<rightarrow> ((set as \<union> ?xs) - (set bs \<union> {a}), (set bs \<union> {a}))"
+    using Close2.Complete Close2.Predict
+    by (smt (verit, best) Un_insert_right boolean_algebra.disj_zero_right length_map)
+
+  have "wf_item1 a (length Bs)" using wf by (auto simp add: wf_bin1_def P)
+  then have 2: "set as' = (set ass \<union> set ?xsL) - (set bs \<union> {a})"
+    using P inv sf test[of a ass m1 bs m2 Bs as' m3 bs' m4] wf leng by blast
+  have "set bs' = (set bs \<union> {a})" using inv sf P IL_insert1[of "(ItemList bs m2)" a] leng by auto 
+
+  then show ?thesis using 1 2
+    using Complete_eq P set_Predict_L comp step_rel_def by fastforce
+qed
+  
 lemma step_fun_inv1: 
   assumes ne: "as \<noteq> []"
-  and sf: "step_fun Bs ((WorkList as l1 m1),(WorkList bs l2 m2)) = ((WorkList as' l3 m3), (WorkList bs' l4 m4))"
-shows "WL_inv (WorkList as' l3 m3)"
+  and inv: "IL_inv (ItemList as m1)"
+  and wf: "wf_bins1 (map set Bs)" "wf_bin1 (set as) (length Bs)"
+  and sf: "step_fun Bs ((ItemList as m1),(ItemList bs m2)) = ((ItemList as' m3), (ItemList bs' m4))"
+  and leng: "length m1 = Suc (length Bs)" "length m2 = Suc (length Bs)"
+shows "IL_inv (ItemList as' m3)"
 proof-
   from ne obtain a ass where P: "as = a#ass"
     by (meson neq_Nil_conv)
   let ?step = "(if is_complete a then Complete_L Bs a else Predict_L a (length Bs))"
-  from P show ?thesis using WL_minus_inv[of "(union_LWL ?step (WorkList (a#ass) l1 m1))" "(insert (WorkList bs l2 m2) a)"] sf by auto
+  have "wf_item1 a (length Bs)" using P wf by (auto simp add: wf_bin1_def)
+  then have wf_step: "wf_bin1 (set ?step) (length Bs)" using wf wf1_Predict_L wf1_Complete_L by auto
+  then have "\<forall>x \<in> set ?step. from x < Suc (length Bs)" by (auto simp add: forall_from_Suc)
+  then show ?thesis using P IL_minus_inv[of "(union_LIL ?step (ItemList (a#ass) m1))" "(insert a (ItemList bs m2))"] sf leng
+      LIL_union_inv inv
+      length_LIL_union[of ?step "ItemList (a#ass) m1"] length_IL_insert[of a "ItemList bs m2"] by auto
 qed
 
 lemma step_fun_inv2: 
   assumes ne: "as \<noteq> []"
-  and inv: "WL_inv (WorkList bs l2 m2)"
-  and sf: "step_fun Bs ((WorkList as l1 m1),(WorkList bs l2 m2)) = ((WorkList as' l3 m3), (WorkList bs' l4 m4))"
-shows "WL_inv (WorkList bs' l4 m4)"
+  and wf: "wf_bin1 (set as) (length Bs)"
+  and leng: "length m2 = Suc (length Bs)"
+  and inv: "IL_inv (ItemList bs m2)"
+  and sf: "step_fun Bs ((ItemList as m1),(ItemList bs m2)) = ((ItemList as' m3), (ItemList bs' m4))"
+shows "IL_inv (ItemList bs' m4)"
 proof-
   from ne obtain a ass where P: "as = a#ass"
     by (meson neq_Nil_conv)
-  then show ?thesis using insert_WL_inv1[of "(WorkList bs l2 m2)" a] sf inv by auto
+  then show ?thesis using insert_IL_inv1[of "(ItemList bs m2)" a] sf inv wf leng 
+    by (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
 qed
   
 lemma step_fun_wf: 
   assumes ne: "as \<noteq> []"
-  and wf: "wf_bins1 (map set Bs)" "wf1_WL (WorkList as l1 m1) (length Bs)"
-  and inv: "WL_inv (WorkList as l1 m1)" "WL_inv (WorkList bs l2 m2)"
-  and sf: "step_fun Bs ((WorkList as l1 m1),(WorkList bs l2 m2)) = ((WorkList as' l3 m3), (WorkList bs' l4 m4))"  
-  shows "wf1_WL (WorkList as' l3 m3) (length Bs)"
+  and wf: "wf_bins1 (map set Bs)" "wf1_IL (ItemList as m1) (length Bs)"
+  and leng: "length m1 = Suc (length Bs)" "length m2 = Suc (length Bs)"
+  and inv: "IL_inv (ItemList as m1)" "IL_inv (ItemList bs m2)"
+  and sf: "step_fun Bs ((ItemList as m1),(ItemList bs m2)) = ((ItemList as' m3), (ItemList bs' m4))"  
+  shows "wf1_IL (ItemList as' m3) (length Bs)"
 proof -  
   from assms obtain a ass where P: "as = a # ass"
     by (meson neq_Nil_conv)
@@ -447,161 +433,221 @@ proof -
   then have "wf_bin1 (set ?step) (length Bs)" using assms wf1_Predict_L wf1_Complete_L by auto
   then have 1: "wf_bin1 ((set as \<union> set ?step) - (set bs \<union> {a})) (length Bs)" 
     using wf_bin1_def wf by auto
-  have "set as' = (set ass \<union> set ?step) - (set bs \<union> {a})"
-    using P inv sf test[of a ass l1 m1 bs l2 m2 Bs as'] by blast
+  from wf P have "wf_item1 a (length Bs)" by (auto simp add: wf_bin1_def)
+  then have "set as' = (set ass \<union> set ?step) - (set bs \<union> {a})"
+    using P inv sf leng wf test[of a ass m1 bs m2 Bs as'] by blast
   then show ?thesis using P 1 by auto
 qed
 
 lemma step_fun_wf2: 
   assumes ne: "as \<noteq> []"
-  and wf: "wf1_WL (WorkList as l1 m1) (length Bs)" "wf1_WL (WorkList bs l2 m2) (length Bs)"
-  and inv: "WL_inv (WorkList bs l2 m2)"
-  and sf: "step_fun Bs ((WorkList as l1 m1),(WorkList bs l2 m2)) = ((WorkList as' l3 m3), (WorkList bs' l4 m4))"
-  shows "wf1_WL (WorkList bs' l4 m4) (length Bs)"
+  and wf: "wf1_IL (ItemList as m1) (length Bs)" "wf1_IL (ItemList bs m2) (length Bs)"
+  and leng: "length m2 = Suc (length Bs)"
+  and inv: "IL_inv (ItemList bs m2)"
+  and sf: "step_fun Bs ((ItemList as m1),(ItemList bs m2)) = ((ItemList as' m3), (ItemList bs' m4))"
+  shows "wf1_IL (ItemList bs' m4) (length Bs)"
 proof-
   from \<open>as \<noteq> []\<close> obtain a ass where P: "as = a#ass" by (meson neq_Nil_conv)
-  then have "set bs' = set bs \<union> {a}" using inv sf P WL_insert1[of "(WorkList bs l2 m2)" a] by auto
+  then have "from a < Suc (length Bs)" using wf by (auto simp add: wf_bin1_def wf_item1_def wf_item_def) 
+  then have "set bs' = set bs \<union> {a}" using inv sf P IL_insert1[of "(ItemList bs m2)" a] leng 
+      by auto
   then show ?thesis using assms P by (auto simp add: wf_bin1_def)
 qed
 
+lemma length_step_fun1:
+  assumes ne: "as \<noteq> []"
+  and sf: "step_fun Bs ((ItemList as m1),(ItemList bs m2)) = ((ItemList as' m3), (ItemList bs' m4))"
+  and leng: "length m1 = Suc (length Bs)"
+shows "length m3 = Suc (length Bs)"
+proof-
+  obtain a ass where P: "as = a#ass"
+    by (meson ne recognized_L.cases)
+  let ?step = "if is_complete a then Complete_L Bs a else Predict_L a (length Bs)"
+  from P have "minus_IL (union_LIL ?step (ItemList (a # ass) m1)) (ItemList bs' m4) = ItemList as' m3"
+    using assms by auto
+  then show ?thesis 
+    by (metis efficientItemList.sel(2) leng length_IL_minus1 length_LIL_union zero_less_Suc)
+qed
+
+lemma length_step_fun2:
+  assumes ne: "as \<noteq> []"
+  and sf: "step_fun Bs ((ItemList as m1),(ItemList bs m2)) = ((ItemList as' m3), (ItemList bs' m4))"
+  and leng: "length m2 = Suc (length Bs)"
+shows "length m4 = Suc (length Bs)"
+proof-
+  obtain a ass where P: "as = a#ass"
+    by (meson ne recognized_L.cases)
+  then show ?thesis using assms length_IL_insert[of a "ItemList bs m2"] by (auto simp del: insert.simps)
+qed
+
 lemma steps_sound:
-  assumes wf: "wf1_WL (WorkList as l1 m1) (length Bs)"  "wf_bins1 (map set Bs)"
-  and inv: "WL_inv (WorkList as l1 m1)" "WL_inv (WorkList bs l2 m2)"
-  and step: "steps Bs ((WorkList as l1 m1),(WorkList bs l2 m2)) = Some ((WorkList as' l3 m3), (WorkList bs' l4 m4))"
+  assumes wf: "wf1_IL (ItemList as m1) (length Bs)"  "wf_bins1 (map set Bs)"
+  and leng: "length m1 = Suc (length Bs)" "length m2 = Suc (length Bs)"
+  and inv: "IL_inv (ItemList as m1)" "IL_inv (ItemList bs m2)"
+  and step: "steps Bs ((ItemList as m1),(ItemList bs m2)) = Some ((ItemList as' m3), (ItemList bs' m4))"
 shows "((step_rel (map set Bs))^**) (set as, set bs) ({},set bs')"
 proof -
-  let ?P1 = "\<lambda>(wl1,wl2). WL_inv wl1 \<and> WL_inv wl2"
-  let ?P2 = "\<lambda>(wl1,wl2). ((step_rel (map set Bs))^**) (set as, set bs) (set (list wl1),set (list wl2)) \<and> wf1_WL wl1 (length Bs) \<and> wf_bins1 (map set Bs)"
-  let ?P = "\<lambda>(wl1,wl2). ?P1 (wl1, wl2) \<and> ?P2 (wl1, wl2)"
-  let ?b = "\<lambda>(wl1, wl2). (list wl1) \<noteq> []"
-  let ?c = "\<lambda>(wl1, wl2). step_fun Bs (wl1,wl2)"
+  let ?P = "\<lambda>(il1,il2). IL_inv il1 \<and> IL_inv il2 \<and> wf1_IL il1 (length Bs) \<and> wf_bins1 (map set Bs) 
+              \<and> length (froms il1) = Suc (length Bs) \<and> length (froms il2) = Suc (length Bs) 
+              \<and> (step_rel (map set Bs))^** (set as, set bs) (set (list il1),set (list il2))"
+  let ?b = "\<lambda>(il1, il2). (list il1) \<noteq> []"
+  let ?c = "\<lambda>(il1, il2). step_fun Bs (il1,il2)"
 
-  have 1: "(?P1 (wl1,wl2) \<Longrightarrow> ?b (wl1,wl2) \<Longrightarrow> ?P1 (?c (wl1,wl2)))" for wl1 wl2
+  have 1: "(?P (il1,il2) \<Longrightarrow> ?b (il1,il2) \<Longrightarrow> ?P (?c (il1,il2)))" for il1 il2
   proof-
-    assume assm: "?P1 (wl1,wl2)" and ne: "?b (wl1,wl2)"
-    obtain xs k1 n1 ys k2 n2 where P: "wl1 = (WorkList xs k1 n1) \<and> wl2 = (WorkList ys k2 n2)"
-      by (meson WL_inv.cases)
-    obtain xs' k1' n1' ys' k2' n2' where c: "?c (wl1, wl2) = ((WorkList xs' k1' n1'), (WorkList ys' k2' n2'))"
-      by (metis WL_inv.cases surj_pair)
-    obtain x xss where "xs = x#xss" using ne P
+    assume assm: "?P (il1,il2)" and ne: "?b (il1,il2)"
+    obtain xs n1 ys n2 where P: "il1 = (ItemList xs n1) \<and> il2 = (ItemList ys n2)"
+      by (meson IL_inv.cases)
+    obtain xs' n1' ys' n2' where c: "?c (il1, il2) = ((ItemList xs' n1'), (ItemList ys' n2'))"
+      by (metis IL_inv.cases surj_pair)
+    obtain x xss where P_xs: "xs = x#xss" using ne P
       using list.exhaust by auto
-    then show ?thesis using step_fun_inv1 step_fun_inv2 P c assm
-      by (metis case_prod_conv list.distinct(1))
+    then have 11: "length n1' = Suc (length Bs) \<and> length n2' = Suc (length Bs)"
+      using assm length_step_fun1[of xs Bs n1 ys n2 xs' n1' ys' n2'] 
+            length_step_fun2[of xs Bs n1 ys n2 xs' n1' ys' n2'] P c by auto
+    moreover have 12: "IL_inv (ItemList xs' n1') \<and> IL_inv (ItemList ys' n2')" 
+      using step_fun_inv1[of xs n1 Bs ys n2 xs' n1' ys' n2'] 
+            step_fun_inv2[of xs Bs n2 ys n1 xs' n1' ys' n2'] assm P c P_xs by fastforce
+    moreover have 13: "wf1_IL (ItemList xs' n1') (length Bs) \<and> wf_bins1 (map set Bs)" 
+      using step_fun_wf[of xs Bs n1 n2 ys] assm P c P_xs by force
+    moreover have "(step_rel (map set Bs))^** (set as, set bs) (set xs', set ys')"
+      using step_fun_sound[of xs n1 Bs ys n2] assm P c P_xs by auto
+    ultimately show ?thesis using c by auto
   qed
 
-  have 2: "(?P (wl1,wl2) \<Longrightarrow> ?b (wl1,wl2) \<Longrightarrow> ?P2 (?c (wl1,wl2)))" for wl1 wl2
-  proof-
-    assume assm: "?P (wl1,wl2)" and ne: "?b (wl1,wl2)"
-    obtain xs k1 n1 ys k2 n2 where P: "wl1 = (WorkList xs k1 n1) \<and> wl2 = (WorkList ys k2 n2)"
-      by (meson WL_inv.cases)
-    obtain xs' k1' n1' ys' k2' n2' where c: "?c (wl1, wl2) = ((WorkList xs' k1' n1'), (WorkList ys' k2' n2'))"
-      by (metis WL_inv.cases surj_pair)
-    obtain x xss where "xs = x#xss" using ne P
-      using list.exhaust by auto
-    then show ?thesis using step_fun_wf P c assm step_fun_sound
-      by (smt (verit) WorkList.sel(1) case_prod_conv list.distinct(1) rtranclp.simps)
-  qed
+  have stop: "as' = []" using step while_option_stop[of ?b ?c "((ItemList as m1),(ItemList bs m2))"] by (auto simp add: steps_def)
 
-  have "(?P (wl1,wl2) \<Longrightarrow> ?b (wl1,wl2) \<Longrightarrow> ?P1 (?c (wl1,wl2)))" for wl1 wl2
-    using 1 by auto
-  then have 3: "(?P (wl1,wl2) \<Longrightarrow> ?b (wl1,wl2) \<Longrightarrow> ?P (?c (wl1,wl2)))" for wl1 wl2
-    using 2
-    by (metis (no_types, lifting) case_prodI2)
-
-  have stop: "as' = []" using step while_option_stop[of ?b ?c "((WorkList as l1 m1),(WorkList bs l2 m2))"] by (auto simp add: steps_def)
-
-  have "?P ((WorkList as l1 m1),(WorkList bs l2 m2))" using wf inv by auto
-  then have "?P ((WorkList as' l3 m3), (WorkList bs' l4 m4))"using 
-      while_option_rule[of ?P _ _ "((WorkList as l1 m1),(WorkList bs l2 m2))" "((WorkList as' l3 m3), (WorkList bs' l4 m4))"] 3
+  have "?P ((ItemList as m1),(ItemList bs m2))" using wf inv leng by auto
+  then have "?P ((ItemList as' m3), (ItemList bs' m4))"using 
+      while_option_rule[of ?P _ _ "((ItemList as m1),(ItemList bs m2))" "((ItemList as' m3), (ItemList bs' m4))"] 1
     by (smt (verit) case_prodE case_prod_conv local.step steps_def)
   then show ?thesis using stop by auto     
 qed
 
 lemma steps_sound1: 
-  assumes wf: "wf1_WL (WorkList as l1 m1) (length Bs)"  "wf_bins1 (map set Bs)"
-  and inv: "WL_inv (WorkList as l1 m1)"
-  and step: "steps Bs ((WorkList as l1 m1),WL_empty (length Bs)) = Some (B',C)" 
+  assumes wf: "wf1_IL (ItemList as m1) (length Bs)"  "wf_bins1 (map set Bs)"
+  and leng: "length m1 = Suc (length Bs)"
+  and inv: "IL_inv (ItemList as m1)"
+  and step: "steps Bs ((ItemList as m1),IL_empty (length Bs)) = Some (B',C)" 
 shows "((step_rel (map set Bs))^**) (set as,{}) ({},set (list C))"
 proof-
-  have 1: "WL_inv (WL_empty (length Bs))"
+  have "IL_inv (IL_empty (length Bs))"
     by (simp add: empty_inv)
-  have 2: "wf1_WL (WL_empty (length Bs)) (length Bs)" by (simp add: WL_empty_def wf_bin1_def)
-  show ?thesis using steps_sound 1 2 assms
-    by (metis (no_types, lifting) WorkList.exhaust set_WorkList.elims set_WL_empty upsize_list upsize_list1)
+  moreover have "wf1_IL (IL_empty (length Bs)) (length Bs)" by (simp add: IL_empty_def wf_bin1_def)
+  moreover have "length (froms (IL_empty (length Bs))) = Suc (length Bs)" by simp
+  ultimately show ?thesis using steps_sound assms
+    by (metis Earley_Gw.set_ItemList.simps efficientItemList.collapse set_IL_empty)
 qed
+
+
  
 
-lemma step_fun_inv1_wl: 
-  assumes ne: "(list wl1) \<noteq> []"
-  and sf: "step_fun Bs (wl1,wl2) = (wl1', wl2')"
-shows "WL_inv wl1'"
-  using step_fun_inv1 wl_decomp
-  by (metis WorkList.sel(1) ne sf)
+lemma step_fun_inv1_il: 
+  assumes ne: "(list il1) \<noteq> []"
+  and inv: "IL_inv il1"
+  and wf: "wf_bins1 (map set Bs)" "wf1_IL il1 (length Bs)"
+  and leng: "length (froms il1) = Suc (length Bs)" "length (froms il2) = Suc (length Bs)"
+  and sf: "step_fun Bs (il1,il2) = (il1', il2')"
+shows "IL_inv il1'"
+  using step_fun_inv1 il_decomp sf inv leng wf ne
+  by (metis efficientItemList.collapse set_ItemList.elims)
+ 
 
-lemma step_fun_inv2_wl: 
-  assumes ne: "(list wl1) \<noteq> []"
-  and inv: "WL_inv wl2"
-  and sf: "step_fun Bs (wl1,wl2) = (wl1', wl2')"
-shows "WL_inv wl2'"
- using step_fun_inv2 wl_decomp
-  by (metis inv ne sf upsize_list upsize_list1)
+lemma step_fun_inv2_il: 
+  assumes ne: "(list il1) \<noteq> []"
+  and wf: "wf1_IL il1 (length Bs)"
+  and leng: "length (froms il2) = Suc (length Bs)"
+  and inv: "IL_inv il2"
+  and sf: "step_fun Bs (il1,il2) = (il1', il2')"
+shows "IL_inv il2'"
+ using step_fun_inv2 il_decomp ne wf leng inv sf
+  by (metis efficientItemList.collapse set_ItemList.elims)
   
-lemma step_fun_wf_wl: 
-  assumes ne: "(list wl1) \<noteq> []"
-  and wf: "wf_bins1 (map set Bs)" "wf1_WL wl1 (length Bs)"
-  and inv: "WL_inv wl1" "WL_inv wl2"
-  and sf: "step_fun Bs (wl1,wl2) = (wl1', wl2')"  
-shows "wf1_WL wl1' (length Bs)"
-  using step_fun_wf wl_decomp ne wf inv sf
-  by (metis upsize_list upsize_list1)
+lemma step_fun_wf_il: 
+  assumes ne: "(list il1) \<noteq> []"
+  and wf: "wf_bins1 (map set Bs)" "wf1_IL il1 (length Bs)"
+  and leng: "length (froms il1) = Suc (length Bs)" "length (froms il2) = Suc (length Bs)"
+  and inv: "IL_inv il1" "IL_inv il2"
+  and sf: "step_fun Bs (il1,il2) = (il1', il2')"  
+shows "wf1_IL il1' (length Bs)"
+  using step_fun_wf il_decomp ne wf inv sf leng
+  by (metis efficientItemList.collapse)
 
-lemma step_fun_wf2_wl: 
-   assumes ne: "(list wl1) \<noteq> []"
-  and wf: "wf1_WL wl1 (length Bs)" "wf1_WL wl2 (length Bs)"
-  and inv: "WL_inv wl2"
-  and sf: "step_fun Bs (wl1,wl2) = (wl1', wl2')"
-shows "wf1_WL wl2' (length Bs)"
-  using wl_decomp ne wf inv sf
-  by (metis step_fun_wf2 upsize_list upsize_list1)
+lemma step_fun_wf2_il: 
+   assumes ne: "(list il1) \<noteq> []"
+  and wf: "wf1_IL il1 (length Bs)" "wf1_IL il2 (length Bs)"
+  and leng: "length (froms il2) = Suc (length Bs)"
+  and inv: "IL_inv il2"
+  and sf: "step_fun Bs (il1,il2) = (il1', il2')"
+shows "wf1_IL il2' (length Bs)"
+  using step_fun_wf2 il_decomp ne wf inv sf leng
+  by (metis efficientItemList.collapse)
+
+lemma length_step_fun1_il: 
+  assumes "list il1 \<noteq> []"  
+          "step_fun Bs (il1, il2) = (il1', il2')" "length (froms il1) = Suc (length Bs)" 
+  shows "length (froms il1') = Suc (length Bs)"
+  using length_step_fun1 il_decomp assms by (metis efficientItemList.collapse)
+
+lemma length_step_fun2_il: 
+  assumes "list il1 \<noteq> []" "step_fun Bs (il1, il2) = (il1', il2')" 
+          "length (froms il2) = Suc (length Bs)"
+  shows "length (froms il2') = Suc (length Bs)"
+  using length_step_fun2 il_decomp assms by (metis efficientItemList.collapse)
   
 
 lemma steps_inv1: 
-  assumes inv: "WL_inv wl1"
-  and step: "steps Bs (wl1,wl2) = Some (wl1', wl2')"
-shows "WL_inv wl1'"
-  using while_option_rule[where P= "\<lambda>(wl1,wl2). WL_inv wl1"] step_fun_inv1_wl step inv unfolding steps_def
-  by (smt (verit, ccfv_SIG) case_prodE case_prodI2 case_prod_conv)
+  assumes inv: "IL_inv il1" "IL_inv il2"
+  and wf: "wf_bins1 (map set Bs)" "wf1_IL il1 (length Bs)"
+  and leng: "length (froms il1) = Suc (length Bs)" "length (froms il2) = Suc (length Bs)"
+  and step: "steps Bs (il1,il2) = Some (il1', il2')"
+shows "IL_inv il1'"
+  using while_option_rule[where P= "\<lambda>(il1,il2). IL_inv il1 \<and> IL_inv il2 \<and> wf1_IL il1 (length Bs) \<and> wf_bins1 (map set Bs) \<and> length (froms il1) = Suc (length Bs) \<and> length (froms il2) = Suc (length Bs)"] 
+    step_fun_inv1_il step_fun_inv2_il
+    length_step_fun1_il length_step_fun2_il step_fun_wf_il step inv wf leng unfolding steps_def
+ by (smt (verit, ccfv_SIG) case_prodE case_prodI2 case_prod_conv)
+
 
 lemma steps_inv2: 
-  assumes inv: "WL_inv wl2"
-  and step: "steps Bs (wl1,wl2) = Some (wl1', wl2')"
-shows "WL_inv wl2'"
-  using while_option_rule[where P= "\<lambda>(wl1,wl2). WL_inv wl2"] step_fun_inv2_wl step inv unfolding steps_def
+  assumes inv: "IL_inv il2" "IL_inv il1"
+  and wf: "wf1_IL il1 (length Bs)" "wf_bins1 (map set Bs)"
+  and leng: "length (froms il1) = Suc (length Bs)" "length (froms il2) = Suc (length Bs)"
+  and step: "steps Bs (il1,il2) = Some (il1', il2')"
+shows "IL_inv il2'"
+  using while_option_rule[where P= "\<lambda>(il1,il2). IL_inv il2 \<and> IL_inv il1 \<and> wf1_IL il1 (length Bs) \<and> wf_bins1 (map set Bs) \<and> length (froms il1) = Suc (length Bs) \<and> length (froms il2) = Suc (length Bs)"] 
+    step_fun_inv2_il step_fun_inv1_il length_step_fun1_il length_step_fun2_il step_fun_wf_il step inv wf leng unfolding steps_def 
   by (smt (verit, ccfv_SIG) case_prodE case_prodI2 case_prod_conv)
-
+(*
 lemma steps_wf1: 
-  assumes wf: "wf_bins1 (map set Bs)" "wf1_WL wl1 (length Bs)"
-  and inv: "WL_inv wl1" "WL_inv wl2"
-  and sf: "steps Bs (wl1,wl2) = Some (wl1', wl2')"  
-shows "wf1_WL wl1' (length Bs)"
-  using while_option_rule[where P= "\<lambda>(wl1,wl2). wf1_WL wl1 (length Bs) \<and> WL_inv wl1 \<and> WL_inv wl2 \<and> wf_bins1 (map set Bs)"] 
-    step_fun_wf_wl step_fun_inv1_wl step_fun_inv2_wl wf sf inv unfolding steps_def
-  by (smt (verit, ccfv_SIG) case_prodE case_prodI2 case_prod_conv)
+  assumes wf: "wf_bins1 (map set Bs)" "wf1_IL il1 (length Bs)"
+  and inv: "IL_inv il1" "IL_inv il2"
+  and sf: "steps Bs (il1,il2) = Some (il1', il2')"  
+shows "wf1_IL il1' (length Bs)"
+  using while_option_rule[where P= "\<lambda>(il1,il2). wf1_IL il1 (length Bs) \<and> IL_inv il1 \<and> IL_inv il2 \<and> wf_bins1 (map set Bs)"] 
+    step_fun_wf_il step_fun_inv1_il step_fun_inv2_il wf sf inv unfolding steps_def
+  by (smt (verit, ccfv_SIG) case_prodE case_prodI2 case_prod_conv)*)
+
+
 
 lemma steps_wf2: 
-  assumes wf: "wf_bins1 (map set Bs)" "wf1_WL wl1 (length Bs)" "wf1_WL wl2 (length Bs)"
-  and inv: "WL_inv wl1" "WL_inv wl2"
-  and sf: "steps Bs (wl1,wl2) = Some (wl1', wl2')"  
-shows "wf1_WL wl2' (length Bs)"
-  using while_option_rule[where P= "\<lambda>(wl1,wl2). wf1_WL wl2 (length Bs) \<and> wf1_WL wl1 (length Bs) \<and> WL_inv wl1 \<and> WL_inv wl2 \<and> wf_bins1 (map set Bs)"] 
-    step_fun_wf_wl step_fun_wf2_wl step_fun_inv1_wl step_fun_inv2_wl wf sf inv unfolding steps_def
+  assumes wf: "wf_bins1 (map set Bs)" "wf1_IL il1 (length Bs)" "wf1_IL il2 (length Bs)"
+  and leng: "length (froms il1) = Suc (length Bs)" "length (froms il2) = Suc (length Bs)"
+  and inv: "IL_inv il1" "IL_inv il2"
+  and sf: "steps Bs (il1,il2) = Some (il1', il2')"  
+shows "wf1_IL il2' (length Bs)"
+  using while_option_rule[where P= "\<lambda>(il1,il2). wf1_IL il2 (length Bs) \<and> wf1_IL il1 (length Bs) \<and> IL_inv il1 \<and> IL_inv il2 \<and> length (froms il1) = Suc (length Bs) \<and> length (froms il2) = Suc (length Bs) \<and> wf_bins1 (map set Bs)"] 
+    step_fun_wf_il step_fun_wf2_il step_fun_inv1_il step_fun_inv2_il length_step_fun1_il length_step_fun2_il wf sf inv leng unfolding steps_def
   by (smt (verit, ccfv_SIG) case_prodE case_prodI2 case_prod_conv)
 
-lemma step_fun_sound_wl: "list wl1 \<noteq> [] \<Longrightarrow> wf1_WL wl1 (length Bs) \<Longrightarrow> WL_inv wl1 \<Longrightarrow> WL_inv wl2
- \<Longrightarrow> step_fun Bs (wl1,wl2) = (wl1', wl2')
- \<Longrightarrow> step_rel (map set Bs) (set_WorkList wl1,set_WorkList wl2) (set_WorkList wl1', set_WorkList wl2')"
-  using wl_decomp step_fun_sound
-  by (metis WorkList.sel(1) set_WorkList.elims)
+
+(*
+lemma step_fun_sound_il: "list il1 \<noteq> [] \<Longrightarrow> wf1_IL il1 (length Bs) \<Longrightarrow> IL_inv il1 \<Longrightarrow> IL_inv il2
+ \<Longrightarrow> step_fun Bs (il1,il2) = (il1', il2')
+ \<Longrightarrow> step_rel (map set Bs) (set_ItemList il1,set_ItemList il2) (set_ItemList il1', set_ItemList il2')"
+  using il_decomp step_fun_sound
+  by (metis efficientItemList.sel(1) set_ItemList.elims)*)
+
+
 
 end (*Earley_Gw_eps*)
 
@@ -610,41 +656,44 @@ context Earley_Gw
 begin
 
 
-
-
 (* This is the wellfounded relation for the termination proof.
 It should really be called step_fun_less but I have kept the original name.
 I adapted it to work on lists rather that sets.
 To simplify matters, I dropped the parameter k *)
-definition step_fun_less :: "nat \<Rightarrow> ((('n, 'a) WorkList \<times> ('n, 'a) WorkList) \<times> (('n, 'a) WorkList \<times> ('n, 'a) WorkList)) set" where
-"step_fun_less k = (\<lambda>(B,C). card({x. wf_item x k} - (set_WorkList B \<union> set_WorkList C))) <*mlex*> inv_image finite_psubset (set_WorkList o fst)"
+definition step_fun_less :: "nat \<Rightarrow> ((('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList) \<times> (('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList)) set" where
+"step_fun_less k = (\<lambda>(B,C). card({x. wf_item x k} - (set_ItemList B \<union> set_ItemList C))) <*mlex*> inv_image finite_psubset (set_ItemList o fst)"
 
-lemma step_fun_less_eq: "((A, B), (C,D)) \<in> step_fun_less k \<longleftrightarrow> ((set_WorkList A, set_WorkList B), (set_WorkList C, set_WorkList D)) \<in> Close2_less k"
+lemma step_fun_less_eq: "((A, B), (C,D)) \<in> step_fun_less k \<longleftrightarrow> ((set_ItemList A, set_ItemList B), (set_ItemList C, set_ItemList D)) \<in> Close2_less k"
   by (simp add: step_fun_less_def Close2_less_def mlex_prod_def)
 
 lemma wf_step_fun_less: "wf (step_fun_less k)"
   by (simp add: step_fun_less_def wf_mlex)
+end
+
+context Earley_Gw_eps
+begin
 
 (* This is the important property of step_fun: it goes down in the Close2_less relation.
    The wf_items premises may not be 100% right *)
 lemma step_fun_less_step: 
-  assumes ne: "(list wl1) \<noteq>[]" 
-  and wf: "wf_bins1 (map set Bs)" "wf1_WL wl1 (length Bs)" "wf1_WL wl2 (length Bs)"
-  and inv: "WL_inv wl1" "WL_inv wl2"
-shows "(step_fun Bs (wl1,wl2), (wl1,wl2)) \<in> (step_fun_less (length Bs))"
+  assumes ne: "(list il1) \<noteq>[]" 
+  and wf: "wf_bins1 (map set Bs)" "wf1_IL il1 (length Bs)" "wf1_IL il2 (length Bs)"
+  and leng: "length (froms il1) = Suc (length Bs)" "length (froms il2) = Suc (length Bs)"
+  and inv: "IL_inv il1" "IL_inv il2"
+shows "(step_fun Bs (il1,il2), (il1,il2)) \<in> (step_fun_less (length Bs))"
 proof-
-  let ?B' = "fst (step_fun Bs (wl1,wl2))"
-  let ?C' = "snd (step_fun Bs (wl1,wl2))"
-  have 1: "(?B', ?C') = step_fun Bs (wl1,wl2) " by simp
+  let ?B' = "fst (step_fun Bs (il1,il2))"
+  let ?C' = "snd (step_fun Bs (il1,il2))"
+  have 1: "(?B', ?C') = step_fun Bs (il1,il2) " by simp
 
-  obtain as l1 m1 bs l2 m2 where P1: "wl1 = (WorkList as l1 m1) \<and> wl2 = (WorkList bs l2 m2)"
-    by (meson WL_inv.cases)
-  obtain as' l1' m1' bs' l2' m2' where P2: "?B' = (WorkList as' l1' m1') \<and> ?C' = (WorkList bs' l2' m2')"
-    by (meson WL_inv.cases)
+  obtain as m1 bs m2 where P1: "il1 = (ItemList as m1) \<and> il2 = (ItemList bs m2)"
+    by (meson IL_inv.cases)
+  obtain as' m1' bs' m2' where P2: "?B' = (ItemList as' m1') \<and> ?C' = (ItemList bs' m2')"
+    by (meson IL_inv.cases)
 
-  have "Close2 (map set Bs) (set_WorkList wl1, set_WorkList wl2) (set_WorkList ?B', set_WorkList ?C')"
+  have "Close2 (map set Bs) (set_ItemList il1, set_ItemList il2) (set_ItemList ?B', set_ItemList ?C')"
     using step_fun_sound step_rel_def assms P1 P2
-    by (metis "1" WorkList.sel(1) Earley_Gw.set_WorkList.simps)
+    by (metis "1" efficientItemList.sel(1,2) set_ItemList.elims) 
   then show ?thesis using assms Close2_less_step step_fun_less_eq 1
     by (metis length_map)
 qed
@@ -656,67 +705,79 @@ begin
 
 
 lemma step_fun_wf_items: 
-  assumes "wf_bins1 (map set Bs)" "wf1_WL wl1 (length Bs)" "wf1_WL wl2 (length Bs)" "WL_inv wl1" "WL_inv wl2" "(list wl1) \<noteq> []"
-  shows "\<exists>B' C'. step_fun Bs (wl1,wl2) = (B',C') \<and> WL_inv B' \<and> WL_inv C' \<and> wf1_WL B' (length Bs) \<and> wf1_WL C' (length Bs)"
+  assumes wf: "wf_bins1 (map set Bs)" "wf1_IL il1 (length Bs)" "wf1_IL il2 (length Bs)"
+    and inv: "IL_inv il1" "IL_inv il2" 
+    and ne:"(list il1) \<noteq> []"
+    and leng: "length (froms il1) = Suc (length Bs)" "length (froms il2) = Suc (length Bs)"
+  shows "\<exists>B' C'. step_fun Bs (il1,il2) = (B',C') \<and> IL_inv B' \<and> IL_inv C' \<and> wf1_IL B' (length Bs) \<and> wf1_IL C' (length Bs) 
+    \<and> length (froms B') = Suc (length Bs) \<and> length (froms C') = Suc (length Bs)"
 proof-
-  obtain as l1 m1 bs l2 m2 where P1: "wl1 = (WorkList as l1 m1) \<and> wl2 = (WorkList bs l2 m2)"
-    by (meson WL_inv.cases)
-  obtain as' l1' m1' bs' l2' m2' where P: "step_fun Bs (wl1,wl2) = ((WorkList as' l1' m1'),(WorkList bs' l2' m2'))"
-    by (metis WorkList.exhaust surj_pair)
-  then have 1: "wf1_WL (WorkList as' l1' m1') (length Bs) \<and> wf1_WL (WorkList bs' l2' m2') (length Bs)"
+  obtain as m1 bs m2 where P1: "il1 = (ItemList as m1) \<and> il2 = (ItemList bs m2)"
+    by (meson IL_inv.cases)
+  obtain as' m1' bs' m2' where P: "step_fun Bs (il1,il2) = ((ItemList as' m1'),(ItemList bs' m2'))"
+    by (metis efficientItemList.exhaust surj_pair)
+  then have 1: "wf1_IL (ItemList as' m1') (length Bs) \<and> wf1_IL (ItemList bs' m2') (length Bs)"
     using step_fun_wf step_fun_wf2 assms P1
-    by (metis WorkList.sel(1))
-  have "WL_inv (WorkList as' l1' m1') \<and> WL_inv (WorkList bs' l2' m2')" using P P1
-    using assms(5,6) step_fun_inv1 step_fun_inv2
-    by (metis WorkList.sel(1))
-  then show ?thesis using P 1 by auto
+    by (metis efficientItemList.sel(1,2))
+  moreover have "IL_inv (ItemList as' m1') \<and> IL_inv (ItemList bs' m2')" using P P1
+    using assms step_fun_inv1 step_fun_inv2
+    by (metis efficientItemList.sel(1,2) set_ItemList.elims)
+  moreover have "length m1' = Suc (length Bs) \<and> length m2' = Suc (length Bs)"
+    using leng P P1 length_step_fun1 length_step_fun2 ne by simp
+  ultimately show ?thesis using P by auto
 qed
 
 
-theorem Close2_L_NF: "\<lbrakk>wf_bins1 (map set Bs); wf1_WL wl1 (length Bs); wf1_WL wl2 (length Bs); WL_inv wl1; WL_inv wl2\<rbrakk>
-  \<Longrightarrow> \<exists>wl1' wl2'. steps Bs (wl1,wl2) = Some (wl1',wl2')"
+theorem Close2_L_NF: "\<lbrakk>wf_bins1 (map set Bs); wf1_IL il1 (length Bs); wf1_IL il2 (length Bs); 
+    IL_inv il1; IL_inv il2; length (froms il1) = Suc (length Bs); length (froms il2) = Suc (length Bs)\<rbrakk>
+  \<Longrightarrow> \<exists>il1' il2'. steps Bs (il1,il2) = Some (il1',il2')"
 unfolding steps_def
 using wf_step_fun_less[of "length Bs"]
-proof (induction "(wl1,wl2)" arbitrary: wl1 wl2 rule: wf_induct_rule)
+proof (induction "(il1,il2)" arbitrary: il1 il2 rule: wf_induct_rule)
   case less
   show ?case
   proof cases
-    assume ne: "list wl1 = []"
-    thus ?thesis by(simp add: while_option_unfold[of _ _ "(wl1,wl2)"])
+    assume ne: "list il1 = []"
+    thus ?thesis by(simp add: while_option_unfold[of _ _ "(il1,il2)"])
   next
     let ?steps = "while_option (\<lambda>(B, C). list B \<noteq> []) (step_fun Bs)"
-    assume cons: "list wl1 \<noteq> []"
-    then obtain wl1' wl2'
-      where "(wl1',wl2') = step_fun Bs (wl1,wl2)" and wf': "wf1_WL wl1' (length Bs)" "wf1_WL wl2' (length Bs)" and inv': "WL_inv wl1'" "WL_inv wl2'"
-      using step_fun_wf_items[OF less.prems] by fastforce
-    then have "((wl1',wl2'), (wl1, wl2)) \<in> step_fun_less (length Bs)"
-      using cons less.prems(1,2,3,4,5) step_fun_less_step by presburger
-    from less.hyps[OF this \<open>wf_bins1 (map set Bs)\<close> wf' inv']
+    assume cons: "list il1 \<noteq> []"
+    then obtain il1' il2'
+      where "(il1',il2') = step_fun Bs (il1,il2)" and wf': "wf1_IL il1' (length Bs)" "wf1_IL il2' (length Bs)" 
+        and inv': "IL_inv il1'" "IL_inv il2'"
+        and leng': "length (froms il1') = Suc (length Bs)" "length (froms il2') = Suc (length Bs)"
+      using step_fun_wf_items[OF less.prems(1,2,3,4,5) cons less.prems(6,7)] by fastforce
+    then have "((il1',il2'), (il1, il2)) \<in> step_fun_less (length Bs)"
+      using cons less.prems step_fun_less_step by presburger
+    from less.hyps[OF this \<open>wf_bins1 (map set Bs)\<close> wf' inv' leng']
     show ?thesis
-      by (simp add: \<open>(wl1',wl2') = step_fun Bs (wl1,wl2)\<close> while_option_unfold)
+      by (simp add: \<open>(il1',il2') = step_fun Bs (il1,il2)\<close> while_option_unfold)
   qed
 qed
 
 lemma close2_L_eq_Close1: 
-  assumes "wf_bins1 (map set Bs)" "wf1_WL wl (length Bs)" "WL_inv wl" 
-  shows "set (close2_L Bs wl) = Close1 (map set Bs) (set (list wl))"
+  assumes "wf_bins1 (map set Bs)" "wf1_IL il (length Bs)" "IL_inv il" "length (froms il) = Suc (length Bs)"
+  shows "set (close2_L Bs il) = Close1 (map set Bs) (set (list il))"
 proof-
-  have "wf1_WL (WL_empty (length Bs)) (length Bs) \<and> WL_inv (WL_empty (length Bs))"
-    by (metis empty_iff empty_inv set_WL_empty wf_bin1_def)
-  then obtain wl1 wl2 where D1: "steps Bs (wl,(WL_empty (length Bs))) = Some (wl1,wl2)" using assms Close2_L_NF
+  have "wf1_IL (IL_empty (length Bs)) (length Bs) \<and> IL_inv (IL_empty (length Bs)) 
+      \<and> length (froms (IL_empty (length Bs))) = Suc (length Bs)"
+    by (metis empty_iff empty_inv set_IL_empty wf_bin1_def length_IL_empty)
+  then obtain il1 il2 where D1: "steps Bs (il,(IL_empty (length Bs))) = Some (il1,il2)" using assms Close2_L_NF
     by blast
-  then have "(map set Bs) \<turnstile> (set (list wl), {}) \<rightarrow>* ({}, set (list wl2))" using steps_sound
-    by (metis WorkList.exhaust assms(1,2,3) step_rel_def steps_sound1 upsize_list upsize_list1)
-  then have DC1: "set (list wl2) = Close1 (map set Bs) (set (list wl))"
+  then have "(map set Bs) \<turnstile> (set (list il), {}) \<rightarrow>* ({}, set (list il2))" using steps_sound
+    by (metis assms(1,2,3,4) efficientItemList.collapse step_rel_def steps_sound1)
+  then have DC1: "set (list il2) = Close1 (map set Bs) (set (list il))"
     by (simp add: Close1_subset_Close2 Close2_steps_subset_Close1' subset_antisym)
-  have "set (list wl2) = set (close2_L Bs wl)" using D1 by (auto simp add: close2_L_def)
+  have "set (list il2) = set (close2_L Bs il)" using D1 by (auto simp add: close2_L_def)
   then show ?thesis using DC1 by auto
 qed
 
-lemma close2_L_eq_close2: "wf_bins1 (map set Bs) \<Longrightarrow> wf1_WL wl (length Bs) \<Longrightarrow> WL_inv wl \<Longrightarrow> set (close2_L Bs wl) = close2 (map set Bs) (set (list wl))"
+lemma close2_L_eq_close2: "wf_bins1 (map set Bs) \<Longrightarrow> wf1_IL il (length Bs) \<Longrightarrow> length (froms il) = Suc (length Bs) 
+  \<Longrightarrow> IL_inv il \<Longrightarrow> set (close2_L Bs il) = close2 (map set Bs) (set_ItemList il)"
   by (auto simp add: close2_L_eq_Close1 close2_eq_Close1)
 
-lemma close2_L_eq_Close: "wf_bins1 (map set Bs) \<Longrightarrow> wf1_WL wl (length Bs) \<Longrightarrow> WL_inv wl \<Longrightarrow> set (close2_L Bs wl) = Close (map set Bs) (set (list wl))"
+lemma close2_L_eq_Close: "wf_bins1 (map set Bs) \<Longrightarrow> wf1_IL il (length Bs) \<Longrightarrow> length (froms il) = Suc (length Bs) 
+  \<Longrightarrow> IL_inv il \<Longrightarrow> set (close2_L Bs il) = Close (map set Bs) (set_ItemList il)"
   by (auto simp add: close2_L_eq_Close1 Close1_eq_Close)
 
 lemma length_bins_L: "length (bins_L k) = Suc k"
@@ -727,10 +788,12 @@ proof (induction k)
   case 0
   have "wf_bins1 (map set []) \<and> wf_bin1 (set Init_L) 0"
     by (simp add: Init_L_eq_Init wf_bin1_Init wf_bins1_def)
-  then have "wf_bins1 (map set []) \<and> wf1_WL (WL_of_List 0 Init_L) 0 \<and> WL_inv (WL_of_List 0 Init_L)"
-    by (metis WL_of_List_inv set_WL_of_List)
-  then have "set (close2_L [] (WL_of_List 0 Init_L)) = Close [] Init"
-    by (auto simp add: close2_L_eq_Close Earley_Gw.Init_L_eq_Init set_WL_of_List simp flip: set_WorkList.simps)
+  then have "wf_bins1 (map set []) \<and> wf1_IL (IL_of_List 0 Init_L) 0 \<and> IL_inv (IL_of_List 0 Init_L)
+    \<and> length (froms (IL_of_List 0 Init_L)) = Suc 0"
+    using IL_of_List_inv forall_from_Suc set_IL_of_List length_IL_of_List by presburger
+  then have "set (close2_L [] (IL_of_List 0 Init_L)) = Close [] Init"
+    using close2_L_eq_Close[of "[]" "IL_of_List 0 Init_L"]
+    using Init_L_eq_Init forall_from_Suc list.map_disc_iff set_IL_of_List set_ItemList.elims wf_bin1_Init by force
   then show ?case by simp
 next
   case (Suc k)
@@ -740,13 +803,17 @@ next
     by (metis Scan_L_eq_Scan Suc_leD bins_nonempty map_is_Nil_conv last_map)
   have "wf_bin1 (set (last ?Bs)) k"
     by (metis Earley_Gw.bins_nonempty Suc.IH Suc.prems Suc_leD last_map list.map_disc_iff wf_bin1_last)
-  then have 2: "wf1_WL (WL_of_List (Suc k) (Scan_L (last ?Bs) k)) (Suc k)"
-    by (metis Scan_L_eq_Scan wf_bin1_Scan kl set_WL_of_List)
-  have "wf_bins1 (map set (bins_L k))"
+  then have 2: "wf1_IL (IL_of_List (Suc k) (Scan_L (last ?Bs) k)) (length ?Bs)"
+    by (metis Scan_L_eq_Scan wf_bin1_Scan forall_from_Suc kl set_IL_of_List length_bins_L)
+  have 3: "wf_bins1 (map set (bins_L k))"
     by (simp add: Suc.IH Suc.prems Suc_leD wf_bins1_bins)
-  
-  then have "set (close2_L ?Bs (WL_of_List  (Suc k) (Scan_L (last ?Bs) k))) = Close (map set ?Bs) (Scan (last (map set ?Bs)) k)"
-    by (metis "1" "2" Earley_Gw.set_WorkList.simps WL_of_List_inv close2_L_eq_Close length_bins_L set_WL_of_List)
+  have 4: "length (froms (IL_of_List  (Suc k) (Scan_L (last ?Bs) k))) = Suc (length ?Bs)"
+    by (simp add: length_bins_L)
+
+  then have "set (close2_L ?Bs (IL_of_List  (Suc k) (Scan_L (last ?Bs) k))) = Close (map set ?Bs) (Scan (last (map set ?Bs)) k)"
+    using close2_L_eq_Close[OF 3 2 4] IL_of_List_inv
+        1 2 3 forall_from_Suc
+    using Suc.IH Suc.prems Suc_leD kl set_IL_of_List wf_bin1_Scan wf_bin1_last by presburger
   then show ?case using Suc by (auto simp add: Let_def length_bins_L)
 qed 
 
@@ -905,6 +972,9 @@ time_fun rhs
 
 time_fun_0 Earley_Gw.w
 
+
+
+
 context Earley_Gw
 begin
 
@@ -912,22 +982,24 @@ time_fun prod
 time_fun dot
 time_fun "from"
 
-time_fun WorkList.list
-time_fun WorkList.leng
-time_fun WorkList.list_map
-
 time_fun member
 time_fun isin
-time_fun empty_list_map
-time_fun WL_empty
-time_fun upsize
+
+time_fun efficientItemList.list
+time_fun efficientItemList.froms
+
+(*time_fun IL_empty*)
+(*normal time_fun definition fails, as there are extra type variables on the rhs (in the list type)*)
+fun T_IL_empty :: "nat \<Rightarrow> nat" where
+"T_IL_empty k = T_replicate (Suc k) ([] :: nat list)"
+
 time_fun insert
 
-time_fun union_LWL
-time_fun union_WL
-time_fun WL_of_List
-time_fun minus_LWL
-time_fun minus_WL
+time_fun union_LIL
+time_fun union_IL
+time_fun IL_of_List
+time_fun minus_LIL
+time_fun minus_IL
 
 time_fun mv_dot
 time_fun is_complete
@@ -945,11 +1017,11 @@ time_fun step_fun
 
 
 (*assumes that the stop condition check takes 0 time*)
-fun steps_time :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) WorkList \<times> ('n, 'a) WorkList \<Rightarrow> nat \<Rightarrow> ((('n, 'a) WorkList \<times> ('n, 'a) WorkList) \<times> nat) option" where
-"steps_time Bs wls y = while_option (\<lambda>((wl1,wl2),k). (list wl1) \<noteq> []) (\<lambda>((wl1,wl2),k). (step_fun Bs (wl1,wl2), k + T_step_fun Bs (wl1,wl2))) (wls, y)"
+fun steps_time :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList \<Rightarrow> nat \<Rightarrow> ((('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList) \<times> nat) option" where
+"steps_time Bs ils y = while_option (\<lambda>((il1,il2),k). (list il1) \<noteq> []) (\<lambda>((il1,il2),k). (step_fun Bs (il1,il2), k + T_step_fun Bs (il1,il2))) (ils, y)"
 
-fun T_steps :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) WorkList \<times> ('n, 'a) WorkList \<Rightarrow> nat" where
-"T_steps Bs wls = snd (the (steps_time Bs wls 0))"
+fun T_steps :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList \<Rightarrow> nat" where
+"T_steps Bs ils = snd (the (steps_time Bs ils 0))"
 
 time_fun close2_L
 time_fun bins_L
@@ -961,10 +1033,10 @@ time_fun earley_recognized
 end (*Context Earley_Gw*)
 
 locale Earley_Gw_eps_T = Earley_Gw_eps +
-  fixes T_nth_WL:: "nat \<Rightarrow> nat"
-  assumes T_nth_Bound: "(T_nth :: ('a, 'b) item list list \<Rightarrow> nat \<Rightarrow> nat) as k \<le> T_nth_WL k"
-  and T_update_Bound: "(T_list_update :: ('a, 'b) item list list \<Rightarrow> nat \<Rightarrow> ('a, 'b) item list \<Rightarrow> nat) as k a \<le> T_nth_WL k"
-  and mono_nth: "mono T_nth_WL" (*mono f*)
+  fixes T_nth_IL:: "nat \<Rightarrow> nat"
+  assumes T_nth_Bound: "(T_nth :: ('a, 'b) item list list \<Rightarrow> nat \<Rightarrow> nat) as k \<le> T_nth_IL k"
+  and T_update_Bound: "(T_list_update :: ('a, 'b) item list list \<Rightarrow> nat \<Rightarrow> ('a, 'b) item list \<Rightarrow> nat) as k a \<le> T_nth_IL k"
+  and mono_nth: "mono T_nth_IL" (*mono f*)
 begin
 
 (* general List and prod time bounds *)
@@ -981,14 +1053,11 @@ lemma T_from_0[simp]: "T_from x = 0"
 lemma T_mv_dot_0[simp]: "T_mv_dot s = 0"
   by simp
 
-lemma [simp]: "T_list wl = 0"
+lemma [simp]: "T_list il = 0"
   using Earley_Gw.T_list.elims by blast
 
-lemma [simp]: "T_leng wl = 0"
-  using Earley_Gw.T_leng.elims by blast 
-
-lemma [simp]: "T_list_map wl = 0"
-  using Earley_Gw.T_list_map.elims by blast
+lemma [simp]: "T_froms il = 0"
+  using Earley_Gw.T_froms.elims by blast
 
 lemma T_is_complete_bound: "T_is_complete s = Suc (length (rhs (prod s)))"
   by (auto simp add: T_length)
@@ -1001,150 +1070,139 @@ proof-
     using assms T_nth[of "dot s" "rhs (item.prod s)"] by (auto simp add: T_length is_complete_def)
 qed
 
-subsection \<open>WorkList time bounds\<close>
+subsection \<open>ItemList time bounds\<close>
 
 lemma T_member_bound: "T_member xs x \<le> length xs + 1"
   by (induction xs) auto
 
-lemma T_isin_general: "WL_inv wl \<Longrightarrow> T_isin wl x \<le> T_nth_WL (from x) + length ((list_map wl) ! from x) + 1"
+lemma T_isin_general: "IL_inv il \<Longrightarrow> T_isin il x \<le> T_nth_IL (from x) + length ((froms il) ! from x) + 1"
 proof-
-  obtain as l m where "wl = WorkList as l m"
-    using WL_inv.cases by blast
+  obtain as m where "il = ItemList as m"
+    using IL_inv.cases by blast
   then show ?thesis 
     using T_member_bound[of "m ! from x" x] T_nth_Bound[of m "from x"] by auto
 qed
 
-lemma [simp]: "T_empty_list_map k = Suc k"
-  by (induction k) auto
-
-lemma T_WL_empty_bound[simp]: "T_WL_empty k = Suc k"
+lemma T_IL_empty_bound[simp]: "T_IL_empty k = k + 2"
   by simp
 
 lemma T_isin_wf: 
-  assumes dist: "distinct ps" and inv: "WL_inv wl" and wf: "wf1_WL wl k" 
-  shows "T_isin wl x \<le> T_nth_WL (from x) + L * (Suc K) + 1"
+  assumes dist: "distinct ps" and inv: "IL_inv il" and wf: "wf1_IL il k" "from x < length (froms il)"
+  shows "T_isin il x \<le> T_nth_IL (from x) + L * (Suc K) + 1"
 proof-
-  obtain as l m where WL: "wl = WorkList as l m"
-    using WL_inv.cases by blast
-  show ?thesis
-  proof (cases "from x < Suc (leng wl)")
-    case True
-    let ?f = "\<lambda> (p, m). Item p m (from x)"
+  obtain as m where IL: "il = ItemList as m"
+    using IL_inv.cases by blast
+  let ?f = "\<lambda> (p, m). Item p m (from x)"
     
-    have 1: "from x < Suc (leng wl) \<Longrightarrow> set ((list_map wl) ! from x) = {y \<in> set as. from y = from x}" using inv WL by auto
-    have 2: "from x < Suc (leng wl) \<Longrightarrow> distinct ((list_map wl) ! from x)" using inv WL by auto
+  have 1: "from x < length (froms il) \<Longrightarrow> set ((froms il) ! from x) = {y \<in> set as. from y = from x}" using inv IL by auto
+  have 2: "from x < length (froms il) \<Longrightarrow> distinct ((froms il) ! from x)" using inv IL by auto
   
-    have fin: "finite (P \<times> {0..K})" using finite_cartesian_product finite by blast
-    have inj: "inj_on ?f (P \<times> {0..K})"
-      unfolding inj_on_def by simp
-    have card_PK: "card (P \<times> {0..K}) = card P * (Suc K)"
-      using Groups_Big.card_cartesian_product by (auto simp add: add_mult_distrib add_mult_distrib2)
-    have "{y \<in> set as. from y = from x} \<subseteq> ?f ` (P \<times> {0..K})"
-    proof
-      fix xa
-      assume "xa \<in> {y \<in> set as. from y = from x}"
-      then obtain p d where XA: "xa = Item p d (from x) \<and> xa \<in> set as"
-        by (metis (mono_tags, lifting) T_prod.cases mem_Collect_eq item.sel(3))
-      then have "p \<in> P \<and> d \<le> K" using prod_length_bound[of p] wf WL by (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
-      then show "xa \<in> ?f ` (P \<times> {0..K})" using XA by auto
-    qed
-    
-    then have "card {y \<in> set as. from y = from x} \<le> (card P) * (Suc K)" using fin
-      using surj_card_le[of "(P \<times> {0..K})"] by (auto simp add: card_PK)
-    then have "from x < Suc (leng wl) \<Longrightarrow> length ((list_map wl) ! from x) \<le> (card P) * Suc K" using 1 2
-      using distinct_card by (fastforce)
-    then have "from x < Suc (leng wl) \<Longrightarrow> length ((list_map wl) ! from x) \<le> L * Suc K"
-      using distinct_card dist by (fastforce simp add: L_def)
-    then show ?thesis using True inv T_isin_general[of wl x] by auto
-  next
-    case False
-    then show ?thesis using WL by auto
+  have fin: "finite (P \<times> {0..K})" using finite_cartesian_product finite by blast
+  have inj: "inj_on ?f (P \<times> {0..K})"
+    unfolding inj_on_def by simp
+  have card_PK: "card (P \<times> {0..K}) = card P * (Suc K)"
+    using Groups_Big.card_cartesian_product by (auto simp add: add_mult_distrib add_mult_distrib2)
+  have "{y \<in> set as. from y = from x} \<subseteq> ?f ` (P \<times> {0..K})"
+  proof
+    fix xa
+    assume "xa \<in> {y \<in> set as. from y = from x}"
+    then obtain p d where XA: "xa = Item p d (from x) \<and> xa \<in> set as"
+      by (metis (mono_tags, lifting) T_prod.cases mem_Collect_eq item.sel(3))
+    then have "p \<in> P \<and> d \<le> K" using prod_length_bound[of p] wf IL by (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
+    then show "xa \<in> ?f ` (P \<times> {0..K})" using XA by auto
   qed
+    
+  then have "card {y \<in> set as. from y = from x} \<le> (card P) * (Suc K)" using fin
+    using surj_card_le[of "(P \<times> {0..K})"] by (auto simp add: card_PK)
+  then have "from x < length (froms il) \<Longrightarrow> length ((froms il) ! from x) \<le> (card P) * Suc K" using 1 2
+    using distinct_card by (fastforce)
+  then have "from x < length (froms il) \<Longrightarrow> length ((froms il) ! from x) \<le> L * Suc K"
+    using distinct_card dist by (fastforce simp add: L_def)
+  then show ?thesis using wf(2) inv T_isin_general[of il x] by auto
 qed
 
 
 lemma T_insert_less: 
-  assumes "distinct ps" "WL_inv wl" "wf1_WL wl k" and le: "from x < Suc (leng wl)" 
-  shows "T_insert wl x \<le> 3 * T_nth_WL (from x) + L * (Suc K) + 1"
+  assumes "distinct ps" "IL_inv il" "wf1_IL il k" and le: "from x < length (froms il)" 
+  shows "T_insert x il \<le> 3 * T_nth_IL (from x) + L * (Suc K) + 1"
 proof-
-  obtain as l m where "wl = WorkList as l m"
-    using WL_inv.cases by blast
-  then have "T_insert wl x \<le> T_isin wl x + T_nth m (from x) + T_list_update m (from x) (x # m ! from x)" using le by auto
-  also have "... \<le> T_nth_WL (from x) + L * (Suc K) + 1 + T_nth_WL (from x) + T_nth_WL (from x)" 
-    using assms T_isin_wf[of wl k x] T_nth_Bound[of m "from x"] T_update_Bound[of m "from x" "x # m ! from x"] by auto
+  obtain as m where "il = ItemList as m"
+    using IL_inv.cases by blast
+  then have "T_insert x il \<le> T_isin il x + T_nth m (from x) + T_list_update m (from x) (x # m ! from x)" using le by auto
+  also have "... \<le> T_nth_IL (from x) + L * (Suc K) + 1 + T_nth_IL (from x) + T_nth_IL (from x)" 
+    using assms T_isin_wf[of il k x] T_nth_Bound[of m "from x"] T_update_Bound[of m "from x" "x # m ! from x"] by auto
   finally show ?thesis by auto
 qed
 
-lemma wf1_WL_insert: "WL_inv wl \<Longrightarrow> wf1_WL wl k \<Longrightarrow> wf_item1 x k \<Longrightarrow> wf1_WL (insert wl x) k"
-  using WL_insert1 wf_bin1_def by auto
+lemma wf1_IL_insert: "IL_inv il \<Longrightarrow> wf1_IL il k \<Longrightarrow> from x < length (froms il) \<Longrightarrow> wf_item1 x k \<Longrightarrow> wf1_IL (insert x il) k"
+  using IL_insert1 wf_bin1_def by auto
 
             
-lemma wf1_WL_union_LWL: "WL_inv wl \<Longrightarrow> wf1_WL wl k \<Longrightarrow> wf_bin1 (set xs) k \<Longrightarrow> wf1_WL (union_LWL xs wl) k"
-  using LWL_union wf_bin1_def by fastforce
+lemma wf1_IL_union_LIL: "IL_inv il \<Longrightarrow> wf1_IL il k \<Longrightarrow> \<forall>a\<in>set as. from a < length (froms il) \<Longrightarrow> wf_bin1 (set as) k \<Longrightarrow> wf1_IL (union_LIL as il) k"
+  using LIL_union wf_bin1_def by fastforce
 
-lemma T_union_LWL_wf: "distinct ps \<Longrightarrow> WL_inv wl \<Longrightarrow> wf1_WL wl (leng wl) \<Longrightarrow> wf_bin1 (set as) (leng wl) 
-  \<Longrightarrow> T_union_LWL as wl \<le> (length as) * (3 * T_nth_WL (leng wl) + L * (Suc K) + 2) + 1"
-proof (induction as arbitrary: wl)
+lemma T_union_LIL_wf: "distinct ps \<Longrightarrow> IL_inv il \<Longrightarrow> wf1_IL il (length (froms il) - 1) \<Longrightarrow> wf_bin1 (set as) (length (froms il) - 1) 
+  \<Longrightarrow> \<forall>a\<in>set as. from a < length (froms il) \<Longrightarrow> T_union_LIL as il \<le> (length as) * (3 * T_nth_IL (length (froms il) - 1) + L * (Suc K) + 2) + 1"
+proof (induction as arbitrary: il)
   case Nil
   then show ?case by auto
 next
   case (Cons a as)
-  then have 1: "WL_inv (union_LWL as wl) \<and> wf1_WL (union_LWL as wl) (leng wl)" using LWL_union_inv wf1_WL_union_LWL
+  then have 1: "IL_inv (union_LIL as il) \<and> wf1_IL (union_LIL as il) (length (froms il) - 1)" using LIL_union_inv wf1_IL_union_LIL
     by (metis list.set_intros(2) wf_bin1_def)
-  have wf_from: "\<forall>x \<in> set (a#as). from x < Suc (leng wl)" using Cons by (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
-  then have 2: "from a < Suc (leng (union_LWL as wl))" using Cons leng_LWL_union by auto
-  have 3: "from a \<le> leng wl" using wf_from by simp
-  have "T_union_LWL (a#as) wl = T_union_LWL as wl + T_insert (union_LWL as wl) a + 1" by simp
-  also have "... \<le> (length as) * (3 * T_nth_WL (leng wl) + L * (Suc K) + 2) + 1 + 3 * T_nth_WL (from a) + L * (Suc K) + 1 + 1" 
-    using Cons T_insert_less[of "union_LWL as wl" "leng wl" a] 1 2 by (fastforce simp add: wf_bin1_def)
-  also have "... \<le> (length as) * (3 * T_nth_WL (leng wl) + L * (Suc K) + 2) + 1 + 3 * T_nth_WL (leng wl) + L * (Suc K) + 1 + 1"
+  have wf_from: "\<forall>x \<in> set (a#as). from x < (length (froms il))" using Cons by (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
+  then have 2: "from a < Suc (length (froms (union_LIL as il)))" using Cons length_LIL_union by auto
+  have 3: "from a \<le> (length (froms il) - 1)" using wf_from by auto
+  have "T_union_LIL (a#as) il = T_union_LIL as il + T_insert a (union_LIL as il) + 1" by simp
+  also have "... \<le> (length as) * (3 * T_nth_IL (length (froms il) - 1) + L * (Suc K) + 2) + 1 + 3 * T_nth_IL (from a) + L * (Suc K) + 1 + 1" 
+    using Cons T_insert_less[of "union_LIL as il" "(length (froms il)) - 1" a] 1 2 by (fastforce simp add: wf_bin1_def)
+  also have "... \<le> (length as) * (3 * T_nth_IL (length (froms il) - 1) + L * (Suc K) + 2) + 1 + 3 * T_nth_IL (length (froms il) - 1) + L * (Suc K) + 1 + 1"
     using mono_nth 3 by (auto simp add: monoD)
   finally show ?case by auto
 qed
 
-lemma [simp]: "T_WL_empty k = k + 1"
+lemma [simp]: "T_IL_empty k = k + 2"
   by (induction k) auto
 
-lemma [simp]: "leng (WL_empty k) = k"
-  by (induction k) (auto simp add: WL_empty_def)
+lemma wf1_IL_empty: "wf1_IL (IL_empty k) l"
+  using set_IL_empty by (auto simp add: wf_bin1_def)
 
-lemma wf1_WL_empty: "wf1_WL (WL_empty k) l"
-  using set_WL_empty by (auto simp add: wf_bin1_def)
+lemma wf1_IL_minus_LIL: "IL_inv il \<Longrightarrow> \<forall>a\<in>set as. from a < Suc n \<Longrightarrow> Suc n \<le> length (froms il) 
+  \<Longrightarrow> wf_bin1 (set as) k \<Longrightarrow> wf1_IL (minus_LIL n as il) k"
+  using LIL_minus by (auto simp add: wf_bin1_def)
 
-lemma wf1_WL_minus_LWL: "WL_inv wl \<Longrightarrow> wf_bin1 (set xs) k \<Longrightarrow> wf1_WL (minus_LWL n xs wl) k"
-  using LWL_minus by (auto simp add: wf_bin1_def)
-
-lemma leng_minus_LWL: "\<forall>x \<in> set xs. from x < Suc k \<Longrightarrow> leng (minus_LWL k xs wl) = k"
-  using leng_WL_insert by (induction xs) auto
-
-lemma T_minus_LWL_wf: "distinct ps \<Longrightarrow> wf1_WL wl k \<Longrightarrow>  WL_inv wl \<Longrightarrow> wf_bin1 (set as) k
-  \<Longrightarrow> T_minus_LWL k as wl \<le> (length as) * (4 * T_nth_WL k + 2*L * (Suc K) + 4) + k + 2 + length as"
+lemma T_minus_LIL_wf: "distinct ps \<Longrightarrow> wf1_IL il k \<Longrightarrow>  IL_inv il \<Longrightarrow> wf_bin1 (set as) k \<Longrightarrow> Suc k \<le> length (froms il)
+  \<Longrightarrow> T_minus_LIL k as il \<le> (length as) * (4 * T_nth_IL k + 2*L * (Suc K) + 4) + k + 3 + length as"
 proof (induction as)
   case Nil
-  then show ?case by (auto simp del: T_WL_empty.simps)
+  then show ?case by (auto simp del: T_IL_empty.simps)
 next
   case (Cons a as)
   then have 1: "wf_bin1 (set as) k" by (auto simp add: wf_bin1_def)
-  have 2: "WL_inv (minus_LWL k as wl) \<and> wf1_WL (minus_LWL k as wl) k" using Cons wf1_WL_minus_LWL
-    using "1" LWL_minus_inv by blast
+  have 2: "IL_inv (minus_LIL k as il) \<and> wf1_IL (minus_LIL k as il) k" using Cons wf1_IL_minus_LIL
+    using "1" LIL_minus_inv forall_from_Suc by blast
   have 4: "\<forall>x \<in> set (a#as). from x < Suc k" using Cons by (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
-  then have 3: "from a < Suc (leng (minus_LWL k as wl))" by (auto simp add: leng_minus_LWL)
-  have "T_minus_LWL k (a#as) wl \<le> T_isin wl a + T_minus_LWL k as wl + T_insert (minus_LWL k as wl) a + 1" by auto
-  also have "... \<le> T_nth_WL (from a) + L * (Suc K) + 1 + T_minus_LWL k as wl + T_insert (minus_LWL k as wl) a + 1" 
-    using Cons T_isin_wf by auto
-  also have "... \<le> T_nth_WL (from a) + L * (Suc K) + 1 + (length as) * (4 * T_nth_WL k + 2*L * (Suc K) + 4) + k + 2 + length as + T_insert (minus_LWL k as wl) a + 1"
+  then have 3: "from a < length (froms (minus_LIL k as il))" by simp
+  have "T_minus_LIL k (a#as) il \<le> T_isin il a + T_minus_LIL k as il + T_insert a (minus_LIL k as il) + 1" by auto
+  also have "... \<le> T_nth_IL (from a) + L * (Suc K) + 1 + T_minus_LIL k as il + T_insert a (minus_LIL k as il) + 1" 
+    using Cons T_isin_wf 4 by auto
+  also have "... \<le> T_nth_IL (from a) + L * (Suc K) + 1 + (length as) * (4 * T_nth_IL k + 2*L * (Suc K) + 4)
+       + k + 3 + length as + T_insert a (minus_LIL k as il) + 1"
     using Cons 1 by auto
-  also have "... \<le> T_nth_WL (from a) + L * (Suc K) + 1 + (length as) * (4 * T_nth_WL k + 2*L * (Suc K) + 4) + k + 2 + length as + 3 * T_nth_WL (from a) + L * (Suc K) + 1 + 1"
-    using T_insert_less[of "minus_LWL k as wl" k a] Cons 2 3 by linarith
-  also have "... \<le> T_nth_WL k + L * (Suc K) + 1 + (length as) * (4 * T_nth_WL k + 2*L * (Suc K) + 4) + k + 1 + length as + 3 * T_nth_WL k + L * (Suc K) + 2 + 1"
+  also have "... \<le> T_nth_IL (from a) + L * (Suc K) + 1 + (length as) * (4 * T_nth_IL k + 2*L * (Suc K) + 4) 
+       + k + 3 + length as + 3 * T_nth_IL (from a) + L * (Suc K) + 1 + 1"
+    using T_insert_less[of "minus_LIL k as il" k a] Cons 2 3 by linarith
+  also have "... \<le> T_nth_IL k + L * (Suc K) + 1 + (length as) * (4 * T_nth_IL k + 2*L * (Suc K) + 4) 
+       + k + 2 + length as + 3 * T_nth_IL k + L * (Suc K) + 2 + 1"
     using mono_nth 4 by (auto simp add: monoD)
-  also have "... \<le> (length (a#as)) * (4 * T_nth_WL k + 2*L * (Suc K) + 4) + k + 2 + (length (a#as))" by simp
+  also have "... \<le> (length (a#as)) * (4 * T_nth_IL k + 2*L * (Suc K) + 4) + k + 2 + (length (a#as))" by simp
   finally show ?case by simp
 qed
 
-lemma T_minus_WL_wf: "distinct ps \<Longrightarrow> wf1_WL wl1 (leng wl1) \<Longrightarrow> WL_inv wl1 \<Longrightarrow> WL_inv wl2 \<Longrightarrow> wf1_WL wl2 (leng wl1)
-  \<Longrightarrow> T_minus_WL wl1 wl2 \<le> (length (list wl1)) * (4 * T_nth_WL (leng wl1) + 2*L * (Suc K) + 4) + (leng wl1) + 2 + length (list wl1)"
-  using T_minus_LWL_wf[of wl2 "leng wl1" "list wl1"] by auto
+lemma T_minus_IL_wf: "distinct ps \<Longrightarrow> wf1_IL il1 (length (froms il1) - 1) \<Longrightarrow> IL_inv il1 \<Longrightarrow> IL_inv il2 \<Longrightarrow> wf1_IL il2 (length (froms il1) - 1)
+  \<Longrightarrow> length (froms il2) \<ge> length (froms il1)
+  \<Longrightarrow> T_minus_IL il1 il2 \<le> (length (list il1)) * (4 * T_nth_IL (length (froms il1) - 1) + 2*L * (Suc K) + 4) + (length (froms il1) - 1) + 4 + length (list il1) + length (froms il1)"
+  using T_minus_LIL_wf[of il2 "length (froms il1) - 1" "list il1"] by (cases il1) (auto simp add: T_length)
 
 subsection \<open>Earley recognizer time bounds\<close>
 
@@ -1192,9 +1250,9 @@ qed
 
 lemma T_Complete_L_bound: 
   assumes "from y < length Bs" "wf_bins1 (map set Bs)" 
-  shows "T_Complete_L Bs y \<le> T_nth_WL (from y) + 2*(K + 2) * length (Bs ! from y) + 2"
+  shows "T_Complete_L Bs y \<le> T_nth_IL (from y) + 2*(K + 2) * length (Bs ! from y) + 2"
 proof -
-  have 1: "T_nth Bs (from y) \<le> T_nth_WL (from y)" using T_nth_Bound by simp
+  have 1: "T_nth Bs (from y) \<le> T_nth_IL (from y)" using T_nth_Bound by simp
   have "\<forall>x \<in> set (Bs ! from y). (\<lambda>b. T_next_symbol b + (T_prod y + T_fst (item.prod y))) x \<le> 2*(Suc K)"
     using assms T_next_symbol_bound 
     by (auto simp add: wf_bins1_def wf_bin1_def wf_item1_def wf_item_def)
@@ -1253,27 +1311,27 @@ lemma wfbin1_impl_wfbin: "wf_bin1 xs k \<Longrightarrow> wf_bin xs k"
 lemma mult_mono_mix: "i \<le> (j :: nat) \<Longrightarrow> k * i * l \<le> k * j * l"
   by simp
 
-lemma T_step_fun_bound: assumes "(list wl1) \<noteq> []" "distinct ps" "wf_bins1 (map set Bs)" "\<forall>i < length Bs. distinct (Bs ! i)" "wf1_WL wl1 (length Bs)" "WL_inv wl1" "leng wl1 = length Bs"
-  "wf1_WL wl2 (length Bs)" "WL_inv wl2" "leng wl2 = length Bs"
-shows "T_step_fun Bs (wl1, wl2) 
-    \<le> L * Suc K * Suc (length Bs) * (7 * T_nth_WL (length Bs) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_WL (length Bs) + 2 * Suc (length Bs) + 2* L * Suc K + 7 + Suc K"
+lemma T_step_fun_bound: assumes "(list il1) \<noteq> []" "distinct ps" "wf_bins1 (map set Bs)" "\<forall>i < length Bs. distinct (Bs ! i)" "wf1_IL il1 (length Bs)" "IL_inv il1" "length (froms il1) = Suc (length Bs)"
+  "wf1_IL il2 (length Bs)" "IL_inv il2" "length (froms il2) = Suc (length Bs)"
+shows "T_step_fun Bs (il1, il2) 
+    \<le> L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3* L * Suc K + 7 + 2 * (K + 2))
+    + 7 * T_nth_IL (length Bs) + 3 * Suc (length Bs) + 2* L * Suc K + 8 + Suc K"
 proof-
-  obtain bs l m where WL1: "wl1 = WorkList bs l m"
-    using WL_inv.cases by blast
-  obtain b bss where bbs: "bs = b#bss" using assms WL1
-    using WorkList.sel(1) T_last.cases by blast
+  obtain bs m where IL1: "il1 = ItemList bs m"
+    using IL_inv.cases by blast
+  obtain b bss where bbs: "bs = b#bss" using assms IL1
+    using efficientItemList.sel(1) T_last.cases by blast
 
   have from_b: "from b \<le> length Bs"
-    using assms by (simp add: WL1 bbs wf_bin1_def wf_item1_def wf_item_def)
+    using assms by (simp add: IL1 bbs wf_bin1_def wf_item1_def wf_item_def)
 
   let ?step = "if is_complete b then Complete_L Bs b else Predict_L b (length Bs)"
   let ?t_step = "(if is_complete b then T_Complete_L Bs b else T_length Bs + T_Predict_L b (length Bs))"
-  have t_step: "?t_step \<le> T_nth_WL (length Bs) + 2 * (K + 2) * L * (Suc K) * (Suc (length Bs)) + 2 + Suc (length Bs)"
+  have t_step: "?t_step \<le> T_nth_IL (length Bs) + 2 * (K + 2) * L * (Suc K) * (Suc (length Bs)) + 2 + Suc (length Bs)"
   proof (cases)
     assume complete: "is_complete b"
     then have 1: "from b < length Bs" using assms
-      using assms by (simp add: bbs WL1 wf_bin1_def wf_item1_def)
+      using assms by (simp add: bbs IL1 wf_bin1_def wf_item1_def)
     then have 2: "distinct (Bs ! from b)" using assms
       by simp
     have "wf_bin1 (set (Bs ! from b)) (from b)" using assms 1
@@ -1284,19 +1342,19 @@ proof-
     then have 4: "length (Bs ! from b) \<le> L * (Suc K) * (Suc (length Bs))" using 1
       by (meson Suc_le_mono le_trans mult_le_mono2 nat_less_le)
 
-    have "T_Complete_L Bs b \<le> T_nth_WL (from b) + 2 * (K + 2) * length (Bs ! from b) + 2"
-      using assms T_Complete_L_bound 1 by (auto simp add: WL1 bbs simp del: T_Complete_L.simps)
-    also have "... \<le> T_nth_WL (from b) + 2 * (K + 2) * L * (Suc K) * (Suc (length Bs)) + 2" 
+    have "T_Complete_L Bs b \<le> T_nth_IL (from b) + 2 * (K + 2) * length (Bs ! from b) + 2"
+      using assms T_Complete_L_bound 1 by (auto simp add: IL1 bbs simp del: T_Complete_L.simps)
+    also have "... \<le> T_nth_IL (from b) + 2 * (K + 2) * L * (Suc K) * (Suc (length Bs)) + 2" 
       using mult_le_mono2[OF 4]
       by (metis (no_types, lifting) ab_semigroup_mult_class.mult_ac(1) add_le_mono1 nat_add_left_cancel_le)
-    also have "... \<le> T_nth_WL (length Bs) + 2 * (K + 2) * L * (Suc K) * (Suc (length Bs)) + 2"
+    also have "... \<le> T_nth_IL (length Bs) + 2 * (K + 2) * L * (Suc K) * (Suc (length Bs)) + 2"
       using mono_nth 1 by (auto simp add: monoD)
-    finally have "T_Complete_L Bs b \<le> T_nth_WL (length Bs) + 2 * (K + 2) * L * (Suc K) * (Suc (length Bs)) + 2".
+    finally have "T_Complete_L Bs b \<le> T_nth_IL (length Bs) + 2 * (K + 2) * L * (Suc K) * (Suc (length Bs)) + 2".
     then show ?thesis using complete by simp
   next
     assume incomplete: "\<not>is_complete b"
     have t_pred: "T_Predict_L b (length Bs) \<le> 2 * (K + 2) * L + 2" 
-      using T_Predict_L_bound assms by (simp add: L_def WL1 bbs wf_bin1_def wf_item1_def wf_item_def)
+      using T_Predict_L_bound assms by (simp add: L_def IL1 bbs wf_bin1_def wf_item1_def wf_item_def)
 
     show ?thesis using t_pred incomplete by (auto simp add: T_length)
   qed
@@ -1304,172 +1362,153 @@ proof-
   have "T_length (rhs (item.prod b)) = Suc (length (rhs (prod b)))"
     by (simp add: T_length)
   then have 6: "T_length (rhs (item.prod b)) \<le> Suc K" 
-    using prod_length_bound[of "prod b"] assms by (auto simp add: WL1 bbs wf_bin1_def wf_item1_def wf_item_def)
+    using prod_length_bound[of "prod b"] assms by (auto simp add: IL1 bbs wf_bin1_def wf_item1_def wf_item_def)
 
   have wfStep: "wf_bin1 (set ?step) (length Bs)"
-    using assms wf1_Complete_L[of Bs b] wf1_Predict_L[of b "length Bs"] WL1 bbs wfbin1_impl_wfbin by (auto simp add: wf_bin1_def)
+    using assms wf1_Complete_L[of Bs b] wf1_Predict_L[of b "length Bs"] IL1 bbs wfbin1_impl_wfbin by (auto simp add: wf_bin1_def)
   have "is_complete b \<Longrightarrow> distinct (Bs ! from b)" using assms
-      by (simp add: wf_bin1_def wf_item1_def WL1 bbs)
+      by (simp add: wf_bin1_def wf_item1_def IL1 bbs)
   then have lengthStep: "length (?step) \<le> L * (Suc K) * (Suc (length Bs))" 
     using card_wf1[of "set (?step)" "length Bs"] assms distinct_Complete_L distinct_Predict_L wfStep
     by (simp add: distinct_card wfbin1_impl_wfbin)
-  then have "T_union_LWL (?step) wl1 \<le> length (?step) * (3 * T_nth_WL (length Bs) + L * Suc K + 2) + 1"
-    using T_union_LWL_wf[of wl1 ?step] assms wfStep  by (auto simp add: WL1)
-  also have "... \<le> L * (Suc K) * (Suc (length Bs)) * (3 * T_nth_WL (length Bs) + L * Suc K + 2) + 1"
+  then have "T_union_LIL (?step) il1 \<le> length (?step) * (3 * T_nth_IL (length Bs) + L * Suc K + 2) + 1"
+    using T_union_LIL_wf[of il1 ?step] assms wfStep forall_from_Suc[OF wfStep] by (auto simp add: IL1)
+  also have "... \<le> L * (Suc K) * (Suc (length Bs)) * (3 * T_nth_IL (length Bs) + L * Suc K + 2) + 1"
     using mult_le_mono1[OF lengthStep]
     using add_le_mono1 by blast
-  finally have 7: "T_union_LWL ?step wl1 \<le> L * (Suc K) * (Suc (length Bs)) * (3 * T_nth_WL (length Bs) + L * Suc K + 2) + 1".
+  finally have 7: "T_union_LIL ?step il1 \<le> L * (Suc K) * (Suc (length Bs)) * (3 * T_nth_IL (length Bs) + L * Suc K + 2) + 1".
 
-  have "T_insert wl2 b \<le> 3 * T_nth_WL (from b) + L * Suc K + 1"
-    using T_insert_less[of wl2 _ b] from_b assms by auto
-  also have "... \<le> 3 * T_nth_WL (length Bs) + L * Suc K + 1"
+  have "T_insert b il2 \<le> 3 * T_nth_IL (from b) + L * Suc K + 1"
+    using T_insert_less[of il2 _ b] from_b assms by auto
+  also have "... \<le> 3 * T_nth_IL (length Bs) + L * Suc K + 1"
     using mono_nth from_b by (auto simp add: monoD)
-  finally have 8: "T_insert wl2 b \<le> 3 * T_nth_WL (length Bs) + L * Suc K + 1".
+  finally have 8: "T_insert b il2 \<le> 3 * T_nth_IL (length Bs) + L * Suc K + 1".
 
-  have wf_Comp_union: "wf1_WL (union_LWL ?step wl1) (length Bs)"
-    using assms wfStep wf1_WL_union_LWL by presburger
-  have inv_Comp_union: "WL_inv (union_LWL ?step wl1)"
-    using LWL_union_inv assms by auto
-  obtain bs' l' m' where decomp: "(union_LWL ?step wl1) = WorkList bs' l' m'"
-    using WL_inv.cases by blast
+  have wf_Comp_union: "wf1_IL (union_LIL ?step il1) (length Bs)"
+    using assms wfStep wf1_IL_union_LIL forall_from_Suc by auto
+  have inv_Comp_union: "IL_inv (union_LIL ?step il1)"
+    using LIL_union_inv assms wfStep forall_from_Suc by auto
+  obtain bs' m' where decomp: "(union_LIL ?step il1) = ItemList bs' m'"
+    using IL_inv.cases by blast
   then have length_Comp_union: "length bs' \<le> L * (Suc K) * (Suc (length Bs))"
     using card_wf_bin1[of "set bs'" "length Bs"] wf_Comp_union inv_Comp_union by (auto simp add: distinct_card)
   have "\<forall>x\<in>set ?step. from x < Suc (length Bs)" 
     using wfStep by (cases "is_complete b") (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
-  then have l': "l' = length Bs"
-    using leng_LWL_union assms(7) decomp
-    by (metis WorkList.sel(2))
-  have wf_ins_b: "wf1_WL (insert wl2 b) (length Bs)" 
-    using assms wf1_WL_insert
-    by (metis WorkList.sel(1) WL1 bbs list.set_intros(1) set_WorkList.simps wf1_WL_insert wf_bin1_def)
-  have inv_ins_b: "WL_inv (insert wl2 b)"
-    by (simp add: assms(9) insert_WL_inv1)
+  have wf_ins_b: "wf1_IL (insert b il2) (length Bs)" 
+    using assms wf1_IL_insert
+    by (metis IL1 bbs efficientItemList.sel(1) from_b less_Suc_eq_le list.set_intros(1) set_ItemList.elims wf_bin1_def)
+  have inv_ins_b: "IL_inv (insert b il2)"
+    using insert_IL_inv1 assms(9)
+    by (simp add: assms(10) from_b le_imp_less_Suc)
 
-  let ?minus = "T_minus_WL (union_LWL ?step wl1) (local.insert wl2 b)"
-  have "?minus \<le> length bs' * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 4) + length Bs + 2 + length bs'"
-    using T_minus_WL_wf decomp inv_Comp_union wf_Comp_union l' wf_ins_b inv_ins_b
-    by (metis WorkList.sel(1,2) assms(2))
-  also have "... \<le> L * (Suc K) * (Suc (length Bs)) * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 4) + length Bs + 2 + L * (Suc K) * (Suc (length Bs))"
+  let ?minus = "T_minus_IL (union_LIL ?step il1) (insert b il2)"
+  have "?minus \<le> length bs' * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 4) + length Bs + 4 + length bs' + length (froms il1)"
+    using T_minus_IL_wf[of "union_LIL ?step il1" "insert b il2"] decomp inv_Comp_union wf_Comp_union wf_ins_b inv_ins_b
+    by (metis assms(10,2,7) diff_Suc_1 efficientItemList.sel(1) eq_imp_le length_IL_insert length_LIL_union) 
+  also have "... \<le> L * (Suc K) * (Suc (length Bs)) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 4) + length Bs + 4 + L * (Suc K) * (Suc (length Bs)) + Suc (length Bs)"
     using length_Comp_union mult_le_mono1
-    using add_le_mono add_le_mono1 by presburger
-  also have "... \<le> L * (Suc K) * (Suc (length Bs)) * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 5) + length Bs + 2"
+    using add_le_mono add_le_mono1 assms(7) by presburger
+  also have "... \<le> L * (Suc K) * (Suc (length Bs)) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 5) + 2*length Bs + 5"
     using add_mult_distrib2[of "L * (Suc K) * (Suc (length Bs))"]
     by auto
-  finally have 9: "?minus \<le> L * (Suc K) * (Suc (length Bs)) * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 5) + length Bs + 2".
+  finally have 9: "?minus \<le> L * (Suc K) * (Suc (length Bs)) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 5) + 2*length Bs + 5".
 
-  have "T_step_fun Bs (wl1, wl2) \<le> T_length (rhs (item.prod b)) + ?t_step +
-  T_union_LWL ?step wl1 +
-   T_insert wl2 b + T_minus_WL (union_LWL ?step wl1) (local.insert wl2 b) +
-   T_insert wl2 b" by (auto simp add: Let_def WL1 bbs simp del: T_Complete_L.simps T_Predict_L.simps T_minus_WL.simps)
+  have "T_step_fun Bs (il1, il2) \<le> T_length (rhs (prod b)) + ?t_step +
+  T_union_LIL ?step il1 +
+   T_insert b il2 + T_minus_IL (union_LIL ?step il1) (insert b il2) +
+   T_insert b il2" by (auto simp add: Let_def IL1 bbs simp del: T_Complete_L.simps T_Predict_L.simps T_minus_IL.simps)
 
-  also have "... \<le> Suc K + T_nth_WL (length Bs) + 2 * (K + 2) * L * (Suc K) * Suc (length Bs) + 2 + Suc (length Bs)
-    + L * Suc K * Suc (length Bs) * (3 * T_nth_WL (length Bs) + L * Suc K + 2) + 1
-    + 3 * T_nth_WL (length Bs) + L * Suc K + 1 + L * (Suc K) * (Suc (length Bs)) * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 5) + length Bs + 2 +
-   3 * T_nth_WL (length Bs) + L * Suc K + 1" using t_step 6 7 8 9 by linarith
+  also have "... \<le> Suc K + T_nth_IL (length Bs) + 2 * (K + 2) * L * (Suc K) * Suc (length Bs) + 2 + Suc (length Bs)
+    + L * Suc K * (Suc (length Bs)) * (3 * T_nth_IL (length Bs) + L * Suc K + 2) + 1
+    + 3 * T_nth_IL (length Bs) + L * Suc K + 1 + L * (Suc K) * (Suc (length Bs)) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 5) + 2*length Bs + 5 +
+   3 * T_nth_IL (length Bs) + L * Suc K + 1" using t_step 6 7 8 9 by linarith
 
   also have "... \<le> Suc K + 2 * (K + 2) * L * (Suc K) * Suc (length Bs)
-    + L * Suc K * Suc (length Bs) * (7 * T_nth_WL (length Bs) + 3* L * Suc K + 7)
-    + 7 * T_nth_WL (length Bs) + 2* L * Suc K + 2 * Suc (length Bs) + 7"
+    + L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3* L * Suc K + 7)
+    + 7 * T_nth_IL (length Bs) + 2* L * Suc K + 3 * Suc (length Bs) + 8"
     using add_mult_distrib2[of "L * (Suc K) * (Suc (length Bs))"] by auto
 
   also have "... = Suc K + L * (Suc K) * Suc (length Bs) * 2 * (K + 2)
-    + L * Suc K * Suc (length Bs) * (7 * T_nth_WL (length Bs) + 3* L * Suc K + 7)
-    + 7 * T_nth_WL (length Bs) + 2* L * Suc K + 2 * Suc (length Bs) + 7"
+    + L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3* L * Suc K + 7)
+    + 7 * T_nth_IL (length Bs) + 2* L * Suc K + 3 * Suc (length Bs) + 8"
     by (smt (verit) mult.assoc mult.commute)
-  also have "... = L * Suc K * Suc (length Bs) * (7 * T_nth_WL (length Bs) + 3* L * Suc K + 7 + 2 * (K + 2))
-    + 7 * T_nth_WL (length Bs) + 2 * Suc (length Bs) + 2* L * Suc K + 7 + Suc K"
+  also have "... = L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3* L * Suc K + 7 + 2 * (K + 2))
+    + 7 * T_nth_IL (length Bs) + 3 * Suc (length Bs) + 2* L * Suc K + 8 + Suc K"
     using add_mult_distrib2[of "L * (Suc K) * (Suc (length Bs))"] by auto
 
   finally show ?thesis.
 qed
 
-lemma leng_WL_minus: 
-  assumes inv: "WL_inv wl1" shows "leng (minus_WL wl1 wl2) = leng wl1"
-proof-
-  obtain as l m where "wl1 = WorkList as l m"
-    using wl_decomp by blast
-  then show ?thesis using inv leng_minus_LWL by (auto simp add: minus_WL_def)
-qed
 
-lemma leng_step_fun1: 
-  assumes "list wl1 \<noteq> []" "wf_bins1 (map set Bs)" "wf1_WL wl1 (length Bs)" "WL_inv wl1" 
-          "step_fun Bs (wl1, wl2) = (wl1', wl2')" "leng wl1 = length Bs" 
-  shows "leng wl1' = length Bs"
-proof-
-  obtain as l m where WL1: "wl1 = WorkList as l m"
-    using wl_decomp by blast
-  then obtain a ass where aas: "list wl1 = a#ass"
-    using assms T_last.cases by auto
-  let ?step = "if is_complete a then Complete_L Bs a else Predict_L a (length Bs)"
-  have "wf_bin1 (set ?step) (length Bs)" using wf1_Predict_L wf1_Complete_L assms aas
-    by (smt (verit, ccfv_threshold) list.set_intros(1) set_WorkList.elims wf_bin1_def)
-  then have 1: "\<forall> x \<in> set ?step. from x < Suc (leng wl1)" 
-    using assms by (cases "is_complete a") (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
-  have "wl1' = minus_WL (union_LWL ?step wl1) (insert wl2 a)" using assms aas by (auto simp add: WL1)
-  then show ?thesis using assms 1 leng_LWL_union leng_WL_minus LWL_union_inv by auto
-qed
 
-lemma leng_step_fun2: 
-  assumes "list wl1 \<noteq> []" "WL_inv wl1" "step_fun Bs (wl1, wl2) = (wl1', wl2')" 
-          "leng wl1 = length Bs" "leng wl2 = length Bs" 
-  shows "leng wl2' = length Bs"
-    using leng_WL_insert assms by (cases wl1, cases "list wl1") auto
 
 lemma step_fun_dist: 
-  assumes "list wl1 \<noteq> []" "WL_inv wl2" "step_fun Bs (wl1, wl2) = (wl1', wl2')" 
-  shows "set_WorkList wl1' \<inter> set_WorkList wl2' = {}"
+  assumes "list il1 \<noteq> []" "IL_inv il1" "IL_inv il2" "step_fun Bs (il1, il2) = (il1', il2')" "wf_bins1 (map set Bs)" "wf1_IL il1 (length Bs)"
+    "length (froms il1) = Suc (length Bs)" "length (froms il2) = Suc (length Bs)"
+  shows "set_ItemList il1' \<inter> set_ItemList il2' = {}"
 proof-
-  obtain a as l m bs k n where WL: "wl1 = WorkList (a#as) l m \<and> wl2 = WorkList bs k n"
-    using wl_decomp assms
-    by (metis WorkList.sel(1) neq_Nil_conv)
+  obtain a as m bs n where IL: "il1 = ItemList (a#as) m \<and> il2 = ItemList bs n"
+    using il_decomp assms
+    by (metis efficientItemList.sel(1) neq_Nil_conv)
   let ?step = "if is_complete a then Complete_L Bs a else Predict_L a (length Bs)"
-  have "wl1' = minus_WL (union_LWL ?step wl1) (insert wl2 a)" using assms WL by auto
-  then have "set_WorkList wl1' \<inter> set_WorkList (insert wl2 a) = {}" 
-    using assms WL_minus insert_WL_inv1 by auto
-  then show ?thesis using assms WL by auto
+  have wf_a: "wf_item1 a (length Bs)" using assms(6) IL by (auto simp add: wf_bin1_def)
+  then have wf_step: "wf_bin1 (set ?step) (length Bs)"
+    using assms(5,6) IL wf1_Complete_L wf1_Predict_L by auto
+  have from_a: "from a < length (froms il2)" using wf_a assms(8) by (auto simp add: wf_item1_def wf_item_def)
+  have "il1' = minus_IL (union_LIL ?step il1) (insert a il2)" using assms IL by auto
+  then have "set_ItemList il1' \<inter> set_ItemList (insert a il2) = {}" 
+    using assms IL_minus[of "insert a il2" "union_LIL ?step il1"] insert_IL_inv1 from_a LIL_union_inv wf_step forall_from_Suc by auto
+  then show ?thesis using assms IL by auto
 qed
 
-lemma length_step_fun2: 
-  assumes "list wl1 \<noteq> []" "WL_inv wl2" "step_fun Bs (wl1, wl2) = (wl1', wl2')" 
-          "set_WorkList wl1 \<inter> set_WorkList wl2 = {}" 
-  shows "length (list wl2') = Suc (length (list wl2))"
+lemma length_step_fun_inc: 
+  assumes "list il1 \<noteq> []" "IL_inv il2" "wf1_IL il1 (length (froms il2) - 1)" "step_fun Bs (il1, il2) = (il1', il2')" 
+          "set_ItemList il1 \<inter> set_ItemList il2 = {}" 
+  shows "length (list il2') = Suc (length (list il2))"
 proof-
-  obtain a as l m where WL1: "wl1 = WorkList (a#as) l m"
-    using assms by (metis WorkList.sel(1) T_last.cases wl_decomp)
-  obtain bs k n where WL2: "wl2 = WorkList bs k n"
-    using wl_decomp by blast
-  have "wl2' = insert wl2 a" using assms WL1 by auto
-  then have "list wl2' = a#bs" using assms isin_WL1 by (auto simp add: WL1 WL2 Let_def simp del: isin.simps)
+  obtain a as m where IL1: "il1 = ItemList (a#as) m"
+    using assms by (metis efficientItemList.sel(1) T_last.cases il_decomp) 
+  obtain bs n where IL2: "il2 = ItemList bs n"
+    using il_decomp by blast
+  have "from a \<le> length (froms il2) - 1" using assms(3) IL1 by (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
+  moreover have "length (froms il2) > 0" using assms(2) IL2 by auto
+  ultimately have from_a: "from a < length (froms il2)"
+    by linarith
+  have "il2' = insert a il2" using assms IL1 by auto
+  then have "list il2' = a#bs" using assms isin_IL1 from_a by (auto simp add: IL1 IL2 Let_def simp del: isin.simps)
 
-  then show ?thesis by (simp add: WL2)
+  then show ?thesis by (simp add: IL2)
 qed
 
 lemma steps_time_time: assumes 
     dist_ps: "distinct ps" 
 and wf_Bs:  "wf_bins1 (map set Bs)" "\<forall>i < length Bs. distinct (Bs ! i)" 
-and wl1_assms:  "wf1_WL wl1 (length Bs)" "WL_inv wl1" "leng wl1 = length Bs"
-and wl2_assms:  "wf1_WL wl2 (length Bs)" "WL_inv wl2" "leng wl2 = length Bs"
-and dist_wls: "set_WorkList wl1 \<inter> set_WorkList wl2 = {}"
-and step:  "steps_time Bs (wl1,wl2) k = Some ((wl1',wl2'), k')" "k \<le> (length (list wl2)) * (L * Suc K * Suc (length Bs) * (7 * T_nth_WL (length Bs) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_WL (length Bs) + 2 * Suc (length Bs) + 2* L * Suc K + 7 + Suc K)"
-  shows "k' \<le> (length (list wl2')) * (L * Suc K * Suc (length Bs) * (7 * T_nth_WL (length Bs) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_WL (length Bs) + 2 * Suc (length Bs) + 2* L * Suc K + 7 + Suc K)" (*and "wf1_WL wl2' (length Bs)" and "WL_inv wl2'"*)
+and il1_assms:  "wf1_IL il1 (length Bs)" "IL_inv il1" "length (froms il1) = Suc (length Bs)"
+and il2_assms:  "wf1_IL il2 (length Bs)" "IL_inv il2" "length (froms il2) = Suc (length Bs)"
+and dist_ils: "set_ItemList il1 \<inter> set_ItemList il2 = {}"
+and step:  "steps_time Bs (il1,il2) k = Some ((il1',il2'), k')" "k \<le> (length (list il2)) * (L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (length Bs) +
+       3 * Suc (length Bs) + 2 * L * Suc K + 8 + Suc K)"
+  shows "k' \<le> (length (list il2')) * (L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (length Bs) +
+       3 * Suc (length Bs) + 2 * L * Suc K + 8 + Suc K)" 
 proof -
-  let ?C = "L * Suc K * Suc (length Bs) * (7 * T_nth_WL (length Bs) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_WL (length Bs) + 2 * Suc (length Bs) + 2* L * Suc K + 7 + Suc K"
-  let ?P3 = "\<lambda>((wl1',wl2'),k). wf1_WL wl1' (length Bs) \<and> wf1_WL wl2' (length Bs) \<and> wf_bins1 (map set Bs)"
-  let ?P1 = "\<lambda>((wl1',wl2'),k). wf1_WL wl1' (length Bs) \<and> wf1_WL wl2' (length Bs) \<and> wf_bins1 (map set Bs) \<and> WL_inv wl1' \<and> WL_inv wl2' 
-        \<and> leng wl1' = length Bs \<and> leng wl2' = length Bs \<and> set_WorkList wl1' \<inter> set_WorkList wl2' = {} \<and> (\<forall>i < length Bs. distinct (Bs ! i)) \<and> distinct ps"
-  let ?P2 = "\<lambda>((wl1',wl2'),k). k \<le> (length (list wl2')) * (?C)"
+  let ?C = "L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (length Bs) +
+       3 * Suc (length Bs) + 2 * L * Suc K + 8 + Suc K"
+  let ?P3 = "\<lambda>((il1',il2'),k). wf1_IL il1' (length Bs) \<and> wf1_IL il2' (length Bs) \<and> wf_bins1 (map set Bs)"
+  let ?P1 = "\<lambda>((il1',il2'),k). wf1_IL il1' (length Bs) \<and> wf1_IL il2' (length Bs) \<and> wf_bins1 (map set Bs) \<and> IL_inv il1' \<and> IL_inv il2' 
+        \<and> length(froms il1') = Suc (length Bs) \<and> length (froms  il2') = Suc (length Bs) \<and> set_ItemList il1' \<inter> set_ItemList il2' = {} \<and> (\<forall>i < length Bs. distinct (Bs ! i)) \<and> distinct ps"
+  let ?P2 = "\<lambda>((il1',il2'),k). k \<le> (length (list il2')) * (?C)"
   let ?P = "\<lambda>x. ?P1 x \<and> ?P2 x"
-  let ?b = "(\<lambda>((wl1,wl2),k). (list wl1) \<noteq> [])"
-  let ?c = "\<lambda>((wl1,wl2),k). (step_fun Bs (wl1,wl2), k + T_step_fun Bs (wl1,wl2))"
+  let ?b = "(\<lambda>((il1,il2),k). (list il1) \<noteq> [])"
+  let ?c = "\<lambda>((il1,il2),k). (step_fun Bs (il1,il2), k + T_step_fun Bs (il1,il2))"
 
 
-  have init: "?P ((wl1,wl2), k)" using assms by auto
+  have init: "?P ((il1,il2), k)" using assms by auto
 
   have P1: "(?P1 ((a,b), y) \<Longrightarrow> ?b ((a,b), y) \<Longrightarrow> ?P1 (?c ((a,b), y)))" for a b y
-    by (smt (verit) case_prodI2' case_prod_conv step_fun_inv1_wl step_fun_inv2_wl step_fun_wf2_wl step_fun_wf_wl leng_step_fun1 leng_step_fun2 step_fun_dist)
+    using step_fun_inv1_il[of a Bs b] step_fun_inv2_il[of a Bs b] step_fun_wf2_il[of a Bs b] 
+      step_fun_wf_il[of a Bs b] length_step_fun1_il[of a Bs b] length_step_fun2_il[of a Bs b] step_fun_dist[of a b Bs]
+    by (smt (verit) case_prodI2' case_prod_conv wf_Bs(1)) 
+  
   have "(?P ((a,b), y) \<Longrightarrow> ?b ((a,b), y) \<Longrightarrow> ?P2 (?c ((a,b), y)))" for a b y
   proof -
     assume assms: "?P ((a,b), y)" "?b ((a,b), y)"
@@ -1477,7 +1516,7 @@ proof -
     obtain a' b' y' where P1: "?c ((a,b),y) = ((a', b'), y')"
       by (metis (lifting) old.prod.exhaust)
     then have "step_fun Bs (a,b) = (a', b')" by auto
-    then have "length (list b') = Suc (length (list b))" using length_step_fun2 assms by auto
+    then have "length (list b') = Suc (length (list b))" using length_step_fun_inc[of a b Bs a' b'] assms by auto
     then have 2: "length (list b') * ?C = length (list b) * ?C + ?C"
       by (metis add.commute mult_Suc)
     have "y' \<le> y + ?C" using P1 1 by auto
@@ -1490,68 +1529,71 @@ proof -
   qed
 
   then have t: "(?P ((a,b), y) \<Longrightarrow> ?b ((a,b), y) \<Longrightarrow> ?P (?c ((a,b), y)))" for a b y using P1 by auto
-  then show "k' \<le> (length (list wl2')) * ?C"
-    using while_option_rule[where P="?P", where b="?b", where c="?c", where s="((wl1,wl2),k)", where t="((wl1',wl2'), k')"] assms init by auto
+  then show "k' \<le> (length (list il2')) * ?C"
+    using while_option_rule[where P="?P", where b="?b", where c="?c", where s="((il1,il2),k)", where t="((il1',il2'), k')"] assms init by auto
   (*show "wf_bin1 (set C') (length Bs)"
     using while_option_rule[where P="?P", where b="?b", where c="?c", where s="((B,C),k)", where t="((B',C'), k')"] t assms init by auto
   show "distinct C'"
     using while_option_rule[where P="?P", where b="?b", where c="?c", where s="((B,C),k)", where t="((B',C'), k')"] t assms init by auto*)
 qed
 
-theorem steps_time_NF: "wf_bins1 (map set Bs) \<Longrightarrow> wf1_WL wl1 (length Bs) \<Longrightarrow> wf1_WL wl2 (length Bs) \<Longrightarrow> WL_inv wl1 \<Longrightarrow> WL_inv wl2 
-  \<Longrightarrow> \<exists>wl1' wl2' k'. steps_time Bs (wl1,wl2) k = Some ((wl1',wl2'),k') \<and> steps Bs (wl1, wl2) = Some (wl1', wl2')"
+theorem steps_time_NF: "wf_bins1 (map set Bs) \<Longrightarrow> wf1_IL il1 (length Bs) \<Longrightarrow> wf1_IL il2 (length Bs) \<Longrightarrow> IL_inv il1 \<Longrightarrow> IL_inv il2 
+  \<Longrightarrow> length (froms il1) = Suc (length Bs) \<Longrightarrow> length (froms il2) = Suc (length Bs)
+  \<Longrightarrow> \<exists>il1' il2' k'. steps_time Bs (il1,il2) k = Some ((il1',il2'),k') \<and> steps Bs (il1, il2) = Some (il1', il2')"
 using wf_step_fun_less[of "length Bs"]
-proof (induction "(wl1,wl2)" arbitrary: wl1 wl2 k rule: wf_induct_rule)
+proof (induction "(il1,il2)" arbitrary: il1 il2 k rule: wf_induct_rule)
   case less
   show ?case
   proof cases
-    assume "list wl1 = []"
+    assume "list il1 = []"
     thus ?thesis by(simp add: while_option_unfold steps_def)
   next
     let ?steps = "while_option (\<lambda>(as,bs). list as \<noteq> []) (step_fun Bs)"
-    assume cons: "list wl1 \<noteq> []"
-    then obtain wl1' wl2'
-      where "(wl1',wl2') = step_fun Bs (wl1,wl2)" and wf': "wf1_WL wl1' (length Bs)" "wf1_WL wl2' (length Bs)" and inv': "WL_inv wl1'" "WL_inv wl2'"
-      using step_fun_wf_items[OF less.prems] by auto
-    then have "((wl1',wl2'), (wl1, wl2)) \<in> step_fun_less (length Bs)" using less.prems
-      by (simp add: step_fun_less_step \<open>list wl1 \<noteq> []\<close>)
-    from less.hyps[OF this \<open>wf_bins1 (map set Bs)\<close> wf' inv']
+    assume cons: "list il1 \<noteq> []"
+    then obtain il1' il2'
+      where "(il1',il2') = step_fun Bs (il1,il2)" and wf': "wf1_IL il1' (length Bs)" "wf1_IL il2' (length Bs)" 
+        and inv': "IL_inv il1'" "IL_inv il2'" and leng': "length (froms il1') = Suc (length Bs)" "length (froms il2') = Suc (length Bs)"
+      using step_fun_wf_items[OF less.prems(1,2,3,4,5) cons less.prems(6,7)] by auto
+    then have "((il1',il2'), (il1, il2)) \<in> step_fun_less (length Bs)" using less.prems
+      by (simp add: step_fun_less_step \<open>list il1 \<noteq> []\<close>)
+    from less.hyps[OF this \<open>wf_bins1 (map set Bs)\<close> wf' inv' leng']
     show ?thesis
-      by (simp add: \<open>(wl1', wl2') = step_fun Bs (wl1, wl2)\<close> while_option_unfold steps_def)
+      by (simp add: \<open>(il1', il2') = step_fun Bs (il1, il2)\<close> while_option_unfold steps_def)
   qed
 qed
 
 lemma T_steps_bound: assumes
-  "distinct ps" "wf_bins1 (map set Bs)" "wf1_WL wl1 (length Bs)" "wf1_WL wl2 (length Bs)" "WL_inv wl1" "WL_inv wl2"
-  "\<forall>i < length Bs. distinct (Bs ! i)"  "set_WorkList wl1 \<inter> set_WorkList wl2 = {}" "leng wl1 = length Bs" "leng wl2 = length Bs"
-shows "T_steps Bs (wl1, wl2) \<le> (L * Suc K * Suc (length Bs)) * (L * Suc K * Suc (length Bs) * (7 * T_nth_WL (length Bs) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_WL (length Bs) + 2 * Suc (length Bs) + 2* L * Suc K + 7 + Suc K)"
+  "distinct ps" "wf_bins1 (map set Bs)" "wf1_IL il1 (length Bs)" "wf1_IL il2 (length Bs)" "IL_inv il1" "IL_inv il2"
+  "\<forall>i < length Bs. distinct (Bs ! i)"  "set_ItemList il1 \<inter> set_ItemList il2 = {}" 
+  "length (froms il1) = Suc (length Bs)" "length (froms il2) = Suc (length Bs)"
+shows "T_steps Bs (il1, il2) \<le> (L * Suc K * Suc (length Bs)) * (L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (length Bs) +
+       3 * Suc (length Bs) + 2 * L * Suc K + 8 + Suc K)"
 proof-
-  obtain wl1' wl2' k' where P: "steps_time Bs (wl1,wl2) 0 = Some ((wl1',wl2'),k') \<and> steps Bs (wl1, wl2) = Some (wl1', wl2')"
+  obtain il1' il2' k' where P: "steps_time Bs (il1,il2) 0 = Some ((il1',il2'),k') \<and> steps Bs (il1, il2) = Some (il1', il2')"
     using steps_time_NF assms by blast
-  have "wf1_WL wl2' (length Bs) \<and> WL_inv wl2'"
-    using P assms(2,3,4,5,6) steps_wf2 steps_inv2 by blast
-  then have 1: "length (list wl2') \<le> L * Suc K * Suc (length Bs)"
-    using card_wf_bin1 distinct_card[of "list wl2'"] WL_inv1
+  have "wf1_IL il2' (length Bs) \<and> IL_inv il2'"
+    using P assms(2,3,4,5,6,9,10) steps_wf2 steps_inv2 by blast
+  then have 1: "length (list il2') \<le> L * Suc K * Suc (length Bs)"
+    using card_wf_bin1 distinct_card[of "list il2'"] IL_inv1
     by fastforce
-  have "k' \<le> (length (list wl2')) * (L * Suc K * Suc (length Bs) * (7 * T_nth_WL (length Bs) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_WL (length Bs) + 2 * Suc (length Bs) + 2* L * Suc K + 7 + Suc K)"
-    using steps_time_time[of Bs wl1 wl2 0] assms P by simp
-  also have "... \<le> (L * Suc K * Suc (length Bs)) * (L * Suc K * Suc (length Bs) * (7 * T_nth_WL (length Bs) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_WL (length Bs) + 2 * Suc (length Bs) + 2* L * Suc K + 7 + Suc K)"
+  have "k' \<le> (length (list il2')) * (L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (length Bs) +
+       3 * Suc (length Bs) + 2 * L * Suc K + 8 + Suc K)"
+    using steps_time_time[of Bs il1 il2 0] assms P by simp
+  also have "... \<le> (L * Suc K * Suc (length Bs)) * (L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (length Bs) +
+       3 * Suc (length Bs) + 2 * L * Suc K + 8 + Suc K)"
     using P mult_le_mono1[OF 1] by auto
   finally show ?thesis using P by simp
 qed
 
 lemma T_close2_L_bound: 
-assumes "distinct ps" "wf_bins1 (map set Bs)" "\<forall>i < length Bs. distinct (Bs ! i)"  "wf1_WL wl (length Bs)" "WL_inv wl" "leng wl = length Bs"
-shows "T_close2_L Bs wl \<le> (L * Suc K * Suc (length Bs)) * (L * Suc K * Suc (length Bs) * (7 * T_nth_WL (length Bs) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_WL (length Bs) + 2 * Suc (length Bs) + 2* L * Suc K + 7 + Suc K) + 2* Suc (length Bs)"
+assumes "distinct ps" "wf_bins1 (map set Bs)" "\<forall>i < length Bs. distinct (Bs ! i)"  "wf1_IL il (length Bs)" "IL_inv il" "length (froms il) = Suc (length Bs)"
+shows "T_close2_L Bs il \<le> (L * Suc K * Suc (length Bs)) * (L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (length Bs) +
+       3 * Suc (length Bs) + 2 * L * Suc K + 8 + Suc K) + Suc (length Bs) + Suc (Suc (length Bs))"
 proof-
-  obtain wl1' wl2' where "steps Bs (wl, WL_empty (length Bs)) = Some (wl1', wl2')"
-    using Close2_L_NF empty_inv assms(2,4,5) wf1_WL_empty by blast
-  then show ?thesis using T_steps_bound[of Bs wl "WL_empty (length Bs)"] empty_inv set_WL_empty 
-        wf1_WL_empty assms T_length[of Bs] by (auto simp del: T_WL_empty.simps)
+  obtain il1' il2' where "steps Bs (il, IL_empty (length Bs)) = Some (il1', il2')"
+    using Close2_L_NF empty_inv assms(2,4,5,6) wf1_IL_empty length_IL_empty by blast
+  then show ?thesis using T_steps_bound[of Bs il "IL_empty (length Bs)"] empty_inv[of "length Bs"] set_IL_empty 
+        wf1_IL_empty length_IL_empty assms T_length[of Bs] by (auto simp del: T_IL_empty.simps)
 qed
 
 lemma wf1_Init_L: "wf_bin1 (set Init_L) 0"
@@ -1569,28 +1611,25 @@ lemma length_Init_L: "length Init_L \<le> L"
 
 lemma length_Scan_L: "length (Scan_L as k) \<le> length as"
   by (auto simp add: Scan_L_def)
-
-lemma leng_WL_of_List: "\<forall>x \<in> set as. from x < Suc k \<Longrightarrow> leng (WL_of_List k as) = k"
-  using WL_of_List_def leng_LWL_union by auto
-
-lemma wf1_WL_of_List: "wf_bin1 (set as) k \<Longrightarrow> wf1_WL (WL_of_List l as) k"
-  using set_WL_of_List by auto
+                                                
+lemma wf1_IL_of_List: "wf_bin1 (set as) k \<Longrightarrow> wf1_IL (IL_of_List k as) k"
+  using set_IL_of_List forall_from_Suc by auto
 
 lemma distinct_close2: 
-  assumes "wf_bins1 (map set Bs)" "wf1_WL wl (length Bs)" "WL_inv wl" 
-  shows "distinct (close2_L Bs wl)"
+  assumes "wf_bins1 (map set Bs)" "wf1_IL il (length Bs)" "IL_inv il" "length (froms il) = Suc (length Bs)"
+  shows "distinct (close2_L Bs il)"
 proof-
-  obtain wl1 wl2 where "steps Bs (wl, WL_empty (length Bs)) = Some (wl1, wl2)"
-    using empty_inv wf1_WL_empty Close2_L_NF assms by blast
-  then show ?thesis using steps_inv2[of " WL_empty (length Bs)"] 
-      WL_inv1[of "wl2"] close2_L_def by (auto simp add: close2_L_def empty_inv)
+  obtain il1 il2 where "steps Bs (il, IL_empty (length Bs)) = Some (il1, il2)"
+    using empty_inv wf1_IL_empty length_IL_empty Close2_L_NF assms by blast
+  then show ?thesis using steps_inv2[of " IL_empty (length Bs)"] assms length_IL_empty
+      IL_inv1[of "il2"] close2_L_def by (auto simp add: close2_L_def empty_inv)
 qed
 
 lemma distinct_bins_L: "k \<le> length w \<Longrightarrow> distinct ps \<Longrightarrow> i < Suc k \<Longrightarrow> distinct ((bins_L k) ! i)"
 proof(induction k arbitrary: i)
   case 0
-  then show ?case using distinct_Init distinct_close2
-    using WL_of_List_inv set_WL_of_List wf1_Init_L wf_bins1_def by auto
+  then show ?case using distinct_Init distinct_close2[of "[]" "IL_of_List 0 Init_L"] length_IL_of_List
+    using IL_of_List_inv[OF forall_from_Suc] set_IL_of_List wf1_Init_L wf_bins1_def wf1_IL_of_List by auto
 next
   case (Suc k)
   then have 1: "i < Suc k \<longrightarrow> distinct (bins_L (Suc k) ! i)" using length_bins_L by (auto simp add: Let_def nth_append_left)
@@ -1601,76 +1640,82 @@ next
     by (metis Suc_leD Zero_not_Suc bins_L_eq_bins last_map length_bins_L list.size(3) wf_bin1_last)
   then have 3: "wf_bin1 (set (Scan_L (last (bins_L k)) k)) (Suc k)"
     using Scan_L_eq_Scan Suc.prems(1) wf_bin1_Scan by auto
-  have 5: "distinct (close2_L (bins_L k) (WL_of_List (Suc k) (Scan_L (last (bins_L k)) k)))" using 2 3 Suc distinct_close2
-    using WL_of_List_inv length_bins_L wf1_WL_of_List by presburger
+  have 5: "distinct (close2_L (bins_L k) (IL_of_List (Suc k) (Scan_L (last (bins_L k)) k)))" using 2 3 Suc distinct_close2
+    using IL_of_List_inv[OF forall_from_Suc] length_bins_L wf1_IL_of_List by auto
 
   have "\<not> i < Suc k \<longrightarrow> i = Suc k" using Suc by auto
   then show ?case using 1 5 using nth_append_length[of "bins_L k"] length_bins_L by (auto simp add: Let_def)
 qed
 
+(*(k+2)^3 * ((?a) + (?b))
+    + 7*k + 18 
+    + (k+2)^2 * ?a
+    + Suc (Suc k) * ?b*)
+
 lemma bound_help: 
   assumes "a > 0" "b > 0" 
-  shows "(x+2)^3 * (a+b) + 7*(x::nat) + (x+2)^2 * a + (x+2) * b + 16 \<le> (x+3)^3 * (a+b)"
+  shows "(x+2)^3 * (a+b) + 7*(x::nat) + (x+2)^2 * a + (x+2) * b + 18 \<le> (x+3)^3 * (a+b)"
 proof-
-  have "(x+2)^3 * (a+b) + 7*x + (x+2)^2 * a + (x+2) * b + 16
-         = (x+2) * (x+2) *(x+2) * (a+b) + 7* x+ (x+2) * (x+2) * a + (x+2) * b + 16"
+  have "(x+2)^3 * (a+b) + 7*x + (x+2)^2 * a + (x+2) * b + 18
+         = (x+2) * (x+2) *(x+2) * (a+b) + 7* x+ (x+2) * (x+2) * a + (x+2) * b + 18"
     by (auto simp add: numeral_eq_Suc)
-  then have 1: "(x+2)^3 * (a+b) + 7*x + (x+2)^2 * a + (x+2) * b + 16 
-    = (x*x*x + 6*x*x + 12*x + 8) * (a + b) + 7*x + (x*x + 4*x + 4) * a + (x+2) * b + 16"
+  then have 1: "(x+2)^3 * (a+b) + 7*x + (x+2)^2 * a + (x+2) * b + 18 
+    = (x*x*x + 6*x*x + 12*x + 8) * (a + b) + 7*x + (x*x + 4*x + 4) * a + (x+2) * b + 18"
     by (auto simp add: add_mult_distrib)
-  also have "... \<le> (x*x*x + 6*x*x + 12*x + 8) * (a + b) + 7*x + (x*x + 4*x + 4) * (a +b) + (x+2) * (a+b) + 16"
+  also have "... \<le> (x*x*x + 6*x*x + 12*x + 8) * (a + b) + 7*x + (x*x + 4*x + 4) * (a +b) + (x+2) * (a+b) + 18"
     by (auto simp add: add_mult_distrib add_mult_distrib2)
-  also have "... \<le> (x*x*x + 6*x*x + 12*x + 8) * (a + b) + 7*x * (a+b) + (x*x + 4*x + 4) * (a +b) + (x+2) * (a+b) + 16"
+  also have "... \<le> (x*x*x + 6*x*x + 12*x + 8) * (a + b) + 7*x * (a+b) + (x*x + 4*x + 4) * (a +b) + (x+2) * (a+b) + 18"
     using assms by auto
-  also have "... \<le> (x*x*x + 6*x*x + 12*x + 8) * (a + b) + 7*x * (a+b) + (x*x + 4*x + 4) * (a +b) + (x+2) * (a+b) + 8*(a+b)"
+  also have "... \<le> (x*x*x + 6*x*x + 12*x + 8) * (a + b) + 7*x * (a+b) + (x*x + 4*x + 4) * (a +b) + (x+2) * (a+b) + 9*(a+b)"
     using assms by auto
-  also have "... = (x*x*x + 7*x*x + 24*x + 22) * (a + b)" by (auto simp add: add_mult_distrib add_mult_distrib2)
-  finally have 1: "(x+2)^3 * (a+b) + 7*x + (x+2)^2 * a + (x+2) * b + 16 \<le> (x*x*x + 7*x*x + 24*x + 22) * (a + b)".
+  also have "... = (x*x*x + 7*x*x + 24*x + 23) * (a + b)" by (auto simp add: add_mult_distrib add_mult_distrib2)
+  finally have 1: "(x+2)^3 * (a+b) + 7*x + (x+2)^2 * a + (x+2) * b + 18 \<le> (x*x*x + 7*x*x + 24*x + 23) * (a + b)".
   have "(x+3)^3 *(a+b) = Suc(Suc(Suc x)) * Suc(Suc(Suc x)) * Suc(Suc(Suc x)) * (a+b)"
     by (auto simp add: numeral_eq_Suc)
   then have 2: "(x+3)^3 * (a+b) = (x*x*x + 9*x*x + 27*x + 27) * (a+b)"
     by (auto simp add: add_mult_distrib)
   show ?thesis using 1 2 by (auto simp add: add_mult_distrib add_mult_distrib2)
 qed
-
+(*8 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (1) + 3* L * Suc K + 9 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (1) + 3* L * Suc K + 9 + Suc K)))*)
 
 lemma T_bins_L_bound: "distinct ps \<Longrightarrow> k \<le> length w \<Longrightarrow> T_bins_L k 
-  \<le> (k+2)^3 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + Suc K)))"
+  \<le> (k+2)^3 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K)))"
 proof (induction k)
   case 0
-  then have 1: "T_union_LWL Init_L (WL_empty 0) \<le> length Init_L * (3 * T_nth_WL (0) + L * Suc K + 2) + 1" 
-    using T_union_LWL_wf[of "(WL_empty 0)" Init_L] empty_inv wf1_WL_empty wf1_Init_L wfbin1_impl_wfbin[of "set Init_L"] wf1_Init_L by auto
-  have "leng (WL_of_List 0 Init_L) = 0" 
-    using leng_WL_of_List wf1_Init_L by (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
-  then have "T_close2_L [] (WL_of_List 0 Init_L) \<le> (L * Suc K) * (L * Suc K * (7 * T_nth_WL (0) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_WL (0) + 2* L * Suc K + 9 + Suc K) + 2"
-    using 0 T_close2_L_bound[of "[]" "(WL_of_List 0 Init_L)"] wf1_Init_L wf1_WL_of_List
-        WL_of_List_inv by (auto simp add: wf_bins1_def simp del: T_close2_L.simps)
-  then have "T_bins_L 0 \<le> length Init_L * (3 * T_nth_WL (0) + L * Suc K + 2) + 1 + (L * Suc K) * (L * Suc K * (7 * T_nth_WL (0) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_WL (0) + 2* L * Suc K + 9 + Suc K) + 2+2" 
-    unfolding T_bins_L.simps T_WL_of_List.simps T_WL_empty.simps T_empty_list_map.simps 
-    using 1 by (linarith)
-  also have "... =  length Init_L * (3 * T_nth_WL (0) + L * Suc K + 2) + (L * Suc K) * (L * Suc K * (7 * T_nth_WL (0) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_WL (0) + 2* L * Suc K + 9 + Suc K) + 5" using length_Init_L by auto
-  also have "... \<le> L * (3 * T_nth_WL (0) + L * Suc K + 2) + (L * Suc K) * (L * Suc K * (7 * T_nth_WL (0) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_WL (0) + 2* L * Suc K + 9 + Suc K) + 5"
+  have "\<forall>x \<in> set (Init_L). from x = 0" using wf1_Init_L by (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
+  then have 1: "T_union_LIL Init_L (IL_empty 0) \<le> length Init_L * (3 * T_nth_IL (0) + L * Suc K + 2) + 1" 
+    using T_union_LIL_wf[of "IL_empty 0"] 0 empty_inv wf1_IL_empty wf1_Init_L by (auto simp add:)
+  have "length (froms (IL_of_List 0 Init_L)) = 1" 
+    using length_IL_of_List by simp
+  then have "T_close2_L [] (IL_of_List 0 Init_L) \<le> (L * Suc K) * (L * Suc K * (7 * T_nth_IL (0) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (0) +
+       3 * Suc (0) + 2 * L * Suc K + 8 + Suc K) + 3"
+    using 0 T_close2_L_bound[of "[]" "(IL_of_List 0 Init_L)"] wf1_Init_L wf1_IL_of_List
+        IL_of_List_inv[OF forall_from_Suc] by (auto simp add: wf_bins1_def simp del: T_close2_L.simps)
+  then have "T_bins_L 0 \<le> length Init_L * (3 * T_nth_IL (0) + L * Suc K + 2) + 1 + (L * Suc K) * (L * Suc K * (7 * T_nth_IL (0) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (0) +
+       3 * Suc (0) + 2 * L * Suc K + 8 + Suc K) + 3+3" 
+    unfolding T_bins_L.simps T_IL_of_List.simps T_IL_empty.simps 
+    using 1 by (auto)
+  also have "... =  length Init_L * (3 * T_nth_IL (0) + L * Suc K + 2) + (L * Suc K) * (L * Suc K * (7 * T_nth_IL (0) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (0) +
+       3 * Suc (0) + 2 * L * Suc K + 8 + Suc K) + 7" by auto
+  also have "... \<le> L * (3 * T_nth_IL (0) + L * Suc K + 2) + (L * Suc K) * (L * Suc K * (7 * T_nth_IL (0) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (0) +
+       3 * Suc (0) + 2 * L * Suc K + 8 + Suc K) + 7"
     using length_Init_L
     using add_le_mono1 mult_le_cancel2 by presburger
-  also have "... \<le> 8 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_WL (0) + 3* L * Suc K + 9 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_WL (0) + 3* L * Suc K + 9 + Suc K)))"
+  also have "... \<le> 8 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (0) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (0) + 3* L * Suc K + 10 + Suc K)))"
     by (auto simp add: add_mult_distrib add_mult_distrib2)
-  finally have 2: "T_bins_L 0 \<le> 8 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_WL (0) + 3* L * Suc K + 9 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_WL (0) + 3* L * Suc K + 9 + Suc K)))".
+  finally have 2: "T_bins_L 0 \<le> 8 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (0) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (0) + 3* L * Suc K + 10 + Suc K)))".
 
-  have "7 * T_nth_WL (0) + 3* L * Suc K + 9 + 2 * (K + 2)
-      \<le> 7 * T_nth_WL (1) + 3* L * Suc K + 9 + 2 * (K + 2)" using mono_nth by (auto simp add: monoD)
-  then have 3: "Suc L * Suc K * Suc L * Suc K * (7 * T_nth_WL (0) + 3* L * Suc K + 9 + 2 * (K + 2))
-    \<le> Suc L * Suc K * Suc L * Suc K * (7 * T_nth_WL (1) + 3* L * Suc K + 9 + 2 * (K + 2))"
+  have "7 * T_nth_IL (0) + 3* L * Suc K + 10 + 2 * (K + 2)
+      \<le> 7 * T_nth_IL (1) + 3* L * Suc K + 10 + 2 * (K + 2)" using mono_nth by (auto simp add: monoD)
+  then have 3: "Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (0) + 3* L * Suc K + 10 + 2 * (K + 2))
+    \<le> Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (1) + 3* L * Suc K + 10 + 2 * (K + 2))"
     using mult_le_mono2 by blast
-  have "2 * (K + 2) + 10 * T_nth_WL (0) + 3* L * Suc K + 9 + Suc K \<le> 2 * (K + 2) + 10 * T_nth_WL (1) + 3* L * Suc K + 9 + Suc K"
+  have "2 * (K + 2) + 10 * T_nth_IL (0) + 3* L * Suc K + 10 + Suc K \<le> 2 * (K + 2) + 10 * T_nth_IL (1) + 3* L * Suc K + 10 + Suc K"
     using mono_nth by (auto simp add: monoD)
-  then have 4: "(Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_WL (0) + 3* L * Suc K + 9 + Suc K)) \<le> (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_WL (1) + 3* L * Suc K + 9 + Suc K))"
+  then have 4: "(Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (0) + 3* L * Suc K + 10 + Suc K)) \<le> (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (1) + 3* L * Suc K + 10 + Suc K))"
     using mult_le_mono2 by blast
 
-  have "T_bins_L 0 \<le> 8 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_WL (1) + 3* L * Suc K + 9 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_WL (1) + 3* L * Suc K + 9 + Suc K)))"
+  have "T_bins_L 0 \<le> 8 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (1) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (1) + 3* L * Suc K + 10 + Suc K)))"
     using 2 3 4 by auto
 
   then show ?case by (auto simp add: numeral_eq_Suc)
@@ -1699,138 +1744,140 @@ next
   have wf_Scan: "wf_bin1 (set (Scan_L (last (bins_L k)) k)) (Suc k)"
     using wf_last wf_Scan_L Suc wfbin1_impl_wfbin
     by (meson Suc_le_eq wf1_Scan_L)
+  then have from_Scan: "\<forall>a \<in> set (Scan_L (last (bins_L k)) k). from a < Suc (Suc k)"
+    using forall_from_Suc by blast
   have length_Scan: "length (Scan_L (last (bins_L k)) k) \<le> L * Suc K * Suc k"
     using length_Scan_L length_last dual_order.trans by blast
-  have "T_WL_of_List (length (bins_L k)) (Scan_L (last (bins_L k)) k) \<le> k+2 + length (Scan_L (last (bins_L k)) k) * (3 * T_nth_WL (Suc k) + L * Suc K + 2) + 1"
-    using T_union_LWL_wf[of "(WL_empty (Suc k))"] empty_inv wf1_WL_empty wf_Scan Suc wfbin1_impl_wfbin
-    by (auto simp add: length_bins_L)
-  also have "... \<le> k+2 + L * Suc K * Suc k * (3 * T_nth_WL (Suc k) + L * Suc K + 2) + 1" using length_Scan mult_le_mono1[OF length_Scan]
+  have "T_IL_of_List (length (bins_L k)) (Scan_L (last (bins_L k)) k) \<le> k+3 + length (Scan_L (last (bins_L k)) k) * (3 * T_nth_IL (Suc k) + L * Suc K + 2) + 1"
+    using T_union_LIL_wf[of "(IL_empty (Suc k))" "Scan_L (last (bins_L k)) k"] empty_inv[of "Suc k"] wf1_IL_empty wf_Scan Suc wfbin1_impl_wfbin
+    length_IL_of_List from_Scan by (auto simp add: length_bins_L algebra_simps)
+  also have "... \<le> k+3 + L * Suc K * Suc k * (3 * T_nth_IL (Suc k) + L * Suc K + 2) + 1" using length_Scan mult_le_mono1[OF length_Scan]
     using add_le_mono1 nat_add_left_cancel_le by presburger
-  finally have 4: "T_WL_of_List (length (bins_L k)) (Scan_L (last (bins_L k)) k) \<le> L * Suc K * Suc k * (3 * T_nth_WL (Suc k) + L * Suc K + 2) + k + 3" by linarith
+  finally have 4: "T_IL_of_List (length (bins_L k)) (Scan_L (last (bins_L k)) k) \<le> L * Suc K * Suc k * (3 * T_nth_IL (Suc k) + L * Suc K + 2) + k + 4" by linarith
 
   have wf_bins_L: "wf_bins1 (map set (bins_L k))" using wf_bins1_bins bins_L_eq_bins Suc by auto
-  have wf_WL_of_List: "wf1_WL (WL_of_List (length (bins_L k)) (Scan_L (last (bins_L k)) k))  (Suc k)"
-    using set_WL_of_List wf_Scan wfbin1_impl_wfbin
-    using Suc.prems(2) wf1_Scan_L wf_last by auto
-  have leng_WL_of_List: "leng (WL_of_List (length (bins_L k)) (Scan_L (last (bins_L k)) k)) = (Suc k)"
-    using wf_Scan leng_WL_of_List wf_bin1_def wf_item1_def wf_item_def length_bins_L
-    by (metis le_imp_less_Suc)
-  have 5: "T_close2_L (bins_L k) (WL_of_List  (length (bins_L k)) (Scan_L (last (bins_L k)) k))  
-            \<le> (L * Suc K * Suc (Suc k)) * (L * Suc K * Suc (Suc k) * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_WL (Suc k) + 2 * Suc (Suc k) + 2* L * Suc K + 7 + Suc K) + 2* Suc (Suc k)"
-    using T_close2_L_bound[of "bins_L k" "WL_of_List (length (bins_L k)) (Scan_L (last (bins_L k)) k)"] wf_bins_L Suc distinct_bins_L wf_WL_of_List WL_of_List_inv leng_WL_of_List 
+  have wf_IL_of_List: "wf1_IL (IL_of_List (length (bins_L k)) (Scan_L (last (bins_L k)) k))  (Suc k)"
+    using set_IL_of_List[OF forall_from_Suc, of "Scan_L (last (bins_L k)) k" "Suc k"] 
+    using Suc.prems(2) wf1_Scan_L[of "k" "last (bins_L k)"] wf_last length_bins_L by auto
+  have leng_IL_of_List: "length (froms (IL_of_List (length (bins_L k)) (Scan_L (last (bins_L k)) k))) = k+2"
+    by (auto simp add: length_bins_L)
+  have 5: "T_close2_L (bins_L k) (IL_of_List  (length (bins_L k)) (Scan_L (last (bins_L k)) k))  
+            \<le> (L * Suc K * Suc (Suc k)) * (L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
+      + 7 * T_nth_IL (Suc k) + 3 * Suc (Suc k) + 2* L * Suc K + 8 + Suc K) + Suc (Suc k) + Suc (Suc (Suc k))"
+    using T_close2_L_bound[of "bins_L k" "IL_of_List (length (bins_L k)) (Scan_L (last (bins_L k)) k)"] 
+      wf_bins_L wf_Scan Suc distinct_bins_L wf_IL_of_List IL_of_List_inv[OF forall_from_Suc] leng_IL_of_List 
     by (auto simp add: length_bins_L simp del: T_close2_L.simps)
 
-  have 6: "T_append (bins_L k) [close2_L (bins_L k) (WL_of_List (length (bins_L k)) (Scan_L (last (bins_L k)) k))] = k+2"
+  have 6: "T_append (bins_L k) [close2_L (bins_L k) (IL_of_List (length (bins_L k)) (Scan_L (last (bins_L k)) k))] = k+2"
     by (auto simp add: length_bins_L)
 
   have "L * Suc K * Suc (Suc k) * 2 * Suc (Suc k) \<le>  L * Suc K * L * Suc K * Suc (Suc k) * 2* Suc (Suc k)" using le_square[of "L * Suc K"]
     by (metis (no_types, lifting) mult.assoc mult_le_mono1)
-  then have test': "L * Suc K * Suc (Suc k) * 2 * Suc (Suc k) \<le> L * Suc K * Suc (Suc k) * L * Suc K * Suc (Suc k) * 2"
-    by (metis (no_types, lifting) mult.commute mult.left_commute)
+  then have test': "L * Suc K * Suc (Suc k) * 3 * Suc (Suc k) \<le> L * Suc K * Suc (Suc k) * L * Suc K * Suc (Suc k) * 3"
+    by (auto simp add: algebra_simps)
   have test'': "L \<le> Suc L" by simp
 
   have "T_bins_L (Suc k) \<le> T_bins_L k + k + 2 + Suc k + k + L * Suc K * Suc k * 2 * (K + 2) + 3
-        + L * Suc K * Suc k * (3 * T_nth_WL (Suc k) + L * Suc K + 2) + k + 3
-        + (L * Suc K * Suc (Suc k)) * (L * Suc K * Suc (Suc k) * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_WL (Suc k) + 2 * Suc (Suc k) + 2* L * Suc K + 7 + Suc K) + 2* Suc (Suc k)
+        + L * Suc K * Suc k * (3 * T_nth_IL (Suc k) + L * Suc K + 2) + k + 4
+        + (L * Suc K * Suc (Suc k)) * (L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
+      + 7 * T_nth_IL (Suc k) + 3 * Suc (Suc k) + 2* L * Suc K + 8 + Suc K) + Suc (Suc k) + Suc (Suc (Suc k))
       + k + 2 + 1" unfolding T_bins_L.simps Let_def using 1 2 3 4 5 6 by linarith
 
   
   
-  also have "... = T_bins_L k + 7*k + 16 + L * Suc K * Suc k * 2 * (K + 2)
-            + L * Suc K * Suc k * (3 * T_nth_WL (Suc k) + L * Suc K + 2)
-            + (L * Suc K * Suc (Suc k)) * (L * Suc K * Suc (Suc k) * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_WL (Suc k) + 2 * Suc (Suc k) + 2* L * Suc K + 7 + Suc K)"
+  also have "... = T_bins_L k + 7*k + 18 + L * Suc K * Suc k * 2 * (K + 2)
+            + L * Suc K * Suc k * (3 * T_nth_IL (Suc k) + L * Suc K + 2)
+            + (L * Suc K * Suc (Suc k)) * (L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
+      + 7 * T_nth_IL (Suc k) + 3 * Suc (Suc k) + 2* L * Suc K + 8 + Suc K)"
     by auto
 
-  also have "... = T_bins_L k + 7*k + 16
-            + L * Suc K * Suc k * (2 * (K + 2) + 3 * T_nth_WL (Suc k) + L * Suc K + 2)
-            + (L * Suc K * Suc (Suc k)) * (L * Suc K * Suc (Suc k) * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_WL (Suc k) + 2 * Suc (Suc k) + 2* L * Suc K + 7 + Suc K)"
+  also have "... = T_bins_L k + 7*k + 18
+            + L * Suc K * Suc k * (2 * (K + 2) + 3 * T_nth_IL (Suc k) + L * Suc K + 2)
+            + (L * Suc K * Suc (Suc k)) * (L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
+      + 7 * T_nth_IL (Suc k) + 3 * Suc (Suc k) + 2* L * Suc K + 8 + Suc K)"
     using add_mult_distrib2 by auto
 
-  also have "... = T_bins_L k + 7*k + 16 + L * Suc K * Suc k * (2 * (K + 2) + 3 * T_nth_WL (Suc k) + L * Suc K + 2)
-    + L * Suc K * Suc (Suc k) * L * Suc K * Suc (Suc k) * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
-    + L * Suc K * Suc (Suc k) * (7 * T_nth_WL (Suc k) + 2 * Suc (Suc k) + 2* L * Suc K + 7 + Suc K)"
-    using add_mult_distrib2[of "(L * Suc K * Suc (Suc k))" "L * Suc K * Suc (Suc k) * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))"
-                                "7 * T_nth_WL (Suc k) + 2 * Suc (Suc k) + 2* L * Suc K + 7 + Suc K"]
+  also have "... = T_bins_L k + 7*k + 18 + L * Suc K * Suc k * (2 * (K + 2) + 3 * T_nth_IL (Suc k) + L * Suc K + 2)
+    + L * Suc K * Suc (Suc k) * L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
+    + L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3 * Suc (Suc k) + 2* L * Suc K + 8 + Suc K)"
+    using add_mult_distrib2[of "(L * Suc K * Suc (Suc k))" "L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))"
+                                "7 * T_nth_IL (Suc k) + 2 * Suc (Suc k) + 2* L * Suc K + 7 + Suc K"]
     by (smt (verit, del_insts) Suc_1 ab_semigroup_add_class.add_ac(1) ab_semigroup_mult_class.mult_ac(1) add_2_eq_Suc' add_Suc_shift add_mult_distrib2 group_cancel.add2
         mult.commute mult.left_commute)
 
-  also have "... = T_bins_L k + 7*k + 16 + L * Suc K * Suc k * (2 * (K + 2) + 3 * T_nth_WL (Suc k) + L * Suc K + 2)
-    + L * Suc K * Suc (Suc k) * L * Suc K * Suc (Suc k) * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
-    + L * Suc K * Suc (Suc k) * 2 * Suc (Suc k)
-    + L * Suc K * Suc (Suc k) * (7 * T_nth_WL (Suc k) + 2* L * Suc K + 7 + Suc K)"
+  also have "... = T_bins_L k + 7*k + 18 + L * Suc K * Suc k * (2 * (K + 2) + 3 * T_nth_IL (Suc k) + L * Suc K + 2)
+    + L * Suc K * Suc (Suc k) * L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
+    + L * Suc K * Suc (Suc k) * 3 * Suc (Suc k)
+    + L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 2* L * Suc K + 8 + Suc K)"
     using add_mult_distrib2[of "(L * Suc K * Suc (Suc k))"] by auto
 
-  also have "... \<le>  T_bins_L k + 7*k + 16 + L * Suc K * (Suc (Suc k)) * (2 * (K + 2) + 3 * T_nth_WL (Suc k) + L * Suc K + 2)
-    + L * Suc K * Suc (Suc k) * L * Suc K * Suc (Suc k) * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
-    + L * Suc K * Suc (Suc k) * L * Suc K * Suc (Suc k) * 2
-    + L * Suc K * Suc (Suc k) * (7 * T_nth_WL (Suc k) + 2* L * Suc K + 7 + Suc K)"
-    using mult_mono_mix[of "Suc k" "(Suc (Suc k))" "L * Suc K" "2 * (K + 2) + 3 * T_nth_WL (Suc k) + L * Suc K + 2"] test' by presburger
+  also have "... \<le>  T_bins_L k + 7*k + 18 + L * Suc K * (Suc (Suc k)) * (2 * (K + 2) + 3 * T_nth_IL (Suc k) + L * Suc K + 2)
+    + L * Suc K * Suc (Suc k) * L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
+    + L * Suc K * Suc (Suc k) * L * Suc K * Suc (Suc k) * 3
+    + L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 2* L * Suc K + 8 + Suc K)"
+    using mult_mono_mix[of "Suc k" "(Suc (Suc k))" "L * Suc K" "2 * (K + 2) + 3 * T_nth_IL (Suc k) + L * Suc K + 2"] test' by presburger
 
-  also have "... \<le> T_bins_L k + 7*k + 16 
-    + L * Suc K * Suc (Suc k) * L * Suc K * Suc (Suc k) * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + 2 * (K + 2))
-    + L * Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + Suc K)"
+  also have "... \<le> T_bins_L k + 7*k + 18 
+    + L * Suc K * Suc (Suc k) * L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2))
+    + L * Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K)"
     using add_mult_distrib2[of "(L * Suc K * Suc (Suc k))"] 
           add_mult_distrib2[of "L * Suc K * Suc (Suc k) * L * Suc K * Suc (Suc k)"] by auto
 
-  also have "... = T_bins_L k + 7*k + 16 
-    + L * (Suc K * Suc (Suc k) * L * (Suc K * Suc (Suc k) * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + 2 * (K + 2))))
-    + L * (Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + Suc K))"
+  also have "... = T_bins_L k + 7*k + 18 
+    + L * (Suc K * Suc (Suc k) * L * (Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2))))
+    + L * (Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K))"
     by (metis (no_types, opaque_lifting) mult.assoc)
 
-  also have "... \<le> T_bins_L k + 7*k + 16 
-    + Suc L * (Suc K * Suc (Suc k) * L * (Suc K * Suc (Suc k) * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + 2 * (K + 2))))
-    + Suc L * (Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + Suc K))" 
+  also have "... \<le> T_bins_L k + 7*k + 18 
+    + Suc L * (Suc K * Suc (Suc k) * L * (Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2))))
+    + Suc L * (Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K))" 
     using mult_le_mono1 by auto
-  also have "... \<le> T_bins_L k + 7*k + 16 
-    + L * (Suc L * Suc K * Suc (Suc k) * (Suc K * Suc (Suc k) * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + 2 * (K + 2))))
-    + Suc L * Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + Suc K)"
+  also have "... \<le> T_bins_L k + 7*k + 18 
+    + L * (Suc L * Suc K * Suc (Suc k) * (Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2))))
+    + Suc L * Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K)"
     by (metis (no_types, lifting) dual_order.refl mult.commute mult.left_commute mult.assoc)
-  also have "... \<le> T_bins_L k + 7*k + 16 
-    + Suc L * (Suc L * Suc K * Suc (Suc k) * (Suc K * Suc (Suc k) * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + 2 * (K + 2))))
-    + Suc L * Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + Suc K)"
+  also have "... \<le> T_bins_L k + 7*k + 18 
+    + Suc L * (Suc L * Suc K * Suc (Suc k) * (Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2))))
+    + Suc L * Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K)"
     using mult_le_mono1 by auto
-  also have "... \<le> T_bins_L k + 7*k + 16 
-    + Suc (Suc k) * Suc (Suc k) * (Suc L * Suc K * Suc L * Suc K * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + 2 * (K + 2)))
-    + Suc (Suc k) * (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + Suc K))"
+  also have "... \<le> T_bins_L k + 7*k + 18 
+    + Suc (Suc k) * Suc (Suc k) * (Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2)))
+    + Suc (Suc k) * (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K))"
     by (smt (verit, ccfv_threshold) mult.commute mult.left_commute verit_comp_simplify1(2))
-  also have "... \<le> T_bins_L k + 7*k + 16 
-    + (k+2)^2 * (Suc L * Suc K * Suc L * Suc K * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + 2 * (K + 2)))
-    + Suc (Suc k) * (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + Suc K))"
+  also have "... \<le> T_bins_L k + 7*k + 18 
+    + (k+2)^2 * (Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2)))
+    + Suc (Suc k) * (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K))"
     by (metis add_2_eq_Suc' le_refl power2_eq_square)
-  finally have short: "T_bins_L (Suc k) \<le> T_bins_L k + 7*k + 16 
-    + (k+2)^2 * (Suc L * Suc K * Suc L * Suc K * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + 2 * (K + 2)))
-    + Suc (Suc k) * (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + Suc K))".
+  finally have short: "T_bins_L (Suc k) \<le> T_bins_L k + 7*k + 18 
+    + (k+2)^2 * (Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2)))
+    + Suc (Suc k) * (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K))".
 
-  let ?a = "Suc L * Suc K * Suc L * Suc K * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + 2 * (K + 2))"
-  let ?b = "Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + Suc K)"
+  let ?a = "Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2))"
+  let ?b = "Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K)"
 
-  have ff: "T_nth_WL (Suc k) \<le> T_nth_WL (Suc (Suc k))" using mono_nth
+  have ff: "T_nth_IL (Suc k) \<le> T_nth_IL (Suc (Suc k))" using mono_nth
     by (simp add: monoD)
-  then have "(7 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + 2 * (K + 2)) \<le> (7 * T_nth_WL (Suc (Suc k)) + 3* L * Suc K + 9 + 2 * (K + 2))"
+  then have "(7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2)) \<le> (7 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 10 + 2 * (K + 2))"
     by auto
-  then have a1: "?a \<le> Suc L * Suc K * Suc L * Suc K * (7 * T_nth_WL (Suc (Suc k)) + 3* L * Suc K + 9 + 2 * (K + 2))"
+  then have a1: "?a \<le> Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 10 + 2 * (K + 2))"
     using mult_le_mono2 by blast
-  have "2 * (K + 2) + 10 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + Suc K \<le> 2 * (K + 2) + 10 * T_nth_WL (Suc (Suc k)) + 3* L * Suc K + 9 + Suc K"
+  have "2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K \<le> 2 * (K + 2) + 10 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 10 + Suc K"
     using ff by auto
-  then have b1: "?b \<le> Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_WL (Suc (Suc k)) + 3* L * Suc K + 9 + Suc K)"
+  then have b1: "?b \<le> Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 10 + Suc K)"
     using mult_le_mono2 by blast
 
   have "T_bins_L (Suc k) \<le> (k+2)^3 * ((?a) + (?b))
-    + 7*k + 16 
+    + 7*k + 18 
     + (k+2)^2 * ?a
     + Suc (Suc k) * ?b" using short Suc by simp
 
   also have "... \<le> (k+3)^3 * ((?a) + (?b))"
     using bound_help[of ?a ?b k] by simp
 
-  also have "... \<le> (k+3)^3 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_WL (Suc (Suc k)) + 3* L * Suc K + 9 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_WL (Suc (Suc k)) + 3* L * Suc K + 9 + Suc K)))"
+  also have "... \<le> (k+3)^3 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 10 + Suc K)))"
     using a1 b1 by simp
   finally have "T_bins_L (Suc k)
-  \<le> (k+3)^3 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_WL (Suc (Suc k)) + 3* L * Suc K + 9 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_WL (Suc (Suc k)) + 3* L * Suc K + 9 + Suc K)))".
+  \<le> (k+3)^3 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 10 + Suc K)))".
 
   then show ?case
     by (metis add_Suc_shift eval_nat_numeral(3))
@@ -1838,26 +1885,26 @@ qed
 
 subsection \<open>Final nice time bounds\<close>
 
-definition C1 where "C1 = 28 * (L+1)^3 * (K+1)^3"
+definition C1 where "C1 = 30 * (L+1)^3 * (K+1)^3"
 definition C2 where "C2 = 17 * (L+1)^2 * (K+1)^2"
 
 corollary nice_T_bins_L_bound: 
   assumes "distinct ps" "k \<le> length w" 
-  shows "T_bins_L k \<le> C1 *(k+2)^3 + C2 * (k+2)^3 * T_nth_WL (k+1)"
+  shows "T_bins_L k \<le> C1 *(k+2)^3 + C2 * (k+2)^3 * T_nth_IL (k+1)"
 proof-
-  have "T_bins_L k \<le> (k+2)^3 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_WL (Suc k) + 3* L * Suc K + 9 + Suc K)))"
+  have "T_bins_L k \<le> (k+2)^3 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K)))"
     using T_bins_L_bound assms by auto
-  also have "... = (k+2)^3 * (Suc L * Suc K * Suc L * Suc K * 7 * T_nth_WL (k+1) + Suc L * Suc K * 10 * T_nth_WL (k+1)) 
-    + (k+2)^3 * ((Suc L * Suc K * Suc L * Suc K * (3* L * Suc K + 9 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 3* L * Suc K + 9 + Suc K)))"
+  also have "... = (k+2)^3 * (Suc L * Suc K * Suc L * Suc K * 7 * T_nth_IL (k+1) + Suc L * Suc K * 10 * T_nth_IL (k+1)) 
+    + (k+2)^3 * ((Suc L * Suc K * Suc L * Suc K * (3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 3* L * Suc K + 10 + Suc K)))"
     by (auto simp add: algebra_simps)
-  also have "... \<le> (k+2)^3 * (Suc L * Suc K * Suc L * Suc K * 17 * T_nth_WL (k+1))
-                  + (k+2)^3 * (Suc L * Suc K * Suc L * Suc K * (6* L * Suc K + 18 + 5 * (K + 2)))"
+  also have "... \<le> (k+2)^3 * (Suc L * Suc K * Suc L * Suc K * 17 * T_nth_IL (k+1))
+                  + (k+2)^3 * (Suc L * Suc K * Suc L * Suc K * (6* L * Suc K + 20 + 5 * (K + 2)))"
     by (auto simp add: algebra_simps)
-  also have "... \<le> 17 * (L+1) * (L+1) * (K+1) * (K+1) * (k+2)^3 * T_nth_WL (k+1)
-                  + 28 * (L+1) * (L+1) * (L+1) * (K+1) * (K+1) * (K+1) * (k+2)^3"
+  also have "... \<le> 17 * (L+1) * (L+1) * (K+1) * (K+1) * (k+2)^3 * T_nth_IL (k+1)
+                  + 30 * (L+1) * (L+1) * (L+1) * (K+1) * (K+1) * (K+1) * (k+2)^3"
     by (auto simp add: algebra_simps)
-  also have "... = 17 * (L+1)^2 * (K+1)^2 * (k+2)^3 * T_nth_WL (k+1)
-                  + 28 * (L+1)^3 * (K+1)^3 * (k+2)^3"
+  also have "... = 17 * (L+1)^2 * (K+1)^2 * (k+2)^3 * T_nth_IL (k+1)
+                  + 30 * (L+1)^3 * (K+1)^3 * (k+2)^3"
     by (auto simp add: monoid_mult_class.power2_eq_square monoid_mult_class.power3_eq_cube algebra_simps)
   finally show ?thesis by (auto simp add: C1_def C2_def)
 qed
@@ -1875,11 +1922,11 @@ next
   then show ?case using T_final_bound[of a] by (auto simp del: T_is_final.simps simp add: wf_item_def)
 qed
 
-definition C1' where "C1' = 30 * (L+1)^3 * (K+1)^3"
+definition C1' where "C1' = 32 * (L+1)^3 * (K+1)^3"
 
 lemma 
   assumes dist: "distinct ps" 
-  shows "T_earley_recognized y \<le> C1' *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_WL ((length w)+1)"
+  shows "T_earley_recognized y \<le> C1' *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_IL ((length w)+1)"
 proof-
   have wf_last: "wf_bin1 (set (last (bins_L (length w)))) (length w)" using wf_bin1_last
     by (metis bins_L_eq_bins length_bins_L lessI less_Suc_eq_le list.size(3) not_less_zero last_map)
@@ -1892,7 +1939,7 @@ proof-
     using Suc_le_mono mult_le_mono1 by presburger
   finally have 1: "T_recognized_L (last (bins_L (length w))) \<le> Suc (L * Suc K * Suc (length w)) * (K+2)".
 
-  from dist have 2: "T_bins_L (length w) \<le> C1 *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_WL ((length w)+1)"
+  from dist have 2: "T_bins_L (length w) \<le> C1 *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_IL ((length w)+1)"
     using nice_T_bins_L_bound by auto
 
   have 3: "T_last (bins_L (length w)) = Suc (length w)"
@@ -1904,13 +1951,13 @@ proof-
 
   have "T_earley_recognized y \<le> T_bins_L (length w) + T_last (bins_L (length w)) + T_recognized_L(last (bins_L (length w))) + T_length w"
     by auto
-  also have "... \<le> C1 *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_WL ((length w)+1) + Suc (length w) + Suc (length w) + Suc (L * Suc K * Suc (length w)) * (K+2)" 
+  also have "... \<le> C1 *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_IL ((length w)+1) + Suc (length w) + Suc (length w) + Suc (L * Suc K * Suc (length w)) * (K+2)" 
     using 1 2 3 4 by linarith
-  also have "... \<le> C1 *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_WL ((length w)+1) + 2 * (L+1) * (L+1) * (L+1) * (K+1) * (K+1) * (K+1) * ((length w)+2) * ((length w)+2) * ((length w)+2)"
+  also have "... \<le> C1 *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_IL ((length w)+1) + 2 * (L+1) * (L+1) * (L+1) * (K+1) * (K+1) * (K+1) * ((length w)+2) * ((length w)+2) * ((length w)+2)"
     by (auto simp add: algebra_simps)
-  also have "... = C1 *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_WL ((length w)+1) + 2 * (L+1)^3 * (K+1)^3 * ((length w)+2)^3"
+  also have "... = C1 *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_IL ((length w)+1) + 2 * (L+1)^3 * (K+1)^3 * ((length w)+2)^3"
     by (auto simp add: monoid_mult_class.power3_eq_cube algebra_simps)
-  also have "... = C1' *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_WL ((length w)+1)"
+  also have "... = C1' *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_IL ((length w)+1)"
     using C1_def C1'_def by auto
   finally show ?thesis.
 qed
@@ -2150,13 +2197,13 @@ qed
 lemma parse_bins_wf1: "k \<le> length w \<Longrightarrow> wf_parse_bins1 (Parse_bins k)"
   using parse_bins_wf1_nth by (auto simp add: wf_parse_bins1_def length_parse_bins less_Suc_eq_le)
 
-lemma all_f_nth_impl_map: "length xs = length ys \<Longrightarrow> \<forall>i < length xs. T_nth_WL (xs ! i) = ys ! i \<Longrightarrow>  map T_nth_WL xs = ys"
+lemma all_f_nth_impl_map: "length xs = length ys \<Longrightarrow> \<forall>i < length xs. T_nth_IL (xs ! i) = ys ! i \<Longrightarrow>  map T_nth_IL xs = ys"
 proof (induction xs ys rule: list_induct2)
   case Nil
   then show ?case by simp
 next
   case (Cons x xs y ys)
-  then have "(\<forall>i<length xs. T_nth_WL (xs ! i) = ys ! i) \<and> T_nth_WL x = y" by auto
+  then have "(\<forall>i<length xs. T_nth_IL (xs ! i) = ys ! i) \<and> T_nth_IL x = y" by auto
   then show ?case using Cons by auto
 qed
 
@@ -2243,168 +2290,196 @@ section \<open>List based earley parser\<close>
 context Earley_Gw
 begin
 
-subsection \<open>ParseWorkList definition\<close>
+subsection \<open>ParseItemList definition\<close>
 
-type_synonym ('c, 'd) ParseWL = "('c,'d) WorkList \<times> ('c,'d) tree list list"
+type_synonym ('c, 'd) parseIL = "('c,'d) efficientItemList \<times> ('c,'d) tree list list"
 
-fun ParseWL_inv :: "('n, 'a) ParseWL \<Rightarrow> bool" where
-"ParseWL_inv (wl, ts) = (WL_inv wl \<and> length (list wl) = length ts)"
+fun parseIL_inv :: "('n, 'a) parseIL \<Rightarrow> bool" where
+"parseIL_inv (il, ts) = (IL_inv il \<and> length (list il) = length ts)"
 
-definition PWL_empty :: "nat \<Rightarrow> ('n, 'a) ParseWL" where
-"PWL_empty k = (WL_empty k, [] )"
+definition PIL_empty :: "nat \<Rightarrow> ('n, 'a) parseIL" where
+"PIL_empty k = (IL_empty k, [] )"
 
-fun PWL_list :: "('n, 'a) ParseWL \<Rightarrow> ('n, 'a) item_Pt list" where
-"PWL_list (wl, ts) = (zip (list wl) ts)"
+fun PIL_list :: "('n, 'a) parseIL \<Rightarrow> ('n, 'a) item_Pt list" where
+"PIL_list (il, ts) = (zip (list il) ts)"
 
-fun ParseWL_isin :: "('n, 'a) ParseWL \<Rightarrow> ('n, 'a) item_Pt \<Rightarrow> bool" where
-"ParseWL_isin (wl, ts) (s, t) = isin wl s"
+fun parseIL_isin :: "('n, 'a) parseIL \<Rightarrow> ('n, 'a) item_Pt \<Rightarrow> bool" where
+"parseIL_isin (il, ts) (s, t) = isin il s"
 
-fun set_ParseWL :: "('n, 'a) ParseWL \<Rightarrow> ('n, 'a) item_Pt set" where
-"set_ParseWL (wl, ts) = set (zip (list wl) ts)"
+fun set_parseIL :: "('n, 'a) parseIL \<Rightarrow> ('n, 'a) item_Pt set" where
+"set_parseIL (il, ts) = set (zip (list il) ts)"
 
-fun ParseWL_insert :: "('n, 'a) ParseWL \<Rightarrow> ('n, 'a) item_Pt \<Rightarrow> ('n, 'a) ParseWL" where
-"ParseWL_insert (wl, ts) (s, t) = (if isin wl s then (wl, ts) else (insert wl s, t#ts))"
+fun parseIL_insert :: "('n, 'a) item_Pt \<Rightarrow> ('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseIL" where
+"parseIL_insert (s, t) (il, ts) = (if isin il s then (il, ts) else (insert s il, t#ts))"
 
-fun union_LPWL :: "('n, 'a) item_Pt list \<Rightarrow> ('n, 'a) ParseWL \<Rightarrow> ('n, 'a) ParseWL" where
-"union_LPWL [] pwl = pwl" |
-"union_LPWL (a#as) pwl = ParseWL_insert (union_LPWL as pwl) a"
+fun union_LPIL :: "('n, 'a) item_Pt list \<Rightarrow> ('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseIL" where
+"union_LPIL [] pil = pil" |
+"union_LPIL (a#as) pil = parseIL_insert a (union_LPIL as pil)"
 
-definition union_PWL :: "('n, 'a) ParseWL \<Rightarrow> ('n, 'a) ParseWL \<Rightarrow> ('n, 'a) ParseWL" where
-"union_PWL pwl1 pwl2 = union_LPWL (PWL_list pwl1) pwl2"
+definition union_PIL :: "('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseIL" where
+"union_PIL pil1 pil2 = union_LPIL (PIL_list pil1) pil2"
 
-definition PWL_of_List :: "nat \<Rightarrow> ('n, 'a) item_Pt list \<Rightarrow> ('n, 'a) ParseWL" where
-"PWL_of_List k as = union_LPWL as (PWL_empty k)"
+definition PIL_of_List :: "nat \<Rightarrow> ('n, 'a) item_Pt list \<Rightarrow> ('n, 'a) parseIL" where
+"PIL_of_List k as = union_LPIL as (PIL_empty k)"
 
-fun minus_LPWL :: "nat \<Rightarrow> ('n, 'a) item_Pt list \<Rightarrow> ('n, 'a) ParseWL \<Rightarrow> ('n, 'a) ParseWL" where
-"minus_LPWL k [] pwl = PWL_empty k" |
-"minus_LPWL k (a#as) pwl = (if \<not>(ParseWL_isin pwl a) then ParseWL_insert (minus_LPWL k as pwl) a else minus_LPWL k as pwl)"
+fun minus_LPIL :: "nat \<Rightarrow> ('n, 'a) item_Pt list \<Rightarrow> ('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseIL" where
+"minus_LPIL k [] pil = PIL_empty k" |
+"minus_LPIL k (a#as) pil = (if \<not>(parseIL_isin pil a) then parseIL_insert a (minus_LPIL k as pil) else minus_LPIL k as pil)"
 
-definition minus_PWL :: "('n, 'a) ParseWL \<Rightarrow> ('n, 'a) ParseWL \<Rightarrow> ('n, 'a) ParseWL" where
-"minus_PWL pwl1 pwl2 = minus_LPWL (leng (fst pwl1)) (PWL_list pwl1) pwl2"
+definition minus_PIL :: "('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseIL" where
+"minus_PIL pil1 pil2 = minus_LPIL (length (froms (fst pil1)) - 1) (PIL_list pil1) pil2"
 
-fun PWL_first :: "('n,'a) ParseWL \<Rightarrow> ('n,'a) item_Pt" where
-"PWL_first (wl, t#ts) = (hd (list wl), t)"
+fun PIL_first :: "('n,'a) parseIL \<Rightarrow> ('n,'a) item_Pt" where
+"PIL_first (il, t#ts) = (hd (list il), t)"
 
-fun wf_PWL :: "('n,'a) ParseWL \<Rightarrow> nat \<Rightarrow> bool" where
-"wf_PWL pwl k = wf_parse_bin1 (set_ParseWL pwl) k"
+fun wf_PIL :: "('n,'a) parseIL \<Rightarrow> nat \<Rightarrow> bool" where
+"wf_PIL pil k = wf_parse_bin1 (set_parseIL pil) k"
 
-definition PWL_map_item :: "('n, 'a) ParseWL \<Rightarrow> ('n,'a) item list" where
-"PWL_map_item pwl = list (fst pwl)"
+definition PIL_map_item :: "('n, 'a) parseIL \<Rightarrow> ('n,'a) item list" where
+"PIL_map_item pil = list (fst pil)"
 
-subsection \<open>ParseWorkList lemmas\<close>
+subsection \<open>ParseItemList lemmas\<close>
 
-lemma [simp]: "list (WL_empty k) = []"
-  by (simp add: WL_empty_def)
+lemma [simp]: "list (IL_empty k) = []"
+  by (simp add: IL_empty_def)
 
-lemma [simp]: "isin wl x \<Longrightarrow> list (insert wl x) = list wl"
-  by (cases wl) auto
+lemma [simp]: "isin il x \<Longrightarrow> list (insert x il) = list il"
+  by (cases il) auto
 
-lemma [simp]: "\<not> isin wl x \<Longrightarrow> list (insert wl x) = x # (list wl)"
-  by (cases wl) (auto simp add: Let_def)
+lemma [simp]: "\<not> isin il x \<Longrightarrow> list (insert x il) = x # (list il)"
+  by (cases il) (auto simp add: Let_def)
 
-lemma PWL_first_in_set_PWL: 
-  assumes "pwl = (wl, ts)" "ts \<noteq> []" "ParseWL_inv pwl" shows "PWL_first pwl \<in> set_ParseWL pwl"
+lemma PIL_first_in_set_PIL: 
+  assumes "pil = (il, ts)" "ts \<noteq> []" "parseIL_inv pil" shows "PIL_first pil \<in> set_parseIL pil"
 proof-
-  obtain a as t tss where "list wl = a#as \<and> ts = t#tss"
-    using assms by (metis ParseWL_inv.simps T_last.cases length_0_conv)
+  obtain a as t tss where "list il = a#as \<and> ts = t#tss"
+    using assms by (metis parseIL_inv.simps T_last.cases length_0_conv)
   then show ?thesis using assms by auto
 qed
 
-lemma PWL_inv_empty: "ParseWL_inv (PWL_empty k)"
-  by (auto simp add: PWL_empty_def empty_inv)
+lemma PIL_inv_empty: "parseIL_inv (PIL_empty k)"
+  by (auto simp add: PIL_empty_def empty_inv)
 
-lemma wf_PWL_empty: "wf_PWL (PWL_empty k) n"
-  by (auto simp add: PWL_empty_def)
+lemma wf_PIL_empty: "wf_PIL (PIL_empty k) n"
+  by (auto simp add: PIL_empty_def)
 
-lemma PWL_inv_insert: "ParseWL_inv pwl \<Longrightarrow> ParseWL_inv (ParseWL_insert pwl x)"
-  by (cases pwl, cases x) (auto simp add: insert_WL_inv1)
+lemma length_PIL_empty[simp]: "length (froms (fst (PIL_empty k))) = Suc k" by (simp add: PIL_empty_def)
 
-lemma wf_PWL_insert: "wf_PWL pwl k \<Longrightarrow> wf_item_Pt1 x k \<Longrightarrow> wf_PWL (ParseWL_insert pwl x) k"
-  by(cases pwl, cases x) auto
+lemma PIL_inv_insert: "parseIL_inv pil \<Longrightarrow> from (item x) < length (froms (fst pil)) \<Longrightarrow> parseIL_inv (parseIL_insert x pil)"
+  by (cases pil, cases x) (auto simp add: insert_IL_inv1)
 
-lemma PWL_inv_union_LPWL: "ParseWL_inv pwl \<Longrightarrow> ParseWL_inv (union_LPWL xs pwl)"
-  by (cases pwl, induction xs) (auto simp add: PWL_inv_insert)
+lemma wf_PIL_insert: "wf_PIL pil k \<Longrightarrow> wf_item_Pt1 x k \<Longrightarrow> wf_PIL (parseIL_insert x pil) k"
+  by(cases pil, cases x) auto
 
-lemma wf_union_LPWL: "wf_PWL pwl k \<Longrightarrow> wf_parse_bin1 (set xs) k \<Longrightarrow> wf_PWL (union_LPWL xs pwl) k"
-  by (induction xs) (auto simp add: wf_PWL_insert simp del: wf_PWL.simps)
+lemma length_insert_parse[simp]: "length (froms (fst (parseIL_insert x pil))) = length (froms (fst pil))" 
+  by (cases pil, cases x) auto
 
-lemma PWL_inv_union_PWL: "ParseWL_inv pwl1 \<Longrightarrow> ParseWL_inv pwl2 \<Longrightarrow> ParseWL_inv (union_PWL pwl1 pwl2)"
-  by (auto simp add: PWL_inv_union_LPWL union_PWL_def)
+lemma length_union_LPIL[simp]: "length (froms (fst (union_LPIL xs pil))) = length (froms (fst pil))"
+  by (induction xs) auto
 
-lemma wf_union_PWL: "wf_PWL pwl1 k \<Longrightarrow> wf_PWL pwl2 k \<Longrightarrow> wf_PWL (union_PWL pwl1 pwl2) k"
-  by (metis Earley_Gw.wf_PWL.elims(1) Earley_Gw.wf_union_LPWL PWL_list.simps set_ParseWL.cases set_ParseWL.simps union_PWL_def)
+lemma PIL_inv_union_LPIL: "parseIL_inv pil \<Longrightarrow> \<forall>x \<in> set xs. from (item x) < length (froms (fst pil)) 
+  \<Longrightarrow> parseIL_inv (union_LPIL xs pil)"
+  by (cases pil, induction xs) (auto simp add: PIL_inv_insert)
 
-lemma PWL_inv_PWL_of_List: "ParseWL_inv (PWL_of_List k xs)"
-  by (simp add: PWL_inv_empty PWL_inv_union_LPWL PWL_of_List_def)
+lemma wf_union_LPIL: "wf_PIL pil k \<Longrightarrow> wf_parse_bin1 (set xs) k \<Longrightarrow> wf_PIL (union_LPIL xs pil) k"
+  by (induction xs) (auto simp add: wf_PIL_insert simp del: wf_PIL.simps)
 
-lemma wf_PWL_of_List: "wf_parse_bin1 (set xs) n \<Longrightarrow> wf_PWL (PWL_of_List k xs) n"
-  using PWL_of_List_def wf_PWL_empty wf_union_LPWL by presburger
+lemma PIL_inv_union_PIL: "parseIL_inv pil1 \<Longrightarrow> parseIL_inv pil2 \<Longrightarrow> length (froms (fst pil2)) \<ge> length (froms (fst pil1)) 
+  \<Longrightarrow> parseIL_inv (union_PIL pil1 pil2)"
+proof-
+  assume assms: "parseIL_inv pil1" "parseIL_inv pil2" "length (froms (fst pil2)) \<ge> length (froms (fst pil1))"
+  then obtain xs fs ts where PIL: "pil1 = (ItemList xs fs, ts)"
+    by (metis il_decomp set_parseIL.cases)
+  then have "\<forall>x \<in> set xs. from x < length (froms (fst pil2))" using assms(1,3) by auto
+  then have "\<forall>x \<in> set (zip xs ts). from (item x) < length (froms (fst pil2))" by (auto simp add: set_zip_leftD)
+  then show ?thesis using PIL_inv_union_LPIL[of pil2 "zip xs ts"] assms(2) by (auto simp add: union_PIL_def PIL)
+qed
 
-lemma PWL_inv_minus_LPWL: "ParseWL_inv (minus_LPWL k xs pwl)"
-  by (induction xs) (auto simp add: PWL_inv_empty PWL_inv_insert)
+lemma wf_union_PIL: "wf_PIL pil1 k \<Longrightarrow> wf_PIL pil2 k \<Longrightarrow> wf_PIL (union_PIL pil1 pil2) k"
+  by (metis Earley_Gw.wf_PIL.elims(1) Earley_Gw.wf_union_LPIL PIL_list.simps set_parseIL.cases set_parseIL.simps union_PIL_def)
 
-lemma wf_minus_LPWL: "wf_parse_bin1 (set xs) n \<Longrightarrow> wf_PWL (minus_LPWL k xs pwl) n"
-  by (induction xs) (auto simp add: wf_PWL_empty wf_PWL_insert simp del: wf_PWL.simps)
+lemma PIL_inv_PIL_of_List: "\<forall>x \<in> set xs. from (item x) < Suc k \<Longrightarrow> parseIL_inv (PIL_of_List k xs)"
+  using PIL_inv_empty PIL_inv_union_LPIL PIL_of_List_def by simp
 
-lemma PWL_inv_minus_PWL: "ParseWL_inv (minus_PWL pwl1 pwl2)"
-  by (simp add: PWL_inv_minus_LPWL minus_PWL_def)
+lemma wf_PIL_of_List: "wf_parse_bin1 (set xs) n \<Longrightarrow> wf_PIL (PIL_of_List k xs) n"
+  using PIL_of_List_def wf_PIL_empty wf_union_LPIL by presburger
 
-lemma wf_minus_PWL: "wf_PWL pwl1 k \<Longrightarrow> wf_PWL (minus_PWL pwl1 pwl2) k"
-  by (metis PWL_list.simps minus_PWL_def set_ParseWL.elims wf_PWL.elims(2) wf_minus_LPWL)
+lemma length_PIL_of_List[simp]: "length (froms (fst (PIL_of_List k xs))) = Suc k"
+  by (auto simp add: PIL_of_List_def)
 
-lemma PWL_map_item_Cons2: "ParseWL_inv pwl \<Longrightarrow> PWL_map_item pwl = a#as \<Longrightarrow> \<exists>x xs. snd pwl = x#xs"
-  using PWL_map_item_def
-  by (metis ParseWL_inv.simps length_Suc_conv prod.collapse)
+lemma length_minus_LPIL[simp]: "length (froms (fst (minus_LPIL k xs pil))) = Suc k" 
+  by (induction xs) auto
 
-lemma PWL_map_item_Cons1: "ParseWL_inv pwl \<Longrightarrow> PWL_map_item pwl = a#as \<Longrightarrow> \<exists>x xs l m. fst pwl = WorkList (x#xs) l m"
-  using PWL_map_item_Cons2
-  by (metis WorkList.exhaust WorkList.sel(1) PWL_map_item_def)
+lemma length_minus_PIL[simp]: "parseIL_inv pil1 \<Longrightarrow> length (froms (fst (minus_PIL pil1 pil2))) = length(froms (fst pil1))" 
+  by (cases pil1, cases "fst pil1") (auto simp add: minus_PIL_def)
 
-(*ParseWL operations are WorkList operations*)
-lemma [simp]: "fst (PWL_empty k) = WL_empty k"
-  by (simp add: PWL_empty_def)
-lemma [simp]: "fst (ParseWL_insert pwl x) = insert (fst pwl) (item x)"
-  by (cases pwl, cases x, cases "fst pwl") auto
-lemma [simp]: "fst (union_LPWL xs pwl) = union_LWL (map item xs) (fst pwl)"
-  by (cases pwl,  induction xs) auto
-lemma [simp]: "fst (minus_LPWL k xs pwl) = minus_LWL k (map item xs) (fst pwl)"
-  by (cases pwl, induction xs) (auto)
-lemma [simp]: "ParseWL_inv pwl1 \<Longrightarrow> fst (minus_PWL pwl1 pwl2) = minus_WL (fst pwl1) (fst pwl2)"
-  by (cases pwl1) (auto simp add: minus_PWL_def minus_WL_def)
+lemma PIL_inv_minus_LPIL: "\<forall>x \<in> set xs. from (item x) < Suc k \<Longrightarrow> parseIL_inv (minus_LPIL k xs pil)"
+  by (induction xs) (auto simp add: PIL_inv_empty PIL_inv_insert)
 
-lemma leng_PWL_insert: assumes "wf_item_Pt x (leng (fst pwl))" shows "leng (fst (ParseWL_insert pwl x)) = leng (fst pwl)"
-  using leng_WL_insert assms by (auto simp add: wf_item_def)
+lemma wf_minus_LPIL: "wf_parse_bin1 (set xs) n \<Longrightarrow> wf_PIL (minus_LPIL k xs pil) n"
+  by (induction xs) (auto simp add: wf_PIL_empty wf_PIL_insert simp del: wf_PIL.simps)
 
-lemma leng_LPWL_union: "wf_parse_bin1 (set xs) (leng (fst pwl)) \<Longrightarrow> leng (fst (union_LPWL xs pwl)) = leng (fst pwl)"
-  using leng_PWL_insert by (induction xs pwl rule: union_LPWL.induct) (auto simp add: wf_item1_def)
+lemma PIL_inv_minus_PIL: "parseIL_inv pil1 \<Longrightarrow> parseIL_inv (minus_PIL pil1 pil2)"
+proof-
+  assume assms: "parseIL_inv pil1"
+  obtain xs fs ts where PIL: "pil1 = (ItemList xs fs, ts)"
+    by (metis il_decomp set_parseIL.cases)
+  then have "\<forall>x \<in> set xs. from x < length (froms (fst pil1))" using assms by auto
+  then have "\<forall>x \<in> set (zip xs ts). from (item x) < length (froms (fst pil1))" by (auto simp add: set_zip_leftD)
+  moreover have "length fs > 0" using assms by (auto simp add: PIL)
+  ultimately show ?thesis using PIL_inv_minus_LPIL by (auto simp add: minus_PIL_def PIL)
+qed
+
+lemma wf_minus_PIL: "wf_PIL pil1 k \<Longrightarrow> wf_PIL (minus_PIL pil1 pil2) k"
+  by (metis PIL_list.simps minus_PIL_def set_parseIL.elims wf_PIL.elims(2) wf_minus_LPIL)
+
+lemma PIL_map_item_Cons2: "parseIL_inv pil \<Longrightarrow> PIL_map_item pil = a#as \<Longrightarrow> \<exists>x xs. snd pil = x#xs"
+  using PIL_map_item_def
+  by (metis parseIL_inv.simps length_Suc_conv prod.collapse)
+
+lemma PIL_map_item_Cons1: "parseIL_inv pil \<Longrightarrow> PIL_map_item pil = a#as \<Longrightarrow> \<exists>x xs m. fst pil = ItemList (x#xs) m"
+  using PIL_map_item_Cons2
+  by (metis efficientItemList.exhaust efficientItemList.sel(1) PIL_map_item_def)
+
+(*parseIL operations are ItemList operations*)
+lemma [simp]: "fst (PIL_empty k) = IL_empty k"
+  by (simp add: PIL_empty_def)
+lemma [simp]: "fst (parseIL_insert x pil) = insert (item x) (fst pil)"
+  by (cases pil, cases x, cases "fst pil") auto
+lemma [simp]: "fst (union_LPIL xs pil) = union_LIL (map item xs) (fst pil)"
+  by (cases pil,  induction xs) auto
+lemma [simp]: "fst (minus_LPIL k xs pil) = minus_LIL k (map item xs) (fst pil)"
+  by (cases pil, induction xs) (auto)
+lemma [simp]: "parseIL_inv pil1 \<Longrightarrow> fst (minus_PIL pil1 pil2) = minus_IL (fst pil1) (fst pil2)"
+  by (cases pil1) (auto simp add: minus_PIL_def minus_IL_def)
 
 
 lemma set_zip_eq_length_rule: "length xs = length ys \<Longrightarrow> \<forall>x \<in> set (zip xs ys). Q (fst x) \<Longrightarrow> \<forall>x \<in> set xs. Q x"
   by (induction xs ys rule: list_induct2) auto
 
-lemma wf_PWL_impl_wf1_WL: 
-  assumes "ParseWL_inv pwl" "wf_PWL pwl k" shows "wf1_WL (fst pwl) k"
+lemma wf_PIL_impl_wf1_IL: 
+  assumes "parseIL_inv pil" "wf_PIL pil k" shows "wf1_IL (fst pil) k"
 proof-
-  obtain as l m ts where "pwl = (WorkList as l m, ts)"
-    by (metis set_ParseWL.cases wl_decomp)
+  obtain as m ts where "pil = (ItemList as m, ts)"
+    by (metis set_parseIL.cases il_decomp)
   then show ?thesis using set_zip_eq_length_rule[of as ts "\<lambda>x. wf_item1 x k"] assms 
     by (auto simp add: wf_bin1_def)
 qed
 
-lemma length_fst_PWL: assumes "ParseWL_inv pwl" "wf_PWL pwl k"
-  shows "length (list (fst pwl)) \<le> L * Suc K * Suc k"
+lemma length_fst_PIL: assumes "parseIL_inv pil" "wf_PIL pil k"
+  shows "length (list (fst pil)) \<le> L * Suc K * Suc k"
 proof-
-  from assms have "wf_bin1 (set_WorkList (fst pwl)) k" using wf_PWL_impl_wf1_WL by auto
-  moreover have "distinct (list (fst pwl))" using assms by (cases pwl, cases "fst pwl") auto
+  from assms have "wf_bin1 (set_ItemList (fst pil)) k" using wf_PIL_impl_wf1_IL by auto
+  moreover have "distinct (list (fst pil))" using assms by (cases pil, cases "fst pil") auto
   ultimately show ?thesis using card_wf_bin1 distinct_card
     by fastforce
 qed
 
-lemma length_snd_PWL: assumes "ParseWL_inv pwl" "wf_PWL pwl k"
-  shows "length (snd pwl) \<le> L * Suc K * Suc k"
+lemma length_snd_PIL: assumes "parseIL_inv pil" "wf_PIL pil k"
+  shows "length (snd pil) \<le> L * Suc K * Suc k"
 proof-
-  from assms have "length (list (fst pwl)) \<le> L * Suc K * Suc k" using length_fst_PWL by simp
-  then show ?thesis using assms by (cases pwl) auto
+  from assms have "length (list (fst pil)) \<le> L * Suc K * Suc k" using length_fst_PIL by simp
+  then show ?thesis using assms by (cases pil) auto
 qed
 
 
@@ -2427,21 +2502,21 @@ definition Parse_Init_L :: "('n,'a) item_Pt list" where
 definition Parse_Scan_L :: "('n,'a) item_Pt list \<Rightarrow> nat \<Rightarrow> ('n,'a) item_Pt list" where
   "Parse_Scan_L Bs k = (let x = Some (Tm (w0 ! k)) in map (\<lambda> y. let (p,t) = y in (mv_dot p, (Sym (the x))#t)) (filter (\<lambda> y. let (p,t) = y in next_symbol p = x) Bs))"
 
-fun Parse_step_fun :: "('n, 'a) item_Pt list list \<Rightarrow>  ('n, 'a) ParseWL \<times> ('n, 'a) ParseWL \<Rightarrow> ('n, 'a) ParseWL \<times> ('n, 'a) ParseWL" where
-  "Parse_step_fun Bs ((wl1, []), pwl2) = undefined" |
-  "Parse_step_fun Bs ((wl1, ts1), pwl2) = (let b = PWL_first (wl1, ts1) in 
+fun Parse_step_fun :: "('n, 'a) item_Pt list list \<Rightarrow>  ('n, 'a) parseIL \<times> ('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseIL \<times> ('n, 'a) parseIL" where
+  "Parse_step_fun Bs ((il1, []), pil2) = undefined" |
+  "Parse_step_fun Bs ((il1, ts1), pil2) = (let b = PIL_first (il1, ts1) in 
     (let step = (if is_complete (item b) then Parse_Complete_L Bs b else Parse_Predict_L (item b) (length Bs)) in
-    ( minus_PWL (union_LPWL step (wl1, ts1)) (ParseWL_insert pwl2 b), ParseWL_insert pwl2 b) ))"
+    ( minus_PIL (union_LPIL step (il1, ts1)) (parseIL_insert b pil2), parseIL_insert b pil2) ))"
 
-definition Parse_steps :: "('n, 'a) item_Pt list list \<Rightarrow> ('n, 'a) ParseWL \<times> ('n, 'a) ParseWL \<Rightarrow> (('n, 'a) ParseWL \<times> ('n, 'a) ParseWL) option" where
-  "Parse_steps Bs BC = while_option (\<lambda>(B,C). PWL_map_item B \<noteq> []) (Parse_step_fun Bs) BC"
+definition Parse_steps :: "('n, 'a) item_Pt list list \<Rightarrow> ('n, 'a) parseIL \<times> ('n, 'a) parseIL \<Rightarrow> (('n, 'a) parseIL \<times> ('n, 'a) parseIL) option" where
+  "Parse_steps Bs BC = while_option (\<lambda>(B,C). PIL_map_item B \<noteq> []) (Parse_step_fun Bs) BC"
 
-definition Parse_close2_L :: "('n, 'a) item_Pt list list \<Rightarrow> ('n, 'a) ParseWL \<Rightarrow> ('n, 'a) item_Pt list" where
-"Parse_close2_L Bs B = PWL_list (snd (the (Parse_steps Bs (B, PWL_empty (length Bs)))))"
+definition Parse_close2_L :: "('n, 'a) item_Pt list list \<Rightarrow> ('n, 'a) parseIL \<Rightarrow> ('n, 'a) item_Pt list" where
+"Parse_close2_L Bs B = PIL_list (snd (the (Parse_steps Bs (B, PIL_empty (length Bs)))))"
 
 fun Parse_bins_L :: "nat \<Rightarrow> ('n,'a) item_Pt list list" where
-"Parse_bins_L 0 = [Parse_close2_L [] (PWL_of_List 0 Parse_Init_L)]" |
-"Parse_bins_L (Suc k) = (let Bs = Parse_bins_L k in Bs @ [Parse_close2_L Bs (PWL_of_List (length Bs) (Parse_Scan_L (last Bs) k))])"
+"Parse_bins_L 0 = [Parse_close2_L [] (PIL_of_List 0 Parse_Init_L)]" |
+"Parse_bins_L (Suc k) = (let Bs = Parse_bins_L k in Bs @ [Parse_close2_L Bs (PIL_of_List (length Bs) (Parse_Scan_L (last Bs) k))])"
 
 fun get_parse_tree :: "('n,'a) item_Pt list \<Rightarrow> ('n,'a) tree option" where
 "get_parse_tree [] = None" |
@@ -2514,62 +2589,7 @@ lemma wf1_Parse_Scan_L: "k < length w \<Longrightarrow> wf_parse_bin1 (set xs) k
   using PScanL_sub_PScan wf_parse_scan
   by (meson subset_code(1) wf_parse_bin1.elims(2,3))
 
-lemma PWL_inv_parse_step1: "pwl1 = (wl1, t#ts) \<Longrightarrow> Parse_step_fun Bs (pwl1, pwl2) = (pwl3, pwl4) \<Longrightarrow> ParseWL_inv pwl3"
-  using PWL_inv_minus_PWL by (fastforce simp add: Let_def)
-
-lemma PWL_inv_parse_step1': "PWL_map_item pwl1 \<noteq> [] \<Longrightarrow> Parse_step_fun Bs (pwl1, pwl2) = (pwl3, pwl4) \<Longrightarrow> ParseWL_inv pwl1 \<Longrightarrow> ParseWL_inv pwl3"
-  using PWL_inv_parse_step1 PWL_map_item_Cons2
-  by (metis eq_snd_iff neq_Nil_conv)
-
-lemma PWL_inv_parse_step2: "pwl1 = (wl1, t#ts) \<Longrightarrow> Parse_step_fun Bs (pwl1, pwl2) = (pwl3, pwl4) \<Longrightarrow> ParseWL_inv pwl2 \<Longrightarrow> ParseWL_inv pwl4"
-  using PWL_inv_insert by (fastforce simp add: Let_def)
-
-lemma PWL_inv_parse_step2': "PWL_map_item pwl1 \<noteq> [] \<Longrightarrow> Parse_step_fun Bs (pwl1, pwl2) = (pwl3, pwl4) \<Longrightarrow> ParseWL_inv pwl2 \<Longrightarrow> ParseWL_inv pwl1 \<Longrightarrow> ParseWL_inv pwl4"
-  using PWL_inv_parse_step2 PWL_map_item_Cons2
-  by (metis eq_snd_iff neq_Nil_conv)
-
-lemma Pstep_fun_eq_step_fun:
-  assumes step: "list wl1 \<noteq> []" "Parse_step_fun Bs (pwl1, pwl2) = (pwl3, pwl4)" "step_fun (map (map item) Bs) (wl1, wl2) = (wl3, wl4)"
-  and invs: "ParseWL_inv pwl1"
-  and wf: "wf_parse_bin1 (set_ParseWL pwl1) (length Bs)"
-  and eq_start: "fst pwl1 = wl1" "fst pwl2 = wl2"
-  shows "fst pwl3 = wl3 \<and> fst pwl4 = wl4"
-proof- 
-  from step obtain a as l m where P_wl1: "wl1 = WorkList (a#as) l m"
-    by (metis WorkList.sel(1) recognized_L.cases wl_decomp)
-  then obtain t ts where P_ts: "pwl1 = (wl1, t#ts)" using eq_start invs(1)
-    by (metis WorkList.sel(1) ParseWL_inv.simps Suc_length_conv fst_conv set_ParseWL.cases)
-  have "ParseWL_inv (union_LPWL (Parse_Predict_L a (length Bs)) pwl1)" using PWL_inv_union_LPWL invs by auto
-  moreover have "ParseWL_inv (union_LPWL (Parse_Complete_L Bs (a, t)) pwl1)" using PWL_inv_union_LPWL invs by auto
-  ultimately show ?thesis 
-    using step eq_start invs P_ts P_wl1 PPredict_L_eq_Predict_L PComplete_L_eq_Complete_L wf PWL_first_in_set_PWL 
-    by (auto simp add: Let_def wf_item1_def)
-qed
-
-lemma Pstep_fun_eq_step_fun1:
-  assumes step: "PWL_map_item pwl1 \<noteq> []" "Parse_step_fun Bs (pwl1, pwl2) = (pwl3, pwl4)"
-  and invs: "ParseWL_inv pwl1"
-  and wf: "wf_parse_bin1 (set_ParseWL pwl1) (length Bs)"
-shows "(let x = step_fun (map (map item) Bs) (fst pwl1, fst pwl2) in fst pwl3 = (fst x) \<and> fst pwl4 = (snd x))"
-  using Pstep_fun_eq_step_fun
-  by (metis PWL_map_item_def invs local.step(1,2) local.wf surjective_pairing)
-
-lemma Parse_steps_inv1: 
-  assumes inv: "ParseWL_inv pwl1"
-  and step: "Parse_steps Bs (pwl1,pwl2) = Some (pwl1', pwl2')"
-shows "ParseWL_inv pwl1'"
-  using while_option_rule[where P= "\<lambda>(pwl1,pwl2). ParseWL_inv pwl1"] PWL_inv_parse_step1' step inv unfolding Parse_steps_def
-  by (smt (verit, ccfv_SIG) case_prodE case_prodI2 case_prod_conv)
-
-lemma Parse_steps_inv2: 
-  assumes inv: "ParseWL_inv pwl2" "ParseWL_inv pwl1"
-  and step: "Parse_steps Bs (pwl1,pwl2) = Some (pwl1', pwl2')"
-shows "ParseWL_inv pwl2'"
-  using while_option_rule[where P= "\<lambda>(pwl1,pwl2). ParseWL_inv pwl2 \<and> ParseWL_inv pwl1"] PWL_inv_parse_step2' PWL_inv_parse_step1' step inv unfolding Parse_steps_def
-  by (smt (verit, ccfv_SIG) case_prodE case_prodI2 case_prod_conv)
-
 end
-
 
 context Earley_Gw_eps
 begin
@@ -2580,60 +2600,212 @@ lemma wf1_Parse_Predict_L: "wf_item_Pt1 s k \<Longrightarrow> wf_parse_bin1 (set
 lemma wf1_Parse_Init_L: "wf_parse_bin1 (set (Parse_Init_L)) 0"
   using \<epsilon>_free by (auto simp add: Parse_Init_L_def wf_item1_def wf_item_def slice_drop_take \<alpha>_def is_complete_def) 
 
-lemma wf_parse_step1: 
-  assumes "pwl1 = (wl1, t#ts)" "Parse_step_fun Bs (pwl1, pwl2) = (pwl3, pwl4)" 
-  and wf_parse: "wf_parse_bins1 (map set Bs)" "wf_PWL pwl1 (length Bs)" "ParseWL_inv pwl1" 
-shows "wf_PWL pwl3 (length Bs)"
+lemma forall_from_Suc_parse: "wf_parse_bin1 xs k \<Longrightarrow> \<forall>x \<in> xs. from (item x) < Suc k"
+  by (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
+
+lemma PIL_inv_parse_step1: "pil1 = (il1, t#ts) \<Longrightarrow> parseIL_inv pil1 \<Longrightarrow> wf_PIL pil1 (length Bs) 
+  \<Longrightarrow> length (froms (fst pil1)) = Suc (length Bs) \<Longrightarrow> wf_parse_bins1 (map set Bs) \<Longrightarrow> Parse_step_fun Bs (pil1, pil2) = (pil3, pil4) \<Longrightarrow> parseIL_inv pil3"
 proof-
-  let ?b = "PWL_first (wl1, t#ts)"
+  assume assms: "pil1 = (il1, t#ts)" "parseIL_inv pil1" "wf_PIL pil1 (length Bs)" "length (froms (fst pil1)) = Suc (length Bs)"
+    "Parse_step_fun Bs (pil1, pil2) = (pil3, pil4)" "wf_parse_bins1 (map set Bs)"
+  let ?b = "PIL_first pil1"
+  let ?step = "if is_complete (fst ?b) then Parse_Complete_L Bs ?b else Parse_Predict_L (item ?b) (length Bs)"
+  have "wf_item_Pt1 ?b (length Bs)" using assms PIL_first_in_set_PIL
+    by (meson list.discI wf_PIL.simps wf_parse_bin1.elims(2))
+  then have "wf_parse_bin1 (set ?step) (length Bs)" using wf1_Parse_Predict_L wf1_Parse_Complete_L assms
+    by (smt (verit, del_insts))
+  then have "parseIL_inv (union_LPIL ?step pil1)" 
+    using PIL_inv_union_LPIL assms(2,4) forall_from_Suc_parse by auto
+  then show "parseIL_inv pil3"
+    using PIL_inv_minus_PIL[of "union_LPIL ?step pil1" "(parseIL_insert (hd (list il1), t) pil2)"] 
+      assms(1,5) by (auto simp add: Let_def)
+qed
+
+lemma PIL_inv_parse_step1': "PIL_map_item pil1 \<noteq> [] \<Longrightarrow> parseIL_inv pil1 \<Longrightarrow> wf_PIL pil1 (length Bs) 
+  \<Longrightarrow> length (froms (fst pil1)) = Suc (length Bs) \<Longrightarrow> wf_parse_bins1 (map set Bs) 
+  \<Longrightarrow> Parse_step_fun Bs (pil1, pil2) = (pil3, pil4) \<Longrightarrow> parseIL_inv pil3"
+  using PIL_inv_parse_step1 PIL_map_item_Cons2
+  by (metis eq_snd_iff neq_Nil_conv)
+
+lemma PIL_inv_parse_step2: 
+  assumes "pil1 = (il1, t#ts)" "Parse_step_fun Bs (pil1, pil2) = (pil3, pil4)"
+  "parseIL_inv pil2" "parseIL_inv pil1" "length (froms (fst pil2)) = length (froms (fst pil1))"
+shows "parseIL_inv pil4"
+proof-
+  have "\<forall> x \<in> set (list il1). from x < length (froms (fst pil2))" using assms by (cases il1) auto
+  then have "\<forall> x \<in> set (zip (list il1) (t#ts)). from (item x) < length (froms (fst pil2))" 
+    by (auto simp add: set_zip_leftD)
+  moreover have "(hd (list il1), t) \<in> set (zip (list il1) (t#ts))"
+    by (metis PIL_first.simps PIL_first_in_set_PIL assms(1,4) list.distinct(1) set_parseIL.simps)
+  ultimately show ?thesis
+    using PIL_inv_insert assms by (fastforce simp add: Let_def)
+qed
+
+lemma PIL_inv_parse_step2': 
+  assumes "PIL_map_item pil1 \<noteq> []"  "Parse_step_fun Bs (pil1, pil2) = (pil3, pil4)"
+  "parseIL_inv pil2" "parseIL_inv pil1" "length (froms (fst pil2)) = length (froms (fst pil1))"
+shows "parseIL_inv pil4"
+  using PIL_inv_parse_step2 PIL_map_item_Cons2 assms
+  by (metis recognized_L.cases surjective_pairing)
+
+lemma Pstep_fun_eq_step_fun:
+  assumes step: "list il1 \<noteq> []" "Parse_step_fun Bs (pil1, pil2) = (pil3, pil4)" "step_fun (map (map item) Bs) (il1, il2) = (il3, il4)"
+  and invs: "parseIL_inv pil1"
+  and leng: "length (froms (fst pil1)) = Suc (length Bs)"
+  and wf: "wf_parse_bin1 (set_parseIL pil1) (length Bs)" "wf_parse_bins1 (map set Bs)"
+  and eq_start: "fst pil1 = il1" "fst pil2 = il2"
+  shows "fst pil3 = il3 \<and> fst pil4 = il4"
+proof- 
+  from step obtain a as m where P_il1: "il1 = ItemList (a#as) m"
+    by (metis efficientItemList.sel(1) recognized_L.cases il_decomp)
+  then obtain t ts where P_ts: "pil1 = (il1, t#ts)" using eq_start invs(1)
+    by (metis efficientItemList.sel(1) parseIL_inv.simps Suc_length_conv fst_conv set_parseIL.cases)
+  let ?step = "if is_complete a then Parse_Complete_L Bs (a, t) else Parse_Predict_L a (length Bs)"
+  have wf_at: "wf_item_Pt1 (a,t) (length Bs)" using wf P_il1 P_ts by auto
+  then have "wf_parse_bin1 (set ?step) (length Bs)"
+    using wf1_Parse_Predict_L wf1_Parse_Complete_L wf
+    by (smt (verit, ccfv_threshold) fst_conv)
+  then have "parseIL_inv (union_LPIL (?step) pil1)" 
+    using PIL_inv_union_LPIL invs forall_from_Suc_parse leng by auto
+  then show ?thesis 
+    using step eq_start invs P_ts P_il1 PPredict_L_eq_Predict_L PComplete_L_eq_Complete_L wf PIL_first_in_set_PIL 
+    by (auto simp add: Let_def wf_item1_def)
+qed
+
+lemma Pstep_fun_eq_step_fun1:
+  assumes step: "PIL_map_item pil1 \<noteq> []" "Parse_step_fun Bs (pil1, pil2) = (pil3, pil4)"
+  and invs: "parseIL_inv pil1"
+  and leng: "length (froms (fst pil1)) = Suc (length Bs)"
+  and wf: "wf_parse_bin1 (set_parseIL pil1) (length Bs)" "wf_parse_bins1 (map set Bs)"
+shows "(let x = step_fun (map (map item) Bs) (fst pil1, fst pil2) in fst pil3 = (fst x) \<and> fst pil4 = (snd x))"
+  using Pstep_fun_eq_step_fun
+  by (metis PIL_map_item_def invs leng local.step(1,2) local.wf surjective_pairing)
+
+lemma wf_parse_step1: 
+  assumes "pil1 = (il1, t#ts)" "Parse_step_fun Bs (pil1, pil2) = (pil3, pil4)" 
+  and wf_parse: "wf_parse_bins1 (map set Bs)" "wf_PIL pil1 (length Bs)" "parseIL_inv pil1" 
+shows "wf_PIL pil3 (length Bs)"
+proof-
+  let ?b = "PIL_first (il1, t#ts)"
   let ?step = "(if is_complete (item ?b) then Parse_Complete_L Bs ?b else Parse_Predict_L (item ?b) (length Bs))"
-  from assms have 3: "pwl3 = minus_PWL (union_LPWL ?step (wl1, t#ts)) (ParseWL_insert pwl2 ?b)" 
+  from assms have 3: "pil3 = minus_PIL (union_LPIL ?step (il1, t#ts)) (parseIL_insert ?b pil2)" 
     by (auto simp add: Let_def)
-  have "wf_item_Pt1 ?b (length Bs)" using wf_parse PWL_first_in_set_PWL assms by (auto simp del: wf_item_Pt1.simps PWL_first.simps)
+  have "wf_item_Pt1 ?b (length Bs)" using wf_parse PIL_first_in_set_PIL assms by (auto simp del: wf_item_Pt1.simps PIL_first.simps)
   then have "wf_parse_bin1 (set ?step) (length Bs)" using wf1_Parse_Complete_L wf1_Parse_Predict_L wf_parse
     by presburger
   then show ?thesis 
-  using wf_minus_PWL wf_union_LPWL 3 wf_parse assms(1) by blast
+  using wf_minus_PIL wf_union_LPIL 3 wf_parse assms(1) by blast
 qed
 
-lemma wf_parse_step1': "PWL_map_item pwl1 \<noteq> [] \<Longrightarrow> Parse_step_fun Bs (pwl1, pwl2) = (pwl3, pwl4) 
-  \<Longrightarrow> wf_parse_bins1 (map set Bs) \<Longrightarrow> wf_PWL pwl1 (length Bs) \<Longrightarrow> ParseWL_inv pwl1 \<Longrightarrow> wf_PWL pwl3 (length Bs)"
-  using wf_parse_step1 PWL_map_item_Cons2
+lemma wf_parse_step1': "PIL_map_item pil1 \<noteq> [] \<Longrightarrow> Parse_step_fun Bs (pil1, pil2) = (pil3, pil4) 
+  \<Longrightarrow> wf_parse_bins1 (map set Bs) \<Longrightarrow> wf_PIL pil1 (length Bs) \<Longrightarrow> parseIL_inv pil1 \<Longrightarrow> wf_PIL pil3 (length Bs)"
+  using wf_parse_step1 PIL_map_item_Cons2
   by (metis eq_snd_iff neq_Nil_conv)
 
 lemma wf_parse_step2: 
-  assumes "pwl1 = (wl1, t#ts)" "Parse_step_fun Bs (pwl1, pwl2) = (pwl3, pwl4)" 
-  and wf_parse: "wf_PWL pwl1 (length Bs)" "ParseWL_inv pwl1" "wf_PWL pwl2 (length Bs)" 
-  shows "wf_PWL pwl4 (length Bs)"
+  assumes "pil1 = (il1, t#ts)" "Parse_step_fun Bs (pil1, pil2) = (pil3, pil4)" 
+  and wf_parse: "wf_PIL pil1 (length Bs)" "parseIL_inv pil1" "wf_PIL pil2 (length Bs)" 
+  shows "wf_PIL pil4 (length Bs)"
 proof-
-  let ?b = "PWL_first (wl1, t#ts)"
-  from assms have 4: "pwl4 = ParseWL_insert pwl2 ?b" by (auto simp add: Let_def)
-  have "wf_item_Pt1 ?b (length Bs)" using wf_parse(1,2) PWL_first_in_set_PWL assms(1) 
-    by (auto simp del: wf_item_Pt1.simps PWL_first.simps)
-  then show ?thesis using wf_PWL_insert wf_parse(1) assms 4 by blast
+  let ?b = "PIL_first (il1, t#ts)"
+  from assms have 4: "pil4 = parseIL_insert ?b pil2" by (auto simp add: Let_def)
+  have "wf_item_Pt1 ?b (length Bs)" using wf_parse(1,2) PIL_first_in_set_PIL assms(1) 
+    by (auto simp del: wf_item_Pt1.simps PIL_first.simps)
+  then show ?thesis using wf_PIL_insert wf_parse(1) assms 4 by blast
 qed
 
-lemma wf_parse_step2': "PWL_map_item pwl1 \<noteq> [] \<Longrightarrow> Parse_step_fun Bs (pwl1, pwl2) = (pwl3, pwl4) 
-  \<Longrightarrow> wf_PWL pwl1 (length Bs) \<Longrightarrow> ParseWL_inv pwl1 \<Longrightarrow> wf_PWL pwl2 (length Bs) \<Longrightarrow> wf_PWL pwl4 (length Bs)"
-  using wf_parse_step2 PWL_map_item_Cons2
+lemma wf_parse_step2': "PIL_map_item pil1 \<noteq> [] \<Longrightarrow> Parse_step_fun Bs (pil1, pil2) = (pil3, pil4) 
+  \<Longrightarrow> wf_PIL pil1 (length Bs) \<Longrightarrow> parseIL_inv pil1 \<Longrightarrow> wf_PIL pil2 (length Bs) \<Longrightarrow> wf_PIL pil4 (length Bs)"
+  using wf_parse_step2 PIL_map_item_Cons2
   by (metis eq_snd_iff neq_Nil_conv)
 
+lemma length_parse_step1: 
+  assumes step: "pil1 = (il1, t#ts)" "Parse_step_fun Bs (pil1, pil2) = (pil3, pil4)"
+  and invs: "parseIL_inv pil1"
+  and leng: "length (froms (fst pil1)) = Suc (length Bs)"
+  and wf: "wf_PIL pil1 (length Bs)" "wf_parse_bins1 (map set Bs)"
+  shows "length (froms (fst pil3)) = length (froms (fst pil1))"
+proof- 
+  have "list il1 \<noteq> []" using invs step
+    by force
+  then obtain a as m where P_il1: "il1 = ItemList (a#as) m"
+    by (metis efficientItemList.sel(1) il_decomp recognized_L.cases)
+  let ?step = "if is_complete a then Parse_Complete_L Bs (a, t) else Parse_Predict_L a (length Bs)"
+  have wf_at: "wf_item_Pt1 (a,t) (length Bs)" using wf P_il1 step(1) by auto
+  then have "wf_parse_bin1 (set ?step) (length Bs)"
+    using wf1_Parse_Predict_L wf1_Parse_Complete_L wf
+    by (smt (verit, ccfv_threshold) fst_conv)
+  then have "parseIL_inv (union_LPIL (?step) pil1)" 
+    using PIL_inv_union_LPIL invs forall_from_Suc_parse leng by auto
+  then show ?thesis using length_union_LPIL length_minus_PIL[of "union_LPIL (?step) pil1"] step P_il1 
+    by (auto simp add: Let_def)
+qed
+
+lemma length_parse_step1': 
+  assumes "PIL_map_item pil1 \<noteq> []" "Parse_step_fun Bs (pil1, pil2) = (pil3, pil4)"
+  and invs: "parseIL_inv pil1"
+  and leng: "length (froms (fst pil1)) = Suc (length Bs)"
+  and wf: "wf_PIL pil1 (length Bs)" "wf_parse_bins1 (map set Bs)"
+  shows "length (froms (fst pil3)) = length (froms (fst pil1))"
+using length_parse_step1 PIL_map_item_Cons2 assms invs leng wf
+  by (metis eq_snd_iff neq_Nil_conv)
+
+lemma length_parse_step2: 
+  assumes step: "pil1 = (il1, t#ts)" "Parse_step_fun Bs (pil1, pil2) = (pil3, pil4)"
+shows "length (froms (fst pil4)) = length (froms (fst pil2))" 
+  using step by (auto simp add: Let_def)
+
+lemma length_parse_step2': 
+  assumes "PIL_map_item pil1 \<noteq> []" "Parse_step_fun Bs (pil1, pil2) = (pil3, pil4)" "parseIL_inv pil1"
+  shows "length (froms (fst pil4)) = length (froms (fst pil2))" 
+using length_parse_step2 PIL_map_item_Cons2 assms
+  by (metis eq_snd_iff neq_Nil_conv)
+
+lemma Parse_steps_inv1: 
+  assumes inv: "parseIL_inv pil1" and wf: "wf_PIL pil1 (length Bs)" "wf_parse_bins1 (map set Bs)"
+  and leng: "length (froms (fst pil1)) = Suc (length Bs)"
+  and step: "Parse_steps Bs (pil1,pil2) = Some (pil1', pil2')"
+shows "parseIL_inv pil1'"
+  using while_option_rule[where P= "\<lambda>(pil1,pil2). parseIL_inv pil1 \<and> wf_PIL pil1 (length Bs) \<and> wf_parse_bins1 (map set Bs) \<and> length (froms (fst pil1)) = Suc (length Bs)"] 
+    PIL_inv_parse_step1' wf_parse_step1' length_parse_step1' step inv leng wf unfolding Parse_steps_def
+  by (smt (verit, ccfv_SIG) case_prodE case_prodI2 case_prod_conv)
+
+lemma Parse_steps_inv2: 
+  assumes inv: "parseIL_inv pil2" "parseIL_inv pil1"
+  and leng: "length (froms (fst pil1)) = Suc (length Bs)" "length (froms (fst pil2)) = Suc (length Bs)"
+  and wf: "wf_PIL pil1 (length Bs)" "wf_parse_bins1 (map set Bs)"
+  and step: "Parse_steps Bs (pil1,pil2) = Some (pil1', pil2')"
+shows "parseIL_inv pil2'"
+  using while_option_rule[where P= "\<lambda>(pil1,pil2). parseIL_inv pil2 \<and> parseIL_inv pil1 
+      \<and> length (froms (fst pil1)) = Suc (length Bs) \<and> length (froms (fst pil2)) = Suc (length Bs)
+      \<and> wf_PIL pil1 (length Bs) \<and> wf_parse_bins1 (map set Bs)"] 
+    PIL_inv_parse_step2' PIL_inv_parse_step1' length_parse_step1' length_parse_step2' wf_parse_step1' 
+    step inv leng wf unfolding Parse_steps_def
+  by (smt (verit, ccfv_SIG) case_prodE case_prodI2 case_prod_conv)
+
+
 lemma Parse_steps_wf1: 
-  assumes wf: "wf_parse_bins1 (map set Bs)" "wf_PWL pwl1 (length Bs)"
-  and inv: "ParseWL_inv pwl1" 
-  and sf: "Parse_steps Bs (pwl1,pwl2) = Some (pwl1', pwl2')"  
-shows "wf_PWL pwl1' (length Bs)"
-  using while_option_rule[where P= "\<lambda>(pwl1,pwl2). wf_PWL pwl1 (length Bs) \<and> ParseWL_inv pwl1 \<and> wf_parse_bins1 (map set Bs)"] 
-    wf_parse_step1' step_fun_inv1_wl PWL_inv_parse_step1' wf sf inv unfolding Parse_steps_def
+  assumes wf: "wf_parse_bins1 (map set Bs)" "wf_PIL pil1 (length Bs)"
+  and inv: "parseIL_inv pil1" 
+  and leng: "length (froms (fst pil1)) = Suc (length Bs)"
+  and sf: "Parse_steps Bs (pil1,pil2) = Some (pil1', pil2')"  
+shows "wf_PIL pil1' (length Bs)"
+  using while_option_rule[where P= "\<lambda>(pil1,pil2). wf_PIL pil1 (length Bs) \<and> parseIL_inv pil1 
+      \<and> wf_parse_bins1 (map set Bs) \<and> length (froms (fst pil1)) = Suc (length Bs)"] 
+    wf_parse_step1' step_fun_inv1_il PIL_inv_parse_step1' length_parse_step1' wf sf inv leng unfolding Parse_steps_def
   by (smt (verit, ccfv_SIG) case_prodE case_prodI2 case_prod_conv)
 
 lemma Parse_steps_wf2: 
-  assumes wf: "wf_parse_bins1 (map set Bs)" "wf_PWL pwl1 (length Bs)" "wf_PWL pwl2 (length Bs)"
-  and inv: "ParseWL_inv pwl1" 
-  and sf: "Parse_steps Bs (pwl1,pwl2) = Some (pwl1', pwl2')"  
-shows "wf_PWL pwl2' (length Bs)"
-  using while_option_rule[where P= "\<lambda>(pwl1,pwl2). wf_PWL pwl2 (length Bs) \<and> wf_PWL pwl1 (length Bs) \<and> ParseWL_inv pwl1 \<and> wf_parse_bins1 (map set Bs)"] 
-    wf_parse_step1' wf_parse_step2' step_fun_inv1_wl PWL_inv_parse_step1' wf sf inv unfolding Parse_steps_def
+  assumes wf: "wf_parse_bins1 (map set Bs)" "wf_PIL pil1 (length Bs)" "wf_PIL pil2 (length Bs)"
+  and inv: "parseIL_inv pil1" 
+  and leng: "length (froms (fst pil1)) = Suc (length Bs)" "length (froms (fst pil2)) = Suc (length Bs)"
+  and sf: "Parse_steps Bs (pil1,pil2) = Some (pil1', pil2')"  
+shows "wf_PIL pil2' (length Bs)"
+  using while_option_rule[where P= "\<lambda>(pil1,pil2). wf_PIL pil2 (length Bs) \<and> wf_PIL pil1 (length Bs) 
+      \<and> parseIL_inv pil1 \<and> wf_parse_bins1 (map set Bs) \<and> length (froms (fst pil1)) = Suc (length Bs)
+      \<and> length (froms (fst pil2)) = Suc (length Bs)"] 
+    wf_parse_step1' wf_parse_step2' step_fun_inv1_il PIL_inv_parse_step1' length_parse_step1'
+    length_parse_step2' wf sf inv leng unfolding Parse_steps_def
   by (smt (verit, ccfv_SIG) case_prodE case_prodI2 case_prod_conv)
 
 lemma steps_one_step: "list a \<noteq> [] \<Longrightarrow> steps Bs (a,b) = Some (a',b') \<Longrightarrow> step_fun Bs (a,b) = (c,d) \<Longrightarrow> steps Bs (c,d) = Some (a',b')"
@@ -2641,64 +2813,72 @@ lemma steps_one_step: "list a \<noteq> [] \<Longrightarrow> steps Bs (a,b) = Som
   by (simp add: while_option_unfold)
 
 lemma Parse_steps_steps:
-  assumes step: "list wl1 \<noteq> []" "Parse_steps Bs (pwl1, pwl2) = Some (pwl3, pwl4)" "steps (map (map item) Bs) (wl1, wl2) = Some (wl3, wl4)"
-  and eq_start: "fst pwl1 = wl1" "fst pwl2 = wl2"
-  and invs: "ParseWL_inv pwl1"
-  and wf: "wf_parse_bin1 (set_ParseWL pwl1) (length Bs)" "wf_parse_bins1 (map set Bs)"
-shows "steps (map (map item) Bs) (fst pwl3, fst pwl4) = Some (wl3, wl4)"
+  assumes step: "list il1 \<noteq> []" "Parse_steps Bs (pil1, pil2) = Some (pil3, pil4)" "steps (map (map item) Bs) (il1, il2) = Some (il3, il4)"
+  and eq_start: "fst pil1 = il1" "fst pil2 = il2"
+  and leng: "length (froms (fst pil1)) = Suc (length Bs)"
+  and invs: "parseIL_inv pil1"
+  and wf: "wf_parse_bin1 (set_parseIL pil1) (length Bs)" "wf_parse_bins1 (map set Bs)"
+shows "steps (map (map item) Bs) (fst pil3, fst pil4) = Some (il3, il4)"
 proof-
-  let ?P = "\<lambda>(pwl3,pwl4). steps (map (map item) Bs) (fst pwl3, fst pwl4) = Some (wl3, wl4) \<and> ParseWL_inv pwl3 \<and> wf_parse_bin1 (set_ParseWL pwl3) (length Bs) \<and> wf_parse_bins1 (map set Bs)"
-  let ?b = "(\<lambda>(B,C). PWL_map_item B \<noteq> [])" 
+  let ?P = "\<lambda>(pil3,pil4). steps (map (map item) Bs) (fst pil3, fst pil4) = Some (il3, il4) \<and> parseIL_inv pil3 
+      \<and> wf_PIL pil3 (length Bs) \<and> wf_parse_bins1 (map set Bs) \<and> length (froms (fst pil3)) = Suc (length Bs)"
+  let ?b = "(\<lambda>(B,C). PIL_map_item B \<noteq> [])" 
   let ?c = "(Parse_step_fun Bs)"
   have "?P s \<Longrightarrow> ?b s \<Longrightarrow> ?P (?c s)" for s
   proof-
     assume P: "?P s" and b: "?b s"
-    then obtain wl1' ts1 wl2' ts2 wl3' ts3 wl4' ts4 where P_s: "s = ((wl1', ts1), (wl2', ts2)) \<and> Parse_step_fun Bs s = ((wl3', ts3), (wl4', ts4))"
+    then obtain il1' ts1 il2' ts2 il3' ts3 il4' ts4 where P_s: "s = ((il1', ts1), (il2', ts2)) \<and> Parse_step_fun Bs s = ((il3', ts3), (il4', ts4))"
       by (metis (no_types, opaque_lifting) T_fst.cases)
-    obtain wl5 wl6 where step_f: "step_fun (map (map item) Bs) (wl1', wl2') = (wl5, wl6)" using PWL_map_item_def
-      using T_union_WL.cases by blast
-    then have eq: "wl5 = wl3' \<and> wl6  = wl4'" using b P P_s 
-        Pstep_fun_eq_step_fun[of _ _ "(wl1', ts1)" "(wl2', ts2)" "(wl3', ts3)" "(wl4', ts4)" wl2' wl5 wl6]
-      by (auto simp add: PWL_map_item_def)
-    have 1: "ParseWL_inv (wl3', ts3) \<and> wf_parse_bin1 (set_ParseWL (wl3', ts3)) (length Bs) \<and> wf_parse_bins1 (map set Bs)"
-      using P b P_s PWL_inv_parse_step1' wf_parse_step1' by (auto simp del: wf_parse_bin1.simps)
-    have "list wl1' \<noteq> []" using b P_s by (auto simp add: PWL_map_item_def)
-    then show "?P (?c s)" using P 1 P_s eq step_f steps_one_step[of wl1' "(map (map item) Bs)" wl2' wl3 wl4] 
-      by (auto simp add:  simp del: wf_parse_bin1.simps)
+    obtain il5 il6 where step_f: "step_fun (map (map item) Bs) (il1', il2') = (il5, il6)" using PIL_map_item_def
+      using T_union_IL.cases by blast
+    then have eq: "il5 = il3' \<and> il6  = il4'" using b P P_s 
+        Pstep_fun_eq_step_fun[of _ _ "(il1', ts1)" "(il2', ts2)" "(il3', ts3)" "(il4', ts4)" il2' il5 il6]
+      by (auto simp add: PIL_map_item_def)
+    have 1: "parseIL_inv (il3', ts3) \<and> wf_parse_bin1 (set_parseIL (il3', ts3)) (length Bs) 
+        \<and> wf_parse_bins1 (map set Bs) \<and> length (froms (il3')) = Suc (length Bs) "
+      using P b P_s PIL_inv_parse_step1'[of "(il1', ts1)"] wf_parse_step1' length_parse_step1'
+      by (auto simp del: wf_parse_bin1.simps )
+    have "list il1' \<noteq> []" using b P_s by (auto simp add: PIL_map_item_def)
+    then show "?P (?c s)" using P 1 P_s eq step_f steps_one_step[of il1' "(map (map item) Bs)" il2' il3 il4] 
+       by (auto simp add:  simp del: wf_parse_bin1.simps)
   qed
   then show ?thesis
-  using while_option_rule[where P= ?P] using eq_start invs wf step unfolding Parse_steps_def
-  by blast
+  using while_option_rule[where P= ?P, where b= ?b, where c= ?c] using eq_start invs wf step leng unfolding Parse_steps_def
+  by (smt (verit) Parse_steps_def case_prod_conv wf_PIL.elims(1))
 qed
 
-theorem Parse_steps_NF: "wf_parse_bins1 (map set Bs) \<Longrightarrow> wf_PWL pwl1 (length Bs) \<Longrightarrow> wf_PWL pwl2 (length Bs) \<Longrightarrow> ParseWL_inv pwl1 \<Longrightarrow> ParseWL_inv pwl2 
-  \<Longrightarrow> \<exists>pwl1' pwl2'. Parse_steps Bs (pwl1,pwl2) = Some (pwl1',pwl2') "
+theorem Parse_steps_NF: "wf_parse_bins1 (map set Bs) \<Longrightarrow> wf_PIL pil1 (length Bs) 
+  \<Longrightarrow> wf_PIL pil2 (length Bs) \<Longrightarrow> parseIL_inv pil1 \<Longrightarrow> parseIL_inv pil2 
+  \<Longrightarrow> length (froms (fst pil1)) = Suc (length Bs) \<Longrightarrow> length (froms (fst pil2)) = Suc (length Bs)
+  \<Longrightarrow> \<exists>pil1' pil2'. Parse_steps Bs (pil1,pil2) = Some (pil1',pil2') "
 using wf_step_fun_less[of "length Bs"]
-proof (induction "(fst pwl1,fst pwl2)" arbitrary: pwl1 pwl2 rule: wf_induct_rule)
+proof (induction "(fst pil1,fst pil2)" arbitrary: pil1 pil2 rule: wf_induct_rule)
   case less
   show ?case
   proof cases
-    assume "list (fst pwl1) = []"
-    thus ?thesis by (simp add: while_option_unfold Parse_steps_def PWL_map_item_def)
+    assume "list (fst pil1) = []"
+    thus ?thesis by (simp add: while_option_unfold Parse_steps_def PIL_map_item_def)
   next
-    let ?steps = "while_option (\<lambda>(as,bs). PWL_map_item as \<noteq> []) (Parse_step_fun Bs)"
-    assume cons: "list (fst pwl1) \<noteq> []"
-    then obtain wl1 t ts where P_pwl1: "pwl1 = (wl1, t#ts)" using less.prems(4)
-      by (metis PWL_map_item_Cons2 PWL_map_item_def list.exhaust surjective_pairing)
-    then obtain pwl1' pwl2'
-      where P_step: "(pwl1',pwl2') = Parse_step_fun Bs (pwl1,pwl2)"
+    let ?steps = "while_option (\<lambda>(as,bs). PIL_map_item as \<noteq> []) (Parse_step_fun Bs)"
+    assume cons: "list (fst pil1) \<noteq> []"
+    then obtain il1 t ts where P_pil1: "pil1 = (il1, t#ts)" using less.prems(4)
+      by (metis PIL_map_item_Cons2 PIL_map_item_def list.exhaust surjective_pairing)
+    then obtain pil1' pil2'
+      where P_step: "(pil1',pil2') = Parse_step_fun Bs (pil1,pil2)"
       by (metis T_fst.cases)
-    then have wf_inv: "wf_PWL pwl1' (length Bs)" "wf_PWL pwl2' (length Bs)" "ParseWL_inv pwl1'" "ParseWL_inv pwl2'"
-      using wf_parse_step1 wf_parse_step2 PWL_inv_parse_step1 PWL_inv_parse_step2 less.prems P_pwl1
-      by (metis, metis, metis, metis)
+    then have wf_inv: "wf_PIL pil1' (length Bs)" "wf_PIL pil2' (length Bs)" "parseIL_inv pil1'" "parseIL_inv pil2'"
+      "length (froms (fst pil1')) = Suc (length Bs)" "length (froms (fst pil2')) = Suc (length Bs)"
+      using wf_parse_step1 wf_parse_step2 PIL_inv_parse_step1 PIL_inv_parse_step2 
+        length_parse_step1 length_parse_step2 less.prems P_pil1
+      by (metis, metis, metis, metis, metis, metis)
       
-    from P_step have step_f: "(fst pwl1',fst pwl2') = step_fun (map (map item) Bs) (fst pwl1, fst pwl2)"
-      using less.prems Pstep_fun_eq_step_fun1[of pwl1 Bs pwl2 pwl1' pwl2'] cons unfolding PWL_map_item_def by (auto simp add: Let_def)
-    have "wf1_WL (fst pwl1) (length Bs) \<and> wf1_WL (fst pwl2) (length Bs)"
-      using less.prems wf_PWL_impl_wf1_WL by (cases pwl1, cases pwl2) (auto simp del: wf_PWL.simps ParseWL_inv.simps)
-    then have "((fst pwl1',fst pwl2'), (fst pwl1, fst pwl2)) \<in> step_fun_less (length Bs)" 
-      using less.prems step_fun_less_step[of "fst pwl1" "(map (map item) Bs)" "fst pwl2"] \<open>list (fst pwl1) \<noteq> []\<close> step_f 
-      by (cases pwl1, cases pwl2) (auto simp add: wf_parse_bins1_def wf_bins1_def wf_bin1_def)
+    from P_step have step_f: "(fst pil1',fst pil2') = step_fun (map (map item) Bs) (fst pil1, fst pil2)"
+      using less.prems Pstep_fun_eq_step_fun1[of pil1 Bs pil2 pil1' pil2'] cons unfolding PIL_map_item_def by (auto simp add: Let_def)
+    have "wf1_IL (fst pil1) (length Bs) \<and> wf1_IL (fst pil2) (length Bs)"
+      using less.prems wf_PIL_impl_wf1_IL by (cases pil1, cases pil2) (auto simp del: wf_PIL.simps parseIL_inv.simps)
+    then have "((fst pil1',fst pil2'), (fst pil1, fst pil2)) \<in> step_fun_less (length Bs)" 
+      using less.prems step_fun_less_step[of "fst pil1" "(map (map item) Bs)" "fst pil2"] \<open>list (fst pil1) \<noteq> []\<close> step_f 
+      by (cases pil1, cases pil2) (auto simp add: wf_parse_bins1_def wf_bins1_def wf_bin1_def)
     from less.hyps[OF this \<open>wf_parse_bins1 (map set Bs)\<close> wf_inv]
     show ?thesis
       by (simp add: P_step while_option_unfold Parse_steps_def)
@@ -2706,46 +2886,49 @@ proof (induction "(fst pwl1,fst pwl2)" arbitrary: pwl1 pwl2 rule: wf_induct_rule
 qed
 
 lemma Pclose2_L_eq_close2_L: 
-  assumes "wf_parse_bins1 (map set Bs)" "wf_PWL pwl1 (length Bs)" "ParseWL_inv pwl1"
-  shows "map item (Parse_close2_L Bs pwl1) = close2_L (map (map item) Bs) (fst pwl1)"
+  assumes "wf_parse_bins1 (map set Bs)" "wf_PIL pil1 (length Bs)" "parseIL_inv pil1" 
+    "length (froms (fst pil1)) = Suc (length Bs)"
+  shows "map item (Parse_close2_L Bs pil1) = close2_L (map (map item) Bs) (fst pil1)"
 proof-
-  obtain pwl3 pwl4 where P_steps: "Parse_steps Bs (pwl1, PWL_empty (length Bs)) = Some (pwl3, pwl4)"
-    using assms Parse_steps_NF PWL_inv_empty wf_PWL_empty by blast
-  then have P_pwl3: "wf_PWL pwl3 (length Bs) \<and> ParseWL_inv pwl3 \<and> list (fst pwl3) = []"
-    using Parse_steps_wf1 Parse_steps_inv1 while_option_stop assms unfolding Parse_steps_def PWL_map_item_def
+  obtain pil3 pil4 where P_steps: "Parse_steps Bs (pil1, PIL_empty (length Bs)) = Some (pil3, pil4)"
+    using assms Parse_steps_NF PIL_inv_empty wf_PIL_empty length_PIL_empty by blast
+  then have P_pil3: "wf_PIL pil3 (length Bs) \<and> parseIL_inv pil3 \<and> list (fst pil3) = []"
+    using Parse_steps_wf1 Parse_steps_inv1 while_option_stop assms unfolding Parse_steps_def PIL_map_item_def
     by (metis (mono_tags, lifting) case_prodI)
-  from P_steps have inv_pwl4: "ParseWL_inv pwl4" using PWL_inv_empty Parse_steps_inv2 assms by blast
+  from P_steps have inv_pil4: "parseIL_inv pil4" 
+    using PIL_inv_empty wf_PIL_empty length_PIL_empty Parse_steps_inv2 assms by blast
   from assms have "wf_bins1 (map set (map (map item) Bs))" using wf_parse_bins1_impl_bins1[of "map set Bs"] 
     by (auto simp add: wf_bins1_def)
-  then obtain wl3 wl4 where steps: "steps (map (map item) Bs) (fst pwl1, WL_empty (length Bs)) = Some (wl3, wl4)"
-    using assms Close2_L_NF[of "(map (map item) Bs)" "fst pwl1" "WL_empty (length Bs)"] wf_PWL_impl_wf1_WL[of "pwl1" "length Bs"] set_WL_empty
-    by (cases pwl1) (auto simp add: wf_bin1_def empty_inv)
-  have "fst pwl3 = wl3 \<and> fst pwl4 = wl4"
-  proof (cases "list (fst pwl1) = []")
+  then obtain il3 il4 where steps: "steps (map (map item) Bs) (fst pil1, IL_empty (length Bs)) = Some (il3, il4)"
+    using assms Close2_L_NF[of "(map (map item) Bs)" "fst pil1" "IL_empty (length Bs)"] wf_PIL_impl_wf1_IL[of "pil1" "length Bs"] set_IL_empty
+    by (cases pil1) (auto simp add: wf_bin1_def empty_inv)
+  have "fst pil3 = il3 \<and> fst pil4 = il4"
+  proof (cases "list (fst pil1) = []")
     case True
-    then show ?thesis using P_steps steps unfolding Parse_steps_def steps_def PWL_map_item_def
+    then show ?thesis using P_steps steps unfolding Parse_steps_def steps_def PIL_map_item_def
       by (auto simp add: while_option_unfold)
   next
     case False
-    then have "steps (map (map item) Bs) (fst pwl3, fst pwl4) = Some (wl3, wl4)"
-      using Parse_steps_steps assms P_steps steps P_pwl3 by auto
-    then show ?thesis using P_pwl3 unfolding steps_def by (auto simp add: while_option_unfold)
+    then have "steps (map (map item) Bs) (fst pil3, fst pil4) = Some (il3, il4)"
+      using Parse_steps_steps assms P_steps steps P_pil3 by auto
+    then show ?thesis using P_pil3 unfolding steps_def by (auto simp add: while_option_unfold)
   qed
-  then show ?thesis using P_steps steps inv_pwl4 unfolding Parse_close2_L_def close2_L_def 
-    by (cases pwl4) auto
+  then show ?thesis using P_steps steps inv_pil4 unfolding Parse_close2_L_def close2_L_def 
+    by (cases pil4) auto
 qed
 
-lemma set_PWL_list_eq_set_PWL[simp]: "set (PWL_list pwl) = set_ParseWL pwl"
-  by (cases pwl) auto
+lemma set_PIL_list_eq_set_PIL[simp]: "set (PIL_list pil) = set_parseIL pil"
+  by (cases pil) auto
 
 lemma wf_Parse_close2_L: 
-  assumes "wf_parse_bins1 (map set Bs)" "wf_PWL pwl (length Bs)" "ParseWL_inv pwl" 
-  shows "wf_parse_bin1 (set (Parse_close2_L Bs pwl)) (length Bs)"
+  assumes "wf_parse_bins1 (map set Bs)" "wf_PIL pil (length Bs)" "parseIL_inv pil" 
+      "length (froms (fst pil)) = Suc (length Bs)"
+  shows "wf_parse_bin1 (set (Parse_close2_L Bs pil)) (length Bs)"
 proof-
-  obtain pwl3 pwl4 where P: "Parse_steps Bs (pwl, PWL_empty (length Bs)) = Some (pwl3, pwl4)"
-    using assms Parse_steps_NF wf_PWL_empty PWL_inv_empty by blast
-  then have "wf_PWL pwl4 (length Bs)" using Parse_steps_wf2 assms
-    using wf_PWL_empty by blast
+  obtain pil3 pil4 where P: "Parse_steps Bs (pil, PIL_empty (length Bs)) = Some (pil3, pil4)"
+    using assms Parse_steps_NF wf_PIL_empty PIL_inv_empty length_PIL_empty by blast
+  then have "wf_PIL pil4 (length Bs)" using Parse_steps_wf2 assms
+    using wf_PIL_empty length_PIL_empty by blast
   then show ?thesis unfolding Parse_close2_L_def P by (auto simp del: wf_parse_bin1.simps)
 qed
 
@@ -2755,7 +2938,8 @@ lemma length_Parse_bins[simp]: "length (Parse_bins_L k) = Suc k"
 lemma wf_parse_bins_L: "k \<le> length w \<Longrightarrow> wf_parse_bins1 (map set (Parse_bins_L k))"
 proof (induction k)
   case 0
-  then show ?case using wf_PWL_of_List wf_Parse_close2_L[of "[]"] wf1_Parse_Init_L PWL_inv_PWL_of_List
+  then show ?case using wf_PIL_of_List wf_Parse_close2_L[of "[]"] 
+      wf1_Parse_Init_L PIL_inv_PIL_of_List[OF forall_from_Suc_parse] 
     by (auto simp add: wf_parse_bins1_def simp del: wf_parse_bin1.simps)
 next
   case (Suc k)
@@ -2763,8 +2947,9 @@ next
     by (metis length_0_conv nat.distinct(1))
   then have "wf_parse_bin1 (set (last (Parse_bins_L k))) k" using Suc length_Parse_bins wf_parse_bins1_def 
     by (auto simp add: last_conv_nth simp del: wf_parse_bin1.simps)
-  then have 1: "wf_parse_bin1 (set (Parse_close2_L (Parse_bins_L k) (PWL_of_List (Suc k) (Parse_Scan_L (last (Parse_bins_L k)) k)))) (Suc k)"
-    using Suc wf_PWL_of_List wf_Parse_close2_L[of "Parse_bins_L k"] wf1_Parse_Scan_L PWL_inv_PWL_of_List
+  then have 1: "wf_parse_bin1 (set (Parse_close2_L (Parse_bins_L k) (PIL_of_List (Suc k) (Parse_Scan_L (last (Parse_bins_L k)) k)))) (Suc k)"
+    using Suc wf_PIL_of_List wf_Parse_close2_L[of "Parse_bins_L k"] wf1_Parse_Scan_L 
+        PIL_inv_PIL_of_List[OF forall_from_Suc_parse]
     by (auto simp del: wf_parse_bin1.simps)
 
   show ?case unfolding wf_parse_bins1_def
@@ -2789,9 +2974,10 @@ qed
 lemma Parse_bins_L_eq_bins_L: "k \<le> length w \<Longrightarrow> map (map item) (Parse_bins_L k) = bins_L k"
 proof (induction k)
   case 0
-  have "fst (PWL_of_List 0 Parse_Init_L) = WL_of_List 0 Init_L"
-    using Parse_Init_L_eq_Init_L by (auto simp add: PWL_of_List_def WL_of_List_def)
-  then show ?case using Pclose2_L_eq_close2_L[of "[]" "PWL_of_List 0 Parse_Init_L"] PWL_inv_PWL_of_List wf_PWL_of_List wf1_Parse_Init_L
+  have "fst (PIL_of_List 0 Parse_Init_L) = IL_of_List 0 Init_L"
+    using Parse_Init_L_eq_Init_L by (auto simp add: PIL_of_List_def IL_of_List_def)
+  then show ?case using Pclose2_L_eq_close2_L[of "[]" "PIL_of_List 0 Parse_Init_L"] 
+      PIL_inv_PIL_of_List[OF forall_from_Suc_parse] wf_PIL_of_List wf1_Parse_Init_L
     by (auto simp add: wf_parse_bins1_def simp del: wf_parse_bin1.simps)
 next
   case (Suc k)
@@ -2803,13 +2989,13 @@ next
   then have "wf_parse_bin1 (set (last (Parse_bins_L k))) k" using Suc cons by (auto simp add: last_conv_nth wf_parse_bins1_def)
   then have wf_Scan: "wf_parse_bin1 (set (Parse_Scan_L (last (Parse_bins_L k)) k)) (Suc k)"
     using wf1_Parse_Scan_L Suc by (auto simp del: wf_parse_bin1.simps)
-  let ?pwl = "PWL_of_List (Suc k) (Parse_Scan_L (last (Parse_bins_L k)) k)"
-  let ?wl = "WL_of_List (Suc k) (Scan_L (last (bins_L k)) k)"
-  have "fst ?pwl = ?wl"
-    using Parse_Scan_L_eq_Scan_L last_eq by (auto simp add: PWL_of_List_def WL_of_List_def)
-  then have "map item (Parse_close2_L (Parse_bins_L k) ?pwl) = close2_L (bins_L k) ?wl"
-    using Suc Pclose2_L_eq_close2_L PWL_inv_PWL_of_List wf_PWL_of_List wf_Scan
-    using "1" Suc_leD length_Parse_bins by presburger
+  let ?pil = "PIL_of_List (Suc k) (Parse_Scan_L (last (Parse_bins_L k)) k)"
+  let ?il = "IL_of_List (Suc k) (Scan_L (last (bins_L k)) k)"
+  have "fst ?pil = ?il"
+    using Parse_Scan_L_eq_Scan_L last_eq by (auto simp add: PIL_of_List_def IL_of_List_def)
+  then have "map item (Parse_close2_L (Parse_bins_L k) ?pil) = close2_L (bins_L k) ?il"
+    using Suc Pclose2_L_eq_close2_L PIL_inv_PIL_of_List[OF forall_from_Suc_parse] wf_PIL_of_List wf_Scan
+    using "1" Suc_leD length_Parse_bins length_PIL_of_List by metis
   then show ?case using Suc 1 by (auto simp add: Let_def length_bins_L)
 qed
 
@@ -2907,15 +3093,15 @@ subsection \<open>Time_fun defs and simple bounds\<close>
 
 context Earley_Gw_eps_T
 begin
-time_fun PWL_empty
-time_fun ParseWL_insert
-time_fun union_LPWL
-time_fun ParseWL_isin
-time_fun minus_LPWL
-time_fun PWL_list
-time_fun minus_PWL
-time_fun PWL_of_List
-time_fun PWL_first
+time_fun PIL_empty
+time_fun parseIL_insert
+time_fun union_LPIL
+time_fun parseIL_isin
+time_fun minus_LPIL
+time_fun PIL_list
+time_fun minus_PIL
+time_fun PIL_of_List
+time_fun PIL_first
 
 time_fun Parse_Complete_L
 time_fun Parse_Scan_L
@@ -2925,7 +3111,7 @@ time_fun Parse_step_fun
 lemma T_rev_tree: 
   assumes "wf_item_Pt item_Pt k" shows "T_rev (tree item_Pt) \<le> 2 * K * K + 1" 
 proof-
-  obtain lh rh d T_nth_WL t where P: "item_Pt = (Item (lh, rh) d T_nth_WL, t)"
+  obtain lh rh d T_nth_IL t where P: "item_Pt = (Item (lh, rh) d T_nth_IL, t)"
     by (metis item.exhaust surj_pair)
   have "map root (rev t) = take d rh" using assms P by (auto simp add: \<alpha>_def rhs_def)
   then have "length t = length (take d rh)"
@@ -2938,14 +3124,14 @@ proof-
   finally show ?thesis using P by simp
 qed
 
-lemma [simp]: "ParseWL_inv pwl \<Longrightarrow> T_PWL_list pwl = (length (snd pwl)) + 1"
-  using T_zip by (cases pwl) auto
+lemma [simp]: "parseIL_inv pil \<Longrightarrow> T_PIL_list pil = (length (snd pil)) + 1"
+  using T_zip by (cases pil) auto
 
 lemma [simp]: 
-  assumes "snd pwl \<noteq> []" "ParseWL_inv pwl" shows "T_PWL_first pwl = 0"
+  assumes "snd pil \<noteq> []" "parseIL_inv pil" shows "T_PIL_first pil = 0"
 proof-
-  obtain as l m b bs where P1: "pwl = (WorkList as l m, (b#bs))"
-    using assms by (metis T_last.cases set_ParseWL.cases snd_conv wl_decomp)
+  obtain as m b bs where P1: "pil = (ItemList as m, (b#bs))"
+    using assms by (metis T_last.cases set_parseIL.cases snd_conv il_decomp)
   then have "as \<noteq> []" using assms by auto
   then obtain a ass where "as = a#ass"
     by (meson recognized_L.cases)
@@ -2953,114 +3139,124 @@ proof-
 qed
 
 (*assumes that the stop condition check takes 0 time*)
-fun parse_steps_time :: "('a, 'b) item_Pt list list \<Rightarrow> ('a, 'b) ParseWL \<times> ('a, 'b) ParseWL \<Rightarrow> nat \<Rightarrow> ((('a, 'b) ParseWL \<times> ('a, 'b) ParseWL) \<times> nat) option" where
-"parse_steps_time Bs wls y = while_option (\<lambda>((B,C),k). PWL_map_item B \<noteq> []) (\<lambda>((B,C),k). (Parse_step_fun Bs (B,C), k + T_Parse_step_fun Bs (B,C))) (wls, y)"
+fun parse_steps_time :: "('a, 'b) item_Pt list list \<Rightarrow> ('a, 'b) parseIL \<times> ('a, 'b) parseIL \<Rightarrow> nat \<Rightarrow> ((('a, 'b) parseIL \<times> ('a, 'b) parseIL) \<times> nat) option" where
+"parse_steps_time Bs ils y = while_option (\<lambda>((B,C),k). PIL_map_item B \<noteq> []) (\<lambda>((B,C),k). (Parse_step_fun Bs (B,C), k + T_Parse_step_fun Bs (B,C))) (ils, y)"
 
-fun T_Parse_steps :: "('a, 'b) item_Pt list list \<Rightarrow> ('a, 'b) ParseWL \<times> ('a, 'b) ParseWL \<Rightarrow> nat" where
-"T_Parse_steps Bs wls = snd (the (parse_steps_time Bs wls 0))"
+fun T_Parse_steps :: "('a, 'b) item_Pt list list \<Rightarrow> ('a, 'b) parseIL \<times> ('a, 'b) parseIL \<Rightarrow> nat" where
+"T_Parse_steps Bs ils = snd (the (parse_steps_time Bs ils 0))"
 
 
 time_fun Parse_close2_L
 time_fun Parse_bins_L
 
-subsection \<open>ParseWorkList time bounds\<close>
+subsection \<open>ParseItemList time bounds\<close>
 
-lemma PWL_T_insert_simp: "T_ParseWL_insert pwl x \<le> T_isin (fst pwl) (fst x) + T_insert (fst pwl) (fst x)"
-  by (cases pwl, cases x) simp
-corollary PWL_T_insert_bound: "distinct ps \<Longrightarrow> WL_inv (fst pwl) \<Longrightarrow> wf1_WL (fst pwl) k \<Longrightarrow> from (fst x) < Suc (leng (fst pwl)) 
-  \<Longrightarrow> T_ParseWL_insert pwl x \<le> 4 * T_nth_WL (from (fst x)) + 2* L * Suc K + 2"
-  using T_isin_wf[of "fst pwl" k "fst x"] T_insert_less[of "fst pwl" k  "fst x"] PWL_T_insert_simp[of pwl x] 
+lemma PIL_T_insert_simp: "T_parseIL_insert x pil \<le> T_isin (fst pil) (fst x) + T_insert (fst x) (fst pil)"
+  by (cases pil, cases x) simp
+
+corollary PIL_T_insert_bound: "distinct ps \<Longrightarrow> IL_inv (fst pil) \<Longrightarrow> wf1_IL (fst pil) k \<Longrightarrow> from (fst x) <  length (froms (fst pil)) 
+  \<Longrightarrow> T_parseIL_insert x pil \<le> 4 * T_nth_IL (from (fst x)) + 2* L * Suc K + 2"
+  using T_isin_wf[of "fst pil" k "fst x"] T_insert_less[of "fst pil" k  "fst x"] PIL_T_insert_simp[of x pil]
   by auto
 
-lemma T_union_LPWL_bound: "distinct ps \<Longrightarrow> ParseWL_inv pwl \<Longrightarrow> wf_parse_bin1 (set xs) (leng (fst pwl)) \<Longrightarrow> wf_PWL pwl (leng (fst pwl))
-  \<Longrightarrow> T_union_LPWL xs pwl \<le> length xs * (4 * T_nth_WL (leng (fst pwl)) + 2* L * Suc K + 2) + length xs + 1"
+lemma T_union_LPIL_bound: "distinct ps \<Longrightarrow> parseIL_inv pil \<Longrightarrow> wf_parse_bin1 (set xs) (length (froms (fst pil)) - 1) \<Longrightarrow> wf_PIL pil (length (froms (fst pil)) - 1)
+  \<Longrightarrow> T_union_LPIL xs pil \<le> length xs * (4 * T_nth_IL (length (froms (fst pil)) - 1) + 2* L * Suc K + 2) + length xs + 1"
 proof(induction xs)
   case Nil
   then show ?case by simp
 next
   case (Cons a xs)
-  then have ih: "T_union_LPWL xs pwl \<le> length xs * (4 * T_nth_WL (leng (fst pwl)) + 2 * L * Suc K + 2) + length xs + 1"
+  then have ih: "T_union_LPIL xs pil \<le> length xs * (4 * T_nth_IL (length (froms (fst pil)) - 1) + 2 * L * Suc K + 2) + length xs + 1"
     by simp
 
-  from Cons have 1: "WL_inv (fst pwl)" by (cases pwl) auto
-  then have 2: "WL_inv (union_LWL (map item xs) (fst pwl))"
-    by (simp add: LWL_union_inv)
+  from Cons have 1: "IL_inv (fst pil)" by (cases pil) auto
+  then have from_xs: "\<forall>a\<in>set (map item xs). from a < length (froms (fst pil))" 
+    using forall_from_Suc_parse[OF Cons(4)] by (cases "fst pil") (auto simp del: wf_parse_bin1.simps)
+  then have 2: "IL_inv (union_LIL (map item xs) (fst pil))"
+    using LIL_union_inv Cons(3) by (cases pil) auto
 
-  have a_le_leng: "from (fst a) \<le> leng (fst pwl)" using Cons by (auto simp add: wf_item1_def wf_item_def)
+  have a_le_leng: "from (fst a) < length (froms (fst pil))" 
+    using forall_from_Suc_parse[OF Cons(4)] 1 by (cases "fst pil") (auto simp del: wf_parse_bin1.simps)
+  then have 4: "from (fst a) \<le> length (froms (fst pil)) - 1" by auto
   
-  have "wf1_WL (fst pwl) (leng (fst pwl))" using Cons wf_PWL_impl_wf1_WL[of pwl "leng (fst pwl)"] by auto
-  then have 3: "wf_bin1 (set (list (union_LWL (map item xs) (fst pwl)))) (leng (fst pwl))" 
-    using 1 Cons wf1_WL_union_LWL[of "fst pwl" "leng (fst pwl)" "map item xs"] by (auto simp add: wf_bin1_def)
-  have 4: "from (item a) < Suc (leng (union_LWL (map item xs) (fst pwl)))" using Cons leng_LWL_union[of "map item xs" "fst pwl"] le_imp_less_Suc 
-    by (auto simp add: wf_item1_def wf_item_def)
-  from 2 3 4 have "T_ParseWL_insert (union_LPWL xs pwl) a \<le> 4 * T_nth_WL (from (fst a)) + 2* L * Suc K + 2"
-    using "Cons.prems"(1) PWL_T_insert_bound[of "(union_LPWL xs pwl)" "leng (fst pwl)" a] 
-    by (auto simp add: wf_item1_def wf_item_def)
-  then have "T_ParseWL_insert (union_LPWL xs pwl) a \<le> 4 * T_nth_WL (leng (fst pwl)) + 2* L * Suc K + 2"
-    using mono_nth a_le_leng monoD[of T_nth_WL "from (fst a)" "leng (fst pwl)"] by (auto simp add: algebra_simps)
+  have "wf1_IL (fst pil) (length (froms (fst pil)) - 1)" using Cons wf_PIL_impl_wf1_IL[of pil "length (froms (fst pil)) - 1"] by auto
+  then have 3: "wf_bin1 (set (list (union_LIL (map item xs) (fst pil)))) (length (froms (fst pil)) - 1)" 
+    using 1 Cons from_xs wf1_IL_union_LIL[of "fst pil" "length (froms (fst pil)) - 1" "map item xs"] 
+    by (auto simp add: wf_bin1_def)
+  from 2 3 have "T_parseIL_insert a (union_LPIL xs pil) \<le> 4 * T_nth_IL (from (fst a)) + 2* L * Suc K + 2"
+    using "Cons.prems"(1) PIL_T_insert_bound[of "(union_LPIL xs pil)" "length (froms (fst pil)) - 1" a]
+    a_le_leng by (auto simp add: wf_item1_def wf_item_def)
+  then have "T_parseIL_insert a (union_LPIL xs pil) \<le> 4 * T_nth_IL (length (froms (fst pil)) - 1) + 2* L * Suc K + 2"
+    using mono_nth 4 monoD[of T_nth_IL "from (fst a)" "length (froms (fst pil)) - 1"] by (auto simp add: algebra_simps)
   then show ?case using ih by (auto simp add: algebra_simps)
 qed
 
-lemma T_minus_LPWL_bound: "distinct ps \<Longrightarrow> ParseWL_inv pwl \<Longrightarrow> wf_parse_bin1 (set xs) k \<Longrightarrow> wf_PWL pwl k
- \<Longrightarrow> T_minus_LPWL k xs pwl \<le> length xs * (5 * T_nth_WL k + 3 * L * Suc K + 3) + length xs + k + 2"
-proof(induction k xs pwl rule: T_minus_LPWL.induct)
-  case (1 k pwl)
+lemma T_minus_LPIL_bound: "distinct ps \<Longrightarrow> parseIL_inv pil \<Longrightarrow> wf_parse_bin1 (set xs) k \<Longrightarrow> wf_PIL pil k
+  \<Longrightarrow> length (froms (fst pil)) \<ge> Suc k
+ \<Longrightarrow> T_minus_LPIL k xs pil \<le> length xs * (5 * T_nth_IL k + 3 * L * Suc K + 3) + length xs + k + 3"
+proof(induction k xs pil rule: T_minus_LPIL.induct)
+  case (1 k pil)
   then show ?case by simp
 next
-  case (2 k a as pwl)
-  then have ih: "T_minus_LPWL k as pwl \<le> length as * (5 * T_nth_WL k + 3 * L * Suc K + 3) + length as + k + 2"
+  case (2 k a as pil)
+  then have ih: "T_minus_LPIL k as pil \<le> length as * (5 * T_nth_IL k + 3 * L * Suc K + 3) + length as + k + 3"
     by auto
 
-  from 2 have 3: "WL_inv (fst pwl)" by (cases pwl) auto
-  have 4: "WL_inv (minus_LWL k (map item as) (fst pwl))"
-    by (simp add: LWL_minus_inv)
+  from 2 have 3: "IL_inv (fst pil)" by (cases pil) auto
+  have 4: "IL_inv (minus_LIL k (map item as) (fst pil))"
+    using LIL_minus_inv forall_from_Suc_parse "2"(5) by auto
 
   have a_le_k: "from (fst a) \<le> k" using 2 by (auto simp add: wf_item1_def wf_item_def)
+  have from_l: "\<forall>a\<in>set (map item as). from a < Suc k" using forall_from_Suc_parse "2"(5) by auto
   
-  have "wf1_WL (fst pwl) k" using 2 wf_PWL_impl_wf1_WL[of pwl k] by auto
-  then have 5: "wf_bin1 (set (list (minus_LWL k (map item as) (fst pwl)))) k" 
-    using 2 3 wf1_WL_minus_LWL[of "fst pwl" "map item as" k k] by (auto simp add: wf_bin1_def)
-  have 6: "from (item a) < Suc (leng (minus_LWL k (map item as) (fst pwl)))" using 2 leng_minus_LWL[of "map item as" k] le_imp_less_Suc 
+  have "wf1_IL (fst pil) k" using 2 wf_PIL_impl_wf1_IL[of pil k] by auto
+  then have 5: "wf_bin1 (set (list (minus_LIL k (map item as) (fst pil)))) k" 
+    using 2 3 from_l wf1_IL_minus_LIL[of "fst pil" "map item as" k k] by (auto simp add: wf_bin1_def)
+  have 6: "from (item a) < (length (froms (minus_LIL k (map item as) (fst pil))))" 
+    using 2 le_imp_less_Suc 
     by (auto simp add: wf_item1_def wf_item_def)
 
-  from 4 5 6 have "T_ParseWL_insert (minus_LPWL k as pwl) a \<le> 4 * T_nth_WL (from (fst a)) + 2* L * Suc K + 2"
-    using "2.prems"(1) PWL_T_insert_bound[of "(minus_LPWL k as pwl)" k a] 
+  from 4 5 6 have "T_parseIL_insert a (minus_LPIL k as pil) \<le> 4 * T_nth_IL (from (fst a)) + 2* L * Suc K + 2"
+    using "2.prems"(1) PIL_T_insert_bound[of "(minus_LPIL k as pil)" k a] 
     by (auto simp add: wf_item1_def wf_item_def)
-  then have 7: "T_ParseWL_insert (minus_LPWL k as pwl) a \<le> 4 * T_nth_WL k + 2* L * Suc K + 2"
-    using mono_nth a_le_k monoD[of T_nth_WL "from (fst a)" k] by (auto simp add: algebra_simps)
+  then have 7: "T_parseIL_insert a (minus_LPIL k as pil) \<le> 4 * T_nth_IL k + 2* L * Suc K + 2"
+    using mono_nth a_le_k monoD[of T_nth_IL "from (fst a)" k] by (auto simp add: algebra_simps)
 
-  have "T_isin (fst pwl) (fst a) \<le> T_nth_WL (from (fst a)) + L * Suc K + 1"
+  have "T_isin (fst pil) (fst a) \<le> T_nth_IL (from (fst a)) + L * Suc K + 1"
     using T_isin_wf
-    using "2.prems"(1) "3" \<open>wf1_WL (fst pwl) k\<close> by blast
-  then have "T_ParseWL_isin pwl a \<le> T_nth_WL (from (fst a)) + L * Suc K + 1" by (cases pwl, cases a) auto
-  then have "T_ParseWL_isin pwl a \<le> T_nth_WL k + L * Suc K + 1" 
-    using mono_nth a_le_k monoD[of T_nth_WL "from (fst a)" k] by (auto simp add: algebra_simps)
+    using "2.prems"(1,5) "3" \<open>wf1_IL (fst pil) k\<close> a_le_k by auto
+  then have "T_parseIL_isin pil a \<le> T_nth_IL (from (fst a)) + L * Suc K + 1" by (cases pil, cases a) auto
+  then have "T_parseIL_isin pil a \<le> T_nth_IL k + L * Suc K + 1" 
+    using mono_nth a_le_k monoD[of T_nth_IL "from (fst a)" k] by (auto simp add: algebra_simps)
 
 
   then show ?case using ih 7 by (auto simp add: algebra_simps)
 qed
 
-lemma T_minus_PWL_bound: 
-  assumes "distinct ps" "ParseWL_inv pwl1" "ParseWL_inv pwl2" "wf_PWL pwl1 (leng (fst pwl1))" "wf_PWL pwl2 (leng (fst pwl1))"
-  shows "T_minus_PWL pwl1 pwl2 \<le> length (snd pwl1) * (5 * T_nth_WL (leng (fst pwl1)) + 3 * L * Suc K + 3) + 2 * length (snd pwl1) + (leng (fst pwl1)) + 3"
+lemma T_minus_PIL_bound: 
+  assumes "distinct ps" "parseIL_inv pil1" "parseIL_inv pil2" "wf_PIL pil1 (length (froms (fst pil1)) - 1)" 
+    "wf_PIL pil2 (length (froms (fst pil1)) - 1)" "length (froms (fst pil1)) \<le> length (froms (fst pil2))"
+  shows "T_minus_PIL pil1 pil2 \<le> length (snd pil1) * (5 * T_nth_IL (length (froms (fst pil1)) - 1) + 3 * L * Suc K + 3) + 2 * length (snd pil1) + 2 * (length (froms (fst pil1))) + 4"
 proof-
-  have "T_PWL_list pwl1 = length (snd pwl1) + 1" using assms by auto
+  have 1: "length (froms (fst pil1)) > 0" using assms(2) by (cases pil1, cases "fst pil1") auto
 
-  moreover have "T_minus_LPWL (leng (fst pwl1)) (PWL_list pwl1) pwl2 
-    \<le> length (PWL_list pwl1) * (5 * T_nth_WL (leng (fst pwl1)) + 3 * L * Suc K + 3) + length (PWL_list pwl1) + (leng (fst pwl1)) + 2" 
-    using assms T_minus_LPWL_bound[of pwl2 "PWL_list pwl1" "leng (fst pwl1)"] wf_PWL_impl_wf1_WL by auto
-  moreover have "length (PWL_list pwl1) = length (snd pwl1)" using assms by (cases pwl1) auto
-  ultimately show ?thesis by (auto simp add: algebra_simps)
+  have "T_PIL_list pil1 = length (snd pil1) + 1" using assms by auto
+
+  moreover have "T_minus_LPIL (length (froms (fst pil1)) - 1) (PIL_list pil1) pil2 
+    \<le> length (PIL_list pil1) * (5 * T_nth_IL (length (froms (fst pil1)) - 1) + 3 * L * Suc K + 3) + length (PIL_list pil1) + (length (froms (fst pil1)) - 1) + 3" 
+    using assms 1 T_minus_LPIL_bound[of pil2 "PIL_list pil1" "length (froms (fst pil1)) - 1"] wf_PIL_impl_wf1_IL by auto
+  moreover have "length (PIL_list pil1) = length (snd pil1)" using assms by (cases pil1) auto
+  ultimately show ?thesis using 1 by (auto simp add: algebra_simps T_length)
 qed
 
-lemma T_PWL_of_List_bound: 
+lemma T_PIL_of_List_bound: 
   assumes "distinct ps" "wf_parse_bin1 (set xs) k"
-  shows "T_PWL_of_List k xs \<le> length xs * (4 * T_nth_WL k + 2* L * Suc K + 2) + length xs + k + 2"
+  shows "T_PIL_of_List k xs \<le> length xs * (4 * T_nth_IL k + 2* L * Suc K + 2) + length xs + k + 3"
 proof-
-  have "ParseWL_inv (PWL_empty k)" and "wf_PWL (PWL_empty k) k"
-    using wf_PWL_empty by (auto simp add: PWL_inv_empty)
-  then have "T_union_LPWL xs (PWL_empty k) \<le> length xs * (4 * T_nth_WL k + 2* L * Suc K + 2) + length xs + 1"
-    using T_union_LPWL_bound[of "PWL_empty k"] assms by auto
+  have "parseIL_inv (PIL_empty k)" and "wf_PIL (PIL_empty k) k"
+    using wf_PIL_empty by (auto simp add: PIL_inv_empty)
+  then have "T_union_LPIL xs (PIL_empty k) \<le> length xs * (4 * T_nth_IL k + 2* L * Suc K + 2) + length xs + 1"
+    using T_union_LPIL_bound[of "PIL_empty k"] assms by auto
   then show ?thesis by auto
 qed
 
@@ -3135,10 +3331,11 @@ qed
 
 
 lemma [simp]: 
-  assumes "ParseWL_inv (wl, t#ts)" shows "T_PWL_first (wl, t#ts) = 0"
+  assumes "parseIL_inv (il, t#ts)" shows "T_PIL_first (il, t#ts) = 0"
 proof-
-  obtain x xs l m where "wl = WorkList (x#xs) l m" using assms
-    by (metis ParseWL_inv.simps length_0_conv neq_Nil_conv upsize_list upsize_list1 wl_decomp)
+  from assms have "list il \<noteq> []" by auto
+  then obtain x xs m where "il = ItemList (x#xs) m"
+    by (metis efficientItemList.sel(1) il_decomp recognized_L.cases)    
   then show ?thesis by auto
 qed
 
@@ -3149,26 +3346,26 @@ lemma parse_predict_length: "length (Parse_Predict_L s n) \<le> L"
   by (auto simp add: Parse_Predict_L_def L_def)
 
 lemma T_parse_step_fun_bound: 
-  assumes cons: "PWL_map_item pwl1 \<noteq> []"
+  assumes cons: "PIL_map_item pil1 \<noteq> []"
   and dist: "distinct ps"
-  and invs: "ParseWL_inv pwl1" "ParseWL_inv pwl2"
-  and lengs: "leng (fst pwl1) = length Bs" "leng (fst pwl2) = length Bs"
-  and wf1: "wf_parse_bin1 (set_ParseWL pwl1) (length Bs)" "wf_parse_bin1 (set_ParseWL pwl2) (length Bs)" "wf_parse_bins1 (map set Bs)"
+  and invs: "parseIL_inv pil1" "parseIL_inv pil2"
+  and lengs: "length (froms (fst pil1)) =  Suc (length Bs)" "length (froms (fst pil2)) =  Suc (length Bs)"
+  and wf1: "wf_parse_bin1 (set_parseIL pil1) (length Bs)" "wf_parse_bin1 (set_parseIL pil2) (length Bs)" "wf_parse_bins1 (map set Bs)"
   and max_bin_size: "\<forall>i < length Bs. length (Bs ! i) \<le> C"
-shows "T_Parse_step_fun Bs (pwl1,pwl2) 
-    \<le> (2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 3)
-    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_WL (length Bs) + 3 * L * Suc K + 7)
+shows "T_Parse_step_fun Bs (pil1,pil2) 
+    \<le> (2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
+    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
     + 9 * Suc K * L + 12"
 proof-
-  from cons invs obtain x xs l m t ts where P_pwl1: "pwl1 = (WorkList (x#xs) l m, (t#ts))"
-    by (metis PWL_map_item_Cons1 PWL_map_item_Cons2 prod.collapse recognized_L.cases)
-  obtain wl2 ts2 where P_pwl2: "pwl2 = (wl2, ts2)"
-    using set_ParseWL.cases by blast
-  let ?b = "PWL_first (WorkList (x#xs) l m, (t#ts))"
+  from cons invs obtain x xs m t ts where P_pil1: "pil1 = (ItemList (x#xs) m, (t#ts))"
+    by (metis PIL_map_item_Cons1 PIL_map_item_Cons2 prod.collapse recognized_L.cases)
+  obtain il2 ts2 where P_pil2: "pil2 = (il2, ts2)"
+    using set_parseIL.cases by blast
+  let ?b = "PIL_first (ItemList (x#xs) m, (t#ts))"
   have b_simp: "?b = (x,t)" by simp
 
-  have wf1_b: "wf_item_Pt1 ?b (length Bs)" using wf1 PWL_first_in_set_PWL P_pwl1 by auto
-  then have 1: "T_is_complete (item ?b) \<le> K + 1" using T_is_complete_bound prod_length_bound P_pwl1 
+  have wf1_b: "wf_item_Pt1 ?b (length Bs)" using wf1 PIL_first_in_set_PIL P_pil1 by auto
+  then have 1: "T_is_complete (item ?b) \<le> K + 1" using T_is_complete_bound prod_length_bound P_pil1 
     by (auto simp add: wf_item1_def wf_item_def)
 
   have 2: "is_complete (item ?b) \<longrightarrow> T_Parse_Complete_L Bs ?b \<le> length Bs +  (2 * K * K + 2 * K + 5) * C + 2"
@@ -3187,155 +3384,159 @@ proof-
     by (auto simp add: wf_item1_def)
   have wf_step: "wf_parse_bin1 (set ?step) (length Bs)"
     using wf1(3) wf1_Parse_Complete_L wf1_Parse_Predict_L wf1_b by presburger  
-  then have "T_union_LPWL ?step pwl1 \<le> length ?step * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 2) + length ?step + 1"
-    using T_union_LPWL_bound[of pwl1 ?step] dist invs wf1 by (auto simp add: lengs simp del: wf_parse_bin1.simps)
-  also have "... \<le> (max C L) * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 2) + (max C L) + 1"
+  then have "T_union_LPIL ?step pil1 \<le> length ?step * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 2) + length ?step + 1"
+    using T_union_LPIL_bound[of pil1 ?step] dist invs wf1 by (auto simp add: lengs simp del: wf_parse_bin1.simps)
+  also have "... \<le> (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 2) + (max C L) + 1"
     using length_step using mult_le_mono1[of "length ?step" "max C L"]
     by (meson add_le_mono le_numeral_extra(4))
-  finally have 4: "T_union_LPWL ?step pwl1 \<le> (max C L) * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 2) + (max C L) + 1".
+  finally have 4: "T_union_LPIL ?step pil1 \<le> (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 2) + (max C L) + 1".
 
-  have "from (item ?b) < Suc (leng wl2)" using lengs wf1_b P_pwl2 by (auto simp add: wf_item1_def wf_item_def)
-  then have "T_ParseWL_insert pwl2 ?b \<le> 4 * T_nth_WL (from (item ?b)) + 2 * L * Suc K + 2"
-    using PWL_T_insert_bound[of pwl2 "length Bs" ?b] dist invs wf1 P_pwl2 wf_PWL_impl_wf1_WL by auto
-  also have "... \<le> 4 * T_nth_WL (length Bs) + 2 * L * Suc K + 2" using mono_nth wf1_b 
+  have from_b: "from (item ?b) < (length (froms il2))" using lengs wf1_b P_pil2 by (auto simp add: wf_item1_def wf_item_def)
+  then have "T_parseIL_insert ?b pil2 \<le> 4 * T_nth_IL (from (item ?b)) + 2 * L * Suc K + 2"
+    using PIL_T_insert_bound[of pil2 "length Bs" ?b] dist invs wf1 P_pil2 wf_PIL_impl_wf1_IL by auto
+  also have "... \<le> 4 * T_nth_IL (length Bs) + 2 * L * Suc K + 2" using mono_nth wf1_b 
     by (auto simp add: monoD wf_item1_def wf_item_def)
-  finally have 5: "T_ParseWL_insert pwl2 ?b \<le> 4 * T_nth_WL (length Bs) + 2 * L * Suc K + 2".
+  finally have 5: "T_parseIL_insert ?b pil2 \<le> 4 * T_nth_IL (length Bs) + 2 * L * Suc K + 2".
   
-  have wf_PWL_union: "wf_PWL (union_LPWL ?step pwl1) (length Bs)" 
-    using wf1(1) wf_step wf_union_LPWL[of pwl1 "length Bs" ?step] by simp
-  moreover have inv_union: "ParseWL_inv (union_LPWL ?step pwl1)" using PWL_inv_union_LPWL invs(1) 
-    by auto
-  ultimately have length_snd_union: "length (snd(union_LPWL ?step pwl1)) \<le> L * Suc K * Suc (length Bs)" 
-    using length_snd_PWL[of "union_LPWL ?step pwl1" "length Bs"] by simp
+  have wf_PIL_union: "wf_PIL (union_LPIL ?step pil1) (length Bs)" 
+    using wf1(1) wf_step wf_union_LPIL[of pil1 "length Bs" ?step] by simp
+  moreover have inv_union: "parseIL_inv (union_LPIL ?step pil1)" using PIL_inv_union_LPIL invs(1) 
+    using forall_from_Suc_parse lengs(1) wf_step by auto 
+  ultimately have length_snd_union: "length (snd(union_LPIL ?step pil1)) \<le> L * Suc K * Suc (length Bs)" 
+    using length_snd_PIL[of "union_LPIL ?step pil1" "length Bs"] by simp
 
-  have wf_PWL_insert: "wf_PWL (ParseWL_insert pwl2 ?b) (length Bs)" 
-    using wf_PWL_insert[of pwl2 "length Bs" ?b] wf1(2) wf1_b by fastforce
-  have inv_insert: "ParseWL_inv (ParseWL_insert pwl2 ?b)" 
-    using PWL_inv_insert[of pwl2 ?b] invs(2) by auto
-  let ?length_list = "length (snd (union_LPWL ?step pwl1))"
-  let ?leng_wl = "leng (fst (union_LPWL ?step pwl1))"
-  have "T_minus_PWL (union_LPWL ?step pwl1) (ParseWL_insert pwl2 ?b)
-    \<le>?length_list * (5 * T_nth_WL (?leng_wl) + 3 * L * Suc K + 3) + 2 * ?length_list + ?leng_wl + 3" 
-    using T_minus_PWL_bound[of "union_LPWL ?step pwl1" "ParseWL_insert pwl2 ?b"]
-      wf_PWL_union inv_union wf_PWL_insert inv_insert dist leng_PWL_insert[of ?b pwl1] leng_LPWL_union[of ?step pwl1] lengs
-    by (metis wf_step)
-  also have "... \<le> L * Suc K * Suc (length Bs) * (5 * T_nth_WL (length Bs) + 3 * L * Suc K + 3) + 2 * L * Suc K * Suc (length Bs) + length Bs + 3"
-    using mult_le_mono1[of ?length_list "L * Suc K * Suc (length Bs)" "(5 * T_nth_WL (length Bs) + 3 * L * Suc K + 3)"] 
+  have wf_PIL_insert: "wf_PIL (parseIL_insert ?b pil2) (length Bs)" 
+    using wf_PIL_insert[of pil2 "length Bs" ?b] wf1(2) wf1_b by fastforce
+  have inv_insert: "parseIL_inv (parseIL_insert ?b pil2)" 
+    using PIL_inv_insert[of pil2 ?b] invs(2) from_b P_pil2 by auto
+  let ?length_list = "length (snd (union_LPIL ?step pil1))"
+  let ?leng_il = "length (froms (fst (union_LPIL ?step pil1))) - 1"
+  have "T_minus_PIL (union_LPIL ?step pil1) (parseIL_insert ?b pil2)
+    \<le>?length_list * (5 * T_nth_IL (?leng_il) + 3 * L * Suc K + 3) + 2 * ?length_list + 2*?leng_il + 6" 
+    using T_minus_PIL_bound[of "union_LPIL ?step pil1" "parseIL_insert ?b pil2"]
+      wf_PIL_union inv_union wf_PIL_insert inv_insert dist length_union_LPIL[of ?step pil1] length_insert_parse[of ?b pil1] lengs
+    wf_step by auto
+  also have "... \<le> L * Suc K * Suc (length Bs) * (5 * T_nth_IL (length Bs) + 3 * L * Suc K + 3) + 2 * L * Suc K * Suc (length Bs) + 2*length Bs + 6"
+    using mult_le_mono1[of ?length_list "L * Suc K * Suc (length Bs)" "(5 * T_nth_IL (length Bs) + 3 * L * Suc K + 3)"] 
       mult_le_mono2[of ?length_list "L * Suc K * Suc (length Bs)" 2] 
-      wf_step leng_LPWL_union[of ?step pwl1] add_mult_distrib lengs(1) length_snd_union by auto
-  finally have 6: "T_minus_PWL (union_LPWL ?step pwl1) (ParseWL_insert pwl2 ?b) \<le>
-    L * Suc K * Suc (length Bs) * (5 * T_nth_WL (length Bs) + 3 * L * Suc K + 3) + 2 * L * Suc K * Suc (length Bs) + length Bs + 3".
+      wf_step length_union_LPIL[of ?step pil1] add_mult_distrib lengs(1) length_snd_union by auto
+  finally have 6: "T_minus_PIL (union_LPIL ?step pil1) (parseIL_insert ?b pil2) \<le>
+    L * Suc K * Suc (length Bs) * (5 * T_nth_IL (length Bs) + 3 * L * Suc K + 3) + 2 * L * Suc K * Suc (length Bs) + 2*length Bs + 6".
 
-  have "T_Parse_step_fun Bs (pwl1,pwl2) \<le> 
+  have "T_Parse_step_fun Bs (pil1,pil2) \<le> 
     T_is_complete (item ?b)
     + (if is_complete (item ?b) then T_Parse_Complete_L Bs ?b else T_fst ?b + (T_length Bs + T_Parse_Predict_L (item ?b) (length Bs)))
-    + T_union_LPWL ?step pwl1
-    + 2 * T_ParseWL_insert pwl2 ?b
-    + T_minus_PWL (union_LPWL ?step pwl1) (ParseWL_insert pwl2 ?b)"
-    using P_pwl1 by (auto simp add: Let_def)
+    + T_union_LPIL ?step pil1
+    + 2 * T_parseIL_insert ?b pil2
+    + T_minus_PIL (union_LPIL ?step pil1) (parseIL_insert ?b pil2)"
+    using P_pil1 by (auto simp add: Let_def)
   also have "... \<le> K + 1 + length Bs + (2 * K * K + 2 * K + 5) * C + 2 * Suc K * L + 2 * L + 3 
-    + (max C L) * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 2) + (max C L) + 1
-    + 2 * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 2)
-    + L * Suc K * Suc (length Bs) * (5 * T_nth_WL (length Bs) + 3 * L * Suc K + 3) + 2 * L * Suc K * Suc (length Bs) + length Bs + 3"
+    + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 2) + (max C L) + 1
+    + 2 * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 2)
+    + L * Suc K * Suc (length Bs) * (5 * T_nth_IL (length Bs) + 3 * L * Suc K + 3) + 2 * L * Suc K * Suc (length Bs) + 2*length Bs + 6"
     using 1 3 4 5 6 by (auto simp only: algebra_simps)
-  also have "... = 2 * length Bs + K + 12 + 6 * Suc K * L + 2 * L + (2 * K * K + 2 * K + 5) * C 
-    + (max C L) * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 3) + 8 * T_nth_WL (length Bs)
-    + L * Suc K * Suc (length Bs) * (5 * T_nth_WL (length Bs) + 3 * L * Suc K + 5)"
+  also have "... = 3 * length Bs + K + 15 + 6 * Suc K * L + 2 * L + (2 * K * K + 2 * K + 5) * C 
+    + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3) + 8 * T_nth_IL (length Bs)
+    + L * Suc K * Suc (length Bs) * (5 * T_nth_IL (length Bs) + 3 * L * Suc K + 5)"
     by (auto simp add: algebra_simps)
-  also have "... \<le>  (2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 3)
-    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_WL (length Bs) + 3 * L * Suc K + 7)
+  also have "... \<le>  (2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
+    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
     + 9 * Suc K * L + 12"
     by (auto simp add: algebra_simps)
   finally show ?thesis.
 qed
 
-lemma leng_minus_PWL: "ParseWL_inv pwl1 \<Longrightarrow> leng (fst (minus_PWL pwl1 pwl2)) = leng (fst pwl1)"
-  using leng_minus_LWL by (cases pwl1, cases "fst pwl1") (auto simp add: minus_PWL_def)
-
-lemma Parse_step_fun_leng1: assumes 
-  "Parse_step_fun Bs (pwl1, pwl2) = (pwl3, pwl4)" "PWL_map_item pwl1 \<noteq> []" "ParseWL_inv pwl1"
-  "wf_PWL pwl1 (length Bs)" "wf_PWL pwl2 (length Bs)" "wf_parse_bins1 (map set Bs)"
-  "leng (fst pwl1) = length Bs"
-shows  "leng (fst pwl3) = length Bs"
-proof- 
-  from assms(2,3) obtain x xs l m t ts where "pwl1 = (WorkList (x#xs) l m, t#ts)"
-    using PWL_map_item_def PWL_map_item_Cons2
-    by (metis WorkList.sel(1) T_size_list.cases surjective_pairing wl_decomp)
-  then show ?thesis using assms leng_minus_PWL PWL_inv_union_LPWL leng_LPWL_union wf1_Parse_Complete_L
-        wf1_Parse_Predict_L
-    by (smt (verit) PWL_first_in_set_PWL Parse_step_fun.simps(2) Pstep_fun_eq_step_fun1 list.distinct(1) wf_PWL.elims(2) wf_parse_bin1.elims(2))
-qed
-
-lemma Parse_step_fun_leng2: assumes 
-  "Parse_step_fun Bs (pwl1, pwl2) = (pwl3, pwl4)" "PWL_map_item pwl1 \<noteq> []" "ParseWL_inv pwl1"
-  "wf_PWL pwl1 (length Bs)" 
-  "leng (fst pwl2) = length Bs"
-shows  "leng (fst pwl4) = length Bs"
-proof-
-  from assms(2,3) obtain x xs l m t ts where "pwl1 = (WorkList (x#xs) l m, t#ts)"
-    using PWL_map_item_def PWL_map_item_Cons2
-    by (metis WorkList.sel(1) T_size_list.cases surjective_pairing wl_decomp)
-  then show ?thesis using leng_PWL_insert assms by (auto simp add: Let_def wf_item1_def)
-qed
-
 lemma Parse_step_fun_set_inc:
-  assumes "Parse_step_fun Bs (pwl1, pwl2) = (pwl3, pwl4)" "PWL_map_item pwl1 \<noteq> []" "ParseWL_inv pwl1" "ParseWL_inv pwl2"
-          "set (PWL_map_item pwl1) \<inter> set (PWL_map_item pwl2) = {}"
-  shows "length (PWL_map_item pwl4) = Suc (length (PWL_map_item pwl2))"
+  assumes "Parse_step_fun Bs (pil1, pil2) = (pil3, pil4)" "PIL_map_item pil1 \<noteq> []" "parseIL_inv pil1" "parseIL_inv pil2"
+          "set (PIL_map_item pil1) \<inter> set (PIL_map_item pil2) = {}" "length (froms (fst pil2)) \<ge> length (froms (fst pil1))"
+  shows "length (PIL_map_item pil4) = Suc (length (PIL_map_item pil2))"
 proof-
-  from assms(2,3) obtain x xs l m t ts  ys l2 m2 ts2 where "pwl1 = (WorkList (x#xs) l m, t#ts)" 
-      and "pwl2 = (WorkList ys l2 m2, ts2)"
-    using PWL_map_item_def PWL_map_item_Cons2
-    by (metis WorkList.sel(1) T_size_list.cases surjective_pairing wl_decomp)
-  then show ?thesis using assms by (auto simp add: Let_def PWL_map_item_def member_elem)
+  from assms(2,3) obtain x xs m t ts  ys m2 ts2 where "pil1 = (ItemList (x#xs) m, t#ts)" 
+      and "pil2 = (ItemList ys m2, ts2)"
+    using PIL_map_item_def PIL_map_item_Cons2
+    by (metis efficientItemList.sel(1) T_size_list.cases surjective_pairing il_decomp)
+  then show ?thesis using assms by (auto simp add: Let_def PIL_map_item_def member_elem)
 qed
 
 lemma Parse_step_fun_dist_sets:
-  assumes "Parse_step_fun Bs (pwl1, pwl2) = (pwl3, pwl4 )" "PWL_map_item pwl1 \<noteq> []" "ParseWL_inv pwl1" "ParseWL_inv pwl2"
-  shows "set (PWL_map_item pwl3) \<inter> set (PWL_map_item pwl4) = {}"
+  assumes "Parse_step_fun Bs (pil1, pil2) = (pil3, pil4 )" "PIL_map_item pil1 \<noteq> []" "parseIL_inv pil1" "parseIL_inv pil2"
+    "length (froms (fst pil1)) = Suc (length Bs)" "length (froms (fst pil2)) = Suc (length Bs)" "wf_parse_bins1 (map set Bs)"
+    "wf_PIL pil1 (length Bs)"
+  shows "set (PIL_map_item pil3) \<inter> set (PIL_map_item pil4) = {}"
 proof-
-  from assms(2,3) obtain x xs l m t ts  wl2 ts2 where "pwl1 = (WorkList (x#xs) l m, t#ts)" 
-      and "pwl2 = (wl2, ts2)"
-    using PWL_map_item_def PWL_map_item_Cons2
-    by (metis WorkList.sel(1) T_size_list.cases surjective_pairing wl_decomp)
-  then show ?thesis using assms PWL_inv_union_LPWL insert_WL_inv1 WL_minus 
-    by (auto simp add: Let_def PWL_map_item_def WL_minus split: if_splits)
+  
+  from assms(2,3) obtain x xs m t ts  il2 ts2 where P_il1: "pil1 = (ItemList (x#xs) m, t#ts)" 
+      and P_il2: "pil2 = (il2, ts2)"
+    using PIL_map_item_def PIL_map_item_Cons2
+    by (metis efficientItemList.sel(1) T_size_list.cases surjective_pairing il_decomp)
+  let ?step = "if is_complete x then Parse_Complete_L Bs (x,t) else Parse_Predict_L x (length Bs)"
+  let ?step1 = "if is_complete x then Complete_L (map (map item) Bs) x else Predict_L x (length Bs)"
+
+  have 3: "from x \<le> length Bs" using assms(8) P_il1 by (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
+  have "wf_item_Pt1 (x,t) (length Bs)" using assms(8) P_il1 by auto
+  then have wf: "wf_parse_bin1 (set ?step) (length Bs)" 
+    using assms wf1_Parse_Complete_L wf1_Parse_Predict_L
+    by (smt (verit) fst_conv)
+  have steps_eq: "?step1 = map item ?step" 
+    using PPredict_L_eq_Predict_L PComplete_L_eq_Complete_L assms(8) P_il1 
+    by (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
+  then have wf1: "wf_bin1 (set ?step1) (length Bs)" using wf by (auto simp add: wf_bin1_def)
+
+  have 2: "\<forall>x\<in>set ?step. from (item x) < length (froms (fst pil1))" 
+    using wf forall_from_Suc_parse assms(5) by auto
+  have 4: "\<forall>x \<in> set ?step1. from x < length (froms (fst pil1))" 
+    using wf1 forall_from_Suc assms(5) by auto
+  
+  have 1: "parseIL_inv (union_LPIL ?step pil1)"
+    using PIL_inv_union_LPIL 2 assms(3) by blast
+
+  have "set (PIL_map_item pil3) = set (list (minus_IL (union_LIL (map item ?step) (fst pil1)) (insert x (fst pil2))))"
+    using assms 1 P_il1 by (auto simp add: Let_def PIL_map_item_def)
+  also have "... = set (list (minus_IL (union_LIL ?step1 (fst pil1)) (insert x (fst pil2))))"
+    using steps_eq by auto
+  finally have "set (PIL_map_item pil3) = set (list (minus_IL (union_LIL ?step1 (fst pil1)) (insert x (fst pil2))))".
+  moreover have "set (PIL_map_item pil4) = set (list (insert x (fst pil2)))"
+    using assms P_il1 3 by (auto simp add: Let_def PIL_map_item_def)
+  ultimately show "set (PIL_map_item pil3) \<inter> set (PIL_map_item pil4) = {}"
+    using IL_minus[of "insert x (fst pil2)" "union_LIL ?step1 (fst pil1)"] assms 
+        LIL_union_inv[OF _ 4] insert_IL_inv1 3 P_il1 P_il2 by auto
 qed
 
 lemma parse_steps_time_bound:
-  assumes k_bound:"k \<le> length (PWL_map_item pwl2) 
-    * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 3)
-    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_WL (length Bs) + 3 * L * Suc K + 7)
+  assumes k_bound:"k \<le> length (PIL_map_item pil2) 
+    * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
+    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
     + 9 * Suc K * L + 12)" 
-  and res: "parse_steps_time Bs (pwl1, pwl2) k = Some ((pwl3, pwl4), k1)"
+  and res: "parse_steps_time Bs (pil1, pil2) k = Some ((pil3, pil4), k1)"
   and dist: "distinct ps"
-  and invs: "ParseWL_inv pwl1" "ParseWL_inv pwl2"
-  and lengs: "leng (fst pwl1) = length Bs" "leng (fst pwl2) = length Bs"
-  and wf1: "wf_PWL pwl1 (length Bs)" "wf_PWL pwl2 (length Bs)" "wf_parse_bins1 (map set Bs)"
-  and distinct: "set (PWL_map_item pwl1) \<inter> set (PWL_map_item pwl2) = {}" 
+  and invs: "parseIL_inv pil1" "parseIL_inv pil2"
+  and lengs: "length (froms (fst pil1)) = Suc (length Bs)" "length (froms (fst pil2)) = Suc (length Bs)"
+  and wf1: "wf_PIL pil1 (length Bs)" "wf_PIL pil2 (length Bs)" "wf_parse_bins1 (map set Bs)"
+  and distinct: "set (PIL_map_item pil1) \<inter> set (PIL_map_item pil2) = {}" 
   and max_bin_size: "\<forall>i < length Bs. length (Bs ! i) \<le> C"
-  shows "k1 \<le> length (PWL_map_item pwl4) 
-    * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 3)
-    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_WL (length Bs) + 3 * L * Suc K + 7)
+  shows "k1 \<le> length (PIL_map_item pil4) 
+    * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
+    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
     + 9 * Suc K * L + 12)"
 proof-
-  let ?C = "(2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 3)
-    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_WL (length Bs) + 3 * L * Suc K + 7)
+  let ?C = "(2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
+    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
     + 9 * Suc K * L + 12"
-  let ?P3 = "\<lambda>((pwl1',pwl2'),k). wf_PWL pwl1' (length Bs) \<and> wf_PWL pwl2' (length Bs) \<and> wf_parse_bins1 (map set Bs)"
-  let ?P1 = "\<lambda>((pwl1',pwl2'),k). wf_PWL pwl1' (length Bs) \<and> wf_PWL pwl2' (length Bs) \<and> wf_parse_bins1 (map set Bs) \<and> ParseWL_inv pwl1' \<and> ParseWL_inv pwl2' 
-        \<and> leng (fst pwl1') = length Bs \<and> leng (fst pwl2') = length Bs \<and> (\<forall>i < length Bs. length (Bs ! i) \<le> C) \<and> distinct ps 
-        \<and> set (PWL_map_item pwl1') \<inter> set (PWL_map_item pwl2') = {}" 
-  let ?P2 = "\<lambda>((pwl1',pwl2'),k). k \<le> length (PWL_map_item pwl2') * (?C)"
+  let ?P3 = "\<lambda>((pil1',pil2'),k). wf_PIL pil1' (length Bs) \<and> wf_PIL pil2' (length Bs) \<and> wf_parse_bins1 (map set Bs)"
+  let ?P1 = "\<lambda>((pil1',pil2'),k). wf_PIL pil1' (length Bs) \<and> wf_PIL pil2' (length Bs) \<and> wf_parse_bins1 (map set Bs) \<and> parseIL_inv pil1' \<and> parseIL_inv pil2' 
+        \<and> length (froms (fst pil1')) = Suc (length Bs) \<and> length (froms (fst pil2')) = Suc (length Bs) \<and> (\<forall>i < length Bs. length (Bs ! i) \<le> C) \<and> distinct ps 
+        \<and> set (PIL_map_item pil1') \<inter> set (PIL_map_item pil2') = {}" 
+  let ?P2 = "\<lambda>((pil1',pil2'),k). k \<le> length (PIL_map_item pil2') * (?C)"
   let ?P = "\<lambda>x. ?P1 x \<and> ?P2 x"
-  let ?b = "(\<lambda>((pwl1,pwl2),k). PWL_map_item pwl1 \<noteq> [])"
-  let ?c = "\<lambda>((pwl1,pwl2),k). (Parse_step_fun Bs (pwl1,pwl2), k + T_Parse_step_fun Bs (pwl1,pwl2))"
+  let ?b = "(\<lambda>((pil1,pil2),k). PIL_map_item pil1 \<noteq> [])"
+  let ?c = "\<lambda>((pil1,pil2),k). (Parse_step_fun Bs (pil1,pil2), k + T_Parse_step_fun Bs (pil1,pil2))"
 
 
-  have init: "?P ((pwl1,pwl2), k)" using assms by auto
+  have init: "?P ((pil1,pil2), k)" using assms by auto
 
   have P1: "(?P1 ((a,b), y) \<Longrightarrow> ?b ((a,b), y) \<Longrightarrow> ?P1 (?c ((a,b), y)))" for a b y
-    using PWL_inv_parse_step1' PWL_inv_parse_step2' wf_parse_step2' wf_parse_step1' Parse_step_fun_leng1 Parse_step_fun_leng2 Parse_step_fun_dist_sets
+    using PIL_inv_parse_step1' PIL_inv_parse_step2' wf_parse_step2' wf_parse_step1' length_parse_step1' 
+      length_parse_step2' Parse_step_fun_dist_sets
     by (smt (verit) case_prodI2' case_prod_conv)
   have "(?P ((a,b), y) \<Longrightarrow> ?b ((a,b), y) \<Longrightarrow> ?P2 (?c ((a,b), y)))" for a b y
   proof -
@@ -3344,55 +3545,57 @@ proof-
     obtain a' b' y' where P1: "?c ((a,b),y) = ((a', b'), y')"
       by (metis (lifting) old.prod.exhaust)
     then have "Parse_step_fun Bs (a,b) = (a', b')" by auto
-    then have "length (PWL_map_item b') = Suc (length (PWL_map_item b))" 
+    then have "length (PIL_map_item b') = Suc (length (PIL_map_item b))" 
       using Parse_step_fun_set_inc  assms by auto
-    then have 2: "length (PWL_map_item b') * ?C = length (PWL_map_item b) * ?C + ?C"
+    then have 2: "length (PIL_map_item b') * ?C = length (PIL_map_item b) * ?C + ?C"
       by (metis add.commute mult_Suc)
     have "y' \<le> y + ?C" using P1 1 by auto
-    also have "... \<le> length (PWL_map_item b) * ?C + ?C" 
+    also have "... \<le> length (PIL_map_item b) * ?C + ?C" 
       using assms by (auto simp add: add_mult_distrib2)
-    also have "... = length (PWL_map_item b') * ?C" using 2 by auto
-    finally have "y' \<le> length (PWL_map_item b') * ?C".
+    also have "... = length (PIL_map_item b') * ?C" using 2 by auto
+    finally have "y' \<le> length (PIL_map_item b') * ?C".
     then show "?P2 (?c ((a,b), y))" using P1
       by (simp add: ab_semigroup_mult_class.mult_ac(1))
   qed
 
   then have "(?P ((a,b), y) \<Longrightarrow> ?b ((a,b), y) \<Longrightarrow> ?P (?c ((a,b), y)))" for a b y using P1 by auto
-  then have "?P ((pwl3,pwl4), k1)"
-    using while_option_rule[where P="?P", where b="?b", where c="?c", where s="((pwl1,pwl2),k)", where t="((pwl3,pwl4), k1)"] res init unfolding parse_steps_time.simps
+  then have "?P ((pil3,pil4), k1)"
+    using while_option_rule[where P="?P", where b="?b", where c="?c", where s="((pil1,pil2),k)", where t="((pil3,pil4), k1)"] res init unfolding parse_steps_time.simps
     by (auto simp only:)
-  then show "k1 \<le> (length (PWL_map_item pwl4)) * ?C"
+  then show "k1 \<le> (length (PIL_map_item pil4)) * ?C"
     by auto
 qed
 
-theorem Parse_steps_time_NF: "wf_parse_bins1 (map set Bs) \<Longrightarrow> wf_PWL pwl1 (length Bs) \<Longrightarrow> wf_PWL pwl2 (length Bs) \<Longrightarrow> ParseWL_inv pwl1 \<Longrightarrow> ParseWL_inv pwl2 
-  \<Longrightarrow> \<exists>pwl1' pwl2' k'. parse_steps_time Bs (pwl1, pwl2) k = Some ((pwl1', pwl2'), k') \<and> Parse_steps Bs (pwl1, pwl2) = Some (pwl1', pwl2')" 
+theorem Parse_steps_time_NF: "wf_parse_bins1 (map set Bs) \<Longrightarrow> wf_PIL pil1 (length Bs) \<Longrightarrow> wf_PIL pil2 (length Bs) 
+  \<Longrightarrow> parseIL_inv pil1 \<Longrightarrow> parseIL_inv pil2 \<Longrightarrow> length (froms (fst pil1)) = Suc (length Bs) \<Longrightarrow> length (froms (fst pil2)) = Suc (length Bs)
+  \<Longrightarrow> \<exists>pil1' pil2' k'. parse_steps_time Bs (pil1, pil2) k = Some ((pil1', pil2'), k') \<and> Parse_steps Bs (pil1, pil2) = Some (pil1', pil2')" 
 using wf_step_fun_less[of "length Bs"]
-proof (induction "(fst pwl1,fst pwl2)" arbitrary: pwl1 pwl2 k rule: wf_induct_rule)
+proof (induction "(fst pil1,fst pil2)" arbitrary: pil1 pil2 k rule: wf_induct_rule)
   case less
   show ?case
   proof cases
-    assume "list (fst pwl1) = []"
-    thus ?thesis by (simp add: while_option_unfold Parse_steps_def PWL_map_item_def)
+    assume "list (fst pil1) = []"
+    thus ?thesis by (simp add: while_option_unfold Parse_steps_def PIL_map_item_def)
   next
-    let ?steps = "while_option (\<lambda>(as,bs). PWL_map_item as \<noteq> []) (Parse_step_fun Bs)"
-    assume cons: "list (fst pwl1) \<noteq> []"
-    then obtain wl1 t ts where P_pwl1: "pwl1 = (wl1, t#ts)" using less.prems(4)
-      by (metis PWL_map_item_Cons2 PWL_map_item_def list.exhaust surjective_pairing)
-    then obtain pwl1' pwl2'
-      where P_step: "(pwl1',pwl2') = Parse_step_fun Bs (pwl1,pwl2)"
+    let ?steps = "while_option (\<lambda>(as,bs). PIL_map_item as \<noteq> []) (Parse_step_fun Bs)"
+    assume cons: "list (fst pil1) \<noteq> []"
+    then obtain il1 t ts where P_pil1: "pil1 = (il1, t#ts)" using less.prems(4)
+      by (metis PIL_map_item_Cons2 PIL_map_item_def list.exhaust surjective_pairing)
+    then obtain pil1' pil2'
+      where P_step: "(pil1',pil2') = Parse_step_fun Bs (pil1,pil2)"
       by (metis T_fst.cases)
-    then have wf_inv: "wf_PWL pwl1' (length Bs)" "wf_PWL pwl2' (length Bs)" "ParseWL_inv pwl1'" "ParseWL_inv pwl2'"
-      using wf_parse_step1 wf_parse_step2 PWL_inv_parse_step1 PWL_inv_parse_step2 less.prems P_pwl1
-      by (metis, metis, metis, metis)
+    then have wf_inv: "wf_PIL pil1' (length Bs)" "wf_PIL pil2' (length Bs)" "parseIL_inv pil1'" 
+      "parseIL_inv pil2'" "length (froms (fst pil1')) = Suc (length Bs)" "length (froms (fst pil2')) = Suc (length Bs)"
+      using wf_parse_step1 wf_parse_step2 PIL_inv_parse_step1 PIL_inv_parse_step2 length_parse_step1 length_parse_step2 less.prems P_pil1
+      by (metis, metis, metis, metis, metis, metis)
       
-    from P_step have step_f: "(fst pwl1',fst pwl2') = step_fun (map (map item) Bs) (fst pwl1, fst pwl2)"
-      using less.prems Pstep_fun_eq_step_fun1[of pwl1 Bs pwl2 pwl1' pwl2'] cons unfolding PWL_map_item_def by (auto simp add: Let_def)
-    have "wf1_WL (fst pwl1) (length Bs) \<and> wf1_WL (fst pwl2) (length Bs)"
-      using less.prems wf_PWL_impl_wf1_WL by (cases pwl1, cases pwl2) (auto simp del: wf_PWL.simps ParseWL_inv.simps)
-    then have "((fst pwl1',fst pwl2'), (fst pwl1, fst pwl2)) \<in> step_fun_less (length Bs)" 
-      using less.prems step_fun_less_step[of "fst pwl1" "(map (map item) Bs)" "fst pwl2"] \<open>list (fst pwl1) \<noteq> []\<close> step_f 
-      by (cases pwl1, cases pwl2) (auto simp add: wf_parse_bins1_def wf_bins1_def wf_bin1_def)
+    from P_step have step_f: "(fst pil1',fst pil2') = step_fun (map (map item) Bs) (fst pil1, fst pil2)"
+      using less.prems Pstep_fun_eq_step_fun1[of pil1 Bs pil2 pil1' pil2'] cons unfolding PIL_map_item_def by (auto simp add: Let_def)
+    have "wf1_IL (fst pil1) (length Bs) \<and> wf1_IL (fst pil2) (length Bs)"
+      using less.prems wf_PIL_impl_wf1_IL by (cases pil1, cases pil2) (auto simp del: wf_PIL.simps parseIL_inv.simps)
+    then have "((fst pil1',fst pil2'), (fst pil1, fst pil2)) \<in> step_fun_less (length Bs)" 
+      using less.prems step_fun_less_step[of "fst pil1" "(map (map item) Bs)" "fst pil2"] \<open>list (fst pil1) \<noteq> []\<close> step_f 
+      by (cases pil1, cases pil2) (auto simp add: wf_parse_bins1_def wf_bins1_def wf_bin1_def)
     from less.hyps[OF this \<open>wf_parse_bins1 (map set Bs)\<close> wf_inv]
     show ?thesis
       by (simp add: P_step while_option_unfold Parse_steps_def)
@@ -3401,97 +3604,98 @@ qed
 
 lemma T_Parse_steps_bound: 
   assumes dist: "distinct ps"
-  and length_pwl2: "length (PWL_map_item pwl2) = 0"
-  and invs: "ParseWL_inv pwl1" "ParseWL_inv pwl2"
-  and lengs: "leng (fst pwl1) = length Bs" "leng (fst pwl2) = length Bs"
-  and wf1: "wf_PWL pwl1 (length Bs)" "wf_PWL pwl2 (length Bs)" "wf_parse_bins1 (map set Bs)"
+  and length_pil2: "length (PIL_map_item pil2) = 0"
+  and invs: "parseIL_inv pil1" "parseIL_inv pil2"
+  and lengs: "length(froms  (fst pil1)) = Suc (length Bs)" "length(froms  (fst pil2)) = Suc (length Bs)"
+  and wf1: "wf_PIL pil1 (length Bs)" "wf_PIL pil2 (length Bs)" "wf_parse_bins1 (map set Bs)"
   and max_bin_size: "\<forall>i < length Bs. length (Bs ! i) \<le> C"
-  shows "T_Parse_steps Bs (pwl1, pwl2) \<le> L * Suc K * Suc (length Bs)
-    * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 3)
-    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_WL (length Bs) + 3 * L * Suc K + 7)
+  shows "T_Parse_steps Bs (pil1, pil2) \<le> L * Suc K * Suc (length Bs)
+    * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
+    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
     + 9 * Suc K * L + 12)"
 proof-
-  obtain pwl3 pwl4 k where Psteps_time: "parse_steps_time Bs (pwl1, pwl2) 0 = Some ((pwl3, pwl4), k)" 
-    and Psteps: "Parse_steps Bs (pwl1, pwl2) = Some (pwl3, pwl4)"
+  obtain pil3 pil4 k where Psteps_time: "parse_steps_time Bs (pil1, pil2) 0 = Some ((pil3, pil4), k)" 
+    and Psteps: "Parse_steps Bs (pil1, pil2) = Some (pil3, pil4)"
     using assms Parse_steps_time_NF
     by blast
-  have "wf_PWL pwl4 (length Bs)" using Psteps Parse_steps_wf2 wf1 invs by blast
-  then have length_bound: "length (PWL_map_item pwl4) \<le> L * Suc K * Suc (length Bs)" 
-    using length_fst_PWL Parse_steps_inv2 invs Psteps
-    by (metis PWL_map_item_def)
-  have "T_Parse_steps Bs (pwl1, pwl2) \<le> length (PWL_map_item pwl4) 
-    * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 3)
-    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_WL (length Bs) + 3 * L * Suc K + 7)
+  have "wf_PIL pil4 (length Bs)" using Psteps Parse_steps_wf2 wf1 invs lengs by blast
+  then have length_bound: "length (PIL_map_item pil4) \<le> L * Suc K * Suc (length Bs)" 
+    using length_fst_PIL Parse_steps_inv2 invs Psteps lengs
+    by (metis PIL_map_item_def wf1(1,3))
+  have "T_Parse_steps Bs (pil1, pil2) \<le> length (PIL_map_item pil4) 
+    * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
+    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
     + 9 * Suc K * L + 12)"
     using assms Psteps_time parse_steps_time_bound[of 0] by auto
   also have "... \<le> L * Suc K * Suc (length Bs)
-    * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 3)
-    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_WL (length Bs) + 3 * L * Suc K + 7)
+    * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
+    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
     + 9 * Suc K * L + 12)" using length_bound by simp
   finally show ?thesis.
 qed
 
 lemma T_Parse_close2_L_bound: 
   assumes dist: "distinct ps"
-  and invs: "ParseWL_inv pwl1"
-  and lengs: "leng (fst pwl1) = length Bs" 
-  and wf1: "wf_PWL pwl1 (length Bs)" "wf_parse_bins1 (map set Bs)"
+  and invs: "parseIL_inv pil1"
+  and lengs: "length (froms (fst pil1)) = Suc (length Bs)" 
+  and wf1: "wf_PIL pil1 (length Bs)" "wf_parse_bins1 (map set Bs)"
   and max_bin_size: "\<forall>i < length Bs. length (Bs ! i) \<le> C"
-shows "T_Parse_close2_L Bs pwl1 \<le> Suc (length Bs) + Suc (length Bs) + L * Suc K * Suc (length Bs)
-    * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 3)
-    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_WL (length Bs) + 3 * L * Suc K + 7)
+shows "T_Parse_close2_L Bs pil1 \<le> length Bs + 2 + Suc (length Bs) + L * Suc K * Suc (length Bs)
+    * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
+    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
     + 9 * Suc K * L + 12) +  Suc (L * Suc K * Suc (length Bs))"
 proof-
-  have 2: "T_PWL_empty (length Bs) = Suc (length Bs)" by simp
+  have 2: "T_PIL_empty (length Bs) = length Bs + 2" by simp
   have 3: "T_length Bs = Suc (length Bs)" by (simp add: T_length)
 
-  have empty_inv: "ParseWL_inv (PWL_empty (length Bs))" and "leng (fst (PWL_empty (length Bs))) = length Bs"
-    and empty_wf: "wf_PWL (PWL_empty (length Bs)) (length Bs)"
-    and "length (PWL_map_item (PWL_empty (length Bs))) = 0"
-    using PWL_inv_empty wf_PWL_empty by (auto simp add: PWL_map_item_def)
-  then have 1: "T_Parse_steps Bs (pwl1, PWL_empty (length Bs)) \<le> L * Suc K * Suc (length Bs)
-    * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_WL (length Bs) + 2 * L * Suc K + 3)
-    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_WL (length Bs) + 3 * L * Suc K + 7)
+  have empty_inv: "parseIL_inv (PIL_empty (length Bs))" and "length (froms (fst (PIL_empty (length Bs)))) = Suc (length Bs)"
+    and empty_wf: "wf_PIL (PIL_empty (length Bs)) (length Bs)"
+    and "length (PIL_map_item (PIL_empty (length Bs))) = 0"
+    using PIL_inv_empty wf_PIL_empty by (auto simp add: PIL_map_item_def)
+  then have 1: "T_Parse_steps Bs (pil1, PIL_empty (length Bs)) \<le> L * Suc K * Suc (length Bs)
+    * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
+    + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
     + 9 * Suc K * L + 12)" using T_Parse_steps_bound assms by simp
 
-  obtain a where Some_Psteps: "Parse_steps Bs (pwl1, PWL_empty (length Bs)) = Some a"
-    using Parse_steps_NF empty_inv empty_wf invs wf1(1,2) by blast
+  obtain a where Some_Psteps: "Parse_steps Bs (pil1, PIL_empty (length Bs)) = Some a"
+    using Parse_steps_NF empty_inv empty_wf length_PIL_empty lengs invs wf1(1,2) by blast
 
-  let ?result_PWL = "(snd (the (Parse_steps Bs (pwl1, PWL_empty (length Bs)))))"
-  have "wf_PWL ?result_PWL (length Bs)"
+  let ?result_PIL = "(snd (the (Parse_steps Bs (pil1, PIL_empty (length Bs)))))"
+  have "wf_PIL ?result_PIL (length Bs)"
     using wf_Parse_close2_L assms by (auto simp add: Parse_close2_L_def simp del: wf_parse_bin1.simps)
-  moreover have res_inv: "ParseWL_inv ?result_PWL" using  Parse_steps_inv2 invs empty_inv empty_wf
-    by (metis Parse_steps_NF eq_snd_iff option.sel wf1(1,2))
-  ultimately have "length (list (fst ?result_PWL)) \<le> L * Suc K * Suc (length Bs)" using length_fst_PWL by auto
-  then have "T_PWL_list ?result_PWL \<le> Suc (L * Suc K * Suc (length Bs))" using res_inv T_zip 
-    by (cases ?result_PWL) fastforce
-  moreover have "T_the (Parse_steps Bs (pwl1, PWL_empty (length Bs))) = 0" using Some_Psteps by auto
-  moreover have "T_snd (the (Parse_steps Bs (pwl1, PWL_empty (length Bs)))) = 0" by simp
+  moreover have res_inv: "parseIL_inv ?result_PIL" using  Parse_steps_inv2 invs empty_inv empty_wf length_PIL_empty
+    by (metis Parse_steps_NF eq_snd_iff option.sel wf1(1,2) lengs)
+  ultimately have "length (list (fst ?result_PIL)) \<le> L * Suc K * Suc (length Bs)" using length_fst_PIL by auto
+  then have "T_PIL_list ?result_PIL \<le> Suc (L * Suc K * Suc (length Bs))" using res_inv T_zip 
+    by (cases ?result_PIL) fastforce
+  moreover have "T_the (Parse_steps Bs (pil1, PIL_empty (length Bs))) = 0" using Some_Psteps by auto
+  moreover have "T_snd (the (Parse_steps Bs (pil1, PIL_empty (length Bs)))) = 0" by simp
   ultimately show ?thesis using 1 2 3 unfolding T_Parse_close2_L.simps by presburger
 qed
 
 lemma length_Parse_close2_L: 
-  assumes "ParseWL_inv pwl" "wf_PWL pwl (length Bs)" "wf_parse_bins1 (map set Bs)"
-  shows "length (Parse_close2_L Bs pwl) \<le> L * Suc K * Suc (length Bs)"
+  assumes "parseIL_inv pil" "wf_PIL pil (length Bs)" "wf_parse_bins1 (map set Bs)" "length (froms (fst pil)) = Suc (length Bs)"
+  shows "length (Parse_close2_L Bs pil) \<le> L * Suc K * Suc (length Bs)"
 proof-
-  have empty_inv: "ParseWL_inv (PWL_empty (length Bs))" and empty_wf: "wf_PWL (PWL_empty (length Bs)) (length Bs)" 
-    using PWL_inv_empty wf_PWL_empty by auto
+  have empty_inv: "parseIL_inv (PIL_empty (length Bs))" and empty_wf: "wf_PIL (PIL_empty (length Bs)) (length Bs)"
+    and empty_leng: "length (froms (fst (PIL_empty (length Bs)))) = Suc (length Bs)"
+    using PIL_inv_empty wf_PIL_empty by auto
 
-  let ?result_PWL = "(snd (the (Parse_steps Bs (pwl, PWL_empty (length Bs)))))"
-  have "wf_PWL ?result_PWL (length Bs)"
+  let ?result_PIL = "(snd (the (Parse_steps Bs (pil, PIL_empty (length Bs)))))"
+  have "wf_PIL ?result_PIL (length Bs)"
     using wf_Parse_close2_L assms by (auto simp add: Parse_close2_L_def simp del: wf_parse_bin1.simps)
-  moreover have res_inv: "ParseWL_inv ?result_PWL" using  Parse_steps_inv2 empty_inv empty_wf assms
+  moreover have res_inv: "parseIL_inv ?result_PIL" using  Parse_steps_inv2 empty_inv empty_wf empty_leng assms
     by (metis Parse_steps_NF eq_snd_iff option.sel)
-  ultimately show "length (Parse_close2_L Bs pwl) \<le> L * Suc K * Suc (length Bs)" 
-    using length_snd_PWL by (cases ?result_PWL) (auto simp add: Parse_close2_L_def)
+  ultimately show "length (Parse_close2_L Bs pil) \<le> L * Suc K * Suc (length Bs)" 
+    using length_snd_PIL by (cases ?result_PIL) (auto simp add: Parse_close2_L_def)
 qed
 
 lemma Parse_bins_L_lengths: "k \<le> length w \<Longrightarrow> \<forall> i < Suc k. length ((Parse_bins_L k) ! i) \<le> L * Suc K * Suc k"
 proof(induction k)
   case 0
-  have "length (Parse_close2_L [] (PWL_of_List 0 Parse_Init_L)) \<le> L + L * K" 
-    using length_Parse_close2_L[of "PWL_of_List 0 Parse_Init_L" "[]"] PWL_inv_PWL_of_List 
-      wf_PWL_of_List[of Parse_Init_L 0 0] wf1_Parse_Init_L ex_map_conv in_set_conv_nth 
+  have "length (Parse_close2_L [] (PIL_of_List 0 Parse_Init_L)) \<le> L + L * K" 
+    using length_Parse_close2_L[of "PIL_of_List 0 Parse_Init_L" "[]"] PIL_inv_PIL_of_List[OF forall_from_Suc_parse]
+      wf_PIL_of_List[of Parse_Init_L 0 0] wf1_Parse_Init_L ex_map_conv in_set_conv_nth 
       less_nat_zero_code list.distinct(1) wf_parse_bins1_def by fastforce 
   then show ?case 
        by auto
@@ -3499,71 +3703,66 @@ next
   case (Suc k)
   then have ih: "\<forall> i < Suc k. length (Parse_bins_L (Suc k) ! i) \<le> L * Suc K * Suc (Suc k)" 
     by (auto simp add: Let_def nth_append_left)
-  let ?scan_pwl = "PWL_of_List (Suc k) (Parse_Scan_L (last (Parse_bins_L k)) k)"
+  let ?scan_pil = "PIL_of_List (Suc k) (Parse_Scan_L (last (Parse_bins_L k)) k)"
   have "Parse_bins k \<noteq> []"
     by (metis length_parse_bins list.size(3) nat.distinct(1))
   then have "last (Parse_bins_L k) = Parse_bins_L k ! k" using Suc length_parse_bins last_conv_nth
     by (metis One_nat_def Zero_not_Suc diff_Suc_Suc length_Parse_bins list.size(3) minus_nat.diff_0)
   then have "wf_parse_bin1 (set (last (Parse_bins_L k))) k" 
     using Suc wf_parse_bins_L unfolding wf_parse_bins1_def by (auto simp del: wf_parse_bin1.simps)
-  then have "wf_PWL ?scan_pwl (length (Parse_bins_L k))" using wf1_Parse_Scan_L Suc wf_PWL_of_List
+  then have 1: "wf_PIL ?scan_pil (length (Parse_bins_L k))" using wf1_Parse_Scan_L Suc wf_PIL_of_List
     using length_Parse_bins less_eq_Suc_le by presburger
-  moreover have "ParseWL_inv ?scan_pwl" by (simp add: PWL_inv_PWL_of_List)
+  moreover have "parseIL_inv ?scan_pil" using 1 PIL_inv_PIL_of_List[OF forall_from_Suc_parse]
+    by (meson Suc.prems \<open>wf_parse_bin1 (set (last (Parse_bins_L k))) k\<close> less_eq_Suc_le wf1_Parse_Scan_L)
   moreover have "wf_parse_bins1 (map set (Parse_bins_L k))" using Suc wf_parse_bins_L by simp
-  ultimately have 1: "length (Parse_close2_L (Parse_bins_L k) ?scan_pwl) \<le> L * Suc K * Suc (Suc k)" 
-    using length_Parse_close2_L[of ?scan_pwl "Parse_bins_L k"] by auto
+  ultimately have 1: "length (Parse_close2_L (Parse_bins_L k) ?scan_pil) \<le> L * Suc K * Suc (Suc k)" 
+    using length_Parse_close2_L[of ?scan_pil "Parse_bins_L k"] by auto
   then have "length (Parse_bins_L (Suc k) ! (Suc k)) \<le> L * Suc K * Suc (Suc k)" by (simp add: Let_def nth_append_right)
   then show ?case using ih not_less_less_Suc_eq by blast
 qed
 
-lemma leng_PWL_of_List: assumes "wf_parse_bin (set xs) k" 
-  shows "leng (fst (PWL_of_List k xs)) = k"
-proof-
-  have "\<forall>x\<in>set xs. from (item x) < Suc k" using assms by (auto simp add: wf_bin1_def wf_item1_def wf_item_def) 
-  then show ?thesis 
-    using leng_LWL_union[of "(map item xs)" "WL_empty k"] assms 
-    by (auto simp add: PWL_of_List_def)
-qed
+
 
 lemma T_Parse_bins_L_bound:
   assumes "distinct ps" "k \<le> length w"
   shows "T_Parse_bins_L k 
       \<le> k * (L * Suc K * Suc (Suc k)
-          * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_WL (k) + 5 * L * Suc K + 4 * K * K + 24)
-            + 4 * T_nth_WL (k) + 2 * L * Suc K + 2 * K + 20)
+          * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (k) + 5 * L * Suc K + 4 * K * K + 24)
+            + 4 * T_nth_IL (k) + 2 * L * Suc K + 2 * K + 20)
           + 7 * k + 16)
-        + L * (4 * T_nth_WL (0) + 2 * L * Suc K + 2)
-        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_WL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 6 + k"
+        + L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2)
+        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 9 + k"
 using assms proof(induction k)
   case 0
   have 1: "length Parse_Init_L \<le> L" by (auto simp add: Parse_Init_L_def L_def)
-  have "T_PWL_of_List 0 Parse_Init_L \<le> (length Parse_Init_L) * (4 * T_nth_WL (0) + 2 * L * Suc K + 2) + length Parse_Init_L + 2"
-    by (metis Nat.add_0_right T_PWL_of_List_bound assms(1) wf1_Parse_Init_L)
-  also have "... \<le> L * (4 * T_nth_WL (0) + 2 * L * Suc K + 2) + L + 2"
-    using 1 mult_le_mono1[OF 1, of "(4 * T_nth_WL (0) + 2 * L * Suc K + 2)"] by auto
-  finally have 2: "T_PWL_of_List 0 Parse_Init_L \<le> L * (4 * T_nth_WL (0) + 2 * L * Suc K + 2) + L + 2".
+  have "T_PIL_of_List 0 Parse_Init_L \<le> (length Parse_Init_L) * (4 * T_nth_IL (0) + 2 * L * Suc K + 2) + length Parse_Init_L + 3"
+    using T_PIL_of_List_bound by (metis Nat.add_0_right  assms(1) wf1_Parse_Init_L)
+  also have "... \<le> L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2) + L + 3"
+    using 1 mult_le_mono1[OF 1, of "(4 * T_nth_IL (0) + 2 * L * Suc K + 2)"] by auto
+  finally have 2: "T_PIL_of_List 0 Parse_Init_L \<le> L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2) + L + 3".
 
   have "wf_parse_bins1 (map set [])" by (auto simp add: wf_parse_bins1_def)
   moreover have "\<forall>i<length []. length ([] ! i) \<le> 0" by auto
-  moreover have "wf_PWL (PWL_of_List 0 Parse_Init_L) 0" using wf_PWL_of_List wf1_Parse_Init_L by blast
-  moreover have "leng (fst (PWL_of_List 0 Parse_Init_L)) = 0" 
-    using leng_PWL_of_List wf1_Parse_Init_L by (auto simp add: wf_item1_def )
-  ultimately have "T_Parse_close2_L [] (PWL_of_List 0 Parse_Init_L) \<le> 1 + 1 + L * Suc K  
-    * (L * (4 * T_nth_WL (0) + 2 * L * Suc K + 3)
-    + Suc L * Suc K  * (13 * T_nth_WL (0) + 3 * L * Suc K + 7)
+  moreover have "wf_PIL (PIL_of_List 0 Parse_Init_L) 0" using wf_PIL_of_List wf1_Parse_Init_L by blast
+  moreover have "length (froms (fst (PIL_of_List 0 Parse_Init_L))) = 1" 
+    using length_PIL_of_List wf1_Parse_Init_L by (auto simp add: wf_item1_def )
+  ultimately have "T_Parse_close2_L [] (PIL_of_List 0 Parse_Init_L) \<le> 2 + 1 + L * Suc K  
+    * (L * (4 * T_nth_IL (0) + 2 * L * Suc K + 3)
+    + Suc L * Suc K  * (13 * T_nth_IL (0) + 3 * L * Suc K + 7)
     + 9 * Suc K * L + 12) +  Suc (L * Suc K)" 
-    using T_Parse_close2_L_bound[of "PWL_of_List 0 Parse_Init_L" "[]" 0] assms PWL_inv_PWL_of_List 
+    using T_Parse_close2_L_bound[of "PIL_of_List 0 Parse_Init_L" "[]" 0] assms 
+      PIL_inv_PIL_of_List[OF forall_from_Suc_parse] wf1_Parse_Init_L
     by (auto simp del: T_Parse_close2_L.simps)
-  also have "... \<le> L * Suc K  * (Suc L * Suc K  * (17 * T_nth_WL (0) + 5 * L * Suc K + 19) + 13) + 3" 
+  also have "... \<le> L * Suc K  * (Suc L * Suc K  * (17 * T_nth_IL (0) + 5 * L * Suc K + 19) + 13) + 4" 
     by (auto simp add: algebra_simps)
-  finally have "T_Parse_close2_L [] (PWL_of_List 0 Parse_Init_L) 
-    \<le> L * Suc K  * (Suc L * Suc K  * (17 * T_nth_WL (0) + 5 * L * Suc K + 19) + 13) + 3".
+  finally have "T_Parse_close2_L [] (PIL_of_List 0 Parse_Init_L) 
+    \<le> L * Suc K  * (Suc L * Suc K  * (17 * T_nth_IL (0) + 5 * L * Suc K + 19) + 13) + 4".
 
-  then have "T_Parse_bins_L 0 \<le> L * (4 * T_nth_WL (0) + 2 * L * Suc K + 2) + L + 2
-    + L * Suc K  * (Suc L * Suc K  * (17 * T_nth_WL (0) + 5 * L * Suc K + 19) + 13) + 3 + 1"
+  then have "T_Parse_bins_L 0 \<le> L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2) + L + 3
+    + L * Suc K  * (Suc L * Suc K  * (17 * T_nth_IL (0) + 5 * L * Suc K + 19) + 13) + 4 + 1"
     using 2 by auto
-  also have "... \<le> L * (4 * T_nth_WL (0) + 2 * L * Suc K + 2)
-    + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_WL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 6" 
+  also have "... \<le> L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2)
+    + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 9" 
     by (auto simp add: algebra_simps)
   finally show ?case by auto
 next  
@@ -3591,104 +3790,105 @@ next
   have "length ?parse \<le> length (last ?Bs)" 
     unfolding Parse_Scan_L_def Let_def by simp
   then have length_parse: "length ?parse \<le> L * Suc K * Suc k" using length_last by auto
-  have "T_PWL_of_List (length ?Bs) (Parse_Scan_L (last ?Bs) k) 
-    \<le> length ?parse * (4 * T_nth_WL (length ?Bs) + 2 * L * Suc K + 2) + length ?parse + length ?Bs + 2" 
-    using T_PWL_of_List_bound[of ?parse "length ?Bs"] wf1_Parse_Scan_L wf1_last Suc 
-    by (auto simp del: T_PWL_of_List.simps wf_parse_bin1.simps)
-  also have "... \<le> L * Suc K * Suc k * (4 * T_nth_WL (Suc k) + 2 * L * Suc K + 2) + L * Suc K * Suc k + Suc k + 2" 
-    using length_parse mult_le_mono1[OF length_parse, of "(4 * T_nth_WL (Suc k) + 2 * L * Suc K + 2)"]
-    by auto
-  finally have 4: "T_PWL_of_List (length ?Bs) (Parse_Scan_L (last ?Bs) k)
-    \<le> L * Suc K * Suc k * (4 * T_nth_WL (Suc k) + 2 * L * Suc K + 2) + L * Suc K * Suc k + Suc k + 2".
+  have "T_PIL_of_List (length ?Bs) (Parse_Scan_L (last ?Bs) k) 
+    \<le> length ?parse * (4 * T_nth_IL (length ?Bs) + 2 * L * Suc K + 2) + length ?parse + length ?Bs + 3" 
+    using T_PIL_of_List_bound[of ?parse "length ?Bs"] wf1_Parse_Scan_L wf1_last Suc 
+    by (auto simp del: T_PIL_of_List.simps wf_parse_bin1.simps)
+  also have "... \<le> L * Suc K * Suc k * (4 * T_nth_IL (Suc k) + 2 * L * Suc K + 2) + L * Suc K * Suc k + Suc k + 3" 
+    using length_parse mult_le_mono1[OF length_parse, of "(4 * T_nth_IL (Suc k) + 2 * L * Suc K + 2)"]
+    by (auto simp add: algebra_simps)
+  finally have 4: "T_PIL_of_List (length ?Bs) (Parse_Scan_L (last ?Bs) k)
+    \<le> L * Suc K * Suc k * (4 * T_nth_IL (Suc k) + 2 * L * Suc K + 2) + L * Suc K * Suc k + Suc k + 3".
 
-  have 5: "T_append ?Bs [Parse_close2_L ?Bs (PWL_of_List (length ?Bs) (Parse_Scan_L (last ?Bs) k))] 
+  have 5: "T_append ?Bs [Parse_close2_L ?Bs (PIL_of_List (length ?Bs) (Parse_Scan_L (last ?Bs) k))] 
     = k+2" by simp
 
-  let ?parse_pwl = "PWL_of_List (length ?Bs) (Parse_Scan_L (last ?Bs) k)"
+  let ?parse_pil = "PIL_of_List (length ?Bs) (Parse_Scan_L (last ?Bs) k)"
   have wf1_parse: "wf_parse_bin1 (set ?parse) (Suc k)" using wf1_Parse_Scan_L wf1_last Suc 
     by (auto simp del: wf_parse_bin1.simps)
-  have "ParseWL_inv ?parse_pwl" using PWL_inv_PWL_of_List by simp
-  moreover have "wf_PWL ?parse_pwl (Suc k)" using wf_PWL_of_List wf1_Parse_Scan_L wf1_last Suc 
+  have "parseIL_inv ?parse_pil" using PIL_inv_PIL_of_List[OF forall_from_Suc_parse]
+    using length_Parse_bins wf1_parse by presburger
+  moreover have "wf_PIL ?parse_pil (Suc k)" using wf_PIL_of_List wf1_Parse_Scan_L wf1_last Suc 
     by (auto simp del: wf_parse_bin1.simps)
-  moreover have "leng (fst ?parse_pwl) = Suc k" 
-    using leng_PWL_of_List[of ?parse "Suc k"] wf1_parse by (auto simp add: wf_item1_def)
-  ultimately have 6: "T_Parse_close2_L ?Bs (PWL_of_List (length ?Bs) (Parse_Scan_L (last ?Bs) k))
-    \<le> Suc (Suc k) + Suc (Suc k) + L * Suc K * Suc (Suc k)
-    * ((2 * K * K + 2 * K + 5) * (L * Suc K * Suc k) + (L * Suc K * Suc k) * (4 * T_nth_WL (Suc k) + 2 * L * Suc K + 3)
-    + Suc L * Suc K * Suc (Suc k) * (13 * T_nth_WL (Suc k) + 3 * L * Suc K + 7)
+  moreover have "length (froms (fst ?parse_pil)) - 1 = Suc k" 
+    using wf1_parse by (auto simp add: wf_item1_def)
+  ultimately have 6: "T_Parse_close2_L ?Bs (PIL_of_List (length ?Bs) (Parse_Scan_L (last ?Bs) k))
+    \<le> Suc k + 2 + Suc (Suc k) + L * Suc K * Suc (Suc k)
+    * ((2 * K * K + 2 * K + 5) * (L * Suc K * Suc k) + (L * Suc K * Suc k) * (4 * T_nth_IL (Suc k) + 2 * L * Suc K + 3)
+    + Suc L * Suc K * Suc (Suc k) * (13 * T_nth_IL (Suc k) + 3 * L * Suc K + 7)
     + 9 * Suc K * L + 12) +  Suc (L * Suc K * Suc (Suc k))"
-    using T_Parse_close2_L_bound[of ?parse_pwl ?Bs "L * Suc K * Suc k"] Parse_bins_L_lengths wf_parse_bins_L Suc 
+    using T_Parse_close2_L_bound[of ?parse_pil ?Bs "L * Suc K * Suc k"] Parse_bins_L_lengths wf_parse_bins_L Suc 
     by (auto simp del: T_Parse_close2_L.simps wf_parse_bin1.simps)
   also have "... = L * Suc K * Suc (Suc k)
-    * ((L * Suc K * Suc k) * (4 * T_nth_WL (Suc k) + 2 * L * Suc K + 2 * K * K + 2 * K + 8)
-    + Suc L * Suc K * Suc (Suc k) * (13 * T_nth_WL (Suc k) + 3 * L * Suc K + 7)
-    + 9 * Suc K * L + 13) + 2 * k + 5" by (auto simp add: algebra_simps)
+    * ((L * Suc K * Suc k) * (4 * T_nth_IL (Suc k) + 2 * L * Suc K + 2 * K * K + 2 * K + 8)
+    + Suc L * Suc K * Suc (Suc k) * (13 * T_nth_IL (Suc k) + 3 * L * Suc K + 7)
+    + 9 * Suc K * L + 13) + 2 * k + 6" by (auto simp add: algebra_simps)
   also have "... \<le> L * Suc K * Suc (Suc k)
-    * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_WL (Suc k) + 5 * L * Suc K + 4 * K * K + 24) + 13) 
-    + 2 * k + 5" by (auto simp add: algebra_simps)
-  finally have 7:  "T_Parse_close2_L ?Bs (PWL_of_List (length ?Bs) (Parse_Scan_L (last ?Bs) k))
+    * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (Suc k) + 5 * L * Suc K + 4 * K * K + 24) + 13) 
+    + 2 * k + 6" by (auto simp add: algebra_simps)
+  finally have 7:  "T_Parse_close2_L ?Bs (PIL_of_List (length ?Bs) (Parse_Scan_L (last ?Bs) k))
     \<le> L * Suc K * Suc (Suc k)
-      * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_WL (Suc k) + 5 * L * Suc K + 4 * K * K + 24) + 13) 
-      + 2 * k + 5".
+      * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (Suc k) + 5 * L * Suc K + 4 * K * K + 24) + 13) 
+      + 2 * k + 6".
 
   have "T_Parse_bins_L k \<le> k * (L * Suc K * Suc (Suc k)
-          * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_WL (k) + 5 * L * Suc K + 4 * K * K + 24)
-            + 4 * T_nth_WL (k) + 2 * L * Suc K + 2 * K + 20)
+          * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (k) + 5 * L * Suc K + 4 * K * K + 24)
+            + 4 * T_nth_IL (k) + 2 * L * Suc K + 2 * K + 20)
           + 7 * k + 16)
-        + L * (4 * T_nth_WL (0) + 2 * L * Suc K + 2)
-        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_WL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 6 + k"
+        + L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2)
+        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 9 + k"
     using Suc by simp
   also have "... \<le> k * (L * Suc K * Suc (Suc k)
-          * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_WL (Suc k) + 5 * L * Suc K + 4 * K * K + 24)
-            + 4 * T_nth_WL (Suc k) + 2 * L * Suc K + 2 * K + 20)
+          * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (Suc k) + 5 * L * Suc K + 4 * K * K + 24)
+            + 4 * T_nth_IL (Suc k) + 2 * L * Suc K + 2 * K + 20)
           + 7 * k + 16)
-        + L * (4 * T_nth_WL (0) + 2 * L * Suc K + 2)
-        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_WL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 6 + k"
+        + L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2)
+        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 9 + k"
   proof-
-    have "T_nth_WL k \<le> T_nth_WL (Suc k)" using mono_nth monoD[of T_nth_WL k "Suc k"] by simp
-    then have 1: "4 * T_nth_WL (k) + 2 * L * Suc K + 2 * K + 20 \<le> 4 * T_nth_WL (Suc k) + 2 * L * Suc K + 2 * K + 20"
+    have "T_nth_IL k \<le> T_nth_IL (Suc k)" using mono_nth monoD[of T_nth_IL k "Suc k"] by simp
+    then have 1: "4 * T_nth_IL (k) + 2 * L * Suc K + 2 * K + 20 \<le> 4 * T_nth_IL (Suc k) + 2 * L * Suc K + 2 * K + 20"
       by auto
-    then have "17 * T_nth_WL (k) + 5 * L * Suc K + 4 * K * K + 24 
-        \<le> 17 * T_nth_WL (Suc k) + 5 * L * Suc K + 4 * K * K + 24" by auto
-    then have "Suc L * Suc K * Suc (Suc k) * (17 * T_nth_WL (k) + 5 * L * Suc K + 4 * K * K + 24)
-        \<le> Suc L * Suc K * Suc (Suc k) * (17 * T_nth_WL (Suc k) + 5 * L * Suc K + 4 * K * K + 24)"
+    then have "17 * T_nth_IL (k) + 5 * L * Suc K + 4 * K * K + 24 
+        \<le> 17 * T_nth_IL (Suc k) + 5 * L * Suc K + 4 * K * K + 24" by auto
+    then have "Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (k) + 5 * L * Suc K + 4 * K * K + 24)
+        \<le> Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (Suc k) + 5 * L * Suc K + 4 * K * K + 24)"
       using mult_le_mono2 by blast
-    then have "(Suc L * Suc K * Suc (Suc k) * (17 * T_nth_WL (k) + 5 * L * Suc K + 4 * K * K + 24)
-            + 4 * T_nth_WL (k) + 2 * L * Suc K + 2 * K + 20)
-        \<le> (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_WL (Suc k) + 5 * L * Suc K + 4 * K * K + 24)
-            + 4 * T_nth_WL (Suc k) + 2 * L * Suc K + 2 * K + 20)" using 1 add_le_mono[OF _ 1] by (simp only:)
+    then have "(Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (k) + 5 * L * Suc K + 4 * K * K + 24)
+            + 4 * T_nth_IL (k) + 2 * L * Suc K + 2 * K + 20)
+        \<le> (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (Suc k) + 5 * L * Suc K + 4 * K * K + 24)
+            + 4 * T_nth_IL (Suc k) + 2 * L * Suc K + 2 * K + 20)" using 1 add_le_mono[OF _ 1] by (simp only:)
     then show ?thesis by auto
   qed
   finally have "T_Parse_bins_L k \<le> k * (L * Suc K * Suc (Suc k)
-          * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_WL (Suc k) + 5 * L * Suc K + 4 * K * K + 24)
-            + 4 * T_nth_WL (Suc k) + 2 * L * Suc K + 2 * K + 20)
+          * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (Suc k) + 5 * L * Suc K + 4 * K * K + 24)
+            + 4 * T_nth_IL (Suc k) + 2 * L * Suc K + 2 * K + 20)
           + 7 * k + 16)
-        + L * (4 * T_nth_WL (0) + 2 * L * Suc K + 2)
-        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_WL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 6 + k".
+        + L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2)
+        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 9 + k".
 
   then have "T_Parse_bins_L (Suc k)
       \<le> k * (L * Suc K * Suc (Suc k)
-          * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_WL (Suc k) + 5 * L * Suc K + 4 * K * K + 24)
-            + 4 * T_nth_WL (Suc k) + 2 * L * Suc K + 2 * K + 20)
+          * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (Suc k) + 5 * L * Suc K + 4 * K * K + 24)
+            + 4 * T_nth_IL (Suc k) + 2 * L * Suc K + 2 * K + 20)
           + 7 * k + 16)
-        + L * (4 * T_nth_WL (0) + 2 * L * Suc K + 2)
-        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_WL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 6 + k
+        + L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2)
+        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 9 + k
       +
-      k + 2 + k + 1 + k + (2 * K + 4) * (L * Suc K * Suc k) + 3
-      + L * Suc K * Suc k * (4 * T_nth_WL (Suc k) + 2 * L * Suc K + 2) + L * Suc K * Suc k + Suc k + 2
+      k + 3 + k + 1 + k + (2 * K + 4) * (L * Suc K * Suc k) + 3
+      + L * Suc K * Suc k * (4 * T_nth_IL (Suc k) + 2 * L * Suc K + 2) + L * Suc K * Suc k + Suc k + 3
       + L * Suc K * Suc (Suc k)
-      * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_WL (Suc k) + 5 * L * Suc K + 4 * K * K + 24) + 13) 
+      * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (Suc k) + 5 * L * Suc K + 4 * K * K + 24) + 13) 
       + 2 * k + 5 + k + 2 + 1" unfolding T_Parse_bins_L.simps Let_def using 1 2 3 4 5 7 by presburger
   
   also have "... \<le> Suc k *
        (L * Suc K * Suc (Suc (Suc k)) *
-        (Suc L * Suc K * Suc (Suc (Suc k)) * (17 * T_nth_WL (Suc k) + 5 * L * Suc K + 4 * K * K + 24) + 4 * T_nth_WL (Suc k) + 2 * L * Suc K + 2 * K + 20) +
+        (Suc L * Suc K * Suc (Suc (Suc k)) * (17 * T_nth_IL (Suc k) + 5 * L * Suc K + 4 * K * K + 24) + 4 * T_nth_IL (Suc k) + 2 * L * Suc K + 2 * K + 20) +
         7 * Suc k +
         16) +
-       L * (4 * T_nth_WL 0 + 2 * L * Suc K + 2) +
-       L * Suc K * (Suc L * Suc K * (21 * T_nth_WL 0 + 5 * L * Suc K + 19) + 2 * L + 15) +
+       L * (4 * T_nth_IL 0 + 2 * L * Suc K + 2) +
+       L * Suc K * (Suc L * Suc K * (21 * T_nth_IL 0 + 5 * L * Suc K + 19) + 2 * L + 15) +
        L +
-       6 +
+       9 +
        Suc k" by (auto simp add: algebra_simps)
   finally show ?case.
 qed
@@ -3699,42 +3899,42 @@ definition C3 where "C3 = (L * Suc K * Suc L * Suc K * (5 * L * Suc K + 4 * K * 
 definition C4 where "C4 = (L * Suc K * (2 * L * Suc K + 2 * K + 20) + 7)"
 definition C6 where "C6 = L * Suc K * Suc L * Suc K * 17"
 definition C7 where "C7 = L * Suc K * 4"
-definition C5 where "C5 = L * Suc K  * (Suc L * Suc K  * (25 * T_nth_WL (0) + 5 * L * Suc K + 20) + 2 * L + 17) + L + 4"
+definition C5 where "C5 = L * Suc K  * (Suc L * Suc K  * (25 * T_nth_IL (0) + 5 * L * Suc K + 20) + 2 * L + 17) + L + 7"
 
 
 theorem T_Parse_bins_bound_nice:
   assumes "distinct ps" "k \<le> length w"
   shows "T_Parse_bins_L k 
       \<le> (k+2)^3 * C3 + (k+2)^2 * C4 + (k+2) * 3 + C5 
-        + (k+2)^3 * T_nth_WL (k) * C6 + (k+2)^2 * T_nth_WL (k) * C7"
+        + (k+2)^3 * T_nth_IL (k) * C6 + (k+2)^2 * T_nth_IL (k) * C7"
 proof-
   have "T_Parse_bins_L k 
       \<le> k * (L * Suc K * Suc (Suc k)
-          * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_WL (k) + 5 * L * Suc K + 4 * K * K + 24)
-            + 4 * T_nth_WL (k) + 2 * L * Suc K + 2 * K + 20)
+          * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (k) + 5 * L * Suc K + 4 * K * K + 24)
+            + 4 * T_nth_IL (k) + 2 * L * Suc K + 2 * K + 20)
           + 7 * k + 16)
-        + L * (4 * T_nth_WL (0) + 2 * L * Suc K + 2)
-        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_WL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 6 + k"
+        + L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2)
+        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 9 + k"
     using T_Parse_bins_L_bound assms by simp
   also have "... \<le> (k+2) * (L * Suc K * (k+2)
-          * (Suc L * Suc K * (k+2) * (17 * T_nth_WL (k) + 5 * L * Suc K + 4 * K * K + 24)
-            + 4 * T_nth_WL (k) + 2 * L * Suc K + 2 * K + 20)
+          * (Suc L * Suc K * (k+2) * (17 * T_nth_IL (k) + 5 * L * Suc K + 4 * K * K + 24)
+            + 4 * T_nth_IL (k) + 2 * L * Suc K + 2 * K + 20)
           + 7 * (k + 2) + 2)
-        + L * Suc K  * (Suc L * Suc K  * (25 * T_nth_WL (0) + 5 * L * Suc K + 20) + 2 * L + 17) + L + 6 + k"
+        + L * Suc K  * (Suc L * Suc K  * (25 * T_nth_IL (0) + 5 * L * Suc K + 20) + 2 * L + 17) + L + 9 + k"
     by (auto simp add: algebra_simps)
   also have "... = (k+2) * (k+2) * (k+2) * (L * Suc K * Suc L * Suc K * (5 * L * Suc K + 4 * K * K + 24))
-    + (k+2) * (k+2) * (k+2) * (L * Suc K * Suc L * Suc K * 17 * T_nth_WL (k))
+    + (k+2) * (k+2) * (k+2) * (L * Suc K * Suc L * Suc K * 17 * T_nth_IL (k))
     + (k+2) * (k+2) * (L * Suc K * (2 * L * Suc K + 2 * K + 20) + 7)
-    + (k+2) * (k+2) * (L * Suc K * 4 * T_nth_WL (k))
+    + (k+2) * (k+2) * (L * Suc K * 4 * T_nth_IL (k))
     + (k+2) * 3
-    + L * Suc K  * (Suc L * Suc K  * (25 * T_nth_WL (0) + 5 * L * Suc K + 20) + 2 * L + 17) + L + 4"
+    + L * Suc K  * (Suc L * Suc K  * (25 * T_nth_IL (0) + 5 * L * Suc K + 20) + 2 * L + 17) + L + 7"
     by (auto simp add: algebra_simps)
   also have "... = (k+2)^3 * (L * Suc K * Suc L * Suc K * (5 * L * Suc K + 4 * K * K + 24))
-    + (k+2)^3 * (L * Suc K * Suc L * Suc K * 17 * T_nth_WL (k))
+    + (k+2)^3 * (L * Suc K * Suc L * Suc K * 17 * T_nth_IL (k))
     + (k+2)^2 * (L * Suc K * (2 * L * Suc K + 2 * K + 20) + 7)
-    + (k+2)^2 * (L * Suc K * 4 * T_nth_WL (k))
+    + (k+2)^2 * (L * Suc K * 4 * T_nth_IL (k))
     + (k+2) * 3 
-    + L * Suc K  * (Suc L * Suc K  * (25 * T_nth_WL (0) + 5 * L * Suc K + 20) + 2 * L + 17) + L + 4" 
+    + L * Suc K  * (Suc L * Suc K  * (25 * T_nth_IL (0) + 5 * L * Suc K + 20) + 2 * L + 17) + L + 7" 
     by (simp only: monoid_mult_class.power3_eq_cube monoid_mult_class.power2_eq_square)
   finally show ?thesis by (auto simp add: C3_def C4_def C5_def C6_def C7_def algebra_simps)
 qed
@@ -3764,14 +3964,12 @@ declare Earley_Gw.close2_L_def[code]
 declare Earley_Gw.bins_L.simps[code]
 declare Earley_Gw.w_def[code]
 
-declare Earley_Gw.WL_of_List_def[code]
-declare Earley_Gw.union_LWL.simps[code]
-declare Earley_Gw.minus_WL_def[code]
-declare WL_empty_def[code]
+declare Earley_Gw.IL_of_List_def[code]
+declare Earley_Gw.union_LIL.simps[code]
+declare Earley_Gw.minus_IL_def[code]
+declare IL_empty_def[code]
 declare Earley_Gw.insert.simps[code]
-declare empty_list_map.simps[code]
-declare Earley_Gw.minus_LWL.simps[code]
-declare Earley_Gw.upsize.simps[code]
+declare Earley_Gw.minus_LIL.simps[code]
 declare isin.simps[code]
 
 value "bins_L 0"

@@ -6,6 +6,7 @@ imports
 begin
 declare [[show_question_marks=false]]
 declare [[names_short=true]]
+(* TODO get rid of set_WorkList; in step_fun: rename it, and let step \<rightarrow> let nexts*)
 
 (* rename? *)
 hide_const (open) \<alpha>
@@ -22,19 +23,29 @@ lemma accepted_complete: "P \<turnstile> [Nt S] \<Rightarrow>* w \<Longrightarro
 using Earley_complete
 by(auto simp: accepted_def recognized_def \<S>_def)
 
+notation insert_list (infixr \<open>#\<^sub>?\<close> 65)
+notation union_list (infixl \<open>\<union>\<^sub>L\<close> 65)
+notation diff_list (infixl \<open>-\<^sub>L\<close> 65)
+
 context Earley_Gw
 begin
 
-lemma Close2L_Predict: "\<lbrakk> \<not> is_complete x; C' = List.insert x C \<rbrakk> \<Longrightarrow>
-    Close2L Bs (x#B,C) (diff_list (Predict_L x (length Bs) @ B) C', C')"
+notation ps ("\<^latex>\<open>\\textsf{\<close>ps\<^latex>\<open>}\<close>")
+notation S ("\<^latex>\<open>\\textsf{\<close>S\<^latex>\<open>}\<close>")
+
+lemma Close2L_Predict: "\<lbrakk> \<not> is_complete x; C' = insert_list x C \<rbrakk> \<Longrightarrow>
+    Close2L Bs (x#B,C) (diff_list (union_list (Predict_L x (length Bs)) B) C', C')"
   using Close2L.Predict by blast
 
-lemma Close2L_Complete: "\<lbrakk> is_complete x; C' = List.insert x C \<rbrakk> \<Longrightarrow>
-    Close2L Bs (x#B,C) (diff_list (Complete_L Bs x @ B) C', C')"
+lemma Close2L_Complete: "\<lbrakk> is_complete x; C' = insert_list x C \<rbrakk> \<Longrightarrow>
+    Close2L Bs (x#B,C) (diff_list (union_list (Complete_L Bs x) B) C', C')"
   using Close2L.Complete by blast
 
 notation Predict_L ("\<^latex>\<open>\\textsf{\<close>Predict\<^sub>L\<^latex>\<open>}\<close>")
 notation Complete_L ("\<^latex>\<open>\\textsf{\<close>Complete\<^sub>L\<^latex>\<open>}\<close>")
+
+notation step2L ("\<^latex>\<open>\\textsf{\<close>step2\<^sub>L\<^latex>\<open>}\<close>")
+notation close2L ("\<^latex>\<open>\\textsf{\<close>close2\<^sub>L\<^latex>\<open>}\<close>")
 
 end
 
@@ -103,8 +114,12 @@ text (in Earley_Gw_eps)\<open>
 An Earley recognizer decides if some word is in the language described by a grammar
 by generating a set of so-called \emph{items}  (unfortunately called \emph{states} in \cite{NipowCBJ})
 and checking if it contains a \emph{final} item.
-In the sequel, we fix a grammar \<open>P\<close>, a start symbol \<open>S\<close> and an input @{const w} \<open>::\<close> \mbox{@{type "syms"}}
-consisting only of terminal symbols.
+In the sequel, we fix the following ``global variables'':
+\begin{itemize}
+\item a grammar @{const P}
+\item a start symbol @{const S}
+\item an input @{const w} \<open>::\<close> \mbox{@{type "syms"}} consisting only of terminal symbols.
+\end{itemize}
 
 An item is a triple @{term "Item r d i"}
 where \<open>r = (A, \<alpha>)\<close> is a production from \<open>P\<close>, \<open>d\<close> is a natural number such that@{prop "d \<le> length \<alpha>"},
@@ -253,6 +268,7 @@ Moreover @{term "wf_bins1 Bs"} \<open>\<equiv>\<close> @{prop "\<forall>k < leng
 
 
 \subsection{One-Pass Closure}
+\label{sec:OnePassClosure}
 
 Our previous work concludes with an abstract one-pass formulation of @{const Close1}.
 It is still on the level of sets and intentionally nondeterministic.
@@ -326,7 +342,8 @@ Of course we still need to show termination of \<open>\<rightarrow>\<close>.
 This follows because the set of well-formed items (let us call it \<open>I\<close>) is finite,
 because there are only finitely many dotted productions and @{const from} fields.
 In each \<open>(B,C) \<rightarrow> (B',C')\<close> step, either @{term "card (I - (B \<union> C))"} decreases
-or @{prop "B' \<subset> B"}, which implies termination.
+or it remains the same (because no new item was generated) and @{prop "B' \<subset> B"},
+which implies termination.
 By induction on this wellfounded relation it follows that eventually @{prop "B={}"}
 because if not, either prediction or completion applies.
 
@@ -346,37 +363,68 @@ Of course, we have not yet arrived at an executable formulation because of the p
 in @{const close2}.
 
 
-\section{Refinement to Worklist}
+\section{Refinement}
 
-\subsection{From Set to List}
+This section is concerned with an efficient, executable implementation of the closure
+operation on bins, and thus all of the recognizer. We proceed in three steps:
+\begin{enumerate}
+\item Implement sets by lists.
+\item Turn the inductive definition into a (functional) while-loop.
+\item Augment bins with a data structure for efficient search for items.
+\end{enumerate}
 
+
+\subsection{From Sets to Lists}
+
+This is a canonical data refinement step. We take the worklist algorithm for closure from Section
+\ref{sec:OnePassClosure} and replace @{type set} by @{type list}. The new transition relation
+has the syntax @{prop \<open>Bs \<turnstile>\<^sub>L (B,C) \<rightarrow> (B',C')\<close>} where \<open>B\<close>, \<open>C\<close>, \<open>B'\<close>, \<open>C'\<close> are item lists
+and \<open>Bs\<close> is a list of item lists:
 \begin{quote}
-@{thm [mode=Rule] Close2L_Predict}
+@{thm [mode=Rule] Close2L.Predict}
 \medskip
 
-@{thm [mode=Rule] Close2L_Complete}
-\medskip
-
+@{thm [mode=Rule] Close2L.Complete}
+\end{quote}
+where
+\begin{quote}
 @{thm Predict_L_def}\\
 @{thm [break] Complete_L_def}
 \end{quote}
-where @{const List.insert} and @{const diff_list} satisfies the characteristic equations
-\begin{quote}
-@{thm set_insert} \qquad
-@{thm set_diff_list}
-\end{quote}
+and @{const insert_list}, @{const union_list} and @{const diff_list} implement the corresponding
+set functions on lists. They are defined in Appendix~\ref{ListLib}. We have also replaced
+the set of productions @{const P} by a list @{const ps} and assume
+@{lemma "P = set (id ps)" by simp}.
 
-Correctness and termination, omitting the obvious well-formedness assumptions:
+Correctness and termination can be proved straightforwardly:
 \begin{quote}
 @{thm (prem 1,sub) Close2s_if_Close2Ls}\<open>\<Longrightarrow>\<close> @{thm (concl,sub) Close2s_if_Close2Ls}
 \medskip
 
 @{thm (concl) Close2L_NF}
 \end{quote}
+assuming @{thm (prem 2) Close2s_if_Close2Ls}, @{thm (prem 3) Close2s_if_Close2Ls}
+(and in the second theorem @{thm (prem 3) Close2L_NF}).
 
+Note that the transition rules preserve the absence of duplicates in both \<open>B\<close> and \<open>C\<close>,
+but that this property is not needed in the above proofs.
+It will be needed in the later complexity analysis.
 
 \subsection{From Inductive to Recursive}
 
+Finally we take the step from inductive predicate to directly executable functional
+algorithm. We employ an Isabelle/HOL library theory defining a while-combinator
+\begin{quote}
+@{const_typ while_option}
+\end{quote}
+whose definition is exlained elsewhere \cite{Nipkow-ITP11}. All we need to know is that it is
+executable by means of this recursion equation provable as a lemma:
+\begin{quote}
+@{thm while_option_unfold}
+\end{quote}
+Termination is equivalent with a @{const Some} result.
+
+The closure computation is performed by the obvious worklist loop:
 \begin{quote}
 @{thm close2L_def}
 \medskip
@@ -384,28 +432,86 @@ Correctness and termination, omitting the obvious well-formedness assumptions:
 @{thm [break] step2L.simps}
 \end{quote}
 
-Correctness and termination, omitting the obvious well-formedness assumptions:
+By the same well-founded induction as before
+we can show termination of @{const close2L}:
 \begin{quote}
-@{thm (prem 3,sub) close2L_Some_iff_Close2s}
-\<open>\<Longrightarrow>\<close> @{thm (concl,sub) close2L_Some_iff_Close2s}
-\medskip
-
 @{thm (concl) close2L_Some}
 \end{quote}
+Correctness is provable by a standard invariant preservation argument:
+\begin{quote}
+@{thm [break] (sub) close2L_Some_iff_Close2s}
+\end{quote}
+
 
 \subsection{Efficient Access to Bins}
 
-Problem: diff-list quadratic. size of bin: k(P) * n(from).
-When processing the \<open>i\<close>-th input character, i.e. @{term \<open>i = length Bs\<close>},
-augment \<open>B\<close> with a list (think array) \<open>F\<close> of size \<open>i\<close> where each element is a lists of items such that
+The expensive part of the closure construction is checking, in each step,
+if a newly generated item is already present (in \<open>B\<close> or \<open>C\<close>).
+The number of possible items is bounded by the number of dotted productions (a constant
+\<open>k\<close> depending on @{const P}) times the number of possible @{const from} values,
+i.e.\ @{term "k * length w"}. We will store \<open>B\<close> and \<open>C\<close> not just as linear lists
+but will partition them by their @{const from} values. When searching for an item \<open>x\<close>,
+if we can access partition @{term "from x"} directly, the search takes
+time at most \<open>k\<close>, the maximum size of each partition.
+When processing the \<open>i\<close>-th input character, i.e. @{term \<open>i = length Bs\<close>}, we
+augment \<open>B\<close> (and \<open>C\<close>) with a list (think array) \<open>F\<close> of size \<open>i\<close> such that
 @{term "F ! j"} is a list of all @{prop \<open>x \<in> B\<close>} where @{prop \<open>from x = j\<close>}.
-Size of @{term "F ! j"} depends only on @{const P}, not on @{term "length w"}.
 
 \begin{quote}
 @{datatype [break] WorkList}
 \end{quote}
 with the three projection functions @{const list}, @{const leng} and @{const list_map}
+@{term froms}
+invariant:
+\begin{quote}
+@{thm [break] WL_inv.simps}
+\end{quote}
+
+Set interface to WL:
+\begin{quote}
+@{thm member.simps}\smallskip\\
+@{thm [break] isin.simps}\smallskip\\
+@{thm set_WorkList.simps}\smallskip\\
+@{thm [break] insert.simps}\smallskip\\
+@{thm union_LWL.simps}\smallskip\\
+@{thm (sub) union_WL_def}\smallskip\\
+@{thm WL_of_List_def}\smallskip\\
+@{thm [break]minus_LWL.simps}\smallskip\\
+@{thm [break](sub)minus_WL_def}\smallskip\\
+\end{quote}
+
+The algorithm:
+\begin{quote}
+@{thm Init_L_def}\smallskip\\
+@{thm [break] Scan_L_def}\smallskip\\
+@{thm [break] step_fun.simps}\smallskip\\
+@{thm steps_def}\smallskip\\
+@{thm close2_L_def}\smallskip\\
+@{thm bins_L.simps}\smallskip\\
+\end{quote}
+
+\appendix
+
+\section{List Library}
+\label{ListLib}
+
+A minimal library of set functions on lists:
+\begin{quote}
+@{thm filter.simps}\\
+
+@{thm fold_simps}\\
+
+@{thm isin_list.simps}\\
+
+@{thm insert_list_def}\\
+
+@{thm union_list_def2}\\
+
+@{thm diff_list_def}
+\end{quote}
+
 \<close>
+
 (*<*)
 end
 (*>*)

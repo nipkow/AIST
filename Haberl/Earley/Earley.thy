@@ -1075,9 +1075,43 @@ end
 
 (* List *)
 
+(* TODO merge with list functions in WL;
+WL: time_fun fold equations fold_simps;
+Warning: union_list below inserts elements in different order from union_LWL
+(not relevant because our refinement and the one by Haberl are not connected - YET)
+*)
+
+text \<open>Most of the following functions are already in theory \<open>List\<close> but are redefined
+because either to clarify their timing behaviour (\<open>List.member\<close> uses sets)
+or simply for uniform naming.\<close>
+
+fun isin_list :: "'a list \<Rightarrow> 'a \<Rightarrow> bool"  where
+"isin_list [] a = False" |
+"isin_list (x#xs) a = (if x=a then True else isin_list xs a)"
+
+definition insert_list :: "'a \<Rightarrow> 'a list \<Rightarrow> 'a list"  where
+"insert_list a xs = (if isin_list xs a then xs else a#xs)"
+
+definition union_list :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list"  where
+"union_list = List.union"
 
 definition diff_list :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list"  where
-"diff_list xs ys = filter (Not o List.member ys) xs"
+"diff_list xs ys = filter (Not o isin_list ys) xs"
+
+lemma isin_list[simp]: "isin_list xs a = (a \<in> set xs)"
+by (induction xs) auto
+
+lemma set_insert_list[simp]: "set(insert_list x xs) = {x} \<union> set xs"
+by(auto simp add: insert_list_def)
+
+lemma insert_list_eq_List_insert: "insert_list = List.insert"
+by (metis (no_types, lifting) ext List.insert_def insert_list_def isin_list)
+
+lemma union_list_def2: "union_list = fold insert_list"
+by (simp add: List.union_def insert_list_eq_List_insert union_list_def)
+
+lemma set_union_list[simp]: "set(union_list xs ys) = set xs \<union> set ys"
+by(simp add: union_list_def)
 
 lemma set_diff_list[simp]: "set(diff_list xs ys) = set xs - set ys"
 unfolding diff_list_def by auto
@@ -1102,9 +1136,9 @@ inductive Close2L :: "('n,'a) item list list \<Rightarrow> ('n,'a) item list * (
 ("(_ \<turnstile>\<^sub>L _ \<rightarrow> _)" [50, 0, 50] 50)
   for Bs where
     Predict: "\<not> is_complete x \<Longrightarrow>
-    Close2L Bs (x#B,C) (diff_list (Predict_L x (length Bs) @ B) (List.insert x C), List.insert x C)"
+    Close2L Bs (x#B,C) (diff_list (union_list (Predict_L x (length Bs)) B) (insert_list x C), insert_list x C)"
   | Complete: "is_complete x \<Longrightarrow>
-    Close2L Bs (x#B,C) (diff_list (Complete_L Bs x @ B) (List.insert x C), List.insert x C)"
+    Close2L Bs (x#B,C) (diff_list (union_list (Complete_L Bs x) B) (insert_list x C), insert_list x C)"
 
 abbreviation Close2L_steps ("(_ \<turnstile>\<^sub>L _ \<rightarrow>* _)" [50, 0, 50] 50) where
 "Bs \<turnstile>\<^sub>L p \<rightarrow>* p' \<equiv> (Close2L Bs)^** p p'"
@@ -1181,19 +1215,72 @@ lemma Close2L_Close2: assumes "wf_bins1 (map set Bs)" "wf_bin1 (set B) (length B
   "(Close2L Bs)^** (B,[]) ([],C1)" "map set Bs \<turnstile> (set B,{}) \<rightarrow>* ({},C2)" shows "set C1 = C2"
 using Close2_eq_Close1 Close2s_if_Close2Ls[OF assms(3,1,2),simplified] assms(4)
   by blast
+(*
+(* mv to List Lib ? *)
+lemma distinct_insert_list: "distinct xs \<Longrightarrow> distinct (insert_list x xs)"
+by(simp add: insert_list_def)
+
+lemma distinct_diff_listI: "distinct xs \<Longrightarrow> distinct (diff_list xs ys)"
+by(simp add: diff_list_def)
+
+(* rm in EarleyWorkList *)
+lemma distinct_Predict_L: 
+  assumes "distinct ps" shows "distinct (Predict_L x k)"
+proof -                                           
+  have "inj_on (\<lambda>p. Item p 0 k) (set ps)"
+    using inj_on_def by auto
+  then have "distinct (map (\<lambda> p. Item p 0 k) ps)" using assms by (simp add: distinct_map)
+  then show ?thesis using assms by (simp add: Predict_L_def distinct_map_filter)
+qed
+
+lemma distinct_Complete_L: 
+  assumes "distinct (Bs ! from y)" shows "distinct (Complete_L Bs y)"
+proof -                                           
+  have "inj_on mv_dot (set (Bs ! from y))"
+    using inj_on_def mv_dot_def
+    by (smt (verit, ccfv_threshold) add_right_cancel item.expand item.inject)
+  then have "distinct (map mv_dot (Bs ! from y))" using assms by (simp add: distinct_map)
+  then show ?thesis using assms by (simp add: Complete_L_def distinct_map_filter)
+qed
+
+lemma Close2L_distinct:
+  "\<lbrakk> Close2L Bs (B,C) (B',C'); distinct B; distinct C \<rbrakk>
+  \<Longrightarrow> distinct B' \<and> distinct C'"
+apply(auto simp: set_Predict_L set_Complete_L Close2L.simps distinct_diff_listI)
+*)
+
+end
 
 (* While *)
+context Earley_Gw
+begin
 
 fun step2L :: "('n,'a) item list list \<Rightarrow> ('n,'a)item list \<times> ('n,'a) item list \<Rightarrow> ('n,'a) item list \<times> ('n,'a) item list" where
 "step2L Bs (x#B, C) =
   (let nexts = (if is_complete x then Complete_L Bs x else Predict_L x (length Bs)) in
-     (diff_list (nexts @ B) (List.insert x C), List.insert x C) )"
+     (diff_list (union_list nexts B) (insert_list x C), insert_list x C) )"
 
 definition close2L :: "('n, 'a) item list list \<Rightarrow> ('n,'a)item list \<times> ('n, 'a) item list \<Rightarrow> (('n, 'a) item list \<times> ('n, 'a) item list) option" where
 "close2L Bs = while_option (\<lambda>(B,C). B \<noteq> []) (step2L Bs)"
 
 lemma Close2L_iff_step2L: "Close2L Bs (B,C) (B',C') \<longleftrightarrow> B \<noteq> [] \<and> step2L Bs (B,C) = (B',C')"
 by(auto simp: neq_Nil_conv Close2L.simps)
+
+lemma Close2Ls_if_close2L_Some:
+  assumes "close2L Bs (B,C) = Some ([],C')"
+  shows "(Close2L Bs)^** (B,C) ([],C')"
+proof -
+  let ?P = "\<lambda>BC'. (Close2L Bs)^** (B,C) (BC')"
+  have "\<And>B C. B\<noteq>[] \<Longrightarrow> ?P (B,C) \<Longrightarrow> ?P (step2L Bs (B,C))"
+    by (metis Close2L_iff_step2L old.prod.exhaust rtranclp.rtrancl_into_rtrancl)
+  thus ?thesis using while_option_rule[where P = ?P, OF _ assms(1)[unfolded close2L_def]]
+    by blast
+qed
+
+end
+
+context Earley_Gw_eps
+begin
 
 lemma close2L_Some_if_Close2Ls: assumes "wf_bins1 (map set Bs)"
   shows "(Close2L Bs)^** (B,C) ([],C') \<Longrightarrow> wf_bin1 (set B) (length Bs) \<Longrightarrow> close2L Bs (B,C) = Some ([],C')"
@@ -1212,17 +1299,6 @@ corollary close2L_Some:
 using assms close2L_Some_if_Close2Ls[of Bs B "[]"] Close2L_NF[of Bs B "[]"]
 by (auto simp add: wf_bin1_def)
 
-lemma Close2Ls_if_close2L_Some:
-  assumes "close2L Bs (B,C) = Some ([],C')"
-  shows "(Close2L Bs)^** (B,C) ([],C')"
-proof -
-  let ?P = "\<lambda>BC'. (Close2L Bs)^** (B,C) (BC')"
-  have "\<And>B C. B\<noteq>[] \<Longrightarrow> ?P (B,C) \<Longrightarrow> ?P (step2L Bs (B,C))"
-    by (metis Close2L_iff_step2L old.prod.exhaust rtranclp.rtrancl_into_rtrancl)
-  thus ?thesis using while_option_rule[where P = ?P, OF _ assms(1)[unfolded close2L_def]]
-    by blast
-qed
-
 corollary close2L_Some_iff_Close2Ls: "\<lbrakk> wf_bins1 (map set Bs); wf_bin1 (set B) (length Bs) \<rbrakk> \<Longrightarrow>
   close2L Bs (B,[]) = Some ([],C) \<longleftrightarrow> (Close2L Bs)^** (B,[]) ([],C)"
 using Close2Ls_if_close2L_Some close2L_Some_if_Close2Ls by blast
@@ -1233,6 +1309,6 @@ by (metis Close2s_if_Close2Ls close2L_Some_iff_Close2Ls empty_set)
 
 end (* Earley_Gw_eps *)
 
-unused_thms
+(*unused_thms*)
 
 end

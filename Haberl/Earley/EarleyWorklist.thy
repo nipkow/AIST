@@ -61,14 +61,14 @@ datatype ('n,'a) efficientItemList =
   ItemList ("list": "('n,'a) item list") ("froms" : "('n,'a) item list list")
 
 fun inv_IL :: "('n, 'a) efficientItemList \<Rightarrow> bool" where
-"inv_IL (ItemList as m) = (length m > 0 
-                            \<and> (\<forall>x \<in> set as. from x < length m) 
-                            \<and> (\<forall>i < length m. set (m ! i) = {x \<in> set as. from x = i}) 
-                            \<and> (\<forall>i < length m. distinct (m ! i)) 
+"inv_IL (ItemList as fs) = (length fs > 0 
+                            \<and> (\<forall>x \<in> set as. from x < length fs) 
+                            \<and> (\<forall>i < length fs. set (fs ! i) = {x \<in> set as. from x = i}) 
+                            \<and> (\<forall>i < length fs. distinct (fs ! i)) 
                             \<and> distinct as)"
 
 fun isin :: "('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) item \<Rightarrow> bool" where
-"isin (ItemList as m) x = isin_list (m ! from x) x"
+"isin (ItemList as fs) x = isin_list (fs ! from x) x"
 
 definition empty_IL :: "nat \<Rightarrow> ('n, 'a) efficientItemList" where
 "empty_IL k = (ItemList [] (replicate (Suc k) []))"
@@ -80,15 +80,12 @@ fun set_ItemList :: "('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) item set"
 "set_ItemList il = set (list il)"
 
 fun insert :: "('n, 'a) item \<Rightarrow> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList" where
-"insert x (ItemList as m) = (if isin (ItemList as m) x then ItemList as m else
-                                ItemList (x#as) (m[from x := x#(m ! from x)]))"
+"insert x (ItemList as fs) = (if isin (ItemList as fs) x then ItemList as fs else
+                                ItemList (x#as) (fs[from x := x#(fs ! from x)]))"
 
 fun union_LIL :: "('n, 'a) item list \<Rightarrow> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList" where
 "union_LIL [] il = il" |
 "union_LIL (a#as) il = insert a (union_LIL as il)"
-
-definition union_IL :: "('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList" where
-"union_IL il1 il2 = union_LIL (list il1) il2"
 
 definition IL_of_List :: "nat \<Rightarrow> ('n, 'a) item list \<Rightarrow> ('n, 'a) efficientItemList" where
 "IL_of_List k as = union_LIL as (empty_IL k)"
@@ -177,12 +174,6 @@ next
   finally show ?case by auto
 qed
 
-lemma IL_union: "inv_IL il2 \<Longrightarrow> \<forall>a \<in> set_ItemList il1. from a < length (froms il2) \<Longrightarrow> set_ItemList (union_IL il1 il2) = set_ItemList il1 \<union> set_ItemList il2"
-  using LIL_union by (auto simp add: union_IL_def)
-
-lemma IL_union_inv: "inv_IL il2 \<Longrightarrow> \<forall>a \<in> set_ItemList il1. from a < length (froms il2) \<Longrightarrow> inv_IL (union_IL il1 il2)"
-  using LIL_union_inv by (auto simp add: union_IL_def)
-
 lemma set_IL_of_List: "\<forall>a \<in> set as. from a < Suc k \<Longrightarrow> set_ItemList (IL_of_List k as) = set as"
   using LIL_union[of "empty_IL k" as] empty_inv set_empty_IL
   by (auto simp add: IL_of_List_def)
@@ -257,8 +248,8 @@ definition Scan_L :: "('n,'a) item list \<Rightarrow> nat \<Rightarrow> ('n,'a) 
   "Scan_L Bs k = (let x = Some(w ! k) in map mv_dot (filter (\<lambda> b. next_symbol b = x) Bs))"
 
 fun step_fun :: "('n, 'a) item list list \<Rightarrow>  ('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList" where
-  "step_fun Bs ((ItemList (b#bs) m), C) = (let nexts = (if is_complete b then Complete_L Bs b else Predict_L b (length Bs)) in
-    ( minus_IL (union_LIL nexts (ItemList (b#bs) m)) (insert b C), insert b C) )"
+  "step_fun Bs ((ItemList (x#xs) fs), C) = (let nexts = (if is_complete x then Complete_L Bs x else Predict_L x (length Bs)) in
+    ( minus_IL (union_LIL nexts (ItemList (x#xs) fs)) (insert x C), insert x C) )"
 (* (bs \<union> step) - (C \<union> {b}) *)
 
 definition steps :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList \<Rightarrow> (('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList) option" where
@@ -987,7 +978,6 @@ fun T_empty_IL :: "nat \<Rightarrow> nat" where
 time_fun insert
 
 time_fun union_LIL
-time_fun union_IL
 time_fun IL_of_List
 time_fun minus_LIL
 time_fun minus_IL
@@ -2820,8 +2810,8 @@ proof-
     assume P: "?P s" and b: "?b s"
     then obtain il1' ts1 il2' ts2 il3' ts3 il4' ts4 where P_s: "s = ((il1', ts1), (il2', ts2)) \<and> Parse_step_fun Bs s = ((il3', ts3), (il4', ts4))"
       by (metis (no_types, opaque_lifting) T_fst.cases)
-    obtain il5 il6 where step_f: "step_fun (map (map item) Bs) (il1', il2') = (il5, il6)" using PIL_map_item_def
-      using T_union_IL.cases by blast
+    obtain il5 il6 where step_f: "step_fun (map (map item) Bs) (il1', il2') = (il5, il6)"
+      using PIL_map_item_def by fastforce
     then have eq: "il5 = il3' \<and> il6  = il4'" using b P P_s 
         Pstep_fun_eq_step_fun[of _ _ "(il1', ts1)" "(il2', ts2)" "(il3', ts3)" "(il4', ts4)" il2' il5 il6]
       by (auto simp add: PIL_map_item_def)

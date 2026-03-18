@@ -6,8 +6,12 @@ imports
 begin
 declare [[show_question_marks=false]]
 declare [[names_short=true]]
-(* in step_fun: rename it, and let step \<rightarrow> let nexts*)
-
+(* TODO Earley: get rid of next_sym = Some, use not is_final ?? *)
+(* in step_fun: rename it*)
+(*
+abbreviation "iupdate xs i f \<equiv> xs[i := f(xs!i)]"
+notation iupdate ("_[[_ := _]]" [1000,0,0] 0)
+*)
 (* rename? *)
 hide_const (open) \<alpha>
 hide_const (open) \<beta>
@@ -26,6 +30,10 @@ by(auto simp: accepted_def recognized_def \<S>_def)
 notation insert_list (infixr \<open>#\<^sub>?\<close> 65)
 notation union_list (infixl \<open>\<union>\<^sub>L\<close> 65)
 notation diff_list (infixl \<open>-\<^sub>L\<close> 65)
+
+notation ItemList ("\<^latex>\<open>\\textsf{\<close>IL\<^latex>\<open>}\<close>")
+notation inv_IL ("\<^latex>\<open>\\textsf{\<close>inv\<^bsub>\<^latex>\<open>\\textsf{\<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
+notation isin ("\<^latex>\<open>\\textsf{\<close>isin\<^bsub>\<^latex>\<open>\\textsf{\<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
 
 context Earley_Gw
 begin
@@ -459,17 +467,22 @@ augment \<open>B\<close> (and \<open>C\<close>) with a list (think array) \<open
 \end{quote}
 with the projection functions @{const list} and @{const froms}.
 
-invariant:
+The invariant
 \begin{quote}
-@{thm [break] inv_IL.simps}
+@{thm [break] inv_IL.simps[of xs fs]}
 \end{quote}
-                   
+ensures
+that \<open>fs\<close> is long enough to accommodate all of \<open>xs\<close>,
+that \<open>fs\<close> is an indexed version of \<open>xs\<close>,
+and that there are no duplicates.
+The condition @{prop "length fs > 0"} simplifies some technicalities and can easily be guaranteed.
+
+
 Set interface to WL:
 \begin{quote}
 @{thm [break] EarleyWorklist.isin.simps}\smallskip\\
 @{thm [break] insert.simps}\smallskip\\
 @{thm union_LIL.simps}\smallskip\\
-@{thm (sub) union_IL_def}\smallskip\\
 @{thm IL_of_List_def}\smallskip\\
 @{thm [break]minus_LIL.simps}\smallskip\\
 @{thm [break](sub)minus_IL_def}\smallskip\\

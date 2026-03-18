@@ -109,7 +109,7 @@ text (in Earley_Gw_eps)\<open>
 \subsection{Inductive Definition of Earley's Item Sets} \label{sec:Earley}
 
 An Earley recognizer decides if some word is in the language described by a grammar
-by generating a set of so-called \emph{items}  (unfortunately called \emph{states} in \cite{NipowCBJ})
+by generating a set of so-called \emph{items} (\emph{states} in \cite{Earley} and \cite{NipkowR-CBJ24})
 and checking if it contains a \emph{final} item.
 In the sequel, we fix the following ``global variables'':
 \begin{itemize}

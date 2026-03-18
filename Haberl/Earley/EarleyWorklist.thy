@@ -254,7 +254,7 @@ definition Init_L :: "('n,'a) item list" where
   "Init_L =  map (\<lambda> p. Item p 0 0) (filter (\<lambda> p. lhs p = (S)) ps)"
 
 definition Scan_L :: "('n,'a) item list \<Rightarrow> nat \<Rightarrow> ('n,'a) item list" where
-  "Scan_L Bs k = (let x = Some(Tm(w0 ! k)) in map mv_dot (filter (\<lambda> b. next_symbol b = x) Bs))"
+  "Scan_L Bs k = (let x = Some(w ! k) in map mv_dot (filter (\<lambda> b. next_symbol b = x) Bs))"
 
 fun step_fun :: "('n, 'a) item list list \<Rightarrow>  ('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList" where
   "step_fun Bs ((ItemList (b#bs) m), C) = (let nexts = (if is_complete b then Complete_L Bs b else Predict_L b (length Bs)) in
@@ -850,7 +850,7 @@ context Earley_Gw
 begin
 
 definition "K = Max { length (rhs r) | r. r \<in> set ps }"
-definition "N = length w0"
+definition "N = length w"
 definition "L = length ps"
 
 lemma card_wf: 
@@ -1206,22 +1206,22 @@ proof-
   finally show ?thesis using T_filter_bound[of ps T_fst 0] 1 by (auto simp add: T_Init_L_def L_def)
 qed
 
-lemma T_Scan_L_bound: 
-  assumes "k < length w0" and wf: "wf_bin1 (set Bs) l" 
+lemma T_Scan_L_bound:
+  assumes "k < length w" and wf: "wf_bin1 (set Bs) l" 
   shows "T_Scan_L Bs k \<le> k + 2*(K + 2) * length Bs + 3"
 proof-
-  have 1: "T_nth w0 k \<le> k+1" using assms by (auto simp add: T_nth)
+  have 1: "T_nth w k \<le> k+1" using assms by (auto simp add: T_nth)
 
   have 2: "T_filter T_next_symbol Bs \<le> 2*(Suc K) * length Bs + length Bs + 1" 
     using T_next_symbol_bound wf T_filter_bound[of Bs T_next_symbol "2*(Suc K)"] 
     by (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
 
-  have "T_map T_mv_dot (filter (\<lambda>b. next_symbol b = Some (Tm (w0 ! k))) Bs) 
-            \<le> length (filter (\<lambda>b. next_symbol b = Some (Tm (w0 ! k))) Bs) + 1"
+  have "T_map T_mv_dot (filter (\<lambda>b. next_symbol b = Some (w ! k)) Bs) 
+            \<le> length (filter (\<lambda>b. next_symbol b = Some (w ! k)) Bs) + 1"
     using T_map_bound[of _ T_mv_dot 0] by auto
   also have "... \<le> length Bs + 1" by auto
 
-  finally show ?thesis using 1 2 by (auto simp add: Let_def)
+  finally show ?thesis using 1 2 assms(1) w_def by (auto simp add: Let_def T_nth)
 qed
 
 lemma T_Predict_L_bound: 
@@ -2491,7 +2491,7 @@ definition Parse_Init_L :: "('n,'a) item_Pt list" where
 
 
 definition Parse_Scan_L :: "('n,'a) item_Pt list \<Rightarrow> nat \<Rightarrow> ('n,'a) item_Pt list" where
-  "Parse_Scan_L Bs k = (let x = Some (Tm (w0 ! k)) in map (\<lambda> y. let (p,t) = y in (mv_dot p, (Sym (the x))#t)) (filter (\<lambda> y. let (p,t) = y in next_symbol p = x) Bs))"
+  "Parse_Scan_L Bs k = (let x = Some (w ! k) in map (\<lambda> y. let (p,t) = y in (mv_dot p, (Sym (the x))#t)) (filter (\<lambda> y. let (p,t) = y in next_symbol p = x) Bs))"
 
 fun Parse_step_fun :: "('n, 'a) item_Pt list list \<Rightarrow>  ('n, 'a) parseIL \<times> ('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseIL \<times> ('n, 'a) parseIL" where
   "Parse_step_fun Bs ((il1, []), pil2) = undefined" |
@@ -2550,11 +2550,11 @@ lemma Parse_Init_L_eq_Init_L: "map item Parse_Init_L = Init_L"
 
 lemma Parse_Scan_L_eq_Scan_L: "map item (Parse_Scan_L Bs k) = Scan_L (map item Bs) k"
 proof-
-  have "map item (Parse_Scan_L Bs k) = map mv_dot (map item (filter (\<lambda>(p, t).  next_symbol p = Some (Tm (w0 ! k))) Bs))"
+  have "map item (Parse_Scan_L Bs k) = map mv_dot (map item (filter (\<lambda>(p, t).  next_symbol p = Some (w ! k)) Bs))"
     by (auto simp add: Parse_Scan_L_def)
-  also have "... = map mv_dot (map item (filter (\<lambda>x. next_symbol (item x) = Some (Tm (w0 ! k))) Bs))"
+  also have "... = map mv_dot (map item (filter (\<lambda>x. next_symbol (item x) = Some (w ! k)) Bs))"
     by (simp add: case_prod_beta')
-  also have "... = map mv_dot (filter (\<lambda>x. next_symbol  x = Some (Tm (w0 ! k))) (map item Bs))"
+  also have "... = map mv_dot (filter (\<lambda>x. next_symbol  x = Some (w ! k)) (map item Bs))"
     using filter_map
     by (metis (no_types, lifting) ext comp_def)
   finally show ?thesis
@@ -3286,10 +3286,10 @@ proof-
 qed
 
 lemma T_Parse_Scan_L_bound: 
-  assumes "k < length w0" "wf_parse_bin (set Bs) k" 
+  assumes "k < length w" "wf_parse_bin (set Bs) k" 
   shows "T_Parse_Scan_L Bs k \<le> k + (2*K + 4) * (length Bs) + 3"
 proof-
-  have 1: "T_nth w0 k \<le> k + 1" using assms by (auto simp add: T_nth)
+  have 1: "T_nth w k = k + 1" using assms by (auto simp add: T_nth)
 
   let ?T_filt = "\<lambda>y. let a = y in case a of (p, t) \<Rightarrow> T_next_symbol p"
   have "\<forall>x \<in> set Bs. ?T_filt x \<le> 2 * Suc K" 
@@ -3297,13 +3297,13 @@ proof-
   then have 2: "T_filter ?T_filt Bs \<le> 2 * Suc K * (length Bs) + length Bs + 1"
     using T_filter_bound[of Bs ?T_filt "2 * Suc K"] by simp
 
-  let ?filtered = "filter (\<lambda>y. let a = y in case a of (p, t) \<Rightarrow> next_symbol p = Some (Tm (w0 ! k))) Bs"
-  let ?T_map = "\<lambda>y. let a = y in case a of (p, t) \<Rightarrow> T_mv_dot p + T_the (Some (Tm (w0 ! k)))"
-  have "T_map (\<lambda>y. let a = y in case a of (p, t) \<Rightarrow> T_mv_dot p + T_the (Some (Tm (w0 ! k)))) ?filtered
+  let ?filtered = "filter (\<lambda>y. let a = y in case a of (p, t) \<Rightarrow> next_symbol p = Some (w ! k)) Bs"
+  let ?T_map = "\<lambda>y. let a = y in case a of (p, t) \<Rightarrow> T_mv_dot p + T_the (Some (w ! k))"
+  have "T_map (\<lambda>y. let a = y in case a of (p, t) \<Rightarrow> T_mv_dot p + T_the (Some (w ! k))) ?filtered
   = T_map (\<lambda>y. 0) ?filtered" by auto
   also have "... \<le> length ?filtered + 1" using T_map_bound by fastforce
   also have "... \<le> length Bs + 1" by auto
-  finally have "T_map (\<lambda>y. let a = y in case a of (p, t) \<Rightarrow> T_mv_dot p + T_the (Some (Tm (w0 ! k)))) ?filtered \<le> length Bs + 1".
+  finally have "T_map (\<lambda>y. let a = y in case a of (p, t) \<Rightarrow> T_mv_dot p + T_the (Some (w ! k))) ?filtered \<le> length Bs + 1".
 
   then show ?thesis using 1 2 by (auto simp add: algebra_simps)
 qed

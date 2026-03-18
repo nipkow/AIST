@@ -41,6 +41,9 @@ begin
 notation ps ("\<^latex>\<open>\\textsf{\<close>ps\<^latex>\<open>}\<close>")
 notation S ("\<^latex>\<open>\\textsf{\<close>S\<^latex>\<open>}\<close>")
 
+notation insert (infixr \<open>#\<^bsub>\<^latex>\<open>\textsf{\<close>IL\<^latex>\<open>}\<close>\<^esub>\<close> 65)
+notation union_LIL (infixr \<open>\<union>\<^bsub>\<^latex>\<open>\textsf{\<close>IL\<^latex>\<open>}\<close>\<^esub>\<close> 65)
+
 lemma Close2L_Predict: "\<lbrakk> \<not> is_complete x; C' = insert_list x C \<rbrakk> \<Longrightarrow>
     Close2L Bs (x#B,C) (diff_list (union_list (Predict_L x (length Bs)) B) C', C')"
   using Close2L.Predict by blast

@@ -157,10 +157,10 @@ lemma length_IL_insert[simp]:
  "length (froms (insert x il)) = length(froms il)" by (cases il) auto
 
 lemma length_LIL_union[simp]: "length (froms (union_LIL as il)) = length (froms il)"
-  by (induction as arbitrary: il) (auto simp add: length_IL_insert)
+  by (induction as arbitrary: il) (auto)
 
 lemma LIL_union_inv: "inv_IL il \<Longrightarrow> \<forall>a \<in> set as. from a < length (froms il) \<Longrightarrow> inv_IL (union_LIL as il)"
-  using insert_inv_IL1 by (induction as) (auto simp add: wf_item_def length_LIL_union)
+  using insert_inv_IL1 by (induction as) (auto simp add: wf_item_def)
 
 lemma LIL_union: "inv_IL il \<Longrightarrow> \<forall>a \<in> set as. from a < length (froms il) \<Longrightarrow> set_ItemList (union_LIL as il) = set as \<union> set_ItemList il"
 proof (induction as)
@@ -230,17 +230,9 @@ lemma length_IL_minus1: "length (froms il1) > 0 \<Longrightarrow> length (froms 
 section \<open>Earley ItemList algorithm\<close>
 
 
-(* must not be empty, otherwise by def step_rel is always false *)
 definition step_rel :: "('n, 'a) item set list \<Rightarrow> ('n, 'a) item set \<times> ('n, 'a) item set \<Rightarrow> ('n, 'a) item set \<times> ('n, 'a) item set \<Rightarrow> bool" where
   "step_rel  \<equiv> Close2"
 
-(* now already in Earley
-definition Predict_L :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> ('n,'a) item list" where
-  "Predict_L x k = map (\<lambda>p. Item p 0 k) (filter (\<lambda>p. next_sym_Nt x (lhs p)) ps)"
-
-definition Complete_L :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) item \<Rightarrow> ('n, 'a) item list" where
-  "Complete_L Bs y = map mv_dot (filter (\<lambda> b. next_sym_Nt b (lhs(prod y))) (Bs ! from y))"
-*)
 definition Init_L :: "('n,'a) item list" where
   "Init_L =  map (\<lambda> p. Item p 0 0) (filter (\<lambda> p. lhs p = (S)) ps)"
 
@@ -250,7 +242,6 @@ definition Scan_L :: "('n,'a) item list \<Rightarrow> nat \<Rightarrow> ('n,'a) 
 fun step_fun :: "('n, 'a) item list list \<Rightarrow>  ('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList" where
   "step_fun Bs ((ItemList (x#xs) fs), C) = (let nexts = (if is_complete x then Complete_L Bs x else Predict_L x (length Bs)) in
     ( minus_IL (union_LIL nexts (ItemList (x#xs) fs)) (insert x C), insert x C) )"
-(* (bs \<union> step) - (C \<union> {b}) *)
 
 definition steps :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList \<Rightarrow> (('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList) option" where
   "steps Bs BC = while_option (\<lambda>(B,C). list B \<noteq> []) (step_fun Bs) BC"

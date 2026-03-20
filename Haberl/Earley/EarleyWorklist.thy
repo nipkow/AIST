@@ -76,6 +76,12 @@ definition empty_IL :: "nat \<Rightarrow> ('n, 'a) efficientItemList" where
 context Earley_Gw
 begin
 
+(* Could pull out more defs and lemmas but they would be polymorphic now
+   and not with fixed 'n and 'a as currently. Such polymorphic lemmas
+   break some existing proofs because type variables need to be instantiated.
+   Worth the effort?
+*)
+
 fun set_ItemList :: "('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) item set" where
 "set_ItemList il = set (list il)"
 
@@ -244,7 +250,7 @@ fun step_fun :: "('n, 'a) item list list \<Rightarrow>  ('n, 'a) efficientItemLi
     ( minus_IL (union_LIL nexts (ItemList (x#xs) fs)) (insert x C), insert x C) )"
 
 definition steps :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList \<Rightarrow> (('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList) option" where
-  "steps Bs BC = while_option (\<lambda>(B,C). list B \<noteq> []) (step_fun Bs) BC"
+  "steps Bs BC = while_option (\<lambda>(ilB,ilC). list ilB \<noteq> []) (step_fun Bs) BC"
 
 definition close2_L :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) item list" where
   "close2_L Bs B = list (snd (the (steps Bs (B, empty_IL (length Bs)))))"

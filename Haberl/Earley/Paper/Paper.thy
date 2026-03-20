@@ -6,6 +6,21 @@ imports
 begin
 declare [[show_question_marks=false]]
 declare [[names_short=true]]
+
+definition le_O :: "('a \<Rightarrow> nat) \<Rightarrow> ('a \<Rightarrow> nat) \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> bool"
+  ("(_ \<le>O _ IF _)" [50, 1000, 0] 0)
+where "(f \<le>O g IF Q) = (\<exists>c d::nat. \<forall>x. Q x \<longrightarrow> f x \<le> c * g x + d)"
+
+abbreviation le_O_True :: "('a \<Rightarrow> nat) \<Rightarrow> ('a \<Rightarrow> nat) \<Rightarrow> bool"
+   (infix "\<le>O" 50)  where "f \<le>O g \<equiv> (f \<le>O g IF (\<lambda>x. True))"
+
+lemma "(\<lambda>xs. T_append xs ys) \<le>O (\<lambda>xs. length xs)"
+  apply(simp)
+  oops
+
+lemma "(\<lambda>i. T_nth xs i) \<le>O (\<lambda>i. i) IF (\<lambda>i. i < length xs)"
+  oops
+
 (* TODO Earley: get rid of next_sym = Some, use not is_final ?? *)
 (* in step_fun: rename it*)
 (*
@@ -27,22 +42,25 @@ lemma accepted_complete: "P \<turnstile> [Nt S] \<Rightarrow>* w \<Longrightarro
 using Earley_complete
 by(auto simp: accepted_def recognized_def \<S>_def)
 
-notation insert_list (infixr \<open>#\<^sub>?\<close> 65)
-notation union_list (infixl \<open>\<union>\<^sub>L\<close> 65)
-notation diff_list (infixl \<open>-\<^sub>L\<close> 65)
+notation insert_list (infixr \<open>#\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<close> 65)
+notation union_list (infixl \<open>\<union>\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<close> 65)
+notation diff_list (infixl \<open>-\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<close> 65)
 
-notation ItemList ("\<^latex>\<open>\\textsf{\<close>IL\<^latex>\<open>}\<close>")
-notation inv_IL ("\<^latex>\<open>\\textsf{\<close>inv\<^bsub>\<^latex>\<open>\\textsf{\<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
-notation isin ("\<^latex>\<open>\\textsf{\<close>isin\<^bsub>\<^latex>\<open>\\textsf{\<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
+notation ItemList ("\<^latex>\<open>\\isaconst{\<close>IL\<^latex>\<open>}\<close>")
+notation inv_IL (\<open>\<^latex>\<open>\isaconst{\<close>inv\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation isin (\<open>\<^latex>\<open>\isaconst{\<close>isin\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
 
 context Earley_Gw
 begin
 
-notation ps ("\<^latex>\<open>\\textsf{\<close>ps\<^latex>\<open>}\<close>")
-notation S ("\<^latex>\<open>\\textsf{\<close>S\<^latex>\<open>}\<close>")
+notation ps ("\<^latex>\<open>\\isaconst{\<close>ps\<^latex>\<open>}\<close>")
+notation S ("\<^latex>\<open>\\isaconst{\<close>S\<^latex>\<open>}\<close>")
 
-notation insert (infixr \<open>#\<^bsub>\<^latex>\<open>\textsf{\<close>IL\<^latex>\<open>}\<close>\<^esub>\<close> 65)
-notation union_LIL (infixr \<open>\<union>\<^bsub>\<^latex>\<open>\textsf{\<close>IL\<^latex>\<open>}\<close>\<^esub>\<close> 65)
+notation empty_IL (\<open>\<^latex>\<open>\isaconst{\<close>empty\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation insert  (infixr \<open>#\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<close> 65)
+notation union_LIL (infixl \<open>\<union>\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<close> 65)
+notation minus_LIL ("\<^latex>\<open>\\isaconst{\<close>diff\<^bsub>\<^latex>\<open>\\isaconst{\\scriptsize \<close>LIL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
+notation minus_IL (infixl \<open>-\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<close> 65)
 
 lemma Close2L_Predict: "\<lbrakk> \<not> is_complete x; C' = insert_list x C \<rbrakk> \<Longrightarrow>
     Close2L Bs (x#B,C) (diff_list (union_list (Predict_L x (length Bs)) B) C', C')"
@@ -52,11 +70,17 @@ lemma Close2L_Complete: "\<lbrakk> is_complete x; C' = insert_list x C \<rbrakk>
     Close2L Bs (x#B,C) (diff_list (union_list (Complete_L Bs x) B) C', C')"
   using Close2L.Complete by blast
 
-notation Predict_L ("\<^latex>\<open>\\textsf{\<close>Predict\<^sub>L\<^latex>\<open>}\<close>")
-notation Complete_L ("\<^latex>\<open>\\textsf{\<close>Complete\<^sub>L\<^latex>\<open>}\<close>")
+notation Predict_L ("\<^latex>\<open>\\isaconst{\<close>Predict\<^bsub>\<^latex>\<open>\\isaconst{\\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
+notation Complete_L ("\<^latex>\<open>\\isaconst{\<close>Complete\<^bsub>\<^latex>\<open>\\isaconst{\\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
 
-notation step2L ("\<^latex>\<open>\\textsf{\<close>step2\<^sub>L\<^latex>\<open>}\<close>")
-notation close2L ("\<^latex>\<open>\\textsf{\<close>close2\<^sub>L\<^latex>\<open>}\<close>")
+notation step2L ("\<^latex>\<open>\\isaconst{\<close>step2\<^bsub>\<^latex>\<open>\\isaconst{\\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
+notation close2L ("\<^latex>\<open>\\isaconst{\<close>close2\<^bsub>\<^latex>\<open>\\isaconst{\\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
+
+notation Init_L ("\<^latex>\<open>\\isaconst{\<close>Init\<^bsub>\<^latex>\<open>\\isaconst{\\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
+notation Scan_L ("\<^latex>\<open>\\isaconst{\<close>Scan\<^bsub>\<^latex>\<open>\\isaconst{\\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
+notation step_fun ("\<^latex>\<open>\\isaconst{\<close>step2\<^bsub>\<^latex>\<open>\\isaconst{\\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
+notation close2_L ("\<^latex>\<open>\\isaconst{\<close>close2\<^bsub>\<^latex>\<open>\\isaconst{\\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
+notation bins_L ("\<^latex>\<open>\\isaconst{\<close>bins\<^bsub>\<^latex>\<open>\\isaconst{\\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
 
 end
 (*>*)
@@ -70,6 +94,8 @@ text\<open>
 @{term "xs ! n"}
 
 where @{prop "f ` A = {b. \<exists>a\<in>A. f a = b}"}.
+
+@{const the}
 
 
 \subsection{Context-Free Grammars}
@@ -194,7 +220,7 @@ where @{thm[margin=75,break] Predict_def}
 
 %\subsection{Correctness}
 
-Input \<open>w\<close> is \emph{accepted} if @{term "\<S> (length w)"}
+Input @{const \<open>w\<close>} is \emph{accepted} if @{term "\<S> (length w)"}
 contains a final item \mbox{\<open>(S \<rightarrow> \<gamma>\<Zspot>, 0)\<close>}, i.e.\ the entire input has been recognized:
 \begin{quote}
 %{const_typ is_final}\smallskip\\
@@ -212,7 +238,7 @@ contains a final item \mbox{\<open>(S \<rightarrow> \<gamma>\<Zspot>, 0)\<close>
 We proved \emph{soundness} and \emph{completeness}
 of the item-based acceptance w.r.t.\ the grammar:
 \begin{quote}
-@{thm accpted_sound} \\
+@{thm accpted_sound} \qquad and \qquad
 @{thm accepted_complete}
 \end{quote}
 %Aside: works also for sentential forms
@@ -400,7 +426,7 @@ where
 @{thm [break] Complete_L_def}
 \end{quote}
 and @{const insert_list}, @{const union_list} and @{const diff_list} implement the corresponding
-set functions on lists. They are defined in Appendix~\ref{ListLib}. We have also replaced
+set functions on lists. They are defined in Appendix~\ref{SetByList}. We have also replaced
 the set of productions @{const P} by a list @{const ps} and assume
 @{lemma "P = set (id ps)" by simp}.
 
@@ -480,33 +506,36 @@ that \<open>fs\<close> is an indexed version of \<open>xs\<close>,
 and that there are no duplicates.
 The condition @{prop "length fs > 0"} simplifies some technicalities and can easily be guaranteed.
 
-
-Set interface to WL:
+This is a data refinement step where we replace item lists by their indexed version
+@{type efficientItemList}.
+The refinement of the closure algorithm @{const close2L} looks like this:
 \begin{quote}
-@{thm [break] EarleyWorklist.isin.simps}\smallskip\\
-@{thm [break] insert.simps}\smallskip\\
-@{thm union_LIL.simps}\smallskip\\
-@{thm IL_of_List_def}\smallskip\\
-@{thm [break]minus_LIL.simps}\smallskip\\
-@{thm [break](sub)minus_IL_def}\smallskip\\
+@{thm [break] step_fun.simps}\\
+
+@{thm [break,margin=85]close2_L_def[unfolded steps_def]}
+\end{quote}
+Upon termination of @{const while_option},
+@{term "list o snd o the"} extracts the closure as an item list.
+The set operations @{const "empty_IL"}, @{const "insert"},  @{const "union_LIL"} and @{const "minus_IL"}
+are defined in Appendix~\ref{SetByList2}.
+
+Finally, we are ready for the executable top-level algorithm,
+a refinement of @{const bins} from Section~\ref{sec:standard}:
+\begin{quote}
+@{thm [break,margin=85] bins_L.simps}\\
+
+@{thm Init_L_def}\\
+
+@{thm [break] Scan_L_def}
 \end{quote}
 
-The algorithm: w0 !!!
-\begin{quote}
-@{thm Init_L_def}\smallskip\\
-@{thm [break] Scan_L_def}\smallskip\\
-@{thm [break] step_fun.simps}\smallskip\\
-@{thm steps_def}\smallskip\\
-@{thm close2_L_def}\smallskip\\
-@{thm bins_L.simps}\smallskip\\
-\end{quote}
+Correctness: @{thm bins_L_eq_\<S>}
 
 \appendix
 
-\section{List Library}
-\label{ListLib}
+\section{Set Operations on type  @{type list}}
+\label{SetByList}
 
-A minimal library of set functions on lists:
 \begin{quote}
 @{thm filter.simps}\\
 
@@ -521,6 +550,35 @@ A minimal library of set functions on lists:
 @{thm diff_list_def}
 \end{quote}
 
+\section{Set Operations on type @{type efficientItemList}}
+\label{SetByList2}
+
+The following definitions are mostly self-explanatory.
+\begin{quote}
+@{thm [break] EarleyWorklist.isin.simps}\\
+
+@{thm [break] empty_IL_def}\\
+
+@{thm [break] insert.simps}\\
+
+@{thm union_LIL.simps}\\
+
+@{thm IL_of_List_def}\\
+
+@{thm [break]minus_LIL.simps}\\
+
+@{thm [break](sub)minus_IL_def}
+\end{quote}
+Note that
+\begin{description}
+\item[@{const empty_IL}] initializes the @{const froms} list with
+a list that is sufficiently large for the items that are expected to go into it.
+The required size can be determined statically in our setting.
+Function @{const replicate} creates a list of that size where every element is @{const Nil}.
+\item[@{const union_LIL}] takes as its first argument a list.
+\item[@{const minus_LIL}] takes as a first argument the size
+of the required @{const froms} list and as the second argument a list.
+\end{description}
 \<close>
 
 (*<*)

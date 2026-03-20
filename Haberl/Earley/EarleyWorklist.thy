@@ -22,13 +22,8 @@ declare T_append[simp]
 time_fun list_update
 time_fun last
 
-time_fun replicate
-
 lemma T_last[simp]: "as \<noteq> [] \<Longrightarrow> T_last as = length as"
   by (induction as) auto
-
-lemma T_replicate[simp]: "T_replicate k x = Suc k"
-  by (induction k) auto
 
 (* [simp] ? *)
 lemma T_filter_eq_T_map: "T_filter T_f xs = T_map T_f xs"
@@ -70,8 +65,12 @@ fun inv_IL :: "('n, 'a) efficientItemList \<Rightarrow> bool" where
 fun isin :: "('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) item \<Rightarrow> bool" where
 "isin (ItemList as fs) x = isin_list (fs ! from x) x"
 
+fun empty_froms :: "nat \<Rightarrow> ('n, 'a) item list list" where
+"empty_froms 0 = [[]]"|
+"empty_froms (Suc k) = []#empty_froms k"
+
 definition empty_IL :: "nat \<Rightarrow> ('n, 'a) efficientItemList" where
-"empty_IL k = (ItemList [] (replicate (Suc k) []))"
+"empty_IL k = (ItemList [] (empty_froms k))"
 
 context Earley_Gw
 begin
@@ -116,8 +115,21 @@ subsection \<open>ItemList invariant lemmas and Set function equivalences\<close
 
 lemma set_empty_IL: "set_ItemList (empty_IL k) = {}" by (simp add: empty_IL_def)
 
+lemma length_empty_froms: "length (empty_froms k) = Suc k"
+  by (induction k) auto
+
+lemma nth_empty_froms: "i < Suc k \<Longrightarrow> empty_froms k ! i = []"
+proof (induction k arbitrary: i)
+  case 0
+  then show ?case by simp
+next
+  case (Suc k)
+  then show ?case by (cases i) (auto simp flip: nth_Cons_Suc)
+qed 
+
 lemma empty_inv: "inv_IL (empty_IL k)"
-  by (induction k) (auto simp add: empty_IL_def simp del: replicate.simps)
+  by (induction k) (auto simp add: empty_IL_def nth_empty_froms length_empty_froms 
+                         simp del: empty_froms.simps)
 
 lemma length_empty_IL[simp]: "length (froms (empty_IL k)) = Suc k"
   by (induction k) (auto simp add: empty_IL_def)
@@ -967,10 +979,8 @@ time_fun isin
 time_fun efficientItemList.list
 time_fun efficientItemList.froms
 
-(*time_fun empty_IL*)
-(*normal time_fun definition fails, as there are extra type variables on the rhs (in the list type)*)
-fun T_empty_IL :: "nat \<Rightarrow> nat" where
-"T_empty_IL k = T_replicate (Suc k) ([] :: nat list)"
+time_fun empty_froms
+time_fun empty_IL
 
 time_fun insert
 
@@ -1061,8 +1071,8 @@ proof-
     using T_isin_list_bound[of "m ! from x" x] T_nth_Bound[of m "from x"] by auto
 qed
 
-lemma T_empty_IL_bound[simp]: "T_empty_IL k = k + 2"
-  by simp
+lemma T_empty_IL_bound[simp]: "T_empty_IL k = k + 1"
+  by (induction k) auto
 
 lemma T_isin_wf: 
   assumes dist: "distinct ps" and inv: "inv_IL il" and wf: "wf1_IL il k" "from x < length (froms il)"
@@ -1139,7 +1149,7 @@ next
   finally show ?case by auto
 qed
 
-lemma [simp]: "T_empty_IL k = k + 2"
+lemma [simp]: "T_empty_IL k = k + 1"
   by (induction k) auto
 
 lemma wf1_empty_IL: "wf1_IL (empty_IL k) l"
@@ -1150,7 +1160,7 @@ lemma wf1_IL_minus_LIL: "inv_IL il \<Longrightarrow> \<forall>a\<in>set as. from
   using LIL_minus by (auto simp add: wf_bin1_def)
 
 lemma T_minus_LIL_wf: "distinct ps \<Longrightarrow> wf1_IL il k \<Longrightarrow>  inv_IL il \<Longrightarrow> wf_bin1 (set as) k \<Longrightarrow> Suc k \<le> length (froms il)
-  \<Longrightarrow> T_minus_LIL k as il \<le> (length as) * (4 * T_nth_IL k + 2*L * (Suc K) + 4) + k + 3 + length as"
+  \<Longrightarrow> T_minus_LIL k as il \<le> (length as) * (4 * T_nth_IL k + 2*L * (Suc K) + 4) + k + 2 + length as"
 proof (induction as)
   case Nil
   then show ?case by (auto simp del: T_empty_IL.simps)
@@ -1179,7 +1189,7 @@ qed
 
 lemma T_minus_IL_wf: "distinct ps \<Longrightarrow> wf1_IL il1 (length (froms il1) - 1) \<Longrightarrow> inv_IL il1 \<Longrightarrow> inv_IL il2 \<Longrightarrow> wf1_IL il2 (length (froms il1) - 1)
   \<Longrightarrow> length (froms il2) \<ge> length (froms il1)
-  \<Longrightarrow> T_minus_IL il1 il2 \<le> (length (list il1)) * (4 * T_nth_IL (length (froms il1) - 1) + 2*L * (Suc K) + 4) + (length (froms il1) - 1) + 4 + length (list il1) + length (froms il1)"
+  \<Longrightarrow> T_minus_IL il1 il2 \<le> (length (list il1)) * (4 * T_nth_IL (length (froms il1) - 1) + 2*L * (Suc K) + 4) + (length (froms il1) - 1) + 3 + length (list il1) + length (froms il1)"
   using T_minus_LIL_wf[of il2 "length (froms il1) - 1" "list il1"] by (cases il1) (auto simp add: T_length)
 
 subsection \<open>Earley recognizer time bounds\<close>
@@ -1293,7 +1303,7 @@ lemma T_step_fun_bound: assumes "(list il1) \<noteq> []" "distinct ps" "wf_bins1
   "wf1_IL il2 (length Bs)" "inv_IL il2" "length (froms il2) = Suc (length Bs)"
 shows "T_step_fun Bs (il1, il2) 
     \<le> L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3* L * Suc K + 7 + 2 * (K + 2))
-    + 7 * T_nth_IL (length Bs) + 3 * Suc (length Bs) + 2* L * Suc K + 8 + Suc K"
+    + 7 * T_nth_IL (length Bs) + 3 * Suc (length Bs) + 2* L * Suc K + 7 + Suc K"
 proof-
   obtain bs m where IL1: "il1 = ItemList bs m"
     using inv_IL.cases by blast
@@ -1380,16 +1390,16 @@ proof-
     by (simp add: assms(10) from_b le_imp_less_Suc)
 
   let ?minus = "T_minus_IL (union_LIL ?step il1) (insert b il2)"
-  have "?minus \<le> length bs' * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 4) + length Bs + 4 + length bs' + length (froms il1)"
+  have "?minus \<le> length bs' * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 4) + length Bs + 3 + length bs' + length (froms il1)"
     using T_minus_IL_wf[of "union_LIL ?step il1" "insert b il2"] decomp inv_Comp_union wf_Comp_union wf_ins_b inv_ins_b
     by (metis assms(10,2,7) diff_Suc_1 efficientItemList.sel(1) eq_imp_le length_IL_insert length_LIL_union) 
-  also have "... \<le> L * (Suc K) * (Suc (length Bs)) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 4) + length Bs + 4 + L * (Suc K) * (Suc (length Bs)) + Suc (length Bs)"
+  also have "... \<le> L * (Suc K) * (Suc (length Bs)) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 4) + length Bs + 3 + L * (Suc K) * (Suc (length Bs)) + Suc (length Bs)"
     using length_Comp_union mult_le_mono1
     using add_le_mono add_le_mono1 assms(7) by presburger
-  also have "... \<le> L * (Suc K) * (Suc (length Bs)) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 5) + 2*length Bs + 5"
+  also have "... \<le> L * (Suc K) * (Suc (length Bs)) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 5) + 2*length Bs + 4"
     using add_mult_distrib2[of "L * (Suc K) * (Suc (length Bs))"]
     by auto
-  finally have 9: "?minus \<le> L * (Suc K) * (Suc (length Bs)) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 5) + 2*length Bs + 5".
+  finally have 9: "?minus \<le> L * (Suc K) * (Suc (length Bs)) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 5) + 2*length Bs + 4".
 
   have "T_step_fun Bs (il1, il2) \<le> T_length (rhs (prod b)) + ?t_step +
   T_union_LIL ?step il1 +
@@ -1398,20 +1408,20 @@ proof-
 
   also have "... \<le> Suc K + T_nth_IL (length Bs) + 2 * (K + 2) * L * (Suc K) * Suc (length Bs) + 2 + Suc (length Bs)
     + L * Suc K * (Suc (length Bs)) * (3 * T_nth_IL (length Bs) + L * Suc K + 2) + 1
-    + 3 * T_nth_IL (length Bs) + L * Suc K + 1 + L * (Suc K) * (Suc (length Bs)) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 5) + 2*length Bs + 5 +
+    + 3 * T_nth_IL (length Bs) + L * Suc K + 1 + L * (Suc K) * (Suc (length Bs)) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 5) + 2*length Bs + 4 +
    3 * T_nth_IL (length Bs) + L * Suc K + 1" using t_step 6 7 8 9 by linarith
 
   also have "... \<le> Suc K + 2 * (K + 2) * L * (Suc K) * Suc (length Bs)
     + L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3* L * Suc K + 7)
-    + 7 * T_nth_IL (length Bs) + 2* L * Suc K + 3 * Suc (length Bs) + 8"
+    + 7 * T_nth_IL (length Bs) + 2* L * Suc K + 3 * Suc (length Bs) + 7"
     using add_mult_distrib2[of "L * (Suc K) * (Suc (length Bs))"] by auto
 
   also have "... = Suc K + L * (Suc K) * Suc (length Bs) * 2 * (K + 2)
     + L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3* L * Suc K + 7)
-    + 7 * T_nth_IL (length Bs) + 2* L * Suc K + 3 * Suc (length Bs) + 8"
+    + 7 * T_nth_IL (length Bs) + 2* L * Suc K + 3 * Suc (length Bs) + 7"
     by (smt (verit) mult.assoc mult.commute)
   also have "... = L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3* L * Suc K + 7 + 2 * (K + 2))
-    + 7 * T_nth_IL (length Bs) + 3 * Suc (length Bs) + 2* L * Suc K + 8 + Suc K"
+    + 7 * T_nth_IL (length Bs) + 3 * Suc (length Bs) + 2* L * Suc K + 7 + Suc K"
     using add_mult_distrib2[of "L * (Suc K) * (Suc (length Bs))"] by auto
 
   finally show ?thesis.
@@ -1465,12 +1475,12 @@ and il1_assms:  "wf1_IL il1 (length Bs)" "inv_IL il1" "length (froms il1) = Suc 
 and il2_assms:  "wf1_IL il2 (length Bs)" "inv_IL il2" "length (froms il2) = Suc (length Bs)"
 and dist_ils: "set_ItemList il1 \<inter> set_ItemList il2 = {}"
 and step:  "steps_time Bs (il1,il2) k = Some ((il1',il2'), k')" "k \<le> (length (list il2)) * (L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (length Bs) +
-       3 * Suc (length Bs) + 2 * L * Suc K + 8 + Suc K)"
+       3 * Suc (length Bs) + 2 * L * Suc K + 7 + Suc K)"
   shows "k' \<le> (length (list il2')) * (L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (length Bs) +
-       3 * Suc (length Bs) + 2 * L * Suc K + 8 + Suc K)" 
+       3 * Suc (length Bs) + 2 * L * Suc K + 7 + Suc K)" 
 proof -
   let ?C = "L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (length Bs) +
-       3 * Suc (length Bs) + 2 * L * Suc K + 8 + Suc K"
+       3 * Suc (length Bs) + 2 * L * Suc K + 7 + Suc K"
   let ?P3 = "\<lambda>((il1',il2'),k). wf1_IL il1' (length Bs) \<and> wf1_IL il2' (length Bs) \<and> wf_bins1 (map set Bs)"
   let ?P1 = "\<lambda>((il1',il2'),k). wf1_IL il1' (length Bs) \<and> wf1_IL il2' (length Bs) \<and> wf_bins1 (map set Bs) \<and> inv_IL il1' \<and> inv_IL il2' 
         \<and> length(froms il1') = Suc (length Bs) \<and> length (froms  il2') = Suc (length Bs) \<and> set_ItemList il1' \<inter> set_ItemList il2' = {} \<and> (\<forall>i < length Bs. distinct (Bs ! i)) \<and> distinct ps"
@@ -1545,7 +1555,7 @@ lemma T_steps_bound: assumes
   "\<forall>i < length Bs. distinct (Bs ! i)"  "set_ItemList il1 \<inter> set_ItemList il2 = {}" 
   "length (froms il1) = Suc (length Bs)" "length (froms il2) = Suc (length Bs)"
 shows "T_steps Bs (il1, il2) \<le> (L * Suc K * Suc (length Bs)) * (L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (length Bs) +
-       3 * Suc (length Bs) + 2 * L * Suc K + 8 + Suc K)"
+       3 * Suc (length Bs) + 2 * L * Suc K + 7 + Suc K)"
 proof-
   obtain il1' il2' k' where P: "steps_time Bs (il1,il2) 0 = Some ((il1',il2'),k') \<and> steps Bs (il1, il2) = Some (il1', il2')"
     using steps_time_NF assms by blast
@@ -1555,10 +1565,10 @@ proof-
     using card_wf_bin1 distinct_card[of "list il2'"] inv_IL1
     by fastforce
   have "k' \<le> (length (list il2')) * (L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (length Bs) +
-       3 * Suc (length Bs) + 2 * L * Suc K + 8 + Suc K)"
+       3 * Suc (length Bs) + 2 * L * Suc K + 7 + Suc K)"
     using steps_time_time[of Bs il1 il2 0] assms P by simp
   also have "... \<le> (L * Suc K * Suc (length Bs)) * (L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (length Bs) +
-       3 * Suc (length Bs) + 2 * L * Suc K + 8 + Suc K)"
+       3 * Suc (length Bs) + 2 * L * Suc K + 7 + Suc K)"
     using P mult_le_mono1[OF 1] by auto
   finally show ?thesis using P by simp
 qed
@@ -1566,7 +1576,7 @@ qed
 lemma T_close2_L_bound: 
 assumes "distinct ps" "wf_bins1 (map set Bs)" "\<forall>i < length Bs. distinct (Bs ! i)"  "wf1_IL il (length Bs)" "inv_IL il" "length (froms il) = Suc (length Bs)"
 shows "T_close2_L Bs il \<le> (L * Suc K * Suc (length Bs)) * (L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (length Bs) +
-       3 * Suc (length Bs) + 2 * L * Suc K + 8 + Suc K) + Suc (length Bs) + Suc (Suc (length Bs))"
+       3 * Suc (length Bs) + 2 * L * Suc K + 7 + Suc K) + 2 * Suc (length Bs)"
 proof-
   obtain il1' il2' where "steps Bs (il, empty_IL (length Bs)) = Some (il1', il2')"
     using Close2_L_NF empty_inv assms(2,4,5,6) wf1_empty_IL length_empty_IL by blast
@@ -1632,32 +1642,31 @@ qed
 
 lemma bound_help: 
   assumes "a > 0" "b > 0" 
-  shows "(x+2)^3 * (a+b) + 7*(x::nat) + (x+2)^2 * a + (x+2) * b + 18 \<le> (x+3)^3 * (a+b)"
+  shows "(x+2)^3 * (a+b) + 7*(x::nat) + (x+2)^2 * a + (x+2) * b + 16 \<le> (x+3)^3 * (a+b)"
 proof-
-  have "(x+2)^3 * (a+b) + 7*x + (x+2)^2 * a + (x+2) * b + 18
-         = (x+2) * (x+2) *(x+2) * (a+b) + 7* x+ (x+2) * (x+2) * a + (x+2) * b + 18"
+  have "(x+2)^3 * (a+b) + 7*x + (x+2)^2 * a + (x+2) * b + 16
+         = (x+2) * (x+2) *(x+2) * (a+b) + 7* x+ (x+2) * (x+2) * a + (x+2) * b + 16"
     by (auto simp add: numeral_eq_Suc)
-  then have 1: "(x+2)^3 * (a+b) + 7*x + (x+2)^2 * a + (x+2) * b + 18 
-    = (x*x*x + 6*x*x + 12*x + 8) * (a + b) + 7*x + (x*x + 4*x + 4) * a + (x+2) * b + 18"
+  then have 1: "(x+2)^3 * (a+b) + 7*x + (x+2)^2 * a + (x+2) * b + 16 
+    = (x*x*x + 6*x*x + 12*x + 8) * (a + b) + 7*x + (x*x + 4*x + 4) * a + (x+2) * b + 16"
     by (auto simp add: add_mult_distrib)
-  also have "... \<le> (x*x*x + 6*x*x + 12*x + 8) * (a + b) + 7*x + (x*x + 4*x + 4) * (a +b) + (x+2) * (a+b) + 18"
+  also have "... \<le> (x*x*x + 6*x*x + 12*x + 8) * (a + b) + 7*x + (x*x + 4*x + 4) * (a +b) + (x+2) * (a+b) + 16"
     by (auto simp add: add_mult_distrib add_mult_distrib2)
-  also have "... \<le> (x*x*x + 6*x*x + 12*x + 8) * (a + b) + 7*x * (a+b) + (x*x + 4*x + 4) * (a +b) + (x+2) * (a+b) + 18"
+  also have "... \<le> (x*x*x + 6*x*x + 12*x + 8) * (a + b) + 7*x * (a+b) + (x*x + 4*x + 4) * (a +b) + (x+2) * (a+b) + 16"
     using assms by auto
-  also have "... \<le> (x*x*x + 6*x*x + 12*x + 8) * (a + b) + 7*x * (a+b) + (x*x + 4*x + 4) * (a +b) + (x+2) * (a+b) + 9*(a+b)"
+  also have "... \<le> (x*x*x + 6*x*x + 12*x + 8) * (a + b) + 7*x * (a+b) + (x*x + 4*x + 4) * (a +b) + (x+2) * (a+b) + 8*(a+b)"
     using assms by auto
-  also have "... = (x*x*x + 7*x*x + 24*x + 23) * (a + b)" by (auto simp add: add_mult_distrib add_mult_distrib2)
-  finally have 1: "(x+2)^3 * (a+b) + 7*x + (x+2)^2 * a + (x+2) * b + 18 \<le> (x*x*x + 7*x*x + 24*x + 23) * (a + b)".
+  also have "... = (x*x*x + 7*x*x + 24*x + 22) * (a + b)" by (auto simp add: add_mult_distrib add_mult_distrib2)
+  finally have 1: "(x+2)^3 * (a+b) + 7*x + (x+2)^2 * a + (x+2) * b + 16 \<le> (x*x*x + 7*x*x + 24*x + 22) * (a + b)".
   have "(x+3)^3 *(a+b) = Suc(Suc(Suc x)) * Suc(Suc(Suc x)) * Suc(Suc(Suc x)) * (a+b)"
     by (auto simp add: numeral_eq_Suc)
   then have 2: "(x+3)^3 * (a+b) = (x*x*x + 9*x*x + 27*x + 27) * (a+b)"
     by (auto simp add: add_mult_distrib)
   show ?thesis using 1 2 by (auto simp add: add_mult_distrib add_mult_distrib2)
 qed
-(*8 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (1) + 3* L * Suc K + 9 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (1) + 3* L * Suc K + 9 + Suc K)))*)
 
 lemma T_bins_L_bound: "distinct ps \<Longrightarrow> k \<le> length w \<Longrightarrow> T_bins_L k 
-  \<le> (k+2)^3 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K)))"
+  \<le> (k+2)^3 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 9 + Suc K)))"
 proof (induction k)
   case 0
   have "\<forall>x \<in> set (Init_L). from x = 0" using wf1_Init_L by (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
@@ -1666,34 +1675,34 @@ proof (induction k)
   have "length (froms (IL_of_List 0 Init_L)) = 1" 
     using length_IL_of_List by simp
   then have "T_close2_L [] (IL_of_List 0 Init_L) \<le> (L * Suc K) * (L * Suc K * (7 * T_nth_IL (0) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (0) +
-       3 * Suc (0) + 2 * L * Suc K + 8 + Suc K) + 3"
+       3 * Suc (0) + 2 * L * Suc K + 7 + Suc K) + 2"
     using 0 T_close2_L_bound[of "[]" "(IL_of_List 0 Init_L)"] wf1_Init_L wf1_IL_of_List
         IL_of_List_inv[OF forall_from_Suc] by (auto simp add: wf_bins1_def simp del: T_close2_L.simps)
   then have "T_bins_L 0 \<le> length Init_L * (3 * T_nth_IL (0) + L * Suc K + 2) + 1 + (L * Suc K) * (L * Suc K * (7 * T_nth_IL (0) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (0) +
-       3 * Suc (0) + 2 * L * Suc K + 8 + Suc K) + 3+3" 
+       3 * Suc (0) + 2 * L * Suc K + 7 + Suc K) + 4" 
     unfolding T_bins_L.simps T_IL_of_List.simps T_empty_IL.simps 
     using 1 by (auto)
   also have "... =  length Init_L * (3 * T_nth_IL (0) + L * Suc K + 2) + (L * Suc K) * (L * Suc K * (7 * T_nth_IL (0) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (0) +
-       3 * Suc (0) + 2 * L * Suc K + 8 + Suc K) + 7" by auto
+       3 * Suc (0) + 2 * L * Suc K + 7 + Suc K) + 5" by auto
   also have "... \<le> L * (3 * T_nth_IL (0) + L * Suc K + 2) + (L * Suc K) * (L * Suc K * (7 * T_nth_IL (0) + 3 * L * Suc K + 7 + 2 * (K + 2)) + 7 * T_nth_IL (0) +
-       3 * Suc (0) + 2 * L * Suc K + 8 + Suc K) + 7"
+       3 * Suc (0) + 2 * L * Suc K + 7 + Suc K) + 5"
     using length_Init_L
     using add_le_mono1 mult_le_cancel2 by presburger
-  also have "... \<le> 8 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (0) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (0) + 3* L * Suc K + 10 + Suc K)))"
+  also have "... \<le> 8 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (0) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (0) + 3* L * Suc K + 9 + Suc K)))"
     by (auto simp add: add_mult_distrib add_mult_distrib2)
-  finally have 2: "T_bins_L 0 \<le> 8 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (0) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (0) + 3* L * Suc K + 10 + Suc K)))".
+  finally have 2: "T_bins_L 0 \<le> 8 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (0) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (0) + 3* L * Suc K + 9 + Suc K)))".
 
   have "7 * T_nth_IL (0) + 3* L * Suc K + 10 + 2 * (K + 2)
       \<le> 7 * T_nth_IL (1) + 3* L * Suc K + 10 + 2 * (K + 2)" using mono_nth by (auto simp add: monoD)
   then have 3: "Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (0) + 3* L * Suc K + 10 + 2 * (K + 2))
     \<le> Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (1) + 3* L * Suc K + 10 + 2 * (K + 2))"
     using mult_le_mono2 by blast
-  have "2 * (K + 2) + 10 * T_nth_IL (0) + 3* L * Suc K + 10 + Suc K \<le> 2 * (K + 2) + 10 * T_nth_IL (1) + 3* L * Suc K + 10 + Suc K"
+  have "2 * (K + 2) + 10 * T_nth_IL (0) + 3* L * Suc K + 9 + Suc K \<le> 2 * (K + 2) + 10 * T_nth_IL (1) + 3* L * Suc K + 9 + Suc K"
     using mono_nth by (auto simp add: monoD)
-  then have 4: "(Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (0) + 3* L * Suc K + 10 + Suc K)) \<le> (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (1) + 3* L * Suc K + 10 + Suc K))"
+  then have 4: "(Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (0) + 3* L * Suc K + 9 + Suc K)) \<le> (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (1) + 3* L * Suc K + 9 + Suc K))"
     using mult_le_mono2 by blast
 
-  have "T_bins_L 0 \<le> 8 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (1) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (1) + 3* L * Suc K + 10 + Suc K)))"
+  have "T_bins_L 0 \<le> 8 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (1) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (1) + 3* L * Suc K + 9 + Suc K)))"
     using 2 3 4 by auto
 
   then show ?case by (auto simp add: numeral_eq_Suc)
@@ -1726,12 +1735,12 @@ next
     using forall_from_Suc by blast
   have length_Scan: "length (Scan_L (last (bins_L k)) k) \<le> L * Suc K * Suc k"
     using length_Scan_L length_last dual_order.trans by blast
-  have "T_IL_of_List (length (bins_L k)) (Scan_L (last (bins_L k)) k) \<le> k+3 + length (Scan_L (last (bins_L k)) k) * (3 * T_nth_IL (Suc k) + L * Suc K + 2) + 1"
+  have "T_IL_of_List (length (bins_L k)) (Scan_L (last (bins_L k)) k) \<le> k+2 + length (Scan_L (last (bins_L k)) k) * (3 * T_nth_IL (Suc k) + L * Suc K + 2) + 1"
     using T_union_LIL_wf[of "(empty_IL (Suc k))" "Scan_L (last (bins_L k)) k"] empty_inv[of "Suc k"] wf1_empty_IL wf_Scan Suc wfbin1_impl_wfbin
-    length_IL_of_List from_Scan by (auto simp add: length_bins_L algebra_simps)
-  also have "... \<le> k+3 + L * Suc K * Suc k * (3 * T_nth_IL (Suc k) + L * Suc K + 2) + 1" using length_Scan mult_le_mono1[OF length_Scan]
+    length_IL_of_List from_Scan by (auto simp add: length_bins_L algebra_simps simp del: T_empty_IL.simps)
+  also have "... \<le> k+2 + L * Suc K * Suc k * (3 * T_nth_IL (Suc k) + L * Suc K + 2) + 1" using length_Scan mult_le_mono1[OF length_Scan]
     using add_le_mono1 nat_add_left_cancel_le by presburger
-  finally have 4: "T_IL_of_List (length (bins_L k)) (Scan_L (last (bins_L k)) k) \<le> L * Suc K * Suc k * (3 * T_nth_IL (Suc k) + L * Suc K + 2) + k + 4" by linarith
+  finally have 4: "T_IL_of_List (length (bins_L k)) (Scan_L (last (bins_L k)) k) \<le> L * Suc K * Suc k * (3 * T_nth_IL (Suc k) + L * Suc K + 2) + k + 3" by linarith
 
   have wf_bins_L: "wf_bins1 (map set (bins_L k))" using wf_bins1_bins bins_L_eq_bins Suc by auto
   have wf_IL_of_List: "wf1_IL (IL_of_List (length (bins_L k)) (Scan_L (last (bins_L k)) k))  (Suc k)"
@@ -1741,7 +1750,7 @@ next
     by (auto simp add: length_bins_L)
   have 5: "T_close2_L (bins_L k) (IL_of_List  (length (bins_L k)) (Scan_L (last (bins_L k)) k))  
             \<le> (L * Suc K * Suc (Suc k)) * (L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_IL (Suc k) + 3 * Suc (Suc k) + 2* L * Suc K + 8 + Suc K) + Suc (Suc k) + Suc (Suc (Suc k))"
+      + 7 * T_nth_IL (Suc k) + 3 * Suc (Suc k) + 2* L * Suc K + 7 + Suc K) + 2* Suc (Suc k)"
     using T_close2_L_bound[of "bins_L k" "IL_of_List (length (bins_L k)) (Scan_L (last (bins_L k)) k)"] 
       wf_bins_L wf_Scan Suc distinct_bins_L wf_IL_of_List IL_of_List_inv[OF forall_from_Suc] leng_IL_of_List 
     by (auto simp add: length_bins_L simp del: T_close2_L.simps)
@@ -1756,82 +1765,82 @@ next
   have test'': "L \<le> Suc L" by simp
 
   have "T_bins_L (Suc k) \<le> T_bins_L k + k + 2 + Suc k + k + L * Suc K * Suc k * 2 * (K + 2) + 3
-        + L * Suc K * Suc k * (3 * T_nth_IL (Suc k) + L * Suc K + 2) + k + 4
+        + L * Suc K * Suc k * (3 * T_nth_IL (Suc k) + L * Suc K + 2) + k + 3
         + (L * Suc K * Suc (Suc k)) * (L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_IL (Suc k) + 3 * Suc (Suc k) + 2* L * Suc K + 8 + Suc K) + Suc (Suc k) + Suc (Suc (Suc k))
+      + 7 * T_nth_IL (Suc k) + 3 * Suc (Suc k) + 2* L * Suc K + 7 + Suc K) + 2* Suc (Suc k)
       + k + 2 + 1" unfolding T_bins_L.simps Let_def using 1 2 3 4 5 6 by linarith
 
   
   
-  also have "... = T_bins_L k + 7*k + 18 + L * Suc K * Suc k * 2 * (K + 2)
+  also have "... = T_bins_L k + 7*k + 16 + L * Suc K * Suc k * 2 * (K + 2)
             + L * Suc K * Suc k * (3 * T_nth_IL (Suc k) + L * Suc K + 2)
             + (L * Suc K * Suc (Suc k)) * (L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_IL (Suc k) + 3 * Suc (Suc k) + 2* L * Suc K + 8 + Suc K)"
+      + 7 * T_nth_IL (Suc k) + 3 * Suc (Suc k) + 2* L * Suc K + 7 + Suc K)"
     by auto
 
-  also have "... = T_bins_L k + 7*k + 18
+  also have "... = T_bins_L k + 7*k + 16
             + L * Suc K * Suc k * (2 * (K + 2) + 3 * T_nth_IL (Suc k) + L * Suc K + 2)
             + (L * Suc K * Suc (Suc k)) * (L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
-      + 7 * T_nth_IL (Suc k) + 3 * Suc (Suc k) + 2* L * Suc K + 8 + Suc K)"
+      + 7 * T_nth_IL (Suc k) + 3 * Suc (Suc k) + 2* L * Suc K + 7 + Suc K)"
     using add_mult_distrib2 by auto
 
-  also have "... = T_bins_L k + 7*k + 18 + L * Suc K * Suc k * (2 * (K + 2) + 3 * T_nth_IL (Suc k) + L * Suc K + 2)
+  also have "... = T_bins_L k + 7*k + 16 + L * Suc K * Suc k * (2 * (K + 2) + 3 * T_nth_IL (Suc k) + L * Suc K + 2)
     + L * Suc K * Suc (Suc k) * L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
-    + L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3 * Suc (Suc k) + 2* L * Suc K + 8 + Suc K)"
+    + L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3 * Suc (Suc k) + 2* L * Suc K + 7 + Suc K)"
     using add_mult_distrib2[of "(L * Suc K * Suc (Suc k))" "L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))"
                                 "7 * T_nth_IL (Suc k) + 2 * Suc (Suc k) + 2* L * Suc K + 7 + Suc K"]
     by (smt (verit, del_insts) Suc_1 ab_semigroup_add_class.add_ac(1) ab_semigroup_mult_class.mult_ac(1) add_2_eq_Suc' add_Suc_shift add_mult_distrib2 group_cancel.add2
         mult.commute mult.left_commute)
 
-  also have "... = T_bins_L k + 7*k + 18 + L * Suc K * Suc k * (2 * (K + 2) + 3 * T_nth_IL (Suc k) + L * Suc K + 2)
+  also have "... = T_bins_L k + 7*k + 16 + L * Suc K * Suc k * (2 * (K + 2) + 3 * T_nth_IL (Suc k) + L * Suc K + 2)
     + L * Suc K * Suc (Suc k) * L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
     + L * Suc K * Suc (Suc k) * 3 * Suc (Suc k)
-    + L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 2* L * Suc K + 8 + Suc K)"
+    + L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 2* L * Suc K + 7 + Suc K)"
     using add_mult_distrib2[of "(L * Suc K * Suc (Suc k))"] by auto
 
-  also have "... \<le>  T_bins_L k + 7*k + 18 + L * Suc K * (Suc (Suc k)) * (2 * (K + 2) + 3 * T_nth_IL (Suc k) + L * Suc K + 2)
+  also have "... \<le>  T_bins_L k + 7*k + 16 + L * Suc K * (Suc (Suc k)) * (2 * (K + 2) + 3 * T_nth_IL (Suc k) + L * Suc K + 2)
     + L * Suc K * Suc (Suc k) * L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 7 + 2 * (K + 2))
     + L * Suc K * Suc (Suc k) * L * Suc K * Suc (Suc k) * 3
-    + L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 2* L * Suc K + 8 + Suc K)"
+    + L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 2* L * Suc K + 7 + Suc K)"
     using mult_mono_mix[of "Suc k" "(Suc (Suc k))" "L * Suc K" "2 * (K + 2) + 3 * T_nth_IL (Suc k) + L * Suc K + 2"] test' by presburger
 
-  also have "... \<le> T_bins_L k + 7*k + 18 
+  also have "... \<le> T_bins_L k + 7*k + 16
     + L * Suc K * Suc (Suc k) * L * Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2))
-    + L * Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K)"
+    + L * Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 9 + Suc K)"
     using add_mult_distrib2[of "(L * Suc K * Suc (Suc k))"] 
           add_mult_distrib2[of "L * Suc K * Suc (Suc k) * L * Suc K * Suc (Suc k)"] by auto
 
-  also have "... = T_bins_L k + 7*k + 18 
+  also have "... = T_bins_L k + 7*k + 16 
     + L * (Suc K * Suc (Suc k) * L * (Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2))))
-    + L * (Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K))"
+    + L * (Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 9 + Suc K))"
     by (metis (no_types, opaque_lifting) mult.assoc)
 
-  also have "... \<le> T_bins_L k + 7*k + 18 
+  also have "... \<le> T_bins_L k + 7*k + 16 
     + Suc L * (Suc K * Suc (Suc k) * L * (Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2))))
-    + Suc L * (Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K))" 
+    + Suc L * (Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 9 + Suc K))" 
     using mult_le_mono1 by auto
-  also have "... \<le> T_bins_L k + 7*k + 18 
+  also have "... \<le> T_bins_L k + 7*k + 16 
     + L * (Suc L * Suc K * Suc (Suc k) * (Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2))))
-    + Suc L * Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K)"
+    + Suc L * Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 9 + Suc K)"
     by (metis (no_types, lifting) dual_order.refl mult.commute mult.left_commute mult.assoc)
-  also have "... \<le> T_bins_L k + 7*k + 18 
+  also have "... \<le> T_bins_L k + 7*k + 16 
     + Suc L * (Suc L * Suc K * Suc (Suc k) * (Suc K * Suc (Suc k) * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2))))
-    + Suc L * Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K)"
+    + Suc L * Suc K * Suc (Suc k) * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 9 + Suc K)"
     using mult_le_mono1 by auto
-  also have "... \<le> T_bins_L k + 7*k + 18 
+  also have "... \<le> T_bins_L k + 7*k + 16 
     + Suc (Suc k) * Suc (Suc k) * (Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2)))
-    + Suc (Suc k) * (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K))"
+    + Suc (Suc k) * (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 9 + Suc K))"
     by (smt (verit, ccfv_threshold) mult.commute mult.left_commute verit_comp_simplify1(2))
-  also have "... \<le> T_bins_L k + 7*k + 18 
+  also have "... \<le> T_bins_L k + 7*k + 16 
     + (k+2)^2 * (Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2)))
-    + Suc (Suc k) * (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K))"
+    + Suc (Suc k) * (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 9 + Suc K))"
     by (metis add_2_eq_Suc' le_refl power2_eq_square)
-  finally have short: "T_bins_L (Suc k) \<le> T_bins_L k + 7*k + 18 
+  finally have short: "T_bins_L (Suc k) \<le> T_bins_L k + 7*k + 16 
     + (k+2)^2 * (Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2)))
-    + Suc (Suc k) * (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K))".
+    + Suc (Suc k) * (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 9 + Suc K))".
 
   let ?a = "Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2))"
-  let ?b = "Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K)"
+  let ?b = "Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 9 + Suc K)"
 
   have ff: "T_nth_IL (Suc k) \<le> T_nth_IL (Suc (Suc k))" using mono_nth
     by (simp add: monoD)
@@ -1839,23 +1848,23 @@ next
     by auto
   then have a1: "?a \<le> Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 10 + 2 * (K + 2))"
     using mult_le_mono2 by blast
-  have "2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K \<le> 2 * (K + 2) + 10 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 10 + Suc K"
+  have "2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 9 + Suc K \<le> 2 * (K + 2) + 10 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 9 + Suc K"
     using ff by auto
-  then have b1: "?b \<le> Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 10 + Suc K)"
+  then have b1: "?b \<le> Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 9 + Suc K)"
     using mult_le_mono2 by blast
 
   have "T_bins_L (Suc k) \<le> (k+2)^3 * ((?a) + (?b))
-    + 7*k + 18 
+    + 7*k + 16 
     + (k+2)^2 * ?a
     + Suc (Suc k) * ?b" using short Suc by simp
 
   also have "... \<le> (k+3)^3 * ((?a) + (?b))"
     using bound_help[of ?a ?b k] by simp
 
-  also have "... \<le> (k+3)^3 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 10 + Suc K)))"
+  also have "... \<le> (k+3)^3 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 9 + Suc K)))"
     using a1 b1 by simp
   finally have "T_bins_L (Suc k)
-  \<le> (k+3)^3 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 10 + Suc K)))".
+  \<le> (k+3)^3 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc (Suc k)) + 3* L * Suc K + 9 + Suc K)))".
 
   then show ?case
     by (metis add_Suc_shift eval_nat_numeral(3))
@@ -1863,26 +1872,26 @@ qed
 
 subsection \<open>Final nice time bounds\<close>
 
-definition C1 where "C1 = 30 * (L+1)^3 * (K+1)^3"
+definition C1 where "C1 = 28 * (L+1)^3 * (K+1)^3"
 definition C2 where "C2 = 17 * (L+1)^2 * (K+1)^2"
 
 corollary nice_T_bins_L_bound: 
   assumes "distinct ps" "k \<le> length w" 
   shows "T_bins_L k \<le> C1 *(k+2)^3 + C2 * (k+2)^3 * T_nth_IL (k+1)"
 proof-
-  have "T_bins_L k \<le> (k+2)^3 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + Suc K)))"
+  have "T_bins_L k \<le> (k+2)^3 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 9 + Suc K)))"
     using T_bins_L_bound assms by auto
   also have "... = (k+2)^3 * (Suc L * Suc K * Suc L * Suc K * 7 * T_nth_IL (k+1) + Suc L * Suc K * 10 * T_nth_IL (k+1)) 
-    + (k+2)^3 * ((Suc L * Suc K * Suc L * Suc K * (3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 3* L * Suc K + 10 + Suc K)))"
+    + (k+2)^3 * ((Suc L * Suc K * Suc L * Suc K * (3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 3* L * Suc K + 9 + Suc K)))"
     by (auto simp add: algebra_simps)
   also have "... \<le> (k+2)^3 * (Suc L * Suc K * Suc L * Suc K * 17 * T_nth_IL (k+1))
-                  + (k+2)^3 * (Suc L * Suc K * Suc L * Suc K * (6* L * Suc K + 20 + 5 * (K + 2)))"
+                  + (k+2)^3 * (Suc L * Suc K * Suc L * Suc K * (6* L * Suc K + 18 + 5 * (K + 2)))"
     by (auto simp add: algebra_simps)
   also have "... \<le> 17 * (L+1) * (L+1) * (K+1) * (K+1) * (k+2)^3 * T_nth_IL (k+1)
-                  + 30 * (L+1) * (L+1) * (L+1) * (K+1) * (K+1) * (K+1) * (k+2)^3"
+                  + 28 * (L+1) * (L+1) * (L+1) * (K+1) * (K+1) * (K+1) * (k+2)^3"
     by (auto simp add: algebra_simps)
   also have "... = 17 * (L+1)^2 * (K+1)^2 * (k+2)^3 * T_nth_IL (k+1)
-                  + 30 * (L+1)^3 * (K+1)^3 * (k+2)^3"
+                  + 28 * (L+1)^3 * (K+1)^3 * (k+2)^3"
     by (auto simp add: monoid_mult_class.power2_eq_square monoid_mult_class.power3_eq_cube algebra_simps)
   finally show ?thesis by (auto simp add: C1_def C2_def)
 qed
@@ -1900,7 +1909,7 @@ next
   then show ?case using T_final_bound[of a] by (auto simp del: T_is_final.simps simp add: wf_item_def)
 qed
 
-definition C1' where "C1' = 32 * (L+1)^3 * (K+1)^3"
+definition C1' where "C1' = 30 * (L+1)^3 * (K+1)^3"
 
 lemma 
   assumes dist: "distinct ps" 
@@ -3171,13 +3180,13 @@ qed
 
 lemma T_minus_LPIL_bound: "distinct ps \<Longrightarrow> inv_PIL pil \<Longrightarrow> wf_parse_bin1 (set xs) k \<Longrightarrow> wf_PIL pil k
   \<Longrightarrow> length (froms (fst pil)) \<ge> Suc k
- \<Longrightarrow> T_minus_LPIL k xs pil \<le> length xs * (5 * T_nth_IL k + 3 * L * Suc K + 3) + length xs + k + 3"
+ \<Longrightarrow> T_minus_LPIL k xs pil \<le> length xs * (5 * T_nth_IL k + 3 * L * Suc K + 3) + length xs + k + 2"
 proof(induction k xs pil rule: T_minus_LPIL.induct)
   case (1 k pil)
-  then show ?case by simp
+  then show ?case by (simp del: T_empty_IL.simps)
 next
   case (2 k a as pil)
-  then have ih: "T_minus_LPIL k as pil \<le> length as * (5 * T_nth_IL k + 3 * L * Suc K + 3) + length as + k + 3"
+  then have ih: "T_minus_LPIL k as pil \<le> length as * (5 * T_nth_IL k + 3 * L * Suc K + 3) + length as + k + 2"
     by auto
 
   from 2 have 3: "inv_IL (fst pil)" by (cases pil) auto
@@ -3214,14 +3223,14 @@ qed
 lemma T_minus_PIL_bound: 
   assumes "distinct ps" "inv_PIL pil1" "inv_PIL pil2" "wf_PIL pil1 (length (froms (fst pil1)) - 1)" 
     "wf_PIL pil2 (length (froms (fst pil1)) - 1)" "length (froms (fst pil1)) \<le> length (froms (fst pil2))"
-  shows "T_minus_PIL pil1 pil2 \<le> length (snd pil1) * (5 * T_nth_IL (length (froms (fst pil1)) - 1) + 3 * L * Suc K + 3) + 2 * length (snd pil1) + 2 * (length (froms (fst pil1))) + 4"
+  shows "T_minus_PIL pil1 pil2 \<le> length (snd pil1) * (5 * T_nth_IL (length (froms (fst pil1)) - 1) + 3 * L * Suc K + 3) + 2 * length (snd pil1) + 2 * (length (froms (fst pil1))) + 3"
 proof-
   have 1: "length (froms (fst pil1)) > 0" using assms(2) by (cases pil1, cases "fst pil1") auto
 
   have "T_PIL_list pil1 = length (snd pil1) + 1" using assms by auto
 
   moreover have "T_minus_LPIL (length (froms (fst pil1)) - 1) (PIL_list pil1) pil2 
-    \<le> length (PIL_list pil1) * (5 * T_nth_IL (length (froms (fst pil1)) - 1) + 3 * L * Suc K + 3) + length (PIL_list pil1) + (length (froms (fst pil1)) - 1) + 3" 
+    \<le> length (PIL_list pil1) * (5 * T_nth_IL (length (froms (fst pil1)) - 1) + 3 * L * Suc K + 3) + length (PIL_list pil1) + (length (froms (fst pil1)) - 1) + 2" 
     using assms 1 T_minus_LPIL_bound[of pil2 "PIL_list pil1" "length (froms (fst pil1)) - 1"] wf_PIL_impl_wf1_IL by auto
   moreover have "length (PIL_list pil1) = length (snd pil1)" using assms by (cases pil1) auto
   ultimately show ?thesis using 1 by (auto simp add: algebra_simps T_length)
@@ -3229,13 +3238,13 @@ qed
 
 lemma T_PIL_of_List_bound: 
   assumes "distinct ps" "wf_parse_bin1 (set xs) k"
-  shows "T_PIL_of_List k xs \<le> length xs * (4 * T_nth_IL k + 2* L * Suc K + 2) + length xs + k + 3"
+  shows "T_PIL_of_List k xs \<le> length xs * (4 * T_nth_IL k + 2* L * Suc K + 2) + length xs + k + 2"
 proof-
   have "inv_PIL (empty_PIL k)" and "wf_PIL (empty_PIL k) k"
     using wf_empty_PIL by (auto simp add: PIL_inv_empty)
   then have "T_union_LPIL xs (empty_PIL k) \<le> length xs * (4 * T_nth_IL k + 2* L * Suc K + 2) + length xs + 1"
     using T_union_LPIL_bound[of "empty_PIL k"] assms by auto
-  then show ?thesis by auto
+  then show ?thesis by (auto simp del: T_empty_IL.simps)
 qed
 
 subsection \<open>Earley parser time bounds\<close>
@@ -3333,7 +3342,7 @@ lemma T_parse_step_fun_bound:
 shows "T_Parse_step_fun Bs (pil1,pil2) 
     \<le> (2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
     + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
-    + 9 * Suc K * L + 12"
+    + 9 * Suc K * L + 7"
 proof-
   from cons invs obtain x xs m t ts where P_pil1: "pil1 = (ItemList (x#xs) m, (t#ts))"
     by (metis PIL_map_item_Cons1 PIL_map_item_Cons2 prod.collapse recognized_L.cases)
@@ -3390,16 +3399,16 @@ proof-
   let ?length_list = "length (snd (union_LPIL ?step pil1))"
   let ?leng_il = "length (froms (fst (union_LPIL ?step pil1))) - 1"
   have "T_minus_PIL (union_LPIL ?step pil1) (parseIL_insert ?b pil2)
-    \<le>?length_list * (5 * T_nth_IL (?leng_il) + 3 * L * Suc K + 3) + 2 * ?length_list + 2*?leng_il + 6" 
+    \<le>?length_list * (5 * T_nth_IL (?leng_il) + 3 * L * Suc K + 3) + 2 * ?length_list + 2*?leng_il + 5" 
     using T_minus_PIL_bound[of "union_LPIL ?step pil1" "parseIL_insert ?b pil2"]
       wf_PIL_union inv_union wf_PIL_insert inv_insert dist length_union_LPIL[of ?step pil1] length_insert_parse[of ?b pil1] lengs
     wf_step by auto
-  also have "... \<le> L * Suc K * Suc (length Bs) * (5 * T_nth_IL (length Bs) + 3 * L * Suc K + 3) + 2 * L * Suc K * Suc (length Bs) + 2*length Bs + 6"
+  also have "... \<le> L * Suc K * Suc (length Bs) * (5 * T_nth_IL (length Bs) + 3 * L * Suc K + 3) + 2 * L * Suc K * Suc (length Bs) + 2*length Bs + 5"
     using mult_le_mono1[of ?length_list "L * Suc K * Suc (length Bs)" "(5 * T_nth_IL (length Bs) + 3 * L * Suc K + 3)"] 
       mult_le_mono2[of ?length_list "L * Suc K * Suc (length Bs)" 2] 
       wf_step length_union_LPIL[of ?step pil1] add_mult_distrib lengs(1) length_snd_union by auto
   finally have 6: "T_minus_PIL (union_LPIL ?step pil1) (parseIL_insert ?b pil2) \<le>
-    L * Suc K * Suc (length Bs) * (5 * T_nth_IL (length Bs) + 3 * L * Suc K + 3) + 2 * L * Suc K * Suc (length Bs) + 2*length Bs + 6".
+    L * Suc K * Suc (length Bs) * (5 * T_nth_IL (length Bs) + 3 * L * Suc K + 3) + 2 * L * Suc K * Suc (length Bs) + 2*length Bs + 5".
 
   have "T_Parse_step_fun Bs (pil1,pil2) \<le> 
     T_is_complete (item ?b)
@@ -3411,15 +3420,15 @@ proof-
   also have "... \<le> K + 1 + length Bs + (2 * K * K + 2 * K + 5) * C + 2 * Suc K * L + 2 * L + 3 
     + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 2) + (max C L) + 1
     + 2 * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 2)
-    + L * Suc K * Suc (length Bs) * (5 * T_nth_IL (length Bs) + 3 * L * Suc K + 3) + 2 * L * Suc K * Suc (length Bs) + 2*length Bs + 6"
+    + L * Suc K * Suc (length Bs) * (5 * T_nth_IL (length Bs) + 3 * L * Suc K + 3) + 2 * L * Suc K * Suc (length Bs) + 2*length Bs + 5"
     using 1 3 4 5 6 by (auto simp only: algebra_simps)
-  also have "... = 3 * length Bs + K + 15 + 6 * Suc K * L + 2 * L + (2 * K * K + 2 * K + 5) * C 
+  also have "... = 3 * length Bs + K + 14 + 6 * Suc K * L + 2 * L + (2 * K * K + 2 * K + 5) * C 
     + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3) + 8 * T_nth_IL (length Bs)
     + L * Suc K * Suc (length Bs) * (5 * T_nth_IL (length Bs) + 3 * L * Suc K + 5)"
     by (auto simp add: algebra_simps)
   also have "... \<le>  (2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
     + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
-    + 9 * Suc K * L + 12"
+    + 9 * Suc K * L + 7"
     by (auto simp add: algebra_simps)
   finally show ?thesis.
 qed
@@ -3484,7 +3493,7 @@ lemma parse_steps_time_bound:
   assumes k_bound:"k \<le> length (PIL_map_item pil2) 
     * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
     + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
-    + 9 * Suc K * L + 12)" 
+    + 9 * Suc K * L + 7)" 
   and res: "parse_steps_time Bs (pil1, pil2) k = Some ((pil3, pil4), k1)"
   and dist: "distinct ps"
   and invs: "inv_PIL pil1" "inv_PIL pil2"
@@ -3495,11 +3504,11 @@ lemma parse_steps_time_bound:
   shows "k1 \<le> length (PIL_map_item pil4) 
     * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
     + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
-    + 9 * Suc K * L + 12)"
+    + 9 * Suc K * L + 7)"
 proof-
   let ?C = "(2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
     + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
-    + 9 * Suc K * L + 12"
+    + 9 * Suc K * L + 7"
   let ?P3 = "\<lambda>((pil1',pil2'),k). wf_PIL pil1' (length Bs) \<and> wf_PIL pil2' (length Bs) \<and> wf_parse_bins1 (map set Bs)"
   let ?P1 = "\<lambda>((pil1',pil2'),k). wf_PIL pil1' (length Bs) \<and> wf_PIL pil2' (length Bs) \<and> wf_parse_bins1 (map set Bs) \<and> inv_PIL pil1' \<and> inv_PIL pil2' 
         \<and> length (froms (fst pil1')) = Suc (length Bs) \<and> length (froms (fst pil2')) = Suc (length Bs) \<and> (\<forall>i < length Bs. length (Bs ! i) \<le> C) \<and> distinct ps 
@@ -3590,7 +3599,7 @@ lemma T_Parse_steps_bound:
   shows "T_Parse_steps Bs (pil1, pil2) \<le> L * Suc K * Suc (length Bs)
     * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
     + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
-    + 9 * Suc K * L + 12)"
+    + 9 * Suc K * L + 7)"
 proof-
   obtain pil3 pil4 k where Psteps_time: "parse_steps_time Bs (pil1, pil2) 0 = Some ((pil3, pil4), k)" 
     and Psteps: "Parse_steps Bs (pil1, pil2) = Some (pil3, pil4)"
@@ -3603,12 +3612,12 @@ proof-
   have "T_Parse_steps Bs (pil1, pil2) \<le> length (PIL_map_item pil4) 
     * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
     + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
-    + 9 * Suc K * L + 12)"
+    + 9 * Suc K * L + 7)"
     using assms Psteps_time parse_steps_time_bound[of 0] by auto
   also have "... \<le> L * Suc K * Suc (length Bs)
     * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
     + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
-    + 9 * Suc K * L + 12)" using length_bound by simp
+    + 9 * Suc K * L + 7)" using length_bound by simp
   finally show ?thesis.
 qed
 
@@ -3618,12 +3627,12 @@ lemma T_Parse_close2_L_bound:
   and lengs: "length (froms (fst pil1)) = Suc (length Bs)" 
   and wf1: "wf_PIL pil1 (length Bs)" "wf_parse_bins1 (map set Bs)"
   and max_bin_size: "\<forall>i < length Bs. length (Bs ! i) \<le> C"
-shows "T_Parse_close2_L Bs pil1 \<le> length Bs + 2 + Suc (length Bs) + L * Suc K * Suc (length Bs)
+shows "T_Parse_close2_L Bs pil1 \<le> length Bs + 1 + Suc (length Bs) + L * Suc K * Suc (length Bs)
     * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
     + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
-    + 9 * Suc K * L + 12) +  Suc (L * Suc K * Suc (length Bs))"
+    + 9 * Suc K * L + 7) +  Suc (L * Suc K * Suc (length Bs))"
 proof-
-  have 2: "T_empty_PIL (length Bs) = length Bs + 2" by simp
+  have 2: "T_empty_PIL (length Bs) = length Bs + 1" by (simp del: T_empty_IL.simps)
   have 3: "T_length Bs = Suc (length Bs)" by (simp add: T_length)
 
   have empty_inv: "inv_PIL (empty_PIL (length Bs))" and "length (froms (fst (empty_PIL (length Bs)))) = Suc (length Bs)"
@@ -3633,7 +3642,7 @@ proof-
   then have 1: "T_Parse_steps Bs (pil1, empty_PIL (length Bs)) \<le> L * Suc K * Suc (length Bs)
     * ((2 * K * K + 2 * K + 5) * C + (max C L) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 3)
     + Suc L * Suc K * Suc (length Bs) * (13 * T_nth_IL (length Bs) + 3 * L * Suc K + 7)
-    + 9 * Suc K * L + 12)" using T_Parse_steps_bound assms by simp
+    + 9 * Suc K * L + 7)" using T_Parse_steps_bound assms by simp
 
   obtain a where Some_Psteps: "Parse_steps Bs (pil1, empty_PIL (length Bs)) = Some a"
     using Parse_steps_NF empty_inv empty_wf length_empty_PIL lengs invs wf1(1,2) by blast
@@ -3709,38 +3718,38 @@ lemma T_Parse_bins_L_bound:
             + 4 * T_nth_IL (k) + 2 * L * Suc K + 2 * K + 20)
           + 7 * k + 16)
         + L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2)
-        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 9 + k"
+        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L) + L + 7 + k"
 using assms proof(induction k)
   case 0
   have 1: "length Parse_Init_L \<le> L" by (auto simp add: Parse_Init_L_def L_def)
-  have "T_PIL_of_List 0 Parse_Init_L \<le> (length Parse_Init_L) * (4 * T_nth_IL (0) + 2 * L * Suc K + 2) + length Parse_Init_L + 3"
+  have "T_PIL_of_List 0 Parse_Init_L \<le> (length Parse_Init_L) * (4 * T_nth_IL (0) + 2 * L * Suc K + 2) + length Parse_Init_L + 2"
     using T_PIL_of_List_bound by (metis Nat.add_0_right  assms(1) wf1_Parse_Init_L)
-  also have "... \<le> L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2) + L + 3"
+  also have "... \<le> L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2) + L + 2"
     using 1 mult_le_mono1[OF 1, of "(4 * T_nth_IL (0) + 2 * L * Suc K + 2)"] by auto
-  finally have 2: "T_PIL_of_List 0 Parse_Init_L \<le> L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2) + L + 3".
+  finally have 2: "T_PIL_of_List 0 Parse_Init_L \<le> L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2) + L + 2".
 
   have "wf_parse_bins1 (map set [])" by (auto simp add: wf_parse_bins1_def)
   moreover have "\<forall>i<length []. length ([] ! i) \<le> 0" by auto
   moreover have "wf_PIL (PIL_of_List 0 Parse_Init_L) 0" using wf_PIL_of_List wf1_Parse_Init_L by blast
   moreover have "length (froms (fst (PIL_of_List 0 Parse_Init_L))) = 1" 
     using length_PIL_of_List wf1_Parse_Init_L by (auto simp add: wf_item1_def )
-  ultimately have "T_Parse_close2_L [] (PIL_of_List 0 Parse_Init_L) \<le> 2 + 1 + L * Suc K  
+  ultimately have "T_Parse_close2_L [] (PIL_of_List 0 Parse_Init_L) \<le> 1 + 1 + L * Suc K  
     * (L * (4 * T_nth_IL (0) + 2 * L * Suc K + 3)
     + Suc L * Suc K  * (13 * T_nth_IL (0) + 3 * L * Suc K + 7)
-    + 9 * Suc K * L + 12) +  Suc (L * Suc K)" 
+    + 9 * Suc K * L + 7) +  Suc (L * Suc K)" 
     using T_Parse_close2_L_bound[of "PIL_of_List 0 Parse_Init_L" "[]" 0] assms 
       PIL_inv_PIL_of_List[OF forall_from_Suc_parse] wf1_Parse_Init_L
     by (auto simp del: T_Parse_close2_L.simps)
-  also have "... \<le> L * Suc K  * (Suc L * Suc K  * (17 * T_nth_IL (0) + 5 * L * Suc K + 19) + 13) + 4" 
+  also have "... \<le> L * Suc K  * (Suc L * Suc K  * (17 * T_nth_IL (0) + 5 * L * Suc K + 19)) + 3" 
     by (auto simp add: algebra_simps)
   finally have "T_Parse_close2_L [] (PIL_of_List 0 Parse_Init_L) 
-    \<le> L * Suc K  * (Suc L * Suc K  * (17 * T_nth_IL (0) + 5 * L * Suc K + 19) + 13) + 4".
+    \<le> L * Suc K  * (Suc L * Suc K  * (17 * T_nth_IL (0) + 5 * L * Suc K + 19)) + 3".
 
   then have "T_Parse_bins_L 0 \<le> L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2) + L + 3
-    + L * Suc K  * (Suc L * Suc K  * (17 * T_nth_IL (0) + 5 * L * Suc K + 19) + 13) + 4 + 1"
+    + L * Suc K  * (Suc L * Suc K  * (17 * T_nth_IL (0) + 5 * L * Suc K + 19)) + 3 + 1"
     using 2 by auto
   also have "... \<le> L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2)
-    + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 9" 
+    + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L) + L + 7" 
     by (auto simp add: algebra_simps)
   finally show ?case by auto
 next  
@@ -3791,37 +3800,37 @@ next
   moreover have "length (froms (fst ?parse_pil)) - 1 = Suc k" 
     using wf1_parse by (auto simp add: wf_item1_def)
   ultimately have 6: "T_Parse_close2_L ?Bs (PIL_of_List (length ?Bs) (Parse_Scan_L (last ?Bs) k))
-    \<le> Suc k + 2 + Suc (Suc k) + L * Suc K * Suc (Suc k)
+    \<le> Suc k + 1 + Suc (Suc k) + L * Suc K * Suc (Suc k)
     * ((2 * K * K + 2 * K + 5) * (L * Suc K * Suc k) + (L * Suc K * Suc k) * (4 * T_nth_IL (Suc k) + 2 * L * Suc K + 3)
     + Suc L * Suc K * Suc (Suc k) * (13 * T_nth_IL (Suc k) + 3 * L * Suc K + 7)
-    + 9 * Suc K * L + 12) +  Suc (L * Suc K * Suc (Suc k))"
+    + 9 * Suc K * L + 7) +  Suc (L * Suc K * Suc (Suc k))"
     using T_Parse_close2_L_bound[of ?parse_pil ?Bs "L * Suc K * Suc k"] Parse_bins_L_lengths wf_parse_bins_L Suc 
     by (auto simp del: T_Parse_close2_L.simps wf_parse_bin1.simps)
   also have "... = L * Suc K * Suc (Suc k)
     * ((L * Suc K * Suc k) * (4 * T_nth_IL (Suc k) + 2 * L * Suc K + 2 * K * K + 2 * K + 8)
     + Suc L * Suc K * Suc (Suc k) * (13 * T_nth_IL (Suc k) + 3 * L * Suc K + 7)
-    + 9 * Suc K * L + 13) + 2 * k + 6" by (auto simp add: algebra_simps)
+    + 9 * Suc K * L + 8) + 2 * k + 5" by (auto simp add: algebra_simps)
   also have "... \<le> L * Suc K * Suc (Suc k)
-    * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (Suc k) + 5 * L * Suc K + 4 * K * K + 24) + 13) 
-    + 2 * k + 6" by (auto simp add: algebra_simps)
+    * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (Suc k) + 5 * L * Suc K + 4 * K * K + 24)) 
+    + 2 * k + 5" by (auto simp add: algebra_simps)
   finally have 7:  "T_Parse_close2_L ?Bs (PIL_of_List (length ?Bs) (Parse_Scan_L (last ?Bs) k))
     \<le> L * Suc K * Suc (Suc k)
-      * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (Suc k) + 5 * L * Suc K + 4 * K * K + 24) + 13) 
-      + 2 * k + 6".
+      * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (Suc k) + 5 * L * Suc K + 4 * K * K + 24)) 
+      + 2 * k + 5".
 
   have "T_Parse_bins_L k \<le> k * (L * Suc K * Suc (Suc k)
           * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (k) + 5 * L * Suc K + 4 * K * K + 24)
             + 4 * T_nth_IL (k) + 2 * L * Suc K + 2 * K + 20)
           + 7 * k + 16)
         + L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2)
-        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 9 + k"
+        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L) + L + 7 + k"
     using Suc by simp
   also have "... \<le> k * (L * Suc K * Suc (Suc k)
           * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (Suc k) + 5 * L * Suc K + 4 * K * K + 24)
             + 4 * T_nth_IL (Suc k) + 2 * L * Suc K + 2 * K + 20)
           + 7 * k + 16)
         + L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2)
-        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 9 + k"
+        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L) + L + 7 + k"
   proof-
     have "T_nth_IL k \<le> T_nth_IL (Suc k)" using mono_nth monoD[of T_nth_IL k "Suc k"] by simp
     then have 1: "4 * T_nth_IL (k) + 2 * L * Suc K + 2 * K + 20 \<le> 4 * T_nth_IL (Suc k) + 2 * L * Suc K + 2 * K + 20"
@@ -3842,7 +3851,7 @@ next
             + 4 * T_nth_IL (Suc k) + 2 * L * Suc K + 2 * K + 20)
           + 7 * k + 16)
         + L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2)
-        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 9 + k".
+        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L) + L + 7 + k".
 
   then have "T_Parse_bins_L (Suc k)
       \<le> k * (L * Suc K * Suc (Suc k)
@@ -3850,13 +3859,13 @@ next
             + 4 * T_nth_IL (Suc k) + 2 * L * Suc K + 2 * K + 20)
           + 7 * k + 16)
         + L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2)
-        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 9 + k
+        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L) + L + 7 + k
       +
       k + 3 + k + 1 + k + (2 * K + 4) * (L * Suc K * Suc k) + 3
       + L * Suc K * Suc k * (4 * T_nth_IL (Suc k) + 2 * L * Suc K + 2) + L * Suc K * Suc k + Suc k + 3
       + L * Suc K * Suc (Suc k)
-      * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (Suc k) + 5 * L * Suc K + 4 * K * K + 24) + 13) 
-      + 2 * k + 5 + k + 2 + 1" unfolding T_Parse_bins_L.simps Let_def using 1 2 3 4 5 7 by presburger
+      * (Suc L * Suc K * Suc (Suc k) * (17 * T_nth_IL (Suc k) + 5 * L * Suc K + 4 * K * K + 24)) 
+      + 2 * k + 5 + k + 1 + 1" unfolding T_Parse_bins_L.simps Let_def using 1 2 3 4 5 7 by presburger
   
   also have "... \<le> Suc k *
        (L * Suc K * Suc (Suc (Suc k)) *
@@ -3864,9 +3873,9 @@ next
         7 * Suc k +
         16) +
        L * (4 * T_nth_IL 0 + 2 * L * Suc K + 2) +
-       L * Suc K * (Suc L * Suc K * (21 * T_nth_IL 0 + 5 * L * Suc K + 19) + 2 * L + 15) +
+       L * Suc K * (Suc L * Suc K * (21 * T_nth_IL 0 + 5 * L * Suc K + 19) + 2 * L) +
        L +
-       9 +
+       7 +
        Suc k" by (auto simp add: algebra_simps)
   finally show ?case.
 qed
@@ -3877,7 +3886,7 @@ definition C3 where "C3 = (L * Suc K * Suc L * Suc K * (5 * L * Suc K + 4 * K * 
 definition C4 where "C4 = (L * Suc K * (2 * L * Suc K + 2 * K + 20) + 7)"
 definition C6 where "C6 = L * Suc K * Suc L * Suc K * 17"
 definition C7 where "C7 = L * Suc K * 4"
-definition C5 where "C5 = L * Suc K  * (Suc L * Suc K  * (25 * T_nth_IL (0) + 5 * L * Suc K + 20) + 2 * L + 17) + L + 7"
+definition C5 where "C5 = L * Suc K  * (Suc L * Suc K  * (25 * T_nth_IL (0) + 5 * L * Suc K + 20) + 2 * L) + L + 5"
 
 
 theorem T_Parse_bins_bound_nice:
@@ -3892,27 +3901,27 @@ proof-
             + 4 * T_nth_IL (k) + 2 * L * Suc K + 2 * K + 20)
           + 7 * k + 16)
         + L * (4 * T_nth_IL (0) + 2 * L * Suc K + 2)
-        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L + 15) + L + 9 + k"
+        + L * Suc K  * (Suc L * Suc K  * (21 * T_nth_IL (0) + 5 * L * Suc K + 19) + 2 * L) + L + 7 + k"
     using T_Parse_bins_L_bound assms by simp
   also have "... \<le> (k+2) * (L * Suc K * (k+2)
           * (Suc L * Suc K * (k+2) * (17 * T_nth_IL (k) + 5 * L * Suc K + 4 * K * K + 24)
             + 4 * T_nth_IL (k) + 2 * L * Suc K + 2 * K + 20)
           + 7 * (k + 2) + 2)
-        + L * Suc K  * (Suc L * Suc K  * (25 * T_nth_IL (0) + 5 * L * Suc K + 20) + 2 * L + 17) + L + 9 + k"
+        + L * Suc K  * (Suc L * Suc K  * (25 * T_nth_IL (0) + 5 * L * Suc K + 20) + 2 * L) + L + 7 + k"
     by (auto simp add: algebra_simps)
   also have "... = (k+2) * (k+2) * (k+2) * (L * Suc K * Suc L * Suc K * (5 * L * Suc K + 4 * K * K + 24))
     + (k+2) * (k+2) * (k+2) * (L * Suc K * Suc L * Suc K * 17 * T_nth_IL (k))
     + (k+2) * (k+2) * (L * Suc K * (2 * L * Suc K + 2 * K + 20) + 7)
     + (k+2) * (k+2) * (L * Suc K * 4 * T_nth_IL (k))
     + (k+2) * 3
-    + L * Suc K  * (Suc L * Suc K  * (25 * T_nth_IL (0) + 5 * L * Suc K + 20) + 2 * L + 17) + L + 7"
+    + L * Suc K  * (Suc L * Suc K  * (25 * T_nth_IL (0) + 5 * L * Suc K + 20) + 2 * L) + L + 5"
     by (auto simp add: algebra_simps)
   also have "... = (k+2)^3 * (L * Suc K * Suc L * Suc K * (5 * L * Suc K + 4 * K * K + 24))
     + (k+2)^3 * (L * Suc K * Suc L * Suc K * 17 * T_nth_IL (k))
     + (k+2)^2 * (L * Suc K * (2 * L * Suc K + 2 * K + 20) + 7)
     + (k+2)^2 * (L * Suc K * 4 * T_nth_IL (k))
     + (k+2) * 3 
-    + L * Suc K  * (Suc L * Suc K  * (25 * T_nth_IL (0) + 5 * L * Suc K + 20) + 2 * L + 17) + L + 7" 
+    + L * Suc K  * (Suc L * Suc K  * (25 * T_nth_IL (0) + 5 * L * Suc K + 20) + 2 * L) + L + 5" 
     by (simp only: monoid_mult_class.power3_eq_cube monoid_mult_class.power2_eq_square)
   finally show ?thesis by (auto simp add: C3_def C4_def C5_def C6_def C7_def algebra_simps)
 qed

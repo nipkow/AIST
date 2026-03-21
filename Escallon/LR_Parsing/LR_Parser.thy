@@ -77,29 +77,33 @@ proof -
 qed
 
 
-(* TODO: define \<Delta> and \<E> *)
-definition char_fa :: "('n::fresh0, 't) Cfg \<Rightarrow> (('n, 't) syms, ('n, 't) item) nfa" where
+definition char_fa :: "('n::fresh0, 't) Cfg \<Rightarrow> (('n, 't) sym, ('n, 't) item) nfa" where
   "char_fa G \<equiv> let 
       S = Start G; 
       P = Prods G;
-      Q = {[A \<rightarrow> \<alpha> . \<beta>] | A \<alpha> \<beta>. (A, \<alpha>@\<beta>) \<in> P};
+      Q = It G;
       S' = [fresh0 (Nts P) \<rightarrow> [] . [Nt S]]; 
-      F = {[S \<rightarrow> \<alpha> . []] | \<alpha>. (S, \<alpha>) \<in> P};
-      \<Delta> = (\<lambda>s a. {s}); 
-      \<E> = {} in
+      F = {[S \<rightarrow> \<alpha> . []] | \<alpha>. [S \<rightarrow> \<alpha> . []] \<in> It G};
+      \<Delta> = (\<lambda>s a. case s of [X \<rightarrow> \<alpha> . Y # \<beta>] \<Rightarrow> {if a = Y then [X \<rightarrow> \<alpha> @ [Y] . \<beta>] else s}); 
+      \<E> = {([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . \<gamma>]) | X \<alpha> Y \<beta> \<gamma>. (X, \<alpha> @ Nt Y # \<beta>) \<in> P \<and> (Y, \<gamma>) \<in> P} in
     \<lparr>nfa.states = Q \<union> {S'}, nfa.init = {S'}, nfa.final = F, nfa.nxt = \<Delta>, nfa.eps = \<E>\<rparr>"
 
-lemma "nfa (char_fa G)"
+
+lemma char_fa_is_nfa:
+  assumes "finite (Prods G)"
+  shows "nfa (char_fa G)"
 proof (standard, goal_cases)
   case 1
-  then show ?case sorry
+  then show ?case unfolding char_fa_def by (metis (lifting) inf_sup_ord(4) nfa.select_convs(1,2))
 next
   case 2
-  then show ?case sorry
+  then show ?case unfolding char_fa_def using nfa.select_convs(1,3) 
+    by (smt (verit, best) UnCI mem_Collect_eq subsetI)
 next
   case (3 q x)
   then show ?case sorry
 next
   case 4
-  then show ?case sorry
+  then show ?case using It_finite[OF assms] unfolding char_fa_def 
+    by (metis (lifting) finite.emptyI finite_Un finite_insert nfa.select_convs(1))
 qed

@@ -8,18 +8,89 @@ declare [[show_question_marks=false]]
 declare [[names_short=true]]
 
 definition le_O :: "('a \<Rightarrow> nat) \<Rightarrow> ('a \<Rightarrow> nat) \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> bool"
-  ("(_ \<le>O _ IF _)" [50, 1000, 0] 0)
-where "(f \<le>O g IF Q) = (\<exists>c d::nat. \<forall>x. Q x \<longrightarrow> f x \<le> c * g x + d)"
+  ("(_/ \<le>O _/ IF _)" [50, 1000, 0] 0)
+where "(f \<le>O g IF Q) = (\<exists>c d. \<forall>x. Q x \<longrightarrow> f x \<le> c * g x + d)"
 
+notation (latex) le_O ("(_/ \<le>\<^bsub>\<^latex>\<open>\\isaconst{\<close>O\<^latex>\<open>}\<close>\<^esub> _/ IF _)" [50, 1000, 0] 0)
 abbreviation le_O_True :: "('a \<Rightarrow> nat) \<Rightarrow> ('a \<Rightarrow> nat) \<Rightarrow> bool"
    (infix "\<le>O" 50)  where "f \<le>O g \<equiv> (f \<le>O g IF (\<lambda>x. True))"
 
-lemma "(\<lambda>xs. T_append xs ys) \<le>O (\<lambda>xs. length xs)"
-  apply(simp)
-  oops
+lemma le_O_trans: "f \<le>O g IF Q \<Longrightarrow> g \<le>O h IF Q \<Longrightarrow> f \<le>O h IF Q"
+  apply(auto simp: le_O_def)
+  apply(rename_tac cg ch dg dh)
+apply(rule_tac x="cg*ch" in exI)
+  apply(rule_tac x="cg*dh + dg" in exI)
+  apply auto
+apply(erule_tac x=x in allE)
+apply(erule_tac x=x in allE)
+  apply(simp add: algebra_simps)
+  by (metis add_mono_thms_linordered_semiring(2) distrib_left dual_order.trans mult_le_mono2)
 
-lemma "(\<lambda>i. T_nth xs i) \<le>O (\<lambda>i. i) IF (\<lambda>i. i < length xs)"
-  oops
+lemma le_O_trans2: "f \<le>O g IF Q \<Longrightarrow> g \<le>O h \<Longrightarrow> f \<le>O h IF Q"
+  by (metis le_O_def le_O_trans)
+
+lemma le_O_id: "f \<le>O f IF Q"
+apply(auto simp: le_O_def)
+apply(rule_tac x="1" in exI)
+apply(rule_tac x="0" in exI)
+by simp
+
+lemma le_O_k: "(\<lambda>_. k) \<le>O (\<lambda>n. f n) IF Q"
+apply(auto simp add: le_O_def)
+apply(rule_tac x="0" in exI)
+apply(rule_tac x="k" in exI)
+by simp
+
+lemma le_O_add: "g \<le>O f IF Q1 \<Longrightarrow> h \<le>O f IF Q2 \<Longrightarrow> (\<lambda>x. g x + h x) \<le>O f IF (\<lambda>x. Q1 x \<and> Q2 x)"
+apply(auto simp add: le_O_def)
+subgoal for cg ch dg dh
+apply(rule_tac x="cg+ch" in exI)
+apply(rule_tac x="dg+dh" in exI)
+apply auto
+subgoal for x
+apply(erule_tac x=x in allE)
+apply(erule_tac x=x in allE)
+apply(simp add: algebra_simps)
+done
+done
+done
+
+corollary le_O_add1: "g \<le>O f IF Q \<Longrightarrow> h \<le>O f IF Q \<Longrightarrow> (\<lambda>x. g x + h x) \<le>O f IF Q"
+  using le_O_add by fastforce
+
+corollary le_O_Suc1: "g \<le>O f IF Q \<Longrightarrow> (\<lambda>x. Suc(g x)) \<le>O f IF Q"
+  using le_O_add1[where h = "\<lambda>x. 1", OF _ le_O_k]
+  by (metis (no_types, lifting) ext Suc_eq_plus1)
+
+lemma le_O_mult_k: "g \<le>O f IF Q \<Longrightarrow> (\<lambda>x. k * g x) \<le>O f IF Q"
+apply(auto simp add: le_O_def)
+apply(rule_tac x="k*c" in exI)
+apply(rule_tac x="k*d" in exI)
+apply auto
+by (metis add_mult_distrib2 mult.assoc mult_le_mono2)
+
+corollary le_O_mult_k2: "g \<le>O f IF Q \<Longrightarrow> (\<lambda>x. g x * k) \<le>O f IF Q"
+  by (simp add: ab_semigroup_mult_class.mult.commute le_O_mult_k)
+
+lemma le_O_le_power: assumes "k \<le> l" shows "(\<lambda>n. (f n)^k) \<le>O (\<lambda>n. (f n)^l) IF Q"
+  unfolding le_O_def [[metis_instantiate]]
+  by (metis add.commute assms less_one linorder_not_le nat_mult_1 order_class.order_eq_iff
+      power_increasing trans_le_add1)
+
+lemma le_O_id_le_power: "1 \<le> l \<Longrightarrow> (\<lambda>x. m x) \<le>O (\<lambda>x. (m x)^l) IF Q"
+using le_O_le_power by fastforce
+
+lemma le_O_init: "(\<And>x. Q x \<Longrightarrow> f x \<le> g x) \<Longrightarrow> f \<le>O g IF Q"
+by (metis add.commute add_0 le_O_def nat_mult_1)
+
+lemma le_O_init3: "(\<And>x y z. Q x y z \<Longrightarrow> f x y z \<le> g x y z)
+ \<Longrightarrow> (\<lambda>(x,y,z). f x y z) \<le>O (\<lambda>(x,y,z). g x y z) IF (\<lambda>(x,y,z). Q x y z)"
+  by (simp add: le_O_init split_def)
+
+lemmas le_O_Is = le_O_k le_O_Suc1 le_O_add1 le_O_mult_k le_O_mult_k2 le_O_le_power le_O_id_le_power
+
+lemma "(\<lambda>x. 6*x^3 + 3*x^2 + 7*x + 13) \<le>O (\<lambda>n. n^3) IF Q"
+by(simp add: le_O_Is)
 
 (* TODO Earley: get rid of next_sym = Some, use not is_final ?? *)
 (* in step_fun: rename it*)
@@ -56,6 +127,7 @@ begin
 notation ps ("\<^latex>\<open>\\isaconst{\<close>ps\<^latex>\<open>}\<close>")
 notation S ("\<^latex>\<open>\\isaconst{\<close>S\<^latex>\<open>}\<close>")
 
+notation set_ItemList (\<open>\<^latex>\<open>\isaconst{\<close>set\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
 notation empty_IL (\<open>\<^latex>\<open>\isaconst{\<close>empty\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
 notation insert  (infixr \<open>#\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<close> 65)
 notation union_LIL (infixl \<open>\<union>\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<close> 65)
@@ -83,6 +155,41 @@ notation close2_L ("\<^latex>\<open>\\isaconst{\<close>close2\<^bsub>\<^latex>\<
 notation bins_L ("\<^latex>\<open>\\isaconst{\<close>bins\<^bsub>\<^latex>\<open>\\isaconst{\\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
 
 end
+
+locale Earley_Gw_eps_T2 = Earley_Gw_eps_T where ps = ps for ps :: "('n,'a)prods" +
+  assumes dist_ps: "distinct ps"
+  assumes T_nth_IL: "T_nth_IL i = i+1"
+begin
+
+notation T_step_fun ("\<^latex>\<open>\\isaconst{\<close>T'_step2\<^bsub>\<^latex>\<open>\\isaconst{\\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
+
+lemma T_step_fun_bound2:
+  "wf_bins1 (map set Xs) \<Longrightarrow> (\<lambda>(Bs,il1,il2). T_step_fun Bs (il1, il2)) \<le>O
+(\<lambda>(Bs,il1,il2). L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3* L * Suc K + 7 + 2 * (K + 2))
+    + 7 * T_nth_IL (length Bs) + 3 * Suc (length Bs) + 2* L * Suc K + 8 + Suc K)
+IF (\<lambda>(Bs,il1,il2). list il1 \<noteq> [] \<and> wf_bins1 (map set Bs) \<and>
+  (\<forall>i < length Bs. distinct (Bs ! i)) \<and> wf1_IL il1 (length Bs) \<and> inv_IL il1 \<and>
+  length (froms il1) = Suc (length Bs) \<and> wf1_IL il2 (length Bs) \<and> inv_IL il2 \<and>
+  length (froms il2) = Suc (length Bs))"
+  apply(rule le_O_init3)
+  apply(rule T_step_fun_bound)
+  using dist_ps apply blast+
+  done
+
+lemma aux2: "(n::nat)*(n*m) = n^2 * m"
+  by(simp add: power2_eq_square)
+
+lemma T_step_fun_bound3: "(\<lambda>(Bs,il1,il2).
+  L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3* L * Suc K + 7 + 2 * (K + 2))
++ 7 * T_nth_IL (length Bs) + 3 * Suc (length Bs) + 2* L * Suc K + 8 + Suc K) \<le>O
+  (\<lambda>(Bs,il1,il2). (length Bs)^2)"
+  unfolding split_def T_nth_IL
+  by (simp add: le_O_Is algebra_simps aux2 flip: power2_eq_square)
+
+lemmas T_step_fun_bound4 = le_O_trans2[OF T_step_fun_bound2 T_step_fun_bound3]
+
+end
+
 (*>*)
 
 text\<open>
@@ -530,6 +637,16 @@ a refinement of @{const bins} from Section~\ref{sec:standard}:
 \end{quote}
 
 Correctness: @{thm bins_L_eq_\<S>}
+\<close>
+text (in Earley_Gw_eps_T2)\<open>
+\section{Complexity}
+
+@{thm dist_ps}
+
+@{thm [break] (sub) T_step_fun_bound}
+
+@{thm [break] (sub) T_step_fun_bound4}
+
 
 \appendix
 

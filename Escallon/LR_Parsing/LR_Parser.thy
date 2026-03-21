@@ -1,9 +1,7 @@
 theory LR_Parser 
   imports 
     Context_Free_Grammar.Context_Free_Grammar 
-    Context_Free_Grammar.Chomsky_Normal_Form
     Finite_Automata_HF.Finite_Automata_HF 
-    Fresh_Identifiers.Fresh
 begin
 
 datatype ('n, 't) item = Item 'n  "('n, 't) syms"  "('n, 't) syms"

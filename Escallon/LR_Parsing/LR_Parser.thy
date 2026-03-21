@@ -76,19 +76,21 @@ proof -
   with assms show ?thesis unfolding It_def by blast
 qed
 
-
+(* Defining edge cases of \<Delta>: reject state? *)
 definition char_fa :: "('n::fresh0, 't) Cfg \<Rightarrow> (('n, 't) sym, ('n, 't) item) nfa" where
   "char_fa G \<equiv> let 
       S = Start G; 
       P = Prods G;
       Q = It G;
       S' = [fresh0 (Nts P) \<rightarrow> [] . [Nt S]]; 
-      F = {[S \<rightarrow> \<alpha> . []] | \<alpha>. [S \<rightarrow> \<alpha> . []] \<in> It G};
-      \<Delta> = (\<lambda>s a. case s of [X \<rightarrow> \<alpha> . Y # \<beta>] \<Rightarrow> {if a = Y then [X \<rightarrow> \<alpha> @ [Y] . \<beta>] else s}); 
+      F = {[X \<rightarrow> \<alpha> . []] |X \<alpha>. [X \<rightarrow> \<alpha> . []] \<in> It G};
+      \<Delta> = (\<lambda>s a. case s of 
+        [X \<rightarrow> \<alpha> . Y # \<beta>]  \<Rightarrow> {if a = Y \<and> ((X, \<alpha> @ (Y#\<beta>)) \<in> P) then [X \<rightarrow> \<alpha> @ [Y] . \<beta>] else s}| 
+         _ \<Rightarrow> {s}); 
       \<E> = {([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . \<gamma>]) | X \<alpha> Y \<beta> \<gamma>. (X, \<alpha> @ Nt Y # \<beta>) \<in> P \<and> (Y, \<gamma>) \<in> P} in
     \<lparr>nfa.states = Q \<union> {S'}, nfa.init = {S'}, nfa.final = F, nfa.nxt = \<Delta>, nfa.eps = \<E>\<rparr>"
 
-
+(* Proof automation struggles accessing NFA record values. Fix? *)
 lemma char_fa_is_nfa:
   assumes "finite (Prods G)"
   shows "nfa (char_fa G)"
@@ -101,7 +103,44 @@ next
     by (smt (verit, best) UnCI mem_Collect_eq subsetI)
 next
   case (3 q x)
-  then show ?case sorry
+  then obtain X \<alpha> \<beta> where q_def: "q = [X \<rightarrow> \<alpha> . \<beta>]" by (metis item.exhaust)
+  let ?\<Delta> = "(\<lambda>s a. case s of 
+        [X \<rightarrow> \<alpha> . Y # \<beta>]  \<Rightarrow> {if a = Y \<and> ((X, \<alpha> @ (Y#\<beta>)) \<in> Prods G) then [X \<rightarrow> \<alpha> @ [Y] . \<beta>] else s}| 
+         _ \<Rightarrow> {s})"
+  have \<Delta>: "nfa.nxt (char_fa G) = ?\<Delta>" unfolding char_fa_def by (meson nfa.select_convs(4))
+  have Q: "nfa.states (char_fa G) = It G \<union> {[fresh0 (Nts (Prods G)) \<rightarrow> [] . [Nt (Start G)]]}" 
+    unfolding char_fa_def by (meson nfa.select_convs(1))
+  consider (empty) "\<beta> = []" | (eq) xs where "\<beta> = x # xs" | (neq) y ys where "\<beta> = y # ys" "y \<noteq> x"
+    by (metis list.exhaust)
+  then show ?case 
+  proof cases
+    case empty
+    then show ?thesis using 3 unfolding char_fa_def 
+      by (metis (no_types, lifting) Un_upper2 insert_subset item.case list.simps(4) nfa.select_convs(1,4)
+          q_def)
+  next
+    case eq
+    consider (start) "q \<in> nfa.init (char_fa G)" | (It) "q \<in> It G"
+      using Q 3 unfolding char_fa_def by (metis (lifting) Un_iff nfa.select_convs(2))
+    then show ?thesis
+    proof cases
+      case start
+      hence "q = [fresh0 (Nts (Prods G)) \<rightarrow> [] . [Nt (Start G)]]" 
+        unfolding char_fa_def by (metis (lifting) nfa.select_convs(2) singleton_iff)
+      moreover have "(fresh0 (Nts (Prods G)), [Nt (Start G)]) \<notin> Prods G" 
+        by (metis Nts_Lhss_Rhs_Nts Un_iff assms finite_Nts fresh0_notIn in_LhssI)
+      ultimately show ?thesis using \<Delta> 3 unfolding char_fa_def by simp
+    next
+      case It
+      with q_def have "(X, \<alpha>@\<beta>) \<in> Prods G" unfolding It_def by blast
+      moreover with It q_def \<Delta> eq have "nfa.nxt (char_fa G) q x = {[X \<rightarrow> \<alpha> @ [x] . xs]}" by simp
+      moreover from q_def It eq have "[X \<rightarrow> \<alpha> @ [x] . xs] \<in> It G" unfolding It_def by simp
+      ultimately show ?thesis using Q by auto
+    qed
+  next
+    case neq
+    then show ?thesis using 3 \<Delta> q_def unfolding char_fa_def by simp
+  qed
 next
   case 4
   then show ?case using It_finite[OF assms] unfolding char_fa_def 

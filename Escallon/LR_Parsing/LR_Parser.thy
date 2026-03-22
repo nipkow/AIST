@@ -1,7 +1,7 @@
 theory LR_Parser 
   imports 
     Context_Free_Grammar.Context_Free_Grammar 
-    Finite_Automata_HF.Finite_Automata_HF 
+    Finite_Automata_HF 
 begin
 
 datatype ('n, 't) item = Item 'n  "('n, 't) syms"  "('n, 't) syms"
@@ -136,14 +136,9 @@ proof (unfold_locales, goal_cases _ _ nxt_closed states_finite)
 qed (use It_finite[OF finite] in auto)
 
 
-(* Should follow trivially from the char_fa sublocale (TODO) *)
+(* Using new lemma in Finite_Automata_HF (needed?) *)
 sublocale canon_LR0: dfa "LR\<^sub>0 G" 
-  unfolding LR\<^sub>0_def apply unfold_locales
-     apply simp
-    apply fastforce
-   prefer 2
-   apply fastforce
-  sorry
+  unfolding LR\<^sub>0_def by (rule char_fa.Power_dfa_is_dfa)
 
 end
 

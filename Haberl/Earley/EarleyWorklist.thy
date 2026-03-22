@@ -1020,10 +1020,10 @@ time_fun earley_recognized
 
 end (*Context Earley_Gw*)
 
-locale Earley_Gw_eps_T = Earley_Gw_eps +
+locale Earley_Gw_eps_T = Earley_Gw_eps where ps = ps for ps :: "('n,'a) prods" +
   fixes T_nth_IL:: "nat \<Rightarrow> nat"
-  assumes T_nth_Bound: "(T_nth :: ('a, 'b) item list list \<Rightarrow> nat \<Rightarrow> nat) as k \<le> T_nth_IL k"
-  and T_update_Bound: "(T_list_update :: ('a, 'b) item list list \<Rightarrow> nat \<Rightarrow> ('a, 'b) item list \<Rightarrow> nat) as k a \<le> T_nth_IL k"
+  assumes T_nth_Bound: "(T_nth :: ('n, 'a) item list list \<Rightarrow> nat \<Rightarrow> nat) as k \<le> T_nth_IL k"
+  and T_update_Bound: "(T_list_update :: ('n, 'a) item list list \<Rightarrow> nat \<Rightarrow> ('n, 'a) item list \<Rightarrow> nat) as k a \<le> T_nth_IL k"
   and mono_nth: "mono T_nth_IL" (*mono f*)
 begin
 
@@ -1204,7 +1204,7 @@ proof-
 qed
 
 lemma T_Scan_L_bound:
-  assumes "k < length w" and wf: "wf_bin1 (set Bs) l" 
+  assumes "k < length w" and wf: "wf_bin1 (set Bs) k" 
   shows "T_Scan_L Bs k \<le> k + 2*(K + 2) * length Bs + 3"
 proof-
   have 1: "T_nth w k \<le> k+1" using assms by (auto simp add: T_nth)
@@ -3126,10 +3126,10 @@ proof-
 qed
 
 (*assumes that the stop condition check takes 0 time*)
-fun parse_steps_time :: "('a, 'b) item_Pt list list \<Rightarrow> ('a, 'b) parseIL \<times> ('a, 'b) parseIL \<Rightarrow> nat \<Rightarrow> ((('a, 'b) parseIL \<times> ('a, 'b) parseIL) \<times> nat) option" where
+fun parse_steps_time :: "('n, 'a) item_Pt list list \<Rightarrow> ('n, 'a) parseIL \<times> ('n, 'a) parseIL \<Rightarrow> nat \<Rightarrow> ((('n, 'a) parseIL \<times> ('n, 'a) parseIL) \<times> nat) option" where
 "parse_steps_time Bs ils y = while_option (\<lambda>((B,C),k). PIL_map_item B \<noteq> []) (\<lambda>((B,C),k). (Parse_step_fun Bs (B,C), k + T_Parse_step_fun Bs (B,C))) (ils, y)"
 
-fun T_Parse_steps :: "('a, 'b) item_Pt list list \<Rightarrow> ('a, 'b) parseIL \<times> ('a, 'b) parseIL \<Rightarrow> nat" where
+fun T_Parse_steps :: "('n, 'a) item_Pt list list \<Rightarrow> ('n, 'a) parseIL \<times> ('n, 'a) parseIL \<Rightarrow> nat" where
 "T_Parse_steps Bs ils = snd (the (parse_steps_time Bs ils 0))"
 
 

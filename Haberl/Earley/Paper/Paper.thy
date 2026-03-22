@@ -156,7 +156,7 @@ notation bins_L ("\<^latex>\<open>\\isaconst{\<close>bins\<^bsub>\<^latex>\<open
 
 end
 
-locale Earley_Gw_eps_T2 = Earley_Gw_eps_T where ps = ps for ps :: "('n,'a)prods" +
+locale Earley_Gw_eps_T2 = Earley_Gw_eps_T where ps = ps for ps :: "('n,'a) prods" +
   assumes dist_ps: "distinct ps"
   assumes T_nth_IL: "T_nth_IL i = i+1"
 begin
@@ -164,13 +164,13 @@ begin
 notation T_step_fun ("\<^latex>\<open>\\isaconst{\<close>T'_step2\<^bsub>\<^latex>\<open>\\isaconst{\\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
 
 lemma T_step_fun_bound2:
-  "wf_bins1 (map set Xs) \<Longrightarrow> (\<lambda>(Bs,il1,il2). T_step_fun Bs (il1, il2)) \<le>O
+  "(\<lambda>(Bs,il1,il2). T_step_fun Bs (il1, il2)) \<le>O
 (\<lambda>(Bs,il1,il2). L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3* L * Suc K + 7 + 2 * (K + 2))
-    + 7 * T_nth_IL (length Bs) + 3 * Suc (length Bs) + 2* L * Suc K + 8 + Suc K)
-IF (\<lambda>(Bs,il1,il2). list il1 \<noteq> [] \<and> wf_bins1 (map set Bs) \<and>
-  (\<forall>i < length Bs. distinct (Bs ! i)) \<and> wf1_IL il1 (length Bs) \<and> inv_IL il1 \<and>
-  length (froms il1) = Suc (length Bs) \<and> wf1_IL il2 (length Bs) \<and> inv_IL il2 \<and>
-  length (froms il2) = Suc (length Bs))"
+    + 7 * T_nth_IL (length Bs) + 3 * Suc (length Bs) + 2* L * Suc K + 7 + Suc K)
+IF (\<lambda>(Bs,il1,il2). id(list il1 \<noteq> [] \<and> wf_bins1 (map set Bs) \<and>
+  (\<forall>i < length Bs. distinct (Bs ! i))) \<and> id(wf1_IL il1 (length Bs) \<and> inv_IL il1 \<and>
+  length (froms il1) = Suc (length Bs)) \<and> wf1_IL il2 (length Bs) \<and> inv_IL il2 \<and>
+  length (froms il2) = Suc (length Bs))" unfolding id_def
   apply(rule le_O_init3)
   apply(rule T_step_fun_bound)
   using dist_ps apply blast+
@@ -179,9 +179,9 @@ IF (\<lambda>(Bs,il1,il2). list il1 \<noteq> [] \<and> wf_bins1 (map set Bs) \<a
 lemma aux2: "(n::nat)*(n*m) = n^2 * m"
   by(simp add: power2_eq_square)
 
-lemma T_step_fun_bound3: "(\<lambda>(Bs,il1,il2).
+lemma T_step_fun_bound3: "(\<lambda>(Bs,il\<^sub>1,il\<^sub>2).
   L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3* L * Suc K + 7 + 2 * (K + 2))
-+ 7 * T_nth_IL (length Bs) + 3 * Suc (length Bs) + 2* L * Suc K + 8 + Suc K) \<le>O
++ 7 * T_nth_IL (length Bs) + 3 * Suc (length Bs) + 2* L * Suc K + 7 + Suc K) \<le>O
   (\<lambda>(Bs,il1,il2). (length Bs)^2)"
   unfolding split_def T_nth_IL
   by (simp add: le_O_Is algebra_simps aux2 flip: power2_eq_square)
@@ -558,7 +558,7 @@ algorithm. We employ an Isabelle/HOL library theory defining a while-combinator
 \begin{quote}
 @{const_typ while_option}
 \end{quote}
-whose definition is exlained elsewhere \cite{Nipkow-ITP11}. All we need to know is that it is
+whose definition is explained elsewhere \cite{Nipkow-ITP11}. All we need to know is that it is
 executable by means of this recursion equation provable as a lemma:
 \begin{quote}
 @{thm while_option_unfold}
@@ -641,11 +641,27 @@ Correctness: @{thm bins_L_eq_\<S>}
 text (in Earley_Gw_eps_T2)\<open>
 \section{Complexity}
 
-@{thm dist_ps}
+We have analyzed the running time of the recognizer following the approach detailed elsewhere
+\cite{Nipkow-ACMbook}: from the definition of an executable function \<open>\<^latex>\<open>\isaconst{\<close>f\<^latex>\<open>}\<close> :: \<tau> \<Rightarrow> \<tau>'\<close>,
+we automatically generate a (time) function definition \<open>\<^latex>\<open>\isaconst{\<close>T_f\<^latex>\<open>}\<close> :: \<tau> \<Rightarrow> nat\<close>
+such that  \<open>\<^latex>\<open>\isaconst{\<close>T_f\<^latex>\<open>}\<close> x\<close>
+is the number of computation steps of \<open>\<^latex>\<open>\isaconst{\<close>f\<^latex>\<open>}\<close> x\<close> where we count only calls of recursive
+user-defined functions. For example, the time function @{const T_isin_list} (for @{const isin_list}
+from Appendix~\ref{SetByList}) is defined like this:
+\begin{quote}
+@{thm T_isin_list.simps}
+\end{quote}
+The boon and bane of this approach is that one obtains very detailed formulas with somewhat arbitrary
+constants. Arbitrary because they depend on the abstract machine model embodied in the generation of
+the time functions which may be quite different from a real machine.
+\begin{quote}
+@{thm [break] T_Scan_L_bound}
+\end{quote}
+where @{const K} is the maximum length of the @{const rhs} of any production.
 
-@{thm [break] (sub) T_step_fun_bound}
+@{thm [break] (concl) T_step_fun_bound}
 
-@{thm [break] (sub) T_step_fun_bound4}
+@{thm [break] T_step_fun_bound4[rename_abs _ il\<^sub>1 il\<^sub>2 _ il\<^sub>1 il\<^sub>2 _ il\<^sub>1 il\<^sub>2]}
 
 
 \appendix

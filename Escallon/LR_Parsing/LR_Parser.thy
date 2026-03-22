@@ -88,59 +88,63 @@ definition char_fa :: "('n::fresh0, 't) Cfg \<Rightarrow> (('n, 't) sym, ('n, 't
       \<E> = {([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . \<gamma>]) | X \<alpha> Y \<beta> \<gamma>. (X, \<alpha> @ Nt Y # \<beta>) \<in> P \<and> (Y, \<gamma>) \<in> P} in
     \<lparr>nfa.states = Q \<union> {S'}, nfa.init = {S'}, nfa.final = F, nfa.nxt = \<Delta>, nfa.eps = \<E>\<rparr>"
 
-(* Proof automation struggles accessing NFA record values. Fix? *)
-lemma char_fa_is_nfa:
-  assumes "finite (Prods G)"
-  shows "nfa (char_fa G)"
-proof (standard, goal_cases)
-  case 1
-  then show ?case unfolding char_fa_def by (metis (lifting) inf_sup_ord(4) nfa.select_convs(1,2))
-next
-  case 2
-  then show ?case unfolding char_fa_def using nfa.select_convs(1,3) 
-    by (smt (verit, best) UnCI mem_Collect_eq subsetI)
-next
-  case (3 q x)
-  then obtain X \<alpha> \<beta> where q_def: "q = [X \<rightarrow> \<alpha> . \<beta>]" by (metis item.exhaust)
-  let ?\<Delta> = "(\<lambda>s a. case s of 
+lemma states_char_fa [simp]: 
+  "nfa.states (char_fa G) = It G \<union> {[fresh0 (Nts (Prods G)) \<rightarrow> [] . [Nt (Start G)]]}"
+  unfolding char_fa_def by (meson nfa.select_convs(1))
+
+lemma init_char_fa [simp]:
+  "nfa.init (char_fa G) = {[fresh0 (Nts (Prods G)) \<rightarrow> [] . [Nt (Start G)]]}"
+  unfolding char_fa_def by (meson nfa.select_convs(2))
+
+lemma final_char_fa [simp]:
+  "nfa.final (char_fa G) = {[X \<rightarrow> \<alpha> . []] |X \<alpha>. [X \<rightarrow> \<alpha> . []] \<in> It G}"
+  unfolding char_fa_def by (meson nfa.select_convs(3))
+
+lemma nxt_char_fa [simp]:
+  "nfa.nxt (char_fa G) = (\<lambda>s a. case s of 
         [X \<rightarrow> \<alpha> . Y # \<beta>]  \<Rightarrow> {if a = Y \<and> ((X, \<alpha> @ (Y#\<beta>)) \<in> Prods G) then [X \<rightarrow> \<alpha> @ [Y] . \<beta>] else s}| 
-         _ \<Rightarrow> {s})"
-  have \<Delta>: "nfa.nxt (char_fa G) = ?\<Delta>" unfolding char_fa_def by (meson nfa.select_convs(4))
-  have Q: "nfa.states (char_fa G) = It G \<union> {[fresh0 (Nts (Prods G)) \<rightarrow> [] . [Nt (Start G)]]}" 
-    unfolding char_fa_def by (meson nfa.select_convs(1))
+        _ \<Rightarrow> {s})"
+  unfolding char_fa_def by (meson nfa.select_convs(4))
+
+lemma eps_char_fa [simp]:
+  "nfa.eps (char_fa G) 
+    = {([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . \<gamma>]) | X \<alpha> Y \<beta> \<gamma>. (X, \<alpha> @ Nt Y # \<beta>) \<in> Prods G \<and> (Y, \<gamma>) \<in> Prods G}"
+  unfolding char_fa_def by (meson nfa.select_convs(5))
+
+definition LR\<^sub>0 :: "('n::fresh0, 't) Cfg \<Rightarrow> (('n, 't) sym, ('n, 't) item set) dfa" where
+  "LR\<^sub>0 G \<equiv> nfa.Power_dfa (char_fa G)"
+
+locale finite_grammar =
+  fixes G :: "('n::fresh0, 't) Cfg"
+  assumes finite: "finite (Prods G)"
+begin
+
+sublocale char_fa: nfa "char_fa G"
+proof (unfold_locales, goal_cases _ _ nxt_closed states_finite)
+  case (nxt_closed q x)
+  then obtain X \<alpha> \<beta> where q_def: "q = [X \<rightarrow> \<alpha> . \<beta>]" by (metis item.exhaust)
   consider (empty) "\<beta> = []" | (eq) xs where "\<beta> = x # xs" | (neq) y ys where "\<beta> = y # ys" "y \<noteq> x"
     by (metis list.exhaust)
   then show ?case 
   proof cases
-    case empty
-    then show ?thesis using 3 unfolding char_fa_def 
-      by (metis (no_types, lifting) Un_upper2 insert_subset item.case list.simps(4) nfa.select_convs(1,4)
-          q_def)
-  next
     case eq
     consider (start) "q \<in> nfa.init (char_fa G)" | (It) "q \<in> It G"
-      using Q 3 unfolding char_fa_def by (metis (lifting) Un_iff nfa.select_convs(2))
-    then show ?thesis
-    proof cases
-      case start
-      hence "q = [fresh0 (Nts (Prods G)) \<rightarrow> [] . [Nt (Start G)]]" 
-        unfolding char_fa_def by (metis (lifting) nfa.select_convs(2) singleton_iff)
-      moreover have "(fresh0 (Nts (Prods G)), [Nt (Start G)]) \<notin> Prods G" 
-        by (metis Nts_Lhss_Rhs_Nts Un_iff assms finite_Nts fresh0_notIn in_LhssI)
-      ultimately show ?thesis using \<Delta> 3 unfolding char_fa_def by simp
-    next
-      case It
-      with q_def have "(X, \<alpha>@\<beta>) \<in> Prods G" unfolding It_def by blast
-      moreover with It q_def \<Delta> eq have "nfa.nxt (char_fa G) q x = {[X \<rightarrow> \<alpha> @ [x] . xs]}" by simp
-      moreover from q_def It eq have "[X \<rightarrow> \<alpha> @ [x] . xs] \<in> It G" unfolding It_def by simp
-      ultimately show ?thesis using Q by auto
-    qed
-  next
-    case neq
-    then show ?thesis using 3 \<Delta> q_def unfolding char_fa_def by simp
-  qed
-next
-  case 4
-  then show ?case using It_finite[OF assms] unfolding char_fa_def 
-    by (metis (lifting) finite.emptyI finite_Un finite_insert nfa.select_convs(1))
-qed
+      using nxt_closed by fastforce
+    then show ?thesis 
+      using eq nxt_closed q_def by cases (auto simp add: It_def)
+  qed (use nxt_closed q_def in fastforce)+
+qed (use It_finite[OF finite] in auto)
+
+
+(* Should follow trivially from the char_fa sublocale (TODO) *)
+sublocale canon_LR0: dfa "LR\<^sub>0 G" 
+  unfolding LR\<^sub>0_def apply unfold_locales
+     apply simp
+    apply fastforce
+   prefer 2
+   apply fastforce
+  sorry
+
+end
+
+end

@@ -1,0 +1,264 @@
+\documentclass[11pt,
+               a4paper,
+               bibtotoc,
+               idxtotoc,
+               headsepline,
+               footsepline,
+               footexclude,
+               BCOR12mm,
+               DIV13,
+               openany,   % using this removes blank pages around part / chapter starts.
+               oneside    % include this if you have to print only one page per sheet of paper.
+               ]
+               {scrbook}
+%\pagestyle{plain} % turn on page numbers
+%\usepackage[T1]{fontenc}
+%\usepackage{graphicx}
+% Used for displaying a sample figure. If possible, figure files should
+% be included in EPS format.
+%
+% If you use the hyperref package, please uncomment the following two lines
+% to display URLs in blue roman font according to Springer's eBook style:
+%\usepackage{color}
+%\renewcommand\UrlFont{\color{blue}\rmfamily}
+%\urlstyle{rm}
+
+% template packages
+\usepackage{xspace}
+
+
+
+\usepackage{mathpartir}
+\usepackage{amsfonts}
+\usepackage{amsmath,amssymb}
+\usepackage{amsthm}
+
+\usepackage{tabularx}
+
+\usepackage{isabelle,isabellesym}
+\usepackage{latexsym}
+%because of orcidlink
+\usepackage{xcolor}
+% this should be the last package used
+\usepackage{pdfsetup}
+%clashes with pdfsetup
+\usepackage{orcidlink}
+
+\urlstyle{rm}
+
+%%% Isabelle specific adjustments
+
+\isabellestyle{literal}
+
+\usepackage{etoolbox}% `toggle'
+
+\newtoggle{mathprime}
+\newtoggle{SF}
+
+\let\oldisadigit\isadigit
+\let\oldisacharprime\isacharprime
+
+\renewcommand{\isaconst}[1]{\isa{\toggletrue{SF}\toggletrue{mathprime}\textsf{#1}}}
+\renewcommand{\isafree}[1]{{\toggletrue{mathprime}#1}}
+\renewcommand{\isabound}[1]{{\toggletrue{mathprime}#1}}
+\renewcommand{\isavar}[1]{{\toggletrue{mathprime}#1}}
+
+\renewcommand{\isacharprime}{\iftoggle{mathprime}{\isamath{'}}{\oldisacharprime}}
+\renewcommand{\isadigit}[1]{\iftoggle{SF}{\textsf{#1}}{\oldisadigit{#1}}}
+
+\newcommand{\noquotes}[1]{{\renewcommand{\isachardoublequote}{}\renewcommand{\isachardoublequoteopen}{}\renewcommand{\isachardoublequoteclose}{}#1}}
+
+\newlength{\funheadersep}
+\setlength{\funheadersep}{\smallskipamount}
+
+%%% End of Isabelle specifics
+
+
+% Own macros and definitions
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{definition}{Definition}
+
+
+
+% no right margin in quote:
+%\renewenvironment{quote}
+%{\list{}{}%
+%\item\relax}
+%{\endlist}
+% no margins in quote:
+\renewenvironment{quote}%
+{\list{}{\leftmargin=0mm\rightmargin=0mm}\item[]}%
+{\endlist}
+
+\newcommand{\concept}[1]{\textbf{#1}}
+
+\newcommand{\eqnum}[1]{{\upshape\refstepcounter{equation}\hfill(\theequation\label{#1})}}
+
+\hyphenation{Isa-belle}
+
+% ------------------------------------------------------------------------------------------------------------
+%	Thesis start
+% ------------------------------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------
+% --------------------------------- Thesis Info ---------------------------------
+% -------------------------------------------------------------------------------
+
+% set title, authors and stuff for the cover
+% docytype needs xspace because it is used within text.
+%\def\doctype{Bachelor's Thesis\xspace}
+\def\doctype{Master's Thesis\xspace}
+%\def\doctype{Guided Research\xspace}
+%\def\doctype{Interdisciplinary Project\xspace}
+\def\studyProgram{Informatics}
+\def\title{Formal Verification of Earley's Parsing Algorithm, Including Runtime Analysis}
+% don't try translate every technical term if it would sound off
+\def\titleGer{Formale Verifikation von Earleys Parser Algorithmus mit Laufzeitanalyse}
+\def\author{Alexander Haberl}
+% Prof
+\def\supervisor{Prof. Tobias Nipkow, Ph.D.}
+% PhD Candidate
+\def\advisor{Prof. Tobias Nipkow, Ph.D.}
+\def\date{11.05.2026}
+
+\begin{document}
+\frontmatter
+% -------------------------------------------------------------------------------
+% ---------------------------------- COVERPAGE ----------------------------------
+% -------------------------------------------------------------------------------
+
+% correct BCOR - undo at the end !!!
+\def\bcorcor{0.15cm}
+\addtolength{\hoffset}{\bcorcor}
+\thispagestyle{empty}
+\vspace{4cm}
+\begin{center}
+    \includegraphics[width=4cm]{tumlogo.pdf}\\[5mm]
+    \huge SCHOOL OF COMPUTATION, INFORMATION AND TECHNOLOGY - INFORMATICS\\[5mm]
+    \large TECHNICAL UNIVERSITY OF MUNICH\\[24mm]
+
+    {\Large \doctype in \studyProgram}\\[20mm]
+    {\huge\bf \title\par}
+    \vspace{15mm}
+    {\LARGE  \author}
+%    \vspace{10mm}
+%    \begin{figure}[h!]
+%        \centering
+%        \includegraphics[width=4cm]{templateStuff/informat.pdf}
+%   \end{figure}
+\end{center}
+
+\cleardoubleemptypage
+
+% -------------------------------------------------------------------------------
+% ---------------------------------- TITLEPAGE ----------------------------------
+% -------------------------------------------------------------------------------
+
+\def\bcorcor{0.15cm}
+\addtolength{\hoffset}{\bcorcor}
+\thispagestyle{empty}
+\vspace{10mm}
+\begin{center}
+    \includegraphics[width=4cm]{tumlogo.pdf}\\[5mm]
+	\huge SCHOOL OF COMPUTATION, INFORMATION AND TECHNOLOGY - INFORMATICS\\[5mm]
+	\large TECHNICAL UNIVERSITY OF MUNICH\\[24mm]
+	{\Large \doctype in \studyProgram}\\[20mm]
+	{\LARGE\bf \title}\\[10mm]
+	{\LARGE\bf \titleGer}\\[10mm]
+	\begin{tabular}{ll}
+		\Large Author:      	& \Large \author \\[2mm]
+		\Large Examiner:  	& \Large \supervisor\\[2mm]
+		\Large Supervisor:			& \Large \advisor\\[2mm]
+		\Large Date:       		& \Large \date
+	\end{tabular}
+%	\vspace{-1mm}
+%	\begin{figure}[h!]
+%		\centering
+%		\includegraphics[width=4cm]{templateStuff/informat.pdf}
+%	\end{figure}
+\end{center}
+
+% undo BCOR correction
+\addtolength{\hoffset}{\bcorcor}
+\newpage
+
+% -------------------------------------------------------------------------------
+% ---------------------------------- DISCLAIMER ---------------------------------
+% -------------------------------------------------------------------------------
+
+\cleardoubleemptypage
+
+\thispagestyle{empty}
+\vspace*{0.7\textheight}
+\noindent
+I confirm that this \MakeLowercase{\doctype} is my own work and I have documented all sources and material used.\\
+
+\vspace{15mm}
+\noindent
+Munich, \date \hspace{5cm} \author
+\cleardoubleemptypage
+
+% -------------------------------------------------------------------------------
+% ---------------------------------- ABSTRACT -----------------------------------
+% -------------------------------------------------------------------------------
+
+\phantomsection
+\addcontentsline{toc}{chapter}{Abstract}
+\vspace*{2cm}
+\begin{center}
+    {\Large \bf Abstract}
+\end{center}
+\vspace{1cm}
+
+TODO Abstract
+
+\cleardoublepage
+
+\phantomsection
+\addcontentsline{toc}{chapter}{Zusammenfassung}
+\vspace*{2cm}
+\begin{center}
+    {\Large \bf Zusammenfassung}
+\end{center}
+\vspace{1cm}
+
+TODO Abstract Übersetzung
+
+\cleardoublepage
+
+% -------------------------------------------------------------------------------
+% ------------------------------ TABLE OF CONTENTS ------------------------------
+% -------------------------------------------------------------------------------
+
+\tableofcontents
+\thispagestyle{empty}
+\cleardoubleemptypage
+
+% -------------------------------------------------------------------------------
+% --------------------------------- MAIN MATTER ---------------------------------
+% -------------------------------------------------------------------------------
+
+
+%\begin{table}
+%\caption{Table captions should be placed above the tables.}\label{tab1}
+%\begin{tabular}{|l|l|l|}
+%\end{tabular}
+%\end{table}
+
+%\begin{theorem}
+%\end{theorem}
+% the environments 'definition', 'lemma', 'proposition', 'corollary',
+% 'remark', and 'example' are defined in the LLNCS documentclass as well.
+%
+%\begin{proof}
+%\end{proof}
+
+\mainmatter
+
+\input{Thesis}
+
+
+\bibliographystyle{splncs04}
+\bibliography{root}
+
+\end{document}

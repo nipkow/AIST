@@ -7,7 +7,9 @@ begin
 
 datatype ('n, 't) item = Item 'n  "('n, 't) syms"  "('n, 't) syms"
 
-notation Item  ("[_ \<rightarrow> _ . _]" 100)
+notation Item  ("[_ \<rightarrow> _ . _]" 100) 
+
+
 
 definition items_of_Prods :: "('n, 't) Prods \<Rightarrow> ('n, 't) item set" where
   "items_of_Prods P = {[A \<rightarrow> \<alpha> . \<beta>] | A \<alpha> \<beta>. (A, \<alpha>@\<beta>) \<in> P}"
@@ -17,7 +19,6 @@ definition It :: "('n, 't) Cfg \<Rightarrow> ('n, 't) item set" where
 
 (* make intro? *)
 declare It_def[simp]
-
 
 lemma prod_items_finite:
   "finite {[A \<rightarrow> \<alpha> . \<beta>] | \<alpha> \<beta>. (A, \<alpha>@\<beta>) = (A, w)}"
@@ -79,7 +80,17 @@ corollary It_finite:
 shows "finite (It G)"
   using assms items_of_Prods_finite by auto
 
-(*definition IPDA :: "('n::fresh0, 't) Cfg \<Rightarrow> (('n, 't) item, 't, ('n, 't) item) pda" where
+
+(* Problem when defining \<Delta>: IPDA uses \<Delta> :: 'q list \<Rightarrow> 'a \<Rightarrow> 'q list
+                              (defined as \<Delta>: Q\<^sup>+ \<times> V\<^sub>T \<Rightarrow> Q\<^sup>* in the book)
+Possible solutions: 
+  1. Make Q ('n, 't) item list
+  2. Since state = top of stack: instead of state q and stack q#qs do state q and stack qs
+      \<Longrightarrow> problems with empty stack? (IPDA accepts with final state)
+
+A definition with variant 2, using [S' \<rightarrow> [] . []] as a dummy starting stack symbol:
+*)
+definition IPDA :: "('n::fresh0, 't) Cfg \<Rightarrow> (('n, 't) item, 't, ('n, 't) item) pda" where
   "IPDA G \<equiv> let
     S = Start G;
     S' = fresh0 (Nts (Prods G));
@@ -87,15 +98,17 @@ shows "finite (It G)"
     Q = items_of_Prods P'; 
     \<Delta> = (\<lambda>q a s. case q of [X \<rightarrow> \<beta> . Tm a' # \<gamma>] \<Rightarrow> 
             if a' = a then let r = [X \<rightarrow> \<beta> @ [Tm a] . \<gamma>] in {(r, [r])} else undefined);
-    \<E> = (\<lambda>q s. case q of 
-      [X \<rightarrow> \<beta> . Nt Y # \<gamma>] \<Rightarrow> let r = [X \<rightarrow> \<beta> @ [Nt Y] . \<gamma>] in {(r, [Y \<rightarrow> [] . \<alpha>]#[r]) |\<alpha>. (Y,\<alpha>) \<in> P'})        
-      Problem when defining \<Delta>: IPDA uses \<Delta> :: 'q list \<Rightarrow> 'a \<Rightarrow> 'q list
-                              (defined as \<Delta>: Q\<^sup>+ \<times> V\<^sub>T \<Rightarrow> Q\<^sup>* in the book)                           
+    \<E> = (\<lambda>q s. case (q,s) of 
+      ([X \<rightarrow> \<beta> . Nt Y # \<gamma>], _) \<Rightarrow> {([Y \<rightarrow> [] . \<alpha>], [X \<rightarrow> \<beta>@[Nt Y] . \<gamma>]#[s]) |\<alpha>. (Y,\<alpha>) \<in> P'} |
+      ([Y \<rightarrow> \<alpha> . []], [X \<rightarrow> \<beta> . Nt Y' # \<gamma>]) 
+        \<Rightarrow> {if Y = Y' then ([X \<rightarrow> \<beta>@[Nt Y] . \<gamma>], []) else undefined})        
 in
-  \<lparr>pda.init_state = [S' \<rightarrow> [] . [Nt S]], pda.init_symbol = [S' \<rightarrow> [] . [Nt S]], 
-    pda.final_states = {[S' \<rightarrow> [Nt S] . []]}, pda.delta = \<Delta>, pda.delta_eps = \<E>\<rparr>"*)
+  \<lparr>pda.init_state = [S' \<rightarrow> [] . [Nt S]], pda.init_symbol = [S' \<rightarrow> [] . []], 
+    pda.final_states = {[S' \<rightarrow> [Nt S] . []]}, pda.delta = \<Delta>, pda.delta_eps = \<E>\<rparr>"
 
-(* Defining edge cases of \<Delta>: reject state? *)
+(* interpretation pda "IPDA G" - doesn't work, types must be finite (why?) *)
+
+(* Defining edge cases of \<Delta>: reject state? (also for IPDA) *)
 definition char_fa :: "('n::fresh0, 't) Cfg \<Rightarrow> (('n, 't) sym, ('n, 't) item) nfa" where
   "char_fa G \<equiv> let 
       S = Start G; 

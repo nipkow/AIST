@@ -179,5 +179,108 @@ sublocale canon_LR0: dfa "LR\<^sub>0 G"
 end
 
 
+(* Formalizing \<epsilon>-transition counting for induction; unable to use notation in locale finite_grammar *)
+context nfa 
+begin
+
+type_synonym ('b,'c) config = "'b \<times> 'c list"
+
+inductive step :: "('s,'a) config \<Rightarrow> ('s,'a) config \<Rightarrow> bool" (infix \<open>\<turnstile>\<close> 70) where
+nxt[intro]:  "q \<in> nxt M p a \<Longrightarrow> (p,a#u) \<turnstile> (q,u)" |
+eps[intro]:  "(p,q) \<in> eps M \<Longrightarrow> (p,w) \<turnstile> (q,w)"
+
+inductive_cases step_nxtE[elim]: "(q,a#u) \<turnstile> (r,u)"
+inductive_cases step_epsE[elim]: "(q,w) \<turnstile> (r,w)"
+
+lemma step_equal_or_cons:
+  assumes "(p,u) \<turnstile> (q,v)"
+  shows "u = v \<or> (\<exists>a. u = a#v)"
+  using assms by cases auto
+
+lemma step_len_dec:
+  assumes "(p,u) \<turnstile> (q,v)"
+  shows "length u \<ge> length v" 
+  using step_equal_or_cons[OF assms] by fastforce
+  
+
+abbreviation stepn  (\<open>_ \<turnstile>'(_') _\<close> 70) where
+  "c0 \<turnstile>(n) c1 \<equiv> (step ^^ n) c0 c1"
+
+abbreviation steps (infix \<open>\<turnstile>*\<close> 70) where
+  "steps \<equiv> (step \<^sup>*\<^sup>*)"
+
+lemma steps_len_dec:
+  "(p,u) \<turnstile>* (q,v) \<Longrightarrow> length u \<ge> length v" 
+  by ((induction "(p,u)" "(q,v)" arbitrary: q v rule: rtranclp.induct),
+  (use step_len_dec surj_pair le_trans in fastforce)+)
+
+
+inductive eps_stepn :: "('s,'a) config \<Rightarrow> nat \<Rightarrow> ('s,'a) config \<Rightarrow> bool" (\<open>_ \<turnstile>\<epsilon>'(_') _\<close> 70) where
+refl[intro]:  "(q,w) \<turnstile>\<epsilon>(0) (q,w)" |
+nxt[intro]:  "\<lbrakk>(p,u) \<turnstile>\<epsilon>(n) (q,a#v); (q,a#v) \<turnstile> (r,v)\<rbrakk> \<Longrightarrow> (p,u) \<turnstile>\<epsilon>(n) (r,v)" |
+eps[intro]:  "\<lbrakk>(p,u) \<turnstile>\<epsilon>(n) (q,v); (q,v) \<turnstile> (r,v)\<rbrakk> \<Longrightarrow> (p,u) \<turnstile>\<epsilon>(Suc n) (r,v)"
+
+
+
+inductive_cases eps_stepn_reflE[elim]: "c \<turnstile>\<epsilon>(0) c"
+inductive_cases eps_stepn_nxtE[elim]: "(q,a#u) \<turnstile>\<epsilon>(0) (r,u)"
+inductive_cases eps_stepn_epsE[elim]: "c0 \<turnstile>\<epsilon>(Suc n) c1"
+inductive_cases eps_stepn_eps2E[elim]: "(p,u) \<turnstile>\<epsilon>(Suc n) (q,v)"
+
+
+lemma step_is_eps_stepn:
+  assumes "c0 \<turnstile> c1"
+  shows "(c0 \<turnstile>\<epsilon>(0) c1) \<or> (c0 \<turnstile>\<epsilon>(Suc 0) c1)"
+  using assms by cases auto
+
+
+lemma steps_impl_eps_stepn[elim]:
+  assumes "c0 \<turnstile>* c1"
+  obtains n where "c0 \<turnstile>\<epsilon>(n) c1"
+  using assms proof (induction arbitrary: thesis)
+  case base
+  then show ?case using eps_stepn.refl surj_pair by metis
+next
+  case (step c1 c2)
+  then obtain n where "c0 \<turnstile>\<epsilon>(n) c1" by blast
+  from step(2) show ?case 
+    by cases
+      ((smt (verit, best) eps_stepn.simps step_is_eps_stepn step),
+     (metis step(2,3,4) nfa.eps_stepn.eps nfa_axioms old.prod.exhaust))
+qed
+
+lemma eps_stepn_impl_steps: "c0 \<turnstile>\<epsilon>(n) c1 \<Longrightarrow> c0 \<turnstile>* c1" 
+  by (induction rule: eps_stepn.induct) auto
+
+(* To be used in proof of Theorem 3.4.1 *)
+lemma last_eps_step:
+  assumes "(p,u) \<turnstile>\<epsilon>(Suc n) (s,w)"
+  obtains q r v where "(p, u) \<turnstile>\<epsilon>(n) (q,v)" "(q,v) \<turnstile> (r,v)" "(r,v) \<turnstile>\<epsilon>(0) (s,w)"
+  using assms proof (induction "length u - length w" arbitrary: s w rule: less_induct)
+  case less 
+  from less(3) show ?case 
+  proof cases
+    case (nxt q a)
+    with steps_len_dec eps_stepn_impl_steps have  "length u \<ge> length (a#w)" by blast
+    then have len_less: "length u - length (a#w) < length u - length w" by auto
+    then show ?thesis using less nxt by blast
+  qed (use less in blast)
+qed
+  
+
+
+end
+ 
+
+(*
+
+theorem rtranclp_induct [consumes 1, case_names base step, induct set: rtranclp]:
+  assumes a: "r\<^sup>*\<^sup>* a b"
+    and cases: "P a" "\<And>y z. r\<^sup>*\<^sup>* a y \<Longrightarrow> r y z \<Longrightarrow> P y \<Longrightarrow> P z"
+  shows "P b"
+  using a by (induct x\<equiv>a b) (rule cases)+
+*)
+
+
 
 end

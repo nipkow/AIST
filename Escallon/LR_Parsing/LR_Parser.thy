@@ -5,11 +5,11 @@ theory LR_Parser
     Finite_Automata_HF 
 begin
 
+section \<open>Context-Free Items\<close>
+
 datatype ('n, 't) item = Item 'n  "('n, 't) syms"  "('n, 't) syms"
 
 notation Item  ("[_ \<rightarrow> _ . _]" 100) 
-
-
 
 definition items_of_Prods :: "('n, 't) Prods \<Rightarrow> ('n, 't) item set" where
   "items_of_Prods P = {[A \<rightarrow> \<alpha> . \<beta>] | A \<alpha> \<beta>. (A, \<alpha>@\<beta>) \<in> P}"
@@ -17,7 +17,14 @@ definition items_of_Prods :: "('n, 't) Prods \<Rightarrow> ('n, 't) item set" wh
 definition It :: "('n, 't) Cfg \<Rightarrow> ('n, 't) item set" where
   "It G = items_of_Prods (Prods G)"
 
-(* make intro? *)
+(* Intro breaks proofs
+
+lemma ItI[intro]:
+  assumes "P (items_of_Prods (Prods G))"
+  shows "P (It G)"
+  using assms unfolding It_def by presburger
+
+*)
 declare It_def[simp]
 
 lemma prod_items_finite:
@@ -81,6 +88,8 @@ shows "finite (It G)"
   using assms items_of_Prods_finite by auto
 
 
+section \<open>Finite/Pushdown Automata\<close>
+
 (* Problem when defining \<Delta>: IPDA uses \<Delta> :: 'q list \<Rightarrow> 'a \<Rightarrow> 'q list
                               (defined as \<Delta>: Q\<^sup>+ \<times> V\<^sub>T \<Rightarrow> Q\<^sup>* in the book)
 Possible solutions: 
@@ -97,18 +106,22 @@ definition IPDA :: "('n::fresh0, 't) Cfg \<Rightarrow> (('n, 't) item, 't, ('n, 
     P' = Prods G \<union> {(S', [Nt S])};
     Q = items_of_Prods P'; 
     \<Delta> = (\<lambda>q a s. case q of [X \<rightarrow> \<beta> . Tm a' # \<gamma>] \<Rightarrow> 
-            if a' = a then let r = [X \<rightarrow> \<beta> @ [Tm a] . \<gamma>] in {(r, [r])} else undefined);
+            if a' = a then let r = [X \<rightarrow> \<beta> @ [Tm a] . \<gamma>] in {(r, [r])} else {});
     \<E> = (\<lambda>q s. case (q,s) of 
       ([X \<rightarrow> \<beta> . Nt Y # \<gamma>], _) \<Rightarrow> {([Y \<rightarrow> [] . \<alpha>], [X \<rightarrow> \<beta>@[Nt Y] . \<gamma>]#[s]) |\<alpha>. (Y,\<alpha>) \<in> P'} |
       ([Y \<rightarrow> \<alpha> . []], [X \<rightarrow> \<beta> . Nt Y' # \<gamma>]) 
-        \<Rightarrow> {if Y = Y' then ([X \<rightarrow> \<beta>@[Nt Y] . \<gamma>], []) else undefined})        
+        \<Rightarrow> if Y = Y' then {([X \<rightarrow> \<beta>@[Nt Y] . \<gamma>], [])} else {})        
 in
   \<lparr>pda.init_state = [S' \<rightarrow> [] . [Nt S]], pda.init_symbol = [S' \<rightarrow> [] . []], 
     pda.final_states = {[S' \<rightarrow> [Nt S] . []]}, pda.delta = \<Delta>, pda.delta_eps = \<E>\<rparr>"
 
-(* interpretation pda "IPDA G" - doesn't work, types must be finite (why?) *)
 
-(* Defining edge cases of \<Delta>: reject state? (also for IPDA) *)
+(* 
+  Defining edge cases of \<Delta>: reject state? (also for IPDA) 
+  Is [fresh0 (Nts P) \<rightarrow> [Nt S] . []] \<in> Q?
+    \<Longrightarrow> If so: extended grammar locale? (example below)
+
+*)
 definition char_fa :: "('n::fresh0, 't) Cfg \<Rightarrow> (('n, 't) sym, ('n, 't) item) nfa" where
   "char_fa G \<equiv> let 
       S = Start G; 
@@ -117,8 +130,8 @@ definition char_fa :: "('n::fresh0, 't) Cfg \<Rightarrow> (('n, 't) sym, ('n, 't
       S' = [fresh0 (Nts P) \<rightarrow> [] . [Nt S]]; 
       F = {[X \<rightarrow> \<alpha> . []] |X \<alpha>. [X \<rightarrow> \<alpha> . []] \<in> It G};
       \<Delta> = (\<lambda>s a. case s of 
-        [X \<rightarrow> \<alpha> . Y # \<beta>]  \<Rightarrow> {if a = Y \<and> ((X, \<alpha> @ (Y#\<beta>)) \<in> P) then [X \<rightarrow> \<alpha> @ [Y] . \<beta>] else s}| 
-         _ \<Rightarrow> {s}); 
+        [X \<rightarrow> \<alpha> . Y # \<beta>]  \<Rightarrow> if a = Y \<and> ((X, \<alpha> @ (Y#\<beta>)) \<in> P) then {[X \<rightarrow> \<alpha> @ [Y] . \<beta>]} else {}| 
+         _ \<Rightarrow> {}); 
       \<E> = {([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . \<gamma>]) | X \<alpha> Y \<beta> \<gamma>. (X, \<alpha> @ Nt Y # \<beta>) \<in> P \<and> (Y, \<gamma>) \<in> P} in
     \<lparr>nfa.states = Q \<union> {S'}, nfa.init = {S'}, nfa.final = F, nfa.nxt = \<Delta>, nfa.eps = \<E>\<rparr>"
 
@@ -136,8 +149,8 @@ lemma final_char_fa [simp]:
 
 lemma nxt_char_fa [simp]:
   "nfa.nxt (char_fa G) = (\<lambda>s a. case s of 
-        [X \<rightarrow> \<alpha> . Y # \<beta>]  \<Rightarrow> {if a = Y \<and> ((X, \<alpha> @ (Y#\<beta>)) \<in> Prods G) then [X \<rightarrow> \<alpha> @ [Y] . \<beta>] else s}| 
-        _ \<Rightarrow> {s})"
+        [X \<rightarrow> \<alpha> . Y # \<beta>]  \<Rightarrow> if a = Y \<and> ((X, \<alpha> @ (Y#\<beta>)) \<in> Prods G) then {[X \<rightarrow> \<alpha> @ [Y] . \<beta>]} else {}| 
+        _ \<Rightarrow> {})"
   unfolding char_fa_def by (meson nfa.select_convs(4))
 
 lemma eps_char_fa [simp]:
@@ -148,14 +161,23 @@ lemma eps_char_fa [simp]:
 definition LR\<^sub>0 :: "('n::fresh0, 't) Cfg \<Rightarrow> (('n, 't) sym, ('n, 't) item set) dfa" where
   "LR\<^sub>0 G \<equiv> nfa.Power_dfa (char_fa G)"
 
-(* Better alternative? *)
-locale finite_grammar =
+section \<open>Interpretations\<close>
+
+(* interpretation pda "IPDA G" - doesn't work, types must be finite (why?) *)
+
+
+(* Better alternative? Sublocale vs interpretation? *)
+locale Reduced_Finite =
   fixes G :: "('n::fresh0, 't) Cfg"
-  assumes finite: "finite (Prods G)"
+  assumes G_finite: "finite (Prods G)"
+      (* Simpler? *)
+      and G_reduced[simp]: "restrict_Nts (useful (Prods G) (Start G)) (Prods G) = Prods G"
 begin
 
+
+
 sublocale char_fa: nfa "char_fa G"
-proof (unfold_locales, goal_cases _ _ nxt_closed states_finite)
+proof (unfold_locales, goal_cases _ _ nxt_closed _)
   case (nxt_closed q x)
   then obtain X \<alpha> \<beta> where q_def: "q = [X \<rightarrow> \<alpha> . \<beta>]" by (metis item.exhaust)
   consider (empty) "\<beta> = []" | (eq) xs where "\<beta> = x # xs" | (neq) y ys where "\<beta> = y # ys" "y \<noteq> x"
@@ -167,9 +189,8 @@ proof (unfold_locales, goal_cases _ _ nxt_closed states_finite)
       using nxt_closed by fastforce
     then show ?thesis 
       using eq nxt_closed q_def by cases (auto simp: items_of_Prods_def)
-
   qed (use nxt_closed q_def in fastforce)+
-qed (use It_finite[OF finite] in auto)
+qed (use It_finite[OF G_finite] in auto)
 
 
 (* Using new lemma in Finite_Automata_HF (needed?) *)
@@ -178,6 +199,25 @@ sublocale canon_LR0: dfa "LR\<^sub>0 G"
 
 end
 
+section \<open>Extending CFGs\<close>
+
+(* Possibly *)
+locale Extended_Cfg = 
+    fixes G 
+      and G' :: "('n::fresh0, 't) Cfg"
+  assumes G_finite: "finite (Prods G)"
+      and G_reduced[simp]: "restrict_Nts (useful (Prods G) (Start G)) (Prods G) = Prods G"
+    defines "G' \<equiv> let S' = fresh0 (Nts (Prods G)) in
+              Cfg (Prods G \<union> {(S', [Nt (Start G)])}) S'"
+begin
+
+lemma Lang_preserved:
+  "LangS G' = LangS G"
+  sorry
+
+end
+
+section \<open>Configurations\<close>
 
 (* Formalizing \<epsilon>-transition counting for induction; unable to use notation in locale finite_grammar *)
 context nfa 
@@ -201,7 +241,6 @@ lemma step_len_dec:
   assumes "(p,u) \<turnstile> (q,v)"
   shows "length u \<ge> length v" 
   using step_equal_or_cons[OF assms] by fastforce
-  
 
 abbreviation stepn  (\<open>_ \<turnstile>'(_') _\<close> 70) where
   "c0 \<turnstile>(n) c1 \<equiv> (step ^^ n) c0 c1"
@@ -214,6 +253,7 @@ lemma steps_len_dec:
   by ((induction "(p,u)" "(q,v)" arbitrary: q v rule: rtranclp.induct),
   (use step_len_dec surj_pair le_trans in fastforce)+)
 
+section \<open>\<epsilon>-Transitions\<close>
 
 inductive eps_stepn :: "('s,'a) config \<Rightarrow> nat \<Rightarrow> ('s,'a) config \<Rightarrow> bool" (\<open>_ \<turnstile>\<epsilon>'(_') _\<close> 70) where
 refl[intro]:  "(q,w) \<turnstile>\<epsilon>(0) (q,w)" |
@@ -225,7 +265,6 @@ eps[intro]:  "\<lbrakk>(p,u) \<turnstile>\<epsilon>(n) (q,v); (q,v) \<turnstile>
 inductive_cases eps_stepn_reflE[elim]: "c \<turnstile>\<epsilon>(0) c"
 inductive_cases eps_stepn_nxtE[elim]: "(q,a#u) \<turnstile>\<epsilon>(0) (r,u)"
 inductive_cases eps_stepn_epsE[elim]: "c0 \<turnstile>\<epsilon>(Suc n) c1"
-inductive_cases eps_stepn_eps2E[elim]: "(p,u) \<turnstile>\<epsilon>(Suc n) (q,v)"
 
 
 lemma step_is_eps_stepn:
@@ -234,7 +273,7 @@ lemma step_is_eps_stepn:
   using assms by cases auto
 
 
-lemma steps_impl_eps_stepn[elim]:
+lemma steps_impl_eps_stepn:
   assumes "c0 \<turnstile>* c1"
   obtains n where "c0 \<turnstile>\<epsilon>(n) c1"
   using assms proof (induction arbitrary: thesis)
@@ -262,25 +301,86 @@ lemma last_eps_step:
   proof cases
     case (nxt q a)
     with steps_len_dec eps_stepn_impl_steps have  "length u \<ge> length (a#w)" by blast
-    then have len_less: "length u - length (a#w) < length u - length w" by auto
+    then have "length u - length (a#w) < length u - length w" by auto
     then show ?thesis using less nxt by blast
   qed (use less in blast)
 qed
   
 
+end
+
+section \<open>Proving 3.4.1\<close>
+
+context Reduced_Finite
+begin
+
+notation char_fa.step (infix \<open>\<turnstile>c\<close> 70)
+notation char_fa.steps (infix \<open>\<turnstile>c*\<close> 70)
+notation char_fa.eps_stepn (\<open>_ \<turnstile>\<epsilon>'(_') _\<close> 70)
+
+lemma char_init_step_is_eps:
+  defines "S' \<equiv> fresh0 (Nts (Prods G))"
+      and "S \<equiv> Start G"
+  assumes "([S' \<rightarrow> [] . [Nt S]], \<gamma>) \<turnstile>c ([A \<rightarrow> \<alpha> . \<beta>], \<gamma>')" (is "(?S,_) \<turnstile>c _")
+  shows "A = S \<and> \<gamma> = \<gamma>'"
+  using assms(3) proof cases
+  case (nxt a)
+  from assms(1) have "(S', [Nt S]) \<notin> Prods G" 
+    by (metis Nts_Lhss_Rhs_Nts Un_iff finite_Nts fresh0_notIn in_LhssI local.G_finite)
+  hence "nfa.nxt (char_fa G) ?S a = {}" by simp
+  then show ?thesis using nxt by blast
+qed simp
+
+
+lemma char_init_noeps_eq:
+  defines "S' \<equiv> fresh0 (Nts (Prods G))"
+      and "S \<equiv> Start G"
+  assumes "([S' \<rightarrow> [] . [Nt S]], \<gamma>) \<turnstile>\<epsilon>(0) ([A \<rightarrow> \<alpha> . \<beta>], \<gamma>')"
+  shows "\<gamma> = \<gamma>' \<and> [S' \<rightarrow> [] . [Nt S]] = [A \<rightarrow> \<alpha> . \<beta>]"
+  using assms(3) proof cases
+  case (nxt q a)
+  moreover obtain u :: "('n,'t) syms" where u_def: "u = a # \<gamma>'"  by blast
+  ultimately have "([S' \<rightarrow> [] . [Nt S]], \<gamma>) \<turnstile>\<epsilon>(0) (q,u)" "(q,u) \<turnstile>c ([A \<rightarrow> \<alpha> . \<beta>], \<gamma>')" by simp+
+  with u_def show ?thesis
+  proof (induction "length \<gamma> - length u" arbitrary: q u a \<gamma>' A \<alpha> \<beta> rule: less_induct)
+    case less
+    from less(3) show ?case 
+    proof cases
+      case refl
+      then show ?thesis using char_init_step_is_eps less(2)
+        using S'_def S_def less.prems(3) by blast
+    next
+      case (nxt p a)
+      from char_fa.eps_stepn_impl_steps[OF nxt(1)] char_fa.steps_len_dec have "length (a#u) \<le> length \<gamma>"
+        by presburger
+      hence "length \<gamma> - length (a#u) < length \<gamma> - length u" by simp
+      then show ?thesis 
+        by (metis \<open>length (a # u) \<le> length \<gamma>\<close> impossible_Cons item.exhaust less.hyps nxt(1,2))
+    qed
+  qed
+qed presburger
+
+lemma comp_impl_deriver:
+  defines "S' \<equiv> fresh0 (Nts (Prods G))"
+      and "S \<equiv> Start G"
+      and "P \<equiv> Prods G \<union> {(fresh0 (Nts (Prods G)),[Nt (Start G)])}"
+    assumes "([S' \<rightarrow> [] . [Nt S]], \<gamma>) \<turnstile>c* ([A \<rightarrow> \<alpha> . \<beta>], [])"
+    shows "\<exists>w \<gamma>'. P \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma>'@Nt A#w \<and> P \<turnstile> \<gamma>'@Nt A#w \<Rightarrow>r \<gamma>'@\<alpha>@\<beta>@w \<and> \<gamma> = \<gamma>'@\<alpha>"
+proof -
+  from assms obtain n where "([S' \<rightarrow> [] . [Nt S]], \<gamma>) \<turnstile>\<epsilon>(n) ([A \<rightarrow> \<alpha> . \<beta>], [])"
+    using char_fa.steps_impl_eps_stepn by blast
+  then show ?thesis
+  proof (induction n)
+    case 0
+    then show ?case using char_init_noeps_eq assms 
+      by (metis Un_iff append.right_neutral append_Nil deriver_singleton derivers_snoc_Nt insertCI 
+          item.inject)
+  next
+    case (Suc n)
+    then show ?case sorry
+  qed
+qed
 
 end
- 
-
-(*
-
-theorem rtranclp_induct [consumes 1, case_names base step, induct set: rtranclp]:
-  assumes a: "r\<^sup>*\<^sup>* a b"
-    and cases: "P a" "\<And>y z. r\<^sup>*\<^sup>* a y \<Longrightarrow> r y z \<Longrightarrow> P y \<Longrightarrow> P z"
-  shows "P b"
-  using a by (induct x\<equiv>a b) (rule cases)+
-*)
-
-
 
 end

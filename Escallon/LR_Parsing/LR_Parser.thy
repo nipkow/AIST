@@ -158,6 +158,8 @@ definition LR\<^sub>0 :: "('n::fresh0, 't) Cfg \<Rightarrow> (('n, 't) sym, ('n,
 
 section \<open>Interpretations\<close>
 
+
+(* TODO mv *)
 lemma reduced_impl_restrict_useful_id: 
   assumes "\<forall>A \<in> Nts (Prods G). useful (Prods G) (Start G) A" 
   shows  "restrict_Nts (useful (Prods G) (Start G)) (Prods G) = Prods G" (is "?R = ?P")
@@ -167,7 +169,6 @@ proof
   show "?P \<subseteq> ?R"
     unfolding restrict_Nts_def using assms Nts_def by fast
 qed
-
 
 lemma restrict_useful_id_impl_reduced:
   assumes "restrict_Nts (useful (Prods G) (Start G)) (Prods G) = Prods G" 

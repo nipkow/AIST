@@ -793,8 +793,11 @@ next
     by (force simp: finite)
 qed
 
+
 (* Axiom is inaccessible outside of the local context, this lemma makes it visible *)
-lemma Power_dfa_is_dfa: "dfa (Power_dfa)" ..
+
+corollary dfa_Power: "dfa Power_dfa"
+  by unfold_locales
 
 text\<open>The Power DFA accepts the same language as the NFA.\<close>
 theorem Power_language [simp]: "Power.language = language"

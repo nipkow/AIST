@@ -116,12 +116,7 @@ in
     pda.final_states = {[S' \<rightarrow> [Nt S] . []]}, pda.delta = \<Delta>, pda.delta_eps = \<E>\<rparr>"
 
 
-(* 
-  Defining edge cases of \<Delta>: reject state? (also for IPDA) 
-  Is [fresh0 (Nts P) \<rightarrow> [Nt S] . []] \<in> Q?
-    \<Longrightarrow> If so: extended grammar locale? (example below)
 
-*)
 definition char_fa :: "('n::fresh0, 't) Cfg \<Rightarrow> (('n, 't) sym, ('n, 't) item) nfa" where
   "char_fa G \<equiv> let 
       S = Start G; 
@@ -163,15 +158,30 @@ definition LR\<^sub>0 :: "('n::fresh0, 't) Cfg \<Rightarrow> (('n, 't) sym, ('n,
 
 section \<open>Interpretations\<close>
 
-(* interpretation pda "IPDA G" - doesn't work, types must be finite (why?) *)
+lemma reduced_impl_restrict_useful_id: 
+  assumes "\<forall>A \<in> Nts (Prods G). useful (Prods G) (Start G) A" 
+  shows  "restrict_Nts (useful (Prods G) (Start G)) (Prods G) = Prods G" (is "?R = ?P")
+proof 
+  show "?R \<subseteq> ?P"
+    by (metis restrict_Nts_subset)
+  show "?P \<subseteq> ?R"
+    unfolding restrict_Nts_def using assms Nts_def by fast
+qed
+
+
+lemma restrict_useful_id_impl_reduced:
+  assumes "restrict_Nts (useful (Prods G) (Start G)) (Prods G) = Prods G" 
+  shows "\<forall>A \<in> Nts (Prods G). useful (Prods G) (Start G) A"
+  using assms unfolding restrict_Nts_def 
+  by (metis (no_types, lifting) Nts_def Product_Type.Collect_case_prodD UN_E fst_conv mem_case_prodE
+      prod.sel(2))
 
 
 (* Better alternative? Sublocale vs interpretation? *)
 locale Reduced_Finite =
   fixes G :: "('n::fresh0, 't) Cfg"
   assumes G_finite: "finite (Prods G)"
-      (* Simpler? *)
-      and G_reduced[simp]: "restrict_Nts (useful (Prods G) (Start G)) (Prods G) = Prods G"
+      and G_reduced[simp]: "\<forall>A \<in> Nts (Prods G). useful (Prods G) (Start G) A"
 begin
 
 
@@ -193,15 +203,14 @@ proof (unfold_locales, goal_cases _ _ nxt_closed _)
 qed (use It_finite[OF G_finite] in auto)
 
 
-(* Using new lemma in Finite_Automata_HF (needed?) *)
 sublocale canon_LR0: dfa "LR\<^sub>0 G" 
-  unfolding LR\<^sub>0_def by (rule char_fa.Power_dfa_is_dfa)
+  unfolding LR\<^sub>0_def by (rule char_fa.dfa_Power)
 
 end
 
+
 section \<open>Extending CFGs\<close>
 
-(* Possibly *)
 locale Extended_Cfg = 
     fixes G 
       and G' :: "('n::fresh0, 't) Cfg"
@@ -219,7 +228,6 @@ end
 
 section \<open>Configurations\<close>
 
-(* Formalizing \<epsilon>-transition counting for induction; unable to use notation in locale finite_grammar *)
 context nfa 
 begin
 

@@ -1,3 +1,10 @@
+@book{AhoU72,
+author = {Aho, Alfred V. and Ullman, Jeffrey D.},
+title = {The theory of parsing, translation, and compiling},
+year = {1972},
+publisher = {Prentice-Hall, Inc.},
+}
+
 @inproceedings{BarthwalN09,
   author       = {Aditi Barthwal and Michael Norrish},
   editor       = {Giuseppe Castagna},
@@ -19,13 +26,19 @@
   year = 2010
 }
 
-@article{Earley,
+@article{Earley-CACM,
 author = {Earley, Jay},
 title = {An Efficient Context-Free Parsing Algorithm},
 year = {1970},volume = {13},number = {2},
 doi = {10.1145/362007.362035},
 journal = {Commun. ACM},
 pages = {94-102},
+}
+
+@phdthesis{Earley-PhD,
+author = {Earley, Jay},
+title = {An Efficient Context-Free Parsing Algorithm},
+year = {1968},school = {Carnegie-Mellon University, Computer Science Department},
 }
 
 @inproceedings{HaftmannN10,
@@ -53,6 +66,53 @@ pages = {94-102},
   year         = {1979},
 }
 
+@inproceedings{Jones,
+  author       = {Cliff B. Jones},
+  title        = {Formal development of correct algorithms: An example based on {Earley}'s
+                  recogniser},
+  booktitle    = {Proceedings of {ACM} Conference on Proving Assertions About Programs},
+  pages        = {150-169},
+  publisher    = {ACM},
+  year         = {1972},
+  url          = {https://doi.org/10.1145/800235.807083},
+  doi          = {10.1145/800235.807083},
+}
+
+@techreport{Jones:tr,
+  author      = "C.B. Jones",
+  title       = "Formal development of correct algorithms: An example based on {Earley}'s
+                  recogniser",
+  institution = "IBM United Kingdom Laboratories",
+  year        = "1971",
+  number      = "T.R.12.095",
+  address     = "Hursley Park",
+  month       = dec,
+  url        = "http://homepages.cs.ncl.ac.uk/cliff.jones/publications/Other-TRs/TR12.095.pdf",
+}
+
+@article{Collections-AFP,
+  author  = {Peter Lammich},
+  title   = {Collections Framework},
+  journal = {Archive of Formal Proofs},
+  month   = nov,
+  year    = 2009,
+  note    = {\url{https://isa-afp.org/entries/Collections.html},
+            Formal proof development},
+}
+
+@inproceedings{LammichL10,
+  author    = {Peter Lammich and Andreas Lochbihler},
+  editor    = {Matt Kaufmann and Lawrence C. Paulson},
+  title     = {The {Isabelle} Collections Framework},
+  booktitle = {Interactive Theorem Proving, First International Conference, {ITP} 2010},
+  series    = LNCS,
+  volume    = {6172},
+  pages     = {339--354},
+  publisher = {Springer},
+  year      = {2010},
+  url       = {https://doi.org/10.1007/978-3-642-14052-5\_24},
+}
+
 @inproceedings{JourdanPL12,
   author       = {Jacques{-}Henri Jourdan and
                   Fran{\c{c}}ois Pottier and
@@ -68,12 +128,6 @@ pages = {94-102},
   year         = {2012},
   url          = {https://doi.org/10.1007/978-3-642-28869-2\_20},
 }
-
-@inproceedings{Nipkow-ITP11,author={Tobias Nipkow},
-title={Verified Efficient Enumeration of Plane Graphs Modulo Isomorphism},
-booktitle={Interactive Theorem Proving (ITP 2011)},
-editor={Van Eekelen and Geuvers and Schmaltz and Wiedijk},
-publisher={Springer},series={Lecture Notes in Computer Science},volume=6898,pages={281-296},year=2011}
 
 @incollection{NipkowR-CBJ24,
 author={Tobias Nipkow and Martin Rau},
@@ -93,21 +147,22 @@ year=2024,note={\url{https://link.springer.com/chapter/10.1007/978-3-031-66673-5
              Formal proof development},
 }
 
-@inproceedings{Nipkow11,
+@inproceedings{Nipkow-ITP11,
   author       = {Tobias Nipkow},
   editor       = {Marko C. J. D. van Eekelen and
                   Herman Geuvers and
                   Julien Schmaltz and
                   Freek Wiedijk},
   title        = {Verified Efficient Enumeration of Plane Graphs Modulo Isomorphism},
-  booktitle    = {Interactive Theorem Proving - Second International Conference, {ITP} 2011},
+  booktitle    = {Interactive Theorem Proving, {ITP} 2011},
   series       = {Lecture Notes in Computer Science},
   volume       = {6898},
   pages        = {281--296},
   publisher    = {Springer},
   year         = {2011},
-  url          = {https://doi.org/10.1007/978-3-642-22863-6\_21},
+  note          = {\url{https://doi.org/10.1007/978-3-642-22863-6\_21}},
 }
+
 @book{Nipkow-ACMbook,
 editor = {Nipkow, Tobias},
 title = {Functional Data Structures and Algorithms: A Proof Assistant Approach},
@@ -122,7 +177,7 @@ note={\url{https://fdsa-book.net}}
 @inproceedings{RauN24,
   author       = {Martin Rau and Tobias Nipkow},
   editor       = {Yves Bertot and Temur Kutsia and Michael Norrish},
-  title        = {A Verified Earley Parser},
+  title        = {A Verified {Earley} Parser},
   booktitle    = {15th International Conference on Interactive Theorem Proving, {ITP} 2024},
   series       = {LIPIcs},
   volume       = {309},
@@ -132,10 +187,18 @@ note={\url{https://fdsa-book.net}}
   url          = {https://doi.org/10.4230/LIPIcs.ITP.2024.31},
 }
 
-@book{hfl/1997-1,
-  editor       = {Grzegorz Rozenberg and Arto Salomaa},
-  title        = {Handbook of Formal Languages, Volume 1: Word, Language, Grammar},
-  publisher    = {Springer},
-  year         = {1997},
-  url          = {https://doi.org/10.1007/978-3-642-59136-5},
+@article{Scott-ENTCS08,
+title = "{SPPF}-Style Parsing From {Earley} Recognisers",
+author = "Elizabeth Scott",
+year = "2008",month = apr,
+journal = "Electronic Notes in Theoretical Computer Science",
+volume = "203", number = "2", pages = "53--67",
+doi = "10.1016/j.entcs.2008.03.044",
+}
+
+@book{Tomita,
+author = {Tomita, Masaru},
+title = {Efficient Parsing for Natural Language: A Fast Algorithm for Practical Systems},
+year = {1985},
+publisher = {Kluwer Academic Publishers},
 }

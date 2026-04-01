@@ -52,6 +52,8 @@
 \newlength{\funheadersep}
 \setlength{\funheadersep}{\smallskipamount}
 
+\newcommand{\hide}[1]{}
+
 %%% End of Isabelle specifics
 
 % no right margin in quote:
@@ -71,7 +73,7 @@
 \hyphenation{Isa-belle}
 
 \begin{document}
-\title{Earley's Parser: Implementation and Complexity Analysis in Isabelle/HOL}
+\title{Earley's Recognizer: Implementation and Complexity Analysis in Isabelle/HOL\thanks{Dedicated to Lawrence C. Paulson on the occasion of his 70th birthday}}
 %\titlerunning{Abbreviated paper title}
 % If the paper title is too long for the running head, you can set
 % an abbreviated paper title here
@@ -89,9 +91,46 @@ Alexander Haberl\inst{2}}
 \maketitle
 
 \begin{abstract}
-This is the second installment in the development of an excutable
-Earley parser with verified running time bounds.
+The starting point of this paper is a recent formal verification by Nipkow and Rau
+of an abstract inductive but not directly executable (i.e.\ recursive) version of Earley's recognizer.
+The aim of that work was a particularly simple, abstract formalization and stepwise refinement
+towards executability. We continue this work and refine it to an executable
+implementation together with a proof of the running time: cubic if the $n$-th element of
+a list can be accessed in constant time, and quartic if access takes linear time.
+We present the running time analysis with the help of a simple Big $O$ formalization. 
 \end{abstract}
+
+\section{Introduction}
+
+Earley's recognizer \cite{Earley-PhD,Earley-CACM} is a famous algorithm for deciding the word problem
+for all context-free grammars. It runs in cubic time in general and in quadratic time for unambiguous grammars.
+A parser would return one or more parse trees as well.
+In this paper we restrict attention to the recognizer.
+Earley's recognizer or parser are frequently covered in the literature (e.g.\ \cite{AhoU72})
+and are the basis of many further refinements (e.g.\ \cite{Scott-ENTCS08}).
+This paper focuses on Earley's original version.
+
+The first rigourous mathematical proof of Earley's algorithm is due to Jones \cite{Jones,Jones:tr}.
+This was the starting point of the work by Nipkow and Rau \cite{NipkowR-CBJ24}, our starting point now.
+We continues that work as follows.
+First we refine the recognizer from sets to lists, then from inductive to recursive, and finally
+we augment the lists wih a more efficient array-like data structure.
+Then we present a complexity analysis that proves the well-known cubic bound
+if we can access the $n$-th element of a list in constant time.
+If that access takes linear time, we obtain a quartic bound.
+Like our predecessors, we assume that the grammar is $\epsilon$-free.
+
+Earley's algorithm supports parsing as well, but the extension is non-trivial,
+at least for non-ambiguous grammars, and Earley's original algorithm could return spurious
+parse trees \cite{Tomita}.
+Scott \cite[Section 1]{Scott-ENTCS08} gives a short history of the generalizations
+of Earley's recognizer to a parser. Part of the difficulty is how to store multiple
+parse trees efficiently.
+Rau and Nipkow \cite{RauN24} have verified an Earley parser based on the work of Scott.
+Their work is more monolithic and aimed less at simple refinement proofs than the strand followed by us.
+Their parser correctness theorems consider only a single parse tree.
+
+This paper is largely based on the forthcoming master's thesis by the second author.
 
 %\begin{table}
 %\caption{Table captions should be placed above the tables.}\label{tab1}
@@ -108,21 +147,5 @@ Earley parser with verified running time bounds.
 %\end{proof}
 
 \input{Paper}
-
-\begin{credits}
-%\subsubsection{\ackname}
-%We thank 
-%\vspace{-1ex}
-\subsubsection{\discintname}
-%It is now necessary to declare any competing interests or to specifically
-%state that the authors have no competing interests. Please place the
-%statement with a bold run-in heading in small font size beneath the
-%(optional) acknowledgments
-%for example:
-The authors have no competing interests to declare that are relevant to the content of this article.
-\end{credits}
-
-\bibliographystyle{splncs04}
-\bibliography{root}
 
 \end{document}

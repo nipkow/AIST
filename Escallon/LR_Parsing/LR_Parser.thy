@@ -99,64 +99,6 @@ Possible solutions:
 
 A definition with variant 2, using [S' \<rightarrow> [] . []] as a dummy starting stack symbol:
 *)
-definition IPDA :: "('n::fresh0, 't) Cfg \<Rightarrow> (('n, 't) item, 't, ('n, 't) item) pda" where
-  "IPDA G \<equiv> let
-    S = Start G;
-    S' = fresh0 (Nts (Prods G));
-    P' = Prods G \<union> {(S', [Nt S])};
-    Q = items_of_Prods P'; 
-    \<Delta> = (\<lambda>q a s. case q of [X \<rightarrow> \<beta> . Tm a' # \<gamma>] \<Rightarrow> 
-            if a' = a then let r = [X \<rightarrow> \<beta> @ [Tm a] . \<gamma>] in {(r, [r])} else {});
-    \<E> = (\<lambda>q s. case (q,s) of 
-      ([X \<rightarrow> \<beta> . Nt Y # \<gamma>], _) \<Rightarrow> {([Y \<rightarrow> [] . \<alpha>], [X \<rightarrow> \<beta>@[Nt Y] . \<gamma>]#[s]) |\<alpha>. (Y,\<alpha>) \<in> P'} |
-      ([Y \<rightarrow> \<alpha> . []], [X \<rightarrow> \<beta> . Nt Y' # \<gamma>]) 
-        \<Rightarrow> if Y = Y' then {([X \<rightarrow> \<beta>@[Nt Y] . \<gamma>], [])} else {})        
-in
-  \<lparr>pda.init_state = [S' \<rightarrow> [] . [Nt S]], pda.init_symbol = [S' \<rightarrow> [] . []], 
-    pda.final_states = {[S' \<rightarrow> [Nt S] . []]}, pda.delta = \<Delta>, pda.delta_eps = \<E>\<rparr>"
-
-
-
-definition char_fa :: "('n::fresh0, 't) Cfg \<Rightarrow> (('n, 't) sym, ('n, 't) item) nfa" where
-  "char_fa G \<equiv> let 
-      S = Start G; 
-      P = Prods G;
-      Q = It G;
-      S' = [fresh0 (Nts P) \<rightarrow> [] . [Nt S]]; 
-      F = {[X \<rightarrow> \<alpha> . []] |X \<alpha>. [X \<rightarrow> \<alpha> . []] \<in> It G};
-      \<Delta> = (\<lambda>s a. case s of 
-        [X \<rightarrow> \<alpha> . Y # \<beta>]  \<Rightarrow> if a = Y \<and> ((X, \<alpha> @ (Y#\<beta>)) \<in> P) then {[X \<rightarrow> \<alpha> @ [Y] . \<beta>]} else {}| 
-         _ \<Rightarrow> {}); 
-      \<E> = {([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . \<gamma>]) | X \<alpha> Y \<beta> \<gamma>. (X, \<alpha> @ Nt Y # \<beta>) \<in> P \<and> (Y, \<gamma>) \<in> P} in
-    \<lparr>nfa.states = Q \<union> {S'}, nfa.init = {S'}, nfa.final = F, nfa.nxt = \<Delta>, nfa.eps = \<E>\<rparr>"
-
-lemma states_char_fa [simp]: 
-  "nfa.states (char_fa G) = It G \<union> {[fresh0 (Nts (Prods G)) \<rightarrow> [] . [Nt (Start G)]]}"
-  unfolding char_fa_def by (meson nfa.select_convs(1))
-
-lemma init_char_fa [simp]:
-  "nfa.init (char_fa G) = {[fresh0 (Nts (Prods G)) \<rightarrow> [] . [Nt (Start G)]]}"
-  unfolding char_fa_def by (meson nfa.select_convs(2))
-
-lemma final_char_fa [simp]:
-  "nfa.final (char_fa G) = {[X \<rightarrow> \<alpha> . []] |X \<alpha>. [X \<rightarrow> \<alpha> . []] \<in> It G}"
-  unfolding char_fa_def by (meson nfa.select_convs(3))
-
-lemma nxt_char_fa [simp]:
-  "nfa.nxt (char_fa G) = (\<lambda>s a. case s of 
-        [X \<rightarrow> \<alpha> . Y # \<beta>]  \<Rightarrow> if a = Y \<and> ((X, \<alpha> @ (Y#\<beta>)) \<in> Prods G) then {[X \<rightarrow> \<alpha> @ [Y] . \<beta>]} else {}| 
-        _ \<Rightarrow> {})"
-  unfolding char_fa_def by (meson nfa.select_convs(4))
-
-lemma eps_char_fa [simp]:
-  "nfa.eps (char_fa G) 
-    = {([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . \<gamma>]) | X \<alpha> Y \<beta> \<gamma>. (X, \<alpha> @ Nt Y # \<beta>) \<in> Prods G \<and> (Y, \<gamma>) \<in> Prods G}"
-  unfolding char_fa_def by (meson nfa.select_convs(5))
-
-definition LR\<^sub>0 :: "('n::fresh0, 't) Cfg \<Rightarrow> (('n, 't) sym, ('n, 't) item set) dfa" where
-  "LR\<^sub>0 G \<equiv> nfa.Power_dfa (char_fa G)"
-
-section \<open>Interpretations\<close>
 
 
 (* TODO mv *)
@@ -178,17 +120,162 @@ lemma restrict_useful_id_impl_reduced:
       prod.sel(2))
 
 
-(* Better alternative? Sublocale vs interpretation? *)
-locale Reduced_Finite =
-  fixes G :: "('n::fresh0, 't) Cfg"
+locale Extended_Cfg = 
+    fixes G G' :: "('n::fresh0, 't) Cfg"
+      and S S' :: 'n
   assumes G_finite: "finite (Prods G)"
       and G_reduced[simp]: "\<forall>A \<in> Nts (Prods G). useful (Prods G) (Start G) A"
+  defines "S \<equiv> Start G"
+      and "S' \<equiv> fresh0 (Nts (Prods G) \<union> {S})"
+      and "G' \<equiv> Cfg (Prods G \<union> {(S', [Nt S])}) S'"
 begin
 
+lemma G'_finite:
+  "finite (Prods G')"
+  using G_finite G'_def by simp
+
+lemmas S_defs[simp] = S_def S'_def
+
+lemma S_neq_S'[simp]:
+  "S \<noteq> S'" 
+  by (metis G_finite ID.set_finite S'_def Un_iff finite_Nts finite_Un fresh0_notIn singletonI)
+
+lemma G_Prods_subset_G':
+  "Prods G \<subseteq> Prods G'"
+  using G'_def by auto
+
+lemma G_derives_impl_G'_derives:
+  assumes "Prods G \<turnstile> \<alpha> \<Rightarrow>* w"
+  shows "Prods G' \<turnstile> \<alpha> \<Rightarrow>* w"
+  using assms G_Prods_subset_G' by (simp add: derives_mono)
+
+lemma S'_derives_S:
+  assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow> \<alpha>"
+  shows "\<alpha> = [Nt S]"
+proof -
+  from assms have in_P': "(S', \<alpha>) \<in> Prods G'" 
+    by (simp add: derive_singleton)
+  show ?thesis
+  proof -
+    have "(S', \<alpha>) = (S', [Nt S])"
+    proof (rule ccontr)
+      assume "(S', \<alpha>) \<noteq> (S', [Nt S])"
+      with in_P' have "(S', \<alpha>) \<in> Prods G" unfolding G'_def by auto
+      with S'_def show False 
+        by (metis G_finite ID.set_finite Nts_Lhss_Rhs_Nts finite_Nts fresh0_notIn in_LhssI 
+            infinite_Un rev_contra_hsubsetD sup_ge1)
+    qed
+    thus ?thesis by simp
+  qed
+qed
+
+lemma G'_derive_impl_G_derive_if_no_S':
+  "\<lbrakk>Prods G' \<turnstile> \<alpha> \<Rightarrow> \<gamma>; Nt S' \<notin> set \<alpha>\<rbrakk> \<Longrightarrow> Prods G \<turnstile> \<alpha> \<Rightarrow> \<gamma>"
+  using G'_def by (simp add: derive_iff in_set_conv_decomp)
+
+lemma G'_derives_impl_G_derives_if_no_S':
+  "\<lbrakk>Prods G' \<turnstile> \<alpha> \<Rightarrow>* \<gamma>; Nt S' \<notin> set \<alpha>\<rbrakk> \<Longrightarrow> Prods G \<turnstile> \<alpha> \<Rightarrow>* \<gamma>"
+proof (induction rule: rtranclp_induct)
+  case (step \<beta> \<gamma>)
+  note G_derives_\<beta> = step(3)[OF step(4)]
+  have "Nt S' \<notin> set \<beta>" 
+  proof -
+    have "S' \<notin> (Nts (Prods G))" 
+      by (metis G_finite S'_def Un_iff finite.emptyI finite_Nts finite_Un finite_insert
+          fresh0_notIn)
+    with G_derives_\<beta> show ?thesis 
+      using derives_set_subset in_Nts_iff_in_Syms step.prems by fastforce
+  qed
+  from step(3)[OF step(4)] G'_derive_impl_G_derive_if_no_S'[OF step(2) this] show ?case
+    by simp
+qed simp
+
+lemma Lang_preserved:
+  "LangS G' = LangS G"
+proof
+  show "LangS G' \<subseteq> LangS G"
+  proof
+    fix w
+    assume "w \<in> LangS G'"
+    hence "Prods G' \<turnstile> [Nt S'] \<Rightarrow>* map Tm w" unfolding Lang_def G'_def by simp
+    then obtain \<alpha> where "Prods G' \<turnstile> [Nt S'] \<Rightarrow> \<alpha>" "Prods G' \<turnstile> \<alpha> \<Rightarrow>* map Tm w" 
+      by (meson derive_singleton derives_Nt_map_TmD)
+    from S'_derives_S[OF this(1)] this(2) show "w \<in> LangS G" 
+      using G'_derives_impl_G_derives_if_no_S' S_neq_S' unfolding Lang_def by simp
+  qed
+next
+  show "LangS G \<subseteq> LangS G'"
+  proof
+    fix w
+    assume "w \<in> LangS G"
+    hence "Prods G \<turnstile> [Nt S] \<Rightarrow>* map Tm w" unfolding Lang_def by simp
+    with G_derives_impl_G'_derives have "Prods G' \<turnstile> [Nt S] \<Rightarrow>* map Tm w"
+      by simp
+    moreover have "Prods G' \<turnstile> [Nt S'] \<Rightarrow> [Nt S]" unfolding G'_def 
+      by (simp add: derive_singleton)
+    ultimately show "w \<in> LangS G'" 
+      by (simp add: G'_def Lang_def)
+  qed
+qed
 
 
-sublocale char_fa: nfa "char_fa G"
-proof (unfold_locales, goal_cases _ _ nxt_closed _)
+definition IPDA :: "(('n, 't) item, 't, ('n, 't) item) pda" where
+  "IPDA \<equiv> let
+    P = Prods G';
+    Q = It G'; 
+    \<Delta> = (\<lambda>q a s. case q of [X \<rightarrow> \<beta> . Tm a' # \<gamma>] \<Rightarrow> 
+            if a' = a then let r = [X \<rightarrow> \<beta> @ [Tm a] . \<gamma>] in {(r, [r])} else {});
+    \<E> = (\<lambda>q s. case (q,s) of 
+      ([X \<rightarrow> \<beta> . Nt Y # \<gamma>], _) \<Rightarrow> {([Y \<rightarrow> [] . \<alpha>], [X \<rightarrow> \<beta>@[Nt Y] . \<gamma>]#[s]) |\<alpha>. (Y,\<alpha>) \<in> P} |
+      ([Y \<rightarrow> \<alpha> . []], [X \<rightarrow> \<beta> . Nt Y' # \<gamma>]) 
+        \<Rightarrow> if Y = Y' then {([X \<rightarrow> \<beta>@[Nt Y] . \<gamma>], [])} else {})        
+in
+  \<lparr>pda.init_state = [S' \<rightarrow> [] . [Nt S]], pda.init_symbol = [S' \<rightarrow> [] . []], 
+    pda.final_states = {[S' \<rightarrow> [Nt S] . []]}, pda.delta = \<Delta>, pda.delta_eps = \<E>\<rparr>"
+
+
+definition char_fa :: "(('n, 't) sym, ('n, 't) item) nfa" where
+  "char_fa \<equiv> let 
+      P = Prods G';
+      Q = It G';
+      F = {[X \<rightarrow> \<alpha> . []] |X \<alpha>. [X \<rightarrow> \<alpha> . []] \<in> It G'};
+      \<Delta> = (\<lambda>s a. case s of 
+        [X \<rightarrow> \<alpha> . Y # \<beta>]  \<Rightarrow> if a = Y \<and> (X, \<alpha>@Y#\<beta>) \<in> P then {[X \<rightarrow> \<alpha>@[Y] . \<beta>]} else {}| 
+         _ \<Rightarrow> {}); 
+      \<E> = {([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . \<gamma>]) | X \<alpha> Y \<beta> \<gamma>. (X, \<alpha> @Nt Y#\<beta>) \<in> P \<and> (Y, \<gamma>) \<in> P} in
+    \<lparr>nfa.states = Q, nfa.init = {[S' \<rightarrow> [] . [Nt S]]}, nfa.final = F, nfa.nxt = \<Delta>, nfa.eps = \<E>\<rparr>"
+
+lemma states_char_fa [simp]: 
+  "nfa.states char_fa = It G'"
+  unfolding char_fa_def by (meson nfa.select_convs(1))
+
+lemma init_char_fa [simp]:
+  "nfa.init char_fa = {[S' \<rightarrow> [] . [Nt S]]}"
+  unfolding char_fa_def by (meson nfa.select_convs(2))
+
+lemma final_char_fa [simp]:
+  "nfa.final char_fa = {[X \<rightarrow> \<alpha> . []] |X \<alpha>. [X \<rightarrow> \<alpha> . []] \<in> It G'}"
+  unfolding char_fa_def by (meson nfa.select_convs(3))
+
+lemma nxt_char_fa [simp]:
+  "nfa.nxt char_fa = (\<lambda>s a. case s of 
+        [X \<rightarrow> \<alpha> . Y # \<beta>]  \<Rightarrow> if a = Y \<and> ((X, \<alpha> @ (Y#\<beta>)) \<in> Prods G') then {[X \<rightarrow> \<alpha> @ [Y] . \<beta>]} else {}| 
+        _ \<Rightarrow> {})"
+  unfolding char_fa_def by (meson nfa.select_convs(4))
+
+lemma eps_char_fa [simp]:
+  "nfa.eps char_fa 
+    = {([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . \<gamma>]) | X \<alpha> Y \<beta> \<gamma>. (X, \<alpha> @ Nt Y # \<beta>) \<in> Prods G' \<and> (Y, \<gamma>) \<in> Prods G'}"
+  unfolding char_fa_def by (meson nfa.select_convs(5))
+
+definition LR\<^sub>0 :: "(('n, 't) sym, ('n, 't) item set) dfa" where
+  "LR\<^sub>0 \<equiv> nfa.Power_dfa char_fa"
+
+
+
+sublocale char_fa: nfa char_fa 
+proof (unfold_locales, goal_cases 1 2 nxt_closed 3)
+
   case (nxt_closed q x)
   then obtain X \<alpha> \<beta> where q_def: "q = [X \<rightarrow> \<alpha> . \<beta>]" by (metis item.exhaust)
   consider (empty) "\<beta> = []" | (eq) xs where "\<beta> = x # xs" | (neq) y ys where "\<beta> = y # ys" "y \<noteq> x"
@@ -196,34 +283,14 @@ proof (unfold_locales, goal_cases _ _ nxt_closed _)
   then show ?case 
   proof cases
     case eq
-    consider (start) "q \<in> nfa.init (char_fa G)" | (It) "q \<in> It G"
-      using nxt_closed by fastforce
     then show ?thesis 
       using eq nxt_closed q_def by cases (auto simp: items_of_Prods_def)
   qed (use nxt_closed q_def in fastforce)+
-qed (use It_finite[OF G_finite] in auto)
+qed (use G'_def items_of_Prods_def It_finite[OF G'_finite] in fastforce)+
 
 
-sublocale canon_LR0: dfa "LR\<^sub>0 G" 
+sublocale canon_LR0: dfa LR\<^sub>0
   unfolding LR\<^sub>0_def by (rule char_fa.dfa_Power)
-
-end
-
-
-section \<open>Extending CFGs\<close>
-
-locale Extended_Cfg = 
-    fixes G 
-      and G' :: "('n::fresh0, 't) Cfg"
-  assumes G_finite: "finite (Prods G)"
-      and G_reduced[simp]: "restrict_Nts (useful (Prods G) (Start G)) (Prods G) = Prods G"
-    defines "G' \<equiv> let S' = fresh0 (Nts (Prods G)) in
-              Cfg (Prods G \<union> {(S', [Nt (Start G)])}) S'"
-begin
-
-lemma Lang_preserved:
-  "LangS G' = LangS G"
-  sorry
 
 end
 
@@ -270,10 +337,9 @@ nxt[intro]:  "\<lbrakk>(p,u) \<turnstile>\<epsilon>(n) (q,a#v); (q,a#v) \<turnst
 eps[intro]:  "\<lbrakk>(p,u) \<turnstile>\<epsilon>(n) (q,v); (q,v) \<turnstile> (r,v)\<rbrakk> \<Longrightarrow> (p,u) \<turnstile>\<epsilon>(Suc n) (r,v)"
 
 
-
-inductive_cases eps_stepn_reflE[elim]: "c \<turnstile>\<epsilon>(0) c"
-inductive_cases eps_stepn_nxtE[elim]: "(q,a#u) \<turnstile>\<epsilon>(0) (r,u)"
-inductive_cases eps_stepn_epsE[elim]: "c0 \<turnstile>\<epsilon>(Suc n) c1"
+inductive_cases eps_stepn_reflE[elim]: "(q,w) \<turnstile>\<epsilon>(0) (q,w)"
+inductive_cases eps_stepn_nxtE[elim]: "(q,a#u) \<turnstile>\<epsilon>(n) (r,u)"
+inductive_cases eps_stepn_epsE[elim]: "(q,u) \<turnstile>\<epsilon>(n) (p,u)"
 
 
 lemma step_is_eps_stepn:
@@ -314,39 +380,81 @@ lemma last_eps_step:
     then show ?thesis using less nxt by blast
   qed (use less in blast)
 qed
-  
+
+
+
+lemma noeps_eps_stepn_eq:
+  "\<lbrakk>c1 \<turnstile>\<epsilon>(n) c2; c0 \<turnstile>\<epsilon>(0) c1\<rbrakk> \<Longrightarrow> c0 \<turnstile>\<epsilon>(n) c2"
+proof (induction rule: eps_stepn.induct)
+  case (refl q w)
+  then show ?case .
+next
+  case (nxt p u n q a v r)
+  show ?case using nxt(3)[OF nxt(4)] nxt(2) eps_stepn.nxt surj_pair by metis
+next
+  case (eps p u n q v r)
+  show ?case using eps(3)[OF eps(4)] eps(2) eps_stepn.eps surj_pair by metis
+qed
+
+ 
+lemma eps_stepn_suc:
+  "\<lbrakk>c1 \<turnstile>\<epsilon>(n) c2; c0 \<turnstile>\<epsilon>(Suc 0) c1\<rbrakk> \<Longrightarrow> c0 \<turnstile>\<epsilon>(Suc n) c2"
+proof (induction rule: eps_stepn.induct)
+  case (refl q w)
+  then show ?case .
+next
+  case (nxt p u n q a v r)
+  then show ?case by (metis nfa.eps_stepn.nxt nfa_axioms surj_pair) 
+next
+  case (eps p u n q v r)
+  then show ?case using eps_stepn.cases by blast
+qed
+
+
+lemma eps_stepn_trans:
+  "\<lbrakk>c0 \<turnstile>\<epsilon>(n) c1; c1 \<turnstile>\<epsilon>(m) c2\<rbrakk> \<Longrightarrow> c0 \<turnstile>\<epsilon>(n+m) c2"
+proof (induction arbitrary: m rule: eps_stepn.induct)
+  case (refl q w)
+  then show ?case by simp
+next
+  case (nxt p u n q a v r)
+  from nxt(2) have "(q, a # v) \<turnstile>\<epsilon>(0) (r,v)" by auto
+  with nxt show ?case using noeps_eps_stepn_eq by blast
+next
+  case (eps p u n q v r)
+  hence "(q,v) \<turnstile>\<epsilon>(Suc 0) (r,v)" by blast
+  with eps(4) have "(q,v) \<turnstile>\<epsilon>(Suc m) c2" using eps_stepn_suc by presburger
+  with eps show ?case by fastforce
+qed
 
 end
 
 section \<open>Proving 3.4.1\<close>
 
-context Reduced_Finite
+context Extended_Cfg
 begin
 
 notation char_fa.step (infix \<open>\<turnstile>c\<close> 70)
 notation char_fa.steps (infix \<open>\<turnstile>c*\<close> 70)
+notation char_fa.stepn (\<open>_ \<turnstile>c'(_') _\<close> 70)
 notation char_fa.eps_stepn (\<open>_ \<turnstile>\<epsilon>'(_') _\<close> 70)
 
 lemma char_init_step_is_eps:
-  defines "S' \<equiv> fresh0 (Nts (Prods G))"
-      and "S \<equiv> Start G"
   assumes "([S' \<rightarrow> [] . [Nt S]], \<gamma>) \<turnstile>c ([A \<rightarrow> \<alpha> . \<beta>], \<gamma>')" (is "(?S,_) \<turnstile>c _")
   shows "A = S \<and> \<gamma> = \<gamma>'"
-  using assms(3) proof cases
+  using assms proof cases
   case (nxt a)
-  from assms(1) have "(S', [Nt S]) \<notin> Prods G" 
-    by (metis Nts_Lhss_Rhs_Nts Un_iff finite_Nts fresh0_notIn in_LhssI local.G_finite)
-  hence "nfa.nxt (char_fa G) ?S a = {}" by simp
+  from assms have "(S', [Nt S]) \<notin> Prods G"
+    unfolding S_defs sorry
+  hence "nfa.nxt char_fa ?S a = {}" sorry
   then show ?thesis using nxt by blast
 qed simp
 
 
 lemma char_init_noeps_eq:
-  defines "S' \<equiv> fresh0 (Nts (Prods G))"
-      and "S \<equiv> Start G"
   assumes "([S' \<rightarrow> [] . [Nt S]], \<gamma>) \<turnstile>\<epsilon>(0) ([A \<rightarrow> \<alpha> . \<beta>], \<gamma>')"
-  shows "\<gamma> = \<gamma>' \<and> [S' \<rightarrow> [] . [Nt S]] = [A \<rightarrow> \<alpha> . \<beta>]"
-  using assms(3) proof cases
+  shows "([S' \<rightarrow> [] . [Nt S]], \<gamma>) = ([A \<rightarrow> \<alpha> . \<beta>], \<gamma>')"
+  using assms proof cases
   case (nxt q a)
   moreover obtain u :: "('n,'t) syms" where u_def: "u = a # \<gamma>'"  by blast
   ultimately have "([S' \<rightarrow> [] . [Nt S]], \<gamma>) \<turnstile>\<epsilon>(0) (q,u)" "(q,u) \<turnstile>c ([A \<rightarrow> \<alpha> . \<beta>], \<gamma>')" by simp+
@@ -364,28 +472,31 @@ lemma char_init_noeps_eq:
         by presburger
       hence "length \<gamma> - length (a#u) < length \<gamma> - length u" by simp
       then show ?thesis 
-        by (metis \<open>length (a # u) \<le> length \<gamma>\<close> impossible_Cons item.exhaust less.hyps nxt(1,2))
+        by (metis \<open>([S' \<rightarrow> [] . [Nt S]], \<gamma>) \<turnstile>c* (p, a # u)\<close> char_fa.steps_len_dec impossible_Cons 
+            item.exhaust less.hyps nxt(1,2))   
     qed
   qed
 qed presburger
 
 lemma comp_impl_deriver:
-  defines "S' \<equiv> fresh0 (Nts (Prods G))"
-      and "S \<equiv> Start G"
-      and "P \<equiv> Prods G \<union> {(fresh0 (Nts (Prods G)),[Nt (Start G)])}"
     assumes "([S' \<rightarrow> [] . [Nt S]], \<gamma>) \<turnstile>c* ([A \<rightarrow> \<alpha> . \<beta>], [])"
-    shows "\<exists>w \<gamma>'. P \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma>'@Nt A#w \<and> P \<turnstile> \<gamma>'@Nt A#w \<Rightarrow>r \<gamma>'@\<alpha>@\<beta>@w \<and> \<gamma> = \<gamma>'@\<alpha>"
+    shows "\<exists>w \<gamma>'. Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma>'@Nt A#w \<and> Prods G' \<turnstile> \<gamma>'@Nt A#w \<Rightarrow>r \<gamma>'@\<alpha>@\<beta>@w \<and> \<gamma> = \<gamma>'@\<alpha>"
 proof -
   from assms obtain n where "([S' \<rightarrow> [] . [Nt S]], \<gamma>) \<turnstile>\<epsilon>(n) ([A \<rightarrow> \<alpha> . \<beta>], [])"
     using char_fa.steps_impl_eps_stepn by blast
   then show ?thesis
-  proof (induction n)
+  proof (induction n arbitrary: A \<alpha> \<beta>)
     case 0
-    then show ?case using char_init_noeps_eq assms 
-      by (metis Un_iff append.right_neutral append_Nil deriver_singleton derivers_snoc_Nt insertCI 
-          item.inject)
+    with char_init_noeps_eq assms have eq: "([S' \<rightarrow> [] . [Nt S]], \<gamma>) = ([A \<rightarrow> \<alpha> . \<beta>], [])" 
+      by auto
+    then show ?case using G'_def S_defs deriver_singleton by force
   next
     case (Suc n)
+    with char_fa.last_eps_step obtain X \<alpha>' \<beta>' where
+      "([S' \<rightarrow> [] . [Nt S]], \<gamma>) \<turnstile>\<epsilon>(n) ([X \<rightarrow> \<alpha>' . Nt A#\<beta>'], \<alpha>)" 
+      "([X \<rightarrow> \<alpha>' . Nt A#\<beta>'], \<alpha>) \<turnstile>c ([A \<rightarrow> [] . \<alpha> @ \<beta>], \<alpha>)"
+      "([A \<rightarrow> [] . \<alpha> @ \<beta>], \<alpha>) \<turnstile>\<epsilon>(0) ([A \<rightarrow> \<alpha> . \<beta>], [])"
+      sorry
     then show ?case sorry
   qed
 qed

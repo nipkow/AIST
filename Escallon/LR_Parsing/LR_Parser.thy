@@ -6,19 +6,21 @@ begin
 context Extended_Cfg
 begin
 
+section \<open>IPDA, char(G) and \<open>LR\<^sub>0(G)\<close>\<close>
+
 definition IPDA :: "(('n, 't) item, 't, ('n, 't) item) pda" where
   "IPDA \<equiv> let
     P = Prods G';
     Q = It G'; 
-    \<Delta> = (\<lambda>q a s. case q of [X \<rightarrow> \<beta> . Tm a' # \<gamma>] \<Rightarrow> 
-            if a' = a then let r = [X \<rightarrow> \<beta> @ [Tm a] . \<gamma>] in {(r, [r])} else {});
+    \<delta> = (\<lambda>q a s. case q of [X \<rightarrow> \<beta> . Tm a' # \<gamma>] \<Rightarrow> 
+            if a' = a then let r = [X \<rightarrow> \<beta> @ [Tm a] . \<gamma>] in {(r, [s])} else {});
     \<E> = (\<lambda>q s. case (q,s) of 
       ([X \<rightarrow> \<beta> . Nt Y # \<gamma>], _) \<Rightarrow> {([Y \<rightarrow> [] . \<alpha>], [X \<rightarrow> \<beta>@[Nt Y] . \<gamma>]#[s]) |\<alpha>. (Y,\<alpha>) \<in> P} |
       ([Y \<rightarrow> \<alpha> . []], [X \<rightarrow> \<beta> . Nt Y' # \<gamma>]) 
         \<Rightarrow> if Y = Y' then {([X \<rightarrow> \<beta>@[Nt Y] . \<gamma>], [])} else {})        
 in
   \<lparr>pda.init_state = [S' \<rightarrow> [] . [Nt S]], pda.init_symbol = [S' \<rightarrow> [] . []], 
-    pda.final_states = {[S' \<rightarrow> [Nt S] . []]}, pda.delta = \<Delta>, pda.delta_eps = \<E>\<rparr>"
+    pda.final_states = {[S' \<rightarrow> [Nt S] . []]}, pda.delta = \<delta>, pda.delta_eps = \<E>\<rparr>"
 
 
 definition char_fa :: "(('n, 't) sym, ('n, 't) item) nfa" where
@@ -26,11 +28,11 @@ definition char_fa :: "(('n, 't) sym, ('n, 't) item) nfa" where
       P = Prods G';
       Q = It G';
       F = {[X \<rightarrow> \<alpha> . []] |X \<alpha>. [X \<rightarrow> \<alpha> . []] \<in> It G'};
-      \<Delta> = (\<lambda>s a. case s of 
+      \<delta> = (\<lambda>s a. case s of 
         [X \<rightarrow> \<alpha> . Y # \<beta>]  \<Rightarrow> if a = Y \<and> (X, \<alpha>@Y#\<beta>) \<in> P then {[X \<rightarrow> \<alpha>@[Y] . \<beta>]} else {}| 
          _ \<Rightarrow> {}); 
       \<E> = {([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . \<gamma>]) | X \<alpha> Y \<beta> \<gamma>. (X, \<alpha> @Nt Y#\<beta>) \<in> P \<and> (Y, \<gamma>) \<in> P} in
-    \<lparr>nfa.states = Q, nfa.init = {[S' \<rightarrow> [] . [Nt S]]}, nfa.final = F, nfa.nxt = \<Delta>, nfa.eps = \<E>\<rparr>"
+    \<lparr>nfa.states = Q, nfa.init = {[S' \<rightarrow> [] . [Nt S]]}, nfa.final = F, nfa.nxt = \<delta>, nfa.eps = \<E>\<rparr>"
 
 lemma states_char_fa [simp]: 
   "nfa.states char_fa = It G'"
@@ -81,7 +83,51 @@ sublocale canon_LR0: dfa LR\<^sub>0
 
 end
 
-section \<open>Configurations\<close>
+section \<open>IPDA Configurations\<close>
+
+locale IPDA =
+  fixes G G' :: "('n::fresh0, 't) Cfg"
+      and S S' :: 'n  
+  assumes extended: "Extended_Cfg G"
+  defines "S \<equiv> Start G"
+      and "S' \<equiv> fresh0 (Nts (Prods G) \<union> {S})"
+      and "G' \<equiv> Cfg (Prods G \<union> {(S', [Nt S])}) S'"
+begin
+
+type_synonym ('q,'s) config = "'q list \<times> 's list"
+
+definition "P \<equiv> Extended_Cfg.IPDA G"
+
+inductive step :: "(('n,'t) item,'t) config \<Rightarrow> (('n,'t) item,'t) config \<Rightarrow> bool" (infix \<open>\<turnstile>\<close> 70) where
+delta[intro]: "\<lbrakk>let \<delta> = pda.delta P in  \<alpha> = p#ps; \<alpha>' = q#qs; (q,qs) \<in> \<delta> p x ps\<rbrakk> 
+                \<Longrightarrow> (\<alpha>@\<beta>,x#w) \<turnstile> (\<alpha>'@\<beta>,w)" |
+eps[intro]: "\<lbrakk>let \<delta>\<^sub>\<epsilon> = pda.delta_eps P in \<alpha> = p#ps; \<alpha>' = q#qs; (q,qs) \<in> \<delta>\<^sub>\<epsilon> p ps\<rbrakk> 
+                \<Longrightarrow> (\<alpha>@\<beta>, w) \<turnstile> (\<alpha>'@\<beta>, w)"
+
+inductive_cases step_deltaE[elim]: "(s, x#w) \<turnstile> (s', w)"
+inductive_cases step_epsE[elim]: "(s, w) \<turnstile> (s', w)"
+
+lemma step_equal_or_cons:
+  assumes "(p,u) \<turnstile> (q,v)"
+  shows "u = v \<or> (\<exists>a. u = a#v)"
+  using assms by cases auto
+
+lemma step_len_dec:
+  assumes "(p,u) \<turnstile> (q,v)"
+  shows "length u \<ge> length v" 
+  using step_equal_or_cons[OF assms] by fastforce
+
+abbreviation steps (infix \<open>\<turnstile>*\<close> 70) where
+  "steps \<equiv> (step \<^sup>*\<^sup>*)"
+
+lemma steps_len_dec:
+  "(p,u) \<turnstile>* (q,v) \<Longrightarrow> length u \<ge> length v" 
+  by ((induction "(p,u)" "(q,v)" arbitrary: q v rule: rtranclp.induct),
+  (use step_len_dec surj_pair le_trans in fastforce)+)
+
+end
+
+section \<open>NFA Configurations and Steps\<close>
 
 context nfa 
 begin

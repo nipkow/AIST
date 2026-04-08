@@ -290,6 +290,9 @@ next
     unfolding Lang_def G'_def by auto
 qed
 
+corollary G'_not_empty: 
+  "LangS G' \<noteq> {}" using Lang_preserved G_not_empty by simp
+
 lemma Nts_G'_is_union[simp]: "Nts (Prods G) \<union> {S',S} = Nts (Prods G')"
   using G'_def in_Nts_iff_in_Syms by force
 

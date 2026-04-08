@@ -124,6 +124,13 @@ lemma restrict_useful_id_impl_reduced:
   shows "reduced G"
   using assms unfolding restrict_Nts_def reduced_def Nts_def by fast
 
+lemma reduced_impl_derives_singleton:
+  assumes "reduced G"
+    "A \<in> Nts (Prods G)"
+  obtains v where "Prods G \<turnstile> [Nt A] \<Rightarrow>* map Tm v"
+  using assms productive_if_useful unfolding reduced_def 
+  by metis
+
 lemma reduced_impl_derives:
   assumes  "Nts_syms \<alpha> \<subseteq> Nts (Prods G)"
     "reduced G"
@@ -136,14 +143,15 @@ lemma reduced_impl_derives:
   then show ?case 
   proof cases
     case Tm
-    then show ?thesis using as_derives Cons(2) by (metis Cons_eq_map_conv derives_Cons_iff)
+    then show ?thesis using derives_prepend[OF as_derives] Cons(2) 
+      by (metis append_Cons append_Nil list.simps(9))
   next
     case Nt
-    with \<open>reduced G\<close> obtain u where "Prods G \<turnstile> [Nt A] \<Rightarrow>* map Tm u"
-      using Cons(3) unfolding reduced_def useful_def 
-      by (meson in_Nts_syms list.set_intros(1) productive_if_useful subsetD useful_def)
-    then show ?thesis using as_derives Cons(2) Nt 
-      by (metis insert_iff list.simps(15) productive_if_in_productives productives_if_Nts_productive)
+    with \<open>reduced G\<close> obtain u where A_derives: "Prods G \<turnstile> [Nt A] \<Rightarrow>* map Tm u"
+      using reduced_impl_derives_singleton[OF assms(2)] Cons(3) by auto
+    with as_derives have "Prods G \<turnstile> Nt A#as \<Rightarrow>* map Tm (u@v)"
+      by (meson derives_Nt_Cons_map_Tm derives_Nt_map_TmD)
+    then show ?thesis using Nt Cons(2) by blast
   qed
 qed simp
 
@@ -224,24 +232,30 @@ lemma G_derives_impl_G'_derives:
   shows "Prods G' \<turnstile> \<alpha> \<Rightarrow>* w"
   using assms G_Prods_subset_G' by (simp add: derives_mono)
 
+
+lemma S'_notin_Nts_Prods_G [simp]:
+  "S' \<notin> (Nts (Prods G))" 
+  unfolding S'_def using fresh0_notIn G_finite finite_Nts
+  by (metis Un_insert_right sup_bot_right finite_insert insertCI)
+
+corollary S'_Prod_notin_G [simp]:
+  "(S', \<alpha>) \<notin> Prods G"
+  using S'_notin_Nts_Prods_G unfolding Nts_def Nts_syms_def by blast
+
 lemma S'_derive_impl_S:
   assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow> \<alpha>"
   shows "\<alpha> = [Nt S]"
 proof -
   from assms have in_P': "(S', \<alpha>) \<in> Prods G'" 
     by (simp add: derive_singleton)
-  show ?thesis
-  proof -
-    have "(S', \<alpha>) = (S', [Nt S])"
-    proof (rule ccontr)
-      assume "(S', \<alpha>) \<noteq> (S', [Nt S])"
-      with in_P' have "(S', \<alpha>) \<in> Prods G" unfolding G'_def by auto
-      with S'_def show False 
-        by (metis G_finite ID.set_finite Nts_Lhss_Rhs_Nts finite_Nts fresh0_notIn in_LhssI 
-            infinite_Un rev_contra_hsubsetD sup_ge1)
-    qed
-    thus ?thesis by simp
+  have "(S', \<alpha>) = (S', [Nt S])"
+  proof (rule ccontr)
+    assume "\<not>?thesis"
+    then show False
+    using S'_Prod_notin_G in_P' unfolding G'_def 
+    by simp
   qed
+  thus ?thesis by simp
 qed
 
 lemma G_derives_from_S_impl_G'_derives_from_S':
@@ -258,16 +272,11 @@ lemma G'_derives_impl_G_derives_if_no_S':
   "\<lbrakk>Prods G' \<turnstile> \<alpha> \<Rightarrow>* \<gamma>; Nt S' \<notin> set \<alpha>\<rbrakk> \<Longrightarrow> Prods G \<turnstile> \<alpha> \<Rightarrow>* \<gamma>"
 proof (induction rule: rtranclp_induct)
   case (step \<beta> \<gamma>)
-  note G_derives_\<beta> = step(3)[OF step(4)]
-  have "Nt S' \<notin> set \<beta>" 
-  proof -
-    have "S' \<notin> (Nts (Prods G))" 
-      by (metis G_finite S'_def Un_iff finite.emptyI finite_Nts finite_Un finite_insert
-          fresh0_notIn)
-    with G_derives_\<beta> show ?thesis 
-      using derives_set_subset in_Nts_iff_in_Syms step.prems by fastforce
-  qed
-  from step(3)[OF step(4)] G'_derive_impl_G_derive_if_no_S'[OF step(2) this] show ?case
+  note step(3)[OF step(4)]
+  moreover from this have "Nt S' \<notin> set \<beta>" 
+    using S'_notin_Nts_Prods_G derives_set_subset in_Nts_iff_in_Syms step.prems 
+    by fastforce
+  ultimately  show ?case using step G'_derive_impl_G_derive_if_no_S'[OF step(2)]
     by simp
 qed simp
 

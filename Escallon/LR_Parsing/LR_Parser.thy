@@ -79,7 +79,6 @@ definition LR\<^sub>0 :: "(('n, 't) sym, ('n, 't) item set) dfa" where
 
 sublocale char_fa: nfa char_fa 
 proof (unfold_locales, goal_cases 1 2 nxt_closed 3)
-
   case (nxt_closed q x)
   then obtain X \<alpha> \<beta> where q_def: "q = [X \<rightarrow> \<alpha> . \<beta>]" by (metis item.exhaust)
   consider (empty) "\<beta> = []" | (eq) xs where "\<beta> = x # xs" | (neq) y ys where "\<beta> = y # ys" "y \<noteq> x"
@@ -131,8 +130,8 @@ proof -
       ([Y \<rightarrow> \<alpha> . []], [X \<rightarrow> \<beta> . Nt Y' # \<gamma>]) 
         \<Rightarrow> if Y = Y' then {([X \<rightarrow> \<beta>@[Nt Y] . \<gamma>], [])} else {} | _ \<Rightarrow> {})"
   have delta: "?\<delta> = delta_eps P"
-    unfolding P_def
-    by (metis (lifting) ext G'_def S'_def S_def pda.select_convs(5))
+    unfolding P_def G'_def S'_def S_def 
+    by (metis (lifting) pda.select_convs(5))
   then show ?thesis unfolding init_state_def
     by (smt (verit, best) Collect_cong case_prod_conv item.case list.simps(5) sym.simps(5))
 qed
@@ -211,11 +210,11 @@ lemma syms_complete:
   "([A \<rightarrow> \<alpha> . map Tm u @ \<beta>]#i#is, u@v) \<turnstile>* ([A \<rightarrow> \<alpha> @ map Tm u . \<beta>]#i#is, v)"
 proof (induction u arbitrary: \<alpha>)
   case (Cons a u)
-  have "([A \<rightarrow> \<alpha> . map Tm (a # u) @ \<beta>] # i # is, (a # u) @ v) \<turnstile> ([A \<rightarrow> \<alpha> @ [Tm a] . map Tm u @ \<beta>] # i # is, u @ v)"
+  have "([A \<rightarrow> \<alpha> . map Tm (a # u) @ \<beta>] # i # is, (a # u) @ v) 
+        \<turnstile> ([A \<rightarrow> \<alpha> @ [Tm a] . map Tm u @ \<beta>] # i # is, u @ v)"
     by simp
-  then show ?case using Cons[of "\<alpha>@[Tm a]"] 
-    by (metis (no_types, lifting) append_Cons append_assoc 
-        converse_rtranclp_into_rtranclp eq_Nil_appendI list.simps(9))
+  also note Cons[of "\<alpha>@[Tm a]"] 
+  finally show ?case by auto
 qed simp
 
 
@@ -224,6 +223,14 @@ lemma steps_substring:
   assumes "(\<rho>0, w) \<turnstile>* (\<rho>2, v)"
   obtains u where "w = u@v"
   sorry
+
+lemma list_app_last_is_next_hd:
+  assumes "w = u@v@y"
+    "w = xs@a#y"
+    "v \<noteq> []"
+  shows "last v = a"
+  using assms 
+  by (metis append.assoc append_Cons append_Nil append_same_eq last_append last_snoc)
 
 lemma reachable_impl_reachable_substring:
   assumes "(\<rho>0, u) \<turnstile>* (\<rho>2, y)"
@@ -252,22 +259,9 @@ proof -
         show ?thesis 
         proof (cases w)
           case (Cons b bs)
-          then obtain cs where cs_def: "w = cs @ [a]" using less(3) as
-          proof -
-            obtain c where c_def: "c = last w" by presburger
-            with Cons less(3) as have "c = a" 
-            proof -
-              have f1: "c = last (v @ b # bs)"
-                by (simp add: \<open>c = last w\<close> local.Cons)
-              obtain tts :: "'t list" where
-                "u = tts @ a # y"
-                using \<open>\<And>thesis. (\<And>as. u = as @ a # y \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> by blast
-              then show ?thesis
-                using f1 less(3) local.Cons by auto
-            qed
-            thus thesis using that unfolding c_def 
-              by (metis append_butlast_last_id list.distinct(1) local.Cons)
-          qed
+          then obtain cs where cs_def: "w = cs @ [a]" 
+            using as list_app_last_is_next_hd[OF less(3)] 
+            by (metis list.distinct(1) snoc_eq_iff_butlast)
           hence "u = v @ cs @ z" using less 2 by simp
           from less(1)[OF _ _ this msteps(1)] obtain \<rho>' where "(\<rho>0, u) \<turnstile>* (\<rho>', cs @ z)"
             using Suc by blast
@@ -603,8 +597,33 @@ proof -
         length_append less_Suc_eq not_less_eq nth_mem zero_less_diff)
 qed
 
-  
-  
+lemma right_derivs_eq_impossible:
+  assumes "\<beta> @ Nt A # map Tm u = \<beta>' @ Nt A' # map Tm u'" (is "?w = ?w'")
+    "length \<beta> < length \<beta>'" (is "?n < ?m")
+  shows False
+proof -
+  have inds: "?w!?n = Nt A" "?w'!?m = Nt A'" by auto 
+  with assms obtain a where "?w!?m = Tm a"
+    using index_gt_left_impl_right[of \<beta> ?m "Nt A" "map Tm u", OF assms(2)] by auto
+  then show ?thesis using inds(2) assms(1) by simp
+qed
+
+lemma right_derivs_eq_impl_eq_tl:
+  assumes "\<beta> @ Nt A # map Tm u = \<beta>' @ Nt A' # map Tm u'"
+  shows "u = u'"
+proof (rule ccontr)
+  assume neq: "u \<noteq> u'"
+  then show False
+  proof (cases "length u = length u'")
+    case False
+    with assms have "length \<beta> \<noteq> length \<beta>'" by fastforce
+    then consider "length \<beta> < length \<beta>'" | "length \<beta>' < length \<beta>" by linarith
+    then show ?thesis
+      using right_derivs_eq_impossible assms assms[symmetric] 
+      by cases fast+
+  qed (use assms neq in auto)
+qed
+
 
 lemma deriver_impl_in_Prods:
   assumes "P \<turnstile> \<beta> @ Nt A # map Tm u \<Rightarrow>r \<gamma> @ Nt X # map Tm v"
@@ -612,41 +631,10 @@ lemma deriver_impl_in_Prods:
     "(A, \<alpha>) \<in> P" 
 proof -
   from deriver.cases[OF assms] obtain A' \<alpha>' \<beta>' u' where
-    deriv: "\<beta> @ Nt A # map Tm u = \<beta>' @ Nt A' # map Tm u'" (is "?w = ?w'")
+    deriv: "\<beta> @ Nt A # map Tm u = \<beta>' @ Nt A' # map Tm u'"
     "\<gamma> @ Nt X # map Tm v = \<beta>' @ \<alpha>' @ map Tm u'"
     "(A', \<alpha>') \<in> P" by metis
-  moreover have "\<beta> = \<beta>'" "A = A'" "u = u'" 
-  proof -
-    have "map Tm u = map Tm u'"
-    proof (rule ccontr)
-      assume neq: "map Tm u \<noteq> map Tm u'"
-      then show False
-      proof (cases "length u = length u'")
-        case False
-        note u_neq = False
-        let ?n = "length \<beta>"
-        let ?m = "length \<beta>'"
-        have inds: "?w!?n = Nt A" "?w'!?m = Nt A'" by auto 
-        show ?thesis
-        proof (cases "?n < ?m")
-          case True
-          obtain a where "?w!?m = Tm a" 
-            using deriv(1) index_gt_left_impl_right[of \<beta> ?m "Nt A" "map Tm u", OF True] by auto
-          then show False using inds(2) deriv(1) by simp
-        next
-          case False
-          with deriv(1) u_neq have lt: "?m < ?n"
-            by (metis append_eq_append_conv list.inject map_Tm_inject_iff nat_neq_iff)
-          obtain a where "?w'!?n = Tm a"
-            using deriv(1) index_gt_left_impl_right[of \<beta>' ?n "Nt A'" "map Tm u'", OF lt]
-            by (metis add_Suc_right ex_map_conv length_Cons length_append less_add_Suc1)
-          then show False using inds(1) deriv(1) by simp
-        qed
-      qed (use deriv(1) neq in auto)
-    qed
-    then show "\<beta> = \<beta>'" "A = A'" "u = u'" using deriv(1) by auto
-  qed
-  ultimately show thesis using that by presburger
+  with right_derivs_eq_impl_eq_tl[OF deriv(1)] show thesis using that by simp
 qed
 
 lemma eq_tl_impl_substring:
@@ -711,29 +699,15 @@ proof -
     then have A_is_S: "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r \<gamma>' @\<alpha>@\<beta>@map Tm w" "(S', \<alpha>@\<beta>) \<in> Prods G'" "A = S'"
       by (simp add: Cons_eq_append_conv deriver_singleton)+
      from this have eq_S: "\<alpha>@\<beta> = [Nt S]" "\<gamma>' = [] \<and> w = []"
-       using S'_derive_impl_S derive_singleton "0.prems"(4) Cons_eq_append_conv by (blast, fastforce)
+       using S'_derive_impl_S derive_singleton "0.prems"(4) Cons_eq_append_conv 
+       by (blast, fastforce)
     hence "rev_hist [] = \<gamma>'" unfolding hist_defs by simp
-    from eq_S consider (left) "\<alpha> = [Nt S] \<and> \<beta> = []" | (right) "\<alpha> = [] \<and> \<beta> = [Nt S]"
+    from eq_S consider "\<alpha> = [Nt S] \<and> \<beta> = []" | "\<alpha> = [] \<and> \<beta> = [Nt S]"
       using append_eq_Cons_conv by fastforce
     then show ?case
-    proof cases
-      case left
-      then show ?thesis using 0 
-        by (metis A_is_S(3) \<open>rev_hist [] = \<gamma>'\<close> derivers_imp_derives derives_from_empty eq_S(2) 
-            list.map_disc_iff rtranclp.rtrancl_refl self_append_conv2)
-    next
-      case right
-      with 0(2) have "Prods G' \<turnstile> [Nt S] \<Rightarrow>r* map Tm v" by argo
-      hence v_in_G: "v \<in> LangS G" 
-        using G'_derives_impl_G_derives_if_no_S' S_neq_S' 
-        unfolding Lang_def by (simp add: derivers_imp_derives eq_S(2))
-      have ipda: "LR_Parser.IPDA G" by (metis Extended_Cfg_axioms IPDA.intro)
-      from v_in_G IPDA.Lang_eq_Lang_G[OF ipda] have "(?q0, v) \<turnstile>P* (?qf, [])"
-        unfolding IPDA.Lang_def[OF ipda] by auto
-      then show ?thesis using 0(3) A_is_S 
-        by (metis (no_types, lifting) \<open>rev_hist [] = \<gamma>'\<close> append.right_neutral append_Nil eq_S(2) 
-            local.IPDA_def pda.select_convs(1) right)
-    qed
+      by cases (metis 0(2,3) A_is_S(3) \<open>rev_hist [] = \<gamma>'\<close> derivers_imp_derives derives_from_empty eq_S(2) 
+            list.map_disc_iff rtranclp.rtrancl_refl self_append_conv2 self_append_conv 
+            derives_impl_completes)+
   next
     case (Suc n)
     from Suc(5) obtain X \<gamma>'' u where n_steps: "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(n) \<gamma>'' @ Nt X # map Tm u"

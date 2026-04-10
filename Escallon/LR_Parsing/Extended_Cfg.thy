@@ -1,8 +1,6 @@
 theory Extended_Cfg
   imports 
     Context_Free_Grammar.Context_Free_Grammar 
-    Pushdown_Automata.Pushdown_Automata
-    Finite_Automata_HF.Finite_Automata_HF
 begin
 
 section \<open>Context-Free Items\<close>
@@ -10,6 +8,30 @@ section \<open>Context-Free Items\<close>
 datatype ('n, 't) item = Item 'n  "('n, 't) syms"  "('n, 't) syms"
 
 notation Item  ("[_ \<rightarrow> _ . _]" 100) 
+
+definition history :: "('n, 't) item \<Rightarrow> ('n, 't) syms" where
+  "history i \<equiv> case i of [A \<rightarrow> \<alpha> . \<beta>] \<Rightarrow> \<alpha>"
+
+lemma history_unfold [simp]: "history ([A \<rightarrow> \<alpha> . \<beta>]) = \<alpha>"
+  unfolding history_def by simp
+
+(* As defined in book (needed?) *)
+definition hist :: "('n, 't) item list \<Rightarrow> ('n,'t) syms" where
+  "hist \<rho> \<equiv> concat (map history \<rho>)"
+
+(* Used in all lemmas until now (top of stack is hd, not last) *)
+definition hist_old :: "('n, 't) item list \<Rightarrow> ('n,'t) syms" where
+  "hist_old \<rho> \<equiv> concat (map history (rev \<rho>))"
+
+lemma hist_singleton [simp]:
+  "hist ([[A \<rightarrow> \<alpha> . \<beta>]]) = \<alpha>"
+  unfolding hist_def by simp
+
+lemma hist_Cons[simp]:
+  "hist (i#\<rho>) = history i @ hist \<rho>"
+  unfolding hist_def by simp
+
+lemmas hist_defs = hist_def hist_old_def history_def
 
 definition items_of_Prods :: "('n, 't) Prods \<Rightarrow> ('n, 't) item set" where
   "items_of_Prods P = {[A \<rightarrow> \<alpha> . \<beta>] | A \<alpha> \<beta>. (A, \<alpha>@\<beta>) \<in> P}"
@@ -139,19 +161,20 @@ lemma reduced_impl_derives:
   using assms(1) proof (induction \<alpha> arbitrary: thesis)
   case (Cons a as)
   from Cons(1,3) obtain v where as_derives: "Prods G \<turnstile> as \<Rightarrow>* map Tm v" by auto
-  consider (Tm) x where "a = Tm x" | (Nt) A where "a = Nt A" using sym.exhaust by blast
   then show ?case 
-  proof cases
-    case Tm
-    then show ?thesis using derives_prepend[OF as_derives] Cons(2) 
-      by (metis append_Cons append_Nil list.simps(9))
-  next
-    case Nt
+  proof (cases a)
+    case (Nt A)
     with \<open>reduced G\<close> obtain u where A_derives: "Prods G \<turnstile> [Nt A] \<Rightarrow>* map Tm u"
       using reduced_impl_derives_singleton[OF assms(2)] Cons(3) by auto
-    with as_derives have "Prods G \<turnstile> Nt A#as \<Rightarrow>* map Tm (u@v)"
-      by (meson derives_Nt_Cons_map_Tm derives_Nt_map_TmD)
-    then show ?thesis using Nt Cons(2) by blast
+    from derives_append[OF this] have "Prods G \<turnstile> Nt A#as \<Rightarrow>* map Tm u @ as" 
+      by simp
+    also from derives_prepend[OF as_derives] have "Prods G \<turnstile> ... \<Rightarrow>* map Tm (u@v)" 
+      by simp
+    finally show ?thesis using Nt Cons(2) by blast
+  next
+    case (Tm x) 
+    then show ?thesis using derives_prepend[OF as_derives] Cons(2) 
+      by (metis append_Cons append_Nil list.simps(9))
   qed
 qed simp
 

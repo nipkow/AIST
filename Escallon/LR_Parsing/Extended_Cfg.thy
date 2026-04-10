@@ -15,13 +15,13 @@ definition history :: "('n, 't) item \<Rightarrow> ('n, 't) syms" where
 lemma history_unfold [simp]: "history ([A \<rightarrow> \<alpha> . \<beta>]) = \<alpha>"
   unfolding history_def by simp
 
-(* As defined in book (needed?) *)
+(* As defined in book *)
 definition hist :: "('n, 't) item list \<Rightarrow> ('n,'t) syms" where
   "hist \<rho> \<equiv> concat (map history \<rho>)"
 
-(* Used in all lemmas until now (top of stack is hd, not last) *)
-definition hist_old :: "('n, 't) item list \<Rightarrow> ('n,'t) syms" where
-  "hist_old \<rho> \<equiv> concat (map history (rev \<rho>))"
+(* Needed? (top of stack is hd, not last) *)
+definition hist_rev :: "('n, 't) item list \<Rightarrow> ('n,'t) syms" where
+  "hist_rev \<rho> \<equiv> concat (map history (rev \<rho>))"
 
 lemma hist_singleton [simp]:
   "hist ([[A \<rightarrow> \<alpha> . \<beta>]]) = \<alpha>"
@@ -31,13 +31,15 @@ lemma hist_Cons[simp]:
   "hist (i#\<rho>) = history i @ hist \<rho>"
   unfolding hist_def by simp
 
-lemmas hist_defs = hist_def hist_old_def history_def
+lemmas hist_defs = hist_def hist_rev_def history_def
 
 definition items_of_Prods :: "('n, 't) Prods \<Rightarrow> ('n, 't) item set" where
   "items_of_Prods P = {[A \<rightarrow> \<alpha> . \<beta>] | A \<alpha> \<beta>. (A, \<alpha>@\<beta>) \<in> P}"
 
 definition It :: "('n, 't) Cfg \<Rightarrow> ('n, 't) item set" where
   "It G = items_of_Prods (Prods G)"
+
+lemmas It_defs = It_def items_of_Prods_def
 
 (* Intro breaks proofs
 
@@ -241,6 +243,7 @@ lemmas S_defs[simp] = S_def S'_def
 lemma S_neq_S'[simp]:
   "S \<noteq> S'" 
   by (metis G_finite ID.set_finite S'_def Un_iff finite_Nts finite_Un fresh0_notIn singletonI)
+
 
 lemma G_Prods_subset_G':
   "Prods G \<subseteq> Prods G'"

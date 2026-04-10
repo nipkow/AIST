@@ -59,13 +59,6 @@ lemma delta_eps_IPDA [simp]:
         \<Rightarrow> if Y = Y' then {([X \<rightarrow> \<beta>@[Nt Y] . \<gamma>], [])} else {} | _ \<Rightarrow> {})"
   unfolding IPDA_def by simp
 
-lemma delta_complete_empty [simp]:
-  "delta IPDA ([X \<rightarrow> \<alpha> . []]) a q = {}"
-  unfolding IPDA_def by simp
-
-lemma delta_Nt_empty [simp]:
-  "delta IPDA ([X \<rightarrow> \<alpha> . Nt A # \<gamma>]) a q = {}"
-  unfolding IPDA_def by auto
 
 lemma delta_Tm_neq_empty [simp]:
   assumes "a \<noteq> b"
@@ -83,18 +76,42 @@ proof -
   then show thesis using p_def assms that by cases auto
 qed
 
-lemma delta_eps_Tm_empty [simp]:
-   "delta_eps IPDA ([X \<rightarrow> \<alpha> . Tm a # \<gamma>]) q = {}"
-  unfolding IPDA_def by simp
-
 lemma delta_eps_Nt_neq_empty [simp]:
   assumes "Y \<noteq> Y'"
   shows "delta_eps IPDA ([Y \<rightarrow> \<alpha> . []]) ([X \<rightarrow> \<beta> . Nt Y' # \<gamma>]) = {}"
   using assms unfolding IPDA_def by simp
 
-(* TODO: case nempty? *)
+
+lemma delta_eps_complete_impl_reducing:
+  assumes "delta_eps IPDA ([Y \<rightarrow> \<alpha> . []]) q \<noteq> {}"
+  obtains X \<beta> \<gamma> where "q = [X \<rightarrow> \<beta> . Nt Y # \<gamma>]"
+proof -
+  obtain X \<beta> \<gamma> where q_def: "q = [X \<rightarrow> \<beta> . \<gamma>]" using item.exhaust by metis
+  then show thesis
+  proof (cases \<gamma>)
+    case (Cons a as)
+    then show ?thesis 
+    by (cases a) (use assms q_def Cons that in fastforce)+
+  qed (use assms q_def in fastforce)
+qed
+
 lemma delta_eps_nempty_impl_expanding_or_reducing:
-  assumes "delta_eps IPDA "
+  assumes "delta_eps IPDA p q \<noteq> {}"
+  obtains X \<beta> Y \<gamma> where "p = [X \<rightarrow> \<beta> . Nt Y # \<gamma>]"  |
+    Y \<alpha> X \<beta>  \<gamma> where "p = [Y \<rightarrow> \<alpha> . []]" "q = [X \<rightarrow> \<beta> . Nt Y # \<gamma>]"
+proof -
+  obtain X \<alpha> \<beta> where p_def: "p = [X \<rightarrow> \<alpha> . \<beta>]" using item.exhaust by blast
+  then show thesis
+  proof (cases \<beta>)
+    case Nil
+    then show ?thesis 
+      using delta_eps_complete_impl_reducing assms that p_def by metis
+  next
+    case (Cons a as)
+    then show ?thesis 
+      by (cases a) (use p_def assms that in auto)
+  qed
+qed
 
 
 type_synonym ('q,'s) ipda_config = "'q list \<times> 's list"
@@ -145,7 +162,6 @@ lemma step_len_dec:
   using step_equal_or_Cons[OF assms] by fastforce
 
 
-
 lemma shifting[simp]:
   "([A \<rightarrow> \<alpha> . Tm a # \<beta>]#\<rho>#\<rho>s, a#u) \<turnstile>P ([A \<rightarrow> \<alpha>@[Tm a] . \<beta>]#\<rho>#\<rho>s, u)"
 proof -
@@ -193,11 +209,11 @@ proof -
 qed
 
 lemma eps_cases[consumes 1, case_names reducing expanding]:
-  assumes "(q0,q1) \<in> delta_eps IPDA p0 p1"
+  assumes "(q0,qs) \<in> delta_eps IPDA p0 p1"
   obtains Y \<alpha> X \<beta> \<gamma> where
-    "p0 = [Y \<rightarrow> \<alpha> . []]" "p1 = [X \<rightarrow> \<beta> . Nt Y # \<gamma>]" "q0 = [X \<rightarrow> \<beta> @ [Nt Y] . \<gamma>]" "q1 = []" |
+    "p0 = [Y \<rightarrow> \<alpha> . []]" "p1 = [X \<rightarrow> \<beta> . Nt Y # \<gamma>]" "q0 = [X \<rightarrow> \<beta> @ [Nt Y] . \<gamma>]" "qs = []" |
     X \<beta> Y \<gamma> \<alpha> where
-    "p0 = [X \<rightarrow> \<beta> . Nt Y # \<gamma>]" "(Y, \<alpha>) \<in> Prods G'" "q0 = [Y \<rightarrow> [] . \<alpha>]" "q1 = [p0]" 
+    "p0 = [X \<rightarrow> \<beta> . Nt Y # \<gamma>]" "(Y, \<alpha>) \<in> Prods G'" "q0 = [Y \<rightarrow> [] . \<alpha>]" "qs = p0#[p1]" 
 proof -
   let ?\<delta> = "(\<lambda>q s. case (q,s) of 
       ([X \<rightarrow> \<beta> . Nt Y # \<gamma>], _) \<Rightarrow> {([Y \<rightarrow> [] . \<alpha>], [X \<rightarrow> \<beta> . Nt Y#\<gamma>]#[s]) |\<alpha>. (Y,\<alpha>) \<in> Prods G'} |
@@ -205,8 +221,12 @@ proof -
         \<Rightarrow> if Y = Y' then {([X \<rightarrow> \<beta>@[Nt Y] . \<gamma>], [])} else {} | _ \<Rightarrow> {})"
   have "delta_eps IPDA = ?\<delta>"
     using delta_eps_IPDA S_def S'_def G'_def by fastforce
-  with assms
-  show thesis sorry
+  from delta_eps_nempty_impl_expanding_or_reducing consider 
+    X \<beta> Y \<gamma> where "p0 = [X \<rightarrow> \<beta> . Nt Y # \<gamma>]" |
+    Y \<alpha> X \<beta> \<gamma> where "p0 = [Y \<rightarrow> \<alpha> . []]" "p1 = [X \<rightarrow> \<beta> . Nt Y # \<gamma>]" 
+    using assms by blast
+  then show thesis
+    by cases (use that assms in auto) 
 qed
 
 lemma step_cases[consumes 1, case_names shifting reducing expanding]:
@@ -228,25 +248,24 @@ next
   case (eps \<alpha> p0 p1 \<alpha>' q qs \<beta> w)
   from eps(5) show ?thesis 
     by (cases rule: eps_cases) 
-      (use eps that in simp, 
-        use expanding_in_delta_eps eps_cases in blast)
+      (use expanding_in_delta_eps eps_cases eps that in force)+
 qed
 
 lemma step_impl_in_It:
-  assumes "i \<in> It G'"
-    "(i#is, u) \<turnstile>P (j#js, v)"
+  assumes "i0 \<in> It G'" "i1 \<in> It G'"
+    "(i0#i1#is, u) \<turnstile>P (j#js, v)"
   shows "j \<in> It G'"
-  using [[simp_trace]]
-  using assms(2) apply (cases rule: step_cases)
-  using assms apply (simp_all add: items_of_Prods_def)[2]
-  using assms sorry 
-
-
-lemma 
-  assumes "([A \<rightarrow> \<alpha> . \<beta>]#\<rho>, u) \<turnstile>P c"
-  shows "Prods G' \<turnstile> [Nt A] \<Rightarrow> \<alpha>@\<beta>"
-  using assms apply cases
-  sorry
+using assms(3) proof (cases rule: step_cases)
+  case (shifting A \<alpha> a \<beta> i \<rho> u)
+  then show ?thesis using assms(1) unfolding It_defs by simp
+next
+  case (reducing Y \<alpha> X \<beta> \<gamma> \<rho> w)
+  then show ?thesis using assms(1,2) unfolding It_defs by simp
+next
+  case (expanding Y \<alpha> X \<beta> \<gamma> i \<rho> w)
+  then show ?thesis unfolding It_defs by simp
+qed
+  
 
 
 abbreviation steps (infix \<open>\<turnstile>P*\<close> 70) where
@@ -272,9 +291,20 @@ proof (induction u arbitrary: \<alpha>)
 qed simp
 
 lemma reachable_impl_in_It:
-  assumes "(init_state IPDA#\<rho>0, u) \<turnstile>P* (\<rho>1, v)"
-  shows "\<forall>i \<in> set \<rho>1. i \<in> It G'"
-  sorry
+  "\<lbrakk>([init_state IPDA, init_symbol IPDA], u) \<turnstile>P* (\<rho>1, v); i \<in> set \<rho>1 - {init_symbol IPDA}\<rbrakk> 
+    \<Longrightarrow> i \<in> It G'"
+proof (induction arbitrary: i rule: rtranclp_induct2)
+  case refl
+  then show ?case unfolding It_defs G'_def by auto
+next
+  case (step \<rho>0 u \<rho>1 v)
+  note step_unfolded = step(3,4)[unfolded It_defs]
+  from step(2) show ?case 
+    (* Avoid apply? *)
+    apply (cases rule: step_cases)
+    using step(3,4) by (fastforce simp: It_defs(2))+
+qed
+
 
 
 lemma steps_substring:

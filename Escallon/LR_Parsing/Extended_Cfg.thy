@@ -3,6 +3,70 @@ theory Extended_Cfg
     Context_Free_Grammar.Context_Free_Grammar 
 begin
 
+
+(* A generic list lemma *)
+lemma index_gt_left_impl_right:
+  assumes "length xs < m" "m < length (xs@y#ys)"
+        shows "(xs@y#ys)!m \<in> set ys"
+proof -
+  have "(xs@y#ys)!m = (y#ys)!(m-length xs)" 
+    using assms(1) by (meson le_eq_less_or_eq nth_append_right)
+  also have "... = ys!(m-length xs-1)" 
+    using assms(1) by simp
+  finally show ?thesis 
+    by (metis One_nat_def Suc_pred add_diff_inverse_nat add_less_cancel_left assms length_Cons
+        length_append less_Suc_eq not_less_eq nth_mem zero_less_diff)
+qed
+
+
+(* Generic right derivation lemmas *)
+lemma right_derivs_eq_impossible:
+  assumes "\<beta> @ Nt A # map Tm u = \<beta>' @ Nt A' # map Tm u'" (is "?w = ?w'")
+    "length \<beta> < length \<beta>'" (is "?n < ?m")
+  shows False
+proof -
+  have inds: "?w!?n = Nt A" "?w'!?m = Nt A'" by auto 
+  with assms obtain a where "?w!?m = Tm a"
+    using index_gt_left_impl_right[of \<beta> ?m "Nt A" "map Tm u", OF assms(2)] by auto
+  then show False using inds(2) assms(1) by simp
+qed
+
+lemma right_derivs_eq_impl_eq_tl:
+  assumes "\<beta> @ Nt A # map Tm u = \<beta>' @ Nt A' # map Tm u'"
+  shows "u = u'"
+proof (rule ccontr)
+  assume neq: "u \<noteq> u'"
+  then show False
+  proof (cases "length u = length u'")
+    case False
+    with assms have "length \<beta> \<noteq> length \<beta>'" by fastforce
+    then consider "length \<beta> < length \<beta>'" | "length \<beta>' < length \<beta>" by linarith
+    then show ?thesis
+      using right_derivs_eq_impossible assms assms[symmetric] 
+      by cases fast+
+  qed (use assms neq in auto)
+qed
+
+lemma deriver_impl_in_Prods:
+  assumes "Prods G' \<turnstile> \<gamma> @ Nt A#map Tm w \<Rightarrow>r \<gamma>@\<alpha>@map Tm w"
+  shows "(A, \<alpha>) \<in> Prods G'"
+  using deriver.cases[OF assms]
+  by (metis append_eq_append_conv length_Cons list.inject right_derivs_eq_impl_eq_tl
+      sym.inject(1))
+
+lemma deriver_impl_handle:
+  assumes "P \<turnstile> \<beta> @ Nt A#map Tm u \<Rightarrow>r \<gamma> @ Nt X#map Tm v"
+  obtains \<alpha> where "\<beta>@\<alpha>@map Tm u = \<gamma> @ Nt X#map Tm v"
+    "(A, \<alpha>) \<in> P" 
+proof -
+  from deriver.cases[OF assms] obtain A' \<alpha>' \<beta>' u' where
+    "\<beta> @ Nt A # map Tm u = \<beta>' @ Nt A' # map Tm u'"
+    "\<gamma> @ Nt X # map Tm v = \<beta>' @ \<alpha>' @ map Tm u'"
+    "(A', \<alpha>') \<in> P" by metis
+  with right_derivs_eq_impl_eq_tl[OF this(1)] show thesis using that by simp
+qed
+
+
 section \<open>Context-Free Items\<close>
 
 datatype ('n, 't) item = Item 'n  "('n, 't) syms"  "('n, 't) syms"
@@ -49,7 +113,7 @@ lemma ItI[intro]:
   using assms unfolding It_def by presburger
 
 *)
-declare It_def[simp]
+
 
 lemma prod_items_finite:
   "finite {[A \<rightarrow> \<alpha> . \<beta>] | \<alpha> \<beta>. (A, \<alpha>@\<beta>) = (A, w)}"
@@ -109,7 +173,7 @@ qed
 corollary It_finite:
   assumes "finite (Prods G)"
 shows "finite (It G)"
-  using assms items_of_Prods_finite by auto
+  using assms items_of_Prods_finite unfolding It_def by auto
 
 
 section \<open>Finite/Pushdown Automata\<close>
@@ -290,6 +354,17 @@ lemma G_derives_from_S_impl_G'_derives_from_S':
   using assms G_derives_impl_G'_derives G'_derive_S
   by fastforce
 
+lemma G'_derives_from_S_impl_derives_from_S':
+  assumes "Prods G' \<turnstile> [Nt S] \<Rightarrow>* \<alpha>"
+  shows "Prods G' \<turnstile> [Nt S'] \<Rightarrow>* \<alpha>"
+  using assms G'_derive_S by simp
+
+corollary G'_derives_from_S_impl_in_Lang:
+  assumes "Prods G' \<turnstile> [Nt S] \<Rightarrow>* map Tm w"
+  shows "w \<in> LangS G'"
+  using G'_derives_from_S_impl_derives_from_S'[OF assms]
+  unfolding Lang_def G'_def by simp
+
 lemma G'_derive_impl_G_derive_if_no_S':
   "\<lbrakk>Prods G' \<turnstile> \<alpha> \<Rightarrow> \<gamma>; Nt S' \<notin> set \<alpha>\<rbrakk> \<Longrightarrow> Prods G \<turnstile> \<alpha> \<Rightarrow> \<gamma>"
   using G'_def by (simp add: derive_iff in_set_conv_decomp)
@@ -327,6 +402,7 @@ qed
 
 corollary G'_not_empty: 
   "LangS G' \<noteq> {}" using Lang_preserved G_not_empty by simp
+
 
 lemma Nts_G'_is_union[simp]: "Nts (Prods G) \<union> {S',S} = Nts (Prods G')"
   using G'_def in_Nts_iff_in_Syms by force

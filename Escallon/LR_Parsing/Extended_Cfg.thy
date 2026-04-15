@@ -288,15 +288,15 @@ qed
 
 
 locale Extended_Cfg = 
-    fixes G G' :: "('n::fresh0, 't) Cfg"
-      and S S' :: 'n
+    fixes G :: "('n::fresh0, 't) Cfg"
   assumes G_finite: "finite (Prods G)"
       and G_reduced: "reduced G"
       and G_not_empty: "LangS G \<noteq> {}"
-  defines "S \<equiv> Start G"
-      and "S' \<equiv> fresh0 (Nts (Prods G) \<union> {S})"
-      and "G' \<equiv> Cfg (Prods G \<union> {(S', [Nt S])}) S'"
 begin
+
+definition "S \<equiv> Start G"
+definition "S' \<equiv> fresh0 (Nts (Prods G) \<union> {S})"
+definition "G' \<equiv> Cfg (Prods G \<union> {(S', [Nt S])}) S'"
 
 lemma G'_finite:
   "finite (Prods G')"
@@ -380,6 +380,8 @@ proof (induction rule: rtranclp_induct)
   ultimately  show ?case using step G'_derive_impl_G_derive_if_no_S'[OF step(2)]
     by simp
 qed simp
+
+
 
   
 lemma Lang_preserved:

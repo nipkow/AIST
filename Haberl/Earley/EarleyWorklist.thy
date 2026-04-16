@@ -276,8 +276,8 @@ fun recognized_L :: "('n, 'a) item list \<Rightarrow> bool" where
 "recognized_L (a#as) = (is_final a \<or> recognized_L as)"
 
 (*defined as a function for time_fun (could maybe be solved differently)*)
-definition earley_recognized where
-"earley_recognized _ = recognized_L (last (bins_L (length w)))"
+abbreviation earley_recognized where
+"earley_recognized \<equiv> recognized_L (last (bins_L (length w)))"
 
 subsection \<open>Correctness of ItemList algorithm\<close>
 
@@ -295,6 +295,10 @@ lemma Predict_eq: "set (Predict_L st k) = Predict st k"
 lemma Complete_eq: "from st < length Bs \<Longrightarrow> set (Complete_L Bs st) = Complete (map set Bs) st"
   by (auto simp add: Complete_L_def Complete_def nths_map)
 end
+
+(**)
+fun earley_recognized1 :: "('n \<times> ('n, 'a) sym list) list \<Rightarrow> 'n \<Rightarrow> 'a list \<Rightarrow> bool" where
+"earley_recognized1 xs s w3 = Earley_Gw.earley_recognized xs s w3"
 
 context Earley_Gw_eps
 begin
@@ -815,10 +819,10 @@ corollary bins_L_eq_\<S>: "i \<le> k \<Longrightarrow> k \<le> length w \<Longri
 lemma recognized_set: "recognized_L as = (\<exists>x \<in> set as. is_final x)"
   by (induction as) auto
 
-lemma earley_recognized_eq_recognized_Earley: "earley_recognized y \<longleftrightarrow> recognized Earley"
+lemma earley_recognized_eq_recognized_Earley: "earley_recognized \<longleftrightarrow> recognized Earley"
 proof
-  assume "earley_recognized y"
-  then have "\<exists>x \<in> set (last (bins_L (length w))). is_final x" using recognized_set earley_recognized_def
+  assume "earley_recognized"
+  then have "\<exists>x \<in> set (last (bins_L (length w))). is_final x" using recognized_set 
     by metis
   then obtain x where P: "is_final x \<and> x \<in> set (last (bins_L (length w)))" by blast
   then have "x \<in> \<S> (length w)" using bins_L_eq_\<S> length_bins_L last_conv_nth
@@ -834,11 +838,11 @@ next
   then have "x \<in> set (last (bins_L (length w)))" using bins_L_eq_\<S> length_bins_L last_conv_nth
     by (metis bins_L_eq_bins bins_nonempty diff_Suc_1 map_is_Nil_conv nat_le_linear)
   then have "\<exists>x \<in> set (last (bins_L (length w))). is_final x" using P by blast
-  then show "earley_recognized y" using recognized_set earley_recognized_def by metis
+  then show "earley_recognized" using recognized_set by metis
 qed
 
 theorem correctness_earley:
-  shows "earley_recognized y \<longleftrightarrow> P \<turnstile> [Nt S] \<Rightarrow>* w"
+  shows "earley_recognized \<longleftrightarrow> P \<turnstile> [Nt S] \<Rightarrow>* w"
   using correctness_Earley earley_recognized_eq_recognized_Earley by metis 
 
 end
@@ -902,7 +906,7 @@ lemma card_Si: "card (\<S> i) \<le> L * (Suc K) * (Suc i)"
 lemma Si_empty: "i > length w \<Longrightarrow> \<S> i = {}"
   using wf_Earley by (fastforce simp add: \<S>_def wf_item_def)
 
-theorem "card Earley \<le> L * (Suc K) * (Suc (length w))^2"
+theorem card_Earley: "card Earley \<le> L * (Suc K) * (Suc (length w))^2"
 proof-
   let ?X = "{x. (\<exists>i \<le> length w. x = {(y, z). wf_item y z \<and> z = i})}"
 
@@ -1016,9 +1020,10 @@ time_fun bins_L
 
 time_fun is_final
 time_fun recognized_L
-time_fun earley_recognized
-
+time_fun earley_recognized1
 end (*Context Earley_Gw*)
+
+
 
 locale Earley_Gw_eps_T = Earley_Gw_eps where ps = ps for ps :: "('n,'a) prods" +
   fixes T_nth_IL:: "nat \<Rightarrow> nat"
@@ -1239,9 +1244,9 @@ qed
 
 lemma T_Complete_L_bound: 
   assumes "from y < length Bs" "wf_bins1 (map set Bs)" 
-  shows "T_Complete_L Bs y \<le> T_nth_IL (from y) + 2*(K + 2) * length (Bs ! from y) + 2"
+  shows "T_Complete_L Bs y \<le> length Bs + 2*(K + 2) * length (Bs ! from y) + 2"
 proof -
-  have 1: "T_nth Bs (from y) \<le> T_nth_IL (from y)" using T_nth_Bound by simp
+  have 1: "T_nth Bs (from y) \<le> length Bs" using assms by (simp add: T_nth)
   have "\<forall>x \<in> set (Bs ! from y). (\<lambda>b. T_next_symbol b + (T_prod y + T_fst (item.prod y))) x \<le> 2*(Suc K)"
     using assms T_next_symbol_bound 
     by (auto simp add: wf_bins1_def wf_bin1_def wf_item1_def wf_item_def)
@@ -1316,7 +1321,7 @@ proof-
 
   let ?step = "if is_complete b then Complete_L Bs b else Predict_L b (length Bs)"
   let ?t_step = "(if is_complete b then T_Complete_L Bs b else T_length Bs + T_Predict_L b (length Bs))"
-  have t_step: "?t_step \<le> T_nth_IL (length Bs) + 2 * (K + 2) * L * (Suc K) * (Suc (length Bs)) + 2 + Suc (length Bs)"
+  have t_step: "?t_step \<le> 2 * (K + 2) * L * (Suc K) * (Suc (length Bs)) + 2 + Suc (length Bs)"
   proof (cases)
     assume complete: "is_complete b"
     then have 1: "from b < length Bs" using assms
@@ -1331,14 +1336,12 @@ proof-
     then have 4: "length (Bs ! from b) \<le> L * (Suc K) * (Suc (length Bs))" using 1
       by (meson Suc_le_mono le_trans mult_le_mono2 nat_less_le)
 
-    have "T_Complete_L Bs b \<le> T_nth_IL (from b) + 2 * (K + 2) * length (Bs ! from b) + 2"
+    have "T_Complete_L Bs b \<le> (length Bs) + 2 * (K + 2) * length (Bs ! from b) + 2"
       using assms T_Complete_L_bound 1 by (auto simp add: IL1 bbs simp del: T_Complete_L.simps)
-    also have "... \<le> T_nth_IL (from b) + 2 * (K + 2) * L * (Suc K) * (Suc (length Bs)) + 2" 
+    also have "... \<le> (length Bs) + 2 * (K + 2) * L * (Suc K) * (Suc (length Bs)) + 2" 
       using mult_le_mono2[OF 4]
       by (metis (no_types, lifting) ab_semigroup_mult_class.mult_ac(1) add_le_mono1 nat_add_left_cancel_le)
-    also have "... \<le> T_nth_IL (length Bs) + 2 * (K + 2) * L * (Suc K) * (Suc (length Bs)) + 2"
-      using mono_nth 1 by (auto simp add: monoD)
-    finally have "T_Complete_L Bs b \<le> T_nth_IL (length Bs) + 2 * (K + 2) * L * (Suc K) * (Suc (length Bs)) + 2".
+    finally have "T_Complete_L Bs b \<le> length Bs + 2 * (K + 2) * L * (Suc K) * (Suc (length Bs)) + 2".
     then show ?thesis using complete by simp
   next
     assume incomplete: "\<not>is_complete b"
@@ -1911,8 +1914,8 @@ qed
 
 definition C1' where "C1' = 30 * (L+1)^3 * (K+1)^3"
 
-lemma 
-  shows "T_earley_recognized y \<le> C1' *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_IL ((length w)+1)"
+lemma T_earley_recognized_nice:
+  shows "T_earley_recognized1 ps S w0 \<le> C1' *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_IL ((length w)+1)"
 proof-
   have wf_last: "wf_bin1 (set (last (bins_L (length w)))) (length w)" using wf_bin1_last
     by (metis bins_L_eq_bins length_bins_L lessI less_Suc_eq_le list.size(3) not_less_zero last_map)
@@ -1935,7 +1938,7 @@ proof-
   have 4: "T_length w = Suc (length w)"
     using T_length by auto
 
-  have "T_earley_recognized y \<le> T_bins_L (length w) + T_last (bins_L (length w)) + T_recognized_L(last (bins_L (length w))) + T_length w"
+  have "T_earley_recognized1 ps S w0 \<le> T_bins_L (length w) + T_last (bins_L (length w)) + T_recognized_L(last (bins_L (length w))) + T_length w"
     by auto
   also have "... \<le> C1 *((length w)+2)^3 + C2 * ((length w)+2)^3 * T_nth_IL ((length w)+1) + Suc (length w) + Suc (length w) + Suc (L * Suc K * Suc (length w)) * (K+2)" 
     using 1 2 3 4 by linarith
@@ -1997,6 +2000,8 @@ fun Parse_bins :: "nat \<Rightarrow> ('n, 'a) item_Pt set list" where
   "Parse_bins 0 = [(Parse_Close [] Parse_Init)]" |
   "Parse_bins (Suc k) = (let bs = Parse_bins k in bs @ [Parse_Close bs (Parse_Scan (last bs) k)])"
 
+definition valid_parse_tree :: "('n, 'a) Prods \<Rightarrow> ('n, 'a) sym list \<Rightarrow> 'n \<Rightarrow> ('n,'a) tree \<Rightarrow> bool" where
+"valid_parse_tree p ws A t \<equiv> parse_tree p t \<and> root t = Nt A \<and> fringe t = ws"
 
 lemma Parse_Predict_item: "Parse_Predict x k = Predict x k \<times> {[]}"
   by (auto simp add: Parse_Predict_def Predict_def)
@@ -2218,9 +2223,6 @@ lemma item_Pbins_eq_bins: "k \<le> length w \<Longrightarrow> map ((`) item) (Pa
 
 lemma "k \<le> length w \<Longrightarrow> i \<le> k \<Longrightarrow> item ` (Parse_bins k ! i) = \<S> i"
   using item_Pbins_eq_bins_nth by (simp add: bins_eq_\<S>_gen)
-
-definition valid_parse_tree :: "('n, 'a) Prods \<Rightarrow> ('n, 'a) sym list \<Rightarrow> 'n \<Rightarrow> ('n,'a) tree \<Rightarrow> bool" where
-"valid_parse_tree p ws A t \<equiv> parse_tree p t \<and> root t = Nt A \<and> fringe t = ws"
 
 lemma valid_parse_tree_iff_derived: "(\<exists> t. valid_parse_tree p ws A t) \<longleftrightarrow> p \<turnstile> [Nt A] \<Rightarrow>* ws"
 proof
@@ -2511,11 +2513,12 @@ fun get_parse_tree :: "('n,'a) item_Pt list \<Rightarrow> ('n,'a) tree option" w
 lemma get_parse_tree_NF: "is_final (fst x) \<Longrightarrow> x \<in> set xs \<Longrightarrow> \<exists>s t. (s,t) \<in> set xs \<and> is_final s \<and> get_parse_tree xs = Some (Rule S (rev t))"
   by (induction xs) auto
 
-fun parse_tree_w where
-"parse_tree_w _ = the (get_parse_tree (last (Parse_bins_L (length w))))"
-(*TODO make a definition and move outside of Context*)
-
+abbreviation parse_tree_w where
+"parse_tree_w \<equiv> get_parse_tree (last (Parse_bins_L (length w)))"
 end
+
+fun  get_parse_tree_w :: "('n \<times> ('n, 'a) sym list) list \<Rightarrow> 'n \<Rightarrow> 'a list \<Rightarrow> ('n, 'a) tree option" where                
+"get_parse_tree_w s xs w3 = Earley_Gw.parse_tree_w s xs w3"
 
 subsection \<open>Correctness of list based earley parser\<close>
 
@@ -3055,7 +3058,7 @@ qed
 
 
 corollary unambiguous_impl_the_parse_tree: 
-  assumes "unambiguous (Cfg P S)" shows "valid_parse_tree P w S t \<longrightarrow> get_parse_tree (last (Parse_bins_L (length w))) = Some t"
+  assumes "unambiguous (Cfg P S)" shows "valid_parse_tree P w S t \<longleftrightarrow> get_parse_tree (last (Parse_bins_L (length w))) = Some t"
 proof
   assume valid: "valid_parse_tree P w S t"
   then have "P \<turnstile> [Nt S] \<Rightarrow>* w"
@@ -3067,6 +3070,9 @@ proof
     by (simp add: generated_parse_tree_is_valid)
   then have "t1 = t" using assms valid w0_in_L by (auto simp add: unambiguous_def w_def)
   then show "get_parse_tree (last (Parse_bins_L (length w))) = Some t" using P_t1 by auto
+next 
+  assume "get_parse_tree (last (Parse_bins_L (length w))) = Some t"
+  then show "valid_parse_tree P w S t" using generated_parse_tree_is_valid by blast
 qed
 
 end
@@ -3877,11 +3883,11 @@ qed
 
 subsection \<open>Nice time bounds\<close>
 
-definition C3 where "C3 = (L * Suc K * Suc L * Suc K * (5 * L * Suc K + 4 * K * K + 24))"
-definition C4 where "C4 = (L * Suc K * (2 * L * Suc K + 2 * K + 20) + 7)"
-definition C6 where "C6 = L * Suc K * Suc L * Suc K * 17"
+definition C3 where "C3 = 10 * (Suc L)^3 * (Suc K)^4"
+definition C4 where "C4 = 10 * (Suc L)^2  * (Suc K)^3"
+definition C6 where "C6 = 17 * (Suc L)^2 * (Suc K)^2"
 definition C7 where "C7 = L * Suc K * 4"
-definition C5 where "C5 = L * Suc K  * (Suc L * Suc K  * (25 * T_nth_IL (0) + 5 * L * Suc K + 20) + 2 * L) + L + 5"
+definition C5 where "C5 = 10 * (Suc L)^3 * (Suc K)^3 + 25 * (Suc L)^2 * (Suc K)^2 * T_nth_IL (0)"
 
 
 theorem T_Parse_bins_bound_nice:
@@ -3918,9 +3924,123 @@ proof-
     + (k+2) * 3 
     + L * Suc K  * (Suc L * Suc K  * (25 * T_nth_IL (0) + 5 * L * Suc K + 20) + 2 * L) + L + 5" 
     by (simp only: monoid_mult_class.power3_eq_cube monoid_mult_class.power2_eq_square)
+  also have "... \<le> (k+2)^3 * 10 * (Suc L * Suc L * Suc L) * (Suc K * Suc K * Suc K * Suc K)
+    + (k+2)^3 * T_nth_IL (k) * 17  * (Suc L * Suc L) * (Suc K * Suc K)
+    + (k+2)^2 * 10 * (Suc L * Suc L) * (Suc K * Suc K * Suc K)
+    + (k+2)^2 * T_nth_IL (k) * L * Suc K * 4
+    + (k+2) * 3 
+    + 10 * (Suc L * Suc L * Suc L) * (Suc K * Suc K * Suc K) + 25 * (Suc L * Suc L) * (Suc K * Suc K) * T_nth_IL (0)"
+    by (auto simp add: algebra_simps)
+  also have "... = (k+2)^3 * 10 * (Suc L)^3 * (Suc K)^4
+    + (k+2)^3 * T_nth_IL (k) * 17 * (Suc L)^2 * (Suc K)^2
+    + (k+2)^2 * 10 * (Suc L)^2  * (Suc K)^3
+    + (k+2)^2 * T_nth_IL (k) * L * Suc K * 4
+    + (k+2) * 3
+    + 10 * (Suc L)^3 * (Suc K)^3 + 25 * (Suc L)^2 * (Suc K)^2 * T_nth_IL (0)"
+    by (simp only: monoid_mult_class.power3_eq_cube monoid_mult_class.power2_eq_square monoid_mult_class.power4_eq_xxxx)
   finally show ?thesis by (auto simp add: C3_def C4_def C5_def C6_def C7_def algebra_simps)
 qed
 
+
+time_fun get_parse_tree
+time_fun get_parse_tree_w
+
+lemma T_length_bound: "x \<in> P \<Longrightarrow> T_length (rhs x) \<le> Suc K" 
+  using prod_length_bound by (cases x) (auto simp add: T_length)
+
+lemma T_get_parse_tree_bound: "wf_parse_bin1 (set xs) k \<Longrightarrow> T_get_parse_tree xs \<le> Suc K * Suc (length xs) + 2 * K * K + 1 + Suc (length xs)"
+proof (induction xs)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a xs)
+  then have 1: "T_get_parse_tree xs \<le> Suc K * Suc (length xs) + 2 * K * K + 1 + Suc (length xs)" by auto
+  from Cons have 2: "T_is_final (item a) \<le> Suc K" using T_final_bound by (auto simp add: wf_item1_def wf_item_def)
+  from Cons have "T_rev (tree a) \<le> 2 * K * K + 1" using T_rev_tree by (auto simp add: wf_item1_def)
+  then show ?case using 1 2 by (simp del: T_is_final.simps)
+qed
+
+definition C8 where "C8 = 6 * Suc L * (Suc K)^2"
+
+lemma T_ovrall_time_bound: "T_get_parse_tree_w ps S w0 \<le>  
+  (length w + 2)^3 * C3 + (length w + 2)^2 * C4 + (length w + 2) * C8 + C5 
+        + (length w + 2)^3 * T_nth_IL (length w) * C6 + (length w + 2)^2 * T_nth_IL (length w) * C7"
+proof-
+  let ?C = "((length w)+2)^3 * C3 + ((length w)+2)^2 * C4 + ((length w)+2) * 3 + C5 
+        + ((length w)+2)^3 * T_nth_IL ((length w)) * C6 + ((length w)+2)^2 * T_nth_IL ((length w)) * C7"
+  have 1: "T_Parse_bins_L (length w) \<le> ?C  "
+    using T_Parse_bins_bound_nice[of "length w"] by simp
+  have ne: "(Parse_bins_L (length w)) \<noteq> []"
+    by (metis Zero_not_Suc length_0_conv length_Parse_bins)
+  then have wf_last: "wf_parse_bin1 (set (last (Parse_bins_L (length w)))) (length w)"
+    using wf_parse_bins_L[of "length w"] 
+    by (auto simp del: wf_parse_bin1.simps simp add: wf_parse_bins1_def last_conv_nth)
+  have "length (last (Parse_bins_L (length w))) \<le> L * Suc K * Suc (length w)" 
+    using Parse_bins_L_lengths ne w_def by (auto simp add: last_conv_nth)
+  then have T_pt: "T_get_parse_tree (last (Parse_bins_L (length w))) 
+    \<le> Suc K * Suc (L * Suc K * Suc (length w)) + 2 * K * K + 1 + Suc (L * Suc K * Suc (length w))"
+    using T_get_parse_tree_bound[of "last (Parse_bins_L (length w))" "length w"] wf_last
+    by (smt (verit, ccfv_SIG) Suc_le_mono Suc_mult_le_cancel1 add_le_mono add_le_mono1 le_trans)
+  have T_l: "T_last (Parse_bins_L (length w)) = Suc (length w)" using ne T_last by auto
+  then have "T_get_parse_tree_w ps S w0 \<le> Suc (length w) + ?C + Suc (length w)
+    + Suc K * Suc (L * Suc K * Suc (length w)) + 2 * K * K + 1 + Suc (L * Suc K * Suc (length w))" 
+    unfolding T_get_parse_tree_w.simps using ne 1 T_length[of w] T_l T_pt by linarith
+  also have "... \<le> (length w + 2)^3 * C3 + (length w + 2)^2 * C4 + (length w + 2) * (6 * Suc L * Suc K * Suc K) + C5 
+        + (length w + 2)^3 * T_nth_IL (length w) * C6 + (length w + 2)^2 * T_nth_IL (length w) * C7"
+    by (simp add: algebra_simps)
+  finally show ?thesis by (simp only: C8_def monoid_mult_class.power2_eq_square)
+qed
+end
+
+
+
+context Earley_Gw
+begin
+(*code declarations for recognizer*)
+  declare Earley_Gw.Predict_L_def[code]
+  declare Earley_Gw.mv_dot_def[code]
+  declare Earley_Gw.Complete_L_def[code]
+  declare Earley_Gw.Scan_L_def[code]
+  declare Earley_Gw.Init_L_def[code]
+  declare Earley_Gw.step_fun.simps[code]
+  declare Earley_Gw.steps_def[code]
+  declare Earley_Gw.close2_L_def[code]
+  declare Earley_Gw.bins_L.simps[code]
+  declare Earley_Gw.w_def[code]
+  declare Earley_Gw.is_final_def[code]
+  declare Earley_Gw.recognized_def[code]
+  declare Earley_Gw.recognized_L.simps[code]
+  
+  declare Earley_Gw.IL_of_List_def[code]
+  declare Earley_Gw.union_LIL.simps[code]
+  declare Earley_Gw.minus_IL_def[code]
+  declare empty_IL_def[code]
+  declare Earley_Gw.insert.simps[code]
+  declare Earley_Gw.minus_LIL.simps[code]
+  declare isin.simps[code]
+
+(*parse code defs*)
+  declare Earley_Gw.Parse_Init_L_def[code]
+  declare Earley_Gw.Parse_Predict_L_def[code]
+  declare Earley_Gw.Parse_Complete_L_def[code]
+  declare Earley_Gw.Parse_Scan_L_def[code]
+  
+  declare Earley_Gw.Parse_step_fun.simps[code]
+  declare Earley_Gw.Parse_steps_def[code]
+  declare Earley_Gw.Parse_close2_L_def[code]
+  declare Earley_Gw.Parse_bins_L.simps[code]
+  declare Earley_Gw.get_parse_tree.simps[code]
+  
+  declare Earley_Gw.PIL_list.simps[code]
+  declare Earley_Gw.empty_PIL_def[code]
+  declare Earley_Gw.parseIL_isin.simps[code]
+  declare Earley_Gw.parseIL_insert.simps[code]
+  declare Earley_Gw.union_LPIL.simps[code]
+  declare Earley_Gw.minus_LPIL.simps[code]
+  declare Earley_Gw.minus_PIL_def[code]
+  declare Earley_Gw.PIL_of_List_def[code]
+  declare Earley_Gw.PIL_first.simps[code]
+  declare Earley_Gw.PIL_map_item_def[code]
 end
 
 section \<open>Example\<close>
@@ -3935,29 +4055,13 @@ proof
   show "eps_free ps" by (auto simp add: Eps_free_def ps_def)
 qed
 
-declare Earley_Gw.Predict_L_def[code]
-declare Earley_Gw.mv_dot_def[code]
-declare Earley_Gw.Complete_L_def[code]
-declare Earley_Gw.Scan_L_def[code]
-declare Earley_Gw.Init_L_def[code]
-declare Earley_Gw.step_fun.simps[code]
-declare Earley_Gw.steps_def[code]
-declare Earley_Gw.close2_L_def[code]
-declare Earley_Gw.bins_L.simps[code]
-declare Earley_Gw.w_def[code]
-
-declare Earley_Gw.IL_of_List_def[code]
-declare Earley_Gw.union_LIL.simps[code]
-declare Earley_Gw.minus_IL_def[code]
-declare empty_IL_def[code]
-declare Earley_Gw.insert.simps[code]
-declare Earley_Gw.minus_LIL.simps[code]
-declare isin.simps[code]
-
 value "bins_L 0"
 value "bins_L 1"
 value "bins_L 2"
 value "bins_L 3"
+
+value "earley_recognized"
+value "parse_tree_w"
 
 (*unused_thms*)
 end

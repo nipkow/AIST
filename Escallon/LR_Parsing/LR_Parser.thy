@@ -212,12 +212,13 @@ section \<open>Proving 3.4.1\<close>
 context Extended_Cfg
 begin
 
-interpretation ipda G' S S' G IPDA 
+
+interpretation I: ipda G IPDA 
   by standard simp
 
 corollary ipda_IPDA: 
   "ipda G IPDA"
-  by (rule ipda_axioms)
+  by (rule I.ipda_axioms)
 
 notation char_fa.step (infix \<open>\<turnstile>c\<close> 70)
 notation char_fa.steps (infix \<open>\<turnstile>c*\<close> 70)
@@ -231,7 +232,7 @@ abbreviation IPDA_step :: "('n,'t) item list \<times> 't list \<Rightarrow> ('n,
 
 abbreviation IPDA_steps :: "('n,'t) item list \<times> 't list \<Rightarrow> ('n,'t) item list \<times> 't list 
                     \<Rightarrow> bool" (infix \<open>\<turnstile>P*\<close> 70) where
-  "(\<turnstile>P*) \<equiv> ((ipda.step IPDA) \<^sup>*\<^sup>*)"
+  "(\<turnstile>P*) \<equiv> (ipda.steps IPDA)"
 
 abbreviation IPDA_stepn :: "('n,'t) item list \<times> 't list \<Rightarrow> nat \<Rightarrow> ('n,'t) item list \<times> 't list 
                     \<Rightarrow> bool" ( \<open>_ \<turnstile>P'(_') _\<close> 70) where
@@ -241,8 +242,8 @@ abbreviation IPDA_stepn :: "('n,'t) item list \<times> 't list \<Rightarrow> nat
 
 
 
-
-(*lemma char_init_step_is_eps:
+(*
+lemma char_init_step_is_eps:
   assumes "([S' \<rightarrow> [] . [Nt S]], \<gamma>) \<turnstile>c ([A \<rightarrow> \<alpha> . \<beta>], \<gamma>')" (is "(?S,_) \<turnstile>c _")
   shows "A = S \<and> \<gamma> = \<gamma>'"
   using assms proof cases
@@ -326,9 +327,9 @@ lemma deriver_decomp_reachable:
             (Xi, \<alpha>si@Nt Xsi#\<beta>si) \<in> P \<and> P \<turnstile> \<beta>si \<Rightarrow>r* map Tm vi"
     "w = rev (concat v)" "\<gamma> = concat \<alpha>"
   shows "P \<turnstile> A \<Rightarrow>r* take i (concat \<alpha>) @ Nt (X!i) # rev (take i (map Tm (concat v)))"
-  sorry *)
+  sorry 
 
-
+*)
 
 
 
@@ -373,7 +374,7 @@ definition toitems :: "'n list \<Rightarrow> ('n,'t) syms list \<Rightarrow> ('n
 lemma derivers_S_append_impl_comp:
   assumes "Prods G' \<turnstile> \<beta> \<Rightarrow>r* map Tm w"
     "\<alpha>@\<beta> = [Nt S]"
-  shows "([[S' \<rightarrow> \<alpha> . \<beta>], init_symbol IPDA], w) \<turnstile>P* ([final_state, init_symbol IPDA], [])"
+  shows "([[S' \<rightarrow> \<alpha> . \<beta>], init_symbol IPDA], w) \<turnstile>P* ([I.final_state, init_symbol IPDA], [])"
 proof -
   from assms consider "\<alpha> = [Nt S] \<and> \<beta> = []" | (init) "\<alpha> = [] \<and> \<beta> = [Nt S]"
     using append_eq_Cons_conv by fastforce
@@ -382,125 +383,220 @@ proof -
     case init
     with assms(1) have "w \<in> LangS G'" using G'_derives_from_S_impl_in_Lang
       by (simp add: derivers_imp_derives)
-    then show ?thesis using Lang_eq_Lang_G Lang_preserved init_state_ipda init 
-      unfolding Lang_def by auto
+    then show ?thesis using I.Lang_eq_Lang_G Lang_preserved I.init_state_ipda init 
+      unfolding I.Lang_def by auto
   qed (use assms(1) derivers_imp_derives in force)
 qed
 
 lemma derivers_impl_in_stack:
   assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma>@Nt A#map Tm w"
-    "Prods G' \<turnstile> \<gamma>@Nt A#map Tm w \<Rightarrow>r \<gamma>@\<alpha>@\<beta>@map Tm w"
-    "\<gamma>@\<alpha>@\<beta>@map Tm w = \<delta>@Nt B#map Tm u"
-    "Prods G' \<turnstile> \<alpha> \<Rightarrow> map Tm v"
-    "Prods G' \<turnstile> \<beta> \<Rightarrow> map Tm v'"
-    "([A \<rightarrow> \<alpha>@\<beta> . []]#\<rho>@[init_symbol IPDA], w) \<turnstile>P* ([final_state, init_symbol IPDA],[])"
+    "Prods G' \<turnstile> \<gamma>@Nt A#map Tm w \<Rightarrow>r \<gamma>@\<alpha>@map Tm w"
+    "\<gamma>@\<alpha>@map Tm w = \<delta>@Nt B#map Tm u"
+    "Prods G' \<turnstile> \<delta>@Nt B#map Tm u \<Rightarrow>r \<delta>@\<beta>@map Tm u"
+    "Prods G' \<turnstile> \<beta> \<Rightarrow>r* map Tm v"
+    "([A \<rightarrow> \<alpha> . []]#\<rho>@[init_symbol IPDA], w) \<turnstile>P* ([final_state, init_symbol IPDA],[])"
   obtains X xs ys \<rho>l \<rho>r where 
     "\<rho> = \<rho>l@[X \<rightarrow> xs . Nt B#ys]#\<rho>r" 
-    "([A \<rightarrow> \<alpha>@\<beta> . []]#\<rho>@[init_symbol IPDA], u) \<turnstile>P* ([X \<rightarrow> xs . Nt B#ys]#\<rho>r@[init_symbol IPDA], v@v'@w)"
+    "([A \<rightarrow> \<alpha> . []]#\<rho>@[init_symbol IPDA], w) \<turnstile>P* ([X \<rightarrow> xs . Nt B#ys]#\<rho>r@[init_symbol IPDA], v@u)"
+    "([X \<rightarrow> xs . Nt B#ys]#\<rho>r@[init_symbol IPDA], v@u) \<turnstile>P* ([final_state, init_symbol IPDA],[])"
   sorry
 
-lemma derivers_impl_computes:
-  assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma>@Nt A#map Tm w"
-    "Prods G' \<turnstile> \<gamma>@Nt A#map Tm w \<Rightarrow>r \<gamma>@\<alpha>@\<beta>@map Tm w"
-    "Prods G' \<turnstile> \<beta> \<Rightarrow>r* map Tm v"
-  obtains \<rho> u where 
-    "([init_state IPDA, init_symbol IPDA], u) \<turnstile>P* ([A \<rightarrow> \<alpha> . \<beta>]#\<rho>@[init_symbol IPDA], v@w)"
+(* FIXME: Does not hold. *)
+lemma deriver_impl_ex_hist:
+  assumes 
+    "Prods G' \<turnstile> \<gamma>@Nt A#map Tm u \<Rightarrow>r* \<delta>@Nt B#map Tm v"
+obtains \<rho> \<sigma> where     
+    "([A \<rightarrow> \<alpha> . []]#\<rho>@[init_symbol IPDA], u) \<turnstile>P* ([B \<rightarrow> \<beta> . []]#\<sigma>@[init_symbol IPDA], v)"
+    "hist \<rho> = \<gamma>"
+    "hist \<sigma> = \<delta>"
+  oops
+
+
+
+
+lemma last_Nt:
+  assumes "\<alpha>@\<beta>@\<gamma>@map Tm u = \<delta>@Nt A#map Tm v"
+    "Nt A \<in> set \<beta>"
+    "Nt A \<notin> set \<gamma>"
+  obtains \<zeta> w x where "\<beta> = \<zeta> @ Nt A # map Tm w" "\<gamma> = map Tm x"
   sorry
 
-lemma deriver_Tms_grow:
-  assumes "P \<turnstile> \<alpha>@Nt A#map Tm u \<Rightarrow>r \<beta>@Nt B#map Tm w"
-  obtains v where "w = v@u"
-  using assms proof (induction w)
-  case Nil
-  from Nil(2) obtain \<gamma> where "(A,\<gamma>) \<in> P" "\<alpha>@\<gamma>@map Tm u = \<beta>@Nt B#[]" 
-    by (metis deriver_impl_handle list.map_disc_iff)
-  then show ?case using Nil(1) 
-    by (metis append_is_Nil_conv last_appendR last_map last_snoc list.map_disc_iff sym.distinct(1))
-next
-  case (Cons a w)
-  from Cons(3) obtain \<gamma> where "(A,\<gamma>) \<in> P" "\<alpha>@\<gamma>@map Tm u = \<beta>@Nt B#map Tm (a#w)" 
-    by (metis deriver_impl_handle)
-  then obtain \<delta> \<zeta> where  "\<delta>@Nt B#\<zeta> = \<alpha>@\<gamma>" sorry
-  (* TODO: use right_derivs_eq_impl_eq_tl *)
-  then show ?case sorry
-qed
+lemma derivers_append_map_Tm:
+  assumes "P \<turnstile> \<alpha> \<Rightarrow>r* u"
+  shows "P \<turnstile> \<alpha>@map Tm v \<Rightarrow>r* u @ map Tm v"
+  using assms by (simp add: derivern_append_map_Tm rtranclp_power)
 
+
+lemma derivers_prepend:
+  assumes "P \<turnstile> \<beta> \<Rightarrow>r* u"
+  shows "P \<turnstile> \<alpha>@\<beta> \<Rightarrow>r* \<alpha> @ u"
+  using assms derivern_prepend rtranclp_power by (smt (verit))+
+
+
+ 
+lemma deriver_decomp:
+  assumes "P \<turnstile> [Nt A] \<Rightarrow>r* \<gamma>' @ Nt B # map Tm w"
+    "[Nt A] \<noteq> \<gamma>' @ Nt B # map Tm w"
+    "P = Prods G''"
+    "reduced G''"
+    "LangS G'' \<noteq> {}"
+  obtains X \<alpha> \<alpha>' \<beta> \<beta>' v v' where
+    "P \<turnstile> [Nt A] \<Rightarrow>r* \<alpha>@Nt X#\<beta>"
+    "P \<turnstile> \<alpha>@Nt X#\<beta> \<Rightarrow>r* \<alpha>@Nt X#map Tm v"
+    "P \<turnstile> \<alpha>@Nt X#map Tm v \<Rightarrow>r \<alpha>@\<alpha>'@Nt B#\<beta>'@map Tm v"
+    "P \<turnstile> \<alpha>@\<alpha>'@Nt B#\<beta>'@map Tm v \<Rightarrow>r* \<alpha>@\<alpha>'@ Nt B#map Tm (v'@v)" 
+    "\<gamma>' = \<alpha>@\<alpha>'" "w = v'@v"
+  using assms(1,2) proof (induction "\<gamma>' @ Nt B # map Tm w" arbitrary: \<gamma>' B w thesis rule: rtranclp_induct)
+  case (step \<delta>)
+  show ?case
+  proof (cases "[Nt A] = \<delta>", goal_cases single_step steps)
+    case single_step
+    then show ?case using step
+      by (metis append.right_neutral append_Nil list.simps(8) rtranclp.rtrancl_refl)
+  next
+    case steps
+    from step(2) obtain C \<zeta> u \<eta> where \<delta>_prod: "\<delta> = \<zeta> @ Nt C # map Tm u" "(C, \<eta>) \<in> P" 
+      "\<zeta>@\<eta>@map Tm u = \<gamma>'@Nt B # map Tm w"
+      using deriver.cases by metis
+    from step(3)[OF \<delta>_prod(1) _ steps[unfolded this(1)]] obtain \<alpha> X \<beta> v \<alpha>' \<beta>' v' where \<delta>_decomp:
+      "P \<turnstile> [Nt A] \<Rightarrow>r* \<alpha>@Nt X#\<beta>" "P \<turnstile> \<alpha>@Nt X#\<beta> \<Rightarrow>r* \<alpha>@Nt X#map Tm v" 
+      "P \<turnstile> \<alpha>@Nt X#map Tm v \<Rightarrow>r \<alpha>@\<alpha>'@Nt C#\<beta>'@map Tm v" 
+      "P \<turnstile> \<alpha>@\<alpha>'@Nt C#\<beta>'@map Tm v \<Rightarrow>r* \<alpha>@\<alpha>'@Nt C#map Tm (v'@v)" 
+      "\<zeta> = \<alpha>@\<alpha>'" "u = v'@v" using assms(3-) by blast
+    note aux = step(4)[of \<zeta> C "\<beta>'@map Tm v" "v'@v"] 
+
+
+    from  \<delta>_prod(3) consider "Nt B \<in> set \<eta>" | "Nt B \<in> set \<zeta> \<and> Nt B \<notin> set \<eta>"
+      by (metis Nts_syms_Nil Nts_syms_append Nts_syms_map_Tm Un_iff append.right_neutral in_Nts_syms
+          list.set_intros(1))
+    then show ?case proof cases
+      case 1
+      then obtain \<theta> \<iota> where \<eta>_decomp: "\<theta> @ Nt B # \<iota> = \<eta>" "Nt B \<notin> set \<iota>"
+        by (metis split_list_last)
+      with \<delta>_prod have \<iota>_is_Tms: "\<iota> @ map Tm u = map Tm w"
+        sorry
+      moreover then obtain x where \<iota>_def: "\<iota> = map Tm x" 
+        by (metis append_eq_map_conv)
+      moreover from \<delta>_decomp have "P \<turnstile> [Nt A] \<Rightarrow>r* \<zeta> @ Nt C # \<beta>' @ map Tm v" 
+         "P \<turnstile> \<zeta> @ Nt C # \<beta>' @ map Tm v \<Rightarrow>r* \<zeta> @ Nt C # map Tm (v' @ v)"
+         "P \<turnstile> \<zeta> @ Nt C # map Tm (v' @ v) \<Rightarrow>r \<zeta> @ \<theta> @ Nt B # \<iota> @ map Tm (v' @ v)"
+         "P \<turnstile> \<zeta> @ \<theta> @ Nt B # \<iota> @ map Tm (v' @ v) \<Rightarrow>r* \<zeta> @ \<theta> @ Nt B # map Tm (x @ v' @ v)"
+          apply simp
+        using \<delta>_decomp apply simp
+        using \<delta>_prod \<eta>_decomp deriver.cases 
+         \<delta>_decomp(6) step.hyps(2) apply force
+        using \<iota>_def by simp
+      moreover have "\<gamma>' = \<zeta> @ \<theta>" using \<delta>_prod(3) \<eta>_decomp \<iota>_is_Tms 
+        by fastforce
+      ultimately show ?thesis using \<delta>_decomp 
+        by (metis (mono_tags, lifting) map_Tm_inject_iff map_append step.prems(1)) 
+    next
+      case 2
+      then show ?thesis sorry
+    qed
+  qed
+qed simp
+
+
+    (* New approach: we show that A must be in the stack, reachable by X as seen above. 
+       Be more precise to show that w' is actually u@v@w. with \<alpha> \<Rightarrow>* u. After one \<epsilon> transition, IH
+      can be used
+      Problem: proving hist \<rho> = \<gamma>' 
+
+      Previous approach: induct over n steps. Problem: last step does not produce A in general
+      Possibly: induct over n steps with weak induction obtaining X and m where
+        S' \<Rightarrow>r(m) \<gamma>Xu \<Rightarrow>r \<gamma>\<delta>A\<zeta>u \<Rightarrow>r* \<gamma>'Aw with m < n *)
 lemma deriver_impl_IPDA_comp:
   assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma>'@Nt A#map Tm w"
     "Prods G' \<turnstile> \<gamma>'@Nt A#map Tm w \<Rightarrow>r \<gamma>'@\<alpha>@\<beta>@map Tm w"
     "Prods G' \<turnstile> \<beta> \<Rightarrow>r* map Tm v"
-  obtains \<rho> where "([A \<rightarrow> \<alpha> . \<beta>]#\<rho>@[init_symbol IPDA], v@w) 
-                    \<turnstile>P* ([final_state, init_symbol IPDA], [])"
-          "hist \<rho> = \<gamma>'" 
-proof -
-  let ?q0 = "[init_state IPDA, init_symbol IPDA]"
-  let ?qf = "[final_state, init_symbol IPDA]"
-  from assms obtain n where "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(n) \<gamma>'@Nt A#map Tm w" 
-    using rtranclp_power by meson
-  with assms(2,3) that show thesis
-  proof (induction n arbitrary: \<gamma>' A v w \<alpha> \<beta> thesis)
-    case 0 
-    then have A_is_S: "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r \<gamma>' @\<alpha>@\<beta>@map Tm w" "(S', \<alpha>@\<beta>) \<in> Prods G'" "A = S'"
-      by (simp add: Cons_eq_append_conv deriver_singleton)+
-     from this have eq_S: "\<alpha>@\<beta> = [Nt S]" "\<gamma>' = [] \<and> w = []"
-       using S'_derive_impl_S derive_singleton "0.prems"(4) Cons_eq_append_conv 
-       by (blast, fastforce)
-     with derivers_S_append_impl_comp[OF 0(2) eq_S(1)] show thesis using 0 A_is_S eq_S 
-       unfolding hist_defs 
-       by (metis append.right_neutral append_Nil concat.simps(1) list.simps(8))
-  next
-    case (Suc n)
-    from Suc(5,2) obtain as where \<alpha>_derivers: "Prods G' \<turnstile> \<alpha> \<Rightarrow>r* map Tm as"
-      using reduced_derived_substring_impl_derives[OF _ G'_reduced G'_not_empty] G'_def
-      by (metis (no_types, lifting) Cfg.sel(2) derivers_iff_derives derivers_imp_derives relpowp_imp_rtranclp
-          rtranclp.rtrancl_into_rtrancl)
-    from Suc(5) obtain X \<delta> u where n_steps: "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(n) \<delta> @ Nt X#map Tm u"
-      "Prods G' \<turnstile> \<delta> @ Nt X # map Tm u \<Rightarrow>r \<gamma>' @ Nt A # map Tm w"
-      by (metis (no_types, lifting) deriver.cases relpowp_Suc_E)
-    then obtain xs ys where xy_defs: "(X, xs@ys) \<in> Prods G'" "\<delta>@xs@ys@map Tm u = \<gamma>'@Nt A#map Tm w"
-      by (metis append.assoc append.right_neutral deriver_impl_handle)
-    with n_steps obtain v' where ys_derivers: "Prods G' \<turnstile> ys \<Rightarrow>r* map Tm v'"
-      using reduced_derived_substring_impl_derives[OF _ G'_reduced G'_not_empty]
-      rtranclp_power G'_def
-      by (metis Cfg.sel(2) Suc.prems(4) append.assoc derivern_imp_deriven derivers_iff_derives)
-    with Suc(1) obtain \<rho> where \<rho>_def:
-      "([X \<rightarrow> xs . ys]#\<rho>@[init_symbol IPDA], v'@u) \<turnstile>P* ([final_state, init_symbol IPDA],[])"
-      "hist \<rho> = \<delta>"
-      using n_steps xy_defs by metis
-    with derives_impl_completes reaches_final_impl_interm_reaches_final have X_complete_reaches_final:
-      "([X \<rightarrow> xs@ys . []]#\<rho>@[init_symbol IPDA], u) \<turnstile>P* ([final_state, init_symbol IPDA],[])"
-      using ys_derivers derivers_imp_derives by (metis append.right_neutral)
-    with derivers_impl_in_stack obtain Y ws zs \<rho>l \<rho>r where Y_defs:
-      "\<rho> = \<rho>l@[Y \<rightarrow> ws . Nt A#zs]#\<rho>r" 
-      "([X \<rightarrow> xs@ys . []]#\<rho>@[init_symbol IPDA], u) \<turnstile>P* (([Y \<rightarrow> ws . Nt A#zs]#\<rho>r)@[init_symbol IPDA], as@v@w)"
-      using n_steps xy_defs \<alpha>_derivers Suc(3) rtranclp_power sorry
-    (* TODO: New approach: we show that A must be in the stack, reachable by X as seen above. 
-       Be more precise to show that w' is actually u@v@w. with \<alpha> \<Rightarrow>* u. After one \<epsilon> transition, IH
-      can be used
-      Problem: proving hist \<rho> = \<gamma>' harder
-*)
-    let ?\<rho>' = "[Y \<rightarrow> ws . Nt A#zs]#\<rho>r"
-    note Y_defs(2)
-    also have "(?\<rho>'@[init_symbol IPDA], as@v@w) \<turnstile>P ([A \<rightarrow> [] . \<alpha>@\<beta>]#?\<rho>'@[init_symbol IPDA], as@v@w)"
-      using expanding deriver_impl_in_Prods Suc(2) 
-      by (metis (no_types, lifting) Nil_is_append_conv append.assoc append_Cons neq_Nil_conv)
-    also with derives_impl_completes Suc(3) have "... \<turnstile>P* ([A \<rightarrow> \<alpha> . \<beta>]#?\<rho>'@[init_symbol IPDA], v@w)"
-      using \<alpha>_derivers derivers_imp_derives by (metis self_append_conv2)
-    finally have "... \<turnstile>P* ([final_state, init_symbol IPDA], [])"
-      using X_complete_reaches_final reaches_final_impl_interm_reaches_final by presburger
-    then show ?case sorry
-  qed
+  obtains \<rho> where 
+    "([A \<rightarrow> \<alpha> . \<beta>]#\<rho>@[init_symbol IPDA], v@w) \<turnstile>P* ([I.final_state, init_symbol IPDA], [])" 
+    "hist \<rho> = \<gamma>'"
+  using assms(1) proof cases
+  case rtrancl_refl
+  then have step: "\<gamma>' = [] \<and> w = [] \<and> \<alpha>@\<beta> = [Nt S]"
+    using assms(2) S'_derive_impl_S append_eq_Cons_conv deriver_imp_derive by fastforce
+  then show ?thesis 
+    by (metis I.hist_init I.init_symbol_ipda append.right_neutral append_Nil assms(3)
+        derivers_S_append_impl_comp hist_singleton local.rtrancl_refl map_Tm_Nt_eq_map_Tm_Nt that)
+next
+  case (rtrancl_into_rtrancl b)
+  then show ?thesis sorry
+qed
 qed
 
-lemma
-  fixes c0 c1 c2 c3 c4 c5 :: "('n,'t) ipda_config"
-  shows P
-proof -
-  have "c0 \<turnstile>P* c1" sorry
-  also have "c1 \<turnstile>P c2" sorry
-  also have "c2 \<turnstile>P c3" sorry
-  also have "c3 \<turnstile>P c4" sorry
+
+
+
+
+
+  using assms proof (induction "\<gamma>'@Nt A#map Tm w" arbitrary: \<gamma>' A w \<alpha> \<beta> v thesis rule: rtranclp_induct)
+  case base
+  then have "\<gamma>' = [] \<and> w = []" "\<alpha>@\<beta> = [Nt S]"
+    by (simp add: Cons_eq_append_conv,
+        metis (no_types, opaque_lifting) S'_derive_impl_S append_Nil2 derive_singleton 
+        deriver_singleton list.exhaust list.simps(3) Cons_eq_append_conv)
+  then show ?case using base unfolding hist_defs
+    by (metis append.left_neutral append.right_neutral concat.simps(1) derivers_S_append_impl_comp 
+        list.inject list.simps(8) sym.inject(1))
+next
+  case (step \<gamma>)
+  then obtain as where \<alpha>_derivers: "Prods G' \<turnstile> \<alpha> \<Rightarrow>r* map Tm as"
+    using reduced_derived_substring_impl_derives[OF _ G'_reduced G'_not_empty] G'_def 
+    by (metis (no_types, lifting) Cfg.sel(2) derivers_iff_derives derivers_imp_derives
+        rtranclp.rtrancl_into_rtrancl)
+  obtain X \<delta> u where \<gamma>_def: "\<gamma> = \<delta> @ Nt X#map Tm u"
+    using step(2) by (meson deriver.cases)
+  then obtain xs ys where xy_defs: "(X, xs@ys) \<in> Prods G'" "\<delta>@xs@ys@map Tm u = \<gamma>'@Nt A#map Tm w"
+    using step deriver_impl_handle by (metis self_append_conv2)
+  with step obtain v' where ys_derivers: "Prods G' \<turnstile> ys \<Rightarrow>r* map Tm v'"
+    using reduced_derived_substring_impl_derives[OF _ G'_reduced G'_not_empty] G'_def \<gamma>_def 
+    by (metis (no_types, lifting) Cfg.sel(2) append.assoc derivers_iff_derives derivers_imp_derives
+        rtranclp.rtrancl_into_rtrancl)
+  with step(2,3) obtain \<rho> where \<rho>_def:
+    "([X \<rightarrow> xs . ys]#\<rho>@[init_symbol IPDA], v'@u) \<turnstile>P* ([final_state, init_symbol IPDA],[])"
+    "hist \<rho> = \<delta>"
+    using \<gamma>_def xy_defs by metis
+  with reaches_final_impl_compl_final have X_compl_final:
+    "([X \<rightarrow> xs@ys . []]#\<rho>@[init_symbol IPDA], u) \<turnstile>P* ([final_state, init_symbol IPDA],[])"
+    using ys_derivers derivers_imp_derives sorry
+  obtain Y ws zs \<rho>l \<rho>r where Y_defs:
+    "\<rho> = \<rho>l@[Y \<rightarrow> ws . Nt A#zs]#\<rho>r" 
+    "([X \<rightarrow> xs@ys . []]#\<rho>@[init_symbol IPDA], u) \<turnstile>P* (([Y \<rightarrow> ws . Nt A#zs]#\<rho>r)@[init_symbol IPDA], as@v@w)"
+    "(([Y \<rightarrow> ws . Nt A#zs]#\<rho>r)@[init_symbol IPDA], as@v@w) \<turnstile>P* ([final_state, init_symbol IPDA],[])"
+  proof -
+    from xy_defs(2) \<gamma>_def step(2) have 2: 
+      "Prods G' \<turnstile> \<delta> @ Nt X # map Tm u \<Rightarrow>r \<delta> @ (xs @ ys) @ map Tm u" by auto
+     have 3: "Prods G' \<turnstile> \<alpha>@\<beta> \<Rightarrow>r* map Tm (as @ v)"
+       using \<alpha>_derivers step(6) by (meson derivers_iff_derives derives_append_map_Tm)
+     show thesis using that derivers_impl_in_stack[OF _ 2 _ _ 3 X_compl_final] xy_defs(2) 
+       by (metis (no_types, lifting) \<gamma>_def append.assoc append.simps(2) step.hyps(1) step.prems(2))
+   qed
+   let ?\<rho>' = "[Y \<rightarrow> ws . Nt A#zs]#\<rho>r"
+  note Y_defs(2)
+  also have Y_step: 
+    "(?\<rho>'@[init_symbol IPDA], as@v@w) \<turnstile>P ([A \<rightarrow> [] . \<alpha>@\<beta>]#?\<rho>'@[init_symbol IPDA], as@v@w)"
+    using expanding deriver_impl_in_Prods step(5) 
+    by (metis (no_types, lifting) append.assoc append_Cons)
+  also with derivers_impl_completes have A_init_steps:
+    "... \<turnstile>P* ([A \<rightarrow> \<alpha> . \<beta>]#?\<rho>'@[init_symbol IPDA], v@w)"
+    using \<alpha>_derivers by (metis append_Nil rtranclp_power)
+  finally have ex_comp: "... \<turnstile>P* ([final_state, init_symbol IPDA], [])"
+    using X_compl_final  sorry
+  moreover have "hist ?\<rho>' = \<gamma>'" 
+  proof -
+    from Y_defs(2) Y_step A_init_steps 
+    derivers_impl_completes rtranclp_imp_relpowp step(6)
+    have "([X \<rightarrow> xs @ ys . []]#\<rho>@[init_symbol IPDA], u) \<turnstile>P* ([A \<rightarrow> \<alpha>@\<beta> . []]#?\<rho>'@[init_symbol IPDA],w)"
+      using rtranclp_trans 
+      by (smt (verit, ccfv_threshold) append.right_neutral rtranclp.rtrancl_into_rtrancl)
+    with \<gamma>_def step(2) xy_defs(2) X_compl_final show ?thesis using \<rho>_def(2) sorry
+  qed
+  ultimately show ?case using step(4) by presburger
 qed
+
+
 
 
 (*

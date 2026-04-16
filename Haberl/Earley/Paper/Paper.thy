@@ -2,309 +2,36 @@
 theory Paper
 imports
   "Earley.EarleyWorklist"
+  Big_O
   Sugar
 begin
 (* set_ItemList \<rightarrow> set_IL *)
 (* TODO: localize interpretation in EarleyWorklist *)
-declare [[show_question_marks=false]]
-declare [[names_short=true]]
+(*declare [[show_question_marks=false]]
+declare [[names_short=true]]*)
 
-type_synonym ('n,'a)item_list = "('n,'a)efficientItemList"
-translations (type) "('n,'a)item_list" <= (type) "('n,'a)efficientItemList"
+(* TODO 'a \<rightarrow> 't in sources *)
+datatype ('n,'t) efficientItemList2 = 
+  IL "('n,'t) item list" "('n,'t) item list list"
+
+type_notation (output) efficientItemList2 ("'(_,_') item'_list")
+
+type_notation (output) efficientItemList ("'(_,_') item'_list")
+
+(*type_synonym ('n,'t)item_list = "('n,'t)efficientItemList"*)
+(*translations (type) "('n,'t)item_list" <= (type) "('n,'t)efficientItemList"*)
 
 lemma empty_froms_is_replicate: "empty_froms n = replicate (n+1) []"
 by(induction n) auto
 
 (*TODO use in def of T_steps *)
+(* TODO now in While_Combinator; rm after next release *)
 definition T_while_option2
   :: "('a \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> nat) \<Rightarrow> 'a \<times> nat \<Rightarrow> ('a \<times> nat) option" where
 "T_while_option2 b f T_f = while_option (\<lambda>(x,n). b x) (\<lambda>(x,n). (f x, n + T_f x))"
 
 definition T_while_option :: "('a \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> nat) \<Rightarrow> 'a \<Rightarrow> nat" where
 "T_while_option b f T_f x = snd (the (T_while_option2 b f T_f (x,0)))"
-
-text \<open>Sanity check:\<close>
-
-(* TODO *)
-lemma T_while_option2_sanity:
-  "T_while_option2 b f tf (x,n0) = Some (y,n) \<Longrightarrow> while_option b f x = Some y"
-unfolding T_while_option2_def
-(*  while_option_rule[of ""]*)
-  oops
-
-definition le_O :: "('a \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> nat) \<Rightarrow> ('a \<Rightarrow> nat) \<Rightarrow> bool"
-where "(le_O Q f g) = (\<exists>c d. \<forall>x. Q x \<longrightarrow> f x \<le> c * g x + d)"
-
-abbreviation O_le :: "('a \<Rightarrow> nat) \<Rightarrow> ('a \<Rightarrow> nat) \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> bool"
-  ("(_/ \<le>O _/ IF _)" [50, 1000, 0] 0) where
-"O_le f g Q \<equiv> le_O Q f g"
-
-abbreviation O_le0 :: "('a \<Rightarrow> nat) \<Rightarrow> ('a \<Rightarrow> nat) \<Rightarrow> bool" (infix "\<le>O" 50) where
-"O_le0 f g \<equiv> O_le f g (\<lambda>x. True)"
-
-notation (le_O_no_IF output) "O_le" ("(_/ \<le>O/ _)" [50,50] 50)
-
-notation (latex) O_le ("(_/ \<le>\<^bsub>\<^latex>\<open>\\isaconst{\<close>O\<^latex>\<open>}\<close>\<^esub> _/ IF _)" [50, 1000, 0] 0)
-
-lemma standard_BigO_if_le_O:
-  fixes m :: "'a \<Rightarrow> nat"
-  assumes "O_le0 (f o m) (g o m)" "finite {n. g(n) = 0}" "surj m"
-  shows "\<exists>c. \<exists>n0. \<forall>n \<ge> n0. f n \<le> c * g n"
-proof -
-  from assms(1) obtain c d where cd: "\<And>x. f(m x) \<le> c * g(m x) + d" unfolding le_O_def by auto
-  from assms(2) obtain k where k: "\<forall>n \<ge> k. g n \<noteq> 0"
-    by (metis (mono_tags, lifting) finite_nat_set_iff_bounded linorder_neq_iff mem_Collect_eq
-        order_le_less_trans)
-  let ?n0 = "max k (Min (m ` UNIV))"
-  have n0: "\<forall>n \<ge> ?n0. g n \<noteq> 0" using k
-    using max.bounded_iff by blast
-  let ?c = "c+d"
-  have "f n \<le> ?c * g n" if asm: "n \<ge> ?n0" for n
-  proof -
-    obtain x where "m x = n" using \<open>surj m\<close> by (metis surj_def)
-    have "d * g n \<ge> d" using n0 asm by auto
-    thus ?thesis using n0 cd[of x] asm unfolding add_mult_distrib
-      by (metis add.commute \<open>m x = n\<close> add_le_cancel_right le_trans)
-  qed
-  thus ?thesis by blast
-qed
-
-(* SYNTAX *)
-definition BigO :: "('a \<Rightarrow> nat * nat * bool) \<Rightarrow> bool"
-  where "BigO fgp \<equiv> \<exists>c d. \<forall>x f g p. fgp x = (f,g,p) \<longrightarrow> p \<longrightarrow> f \<le> c*g + d"
-
-syntax
-  "_BigO" :: "pttrn \<Rightarrow> bool \<Rightarrow> bool"  (\<open>(\<open>indent=3 notation=\<open>binder BIGO\<close>\<close>BIGO _./ _)\<close> [0, 10] 10)
-syntax (latex)
-  "_BigO" :: "pttrn \<Rightarrow> bool \<Rightarrow> bool"  (\<open>(\<open>indent=3 notation=\<open>binder BIGO\<close>\<close>\<^latex>\<open>\isaconst{\<close>O\<^latex>\<open>}\<close> _./ _)\<close> [0, 10] 10)
-
-syntax_consts "_BigO" \<rightleftharpoons> BigO
-
-definition fake_imp :: "bool \<Rightarrow> bool \<Rightarrow> bool" where
-"fake_imp P1 P2 \<equiv> (P1 \<longrightarrow> P2)"
-
-notation (fake_imp output) fake_imp  (infixr \<open>\<longrightarrow>\<close> 25)
-notation (no_fake_imp output) fake_imp ("\<^latex>\<open>\\hide{\<close>_\<^latex>\<open>}\<close>_")
-
-translations "BIGO x. Q" \<rightharpoonup> "CONST BigO (\<lambda>x. Q)"
-translations "BIGO x. CONST fake_imp p (a \<le> b)" \<leftharpoondown> "CONST BigO (\<lambda>x. (a, b, p))"
-
-lemma BigO_iff_le_O: "BigO (\<lambda>x. (f x, g x, Q x)) = ((\<lambda>x. f x) \<le>O g IF Q)"
-by(auto simp: le_O_def BigO_def)
-
-lemma BigO_if_le_O: "(\<lambda>x. f x) \<le>O g IF Q \<Longrightarrow> BigO (\<lambda>x. (f x, g x, Q x))"
-by(auto simp: le_O_def BigO_def)
-
-lemma BigO_if_le_O2: "(\<lambda>(x,y). f x y) \<le>O (\<lambda>(x,y). g x y) IF (\<lambda>(x,y). Q x y)
-  \<Longrightarrow> BigO (\<lambda>(x,y). (f x y, g x y, Q x y))"
-  by(auto simp: le_O_def BigO_def)
-
-lemma BigO_if_le_O3: "(\<lambda>(x,y,z). f x y z) \<le>O (\<lambda>(x,y,z). g x y z) IF (\<lambda>(x,y,z). Q x y z)
-  \<Longrightarrow> BigO (\<lambda>(x,y,z). (f x y z, g x y z, Q x y z))"
-  by(auto simp: le_O_def BigO_def)
-
-lemma le_O_init: "(\<And>x. Q x \<Longrightarrow> f x \<le> g x) \<Longrightarrow> f \<le>O g IF Q"
-by (metis add.commute add_0 le_O_def nat_mult_1)
-
-lemma le_O_init2: "(\<And>x y. Q x y \<Longrightarrow> f x y \<le> g x y)
- \<Longrightarrow> (\<lambda>(x,y). f x y) \<le>O (\<lambda>(x,y). g x y) IF (\<lambda>(x,y). Q x y)"
-  by (simp add: le_O_init split_def)
-
-lemma le_O_init3: "(\<And>x y z. Q x y z \<Longrightarrow> f x y z \<le> g x y z)
- \<Longrightarrow> (\<lambda>(x,y,z). f x y z) \<le>O (\<lambda>(x,y,z). g x y z) IF (\<lambda>(x,y,z). Q x y z)"
-  by (simp add: le_O_init split_def)
-
-lemma le_O_trans[trans]: "f \<le>O g IF Q \<Longrightarrow> g \<le>O h IF Q \<Longrightarrow> f \<le>O h IF Q"
-  apply(auto simp: le_O_def)
-  apply(rename_tac cg ch dg dh)
-apply(rule_tac x="cg*ch" in exI)
-  apply(rule_tac x="cg*dh + dg" in exI)
-  apply auto
-apply(erule_tac x=x in allE)
-apply(erule_tac x=x in allE)
-  apply(simp add: algebra_simps)
-  by (metis add_mono_thms_linordered_semiring(2) distrib_left dual_order.trans mult_le_mono2)
-
-lemma le_O_trans2[trans]: "f \<le>O g IF Q \<Longrightarrow> g \<le>O h \<Longrightarrow> f \<le>O h IF Q"
-  by (metis le_O_def le_O_trans)
-
-lemma le_O_id: "f \<le>O f IF Q"
-apply(auto simp: le_O_def)
-apply(rule_tac x="1" in exI)
-apply(rule_tac x="0" in exI)
-by simp
-
-lemma le_O_k: "(\<lambda>_. k) \<le>O (\<lambda>n. f n) IF Q"
-apply(auto simp add: le_O_def)
-apply(rule_tac x="0" in exI)
-apply(rule_tac x="k" in exI)
-by simp
-
-lemma le_O_add: "g \<le>O f IF Q1 \<Longrightarrow> h \<le>O f IF Q2 \<Longrightarrow> (\<lambda>x. g x + h x) \<le>O f IF (\<lambda>x. Q1 x \<and> Q2 x)"
-apply(auto simp add: le_O_def)
-subgoal for cg ch dg dh
-apply(rule_tac x="cg+ch" in exI)
-apply(rule_tac x="dg+dh" in exI)
-apply auto
-subgoal for x
-apply(erule_tac x=x in allE)
-apply(erule_tac x=x in allE)
-apply(simp add: algebra_simps)
-done
-done
-done
-
-corollary le_O_add1: "g \<le>O f IF Q \<Longrightarrow> h \<le>O f IF Q \<Longrightarrow> (\<lambda>x. g x + h x) \<le>O f IF Q"
-  using le_O_add by fastforce
-
-corollary le_O_add2L: "f \<le>O f' IF Q \<Longrightarrow> (\<lambda>x. f x + g x) \<le>O (\<lambda>x. f' x + g x) IF Q"
-  by (simp add: le_O_add1 le_O_init le_O_trans)
-
-corollary le_O_add2R: "f \<le>O f' IF Q \<Longrightarrow> (\<lambda>x. g x + f x) \<le>O (\<lambda>x. g x + f' x) IF Q"
-  by (simp add: le_O_add1 le_O_init le_O_trans)
-                               
-corollary le_O_Suc1: "g \<le>O f IF Q \<Longrightarrow> (\<lambda>x. Suc(g x)) \<le>O f IF Q"
-  using le_O_add1[where h = "\<lambda>x. 1", OF _ le_O_k]
-  by (metis (no_types, lifting) ext Suc_eq_plus1)
-
-
-lemma le_O_diff: "g \<le>O f IF Q \<Longrightarrow> (\<lambda>x. g x - h x) \<le>O f IF Q"
-apply(auto simp add: le_O_def)
-subgoal for c d
-apply(rule_tac x="c" in exI)
-apply(rule_tac x="d" in exI)
-apply auto
-  done
-  done
-
-lemma le_O_add_R1: "g \<le>O f1 IF Q \<Longrightarrow> g \<le>O (\<lambda>x. f1 x + f2 x) IF Q"
-by (meson le_O_init le_O_trans nat_le_iff_add)
-
-lemma le_O_add_R2: "g \<le>O f2 IF Q \<Longrightarrow> g \<le>O (\<lambda>x. f1 x + f2 x) IF Q"
-by (meson le_O_init le_O_trans2 le_add2)
-
-lemma le_O_mult_k: "g \<le>O f IF Q \<Longrightarrow> (\<lambda>x. k * g x) \<le>O f IF Q"
-apply(auto simp add: le_O_def)
-apply(rule_tac x="k*c" in exI)
-apply(rule_tac x="k*d" in exI)
-apply auto
-by (metis add_mult_distrib2 mult.assoc mult_le_mono2)
-
-corollary le_O_mult_k2: "g \<le>O f IF Q \<Longrightarrow> (\<lambda>x. g x * k) \<le>O f IF Q"
-  by (simp add: ab_semigroup_mult_class.mult.commute le_O_mult_k)
-
-lemma le_O_mult: "g1 \<le>O f1 IF Q \<Longrightarrow> g2 \<le>O f2 IF Q \<Longrightarrow>
- (\<lambda>x. g1 x * g2 x) \<le>O (\<lambda>x. f1 x * f2 x) IF (\<lambda>x. Q x \<and> f1 x > 0 \<and> f2 x > 0)"
-apply(auto simp add: le_O_def)
-subgoal for c1 c2 d1 d2
-apply(rule_tac x="c1*c2+c1*d2+c2*d1" in exI)
-apply(rule_tac x="d1*d2" in exI)
-apply auto
-subgoal for x
-apply(erule_tac x=x in allE)
-  apply(erule_tac x=x in allE)
-apply(simp add: algebra_simps)
-  apply(drule (1) mult_mono)
-    apply simp_all
-  apply(simp add: algebra_simps)
-  apply(subgoal_tac "c1 * (d2 * (f1 x * f2 x)) \<ge> c1 * (d2 * f1 x)")
-  apply(subgoal_tac "c2 * (d1 * (f1 x * f2 x)) \<ge> c2 * (d1 * f2 x)")
-  apply linarith
-  apply simp
-  apply simp
-done
-done
-  done
-
-lemma le_O_multR: assumes "\<And>x. Q x \<Longrightarrow> g' x > 0" shows "g \<le>O g' IF Q \<Longrightarrow>
- (\<lambda>x. f x * g x) \<le>O (\<lambda>x. f x * g' x) IF Q"
-apply(auto simp add: le_O_def)
-subgoal for c d
-apply(rule_tac x="c+d" in exI)
-apply(rule_tac x="0" in exI)
-apply auto
-subgoal for x
-apply(erule_tac x=x in allE)
-apply(simp add: algebra_simps)
-  apply(subgoal_tac "d \<le> d * g' x")
-  apply linarith
-  using assms[of x] by simp
-  done
-done
-
-lemma le_O_multL: assumes "\<And>x. Q x \<Longrightarrow> g' x > 0" shows "g \<le>O g' IF Q \<Longrightarrow>
- (\<lambda>x. g x * f x) \<le>O (\<lambda>x. g' x * f x) IF Q"
-  using le_O_multR
-  by (metis (no_types, lifting) ext Groups.ab_semigroup_mult_class.mult.commute assms)
-
-lemma le_O_add_mult1: assumes "\<And>x. Q x \<Longrightarrow> g x > 0"
-  shows "(\<lambda>x. f x * g x + f x) \<le>O (\<lambda>x. f x * g x) IF Q"
-  apply(rule le_O_trans[of _ _ "\<lambda>x. f x * (g x + 1)"])
-  apply(rule le_O_init)
-   apply(simp add: algebra_simps)
-  apply(rule le_O_multR)
-  apply (simp add: assms)
-  using le_O_add1 le_O_id le_O_k by blast
-
-lemma le_O_mult': "\<lbrakk> \<And>x. f1 x > 0; \<And>x. f2 x > 0; g1 \<le>O f1 IF Q; g2 \<le>O f2 IF Q \<rbrakk> \<Longrightarrow>
- (\<lambda>x. g1 x * g2 x) \<le>O (\<lambda>x. f1 x * f2 x) IF Q"
-  using le_O_mult[of Q g1 f1 g2 f2]
-  by presburger
-
-lemma le_O_le_power: assumes "k \<le> l" shows "(\<lambda>n. (f n)^k) \<le>O (\<lambda>n. (f n)^l) IF Q"
-  unfolding le_O_def [[metis_instantiate]]
-  by (metis add.commute assms less_one linorder_not_le nat_mult_1 order_class.order_eq_iff
-      power_increasing trans_le_add1)
-
-lemma le_O_id_le_power: "1 \<le> l \<Longrightarrow> (\<lambda>x. m x) \<le>O (\<lambda>x. (m x)^l) IF Q"
-using le_O_le_power by fastforce
-
-lemmas le_O_Is = le_O_id le_O_k le_O_Suc1 le_O_add1 le_O_diff le_O_mult_k le_O_mult_k2 le_O_le_power le_O_id_le_power
-
-lemma le_O_sq_plus1: "(\<lambda>x. (f x + 1)^2) \<le>O (\<lambda>x. (f x)^2)"
-  apply(auto simp: le_O_def)
-apply(rule_tac x="2" in exI)
-  apply(rule_tac x="2" in exI)
-  apply(simp add: algebra_simps power2_eq_square)
-  by (metis mult.commute Nat.nat_arith.rule0 mult_0_right
-      mult_Suc_right mult_le_mono1 nle_le not_less_eq_eq)
-
-lemma le_O_sq_Suc: "(\<lambda>x. (Suc(f x))^2) \<le>O (\<lambda>x. (f x)^2)"
-unfolding Suc_eq_plus1 by(rule le_O_sq_plus1)
-
-lemma plus1_cube_bound: "((n::nat) + 1) ^ 3 \<le> 7 * n ^ 3 + 1"
-proof -
-  show ?thesis
-  proof (cases "n=0")
-    case True
-    then show ?thesis by simp
-  next
-    case False
-    have "n \<le> n^3" by (simp add: numeral_3_eq_3)
-    moreover have "n^2 \<le> n^3" by (simp add: numeral_3_eq_3 numeral_2_eq_2)
-    moreover have "((n::nat) + 1) ^ 3 = n^3 + 3*n^2 + 3*n + 1" by(simp add: algebra_simps numeral_eq_Suc)
-    ultimately show ?thesis by linarith
-  qed
-qed
-
-lemma le_O_cube_plus1: "(\<lambda>x. (f x + 1)^3) \<le>O (\<lambda>x. (f x)^3)"
-  apply(auto simp: le_O_def)
-apply(rule_tac x=7 in exI)
-  apply(rule_tac x=1 in exI)
-  apply rule
-  subgoal for x
-    using plus1_cube_bound[of "f x"]
-    by simp
-  done
-corollary le_O_cube_Suc: "(\<lambda>x. (Suc(f x))^3) \<le>O (\<lambda>x. (f x)^3)"
-unfolding Suc_eq_plus1 by(rule le_O_cube_plus1)
-
-lemma le_O_fstI: "f \<le>O g \<Longrightarrow> (\<lambda>p. f(fst p)) \<le>O (\<lambda>p. g(fst p))"
-by (simp add: le_O_def)
-
-
-lemma "(\<lambda>x. 6*x^3 + 3*x^2 + 7*x + 13) \<le>O (\<lambda>n. n^3) IF Q"
-by(simp add: le_O_Is)
 
 (* TODO Earley: get rid of next_sym = Some, use not is_final ?? *)
 (* in step_fun: rename it*)
@@ -413,12 +140,12 @@ lemma T_steps_le_O: "(\<lambda>(Bs,il1,il2). T_steps Bs (il1, il2)) \<le>O (\<la
 proof -
   have 1: "?f \<le>O (\<lambda>(Bs,il1,il2). (L * Suc K * Suc (length Bs)) * (L * Suc K * Suc (length Bs) * (7 * 1 + 3 * L * Suc K + 7 + 2 * (K + 2))
    + 7 * 1 + 3 * Suc (length Bs) + 2 * L * Suc K + 7 + Suc K)) IF ?Q"
-    by(rule le_O_init3, elim conjE, rule T_steps_bound[unfolded T_nth_IL])
+    by(rule le_O_if_le3, elim conjE, rule T_steps_bound[unfolded T_nth_IL])
   also have 2: "\<dots> \<le>O (\<lambda>(Bs,il1,il2).
  (L * Suc K) * (Suc (length Bs) *
  (L * Suc K * Suc (length Bs) * (14 + 3 * L * Suc K + 2 * (K + 2))
   + 3 * Suc (length Bs) + 2 * L * Suc K + 14 + Suc K)))"
-    unfolding split_def apply(rule le_O_init) by(simp add: algebra_simps)
+    unfolding split_def apply(rule le_O_if_le) by(simp add: algebra_simps)
   also
   have "\<dots> \<le>O (\<lambda>(Bs,il1,il2). Suc (length Bs) *
  (L * Suc K * Suc (length Bs) * (14 + 3 * L * Suc K + 2 * (K + 2))
@@ -436,7 +163,7 @@ proof -
      apply (intro le_O_Is)
     done
   also have "\<dots> \<le>O (\<lambda>(Bs,il1,il2). (L * Suc K + 3) * (length Bs + 1)^2) IF ?Q"
-    unfolding split_def apply(rule le_O_init) by (simp add: algebra_simps power2_eq_square power3_eq_cube)
+    unfolding split_def apply(rule le_O_if_le) by (simp add: algebra_simps power2_eq_square power3_eq_cube)
   also have 1: "\<dots> \<le>O (\<lambda>(Bs,il1,il2). (length Bs + 1)^2)"
     unfolding split_def
     by(rule le_O_Is)+
@@ -452,7 +179,7 @@ lemma T_bins_IL_le_O: "T_bins_L \<le>O (\<lambda>k. k^3) IF (\<lambda>k. k \<le>
 proof -
   note le_O_cube_SucSuc = le_O_trans[OF le_O_cube_Suc[of Suc] le_O_cube_Suc[of "\<lambda>x. x"]]
   have "T_bins_L \<le>O (\<lambda>k. (k+2)^3 * ((Suc L * Suc K * Suc L * Suc K * (7 * T_nth_IL (Suc k) + 3* L * Suc K + 10 + 2 * (K + 2))) + (Suc L * Suc K * (2 * (K + 2) + 10 * T_nth_IL (Suc k) + 3* L * Suc K + 9 + Suc K)))) IF (\<lambda>k. k \<le> length w)"
-    by(rule le_O_init, rule T_bins_L_bound)
+    by(rule le_O_if_le, rule T_bins_L_bound)
   also have "\<dots> \<le>O (\<lambda>k. k^3)"
     apply (simp add: split_def T_nth_IL le_O_Is algebra_simps flip: power3_eq_cube)
     apply(rule le_O_Is le_O_cube_SucSuc)+
@@ -467,7 +194,7 @@ lemma T_isin_le_O: "(\<lambda>(il,x). T_isin il x) \<le>O (\<lambda>(il,x). 1)
   IF \<lambda>(il,x). inv_IL il \<and> wf1_IL il k \<and> from x < length (froms il)" (is "?f \<le>O ?g IF ?Q")
 proof -
   have "?f \<le>O (\<lambda>(il,x). T_nth_IL (from x) + L * (Suc K) + 1) IF ?Q"
-    by(rule le_O_init2, elim conjE, rule T_isin_wf)
+    by(rule le_O_if_le2, elim conjE, rule T_isin_wf)
   also have "\<dots> \<le>O (\<lambda>(il,x). 1) IF ?Q"
     by(simp add: T_nth_IL split_def le_O_Is)
   finally show ?thesis .
@@ -480,7 +207,7 @@ lemma T_insert_le_O: "(\<lambda>(x,il). T_insert x il) \<le>O (\<lambda>(x,il). 
   IF \<lambda>(x,il). inv_IL il \<and> wf1_IL il k \<and> from x < length (froms il)" (is "?f \<le>O ?g IF ?Q")
 proof -
   have "?f \<le>O (\<lambda>(x,il). 3 * T_nth_IL (from x) + L * (Suc K) + 1) IF ?Q"
-    by(rule le_O_init2, elim conjE, rule T_insert_less)
+    by(rule le_O_if_le2, elim conjE, rule T_insert_less)
   also have "\<dots> \<le>O (\<lambda>(x,il). 1) IF ?Q"
     by(simp add: T_nth_IL split_def le_O_Is)
   finally show ?thesis .
@@ -508,7 +235,7 @@ proof -
   have "?f \<le>O (\<lambda>(Bs,il1,il2).
     L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3* L * Suc K + 7 + 2 * (K + 2))
     + (7 * T_nth_IL (length Bs) + 3 * Suc (length Bs) + 2* L * Suc K + 7 + Suc K)) IF ?Q"
-    by(rule le_O_init3, elim conjE, rule T_step_fun_bound[unfolded id_def])
+    by(rule le_O_if_le3, elim conjE, rule T_step_fun_bound[unfolded id_def])
   also have "\<dots> \<le>O ?g"
     by (simp add: split_def T_nth_IL le_O_Is algebra_simps aux2 flip: power2_eq_square)
   finally show ?thesis .
@@ -516,76 +243,50 @@ qed
 
 lemmas T_step_fun_bound_O = BigO_if_le_O3[OF T_step_fun_bound_le_O]
 
-definition "T_union_LIL_wf_P \<equiv>
-  \<lambda>(as,il). inv_IL il \<and> wf1_IL il (length (froms il) - 1) \<and> wf_bin1 (set as) (length (froms il) - 1) 
-    \<and> (\<forall>a\<in>set as. from a < length (froms il))"
+lemma T_union_LIL_wf_le_O:
+  "(\<lambda>(as,il). T_union_LIL as il) \<le>O (\<lambda>(as,il). length as) IF
+  (\<lambda>(as,il). inv_IL il \<and> wf1_IL il (length (froms il) - 1) \<and> wf_bin1 (set as) (length (froms il) - 1) 
+    \<and> (\<forall>a\<in>set as. from a < length (froms il)))" (is "?f \<le>O ?g IF ?Q")
+proof -
+  have "?f \<le>O (\<lambda>(as,il). (length as) * (3 * T_nth_IL (length (froms il) - 1) + L * (Suc K) + 2) + 1)
+    IF ?Q"
+    apply(rule le_O_if_le2)
+    apply(rule T_union_LIL_wf)
+       apply blast+
+    done
+  also have "\<dots> \<le>O (\<lambda>(as,il). 3 * (length as * (1 + L * (Suc K) + 2)) + 1)"
+    unfolding T_nth_IL split_def
+    apply(rule le_O_if_le)
+    by (simp add: algebra_simps)
+  also have  "\<dots> \<le>O (\<lambda>(as,il). length as * (1 + L * (Suc K) + 2))"
+    unfolding split_def
+    by(rule le_O_Is)+
+  also have  "\<dots> \<le>O ?g"
+    unfolding split_def
+    by(simp add: split_def le_O_Is)
+  finally show ?thesis .
+qed
 
-lemma T_union_LIL_wf:
- "(\<lambda>(as,il). T_union_LIL as il) \<le>O (\<lambda>(as,il). (length as) * (3 * T_nth_IL (length (froms il) - 1) + L * (Suc K) + 2) + 1)
-  IF T_union_LIL_wf_P"
-  unfolding T_union_LIL_wf_P_def
-  apply(rule le_O_init2)
-  apply(rule T_union_LIL_wf)
-  apply blast+
-  done
+lemmas T_union_LIL_wf_O =  BigO_if_le_O2[OF T_union_LIL_wf_le_O]
 
-lemma le_O_if_le2: "(\<And>x y. f x y \<le> f' x y) \<Longrightarrow> (\<lambda>(x,y). f x y) \<le>O (\<lambda>(x,y). f' x y)"
-  apply(auto simp add: le_O_def)
-  by (metis mult_1 trans_le_add1)
 
-lemma T_union_LIL_wf2:
- "(\<lambda>(as,il). length as * (3 * T_nth_IL (length (froms il) - 1) + L * (Suc K) + 2) + 1)
- \<le>O (\<lambda>(as,il). 3 * (length as * (1 + L * (Suc K) + 2)) + 1) IF T_union_LIL_wf_P"
-  unfolding T_nth_IL split_def
-  apply(rule le_O_init)
-  by (simp add: algebra_simps)
-
-lemma T_union_LIL_wf3:
- "(\<lambda>(as,il). 3 * (length as * (1 + L * (Suc K) + 2)) + 1) \<le>O
-  (\<lambda>(as,il). length as * (1 + L * (Suc K) + 2)) IF T_union_LIL_wf_P"
-  unfolding split_def
-  by(rule le_O_Is)+
-
-lemma T_union_LIL_wf4:
- "(\<lambda>(as,il). length as * (1 + L * (Suc K) + 2)) \<le>O
-  (\<lambda>(as,il). length as) IF T_union_LIL_wf_P"
-  unfolding split_def
-  by(simp add: split_def T_union_LIL_wf_P_def le_O_Is)
-(*  using EarleyWorklist.inv_IL.elims(2) apply fastforce
-  by(rule le_O_Is)+*)
-
-lemmas T_union_LIL_wf5=  BigO_if_le_O2[OF
-  le_O_trans[OF le_O_trans[OF le_O_trans[OF
-    T_union_LIL_wf T_union_LIL_wf2] T_union_LIL_wf3] T_union_LIL_wf4, unfolded T_union_LIL_wf_P_def]]
-
-definition "T_minus_IL_wf_P \<equiv> \<lambda>(il1,il2).
+lemma T_minus_IL_wf_le_O:
+  "(\<lambda>(il1,il2). T_minus_IL il1 il2) \<le>O (\<lambda>(il1,il2). length (list il1) + length (froms il1))
+  IF (\<lambda>(il1,il2).
   wf1_IL il1 (length (froms il1) - 1) \<and> inv_IL il1 \<and> inv_IL il2 \<and> wf1_IL il2 (length (froms il1) - 1)
-  \<and> length (froms il2) \<ge> length (froms il1)"
-
-lemma T_minus_IL_wf:
-  "(\<lambda>(il1,il2). T_minus_IL il1 il2) \<le>O (\<lambda>(il1,il2). (length (list il1)) * (4 * T_nth_IL (length (froms il1) - 1) + 2*L * (Suc K) + 4) + (length (froms il1) - 1) + 3 + length (list il1) + length (froms il1))
-  IF T_minus_IL_wf_P"
-  unfolding T_minus_IL_wf_P_def
-  apply(rule le_O_init2)
-  apply(rule T_minus_IL_wf)
-  apply blast+         
-  done
-
-lemma T_minus_IL_wf2:
-  "(\<lambda>(il1,il2). (length (list il1)) * (4 * T_nth_IL (length (froms il1) - 1) + 2*L * (Suc K) + 4) + (length (froms il1) - 1) + 3 + length (list il1) + length (froms il1))
-  \<le>O (\<lambda>(il1,il2). 4 * (length (list il1) * (2*L * (Suc K) + 4)) + 2*length (froms il1) + 3)
-  IF T_minus_IL_wf_P"
+  \<and> length (froms il2) \<ge> length (froms il1))" (is "?f \<le>O ?g IF ?Q")
+proof -
+  have "?f \<le>O (\<lambda>(il1,il2). (length (list il1)) * (4 * T_nth_IL (length (froms il1) - 1) + 2*L * (Suc K) + 4) + (length (froms il1) - 1) + 3 + length (list il1) + length (froms il1))
+    IF ?Q"
+    apply(rule le_O_if_le2)
+    apply(rule T_minus_IL_wf)
+    apply blast+         
+    done
+  also have "\<dots> \<le>O (\<lambda>(il1,il2). 4 * (length (list il1) * (2*L * (Suc K) + 4)) + 2*length (froms il1) + 3)"
   unfolding T_nth_IL split_def
-  apply(rule le_O_init)
+  apply(rule le_O_if_le)
   by (simp add: algebra_simps)
-
-lemma le_O_add_k_L: "f \<le>O g IF Q \<Longrightarrow> (\<lambda>x. f x + k) \<le>O g IF Q"
-by (simp add: le_O_add1 le_O_k)
-
-lemma T_minus_IL_wf3:
- "(\<lambda>(il1,il2). 4 * (length (list il1) * (2*L * (Suc K) + 4)) + 2*length (froms il1) + 3)
- \<le>O (\<lambda>(il1,il2). length (list il1) + length (froms il1))
-  IF T_minus_IL_wf_P"
+  also have "\<dots> \<le>O (\<lambda>(il1,il2). length (list il1) + length (froms il1))"
   unfolding split_def
   apply(rule le_O_Is)
   apply(rule le_O_add1)
@@ -599,18 +300,10 @@ lemma T_minus_IL_wf3:
   apply(rule le_O_add_R2)
   apply(rule le_O_Is)+
   done
-(*
-lemma T_minus_IL_wf4:
- "(\<lambda>(il1,il2). length (list il1) * length (froms il1) + length (froms il1))
- \<le>O (\<lambda>(il1,il2). (length (list il1) + 1) * length (froms il1))
-  IF T_minus_IL_wf_P"
-  unfolding split_def
-  apply(rule le_O_init)
-  by (simp add: algebra_simps)
-*)
-lemmas T_minus_IL_wf5 =  BigO_if_le_O2[OF
-  (*le_O_trans[OF*) le_O_trans[OF le_O_trans[OF
-    T_minus_IL_wf T_minus_IL_wf2] T_minus_IL_wf3(*] T_minus_IL_wf4*), unfolded T_minus_IL_wf_P_def]]
+  finally show ?thesis .
+qed
+
+lemmas T_minus_IL_wf_O = BigO_if_le_O2[OF T_minus_IL_wf_le_O]
 
 end
 
@@ -644,10 +337,8 @@ with the function @{thm Option.option.sel[of x]}.
 The notation \mbox{\<open>\<lbrakk>A\<^sub>1, \<dots>, A\<^sub>n\<rbrakk> \<Longrightarrow> B\<close>} denotes an implication with premises \<open>A\<^sub>1\<close>, \ldots, \<open>A\<^sub>n\<close> and conclusion \<open>B\<close>.
 Sometimes we use the inference rule presentation
 \begin{quote}
-\inferrule{\<open>A\<^sub>1\<close> \\ \ldots \\ \<open>A\<^sub>n\<close>}{B}
+\mbox{}\inferrule{\<open>A\<^sub>1\<close> \\ \ldots \\ \<open>A\<^sub>n\<close>}{B}
 \end{quote}
-
-
 Equality on type @{type bool} denotes logical equivalence.
 
 \subsection{Context-Free Grammars}
@@ -692,7 +383,7 @@ The language of some nonterminal \<open>A\<close> generated by \<open>P\<close> 
 \section{The Story so far}
 
 This paper is a continuation of the work by Nipkow and Rau \cite{NipkowR-CBJ24}.
-In this section few summarize the contents of the latter paper, which is a refinement
+In this section we summarize the contents of the latter paper: a refinement
 of an initial inductive definition, via the standard definition to something resembling
 a worklist algorithm, but still as an inductive definition.
 
@@ -718,7 +409,7 @@ recognized by this item. The three projection functions are
 
 A production \<open>A \<rightarrow> \<alpha>\<close> together
 with a @{const dot} \<open>d\<close> is shown as \<open>A \<rightarrow> \<alpha>\<^sub>1\<Zspot>\<alpha>\<^sub>2\<close>, where \<open>\<alpha>\<^sub>1\<close> is the prefix of the first \<open>d\<close> symbols of \<open>\<alpha>\<close> and \<open>\<alpha>\<^sub>2\<close>
-is the suffix. We will informally show item as pairs \<open>(A \<rightarrow> \<alpha>\<Zspot>\<beta>, i)\<close>.
+is the suffix. We will informally show items as pairs \<open>(A \<rightarrow> \<alpha>\<Zspot>\<beta>, i)\<close>.
 
 Below we need the following auxiliary functions on items that query or modify the dotted
 production but not the @{const from} component of the item.
@@ -782,13 +473,11 @@ contains a final item \mbox{\<open>(S \<rightarrow> \<gamma>\<Zspot>, 0)\<close>
 
 @{thm accepted_def2}
 \end{quote}
-
 %In order to split the rhs of a dotted production into the prefix up to the dot and the suffix
 %after the dot we introduce two functions @ {const \<alpha>} and @ {const \<beta>}:
 %\begin{quote}
 %@{thm \<alpha>_def} \qquad @{thm \<beta>_def}
 %\end{quote}
-
 We proved \emph{soundness} and \emph{completeness}
 of the item-based acceptance w.r.t.\ the grammar:
 \begin{quote}
@@ -828,9 +517,8 @@ result of scanning. It is defined in analogy with {\sc Predict} and {\sc Complet
 \bigskip
 
 @{thm [mode=Rule] Close_Complete}\smallskip\\
-@{thm Complete_def}
+@{thm [break,margin=70] Complete_def}
 \end{quote}
-
 In the end we proved the following correctness theorem:
 \begin{quote}
 @{thm bins_eq_\<S>}
@@ -862,9 +550,9 @@ Our previous work concludes with an abstract one-pass formulation of @{const Clo
 It is still on the level of sets and intentionally nondeterministic.
 
 We formulate the one-pass closure as a transition system @{prop "Bs \<turnstile> (B,C) \<rightarrow> mbox(B',C')"}
-where \<open>B\<close>, \<open>C\<close>, \<open>B'\<close>, \<open>C'\<close> are sets of states: \<open>B\<close> is the current set whose closure is to be computed
+where \<open>B\<close>, \<open>C\<close>, \<open>B'\<close>, \<open>C'\<close> are sets of items: \<open>B\<close> is the current set whose closure is to be computed
 (the ``worklist''), \<open>C\<close> is the accumulator for the closure, and \mbox{\<open>(B', C')\<close>} is the result
-of a) moving some state @{prop "x \<in> B"} to the accumulator (i.e.\ @{prop "C' = C \<union> {x}"}
+of a) moving some item @{prop "x \<in> B"} to the accumulator (i.e.\ @{prop "C' = C \<union> {x}"}
 and b) extending the worklist with all results of prediction or completion (depending on \<open>x\<close>).
 The definition is again inductive:
 \begin{quote}
@@ -889,7 +577,7 @@ lemma:
 @{thm [break,margin=70] Close2_NF}
 \end{quote}
 The proof is by induction on a suitable wellfounded relation (that is based on the fact that
- there are only finitely many wellformed states).
+ there are only finitely many wellformed items).
 Although it is not obvious, there is a unique \<open>C'\<close> such that @{prop "Bs \<turnstile> (B, C) \<rightarrow>* ({}, C')"},
 i.e.\ the result of @{const close2} is independent of which result \<open>SOME\<close> chooses.
 
@@ -919,11 +607,11 @@ in @{const close2}.
 \subsection{Equivalence of @{const close2} and @{const Close1}}
 \label{sec:close2_eq_Close1}
 
+We will sketch the proof of
 \begin{quote}
 @{thm close2_eq_Close1}
 \end{quote}
-
-We will sketch the proof because it is omitted in \cite{NipkowR-CBJ24}.
+because it was omitted in \cite{NipkowR-CBJ24}.
 All proofs are by obvious inductions.
 
 The following lemmas are generally useful:
@@ -979,7 +667,7 @@ and \<open>Bs\<close> is a list of item lists:
 \end{quote}
 where
 \begin{quote}
-@{thm Predict_L_def}\medskip
+@{thm [break] Predict_L_def}\medskip
 
 @{thm [break] Complete_L_def}
 \end{quote}
@@ -990,7 +678,7 @@ the set of productions @{const P} by a list @{const ps} and assume
 
 Correctness and termination can be proved straightforwardly:
 \begin{quote}
-@{thm (prem 1,sub) Close2s_if_Close2Ls}\<open>\<Longrightarrow>\<close> @{thm (concl,sub) Close2s_if_Close2Ls}
+@{thm (prem 1,sub) Close2s_if_Close2Ls} \<open>\<Longrightarrow>\<close>\\ @{thm (concl,sub) Close2s_if_Close2Ls}
 \medskip
 
 @{thm (concl) Close2L_NF}
@@ -1051,8 +739,8 @@ When processing the \<open>i\<close>-th input character, i.e. @{term \<open>i = 
 pair \<open>B\<close> (and \<open>C\<close>) with a list (think array) \<open>F\<close> of size \<open>i\<close> such that
 \mbox{@{term "F ! j"}} is a list of all @{prop \<open>x \<in> B\<close>} where @{prop \<open>from x = j\<close>}.
 The corresponding data type:
-\begin{quote}
-@{datatype [break,margin=85] efficientItemList}
+\begin{quote}                        
+@{datatype [break,margin=85] efficientItemList2}
 \end{quote}
 with the projection functions @{const list} and @{const froms}.
 The invariant
@@ -1066,10 +754,10 @@ and that there are no duplicates.
 The condition @{prop "length fs > 0"} simplifies some technicalities and can easily be guaranteed.
 
 This is a data refinement step where we replace item lists by their indexed version
-@{type efficientItemList}.
+@{typ "('n,'t)efficientItemList"}.
 The refinement of the closure algorithm @{const close2L} looks like this:
 \begin{quote}
-@{thm [break] step_fun.simps}\\
+@{thm [break] step_fun.simps}\medskip
 
 @{thm [break,margin=85]close2_L_def[unfolded steps_def]}
 \end{quote}
@@ -1145,17 +833,18 @@ Both choices are discussed below.
 In order to avoid such constant-studded upper bounds as shown above for @{const T_step_fun}
 we introduce a simple big $O$ framework, just enough for our purposes.
 In the following, \<open>f\<close> and \<open>g\<close> are of type @{typ "'a \<Rightarrow> nat"} and \<open>Q\<close> of type @{typ "'a \<Rightarrow> bool"}.
+As an analogue of \<open>f \<in> O(g)\<close> we define
 \begin{quote}
 @{thm [break] le_O_def}
 \end{quote}
 The \<open>IF Q\<close> is dropped if \<open>Q\<close> is @{const True} everywhere.
 
-In contrast to the standard \<open>f \<in> O(g)\<close>, \<open>f\<close> and \<open>g\<close> are not defined on numbers but on an arbitrary type \<open>'a\<close>.
+In contrast to \<open>f \<in> O(g)\<close>, \<open>f\<close> and \<open>g\<close> are not defined on numbers but on an arbitrary type \<open>'a\<close>.
 For example, @{prop "(\<lambda>xs. 2 * length xs + 3) \<le> (\<lambda>xs. (length xs)^2)"} is true:
 take \<open>c = 1\<close> and \<open>d = 4\<close>. Our notation combines the measure function on some domain (here:
 the length of a list) with the growth function (here: linear and quadratic).
 It is easy to show that @{thm (prem 1) standard_BigO_if_le_O}, where  \<open>m ::\<close> @{typ "'a \<Rightarrow> nat"},
-implies the standard \<open>f \<in> O(g)\<close> under mild assumption (for example, that \<open>m\<close> is surjective
+implies \<open>f \<in> O(g)\<close> under mild assumption (for example, that \<open>m\<close> is surjective
 and \<open>g\<close> is 0 only for finitely many arguments).
 
 In concrete instances, \<open>f\<close>, \<open>g\<close> and \<open>Q\<close> will be \<open>\<lambda>\<close> abstractions over the same parameter(s).
@@ -1190,9 +879,9 @@ single element set operations are constant time as well
 \end{quote}
 while combinations of sets take linear time:
 \begin{quote}
-@{thm [mode=no_fake_imp] T_union_LIL_wf5[rename_abs xs il]}\medskip
+@{thm [mode=no_fake_imp] T_union_LIL_wf_O[rename_abs xs il]}\medskip
 
-@{thm [mode=no_fake_imp] T_minus_IL_wf5[rename_abs il\<^sub>1 il\<^sub>2]}
+@{thm [mode=no_fake_imp] T_minus_IL_wf_O[rename_abs il\<^sub>1 il\<^sub>2]}
 \end{quote}
 
 Each evaluation of @{const step_fun} requires a (constant) number of set operations
@@ -1212,7 +901,7 @@ the infrastructure for generation of running time functions is restricted to tot
 Therefore we have to set up @{const T_while_option} by hand. We simply add an accumulator
 that counts the computation steps:
 \begin{quote}
-@{thm T_while_option2_def[of _ _ tf]}
+@{thm [break] T_while_option2_def[of _ _ tf]}
 \end{quote}
 In the end we project on the counter:
 \begin{quote}
@@ -1279,7 +968,7 @@ grammars.
 \subsubsection{\ackname}
 The first author would like to thank Larry Paulson for inventing the Isabelle theorem prover
 and for employing him many years ago to work on the further development of Isabelle.
-It was a profound and happy change of direction.
+It changed his life.
 
 %\vspace{-1ex}
 \subsubsection{\discintname}

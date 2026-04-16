@@ -57,14 +57,14 @@
 %%% End of Isabelle specifics
 
 % no right margin in quote:
-%\renewenvironment{quote}
-%{\list{}{}%
-%\item\relax}
-%{\endlist}
-% no margins in quote:
-\renewenvironment{quote}%
-{\list{}{\leftmargin=0mm\rightmargin=0mm}\item[]}%
+\renewenvironment{quote}
+{\list{}{}%
+\item\relax}
 {\endlist}
+% no margins in quote:
+%\renewenvironment{quote}%
+%{\list{}{\leftmargin=0mm\rightmargin=0mm}\item[]}%
+%{\endlist}
 
 \newcommand{\concept}[1]{\textbf{#1}}
 
@@ -112,7 +112,7 @@ This paper focuses on Earley's original version.
 
 The first rigourous mathematical proof of Earley's algorithm is due to Jones \cite{Jones,Jones:tr}.
 This was the starting point of the work by Nipkow and Rau \cite{NipkowR-CBJ24}, our starting point now.
-We continues that work as follows.
+We continue their work as follows.
 First we refine the recognizer from sets to lists, then from inductive to recursive, and finally
 we augment the lists wih a more efficient array-like data structure.
 Then we present a complexity analysis that proves the well-known cubic bound
@@ -127,8 +127,8 @@ Scott \cite[Section 1]{Scott-ENTCS08} gives a short history of the generalizatio
 of Earley's recognizer to a parser. Part of the difficulty is how to store multiple
 parse trees efficiently.
 Rau and Nipkow \cite{RauN24} have verified an Earley parser based on the work of Scott.
-Their work is more monolithic and aimed less at simple refinement proofs than the strand followed by us.
-Their parser correctness theorems consider only a single parse tree.
+Their work is more monolithic whereas ours aims for simple refinement steps and proofs.
+%Their parser correctness theorems consider only a single parse tree.
 
 This paper is largely based on the forthcoming master's thesis by the second author.
 

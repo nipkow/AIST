@@ -1064,7 +1064,7 @@ subsection \<open>ItemList time bounds\<close>
 lemma T_isin_list_bound: "T_isin_list xs x \<le> length xs + 1"
   by (induction xs) auto
 
-lemma T_isin_general: "inv_IL il \<Longrightarrow> T_isin il x \<le> T_nth_IL (from x) + length ((froms il) ! from x) + 1"
+lemma T_isin_general: "T_isin il x \<le> T_nth_IL (from x) + length ((froms il) ! from x) + 1"
 proof-
   obtain as m where "il = ItemList as m"
     using inv_IL.cases by blast
@@ -1107,7 +1107,7 @@ proof-
     using distinct_card by (fastforce)
   then have "from x < length (froms il) \<Longrightarrow> length ((froms il) ! from x) \<le> L * Suc K"
     using distinct_card dist_ps by (fastforce simp add: L_def)
-  then show ?thesis using wf(2) inv T_isin_general[of il x] by auto
+  then show ?thesis using wf(2) T_isin_general[of il x] by auto
 qed
 
 

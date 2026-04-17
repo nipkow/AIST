@@ -107,7 +107,7 @@ space arrow is \<open>\<Rightarrow>\<close>.
 The image of function \<open>f\<close> over set \<open>M\<close> is denoted by \<^term>\<open>f ` M\<close>.
 Function update @{term "f(a := b)"} is short for @{thm (rhs) fun_upd_def}.
 
-Functions @{const fst} and @{const snd} return the first and second components of a pair,
+Functions @{const fst} and @{const snd} return the first and second components of a pair.
 
 Lists are constructed from the empty list @{term "[]"} using the infix cons-operator @{term "(#)"}.
 The infix operator @{term "(@)"} appends two lists, @{term "length xs"} denotes the length of @{term xs},

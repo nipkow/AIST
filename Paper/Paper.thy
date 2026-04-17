@@ -487,9 +487,9 @@ this main correctness theorem:
 We show how the membership (in \<open>Lang P A\<close>), nullability and productivity problems can be decided
 (following Esparza and Rossmanith \cite{EsparzaR97}%Bouajjani et al.\ \cite{BouajjaniEFMRWW00}
 ).
-All of these problems can be reduced to problems of the form \<open>\<alpha> \<in>\<close> \mbox{@{term "pre_star L P"}}
+All of these problems can be reduced to problems of the form \<open>\<alpha> \<in>\<close> \mbox{@{term "pre_star P L"}}
 for a suitable regular language \<open>L\<close>. Given an NFA \<open>M\<close> with @{prop \<open>Lang_auto M = L\<close>},
-Theorem~\ref{pre_star_auto_correct} translates @{prop \<open>\<alpha> \<in> pre_star L P\<close>} into
+Theorem~\ref{pre_star_auto_correct} translates @{prop \<open>\<alpha> \<in> pre_star P L\<close>} into
 @{prop \<open>\<alpha> \<in> Lang_auto (pre_star_auto M P)\<close>}, which can be executed because @{const pre_star_auto}
 and membership in @{const Lang_auto} are executable.
 
@@ -530,7 +530,7 @@ It is sometimes called the Chomsky--Schützenberger Representation Theorem to di
 
 \subsection{Proof Intuition}
 
-In everything that follows, \<open>P\<close> is the original CFG and we @{prop "L = Lang P S"}.
+In everything that follows, \<open>P\<close> is the original CFG and @{prop "L = Lang P S"}.
 The proof will define a homomorphism @{term "\<h>"}, a set of brackets \<open>\<Gamma>\<close> and a regular language $R$ such that
 \[
   @{prop "L = \<h> ` L'"}\quad \text{where}\ @{prop "L' = R \<inter> Dyck_lang \<Gamma>"}

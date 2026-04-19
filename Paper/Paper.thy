@@ -609,7 +609,7 @@ language \<open>L'\<close>.
 
 %The homomorphism {term \<open>\<h>\<close>} collapses $[^1_\pi \, ]^1_\pi \, [^2_\pi \, ]^2_\pi$ to $a$ if $\pi$ is of the form $\pi = A \rightarrow a$, else it is collapsed to \<open>\<epsilon>\<close>. More precisely, $[^1_\pi$ is mapped to $a$, all the other brackets to \<open>\<epsilon>\<close>.
 The homomorphism @{term \<open>\<h>\<close>} maps @{term "open_bracket1 (A,a)"} to @{term \<open>a\<close>}
-and all other brackets to \<open>\<epsilon>\<close>. Thus --- informally speaking --- a generalized version of @{term \<open>\<h>\<close>} for sentential forms, defined to be the identity on nonterminals, maps any application of a transformed rule \<open>\<pi>'\<close> to an application of the original rule \<open>\<pi>\<close>.
+and all other brackets to \<open>\<epsilon>\<close>. Thus---informally speaking---a generalized version of @{term \<open>\<h>\<close>} for sentential forms, defined to be the identity on nonterminals, maps any application of a transformed rule \<open>\<pi>'\<close> to an application of the original rule \<open>\<pi>\<close>.
 Since a \<open>P'\<close>-derivation contains the information which original \<open>P\<close>-rules were used, one should be able to convert back and forth between \<open>P\<close>-derivations and \<open>P'\<close>-derivations and the above reasoning about @{term \<open>\<h>\<close>} should give $@{prop \<open>L = \<h> ` L'\<close>}$.
 
 The formal proof of the direction @{prop \<open>\<h> ` L' \<subseteq> L\<close>} went through as expected and follows this idea.

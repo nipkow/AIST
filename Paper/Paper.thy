@@ -190,13 +190,14 @@ is infinite. We formalized this via type classes but elide it in our presentatio
 
 \subsection{Chomsky Normal Form and Pumping Lemma}
 
-We have defined the notion of Chomsky Normal Form (CNF) and an executable translation @{const cnf_of} into CNF
+The notion of Chomsky Normal Form (CNF) is defined as follows:
 \begin{definition}
-@{thm [mode=iffSpace,break,margin=60] CNF_def}\smallskip\\
-@{thm [break]cnf_of_def}
+@{thm [mode=iffSpace,break,margin=60] CNF_def}
 \end{definition}
-and proved its correctness:
+We have defined an executable translation @{const cnf_of} into CNF
+in five steps, and proved its correctness as follows:
 \begin{quote}
+@{thm [break]cnf_of_def}\smallskip\\
 @{thm cnf_of_CNF_Lang(1)} \qquad @{thm cnf_of_CNF_Lang(2)}
 \end{quote}
 Our proof is based partly on the non-constructive one by Barthwal and Norrish \cite{csl/BarthwalN10}.

@@ -104,7 +104,7 @@ The notation \<open>t :: \<tau>\<close> means that term \<open>t\<close> has typ
 \<open>\<tau>\<close>. Basic types include @{typ bool} and @{typ nat}, while type variables are written @{typ 'a}, @{typ 'b}, etc.
 Most type constructors are written postfix, such as @{typ "'a set"} and  @{typ "'a list"}, and the function
 space arrow is \<open>\<Rightarrow>\<close>.
-The image of a function \<open>f\<close> over set a \<open>M\<close> is denoted by \<^term>\<open>f ` M\<close>.
+The image of a function \<open>f\<close> over a set \<open>M\<close> is denoted by \<^term>\<open>f ` M\<close>.
 The function update notation @{term "f(a := b)"} is defined as @{thm (rhs) fun_upd_def}.
 
 The functions @{const fst} and @{const snd} return the first and second components of a pair.

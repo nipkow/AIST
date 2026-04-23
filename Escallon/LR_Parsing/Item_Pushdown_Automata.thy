@@ -57,7 +57,7 @@ lemma delta_Tm_neq_empty [simp]:
   shows "delta M ([X \<rightarrow> \<alpha> . Tm a # \<gamma>]) b q = {}"
   using assms unfolding IPDA_def by simp
 
-lemma delta_nempty_impl_Tm_eq:
+lemma delta_nempty_imp_Tm_eq:
   assumes "delta M p a q \<noteq> {}"
   obtains X \<beta> \<gamma> where "p = [X \<rightarrow> \<beta> . Tm a # \<gamma>]"
 proof -
@@ -74,7 +74,7 @@ lemma delta_eps_Nt_neq_empty [simp]:
   using assms unfolding IPDA_def by simp
 
 
-lemma delta_eps_complete_impl_reducing:
+lemma delta_eps_complete_imp_reducing:
   assumes "delta_eps M ([Y \<rightarrow> \<alpha> . []]) q \<noteq> {}"
   obtains X \<beta> \<gamma> where "q = [X \<rightarrow> \<beta> . Nt Y # \<gamma>]"
 proof -
@@ -87,7 +87,7 @@ proof -
   qed (use assms q_def in fastforce)
 qed
 
-lemma delta_eps_nempty_impl_expanding_or_reducing:
+lemma delta_eps_nempty_imp_expanding_or_reducing:
   assumes "delta_eps M p q \<noteq> {}"
   obtains X \<beta> Y \<gamma> where "p = [X \<rightarrow> \<beta> . Nt Y # \<gamma>]"  |
     Y \<alpha> X \<beta>  \<gamma> where "p = [Y \<rightarrow> \<alpha> . []]" "q = [X \<rightarrow> \<beta> . Nt Y # \<gamma>]"
@@ -97,7 +97,7 @@ proof -
   proof (cases \<beta>)
     case Nil
     then show ?thesis 
-      using delta_eps_complete_impl_reducing assms that p_def by metis
+      using delta_eps_complete_imp_reducing assms that p_def by metis
   next
     case (Cons a as)
     then show ?thesis 
@@ -107,7 +107,7 @@ qed
 
 lemmas init_defs = init_state_def init_symbol_def
 
-lemma in_final_impl_final_state:
+lemma in_final_imp_final_state:
   assumes "q \<in> final_states M"
   shows "q = final_state"
   using assms unfolding IPDA_def S'_def S_def by simp
@@ -172,13 +172,13 @@ lemma expanding [simp]:
   shows "([X \<rightarrow> \<beta> . Nt Y#\<gamma>]#\<rho>@[init_symbol M], w) \<turnstile> ([Y \<rightarrow> [] . \<alpha>]#[X \<rightarrow> \<beta> . Nt Y#\<gamma>]#\<rho>@[init_symbol M], w)"
   using assms by (cases \<rho>) auto
 
-lemma in_delta_impl_shifting:
+lemma in_delta_imp_shifting:
   assumes "(q, qs) \<in> delta M p0 a p1"
   obtains X \<beta> \<gamma> where "p0 = [X \<rightarrow> \<beta> . Tm a # \<gamma>]"
     "(q,qs) = ([X \<rightarrow> \<beta> @ [Tm a] . \<gamma>], [p1])"
 proof -
   from assms have "delta M p0 a p1 \<noteq> {}" by auto
-  from delta_nempty_impl_Tm_eq[OF this] 
+  from delta_nempty_imp_Tm_eq[OF this] 
     obtain X \<beta> \<gamma> where p0_def: "p0 = [X \<rightarrow> \<beta> . Tm a # \<gamma>]" by blast
   hence "delta M p0 a p1 = {([X \<rightarrow> \<beta> @ [Tm a] . \<gamma>], [p1])}" by simp
   with assms show thesis using delta_ipda that p0_def 
@@ -192,7 +192,7 @@ lemma eps_cases[consumes 1, case_names reducing expanding_Cons]:
     X \<beta> Y \<gamma> \<alpha> where
     "p0 = [X \<rightarrow> \<beta> . Nt Y # \<gamma>]" "(Y, \<alpha>) \<in> Prods G'" "q0 = [Y \<rightarrow> [] . \<alpha>]" "qs = p0#[p1]" 
 proof -
-  from delta_eps_nempty_impl_expanding_or_reducing consider 
+  from delta_eps_nempty_imp_expanding_or_reducing consider 
     X \<beta> Y \<gamma> where "p0 = [X \<rightarrow> \<beta> . Nt Y # \<gamma>]" |
     Y \<alpha> X \<beta> \<gamma> where "p0 = [Y \<rightarrow> \<alpha> . []]" "p1 = [X \<rightarrow> \<beta> . Nt Y # \<gamma>]" 
     using assms by blast
@@ -211,7 +211,7 @@ obtains A \<alpha> a \<beta> i \<rho> u where
       "(Y, \<alpha>) \<in> Prods G'"
   using assms proof cases
   case (delta \<alpha> p0 p1 \<alpha>' q qs a \<beta> w)
-  from in_delta_impl_shifting[OF delta(5)] obtain X \<beta>' \<gamma> where "p0 = [X \<rightarrow> \<beta>' . Tm a # \<gamma>]" 
+  from in_delta_imp_shifting[OF delta(5)] obtain X \<beta>' \<gamma> where "p0 = [X \<rightarrow> \<beta>' . Tm a # \<gamma>]" 
     "(q,qs) = ([X \<rightarrow> \<beta>' @ [Tm a] . \<gamma>], [p1])" by blast
   then show ?thesis using that delta by simp 
 next
@@ -220,7 +220,7 @@ next
     by (cases rule: eps_cases) force+
 qed
 
-lemma step_impl_in_It:
+lemma step_imp_in_It:
   assumes "i0 \<in> It G'" "i1 \<in> It G'"
     "(i0#i1#is, u) \<turnstile> (j#js, v)"
   shows "j \<in> It G'"
@@ -254,7 +254,7 @@ lemma Tms_completed:
   using Tms_completed_Cons by (cases \<rho>) auto
 
 
-lemma reachable_impl_in_It:
+lemma reachable_imp_in_It:
   "\<lbrakk>([init_state M, init_symbol M], u) \<turnstile>* (\<rho>1, v); i \<in> set \<rho>1 - {init_symbol M}\<rbrakk> 
     \<Longrightarrow> i \<in> It G'"
 proof (induction arbitrary: i rule: rtranclp_induct2)
@@ -277,7 +277,7 @@ lemma list_app_last_is_next_hd:
   using assms 
   by (metis append.assoc append_Cons append_Nil append_same_eq last_append last_snoc)
 
-lemma reachable_impl_reachable_substring:
+lemma reachable_imp_reachable_substring:
   assumes "(\<rho>0, u) \<turnstile>* (\<rho>2, y)"
     "u = v@w@y"
   obtains \<rho>1 where "(\<rho>0, u) \<turnstile>* (\<rho>1, w@y)"
@@ -319,14 +319,14 @@ proof -
 qed
 
 
-lemma syms_tl_impl_substring:
+lemma syms_tl_imp_substring:
   assumes "([A \<rightarrow> \<alpha> . \<beta> @ map Tm u]#\<rho>, v) \<turnstile>* ([A \<rightarrow> \<alpha>@\<beta>@map Tm u . []]#\<rho>', w)"
   obtains v' where "v = v'@u"
   oops
 
 
 (* TODO review *)
-corollary reaches_final_impl_substring:
+corollary reaches_final_imp_substring:
   assumes "([A \<rightarrow> \<alpha> . \<beta> @ map Tm u]#\<rho>, v) \<turnstile>* ([final_state, init_symbol M], [])"
   obtains v' where "v = v'@u"
   oops
@@ -389,7 +389,7 @@ lemma
   sorry
 
 
-lemma derivers_singleton_impl_completes:
+lemma derivers_singleton_imp_completes:
   assumes "Prods G' \<turnstile> [Nt B] \<Rightarrow>r* map Tm w"
   shows "([A \<rightarrow> \<alpha> . [Nt B]@\<beta>]#\<rho>@[init_symbol M], w@u) \<turnstile>* ([A \<rightarrow> \<alpha>@[Nt B] . \<beta>]#\<rho>@[init_symbol M], u)"
         (is "(?\<sigma>, _) \<turnstile>* _")
@@ -412,7 +412,7 @@ lemma aux:
    Or: induction on \<rho>? (Need to prove second element on stack always contains A)
 
  *)
-lemma derives_impl_completes:
+lemma derives_imp_completes:
   assumes "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm w" 
   shows "([A \<rightarrow> \<alpha> . \<beta>@\<gamma>]#\<rho>@[init_symbol M], w@x) \<turnstile>* ([A \<rightarrow> \<alpha>@\<beta> . \<gamma>]#\<rho>@[init_symbol M], x)"
 proof -
@@ -449,7 +449,7 @@ qed
     hence "([A \<rightarrow> \<alpha> . (X # \<beta>) @ \<gamma>] # \<rho> @ [init_symbol M], w @ x) 
          = ([A \<rightarrow> \<alpha> . Nt B # \<beta> @ \<gamma>] # \<rho> @ [init_symbol M], u @ v @ x)" using Nt by simp
     also have "... \<turnstile>* ([A \<rightarrow> \<alpha>@[Nt B] . \<beta> @ \<gamma>] # \<rho> @ [init_symbol M], v @ x)" 
-      using derivers_singleton_impl_completes[OF uv_defs(1)] by simp
+      using derivers_singleton_imp_completes[OF uv_defs(1)] by simp
     also from Cons(1)[OF uv_defs(2)] 
     have "... \<turnstile>* ([A \<rightarrow> \<alpha>@X#\<beta> . \<gamma>] # \<rho> @ [init_symbol M], x)" 
     using Nt by (metis append.assoc append_Cons append_Nil)
@@ -473,7 +473,7 @@ qed (use derivers_imp_derives in force)
 
 
 (* FIXME: Holds if stack unchanged (enough?) *)
-lemma reaches_final_impl_interm_reaches_final:
+lemma reaches_final_imp_interm_reaches_final:
   assumes "(i#\<rho>@[A \<rightarrow> \<alpha> . Nt B#\<beta>]#\<sigma>, u@v) \<turnstile>* ([final_state, init_symbol M], [])"
     "Prods G' \<turnstile> [Nt B] \<Rightarrow>r* map Tm u"
   shows 
@@ -483,20 +483,20 @@ lemma reaches_final_impl_interm_reaches_final:
 
 
 
-lemma computes_impl_Nt_on_stack:
+lemma computes_imp_Nt_on_stack:
   assumes "([init_state M, init_symbol M], u) \<turnstile>* ([A \<rightarrow> \<alpha> . \<beta>]#\<rho>@[init_symbol M], v)"
     "A \<noteq> S'"
   obtains B \<gamma> \<delta> js  where "\<rho> = [B \<rightarrow> \<gamma> . Nt A # \<delta>]#js"
   sorry
 (*
-corollary reaches_final_impl_compl_final:
+corollary reaches_final_imp_compl_final:
   assumes "([A \<rightarrow> \<alpha> . \<beta>]#\<rho>, v@w) \<turnstile>* ([final_state, init_symbol M], [])"
     "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm v"
   shows "([A \<rightarrow> \<alpha>@\<beta> . []]#\<rho>, w) \<turnstile>* ([final_state, init_symbol M], [])"
-  using reaches_final_impl_interm_reaches_final[OF assms(1)]
-    derives_impl_completes[OF assms(2), of A \<alpha> "[]"] oops
+  using reaches_final_imp_interm_reaches_final[OF assms(1)]
+    derives_imp_completes[OF assms(2), of A \<alpha> "[]"] oops
 *)
-lemma derivers_impl_computes:
+lemma derivers_imp_computes:
   assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma>@Nt A#map Tm u"
     "Prods G' \<turnstile> \<gamma>@Nt A#map Tm u \<Rightarrow>r \<gamma>@\<alpha>@\<beta>@map Tm u"
     "Prods G' \<turnstile> \<beta> \<Rightarrow>r* map Tm v"
@@ -537,15 +537,14 @@ lemma Lang_eq_Lang_G:
 
 
 lemma first_step_is_eps:
-  assumes "([init_state M, init_symbol M], u) \<turnstile>* (qs, v)"
-    "([init_state M, init_symbol M], u) \<noteq> (qs, v)"
+  assumes "([init_state M, init_symbol M], u) \<turnstile>(Suc n) (qs, v)"
   obtains \<alpha> where 
     "([init_state M, init_symbol M], u) \<turnstile> ([[S \<rightarrow> [] . \<alpha>], init_state M, init_symbol M], u)"
     "([[S \<rightarrow> [] . \<alpha>], init_state M, init_symbol M], u) \<turnstile>* (qs, v)"
 proof -
   from assms obtain ps u' where step: "([init_state M, init_symbol M], u) \<turnstile> (ps, u')"
     and steps: "(ps, u') \<turnstile>* (qs, v)"
-    by (metis converse_rtranclpE2)
+    by (metis relpowp_Suc_D2 rtranclp_power surj_pair)
   moreover have "u = u'" 
     by (rule ccontr) (use step step_equal_or_Cons in fastforce)
   moreover with step obtain r rs where 

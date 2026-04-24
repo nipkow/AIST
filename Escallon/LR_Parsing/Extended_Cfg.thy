@@ -146,16 +146,6 @@ definition It :: "('n, 't) Cfg \<Rightarrow> ('n, 't) item set" where
 
 lemmas It_defs = It_def items_of_Prods_def
 
-(* Intro breaks proofs
-
-lemma ItI[intro]:
-  assumes "P (items_of_Prods (Prods G))"
-  shows "P (It G)"
-  using assms unfolding It_def by presburger
-
-*)
-
-
 lemma prod_items_finite:
   "finite {[A \<rightarrow> \<alpha> . \<beta>] | \<alpha> \<beta>. (A, \<alpha>@\<beta>) = (A, w)}"
 proof (induction w)
@@ -421,9 +411,6 @@ proof (induction rule: rtranclp_induct)
   ultimately  show ?case using step G'_derive_imp_G_derive_if_no_S'[OF step(2)]
     by simp
 qed simp
-
-
-
   
 lemma Lang_preserved:
   "LangS G' = LangS G"

@@ -436,41 +436,6 @@ proof -
   qed (use Tms_completed in simp)
 qed
 
-(*
-  using assms proof (induction \<beta> arbitrary: w \<alpha> \<gamma> \<rho> x)
-  case (Cons X \<beta>)
-  then show ?case
-  proof (cases X)
-    case (Nt B)
-    with Cons(2) obtain u v where uv_defs: 
-      "Prods G' \<turnstile> [Nt B] \<Rightarrow>r* map Tm u"
-      "Prods G' \<turnstile> \<beta> \<Rightarrow>r* map Tm v" "u@v = w"
-      by (metis append_Cons append_Nil derivers_iff_derives derives_append_map_Tm)
-    hence "([A \<rightarrow> \<alpha> . (X # \<beta>) @ \<gamma>] # \<rho> @ [init_symbol M], w @ x) 
-         = ([A \<rightarrow> \<alpha> . Nt B # \<beta> @ \<gamma>] # \<rho> @ [init_symbol M], u @ v @ x)" using Nt by simp
-    also have "... \<turnstile>* ([A \<rightarrow> \<alpha>@[Nt B] . \<beta> @ \<gamma>] # \<rho> @ [init_symbol M], v @ x)" 
-      using derivers_singleton_imp_completes[OF uv_defs(1)] by simp
-    also from Cons(1)[OF uv_defs(2)] 
-    have "... \<turnstile>* ([A \<rightarrow> \<alpha>@X#\<beta> . \<gamma>] # \<rho> @ [init_symbol M], x)" 
-    using Nt by (metis append.assoc append_Cons append_Nil)
-    finally show ?thesis by argo
-  next
-    case (Tm a)
-    with Cons(2) obtain v where v_defs: "Prods G' \<turnstile> \<beta> \<Rightarrow>r* map Tm v" "a#v = w" 
-      by (metis deriven_Tm_Cons_map_Tm derivers_iff_derives rtranclp_power)
-    hence "([A \<rightarrow> \<alpha> . (X # \<beta>) @ \<gamma>] # \<rho> @ [init_symbol M], w @ x) 
-         = ([A \<rightarrow> \<alpha> . Tm a # \<beta> @ \<gamma>] # \<rho> @ [init_symbol M], a#v @ x)" using Tm by simp
-    also have "... \<turnstile> ([A \<rightarrow> \<alpha>@[Tm a] . \<beta> @ \<gamma>] # \<rho> @ [init_symbol M], v @ x)" using shifting 
-      by presburger
-    also from Cons(1)[OF v_defs(1)] have "... \<turnstile>* ([A \<rightarrow> \<alpha>@X#\<beta> . \<gamma>] # \<rho> @ [init_symbol M], x)" 
-      using Tm by (metis append.assoc append_Cons append_Nil)
-    finally show ?thesis by simp
-  qed
-qed (use derivers_imp_derives in force)
-
-*)
-
-
 
 (* FIXME: Holds if stack unchanged (enough?) *)
 lemma reaches_final_imp_interm_reaches_final:

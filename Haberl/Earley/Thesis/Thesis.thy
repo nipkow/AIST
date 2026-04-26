@@ -10,10 +10,16 @@ declare [[names_short=true]]
 (* to get rid of annoying eta-contraction *)
 notation (output) id ("_")
 
+
+lemma T_list_update_general: "T_list_update xs n a \<le> Suc n"
+  by (induction xs arbitrary: n) (auto split: nat.split)
+
 context Earley_Gw begin
 definition X :: "nat \<Rightarrow> ('n,'a) item set"
   ("(\<S>\<^bsub>_\<^esub>)" [800] 1000) where
 "(\<S>\<^bsub>i\<^esub>) = ({x. (x,i) \<in> Earley})"
+
+notation (latex) \<S> ("(\<S>\<^bsub>\<^latex>\<open>\\isaconst{\<close>_\<^latex>\<open>}\<close>\<^esub>)" [0] 0)
 
 lemma Earley_eq_\<S>1: "(x,i) \<in> Earley \<longleftrightarrow> x \<in> \<S>\<^bsub>i\<^esub>"
 by(simp add: X_def)
@@ -21,7 +27,7 @@ by(simp add: X_def)
 lemma Earley_predict: assumes "x \<in> (\<S>\<^bsub>i\<^esub>)" and "next_sym_Nt x A" and "p \<in> P" and "lhs p = A" shows "Item p 0 i \<in> \<S>\<^bsub>i\<^esub>"
   using Earley.Predict[of x i "Item p 0 i"] assms by (cases p) (auto simp add: X_def Predict_def)
 
-lemma Earley_complete: assumes "x \<in> (\<S>\<^bsub>i\<^esub>)" "is_complete x" "from x = f" "y \<in> \<S>\<^bsub>f\<^esub>" "next_sym_Nt y (lhs (prod x))" shows "mv_dot y \<in> \<S>\<^bsub>i\<^esub>"
+lemma Earley_complete_rule: assumes "x \<in> (\<S>\<^bsub>i\<^esub>)" "is_complete x" "from x = f" "y \<in> \<S>\<^bsub>f\<^esub>" "next_sym_Nt y (lhs (prod x))" shows "mv_dot y \<in> \<S>\<^bsub>i\<^esub>"
   using Earley.Complete[of x i] assms by (auto simp add: X_def)
 
 lemma Earley_init: assumes "p \<in> P" "lhs p = S" shows "Item p 0 0 \<in> \<S>\<^bsub>0\<^esub>"
@@ -30,12 +36,401 @@ lemma Earley_init: assumes "p \<in> P" "lhs p = S" shows "Item p 0 0 \<in> \<S>\
 lemma accepted_def2: shows "accepted = (\<exists>x \<in> (id (\<S>\<^bsub>length w\<^esub>)). is_final (id x))" 
   unfolding accepted_def by (auto simp add: \<S>_def X_def)
 
-end
-(*P definition outside of Earley_Gw for certain uses*)
-definition P where " P = {(1 :: nat, ([] :: (nat, 'b) sym list))}"
 
-notation (latex) X ("(\<S>\<^bsub>\<^latex>\<open>\\isaconst{\<close>_\<^latex>\<open>}\<close>\<^esub>)" [0] 0)
-notation (latex) \<S> ("(\<S>\<^bsub>\<^latex>\<open>\\isaconst{\<close>_\<^latex>\<open>}\<close>\<^esub>)" [0] 0)
+definition Complete_Th where "Complete_Th Bs y = {mv_dot x | x. x \<in> Bs ! from y \<and> next_sym_Nt x (lhs(prod y))}"
+
+lemma "Earley_Gw.Complete_Th Bss y = Complete Bss y"
+  by (auto simp add: Complete_def Complete_Th_def)
+
+theorem Earley_complete_Th:
+  assumes "P \<turnstile> [Nt S] \<Rightarrow>* w"
+  shows "accepted"
+  using Earley_complete assms by (auto simp add: accepted_def recognized_def \<S>_def)
+
+definition get_parse_tree3 :: "('n, 'a) tree option"  where
+"get_parse_tree3 = (let ts = (SOME t. \<exists>i. (i,t) \<in> (last (Parse_bins (length w))) \<and> is_final i) in if (\<exists> i t. (i,t) \<in> (last (Parse_bins (length w))) \<and> is_final i) then Some ( Rule S (rev ts)) else None)"
+
+
+definition earley_recognized_Th :: "bool"  where
+  "earley_recognized_Th = recognized_L (last (bins_L (length w)))"
+
+notation earley_recognized_Th ("\<^latex>\<open>\\isaconst{\<close>earley'_recognized\<^latex>\<open>}\<close>")
+
+
+(*List version*)
+fun  Close2_L  where 
+"Close2_L Bs (bs, cs) (bs', cs') = Close2 (map set Bs) (set bs, set cs) (set bs', set cs')"
+
+fun step_fun_L :: "('n,'a) item list list \<Rightarrow> ('n,'a) item list \<times> ('n,'a) item list \<Rightarrow> ('n,'a) item list \<times> ('n,'a) item list" where
+  "step_fun_L Bs (b#bs, cs) = 
+  (let nexts = (if is_complete b then Complete_L Bs b else Predict_L b (length Bs))
+  in (diff_list (union_list nexts (b#bs)) (insert_list b cs), insert_list b cs))"
+
+fun steps_L :: "('n,'a) item list list \<Rightarrow> ('n,'a) item list \<times> ('n,'a) item list \<Rightarrow> (('n,'a) item list \<times> ('n,'a) item list) option" where
+  "steps_L Bs BC = while_option (\<lambda>(B',C'). B' \<noteq> []) (step_fun_L Bs) BC"
+
+definition close2_L_Th where
+"close2_L_Th Bs B = snd (the (steps_L Bs (B,[])))"
+
+fun bins_L_Th where
+"bins_L_Th 0 = [close2_L_Th [] Init_L]"
+| "bins_L_Th (Suc k) = (let Bs = bins_L_Th k in Bs @[close2_L_Th Bs (Scan_L (last Bs) k)])"
+
+lemma step_fun_L_sound: "B \<noteq> [] \<Longrightarrow> wf_bins1 (map set Bs) \<Longrightarrow> wf_bin1 (set B) (length Bs) 
+  \<Longrightarrow> step_fun_L Bs (B,C) = (B',C') \<Longrightarrow> Close2_L Bs (B,C) (B',C')"
+proof-
+  assume assms: "B \<noteq> []" "wf_bins1 (map set Bs)" "wf_bin1 (set B) (length Bs)" "step_fun_L Bs (B,C) = (B',C')"
+  then obtain b bs where P: "B = b#bs" by (auto simp add: neq_Nil_conv)
+  then have "wf_item1 b (length Bs)" using assms by (auto simp add: wf_bin1_def)
+  then show ?thesis using Close2.Complete Close2.Predict[of b "set (b#bs)" "map set Bs"] P assms Un_commute[of _ "set (b#bs)"]
+    by (auto simp add: Let_def set_Predict_L set_Complete_L  list.set_intros(1) simp del: set_simps(2))
+qed
+
+lemma test_Th4: "B \<noteq> [] \<Longrightarrow> wf_bins1 (map set Bs) \<Longrightarrow> wf_bin1 (set B) (length Bs) 
+  \<Longrightarrow> step_fun_L Bs (B,C) = (B',C') \<Longrightarrow> Close2 (map set Bs) (set B,set C) (set B',set C')"
+  using step_fun_L_sound by auto
+
+end
+
+
+context Earley_Gw_eps
+begin
+lemma step_fun_L_wf: 
+  assumes "B \<noteq> []" "wf_bin1 (set B) (length Bs)" "wf_bins1 (map set Bs)" shows "wf_bin1 (set (fst (step_fun_L Bs (B, C)))) (length Bs)"
+proof-
+  obtain y ys where P: "B = y # ys" using assms(1) by (auto simp add: neq_Nil_conv)
+  then have "wf_bin1 (set (if is_complete y then Complete_L Bs y else Predict_L y (length Bs))) (length Bs)"
+    using wf1_Complete_L wf1_Predict_L assms[unfolded wf_bin1_def] by (auto simp add: )
+  then show ?thesis using assms P
+   by (auto simp add: wf1_Complete_L wf1_Predict_L wf_bin1_def if_split_mem2)
+qed
+
+lemma step_fun_L_wf1: 
+  assumes "B \<noteq> []" "wf_bin1 (set B) (length Bs)" "wf_bin1 (set C) (length Bs)" "wf_bins1 (map set Bs)" shows "wf_bin1 (set (snd (step_fun_L Bs (B, C)))) (length Bs)"
+proof-
+  obtain y ys where P: "B = y # ys" using assms(1) by (auto simp add: neq_Nil_conv)
+  then have "wf_bin1 (set (insert_list y C)) (length Bs)"
+    using assms by (auto simp add: wf_bin1_def)
+  then show ?thesis using assms P
+   by (auto simp add:)
+qed
+
+
+
+lemma steps_L_Th_sound: assumes  "wf_bins1 (map set Bs)" "wf_bin1 (set B) (length Bs)" "steps_L Bs (B,C) = Some (B',C')"
+  shows "(Close2_L Bs)^** (B,C) ([],C')"
+proof -
+  let ?P = "\<lambda>(B',C'). (Close2_L Bs)^** (B,C) (B',C') \<and> wf_bin1 (set B') (length Bs) \<and> wf_bins1 (map set Bs)"
+  have "\<And>B C. B\<noteq>[] \<Longrightarrow> ?P (B,C) \<Longrightarrow> ?P (step_fun_L Bs (B,C))"
+    by (smt (verit) Transitive_Closure.rtranclp.simps case_prodI2 case_prod_conv fst_conv step_fun_L_sound step_fun_L_wf)
+  thus ?thesis using while_option_rule[where P = ?P, OF _ assms(3)[unfolded steps_L.simps]] assms(1,2)
+    while_option_stop[OF assms(3)[unfolded steps_L.simps]]
+    by auto
+qed
+
+lemma test_Th5: assumes "wf_bins1 (map set Bs)" "wf_bin1 (set B) (length Bs)" "steps_L Bs (B,C) = Some (B',C')"
+  shows "(Close2 (map set Bs))^** (set B,set C) ({},set C')"
+proof-
+  let ?P = "\<lambda>(B',C'). (Close2 (map set Bs))^** (set B,set C) (set B',set C') \<and> wf_bin1 (set B') (length Bs) \<and> wf_bins1 (map set Bs)"
+  have "\<And>B C. B\<noteq>[] \<Longrightarrow> ?P (B,C) \<Longrightarrow> ?P (step_fun_L Bs (B,C))"
+    by (smt (verit) Transitive_Closure.rtranclp.simps case_prodI2 case_prod_conv fst_conv test_Th4 step_fun_L_wf)
+  thus ?thesis using while_option_rule[where P = ?P, OF _ assms(3)[unfolded steps_L.simps]] assms(1,2)
+    while_option_stop[OF assms(3)[unfolded steps_L.simps]]
+    by auto
+qed
+  
+
+
+definition Close2_L_Th_less :: "nat \<Rightarrow> ((('n,'a) item list \<times> ('n,'a) item list) \<times> (('n,'a) item list \<times> ('n,'a) item list)) set" where
+"Close2_L_Th_less k = (\<lambda>(B,C). card({x. wf_item x k} - (set B \<union> set C))) <*mlex*> inv_image finite_psubset (set o fst)"
+
+lemma wf_Close2_L_Th_less: "wf (Close2_L_Th_less k)"
+by (simp add: Close2_L_Th_less_def wf_mlex) 
+
+lemma Th_test1: assumes "B \<noteq> []" "wf_bins1 (map set Bs)" "wf_bin1 (set B) (length Bs)" "wf_bin1 (set C) (length Bs)"
+  shows "\<exists>B' C'. step_fun_L Bs (B,C) = (B',C') \<and> wf_bin1 (set B') (length Bs) \<and> wf_bin1 (set C') (length Bs)"
+proof-
+  from assms obtain b bs where P: "B = b#bs"
+    using local.recognized_L.cases by blast
+  let ?nexts = "if is_complete b then Complete_L Bs b else Predict_L b (length Bs)"
+  let ?B = "diff_list (union_list ?nexts (b#bs)) (insert_list b C)"
+  let ?C = "insert_list b C"
+  have 1: "step_fun_L Bs (B,C) = (?B, ?C)" using P by simp
+  moreover have "wf_bin1 (set ?B) (length Bs)" using step_fun_L_wf[of B Bs C] assms by (simp add: 1)
+  moreover have "wf_bin1 (set ?C) (length Bs)" using step_fun_L_wf1[of B Bs C] assms by (simp add: 1)
+  ultimately show ?thesis by auto
+qed
+
+lemma Th_test3: "((A, B), (C,D)) \<in> Close2_L_Th_less k \<longleftrightarrow> ((set A, set B), (set C, set D)) \<in> Close2_less k"
+  by (simp add: Close2_L_Th_less_def Close2_less_def mlex_prod_def)
+
+lemma Th_test2: assumes "B\<noteq>[]" "wf_bins1 (map set Bs)" "wf_bin1 (set B) (length Bs)" "wf_bin1 (set C) (length Bs)"  "(B',C') = step_fun_L Bs (B,C)" 
+  shows "((B',C'), (B,C)) \<in> Close2_L_Th_less (length Bs)"
+proof-
+  have "Close2 (map set Bs) (set B, set C) (set B', set C')"
+    using step_fun_L_sound assms
+    by simp
+  then show ?thesis using assms Close2_less_step Th_test3 by (metis length_map)
+qed
+
+theorem Close2_L_Th_NF: "\<lbrakk>wf_bins1 (map set Bs); wf_bin1 (set B) (length Bs); wf_bin1 (set C) (length Bs)\<rbrakk>
+  \<Longrightarrow> \<exists>B' C'. steps_L Bs (B,C) = Some (B',C')"
+using wf_Close2_L_Th_less[of "length Bs"]
+proof (induction "(B,C)" arbitrary: B C rule: wf_induct_rule)
+  case less
+  show ?case
+  proof cases
+    assume ne: "B = []"
+    thus ?thesis using while_option_unfold[of _ _ "(B,C)"] by(simp add: )
+  next
+    let ?steps = "while_option (\<lambda>(B, C). B \<noteq> []) (step_fun_L Bs)"
+    assume cons: "B \<noteq> []"
+    then obtain B' C'
+      where "(B',C') = step_fun_L Bs (B,C)" and wf': "wf_bin1 (set B') (length Bs)" "wf_bin1 (set C') (length Bs)"
+      using Th_test1[OF cons less.prems(1,2,3)] by fastforce
+    then have "((B',C'), (B, C)) \<in> Close2_L_Th_less (length Bs)"
+      using cons less.prems Th_test2 by auto
+    from less.hyps[OF this \<open>wf_bins1 (map set Bs)\<close> wf']
+    show ?thesis
+      by (simp add: \<open>(B',C') = step_fun_L Bs (B,C)\<close> while_option_unfold)
+  qed
+qed
+
+lemma close2_L_Th_eq_close2: 
+  assumes "wf_bins1 (map set Bs)" "wf_bin1 (set B) (length Bs)"
+    shows "set (close2_L_Th Bs B) = close2 (map set Bs) (set B)"
+proof-
+  have "wf_bin1 (set []) (length Bs)" by (auto simp add: wf_bin1_def)
+  then obtain B' C' where P: "steps_L Bs (B,[]) = Some (B', C')" using Close2_L_Th_NF assms by blast
+
+  then have "(Close2 (map set Bs))^** (set B, {}) ({}, set C')" 
+    using P test_Th5[of Bs B "[]" B' C', unfolded Close2_L.simps] assms by simp
+  then have "set C' = Close1 (map set Bs) (set B)"
+    by (simp add: Close1_subset_Close2 Close2_steps_subset_Close1' subset_antisym close2_L_Th_def )
+  then have "set (close2_L_Th Bs B) = Close1 (map set Bs) (set B)"
+    using P by (simp add: close2_L_Th_def)
+
+  then show ?thesis
+    by (simp add: assms(1,2) close2_eq_Close1) 
+qed
+
+lemma close2_L_Th_eq_Close1: "wf_bins1 (map set Bs) \<Longrightarrow> wf_bin1 (set B) (length Bs) \<Longrightarrow> set (close2_L_Th Bs B) = Close1 (map set Bs) (set B)"
+  using close2_L_Th_eq_close2 close2_eq_Close1 by auto
+
+lemma test_th_6: "wf_bins1 (map set Bs) \<Longrightarrow> wf_bin1 (set B) (length Bs) \<Longrightarrow> wf_bin1 (set (close2_L_Th Bs B)) (length Bs)"
+  by (metis close2_L_Th_eq_Close1 length_map wf_bin1_def wf_item1_Close1)
+
+
+lemma bins_L_Th_Suc[simp]: "length (bins_L_Th k) = Suc k"
+  by (induction k) (auto simp add: Let_def)
+
+lemma bins_L_Th_eq_bins: "k \<le> length w \<Longrightarrow> map set (bins_L_Th k) = bins k"
+proof(induction k)
+  case 0
+  have "wf_bin1 (set Init_L) 0" using Init_L_eq_Init
+    by (simp add: wf_bin1_Init)
+  then have "wf_bins1 (map set (bins_L_Th 0))" using "0" test_th_6[of "[]" "Init_L"] by (auto simp add: wf_bins1_def)
+  then show ?case using 0 close2_L_Th_eq_Close1 Close1_eq_Close Init_L_eq_Init wf_bin1_Init wf_bins1_def by auto
+next
+  case (Suc k)
+  have 2: "bins k \<noteq> []"
+    by (simp add: bins_nonempty)
+  have 1: "bins_L_Th k \<noteq> []" using bins_L_Th_Suc
+    by (metis Zero_not_Suc length_0_conv)
+  have "wf_bins1 (bins k)" using Suc
+    using Suc_leD wf_bins1_bins by blast
+  then have 3: "wf_bins1 (map set (bins_L_Th k))" using Suc by auto
+  then have "wf_bin1 (set (Scan_L (last (bins_L_Th k)) k)) (length (bins_L_Th k))"
+    using 1 wf_bin1_Scan Scan_L_eq_Scan Suc wf_bins1_def by (auto simp add: last_conv_nth simp flip: nth_map[of _ _ set])
+  then show ?case using 1 2 close2_L_Th_eq_Close1[of "bins_L_Th k" "Scan_L (last (bins_L_Th k)) k"] Close1_eq_Close Suc 3 Scan_L_eq_Scan
+     by (auto simp add: Let_def last_conv_nth simp flip: nth_map[of _ _ set])
+ qed
+end
+
+
+context Earley_Gw_eps begin
+
+(*(if (\<exists> i t. (i,t) \<in> (last (Parse_bins (length w))) \<and> is_final i) 
+    then Some ( Rule S (rev (SOME t. \<exists>i. (i,t) \<in> (last (Parse_bins (length w))) \<and> is_final i))) else None)"*)
+
+lemma fst_image: "x \<in> image fst Y \<Longrightarrow> \<exists>y. (x,y) \<in> Y"
+  by auto
+
+lemma get_parse_tree3_iff: "(\<exists>t. get_parse_tree3 = Some t) \<longleftrightarrow> (P \<turnstile> [Nt S] \<Rightarrow>* w)"
+proof
+  assume "\<exists>t. get_parse_tree3 = Some t"
+  then obtain i t where "(i,t) \<in> (last (Parse_bins (length w))) \<and> is_final i"
+    using get_parse_tree3_def
+    by fastforce
+  then have "i \<in> last (map ((`) item) (Parse_bins (length w))) \<and> is_final i"
+    by (metis (no_types, lifting) List.list.map_disc_iff bins_nonempty fst_conv image_eqI item_Pbins_eq_bins last_map nat_le_linear)
+  then have "i \<in> last (bins (length w)) \<and> is_final i"
+    using item_Pbins_eq_bins[of "length w"] by auto
+  then have "i \<in> \<S> (length w) \<and> is_final i" using bins_eq_\<S> last_conv_nth length_bins
+    by (metis Earley.Earley_Gw.bins_nonempty diff_add_inverse2 le_refl)
+  then show "P \<turnstile> [Nt S] \<Rightarrow>* w"
+    using accepted_def accpted_sound by auto
+next
+  assume "P \<turnstile> [Nt S] \<Rightarrow>* w"
+  then obtain i where 1: "i \<in> \<S> (length w) \<and> is_final i"
+    using accepted_def Earley_complete_Th by blast
+  then have "i \<in> last (bins (length w)) \<and> is_final i"
+    using bins_eq_\<S> last_conv_nth length_bins by (metis Earley.Earley_Gw.bins_nonempty diff_add_inverse2 le_refl)
+  then have "i \<in> last (map ((`) item) (Parse_bins (length w))) \<and> is_final i"
+    using item_Pbins_eq_bins[of "length w"] by auto
+  then have "i \<in> item ` last (Parse_bins (length w))" using last_map length_parse_bins
+    by (metis Earley.Earley_Gw.bins_nonempty EarleyWorklist.Earley_Gw_eps.item_Pbins_eq_bins Earley_Gw_eps_axioms List.list.simps(8)
+        le_refl)
+  then have "\<exists>t. (i,t) \<in> (last (Parse_bins (length w)))" using fst_image by auto
+  then obtain t where "(i,t) \<in> (last (Parse_bins (length w))) \<and> is_final i" using 1 by blast
+  then show "\<exists>t. get_parse_tree3 = Some t"
+    by (auto simp add: get_parse_tree3_def)
+qed
+
+lemma someI2_bex_Th: "\<exists>a b. (a,b)\<in>A \<and> T a \<Longrightarrow> (\<And>a b. (a,b) \<in> A \<and> T a \<Longrightarrow> Q b) \<Longrightarrow> Q (SOME b. \<exists>a. (a,b) \<in> A \<and> T a)"
+  by (smt (verit) exE_some)
+
+  
+
+lemma test_Pt: "(s, ts) \<in> last (Parse_bins (length (w ))) \<and> is_final s \<Longrightarrow> valid_parse_tree P w S (Rule S (rev ts))"
+proof-
+  assume assm: "(s, ts) \<in> last (Parse_bins (length (w ))) \<and> is_final s"
+  moreover have "Parse_bins (length w) \<noteq> []"
+    by (metis Zero_not_Suc length_0_conv length_parse_bins)
+  ultimately have "wf_parseItem1 (s, ts) (length w)" using parse_bins_wf1 length_parse_bins
+    by (auto simp add: wf_parse_bins1_def last_conv_nth simp del: wf_parseItem1.simps)
+  then show "valid_parse_tree P w S (Rule S (rev ts))" using assm 
+    by (auto simp add: valid_parse_tree_def is_final_def wf_item1_def wf_item_def \<alpha>_def rhs_def is_complete_def)
+qed
+
+lemma get_parse_tree3_valid: "get_parse_tree3 = Some t \<Longrightarrow> valid_parse_tree P w S t"
+proof (cases "\<exists>i ts. (i, ts) \<in> last (Parse_bins (length (w ))) \<and> is_final i")
+  case True
+  assume "get_parse_tree3 = Some t"
+
+  moreover have "valid_parse_tree P w S (Rule S (rev (SOME t. \<exists>i. (i, t) \<in> last (Parse_bins (length w)) \<and> is_final i)))"
+    using someI2_bex_Th[OF True test_Pt] test_Pt True by auto
+  ultimately show ?thesis by (auto simp add: get_parse_tree3_def split: if_splits)
+next
+  case False
+  assume assm: "get_parse_tree3 = Some t"
+  have "get_parse_tree3 = None" using False by (auto simp add: get_parse_tree3_def)
+  then show ?thesis using assm by (auto simp add: get_parse_tree3_def)
+qed
+
+lemma unambiguous_impl_P_set_eq_P_L: "G = Cfg P S \<Longrightarrow> unambiguous G \<Longrightarrow> get_parse_tree3 = parse_tree_w"
+proof (cases "P \<turnstile> [Nt S] \<Rightarrow>* w")
+  case True
+  assume assms: "G = Cfg P S" "unambiguous G"
+  obtain t1 where "get_parse_tree3 = Some t1" using True get_parse_tree3_iff by auto
+  moreover then have "valid_parse_tree P w S t1" using get_parse_tree3_valid by auto
+  moreover obtain t2 where "parse_tree_w = Some t2" using find_parse_tree_iff_w_in_L True w_def Lang_def
+    using Earley_complete_Th accepted_implies_Some_tree by blast
+  ultimately show ?thesis using assms
+    using unambiguous_impl_the_parse_tree by auto
+next
+  case False
+  then have "get_parse_tree3 = None" using get_parse_tree3_iff
+    by simp
+  moreover have "parse_tree_w = None" using find_parse_tree_iff_w_in_L w_def False Lang_def
+    by (metis Option.option.exhaust mem_Collect_eq)
+  ultimately show ?thesis by simp
+qed
+
+
+(*lemma "get_parse_tree3 = (get_parse_tree (last (Parse_bins_L (length w))))"*)
+
+lemma step_fun_sound_il: "list il1 \<noteq> [] \<Longrightarrow> wf1_IL il1 (length Bs) \<Longrightarrow> wf_bins1 (map set Bs) \<Longrightarrow> inv_IL il1 \<Longrightarrow> inv_IL il2
+  \<Longrightarrow> length (froms il1) = Suc (length Bs) \<Longrightarrow> length (froms il2) = Suc (length Bs)
+ \<Longrightarrow> step_fun Bs (il1,il2) = (il1', il2')
+ \<Longrightarrow> step_rel (map set Bs) (set_ItemList il1,set_ItemList il2) (set_ItemList il1', set_ItemList il2')"
+  using il_decomp step_fun_sound
+  by (metis (no_types, lifting) EarleyWorklist.efficientItemList.collapse local.set_ItemList.elims)
+
+lemma steps_sound_il: "wf1_IL il1 (length Bs) \<Longrightarrow> wf_bins1 (map set Bs) \<Longrightarrow> length (froms il1) = Suc (length Bs) \<Longrightarrow> length (froms il2) = Suc (length Bs)
+  \<Longrightarrow> inv_IL il1 \<Longrightarrow> inv_IL il2 \<Longrightarrow> steps Bs (il1, il2) = Some (il1', il2') 
+  \<Longrightarrow> (step_rel (map set Bs))^** (set_ItemList il1, set_ItemList il2) ({}, set_ItemList il2')"
+  using il_decomp steps_sound by (metis (no_types, lifting) EarleyWorklist.efficientItemList.collapse local.set_ItemList.elims)
+
+lemma correctness_earley_Th:
+  shows "earley_recognized_Th \<longleftrightarrow> P \<turnstile> [Nt S] \<Rightarrow>* w"
+  using correctness_earley unfolding earley_recognized_Th_def by blast
+end
+
+context Earley_Gw_eps_T begin
+lemma T_minus_IL_wf_Th: 
+  assumes "wf1_IL il1 (length (froms il1) - 1)" "inv_IL il1" "inv_IL il2" "wf1_IL il2 (length (froms il1) - 1)"
+   "length (froms il2) \<ge> length (froms il1)"
+ shows "T_minus_IL il1 il2 \<le> (length (list il1)) * (4 * T_nth_IL (length (froms il1) - 1) + 2*L * (Suc K) + 5)
+    + mbox0 (2 * length (froms il1) + 3)"
+  using T_minus_IL_wf[OF assms] by (auto simp add: algebra_simps mbox0_def)
+
+definition T_step_fun_bound_Th_def :: "nat" where "T_step_fun_bound_Th_def = 0"
+
+notation T_step_fun_bound_Th_def (\<open>\<^latex>\<open>\isaconst{\<close>T'_step'_fun'_bound\<^latex>\<open>}\<close>\<close>)
+
+lemma T_close2_L_bound_Th_nice: 
+  assumes "wf_bins1 (map set Bs)" "\<forall>i < length Bs. distinct (Bs ! i)"  "wf1_IL il (length Bs)" "inv_IL il" "length (froms il) = Suc (length Bs)"
+  shows "T_close2_L Bs il \<le> (L * Suc K * Suc (length Bs))^2 * (7 * T_nth_IL (length Bs) + 3 * L * Suc K + 10 + 2 * (K + 2))
+  +  L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 2 * L * Suc K + 7 + Suc K)
+  + 2 * Suc (length Bs)"
+proof-
+  have 1: "L * Suc K * Suc (length Bs) * 3 * Suc (length Bs) \<le> L * Suc K * Suc (length Bs) * L * Suc K * Suc (length Bs) * 3"
+    by (cases L) (auto simp add: algebra_simps)
+  have "T_close2_L Bs il \<le> 
+      (L * Suc K * Suc (length Bs)) * (L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3 * L * Suc K + 7 + 2 * (K + 2)) 
+      + 7 * T_nth_IL (length Bs) + 3 * Suc (length Bs) + 2 * L * Suc K + 7 + Suc K) + 2 * Suc (length Bs)"
+    using T_close2_L_bound assms by simp
+  also have "... \<le> L * Suc K * Suc (length Bs) * L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 3 * L * Suc K + 10 + 2 * (K + 2))
+                  + L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 2 * L * Suc K + 7 + Suc K)
+                  + 2 * Suc (length Bs)"
+    using 1 by (auto simp add: algebra_simps)
+  also have "... = (L * Suc K * Suc (length Bs))^2 * (7 * T_nth_IL (length Bs) + 3 * L * Suc K + 10 + 2 * (K + 2))
+  +  L * Suc K * Suc (length Bs) * (7 * T_nth_IL (length Bs) + 2 * L * Suc K + 7 + Suc K)
+  + 2 * Suc (length Bs)" by (simp only: monoid_mult_class.power2_eq_square)
+  finally show ?thesis.
+qed
+
+lemma T_Parse_bins_bound_nice_Th: 
+  assumes "k \<le> length w"
+  shows "T_Parse_bins_L k 
+      \<le> mbox0 ((k+2)^3 * C3 + (k+2)^2 * C4 + (k+2) * 3 + C5) 
+        + mbox0 ((k+2)^3 * T_nth_IL (k) * C6 + (k+2)^2 * T_nth_IL (k) * C7)"
+  using T_Parse_bins_bound_nice assms by (auto simp add: mbox0_def algebra_simps)
+
+lemma T_ovrall_time_bound_Th: "T_get_parse_tree_w ps S w0 \<le>  
+  mbox0 ((length w + 2)^3 * C3 + (length w + 2)^2 * C4 + (length w + 2) * C8 + C5 )
+        + mbox0 ((length w + 2)^3 * T_nth_IL (length w) * C6 + (length w + 2)^2 * T_nth_IL (length w) * C7)"
+  using T_ovrall_time_bound by (auto simp add: mbox0_def algebra_simps)
+end
+
+
+
+definition a_very_long_name_that_isnt_used_anywhere_else_qs where "a_very_long_name_that_isnt_used_anywhere_else_qs = [((0::nat), [Nt (0),Nt (1)]), (0, [Nt 1, Nt 0]), (0,[Tm ((0::nat))]), (1,[Tm (1)])]"
+definition a_very_long_name_that_isnt_used_anywhere_else_s where "a_very_long_name_that_isnt_used_anywhere_else_s = 0"
+definition a_very_long_name_that_isnt_used_anywhere_else_w1 where "a_very_long_name_that_isnt_used_anywhere_else_w1 = [0,1,0]"
+
+global_interpretation Earley_Gw_eps 
+  where ps = a_very_long_name_that_isnt_used_anywhere_else_qs 
+    and S = a_very_long_name_that_isnt_used_anywhere_else_s 
+    and w0 = a_very_long_name_that_isnt_used_anywhere_else_w1
+proof
+  show "eps_free a_very_long_name_that_isnt_used_anywhere_else_qs" 
+    by (auto simp add: a_very_long_name_that_isnt_used_anywhere_else_qs_def Eps_free_def)
+qed
+
+value "bins_L 0"
+(*P definition outside of Earley_Gw for certain uses*)
+(*definition P where " P = {(1 :: nat, ([] :: (nat, 'b) sym list))}"*)
+
+(*notation (latex) X ("(\<S>\<^bsub>\<^latex>\<open>\\isaconst{\<close>_\<^latex>\<open>}\<close>\<^esub>)" [0] 0)*)
+(*abbreviation \<epsilon> where "\<epsilon> \<equiv> ([] :: 't list)"*)
+
+
+translations (type) "('n, 'a) Prods" <= (type) "('n \<times> ('n1, 'a) sym list) set"
+translations (type) "('n, 'a) prods" <= (type) "('n \<times> ('n1, 'a) sym list) list"
+
+hide_const (open) \<alpha>
 (*>*)
 
 (*type_synonym ('n, 't) sentential = "('n,'t) sym list"*)
@@ -43,37 +438,52 @@ notation (latex) \<S> ("(\<S>\<^bsub>\<^latex>\<open>\\isaconst{\<close>_\<^late
 text\<open>
 
 \chapter{Introduction} \label{chap:Intro}
-This is a test sentence that has been changed incredibly much
-This is another test
+In informatics, Context-Free Grammars are an important tool for describing many different things, for example, the syntax of programming languages, as well as file and binary data formats.
+ As such, the correct parsing of these is important for accurate program compilation and even for security in parsing binary formats.
+Because of this, many different parsing algorithms exist for context-free languages, but only a few have been formally proven.
+ For programming languages, there exist many parsers that specialize in performance, some of which are also verified. These often only work on a smaller subclass of context-free languages. 
+ One powerful all-purpose parser was proposed by Earley in 1970 \cite{Earley1970}, guaranteeing a worst-case cubic running time bound and better bounds for specific subclasses of grammars.
+ The only formal verification of this algorithm we know of is the one we built on by Nipkow and Rau \cite{Nipkow2024}, which itself was built on a paper by Jones \cite{Jones1972}.
+ These formalizations did not yet yield executable parsers, as they used abstract set types and therefore did not formally analyze their running time bounds.
+ Our thesis seeks to close this gap by implementing an executable, list-based version of the recognizer and parser and formally proving the cubic time bound put forth by Earley.
+
+In this thesis, we start by providing a background on context-free grammars and parse trees in Isabelle in \autoref{chap:Background}.
+ We then recap Earley's algorithm \cite{Earley1970} and the work of Nipkow and Rau \cite{Nipkow2024}, which serves as the basis for our implementations in \autoref{chap:Earley_formal}. 
+ Our contributions start by refining the recognizer into a list-based executable version using the data structure proposed by Earley, and proving its correctness and termination in \autoref{chap:List_version}.
+ In \autoref{chap:Runingtime_1}, we conduct a parameterized asymptotic analysis of the running time of our algorithm.
+ We then augment this algorithm to function as a parser in \autoref{chap:Parse_trees}, implementing both a set- and a list-based version, 
+ and perform a similar running time analysis to that in the recognizer case in \autoref{sec:Runingtime_2}. 
+ Lastly, we provide an overview of related work, including other formally verified parsers, in \autoref{chap:related}.
+
 \<close>
 
-text\<open>
+text (in Earley_Gw)\<open>
 \chapter{Background} \label{chap:Background}
 
-\section{Context Free Grammars}
+\section{Context-Free Grammars}
 
 Languages are sets of words, which are strings made up of terminal symbols. The whole set of terminal symbols is called the alphabet $\Sigma$.
-One way to define what words are in a Language are context free grammars (CFGs) which introduce new non-terminal symbols and productions 
-that formalize how a string of non-terminal and terminal symbols can be changed to derive words step by step, starting from a single non-terminal.
+One way to define what words are in a language is context-free grammars (CFGs), which introduce new non-terminal symbols and productions 
+that formalize how to transform a string of non-terminal and terminal symbols to derive words step by step, starting from a single non-terminal.
 A production expresses one such possible step, where you replace one non-terminal symbol by a string of non-terminal and terminal symbols.
 The Language of a CFG is then the set of strings containing only terminal symbols that can be reached from the starting non-terminal, following the modifications described by the productions.
-Strings of non-terminals and terminals are called sententials and strings of only terminal symbols are called sentences.
+Strings of non-terminals and terminals are called sentential forms, and strings of only terminal symbols are called sentences or words.
 
-Formally in Isabelle strings are represented by lists and so to be able to represent sententials non-terminals and terminals are grouped together into the wrapper symbol 
-datatype @{type sym} which can represent either a terminal or non-terminal symbol.
+Formally, in Isabelle, strings are represented by lists, and so to represent sentential forms, non-terminals and terminals are grouped together into the wrapper symbol 
+datatype @{type sym}, which can represent either a terminal or non-terminal symbol.
 \begin{quote}
   @{datatype sym}
 \end{quote}
 Productions \<open>(A, \<alpha>)\<close> are a pair of a non-terminal \<open>A\<close> and a sentential \<open>\<alpha>\<close>, where the non-terminal is called the left-hand side (lhs) and the sentential is called the right-hand side (rhs) of the production.
-In text we will write productions like this \<open>(A \<rightarrow> \<alpha>)\<close>.
-A set of productions $P$ then defines the so called derivation relation @{term "P \<turnstile> u \<Rightarrow> v"}, which is formally defined as follows:
+In text, we will write productions like this \<open>(A \<rightarrow> \<alpha>)\<close>. Sets of productions have type @{type "Prods"} or @{type "prods"} when stored as lists.
+A set of productions $\isaconst{P}$ then defines the so-called derivation relation @{term "P \<turnstile> u \<Rightarrow> v"}, which is formally defined as follows:
 \begin{quote}
 @{const_typ derive}\\
 @{thm derive.simps[of P u v, rename_abs A \<beta> x y]}
-\end{quote} %TODO think about type synonyms
-This represents one modification step as described informally above. Context free grammars are made up of a set of productions $P$ 
-and a non-terminal as a starting symbol, commonly named $S$. The Language of a CFG is then defined in terms of the transitive closure of the derivation relation @{term "P \<turnstile> u \<Rightarrow>* v"}. 
-Specifically by which sentences can be reached from the starting non-terminal @{term "[Nt S]"}.
+\end{quote}
+This represents one derivation step as described informally above. Context-free grammars are made up of a set of productions $P$ 
+and a non-terminal as a starting symbol, commonly named $\isavar{S}$. The Language of a CFG is then defined in terms of the transitive closure of the derivation relation @{term "P \<turnstile> u \<Rightarrow>* v"}. 
+Specifically, it is the set of sentences that are reachable from the starting non-terminal $\isavar{S}$.
 \begin{quote}
   @{datatype Cfg}\\[2.5mm]
   @{def Lang}\\[2.5mm]
@@ -89,25 +499,69 @@ A CFG implicitly defines the sets of terminals and non-terminals by which appear
   @{def Tms}
 \end{quote}
 
-There exist multiple interesting computational questions concerning languages. One very natural question is, given a word $w$, is it in the Language given by a CFG?
-This is called recognition and a natural continuation is asking about the derivation of such a word if it is in the Language, which is called parsing.
+There are many interesting computational questions concerning languages. One very natural question is, given a word $\isaconst{w}$, is it in the language given by a CFG?
+This problem is called recognition. A natural continuation is asking about the derivation of such a word if it is in the language, which is called parsing.
 
 %This relation takes a set of Productions and two sentential forms and returns true if and only if 
 %there exists a production @{text "(Nt A, \<beta>)"}, @{text "Nt A"} appears in the first sentential form and is replaced by $\beta$ in the second sentential form.
 
 \section{Parse Trees}
 
-\begin{itemize}
-  \item CFG in Isabelle
-  \item Parse trees in Isabelle
-\end{itemize}
+Parse trees are a way to encode a derivation as a tree structure. The inner nodes represent one production, and the leaves are symbols.
+In Isabelle, there exists the parse tree datatype @{type tree}:
+\begin{quote}
+  @{datatype tree}
+\end{quote}
+A production, also called a @{const Rule} in the context of parse trees, consists of a non-terminal (the lhs) and a list of child trees, representing the symbols of the right-hand side in order.
+So for every child, it has to hold that either it is a leaf of the corresponding symbol, or it is a rule with the corresponding non-terminal as its left-hand side. 
+Thus, for a given set of productions, we can define the following predicate that a parse tree has to fulfill:
+\begin{quote}
+  @{fun (eta_expand t) parse_tree}
+\end{quote}
+Then there exist two access functions for the parse tree.
+The projection @{const root} returns the non-terminal of a rule or the symbol at the root of the tree, and @{const fringe} returns the concatenation of the leaves of a parse tree.
+\begin{quote}
+  @{fun root}\\[1ex]
+  @{const_typ fringe}\\[1mm]
+  @{thm fringe.simps[show_abbrevs=false]} 
+\end{quote}
+We use these to define the @{const valid_parse_tree} predicate that checks for a CFG, consisting of productions @{term "P"} 
+ and starting symbol @{term "S"}, and a word w, that the parse tree is correct 
+ and represents the derivation showing that $\isaconst{w}$ is a word of the CFG's language.
+\begin{quote}
+  @{const_typ Earley_Gw.valid_parse_tree}\\[1mm]
+  @{thm Earley_Gw.valid_parse_tree_def[where p=P and A=S and ws=w]}
+\end{quote}
+
+And finally, we prove that parse trees represent derivations by showing that for any derivation, there exists a valid parse tree and that the existence of a valid parse tree implies that there exists a derivation for its word.
+\begin{quote}
+  @{thm parse_tree_if_derives}\\[3mm]
+  @{thm fringe_steps_if_parse_tree}
+\end{quote}
+
+
+While for every parse tree there exists a single derivation it represents, a derivation may have multiple different parse trees.
+The existence of different parse trees for a word is a property of the grammar, and so we call grammars in which every word has exactly one parse tree \emph{unambiguous}.
+\begin{quote}
+  @{def Earley_Gw_eps.unambiguous}
+\end{quote}
+
+%\begin{itemize}
+%  \item CFG in Isabelle
+%  \item Parse trees in Isabelle
+%\end{itemize}
 \<close>
 
 text\<open>
 \chapter{Earley Recognizer Formalization} \label{chap:Earley_formal}
-In this thesis we formalize a recognizer first proposed by Earley \cite{Earley1970}. We fix for the following chapter a word $w$ and a CFG $C$ which induces the Language $L$.
-Earley's recognizer builds sets of items for each index of $w$, where an item in one of these sets represents that a sub-string of $w$ has been recognized.
-These items consist of a production, and two natural numbers that are called the dot and from.\<close>
+In this thesis, we formalize a recognizer first proposed by Earley \cite{Earley1970}. Our contributions are based on prior work by Nipkow and Rau \cite{Nipkow2024}. 
+ We present their work in a condensed form here, as it serves as an important basis for further proofs. 
+ Our contributions start in \autoref{chap:List_version} and include a discussion of how to handle sets of productions that can derive the empty word in \autoref{sec:epsilon}.
+
+We fix, for the following chapter, a word $\isaconst{w}$ and a CFG $C$ that induces the language $L$.
+The CFG will have the starting symbol $\isavar{S}$ and either set $P$ or list $ps$ of productions.
+Earley's recognizer builds sets of items for each index of $\isaconst{w}$, where an item in one of these sets represents that a certain substring of $\isaconst{w}$ has been recognized.
+These items consist of a production and two natural numbers called dot and from.\<close>
 
 text_raw \<open>\begin{quote}\isamarkuptrue\<close>
 datatype ('n,'a) item = Item (prod: "('n,'a) prod") (dot : nat) ("from" : nat)
@@ -115,31 +569,31 @@ text_raw \<open>\end{quote}\<close>
 (*datatype item*)
 text (in Earley_Gw)\<open>
 We will write an item \<open>Item p d f\<close> like this \<open>(A \<rightarrow> \<alpha>\<Zspot>\<beta>, f)\<close>, where the production is \<open>(A, \<alpha>\<beta>)\<close> and \<open>|\<alpha>| = d\<close>.
-The idea behind the recognizer is that an item @{term "Item p k l"} in set $\mathcal{S}_i$ symbolizes that we have recognized the sub-string of $w$ 
-starting at index $l$ and ending at index $i$ and that it can be derived from the partial right-hand side of $p$ that is left of the dot at position $k$.
+The idea behind the recognizer is that an item @{term "Item p k l"} in set $\mathcal{S}_i$ symbolizes that we have recognized the substring of $\isaconst{w}$ 
+starting at index $l$ and ending at index $i$, and that it can be derived from the partial right-hand side of $p$ that is left of the dot at position $k$.
 We call this property soundness.
-\begin{definition}\label{soundness}
+\begin{definition}[Soundness]\label{soundness}
   @{term "Item p k l \<in> \<S>\<^sub>i \<Longrightarrow> P \<turnstile> slice 0 k (rhs p) \<Rightarrow>* slice l i w"}. %could use sound_item_def
 \end{definition}
-@{term "slice i k s"} returns the sub-string starting at index i and ending at index k-1. It is equivalent to @{term "take k (drop i s)"}.
+The function @{term "slice i k s"} returns the substring starting at index $i$ and ending at index $k-1$. It is equivalent to @{term "take k (drop i s)"}.
 
-For better readability we define some helper functions:
+For better readability, we define some helper functions:
 \begin{quote}
   @{def is_complete}\\[2.5mm]
   @{def next_symbol}\\[2.5mm]
   @{abbrev next_sym_Nt}\\[2.5mm]
   @{def mv_dot} 
 \end{quote}
-@{const is_complete} checks whether the dot is at the end of the production, @{const next_symbol} returns an option of the symbol after the dot, 
-@{const next_sym_Nt} checks if the next symbol is a specific non-terminal and @{const mv_dot} moves the dot over the next symbol.\\
-We also define a predicate to check if an item is well-formed in the context of the recognizer algorithm, so what items could appear in a set $\mathcal{S}_k$. We check that the production is part of the grammar, 
-that the dot is a valid index into the right-hand side of the production, that the from value is less than or equal to $k$ and that $k$ is less than or equal to the length of $w$.
+The predicate @{const is_complete} checks whether the dot is at the end of the production, @{const next_symbol} returns an option of the symbol after the dot, 
+@{const next_sym_Nt} checks if the next symbol is a specific non-terminal, and @{const mv_dot} moves the dot over the next symbol.\\
+We also define a predicate to check whether an item is well-formed in the context of the recognizer algorithm, meaning we check what items could appear in a set $\mathcal{S}_k$. We check that the production is part of the grammar, 
+that the dot is a valid index into the right-hand side of the production, that the from-value is less than or equal to $k$, and that $k$ is less than or equal to the length of $\isaconst{w}$.
 \begin{quote}
   @{def wf_item}
 \end{quote}
 
-Earley then goes on to define three operations for the recognizer algorithm which generate items for these sets in an inductive manner. These are called \emph{predict}, \emph{complete} and\emph{scan}.
-If we have an item in set $\mathcal{S}_i$ with its dot in front of a non-terminal \<open>A\<close> we predict. So we start recognizing a new a sub-string starting at index $i$ of w from the non-terminal $A$.
+Earley then defines three operations for the recognizer algorithm that generate items for these sets in an inductive manner. These operations are called \emph{Predict}, \emph{Complete}, and \emph{Scan}.
+If we have an item in set $\mathcal{S}_i$ with its dot in front of a non-terminal \<open>A\<close>, we predict. So we start recognizing a new a substring of $\isaconst{w}$, starting at index $i$, from the non-terminal $A$.
 \begin{quote}
 {\sc Predict}: $\inferrule{@{thm (prem 1) Earley_predict} \\
   @{thm (prem 2) Earley_predict}\\
@@ -148,19 +602,19 @@ If we have an item in set $\mathcal{S}_i$ with its dot in front of a non-termina
 \end{quote}
 %This means we add @{term "{Item p 0 i | p. p \<in> P \<and> lhs p = A}"} items to set $\mathcal{S}_i$. 
 Completion occurs when we have fully recognized an item \<open>B \<rightarrow> \<alpha>\<Zspot>, f\<close>, meaning its dot is at the end of the right-hand side of the production.
-In this case we have recognized a sub-string of $w$ starting at \<open>f\<close>. This recognition started with the non-terminal on the productions left-hand side \<open>B\<close>.
-So we can extend the recognition of sub-strings up to \<open>f\<close> (@{term "P \<turnstile> u \<Rightarrow>* slice k f w"}) with this sub-string recognition as follows @{term "P \<turnstile> u @ [Nt B] \<Rightarrow>* slice k i w"}.
-In terms of items this means we are taking an item recognizing a sub-string up to \<open>f\<close> from set \<open>\<S>\<^sub>f\<close> and can extend its recognition if the symbol after the dot is the non-terminal \<open>B\<close>.\\
+In this case, we have recognized a substring of $\isaconst{w}$ starting at \<open>f\<close>. This recognition started with the non-terminal \<open>B\<close>, the one on the production's left-hand side.
+So we can extend the recognition of substrings up to \<open>f\<close> (@{term "P \<turnstile> u \<Rightarrow>* slice k f w"}) with this substring recognition as follows: @{term "P \<turnstile> u @ [Nt B] \<Rightarrow>* slice k i w"}.
+In terms of items, this means we take an item that recognizes a substring up to \<open>f\<close> from set \<open>\<S>\<^sub>f\<close> and extend its recognition if the symbol after the dot is the non-terminal \<open>B\<close>.\\
 \begin{quote}
-{\sc Complete}: $\inferrule{@{thm (prem 1) Earley_complete} \\
-  @{thm (prem 2) Earley_complete}\\
-  @{thm (prem 3) Earley_complete}\\\\
-  @{thm (prem 4) Earley_complete}\\
-  @{thm (prem 5) Earley_complete}}{@{thm (concl) Earley_complete}}$
+{\sc Complete}: $\inferrule{@{thm (prem 1) Earley_complete_rule} \\
+  @{thm (prem 2) Earley_complete_rule}\\
+  @{thm (prem 3) Earley_complete_rule}\\\\
+  @{thm (prem 4) Earley_complete_rule}\\
+  @{thm (prem 5) Earley_complete_rule}}{@{thm (concl) Earley_complete_rule}}$
 \end{quote}
 %Formally: We add @{term "{mv_dot it | it. it \<in> \<S>\<^sub>k \<and> next_symbol it = Some (Nt B)}"} to \<open>\<S>\<^sub>i\<close>.
-The last operation scan occurs when the next symbol of an item is a terminal. In this case we can advance recognition of the sub-string if the next symbol in $w$ is said terminal.
-In this case we add these items to the next set $\mathcal{S}_{i+1}$, since the length of the recognized sub-string of $w$ has increased by one.
+The last operation \emph{Scan} occurs when the next symbol of an item is a terminal. In this case, we can advance recognition of the substring if the next symbol in $\isaconst{w}$ is that terminal.
+In this case, we add these items to the next set $\mathcal{S}_{i+1}$, since the length of the recognized substring of $\isaconst{w}$ has increased by one.
 \begin{quote}
 {\sc Scan}: $\inferrule{@{thm (prem 1) Earley.Scan[simplified Earley_eq_\<S>1]}\\
   @{thm (prem 2) Earley.Scan[simplified Earley_eq_\<S>1]}\\
@@ -168,7 +622,7 @@ In this case we add these items to the next set $\mathcal{S}_{i+1}$, since the l
   {@{thm (concl) Earley.Scan[simplified Earley_eq_\<S>1]}}$
 \end{quote}
 %Formally: @{term "{mv_dot it | it. it \<in> \<S>\<^sub>i \<and> next_symbol it = Some (w ! i)}"} 
-Lastly we need a starting point for this inductive definition, which is given by the prediction operation on the starting symbol.
+Lastly, we need a starting point for this inductive definition. For this, we use the result of applying the \emph{Predict} operation to the starting symbol. We will be referring to this as the fourth operation \emph{Init}.
 \begin{quote}
   {\sc Init}: $\inferrule{@{thm (prem 1) Earley_init}\\
   {@{thm (prem 2) Earley_init}}}
@@ -176,28 +630,29 @@ Lastly we need a starting point for this inductive definition, which is given by
 \end{quote}
 %Formally: @{term "{Item p 0 0 | p. p \<in> P \<and> lhs p = S}"}
 
-From these inductive definitions we can derive the following functions producing sets resulting from the operations on a single item.
+From these inductive definitions, we can derive the following functions that produce sets by applying the operations to a single item.
+ For the definition of the @{const Complete} set, we get a list $\isavar{Bs}$ of computed bins for which @{prop "Bs ! i = \<S>\<^sub>i"} holds.
 \begin{quote}
   @{thm Predict_def[of it i, rename_abs _ p]}\\
-  @{const Complete} @{text " \<S>\<^sub>k B = "} @{term "{mv_dot it | it. it \<in> \<S>\<^sub>k \<and> next_symbol it = Some (Nt B)}"}\\ % might want to change this to the original definition
+  @{thm (lhs) Complete_def} @{text "="} @{thm (rhs) Complete_Th_def[rename_abs _ it]}\\
   @{thm Scan_def[of \<S>\<^sub>i i, rename_abs _ it]}\\
   @{thm Init_def[rename_abs _ p]}
 \end{quote}
 \<close>
 
 
-text \<open>
-We also define a top level predicate for $w$ called recognized, which returns true if we find a complete item with the start-symbol as its left-hand side in set $\mathcal{S}_{|w|}$.
-By soundness this means that @{term "P \<turnstile> [Nt S] \<Rightarrow>* w"} holds.
+text (in Earley_Gw) \<open>
+We also define a top-level predicate for $\isaconst{w}$, called @{const accepted}, that returns true if we find a complete item with the start symbol as its left-hand side in the last set @{term "\<S> (length w)"}.
+By soundness, this means that @{term "P \<turnstile> [Nt S] \<Rightarrow>* w"} holds.
 \begin{definition}
-  @{thm (concl) accepted_def2}\\[1ex] %TODO fix eta expansion somehow
+  @{thm (concl) accepted_def2}\\[1ex]
   where @{thm is_final_def}
 \end{definition}
 \<close>
 
 text \<open>
 We give an example to better understand and visualize the algorithm:
-Given a CFG with productions \<open>P = {A \<rightarrow> AB, A \<rightarrow> BA, A \<rightarrow> a, B \<rightarrow> b}\<close> and starting non-terminal \<open>A\<close> we get the following sets for the word "bab".\\
+Given a CFG with productions \<open>P = {A \<rightarrow> AB, A \<rightarrow> BA, A \<rightarrow> a, B \<rightarrow> b}\<close> and starting non-terminal \<open>A\<close>, we get the following sets for the word "bab".\\
 \begin{table}[h]
 \begin{center}
 \begin{tabularx}{12cm}{|X c|X c|X c|X c|}
@@ -214,42 +669,42 @@ Given a CFG with productions \<open>P = {A \<rightarrow> AB, A \<rightarrow> BA,
 \hline
 \end{tabularx}
 \end{center}
-\caption{Example of the sets constructed by the Earley parser}
+\caption{Example of the sets constructed by the Earley recognizer}
 \end{table}
-TODO maybe make different visualization showing what different operations add
 \<close>
 
 
 
 text (in Earley_Gw)\<open>
 \section{Inductive definition}
-Towards a formal proof of this recognizer, we define one inductive Earley-set, which will be the union of all $\mathcal{S}_i$ where $i < |w|$. 
-To differentiate which set the items are in we will save pairs of Earley-items and a natural number indicating which set they are from.
-It is constructed inductively by the three operations and the initial set discussed previously.
+Towards a formal proof of this recognizer, we define an inductive Earley set, which will be the union of all $\mathcal{S}_i$ where $i \leq |\isaconst{w}\,|$. 
+To differentiate which set each item is in, we will store pairs of and Earley item and a natural number indicating which set it belongs to.
+The full set is constructed inductively using the three operations and the initial set discussed previously.
 \begin{quote}
   @{const_typ Earley}
 \end{quote}
 
-For correctness we need to prove the two directions of soundness and completeness. Which entails that if the recognizer accepts a word, 
-it is in the language and the opposite direction, that if a word is in the language then the recognizer accepts it.
-Soundness is quite easy to prove for this definition, we only need to prove soundness of every item in this set, 
-which can be done by proving that all operations preserve soundness, and the initial set is sound. From these individual proofs overall soundness follows:
+For correctness, we need to prove the two directions of soundness and completeness. This means that if the recognizer accepts a word, it is in the language,
+ and vice versa, that if a word is in the language, the recognizer accepts it.
+Soundness is quite easy to prove for this definition. We only need to prove that the soundness predicate holds for every item added to this set, 
+which is done by proving that all operations preserve soundness and showing that the initial set is sound. From these individual proofs, overall soundness follows:
 \begin{theorem}
   @{thm accpted_sound}
 \end{theorem}
-To prove completeness we show that if there is an item in the Earley-set and the rest of the items right-hand side after the dot can derive a sub-string of w following the sub-sting already derived by the item, 
+To prove completeness, we show that if there is an item in the Earley set and the rest of the item's right-hand side after the dot can derive a substring of $\isaconst{w}$ following the substring already derived by the item, 
 then the complete item will also be in the set.
 \begin{lemma}
-  @{thm Earley_complete_induction}
+  @{thm (prem 1) Earley_complete_induction} \<open>\<Longrightarrow>\<close> @{thm (prem 2) Earley_complete_induction} \<open>\<Longrightarrow>\<close> @{thm (prem 3) Earley_complete_induction} \<open>\<Longrightarrow>\<close> @{thm (prem 4) Earley_complete_induction}\\[1ex]
+  \mbox{\qquad \<open>\<Longrightarrow>\<close> @{thm (prem 5) Earley_complete_induction} \<open>\<Longrightarrow>\<close> @{thm (concl) Earley_complete_induction}}
 \end{lemma}
-This is proven using total induction on the length of the derivation and an induction on the length of the rest of the right-hand side of the item.
+This is proven using complete induction on the length of the derivation and an induction on the length of the rest of the right-hand side of the item.
 %We sketch this proof. The base case where the remainder of the right-hand side is zero is trivial, as the item is complete and therefore the completed item is in the set.
 %If the item is incomplete, we differentiate two cases based on if the next symbol is a terminal or a non-terminal
 %could go into a bit more detail if necessary
-From this the full completeness follows rather easily, as the initial set contains all possible incomplete items after one step of derivation. 
-Therefore if the entire word is derivable one of these items will be complete in the final Earley-set $\mathcal{S}_{|w|}$ and thus the word is accepted by the recognizer.
+From this, full completeness follows rather easily, as the initial set contains all possible incomplete items after one step of derivation. 
+Therefore, if the entire word is derivable, one of these items will be complete in the final Earley-set @{term "\<S> (length w)"}, and so the word is accepted by the recognizer.
 \begin{theorem}
-  @{thm Earley_complete}
+  @{thm Earley_complete_Th}
 \end{theorem}
 \<close>
 (*Towards executability:
@@ -258,25 +713,25 @@ Therefore if the entire word is derivable one of these items will be complete in
 - We make a nondeterministic worklist algorithm for the one pass closure  (Close2)*)
 text (in Earley_Gw)\<open>
 \section{Towards executability}
-While this theoretical Earley recognizer is well suited for proves it lends itself badly for execution, because of the inductive definition. 
-Instead the iterative set computation suggested by Earley is better suited.
-Looking at the four operations of the Earley algorithm we see that only \emph{predict} and \emph{complete} add items to the current set, 
-while \emph{init} is the staring set and \emph{scan} adds item to the next set, resulting in the starting set of the next set.
-Every operation also only depends on items in sets with lower or equal index, letting us compute the sets in order.
-So we can split the algorithm into two steps first compute the starting set for set $\mathcal{S}_i$ using \emph{init} or \emph{scan} 
-and then compute the closure of this set under \emph{predict} and \emph{complete}. This can then be repeated until we have computed all sets.
+While this theoretical Earley recognizer is well-suited for proves, it is poorly suited for execution due to its inductive definition. 
+Instead, the iterative set computation suggested by Earley is better suited.
+Looking at the four operations of the Earley algorithm, we see that only \emph{Predict} and \emph{Complete} add items to the current set, 
+while \emph{Init} is the starting set, and \emph{Scan} adds items to the next set, resulting in the starting set of the next set.
+Every operation also depends only on items in sets with an index lower than or equal to the current set's index, allowing us to compute the sets in order.
+So we can split the algorithm into two steps: first, compute the starting set for set $\mathcal{S}_i$ using \emph{Init} or \emph{Scan}, 
+and then compute the closure of this set under \emph{Predict} and \emph{Complete}. We can repeat this until we have computed all sets..
 
-Going forward we will call item sets \emph{bins}, to which we extend the well formedness predicate. %TODO include maybe
+Going forward, we will call item sets \emph{bins}, to which we extend the well-formedness predicate. %TODO include maybe
 The algorithm will follow this general form:
 \begin{quote}
   @{fun bins}
 \end{quote}
 It computes a list of bins as described before, using @{const Close} to compute the closure. 
-This way we can refine the closure algorithm step by step, while the underlying structure of the algorithm does not change.
-From now on \<open>Bs\<close> will always refer to the list of bins computed previously.
+This way, we can refine the closure algorithm step by step while the underlying structure of the algorithm remains unchanged.
+From now on, \<open>Bs\<close> will always refer to the previously computed list of bins.
 
-To prove that this new algorithm computes the same sets as the fully inductive definition we first use an inductive set closure. It takes a starting set \<open>B\<close> - either a result of \emph{init} or \emph{scan} - 
-and the previously computed list of bins \<open>Bs\<close> and returns the closure \<open>C\<close> under \emph{predict} and \emph{complete}.
+To prove that this new algorithm computes the same sets as the fully inductive definition, we first use an inductive set closure. It takes a starting set \<open>B\<close> - either a result of \emph{Init} or \emph{Scan} - 
+and the previously computed list of bins \<open>Bs\<close>, and returns the closure \<open>C\<close> under \emph{Predict} and \emph{Complete}.
 \begin{quote}
   @{const_typ Close}\\
   @{const Close} \<open>Bs\<close> \<open>B\<close> =\\
@@ -287,40 +742,40 @@ and the previously computed list of bins \<open>Bs\<close> and returns the closu
    \mbox{\qquad \<open>\<Longrightarrow>\<close> @{thm (concl) Close.Complete}}
 \end{quote}
 
-We then prove equivalence of the @{const bins} method using @{const Close} to the original Earley implementation.
+We then prove that the the @{const bins} method using @{const Close} is equivalent to the original Earley implementation.
 \begin{theorem}
   @{thm bins_eq_\<S>}
 \end{theorem}
-Here the function \<open>\<S>\<close> collects all items of the fully inductive Earley-set that are in the i-th set.
+Here, the function \<open>\<S>\<close> collects all items of the fully inductive Earley set that are in the i-th set.
 \<close>
 
-text \<open>
-We are working towards a one pass closure algorithm, where we only need to consider every element once.
-This is possible if the items added by \emph{predict} and \emph{complete}, do not depend on the items in the current set closure we are computing.
-This is the case for the predict operation, which only depends on the set of productions.
-For the complete operation it is only the case, if the complete items from-value is the index of a previous bin.
-This is equivalent to the CFG not having any productions of length zero. 
-The handling of the complete operation for length zero productions it not straight-forward, so we require the grammar to be epsilon free.
+text (in Earley_Gw_eps) \<open>
+We are working towards a one-pass closure algorithm that only needs to consider every element exactly once.
+This is possible if the items added by \emph{Predict} and \emph{Complete} do not depend on the items in the current set closure we are computing.
+This is the case for the \emph{Predict} operation, which only depends on the set of productions.
+For the \emph{Complete} operation, it is only the case if the complete item's from-value is the index of a previous bin,
+ which is true if the production has a length greater than zero. 
+Handling the \emph{Complete} operation for length-zero productions is not straightforward, so we require the grammar to be epsilon-free.
 \begin{definition}
   @{const_typ Eps_free}\\[1ex]
   @{thm Eps_free_def[of P, rename_abs lhs rhs]}
 \end{definition}
-This way we simplify the algorithm. We also give some options on how to deal with not epsilon free grammars in \ref{sec:epsilon}.
-So we create another closure under this assumption @{const Close1} which works the same as @{const Close}, but the complete operation is simplified, as we assume the grammar to be epsilon free:
+This way, we simplify the algorithm. We also provide options for handling non-epsilon-free grammars in \ref{sec:epsilon}.
+So under this assumption, we create another closure, @{const Close1}, which works the same as @{const Close}, but the \emph{Complete} operation is simplified, as we assume the grammar to be epsilon-free:
 \begin{quote}
   @{const Complete} : @{thm (prem 1) Close1.Complete} \<open>\<Longrightarrow>\<close> @{thm (prem 2) Close1.Complete} \<open>\<Longrightarrow>\<close> @{thm (prem 3) Close1.Complete}\\[1ex]
   \mbox{\qquad \<open>\<Longrightarrow>\<close> @{thm (prem 4) Close1.Complete} \<open>\<Longrightarrow>\<close> @{thm (concl) Close1.Complete}}
 \end{quote}
-We prove equivalence to @{const Close} under the assumption of epsilon free-ness.
+We prove equivalence to @{const Close} under the assumption of epsilon-freeness.
 \begin{lemma}
   @{const Eps_free} \<open>P\<close> \<open>\<Longrightarrow>\<close> @{thm (prem 1) Close1_eq_Close} \<open>\<Longrightarrow>\<close> @{thm (prem 2) Close1_eq_Close}\\[1ex]
   \mbox{\qquad\<open>\<Longrightarrow>\<close> @{thm (concl) Close1_eq_Close}}
 \end{lemma}
-Unless specified otherwise we will assume that the grammar is epsilon free from here on out.
-The next step towards executability is replacing the inductive closures with a one pass worklist algorithm.\<close> (*TODO IMPORTANT lemmas from Earley_Gw_eps do not have epsilon free as assumption*)
+Unless specified otherwise, we will assume that the grammar is epsilon-free from here on out and drop the @{term "Eps_free P"} assumption.
+The next step towards executability is replacing the inductive closures with a one-pass worklist algorithm.\<close> (*TODO IMPORTANT lemmas from Earley_Gw_eps do not have epsilon free as assumption*)
 
 
-(*%One tricky detail is the handling of productions deriving the empty word. The \emph{predict} operation only depends on the set of productions, which does not change
+(*%One tricky detail is the handling of productions deriving the empty word. The \emph{Predict} operation only depends on the set of productions, which does not change
 %and the \emph{complete} operation depends on the set, where its recognition started. For non-empty productions this is a bin that has already been fully constructed.
 %In the case of an empty production we can get the item \<open>(A \<rightarrow> \<Zspot>, i)\<close>, which points into the current bin $i$. 
 %So the set of items resulting of its \emph{completion} is not fully determined during the algorithm for closure.
@@ -328,19 +783,19 @@ The next step towards executability is replacing the inductive closures with a o
 %To simplify things we will focus on the case where the grammar is epsilon free, meaning it does not contain any productions that derive the empty word.\<close>*)
 
 
-text (in Earley_Gw)\<open>
+text (in Earley_Gw_eps)\<open>
 \section{Workset closure}
 We keep track of a pair of sets, the workset \<open>B\<close> and the accumulator \<open>C\<close>.
-The workset comprises items in the closure which have yet to be considered, while the accumulator keeps track of all previously considered items in the closure.
-So at any step \<open>B \<union> C\<close> are all items we know to be in the closure and it should hold that \<open>B \<inter> C = \<emptyset>\<close>.
+The workset comprises items in the closure that have not yet been considered, while the accumulator keeps track of all previously considered items.
+So at any step, \<open>B \<union> C\<close> are all items we know to be in the closure, and it should hold that \<open>B \<inter> C = \<emptyset>\<close>.
 One step of this worklist algorithm then looks like this:
 \begin{itemize}
   \item choose an item from \<open>B\<close> to be considered \<open>b \<in> B\<close>
-  \item compute the set of items \<open>D\<close> added by \<open>b\<close> under \emph{predict} or \emph{complete}
+  \item compute the set of items \<open>D\<close> added by \<open>b\<close> under \emph{Predict} or \emph{Complete}
   \item move \<open>b\<close> from \<open>B\<close> to \<open>C\<close> and add \<open>D\<close> to \<open>B\<close>, while making sure that \mbox{\<open>B \<inter> C = \<emptyset>\<close>} by the end
 \end{itemize} 
 The last step we do as follows @{term "((B \<union> D) - (C \<union> {b}), (C \<union> {b}))"}.
-To formalize this approach we define a step relation that relates any two such set pairs that differ by one step.
+To formalize this approach, we define a step relation that relates any two such set pairs of workset and accumulator that differ by one step.
 \begin{definition}
   @{const_typ [break] Close2}\\
   Predict : @{thm (prem 1) Close2.Predict} \<open>\<Longrightarrow>\<close> @{thm (prem 2) Close2.Predict}\\[1ex]
@@ -349,33 +804,33 @@ To formalize this approach we define a step relation that relates any two such s
   \mbox{\qquad\<open>\<Longrightarrow>\<close> @{thm (concl) Close2.Complete}}\\
 \end{definition}
 The closure is then given by the set \<open>C\<close> when repeated steps result in \<open>B = \<emptyset>\<close>. This will always be the case, as the set of valid Earley items is finite.
-More on this in \ref{chap:space}.
-Formally this means we are looking for the accumulator \<open>C\<close> of a set pair \<open>(\<emptyset>, C)\<close> that is reachable from \<open>(B, \<emptyset>)\<close> under the step realtion.
-But since this formalisation is non-deterministic in the order that items are chosen from the workset 
-we require the Hilbert choice operator for the formalisation to get a random but distinct set \<open>C\<close> if it exists. In reality this set is unique and always exists. %possibly refer to a lemma about that
+More on this in \ref{sec:space}.
+Formally, this means we are looking for the accumulator \<open>C\<close> of a set pair \<open>(\<emptyset>, C)\<close> that is reachable from \<open>(B, \<emptyset>)\<close> under the step relation.
+ Since this formalization is non-deterministic in the order that items are chosen from the workset, 
+we require the Hilbert choice operator for the formalization to get a random but distinct set \<open>C\<close>, if it exists. In reality, this set is unique and always exists. %possibly refer to a lemma about that
 \begin{definition}
   @{def close2}
 \end{definition}
-We again prove equivalence of @{const close2} to @{const Close1}.
+We again prove equivalence of @{const close2} and @{const Close1}.
 \begin{lemma}
   @{thm close2_eq_Close1}
 \end{lemma}\<close>
 
-text \<open>
-For this proof we need two other lemmas. First that @{const close2} terminates and second that the result is equal to the set obtained by @{const Close1}.
+text (in Earley_Gw) \<open>
+For this proof, we need two other lemmas. First, that @{const close2} terminates, and second that the result is equal to the set obtained by @{const Close1}.
 We will first focus on the set equality. The direction that @{const close2} is a subset of @{const Close1} is simple, 
-by the fact that the result after one step is always a subset of the final result of @{const Close1}.
+since that the result after one step is always a subset of the final result of @{const Close1}.
 The other direction is a bit trickier. We do a proof by induction on the items in @{const Close1} and have to check three cases.
-First the initial items in \<open>B\<close> are also in the result of @{const close2}, which is easily apparent as any item in \<open>B\<close> will at some point be moved to \<open>C\<close>.
-Second for the induction step we have to prove that under the assumption that an item @{term "x \<in> Close1 Bs B"} 
-is also in \<open>C\<close> of @{const close2}, all items obtained by the operations \emph{predict} or \emph{complete} on \<open>x\<close> also end up in \<open>C\<close>.
-This proof boils down to the observation that if \<open>x\<close> ends up in \<open>C\<close> there must exist a step where it is picked from \<open>B\<close> and moved to \<open>C\<close>.
-In this step all of the items added to @{const Close1} by \<open>x\<close> are also added to \<open>B\<close> in the @{const Close2} step and therefore end up in \<open>C\<close> eventually.
+First, the initial items in \<open>B\<close> are also in the result of @{const close2}, which is easily apparent because any item in \<open>B\<close> is moved to \<open>C\<close> at some point.
+Second, for the induction step, we have to prove that for any item \<open>x\<close> with @{term "x \<in> Close1 Bs B"} and @{term "x \<in> C"},
+ all items obtained by the operations \emph{Predict} or \emph{Complete} on \<open>x\<close> also end up in \<open>C\<close>.
+This proof boils down to the observation that if \<open>x\<close> ends up in \<open>C\<close>, there must exist a step in which it is picked from \<open>B\<close> and moved to \<open>C\<close>.
+In this step, all items added to @{const Close1} by \<open>x\<close> are also added to \<open>B\<close> in the @{const Close2} step and therefore end up in \<open>C\<close> eventually.
 
-For termination we define a well founded potential function which decreases with every step taken.
-It is a lexicographic ordering primarily on the number of well-formed items not in the worklist or accumulator, 
-which decreases whenever an item is added through \emph{predict} or \emph{complete}, 
-and secondarily on the size of the worklist, which decreases, if no new items are added, as one item is always moved to the accumulator.
+For termination, we define a well-founded potential function that decreases for every step.
+It is a lexicographic ordering primarily on the number of well-formed items not in the worklist or accumulator,
+ and secondarily on the size of the worklist. The number of items not in the worklist or accumulator decreases whenever an item is added through \emph{Predict} or \emph{Complete}.
+ If no new items are added, the worklist's size decreases by 1, since one item is always moved to the accumulator.
 
 After proving that the step relation always decreases this potential, we can prove termination of the algorithm and finish the equivalence proof of @{const close2} and @{const Close1}.
 
@@ -386,19 +841,38 @@ After proving that the step relation always decreases this potential, we can pro
   @{fun step_fun}
 \end{quote}
 
-- create a closure under complete and predict
+- create a closure under Complete and Predict
 - scan transitions between sets after full closure
 - a natural way to implement this is as a WorkList algorithm
 \<close>*)
 
-text\<open>
+text (in Earley_Gw) \<open>
 \section{Epsilon treatment} \label{sec:epsilon}
+In this section, we discuss different ways of handling grammars that contain epsilon productions.
+As a first solution, we can leverage the fact that there exist algorithms that transform any CFG \<open>C\<close> into another CFG \<open>C'\<close> with @{prop "LangS(C') = LangS(C) - {\<epsilon>}"}.
+We can now write a wrapper to the Earley recognizer, which runs the recognizer on \<open>C'\<close> if @{prop "w \<noteq> \<epsilon>"}, and checks if @{prop "\<epsilon> \<in> LangS C"} otherwise.
+This has already been formalized in the theory Epsilon\_Elimination\footnote{\href{https://www.isa-afp.org/thys/Context_Free_Grammar/Epsilon_Elimination.html}{https://www.isa-afp.org/thys/Context\_Free\_Grammar/Epsilon\_Elimination.html}} by Martin Stimpfle, where $\isaconst{eps\_elim}$ transforms a grammar into one without epsilon productions and the predicate $\isaconst{Nullable}$, which returns if a non-terminal can derive the empty word.
+ While this is a simple solution, it has the drawback that the resulting epsilon free grammar may be much larger than the original.
 
-\begin{itemize}
-  \item do epsilon treatment outside of this Algorithm (is there an isabelle implementation of epsilon removal (constructing L - {$\epsilon$}))
-  \item check which Nts could produce epsilon and change predict to also do epsilon completion for these Nts (would require changing underlying algorithm and doing a lot of proving)
-  \item TODO check literature for different stratagies
-\end{itemize}
+Another approach that does not require rewriting the grammar would be to modify the closure algorithm and enable it to handle epsilon productions.
+ For this, we suggest changing the \emph{Predict} operation and consequently the Init set.
+If there are epsilon productions in a grammar, multiple Nts may derive the empty word @{term "P \<turnstile> [Nt B] \<Rightarrow>* []"} even over multiple steps.
+
+Whenever an item \<open>A \<rightarrow> \<alpha>B\<Zspot>\<beta>, k\<close> is added by the \emph{Complete} operation on an item with a from-value equal to the current set, the item \<open>(A \<rightarrow> \<alpha>\<Zspot>B\<beta>, k)\<close> must also be in the current set.
+In this case, we can add this item to the set of items added by the \emph{Predict} operation:
+\begin{quote}
+  @{term "predict' it i = predict it i \<union> (if (P \<turnstile> [the (next_symbol it)] \<Rightarrow>* []) then {(mv_dot it)} else {})"}
+\end{quote}
+And this will solve our problem, since the operation depends only on the set of productions.
+To make this efficient, it would be better to compute the set of Nts that can derive the empty word once and then do a lookup as the if condition.
+
+ 
+
+%\begin{itemize}
+%  \item do epsilon treatment outside of this Algorithm (is there an isabelle implementation of epsilon removal (constructing L - {$\epsilon$}))
+%  \item check which Nts could produce epsilon and change \emph{Predict} to also do epsilon completion for these Nts (would require changing underlying algorithm and doing a lot of proving)
+%  \item TODO check literature for different stratagies
+%\end{itemize}
 
 \<close>
 
@@ -407,7 +881,7 @@ text\<open>
   %\item inductive definition lends itself well to first correctness proof
   %\item towards executability we do iterative computation of sets, as earley suggested
   %\item example
-  %\item WorkList algorithm for the closure of one set under predict and complete
+  %\item WorkList algorithm for the closure of one set under \emph{Predict} and \emph{Complete}
 %\end{itemize}
 
 %\begin{itemize}
@@ -418,93 +892,774 @@ text\<open>
 %  \item section about empty word treatment possibilities (modifying Predict)
 %\end{itemize}
 \<close>
+(*<*)
+context Earley_Gw
+begin
 
-text\<open>
-\chapter{Executable List based Version} \label{chap:List_version}
+notation diff_list (infixl \<open>-\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<close> 65)
+notation union_list (infixl \<open>\<union>\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<close> 65)
+notation insert_list (\<open>{_} \<union>\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub> _\<close> 65)
+notation Close2_L (\<open>\<^latex>\<open>\isaconst{\<close>Close2\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
 
-We can now go on to implement a list based version.
-We first start off by implementing the four Earley operations using lists:
+notation step_fun_L (\<open>\<^latex>\<open>\isaconst{\<close>step'_fun\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+
+notation Init_L (\<open>\<^latex>\<open>\isaconst{\<close>Init\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation Predict_L (\<open>\<^latex>\<open>\isaconst{\<close>Predict\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation Complete_L (\<open>\<^latex>\<open>\isaconst{\<close>Complete\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation Scan_L (\<open>\<^latex>\<open>\isaconst{\<close>Scan\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+
+notation ItemList ("\<^latex>\<open>\\isaconst{\<close>IL\<^latex>\<open>}\<close>")
+
+notation set_ItemList (\<open>\<^latex>\<open>\isaconst{\<close>set\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation empty_IL (\<open>\<^latex>\<open>\isaconst{\<close>empty\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation insert  (infixr \<open>#\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<close> 65)
+notation isin (\<open>\<^latex>\<open>\isaconst{\<close>isin\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation union_LIL (infixl \<open>\<union>\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<close> 65)
+notation minus_LIL ("\<^latex>\<open>\\isaconst{\<close>diff\<^bsub>\<^latex>\<open>\\isaconst{\\scriptsize \<close>LIL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
+notation minus_IL (infixl \<open>-\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<close> 65)
+
+notation inv_IL ("\<^latex>\<open>\\isaconst{\<close>inv\<^bsub>\<^latex>\<open>\\isaconst{\\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
+notation wf1_IL ("\<^latex>\<open>\\isaconst{\<close>wf1\<^bsub>\<^latex>\<open>\\isaconst{\\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>")
+
+notation step_fun (\<open>\<^latex>\<open>\isaconst{\<close>step'_fun\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation steps (\<open>\<^latex>\<open>\isaconst{\<close>steps\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation close2_L (\<open>\<^latex>\<open>\isaconst{\<close>close2\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation bins_L (\<open>\<^latex>\<open>\isaconst{\<close>bins\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+end
+(*>*)
+
+text (in Earley_Gw_eps)\<open>
+\chapter{Executable List-based Version} \label{chap:List_version}
+We can now implement a list-based version. For this, we write list-based implementations of the Earley operations 
+and implement the repetition of the closure algorithm using a functional while loop. This version will not be enough to prove the cubic running time guarantees put forth by Earley.
+ To that end, we introduce a data structure to efficiently look up items in \autoref{sec:IL_Datastructure}.
+We first start by implementing the four Earley operations for lists using the map and filter functions:
 \begin{quote}
-  @{def Init_L}\\
-  @{def Predict_L}\\
-  @{def Complete_L}\\
-  @{def Scan_L}
+  @{def Init_L}\\[3mm]
+  @{const_typ Predict_L}\\[1mm]
+  @{thm Predict_L_def[of it]}\\[3mm]
+  @{const_typ Complete_L}\\[1mm]
+  @{thm Complete_L_def[of Bs it]}\\[3mm]
+  @{const_typ Scan_L}\\[1mm]
+  @{thm Scan_L_def[of B k]}
 \end{quote}
-We then go on to prove equivalence to the set based version defined earlier.
+We then prove equivalence with the set-based versions defined earlier.
 \begin{quote}
-  %TODO
+  @{thm Init_L_eq_Init} \qquad @{thm set_Predict_L[of it]}\\[1ex]
+  @{thm set_Complete_L[of it]}\\[1ex]
+  @{thm Scan_L_eq_Scan[of k B]}
+\end{quote}
+Using the \emph{Predict} and \emph{Complete} operations in conjunction with the set operations on lists, we implement @{const step_fun_L}, which computes one step of the closure and thus fulfills @{const Close2}.
+ For brevity, we introduce the @{const Close2_L} relation, which is a wrapper for the @{const Close2} relation that converts lists to sets.
+\begin{quote}
+  @{fun step_fun_L}\pagebreak\\ 
+  @{fun Close2_L}
+\end{quote}
+This implementation satisfies the @{const Close2} relation, because the list-based Earley operations are equivalent to the set-based functions.
+\begin{quote}
+  @{thm (prem 1) step_fun_L_sound} \<open>\<Longrightarrow>\<close> @{thm (prem 2) step_fun_L_sound} \<open>\<Longrightarrow>\<close> @{thm (prem 3) step_fun_L_sound}\\
+  \mbox{\qquad \<open>\<Longrightarrow>\<close> @{thm (prem 4) step_fun_L_sound} \<open>\<Longrightarrow>\<close> @{thm (concl) step_fun_L_sound}}
+\end{quote}
+\<close>
+
+
+text (in Earley_Gw) \<open>
+We implement the closure using @{const "while_option"} in conjunction with @{const step_fun}.
+The while option construction takes a condition \<open>c\<close>, a body function \<open>b\<close>, and a starting value \<open>s\<close>,
+and returns the first value that violates \<open>c\<close> and is a result of repeatedly applying \<open>b\<close> to \<open>s\<close>, if such a result exists.
+It can be proven that this is equivalent to the following executable version.
+\begin{quote}
+  @{thm while_option_unfold[of c b s]}
+\end{quote}
+Proving predicates about the result of @{const while_option}, assuming that a result exists, requires the predicate to be preserved across applications of the body's function and be valid for the starting value.
+Then a simple proof by induction shows that the predicate must hold for the result as well.
+\begin{quote}
+  @{thm while_option_rule[of _ c b s]}
+\end{quote}
+\<close>
+
+(*<*)
+context Earley_Gw
+begin
+notation set_ItemList (\<open>\<^latex>\<open>\isaconst{\<close>set\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation steps_L (\<open>\<^latex>\<open>\isaconst{\<close>steps\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation close2_L_Th (\<open>\<^latex>\<open>\isaconst{\<close>close2\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation bins_L_Th (\<open>\<^latex>\<open>\isaconst{\<close>bins\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+
+fun Close2_IL where
+  "Close2_IL Bs (B, C) (B', C') = Close2 (map set Bs) (set_ItemList B, set_ItemList C) (set_ItemList B', set_ItemList C')"
+end
+(*>*)
+
+text (in Earley_Gw_eps)\<open>
+The implementation of the closure then boils down to repeatedly applying @{const step_fun_L} until the worklist is empty, using @{const while_option}.
+\begin{quote}
+  @{fun steps_L}
+\end{quote}
+To prove equality to the work set-based closure @{const close2}, we prove that the result of the @{const while_option} loop is part of the transitive closure of @{const Close2}
+ and that the while loop terminates.
+
+The equivalence of the two relations @{const step_fun} and @{const Close2} is a simple consequence of the equivalence
+ of the Earley and list operations to their set counterparts.
+Proving that the loop result is in the transitive closure uses the proof technique described above. We simplify the proof here:
+\begin{proof} 
+  We start by constructing the predicate we want to prove, that the result of the loop @{term "(B', C')"}
+ is in the transitive closure starting from the initial lists @{term "(B, C)"}:\\
+
+  @{term "\<lambda> (B', C'). (Close2_L Bs)^** (B, C) (B', C')"}\\
+
+  Now we have to prove two things: first, that the proposition holds for the starting value, and second, that it holds after the loop body, @{const step_fun}, is applied.\\
+
+  1) @{prop "(Close2_L Bs)^** (B, C) (B, C)"} holds, as this is the reflective case of the transitive closure.\\
+  
+  2) We can assume that the proposition holds for \mbox{@{term "(B', C')"}} and have to show that it also holds for \mbox{@{term "step_fun_L Bs (B', C')"}}.
+  From the fact that @{const step_fun_L} fulfills the relation, we get \mbox{@{term "Close2_L  Bs (B', C') (step_fun_L Bs (B', C'))"}}.\\
+  Then \mbox{@{prop "(Close2_L Bs)^** (B, C) (step_fun_L Bs (B', C'))"}} also holds, following from the transitive property of the transitive closure.
+\end{proof}
+Since the fact that @{const step_fun_L} and @{const Close2_L} are equivalent requires assumptions about
+ well-formedness and invariants, those also have to be conserved throughout the loop body, making the proposition more complicated, but the underlying argumentation is the same.
+Using this and the fact that the worklist of the result must be empty by the loop condition, we can show that the accumulator at the end of @{const steps_L} is part of the transitive closure of @{const Close2_L}.
+\begin{quote}
+  @{thm steps_L_Th_sound}
+\end{quote}
+Termination is proven the same way as in the set version of the algorithm, using the same lexicographical ordering, adapted to work with lists.
+
+From this, the equivalence of @{const close2_L_Th} and @{const close2} follows.
+\begin{quote}
+  @{thm close2_L_Th_eq_close2}
 \end{quote}
 
-The closure is implemented using @{const "while_option"}.
+As a last step, we prove the equivalence of the @{const bins_L_Th} and original @{const bins} functions.
+For this, we need to ensure that the bins we compute are well-formed, which requires that the closure result be well-formed.
+The closure is well-formed, as all items added come from the Earley operations, which we proved to be well-formed. 
 
-\chapter{Efficient Itemlist Datastructure for running time guarantees}
-Our aim is to prove the running time analysis given by Earley \cite{Earley1970}. For this we require linear runtime of the @{const step_fun},
- which is not given using standard list based set-functions, as the set difference operation takes $O(n^2)$ time when using lists.
-To fix this we follow Earley's idea to implement a $O(1)$ item lookup and insertion, which is enough to design an $O(n)$ set difference.
-The main idea is to group items in a set by their \emph{from} value. For every value of \emph{from} there are only a constant number of items.
-And the \emph{from} are also in the range $[0, i]$ for closure of $\mathcal{S}_i$. This would allow for the storage of all items in an array of item lists where the list at index $i$ has all items for \emph{from} value $i$.
-Assuming constant access time for an array we can then implement @{const isin} and @{const insert} in $O(1)$.
-\begin{itemize}
-  \item WorkList Datatype + why requirement for cubic runtime
-  \item WorkList insert intracasies (set bahavior using upsize for ease of theoretical analysis, but isnt used in actual algorithm)
-  \item List based functions
-  \item correctness by equivalence to inductive set based WorkListAlgorithm
-  \item WorkList Algorithm with help of while\_option
-\end{itemize}
+\begin{quote}
+  @{thm bins_L_Th_eq_bins}
+\end{quote}
 
-\chapter{Runingtime Analysis} \label{chap:Runingtime_1}
-\begin{itemize}
-  \item analysis with WorkList T\_nth parameter (assumed to be constatnt for array)
-  \item WorkList insert requires WorkList map\_length bound, which has to be carried through proofs
-  \item runtime of list functions
-  \item parametized runingtime (cubic if T\_nth is constant)
-\end{itemize}
+At this point, we have an executable version of the recognizer, but it does not have the time bounds we want.
+ That is because the list-based difference has a quadratic running time and is called on the full bins for every closure step.
+ Earley introduces a way to speed this up, which we will present after a short space analysis that lays the foundation for the 
+ data structure we introduce and the running time analysis.
+\<close>
 
-\chapter{Space Analysis} \label{chap:space}
+(*should probably be made a section in another chapter*)
+text (in Earley_Gw) \<open>
+\section{Space Analysis} \label{sec:space}
+We do a space analysis based on the length of the word, so we assume the number of productions $\isaconst{L}$ and the maximum length of a production $\isaconst{K}$ are constant.
+ To guarantee that the number of productions is equal to the length of the productions list, $\isaconst{ps}$, we require the list to be duplicate-free, using @{term "distinct ps"}.
 
+For the well-formed predicate, we introduced a parameter $\isavar{k}$ that bounds the maximum from-value in a bin. Additionally, we require the items production to be in the set of productions, bounding the number of different field entries by $\isaconst{L}$.
+ The dot has to be a valid index into the rhs of the production, bounding it by $\isaconst{K}$.
+ Thus, the size of a bin, and by extension its space, is bounded by the multiplication of all upper bounds.
+\begin{quote}
+  @{thm card_wf1[of xs k]}
+\end{quote}
+This gives us a simple way to bound the size of any set computed by our algorithm, since we have already proven that well-formedness is preserved throughout the algorithm.
+ The size of a list is bounded by the same number, as long as it is distinct, a property guaranteed by list-based set operations and one that must be guaranteed by the implementation of our new data structure.
+
+Since every Earley set bounds the from-values that can appear in it by its index, the size of each set grows linearly with its index.
+Thus, the overall size is bounded by the sum over all Earley bins, yielding a quadratic total space cost.
+\begin{quote}
+  @{thm card_Si}\\[1ex]
+  @{thm card_Earley}
+\end{quote}
+Here, the @{const Earley} set is the one from the formalization that is the union of all Earley bins.
+
+
+We can also observe that in a well-formed bin, the number of well-formed items for a given from-value is constant (@{term "L * (K+1)"}),
+ a fact that will become relevant for the data structure we build in the next section to prove better running time guarantees for the difference operation.
+\<close>
+
+text (in Earley_Gw_eps) \<open>
+\section{Efficient Itemlist Datastructure for running time guarantees} \label{sec:IL_Datastructure}
+We aim to prove the running time analysis given by Earley \cite{Earley1970}. % talk about theory first.
+We know from space analysis in \autoref{sec:space} that the size of every Earley bin is linearly proportional to its index.
+Earley proposes a way to construct a set in a time quadratic to its index.
+This is not possible using standard list-based set operations, as the difference operation has a running time in $O(n^2)$. % TODO could cite something for thsi claim
+The solution described by Earley uses a data structure to achieve item lookup in constant time, enabling a linear-time difference operation.
+This data structure stores the entire bin as multiple partitions, one for every from-value. As we argued in the space analysis, every partition will have a constant size.
+So if we can access the partitions in constant time, we can fully search any one of them in constant time as well. This makes the constant lookup time possible. 
+As every Earley bin bounds the from-values of items by its index, we can use an array constructed once at the start of each set closure to store the partitions.
+In our implementation, we only use a list to store the partitions. We could further refine the data structure by using an array with a functional interface, but this was beyond the scope of this thesis.
+Instead, we perform a parameterized running time analysis based on the partition access time, allowing us to prove the running time of the same data structure for different partition access times.
+
+This data structure has type @{type efficientItemList} and will be called @{const ItemList} for short. We use it like a normal list to represent the bins.
+In practice, we implement the @{const ItemList} as a normal list and a list of partitions, each stored as a list itself and mirroring the items stored in the list.
+\begin{quote}
+  @{datatype efficientItemList}
+\end{quote}
+This type has two projection functions, @{const list} and @{const froms}, to access the list and the list of partitions.
+ Since the list and the partitions should store the same items, the set represented is simply the set the list represents.
+\begin{quote}
+  @{fun set_ItemList}
+\end{quote}
+The list provides simple constant-time access to an element in the bin, while the partitions are used to access and look up specific elements.
+So we need an invariant to ensure that the items stored in the list and the partitions are the same,
+ so that the lookup operation using the partitions is equivalent to the membership test of the set, represented by the @{const ItemList}.
+\begin{quote}
+  @{fun inv_IL}
+\end{quote}
+To ensure the validity of the lookup in the partitions, we require that all items can be stored in the reserved partitions, and that
+ an item is in the list if and only if it is present in the partition corresponding to its from-value.
+We additionally require that both the list and all partitions are distinct. This allows us to use the findings from the space analysis to bound their maximum lengths.
+Finally, we require the list of partitions to be non-empty for simplicity, as some of the proofs about this invariant are more easily proven automatically if we do not allow an empty list of partitions.
+
+
+We now define the basic operations for this data structure in accordance with the invariant.
+ These are the @{const isin}, @{const insert}, and @{const empty_IL}, which correspond to the membership test, insertion, and the empty set constructor.
+These are then used to implement the @{const union_LIL} and @{const minus_IL} operations, which are equivalent to their set counterparts, and to convert from type  @{type list} to @{type efficientItemList} using @{const IL_of_List}. 
+\begin{quote}
+  @{fun isin}\pagebreak\\
+  @{fun insert}\\[5mm]
+  @{fun empty_froms}\\[3mm]
+  @{def empty_IL}\\[5mm]
+  @{fun union_LIL}\\[5mm]
+  @{fun minus_LIL}\\[3mm]
+  @{const_typ[break] minus_IL}\\[1ex]
+  @{thm minus_IL_def[of il1 il2]}\\[5mm]
+  @{def IL_of_List}
+\end{quote}
+The important details are that the lookup uses the partitions to take constant time in an array implementation, that
+ there is a check for inclusion before inserting an item, to guarantee distinctness,
+ and that we implement the difference operation by inserting into an empty list, making use of the constant-time lookup to check if the item is present in the other @{const ItemList}.
+The natural number given as a parameter to @{const empty_IL} and @{const IL_of_List} affects the number of partitions of the 
+resulting item list and thus bounds the highest from-value items in this list can have.
+We constructed it so that a bin @{term xs} with @{term "wf_bin xs k"} can be stored in an @{term "empty_IL k"}
+
+All item list functions maintain the invariant and correspond to set functions, provided the items inserted have a from-value that fits within the partitions.
+ Otherwise, the \emph{nth} and \emph{update} functions are undefined.
+In general, we prove given set operation \<open>\<Zspot>\<close> and the corresponding item list operation \<open>\<Zspot>\<close>$_{\isaconst{IL}}$:
+\begin{quote}
+  $\isaconst{IL\_inv}$ $\isavar{il1}$ \<open>\<Longrightarrow>\<close> $\isaconst{prop}$ $\isavar{x}$ \<open>\<Longrightarrow>\<close> $\isaconst{IL\_inv}$ ($\isavar{il1}$ \<open>\<Zspot>\<close>$_{\isaconst{IL}}$ $\isavar{x}$)\\
+  $\isaconst{IL\_inv}$ $\isavar{il1}$ \<open>\<Longrightarrow>\<close> $\isaconst{prop}$ $\isavar{x}$ \<open>\<Longrightarrow>\<close> $\isaconst{set\_IL}$ ($\isavar{il1}$ \<open>\<Zspot>\<close>$_{\isaconst{IL}}$ $\isavar{x}$) $=$ $\isaconst{set\_IL}$ $\isavar{il1}$ \<open>\<Zspot>\<close> $\isavar{x}$
+\end{quote}
+Depending on whether $\isavar{x}$ is a single item or a set of items, the proposition of $\isavar{x}$ ensures that the from-value of $\isavar{x}$ itself or every item in $\isavar{x}$ is lower than the number of partitions in the item list.
+
+We then proceed to replace the lists in the worklist algorithm with these item lists. The functions do not change much, but to differentiate them from the functions that work with pure lists, they have the subscript $\isaconst{IL}$.
+ The proof of correctness then works the same way, with newly added assumptions that must be valid at every step of the algorithm.
+These are that the invariant of the item list holds for both the worklist and accumulator, and a predicate about the number of partitions in each item list.
+This last assumption then requires us to also prove that all operations do not change the number of partitions.
+
+We proved, as in the list version, that @{const bins_L} computes the same bins as the set-based @{const bins} function.
+And used this equivalence to show that this implementation only recognizes a word if and only if it is in the language.
+\begin{theorem}
+  @{thm bins_L_eq_bins}\\[3mm]
+  @{thm[mode=iffSpace] correctness_earley_Th}\\
+  where @{const earley_recognized_Th} checks whether there is a final item in the last bin of @{term "bins_L (length w)"}.
+\end{theorem}
+
+%We can now talk about the $IL\_INVARIANTS$ that we abbreviated in the previous chapter. 
+%These are that for every item list the invarriance function described above is fulfilled,
+% and that the number of partitions is enough to hold the items generated in the closure steps.
+
+%  quickly touch on invariants
+
+%TODO give a quick example using interpretation and value
+
+%\begin{itemize}
+%  \item WorkList Datatype + why requirement for cubic runtime
+%  \item WorkList insert intracasies (set bahavior using upsize for ease of theoretical analysis, but isnt used in actual algorithm)
+%  \item List-based functions
+%  \item correctness by equivalence to inductive set-based WorkListAlgorithm
+%  \item WorkList Algorithm with help of while\_option
+%\end{itemize}
+\<close>
+(*\begin{quote}
+  @{thm (prem 1) step_fun_sound_il[of B]} \<open>\<Longrightarrow>\<close> @{thm (prem 2) step_fun_sound_il[of B]} \<open>\<Longrightarrow>\<close> @{thm (prem 3) step_fun_sound_il} \<open>\<Longrightarrow>\<close> IL\_INVARIANTS\\
+  \mbox{ \<open>\<Longrightarrow>\<close> @{thm (prem 8) step_fun_sound_il[of B Bs C B' C']}}\\
+  \mbox{ \<open>\<Longrightarrow>\<close> @{thm (concl) step_fun_sound_il[of B Bs C B' C']}}\\[3mm]
+  @{thm (prem 1) steps_sound_il[of B Bs]} \<open>\<Longrightarrow>\<close> @{thm (prem 2) steps_sound_il[of B Bs]} \<open>\<Longrightarrow>\<close> IL\_INVARIANTS\\
+  \mbox{ \<open>\<Longrightarrow>\<close> @{thm (prem 7) steps_sound_il[of B Bs C B' C']}}\\
+  \mbox{ \<open>\<Longrightarrow>\<close> @{thm (concl) steps_sound_il[of B Bs C B' C']}}\\[3mm]
+  @{thm (prem 1) close2_L_eq_close2[of Bs B]} \<open>\<Longrightarrow>\<close> @{thm (prem 2) close2_L_eq_close2[of Bs B]} \<open>\<Longrightarrow>\<close> IL\_INVARIANTS\\
+  \mbox{ \<open>\<Longrightarrow>\<close> @{thm (concl) close2_L_eq_close2[of Bs B]}}
+\end{quote*)
+
+(*<*)
+context Earley_Gw_eps_T
+begin
+notation T_nth_IL (\<open>\<^latex>\<open>\isaconst{\<close>T\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>nth\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+
+notation T_step_fun (\<open>\<^latex>\<open>\isaconst{\<close>T\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>step'_fun\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation T_steps (\<open>\<^latex>\<open>\isaconst{\<close>T\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>steps\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation T_close2_L (\<open>\<^latex>\<open>\isaconst{\<close>T\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>close2\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation T_bins_L (\<open>\<^latex>\<open>\isaconst{\<close>T\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>bins\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation T_earley_recognized1 (\<open>\<^latex>\<open>\isaconst{\<close>T\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>earley'_recognized\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+
+notation T_Init_L (\<open>\<^latex>\<open>\isaconst{\<close>T\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>Init\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation T_Predict_L (\<open>\<^latex>\<open>\isaconst{\<close>T\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>Predict\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation T_Complete_L (\<open>\<^latex>\<open>\isaconst{\<close>T\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>Complete\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation T_Scan_L (\<open>\<^latex>\<open>\isaconst{\<close>T\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>Scan\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+
+notation T_empty_IL (\<open>\<^latex>\<open>\isaconst{\<close>T\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>empty\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation T_isin (\<open>\<^latex>\<open>\isaconst{\<close>T\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>isin\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation T_insert (\<open>\<^latex>\<open>\isaconst{\<close>T\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>#\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation T_union_LIL (\<open>\<^latex>\<open>\isaconst{\<close>T\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>\<union>\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation T_minus_IL (\<open>\<^latex>\<open>\isaconst{\<close>T\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>-\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>IL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+(*notation T_Parse_step_fun
+notation T_Parse_steps
+notation T_Parse_close2_L
+notation T_Parse_bins_L
+notation T_get_parse_tree
+notation T_get_parse_tree_w
+
+notation T_empty_PIL
+notation T_PIL_list
+notation T_parseIL_isin
+notation T_parseIL_insert
+notation T_PIL_first
+notation T_union_LPIL
+notation T_minus_LPIL
+notation T_minus_PIL
+notation T_PIL_of_List
+
+notation T_Parse_Predict_L
+notation T_Parse_Complete_L
+notation T_Parse_Scan_L*)
+end
+(*>*)
+
+text (in Earley_Gw_eps_T) \<open>
+\chapter{Running Time Analysis} \label{chap:Runingtime_1}
+We now begin a formal running time analysis to verify the guarantees put forth by Earley.
+He claims an overall running time of $O(n^3)$. As we mentioned before, we will perform a parameterized running time analysis based on the random-access time of the stored partitions.
+We specifically assume that both the \emph{nth} and \emph{update} operations are bounded by the same running time function @{term "T_nth_IL"}, which is monotone increasing.
+As both the \emph{nth} and \emph{update} operations boil down to a random lookup, we bound them by the same function, while monotonicity is needed to aggregate different calls.
+And both of these assumptions are satisfied by the current list implementation, which has linear running time for the operations, and by the optimal array implementation, which would guarantee constant running time for both operations.
+\begin{quote}
+  @{thm T_list_update_general}\\[3mm]
+  @{thm (concl) T_nth}
+\end{quote}
+For the analysis, we use the built-in \<open>time_fun\<close> command in Isabelle, which automatically generates a timing function for a given function.
+The timing functions generated this way count non-primitive function calls. Other operations, like arithmetic computation, variable access, or datatype construction, are assumed to take no time. 
+This approach provides time bounds in the correct $O$-class, while simplifying the reasoning as much as possible and allowing inductive proofs. A more detailed explanation of the implementation of the automatic timing functions can be found in \cite{2025}.
+The only exception where automation fails is the @{const steps} function, which is currently not supported by \<open>time_fun\<close> due to partial function application in its @{const while_option} loop.
+
+We give one example of how the generated timing functions look using @{const union_LIL} as an example.
+\begin{quote}
+  @{fun T_union_LIL}
+\end{quote}
+The base case simply returns the given item list resulting in a time of 1 for the application of the function itself.
+The recursion case is defined as the time taken for the recursive function call plus the insert plus one for the function call itself again.
+\\\\
+
+But as we argued, the list we use for storing the partitions could be implemented as an array with $O(1)$ random-access time, given by the \emph{nth} function.
+So we make a parameterized running time analysis based on the running time of \emph{nth} for this specific list type.
+Once we have this, we can argue about the running time, assuming an underlying array or any other data structure.
+For brevity, we will only show the time bounds without any assumptions, as they are the same as in the completeness proofs.
+When discussing time bounds in the text, we assume a constant running time for @{term "T_nth_IL"} and elaborate on implementations with other access time assumptions only for the final time bounds of the complete algorithm.
+
+\section{Efficient Itemlist}
+We start by proving running time bounds for the operations of @{type efficientItemList}.
+The basic operations of lookup (@{const isin}) and insertion @{const insert} are the only places where the assumed time bounds for \emph{nth} and \emph{update} are needed directly.
+ All other functions use @{const isin} and @{const insert}.
+\begin{quote}
+  @{thm (concl) T_isin_wf}\\[3.5mm]
+  @{thm (concl) T_insert_less}
+\end{quote}
+And we see that these functions have a constant running time, since they only need to perform a lookup and then search the corresponding partition.
+Then the running times of the union and difference operations are linear in the length of the list, since they perform either a single lookup or both a lookup and an insert per list element.
+\begin{quote}
+\begin{tabularx}{\textwidth}{l c X}
+@{thm (lhs) T_union_LIL_wf} & @{text "\<le>"} & @{thm (rhs) T_union_LIL_wf}\\[3mm]
+@{thm (lhs) T_minus_IL_wf_Th[of il1 il2]}&@{text "\<le>"}&@{thm (rhs) T_minus_IL_wf_Th[of il1 il2]}
+\end{tabularx}
+\end{quote}
+The difference operation has an additional linear addend in the number of partitions it requires, stemming from the @{const empty_IL} time bound, which is linear in the number of partitions it has to construct.
+ In the full algorithm analysis, the list size equals the bin size, and the number of partitions equals the index of the bin currently under construction.
+ As the bin size grows linearly with its index, both addends will also grow linearly with the bin index.
+ Lastly, we have the conversion from lists to item lists, @{const IL_of_List}, which is a simple combination of the @{const empty_IL} and @{const union_LIL} operations and will therefore also be linear.
+
+\section{Earley algorithm}
+For the four operations, both the initial set construction and prediction depend only on the number of productions and are therefore constant.
+The \emph{Complete} and \emph{Scan} operations depend on the size of the set they have to filter, resulting in a time bound that is linear in the set's size.
+Since every Earley bin is well-formed it has a size linear to its index, and the \emph{Complete} and \emph{Scan} operations are also linear in the index of the set for which the closure is being computed. 
+\begin{quote}
+  @{thm T_Init_L_bound}\\[3.5mm]
+  @{thm (concl) T_Predict_L_bound}\\[3.5mm]
+  @{thm (concl) T_Complete_L_bound}\\[3.5mm]
+  @{thm (concl) T_Scan_L_bound[of k B]}
+\end{quote}
+Putting these time bounds together with those for the efficient item list, we find that the @{const step_fun} time bound is also linear in the index of the current bin. 
+This mostly follows directly from the time bounds given and the assumption that the item lists are well-formed and satisfy the invariant @{const inv_IL}, which requires that the lists be distinct.
+ Distinctness allows us to get length bounds on these lists equal to the sizes of the sets, which are linear in their indices.
+
+We now come to the while loop implementation of the closure for which we had to write a custom timing function, as the built-in timing functions do not work with partial function applications, as we used in the body of the while loop.
+ Our timing function performs the normal computation and maintains a timing accumulator throughout.
+The accumulator of the result then gives the total running time of the while loop, if it exists.
+\begin{quote}
+  @{fun steps_time}\\[3.5mm]
+  @{fun T_steps}
+\end{quote}
+Using the argumentation from the termination proof, we know that the size of the list accumulator increases by one every iteration, 
+ and so we can bound the entire closure algorithm by the size of the accumulator times the time bound for a single step.
+This time bound is the predicate we use in our proof about the while loop's result.
+\begin{quote}
+  @{term "(\<lambda>((il1,il2),k). k \<le> length (list il2) * T_step_fun_bound_Th_def)"}
+\end{quote}
+Here, @{term "T_step_fun_bound_Th_def"} is simply an abbreviation for the full numeric time bound.
+Again, we have to augment this predicate with the other assumptions about well-formedness and invariants, but the core of the proof is about showing that this inequality holds.
+We can again bound the length of the accumulator by well-formedness and distinctness, so we get a quadratic running time for @{const T_steps}.
+The time bound for the full closure, @{const close2_L}, adds only a linear term for creating an empty item list and is therefore also quadratic.
+\begin{quote}
+\begin{tabularx}{\textwidth}{lcX}
+  @{thm[break] (lhs) T_close2_L_bound_Th_nice} & @{text "\<le>"} & @{thm[break] (rhs) T_close2_L_bound_Th_nice}
+\end{tabularx}
+\end{quote}
+
+Lastly, we bound the running time of the @{const bins_L} function and the top-level predicate, @{const earley_recognized}.
+Since @{const bins_L} computes a linear number of bins, each with a quadratic time bound, the overall time bound is cubic.
+We show a simplified time bound, but there exist others with tighter constants.
+\begin{quote}
+  @{thm C1_def}\\
+  @{thm C2_def}\\[1ex]
+  @{thm (concl) nice_T_bins_L_bound}
+\end{quote}
+
+\begin{quote}
+  @{thm C1'_def}\\[1ex]
+  @{thm T_earley_recognized_nice}
+\end{quote}
+
+From the total parameterized running time, we see that if we set the random-access time to be constant, we do indeed obtain a cubic running time, as we argued in the text.
+If we instead take our current Isabelle list-based implementation, we get a running time of $O(n^4)$ instead.
+ This concludes the asymptotic analysis of the recognizer, where we have verified the time bound given by Earley.
+
+%\begin{itemize}
+%  \item analysis with WorkList T\_nth parameter (assumed to be constatnt for array)
+%  \item WorkList insert requires WorkList map\_length bound, which has to be carried through proofs
+%  \item runtime of list functions
+%  \item parametized runingtime (cubic if T\_nth is constant)
+%\end{itemize}
+\<close>
+
+(*<*)
+context Earley_Gw
+begin
+
+definition parseItem_for_Typedef :: "('n,'a) parseItem" 
+  where "parseItem_for_Typedef = ((Earley.Item (hd (ps)) 0 0),([] :: ('n,'a) tree list))"
+
+notation Parse_Init (\<open>\<^latex>\<open>\isaconst{\<close>Init\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>P\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation Parse_Predict (\<open>\<^latex>\<open>\isaconst{\<close>Predict\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>P\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation Parse_Complete (\<open>\<^latex>\<open>\isaconst{\<close>Complete\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>P\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation Parse_Scan (\<open>\<^latex>\<open>\isaconst{\<close>Scan\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>P\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+
+notation Parse_Close (\<open>\<^latex>\<open>\isaconst{\<close>Close\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>P\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation Parse_bins (\<open>\<^latex>\<open>\isaconst{\<close>bins\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>P\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+end
+
+
+(*>*)
+
+text (in Earley_Gw_eps) \<open>
 \chapter{Expansion to Parse Trees} \label{chap:Parse_trees}
-\begin{itemize}
-  \item set version which does not require only one tree per Earley item
-  \item parse items and well formedness characterisation
-  \item list version for executability
-  \item in many ways similar proof to first version
-\end{itemize}
+We now turn this recognizer into a parser. For each item, we save parse trees that make up the derivation that is represented by the item.
+The way we do this is by creating a pair of an Earley item and a list of parse trees, with access functions @{const item} and @{const trees}.
+\begin{quote}
+  @{type parseItem} @{text "::"} @{typeof parseItem_for_Typedef}
+\end{quote}\<close>
 
+(*<*)
+context Earley_Gw
+begin
+translations (type) "('n, 'a) parseItem" <= (type) "('n, 'a) Earley.item \<times> ('b, 'c) tree list"
+translations (type) "('n, 'a) parseIL" <= (type) "('n, 'a) efficientItemList \<times> ('b, 'c) tree list list"
+end
+(*>*)
+text (in Earley_Gw_eps)\<open>
+The intention is that the item represents the derivation of a substring of $\isaconst{w}$ from the symbols to the left of the dot, and that the list of trees stores this derivation by having one child parse tree for every symbol up to the dot, holding part of the derivation.
+Thus, if the item is complete with the dot at the end of the production, we can create a complete parse tree for this item
+ by creating a new @{const Rule} node from the lhs of the production and all saved trees as its children.
 
-\chapter{Runingtime Analysis of Expanded Algorithm} \label{chap:Runingtime_2}
+The following invariant models the internal consistency between the item and the tree list. It makes sure that every parse tree is constructed correctly, 
+ that the leaves of the parse trees form the slice of $\isaconst{w}$ which can be derived from the production up to its dot, 
+ and that the roots of the parse trees are the symbols present in the production up to its dot. 
+In a complete item, the roots of the trees must make up the production's lhs, as otherwise we would be constructing a parse tree, where the new @{const Rule} node does not represent a valid production.
+\begin{quote}
+  @{const_typ wf_parseItem}\\[1ex]
+  @{thm[break] (eta_expand t) wf_parseItem.simps[unfolded \<alpha>_def]}
+\end{quote}
+The parse trees in the list are stored in reverse order, since this makes insertions of new trees more convenient during the algorithm.
 
-\begin{itemize}
-  \item same O runingtime as version without (different prefactors)
-\end{itemize}
+Similarly to the recognizer, we have created both a set-based and a list-based parser. We begin by introducing the set-based parser.
+
+The overall structure is again similar to the recognizer using the @{const bins} function in conjunction with an inductive closure.
+So we need to augment the Earley operations to also construct the tree lists for every parse item. %TODO make rule based version?
+\begin{quote}
+  @{def Parse_Init}\pagebreak\\
+  @{def Parse_Predict}\\[3mm]
+  @{def Parse_Complete}\\[3mm]
+  @{def Parse_Scan}
+\end{quote}
+In the \emph{Init} and \emph{Predict} operations, we start parsing a new substring, so we do not need to store any parse trees.
+The \emph{Scan} operation directly parses a terminal symbol, which itself makes a complete parse tree, so we add it to the list of child parse trees.
+In the \emph{Complete} operation, we have completed parsing a substring, so we construct a complete parse tree for this substring by creating a @{const Rule} node from the production's lhs and all of the child parse trees.
+This new tree is then added to all parse items, in which we advance the item's dot and thereby extend the derivation represented by the item. 
+All of these operations fulfill the well-formed predicate.
+With these operations, we define an inductive set closure, @{const Parse_Close}, as in the recognizer case, and then use that to construct all parse bins again as we did prior.
+\begin{quote}
+  @{fun Parse_bins}
+\end{quote}
+Lastly, we have to retrieve the full parse tree from a \emph{final} item in the last bin.
+\begin{quote}
+  @{def get_parse_tree3}
+\end{quote}
+This top-level function returns a tree if a final item exists, and then constructs the complete parse tree from a completed parse item, just as the \emph{Complete} operation.
+We need to use the Hilbert choice operator because multiple parse trees may exist for an item when the productions are ambiguous.
+
+We now go on to prove correctness in two steps. First, we prove that any tree returned by our algorithm represents a valid derivation of $\isaconst{w}$ from $\isavar{S}$ under the given productions.
+Second, we prove that our algorithm returns a parse tree if and only if $\isaconst{w}$ can be derived.
+
+For the first claim, we have to prove that the parse bins we compute are well-formed, which then implies that every returned parse tree is valid.
+ This requires showing that all Earley operations return well-formed sets, which can then be extended to show that the closure and the bins are well-formed as well.
+\begin{quote}
+  @{thm parse_bins_wf1}\\[3mm]
+  @{thm get_parse_tree3_valid} 
+\end{quote}
+To tackle the second claim, we use the fact that we have already proven that we recognize an item if and only if a derivation exists, which is equivalent to the existence of a final item in the last bin.
+ Since the parser operations are only an augmentation of the recognizer operations, we do not change the items generated for each bin; we only add trees to them.
+ Thus, we can prove that projecting the parse items in a bin to only their item parts yields the same bins as those computed by the recognizer algorithm.
+ By extension, a final item is only present in the last parse bin if a derivation exists, and we only return a tree if this is the case, so our claim is true.
+\begin{quote}
+  @{thm item_Pbins_eq_bins}\\[3mm]
+  @{thm[mode=iff_Space] get_parse_tree3_iff}
+\end{quote}
+\<close>
+
+(*<*)
+context Earley_Gw
+begin
+no_translations (type) "('n, 'a) parseItem" <= (type) "('n, 'a) Earley.item \<times> ('b, 'c) tree list"
+no_translations (type) "('n, 'a) parseIL" <= (type) "('n, 'a) efficientItemList \<times> ('b, 'c) tree list list"
+
+definition paresIL_for_Typedef :: "('n, 'a) efficientItemList \<times> ('n, 'a) tree list list"
+  where "paresIL_for_Typedef = (empty_IL 0, [[]])"
+
+fun unzip :: "('n, 'a) parseItem list \<Rightarrow> ('n, 'a) item list \<times> ('n,'a) tree list list"
+  where "unzip xs = undefined"
+end
+(*>*)
+
+text (in Earley_Gw) \<open>
+\section{List-based parser}
+We now proceed to construct an executable list-based parser.
+We mentioned that for ambiguous grammars, an item may have multiple valid parse trees representing its derivation. As the number of them is not linearly bounded, like the Earley items, we do not save every parse item, but only one per Earley item. 
+ This is different from the set version, where we did not specify such a constraint.
+ So we will be working with parse item lists, where each Earley item appears only once, which will give us the same length bounds as in the recognizer case.
+ To store such lists we do not write a new efficient item list for parse items, but instead we "unzip" the
+ @{typ "('n,'a) parseItem list"} into a @{typ "('n,'a) item list"} and a @{typ "('n,'a) tree list list"}, where entries at the same index in both lists form a parse item in the original list.
+ Then we can store the item list as an efficient item list, and the tree list list as is.
+ The augmented parse item list $\isaconst{PIL}$ then looks like this.
+\begin{quote}
+  @{type parseIL} @{text "::"} @{typeof paresIL_for_Typedef}
+\end{quote}
+\<close>
+
+(*<*)
+context Earley_Gw
+begin
+translations (type) "('n, 'a) parseItem" <= (type) "('n, 'a) Earley.item \<times> ('b, 'c) tree list"
+translations (type) "('n, 'a) parseIL" <= (type) "('n, 'a) efficientItemList \<times> ('b, 'c) tree list list"
+
+notation inv_PIL (\<open>\<^latex>\<open>\isaconst{\<close>inv\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>PIL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation set_PIL (\<open>\<^latex>\<open>\isaconst{\<close>set\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>PIL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation wf_PIL (\<open>\<^latex>\<open>\isaconst{\<close>wf\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>PIL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation isin_PIL (\<open>\<^latex>\<open>\isaconst{\<close>isin\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>PIL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation insert_PIL  (infixr \<open>#\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>PIL\<^latex>\<open>}\<close>\<^esub>\<close> 65)
+notation hd_PIL (\<open>\<^latex>\<open>\isaconst{\<close>hd\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>PIL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation Parse_bins_L (\<open>\<^latex>\<open>\isaconst{\<close>bins\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>PIL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+
+notation Parse_Predict_L (\<open>\<^latex>\<open>\isaconst{\<close>Predict\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>P,L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+end
+(*>*)
+text (in Earley_Gw_eps) \<open>
+The parse item set represented by this data structure is obtained by zipping both lists.
+\begin{quote}
+  @{fun set_PIL}
+\end{quote}
+So the semantic requirements for a valid parse item list are that the projection onto items is distinct,
+ that the item list and tree list list have equal length, and that items and tree lists stored at the same index form a valid parse item.
+ To capture the first two semantic requirements for the parse item list, we define a new invariant
+ that reuses the efficient item list's invariant and ensures that the efficient item list and the tree list list are the same length for the zipping operation.
+ The item list invariant already contains that the projected parse item list is distinct.
+ The third semantic requirement is satisfied if the zipped set representation is well-formed.
+\begin{quote}
+  @{fun inv_PIL}\\[3mm]
+  @{fun wf_PIL}
+\end{quote}
+
+The operations on the parse item list are more or less the same as those for the basic item list.
+For the membership test, we only consider the Earley item part, while insertion boils down to insertion into the item list and the tree list.
+So the interesting functions are @{const isin_PIL}, @{const insert_PIL}, and @{const hd_PIL}, which returns the parse item at the head of the list, which is no longer easily achievable through pattern matching.
+\begin{quote}
+  @{fun isin_PIL}\\[3mm]
+  @{fun insert_PIL}\\[3mm]
+  @{fun hd_PIL}
+\end{quote}
+The other operations for the parse list are defined as those for the item list, using the adapted @{const isin_PIL} and @{const insert_PIL} operations.
+
+We again adapt the set-based \emph{Init}, \emph{Predict}, \emph{Complete}, and \emph{Scan} operations to work with lists.
+Then we again define a step function and closure as before, and finally use that to compute all parse bins.
+As a last step, we have to return the parse tree of a final item in the last bin, if such an item exists. This will then be a parse tree for the complete word.
+\begin{quote}
+  @{fun get_parse_tree}
+\end{quote}
+
+Since we have introduced the constraint that the Earley items saved be distinct, we cannot prove the equivalence of the bins to the set-based parser.
+ Instead, since we are reusing the operations of the efficient item list, we can prove that those are the same in the parsing and recognition algorithms.
+ In conjunction with proving that the Earley operations restricted to items are also the same we, can prove that the projection of parse bins onto the items is the same as the bins computed for the recognizer.
+As examples, we show equality of the \emph{Predict} operation and the \emph{bins} function:
+\begin{quote}
+  @{thm PPredict_L_eq_Predict_L}\\[3mm]
+  @{thm Parse_bins_L_eq_bins_L}
+\end{quote}
+Additionally, we show that the computed parse bins are well-formed.
+
+We can then show, similarly to the set algorithm, that our algorithm returns a parse tree only if the word is in the language,
+ and that any parse tree it returns is valid under the productions.
+Thus, our algorithm returns only valid parse trees and only if the word is in the language.
+\begin{theorem}
+  @{thm[mode=iffSpace] find_parse_tree_iff_w_in_L}\\[3mm]
+  @{thm generated_parse_tree_is_valid}
+\end{theorem}
+
+As a simple corollary, we get that if the grammar is unambiguous, we return the singular correct tree, and that the set-based and list-based parsers are equal.
+\begin{corollary}
+  @{thm unambiguous_impl_the_parse_tree}\\[3mm]
+  @{thm unambiguous_impl_P_set_eq_P_L}
+\end{corollary}
+
+%\begin{itemize}
+%  \item set version which does not require only one tree per Earley item
+%  \item parse items and well-formedness characterisation
+%  \item list version for executability
+%  \item in many ways similar proof to first version
+%\end{itemize}
+\<close>
+
+(*<*)
+context Earley_Gw_eps_T
+begin
+notation T_Parse_Complete_L (\<open>\<^latex>\<open>\isaconst{\<close>T\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>Complete\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>P,L\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation T_insert_PIL (\<open>\<^latex>\<open>\isaconst{\<close>T\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>#\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>PIL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation T_Parse_bins_L (\<open>\<^latex>\<open>\isaconst{\<close>T\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>bins\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>PIL\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+notation T_get_parse_tree_w (\<open>\<^latex>\<open>\isaconst{\<close>T\<^bsub>\<^latex>\<open>\isaconst{\scriptsize \<close>get'_parse'_tree'_w\<^latex>\<open>}\<close>\<^esub>\<^latex>\<open>}\<close>\<close>)
+end
+(*>*)
+
+text (in Earley_Gw_eps_T) \<open>
+\section{Runing Time Analysis of Parsing Algorithm} \label{sec:Runingtime_2}
+
+The running time analysis works very similarly to the one for the recognizer. 
+One big difference is that in the recognizer, we could make assumptions about the size of all well-formed bins, whereas the @{const wf_parse_bin} predicate does not allow for the same bounds.
+ We only have the same size bounds if the bin was computed using a $\isaconst{PIL}$ that fulfills its invariant.
+So we have to introduce an assumption about the sizes of these bins, where we do not have any other information about them, for example, the \emph{Complete} operation where we only assume to have a list of well-formed bins given.
+In the end, this bound is resolved in the analysis of the @{const Parse_bins_L} method, where we can finally show that all bins are computed using a $\isaconst{PIL}$ and have the same bound as in the recognizer.
+For the time bound of the \emph{Complete} operation, wewe introduce the assumption that the bin size is bounded by $\isavar{C}$ \mbox{(@{thm (prem 4) T_Parse_Complete_L_bound})} and obtain this time bound, where we do not show other assumptions that need to hold, for readability.
+\begin{quote}
+  @{thm (prem 4) T_Parse_Complete_L_bound} \<open>\<Longrightarrow>\<close> @{thm (concl) T_Parse_Complete_L_bound}
+\end{quote}
+
+Overall, the time bounds are very similar to those of the recognizer, since the parsing functions follow the same scheme and we reuse item list functions.
+ One difference appears in the insert operation of the parse item list, since both the parse item list and the item list perform inclusion checks during insertion.
+ One of these could be removed for optimization, but was left in, as it does not change the overall time bound. 
+If we compare the bounds of both operations, we see that they differ by @{term "T_nth_IL (from x) + L * (K + 1) + 1"}, which is the bound for @{const isin}.\\
+\\
+\begin{tabularx}{\textwidth}{l c X}
+  @{thm (lhs) T_insert_less} & \<open>\<le>\<close> & @{thm (rhs) T_insert_less}\\
+  @{thm (lhs) PIL_T_insert_bound} & \<open>\<le>\<close> & @{thm (rhs) PIL_T_insert_bound}
+\end{tabularx}\\
+\\
+This difference then affects all other parse list running times as well, as they all use @{const insert_PIL}.
+ Another difference is that the @{const Parse_Complete_L} operation takes more time than the recognizer operation,
+ since it has to reverse the tree list attached to the item to build a valid parse tree for the completed item.
+ The running time of the inefficient list reversal is @{term "mbox (2 * K * K + 2 * K + 5)"} and may be incurred for every item in the bin.
+Again, we could use a more efficient list reversal using an accumulator, but it does not change the overall asymptotic running time, as both are constant in the size of the word.
+
+The end result is that while the asymptotic running time stays the same as in the recognizer case, the prefactors change.
+\begin{quote}
+  @{thm[break] (concl) T_Parse_bins_bound_nice_Th}\\[3mm]
+  @{thm C3_def}\\
+  @{thm C4_def}\\
+  @{thm C5_def}\\
+  @{thm C6_def}\\
+  @{thm C7_def}
+\end{quote}
+Combining this with the running time for the extraction of the final tree gives us:
+\begin{quote}
+  @{thm[break] T_ovrall_time_bound_Th}\\[3mm]
+  @{thm C8_def}
+\end{quote}
+
+%\begin{itemize}
+% \item same O runingtime as version without (different prefactors)
+%\end{itemize}
+\<close>
+
+text \<open>
+\chapter{Related Work}\label{chap:related}
+
+Lasser formalizes two parsers based on the LL(1) and All(*) algorithm approaches using the Coq proof assistant \cite{lasser2022formal}.
+ They prove soundness and completeness of both parsers, as well as termination, as long as the grammars are LL(1) or non-left-recursive, respectively.
+ Instead of proving a formal running time bound they measure the parsers' practical performance empirical tests.
+ Finally, they augment their All(*) parser to handle grammars with semantic predicates, which are checked during parsing to ensure the input is semantically well-formed.\\
+
+Firsov and Uustalu verify a parser based on the CYK algorithm in Agda \cite{Firsov2014}.
+ Their work encompasses correctness and termination proofs, assuming the grammar is in Chomsky-Normal Form.\\
+
+Koprowski and Binsztok verify a parser for parsing expression grammars (PEGs) in Coq \cite{Koprowski2011}.
+ They prove correctness and termination by first inspecting the grammar and rejecting those that would not lead to termination.
+ On running time, they mention that their algorithm may take exponential time on grammars that are not LL(k).
+ A solution to this problem that trades a linear running time for higher space requirements is the packrat parsing approach using memoization.
+ A formal verification of such a PEG parser has been performed by Blaudeau and Shankar \cite{Blaudeau2020} in PVS.\\
+
+Another approach is used by Jordan et al., who write a validator for LR(1) parsers in Coq \cite{Jourdan2012}.
+ The validator takes a CFG and an otherwise generated parser and validates that the parser works correctly for the given grammar.
+ One aspect that is not verified is that the given parser terminates for invalid input. 
+ This validation approach has the benefit of verifying the output of optimized, already existing parser generators and could thus be incorporated into those, guaranteeing correctness.
+ Thus, this approach can be used with a variety of parser generators, without having to prove correctness of each one individually.
+
+\<close>
+
+text \<open>
+\chapter{Conclusion}
+In this thesis, we refined the prior work done by Nipkow and Rau on the Earley algorithm into an executable list-based recognizer.
+ The recognizer was proven correct for all epsilon-free grammars and could be adapted to work on those as well, as outlined in \autoref{sec:epsilon}.
+ We also prove termination in all cases. For running time guarantees, we implemented the @{typ "('n,'a) efficientItemList"} data structure proposed by Earley.
+ Using a parameter for the random-access time of the partitions in this data structure, we conducted an asymptotic running time analysis, verifying a cubic running time under constant access time.
+ Our list-based implementation achieves only an $O(n^4)$ running time instead.\\
+
+We then verified both a set-based and a list-based parser using this algorithm. 
+ Both algorithms are correct and always terminate for epsilon-free grammars, and were proven to be equivalent if the grammar is unambiguous.
+ In the case of an ambiguous grammar, our algorithm returns only one random parse tree. 
+ The running time analysis resulted in the same time bounds as the recognizer.\\
+
+For future work, we see a possibility in replacing the list used in the @{typ "('n,'a) efficientItemList"} datatype by an actual array implementation, as this would guarantee the best running time bounds for this algorithm.
+ Another avenue is to formalize the treatment of grammars containing epsilon productions using one of the approaches outlined in \autoref{sec:epsilon}.\\
+
+Earley also presents sets of languages for which the algorithm has a better running time bound, which could be of interest.
+ Unambiguous reduced grammars could have quadratic running time because the set-difference operation can be omitted.
+ There are also grammars for which the size of each Earley bin is bounded by a constant, leading to linear running time.
+ Earley mentions that most LR(k) grammars fall under this, but does not give a characterization of exactly which.
+ Fully characterizing this set of grammars and verifying their linear running time is also an interesting direction.\\
+
+Lastly, CFGs can be extended to give certain productions higher priority when multiple apply, resolving ambiguity.
+ This feature is used in many programming languages as well, so an extension to these would be great, but would require a full extension of the derivation infrastructure for CFGs.
+
+%\begin{itemize}
+%  \item make it truly cubic runtime by repacing list with array
+%  \item formalize algorithm for turning Productions epsilon free to cover that edge case
+%  \item addapt to priority grammars in a step to make programm language parsing more achievable
+%\end{itemize}
 \<close>
 
 
 
 (*------------------------------------------------------------------------------------------------*)
 
-text (in Earley_Gw_eps)\<open>
-\chapter{Try out examples}
 
-
-@{term "xs ! n"} is the n-th element
-
-@{prop "Px & Q"} \<open>1 ... n\<close>
-
-\begin{lemma}
-  @{thm bins_L_eq_\<S>}
-\end{lemma}
-"\<close>
-
-(*text (in Earley_Gw_eps)\<open>
-\begin{quote}
-@{def Predict_L}\\
-
-@{fun minus_LWL}
-\end{quote}
-\begin{center}
-@{thm bins_L_eq_\<S>}
-\end{center}
-\<close>*)
 (*<*)
 end
 (*>*)

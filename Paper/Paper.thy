@@ -66,7 +66,8 @@ text \<open>
 \section{Introduction}
 
 This paper reports on a concerted formalization of large parts of the basic theory of 
-context-free grammars and languages (henceforth CFG and CFL).
+context-free grammars and languages (henceforth CFG and CFL) in the proof assistant Isabelle/HOL
+\cite{LNCS2283,Concrete}.
 The formalization is unified in the sense that many of the topics that were 
 previously formalized independently (and in different provers) are now
 unified in a single formalization, available in the Archive of Formal Proofs as separate entries
@@ -78,10 +79,10 @@ The main novel contributions of our work are:
 \item a verified executable \prestar\ algorithm for solving a number of elementary CFG problems
  (e.g.\ the word problem) automatically (Sect. \ref{sec:prestar}), and
 \item the verification of two foundational theorems of context-free languages that had not been formalized before:
-the Chomsky-Sch\"utzenberger Theorem (Sect. \ref{sec:ChSch}) and Parikh's Theorem (Sect. \ref{sec:Parikh}).
+the Chomsky--Sch\"utzenberger Theorem (Sect. \ref{sec:ChSch}) and Parikh's Theorem (Sect. \ref{sec:Parikh}).
 \end{itemize}
 
-When we use the term executability we mean that the definitions (or derived lemmas!) form
+When we use the term executability we mean that the definitions (or derived lemmas) form
 a functional program and that Isabelle can generate programs in various functional
 languages (Haskell, OCaml and SML) \cite{HaftmannN10}.
 
@@ -90,7 +91,7 @@ languages (Haskell, OCaml and SML) \cite{HaftmannN10}.
 We will mostly discuss related work at the relevant places, but would like to mention already
 the three related formalizations that are closest to our work: the work by
 Barthwal and Norrish \cite{BarthwalPhD,csl/BarthwalN10,wollic/BarthwalN10,BarthwalN14} (in HOL4),
-Hofmann \cite{JHofmann} (in Coq) and Ramos \emph{et al.} \cite{RamosAMQ,RamosAMQ16,RamosQMA16} (in Coq).
+Hofmann \cite{JHofmann} (in Coq) and Ramos et al.\ \cite{RamosAMQ,RamosAMQ16,RamosQMA16} (in Coq).
 
 The one fundamental area we do not cover is parsing. Specific parsing algorithms
 have been formalized in the literature independently
@@ -100,21 +101,22 @@ have been formalized in the literature independently
 \subsection{Isabelle Notation} \label{sec:isabelle}
 
 The notation \<open>t :: \<tau>\<close> means that term \<open>t\<close> has type
-\<open>\<tau>\<close>. Basic types include @{typ bool} and @{typ nat}, while type variables are written @{typ 'a}, @{typ 'b} etc.
+\<open>\<tau>\<close>. Basic types include @{typ bool} and @{typ nat}, while type variables are written @{typ 'a}, @{typ 'b}, etc.
 Most type constructors are written postfix, such as @{typ "'a set"} and  @{typ "'a list"}, and the function
 space arrow is \<open>\<Rightarrow>\<close>.
 The image of function \<open>f\<close> over set \<open>M\<close> is denoted by \<^term>\<open>f ` M\<close>.
 Function update @{term "f(a := b)"} is short for @{thm (rhs) fun_upd_def}.
 
-Functions @{const fst} and @{const snd} return the first and second components of a pair,
+Functions @{const fst} and @{const snd} return the first and second components of a pair.
 
 Lists are constructed from the empty list @{term "[]"} using the infix cons-operator @{term "(#)"}.
-The operator @{term "(@)"} appends two lists, @{term "length xs"} denotes the length of @{term xs},
+The infix operator @{term "(@)"} appends two lists, @{term "length xs"} denotes the length of @{term xs},
 and @{const set} converts a list to a set.
 %{term "xs!n"} returns the \<open>n\<close>-th element of the list {term xs} (starting with @{prop "n=(0::nat)"}).
 %and {term "take n xs"} is the prefix of length \<open>n\<close> of \<open>xs\<close>.
 
-Algebraic data types are defined using the \isakeyword{datatype} keyword. A predefined data type:
+Algebraic data types are defined using the \isakeyword{datatype} keyword.
+An example is this predefined data type:
 %\begin{quote}
 @{datatype option}
 %\end{quote}
@@ -153,7 +155,7 @@ Moreover, we only restrict to finite sets of productions when necessary.
 However, some constructions are hard or impossible even for finite grammars,
 unless we have some order on them: if we need to create new variables that appear in the output,
 the order in which a grammar is processed is crucial. Therefore we work with \emph{lists} of
-productions some of the time and define \<open>prods = prod list\<close>.
+productions some of the time. % and define \<open>prods = prod list\<close>.
 We work with sets whenever possible (because of their abstractness) and with lists only if necessary.
 Function \<^const>\<open>set\<close> converts in one direction, but we cannot convert from sets to lists
 in a computable manner (unless we impose some order on something).
@@ -166,9 +168,9 @@ Every \<open>P\<close> induces a single step derivation relation on \<open>syms\
 Its transitive-reflexive closure is denoted by @{prop "P \<turnstile> \<alpha> \<Rightarrow>* \<beta>"}.
 
 The language of some nonterminal \<open>A\<close> generated by \<open>P\<close> is easily defined:
-\begin{quote}
+\begin{definition}
 @{thm Lang_def}
-\end{quote}
+\end{definition}
 There is also the abbreviation @{abbrev "Context_Free_Grammar.lang ps A"}. This is an example of our convention:
 functions named \<open>Fn\<close> (starting with a capital letter) operate on sets, the lower case \<open>fn\<close>
 is its analogue on lists. We usually present only one of the two versions and silently use the other one
@@ -176,9 +178,9 @@ is its analogue on lists. We usually present only one of the two versions and si
 
 We also have parse trees and their relation to \<open>\<Rightarrow>*\<close>,
 which turns out to be useful not just for parsing but also in
-the proof of the Chomsky-Sch\"utzenberger Theorem below.
+the proof of the Chomsky--Sch\"utzenberger Theorem below.
 
-In a number of places we need to generate fresh names, which requires that the underlying type
+Sometimes we need to generate fresh names, which requires that the underlying type
 is infinite. We formalized this via type classes but elide it in our presentation.
 %Fresh names are generated by these functions: @ {term "fresh0 X"} (generates a name not in \<open>X\<close>)
 %and @ {term "freshs X As"} (generates variants of the names in list \<open>As\<close> not in \<open>X\<close>).
@@ -188,37 +190,38 @@ is infinite. We formalized this via type classes but elide it in our presentatio
 
 \subsection{Chomsky Normal Form and Pumping Lemma}
 
-We have defined an executable translation into Chomsky Normal Forms (CNFs)
+The notion of Chomsky Normal Form (CNF) is defined as follows:
+\begin{definition}
+@{thm [mode=iffSpace,break,margin=60] CNF_def}
+\end{definition}
+We have defined an executable translation @{const cnf_of} into CNF
+in five steps, and proved its correctness as follows:
 \begin{quote}
-@{thm CNF_def}\smallskip\\
-@{thm [break]cnf_of_def}
-\end{quote}
-and proved its correctness:
-\begin{quote}
+@{thm [break]cnf_of_def}\smallskip\\
 @{thm cnf_of_CNF_Lang(1)} \qquad @{thm cnf_of_CNF_Lang(2)}
 \end{quote}
 Our proof is based partly on the non-constructive one by Barthwal and Norrish \cite{csl/BarthwalN10}.
 Another constructive translation was formalized by Hofmann \<^cite>\<open>JHofmann\<close>.
 
 The first formal proof of the Pumping Lemma is due to Barthwal \cite{BarthwalPhD},
-followed by Ramos \emph{et al.} \cite{RamosAMQ16}.
+followed by Ramos et al.\ \cite{RamosAMQ16}.
 Our proof is due to Thomas Ammer and has the unique feature that it does not require parse trees.
-He introduces these two inductive relations, assuming \<open>P\<close> is in CNF:
-@{prop "P \<turnstile> A \<Rightarrow>\<langle>p\<rangle> w"} means that \<open>p :: 'n list\<close> is a path in the (implicit!) parse tree
-of the derivation from \<open>B :: 'n\<close> to \<open>w :: 't list\<close>; @{prop "P \<turnstile> A \<Rightarrow>\<llangle>p\<rrangle> w"} is similar
+He introduces the following two inductive relations, assuming \<open>P\<close> is in CNF:
+@{prop "P \<turnstile> A \<Rightarrow>\<langle>p\<rangle> w"} means that \mbox{\<open>p :: 'n list\<close>} is a path in the (implicit) parse tree
+of the derivation from \<open>B :: 'n\<close> to \mbox{\<open>w :: 't list\<close>}; the relation @{prop "P \<turnstile> A \<Rightarrow>\<llangle>p\<rrangle> w"} is similar
 but \<open>p\<close> is the longest path.
-Ramos \emph{et al.} \cite{RamosAMQ} also formalized four applications, two of which we also formalized
-($a^nb^nc^n$ is not context free and context-free languages are not closed under intersection,
-using only 10--15\% of the number of lines).
+Ramos et al.\ \cite{RamosAMQ} also formalized four applications, two of which we also formalized
+($a^nb^nc^n$ is not context free and context-free languages are not closed under intersection).
+%using only 10--15\% of the number of lines).
 
 
 \subsection{Pushdown Automata}
 
 Pushdown automata and the standard equivalence proofs
-(with CFGs, and equivalence of acceptance by empty stack and final state)
+(with CFGs and equivalence of acceptance by empty stack and final state)
 were first formalized by Barthwal and Norrish \cite{wollic/BarthwalN10}.
-Our proofs are largely based on this online Lean formalization \cite{Leichtfried}
-and are found here \cite{Pushdown_Automata-AFP}.
+Our proofs are largely based on an online Lean formalization \cite{Leichtfried}
+and are found in the Archive of Formal Proofs \cite{Pushdown_Automata-AFP}.
 
 \subsection{Right-Linear Grammars and Automata}
 
@@ -233,12 +236,12 @@ and every regular language can be generated by a strongly right-linear grammar.
 
 \section{Greibach Normal Forms}\label{sec:GNF}%AY
 
-Any \<open>\<epsilon>\<close>-free context-free language has a
-\concept{Greibach Normal Form} (\concept{GNF}) representation,
-where every right-hand side is a terminal followed by nonterminals.
-\begin{quote}
-@{def GNF}
-\end{quote}
+Every \<open>\<epsilon>\<close>-free context-free grammar has a
+\concept{Greibach Normal Form} (\concept{GNF}),
+where every right-hand side is a terminal followed by nonterminals:
+\begin{definition}
+@{thm [mode=iffSpace]GNF_def}
+\end{definition}
 In this section we formalize an executable function @{const GNF_of},
 which turns a grammar into GNF while preserving the language modulo \<open>\<epsilon>\<close>.
 
@@ -246,15 +249,15 @@ Barthwal \cite{BarthwalPhD} verified in HOL4 that every grammar can be transform
 and that the language is preserved.
 The transformation involves set comprehensions and reflexive transitive closures
 and is thus not directly executable. We improve on this in two respects:
-our transformation is an executable functional program and it does not require
+our transformation is an executable functional program and does not require
 an initial transformation into CNF.
 
 We start with a weaker version of GNF, which we call \concept{head GNF}
 (sometimes just called GNF~\cite{BlumK99} or real-time form~\cite{ReghizziBM19})
 where every right-hand side starts with a terminal symbol.
-\begin{quote}
-@{def GNF_hd}
-\end{quote}
+\begin{definition}
+@{thm[mode=iffSpace] GNF_hd_def[rename_abs A \<alpha> a \<beta>]}
+\end{definition}
 
 Our procedure takes three conversion steps:
 first eliminate \<open>\<epsilon>\<close>-productions (@{const Eps_elim}),
@@ -262,9 +265,7 @@ then transform to a triangular form (@{const Solve_tri}),
 and finally obtain head GNF (@{const Expand_tri}).
 
 The last two steps follow textbook algorithms~\cite{Harrison78,HopcroftU79} for deriving GNF,
-except that
-we do not require input in CNF
-but only eliminate \<open>\<epsilon>\<close>-productions.
+except that we do not require input in CNF but only eliminate \<open>\<epsilon>\<close>-productions.
 As a result we arrive at a head GNF.
 
 We say a grammar \<open>P\<close> is \concept{triangular on} a list \<open>[A\<^sub>1,...,A\<^sub>n]\<close> of nonterminals,
@@ -334,12 +335,10 @@ Thus function @{const GNF_hd}
 first makes fresh copies \<open>As'\<close> of nonterminals in \<open>As\<close>,
 applies @{const Solve_tri} and then @{const Expand_tri} in the reversed order of
 \<open>As @ rev As'\<close> on which triangularity is ensured.
-\begin{definition}
-@{def GNF_hd_of}
 \begin{quote}
+@{def GNF_hd_of}\medskip\\
 @{fun Expand_tri[Expand_tri.simps(1) Expand_tri_simp2]}\\
 \end{quote}
-\end{definition}
 Because the procedure processes nonterminals one by one,
 we explicitly give the list \<open>As\<close> of nonterminals as an argument to @{const GNF_hd_of}.
 Its variant @{const gnf_hd_of} computes such a list by
@@ -373,15 +372,15 @@ We prove that @{const Expand_tri} on its own can produce an exponential
 blowup, even if we only consider the number of productions.
 To wit, consider the family @{term "bad_grammar"} of grammars 
 where each @{term "bad_grammar n"}
-consists of \<open>A\<^sub>0 \<rightarrow> a | b\<close> and $A_{i+1} \to A_i a \mid A_i b$ for \<open>i < n\<close>.
+consists of \mbox{\<open>A\<^sub>0 \<rightarrow> a | b\<close>} and $A_{i+1} \to A_i a \mid A_i b$ for \<open>i < n\<close>.
 
 While @{term "bad_grammar n"} consists of only $2n$ rules,
-we formally verify that
-the expansion step yields $2^{n+1}$ productions for \<open>A\<^sub>n\<close>.
+we formally verify that the expansion step yields $2^{n+1}$ productions for \<open>A\<^sub>n\<close>
+(where @{term "[0..<n+1]"} \<open>= [0,\<dots>,n]"\<close>):
 
-\begin{theorem}
+\begin{lemma}
 @{thm Expand_tri_blowup}
-\end{theorem}
+\end{lemma}
 
 The core insight here is that expanding $A_{i}$ in $A_{i+1} \to A_i a \mid A_i b$
 yields twice as many $A_{i+1}$-productions as $A_{i}$ productions.
@@ -396,20 +395,20 @@ can be exponentially larger than the original grammar.
 
 \subsection{Informal Introduction}
 
-%Bouajjani \emph{et al.} \cite{BouajjaniEFMRWW00}
+%Bouajjani et al.\ \cite{BouajjaniEFMRWW00}
 Esparza and Rossmanith \cite{EsparzaR97} realized that a device that Book and Otto \cite{BookO93}
 had used to solve problems for string rewriting systems can also be applied to a number of
 elementary CFG problems.
 Let \<open>P :: ('n,'t) Prods\<close> and \<open>L :: ('n,'t) syms set\<close>.
 Then @{term "pre_star P L"} is the set of predecessors of words in \<open>L\<close>
 w.r.t.\ \<open>\<Rightarrow>*\<close>:%{prop "P \<turnstile> DUMMY \<Rightarrow>* DUMMY"}
-\begin{quote}
+\begin{definition}
 @{thm pre_star_def}
-\end{quote}
+\end{definition}
 The key insight, assuming \<open>P\<close> is finite: if \<open>L\<close> is regular, so is @{term \<open>pre_star P L\<close>}.
 More precisely: if \<open>L\<close> is given as an NFA \<open>M\<close>,
 an NFA for @{term \<open>pre_star P L\<close>} can be computed from \<open>M\<close>.
-This result has been discovered multiple times \cite{Buechi64,Caucal92}
+This result has been discovered multiple times \cite{Buechi64,Caucal92}.
 
 As an example, consider the productivity problem of determining if @{prop "mbox(Lang P A) \<noteq> {}"}.
 Let \<open>P\<close> be a grammar over a terminal alphabet \<open>\<Sigma>\<close>.
@@ -487,11 +486,11 @@ this main correctness theorem:
 \subsection{Applications}
 
 We show how the membership (in \<open>Lang P A\<close>), nullability and productivity problems can be decided
-(following Esparza and Rossmanith \cite{EsparzaR97}%Bouajjani \emph{et al.} \cite{BouajjaniEFMRWW00}
+(following Esparza and Rossmanith \cite{EsparzaR97}%Bouajjani et al.\ \cite{BouajjaniEFMRWW00}
 ).
-All of these problems can be reduced to problems of the form \<open>\<alpha> \<in>\<close> \mbox{@{term "pre_star L P"}}
+All of these problems can be reduced to problems of the form \<open>\<alpha> \<in>\<close> \mbox{@{term "pre_star P L"}}
 for a suitable regular language \<open>L\<close>. Given an NFA \<open>M\<close> with @{prop \<open>Lang_auto M = L\<close>},
-Theorem~\ref{pre_star_auto_correct} translates @{prop \<open>\<alpha> \<in> pre_star L P\<close>} into
+Theorem~\ref{pre_star_auto_correct} translates @{prop \<open>\<alpha> \<in> pre_star P L\<close>} into
 @{prop \<open>\<alpha> \<in> Lang_auto (pre_star_auto M P)\<close>}, which can be executed because @{const pre_star_auto}
 and membership in @{const Lang_auto} are executable.
 
@@ -514,27 +513,28 @@ Previous formalizations of \prestar\ were based on and applied to pushdown syste
 \cite{SchlichtkrullSST22,Pushdown_Systems-AFP} and networks \cite{LammichMW09}, not CFGs.
 
 
-\section{Chomsky-Schützenberger}\label{sec:ChSch}
-The Chomsky-Schützenberger Theorem \cite{ChomskyS} states that every CFL is the homomorphic image
+\section{Chomsky--Schützenberger}\label{sec:ChSch}
+The Chomsky--Schützenberger Theorem \cite{ChomskyS} states that every CFL is the homomorphic image
 of the intersection of a Dyck language and a regular language, where a Dyck language is a language
 of properly bracketed words over some alphabet of opening and closing brackets,
 e.g. the set containing 
 \[  
      [_a  \qquad  ]_a  \qquad  [_b  \qquad  ]_b .
 \]
-Formally, if \<open>P\<close> is finite:
-\begin{quote}
+Formally, the Chomsky--Schützenberger Theorem looks like this:
+\begin{theorem}
+If \<open>P\<close> is finite then\\
 @{thm (concl) Chomsky_Schuetzenberger}
-\end{quote}
+\end{theorem}
 
-It is sometimes called the Chomsky-Schützenberger Representation Theorem to distinguish it from the Chomsky-Schützenberger Enumeration Theorem \cite{ChomskyS} about the number of words of a given length generated by an unambiguous CFG. 
+It is sometimes called the Chomsky--Schützenberger Representation Theorem to distinguish it from the Chomsky--Schützenberger Enumeration Theorem \cite{ChomskyS} about the number of words of a given length generated by an unambiguous CFG. 
 
 \subsection{Proof Intuition}
 
-In everything that follows, we denote by $L$ the originally given CFL.
-The proof will define a homomorphism @{term "\<h>"}, a Dyck language @{term "Dyck_lang \<Gamma>"}, and a regular language $R$, such that
+In everything that follows, \<open>P\<close> is the original CFG and @{prop "L = Lang P S"}.
+The proof will define a homomorphism @{term "\<h>"}, a set of brackets \<open>\<Gamma>\<close> and a regular language $R$ such that
 \[
-  @{prop "L = \<h> ` L'"}\quad \text{where}\ @{prop "L' = R \<inter> Dyck_lang \<Gamma>"}
+  @{prop "L = \<h> ` L'"},\,\, \text{where}\ @{prop "L' = R \<inter> Dyck_lang \<Gamma>"}.
 \]
 The strategy will be to impose enough structure on $L$, obtaining a language $L'$ such that the words
 of $L'$ can be identified using only regular properties $R$ and the information that its words are
@@ -543,12 +543,15 @@ For this, the homomorphism will only need to act on a per letter basis---we will
 
 \subsection{Dyck Languages}\label{subsec:dyck}
 
-Brackets labeled with elements of type \<open>'a\<close> are modeled as pairs:
+Brackets labeled with elements of type \<open>'a\<close> are modeled as pairs
 \begin{quote}
-@{typ "'a bracket"} = @{typ "bool \<times> 'a"}\\
-@{abbrev "Open a"} \quad @{abbrev "Close a"}
+@{typ "'a bracket"} = @{typ "bool \<times> 'a"}
 \end{quote}
-\concept{Balanced} (= correctly bracketed) words are described inductively:
+and we define the abbreviations 
+\begin{quote}
+@{abbrev "Open a"} \quad @{abbrev "Close a"}.
+\end{quote}
+\concept{Balanced} (i.e.\ correctly bracketed) words are described inductively:
 \[
 @{thm [mode=Rule] bal.intros(1)} \qquad
 @{thm [mode=Rule] bal.intros(3)} \qquad
@@ -556,17 +559,16 @@ Brackets labeled with elements of type \<open>'a\<close> are modeled as pairs:
 \]
 
 The Dyck language over @{term \<open>\<Gamma>\<close>} is the set of balanced words, where the bracket labels come from @{term \<open>\<Gamma>\<close>}:
+\begin{definition}
+@{thm Dyck_lang_def}.
+\end{definition}
 
-\[
-  @{def Dyck_lang}.
-\]
-
-In the proof of the Chomsky-Sch\"utzenberger Theorem we needed the following lemma,
+In the proof of the Chomsky--Sch\"utzenberger Theorem we needed the following lemma,
 which we proved via a functional characterization (@{const bal_stk}) of balanced words that
 uses a stack to remember opening brackets.
-\begin{quote}
+\begin{lemma}\label{bal_Open_split}
 @{thm [break,margin=70]bal_Open_split[rename_abs ys zs]}.
-\end{quote}
+\end{lemma}
 
 %Function {const bal_tm} lifts \<const>\<open>bal\<close> from {typ \<open>'a bracket list\<close>}
 %to {typ[source]\<open>('n,'a bracket)syms\<close>} by deleting all \<const>\<open>Nt\<close>'s and stripping off all \<const>\<open>Tm\<close>'s.
@@ -575,8 +577,8 @@ uses a stack to remember opening brackets.
 
 \subsection{From \<open>L\<close> to \<open>L'\<close>}
 
-The key idea is to encode \<open>P\<close>-parse trees for words in \<open>L\<close>
-into words of $L'$ generated by \<open>P'\<close>. The definition of \<open>P'\<close>
+The key idea is to encode the \<open>P\<close>-parse tree of a word in \<open>L\<close>
+into a word of $L'$ (which is defined as @{prop "L' = Lang P' S"}). The definition of \<open>P'\<close>
 (from \<open>P\<close>) is simplified by assuming that \<open>P\<close> is in Chomsky Normal Form.
 This is the translation from \<open>P\<close> to \<open>P'\<close>:
 \begin{align*}
@@ -592,7 +594,8 @@ The two copies differ by an exponent (\<open>1\<close> or \<open>2\<close>). For
 %@ {thm "Chomsky_Schuetzenberger_locale.\<Gamma>_def"}
 % does not work because outside the locale
 \]
-Note that the newly introduced brackets are all terminals.
+Note that the newly introduced brackets are all defined to be terminals in the 
+language \<open>L'\<close>.
 
 %In Isabelle these definitions look more verbose:
 %\begin{quote}
@@ -607,16 +610,11 @@ Note that the newly introduced brackets are all terminals.
 
 %The homomorphism {term \<open>\<h>\<close>} collapses $[^1_\pi \, ]^1_\pi \, [^2_\pi \, ]^2_\pi$ to $a$ if $\pi$ is of the form $\pi = A \rightarrow a$, else it is collapsed to \<open>\<epsilon>\<close>. More precisely, $[^1_\pi$ is mapped to $a$, all the other brackets to \<open>\<epsilon>\<close>.
 The homomorphism @{term \<open>\<h>\<close>} maps @{term "open_bracket1 (A,a)"} to @{term \<open>a\<close>}
-and all other brackets to \<open>\<epsilon>\<close>. Thus it maps every application of a rule \<open>\<pi>' =\<close>
-$[^1_\pi \, ]^1_\pi \, [^2_\pi \, ]^2_\pi$, where $\pi$ is of the form $\pi = A \rightarrow a$,
-to an application of the original rule \<open>\<pi>\<close>. The justification for rules \<open>\<pi>\<close> of the form \<open>A \<rightarrow> BC\<close>
-is more complicated. We need to lift \<open>\<h>\<close> to a generalized version that works on sentential forms,
-where it is the identity on nonterminals. Because \<open>\<h>\<close> maps brackets coming from rules \<open>\<pi>\<close> of the form \<open>A \<rightarrow> BC\<close>
-to \<open>\<epsilon>\<close>, every application of a rule \<open>\<pi>' =\<close>
-$[^1_\pi \, A \, ]^1_\pi \, [^2_\pi \, B \, ]^2_\pi$ is mapped to an application of the original rule \<open>\<pi>\<close>.
+and all other brackets to \<open>\<epsilon>\<close>. Thus---informally speaking---a generalized version of @{term \<open>\<h>\<close>} for sentential forms, defined to be the identity on nonterminals, maps any application of a transformed rule \<open>\<pi>'\<close> to an application of the original rule \<open>\<pi>\<close>.
+Since a \<open>P'\<close>-derivation contains the information which original \<open>P\<close>-rules were used, one should be able to convert back and forth between \<open>P\<close>-derivations and \<open>P'\<close>-derivations and the above reasoning about @{term \<open>\<h>\<close>} should give $@{prop \<open>L = \<h> ` L'\<close>}$.
 
-The proof of the direction @{prop \<open>\<h> ` L' \<subseteq> L\<close>} went through as expected and follows the above argument.
-For the other direction, we didn't succeed in proving it on the level of derivations alone
+The formal proof of the direction @{prop \<open>\<h> ` L' \<subseteq> L\<close>} went through as expected and follows this idea.
+However for the other direction, we didn't succeed in proving it on the level of derivations alone
 and settled on a constructive transformation of $P$-parse trees to $P'$-parse trees.
 
 
@@ -645,9 +643,11 @@ To enforce that a word never ends on $]^1_\pi$, the last letter is treated separ
 
 The condition @{const P5} \<open>A u\<close> checks \<open>u\<close> is non-empty and that its first letter is of the form @{term \<open>[\<^sup>1\<^bsub>(A,DUMMY)\<^esub>\<close>}.
 It is later used with the start symbol.
-The intersection of all these conditions already almost define the regular language $R$:
+The intersection of all these conditions (which we don't all explain) already almost define the regular language $R$:
 \begin{quote}
-@{term "Reg A"} = @{thm [break] (rhs) Reg_def}
+@{term "Reg A"} \<open>= {u.\<close>\\
+@{term "P1 u \<and> successively P2 u \<and> successively P3 u \<and>  successively P4 u \<and> P5 A u"}\<open>}\<close>
+%{thm [break,margin=70] Reg_def}
 \end{quote}
 But @{term \<open>Reg S\<close>} is only regular if there are only finitely many different brackets, i.e.\ if the set of productions \<open>P\<close> is finite.
 When we formally show the regularity, we will therefore only show the regularity of @{prop \<open>R \<equiv> (Reg S) \<inter> (brackets P)\<close>} for finite \<open>P\<close>
@@ -662,7 +662,7 @@ by including two more properties @{const P7_sym} and @{const P8_sym} that locali
 %Originally we thought to also include another condition $P6$ which was later found superfluous and doesn't appear in the proof text anymore. 
 
 The \<open>\<supseteq>\<close> direction went through as described by Kozen.
-Here we needed to make use of the lemma proved using @{term \<open>bal_stk\<close>} that we mentioned in Sect.~\ref{subsec:dyck}.
+Here we make use of Lemma~\ref{bal_Open_split} from Sect.~\ref{subsec:dyck}.
 
 \subsection{Proving Regularity}
 Kozen handwaves the regularity of the \<open>\<^latex>\<open>\isaconst{\<close>P\<^sub>i\<^latex>\<open>}\<close>\<close>'s away to ``can be described by a regular expression''.
@@ -864,7 +864,7 @@ the partial solution \<open>sols\<close> contains no variables anymore,
 so it is in fact a regular valuation.
 This shows that the system of inequalities has a regular, minimal solution.
 After proving that each minimal solution to the system without Parikh images
-(i.e.\ of the system considered in Section~\ref{sec:parikh_eq_sys}) is also a minimal
+(i.e.\ of the system considered in Sect.~\ref{sec:parikh_eq_sys}) is also a minimal
 solution to the system with Parikh images (i.e. of the system considered in this and the previous section),
 it follows that the CFG's language and the regular solution have the same
 Parikh image since both are minimal solutions to the same system.
@@ -874,7 +874,7 @@ Parikh image since both are minimal solutions to the same system.
 
 We have presented a unified formalization of the basic theory of context-free
 languages as it is taught even in advanced introductory courses on formal languages.
-The total size of the formalizations discussed in the paper runs to 19~KLOC.
+The total size of the formalizations runs to 19.000 lines.
 
 The huge area of formal language theory (e.g.\ \cite{hfl/1997-1}) offers amazing possibilities for further formalizations.
 Most pressing seems to be a unified treatment of parsing.
@@ -882,3 +882,4 @@ Most pressing seems to be a unified treatment of parsing.
 (*<*)
 end
 (*>*)
+

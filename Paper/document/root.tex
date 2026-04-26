@@ -52,14 +52,14 @@
 \newcommand{\noquotes}[1]{{\renewcommand{\isachardoublequote}{}\renewcommand{\isachardoublequoteopen}{}\renewcommand{\isachardoublequoteclose}{}#1}}
 
 % no right margin in quote:
-%\renewenvironment{quote}
-%{\list{}{}%
-%\item\relax}
-%{\endlist}
-% no margins in quote:
-\renewenvironment{quote}%
-{\list{}{\leftmargin=0mm\rightmargin=0mm}\item[]}%
+\renewenvironment{quote}
+{\list{}{}%
+\item\relax}
 {\endlist}
+% no margins in quote:
+%\renewenvironment{quote}%
+%{\list{}{\leftmargin=0mm\rightmargin=0mm}\item[]}%
+%{\endlist}
 
 % for uniform font size
 \renewcommand{\isastyle}{\isastyleminor}
@@ -100,7 +100,7 @@ AIST Tokyo, Japan \email{}
 \maketitle
 
 \begin{abstract}
-We present a formalized theory of context-free grammars and
+We present an Isabelle/HOL formalization of the theory of context-free grammars and
 their links to finite automata. In particular we focus on first-time
 formalizations of an executable translation into Greibach Normal Form, the Chomsky-Sch\"utzenberger Representation Theorem and Parikh's Theorem.
 
@@ -126,7 +126,7 @@ formalizations of an executable translation into Greibach Normal Form, the Choms
 \begin{credits}
 \subsubsection{\ackname}
 We thank Alexander Haberl, Tassilo Lemke, August Martin Stimpfle, Kaan Taskin, Felipe Escallon
-and Thomas Ammer for their proofs and Franz Regensburger for his comments on a draft version.
+and Thomas Ammer for their proofs and Franz Regensburger and the referees for their comments.
 We are grateful to Hitoshi Ohsaki, AIST, and JST, CREST Grant Number JPMJCR22M1, Japan,
 for supporting two research visits by the first author.
 %\vspace{-1ex}

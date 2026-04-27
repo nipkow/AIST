@@ -122,21 +122,21 @@ lemma history_unfold [simp]: "history ([A \<rightarrow> \<alpha> . \<beta>]) = \
 
 (* As defined in book *)
 definition hist :: "('n, 't) item list \<Rightarrow> ('n,'t) syms" where
-  "hist \<rho> \<equiv> concat (map history \<rho>)"
+  "hist \<rho> \<equiv> concat (map history (rev \<rho>))"
 
 (* Needed? (top of stack is hd, not last) *)
-definition hist_rev :: "('n, 't) item list \<Rightarrow> ('n,'t) syms" where
-  "hist_rev \<rho> \<equiv> concat (map history (rev \<rho>))"
+definition hist_old :: "('n, 't) item list \<Rightarrow> ('n,'t) syms" where
+  "hist_old \<rho> \<equiv> concat (map history (rev \<rho>))"
 
 lemma hist_singleton [simp]:
   "hist ([[A \<rightarrow> \<alpha> . \<beta>]]) = \<alpha>"
   unfolding hist_def by simp
 
 lemma hist_Cons[simp]:
-  "hist (i#\<rho>) = history i @ hist \<rho>"
+  "hist (i#\<rho>) = hist \<rho> @ history i"
   unfolding hist_def by simp
 
-lemmas hist_defs = hist_def hist_rev_def history_def
+lemmas hist_defs = hist_def hist_old_def history_def
 
 definition items_of_Prods :: "('n, 't) Prods \<Rightarrow> ('n, 't) item set" where
   "items_of_Prods P = {[A \<rightarrow> \<alpha> . \<beta>] | A \<alpha> \<beta>. (A, \<alpha>@\<beta>) \<in> P}"

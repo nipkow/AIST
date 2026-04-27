@@ -104,8 +104,8 @@ The notation \<open>t :: \<tau>\<close> means that term \<open>t\<close> has typ
 \<open>\<tau>\<close>. Basic types include @{typ bool} and @{typ nat}, while type variables are written @{typ 'a}, @{typ 'b}, etc.
 Most type constructors are written postfix, such as @{typ "'a set"} and  @{typ "'a list"}, and the function
 space arrow is \<open>\<Rightarrow>\<close>.
-The image of function \<open>f\<close> over set \<open>M\<close> is denoted by \<^term>\<open>f ` M\<close>.
-Function update @{term "f(a := b)"} is short for @{thm (rhs) fun_upd_def}.
+The image of a function \<open>f\<close> over a set \<open>M\<close> is denoted by \<^term>\<open>f ` M\<close>.
+The function update notation @{term "f(a := b)"} is short for @{thm (rhs) fun_upd_def}.
 
 Functions @{const fst} and @{const snd} return the first and second components of a pair.
 
@@ -116,9 +116,9 @@ and @{const set} converts a list to a set.
 %and {term "take n xs"} is the prefix of length \<open>n\<close> of \<open>xs\<close>.
 
 Algebraic data types are defined using the \isakeyword{datatype} keyword.
-An example is this predefined data type:
+An example is the following predefined data type:
 %\begin{quote}
-@{datatype option}
+@{datatype option}.
 %\end{quote}
 
 The notation \mbox{\<open>\<lbrakk>A\<^sub>1, \<dots>, A\<^sub>n\<rbrakk> \<Longrightarrow> B\<close>} denotes an implication with premises \<open>A\<^sub>1\<close>, \ldots, \<open>A\<^sub>n\<close> and conclusion \<open>B\<close>.
@@ -135,18 +135,19 @@ All our types are parameterized by type variables \<open>'n\<close> and \<open>'
 @{datatype sym}
 \end{quote}
 Variable convention:
- \<open>a, b, c :: 't\<close>, \<open>A, B, C :: 'n\<close> and  \<open>x, y, z :: ('n,'t) sym\<close>.
+Typically \<open>a, b, c :: 't\<close>, \<open>A, B, C :: 'n\<close> and  \<open>x, y, z :: ('n,'t) sym\<close>.
 For compactness we sometimes drop the \<open>'n\<close> and \<open>'t\<close> parameters,
-e.g.\ we write \<open>sym\<close> instead of \<open>('n,'t)sym\<close>.
+e.g.\ we write \<open>sym\<close> instead of \<open>('n,'t) sym\<close>.
 
 A \concept{production}, informally written \<open>A \<rightarrow> \<alpha>\<close>, is a pair of \<open>A :: 'n\<close> and \<open>\<alpha>\<close> \<open>::\<close> \mbox{\<open>sym list\<close>}.
 We use the following abbreviations:
 \begin{quote}
 \<open>syms = sym list\<close> \quad \<open>prod = 'n \<times> syms\<close> \quad \<open>Prods = prod set\<close>
 \end{quote}
-Variable convention:
-\<open>w :: 't list\<close>; lists over terminal symbols are called \concept{terminal words};
-\<open>\<alpha>, \<beta>, \<gamma> :: syms\<close>; elements of type @{type syms} are called \concept{sentential forms}.
+More variable conventions:
+Typically \<open>w :: 't list\<close> and \<open>\<alpha>, \<beta>, \<gamma> :: syms\<close>.
+\concept{Terminal words} are lists over terminal symbols
+and \concept{sentential forms} are elements of type @{type syms}.
 
 Our theory is primarily based on sets of productions rather than grammars:
 the start symbol is irrelevant most of the time.
@@ -195,10 +196,13 @@ The notion of Chomsky Normal Form (CNF) is defined as follows:
 @{thm [mode=iffSpace,break,margin=60] CNF_def}
 \end{definition}
 We have defined an executable translation @{const cnf_of} into CNF
-in five steps, and proved its correctness as follows:
+in five steps as
 \begin{quote}
-@{thm [break]cnf_of_def}\smallskip\\
-@{thm cnf_of_CNF_Lang(1)} \qquad @{thm cnf_of_CNF_Lang(2)}
+@{thm [break]cnf_of_def}
+\end{quote}
+and proved its correctness by proving
+\begin{quote}
+@{thm cnf_of_CNF_Lang(1)} \text{ and } @{thm cnf_of_CNF_Lang(2)}.
 \end{quote}
 Our proof is based partly on the non-constructive one by Barthwal and Norrish \cite{csl/BarthwalN10}.
 Another constructive translation was formalized by Hofmann \<^cite>\<open>JHofmann\<close>.

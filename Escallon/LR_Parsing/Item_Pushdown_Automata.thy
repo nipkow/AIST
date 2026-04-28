@@ -238,7 +238,7 @@ lemma steps_len_dec:
   by (induction "(p,u)" "(q,v)" arbitrary: q v rule: rtranclp.induct)
   (use step_len_dec surj_pair le_trans in fastforce)+
 
-lemma Tms_completed_Cons:
+lemma completes_Tms_Cons:
   "([A \<rightarrow> \<alpha> . map Tm u @ \<beta>]#i#is, u@v) \<turnstile>* ([A \<rightarrow> \<alpha> @ map Tm u . \<beta>]#i#is, v)"
 proof (induction u arbitrary: \<alpha>)
   case (Cons a u)
@@ -249,9 +249,9 @@ proof (induction u arbitrary: \<alpha>)
   finally show ?case by auto
 qed simp
 
-lemma Tms_completed:
+lemma completes_Tms:
   "([A \<rightarrow> \<alpha> . map Tm u @ \<beta>]#\<rho>@[init_symbol M], u@v) \<turnstile>* ([A \<rightarrow> \<alpha> @ map Tm u . \<beta>]#\<rho>@[init_symbol M], v)"
-  using Tms_completed_Cons by (cases \<rho>) auto
+  using completes_Tms_Cons by (cases \<rho>) auto
 
 
 lemma reachable_imp_in_It:
@@ -381,99 +381,117 @@ next
   with Suc.IH[OF n] assms(3) n
   show ?case by blast
 qed
-  
-
-lemma 
-  assumes "P \<turnstile> \<alpha> \<Rightarrow>r(n) map Tm u@Nt A#map Tm v"
-  obtains \<beta> \<gamma> k where "\<alpha> = \<beta>@\<gamma>" "P \<turnstile> \<beta> \<Rightarrow>r(k) map Tm u" "k \<le> n" "P \<turnstile> \<gamma> \<Rightarrow>r* Nt A#map Tm v"
-  sorry
 
 
-lemma derivers_singleton_imp_completes:
-  assumes "Prods G' \<turnstile> [Nt B] \<Rightarrow>r* map Tm w"
+lemma derives_singleton_imp_completes:
+  assumes "Prods G' \<turnstile> [Nt B] \<Rightarrow>* map Tm w"
   shows "([A \<rightarrow> \<alpha> . [Nt B]@\<beta>]#\<rho>@[init_symbol M], w@u) \<turnstile>* ([A \<rightarrow> \<alpha>@[Nt B] . \<beta>]#\<rho>@[init_symbol M], u)"
         (is "(?\<sigma>, _) \<turnstile>* _")
 proof -
-  from assms obtain \<gamma> where "Prods G' \<turnstile> [Nt B] \<Rightarrow>r \<gamma>"
-    "Prods G' \<turnstile> \<gamma> \<Rightarrow>r* map Tm w" 
+  from assms obtain \<gamma> where "Prods G' \<turnstile> [Nt B] \<Rightarrow> \<gamma>"
+    "Prods G' \<turnstile> \<gamma> \<Rightarrow>* map Tm w" 
     by (metis converse_rtranclpE last_ConsL last_map list.map_disc_iff not_Cons_self2
         sym.distinct(1))
-  from deriver.cases this(1) have "(B, \<gamma>) \<in> Prods G'" using deriver_singleton by fast
+  from derive.cases this(1) have "(B, \<gamma>) \<in> Prods G'" using derive_singleton by blast
   show ?thesis sorry
 qed
 
-lemma aux:
-  assumes "Prods G' \<turnstile> \<beta> \<Rightarrow>l(Suc n) map Tm w"
-  obtains u v B \<delta> y z  where "\<beta> = map Tm u @ Nt B # \<delta>" "(B,v) \<in> Prods G'"
-      "Prods G' \<turnstile> map Tm u @ v @ \<delta> \<Rightarrow>l(n) map Tm w" "w = u@y@z"
-  oops
-
-(* Try: less_induct on "length w" - Problem: not decreasing in general
-   Or: induction on \<rho>? (Need to prove second element on stack always contains A)
-
- *)
-lemma derives_imp_completes:
-  assumes "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm w" 
-  shows "([A \<rightarrow> \<alpha> . \<beta>@\<gamma>]#\<rho>@[init_symbol M], w@x) \<turnstile>* ([A \<rightarrow> \<alpha>@\<beta> . \<gamma>]#\<rho>@[init_symbol M], x)"
+lemma derivels_empty_imp_no_Tms:
+  assumes "P \<turnstile> \<alpha> \<Rightarrow>l* []"
+    "\<alpha> \<noteq> []"
+  obtains X \<beta> where "\<alpha> = Nt X # \<beta>"
 proof -
-  from assms obtain n where "Prods G' \<turnstile> \<beta> \<Rightarrow>l(n) map Tm w" using rtranclp_imp_relpowp 
-    by (metis deriveln_iff_deriven)
-  then show ?thesis
-  proof (induction n arbitrary: \<beta>)
-    case (Suc n)
-    then obtain u v B \<delta>  where derivl: "\<beta> = map Tm u @ Nt B # \<delta>" "(B,v) \<in> Prods G'"
-      "Prods G' \<turnstile> map Tm u @ v @ \<delta> \<Rightarrow>l(n) map Tm w"
-      by (smt (verit, best) derivel.cases relpowp_Suc_D2)
-      moreover from this obtain y where y_def: "w = u@y" 
-        by (metis deriveln_map_Tm_append map_Tm_inject_iff map_eq_append_conv)
-      ultimately have "([A \<rightarrow> \<alpha> . \<beta> @ \<gamma>] # \<rho> @ [init_symbol M], w @ x) 
-          \<turnstile>* ([A \<rightarrow> \<alpha> @ map Tm u . Nt B # \<delta> @ \<gamma>] # \<rho> @ [init_symbol M], y@x)"
-        using Tms_completed by simp
-      from derivl(3) y_def have "Prods G' \<turnstile> v @ \<delta> \<Rightarrow>l(n) map Tm y" 
-        by (simp add: deriveln_map_Tm_append)
-    (* TODO: use deriveln_ConsD *)
-    then show ?case sorry
-  qed (use Tms_completed in simp)
+  from assms obtain \<beta> where "P \<turnstile> \<alpha> \<Rightarrow>l \<beta>" "P \<turnstile> \<beta> \<Rightarrow>l* []" 
+    by (metis converse_rtranclpE)
+  with derivel.cases obtain u X \<gamma> where "\<alpha> = map Tm u @ Nt X # \<gamma>" by meson
+  moreover from this have "map Tm u = []" using assms 
+    by (simp add: derivels_map_Tm_append)
+  ultimately show thesis using that by blast
 qed
 
 
-(* FIXME: Holds if stack unchanged (enough?) *)
-lemma reaches_final_imp_interm_reaches_final:
-  assumes "(i#\<rho>@[A \<rightarrow> \<alpha> . Nt B#\<beta>]#\<sigma>, u@v) \<turnstile>* ([final_state, init_symbol M], [])"
-    "Prods G' \<turnstile> [Nt B] \<Rightarrow>r* map Tm u"
-  shows 
-    "(i#\<rho>@[A \<rightarrow> \<alpha> . Nt B # \<beta>]#\<sigma>, u@v) \<turnstile>* ([A \<rightarrow> \<alpha>@[Nt B] . \<beta>]#\<sigma>, v)"
-    "([A \<rightarrow> \<alpha>@[Nt B] . \<beta>]#\<sigma>, v) \<turnstile>* ([final_state, init_symbol M], [])"
-  oops
+lemma derives_empty_imp_completes:
+  assumes "Prods G' \<turnstile> \<beta> \<Rightarrow>* []"
+  shows "([A \<rightarrow> \<alpha> . \<beta>@\<gamma>]#\<rho>@[init_symbol M], w) \<turnstile>* ([A \<rightarrow> \<alpha>@\<beta> . \<gamma>]#\<rho>@[init_symbol M], w)"
+proof -
+  from assms obtain n where "Prods G' \<turnstile> \<beta> \<Rightarrow>l(n) []" 
+    using rtranclp_imp_relpowp by (metis derivels_iff_derives list.simps(8))
+  then show ?thesis
+  proof (induction n arbitrary: A \<alpha> \<beta> \<gamma> \<rho>)
+    case (Suc n)
+    then obtain \<beta>' where step: "Prods G' \<turnstile> \<beta> \<Rightarrow>l \<beta>'" "Prods G' \<turnstile> \<beta>' \<Rightarrow>l(n) []" 
+      by (meson relpowp_Suc_D2)
+    then obtain X \<delta> where \<beta>_decomp: "\<beta> = Nt X # \<delta>" 
+      using derivels_empty_imp_no_Tms by (metis Suc.prems derivel_from_empty relpowp_imp_rtranclp)
+    show ?case
+    proof (cases \<beta>')
+      case Nil
+      with step have \<delta>_Nil: "\<delta> = []" unfolding \<beta>_decomp 
+        by (simp add: derivel_Nt_Cons)
+      with \<beta>_decomp have "([A \<rightarrow> \<alpha> . \<beta>@\<gamma>]#\<rho>@[init_symbol M], w) 
+        \<turnstile> ([X \<rightarrow> [] . []]#[A \<rightarrow> \<alpha> . Nt X#\<gamma>]#\<rho>@[init_symbol M], w)"
+        using step Nil
+        by (metis (no_types, lifting) append_Cons derivel_Nt_Cons expanding self_append_conv2)
+      also have "... \<turnstile>* ([A \<rightarrow> \<alpha>@\<beta> . \<gamma>]#\<rho>@[init_symbol M], w)"
+        using \<beta>_decomp \<delta>_Nil by auto
+      finally show ?thesis .
+    next
+      case (Cons a u)
+      then show ?thesis sorry
+    qed
+  qed simp
+qed
 
 
+lemma derives_imp_completes:
+  assumes "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm w"
+  shows "([A \<rightarrow> \<alpha> . \<beta>@\<gamma>]#\<rho>@[init_symbol M], w@x) \<turnstile>* ([A \<rightarrow> \<alpha>@\<beta> . \<gamma>]#\<rho>@[init_symbol M], x)"
+using assms proof (induction "length w" arbitrary: A \<alpha> \<beta> \<gamma> \<rho> w x rule: less_induct)
+  case less
+  show ?case
+  proof (cases w)
+    case (Cons a as)
+    with less(2) obtain \<delta> X \<zeta> u v y where \<beta>_decomp: "\<beta> = \<delta> @ [Nt X] @ \<zeta>" 
+      "Prods G' \<turnstile> \<delta> \<Rightarrow>* map Tm u"
+      "Prods G' \<turnstile> [Nt X] \<Rightarrow>* map Tm v"
+      "Prods G' \<turnstile> \<zeta> \<Rightarrow>* map Tm y"
+      "w = u@v@y"
+      "v \<noteq> []"
+      sorry
+    show ?thesis proof (cases "length v = length w")
+      case True
+      with \<beta>_decomp have eqs: "u = []" "v = w" "y = []" by auto 
+      with \<beta>_decomp derives_empty_imp_completes have 
+        "([A \<rightarrow> \<alpha> . \<beta>@\<gamma>] # \<rho> @ [init_symbol M], w@x) 
+          \<turnstile>* ([A \<rightarrow> \<alpha>@\<delta> . Nt X#\<zeta>@\<gamma>] # \<rho> @ [init_symbol M], w@x)"
+        by force
+      also from derives_singleton_imp_completes[OF \<beta>_decomp(3), unfolded eqs(2), of _ "\<alpha>@\<delta>"] have 
+        "... \<turnstile>* ([A \<rightarrow> \<alpha>@\<delta>@[Nt X] . \<zeta>@\<gamma>] # \<rho> @ [init_symbol M], x)" 
+        using append.assoc by simp
+      also from \<beta>_decomp derives_empty_imp_completes[of _ _ "\<alpha>@\<delta>@[Nt X]"] eqs(3) have 
+        "... \<turnstile>* ([A \<rightarrow> \<alpha>@\<beta> . \<gamma>] # \<rho> @ [init_symbol M], x)" by simp
+      finally show ?thesis .
+    next
+      case False
+      with \<beta>_decomp have ineqs: "length u < length w" "length v < length w" "length y < length w"
+        by auto
+      from less(1)[OF ineqs(1)] \<beta>_decomp have 
+        "([A \<rightarrow> \<alpha> . \<beta>@\<gamma>] # \<rho> @ [init_symbol M], w@x) 
+           \<turnstile>* ([A \<rightarrow> \<alpha>@\<delta> . Nt X#\<zeta>@\<gamma>] # \<rho> @ [init_symbol M], v@y@x)"
+        by simp
+      also from less(1)[OF ineqs(2), of "[Nt X]" _ "\<alpha>@\<delta>" _ _] \<beta>_decomp have
+        "... \<turnstile>* ([A \<rightarrow> \<alpha>@\<delta>@[Nt X] . \<zeta> @ \<gamma>] # \<rho> @ [init_symbol M], y@x)" by simp
+      also from less(1)[OF ineqs(3), of \<zeta> _ "\<alpha>@\<delta>@[Nt X]"] \<beta>_decomp have 
+        "... \<turnstile>* ([A \<rightarrow> \<alpha>@\<beta> . \<gamma>] # \<rho> @ [init_symbol M], x)" by simp
+      finally show ?thesis .
+    qed
+  qed (use less derives_empty_imp_completes in simp)
+qed
 
-lemma computes_imp_Nt_on_stack:
-  assumes "([init_state M, init_symbol M], u) \<turnstile>* ([A \<rightarrow> \<alpha> . \<beta>]#\<rho>@[init_symbol M], v)"
-    "A \<noteq> S'"
-  obtains B \<gamma> \<delta> js  where "\<rho> = [B \<rightarrow> \<gamma> . Nt A # \<delta>]#js"
-  sorry
-(*
-corollary reaches_final_imp_compl_final:
-  assumes "([A \<rightarrow> \<alpha> . \<beta>]#\<rho>, v@w) \<turnstile>* ([final_state, init_symbol M], [])"
-    "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm v"
-  shows "([A \<rightarrow> \<alpha>@\<beta> . []]#\<rho>, w) \<turnstile>* ([final_state, init_symbol M], [])"
-  using reaches_final_imp_interm_reaches_final[OF assms(1)]
-    derives_imp_completes[OF assms(2), of A \<alpha> "[]"] oops
-*)
-lemma derivers_imp_computes:
-  assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma>@Nt A#map Tm u"
-    "Prods G' \<turnstile> \<gamma>@Nt A#map Tm u \<Rightarrow>r \<gamma>@\<alpha>@\<beta>@map Tm u"
-    "Prods G' \<turnstile> \<beta> \<Rightarrow>r* map Tm v"
-  obtains \<rho> w where 
-    "Prods G' \<turnstile> \<gamma>@\<alpha>@\<beta>@map Tm u \<Rightarrow>r* map Tm w"
-    "([init_state IPDA, init_symbol IPDA], w) \<turnstile>* ([A \<rightarrow> \<alpha> . \<beta>]#\<rho>@[init_symbol IPDA], v@u)"
-  sorry
 
 
 definition Lang :: "'t list set" where
-  "Lang \<equiv> {w. ([init_state M, init_symbol M], w)
-             \<turnstile>* ([final_state, init_symbol M], [])}"
+  "Lang \<equiv> {w. ([init_state M, init_symbol M], w) \<turnstile>* ([final_state, init_symbol M], [])}"
 
 
 lemma hist_singleton_init [simp]:

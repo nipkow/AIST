@@ -179,7 +179,7 @@ is its analogue on lists. We usually present only one of the two versions and si
 
 We also have parse trees and their relation to \<open>\<Rightarrow>*\<close>,
 which turns out to be useful not just for parsing but also in
-the proof of the Chomsky--Sch\"utzenberger Theorem below.
+our proof of the Chomsky--Sch\"utzenberger Theorem.
 
 Sometimes we need to generate fresh names, which requires that the underlying type
 is infinite. We formalized this via type classes but elide it in our presentation.

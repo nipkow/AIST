@@ -3,34 +3,6 @@ theory Extended_Cfg
     Context_Free_Grammar.Context_Free_Grammar 
 begin
 
-(* induct set? *)
-lemma stepcnt_induct[consumes 1, case_names base step]:
-  assumes
-    "r\<^sup>*\<^sup>* a b"
-    "P a"
-    "\<And>n y z. \<lbrakk>(r ^^ n) a y; r y z; P y\<rbrakk> \<Longrightarrow> P z"
-  shows "P b"
-proof -
-  from assms(1) obtain n where "(r ^^ n) a b" 
-    by (metis rtranclp_power)
-  with assms(1,2) show ?thesis
-  by (induction n arbitrary: b) (simp, metis assms(3) relpowp_Suc_E relpowp_imp_rtranclp) 
-qed
-
-lemma stepcnt_induct2[consumes 1, case_names base step]:
-  assumes
-    "r\<^sup>*\<^sup>* a b"
-    "P a"
-    "\<And>n z. \<lbrakk>\<And>y. (r ^^ n) a y \<Longrightarrow> P y; (r ^^ Suc n) a z\<rbrakk> \<Longrightarrow> P z"
-  shows "P b"
-proof -
-  from assms(1) obtain n where "(r ^^ n) a b" 
-    by (metis rtranclp_power)
-  then show ?thesis
-    by (induction n arbitrary: b) (use assms(2-) in auto)
-qed
-
-
 (* generic list lemmas *)
 lemma index_gt_left_imp_right:
   assumes "length xs < m" "m < length (xs@y#ys)"

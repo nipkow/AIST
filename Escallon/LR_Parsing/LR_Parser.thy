@@ -486,16 +486,6 @@ lemma rm_chain_imp_prod:
   using assms syms_split_rightmost by cases (simp add: deriver_imp_in_Prods)
 
 
-
-lemma Nt_in_chain_imp_produced:
-  assumes "P \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* \<rho> \<Rightarrow>r* \<gamma> @ Nt X # map Tm v"
-    "Nt B \<in> set \<gamma>"
-  obtains "is" A \<alpha> \<beta> js \<delta> u where "\<rho> = is @ [A \<rightarrow> \<alpha> . Nt B # \<beta>] # js"
-    "P \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* js \<Rightarrow>r* \<delta> @ Nt A # map Tm u"
-  oops
-
-
-
 lemma rm_chain_singleton_imp_eq:
   assumes "P \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* [A \<rightarrow> \<alpha> . Nt C # \<beta>]#\<rho> \<Rightarrow>r* \<gamma> @ Nt B # map Tm w"
   shows "C = B \<and> (\<exists>u v. w = u @ v \<and> P \<turnstile> \<beta> \<Rightarrow>r* map Tm u)"
@@ -860,7 +850,7 @@ next
 qed 
 
 
-unused_thms
+
 
 end
 

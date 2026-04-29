@@ -212,7 +212,7 @@ followed by Ramos et al.\ \cite{RamosAMQ16}.
 Our proof is due to Thomas Ammer and has the unique feature that it does not require parse trees.
 He introduces the following two inductive relations, assuming \<open>P\<close> is in CNF:
 @{prop "P \<turnstile> A \<Rightarrow>\<langle>p\<rangle> w"} means that \mbox{\<open>p :: 'n list\<close>} is a path in the (implicit) parse tree
-of the derivation from \<open>B :: 'n\<close> to \mbox{\<open>w :: 't list\<close>}; the relation @{prop "P \<turnstile> A \<Rightarrow>\<llangle>p\<rrangle> w"} is similar
+of the derivation from \<open>A :: 'n\<close> to \mbox{\<open>w :: 't list\<close>}; the relation @{prop "P \<turnstile> A \<Rightarrow>\<llangle>p\<rrangle> w"} is similar
 but \<open>p\<close> is the longest path.
 Ramos et al.\ \cite{RamosAMQ} also formalized four applications, two of which we also formalized
 ($a^nb^nc^n$ is not context free and context-free languages are not closed under intersection).

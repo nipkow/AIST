@@ -3,6 +3,7 @@ theory Extended_Cfg
     Context_Free_Grammar.Context_Free_Grammar 
 begin
 
+
 (* generic list lemmas *)
 lemma index_gt_left_imp_right:
   assumes "length xs < m" "m < length (xs@y#ys)"
@@ -17,6 +18,14 @@ proof -
         length_append less_Suc_eq not_less_eq nth_mem zero_less_diff)
 qed
 
+lemma list_app_last_is_next_hd:
+  assumes "w = u@v@y"
+    "w = xs@a#y"
+    "v \<noteq> []"
+  shows "last v = a"
+  using assms 
+  by (metis append.assoc append_Cons append_Nil append_same_eq last_append last_snoc)
+
 lemma x_notin_tl_imp_eq:
   assumes "ws @ x # xs = ys @ x # zs"
   "x \<notin> set xs" "x \<notin> set zs"
@@ -24,16 +33,15 @@ shows "ws = ys \<and> xs = zs"
   using assms proof (induction xs arbitrary: zs rule: rev_induct)
   case Nil
   have "zs = []"
-    by (rule ccontr) (metis last.simps last_append last_in_set list.discI Nil(1,3))
+    by (metis Nil.prems(1,3) last_ConsL last_ConsR last_appendR last_in_set list.simps(3))
   then show ?case using Nil(1) by blast
 next
   case (snoc a xs)
   obtain a' zs' where zs_snoc: "zs = zs' @ [a']"
   proof -
     have "\<exists>a zs'. zs = zs' @ [a]"
-      by (rule ccontr)
-        (metis Un_insert_right last_ConsR last_appendR last_snoc list.set_intros(1) list.simps(15)
-          rev_exhaust set_append snoc(2-))
+      by (metis snoc.prems(1) snoc.prems(2) rev_exhaust last_in_set last.simps 
+          last_appendR list.distinct(1))
     thus thesis using that by blast
   qed
   with snoc have "ws = ys \<and> xs = zs'" by force
@@ -360,7 +368,9 @@ lemma S'_notin_Nts_Prods_G [simp]:
 
 corollary S'_Prod_notin_G [simp]:
   "(S', \<alpha>) \<notin> Prods G"
-  using S'_notin_Nts_Prods_G unfolding Nts_def Nts_syms_def by blast
+  "Nt S' \<in> set \<alpha> \<Longrightarrow> (X, \<alpha>) \<notin> Prods G"
+  using S'_notin_Nts_Prods_G unfolding Nts_def Nts_syms_def by blast+
+
 
 lemma S'_derive_imp_S:
   assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow> \<alpha>"
@@ -372,8 +382,7 @@ proof -
   proof (rule ccontr)
     assume "\<not>?thesis"
     then show False
-    using S'_Prod_notin_G in_P' unfolding G'_def 
-    by simp
+    using S'_Prod_notin_G in_P' unfolding G'_def by simp
   qed
   thus ?thesis by simp
 qed

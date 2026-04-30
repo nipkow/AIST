@@ -258,9 +258,8 @@ lemma syms_split_last_eq_imp_tl_eq:
   from Nil(2) have A_last: "last (\<beta> @ Nt A # \<gamma> @ map Tm v) = Nt A" 
     by (simp add: snoc_eq_iff_butlast)
   have "\<gamma> @ map Tm v = []" 
-    by (rule ccontr)
-      (metis append.right_neutral last_ConsR last_appendR last_in_set last_map list.distinct(1)
-        list.map_disc_iff sym.distinct(1) Nil(3) A_last)
+    by (metis A_last Nil.prems(3) append.right_neutral isNt_simps(1,2) last_ConsR last_appendR last_in_set
+        last_map list.distinct(1) list.map_disc_iff)
   then show ?case using Nil by auto
 next
   case (snoc a w)
@@ -370,35 +369,6 @@ qed
 
 
 
-
-(* induct set? *)
-lemma stepcnt_induct[consumes 1, case_names base step]:
-  assumes
-    "r\<^sup>*\<^sup>* a b"
-    "P a"
-    "\<And>n y z. \<lbrakk>(r ^^ n) a y; r y z; P y\<rbrakk> \<Longrightarrow> P z"
-  shows "P b"
-proof -
-  from assms(1) obtain n where "(r ^^ n) a b" 
-    by (metis rtranclp_power)
-  then show ?thesis 
-    by (induction n arbitrary: b) (use assms(2-) in auto)
-qed
-
-lemma stepcnt_induct2[consumes 1, case_names base step]:
-  assumes
-    "r\<^sup>*\<^sup>* a b"
-    "P a"
-    "\<And>n z. \<lbrakk>\<And>y. (r ^^ n) a y \<Longrightarrow> P y; (r ^^ Suc n) a z\<rbrakk> \<Longrightarrow> P z"
-  shows "P b"
-proof -
-  from assms(1) obtain n where "(r ^^ n) a b" 
-    by (metis rtranclp_power)
-  then show ?thesis
-    by (induction n arbitrary: b) (use assms(2-) in auto)
-qed
-
-
 lemma derivers_tl_substring:
   assumes "P \<turnstile> \<alpha> @ Nt A # map Tm v \<Rightarrow>r* \<beta> @ Nt B # map Tm w"
   obtains u where "w = u@v"
@@ -484,6 +454,7 @@ lemma rm_chain_imp_prod:
   assumes "P \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* [A \<rightarrow> \<alpha> . \<beta>]#\<rho> \<Rightarrow>r* \<gamma>"
   shows "(A, \<alpha>@\<beta>) \<in> P"
   using assms syms_split_rightmost by cases (simp add: deriver_imp_in_Prods)
+
 
 
 lemma rm_chain_singleton_imp_eq:
@@ -647,8 +618,8 @@ lemma syms_split_cases:
   assumes "\<alpha> @ Nt X # \<beta> = \<alpha>' @ \<gamma> @ map Tm v"
   obtains \<alpha>'' \<beta>'  where "\<alpha> = \<alpha>' @ \<alpha>''" "\<gamma> = \<alpha>'' @ Nt X # \<beta>'" "\<beta> = \<beta>' @ map Tm v" |
               \<alpha>'' where "\<alpha>' = \<alpha> @ Nt X # \<alpha>''" "\<beta> = \<alpha>'' @ \<gamma> @ map Tm v"
-  by (cases "length \<alpha>' \<le> length \<alpha>")
-    (meson assms that syms_split_leq syms_split_gt not_le_imp_less)+
+  by (cases "length \<alpha>' \<le> length \<alpha>")  
+    (meson assms that syms_split_leq syms_split_gt not_le_imp_less)+ 
 
 lemma derivers_singleton_imp_produced:
   assumes "P \<turnstile> [Nt A] \<Rightarrow>r(Suc n) \<alpha> @ Nt X # \<beta>"

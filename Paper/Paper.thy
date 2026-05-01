@@ -104,8 +104,8 @@ The notation \<open>t :: \<tau>\<close> means that term \<open>t\<close> has typ
 \<open>\<tau>\<close>. Basic types include @{typ bool} and @{typ nat}, while type variables are written @{typ 'a}, @{typ 'b}, etc.
 Most type constructors are written postfix, such as @{typ "'a set"} and  @{typ "'a list"}, and the function
 space arrow is \<open>\<Rightarrow>\<close>.
-The image of function \<open>f\<close> over set \<open>M\<close> is denoted by \<^term>\<open>f ` M\<close>.
-Function update @{term "f(a := b)"} is short for @{thm (rhs) fun_upd_def}.
+The image of a function \<open>f\<close> over a set \<open>M\<close> is denoted by \<^term>\<open>f ` M\<close>.
+The function update notation @{term "f(a := b)"} is short for @{thm (rhs) fun_upd_def}.
 
 Functions @{const fst} and @{const snd} return the first and second components of a pair.
 
@@ -116,9 +116,9 @@ and @{const set} converts a list to a set.
 %and {term "take n xs"} is the prefix of length \<open>n\<close> of \<open>xs\<close>.
 
 Algebraic data types are defined using the \isakeyword{datatype} keyword.
-An example is this predefined data type:
+An example is the following predefined data type:
 %\begin{quote}
-@{datatype option}
+@{datatype option}.
 %\end{quote}
 
 The notation \mbox{\<open>\<lbrakk>A\<^sub>1, \<dots>, A\<^sub>n\<rbrakk> \<Longrightarrow> B\<close>} denotes an implication with premises \<open>A\<^sub>1\<close>, \ldots, \<open>A\<^sub>n\<close> and conclusion \<open>B\<close>.
@@ -135,18 +135,19 @@ All our types are parameterized by type variables \<open>'n\<close> and \<open>'
 @{datatype sym}
 \end{quote}
 Variable convention:
- \<open>a, b, c :: 't\<close>, \<open>A, B, C :: 'n\<close> and  \<open>x, y, z :: ('n,'t) sym\<close>.
+Typically \<open>a, b, c :: 't\<close>, \<open>A, B, C :: 'n\<close> and  \<open>x, y, z :: ('n,'t) sym\<close>.
 For compactness we sometimes drop the \<open>'n\<close> and \<open>'t\<close> parameters,
-e.g.\ we write \<open>sym\<close> instead of \<open>('n,'t)sym\<close>.
+e.g.\ we write \<open>sym\<close> instead of \<open>('n,'t) sym\<close>.
 
 A \concept{production}, informally written \<open>A \<rightarrow> \<alpha>\<close>, is a pair of \<open>A :: 'n\<close> and \<open>\<alpha>\<close> \<open>::\<close> \mbox{\<open>sym list\<close>}.
 We use the following abbreviations:
 \begin{quote}
 \<open>syms = sym list\<close> \quad \<open>prod = 'n \<times> syms\<close> \quad \<open>Prods = prod set\<close>
 \end{quote}
-Variable convention:
-\<open>w :: 't list\<close>; lists over terminal symbols are called \concept{terminal words};
-\<open>\<alpha>, \<beta>, \<gamma> :: syms\<close>; elements of type @{type syms} are called \concept{sentential forms}.
+More variable conventions:
+Typically \<open>w :: 't list\<close> and \<open>\<alpha>, \<beta>, \<gamma> :: syms\<close>.
+\concept{Terminal words} are lists over terminal symbols
+and \concept{sentential forms} are elements of type @{type syms}.
 
 Our theory is primarily based on sets of productions rather than grammars:
 the start symbol is irrelevant most of the time.
@@ -179,7 +180,7 @@ is its analogue on lists. We usually present only one of the two versions and si
 We also have parse trees (and the fact that a sentential form is derivable iff a suitable parse
 tree exists),
 which turn out to be useful not just for parsing but also in
-the proof of the Chomsky--Sch\"utzenberger Theorem below.
+our proof of the Chomsky--Sch\"utzenberger Theorem.
 
 Sometimes we need to generate fresh names, which requires that the underlying type
 is infinite. We formalized this via type classes but elide it in our presentation.
@@ -196,10 +197,13 @@ The notion of Chomsky Normal Form (CNF) is defined as follows:
 @{thm [mode=iffSpace,break,margin=60] CNF_def}
 \end{definition}
 We have defined an executable translation @{const cnf_of} into CNF
-in five steps, and proved its correctness as follows:
+in five steps as
 \begin{quote}
-@{thm [break]cnf_of_def}\smallskip\\
-@{thm cnf_of_CNF_Lang(1)} \qquad @{thm cnf_of_CNF_Lang(2)}
+@{thm [break]cnf_of_def}
+\end{quote}
+and proved its correctness by proving
+\begin{quote}
+@{thm cnf_of_CNF_Lang(1)} \text{ and } @{thm cnf_of_CNF_Lang(2)}.
 \end{quote}
 Our proof is based partly on the non-constructive one by Barthwal and Norrish \cite{csl/BarthwalN10}.
 Another constructive translation was formalized by Hofmann \<^cite>\<open>JHofmann\<close>.
@@ -209,7 +213,7 @@ followed by Ramos et al.\ \cite{RamosAMQ16}.
 Our proof is due to Thomas Ammer and has the unique feature that it does not require parse trees.
 He introduces the following two inductive relations, assuming \<open>P\<close> is in CNF:
 @{prop "P \<turnstile> A \<Rightarrow>\<langle>p\<rangle> w"} means that \mbox{\<open>p :: 'n list\<close>} is a path in the (implicit) parse tree
-of the derivation from \<open>B :: 'n\<close> to \mbox{\<open>w :: 't list\<close>}; the relation @{prop "P \<turnstile> A \<Rightarrow>\<llangle>p\<rrangle> w"} is similar
+of the derivation from \<open>A :: 'n\<close> to \mbox{\<open>w :: 't list\<close>}; the relation @{prop "P \<turnstile> A \<Rightarrow>\<llangle>p\<rrangle> w"} is similar
 but \<open>p\<close> is the longest path.
 Ramos et al.\ \cite{RamosAMQ} also formalized four applications, two of which we also formalized
 ($a^nb^nc^n$ is not context free and context-free languages are not closed under intersection).
@@ -492,19 +496,19 @@ We show how the membership (in \<open>Lang P A\<close>), nullability and product
 All of these problems can be reduced to problems of the form \<open>\<alpha> \<in>\<close> \mbox{@{term "pre_star P L"}}
 for a suitable regular language \<open>L\<close>. Given an NFA \<open>M\<close> with @{prop \<open>Lang_auto M = L\<close>},
 Theorem~\ref{pre_star_auto_correct} translates @{prop \<open>\<alpha> \<in> pre_star P L\<close>} into
-@{prop \<open>\<alpha> \<in> Lang_auto (pre_star_auto M P)\<close>}, which can be executed because @{const pre_star_auto}
+@{prop \<open>\<alpha> \<in> Lang_auto (pre_star_auto P M)\<close>}, which can be executed because @{const pre_star_auto}
 and membership in @{const Lang_auto} are executable.
 
 The membership problem easily generalizes to derivability because
 @{thm [mode=iffSpace] pre_star_derivability}. That is, in order to decide @{prop \<open>P \<turnstile> \<alpha> \<Rightarrow>* \<beta>\<close>}
-build an NFA \<open>M\<close> for @{term "{\<beta>}"} and execute @{prop "\<alpha> \<in> Lang_auto(pre_star_auto M P)"}.
+build an NFA \<open>M\<close> for @{term "{\<beta>}"} and execute @{prop "\<alpha> \<in> Lang_auto(pre_star_auto P M)"}.
 As a special case, nullability of \<open>A\<close> is equivalent to @{prop \<open>P \<turnstile> [Nt A] \<Rightarrow>* []\<close>}.
 
 Productivity of \<open>A\<close>, i.e.\ reachability of some terminal word, can be expressed like this:
 @{thm [mode=iffSpace] pre_star_emptiness'}
 where @{term "lists (Tm ` Tms P)"} is the language of all words
 over the terminal symbols in \<open>P\<close>. That language is accepted by a simple NFA \<open>M\<close>
-and we can evaluate @{prop "[Nt A] \<in> Lang_auto(pre_star_auto M P)"} to determine productivity.
+and we can evaluate @{prop "[Nt A] \<in> Lang_auto(pre_star_auto P M)"} to determine productivity.
 
 Because @{thm [mode=iffSpace] pre_star_disjointness[where S=A]},
 the test for disjointness from and containment in a regular language
@@ -644,7 +648,7 @@ To enforce that a word never ends on $]^1_\pi$, the last letter is treated separ
 
 The condition @{const P5} \<open>A u\<close> checks \<open>u\<close> is non-empty and that its first letter is of the form @{term \<open>[\<^sup>1\<^bsub>(A,DUMMY)\<^esub>\<close>}.
 It is later used with the start symbol.
-The intersection of all these conditions (which we don't all explain) already almost define the regular language $R$:
+The intersection of all these conditions (which we don't all explain) already almost defines the regular language $R$:
 \begin{quote}
 @{term "Reg A"} \<open>= {u.\<close>\\
 @{term "P1 u \<and> successively P2 u \<and> successively P3 u \<and>  successively P4 u \<and> P5 A u"}\<open>}\<close>
@@ -696,16 +700,19 @@ For each context-free language \<open>L\<close> there exists a regular language 
 @{prop "parikh_img L = parikh_img L'"}.
 \end{theorem}
 We have followed the proof by Pilling~\cite{Pilling}.
-The idea is to express a context-free grammar as a system of inequalities
-such that the CFG's language is a minimal solution to the system.
-By constructing a regular language which is minimal solution to the same system of inequalities,
-it follows that both solutions have the same Parikh image.
+The idea is to express a context-free grammar as a system of inequalities ---
+one inequality per nonterminal ---
+such that the vector of languages generated by the CFG's nonterminals is a minimal solution to the system.
+By constructing another minimal solution to the same system which is componentwise regular,
+it follows that both minimal solutions have the componentwise same Parikh image and, in particular,
+that the CFG's language has a regular language with identical Parikh image.
 
 \subsection{CFGs as Systems of Inequalities}
 \label{sec:parikh_eq_sys}
 
 Each context-free grammar induces a system of inequalities such that
-the CFG's language is a minimal solution to the system.
+the vector of languages generated by the CFG's nonterminals is a minimal solution to the system
+(minimal with respect  to componentwise set inclusion).
 Let $X_0, X_1, \dots, X_n$ be the nonterminals that occur in the CFG. Then the system of
 inequalities has the following form:
 \begin{align*}
@@ -714,7 +721,8 @@ X_0 &\supseteq f_0(X_0, \dots, X_n)\\
 X_n &\supseteq f_n(X_0, \dots, X_n).
 \end{align*}
 While setting up the system is straightforward and is not further explained by Pilling,
-doing this in Isabelle, and proving that the CFG's language is a minimal solution, requires some effort:
+doing this in Isabelle, and proving that the vector of languages generated by the CFG's nonterminals
+is a minimal solution, requires some effort:
 Since the functions $f_i$ imitate the right-hand sides of the grammar's productions,
 we can restrict the functions to a limited set of operations, mainly concatenation and
 union of languages. This leads to the type of \concept{regular language expressions}:
@@ -740,12 +748,13 @@ Thanks to the type \<open>rlexp\<close>, a system of inequalities \<open>sys\<cl
 regular language expressions, i.e.\ \<open>sys :: 'a rlexp list\<close>,
 where the \<open>i\<close>-th element of the list (@{term "sys ! i"})
 corresponds to the right-hand side of the \<open>i\<close>-th inequality.
-Solutions to \<open>sys\<close> are defined in a straightforward way, as valuations \<open>v\<close> satisfying 
+Solutions to \<open>sys\<close> are represented as valuations (instead of language vectors) and
+defined in a straightforward way, as valuations \<open>v\<close> satisfying
 \begin{quote}
 @{thm solves_ineq_sys_def}
 \end{quote}
 Furthermore, we write @{term "min_sol_ineq_sys sys v"} if the valuation \<open>v\<close> is a minimal solution
-to \<open>sys\<close>.
+to \<open>sys\<close> where minimality is again considered with respect to componentwise set inclusion.
 
 A CFG can be translated into a system of inequalities as follows:
 For a single symbol (terminal symbol or nonterminal), we perform a simple pattern matching
@@ -758,7 +767,7 @@ By concatenation and union, the definition can be lifted to a regular language e
 and doing so for every nonterminal yields a system of inequalities.
 However, note that we cannot construct such a system explicitly since $P$ is unordered, so we only
 show its existence.
-It remains to prove that the CFG's language is a minimal solution to this system:
+It remains to prove that the vector of languages generated by the CFG's nonterminals is a minimal solution to this system:
 We do not show this directly but use as an intermediate step
 the alternative characterization of a CFG's language as a least fixpoint (@{const lfp})
 \begin{quote}
@@ -770,10 +779,10 @@ The proof proceeds in multiple steps, by first considering only a single inequal
 lifting this to a system of inequalities. We do not want to go into detail at this point
 but only state the final result, namely that
 \begin{quote}
-@{term "sol \<equiv> \<lambda>i. if i < card (Nts P) then Lang_lfp P (\<gamma> i) else \<emptyset>"}
+@{term "sol \<equiv> \<lambda>i. if i < card (Nts P) then Lang P (\<gamma> i) else \<emptyset>"}
 \end{quote}
 is a minimal solution to
-some system of inequalities induced by the CFG and that furthermore all inequalities of the system
+some system of inequalities and that furthermore all inequalities of the system
 are regularity preserving:
 \begin{lemma}
 @{prop [break] "\<exists>sys. min_sol_ineq_sys sys sol \<and> (\<forall>eq \<in> set sys. reg_eval eq)"}
@@ -832,15 +841,14 @@ the inequality is bipartite.
 Thus, let \<open>eq\<close> be the bipartite inequality, consisting of the two parts \<open>p\<close> and \<open>q\<close>;
 then @{term "sol \<equiv> Concat (Star (subst (Var(x := p)) q)) p"} is regularity preserving and it
 is a minimal, partial solution to \<open>eq\<close>.
-The proof relies on the following property of regular language expressions:
-\begin{quote}
-@{thm [break] rlexp_homogeneous_aux}
-\end{quote}
-where \<open>Y\<close> and \<open>Z\<close> are languages and @{term star} and \<open>@@\<close> denote the Kleene star and the
-concatenation of languages, respectively.
-In contrast to our proof, Pilling claims equality but under an additional assumption which is
-more difficult to formalize.
-
+%The proof relies on the following property of regular language expressions:
+%\begin{quote}
+%@{thm [break] rlexp_homogeneous_aux}
+%\end{quote}
+%where \<open>Y\<close> and \<open>Z\<close> are languages and @{term star} and \<open>@@\<close> denote the Kleene star and the
+%concatenation of languages, respectively.
+%In contrast to our proof, Pilling claims equality but under an additional assumption which is
+%more difficult to formalize.
 It remains to generalize this result to whole systems of regularity preserving inequalities.
 For this purpose, we show by induction on \<open>n\<close> that the first \<open>n\<close> inequalities have a minimal,
 partial solution which is regularity preserving:
@@ -862,13 +870,14 @@ although Pilling suggests to apply this lemma in the induction step, this was no
 
 When instantiating Lemma~\ref{lem:parikh_ind_step} with \<open>n = |sys|\<close>,
 the partial solution \<open>sols\<close> contains no variables anymore,
-so it is in fact a regular valuation.
-This shows that the system of inequalities has a regular, minimal solution.
+so it is in fact a componentwise regular valuation.
+This shows that the system of inequalities has a componentwise regular, minimal solution.
 After proving that each minimal solution to the system without Parikh images
 (i.e.\ of the system considered in Sect.~\ref{sec:parikh_eq_sys}) is also a minimal
 solution to the system with Parikh images (i.e. of the system considered in this and the previous section),
-it follows that the CFG's language and the regular solution have the same
-Parikh image since both are minimal solutions to the same system.
+it follows that the vector of languages generated by the CFG's nonterminals and the regular
+solution constructed in this section are both solutions to the same system and are thus componentwise
+Parikh-equal. As a consequence, we obtain Parikh's Theorem.
 
 
 \section{Conclusion}

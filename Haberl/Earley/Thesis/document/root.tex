@@ -78,6 +78,7 @@
 \newtheorem{theorem}{Theorem}
 \newtheorem{lemma}{Lemma}
 \newtheorem{definition}{Definition}
+\newtheorem{corollary}{Corollary}
 
 
 
@@ -111,7 +112,7 @@
 %\def\doctype{Guided Research\xspace}
 %\def\doctype{Interdisciplinary Project\xspace}
 \def\studyProgram{Informatics}
-\def\title{Formal Verification of Earley's Parsing Algorithm, Including Runtime Analysis}
+\def\title{Formal Verification of Earley's Parsing Algorithm, Including Running Time Analysis}
 % don't try translate every technical term if it would sound off
 \def\titleGer{Formale Verifikation von Earleys Parser Algorithmus mit Laufzeitanalyse}
 \def\author{Alexander Haberl}
@@ -209,8 +210,10 @@ Munich, \date \hspace{5cm} \author
     {\Large \bf Abstract}
 \end{center}
 \vspace{1cm}
-
-TODO Abstract
+In this thesis, we refine the prior work done by Nipkow and Rau on the Earley algorithm into an executable list-based recognizer and formalize both a set-based and a list-based parser.
+ We prove correctness and termination of the recognizer and parsers for all epsilon-free grammars and discuss ways to tackle those as well.
+In the list-based algorithms, we implement a data structure proposed by Earley to facilitate fast item lookup, to verify the running time bounds put forth by Earley.
+ We introduce a parameter for the random access time of the partitions in this data structure and conduct a parameterized asymptotic running time analysis, verifying the cubic time bound under the assumption of constant access time. Our list-based implementations achieve only $O(n^4)$ running time instead.
 
 \cleardoublepage
 
@@ -222,7 +225,10 @@ TODO Abstract
 \end{center}
 \vspace{1cm}
 
-TODO Abstract Übersetzung
+In dieser Arbeit verfeinern wir die Ergebnisse von Nipkow und Rau zu Earleys Parsing-Algorithmus zu einer auf  Listen basierenden ausführbaren Implementierung und erweitern diese zu einem auf Sets und einem auf Listen basierenden Parser.
+Wir beweisen Korrektheit und Termination für alle Epsilon-freien Grammatiken und geben Vorschläge, wie dieses Problem gelöst werden kann.
+Für die listenbasierten Algorithmen implementieren wir eine von Earley vorgeschlagene Datenstruktur, welche schnelles item nachschlagen erlaubt, um die Laufzeiten, die Earley angibt, zu verifizieren.
+Wir schaffen einen Parameter für die zufällige Zugriffszeit auf die Partitionen in dieser Datenstruktur und bauen darauf eine asymptotische Laufzeitanalyse auf. Unter der Annahme konstanter Zugriffszeiten bestätigen wir die kubische Laufzeit. Unsere auf Listen basierende Implementierung erzielt nur eine $O(n^4)$ Laufzeit.
 
 \cleardoublepage
 

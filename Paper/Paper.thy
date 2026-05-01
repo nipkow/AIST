@@ -176,8 +176,9 @@ functions named \<open>Fn\<close> (starting with a capital letter) operate on se
 is its analogue on lists. We usually present only one of the two versions and silently use the other one
 (if it exists).
 
-We also have parse trees and their relation to \<open>\<Rightarrow>*\<close>,
-which turns out to be useful not just for parsing but also in
+We also have parse trees (and the fact that a sentential form is derivable iff a suitable parse
+tree exists),
+which turn out to be useful not just for parsing but also in
 the proof of the Chomsky--Sch\"utzenberger Theorem below.
 
 Sometimes we need to generate fresh names, which requires that the underlying type

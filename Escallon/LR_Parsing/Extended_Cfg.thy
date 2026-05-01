@@ -1,115 +1,6 @@
 theory Extended_Cfg
-  imports 
-    Context_Free_Grammar.Context_Free_Grammar 
+  imports Auxiliary
 begin
-
-
-(* generic list lemmas *)
-lemma index_gt_left_imp_right:
-  assumes "length xs < m" "m < length (xs@y#ys)"
-        shows "(xs@y#ys)!m \<in> set ys"
-proof -
-  have "(xs@y#ys)!m = (y#ys)!(m-length xs)" 
-    using assms(1) by (meson le_eq_less_or_eq nth_append_right)
-  also have "... = ys!(m-length xs-1)" 
-    using assms(1) by simp
-  finally show ?thesis 
-    by (metis One_nat_def Suc_pred add_diff_inverse_nat add_less_cancel_left assms length_Cons
-        length_append less_Suc_eq not_less_eq nth_mem zero_less_diff)
-qed
-
-lemma list_app_last_is_next_hd:
-  assumes "w = u@v@y"
-    "w = xs@a#y"
-    "v \<noteq> []"
-  shows "last v = a"
-  using assms 
-  by (metis append.assoc append_Cons append_Nil append_same_eq last_append last_snoc)
-
-lemma x_notin_tl_imp_eq:
-  assumes "ws @ x # xs = ys @ x # zs"
-  "x \<notin> set xs" "x \<notin> set zs"
-shows "ws = ys \<and> xs = zs"
-  using assms proof (induction xs arbitrary: zs rule: rev_induct)
-  case Nil
-  have "zs = []"
-    by (metis Nil.prems(1,3) last_ConsL last_ConsR last_appendR last_in_set list.simps(3))
-  then show ?case using Nil(1) by blast
-next
-  case (snoc a xs)
-  obtain a' zs' where zs_snoc: "zs = zs' @ [a']"
-  proof -
-    have "\<exists>a zs'. zs = zs' @ [a]"
-      by (metis snoc.prems(1) snoc.prems(2) rev_exhaust last_in_set last.simps 
-          last_appendR list.distinct(1))
-    thus thesis using that by blast
-  qed
-  with snoc have "ws = ys \<and> xs = zs'" by force
-  then show ?case using zs_snoc snoc by blast
-qed
-
-
-
-(* Generic derivation lemmas *)
-lemma right_derivs_eq_impossible:
-  assumes "\<beta> @ Nt A # map Tm u = \<beta>' @ Nt A' # map Tm u'" (is "?w = ?w'")
-    "length \<beta> < length \<beta>'" (is "?n < ?m")
-  shows False
-proof -
-  have inds: "?w!?n = Nt A" "?w'!?m = Nt A'" by auto 
-  with assms obtain a where "?w!?m = Tm a"
-    using index_gt_left_imp_right[of \<beta> ?m "Nt A" "map Tm u", OF assms(2)] by auto
-  then show False using inds(2) assms(1) by simp
-qed
-
-lemma right_derivs_eq_imp_eq_tl:
-  assumes "\<beta> @ Nt A # map Tm u = \<beta>' @ Nt A' # map Tm u'"
-  shows "u = u'"
-proof (rule ccontr)
-  assume neq: "u \<noteq> u'"
-  then show False
-  proof (cases "length u = length u'")
-    case False
-    with assms have "length \<beta> \<noteq> length \<beta>'" by fastforce
-    then consider "length \<beta> < length \<beta>'" | "length \<beta>' < length \<beta>" by linarith
-    then show ?thesis
-      using right_derivs_eq_impossible assms assms[symmetric] 
-      by cases fast+
-  qed (use assms neq in auto)
-qed
-
-lemma deriver_imp_in_Prods:
-  assumes "P \<turnstile> \<gamma> @ Nt A#map Tm w \<Rightarrow>r \<gamma>@\<alpha>@map Tm w"
-  shows "(A, \<alpha>) \<in> P"
-  using deriver.cases[OF assms]
-  by (metis append_eq_append_conv length_Cons list.inject right_derivs_eq_imp_eq_tl
-      sym.inject(1))
-
-lemma deriver_imp_handle:
-  assumes "P \<turnstile> \<beta> @ Nt A#map Tm u \<Rightarrow>r \<gamma> @ Nt X#map Tm v"
-  obtains \<alpha> where "\<beta>@\<alpha>@map Tm u = \<gamma> @ Nt X#map Tm v"
-    "(A, \<alpha>) \<in> P" 
-proof -
-  from deriver.cases[OF assms] obtain A' \<alpha>' \<beta>' u' where
-    "\<beta> @ Nt A # map Tm u = \<beta>' @ Nt A' # map Tm u'"
-    "\<gamma> @ Nt X # map Tm v = \<beta>' @ \<alpha>' @ map Tm u'"
-    "(A', \<alpha>') \<in> P" by metis
-  with right_derivs_eq_imp_eq_tl[OF this(1)] show thesis using that by simp
-qed
-
-lemma derives_Nts_subset_preserved:
-  assumes "P \<turnstile> \<alpha> \<Rightarrow>* \<beta>"
-    "Nts_syms \<alpha> \<subseteq> Nts P"
-  shows "Nts_syms \<beta> \<subseteq> Nts P"
-  using assms proof induction
-  case base
-  then show ?case .
-next
-  case (step y z)
-  from step(3)[OF step(4)] step(2) show ?case 
-    by (smt (verit, ccfv_threshold) Nts_Lhss_Rhs_Nts Un_iff derive_Nts_syms_subset subset_eq)
-qed
-
 
 section \<open>Context-Free Items\<close>
 
@@ -117,8 +8,7 @@ datatype ('n, 't) item = Item 'n  "('n, 't) syms"  "('n, 't) syms"
 
 notation Item  ("[_ \<rightarrow> _ . _]" 100) 
 
-
-definition prod_of_item :: "('n, 't) item \<Rightarrow> ('n, 't) prod" where
+abbreviation prod_of_item :: "('n, 't) item \<Rightarrow> ('n, 't) prod" where
   "prod_of_item i \<equiv> case i of [A \<rightarrow> \<alpha> . \<beta>] \<Rightarrow> (A, \<alpha>@\<beta>)"
 
 definition history :: "('n, 't) item \<Rightarrow> ('n, 't) syms" where

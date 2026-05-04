@@ -461,14 +461,6 @@ proof -
     by fastforce
 qed
 
-(* If needed can be trivially extended to obtain m where 
-    n = Suc m and P \<turnstile> \<alpha> \<Rightarrow>(m) map Tm w still holds *)
-lemma derivern_singleton_imp_prod:
-  assumes "P \<turnstile> [Nt X] \<Rightarrow>(n) map Tm w"
-  obtains \<alpha> m where "P \<turnstile> [Nt X] \<Rightarrow> \<alpha>"
-    "P \<turnstile> \<alpha> \<Rightarrow>(m) map Tm w" "m < n"
-  using assms by (cases n) (force, metis lessI relpowp_Suc_D2)
-
 lemma singleton_derive_imp_completes:
   assumes "Prods G' \<turnstile> [Nt X] \<Rightarrow> map Tm u"
   shows "([A \<rightarrow> \<alpha> . [Nt X] @ \<beta>] # \<rho> @ [init_symbol M], u @ v) 
@@ -668,6 +660,33 @@ lemma Lang_G_subst_Lang:
 corollary Lang_eq_Lang_G:
   "Lang = LangS G"
   using Lang_subst_Lang_G Lang_G_subst_Lang by order
+
+lemma deriver_imp_IPDA_comp:
+  assumes
+    "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r \<alpha>@\<beta>"
+    "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm v"
+  shows
+    "([[S' \<rightarrow> \<alpha> . \<beta>], init_symbol IPDA], v) \<turnstile>* ([final_state, init_symbol IPDA], [])"
+proof -
+  from assms have eq_S: "\<alpha>@\<beta> = [Nt S]" 
+    using S'_derive_imp_S append_eq_Cons_conv 
+    by (simp add: deriver_imp_derive)
+  then consider (left) "\<alpha> = [Nt S]" "\<beta> = []" | (right) "\<alpha> = []" "\<beta> = [Nt S]"
+    by (metis (no_types, opaque_lifting) Cons_eq_append_conv append_is_Nil_conv)
+  then show ?thesis 
+  proof cases
+    case left
+    with assms(2) have v_empty: "v = []" 
+      by (simp add: derivers_iff_derives)
+    then show ?thesis using eq_S left by simp
+  next
+    case right
+    with assms have "v \<in> LangS G'"  
+      using G'_derives_from_S_imp_in_Lang derivers_imp_derives by blast
+    then show ?thesis using eq_S Lang_def right 
+        Lang_eq_Lang_G Lang_preserved hist_singleton rtrancl_refl init_state_ipda ipda by force
+  qed
+qed
 
 
 end

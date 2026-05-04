@@ -388,6 +388,14 @@ proof -
         relpowp_Suc_0) 
 qed
 
+(* If needed can be trivially extended to obtain m where 
+    n = Suc m and P \<turnstile> \<alpha> \<Rightarrow>(m) map Tm w still holds *)
+lemma derivern_singleton_imp_prod:
+  assumes "P \<turnstile> [Nt X] \<Rightarrow>(n) map Tm w"
+  obtains \<alpha> m where "P \<turnstile> [Nt X] \<Rightarrow> \<alpha>"
+    "P \<turnstile> \<alpha> \<Rightarrow>(m) map Tm w" "m < n"
+  using assms by (cases n) (force, metis lessI relpowp_Suc_D2)
+
 section \<open>Others\<close>
 
 end

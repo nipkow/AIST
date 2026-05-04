@@ -23,7 +23,7 @@ definition hist :: "('n, 't) item list \<Rightarrow> ('n,'t) syms" where
 
 (* Needed? (top of stack is hd, not last) *)
 definition hist_old :: "('n, 't) item list \<Rightarrow> ('n,'t) syms" where
-  "hist_old \<rho> \<equiv> concat (map history (rev \<rho>))"
+  "hist_old \<rho> \<equiv> concat (map history \<rho>)"
 
 lemma hist_singleton [simp]:
   "hist ([[A \<rightarrow> \<alpha> . \<beta>]]) = \<alpha>"
@@ -229,6 +229,8 @@ definition "G' \<equiv> Cfg (Prods G \<union> {(S', [Nt S])}) S'"
 lemma G'_finite:
   "finite (Prods G')"
   using G_finite G'_def by simp
+
+
 
 lemmas S_defs[simp] = S_def S'_def
 

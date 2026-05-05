@@ -1,0 +1,23 @@
+session Presentation = Earley +
+  options [document = pdf, show_question_marks = false, names_short = true,
+    document_output = "generated"]
+  theories
+    Presentation
+  document_files
+    "root.tex"
+    "./Ressourcen/Praesentation/Praeambel4zu3.tex"
+    "./Ressourcen/Praesentation/Praeambel.tex"
+    "_Einstellungen.tex"
+    "./Ressourcen/Praesentation/Anfang.tex"
+    "./Ressourcen/_Informationen.tex"
+    "./Ressourcen/_Bilder/Fakultaet_Logo_RGB.pdf"
+    "./Ressourcen/_Bilder/Universitaet_Logo_RGB.pdf"
+    "./Ressourcen/_Bilder/Universitaet_Logo_sw_RGB.pdf"
+    "./Ressourcen/_Bilder/Universitaet_Logo_weiss.pdf"
+    "./Ressourcen/Praesentation/Bilder/TUM_Uhrenturm.png"
+    "./Ressourcen/Praesentation/Bilder/Universitaet_Flaggen.jpg"
+    (*"root.bib"
+    "llncs.cls"
+    "splncs04.bst"
+    "orcidlink.sty"
+    "tumlogo.pdf"*)

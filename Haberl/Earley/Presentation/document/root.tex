@@ -1,0 +1,145 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TUM-Vorlage: Präsentation
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Rechteinhaber:
+%     Technische Universität München
+%     https://www.tum.de
+% 
+% Gestaltung:
+%     ediundsepp Gestaltungsgesellschaft, München
+%     http://www.ediundsepp.de
+% 
+% Technische Umsetzung:
+%     eWorks GmbH, Frankfurt am Main
+%     http://www.eworks.de
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\vect}[1]{\mathbf{#1}}
+\newcommand{\includeGraph}[2]{\makebox[\textwidth][c]{\hspace{#1}\includegraphics[width=0.95\textwidth]{#2}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Zur Wahl des Seitenverhältnisses bitte einen der beiden folgenden Befehle
+% auskommentieren und den ausführen lassen:
+\input{./Ressourcen/Praesentation/Praeambel4zu3.tex} % Seitenverhältnis 4:3
+% \input{./Ressourcen/Praesentation/Praeambel16zu9.tex} % Seitenverhältnis 16:9
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{./_Einstellungen.tex}                    % !!! DATEI ANPASSEN !!!
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{mathpartir}
+\usepackage{amsfonts}
+\usepackage{amsmath,amssymb}
+\usepackage{amsthm}
+\usepackage{isabelle,isabellesym}
+\usepackage{latexsym}
+%\usepackage{pdfsetup}
+
+%\usepackage{makecell}
+%\usepackage{derivative}
+%\usepackage{multimedia}
+
+%%% Isabelle specific adjustments
+
+\isabellestyle{literal}
+
+
+\newcommand{\isafontsize}[1]{%
+\def\isastyle{\normalfont\itshape#1}%
+\def\isastylett{\normalfont\ttfamily#1}%
+\def\isastyleminor{\normalfont\itshape#1}%
+\def\isastyleminortt{\normalfont\ttfamily#1}%
+}
+
+\def\myscriptsize{\usebeamerfont{small}}
+
+\newcommand{\setmyscriptsize}[1]{%
+\def\myscriptsize{#1}%
+}
+
+\newcommand{\isascriptfontsize}[1]{%
+\def\isastylescript{\normalfont\itshape#1}%
+}
+
+\newcommand{\mytext}[1]{{\fontfamily{\familydefault}\selectfont\upshape #1}}
+
+
+\isafontsize{\usebeamerfont{fewItems}}
+
+\usepackage{etoolbox}% `toggle'
+
+\newtoggle{mathprime}
+\newtoggle{SF}
+
+\let\oldisadigit\isadigit
+\let\oldisacharprime\isacharprime
+
+\renewcommand{\isaconst}[1]{{\toggletrue{SF}\toggletrue{mathprime}\textsf{#1}}}
+\renewcommand{\isafree}[1]{{\toggletrue{mathprime}#1}}
+\renewcommand{\isabound}[1]{{\toggletrue{mathprime}\text{#1}}}
+\renewcommand{\isavar}[1]{{\toggletrue{mathprime}#1}}
+
+\renewcommand{\isacharprime}{\iftoggle{mathprime}{\hspace{2pt}\isamath{'}}{\oldisacharprime}}
+\renewcommand{\isadigit}[1]{\iftoggle{SF}{\textsf{#1}}{\oldisadigit{#1}}}
+
+
+
+\newcommand{\noquotes}[1]{{\renewcommand{\isachardoublequote}{}\renewcommand{\isachardoublequoteopen}{}\renewcommand{\isachardoublequoteclose}{}#1}}
+
+\newlength{\funheadersep}
+\setlength{\funheadersep}{\smallskipamount}
+
+\renewenvironment{quote}%
+{\list{}{\leftmargin=0mm\rightmargin=0mm}\item[]}%
+{\endlist}
+
+\newtheorem{mytheorem}{Theorem}
+\newtheorem{mylemma}{Lemma}
+\newtheorem{mydefinition}{Definition}
+\newtheorem{mycorollary}{Corollary}
+
+\renewcommand{\PersonTitel}{}
+\newcommand{\Datum}{\today}
+
+%\renewcommand{\PraesentationFusszeileZusatz}{| 06. May 2026}
+
+\title{Formal Verification of Earley's Parsing Algorithm, Including Running Time Analysis}
+\author{\PersonTitel{} \PersonVorname{} \PersonNachname}
+\institute[]{\UniversitaetName \\ \FakultaetName \\ \LehrstuhlName}
+\date[\Datum]{Munich, 06. May 2026}
+\subject{Thema der Präsentation}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{./Ressourcen/Praesentation/Anfang.tex} % !!! NICHT ENTFERNEN !!!
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% FOLIENSTIL: Standard
+\PraesentationMasterStandard
+
+\PraesentationTitelseite % Fügt die Startseite ein
+
+
+\setbeamerfont{fewItems}{size=\PraesentationSchriftgroesseGross}
+\setbeamerfont{subTitle}{size=\PraesentationSchriftgroesseGross}
+\setbeamerfont{normal}{size=\PraesentationSchriftgroesseNormal}
+\setbeamerfont{small}{size=\PraesentationSchriftgroesseKlein}
+\setbeamerfont{big}{size=\fontsize{20}{30}}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{Presentation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document} % !!! NICHT ENTFERNEN !!!
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+

@@ -56,8 +56,7 @@ datatype ('n,'a) efficientItemList =
   ItemList ("list": "('n,'a) item list") ("froms" : "('n,'a) item list list")
 
 fun inv_IL :: "('n, 'a) efficientItemList \<Rightarrow> bool" where
-"inv_IL (ItemList as fs) = (length fs > 0 
-                            \<and> (\<forall>x \<in> set as. from x < length fs) 
+"inv_IL (ItemList as fs) = ((\<forall>x \<in> set as. from x < length fs) 
                             \<and> (\<forall>i < length fs. set (fs ! i) = {x \<in> set as. from x = i}) 
                             \<and> (\<forall>i < length fs. distinct (fs ! i)) 
                             \<and> distinct as)"
@@ -226,20 +225,20 @@ next
   qed
 qed
 
-lemma IL_minus_inv: "inv_IL il1 \<Longrightarrow> length (froms il2) \<ge> length (froms il1) \<Longrightarrow> inv_IL (minus_IL il1 il2)"
+lemma IL_minus_inv: "inv_IL il1 \<Longrightarrow> length (froms il2) \<ge> length (froms il1) \<Longrightarrow> length (froms il1) > 0 \<Longrightarrow> inv_IL (minus_IL il1 il2)"
   using LIL_minus_inv by (cases il1) (auto simp add: minus_IL_def)
 
-lemma IL_minus: "inv_IL il2 \<Longrightarrow> inv_IL il1 \<Longrightarrow> length (froms il2) \<ge> length (froms il1) 
+lemma IL_minus: "inv_IL il2 \<Longrightarrow> inv_IL il1 \<Longrightarrow> length (froms il2) \<ge> length (froms il1) \<Longrightarrow> length (froms il1) > 0
   \<Longrightarrow> set_ItemList (minus_IL il1 il2) = set_ItemList il1 - set_ItemList il2"
   using LIL_minus by (cases il1) (auto simp add: minus_IL_def)
 
-lemma length_IL_minus: 
+(*lemma length_IL_minus: 
   assumes inv: "inv_IL il1" shows "length (froms (minus_IL il1 il2)) = length (froms il1)"
 proof-
   obtain as m where "il1 = ItemList as m"
     using il_decomp by blast
   then show ?thesis using inv length_minus_LIL by (auto simp add: minus_IL_def)
-qed
+qed*)
 
 lemma length_IL_minus1: "length (froms il1) > 0 \<Longrightarrow> length (froms (minus_IL il1 il2)) = length (froms il1)" 
   by (auto simp add: minus_IL_def)
@@ -340,7 +339,8 @@ proof-
   have "set as' = set_ItemList (minus_IL (union_LIL ?step (ItemList (a#as) m1)) (insert a (ItemList bs m2)))"
     using sf by auto
   also have "... = set_ItemList (union_LIL ?step (ItemList (a#as) m1)) - set_ItemList (insert a (ItemList bs m2))"
-    using IL_minus leng 1 2 by auto
+    using IL_minus leng 1 2
+    by (metis diff_is_0_eq diff_self_eq_0 efficientItemList.sel(2) length_IL_insert length_LIL_union zero_less_Suc)
   also have "... = (set (a#as) \<union> set ?step) - set_ItemList (insert a (ItemList bs m2))" 
     using LIL_union[of "ItemList (a#as) m1" ?step] wf_step forall_from_Suc[of "set ?step" "length Bs"] inv(1)
     by (metis Un_commute efficientItemList.sel(1,2) leng(1) set_ItemList.simps)
@@ -1194,7 +1194,7 @@ next
 qed
 
 lemma T_minus_IL_wf: "wf1_IL il1 (length (froms il1) - 1) \<Longrightarrow> inv_IL il1 \<Longrightarrow> inv_IL il2 \<Longrightarrow> wf1_IL il2 (length (froms il1) - 1)
-  \<Longrightarrow> length (froms il2) \<ge> length (froms il1)
+  \<Longrightarrow> length (froms il2) \<ge> length (froms il1) \<Longrightarrow> length (froms il1) > 0
   \<Longrightarrow> T_minus_IL il1 il2 \<le> (length (list il1)) * (4 * T_nth_IL (length (froms il1) - 1) + 2*L * (Suc K) + 4) + (length (froms il1) - 1) + 3 + length (list il1) + length (froms il1)"
   using T_minus_LIL_wf[of il2 "length (froms il1) - 1" "list il1"] by (cases il1) (auto simp add: T_length)
 
@@ -1396,7 +1396,8 @@ proof-
   let ?minus = "T_minus_IL (union_LIL ?step il1) (insert b il2)"
   have "?minus \<le> length bs' * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 4) + length Bs + 3 + length bs' + length (froms il1)"
     using T_minus_IL_wf[of "union_LIL ?step il1" "insert b il2"] decomp inv_Comp_union wf_Comp_union wf_ins_b inv_ins_b
-    by (metis assms(9,6) diff_Suc_1 efficientItemList.sel(1) eq_imp_le length_IL_insert length_LIL_union) 
+    by (metis One_nat_def assms(6,9) diff_Suc_1' efficientItemList.sel(1) length_IL_insert length_LIL_union less_Suc_eq_0_disj
+        less_or_eq_imp_le)
   also have "... \<le> L * (Suc K) * (Suc (length Bs)) * (4 * T_nth_IL (length Bs) + 2 * L * Suc K + 4) + length Bs + 3 + L * (Suc K) * (Suc (length Bs)) + Suc (length Bs)"
     using length_Comp_union mult_le_mono1
     using add_le_mono add_le_mono1 assms(6) by presburger
@@ -1455,7 +1456,7 @@ qed
 
 lemma length_step_fun_inc: 
   assumes "list il1 \<noteq> []" "inv_IL il2" "wf1_IL il1 (length (froms il2) - 1)" "step_fun Bs (il1, il2) = (il1', il2')" 
-          "set_ItemList il1 \<inter> set_ItemList il2 = {}" 
+          "set_ItemList il1 \<inter> set_ItemList il2 = {}" "length (froms il2) > 0"
   shows "length (list il2') = Suc (length (list il2))"
 proof-
   obtain a as m where IL1: "il1 = ItemList (a#as) m"
@@ -1463,7 +1464,7 @@ proof-
   obtain bs n where IL2: "il2 = ItemList bs n"
     using il_decomp by blast
   have "from a \<le> length (froms il2) - 1" using assms(3) IL1 by (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
-  moreover have "length (froms il2) > 0" using assms(2) IL2 by auto
+  moreover have "length (froms il2) > 0" using assms(6) IL2 by auto
   ultimately have from_a: "from a < length (froms il2)"
     by linarith
   have "il2' = insert a il2" using assms IL1 by auto
@@ -1504,10 +1505,12 @@ proof -
   proof -
     assume assms: "?P ((a,b), y)" "?b ((a,b), y)"
     then have 1: "T_step_fun Bs (a, b) \<le> ?C" using T_step_fun_bound by auto
+    have b_ne: "froms b \<noteq> []" using assms
+      by force
     obtain a' b' y' where P1: "?c ((a,b),y) = ((a', b'), y')"
       by (metis (lifting) old.prod.exhaust)
     then have "step_fun Bs (a,b) = (a', b')" by auto
-    then have "length (list b') = Suc (length (list b))" using length_step_fun_inc[of a b Bs a' b'] assms by auto
+    then have "length (list b') = Suc (length (list b))" using length_step_fun_inc[of a b Bs a' b'] assms b_ne by auto
     then have 2: "length (list b') * ?C = length (list b) * ?C + ?C"
       by (metis add.commute mult_Suc)
     have "y' \<le> y + ?C" using P1 1 by auto
@@ -2404,7 +2407,7 @@ lemma length_PIL_of_List[simp]: "length (froms (fst (PIL_of_List k xs))) = Suc k
 lemma length_minus_LPIL[simp]: "length (froms (fst (minus_LPIL k xs pil))) = Suc k" 
   by (induction xs) auto
 
-lemma length_minus_PIL[simp]: "inv_PIL pil1 \<Longrightarrow> length (froms (fst (minus_PIL pil1 pil2))) = length(froms (fst pil1))" 
+lemma length_minus_PIL[simp]: "inv_PIL pil1 \<Longrightarrow> length (froms (fst pil1)) > 0 \<Longrightarrow> length (froms (fst (minus_PIL pil1 pil2))) = length(froms (fst pil1))" 
   by (cases pil1, cases "fst pil1") (auto simp add: minus_PIL_def)
 
 lemma PIL_inv_minus_LPIL: "\<forall>x \<in> set xs. from (item x) < Suc k \<Longrightarrow> inv_PIL (minus_LPIL k xs pil)"
@@ -2413,9 +2416,9 @@ lemma PIL_inv_minus_LPIL: "\<forall>x \<in> set xs. from (item x) < Suc k \<Long
 lemma wf_minus_LPIL: "wf_parse_bin1 (set xs) n \<Longrightarrow> wf_PIL (minus_LPIL k xs pil) n"
   by (induction xs) (auto simp add: wf_empty_PIL wf_PIL_insert simp del: wf_PIL.simps)
 
-lemma PIL_inv_minus_PIL: "inv_PIL pil1 \<Longrightarrow> inv_PIL (minus_PIL pil1 pil2)"
+lemma PIL_inv_minus_PIL: "inv_PIL pil1 \<Longrightarrow> length (froms (fst pil1)) > 0 \<Longrightarrow> inv_PIL (minus_PIL pil1 pil2)"
 proof-
-  assume assms: "inv_PIL pil1"
+  assume assms: "inv_PIL pil1" "length (froms (fst pil1)) > 0"
   obtain xs fs ts where PIL: "pil1 = (ItemList xs fs, ts)"
     by (metis il_decomp set_PIL.cases)
   then have "\<forall>x \<in> set xs. from x < length (froms (fst pil1))" using assms by auto
@@ -2613,7 +2616,8 @@ proof-
     using PIL_inv_union_LPIL assms(2,4) forall_from_Suc_parse by auto
   then show "inv_PIL pil3"
     using PIL_inv_minus_PIL[of "union_LPIL ?step pil1" "(insert_PIL (hd (list il1), t) pil2)"] 
-      assms(1,5) by (auto simp add: Let_def)
+      assms(1,4,5)
+    by (metis (no_types, lifting) Parse_step_fun.simps(2) hd_PIL.simps length_union_LPIL old.prod.inject zero_less_Suc)
 qed
 
 lemma PIL_inv_parse_step1': "PIL_map_item pil1 \<noteq> [] \<Longrightarrow> inv_PIL pil1 \<Longrightarrow> wf_PIL pil1 (length Bs) 
@@ -2725,6 +2729,7 @@ proof-
     by force
   then obtain a as m where P_il1: "il1 = ItemList (a#as) m"
     by (metis efficientItemList.sel(1) il_decomp recognized_L.cases)
+  then have m_ne: "m \<noteq> []" using leng step by force
   let ?step = "if is_complete a then Parse_Complete_L Bs (a, t) else Parse_Predict_L a (length Bs)"
   have wf_at: "wf_parseItem1 (a,t) (length Bs)" using wf P_il1 step(1) by auto
   then have "wf_parse_bin1 (set ?step) (length Bs)"
@@ -2732,7 +2737,7 @@ proof-
     by (smt (verit, ccfv_threshold) fst_conv)
   then have "inv_PIL (union_LPIL (?step) pil1)" 
     using PIL_inv_union_LPIL invs forall_from_Suc_parse leng by auto
-  then show ?thesis using length_union_LPIL length_minus_PIL[of "union_LPIL (?step) pil1"] step P_il1 
+  then show ?thesis using length_union_LPIL length_minus_PIL[of "union_LPIL (?step) pil1"] step P_il1 m_ne
     by (auto simp add: Let_def)
 qed
 
@@ -3158,6 +3163,7 @@ corollary PIL_T_insert_bound: "inv_IL (fst pil) \<Longrightarrow> wf1_IL (fst pi
   by auto
 
 lemma T_union_LPIL_bound: "inv_PIL pil \<Longrightarrow> wf_parse_bin1 (set xs) (length (froms (fst pil)) - 1) \<Longrightarrow> wf_PIL pil (length (froms (fst pil)) - 1)
+  \<Longrightarrow> length (froms (fst pil)) > 0
   \<Longrightarrow> T_union_LPIL xs pil \<le> length xs * (4 * T_nth_IL (length (froms (fst pil)) - 1) + 2* L * Suc K + 2) + length xs + 1"
 proof(induction xs)
   case Nil
@@ -3169,12 +3175,12 @@ next
 
   from Cons have 1: "inv_IL (fst pil)" by (cases pil) auto
   then have from_xs: "\<forall>a\<in>set (map item xs). from a < length (froms (fst pil))" 
-    using forall_from_Suc_parse[OF Cons(3)] by (cases "fst pil") (auto simp del: wf_parse_bin1.simps)
+    using forall_from_Suc_parse[OF Cons(3)] Cons(5) by (cases "fst pil") (auto simp del: wf_parse_bin1.simps)
   then have 2: "inv_IL (union_LIL (map item xs) (fst pil))"
     using LIL_union_inv Cons(2) by (cases pil) auto
 
   have a_le_leng: "from (fst a) < length (froms (fst pil))" 
-    using forall_from_Suc_parse[OF Cons(3)] 1 by (cases "fst pil") (auto simp del: wf_parse_bin1.simps)
+    using forall_from_Suc_parse[OF Cons(3)] 1 Cons(5) by (cases "fst pil") (auto simp del: wf_parse_bin1.simps)
   then have 4: "from (fst a) \<le> length (froms (fst pil)) - 1" by auto
   
   have "wf1_IL (fst pil) (length (froms (fst pil)) - 1)" using Cons wf_PIL_impl_wf1_IL[of pil "length (froms (fst pil)) - 1"] by auto
@@ -3233,18 +3239,16 @@ qed
 
 lemma T_minus_PIL_bound: 
   assumes "inv_PIL pil1" "inv_PIL pil2" "wf_PIL pil1 (length (froms (fst pil1)) - 1)" 
-    "wf_PIL pil2 (length (froms (fst pil1)) - 1)" "length (froms (fst pil1)) \<le> length (froms (fst pil2))"
+    "wf_PIL pil2 (length (froms (fst pil1)) - 1)" "length (froms (fst pil1)) \<le> length (froms (fst pil2))" "length (froms (fst pil1)) > 0"
   shows "T_minus_PIL pil1 pil2 \<le> length (snd pil1) * (5 * T_nth_IL (length (froms (fst pil1)) - 1) + 3 * L * Suc K + 3) + 2 * length (snd pil1) + 2 * (length (froms (fst pil1))) + 3"
 proof-
-  have 1: "length (froms (fst pil1)) > 0" using assms(1) by (cases pil1, cases "fst pil1") auto
-
   have "T_list_PIL pil1 = length (snd pil1) + 1" using assms by auto
 
   moreover have "T_minus_LPIL (length (froms (fst pil1)) - 1) (list_PIL pil1) pil2 
     \<le> length (list_PIL pil1) * (5 * T_nth_IL (length (froms (fst pil1)) - 1) + 3 * L * Suc K + 3) + length (list_PIL pil1) + (length (froms (fst pil1)) - 1) + 2" 
-    using assms 1 T_minus_LPIL_bound[of pil2 "list_PIL pil1" "length (froms (fst pil1)) - 1"] wf_PIL_impl_wf1_IL by auto
+    using assms T_minus_LPIL_bound[of pil2 "list_PIL pil1" "length (froms (fst pil1)) - 1"] wf_PIL_impl_wf1_IL by auto
   moreover have "length (list_PIL pil1) = length (snd pil1)" using assms by (cases pil1) auto
-  ultimately show ?thesis using 1 by (auto simp add: algebra_simps T_length)
+  ultimately show ?thesis using assms(6) by (auto simp add: algebra_simps T_length)
 qed
 
 lemma T_PIL_of_List_bound: 
@@ -3469,6 +3473,7 @@ proof-
   let ?step = "if is_complete x then Parse_Complete_L Bs (x,t) else Parse_Predict_L x (length Bs)"
   let ?step1 = "if is_complete x then Complete_L (map (map item) Bs) x else Predict_L x (length Bs)"
 
+  have m_ne: "m \<noteq> []" using P_il1 assms(5) by force
   have 3: "from x \<le> length Bs" using assms(8) P_il1 by (auto simp add: wf_bin1_def wf_item1_def wf_item_def)
   have "wf_parseItem1 (x,t) (length Bs)" using assms(8) P_il1 by auto
   then have wf: "wf_parse_bin1 (set ?step) (length Bs)" 
@@ -3496,7 +3501,7 @@ proof-
     using assms P_il1 3 by (auto simp add: Let_def PIL_map_item_def)
   ultimately show "set (PIL_map_item pil3) \<inter> set (PIL_map_item pil4) = {}"
     using IL_minus[of "insert x (fst pil2)" "union_LIL ?step1 (fst pil1)"] assms 
-        LIL_union_inv[OF _ 4] insert_inv_IL1 3 P_il1 P_il2 by auto
+        LIL_union_inv[OF _ 4] insert_inv_IL1 3 P_il1 P_il2 m_ne by auto
 qed
 
 lemma parse_steps_time_bound:

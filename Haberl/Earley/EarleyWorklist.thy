@@ -232,14 +232,6 @@ lemma IL_minus: "inv_IL il2 \<Longrightarrow> inv_IL il1 \<Longrightarrow> lengt
   \<Longrightarrow> set_ItemList (minus_IL il1 il2) = set_ItemList il1 - set_ItemList il2"
   using LIL_minus by (cases il1) (auto simp add: minus_IL_def)
 
-(*lemma length_IL_minus: 
-  assumes inv: "inv_IL il1" shows "length (froms (minus_IL il1 il2)) = length (froms il1)"
-proof-
-  obtain as m where "il1 = ItemList as m"
-    using il_decomp by blast
-  then show ?thesis using inv length_minus_LIL by (auto simp add: minus_IL_def)
-qed*)
-
 lemma length_IL_minus1: "length (froms il1) > 0 \<Longrightarrow> length (froms (minus_IL il1 il2)) = length (froms il1)" 
   by (auto simp add: minus_IL_def)
 
@@ -590,19 +582,6 @@ lemma length_step_fun2_il:
   shows "length (froms il2') = Suc (length Bs)"
   using length_step_fun2 il_decomp assms by (metis efficientItemList.collapse)
   
-
-lemma steps_inv1: 
-  assumes inv: "inv_IL il1" "inv_IL il2"
-  and wf: "wf_bins1 (map set Bs)" "wf1_IL il1 (length Bs)"
-  and leng: "length (froms il1) = Suc (length Bs)" "length (froms il2) = Suc (length Bs)"
-  and step: "steps Bs (il1,il2) = Some (il1', il2')"
-shows "inv_IL il1'"
-  using while_option_rule[where P= "\<lambda>(il1,il2). inv_IL il1 \<and> inv_IL il2 \<and> wf1_IL il1 (length Bs) \<and> wf_bins1 (map set Bs) \<and> length (froms il1) = Suc (length Bs) \<and> length (froms il2) = Suc (length Bs)"] 
-    step_fun_inv1_il step_fun_inv2_il
-    length_step_fun1_il length_step_fun2_il step_fun_wf_il step inv wf leng unfolding steps_def
- by (smt (verit, ccfv_SIG) case_prodE case_prodI2 case_prod_conv)
-
-
 lemma steps_inv2: 
   assumes inv: "inv_IL il2" "inv_IL il1"
   and wf: "wf1_IL il1 (length Bs)" "wf_bins1 (map set Bs)"
@@ -767,10 +746,6 @@ proof-
   then show ?thesis using DC1 by auto
 qed
 
-lemma close2_L_eq_close2: "wf_bins1 (map set Bs) \<Longrightarrow> wf1_IL il (length Bs) \<Longrightarrow> length (froms il) = Suc (length Bs) 
-  \<Longrightarrow> inv_IL il \<Longrightarrow> set (close2_L Bs il) = close2 (map set Bs) (set_ItemList il)"
-  by (auto simp add: close2_L_eq_Close1 close2_eq_Close1)
-
 lemma close2_L_eq_Close: "wf_bins1 (map set Bs) \<Longrightarrow> wf1_IL il (length Bs) \<Longrightarrow> length (froms il) = Suc (length Bs) 
   \<Longrightarrow> inv_IL il \<Longrightarrow> set (close2_L Bs il) = Close (map set Bs) (set_ItemList il)"
   by (auto simp add: close2_L_eq_Close1 Close1_eq_Close)
@@ -854,7 +829,6 @@ context Earley_Gw
 begin
 
 definition "K = Max { length (rhs r) | r. r \<in> set ps }"
-definition "N = length w"
 definition "L = length ps"
 
 lemma card_wf: 
@@ -902,9 +876,6 @@ lemma card_wf_bin1: "wf_bin1 bs i \<Longrightarrow> card bs \<le> L * (Suc K) * 
 
 lemma card_Si: "card (\<S> i) \<le> L * (Suc K) * (Suc i)"
   using card_wf1 wf_EarleyS by simp
-
-lemma Si_empty: "i > length w \<Longrightarrow> \<S> i = {}"
-  using wf_Earley by (fastforce simp add: \<S>_def wf_item_def)
 
 theorem card_Earley: "card Earley \<le> L * (Suc K) * (Suc (length w))^2"
 proof-
@@ -1043,9 +1014,6 @@ lemma T_dot_0[simp]: "T_dot x = 0"
 
 lemma T_from_0[simp]: "T_from x = 0"
   using T_from.elims by blast
-
-lemma T_mv_dot_0[simp]: "T_mv_dot s = 0"
-  by simp
 
 lemma [simp]: "T_list il = 0"
   using Earley_Gw.T_list.elims by blast
@@ -1287,16 +1255,6 @@ proof -
     by (smt (verit, ccfv_threshold) add_right_cancel item.expand item.inject)
   then have "distinct (map mv_dot (Bs ! from y))" using assms by (simp add: distinct_map)
   then show ?thesis using assms by (simp add: Complete_L_def distinct_map_filter)
-qed
-
-lemma distinct_Scan_L: 
-  assumes "distinct B" shows "distinct (Scan_L B k)"
-proof -                                           
-  have "inj_on mv_dot (set B)"
-    using inj_on_def mv_dot_def
-    by (smt (verit, ccfv_threshold) add_right_cancel item.expand item.inject)
-  then have "distinct (map mv_dot B)" using assms by (simp add: distinct_map)
-  then show ?thesis using assms by (simp add: Scan_L_def distinct_map_filter)
 qed
 
 lemma wfbin1_impl_wfbin: "wf_bin1 xs k \<Longrightarrow> wf_bin xs k"
@@ -2009,27 +1967,18 @@ fun Parse_bins :: "nat \<Rightarrow> ('n, 'a) parseItem set list" where
   "Parse_bins 0 = [(Parse_Close [] Parse_Init)]" |
   "Parse_bins (Suc k) = (let bs = Parse_bins k in bs @ [Parse_Close bs (Parse_Scan (last bs) k)])"
 
+definition get_parse_tree_set :: "('n, 'a) tree option"  where
+"get_parse_tree_set = (let ts = (SOME t. \<exists>i. (i,t) \<in> (last (Parse_bins (length w))) \<and> is_final i) 
+  in if (\<exists> i t. (i,t) \<in> (last (Parse_bins (length w))) \<and> is_final i) then Some ( Rule S (rev ts)) else None)"
+
 definition valid_parse_tree :: "('n, 'a) Prods \<Rightarrow> ('n, 'a) sym list \<Rightarrow> 'n \<Rightarrow> ('n,'a) tree \<Rightarrow> bool" where
 "valid_parse_tree p ws A t \<equiv> parse_tree p t \<and> root t = Nt A \<and> fringe t = ws"
 
+definition unambiguous :: "('n, 'a) Cfg \<Rightarrow> bool" where
+"unambiguous g \<equiv> \<forall>w \<in> LangS g. \<forall> t1 t2. (valid_parse_tree (Prods g) (map Tm w) (Start g) t1 \<and> valid_parse_tree (Prods g) (map Tm w) (Start g) t2) \<longrightarrow> t1 = t2"
+
 lemma Parse_Predict_item: "Parse_Predict x k = Predict x k \<times> {[]}"
   by (auto simp add: Parse_Predict_def Predict_def)
-
-lemma Parse_Complete_item: "from (item y) < length Bs \<Longrightarrow> item ` (Parse_Complete Bs y) = (Complete (map (\<lambda> x. item ` x) Bs) (item y))"
-proof (auto simp add: Parse_Complete_def Complete_def)
-  fix p t
-  assume "from (item y) < length Bs" "(p, t) \<in> Bs ! from (item y)" "next_sym_Nt p (lhs (item.prod (item y)))" 
-  then show "mv_dot p \<in> mv_dot ` {x \<in> item ` Bs ! from (item y). next_sym_Nt x (lhs (item.prod (item y)))}"
-    by (metis (mono_tags, lifting) fst_conv imageI mem_Collect_eq)
-next
-  fix s t
-  assume "from (item y) < length Bs" "(s, t) \<in> Bs ! from (item y)" "next_sym_Nt s (lhs (item.prod (item y)))"
-  then show "mv_dot s
-           \<in> item `
-              (\<lambda>x. case x of (p, t) \<Rightarrow> (mv_dot p, Rule (lhs (item.prod (item y))) (rev (trees y)) # t)) `
-              {x \<in> Bs ! from (item y). next_sym_Nt (item x) (lhs (item.prod (item y)))}"
-    by (metis (mono_tags, lifting) fst_conv imageI mem_Collect_eq pair_imageI)
-qed
 
 lemma Parse_Init_item: "Parse_Init = Init \<times> {[]}"
   by (auto simp add: Parse_Init_def Init_def)
@@ -2053,17 +2002,11 @@ lemma wf_parse_init: "wf_parse_bin (Parse_Init) 0"
 lemma wf_parse_predict: "wf_parseItem x k \<Longrightarrow> wf_parse_bin (Parse_Predict (item x) k) k"
   by (auto simp add: Parse_Predict_def wf_item_def slice_drop_take \<alpha>_def)
 
-lemma "wf_parse_bin1 xs k \<Longrightarrow> wf_bin1 (item ` xs) k"
-  by (auto simp add: wf_bin1_def)
-
 lemma wf_parse_bins1_impl_bins1: "wf_parse_bins1 xs \<Longrightarrow> wf_bins1 (map ((`) item) xs)"
   by (auto simp add: wf_bins1_def wf_parse_bins1_def wf_bin1_def)
 
 lemma \<alpha>_mv_dot: "next_sym_Nt x A \<Longrightarrow> \<alpha> (mv_dot x) = \<alpha> x @ [Nt A]"
   by (auto simp add: \<alpha>_def mv_dot_def next_symbol_def is_complete_def take_Suc_conv_app_nth split: if_splits)
-
-lemma wf_parseItem1_impl_wf: "wf_parseItem1 x k \<Longrightarrow> wf_parseItem x k"
-  by (simp add: wf_item1_def)
 
 lemma wf_parse_complete: 
   assumes "wf_parse_bins1 Bs" "wf_parseItem1 st (length Bs)" "is_complete (item st)" 
@@ -2230,8 +2173,65 @@ lemma item_Pbins_eq_bins: "k \<le> length w \<Longrightarrow> map ((`) item) (Pa
   using item_Pbins_eq_bins_nth all_f_nth_impl_map[of _ _ "(`) item"] 
   by (auto simp add: length_parse_bins)
 
-lemma "k \<le> length w \<Longrightarrow> i \<le> k \<Longrightarrow> item ` (Parse_bins k ! i) = \<S> i"
-  using item_Pbins_eq_bins_nth by (simp add: bins_eq_\<S>_gen)
+lemma get_parse_tree_set_iff: "(\<exists>t. get_parse_tree_set = Some t) \<longleftrightarrow> (P \<turnstile> [Nt S] \<Rightarrow>* w)"
+proof
+  assume "\<exists>t. get_parse_tree_set = Some t"
+  then obtain i t where "(i,t) \<in> (last (Parse_bins (length w))) \<and> is_final i"
+    using get_parse_tree_set_def
+    by fastforce
+  then have "i \<in> last (map ((`) item) (Parse_bins (length w))) \<and> is_final i"
+    by (metis (no_types, lifting) List.list.map_disc_iff bins_nonempty fst_conv image_eqI item_Pbins_eq_bins last_map nat_le_linear)
+  then have "i \<in> last (bins (length w)) \<and> is_final i"
+    using item_Pbins_eq_bins[of "length w"] by auto
+  then have "i \<in> \<S> (length w) \<and> is_final i" using bins_eq_\<S> last_conv_nth length_bins
+    by (metis Earley.Earley_Gw.bins_nonempty diff_add_inverse2 le_refl)
+  then show "P \<turnstile> [Nt S] \<Rightarrow>* w"
+    using accepted_def accpted_sound by auto
+next
+  assume "P \<turnstile> [Nt S] \<Rightarrow>* w"
+  then obtain i where 1: "i \<in> \<S> (length w) \<and> is_final i"
+    using accepted_def using Earley_complete by (auto simp add: accepted_def recognized_def \<S>_def)
+  then have "i \<in> last (bins (length w)) \<and> is_final i"
+    using bins_eq_\<S> last_conv_nth length_bins by (metis Earley.Earley_Gw.bins_nonempty diff_add_inverse2 le_refl)
+  then have "i \<in> last (map ((`) item) (Parse_bins (length w))) \<and> is_final i"
+    using item_Pbins_eq_bins[of "length w"] by auto
+  then have "i \<in> item ` last (Parse_bins (length w))" using last_map length_parse_bins
+    by (metis Earley.Earley_Gw.bins_nonempty EarleyWorklist.Earley_Gw_eps.item_Pbins_eq_bins Earley_Gw_eps_axioms List.list.simps(8)
+        le_refl)
+  then have "\<exists>t. (i,t) \<in> (last (Parse_bins (length w)))" by auto
+  then obtain t where "(i,t) \<in> (last (Parse_bins (length w))) \<and> is_final i" using 1 by blast
+  then show "\<exists>t. get_parse_tree_set = Some t"
+    by (auto simp add: get_parse_tree_set_def)
+qed
+
+lemma someI2_bex_2: "\<exists>a b. (a,b)\<in>A \<and> T a \<Longrightarrow> (\<And>a b. (a,b) \<in> A \<and> T a \<Longrightarrow> Q b) \<Longrightarrow> Q (SOME b. \<exists>a. (a,b) \<in> A \<and> T a)"
+  by (smt (verit) exE_some)
+
+lemma last_final_PItem_impl_valid: "(s, ts) \<in> last (Parse_bins (length (w ))) \<and> is_final s \<Longrightarrow> valid_parse_tree P w S (Rule S (rev ts))"
+proof-
+  assume assm: "(s, ts) \<in> last (Parse_bins (length (w ))) \<and> is_final s"
+  moreover have "Parse_bins (length w) \<noteq> []"
+    by (metis Zero_not_Suc length_0_conv length_parse_bins)
+  ultimately have "wf_parseItem1 (s, ts) (length w)" using parse_bins_wf1 length_parse_bins
+    by (auto simp add: wf_parse_bins1_def last_conv_nth simp del: wf_parseItem1.simps)
+  then show "valid_parse_tree P w S (Rule S (rev ts))" using assm 
+    by (auto simp add: valid_parse_tree_def is_final_def wf_item1_def wf_item_def \<alpha>_def rhs_def is_complete_def)
+qed
+
+lemma get_parse_tree_set_valid: "get_parse_tree_set = Some t \<Longrightarrow> valid_parse_tree P w S t"
+proof (cases "\<exists>i ts. (i, ts) \<in> last (Parse_bins (length (w ))) \<and> is_final i")
+  case True
+  assume "get_parse_tree_set = Some t"
+
+  moreover have "valid_parse_tree P w S (Rule S (rev (SOME t. \<exists>i. (i, t) \<in> last (Parse_bins (length w)) \<and> is_final i)))"
+    using someI2_bex_2[OF True last_final_PItem_impl_valid] last_final_PItem_impl_valid True by auto
+  ultimately show ?thesis by (auto simp add: get_parse_tree_set_def split: if_splits)
+next
+  case False
+  assume assm: "get_parse_tree_set = Some t"
+  have "get_parse_tree_set = None" using False by (auto simp add: get_parse_tree_set_def)
+  then show ?thesis using assm by (auto simp add: get_parse_tree_set_def)
+qed
 
 lemma valid_parse_tree_iff_derived: "(\<exists> t. valid_parse_tree p ws A t) \<longleftrightarrow> p \<turnstile> [Nt A] \<Rightarrow>* ws"
 proof
@@ -2245,41 +2245,8 @@ next
     by (auto simp add: valid_parse_tree_def)
 qed
 
-
-definition unambiguous :: "('n, 'a) Cfg \<Rightarrow> bool" where
-"unambiguous g \<equiv> \<forall>w \<in> LangS g. \<forall> t1 t2. (valid_parse_tree (Prods g) (map Tm w) (Start g) t1 \<and> valid_parse_tree (Prods g) (map Tm w) (Start g) t2) \<longrightarrow> t1 = t2"
-
-lemma wf_complete_imp_valid_tree: "wf_parseItem x k \<Longrightarrow> is_complete (item x) \<Longrightarrow> valid_parse_tree P (slice (from (item x)) k w) (lhs (prod (item x))) (Rule (lhs (prod (item x))) (rev (trees x)))"
-  by (auto simp add: valid_parse_tree_def wf_item1_def wf_item_def is_complete_def \<alpha>_def rhs_def)
-
-lemma accepted_impl_valid_tree: 
-  assumes "accepted" 
-  shows "\<exists> s t. (s, t) \<in> Parse_bins (length w) ! (length w) \<and> valid_parse_tree P w S (Rule (lhs (prod s)) (rev t))"
-proof-
-  obtain x where "x \<in> \<S> (length w) \<and> is_final x" using accepted_def assms by blast
-  then have P_x: "x \<in> bins (length w) ! (length w) \<and> lhs(prod x) = S \<and> from x = 0 \<and> is_complete x"
-    by (auto simp add: is_final_def bins_eq_\<S>_gen)
-  then have "x \<in> item  ` (Parse_bins (length w) ! (length w))" using item_Pbins_eq_bins_nth by auto
-  then obtain t where bins_nth: "(x, t) \<in> Parse_bins (length w) ! (length w)" by auto
-  then have "wf_parseItem1 (x,t) (length w)" using parse_bins_wf1_nth[of "length w" "length w"] by auto
-  then have "wf_parseItem (x,t) (length w)" by (auto simp add: wf_item1_def)
-  then show ?thesis using P_x bins_nth wf_complete_imp_valid_tree[of "(x,t)" "length w"] by auto
-qed
-
 (*would need other direction as well 
 (\<exists> s t. (s, t) \<in> Parse_bins (length w) ! (length w) \<and> valid_parse_tree P w S (Rule (lhs (prod s)) (rev t))) \<Longrightarrow> accepted*)
-
-lemma accepted_wf_cover_impl_tree: 
-  assumes "accepted" "wf_parse_bin1 X (length w)" "\<forall>s \<in> \<S> (length w). \<exists>i \<in> X. fst i = s" 
-  shows "\<exists>s t. (s,t) \<in> X \<and> is_final s \<and> valid_parse_tree P w S (Rule S (rev t))"
-proof-
-  obtain s where P_s: "s \<in> \<S> (length w) \<and> is_final s" using accepted_def assms by blast
-  then obtain t where P_t: "(s, t) \<in> X \<and> lhs (prod s) = S" using assms(3)
-    by (fastforce simp add: is_final_def)
-  then have "valid_parse_tree P w S (Rule S (rev t))" using assms(2) P_s 
-    by (auto simp add: slice_drop_take is_final_def valid_parse_tree_def wf_item1_def wf_item_def \<alpha>_def is_complete_def rhs_def)
-  then show ?thesis using P_s P_t by auto
-qed
 end
 
 section \<open>List based earley parser\<close>
@@ -3084,6 +3051,26 @@ proof
 next 
   assume "get_parse_tree (last (Parse_bins_L (length w))) = Some t"
   then show "valid_parse_tree P w S t" using generated_parse_tree_is_valid by blast
+qed
+
+lemma unambiguous_impl_P_set_eq_P_L: "G = Cfg P S \<Longrightarrow> unambiguous G \<Longrightarrow> get_parse_tree_set = parse_tree_w"
+proof (cases "P \<turnstile> [Nt S] \<Rightarrow>* w")
+  case True
+  assume assms: "G = Cfg P S" "unambiguous G"
+  obtain t1 where "get_parse_tree_set = Some t1" using True get_parse_tree_set_iff by auto
+  moreover then have "valid_parse_tree P w S t1" using get_parse_tree_set_valid by auto
+  moreover obtain t2 where "parse_tree_w = Some t2" 
+    using find_parse_tree_iff_w_in_L True w_def Lang_def accepted_implies_Some_tree Earley_complete assms
+    by (auto simp add: accepted_def recognized_def \<S>_def)
+  ultimately show ?thesis using assms
+    using unambiguous_impl_the_parse_tree by auto
+next
+  case False
+  then have "get_parse_tree_set = None" using get_parse_tree_set_iff
+    by simp
+  moreover have "parse_tree_w = None" using find_parse_tree_iff_w_in_L w_def False Lang_def
+    by (metis Option.option.exhaust mem_Collect_eq)
+  ultimately show ?thesis by simp
 qed
 
 end
@@ -3956,9 +3943,6 @@ qed
 time_fun get_parse_tree
 time_fun get_parse_tree_w
 
-lemma T_length_bound: "x \<in> P \<Longrightarrow> T_length (rhs x) \<le> Suc K" 
-  using prod_length_bound by (cases x) (auto simp add: T_length)
-
 lemma T_get_parse_tree_bound: "wf_parse_bin1 (set xs) k \<Longrightarrow> T_get_parse_tree xs \<le> Suc K * Suc (length xs) + 2 * K * K + 1 + Suc (length xs)"
 proof (induction xs)
   case Nil
@@ -4074,5 +4058,5 @@ value "bins_L 3"
 value "earley_recognized"
 value "parse_tree_w"*)
 
-(*unused_thms*)
+unused_thms
 end

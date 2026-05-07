@@ -186,7 +186,7 @@ corollary steps_append:
   using stepn_append[THEN relpowp_imp_rtranclp] rtranclp_imp_relpowp by metis
 
 
-
+(* Possibly not needed anymore *)
 section \<open>\<epsilon>-Transitions\<close>
 
 inductive eps_stepn :: "('s,'a) config \<Rightarrow> nat \<Rightarrow> ('s,'a) config \<Rightarrow> bool" (\<open>_ \<turnstile>\<epsilon>'(_') _\<close> 70) where
@@ -373,11 +373,26 @@ qed simp
 
 
 
-(* This is basically trivial. Can be specified to case of a single symbol being consumed *)
-lemma char_reachable_imp_reaches_empty: (* or something *)
-  assumes "([S' \<rightarrow> [] . [Nt S]], \<delta> @ \<alpha> @ \<beta>) \<turnstile>c* ([A \<rightarrow> \<alpha> @ \<beta> . \<gamma>], [])"
-  shows "([S' \<rightarrow> [] . [Nt S]], \<delta> @ \<alpha>) \<turnstile>c* ([A \<rightarrow> \<alpha> . \<beta> @ \<gamma>], [])"
-  sorry
+lemma char_consumes_last_imp_butlast_reaches:
+  assumes "([S' \<rightarrow> [] . [Nt S]], \<delta> @ \<alpha> @ [X]) \<turnstile>c* ([A \<rightarrow> \<alpha> @ [X] . \<gamma>], [])"
+  shows "([S' \<rightarrow> [] . [Nt S]], \<delta> @ \<alpha>) \<turnstile>c* ([A \<rightarrow> \<alpha> . [X] @ \<gamma>], [])"
+proof -
+  from assms obtain n where n_steps: 
+    "([S' \<rightarrow> [] . [Nt S]], \<delta> @ \<alpha> @ [X]) \<turnstile>c(n) ([A \<rightarrow> \<alpha> @ [X] . \<gamma>], [])"
+    using rtranclp_imp_relpowp by fast
+  show ?thesis
+  proof (cases n)
+    case (Suc m)
+    then obtain i \<zeta> where m_steps: "([S' \<rightarrow> [] . [Nt S]], \<delta> @ \<alpha> @ [X]) \<turnstile>c(m) (i, \<zeta>)"
+      "(i, \<zeta>) \<turnstile>c ([A \<rightarrow> \<alpha> @ [X] . \<gamma>], [])"
+      using n_steps by auto
+    from this(2) show ?thesis proof cases
+      case (nxt Y \<alpha> Z \<beta> \<gamma>)
+      then show ?thesis using m_steps char_fa.steps_append[of _ "\<delta> @ \<alpha>" "[X]" _ "[]"]
+        by (simp add: relpowp_imp_rtranclp) 
+    qed fast
+  qed (use n_steps in simp)
+qed
 
 
 lemma char_comp_imp_derivers:
@@ -418,7 +433,7 @@ proof -
         "Prods G' \<turnstile> \<zeta> @ Nt X # map Tm w \<Rightarrow>r \<zeta> @ \<alpha>' @ Nt A # \<beta>' @ map Tm w" "\<gamma> = \<zeta> @ \<alpha>'"
         by auto
       moreover from this obtain v where \<beta>_deriv: "Prods G' \<turnstile> \<beta>' \<Rightarrow>r* map Tm v"
-        using reduced_derived_substring_imp_derives[OF _ G'_reduced G'_not_empty, of "\<zeta>@\<alpha>'@[Nt A]" \<beta>']
+        using reduced_derives_imp_substring_derives_Tms[OF _ G'_reduced G'_not_empty, of "\<zeta>@\<alpha>'@[Nt A]" \<beta>']
           derivers_imp_derives
         by (metis (no_types, opaque_lifting) Cfg.sel(2) G'_def append.assoc append_Cons append_Nil
             derivers_iff_derives rtranclp.rtrancl_into_rtrancl)
@@ -511,12 +526,12 @@ lemma ipda_reaches_final_imp_rm_chain:
   case (step z)
   from P.step_imp_in_It this(1) have A_in_It: "[A \<rightarrow> \<alpha> . \<beta>] \<in> It G'" 
     using P.step_imp_not_Nil by (smt (verit, ccfv_SIG) P.step_cases)
-  from P.step_app_init_symbol_preserved[OF _ this] step(1) obtain B \<gamma> \<delta> \<tau> v where z\<tau>_def:
+  from P.step_app_init_symbol_preserved step(1) obtain B \<gamma> \<delta> \<tau> v where z\<tau>_def:
     "z = ([B \<rightarrow> \<gamma> . \<delta>] # \<tau> @ [init_symbol IPDA], v)" using prod.exhaust by metis
   note step(3)[OF this] 
   then show thesis
-  proof cases
-    case 1
+  proof (cases, goal_cases Nil chain)
+    case Nil
     with z\<tau>_def have z_B_init: "z = ([[B \<rightarrow> \<gamma> . \<delta>], init_symbol IPDA], v)" by blast
     with step(2) P.reaches_without_stack_imp_S' consider 
       "[B \<rightarrow> \<gamma> . \<delta>] = init_state IPDA" |
@@ -532,16 +547,36 @@ lemma ipda_reaches_final_imp_rm_chain:
       then show ?thesis using step(5) G'_derive_S derive_singleton_imp_singleton_chain by force
     qed
   next
-    case (2 X \<alpha>' \<beta>' \<sigma> \<zeta>)
+    case (chain X \<alpha>' \<beta>' \<sigma> \<zeta>)
     from step(1)[unfolded z\<tau>_def] show ?thesis proof cases
       case (shift A \<alpha> a \<beta> i \<rho> u)
-      then show ?thesis using step(5) 2 by fastforce
+      then show ?thesis using step(5) chain by fastforce
     next
-      case (reduce Y \<alpha>' X \<beta>' \<eta> \<sigma> x)
-      then show ?thesis using step 2 sorry
+      case (reduce Y \<eta> X' \<theta> \<iota> \<upsilon> x)
+      hence BA_in_prods: "(B, \<theta> @ Nt A # \<delta>) \<in> Prods G'"
+        using step(1) z\<tau>_def P.step_imp_in_prods by force 
+      from rm_chain_Cons_imp_prod_rightmost chain obtain \<zeta>' u where \<zeta>_rm: "\<zeta> = \<zeta>' @ Nt B # map Tm u"
+        by meson
+      moreover from BA_in_prods have "Prods G' \<turnstile> \<zeta>' @ Nt B # map Tm u \<Rightarrow>r \<zeta>' @ \<theta> @ Nt A # \<delta> @ map Tm u"
+        using deriver.intros by fastforce
+      moreover obtain u' where "Prods G' \<turnstile> \<delta> \<Rightarrow>r* map Tm u'"
+        using reduced_imp_prod_substring_derives_Tms[of B "\<theta> @ [Nt A]" \<delta> "[]", OF _ G'_reduced] 
+          BA_in_prods derivers_iff_derives 
+        by (metis append.assoc append.right_neutral append_Cons append_Nil)
+      ultimately show thesis 
+        using reduce chain rm_chain.step[OF chain(2)[unfolded \<zeta>_rm]] step.prems(2) by fastforce        
     next
-      case (expand Y \<alpha> X \<beta> \<gamma> i \<rho> w)
-      then show ?thesis sorry
+      case (expand Y \<eta> X' \<theta> \<iota> i \<upsilon> x)
+      show ?thesis
+      proof (cases \<rho>)
+        case (Cons j \<xi>)
+        from Cons expand have "\<tau> = [A \<rightarrow> \<theta> . Nt B # \<iota>] # i # \<xi>" by auto
+        from rm_chain_second_produces_hd[OF chain(2)[unfolded this]] obtain Z \<gamma>' \<delta>' where
+          "\<rho> = [Z \<rightarrow> \<gamma>' . Nt A # \<delta>'] # \<xi>" using Cons expand by auto
+        moreover obtain \<zeta>' where "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<zeta>'"
+          using expand Cons rm_chain_decomp chain(2) by fastforce
+        ultimately show thesis using step.prems(2) by blast
+      qed (rule step.prems(1))
     qed
   qed
 qed simp
@@ -576,7 +611,7 @@ next
   hence X_in_Prods: "(X, \<alpha>' @ Nt A # \<beta>') \<in> Prods G'" 
     by (simp add: rm_chain_imp_prod)
   from P.reaches_final_imp_completes[OF Cons(2)] obtain v where A_complete:
-    "([A \<rightarrow> \<alpha> . \<beta>] # (i # \<rho>) @ [init_symbol IPDA], v) 
+    "([A \<rightarrow> \<alpha> . \<beta>] # (i # \<rho>) @ [init_symbol IPDA], w) 
       \<turnstile>P* ([A \<rightarrow> \<alpha> @ \<beta> . []] # (i # \<rho>) @ [init_symbol IPDA], v)"
     "([A \<rightarrow> \<alpha> @ \<beta> . []] # (i # \<rho>) @ [init_symbol IPDA], v) 
       \<turnstile>P* ([P.final_state, init_symbol IPDA], [])" by blast
@@ -591,7 +626,7 @@ next
         converse_rtranclpE list.sel(1))
   note X_comp = Cons.IH[OF this]
   hence "([S' \<rightarrow> [] . [Nt S]], hist \<rho> @ \<alpha>') \<turnstile>c* ([X \<rightarrow> \<alpha>' . Nt A # \<beta>'], [])"
-    using char_reachable_imp_reaches_empty by fastforce
+    using char_consumes_last_imp_butlast_reaches by fastforce
   hence "([S' \<rightarrow> [] . [Nt S]], hist (i # \<rho>) @ \<alpha>) \<turnstile>c* ([X \<rightarrow> \<alpha>' . Nt A # \<beta>'], \<alpha>)"
     using char_fa.steps_append[of _ "hist (i # \<rho>)" "[]" _ \<alpha>] chain by simp
   also have "... \<turnstile>c ([A \<rightarrow> [] . \<alpha> @ \<beta>], \<alpha>)" 
@@ -615,14 +650,11 @@ proof -
     "Prods G' \<turnstile> \<gamma>' @ Nt A # map Tm w \<Rightarrow>r \<gamma>' @ \<alpha> @ \<beta> @ map Tm w"
     "\<gamma> = \<gamma>' @ \<alpha>" by metis
   moreover from this obtain v where "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm v" 
-    using reduced_derived_substring_imp_derives[of G' "\<gamma>' @ \<alpha>" \<beta> "map Tm w", 
+    using reduced_derives_imp_substring_derives_Tms[of G' "\<gamma>' @ \<alpha>" \<beta> "map Tm w", 
                                         OF _ G'_reduced G'_not_empty] G'_def append.assoc
     by (metis (no_types, lifting) Cfg.sel(2) derivers_imp_derives rtranclp.rtrancl_into_rtrancl)
   ultimately show thesis using derivers_imp_ipda_comp that by metis
 qed
-
-
-
 
 end
 

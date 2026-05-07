@@ -380,20 +380,22 @@ lemma step_imp_two_items:
 
 lemma step_app_init_symbol_preserved:
   assumes "([A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol M], u) \<turnstile> (\<sigma>, v)"
-    "[A \<rightarrow> \<alpha> . \<beta>] \<in> It G'"
   obtains B \<gamma> \<delta> \<tau> where "\<sigma> = [B \<rightarrow> \<gamma> . \<delta>] # \<tau> @ [init_symbol M]"
-  using assms(1) proof cases
-  case (shift A \<alpha> a \<beta> i \<rho> u)
-  then show ?thesis using that by (metis list.inject prod.inject)
+  using assms proof cases
+  case (shift A \<alpha> a \<beta> i \<tau> u)
+  then show ?thesis using that[of A "\<alpha> @ [Tm a]" \<beta> \<rho>] 
+    by simp
 next
-  case (reduce Y \<alpha> X \<beta> \<gamma> \<rho> w)
-  then show ?thesis using assms(2) that step_imp_in_It init_symbol_notin_It 
-    by (smt (verit, ccfv_SIG) append_eq_Cons_conv init_symbol_ipda item.inject list.discI 
-        list.inject prod.inject)
+  case (reduce Y \<alpha> X \<beta> \<gamma> \<tau> w)
+  then show ?thesis 
+    using init_symbol_notin_It that[of X "\<beta> @ [Nt Y]" \<gamma> "tl \<rho>"] 
+    by (cases \<rho>) auto
 next
   case (expand Y \<alpha>' X \<beta>' \<gamma> i \<tau> w)
-  then show ?thesis using that[of _ _ _ "[A \<rightarrow> \<alpha> . \<beta>] # \<rho>"] by simp
+  then show ?thesis using that[of Y "[]" \<alpha>' "[A \<rightarrow> \<alpha> . \<beta>] # \<rho>"] 
+    by auto
 qed
+ 
 
 lemma expanding_imp_in_Prods_G:
   assumes "([X \<rightarrow> \<alpha> . Nt Y # \<beta>] # \<rho>, u) \<turnstile> ([Y \<rightarrow> [] . \<gamma>] # [X \<rightarrow> \<alpha> . Nt Y # \<beta>] # \<rho>, v)"
@@ -596,8 +598,8 @@ proof -
       with n_steps init_state_expands show ?thesis 
         using Suc.prems(2)[of _ "[]" "[Nt S]"] \<sigma>_init by force
     next
-      case (Cons i \<nu>)
-      hence \<sigma>_def: "\<sigma> = i # \<nu> @ [[S' \<rightarrow> \<alpha> . \<beta>], init_symbol M]" using \<tau>_def by simp
+      case (Cons i \<upsilon>)
+      hence \<sigma>_def: "\<sigma> = i # \<upsilon> @ [[S' \<rightarrow> \<alpha> . \<beta>], init_symbol M]" using \<tau>_def by simp
       from n_steps(2)[unfolded this] show ?thesis 
       proof cases
         case (expand Y \<alpha>' X \<beta>' \<gamma> j \<rho>' w')
@@ -606,7 +608,7 @@ proof -
         moreover from expand \<tau>_def Cons have "\<forall>i\<in>set ([Y \<rightarrow> [] . \<alpha>'] # \<tau>). ?in_Prods i" 
           using \<sigma>_def  expanding_imp_in_Prods_G expand n_steps(2) \<tau>_def(3) by auto
         ultimately show ?thesis using Suc.prems(2) \<tau>_def Cons by fastforce
-      qed (cases \<nu>, (use \<tau>_def Cons Suc in auto))+
+      qed (cases \<upsilon>, (use \<tau>_def Cons Suc in auto))+
     qed
   qed 
 qed
@@ -777,18 +779,39 @@ qed
 
 
 
+
 lemma reaches_without_stack_imp_S':
   assumes "([[A \<rightarrow> \<alpha> . \<beta>], init_symbol IPDA], w) \<turnstile>* ([final_state, init_symbol IPDA], [])"
   shows "[A \<rightarrow> \<alpha> . \<beta>] = init_state M \<or> [A \<rightarrow> \<alpha> . \<beta>] = final_state"
   sorry
 
 
+(* 
+  Only rough sketch - needs cleanup. Maybe needs less_induct: in case distinction, expanding case 
+  loops: [A \<rightarrow> \<alpha>.X\<beta>] \<turnstile> [X \<rightarrow> .\<gamma>] \<turnstile>* [X \<rightarrow> \<gamma>.] \<turnstile> [A \<rightarrow> \<alpha>X.\<beta>] 
+  Possibly: less_induct not needed due to uniqueness of reducing transitions 
+*)
 lemma reaches_final_imp_completes:
   assumes "([A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol IPDA], u) \<turnstile>* ([final_state, init_symbol IPDA], [])"
   obtains v where 
-    "([A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol IPDA], v) \<turnstile>* ([A \<rightarrow> \<alpha> @ \<beta> . []] # \<rho> @ [init_symbol IPDA], v)"
+    "([A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol IPDA], u) \<turnstile>* ([A \<rightarrow> \<alpha> @ \<beta> . []] # \<rho> @ [init_symbol IPDA], v)"
     "([A \<rightarrow> \<alpha> @ \<beta> . []] # \<rho> @ [init_symbol IPDA], v) \<turnstile>* ([final_state, init_symbol IPDA], [])"
-  sorry
+  using assms proof (induction "[A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol IPDA]" u arbitrary: A \<alpha> \<beta> \<rho> 
+    rule: converse_rtranclp_induct2)
+  case (step u \<sigma> v)
+  from step(2) show ?case 
+  proof cases
+    case rtrancl_refl
+    then show ?thesis using step(4)[of u] step 
+      by (smt (verit, ccfv_threshold) append_self_conv ipda.step_cases ipda_axioms item.inject list.inject
+          list.simps(3) old.prod.inject rtranclp.simps)
+  next
+    case (rtrancl_into_rtrancl b)
+    from step(1) show ?thesis 
+      apply cases
+      using step sorry
+  qed
+qed auto
 
 definition Lang :: "'t list set" where
   "Lang \<equiv> {w. ([init_state M, init_symbol M], w) \<turnstile>* ([final_state, init_symbol M], [])}"

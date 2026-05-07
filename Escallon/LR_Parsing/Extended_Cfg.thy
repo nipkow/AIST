@@ -157,17 +157,16 @@ lemma restrict_useful_id_imp_reduced:
   shows "reduced G"
   using assms unfolding restrict_Nts_def reduced_def Nts_def by fast
 
-lemma reduced_imp_derives_singleton:
+lemma reduced_imp_derives_Tms_singleton:
   assumes "reduced G"
     "A \<in> Nts (Prods G)"
   obtains v where "Prods G \<turnstile> [Nt A] \<Rightarrow>* map Tm v"
   using assms productive_if_useful unfolding reduced_def 
   by metis
 
-lemma reduced_imp_derives:
+lemma reduced_imp_Nts_subset_derives_Tms:
   assumes  "Nts_syms \<alpha> \<subseteq> Nts (Prods G)"
     "reduced G"
-    "LangS G \<noteq> {}"
   obtains v where "Prods G \<turnstile> \<alpha> \<Rightarrow>* map Tm v"
   using assms(1) proof (induction \<alpha> arbitrary: thesis)
   case (Cons a as)
@@ -176,7 +175,7 @@ lemma reduced_imp_derives:
   proof (cases a)
     case (Nt A)
     with \<open>reduced G\<close> obtain u where A_derives: "Prods G \<turnstile> [Nt A] \<Rightarrow>* map Tm u"
-      using reduced_imp_derives_singleton[OF assms(2)] Cons(3) by auto
+      using reduced_imp_derives_Tms_singleton[OF assms(2)] Cons(3) by auto
     from derives_append[OF this] have "Prods G \<turnstile> Nt A#as \<Rightarrow>* map Tm u @ as" 
       by simp
     also from derives_prepend[OF as_derives] have "Prods G \<turnstile> ... \<Rightarrow>* map Tm (u@v)" 
@@ -189,9 +188,16 @@ lemma reduced_imp_derives:
   qed
 qed simp
 
-lemma derived_imp_in_Prods:
+corollary reduced_imp_prod_substring_derives_Tms:
+  assumes "(A, \<alpha> @ \<beta> @ \<gamma>) \<in> Prods G"
+    "reduced G"
+  obtains v where "Prods G \<turnstile> \<beta> \<Rightarrow>* map Tm v"
+  using reduced_imp_Nts_subset_derives_Tms[OF _ assms(2)]
+   prod_substring_imp_Nts_subset[OF assms(1)] by blast
+
+lemma derives_imp_in_Prods:
   assumes "Start G \<in> Nts (Prods G)"
-  shows "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>*\<alpha> \<Longrightarrow> Nts_syms \<alpha> \<subseteq> Nts (Prods G)"
+  shows "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* \<alpha> \<Longrightarrow> Nts_syms \<alpha> \<subseteq> Nts (Prods G)"
 proof (induction rule: rtranclp_induct)
   case base
   then show ?case using assms by simp
@@ -203,21 +209,7 @@ next
   ultimately show ?case using step(3) by auto
 qed
 
-
-corollary reduced_derived_imp_derives:
-  assumes  "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* \<alpha>"
-    "reduced G"
-    "LangS G \<noteq> {}"
-  obtains v where "Prods G \<turnstile> \<alpha> \<Rightarrow>* map Tm v"
-proof - 
-  from Lang_nempty_imp_useful_S[OF assms(3)] have "Start G \<in> Nts (Prods G)"
-    unfolding useful_def 
-    by (metis Lang_empty_if_notin_Lhss Nts_Lhss_Rhs_Nts Un_iff assms(3))
-  from derived_imp_in_Prods[OF this assms(1)] show thesis 
-    using assms(2,3) reduced_imp_derives that by blast
-qed
-
-corollary reduced_derived_substring_imp_derives:
+corollary reduced_derives_imp_substring_derives_Tms:
   assumes  "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* u@\<alpha>@v"
     "reduced G"
     "LangS G \<noteq> {}"
@@ -226,9 +218,21 @@ proof -
   from Lang_nempty_imp_useful_S[OF assms(3)] have "Start G \<in> Nts (Prods G)"
     unfolding useful_def 
     by (metis Lang_empty_if_notin_Lhss Nts_Lhss_Rhs_Nts Un_iff assms(3))
-  from derived_imp_in_Prods[OF this assms(1)] have "Nts_syms \<alpha> \<subseteq> Nts (Prods G)" by simp
-  from reduced_imp_derives[OF this assms(2,3)] show thesis using that by blast
+  from derives_imp_in_Prods[OF this assms(1)] have "Nts_syms \<alpha> \<subseteq> Nts (Prods G)" by simp
+  from reduced_imp_Nts_subset_derives_Tms[OF this assms(2)] show thesis using that by blast
 qed
+
+corollary reduced_derives_imp_derives_Tms:
+  assumes  "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* \<alpha>"
+    "reduced G"
+    "LangS G \<noteq> {}"
+  obtains v where "Prods G \<turnstile> \<alpha> \<Rightarrow>* map Tm v"
+  using reduced_derives_imp_substring_derives_Tms[of _ "[]" _ "[]"] assms 
+  by (metis append.right_neutral append_Nil)
+
+
+
+
 
 
 
@@ -386,7 +390,6 @@ proof -
   moreover from Nts_G'_is_union have "Nts (Prods G') = Nts (Prods G') \<union> {S'}" by blast
   ultimately show ?thesis unfolding reduced_def G'_def by auto 
 qed
-
 
 end
 

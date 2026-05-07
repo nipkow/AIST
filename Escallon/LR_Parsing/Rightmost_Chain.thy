@@ -31,7 +31,6 @@ lemma rm_chain_imp_prod:
   using assms syms_split_rightmost by cases (simp add: deriver_imp_in_Prods)
 
 
-
 lemma rm_chain_singleton_imp_eq:
   assumes "P \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* [A \<rightarrow> \<alpha> . Nt C # \<beta>]#\<rho> \<Rightarrow>r* \<gamma> @ Nt B # map Tm w"
   shows "C = B \<and> (\<exists>u v. w = u @ v \<and> P \<turnstile> \<beta> \<Rightarrow>r* map Tm u)"
@@ -42,6 +41,12 @@ lemma rm_chain_singleton_imp_eq:
   moreover with step have "C = B" by simp
   ultimately show ?thesis using step by blast 
 qed
+
+lemma derive_singleton_imp_singleton_chain:
+  assumes "P \<turnstile> [Nt A] \<Rightarrow> [Nt B]"
+  shows "P \<Turnstile> [Nt A] \<Rightarrow>r* [[A \<rightarrow> [] . [Nt B]]] \<Rightarrow>r* [Nt B]"
+  using assms rm_chain.step[of P "[Nt A]" "[]" "[]" A "[]" "[]" B "[]" "[]"]
+    by (simp add: derive_singleton deriver_singleton rm_chain.refl)
 
 
 

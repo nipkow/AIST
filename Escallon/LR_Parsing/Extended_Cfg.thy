@@ -10,6 +10,7 @@ notation Item  ("[_ \<rightarrow> _ . _]" 100)
 
 abbreviation prod_of_item :: "('n, 't) item \<Rightarrow> ('n, 't) prod" where
   "prod_of_item i \<equiv> case i of [A \<rightarrow> \<alpha> . \<beta>] \<Rightarrow> (A, \<alpha>@\<beta>)"
+  
 
 definition history :: "('n, 't) item \<Rightarrow> ('n, 't) syms" where
   "history i \<equiv> case i of [A \<rightarrow> \<alpha> . \<beta>] \<Rightarrow> \<alpha>"
@@ -24,6 +25,10 @@ definition hist :: "('n, 't) item list \<Rightarrow> ('n,'t) syms" where
 (* Needed? (top of stack is hd, not last) *)
 definition hist_old :: "('n, 't) item list \<Rightarrow> ('n,'t) syms" where
   "hist_old \<rho> \<equiv> concat (map history \<rho>)"
+
+lemma hist_Nil [simp]:
+  "hist [] = []" 
+  unfolding hist_def by simp
 
 lemma hist_singleton [simp]:
   "hist ([[A \<rightarrow> \<alpha> . \<beta>]]) = \<alpha>"
@@ -42,6 +47,18 @@ definition It :: "('n, 't) Cfg \<Rightarrow> ('n, 't) item set" where
   "It G = items_of_Prods (Prods G)"
 
 lemmas It_defs = It_def items_of_Prods_def
+
+lemma in_Prods_eq_in_It:
+  "prod_of_item i \<in> Prods G' = (i \<in> It G')"
+  unfolding It_defs by standard 
+    (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq, auto)
+
+
+lemma hd_in_prods_imp_derives_expanded_hist:
+  assumes "(Y, \<alpha>) \<in> P"
+  shows "P \<turnstile> hist ([X \<rightarrow> \<beta> @ [Nt Y] . \<gamma>] # \<rho>) \<Rightarrow>*  hist ([Y \<rightarrow> \<alpha> . []] # [X \<rightarrow> \<beta> . Nt Y # \<gamma>] # \<rho>)"         
+    (is "P \<turnstile> ?h1 \<Rightarrow>* ?h2")
+  using assms by (auto simp: derive_prepend derive_singleton r_into_rtranclp)
 
 lemma prod_items_finite:
   "finite {[A \<rightarrow> \<alpha> . \<beta>] | \<alpha> \<beta>. (A, \<alpha>@\<beta>) = (A, w)}"
@@ -230,18 +247,26 @@ lemma G'_finite:
   "finite (Prods G')"
   using G_finite G'_def by simp
 
-
-
 lemmas S_defs[simp] = S_def S'_def
 
 lemma S_neq_S'[simp]:
   "S \<noteq> S'" 
   by (metis G_finite ID.set_finite S'_def Un_iff finite_Nts finite_Un fresh0_notIn singletonI)
 
-
 lemma G_Prods_subset_G':
   "Prods G \<subseteq> Prods G'"
   using G'_def by auto
+
+lemma G'_Prod_cases[consumes 1, case_names init prod_G]:
+  assumes "p \<in> Prods G'"
+    and "p = (S', [Nt S]) \<Longrightarrow> P" "p \<in> Prods G \<Longrightarrow> P"
+  shows P
+proof -
+  from assms(1) have "p \<in> Prods G \<union> {(S', [Nt S])}"
+    unfolding G'_def by auto
+  then show P
+    by standard (use assms(2-) in auto)
+qed
 
 lemma G'_derive_S:
   "Prods G' \<turnstile> [Nt S'] \<Rightarrow> [Nt S]"
@@ -252,16 +277,25 @@ lemma G_derives_imp_G'_derives:
   shows "Prods G' \<turnstile> \<alpha> \<Rightarrow>* w"
   using assms G_Prods_subset_G' by (simp add: derives_mono)
 
-
 lemma S'_notin_Nts_Prods_G [simp]:
   "S' \<notin> (Nts (Prods G))" 
   unfolding S'_def using fresh0_notIn G_finite finite_Nts
   by (metis Un_insert_right sup_bot_right finite_insert insertCI)
 
-corollary S'_Prod_notin_G [simp]:
+corollary S'_Prod_notin_G:
   "(S', \<alpha>) \<notin> Prods G"
   "Nt S' \<in> set \<alpha> \<Longrightarrow> (X, \<alpha>) \<notin> Prods G"
   using S'_notin_Nts_Prods_G unfolding Nts_def Nts_syms_def by blast+
+
+corollary S'_Prod_notin_G':
+  assumes "Nt S' \<in> set \<alpha>"
+  shows "(X, \<alpha>) \<notin> Prods G'"
+  using assms proof (rule contrapos_pn)
+  assume "(X, \<alpha>) \<in> Prods G'"
+  then show "Nt S' \<notin> set \<alpha>"
+    using S_neq_S' S'_Prod_notin_G(2) 
+    by (cases rule: G'_Prod_cases) auto
+qed
 
 
 lemma S'_derive_imp_S:
@@ -352,6 +386,7 @@ proof -
   moreover from Nts_G'_is_union have "Nts (Prods G') = Nts (Prods G') \<union> {S'}" by blast
   ultimately show ?thesis unfolding reduced_def G'_def by auto 
 qed
+
 
 end
 

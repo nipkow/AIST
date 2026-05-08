@@ -637,6 +637,64 @@ next
   finally show ?case .
 qed
 
+lemma ipda_comp_imp_derivers:
+  assumes "([A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol IPDA], w) \<turnstile>P* ([P.final_state, init_symbol IPDA], [])"
+  obtains u v where "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm u" "w = u @ v" 
+    "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* hist \<rho> @ Nt A # map Tm v" 
+    "Prods G' \<turnstile> hist \<rho> @ Nt A # map Tm v \<Rightarrow>r hist \<rho> @ \<alpha> @ \<beta> @ map Tm v"
+proof -
+  from P.reaches_final_imp_in_It[OF assms(1)] in_It_imp_in_Prods have A_in_Prods: 
+    "(A, \<alpha> @ \<beta>) \<in> Prods G'" by fastforce
+  from ipda_reaches_final_imp_rm_chain[OF assms(1)] show ?thesis
+  proof (cases, goal_cases empty chain)
+    case empty
+    with  P.reaches_without_stack_imp_S' assms have 
+      "[A \<rightarrow> \<alpha> . \<beta>] = init_state IPDA \<or> [A \<rightarrow> \<alpha> . \<beta>] = P.final_state" by simp
+    then show ?thesis proof
+      assume "[A \<rightarrow> \<alpha> . \<beta>] = init_state IPDA"
+      moreover with assms have "Prods G' \<turnstile> [Nt S] \<Rightarrow>r* map Tm w" using P.Lang_def
+          in_Lang_imp_S_derives 
+        by (simp add: Lang_preserved P.Lang_eq_Lang_G derivers_iff_derives empty)
+        ultimately show ?thesis using that empty G'_derive_S 
+          by (metis A_in_Prods P.init_state_ipda append.right_neutral append_Nil deriver_singleton
+              derivers_imp_derives hist_Nil item.inject list.simps(8) rtranclp.rtrancl_refl)
+    next
+      assume "[A \<rightarrow> \<alpha> . \<beta>] = P.final_state"
+      with assms(1) show ?thesis 
+        using empty assms A_in_Prods deriver_singleton P.complete_S'_step_impossible 
+        by (cases rule: converse_rtranclpE) (fastforce simp add: deriver_singleton that)+
+    qed
+  next
+    case (chain \<sigma> X \<alpha>' \<beta>' \<gamma>)
+    with rm_chain_Cons_imp_prod_rightmost obtain \<delta> x u v where
+      "\<gamma> = \<delta> @ Nt A # map Tm x" "Prods G' \<turnstile> \<beta>' \<Rightarrow>r* map Tm u" "x = u @ v"
+      by meson
+    with chain rm_chain_singleton_left_is_hist rm_chain_imp_derivers have
+      "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* hist \<rho> @ Nt A # map Tm x" by metis
+    moreover from A_in_Prods have "Prods G' \<turnstile> ... \<Rightarrow>r hist \<rho> @ \<alpha> @ \<beta> @ map Tm x"
+      using deriver.intros by fastforce
+    then show ?thesis sorry
+  qed
+qed
+
+lemma ipda_comp_eq_derivers:
+  "(\<exists>\<rho>. ([A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol IPDA], w) \<turnstile>P* ([P.final_state, init_symbol IPDA], []) \<and>
+    hist \<rho> = \<gamma>)
+  = (\<exists>u v. w = u @ v \<and> Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm u 
+    \<and> Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma> @ Nt A # map Tm v
+    \<and> Prods G' \<turnstile> \<gamma> @ Nt A # map Tm v \<Rightarrow>r \<gamma> @ \<alpha> @ \<beta> @ map Tm v)" (is "?ipda = ?derivers")
+proof
+  assume ?ipda
+  then show ?derivers using ipda_comp_imp_derivers by metis
+next
+  assume ?derivers
+  then obtain u v where "w = u @ v" 
+    "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma> @ Nt A # map Tm v" 
+    "Prods G' \<turnstile> \<gamma> @ Nt A # map Tm v \<Rightarrow>r \<gamma> @ \<alpha> @ \<beta> @ map Tm v"
+    "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm u"
+    by blast
+  from this(1) derivers_imp_ipda_comp[OF this(2-)] show ?ipda by metis  
+qed
 
 
 corollary char_comp_imp_ipda_comp:

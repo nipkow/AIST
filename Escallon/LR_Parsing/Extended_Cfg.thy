@@ -48,10 +48,17 @@ definition It :: "('n, 't) Cfg \<Rightarrow> ('n, 't) item set" where
 
 lemmas It_defs = It_def items_of_Prods_def
 
-lemma in_Prods_eq_in_It:
+lemma in_Prods_imp_in_It:
+  "prod_of_item i \<in> Prods G' \<Longrightarrow> i \<in> It G'"
+  unfolding It_defs by (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq)
+
+lemma in_It_imp_in_Prods:
+  "i \<in> It G' \<Longrightarrow> prod_of_item i \<in> Prods G'"
+  unfolding It_defs by auto
+
+corollary in_Prods_eq_in_It:
   "prod_of_item i \<in> Prods G' = (i \<in> It G')"
-  unfolding It_defs by standard 
-    (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq, auto)
+  using in_Prods_imp_in_It in_It_imp_in_Prods by auto
 
 
 lemma hd_in_prods_imp_derives_expanded_hist:
@@ -374,6 +381,12 @@ corollary G'_not_empty:
 
 lemma Nts_G'_is_union[simp]: "Nts (Prods G) \<union> {S',S} = Nts (Prods G')"
   using G'_def in_Nts_iff_in_Syms by force
+
+lemma in_Lang_imp_S_derives:
+  assumes "w \<in> LangS G'"
+  shows "Prods G' \<turnstile> [Nt S] \<Rightarrow>* map Tm w"
+  using assms unfolding Lang_def 
+  by (metis G_derives_imp_G'_derives Lang_def Lang_preserved S_def mem_Collect_eq)
 
 
 lemma G'_reduced:

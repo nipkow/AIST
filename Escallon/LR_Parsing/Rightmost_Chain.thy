@@ -149,6 +149,24 @@ next
     by (meson assms derivers_tl_substring rm_chain_imp_derivers that)
 qed 
 
+lemma rm_chain_singleton_left_is_hist:
+  assumes "P \<Turnstile> [Nt A] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<alpha> @ Nt X # map Tm v"
+  shows "\<alpha> = hist \<rho>"
+  using assms proof (induction \<rho> arbitrary: \<alpha> X v)
+  case Nil
+  hence "[Nt A] = \<alpha> @ Nt X # map Tm v" by auto
+  then show ?case by (simp add: Cons_eq_append_conv)
+next
+  case (Cons i \<rho>)
+  from this(2) show ?case 
+  proof cases
+    case (step \<alpha>' X' w \<gamma> Y \<beta> x)
+    then show ?thesis using Cons.IH[OF step(3)] 
+      by (metis (no_types, lifting) Cons.prems append_assoc append_same_eq hist_Cons history_unfold
+          map_append right_derivs_eq_imp_eq_tl rm_chain_singleton_imp_eq)
+  qed
+qed
+
 lemma derivers_singleton_imp_rm_chain:
   assumes "P \<turnstile> [Nt A] \<Rightarrow>r(Suc n) \<alpha> @ Nt X # map Tm v"
     "P = Prods G"

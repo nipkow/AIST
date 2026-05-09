@@ -49,62 +49,68 @@ lemma T_zip: "length xs = length ys \<Longrightarrow> T_zip xs ys = length ys + 
 lemma T_rev_bound: "T_rev xs \<le> 2*length xs * length xs + 1"
   by (induction xs) auto
 
+text \<open>Parse tree definitions\<close>
+definition valid_parse_tree :: "('n, 't) Prods \<Rightarrow> ('n, 't) sym list \<Rightarrow> 'n \<Rightarrow> ('n,'t) tree \<Rightarrow> bool" where
+"valid_parse_tree p ws A t \<equiv> parse_tree p t \<and> root t = Nt A \<and> fringe t = ws"
+
+definition unambiguous :: "('n, 't) Cfg \<Rightarrow> bool" where
+"unambiguous g \<equiv> \<forall>w \<in> LangS g. \<forall> t1 t2. (valid_parse_tree (Prods g) (map Tm w) (Start g) t1 \<and> valid_parse_tree (Prods g) (map Tm w) (Start g) t2) \<longrightarrow> t1 = t2"
 
 section \<open>ItemList definiton and functions\<close>
 
-datatype ('n,'a) efficientItemList = 
-  ItemList ("list": "('n,'a) item list") ("froms" : "('n,'a) item list list")
+datatype ('n,'t) efficientItemList = 
+  ItemList ("list": "('n,'t) item list") ("froms" : "('n,'t) item list list")
 
-fun inv_IL :: "('n, 'a) efficientItemList \<Rightarrow> bool" where
+fun inv_IL :: "('n, 't) efficientItemList \<Rightarrow> bool" where
 "inv_IL (ItemList as fs) = ((\<forall>x \<in> set as. from x < length fs) 
                             \<and> (\<forall>i < length fs. set (fs ! i) = {x \<in> set as. from x = i}) 
                             \<and> (\<forall>i < length fs. distinct (fs ! i)) 
                             \<and> distinct as)"
 
-fun isin :: "('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) item \<Rightarrow> bool" where
+fun isin :: "('n, 't) efficientItemList \<Rightarrow> ('n, 't) item \<Rightarrow> bool" where
 "isin (ItemList as fs) x = isin_list (fs ! from x) x"
 
-fun empty_froms :: "nat \<Rightarrow> ('n, 'a) item list list" where
+fun empty_froms :: "nat \<Rightarrow> ('n, 't) item list list" where
 "empty_froms 0 = [[]]"|
 "empty_froms (Suc k) = []#empty_froms k"
 
-definition empty_IL :: "nat \<Rightarrow> ('n, 'a) efficientItemList" where
+definition empty_IL :: "nat \<Rightarrow> ('n, 't) efficientItemList" where
 "empty_IL k = (ItemList [] (empty_froms k))"
 
 context Earley_Gw
 begin
 
 (* Could pull out more defs and lemmas but they would be polymorphic now
-   and not with fixed 'n and 'a as currently. Such polymorphic lemmas
+   and not with fixed 'n and 't as currently. Such polymorphic lemmas
    break some existing proofs because type variables need to be instantiated.
    Worth the effort?
 *)
 
-fun set_ItemList :: "('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) item set" where
+fun set_ItemList :: "('n, 't) efficientItemList \<Rightarrow> ('n, 't) item set" where
 "set_ItemList il = set (list il)"
 
-fun insert :: "('n, 'a) item \<Rightarrow> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList" where
+fun insert :: "('n, 't) item \<Rightarrow> ('n, 't) efficientItemList \<Rightarrow> ('n, 't) efficientItemList" where
 "insert x (ItemList as fs) = (if isin (ItemList as fs) x then ItemList as fs else
                                 ItemList (x#as) (fs[from x := x#(fs ! from x)]))"
 
-fun union_LIL :: "('n, 'a) item list \<Rightarrow> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList" where
+fun union_LIL :: "('n, 't) item list \<Rightarrow> ('n, 't) efficientItemList \<Rightarrow> ('n, 't) efficientItemList" where
 "union_LIL [] il = il" |
 "union_LIL (a#as) il = insert a (union_LIL as il)"
 
-definition IL_of_List :: "nat \<Rightarrow> ('n, 'a) item list \<Rightarrow> ('n, 'a) efficientItemList" where
+definition IL_of_List :: "nat \<Rightarrow> ('n, 't) item list \<Rightarrow> ('n, 't) efficientItemList" where
 "IL_of_List k as = union_LIL as (empty_IL k)"
 
-fun minus_LIL :: "nat \<Rightarrow> ('n, 'a) item list \<Rightarrow> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList" where
+fun minus_LIL :: "nat \<Rightarrow> ('n, 't) item list \<Rightarrow> ('n, 't) efficientItemList \<Rightarrow> ('n, 't) efficientItemList" where
 "minus_LIL k [] il = empty_IL k" |
 "minus_LIL k (a#as) il = (if \<not>(isin il a) then insert a (minus_LIL k as il) else minus_LIL k as il)"
 
-definition minus_IL :: "('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList" where
+definition minus_IL :: "('n, 't) efficientItemList \<Rightarrow> ('n, 't) efficientItemList \<Rightarrow> ('n, 't) efficientItemList" where
 "minus_IL il1 il2 = minus_LIL (length (froms il1) - 1) (list il1) il2"
 
-abbreviation wf_IL :: "('n, 'a) efficientItemList \<Rightarrow> nat \<Rightarrow> bool" where
+abbreviation wf_IL :: "('n, 't) efficientItemList \<Rightarrow> nat \<Rightarrow> bool" where
 "wf_IL il k \<equiv> wf_bin (set_ItemList il) k"
 
-abbreviation wf1_IL :: "('n, 'a) efficientItemList \<Rightarrow> nat \<Rightarrow> bool" where
+abbreviation wf1_IL :: "('n, 't) efficientItemList \<Rightarrow> nat \<Rightarrow> bool" where
 "wf1_IL il k \<equiv> wf_bin1 (set_ItemList il) k"
 
 lemma il_decomp: "\<exists>as m. il = ItemList as m"
@@ -239,30 +245,30 @@ lemma length_IL_minus1: "length (froms il1) > 0 \<Longrightarrow> length (froms 
 section \<open>Earley ItemList algorithm\<close>
 
 
-definition step_rel :: "('n, 'a) item set list \<Rightarrow> ('n, 'a) item set \<times> ('n, 'a) item set \<Rightarrow> ('n, 'a) item set \<times> ('n, 'a) item set \<Rightarrow> bool" where
+definition step_rel :: "('n, 't) item set list \<Rightarrow> ('n, 't) item set \<times> ('n, 't) item set \<Rightarrow> ('n, 't) item set \<times> ('n, 't) item set \<Rightarrow> bool" where
   "step_rel  \<equiv> Close2"
 
-definition Init_L :: "('n,'a) item list" where
+definition Init_L :: "('n,'t) item list" where
   "Init_L =  map (\<lambda> p. Item p 0 0) (filter (\<lambda> p. lhs p = (S)) ps)"
 
-definition Scan_L :: "('n,'a) item list \<Rightarrow> nat \<Rightarrow> ('n,'a) item list" where
+definition Scan_L :: "('n,'t) item list \<Rightarrow> nat \<Rightarrow> ('n,'t) item list" where
   "Scan_L Bs k = (let x = Some(w ! k) in map mv_dot (filter (\<lambda> b. next_symbol b = x) Bs))"
 
-fun step_fun :: "('n, 'a) item list list \<Rightarrow>  ('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList" where
+fun step_fun :: "('n, 't) item list list \<Rightarrow>  ('n, 't) efficientItemList \<times> ('n, 't) efficientItemList \<Rightarrow> ('n, 't) efficientItemList \<times> ('n, 't) efficientItemList" where
   "step_fun Bs ((ItemList (x#xs) fs), C) = (let nexts = (if is_complete x then Complete_L Bs x else Predict_L x (length Bs)) in
     ( minus_IL (union_LIL nexts (ItemList (x#xs) fs)) (insert x C), insert x C) )"
 
-definition steps :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList \<Rightarrow> (('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList) option" where
+definition steps :: "('n, 't) item list list \<Rightarrow> ('n, 't) efficientItemList \<times> ('n, 't) efficientItemList \<Rightarrow> (('n, 't) efficientItemList \<times> ('n, 't) efficientItemList) option" where
   "steps Bs BC = while_option (\<lambda>(ilB,ilC). list ilB \<noteq> []) (step_fun Bs) BC"
 
-definition close2_L :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) efficientItemList \<Rightarrow> ('n, 'a) item list" where
+definition close2_L :: "('n, 't) item list list \<Rightarrow> ('n, 't) efficientItemList \<Rightarrow> ('n, 't) item list" where
   "close2_L Bs B = list (snd (the (steps Bs (B, empty_IL (length Bs)))))"
 
-fun bins_L :: "nat \<Rightarrow> ('n,'a) item list list" where
+fun bins_L :: "nat \<Rightarrow> ('n,'t) item list list" where
   "bins_L 0 = [close2_L [] (IL_of_List 0 Init_L)]" |
   "bins_L (Suc k) = (let Bs = bins_L k in Bs @ [close2_L Bs (IL_of_List (length Bs) (Scan_L (last Bs) k))])"
 
-fun recognized_L :: "('n, 'a) item list \<Rightarrow> bool" where
+fun recognized_L :: "('n, 't) item list \<Rightarrow> bool" where
 "recognized_L [] = False" |
 "recognized_L (a#as) = (is_final a \<or> recognized_L as)"
 
@@ -288,7 +294,7 @@ lemma Complete_eq: "from st < length Bs \<Longrightarrow> set (Complete_L Bs st)
 end
 
 (**)
-fun earley_recognized1 :: "('n \<times> ('n, 'a) sym list) list \<Rightarrow> 'n \<Rightarrow> 'a list \<Rightarrow> bool" where
+fun earley_recognized1 :: "('n \<times> ('n, 't) sym list) list \<Rightarrow> 'n \<Rightarrow> 't list \<Rightarrow> bool" where
 "earley_recognized1 xs s w3 = Earley_Gw.earley_recognized xs s w3"
 
 context Earley_Gw_eps
@@ -634,7 +640,7 @@ begin
 It should really be called step_fun_less but I have kept the original name.
 I adapted it to work on lists rather that sets.
 To simplify matters, I dropped the parameter k *)
-definition step_fun_less :: "nat \<Rightarrow> ((('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList) \<times> (('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList)) set" where
+definition step_fun_less :: "nat \<Rightarrow> ((('n, 't) efficientItemList \<times> ('n, 't) efficientItemList) \<times> (('n, 't) efficientItemList \<times> ('n, 't) efficientItemList)) set" where
 "step_fun_less k = (\<lambda>(B,C). card({x. wf_item x k} - (set_ItemList B \<union> set_ItemList C))) <*mlex*> inv_image finite_psubset (set_ItemList o fst)"
 
 lemma step_fun_less_eq: "((A, B), (C,D)) \<in> step_fun_less k \<longleftrightarrow> ((set_ItemList A, set_ItemList B), (set_ItemList C, set_ItemList D)) \<in> Close2_less k"
@@ -980,10 +986,10 @@ time_fun step_fun
 
 
 (*assumes that the stop condition check takes 0 time*)
-fun steps_time :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList \<Rightarrow> nat \<Rightarrow> ((('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList) \<times> nat) option" where
+fun steps_time :: "('n, 't) item list list \<Rightarrow> ('n, 't) efficientItemList \<times> ('n, 't) efficientItemList \<Rightarrow> nat \<Rightarrow> ((('n, 't) efficientItemList \<times> ('n, 't) efficientItemList) \<times> nat) option" where
 "steps_time Bs ils y = while_option (\<lambda>((il1,il2),k). (list il1) \<noteq> []) (\<lambda>((il1,il2),k). (step_fun Bs (il1,il2), k + T_step_fun Bs (il1,il2))) (ils, y)"
 
-fun T_steps :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) efficientItemList \<times> ('n, 'a) efficientItemList \<Rightarrow> nat" where
+fun T_steps :: "('n, 't) item list list \<Rightarrow> ('n, 't) efficientItemList \<times> ('n, 't) efficientItemList \<Rightarrow> nat" where
 "T_steps Bs ils = snd (the (steps_time Bs ils 0))"
 
 time_fun close2_L
@@ -996,10 +1002,10 @@ end (*Context Earley_Gw*)
 
 
 
-locale Earley_Gw_eps_T = Earley_Gw_eps where ps = ps for ps :: "('n,'a) prods" +
+locale Earley_Gw_eps_T = Earley_Gw_eps where ps = ps for ps :: "('n,'t) prods" +
   fixes T_nth_IL:: "nat \<Rightarrow> nat"
-  assumes T_nth_Bound: "(T_nth :: ('n, 'a) item list list \<Rightarrow> nat \<Rightarrow> nat) as k \<le> T_nth_IL k"
-  and T_update_Bound: "(T_list_update :: ('n, 'a) item list list \<Rightarrow> nat \<Rightarrow> ('n, 'a) item list \<Rightarrow> nat) as k a \<le> T_nth_IL k"
+  assumes T_nth_Bound: "(T_nth :: ('n, 't) item list list \<Rightarrow> nat \<Rightarrow> nat) as k \<le> T_nth_IL k"
+  and T_update_Bound: "(T_list_update :: ('n, 't) item list list \<Rightarrow> nat \<Rightarrow> ('n, 't) item list \<Rightarrow> nat) as k a \<le> T_nth_IL k"
   and mono_nth: "mono T_nth_IL" (*mono f*)
   and dist_ps: "distinct ps"
 begin
@@ -1919,63 +1925,57 @@ context Earley_Gw
 begin
 type_synonym ('c, 'd) parseItem = "('c, 'd) item \<times> ('c, 'd) tree list"
 
-abbreviation item :: "('n,'a) parseItem \<Rightarrow> ('n, 'a) item" where
+abbreviation item :: "('n,'t) parseItem \<Rightarrow> ('n, 't) item" where
   "item \<equiv> fst"
 
-abbreviation trees :: "('n,'a) parseItem \<Rightarrow> ('n, 'a) tree list" where
+abbreviation trees :: "('n,'t) parseItem \<Rightarrow> ('n, 't) tree list" where
   "trees \<equiv> snd"
 
-fun wf_parseItem :: "('n, 'a) parseItem \<Rightarrow> nat \<Rightarrow> bool" where
+fun wf_parseItem :: "('n, 't) parseItem \<Rightarrow> nat \<Rightarrow> bool" where
 "wf_parseItem x k = (wf_item (item x) k 
                   \<and> (\<forall>t \<in> (set (trees x)). parse_tree P t) 
                   \<and> fringes (rev (trees x)) = slice (from (item x)) k w 
                   \<and> (map root (rev (trees x)) = \<alpha> (item x)))"
 
-fun wf_parseItem1 :: "('n, 'a) parseItem \<Rightarrow> nat \<Rightarrow> bool" where
+fun wf_parseItem1 :: "('n, 't) parseItem \<Rightarrow> nat \<Rightarrow> bool" where
 "wf_parseItem1 x k = (wf_item1 (item x) k 
                     \<and> (\<forall>t \<in> (set (trees x)). parse_tree P t) 
                     \<and> fringes (rev (trees x)) = slice (from (item x)) k w 
                     \<and> (map root (rev (trees x)) = \<alpha> (item x)))"
   
-fun wf_parse_bin :: "('n, 'a) parseItem set \<Rightarrow> nat \<Rightarrow> bool" where
+fun wf_parse_bin :: "('n, 't) parseItem set \<Rightarrow> nat \<Rightarrow> bool" where
 "wf_parse_bin xs k = (\<forall>x \<in> xs. wf_parseItem x k)"
 
-fun wf_parse_bin1 :: "('n, 'a) parseItem set \<Rightarrow> nat \<Rightarrow> bool" where
+fun wf_parse_bin1 :: "('n, 't) parseItem set \<Rightarrow> nat \<Rightarrow> bool" where
 "wf_parse_bin1 xs k = (\<forall>x \<in> xs. wf_parseItem1 x k)"
 
-definition wf_parse_bins1 :: "('n, 'a) parseItem set list \<Rightarrow> bool" where
+definition wf_parse_bins1 :: "('n, 't) parseItem set list \<Rightarrow> bool" where
 "wf_parse_bins1 Bs = (\<forall>k < length Bs. wf_parse_bin1 (Bs!k) k)"
 
-definition Parse_Predict :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> ('n,'a) parseItem set" where 
+definition Parse_Predict :: "('n,'t) item \<Rightarrow> nat \<Rightarrow> ('n,'t) parseItem set" where 
   "Parse_Predict x k = { (Item r 0 k, []) | r. r \<in> P \<and> next_sym_Nt x (lhs r) }"
 
-definition Parse_Complete :: "('n, 'a) parseItem set list \<Rightarrow> ('n, 'a) parseItem \<Rightarrow> ('n, 'a) parseItem set" where
+definition Parse_Complete :: "('n, 't) parseItem set list \<Rightarrow> ('n, 't) parseItem \<Rightarrow> ('n, 't) parseItem set" where
   "Parse_Complete Bs y = (\<lambda> (p, t). (mv_dot p, (Rule (lhs(prod (item y))) (rev (trees y)))#t)) ` {x. x \<in> Bs ! from (item y) \<and> next_sym_Nt (fst x) (lhs(prod (item y)))}"
 
-definition Parse_Init :: "('n,'a) parseItem set" where
+definition Parse_Init :: "('n,'t) parseItem set" where
   "Parse_Init = { (Item r 0 0, []) | r. r \<in> P \<and> lhs r = (S) }"
 
-definition Parse_Scan :: "('n,'a) parseItem set \<Rightarrow> nat \<Rightarrow> ('n,'a) parseItem set" where
+definition Parse_Scan :: "('n,'t) parseItem set \<Rightarrow> nat \<Rightarrow> ('n,'t) parseItem set" where
   "Parse_Scan B k = { (mv_dot (item x), (Sym (w!k))#(trees x)) | x. x \<in> B \<and> next_symbol (item x) = Some (w!k) }"
 
-inductive_set Parse_Close :: "('n,'a) parseItem set list \<Rightarrow> ('n,'a) parseItem set \<Rightarrow> ('n,'a) parseItem set" for Bs B where
+inductive_set Parse_Close :: "('n,'t) parseItem set list \<Rightarrow> ('n,'t) parseItem set \<Rightarrow> ('n,'t) parseItem set" for Bs B where
     Init: "x \<in> B \<Longrightarrow> x \<in> Parse_Close Bs B"
   | Predict: "\<lbrakk> x \<in> Parse_Close Bs B; x' \<in> Parse_Predict (item x) (length Bs) \<rbrakk> \<Longrightarrow> x' \<in> Parse_Close Bs B"
   | Complete: "\<lbrakk> y \<in> Parse_Close Bs B; is_complete (item y); x \<in> Parse_Complete Bs y\<rbrakk> \<Longrightarrow> x \<in> Parse_Close Bs B"
 
-fun Parse_bins :: "nat \<Rightarrow> ('n, 'a) parseItem set list" where
+fun Parse_bins :: "nat \<Rightarrow> ('n, 't) parseItem set list" where
   "Parse_bins 0 = [(Parse_Close [] Parse_Init)]" |
   "Parse_bins (Suc k) = (let bs = Parse_bins k in bs @ [Parse_Close bs (Parse_Scan (last bs) k)])"
 
-definition get_parse_tree_set :: "('n, 'a) tree option"  where
+definition get_parse_tree_set :: "('n, 't) tree option"  where
 "get_parse_tree_set = (let ts = (SOME t. \<exists>i. (i,t) \<in> (last (Parse_bins (length w))) \<and> is_final i) 
   in if (\<exists> i t. (i,t) \<in> (last (Parse_bins (length w))) \<and> is_final i) then Some ( Rule S (rev ts)) else None)"
-
-definition valid_parse_tree :: "('n, 'a) Prods \<Rightarrow> ('n, 'a) sym list \<Rightarrow> 'n \<Rightarrow> ('n,'a) tree \<Rightarrow> bool" where
-"valid_parse_tree p ws A t \<equiv> parse_tree p t \<and> root t = Nt A \<and> fringe t = ws"
-
-definition unambiguous :: "('n, 'a) Cfg \<Rightarrow> bool" where
-"unambiguous g \<equiv> \<forall>w \<in> LangS g. \<forall> t1 t2. (valid_parse_tree (Prods g) (map Tm w) (Start g) t1 \<and> valid_parse_tree (Prods g) (map Tm w) (Start g) t2) \<longrightarrow> t1 = t2"
 
 lemma Parse_Predict_item: "Parse_Predict x k = Predict x k \<times> {[]}"
   by (auto simp add: Parse_Predict_def Predict_def)
@@ -2258,48 +2258,48 @@ subsection \<open>ParseItemList definition\<close>
 
 type_synonym ('c, 'd) parseIL = "('c,'d) efficientItemList \<times> ('c,'d) tree list list"
 
-fun inv_PIL :: "('n, 'a) parseIL \<Rightarrow> bool" where
+fun inv_PIL :: "('n, 't) parseIL \<Rightarrow> bool" where
 "inv_PIL (il, ts) = (inv_IL il \<and> length (list il) = length ts)"
 
-definition empty_PIL :: "nat \<Rightarrow> ('n, 'a) parseIL" where
+definition empty_PIL :: "nat \<Rightarrow> ('n, 't) parseIL" where
 "empty_PIL k = (empty_IL k, [] )"
 
-fun list_PIL :: "('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseItem list" where
+fun list_PIL :: "('n, 't) parseIL \<Rightarrow> ('n, 't) parseItem list" where
 "list_PIL (il, ts) = (zip (list il) ts)"
 
-fun isin_PIL :: "('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseItem \<Rightarrow> bool" where
+fun isin_PIL :: "('n, 't) parseIL \<Rightarrow> ('n, 't) parseItem \<Rightarrow> bool" where
 "isin_PIL (il, ts) (s, t) = isin il s"
 
-fun set_PIL :: "('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseItem set" where
+fun set_PIL :: "('n, 't) parseIL \<Rightarrow> ('n, 't) parseItem set" where
 "set_PIL (il, ts) = set (zip (list il) ts)"
 
-fun insert_PIL :: "('n, 'a) parseItem \<Rightarrow> ('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseIL" where
+fun insert_PIL :: "('n, 't) parseItem \<Rightarrow> ('n, 't) parseIL \<Rightarrow> ('n, 't) parseIL" where
 "insert_PIL (s, t) (il, ts) = (if isin il s then (il, ts) else (insert s il, t#ts))"
 
-fun union_LPIL :: "('n, 'a) parseItem list \<Rightarrow> ('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseIL" where
+fun union_LPIL :: "('n, 't) parseItem list \<Rightarrow> ('n, 't) parseIL \<Rightarrow> ('n, 't) parseIL" where
 "union_LPIL [] pil = pil" |
 "union_LPIL (a#as) pil = insert_PIL a (union_LPIL as pil)"
 
-definition union_PIL :: "('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseIL" where
+definition union_PIL :: "('n, 't) parseIL \<Rightarrow> ('n, 't) parseIL \<Rightarrow> ('n, 't) parseIL" where
 "union_PIL pil1 pil2 = union_LPIL (list_PIL pil1) pil2"
 
-definition PIL_of_List :: "nat \<Rightarrow> ('n, 'a) parseItem list \<Rightarrow> ('n, 'a) parseIL" where
+definition PIL_of_List :: "nat \<Rightarrow> ('n, 't) parseItem list \<Rightarrow> ('n, 't) parseIL" where
 "PIL_of_List k as = union_LPIL as (empty_PIL k)"
 
-fun minus_LPIL :: "nat \<Rightarrow> ('n, 'a) parseItem list \<Rightarrow> ('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseIL" where
+fun minus_LPIL :: "nat \<Rightarrow> ('n, 't) parseItem list \<Rightarrow> ('n, 't) parseIL \<Rightarrow> ('n, 't) parseIL" where
 "minus_LPIL k [] pil = empty_PIL k" |
 "minus_LPIL k (a#as) pil = (if \<not>(isin_PIL pil a) then insert_PIL a (minus_LPIL k as pil) else minus_LPIL k as pil)"
 
-definition minus_PIL :: "('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseIL" where
+definition minus_PIL :: "('n, 't) parseIL \<Rightarrow> ('n, 't) parseIL \<Rightarrow> ('n, 't) parseIL" where
 "minus_PIL pil1 pil2 = minus_LPIL (length (froms (fst pil1)) - 1) (list_PIL pil1) pil2"
 
-fun hd_PIL :: "('n,'a) parseIL \<Rightarrow> ('n,'a) parseItem" where
+fun hd_PIL :: "('n,'t) parseIL \<Rightarrow> ('n,'t) parseItem" where
 "hd_PIL (il, t#ts) = (hd (list il), t)"
 
-fun wf_PIL :: "('n,'a) parseIL \<Rightarrow> nat \<Rightarrow> bool" where
+fun wf_PIL :: "('n,'t) parseIL \<Rightarrow> nat \<Rightarrow> bool" where
 "wf_PIL pil k = wf_parse_bin1 (set_PIL pil) k"
 
-definition PIL_map_item :: "('n, 'a) parseIL \<Rightarrow> ('n,'a) item list" where
+definition PIL_map_item :: "('n, 't) parseIL \<Rightarrow> ('n,'t) item list" where
 "PIL_map_item pil = list (fst pil)"
 
 subsection \<open>ParseItemList lemmas\<close>
@@ -2449,40 +2449,40 @@ qed
 
 subsection \<open>Parsing algorithm\<close>
 
-definition Parse_Predict_L :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> ('n,'a) parseItem list" where 
+definition Parse_Predict_L :: "('n,'t) item \<Rightarrow> nat \<Rightarrow> ('n,'t) parseItem list" where 
 "Parse_Predict_L x k = map (\<lambda>p. (Item p 0 k, [])) (filter (\<lambda>p. next_sym_Nt x (lhs p)) ps)"
 
 
-definition Parse_Complete_L :: "('n, 'a) parseItem list list \<Rightarrow> ('n, 'a) parseItem \<Rightarrow> ('n, 'a) parseItem list" where
+definition Parse_Complete_L :: "('n, 't) parseItem list list \<Rightarrow> ('n, 't) parseItem \<Rightarrow> ('n, 't) parseItem list" where
   "Parse_Complete_L Bs y = map (\<lambda> x. let (p,t) = x in (mv_dot p, (Rule (lhs(prod (item y))) (rev (trees y)))#t)) (filter (\<lambda> x. let (p,t) = x in next_sym_Nt p (lhs(prod (item y)))) (Bs ! from (item y)))"
 
-(*definition Parse_Complete_L :: "('n, 'a) parseItem list list \<Rightarrow> ('n, 'a) parseItem \<Rightarrow> ('n, 'a) parseItem list" where
+(*definition Parse_Complete_L :: "('n, 't) parseItem list list \<Rightarrow> ('n, 't) parseItem \<Rightarrow> ('n, 't) parseItem list" where
   "Parse_Complete_L Bs y = map (\<lambda> (p, t). (mv_dot p, (Rule (lhs(prod (item y))) (rev (trees y)))#t)) (filter (\<lambda> (p, t). next_sym_Nt p (lhs(prod (item y)))) (Bs ! from (item y)))"*)
 
-definition Parse_Init_L :: "('n,'a) parseItem list" where
+definition Parse_Init_L :: "('n,'t) parseItem list" where
   "Parse_Init_L = map (\<lambda>p. (Item p 0 0, [])) (filter (\<lambda> p. lhs p = (S)) ps)"
 
 
-definition Parse_Scan_L :: "('n,'a) parseItem list \<Rightarrow> nat \<Rightarrow> ('n,'a) parseItem list" where
+definition Parse_Scan_L :: "('n,'t) parseItem list \<Rightarrow> nat \<Rightarrow> ('n,'t) parseItem list" where
   "Parse_Scan_L Bs k = (let x = Some (w ! k) in map (\<lambda> y. let (p,t) = y in (mv_dot p, (Sym (the x))#t)) (filter (\<lambda> y. let (p,t) = y in next_symbol p = x) Bs))"
 
-fun Parse_step_fun :: "('n, 'a) parseItem list list \<Rightarrow>  ('n, 'a) parseIL \<times> ('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseIL \<times> ('n, 'a) parseIL" where
+fun Parse_step_fun :: "('n, 't) parseItem list list \<Rightarrow>  ('n, 't) parseIL \<times> ('n, 't) parseIL \<Rightarrow> ('n, 't) parseIL \<times> ('n, 't) parseIL" where
   "Parse_step_fun Bs ((il1, []), pil2) = undefined" |
   "Parse_step_fun Bs ((il1, ts1), pil2) = (let b = hd_PIL (il1, ts1) in 
     (let step = (if is_complete (item b) then Parse_Complete_L Bs b else Parse_Predict_L (item b) (length Bs)) in
     ( minus_PIL (union_LPIL step (il1, ts1)) (insert_PIL b pil2), insert_PIL b pil2) ))"
 
-definition Parse_steps :: "('n, 'a) parseItem list list \<Rightarrow> ('n, 'a) parseIL \<times> ('n, 'a) parseIL \<Rightarrow> (('n, 'a) parseIL \<times> ('n, 'a) parseIL) option" where
+definition Parse_steps :: "('n, 't) parseItem list list \<Rightarrow> ('n, 't) parseIL \<times> ('n, 't) parseIL \<Rightarrow> (('n, 't) parseIL \<times> ('n, 't) parseIL) option" where
   "Parse_steps Bs BC = while_option (\<lambda>(B,C). PIL_map_item B \<noteq> []) (Parse_step_fun Bs) BC"
 
-definition Parse_close2_L :: "('n, 'a) parseItem list list \<Rightarrow> ('n, 'a) parseIL \<Rightarrow> ('n, 'a) parseItem list" where
+definition Parse_close2_L :: "('n, 't) parseItem list list \<Rightarrow> ('n, 't) parseIL \<Rightarrow> ('n, 't) parseItem list" where
 "Parse_close2_L Bs B = list_PIL (snd (the (Parse_steps Bs (B, empty_PIL (length Bs)))))"
 
-fun Parse_bins_L :: "nat \<Rightarrow> ('n,'a) parseItem list list" where
+fun Parse_bins_L :: "nat \<Rightarrow> ('n,'t) parseItem list list" where
 "Parse_bins_L 0 = [Parse_close2_L [] (PIL_of_List 0 Parse_Init_L)]" |
 "Parse_bins_L (Suc k) = (let Bs = Parse_bins_L k in Bs @ [Parse_close2_L Bs (PIL_of_List (length Bs) (Parse_Scan_L (last Bs) k))])"
 
-fun get_parse_tree :: "('n,'a) parseItem list \<Rightarrow> ('n,'a) tree option" where
+fun get_parse_tree :: "('n,'t) parseItem list \<Rightarrow> ('n,'t) tree option" where
 "get_parse_tree [] = None" |
 "get_parse_tree (x#xs) = (if is_final (fst x) then Some (Rule S (rev (snd x))) else get_parse_tree xs)"
 
@@ -2493,7 +2493,7 @@ abbreviation parse_tree_w where
 "parse_tree_w \<equiv> get_parse_tree (last (Parse_bins_L (length w)))"
 end
 
-fun  get_parse_tree_w :: "('n \<times> ('n, 'a) sym list) list \<Rightarrow> 'n \<Rightarrow> 'a list \<Rightarrow> ('n, 'a) tree option" where                
+fun  get_parse_tree_w :: "('n \<times> ('n, 't) sym list) list \<Rightarrow> 'n \<Rightarrow> 't list \<Rightarrow> ('n, 't) tree option" where                
 "get_parse_tree_w s xs w3 = Earley_Gw.parse_tree_w s xs w3"
 
 subsection \<open>Correctness of list based earley parser\<close>
@@ -3040,7 +3040,7 @@ corollary unambiguous_impl_the_parse_tree:
 proof
   assume valid: "valid_parse_tree P w S t"
   then have "P \<turnstile> [Nt S] \<Rightarrow>* w"
-    using valid_parse_tree_iff_derived by auto
+    using valid_parse_tree_iff_derived[of P w S] by auto
   then have w0_in_L: "w0 \<in> Lang P S" by (auto simp add: Lang_def w_def)
   then obtain t1 where P_t1: "get_parse_tree (last (Parse_bins_L (length w))) = Some t1"
     using find_parse_tree_iff_w_in_L by blast
@@ -3129,10 +3129,10 @@ proof-
 qed
 
 (*assumes that the stop condition check takes 0 time*)
-fun parse_steps_time :: "('n, 'a) parseItem list list \<Rightarrow> ('n, 'a) parseIL \<times> ('n, 'a) parseIL \<Rightarrow> nat \<Rightarrow> ((('n, 'a) parseIL \<times> ('n, 'a) parseIL) \<times> nat) option" where
+fun parse_steps_time :: "('n, 't) parseItem list list \<Rightarrow> ('n, 't) parseIL \<times> ('n, 't) parseIL \<Rightarrow> nat \<Rightarrow> ((('n, 't) parseIL \<times> ('n, 't) parseIL) \<times> nat) option" where
 "parse_steps_time Bs ils y = while_option (\<lambda>((B,C),k). PIL_map_item B \<noteq> []) (\<lambda>((B,C),k). (Parse_step_fun Bs (B,C), k + T_Parse_step_fun Bs (B,C))) (ils, y)"
 
-fun T_Parse_steps :: "('n, 'a) parseItem list list \<Rightarrow> ('n, 'a) parseIL \<times> ('n, 'a) parseIL \<Rightarrow> nat" where
+fun T_Parse_steps :: "('n, 't) parseItem list list \<Rightarrow> ('n, 't) parseIL \<times> ('n, 't) parseIL \<Rightarrow> nat" where
 "T_Parse_steps Bs ils = snd (the (parse_steps_time Bs ils 0))"
 
 

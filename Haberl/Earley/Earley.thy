@@ -76,25 +76,25 @@ section \<open>Earley recognizer: Abstract inductive definition\<close>
 
 subsection \<open>Earley items\<close>
 
-abbreviation lhs :: "('n,'a) prod \<Rightarrow> 'n" where
+abbreviation lhs :: "('n,'t) prod \<Rightarrow> 'n" where
   "lhs \<equiv> fst"
 
-definition rhs :: "('n,'a) prod \<Rightarrow> ('n,'a) syms" where
+definition rhs :: "('n,'t) prod \<Rightarrow> ('n,'t) syms" where
   "rhs p = snd p"
 
-datatype ('n,'a) item = 
-  Item (prod: "('n,'a) prod") (dot : nat) ("from" : nat)
+datatype ('n,'t) item = 
+  Item (prod: "('n,'t) prod") (dot : nat) ("from" : nat)
 
-definition \<alpha> :: "('n,'a) item \<Rightarrow> ('n,'a) syms" where
+definition \<alpha> :: "('n,'t) item \<Rightarrow> ('n,'t) syms" where
   "\<alpha> x = take (dot x) (rhs(prod x))"
 
-definition \<beta> :: "('n,'a) item \<Rightarrow> ('n,'a) syms" where 
+definition \<beta> :: "('n,'t) item \<Rightarrow> ('n,'t) syms" where 
   "\<beta> x = drop (dot x) (rhs(prod x))"
 
-definition is_complete :: "('n,'a) item \<Rightarrow> bool" where
+definition is_complete :: "('n,'t) item \<Rightarrow> bool" where
   "is_complete x = (dot x \<ge> length (rhs(prod x)))"
 
-definition next_symbol :: "('n,'a) item \<Rightarrow> ('n,'a) sym option" where
+definition next_symbol :: "('n,'t) item \<Rightarrow> ('n,'t) sym option" where
   "next_symbol x = (if is_complete x then None else Some (rhs(prod x) ! dot x))"
 
 abbreviation "next_sym_Nt x A \<equiv> next_symbol x = Some(Nt A)"
@@ -102,33 +102,33 @@ abbreviation "next_sym_Nt x A \<equiv> next_symbol x = Some(Nt A)"
 lemmas item_defs = \<alpha>_def \<beta>_def rhs_def
 
 locale Earley_Gw =
-fixes ps :: "('n,'a) prods"
+fixes ps :: "('n,'t) prods"
 fixes S :: 'n
-fixes w0 :: "'a list"
+fixes w0 :: "'t list"
 begin
 
 abbreviation "P \<equiv> set ps"
-definition w :: "('n,'a)syms" where "w \<equiv> map Tm w0"
+definition w :: "('n,'t)syms" where "w \<equiv> map Tm w0"
 
-definition is_final :: "('n,'a) item \<Rightarrow> bool" where
+definition is_final :: "('n,'t) item \<Rightarrow> bool" where
   "is_final x =
     (lhs(prod x) = S \<and>
     from x = 0 \<and>
     is_complete x)"
 
-definition recognized :: "(('n,'a) item \<times> nat) set \<Rightarrow> bool" where
+definition recognized :: "(('n,'t) item \<times> nat) set \<Rightarrow> bool" where
   "recognized I \<equiv> \<exists>(x,k) \<in> I. is_final x \<and> k = length w"
 
-definition Init :: "('n,'a) item set" where
+definition Init :: "('n,'t) item set" where
   "Init = { Item r 0 0 | r. r \<in> P \<and> lhs r = (S) }"
 
-definition Predict :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> ('n,'a) item set" where
+definition Predict :: "('n,'t) item \<Rightarrow> nat \<Rightarrow> ('n,'t) item set" where
   "Predict x k = { Item r 0 k | r. r \<in> P \<and> next_sym_Nt x (lhs r) }"
 
-definition mv_dot :: "('n,'a) item \<Rightarrow> ('n,'a) item" where
+definition mv_dot :: "('n,'t) item \<Rightarrow> ('n,'t) item" where
 "mv_dot x \<equiv> Item (prod x) (dot x + 1) (from x)"
 (* TODO use Complete and Scan? *)
-inductive_set Earley :: "(('n,'a) item \<times> nat) set" where
+inductive_set Earley :: "(('n,'t) item \<times> nat) set" where
     Init: "x \<in> Init \<Longrightarrow> (x,0) \<in> Earley"
   | Scan: "\<lbrakk> (x,j) \<in> Earley;  j < length w;  next_symbol x = Some (w!j) \<rbrakk> \<Longrightarrow>
       (mv_dot x, j + 1) \<in> Earley"
@@ -138,7 +138,7 @@ inductive_set Earley :: "(('n,'a) item \<times> nat) set" where
       next_sym_Nt x (lhs(prod y)) \<rbrakk> \<Longrightarrow>
         (mv_dot x, k) \<in> Earley"
 
-definition \<S> :: "nat \<Rightarrow> ('n,'a) item set" where
+definition \<S> :: "nat \<Rightarrow> ('n,'t) item set" where
 "\<S> i = {x. (x,i) \<in> Earley}"
 
 lemma Earley_eq_\<S>: "(x,i) \<in> Earley \<longleftrightarrow> x \<in> \<S> i"
@@ -150,7 +150,7 @@ definition accepted :: "bool" where
 
 subsection \<open>Well-formedness\<close>
 
-definition wf_item :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> bool" where 
+definition wf_item :: "('n,'t) item \<Rightarrow> nat \<Rightarrow> bool" where 
   "wf_item x k =
     (prod x \<in> P \<and> 
     dot x \<le> length (rhs(prod x)) \<and>
@@ -189,7 +189,7 @@ lemmas wf_EarleyS = wf_Earley[unfolded Earley_eq_\<S>]
 
 subsection \<open>Soundness\<close>
 
-definition sound_item :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> bool" where
+definition sound_item :: "('n,'t) item \<Rightarrow> nat \<Rightarrow> bool" where
   "sound_item x k = (P \<turnstile> \<alpha> x \<Rightarrow>* slice (from x) k w)"
 
 lemma sound_Init:
@@ -443,7 +443,7 @@ theorem correctness_Earley_NT:
 
 subsection \<open>Finiteness\<close>
 
-fun mk_item :: "('n,'a) prod \<times> nat \<times> nat \<times> nat \<Rightarrow> ('n,'a) item \<times> nat" where
+fun mk_item :: "('n,'t) prod \<times> nat \<times> nat \<times> nat \<Rightarrow> ('n,'t) item \<times> nat" where
   "mk_item (r, d, k, ends) = (Item r d k, ends)" 
 
 lemma finite_wf_item:
@@ -484,10 +484,10 @@ qed
 
 section \<open>Earley recognizer: Standard recursive/inductive definition\<close>
 
-definition Scan :: "('n,'a) item set \<Rightarrow> nat \<Rightarrow> ('n,'a) item set" where
+definition Scan :: "('n,'t) item set \<Rightarrow> nat \<Rightarrow> ('n,'t) item set" where
   "Scan B k = { mv_dot x | x. x \<in> B \<and> next_symbol x = Some (w!k) }"
 
-inductive_set Close :: "('n,'a) item set list \<Rightarrow> ('n,'a) item set \<Rightarrow> ('n,'a) item set" for Bs B where
+inductive_set Close :: "('n,'t) item set list \<Rightarrow> ('n,'t) item set \<Rightarrow> ('n,'t) item set" for Bs B where
     Init: "x \<in> B \<Longrightarrow> x \<in> Close Bs B"
   | Predict: "\<lbrakk> x \<in> Close Bs B; x' \<in> Predict x (length Bs) \<rbrakk> \<Longrightarrow> x' \<in> Close Bs B"
   | Complete: "\<lbrakk> y \<in> Close Bs B;  is_complete y;
@@ -510,7 +510,7 @@ by (metis Close.Complete diff_is_0_eq' linorder_not_le nat_neq_iff nth_Cons_0)
 abbreviation "wf_bin B k \<equiv> \<forall>s \<in> B. wf_item s k"
 abbreviation "wf_bins Bs \<equiv> \<forall>k < length Bs. wf_bin (Bs!k) k"
 
-fun bins :: "nat \<Rightarrow> ('n,'a) item set list" where
+fun bins :: "nat \<Rightarrow> ('n,'t) item set list" where
 "bins 0 = [Close [] Init]" |
 "bins (Suc k) = (let Bs = bins k in Bs @ [Close Bs (Scan (last Bs) k)])"
 
@@ -629,7 +629,7 @@ using bins_eq_\<S>_gen[of "length w"] by blast
 
 subsection \<open>Simplification: \<epsilon>-free Grammars\<close>
 
-definition wf_item1 :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> bool" where 
+definition wf_item1 :: "('n,'t) item \<Rightarrow> nat \<Rightarrow> bool" where 
 "wf_item1 x k = (wf_item x k \<and> (is_complete x \<longrightarrow> from x < k))"
 
 definition "wf_bin1 B k = (\<forall>x \<in> B. wf_item1 x k)"
@@ -637,7 +637,7 @@ definition "wf_bins1 Bs = (\<forall>k < length Bs. wf_bin1 (Bs!k) k)"
 
 text \<open>Like @{const Close}, but in \<open>Complete\<close>, only one item is from the current item set:\<close>
 
-inductive_set Close1 :: "('n,'a) item set list \<Rightarrow> ('n,'a) item set \<Rightarrow> ('n,'a) item set" for Bs B where
+inductive_set Close1 :: "('n,'t) item set list \<Rightarrow> ('n,'t) item set \<Rightarrow> ('n,'t) item set" for Bs B where
     Init: "x \<in> B \<Longrightarrow> x \<in> Close1 Bs B"
   | Predict: "\<lbrakk> x \<in> Close1 Bs B; x' \<in> Predict x (length Bs) \<rbrakk> \<Longrightarrow> x' \<in> Close1 Bs B"
   | Complete: "\<lbrakk> y \<in> Close1 Bs B;  is_complete y; x \<in> Bs ! from y;
@@ -674,7 +674,7 @@ using Close1_idemp1 by blast
 
 end (* Earley_Gw *)
 
-locale Earley_Gw_eps = Earley_Gw where ps = ps for ps :: "('n,'a) prods" +
+locale Earley_Gw_eps = Earley_Gw where ps = ps for ps :: "('n,'t) prods" +
 assumes eps_free: "eps_free ps"
 begin
 
@@ -761,7 +761,7 @@ begin
 
 (* TODO? Generic workset algorithm parameterized with next-function? *)
 
-inductive Close2 :: "('n,'a) item set list \<Rightarrow> ('n,'a) item set * ('n,'a) item set \<Rightarrow> ('n,'a) item set * ('n,'a) item set \<Rightarrow> bool"
+inductive Close2 :: "('n,'t) item set list \<Rightarrow> ('n,'t) item set * ('n,'t) item set \<Rightarrow> ('n,'t) item set * ('n,'t) item set \<Rightarrow> bool"
 ("(_ \<turnstile> _ \<rightarrow> _)" [50, 0, 50] 50)
   for Bs where
     Predict: "\<lbrakk> x \<in> B; \<not> is_complete x \<rbrakk> \<Longrightarrow>
@@ -888,7 +888,7 @@ subsubsection \<open>Preparation for Termination of \<open>Close2\<close>\<close
 
 text \<open>Here we only define the well-founded relation that subsumes \<open>Close2\<close>.\<close>
 
-definition Close2_less :: "nat \<Rightarrow> ((('n,'a) item set \<times> ('n,'a) item set) \<times> (('n,'a) item set \<times> ('n,'a) item set)) set" where
+definition Close2_less :: "nat \<Rightarrow> ((('n,'t) item set \<times> ('n,'t) item set) \<times> (('n,'t) item set \<times> ('n,'t) item set)) set" where
 "Close2_less k = (\<lambda>(B,C). card({x. wf_item x k} - (B \<union> C))) <*mlex*> inv_image finite_psubset fst"
 
 lemma wf_Close2_less: "wf (Close2_less k)"
@@ -1085,18 +1085,18 @@ text \<open>Most of the following functions are already in theory \<open>List\<c
 because either to clarify their timing behaviour (\<open>List.member\<close> uses sets)
 or simply for uniform naming.\<close>
 
-(* TODO: this 'c is some silly conflict of the 'a in the locales; pull effItemList out! *)
+(* TODO: this 'c is some silly conflict of the 't in the locales; pull effItemList out! *)
 fun isin_list :: "'c list \<Rightarrow> 'c \<Rightarrow> bool"  where
 "isin_list [] a = False" |
 "isin_list (x#xs) a = (if x=a then True else isin_list xs a)"
 
-definition insert_list :: "'a \<Rightarrow> 'a list \<Rightarrow> 'a list"  where
+definition insert_list :: "'t \<Rightarrow> 't list \<Rightarrow> 't list"  where
 "insert_list a xs = (if isin_list xs a then xs else a#xs)"
 
-definition union_list :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list"  where
+definition union_list :: "'t list \<Rightarrow> 't list \<Rightarrow> 't list"  where
 "union_list = List.union"
 
-definition diff_list :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list"  where
+definition diff_list :: "'t list \<Rightarrow> 't list \<Rightarrow> 't list"  where
 "diff_list xs ys = filter (Not o isin_list ys) xs"
 
 lemma isin_list[simp]: "isin_list xs a = (a \<in> set xs)"
@@ -1120,10 +1120,10 @@ unfolding diff_list_def by auto
 context Earley_Gw
 begin
 
-definition Predict_L :: "('n,'a) item \<Rightarrow> nat \<Rightarrow> ('n,'a) item list" where
+definition Predict_L :: "('n,'t) item \<Rightarrow> nat \<Rightarrow> ('n,'t) item list" where
   "Predict_L x k = map (\<lambda>p. Item p 0 k) (filter (\<lambda>p. next_sym_Nt x (lhs p)) ps)"
 
-definition Complete_L :: "('n, 'a) item list list \<Rightarrow> ('n, 'a) item \<Rightarrow> ('n, 'a) item list" where
+definition Complete_L :: "('n, 't) item list list \<Rightarrow> ('n, 't) item \<Rightarrow> ('n, 't) item list" where
   "Complete_L Bs y = map mv_dot (filter (\<lambda> b. next_sym_Nt b (lhs(prod y))) (Bs ! from y))"
 
 lemma set_Predict_L: "set (Predict_L x k) = Predict x k"
@@ -1133,7 +1133,7 @@ lemma set_Complete_L: "is_complete x \<Longrightarrow> wf_item1 x (length Bs) \<
   set (Complete_L Bs x) = Complete (map set Bs) x"
 by(auto simp: Complete_L_def Complete_def wf_item1_def wf_item_def)
 
-inductive Close2L :: "('n,'a) item list list \<Rightarrow> ('n,'a) item list * ('n,'a) item list \<Rightarrow> ('n,'a) item list * ('n,'a) item list \<Rightarrow> bool"
+inductive Close2L :: "('n,'t) item list list \<Rightarrow> ('n,'t) item list * ('n,'t) item list \<Rightarrow> ('n,'t) item list * ('n,'t) item list \<Rightarrow> bool"
 ("(_ \<turnstile>\<^sub>L _ \<rightarrow> _)" [50, 0, 50] 50)
   for Bs where
     Predict: "\<not> is_complete x \<Longrightarrow>
@@ -1223,12 +1223,12 @@ end
 context Earley_Gw
 begin
 
-fun step2L :: "('n,'a) item list list \<Rightarrow> ('n,'a)item list \<times> ('n,'a) item list \<Rightarrow> ('n,'a) item list \<times> ('n,'a) item list" where
+fun step2L :: "('n,'t) item list list \<Rightarrow> ('n,'t)item list \<times> ('n,'t) item list \<Rightarrow> ('n,'t) item list \<times> ('n,'t) item list" where
 "step2L Bs (x#B, C) =
   (let nexts = (if is_complete x then Complete_L Bs x else Predict_L x (length Bs)) in
      (diff_list (union_list nexts B) (insert_list x C), insert_list x C) )"
 
-definition close2L :: "('n, 'a) item list list \<Rightarrow> ('n,'a)item list \<times> ('n, 'a) item list \<Rightarrow> (('n, 'a) item list \<times> ('n, 'a) item list) option" where
+definition close2L :: "('n, 't) item list list \<Rightarrow> ('n,'t)item list \<times> ('n, 't) item list \<Rightarrow> (('n, 't) item list \<times> ('n, 't) item list) option" where
 "close2L Bs = while_option (\<lambda>(B,C). B \<noteq> []) (step2L Bs)"
 
 lemma Close2L_iff_step2L: "Close2L Bs (B,C) (B',C') \<longleftrightarrow> B \<noteq> [] \<and> step2L Bs (B,C) = (B',C')"

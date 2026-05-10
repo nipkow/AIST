@@ -275,4 +275,10 @@ translations
   "_bind (p # CONST DUMMY) e" <= "_bind p (CONST hd e)"
   "_bind (CONST DUMMY # p) e" <= "_bind p (CONST tl e)"
 
+syntax (brack output)
+  "_bigimpl" :: "asms \<Rightarrow> prop \<Rightarrow> prop"
+  ("\<^latex>\<open>{\\normalsize{}\<close>\<lbrakk>\<^latex>\<open>\\,}\<close> _ \<rbrakk>/\<^latex>\<open>{\\normalsize \\,\<close>\<Longrightarrow>\<^latex>\<open>\\,}\<close>/ _")
+  "_asms" :: "prop \<Rightarrow> asms \<Rightarrow> asms" ("\<^latex>\<open>\\mbox{\<close>_\<^latex>\<open>}\<close> /\<^latex>\<open>{\\normalsize \\,\<close>;\<^latex>\<open>\\,}\<close>/ _")
+  "_asm" :: "prop \<Rightarrow> asms" ("\<^latex>\<open>\\mbox{\<close>_\<^latex>\<open>}\<close>")
+
 end

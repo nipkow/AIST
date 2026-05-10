@@ -826,10 +826,10 @@ text \<open>
   \setmyscriptsize{\fontsize{14}{21}\selectfont}
   \vspace{8mm}
 
-  \mytext{Earley proposes data structure using an array to achieve cubic running time\\\vspace{4mm}
+  \mytext{Earley proposes data structure using an array to achieve a linear difference operation.\\\vspace{4mm}
     We stay purely functional and do a parameterized running time analysis instead.\\\vspace{4mm}
 
-    Partition bin by the "from" index of items -> each part has constant size:}
+    Partition bin on the "from" index of items -> each part has constant size:}
 
     \<open>[(A \<rightarrow> a\<Zspot>bc, 0), (A \<rightarrow> B\<Zspot>A, 2), (B \<rightarrow> b\<Zspot>, 1), (A \<rightarrow> \<Zspot>abc, 2), (A \<rightarrow> a\<Zspot>a, 0)]\<close>\\
     

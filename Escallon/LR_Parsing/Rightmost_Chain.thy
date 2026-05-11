@@ -167,11 +167,23 @@ next
   qed
 qed
 
+lemma prod_imp_rm_chain_step:
+  assumes "Prods G \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* \<rho> \<Rightarrow>r* \<alpha> @ Nt X # map Tm v"
+    "(X, \<alpha>' @ Nt A # \<beta>) \<in> Prods G"
+    "reduced G"
+  obtains u where "Prods G \<turnstile> \<beta> \<Rightarrow>r* map Tm u"
+    "Prods G \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* [X \<rightarrow> \<alpha>' . Nt A # \<beta>] # \<rho> \<Rightarrow>r* \<alpha> @ \<alpha>' @ Nt A # map Tm (u@v)"
+proof -
+  from assms have "Prods G \<turnstile> \<alpha> @ Nt X # map Tm v \<Rightarrow>r \<alpha> @ \<alpha>' @ Nt A # \<beta> @ map Tm v" 
+    using deriver.intros by fastforce
+  moreover from assms(2-) obtain u where "Prods G \<turnstile> \<beta> \<Rightarrow>r* map Tm u"
+    using reduced_imp_prod_substring_derives_Tms derivers_iff_derives 
+    by (metis append.assoc append.right_neutral append_Cons append_Nil)
+  ultimately show ?thesis using assms(1) rm_chain.step that by fastforce
+qed
+
 lemma derivers_singleton_imp_rm_chain:
   assumes "P \<turnstile> [Nt A] \<Rightarrow>r(Suc n) \<alpha> @ Nt X # map Tm v"
-    "P = Prods G"
-    "reduced G"
-    "LangS G \<noteq> {}"
     "A \<in> Nts P"
   obtains \<rho> where "P \<Turnstile> [Nt A] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<alpha> @ Nt X # map Tm v"
   using assms(1) proof (induction "Suc n" arbitrary: \<alpha> X v n thesis rule: less_induct)

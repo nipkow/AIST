@@ -474,14 +474,11 @@ lemma derivern_singleton_imp_prod:
     "P \<turnstile> \<alpha> \<Rightarrow>(m) map Tm w" "m < n"
   using assms by (cases n) (force, metis lessI relpowp_Suc_D2)
 
-
 lemma app_derivers_app:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>r* map Tm u"
     "P \<turnstile> \<beta> \<Rightarrow>r* map Tm v"
   shows "P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r* map Tm (u@v)"
   using assms derivers_iff_derives by (metis derives_append_map_Tm)
-
-
 
 lemma derivers_singleton_imp_produced:
   assumes "P \<turnstile> [Nt A] \<Rightarrow>r(Suc n) \<alpha> @ Nt X # \<beta>"
@@ -527,5 +524,6 @@ section \<open>Others\<close>
 lemma prod_substring_imp_Nts_subset:
   "(A, \<alpha> @ \<beta> @ \<gamma>) \<in> P \<Longrightarrow> Nts_syms \<beta> \<subseteq> Nts P"
   unfolding Nts_def by fastforce
+
 
 end

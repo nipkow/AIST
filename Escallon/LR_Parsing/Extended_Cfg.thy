@@ -60,6 +60,9 @@ corollary in_Prods_eq_in_It:
   "prod_of_item i \<in> Prods G' = (i \<in> It G')"
   using in_Prods_imp_in_It in_It_imp_in_Prods by auto
 
+lemma prod_of_item_eq_imp_in_Prods_eq:
+  "prod_of_item i = prod_of_item j \<Longrightarrow> i \<in> It G' \<longleftrightarrow> j \<in> It G'"
+  by (cases i, cases j) (metis in_Prods_eq_in_It)
 
 lemma hd_in_prods_imp_derives_expanded_hist:
   assumes "(Y, \<alpha>) \<in> P"
@@ -121,24 +124,13 @@ proof -
   with prod_items_finite show ?thesis using assms by fastforce
 qed
 
-
 corollary It_finite:
   assumes "finite (Prods G)"
 shows "finite (It G)"
   using assms items_of_Prods_finite unfolding It_def by auto
 
-
-section \<open>Finite/Pushdown Automata\<close>
-
-(* Problem when defining \<Delta>: IPDA uses \<Delta> :: 'q list \<Rightarrow> 'a \<Rightarrow> 'q list
-                              (defined as \<Delta>: Q\<^sup>+ \<times> V\<^sub>T \<Rightarrow> Q\<^sup>* in the book)
-Possible solutions: 
-  1. Make Q ('n, 't) item list
-  2. Since state = top of stack: instead of state q and stack q#qs do state q and stack qs
-      \<Longrightarrow> problems with empty stack? (IPDA accepts with final state)
-
-A definition with variant 2, using [S' \<rightarrow> [] . []] as a dummy starting stack symbol:
-*)
+(* mv? *)
+section \<open>Reduced Grammars\<close>
 
 definition reduced :: "('n,'t) Cfg \<Rightarrow> bool" where
   "reduced G \<equiv> \<forall>A \<in> Nts (Prods G). useful (Prods G) (Start G) A"
@@ -237,11 +229,7 @@ corollary reduced_derives_imp_derives_Tms:
   using reduced_derives_imp_substring_derives_Tms[of _ "[]" _ "[]"] assms 
   by (metis append.right_neutral append_Nil)
 
-
-
-
-
-
+section \<open>Extending a reduced CFG by a new starting symbol S'\<close>
 
 locale Extended_Cfg = 
     fixes G :: "('n::fresh0, 't) Cfg"

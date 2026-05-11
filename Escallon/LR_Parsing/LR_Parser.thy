@@ -8,8 +8,6 @@ begin
 context Extended_Cfg
 begin
 
-
-
 section \<open>char(G), \<open>LR\<^sub>0(G)\<close>\<close>
 
 definition char_fa :: "(('n, 't) sym, ('n, 't) item) nfa" where
@@ -333,7 +331,7 @@ next
   then show ?thesis unfolding eps_char_fa using that(2) by blast
 qed
 
-lemma char_step_imp_in_prods [dest]:
+lemma char_step_imp_in_Prods [dest]:
   assumes "(p, \<alpha>) \<turnstile>c (q, \<beta>)"
   shows "prod_of_item p \<in> Prods G' \<and> prod_of_item q \<in> Prods G'"
   using assms by cases auto
@@ -473,7 +471,7 @@ next
   case (rtrancl_into_rtrancl b)
   then obtain n where "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(Suc n) \<gamma> @ Nt A # map Tm w" 
     by (meson relpowp_Suc_I rtranclp_imp_relpowp)
-  from derivers_singleton_imp_rm_chain[OF this _ G'_reduced G'_not_empty] obtain \<rho> where 
+  from derivers_singleton_imp_rm_chain[OF this] obtain \<rho> where 
     "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<gamma> @ Nt A # map Tm w"
     using Nts_G'_is_union by blast
   then show ?thesis using assms that proof (induction \<rho> arbitrary: \<gamma> A w \<alpha> \<beta> v thesis)
@@ -517,6 +515,7 @@ next
 qed 
 
 
+
 lemma ipda_reaches_final_imp_rm_chain:
   assumes "([A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol IPDA], w) \<turnstile>P* ([P.final_state, init_symbol IPDA], [])"
   obtains "\<rho> = []" |
@@ -536,35 +535,24 @@ lemma ipda_reaches_final_imp_rm_chain:
     with step(2) P.reaches_without_stack_imp_S' consider 
       "[B \<rightarrow> \<gamma> . \<delta>] = init_state IPDA" |
       "[B \<rightarrow> \<gamma> . \<delta>] = P.final_state" by blast
-    then  show thesis
+    then show thesis
     proof cases
-      case 1
-      from step(1)[unfolded z_B_init this] show ?thesis using step by cases auto
-    next
       case 2
       note step(1)[unfolded z_B_init this] 
       note P.step_reaches_final_imp_S[OF this]
       then show ?thesis using step(5) G'_derive_S derive_singleton_imp_singleton_chain by force
-    qed
+    qed (use step(1) in cases, use step z_B_init in auto)
   next
     case (chain X \<alpha>' \<beta>' \<sigma> \<zeta>)
     from step(1)[unfolded z\<tau>_def] show ?thesis proof cases
-      case (shift A \<alpha> a \<beta> i \<rho> u)
-      then show ?thesis using step(5) chain by fastforce
-    next
       case (reduce Y \<eta> X' \<theta> \<iota> \<upsilon> x)
       hence BA_in_prods: "(B, \<theta> @ Nt A # \<delta>) \<in> Prods G'"
-        using step(1) z\<tau>_def P.step_imp_in_prods by force 
+        using step(1) z\<tau>_def P.step_imp_in_Prods by force 
       from rm_chain_Cons_imp_prod_rightmost chain obtain \<zeta>' u where \<zeta>_rm: "\<zeta> = \<zeta>' @ Nt B # map Tm u"
         by meson
-      moreover from BA_in_prods have "Prods G' \<turnstile> \<zeta>' @ Nt B # map Tm u \<Rightarrow>r \<zeta>' @ \<theta> @ Nt A # \<delta> @ map Tm u"
-        using deriver.intros by fastforce
-      moreover obtain u' where "Prods G' \<turnstile> \<delta> \<Rightarrow>r* map Tm u'"
-        using reduced_imp_prod_substring_derives_Tms[of B "\<theta> @ [Nt A]" \<delta> "[]", OF _ G'_reduced] 
-          BA_in_prods derivers_iff_derives 
-        by (metis append.assoc append.right_neutral append_Cons append_Nil)
-      ultimately show thesis 
-        using reduce chain rm_chain.step[OF chain(2)[unfolded \<zeta>_rm]] step.prems(2) by fastforce        
+      note chain(2)[unfolded chain(1) this]
+      from prod_imp_rm_chain_step[OF this BA_in_prods G'_reduced] step.prems(2) reduce chain(1)
+      show thesis by fastforce       
     next
       case (expand Y \<eta> X' \<theta> \<iota> i \<upsilon> x)
       show ?thesis
@@ -577,7 +565,7 @@ lemma ipda_reaches_final_imp_rm_chain:
           using expand Cons rm_chain_decomp chain(2) by fastforce
         ultimately show thesis using step.prems(2) by blast
       qed (rule step.prems(1))
-    qed
+    qed (use step(5) chain in fastforce)
   qed
 qed simp
 
@@ -632,7 +620,7 @@ next
   also have "... \<turnstile>c ([A \<rightarrow> [] . \<alpha> @ \<beta>], \<alpha>)" 
     using A_in_Prods X_in_Prods by force
   also from this have "... \<turnstile>c* ([A \<rightarrow> \<alpha> . \<beta>], [])" 
-    using char_steps_consume char_step_imp_in_prods 
+    using char_steps_consume char_step_imp_in_Prods 
     by (metis append.right_neutral item.case self_append_conv2)
   finally show ?case .
 qed

@@ -10,7 +10,6 @@ notation Item  ("[_ \<rightarrow> _ . _]" 100)
 
 abbreviation prod_of_item :: "('n, 't) item \<Rightarrow> ('n, 't) prod" where
   "prod_of_item i \<equiv> case i of [A \<rightarrow> \<alpha> . \<beta>] \<Rightarrow> (A, \<alpha>@\<beta>)"
-  
 
 definition history :: "('n, 't) item \<Rightarrow> ('n, 't) syms" where
   "history i \<equiv> case i of [A \<rightarrow> \<alpha> . \<beta>] \<Rightarrow> \<alpha>"
@@ -41,7 +40,7 @@ lemma hist_Cons[simp]:
 lemmas hist_defs = hist_def hist_old_def history_def
 
 definition items_of_Prods :: "('n, 't) Prods \<Rightarrow> ('n, 't) item set" where
-  "items_of_Prods P = {[A \<rightarrow> \<alpha> . \<beta>] | A \<alpha> \<beta>. (A, \<alpha>@\<beta>) \<in> P}"
+  "items_of_Prods P \<equiv> {[A \<rightarrow> \<alpha> . \<beta>] | A \<alpha> \<beta>. (A, \<alpha>@\<beta>) \<in> P}"
 
 definition It :: "('n, 't) Cfg \<Rightarrow> ('n, 't) item set" where
   "It G = items_of_Prods (Prods G)"
@@ -56,7 +55,7 @@ lemma in_It_imp_in_Prods:
   "i \<in> It G' \<Longrightarrow> prod_of_item i \<in> Prods G'"
   unfolding It_defs by auto
 
-corollary in_Prods_eq_in_It:
+lemma in_Prods_eq_in_It:
   "prod_of_item i \<in> Prods G' = (i \<in> It G')"
   using in_Prods_imp_in_It in_It_imp_in_Prods by auto
 
@@ -187,7 +186,7 @@ lemma reduced_imp_Nts_subset_derives_Tms:
   qed
 qed simp
 
-corollary reduced_imp_prod_substring_derives_Tms:
+lemma reduced_imp_prod_substring_derives_Tms:
   assumes "(A, \<alpha> @ \<beta> @ \<gamma>) \<in> Prods G"
     "reduced G"
   obtains v where "Prods G \<turnstile> \<beta> \<Rightarrow>* map Tm v"
@@ -208,7 +207,7 @@ next
   ultimately show ?case using step(3) by auto
 qed
 
-corollary reduced_derives_imp_substring_derives_Tms:
+lemma reduced_derives_imp_substring_derives_Tms:
   assumes  "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* u@\<alpha>@v"
     "reduced G"
     "LangS G \<noteq> {}"
@@ -221,7 +220,7 @@ proof -
   from reduced_imp_Nts_subset_derives_Tms[OF this assms(2)] show thesis using that by blast
 qed
 
-corollary reduced_derives_imp_derives_Tms:
+lemma reduced_derives_imp_derives_Tms:
   assumes  "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* \<alpha>"
     "reduced G"
     "LangS G \<noteq> {}"
@@ -281,12 +280,12 @@ lemma S'_notin_Nts_Prods_G [simp]:
   unfolding S'_def using fresh0_notIn G_finite finite_Nts
   by (metis Un_insert_right sup_bot_right finite_insert insertCI)
 
-corollary S'_Prod_notin_G:
+lemma S'_Prod_notin_G:
   "(S', \<alpha>) \<notin> Prods G"
   "Nt S' \<in> set \<alpha> \<Longrightarrow> (X, \<alpha>) \<notin> Prods G"
   using S'_notin_Nts_Prods_G unfolding Nts_def Nts_syms_def by blast+
 
-corollary S'_Prod_notin_G':
+lemma S'_Prod_notin_G':
   assumes "Nt S' \<in> set \<alpha>"
   shows "(X, \<alpha>) \<notin> Prods G'"
   using assms proof (rule contrapos_pn)
@@ -323,7 +322,7 @@ lemma G'_derives_from_S_imp_derives_from_S':
   shows "Prods G' \<turnstile> [Nt S'] \<Rightarrow>* \<alpha>"
   using assms G'_derive_S by simp
 
-corollary G'_derives_from_S_imp_in_Lang:
+lemma G'_derives_from_S_imp_in_Lang:
   assumes "Prods G' \<turnstile> [Nt S] \<Rightarrow>* map Tm w"
   shows "w \<in> LangS G'"
   using G'_derives_from_S_imp_derives_from_S'[OF assms]

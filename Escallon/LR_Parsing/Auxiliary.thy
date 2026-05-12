@@ -87,7 +87,7 @@ next
         same_append_eq)
 qed
 
-corollary syms_decomp_rightmost:
+lemma syms_decomp_rightmost:
   assumes "\<alpha> @ Nt A # map Tm w = \<beta> @ \<gamma> @ \<delta> @ map Tm x"
     "Nt A \<in> set \<gamma>" "Nt A \<notin> set \<delta>"
   obtains \<eta> u v where "\<gamma> = \<eta> @ Nt A # map Tm u" "\<delta> = map Tm v"  "w = u@v@x"
@@ -104,7 +104,7 @@ proof -
     by blast
 qed
 
-corollary syms_decomp_rightmost2:
+lemma syms_decomp_rightmost2:
   assumes "\<alpha> @ Nt A # map Tm w = \<beta> @ \<gamma> @ map Tm x"
     "Nt A \<in> set \<gamma>"
   obtains \<delta> u where "\<gamma> = \<delta> @ Nt A # map Tm u" "w = u@x"

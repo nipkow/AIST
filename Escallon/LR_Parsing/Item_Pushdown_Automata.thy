@@ -91,7 +91,7 @@ proof -
   then show thesis using p_def assms that by cases fastforce+
 qed
 
-corollary delta_nempty_imp_Tm_eq_Item:
+lemma delta_nempty_imp_Tm_eq_Item:
   assumes "delta M ([X \<rightarrow> \<beta> . Tm a # \<gamma>]) b q \<noteq> {}"
   shows "(X, \<beta> @ Tm a # \<gamma>) \<in> Prods G'" "a = b"
   using delta_nempty_imp_Tm_eq[OF assms] by blast+
@@ -448,7 +448,7 @@ lemma step_not_expanding_imp_reaches:
   shows "c0 \<turnstile>(n) c1"
   using step_not_expanding_unique assms by (metis relpowp_Suc_D2)
 
-corollary stepn_neq_imp_not_expanding_reaches:
+lemma stepn_neq_imp_not_expanding_reaches:
   assumes "(\<rho>, u) \<turnstile> c0" "(\<rho>, u) \<turnstile>(n) c1" "(\<rho>, u) \<noteq> c1"
     "\<exists>X \<alpha> a \<beta>. hd \<rho> = [X \<rightarrow> \<alpha> . []] \<or> hd \<rho> = [X \<rightarrow> \<alpha> . Tm a # \<beta>]"
   obtains m where "n = Suc m" "c0 \<turnstile>(m) c1"
@@ -502,7 +502,7 @@ lemma steps_in_It:
   by (induction "j # \<sigma>" v arbitrary: j \<sigma> rule: rtranclp_induct2)
     (simp, metis neq_Nil_conv step_imp_in_It(2) step_imp_not_Nil)
 
-corollary steps_Suc_in_It:
+lemma steps_Suc_in_It:
   assumes "(i # \<rho>, u) \<turnstile>(Suc n) (j # \<sigma>, v)"
   shows  "i \<in> It G'" "j \<in> It G'"
 proof -
@@ -515,7 +515,7 @@ proof -
 qed
 
 
-corollary steps_neq_in_It:
+lemma steps_neq_in_It:
   assumes "(i # \<rho>, u) \<turnstile>* (j # \<sigma>, v)" "(i # \<rho>, u) \<noteq> (j # \<sigma>, v)"
   shows "i \<in> It G' \<and> j \<in> It G'"
   using assms(1) proof (cases rule: converse_rtranclpE)
@@ -525,7 +525,7 @@ corollary steps_neq_in_It:
   then show ?thesis using steps_in_It step assms(1) by blast
 qed (use assms(2) in simp)
 
-corollary reaches_final_imp_in_It:
+lemma reaches_final_imp_in_It:
   assumes "(i # \<rho>, u) \<turnstile>* (final_state # \<sigma>, v)"
   shows "i \<in> It G'"
   using final_state_in_It steps_neq_in_It assms by (cases "i = final_state") blast+
@@ -552,7 +552,7 @@ lemma reachable_imp_hd_not_init_symbol:
   using assms steps_Suc_in_It init_symbol_notin_It  
     by (cases rule: rtranclp.cases) (simp, meson relpowp_Suc_I rtranclp_power)
 
-corollary reachable_imp_head_in_It:
+lemma reachable_imp_head_in_It:
   "([init_state M, init_symbol M], u) \<turnstile>* (i#\<rho>, v) \<Longrightarrow> i \<in> It G'"
   using reachable_imp_hd_not_init_symbol reachable_imp_in_It
   by auto
@@ -599,12 +599,10 @@ lemma second_notin_It_imp_complete_step_impossible:
       step_imp_in_It by auto
 qed simp_all
 
-
-corollary complete_S'_steps_refl:
+lemma complete_S'_steps_refl:
   assumes "([[S' \<rightarrow> \<alpha> . []], init_symbol M], w) \<turnstile>* c"
   shows "([[S' \<rightarrow> \<alpha> . []], init_symbol M], w) = c"
   using assms complete_S'_step_impossible by (cases rule: converse_rtranclpE) blast+
-
 
 lemma reachable_imp_init_or_in_G:
   assumes "([init_state M, init_symbol M], u) \<turnstile>* (\<rho>, v)"
@@ -664,7 +662,7 @@ proof -
   ultimately show thesis using that by blast
 qed
 
-corollary reachable_snd_not_empty_imp_hd_in_G:
+lemma reachable_snd_not_empty_imp_hd_in_G:
   assumes "([init_state M, init_symbol M], u) \<turnstile>* ([A \<rightarrow> \<alpha> . \<beta>] # [B \<rightarrow> \<gamma> . \<delta>] # \<rho>, v)"
     "\<gamma>@\<delta> \<noteq> []"
   shows "(A, \<alpha>@\<beta>) \<in> Prods G"
@@ -914,6 +912,21 @@ proof -
     by simp
 qed
 
+lemma reaches_final_imp_second_is_chain:
+  assumes "([A \<rightarrow> \<alpha> . \<beta>] # i # \<rho> @ [init_symbol M], w) \<turnstile>* ([final_state, init_symbol M], [])"
+  obtains X \<alpha>' \<beta>' where "i = [X \<rightarrow> \<alpha>' . Nt A # \<beta>']"
+proof -
+  from assms reaches_final_imp_completes obtain x where 
+    "([A \<rightarrow> \<alpha> @ \<beta> . []] # i # \<rho> @ [init_symbol M], x) \<turnstile>* ([final_state, init_symbol M], [])"
+    by (metis Cons_eq_appendI)
+  then show thesis
+  proof (cases rule: converse_rtranclpE)
+    case (step y)
+    from this(1) show ?thesis 
+      using that by cases auto
+  qed force
+qed
+
 lemma reaches_without_stack_imp_S':
   assumes "([[A \<rightarrow> \<alpha> . \<beta>], init_symbol M], w) \<turnstile>* ([final_state, init_symbol M], [])"
   shows "[A \<rightarrow> \<alpha> . \<beta>] = init_state M \<or> [A \<rightarrow> \<alpha> . \<beta>] = final_state"
@@ -981,7 +994,7 @@ proof -
   qed (simp add: hist_defs)
 qed
 
-corollary Lang_subst_Lang_G:
+lemma Lang_subst_Lang_G:
   "Lang \<subseteq> LangS G"
   unfolding Lang_def Context_Free_Grammar.Lang_def S_def 
   by (standard, metis Nil_is_append_conv append.right_neutral hist_Cons hist_singleton

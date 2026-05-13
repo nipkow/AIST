@@ -236,7 +236,7 @@ lemma in_final_imp_final_state:
 section \<open>Step\<close>
 
 inductive step :: "('n,'t) item list \<times> 't list \<Rightarrow> ('n,'t) item list \<times> 't list 
-                    \<Rightarrow> bool" (infix \<open>\<turnstile>\<close> 70) where
+                    \<Rightarrow> bool" (infix \<open>\<turnstile>\<close> 55) where
 delta[intro]: "\<lbrakk>\<alpha> = [p0, p1]; \<alpha>' = q#qs; (q,qs) \<in> delta M p0 a p1\<rbrakk> 
                 \<Longrightarrow> (\<alpha>@\<beta>,a#w) \<turnstile> (\<alpha>'@\<beta>,w)" |
 eps[intro]: "\<lbrakk>\<alpha> = [p0, p1]; \<alpha>' = q#qs; (q,qs) \<in> delta_eps M p0 p1\<rbrakk> 

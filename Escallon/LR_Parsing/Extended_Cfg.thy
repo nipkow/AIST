@@ -17,13 +17,8 @@ definition history :: "('n, 't) item \<Rightarrow> ('n, 't) syms" where
 lemma history_unfold [simp]: "history ([A \<rightarrow> \<alpha> . \<beta>]) = \<alpha>"
   unfolding history_def by simp
 
-(* As defined in book *)
 definition hist :: "('n, 't) item list \<Rightarrow> ('n,'t) syms" where
   "hist \<rho> \<equiv> concat (map history (rev \<rho>))"
-
-(* Needed? (top of stack is hd, not last) *)
-definition hist_old :: "('n, 't) item list \<Rightarrow> ('n,'t) syms" where
-  "hist_old \<rho> \<equiv> concat (map history \<rho>)"
 
 lemma hist_Nil [simp]:
   "hist [] = []" 
@@ -37,7 +32,7 @@ lemma hist_Cons[simp]:
   "hist (i#\<rho>) = hist \<rho> @ history i"
   unfolding hist_def by simp
 
-lemmas hist_defs = hist_def hist_old_def history_def
+lemmas hist_defs = hist_def history_def
 
 definition items_of_Prods :: "('n, 't) Prods \<Rightarrow> ('n, 't) item set" where
   "items_of_Prods P \<equiv> {[A \<rightarrow> \<alpha> . \<beta>] | A \<alpha> \<beta>. (A, \<alpha>@\<beta>) \<in> P}"

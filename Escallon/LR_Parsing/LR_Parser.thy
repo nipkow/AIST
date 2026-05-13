@@ -1,6 +1,7 @@
 theory LR_Parser 
   imports 
     Item_Pushdown_Automata
+    N_Pushdown_Automata
     Finite_Automata_HF.Finite_Automata_HF
     Rightmost_Chain
 begin
@@ -8,7 +9,7 @@ begin
 context Extended_Cfg
 begin
 
-section \<open>char(G), \<open>LR\<^sub>0(G)\<close>\<close>
+section \<open>char(G)\<close>
 
 definition char_fa :: "(('n, 't) sym, ('n, 't) item) nfa" where
   "char_fa \<equiv> let 
@@ -75,7 +76,7 @@ lemma eps_char_fa [simp]:
   unfolding char_fa_def by (meson nfa.select_convs(5))
 
 lemma char_fa_eps_subst_states:
-  "eps char_fa \<subseteq> states char_fa \<times> states char_fa"
+  "nfa.eps char_fa \<subseteq> nfa.states char_fa \<times> nfa.states char_fa"
   using in_Prods_imp_in_It by force
 
 sublocale char_fa: nfa char_fa 
@@ -92,14 +93,6 @@ proof (unfold_locales, goal_cases 1 2 nxt_closed 3)
   qed (use nxt_closed q_def in fastforce)+
 qed (use G'_def It_defs It_finite[OF G'_finite] in fastforce)+
 
-
-
-definition LR\<^sub>0 :: "(('n, 't) sym, ('n, 't) item set) dfa" where
-  "LR\<^sub>0 \<equiv> nfa.Power_dfa char_fa"
-
-sublocale canon_LR0: dfa LR\<^sub>0
-  unfolding LR\<^sub>0_def by (rule char_fa.dfa_Power)
-
 end
 
 
@@ -112,9 +105,9 @@ begin
 
 type_synonym ('b,'c) config = "'b \<times> 'c list"
 
-inductive step :: "('s,'a) config \<Rightarrow> ('s,'a) config \<Rightarrow> bool" (infix \<open>\<turnstile>\<close> 70) where
-nxt[intro]:  "q \<in> nxt M p a \<Longrightarrow> (p,a#u) \<turnstile> (q,u)" |
-eps[intro]:  "(p,q) \<in> eps M \<Longrightarrow> (p,w) \<turnstile> (q,w)"
+inductive step :: "('s,'a) config \<Rightarrow> ('s,'a) config \<Rightarrow> bool" (infix \<open>\<turnstile>\<close> 55) where
+nxt[intro]:  "q \<in> nfa.nxt M p a \<Longrightarrow> (p,a#u) \<turnstile> (q,u)" |
+eps[intro]:  "(p,q) \<in> nfa.eps M \<Longrightarrow> (p,w) \<turnstile> (q,w)"
 
 inductive_cases step_nxtE[elim]: "(q,a#u) \<turnstile> (r,u)"
 inductive_cases step_epsE[elim]: "(q,w) \<turnstile> (r,w)"
@@ -129,10 +122,10 @@ lemma step_len_dec:
   shows "length u \<ge> length v" 
   using step_equal_or_Cons[OF assms] by fastforce
 
-abbreviation stepn  (\<open>_ \<turnstile>'(_') _\<close> 70) where
+abbreviation stepn  (\<open>_ \<turnstile>'(_') _\<close> 55) where
   "c0 \<turnstile>(n) c1 \<equiv> (step ^^ n) c0 c1"
 
-abbreviation steps (infix \<open>\<turnstile>*\<close> 70) where
+abbreviation steps (infix \<open>\<turnstile>*\<close> 55) where
   "steps \<equiv> (step \<^sup>*\<^sup>*)"
 
 lemma steps_len_dec:
@@ -263,105 +256,6 @@ proof
         nextl_mono) 
 qed
 
-
-(* Possibly not needed anymore *)
-section \<open>\<epsilon>-Transitions\<close>
-
-inductive eps_stepn :: "('s,'a) config \<Rightarrow> nat \<Rightarrow> ('s,'a) config \<Rightarrow> bool" (\<open>_ \<turnstile>\<epsilon>'(_') _\<close> 70) where
-refl[intro]:  "(q,w) \<turnstile>\<epsilon>(0) (q,w)" |
-nxt[intro]:  "\<lbrakk>(p,u) \<turnstile>\<epsilon>(n) (q,a#v); (q,a#v) \<turnstile> (r,v)\<rbrakk> \<Longrightarrow> (p,u) \<turnstile>\<epsilon>(n) (r,v)" |
-eps[intro]:  "\<lbrakk>(p,u) \<turnstile>\<epsilon>(n) (q,v); (q,v) \<turnstile> (r,v)\<rbrakk> \<Longrightarrow> (p,u) \<turnstile>\<epsilon>(Suc n) (r,v)"
-
-
-inductive_cases eps_stepn_reflE[elim]: "(q,w) \<turnstile>\<epsilon>(0) (q,w)"
-inductive_cases eps_stepn_nxtE[elim]: "(q,a#u) \<turnstile>\<epsilon>(n) (r,u)"
-inductive_cases eps_stepn_epsE[elim]: "(q,u) \<turnstile>\<epsilon>(n) (p,u)"
-
-
-lemma step_is_eps_stepn:
-  assumes "c0 \<turnstile> c1"
-  shows "(c0 \<turnstile>\<epsilon>(0) c1) \<or> (c0 \<turnstile>\<epsilon>(Suc 0) c1)"
-  using assms by cases auto
-
-
-lemma steps_imp_eps_stepn:
-  assumes "c0 \<turnstile>* c1"
-  obtains n where "c0 \<turnstile>\<epsilon>(n) c1"
-  using assms proof (induction arbitrary: thesis)
-  case base
-  then show ?case using eps_stepn.refl surj_pair by metis
-next
-  case (step c1 c2)
-  then obtain n where "c0 \<turnstile>\<epsilon>(n) c1" by blast
-  from step(2) show ?case 
-    by cases
-      ((smt (verit, best) eps_stepn.simps step_is_eps_stepn step),
-     (metis step(2,3,4) nfa.eps_stepn.eps nfa_axioms old.prod.exhaust))
-qed
-
-lemma eps_stepn_imp_steps: "c0 \<turnstile>\<epsilon>(n) c1 \<Longrightarrow> c0 \<turnstile>* c1" 
-  by (induction rule: eps_stepn.induct) auto
-
-(* To be used in proof of Theorem 3.4.1 *)
-lemma last_eps_step:
-  assumes "(p,u) \<turnstile>\<epsilon>(Suc n) (s,w)"
-  obtains q r v where "(p, u) \<turnstile>\<epsilon>(n) (q,v)" "(q,v) \<turnstile> (r,v)" "(r,v) \<turnstile>\<epsilon>(0) (s,w)"
-  using assms proof (induction "length u - length w" arbitrary: s w rule: less_induct)
-  case less 
-  from less(3) show ?case 
-  proof cases
-    case (nxt q a)
-    with steps_len_dec eps_stepn_imp_steps have  "length u \<ge> length (a#w)" by blast
-    then have "length u - length (a#w) < length u - length w" by auto
-    then show ?thesis using less nxt by blast
-  qed (use less in blast)
-qed
-
-
-lemma noeps_eps_stepn_eq:
-  "\<lbrakk>c1 \<turnstile>\<epsilon>(n) c2; c0 \<turnstile>\<epsilon>(0) c1\<rbrakk> \<Longrightarrow> c0 \<turnstile>\<epsilon>(n) c2"
-proof (induction rule: eps_stepn.induct)
-  case (refl q w)
-  then show ?case .
-next
-  case (nxt p u n q a v r)
-  show ?case using nxt(3)[OF nxt(4)] nxt(2) eps_stepn.nxt surj_pair by metis
-next
-  case (eps p u n q v r)
-  show ?case using eps(3)[OF eps(4)] eps(2) eps_stepn.eps surj_pair by metis
-qed
-
- 
-lemma eps_stepn_suc:
-  "\<lbrakk>c1 \<turnstile>\<epsilon>(n) c2; c0 \<turnstile>\<epsilon>(Suc 0) c1\<rbrakk> \<Longrightarrow> c0 \<turnstile>\<epsilon>(Suc n) c2"
-proof (induction rule: eps_stepn.induct)
-  case (refl q w)
-  then show ?case .
-next
-  case (nxt p u n q a v r)
-  then show ?case by (metis nfa.eps_stepn.nxt nfa_axioms surj_pair) 
-next
-  case (eps p u n q v r)
-  then show ?case using eps_stepn.cases by blast
-qed
-
-
-lemma eps_stepn_trans:
-  "\<lbrakk>c0 \<turnstile>\<epsilon>(n) c1; c1 \<turnstile>\<epsilon>(m) c2\<rbrakk> \<Longrightarrow> c0 \<turnstile>\<epsilon>(n+m) c2"
-proof (induction arbitrary: m rule: eps_stepn.induct)
-  case (refl q w)
-  then show ?case by simp
-next
-  case (nxt p u n q a v r)
-  from nxt(2) have "(q, a # v) \<turnstile>\<epsilon>(0) (r,v)" by auto
-  with nxt show ?case using noeps_eps_stepn_eq by blast
-next
-  case (eps p u n q v r)
-  hence "(q,v) \<turnstile>\<epsilon>(Suc 0) (r,v)" by blast
-  with eps(4) have "(q,v) \<turnstile>\<epsilon>(Suc m) c2" using eps_stepn_suc by presburger
-  with eps show ?case by fastforce
-qed
-
 end
 
 section \<open>Equivalences between \<open>char(G)\<close>, \<open>IPDA\<close>, and rightmost derivations\<close>
@@ -376,23 +270,22 @@ corollary ipda_IPDA:
   "ipda G IPDA"
   by (rule P.ipda_axioms)
 
-notation char_fa.step (infix \<open>\<turnstile>c\<close> 70)
-notation char_fa.steps (infix \<open>\<turnstile>c*\<close> 70)
-notation char_fa.stepn (\<open>_ \<turnstile>c'(_') _\<close> 70)
-notation char_fa.eps_stepn (\<open>_ \<turnstile>c\<epsilon>'(_') _\<close> 70)
+notation char_fa.step (infix \<open>\<turnstile>c\<close> 55)
+notation char_fa.steps (infix \<open>\<turnstile>c*\<close> 55)
+notation char_fa.stepn (\<open>_ \<turnstile>c'(_') _\<close> 55)
 
 type_synonym ('q,'s) ipda_config = "('q,'s) item list \<times> 's list"
 
 abbreviation IPDA_step :: "('n,'t) item list \<times> 't list \<Rightarrow> ('n,'t) item list \<times> 't list 
-                    \<Rightarrow> bool" (infix \<open>\<turnstile>P\<close> 70) where
+                    \<Rightarrow> bool" (infix \<open>\<turnstile>P\<close> 55) where
   "(\<turnstile>P) \<equiv> (ipda.step IPDA)"
 
 abbreviation IPDA_steps :: "('n,'t) item list \<times> 't list \<Rightarrow> ('n,'t) item list \<times> 't list 
-                    \<Rightarrow> bool" (infix \<open>\<turnstile>P*\<close> 70) where
+                    \<Rightarrow> bool" (infix \<open>\<turnstile>P*\<close> 55) where
   "(\<turnstile>P*) \<equiv> (ipda.steps IPDA)"
 
 abbreviation IPDA_stepn :: "('n,'t) item list \<times> 't list \<Rightarrow> nat \<Rightarrow> ('n,'t) item list \<times> 't list 
-                    \<Rightarrow> bool" ( \<open>_ \<turnstile>P'(_') _\<close> 70) where
+                    \<Rightarrow> bool" ( \<open>_ \<turnstile>P'(_') _\<close> 55) where
   "c0 \<turnstile>P(n) c1 \<equiv> (ipda.stepn IPDA) c0 n c1"
 
 lemma char_step_cases[consumes 1, case_names nxt eps, cases set: char_fa.step]:
@@ -428,8 +321,6 @@ lemma char_steps_in_Prods_imp_in_Prods:
   using assms rtranclp_imp_relpowp char_stepn_Suc_imp_in_Prods
   by (metis (no_types, lifting) prod.inject relpowp_E)
 
-
-  
 
 lemma char_reachable_imp_substring:
   assumes "([S' \<rightarrow> [] . [Nt S]], \<gamma>) \<turnstile>c* ([A \<rightarrow> \<alpha> . \<beta>], \<delta>)"
@@ -860,6 +751,83 @@ next
     "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm u"
     by blast
   from this(1) derivers_imp_ipda[OF this(2-)] show ?ipda oops 
+
+section \<open>The Canonical LR(0) Automaton and Parser\<close>
+
+definition LR\<^sub>0 :: "(('n, 't) sym, ('n, 't) item set) dfa" where
+  "LR\<^sub>0 \<equiv> nfa.Power_dfa char_fa"
+
+sublocale dfa_LR0: dfa LR\<^sub>0
+  unfolding LR\<^sub>0_def by (rule char_fa.dfa_Power)
+
+definition P\<^sub>0 :: "(('n, 't) item set, 't) npda" where
+  "P\<^sub>0 \<equiv> let 
+  \<Delta>\<^sub>G = dfa.nxt LR\<^sub>0;
+  q\<^sub>0 = dfa.init LR\<^sub>0;
+  f = {[S' \<rightarrow> [] . []]};
+  \<Delta>\<^sub>0 = (\<lambda>qs a. case qs of [q] \<Rightarrow> if \<Delta>\<^sub>G q (Tm a) \<noteq> {} then {\<Delta>\<^sub>G q (Tm a) # [q]} else {} | _ \<Rightarrow> {});
+  \<E> = {let q = last (q\<^sub>n#qs) in (q\<^sub>n # qs, \<Delta>\<^sub>G q (Nt X) # [q])| 
+       q\<^sub>n qs X \<alpha>. [X \<rightarrow> \<alpha> . []] \<in> q\<^sub>n \<and> length \<alpha> = length qs} \<union>
+      {([q, q\<^sub>0], [f])|q. [S' \<rightarrow> [Nt S] . []] \<in> q}
+ in
+  \<lparr>npda.states = dfa.states LR\<^sub>0 \<union> {f}, init = q\<^sub>0,  
+    final = {f}, nxt = \<Delta>\<^sub>0, eps = \<E>\<rparr>"
+
+lemma states_P0: 
+  "npda.states P\<^sub>0 = dfa.states LR\<^sub>0 \<union> {{[S' \<rightarrow> [] . []]}}"
+  unfolding P\<^sub>0_def by (meson npda.select_convs(1))
+
+lemma init_P0: 
+  "npda.init P\<^sub>0 = dfa.init LR\<^sub>0"
+  unfolding P\<^sub>0_def by (meson npda.select_convs(2))
+
+lemma final_P0:
+  "npda.final P\<^sub>0 = {{[S' \<rightarrow> [] . []]}}"
+  unfolding P\<^sub>0_def by (meson npda.select_convs(3))
+
+lemma nxt_P0:
+  "npda.nxt P\<^sub>0 = (\<lambda>qs a. case qs of [q] \<Rightarrow> if dfa.nxt LR\<^sub>0 q (Tm a) \<noteq> {} 
+    then {dfa.nxt LR\<^sub>0 q (Tm a) # [q]} else {} | _ \<Rightarrow> {})"
+  unfolding P\<^sub>0_def by (meson npda.select_convs(4))
+
+
+
+lemma eps_P0:
+  "npda.eps P\<^sub>0 = 
+  {let q = last (q\<^sub>n#qs) in (q\<^sub>n # qs, dfa.nxt LR\<^sub>0 q (Nt X) # [q])|
+    q\<^sub>n qs X \<alpha>. [X \<rightarrow> \<alpha> . []] \<in> q\<^sub>n \<and> length \<alpha> = length qs} \<union>
+  {([q, dfa.init LR\<^sub>0], [{[S' \<rightarrow> [] . []]}])|q. [S' \<rightarrow> [Nt S] . []] \<in> q}"
+  unfolding P\<^sub>0_def by (meson npda.select_convs(5))
+
+lemmas P\<^sub>0_simps [simp] = states_P0 init_P0 final_P0 nxt_P0 eps_P0
+
+lemma P0_nxt_nempty_imp_LR0_nxt_set:
+  assumes "npda.nxt P\<^sub>0 qs a \<noteq> {}"
+  obtains q where "qs = [q]" "npda.nxt P\<^sub>0 qs a = {dfa.nxt LR\<^sub>0 q (Tm a) # [q]}"
+    "dfa.nxt LR\<^sub>0 q (Tm a) \<noteq> {}"
+proof -
+  consider "qs = []" | q where "qs = [q]" | p q qs' where "qs = p#q#qs'"
+    using list.exhaust by metis
+  then show thesis
+    using that assms by cases (auto split: if_splits)
+qed
+
+interpretation P0: npda P\<^sub>0
+proof (unfold_locales, goal_cases _ _ nxt eps _)
+  case (nxt ps qs a)
+  with P0_nxt_nempty_imp_LR0_nxt_set obtain p where p_def: "ps = [p]"
+    "npda.nxt P\<^sub>0 ps a = {[dfa.nxt LR\<^sub>0 p (Tm a), p]}" "dfa.nxt LR\<^sub>0 p (Tm a) \<noteq> {}"
+    by force
+  let ?q = "dfa.nxt LR\<^sub>0 p (Tm a)"
+  from dfa_LR0.nxt nxt p_def have "?q \<in> dfa.states LR\<^sub>0"
+    sorry
+(* Needs case distinction. Prove that if final nxt is empty, therefore p must be in Q\<^sub>G. *)
+    
+  then show ?case using P0_nxt_nempty_imp_LR0_nxt_set dfa_LR0.nxt 
+next
+  case (eps ps qs)
+  then show ?case sorry
+qed (simp add: dfa_LR0.finite)+
 
 end
 

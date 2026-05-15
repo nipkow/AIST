@@ -40,32 +40,32 @@ lemma nxt_char_fa [simp]:
   else {} | _ \<Rightarrow> {})"
   unfolding char_fa_def by (meson nfa.select_convs(4))
 
-lemma char_fa_nxt_neq_or_not_Prod_imp_empty:
+lemma nxt_char_fa_neq_or_not_Prod_imp_empty:
   assumes "Y \<noteq> a \<or> (X, \<alpha> @ Y # \<beta>) \<notin> Prods G'"
   shows "nfa.nxt char_fa ([X \<rightarrow> \<alpha> . Y # \<beta>]) a = {}" 
   using assms by auto
 
-lemma char_fa_nxt_in_Prods_imp_singleton:
+lemma nxt_char_fa_in_Prods_imp_singleton:
   assumes "(X, \<alpha> @ Y # \<beta>) \<in> Prods G'"
   shows "nfa.nxt char_fa ([X \<rightarrow> \<alpha> . Y # \<beta>]) Y = {[X \<rightarrow> \<alpha> @ [Y] . \<beta>]}"
   using assms by simp
 
-lemma char_fa_nxt_nempty_imp_hd:
+lemma nxt_char_fa_nempty_imp_hd:
   assumes "nfa.nxt char_fa ([X \<rightarrow> \<alpha> . \<beta>]) a \<noteq> {}" 
   obtains \<gamma> where "\<beta> = a # \<gamma>" "(X, \<alpha>@\<beta>) \<in> Prods G'"
   using assms 
-  by (metis (lifting) char_fa_nxt_neq_or_not_Prod_imp_empty item.case list.exhaust list.simps(4)
+  by (metis (lifting) nxt_char_fa_neq_or_not_Prod_imp_empty item.case list.exhaust list.simps(4)
       nxt_char_fa)
 
-lemma in_char_fa_nxt_imp_shift:
+lemma in_nxt_char_fa_imp_shift:
   assumes "q \<in> nfa.nxt char_fa p a"
   obtains X \<alpha> \<beta> where "p = [X \<rightarrow> \<alpha> . a # \<beta>]" "q = [X \<rightarrow> \<alpha> @ [a] . \<beta>]"
 proof -
   obtain X \<alpha> \<beta> Y \<gamma> \<delta> where pq_defs: "p = [X \<rightarrow> \<alpha> . \<beta>]" "q = [Y \<rightarrow> \<gamma> . \<delta>]" 
     using item.exhaust by meson
-  moreover with char_fa_nxt_nempty_imp_hd assms obtain \<zeta> where "\<beta> = a # \<zeta>" "(X, \<alpha>@\<beta>) \<in> Prods G'" 
+  moreover with nxt_char_fa_nempty_imp_hd assms obtain \<zeta> where "\<beta> = a # \<zeta>" "(X, \<alpha>@\<beta>) \<in> Prods G'" 
     by blast
-  moreover with char_fa_nxt_in_Prods_imp_singleton have "q = [X \<rightarrow> \<alpha> @ [a] . \<zeta>]"
+  moreover with nxt_char_fa_in_Prods_imp_singleton have "q = [X \<rightarrow> \<alpha> @ [a] . \<zeta>]"
     using assms pq_defs(1) by blast
   ultimately show thesis using that by presburger
 qed
@@ -75,7 +75,7 @@ lemma eps_char_fa [simp]:
     = {([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . \<gamma>]) | X \<alpha> Y \<beta> \<gamma>. (X, \<alpha> @ Nt Y # \<beta>) \<in> Prods G' \<and> (Y, \<gamma>) \<in> Prods G'}"
   unfolding char_fa_def by (meson nfa.select_convs(5))
 
-lemma char_fa_eps_subst_states:
+lemma eps_char_fa_subst_states:
   "nfa.eps char_fa \<subseteq> nfa.states char_fa \<times> nfa.states char_fa"
   using in_Prods_imp_in_It by force
 
@@ -91,11 +91,13 @@ proof (unfold_locales, goal_cases 1 2 nxt_closed 3)
     then show ?thesis 
       using nxt_closed q_def by (auto simp: It_defs)
   qed (use nxt_closed q_def in fastforce)+
-qed (use G'_def It_defs It_finite[OF G'_finite] in fastforce)+
+qed (use G'_def It_defs finite_It[OF G'_finite] in fastforce)+
+
+lemma nxt_char_fa_finite:
+  "finite {(q,a). nfa.nxt char_fa q a \<noteq> {}}"
+  sorry
 
 end
-
-
  
 
 section \<open>NFA Configurations and Steps\<close>
@@ -243,7 +245,7 @@ next
 qed
 
 
-lemma eps_states_imp_language_eq_init_final_reachable:
+lemma eps_subst_states_imp_language_eq_init_final_reachable:
   assumes "eps M \<subseteq> states M \<times> states M"
   shows "language = {w. \<exists>q\<^sub>0 \<in> nfa.init M. \<exists>f \<in> nfa.final M. (q\<^sub>0, w) \<turnstile>* (f, [])}"
   (is "_ = ?r")
@@ -297,7 +299,7 @@ lemma char_step_cases[consumes 1, case_names nxt eps, cases set: char_fa.step]:
                       "(X, \<alpha> @ Nt Y # \<beta>) \<in> Prods G'"
   using assms proof cases
   case (nxt q p a u)
-  then show ?thesis using that(1) in_char_fa_nxt_imp_shift char_fa_nxt_neq_or_not_Prod_imp_empty 
+  then show ?thesis using that(1) in_nxt_char_fa_imp_shift nxt_char_fa_neq_or_not_Prod_imp_empty 
     by (metis emptyE)
 next
   case (eps p q w)
@@ -614,6 +616,86 @@ next
   finally show ?case .
 qed
 
+(* Attempts to prove equivalence of IPDA and derivers for fixed w (needed?)
+
+
+lemma ipda_comp_imp_derivers:
+  assumes "([A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol IPDA], w) \<turnstile>P* ([P.final_state, init_symbol IPDA], [])"
+  obtains u v where "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm u" "w = u @ v" 
+    "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* hist \<rho> @ Nt A # map Tm v" 
+proof (cases \<rho>)
+  case Nil
+  with P.reaches_without_stack_imp_S' assms have 
+    "[A \<rightarrow> \<alpha> . \<beta>] = init_state IPDA \<or> [A \<rightarrow> \<alpha> . \<beta>] = P.final_state" 
+    by simp
+  then show ?thesis 
+  proof (standard, goal_cases init final)
+    case init
+    with assms have "w \<in> P.Lang"using Nil 
+      by (simp add: P.Lang_def)
+    with P.Lang_eq_Lang_G Lang_preserved have "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm w"
+      unfolding Lang_def using init G_derives_imp_G'_derives by simp
+    then show ?case using that[of _ "[]"] init  by (simp add: Nil)
+  next
+    case final
+    then show ?case using that Nil P.complete_S'_steps_refl assms by force
+  qed
+next
+  case (Cons i \<sigma>)
+  then show ?thesis sorry
+qed
+
+lemma ipda_reaches_final_imp_rm_chain_new:
+  assumes "([A \<rightarrow> \<alpha> . \<beta>] # [X \<rightarrow> \<alpha>' . Nt A # \<beta>'] # \<sigma> @ [init_symbol IPDA], w) 
+    \<turnstile>P* ([P.final_state, init_symbol IPDA], [])"
+  shows  "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* [X \<rightarrow> \<alpha>' . Nt A # \<beta>'] # \<sigma> \<Rightarrow>r* hist \<sigma> @ \<alpha>' @ Nt A # map Tm w"
+  using assms proof (induction "([A \<rightarrow> \<alpha> . \<beta>] # [X \<rightarrow> \<alpha>' . Nt A # \<beta>'] # \<sigma> @ [init_symbol IPDA], w)" 
+    arbitrary: A \<alpha> \<beta> X \<alpha>' \<beta>' \<sigma> w rule: converse_rtranclp_induct)
+  case (step z)
+  from P.step_imp_in_It this(1) have A_in_It: "[A \<rightarrow> \<alpha> . \<beta>] \<in> It G'" 
+    using P.step_imp_not_Nil by (smt (verit, ccfv_SIG) P.step_cases)
+  note step(1)
+  then show ?case
+  proof cases
+    case (shift A' \<gamma> a \<delta> i \<rho> u)
+    hence "z = ([A \<rightarrow> \<alpha> @ [Tm a] . \<delta>] # [X \<rightarrow> \<alpha>' . Nt A # \<beta>'] # \<sigma> @ [init_symbol IPDA], u)"
+      by blast
+    note step(3)[OF this] 
+    then show ?thesis using step \<proof>
+  next
+    case (reduce Y \<alpha> X \<beta> \<gamma> \<rho> w)
+    then show ?thesis \<proof>
+  next
+    case (expand Y \<alpha> X \<beta> \<gamma> i \<rho> w)
+    then show ?thesis \<proof>
+  qed 
+qed simp
+
+lemma ipda_comp_eq_derivers:
+  "(\<exists>\<rho>. ([A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol IPDA], w) \<turnstile>P* ([P.final_state, init_symbol IPDA], []) \<and>
+    hist \<rho> = \<gamma>)
+  = (\<exists>u v. w = u @ v \<and> Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm u 
+    \<and> Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma> @ Nt A # map Tm v
+    \<and> Prods G' \<turnstile> \<gamma> @ Nt A # map Tm v \<Rightarrow>r \<gamma> @ \<alpha> @ \<beta> @ map Tm v)" (is "?ipda = ?derivers")
+proof
+  assume ipda: ?ipda
+  hence "(A, \<alpha> @ \<beta>) \<in> Prods G'"
+    by (metis append.assoc char_imp_derivers deriver_imp_in_Prods ipda_imp_char)
+  hence "\<forall> \<gamma> w. Prods G' \<turnstile> \<gamma> @ Nt A # map Tm w \<Rightarrow>r \<gamma> @ \<alpha> @ \<beta> @ map Tm w"
+    using deriver.intros by fastforce
+  with ipda show ?derivers using ipda_comp_imp_derivers by fastforce
+next
+  assume ?derivers
+  then obtain u v where "w = u @ v" 
+    "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma> @ Nt A # map Tm v" 
+    "Prods G' \<turnstile> \<gamma> @ Nt A # map Tm v \<Rightarrow>r \<gamma> @ \<alpha> @ \<beta> @ map Tm v"
+    "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm u"
+    by blast
+  from this(1) derivers_imp_ipda[OF this(2-)] show ?ipda by metis
+qed
+
+*)
+
 lemma char_imp_ipda:
   assumes "([S' \<rightarrow> [] . [Nt S]], \<gamma>) \<turnstile>c* ([A \<rightarrow> \<alpha> . \<beta>], [])"
   obtains w \<rho> where 
@@ -673,84 +755,10 @@ text \<open>\<open>char(G)\<close> accepts the set of reliable prefixes to compl
 corollary char_lang_is_realiable_prefixes_of_complete_items:
   "char_fa.language = {\<gamma>. \<exists>A \<alpha>. [A \<rightarrow> \<alpha> . []] \<in> It G' \<and> reliable_prefix ([A \<rightarrow> \<alpha> . []]) \<gamma>}"
 proof -
-  note char_fa.eps_states_imp_language_eq_init_final_reachable[OF char_fa_eps_subst_states]
+  note char_fa.eps_subst_states_imp_language_eq_init_final_reachable[OF eps_char_fa_subst_states]
   thus ?thesis
     using char_eq_reliable_prefix by fastforce
 qed
-
-(* Attempts to prove equivalence of IPDA and derivers for fixed w (needed?) *)
-
-lemma ipda_comp_imp_derivers:
-  assumes "([A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol IPDA], w) \<turnstile>P* ([P.final_state, init_symbol IPDA], [])"
-  obtains u v where "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm u" "w = u @ v" 
-    "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* hist \<rho> @ Nt A # map Tm v" 
-proof (cases \<rho>)
-  case Nil
-  with P.reaches_without_stack_imp_S' assms have 
-    "[A \<rightarrow> \<alpha> . \<beta>] = init_state IPDA \<or> [A \<rightarrow> \<alpha> . \<beta>] = P.final_state" 
-    by simp
-  then show ?thesis 
-  proof (standard, goal_cases init final)
-    case init
-    with assms have "w \<in> P.Lang"using Nil 
-      by (simp add: P.Lang_def)
-    with P.Lang_eq_Lang_G Lang_preserved have "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm w"
-      unfolding Lang_def using init G_derives_imp_G'_derives by simp
-    then show ?case using that[of _ "[]"] init  by (simp add: Nil)
-  next
-    case final
-    then show ?case using that Nil P.complete_S'_steps_refl assms by force
-  qed
-next
-  case (Cons i \<sigma>)
-  then show ?thesis oops
-
-lemma ipda_reaches_final_imp_rm_chain_new:
-  assumes "([A \<rightarrow> \<alpha> . \<beta>] # [X \<rightarrow> \<alpha>' . Nt A # \<beta>'] # \<sigma> @ [init_symbol IPDA], w) 
-    \<turnstile>P* ([P.final_state, init_symbol IPDA], [])"
-  shows  "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* [X \<rightarrow> \<alpha>' . Nt A # \<beta>'] # \<sigma> \<Rightarrow>r* hist \<sigma> @ \<alpha>' @ Nt A # map Tm w"
-  using assms proof (induction "([A \<rightarrow> \<alpha> . \<beta>] # [X \<rightarrow> \<alpha>' . Nt A # \<beta>'] # \<sigma> @ [init_symbol IPDA], w)" 
-    arbitrary: A \<alpha> \<beta> X \<alpha>' \<beta>' \<sigma> w rule: converse_rtranclp_induct)
-  case (step z)
-  from P.step_imp_in_It this(1) have A_in_It: "[A \<rightarrow> \<alpha> . \<beta>] \<in> It G'" 
-    using P.step_imp_not_Nil by (smt (verit, ccfv_SIG) P.step_cases)
-  note step(1)
-  then show ?case
-  proof cases
-    case (shift A' \<gamma> a \<delta> i \<rho> u)
-    hence "z = ([A \<rightarrow> \<alpha> @ [Tm a] . \<delta>] # [X \<rightarrow> \<alpha>' . Nt A # \<beta>'] # \<sigma> @ [init_symbol IPDA], u)"
-      by blast
-    note step(3)[OF this] 
-    then show ?thesis using step \<proof>
-  next
-    case (reduce Y \<alpha> X \<beta> \<gamma> \<rho> w)
-    then show ?thesis \<proof>
-  next
-    case (expand Y \<alpha> X \<beta> \<gamma> i \<rho> w)
-    then show ?thesis oops
-(* qed simp *)
-
-lemma ipda_comp_eq_derivers:
-  "(\<exists>\<rho>. ([A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol IPDA], w) \<turnstile>P* ([P.final_state, init_symbol IPDA], []) \<and>
-    hist \<rho> = \<gamma>)
-  = (\<exists>u v. w = u @ v \<and> Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm u 
-    \<and> Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma> @ Nt A # map Tm v
-    \<and> Prods G' \<turnstile> \<gamma> @ Nt A # map Tm v \<Rightarrow>r \<gamma> @ \<alpha> @ \<beta> @ map Tm v)" (is "?ipda = ?derivers")
-proof
-  assume ipda: ?ipda
-  hence "(A, \<alpha> @ \<beta>) \<in> Prods G'"
-    by (metis append.assoc char_imp_derivers deriver_imp_in_Prods ipda_imp_char)
-  hence "\<forall> \<gamma> w. Prods G' \<turnstile> \<gamma> @ Nt A # map Tm w \<Rightarrow>r \<gamma> @ \<alpha> @ \<beta> @ map Tm w"
-    using deriver.intros by fastforce
-  with ipda show ?derivers (* using ipda_comp_imp_derivers *) \<proof>
-next
-  assume ?derivers
-  then obtain u v where "w = u @ v" 
-    "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma> @ Nt A # map Tm v" 
-    "Prods G' \<turnstile> \<gamma> @ Nt A # map Tm v \<Rightarrow>r \<gamma> @ \<alpha> @ \<beta> @ map Tm v"
-    "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm u"
-    by blast
-  from this(1) derivers_imp_ipda[OF this(2-)] show ?ipda oops 
 
 section \<open>The Canonical LR(0) Automaton and Parser\<close>
 
@@ -760,18 +768,35 @@ definition LR\<^sub>0 :: "(('n, 't) sym, ('n, 't) item set) dfa" where
 sublocale dfa_LR0: dfa LR\<^sub>0
   unfolding LR\<^sub>0_def by (rule char_fa.dfa_Power)
 
+lemma states_dfa_LR0 [simp]:
+  "dfa.states LR\<^sub>0 = char_fa.epsclo ` Pow (It G')"
+  unfolding LR\<^sub>0_def by simp
+
+lemma in_state_imp_in_It:
+  assumes "q \<in> dfa.states LR\<^sub>0" "i \<in> q"
+  shows "i \<in> It G'"
+  sorry
+
+lemma nxt_LR0_nempty_imp_in_states:
+  assumes "dfa.nxt LR\<^sub>0 q (Tm a) \<noteq> {}"
+  shows "q \<in> dfa.states LR\<^sub>0"
+  sorry
+
+lemma nxt_LR0_finite:
+  "finite {(q, a)| q a. dfa.nxt LR\<^sub>0 q a \<noteq> {}}"
+  using nxt_char_fa_finite sorry
+
 definition P\<^sub>0 :: "(('n, 't) item set, 't) npda" where
   "P\<^sub>0 \<equiv> let 
   \<Delta>\<^sub>G = dfa.nxt LR\<^sub>0;
   q\<^sub>0 = dfa.init LR\<^sub>0;
+  Q = dfa.states LR\<^sub>0;
   f = {[S' \<rightarrow> [] . []]};
-  \<Delta>\<^sub>0 = (\<lambda>qs a. case qs of [q] \<Rightarrow> if \<Delta>\<^sub>G q (Tm a) \<noteq> {} then {\<Delta>\<^sub>G q (Tm a) # [q]} else {} | _ \<Rightarrow> {});
+  \<Delta>\<^sub>0 = {([q], a, \<Delta>\<^sub>G q (Tm a) # [q])|q a. \<Delta>\<^sub>G q (Tm a) \<noteq> {}};
   \<E> = {let q = last (q\<^sub>n#qs) in (q\<^sub>n # qs, \<Delta>\<^sub>G q (Nt X) # [q])| 
-       q\<^sub>n qs X \<alpha>. [X \<rightarrow> \<alpha> . []] \<in> q\<^sub>n \<and> length \<alpha> = length qs} \<union>
-      {([q, q\<^sub>0], [f])|q. [S' \<rightarrow> [Nt S] . []] \<in> q}
- in
-  \<lparr>npda.states = dfa.states LR\<^sub>0 \<union> {f}, init = q\<^sub>0,  
-    final = {f}, nxt = \<Delta>\<^sub>0, eps = \<E>\<rparr>"
+       q\<^sub>n qs X \<alpha>. set (q\<^sub>n#qs) \<subseteq> Q \<and> [X \<rightarrow> \<alpha> . []] \<in> q\<^sub>n \<and> length \<alpha> = length qs} \<union>
+      {([q, q\<^sub>0], [f])|q. q \<in> Q \<and> [S' \<rightarrow> [Nt S] . []] \<in> q}
+ in \<lparr>npda.states = Q \<union> {f}, init = q\<^sub>0, final = {f}, nxt = \<Delta>\<^sub>0, eps = \<E>\<rparr>"
 
 lemma states_P0: 
   "npda.states P\<^sub>0 = dfa.states LR\<^sub>0 \<union> {{[S' \<rightarrow> [] . []]}}"
@@ -781,53 +806,143 @@ lemma init_P0:
   "npda.init P\<^sub>0 = dfa.init LR\<^sub>0"
   unfolding P\<^sub>0_def by (meson npda.select_convs(2))
 
+abbreviation "P0_final \<equiv> {[S' \<rightarrow> [] . []]}"
+
 lemma final_P0:
-  "npda.final P\<^sub>0 = {{[S' \<rightarrow> [] . []]}}"
+  "npda.final P\<^sub>0 = {P0_final}"
   unfolding P\<^sub>0_def by (meson npda.select_convs(3))
 
 lemma nxt_P0:
-  "npda.nxt P\<^sub>0 = (\<lambda>qs a. case qs of [q] \<Rightarrow> if dfa.nxt LR\<^sub>0 q (Tm a) \<noteq> {} 
-    then {dfa.nxt LR\<^sub>0 q (Tm a) # [q]} else {} | _ \<Rightarrow> {})"
+  "npda.nxt P\<^sub>0 = {([q], a, dfa.nxt LR\<^sub>0 q (Tm a) # [q])|q a. dfa.nxt LR\<^sub>0 q (Tm a) \<noteq> {}}"
   unfolding P\<^sub>0_def by (meson npda.select_convs(4))
-
-
 
 lemma eps_P0:
   "npda.eps P\<^sub>0 = 
   {let q = last (q\<^sub>n#qs) in (q\<^sub>n # qs, dfa.nxt LR\<^sub>0 q (Nt X) # [q])|
-    q\<^sub>n qs X \<alpha>. [X \<rightarrow> \<alpha> . []] \<in> q\<^sub>n \<and> length \<alpha> = length qs} \<union>
-  {([q, dfa.init LR\<^sub>0], [{[S' \<rightarrow> [] . []]}])|q. [S' \<rightarrow> [Nt S] . []] \<in> q}"
+    q\<^sub>n qs X \<alpha>. set (q\<^sub>n#qs) \<subseteq> dfa.states LR\<^sub>0 \<and> [X \<rightarrow> \<alpha> . []] \<in> q\<^sub>n \<and> length \<alpha> = length qs} \<union>
+  {([q, dfa.init LR\<^sub>0], [P0_final])|q. q \<in> dfa.states LR\<^sub>0 \<and> [S' \<rightarrow> [Nt S] . []] \<in> q}"
   unfolding P\<^sub>0_def by (meson npda.select_convs(5))
 
 lemmas P\<^sub>0_simps [simp] = states_P0 init_P0 final_P0 nxt_P0 eps_P0
 
-lemma P0_nxt_nempty_imp_LR0_nxt_set:
-  assumes "npda.nxt P\<^sub>0 qs a \<noteq> {}"
-  obtains q where "qs = [q]" "npda.nxt P\<^sub>0 qs a = {dfa.nxt LR\<^sub>0 q (Tm a) # [q]}"
+lemma nxt_P0_nempty_imp_nxt_LR0_set:
+  assumes "(qs, a, qs') \<in> npda.nxt P\<^sub>0"
+  obtains q where "qs = [q]" "qs' = dfa.nxt LR\<^sub>0 q (Tm a) # [q]"
     "dfa.nxt LR\<^sub>0 q (Tm a) \<noteq> {}"
+  using assms by auto
+
+lemma eps_P0_reduce_finite:
+  "finite {let q = last (q\<^sub>n#qs) in (q\<^sub>n # qs, dfa.nxt LR\<^sub>0 q (Nt X) # [q])|
+    q\<^sub>n qs X \<alpha>. set (q\<^sub>n#qs) \<subseteq> dfa.states LR\<^sub>0 \<and> [X \<rightarrow> \<alpha> . []] \<in> q\<^sub>n \<and> length \<alpha> = length qs}"
+  (is "finite ?R")
 proof -
-  consider "qs = []" | q where "qs = [q]" | p q qs' where "qs = p#q#qs'"
-    using list.exhaust by metis
-  then show thesis
-    using that assms by cases (auto split: if_splits)
+  have "?R \<subseteq> {q # qs| q qs X \<alpha>. set (q # qs) \<subseteq> dfa.states LR\<^sub>0 \<and> [X \<rightarrow> \<alpha> . []] \<in> q 
+                \<and> length \<alpha> = length qs} \<times> {[p, q]|p q. p \<in> dfa.states LR\<^sub>0 \<and> q \<in> dfa.states LR\<^sub>0}"
+  (is "_ \<subseteq> ?C \<times> ?T")
+  proof
+    fix e
+    assume "e \<in> ?R"
+    then obtain q\<^sub>n qs q X \<alpha> where e_defs: 
+      "q = last (q\<^sub>n#qs)" "e = (q\<^sub>n # qs, dfa.nxt LR\<^sub>0 q (Nt X) # [q])"
+      "set (q\<^sub>n#qs) \<subseteq> dfa.states LR\<^sub>0" "[X \<rightarrow> \<alpha> . []] \<in> q\<^sub>n" "length \<alpha> = length qs"
+      by (smt (verit, ccfv_SIG) mem_Collect_eq)
+    hence "q\<^sub>n # qs \<in> ?C" by blast
+    moreover have "[dfa.nxt LR\<^sub>0 q (Nt X), q] \<in> ?T"
+      using e_defs dfa_LR0.nxt last_in_set by fast
+    ultimately show "e \<in> ?C \<times> ?T" using e_defs by blast
+  qed
+  moreover have "finite ?C" 
+  proof -
+    have "?C \<subseteq> (\<lambda>(q, qs, X, \<alpha>). q # qs) ` {(q, qs, X, \<alpha>)| q qs X \<alpha>. set (q # qs) \<subseteq> dfa.states LR\<^sub>0 
+      \<and> [X \<rightarrow> \<alpha> . []] \<in> q \<and> length \<alpha> = length qs}" (is "_ \<subseteq> ?f ` ?F") 
+    proof
+      fix x
+      assume "x \<in> ?C"
+      then obtain q qs X \<alpha> where x_defs: "x = q # qs" "set (q # qs) \<subseteq> dfa.states LR\<^sub>0" 
+        "[X \<rightarrow> \<alpha> . []] \<in> q" "length \<alpha> = length qs" by blast
+      show "x \<in> ?f ` ?F"
+      proof
+        from x_defs show "x = (case (q, qs, X, \<alpha>) of (q, qs, X, \<alpha>) \<Rightarrow> q # qs)" by fast
+        from x_defs show "(q, qs, X, \<alpha>) \<in> ?F" by blast
+      qed
+    qed
+    moreover have "finite ?F" 
+    proof -
+      note finite_It = finite_It[OF G'_finite]
+      have "?F \<subseteq> dfa.states LR\<^sub>0 \<times> {xs |xs \<alpha>. set xs \<subseteq> dfa.states LR\<^sub>0 \<and> length xs = length \<alpha> 
+          \<and> \<alpha> \<in> (Hists_of_items (It G'))} \<times> Nts_of_items (It G') \<times> Hists_of_items (It G')"
+      (is "_ \<subseteq> _ \<times> ?xs \<times> _")
+      proof
+        fix x
+        assume "x \<in> ?F"
+        then obtain q qs X \<alpha> where x_defs: "x = (q, qs, X, \<alpha>)" "set (q # qs) \<subseteq> dfa.states LR\<^sub>0" 
+          "[X \<rightarrow> \<alpha> . []] \<in> q" "length \<alpha> = length qs" by blast
+        with in_state_imp_in_It have X\<alpha>_It: "X \<in> Nts_of_items (It G')" "\<alpha> \<in> Hists_of_items (It G')"
+          by auto
+        moreover from x_defs have "q \<in> dfa.states LR\<^sub>0" by simp
+        moreover from x_defs X\<alpha>_It have "qs \<in> ?xs" by force
+        ultimately show "x \<in> dfa.states LR\<^sub>0 \<times> ?xs \<times> Nts_of_items (It G') \<times> Hists_of_items (It G')"
+          using x_defs by blast
+      qed
+      with finite_lists_length_eq_Hists finite_items_imp_finite_Nts finite_items_imp_finite_Hists
+      show ?thesis using finite_subset dfa_LR0.finite finite_It by fast
+    qed
+    ultimately show ?thesis using finite_subset by fast
+  qed
+  moreover have "finite ?T" 
+  proof -
+    have "bij_betw (\<lambda>(p,q). [p,q]) (dfa.states LR\<^sub>0 \<times> dfa.states LR\<^sub>0) ?T" (is "bij_betw ?f ?P _")
+      unfolding bij_betw_def by (fast intro: inj_onI)
+    with dfa_LR0.finite show ?thesis using bij_betw_finite by fast
+  qed
+  ultimately show ?thesis using finite_subset by fast
 qed
 
+lemma eps_P0_cases[consumes 1, case_names reduce finish]:
+  assumes "(ps, qs) \<in> npda.eps P\<^sub>0"
+  obtains r rs X \<alpha> where 
+    "ps = r # rs" "qs = (let q = last (r # rs) in dfa.nxt LR\<^sub>0 q (Nt X) # [q])"
+    "set (r # rs) \<subseteq> dfa.states LR\<^sub>0" "[X \<rightarrow> \<alpha> . []] \<in> r" "length \<alpha> = length rs" |
+    q where "q \<in> dfa.states LR\<^sub>0" "ps = [q, dfa.init LR\<^sub>0]" "qs = [P0_final]"
+  using assms unfolding eps_P0 by standard (smt (verit, best) mem_Collect_eq prod.inject)+
+
 interpretation P0: npda P\<^sub>0
-proof (unfold_locales, goal_cases _ _ nxt eps _)
-  case (nxt ps qs a)
-  with P0_nxt_nempty_imp_LR0_nxt_set obtain p where p_def: "ps = [p]"
-    "npda.nxt P\<^sub>0 ps a = {[dfa.nxt LR\<^sub>0 p (Tm a), p]}" "dfa.nxt LR\<^sub>0 p (Tm a) \<noteq> {}"
+proof (unfold_locales, goal_cases _ _ nxt eps _ finite_nxt finite_eps)
+  case (nxt ps a qs)
+  with nxt_P0_nempty_imp_nxt_LR0_set obtain p where "ps = [p]"
+  "qs = [dfa.nxt LR\<^sub>0 p (Tm a), p]" "dfa.nxt LR\<^sub>0 p (Tm a) \<noteq> {}"
     by force
-  let ?q = "dfa.nxt LR\<^sub>0 p (Tm a)"
-  from dfa_LR0.nxt nxt p_def have "?q \<in> dfa.states LR\<^sub>0"
-    sorry
-(* Needs case distinction. Prove that if final nxt is empty, therefore p must be in Q\<^sub>G. *)
-    
-  then show ?case using P0_nxt_nempty_imp_LR0_nxt_set dfa_LR0.nxt 
+  with nxt_LR0_nempty_imp_in_states dfa_LR0.nxt show ?case by simp
 next
   case (eps ps qs)
-  then show ?case sorry
-qed (simp add: dfa_LR0.finite)+
+  then show ?case 
+  proof (cases rule: eps_P0_cases)
+    case (reduce r rs X \<alpha>)
+    moreover from this(3) have "dfa.nxt LR\<^sub>0 (last (r # rs)) (Nt X) \<in> dfa.states LR\<^sub>0"
+      using dfa_LR0.nxt last_in_set by blast
+    ultimately show ?thesis 
+      using subset_code(1) by auto
+  qed (use dfa_LR0.init in simp)
+next 
+  case finite_nxt
+  have "finite {(q, a)|q a. dfa.nxt LR\<^sub>0 q (Tm a) \<noteq> {}}" (is "finite ?R")
+  proof -
+    have "{(q, a)|q a. dfa.nxt LR\<^sub>0 q (Tm a) \<noteq> {}} \<subseteq> (\<lambda>(q, a). (q, destTm a)) ` {(q, a)| q a. dfa.nxt LR\<^sub>0 q a \<noteq> {}}"
+      by force
+    from finite_surj[OF nxt_LR0_finite this] show ?thesis .
+  qed
+  moreover have "bij_betw (\<lambda>(q, a). ([q], a, dfa.nxt LR\<^sub>0 q (Tm a) # [q])) ?R (npda.nxt P\<^sub>0)"
+    (is "bij_betw ?f _ _")
+  proof -
+    have "inj_on ?f ?R" by standard auto
+  moreover have "?f ` ?R = (npda.nxt P\<^sub>0)" unfolding nxt_P0 by auto
+  ultimately show ?thesis unfolding bij_betw_def by satx
+  qed
+  ultimately show ?case using bij_betw_finite by blast
+next
+  case finite_eps
+  then show ?case using eps_P0_reduce_finite by auto
+qed (use dfa_LR0.init in simp_all)
 
 end
 

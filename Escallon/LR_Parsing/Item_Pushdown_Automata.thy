@@ -193,8 +193,6 @@ proof -
           smt (verit) case_prod_conv delta_eps_ipda item.case list.simps(4,5) sym.simps(6))
   qed
 qed
-  
-
 
 lemma delta_eps_nempty_imp_expanding_or_reducing[consumes 1, case_names expanding reducing]:
   assumes "delta_eps M p q \<noteq> {}"

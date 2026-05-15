@@ -40,6 +40,22 @@ definition items_of_Prods :: "('n, 't) Prods \<Rightarrow> ('n, 't) item set" wh
 definition It :: "('n, 't) Cfg \<Rightarrow> ('n, 't) item set" where
   "It G = items_of_Prods (Prods G)"
 
+definition Nts_of_items :: "('n, 't) item set \<Rightarrow> 'n set" where
+  "Nts_of_items I \<equiv> (\<lambda>i. case i of [A \<rightarrow> \<alpha> . \<beta>] \<Rightarrow> A) ` I"
+
+definition Hists_of_items :: "('n, 't) item set \<Rightarrow> ('n, 't) syms set" where
+  "Hists_of_items I \<equiv> (\<lambda>i. case i of [A \<rightarrow> \<alpha> . \<beta>] \<Rightarrow> \<alpha>) ` I"
+
+lemma in_items_imp_in_Nts [intro]:
+  assumes "[A \<rightarrow> \<alpha> . \<beta>] \<in> I"
+  shows "A \<in> Nts_of_items I"
+  using assms unfolding Nts_of_items_def by force
+
+lemma in_items_imp_in_Hists [intro]:
+  assumes "[A \<rightarrow> \<alpha> . \<beta>] \<in> I"
+  shows "\<alpha> \<in> Hists_of_items I"
+  using assms unfolding Hists_of_items_def by force
+
 lemmas It_defs = It_def items_of_Prods_def
 
 lemma in_Prods_imp_in_It:
@@ -109,7 +125,7 @@ proof (induction w)
   ultimately show ?case using local.Cons bij_betw_finite by fastforce
 qed simp
 
-lemma items_of_Prods_finite:
+lemma finite_items_of_Prods:
   assumes "finite P"
 shows "finite (items_of_Prods P)"
 proof -
@@ -118,10 +134,31 @@ proof -
   with prod_items_finite show ?thesis using assms by fastforce
 qed
 
-corollary It_finite:
+corollary finite_It:
   assumes "finite (Prods G)"
 shows "finite (It G)"
-  using assms items_of_Prods_finite unfolding It_def by auto
+  using assms finite_items_of_Prods unfolding It_def by auto
+
+lemma finite_items_imp_finite_Nts:
+  assumes "finite I"
+  shows "finite (Nts_of_items I)"
+  using assms unfolding Nts_of_items_def by blast
+
+lemma finite_items_imp_finite_Hists:
+  assumes "finite I"
+  shows "finite (Hists_of_items I)"
+  using assms unfolding Hists_of_items_def by blast
+
+lemma finite_lists_length_eq_Hists:
+  assumes "finite I" "finite A"
+  shows "finite {xs |xs \<alpha>. set xs \<subseteq> A \<and> length xs = length \<alpha> \<and> \<alpha> \<in> (Hists_of_items I)}"
+proof -
+  note finite_Hists = finite_items_imp_finite_Hists[OF assms(1)]
+  have "{xs|xs \<alpha>. set xs \<subseteq> A \<and> length xs = length \<alpha> \<and> \<alpha> \<in> (Hists_of_items I)}
+        = {xs|xs n. set xs \<subseteq> A \<and> length xs = n \<and> n \<in> length ` (Hists_of_items I)}"
+    by blast
+  with finite_lists_length_eq_set finite_Hists assms(2) show ?thesis by auto
+qed
 
 (* mv? *)
 section \<open>Reduced Grammars\<close>

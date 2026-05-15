@@ -7,31 +7,35 @@ begin
 record ('q, 'a) npda = states :: "'q set"
                        init   :: 'q
                        final  :: "'q set"
-                       nxt  :: "'q list \<Rightarrow> 'a \<Rightarrow> 'q list set"
+                       nxt    :: "('q list \<times> 'a \<times> 'q list) set"
                        eps    :: "('q list \<times> 'q list) set"
 
 type_synonym ('q, 'a) config = "'q list \<times> 'a list"
 
 locale npda =
   fixes M :: "('q, 'a) npda"
-  assumes init: "init M \<in> states M"
-      and final: "final M \<subseteq> states M"
-      and nxt: "\<lbrakk>set ps \<subseteq> states M; qs \<in> nxt M ps a\<rbrakk> \<Longrightarrow> set qs \<subseteq> states M"
-      and eps: "(ps, qs) \<in> eps M \<Longrightarrow> set ps \<subseteq> states M \<and> set qs \<subseteq> states M"
-      and finite: "finite (states M)"
+  assumes init:       "init M \<in> states M"
+      and final:      "final M \<subseteq> states M"
+      and nxt:        "(ps, a, qs) \<in> nxt M \<Longrightarrow> ps \<noteq> [] \<and> set ps \<subseteq> states M \<and> set qs \<subseteq> states M"
+      and eps:        "(ps, qs) \<in> eps M \<Longrightarrow> ps \<noteq> [] \<and> set ps \<subseteq> states M \<and> set qs \<subseteq> states M"
+      and finite:     "finite (states M)"
+      and finite_nxt: "finite (nxt M)"
+      and finite_eps: "finite (eps M)"
 begin
 
 inductive step :: "('q,'a) config \<Rightarrow> ('q,'a) config \<Rightarrow> bool" (infix \<open>\<turnstile>\<close> 55) where
-nxt[intro]: "qs \<in> nxt M (p#ps) a \<Longrightarrow> (p#ps@rs, a#w) \<turnstile> (qs@rs, w)" |
-eps[intro]: "(p#ps, qs) \<in> eps M \<Longrightarrow> (p#ps@rs, w) \<turnstile> (qs@rs, w)"
+step_nxt[intro]: "(ps, a, qs) \<in> nxt M \<Longrightarrow> (ps@rs, a#w) \<turnstile> (qs@rs, w)" |
+step_eps[intro]: "(ps, qs) \<in> eps M \<Longrightarrow> (ps@rs, w) \<turnstile> (qs@rs, w)"
 
 inductive_cases step_nxtE[elim]: "(ps, a#w) \<turnstile> (qs, w)"
 inductive_cases step_epsE[elim]: "(ps, w) \<turnstile> (qs, w)"
 
+
 lemma step_imp_Cons[elim]:
   assumes "(ps, u) \<turnstile> (qs, v)"
   obtains p ps' where "ps = p#ps'"
-  using assms by cases
+  using assms nxt eps by cases (metis list.exhaust Nil_is_append_conv)+
+
 
 abbreviation steps :: "('q,'a) config \<Rightarrow> ('q,'a) config \<Rightarrow> bool" (infix \<open>\<turnstile>*\<close> 55) where
   "steps \<equiv> step\<^sup>*\<^sup>*"
@@ -52,7 +56,7 @@ definition npda_of_pda :: "('q, 'a, 's) pda \<Rightarrow> (('q, 's, 'r::fresh0) 
     \<Gamma> = UNIV :: 's set; 
     q\<^sub>0 = fresh0 ({}::'r set);
     q\<^sub>f = fresh0 {q\<^sub>0};
-    \<Delta> = (\<lambda>ps a. case ps of [Qtyp p, Styp Z]  \<Rightarrow> {Qtyp q # map Styp \<gamma> |q \<gamma>. (q, \<gamma>) \<in> delta M p a Z} | _ \<Rightarrow> {});
+    \<Delta> = {([Qtyp p, Styp Z], a, Qtyp q # map Styp \<gamma>)|p Z a q \<gamma>. (q, \<gamma>) \<in> delta M p a Z};
     \<E> = {([Qtyp p, Styp Z], Qtyp q # map Styp \<gamma>)|p Z q \<gamma>. 
         (q, \<gamma>) \<in> delta_eps M p Z} \<union> {([Q'typ q\<^sub>0], [Qtyp (init_state M), Styp (init_symbol M)])}
         \<union> {([Qtyp f], [Q'typ q\<^sub>f])|f. f \<in> final_states M}
@@ -64,6 +68,10 @@ lemma states_npda_of_pda [simp]:
       q\<^sub>f = fresh0 {q\<^sub>0} in 
     (Qtyp ` (UNIV :: 'q set)) \<union> (Styp ` (UNIV :: 's set)) \<union> (Q'typ ` {q\<^sub>0, q\<^sub>f}))"
   unfolding npda_of_pda_def by (meson npda.select_convs(1))
+
+lemma npda_of_pda_states_contain_pda_states_stack:
+  "Qtyp ` UNIV \<union> Styp ` UNIV \<subseteq> states (npda_of_pda M)"
+  using states_npda_of_pda by (metis sup_ge1)
 
 lemma init_npda_of_pda [simp]:
   "init ((npda_of_pda M)::(('q, 's, 'r::fresh0) sum3, 'a) npda) 
@@ -77,8 +85,37 @@ lemma final_npda_of_pda[simp]:
 
 lemma nxt_npda_of_pda[simp]:
   "nxt (npda_of_pda M) = 
-    (\<lambda>ps a. case ps of [Qtyp p, Styp Z]  \<Rightarrow> {Qtyp q # map Styp \<gamma> |q \<gamma>. (q, \<gamma>) \<in> delta M p a Z} | _ \<Rightarrow> {})"
+    {([Qtyp p, Styp Z], a, Qtyp q # map Styp \<gamma>)|p Z a q \<gamma>. (q, \<gamma>) \<in> delta M p a Z}"
   unfolding npda_of_pda_def by (meson npda.select_convs(4))
+
+definition delta_rel :: "('q, 'a, 's) pda \<Rightarrow> ('q \<times> 's \<times> 'a \<times> 'q \<times> 's list) set" where
+  "delta_rel M \<equiv> {(p, Z, a, q, \<gamma>)|p Z a q \<gamma>. (q, \<gamma>) \<in> delta M p a Z}"
+
+lemma pda_imp_finite_delta_rel:
+  assumes "pda M"
+  shows "finite (delta_rel M)"
+proof -
+  have "delta_rel M \<subseteq> UNIV \<times> UNIV \<times> UNIV \<times> (\<Union>p a Z. delta M p a Z)"
+    (is "_ \<subseteq> _ \<times> _ \<times> _ \<times> _ ?Un")
+    unfolding delta_rel_def by fast
+  moreover from pda.finite_delta[OF assms] have "finite ?Un"
+    by simp
+  ultimately show ?thesis 
+    by (meson finite_SigmaI finite_UNIV finite_subset)
+qed
+
+lemma bij_betw_delta_rel_npda_of_pda_nxt:
+  "bij_betw (\<lambda>(p, Z, a, q, \<gamma>). ([Qtyp p, Styp Z], a, Qtyp q # map Styp \<gamma>)) 
+    (delta_rel M) (nxt (npda_of_pda M))"
+  (is "bij_betw ?f _ _")
+proof -
+  have "inj_on ?f (delta_rel M)"
+    by standard (auto, metis list.inj_map_strong sum3.inject(2))
+  moreover have "?f ` (delta_rel M) = (nxt (npda_of_pda M))"
+    unfolding delta_rel_def nxt_npda_of_pda by (standard; standard) force+
+  ultimately show ?thesis unfolding bij_betw_def by presburger
+qed
+
 
 lemma eps_npda_of_pda[simp]:
   "eps ((npda_of_pda M)::(('q, 's, 'r::fresh0) sum3, 'a) npda) = 
@@ -89,50 +126,17 @@ lemma eps_npda_of_pda[simp]:
         \<union> {([Qtyp f], [Q'typ q\<^sub>f])|f. f \<in> final_states M})"
   unfolding npda_of_pda_def by (meson npda.select_convs(5))
 
-lemma npda_of_pda_nxt_singleton:
-  "nxt (npda_of_pda M) [p] a = {}"
-  unfolding nxt_npda_of_pda 
-  by (metis (mono_tags, lifting) list.simps(4,5) sum3.case(3) sum3.exhaust
-      sum3.simps(10,11))
-
-lemma npda_of_pda_3:
-  "nxt (npda_of_pda M) (p#q#r#rs) a = {}"
-  unfolding nxt_npda_of_pda 
-  by (metis (mono_tags, lifting) list.simps(5) sum3.case(3) sum3.exhaust
-      sum3.simps(10,11))
-
-lemma npda_of_pda_nxt_snd_Q:
-  "nxt (npda_of_pda M) (p#Qtyp q#ps) a = {}"
-  unfolding nxt_npda_of_pda 
-  by (metis (mono_tags, lifting) list.simps(5) sum3.case(3) sum3.exhaust
-      sum3.simps(10,11))
-
-lemma npda_of_pda_nxt_snd_Q':
-  "nxt (npda_of_pda M) (p#Q'typ q#ps) a = {}"
-  unfolding nxt_npda_of_pda 
-  by (metis (mono_tags, lifting) list.simps(5) sum3.case(3) sum3.exhaust
-      sum3.simps(10,11))
-
-lemmas npda_of_pda_nxt_simps[simp] = npda_of_pda_nxt_singleton npda_of_pda_3 
-  npda_of_pda_nxt_snd_Q npda_of_pda_nxt_snd_Q'
-
 
 lemma npda_of_pda_nxt_imp_two:
-  assumes "nxt (npda_of_pda M) ps a \<noteq> {}"
+  assumes "(ps, a, qs) \<in> nxt (npda_of_pda M)"
   shows "\<exists>p Z. ps = [Qtyp p, Styp Z]"
-  using assms npda_of_pda_nxt_simps unfolding nxt_npda_of_pda 
-  by (smt (verit, ccfv_SIG) list.exhaust list.simps(4,5) sum3.exhaust
-      sum3.simps(10,11,12))
+  using assms unfolding nxt_npda_of_pda by blast
 
 
 lemma npda_of_pda_nxt_imp_pda_delta:
-  assumes "qs \<in> nxt (npda_of_pda M) ps a"
+  assumes "(ps, a, qs) \<in> nxt (npda_of_pda M)"
   obtains p Z q \<gamma> where "ps = [Qtyp p, Styp Z]" "qs = Qtyp q # map Styp \<gamma>" "(q, \<gamma>) \<in> delta M p a Z"
-proof -
-  from assms have "nxt (npda_of_pda M) ps a \<noteq> {}" by blast
-  from npda_of_pda_nxt_imp_two[OF this] assms show thesis
-    using that unfolding nxt_npda_of_pda by auto
-qed
+  using assms unfolding nxt_npda_of_pda by blast
 
 lemma
   assumes "pda P"
@@ -146,40 +150,30 @@ next
   then show ?case using states_npda_of_pda final_npda_of_pda 
     by (smt (verit, ccfv_threshold) Un_iff empty_iff image_eqI insert_iff subsetI)
 next
-  case (3 ps qs a)
-  from npda_of_pda_nxt_imp_pda_delta[OF this(2)] obtain q \<gamma> where "qs = Qtyp q # map Styp \<gamma>"
+  case (3 ps a qs)
+  from npda_of_pda_nxt_imp_pda_delta[OF this] obtain p Z q \<gamma> where ps_qs_defs:
+    "ps = [Qtyp p, Styp Z]"
+    "qs = Qtyp q # map Styp \<gamma>"
     by metis
-  hence "set qs \<subseteq> Qtyp ` UNIV \<union> Styp ` UNIV"
+  hence "set qs \<subseteq> Qtyp ` UNIV \<union> Styp ` UNIV" "set ps \<subseteq> Qtyp ` UNIV \<union> Styp ` UNIV"
     by auto
-  then show ?case using states_npda_of_pda 
-    by (metis sup.coboundedI1)
+  with ps_qs_defs show ?case 
+    using npda_of_pda_states_contain_pda_states_stack by auto
 next
   case (4 ps qs)
-  hence
-    "(ps, qs) \<in> {([Qtyp p, Styp Z], Qtyp q # map Styp \<gamma>) |p Z q \<gamma>. (q, \<gamma>) \<in> delta_eps P p Z}
-      \<union> {([Q'typ (fresh0 {})], [Qtyp (init_state P), Styp (init_symbol P)])}
-      \<union> {([Qtyp f], [Q'typ (fresh0 {fresh0 {}})]) |f. f \<in> final_states P}"
-    unfolding eps_npda_of_pda by meson
-  then show ?case 
-  proof (standard, goal_cases)
-    case 1
-    then show ?case 
-      apply standard
-      sorry
-  next
-    case 2
-    then obtain f where "ps = [Qtyp f]" by blast
-    moreover have "set qs \<subseteq> states (npda_of_pda P)" 
-      using 2 unfolding states_npda_of_pda
-      by (smt (verit, ccfv_threshold) Un_upper2 empty_set image_empty image_insert
-          insert_subset list.simps(15) mem_Collect_eq prod.inject)
-    ultimately show ?case using states_npda_of_pda  
-      by (metis Un_iff empty_set empty_subsetI insert_subset list.simps(15) rangeI)
-  qed
+  then show ?case sorry
 next
   case 5
   then show ?case unfolding states_npda_of_pda 
     by (metis finite.simps finite_UNIV finite_Un finite_imageI)
+next
+  case 6
+  then show ?case 
+    using pda_imp_finite_delta_rel[OF assms] bij_betw_delta_rel_npda_of_pda_nxt
+      bij_betw_finite by auto
+next
+  case 7
+  then show ?case sorry
 qed
 
 

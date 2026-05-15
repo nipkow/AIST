@@ -525,5 +525,13 @@ lemma prod_substring_imp_Nts_subset:
   "(A, \<alpha> @ \<beta> @ \<gamma>) \<in> P \<Longrightarrow> Nts_syms \<beta> \<subseteq> Nts P"
   unfolding Nts_def by fastforce
 
+lemma finite_lists_length_eq_set:
+  assumes "finite A" "finite B"
+  shows "finite {xs|xs n. set xs \<subseteq> A \<and> length xs = n \<and> n \<in> B}"
+proof -
+  have "{xs|xs n. set xs \<subseteq> A \<and> length xs = n \<and> n \<in> B} = 
+    (\<Union>n \<in> B. {xs|xs \<alpha>. set xs \<subseteq> A \<and> length xs = n})" by auto
+  with assms finite_lists_length_eq show ?thesis by auto
+qed
 
 end

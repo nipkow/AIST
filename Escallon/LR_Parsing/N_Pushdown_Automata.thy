@@ -30,7 +30,6 @@ step_eps[intro]: "(ps, qs) \<in> eps M \<Longrightarrow> (ps@rs, w) \<turnstile>
 inductive_cases step_nxtE[elim]: "(ps, a#w) \<turnstile> (qs, w)"
 inductive_cases step_epsE[elim]: "(ps, w) \<turnstile> (qs, w)"
 
-
 lemma step_imp_Cons[elim]:
   assumes "(ps, u) \<turnstile> (qs, v)"
   obtains p ps' where "ps = p#ps'"

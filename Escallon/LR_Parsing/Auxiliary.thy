@@ -47,6 +47,17 @@ next
   then show ?case using zs_snoc snoc by blast
 qed
 
+lemma list_of_subset:
+  assumes "A \<noteq> {}"
+  obtains xs where "set xs \<subseteq> A" "length xs = n"
+proof -
+  from assms obtain a where in_A: "a \<in> A" by blast
+  let ?xs = "replicate n a"
+  from in_A have "set ?xs \<subseteq> A" by fastforce
+  moreover have "length ?xs = n" by simp
+  ultimately show thesis using that by blast
+qed
+
 section \<open>Syms (generalize to all list types?)\<close>
 
 lemma syms_split_last_eq_imp_tl_eq:
@@ -518,6 +529,11 @@ lemma derivers_singleton_imp_produced:
     qed
   qed
 qed
+
+lemma deriven_leq:
+  assumes "Prods G \<turnstile> \<alpha> @ \<beta> @ \<gamma> \<Rightarrow>(n) map Tm w"
+  obtains m v where "Prods G \<turnstile> \<beta> \<Rightarrow>(m) map Tm v" "m \<le> n"
+  using assms by (metis add_leD1 deriven_append_map_Tm le_add2)
 
 section \<open>Others\<close>
 

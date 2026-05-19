@@ -225,6 +225,32 @@ lemma reduced_imp_prod_substring_derives_Tms:
   using reduced_imp_Nts_subset_derives_Tms[OF _ assms(2)]
    prod_substring_imp_Nts_subset[OF assms(1)] by blast
 
+lemma reduced_imp_prod_distinct:
+  assumes "(A, \<alpha>) \<in> Prods G"
+    "reduced G"
+  obtains \<beta> where "(A, \<beta>) \<in> Prods G" "Nt A \<notin> set \<beta>"
+proof -
+  from assms obtain w n where "Prods G \<turnstile> [Nt A] \<Rightarrow>(n) map Tm w"
+    using rtranclp_imp_relpowp by (metis append.right_neutral append_Nil derives_Cons_rule
+        reduced_imp_prod_substring_derives_Tms)
+  then show thesis using that
+  proof (induction n arbitrary: A w thesis rule: less_induct)
+    case (less n)
+    then obtain m \<alpha> where m_steps: "n = Suc m" "Prods G \<turnstile> [Nt A] \<Rightarrow> \<alpha>" "Prods G \<turnstile> \<alpha> \<Rightarrow>(m) map Tm w" 
+      using relpowp_Suc_D2 by (metis deriven_Nt_map_TmD)
+    then show ?case proof (cases "Nt A \<in> set \<alpha>")
+      case True
+      with m_steps obtain \<beta> \<gamma> where "\<alpha> = \<beta> @ [Nt A] @ \<gamma>" using split_list by fastforce
+      then obtain i v where "Prods G \<turnstile> [Nt A] \<Rightarrow>(i) map Tm v" "i < n" using deriven_leq
+          m_steps(1,3) by (metis le_imp_less_Suc)
+      then show ?thesis using less.IH less.prems(2) by blast
+    next
+      case False
+      then show ?thesis using m_steps less.prems(2)[of \<alpha>] by (simp add: derive_singleton)
+    qed
+  qed
+qed
+
 lemma derives_imp_in_Prods:
   assumes "Start G \<in> Nts (Prods G)"
   shows "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* \<alpha> \<Longrightarrow> Nts_syms \<alpha> \<subseteq> Nts (Prods G)"

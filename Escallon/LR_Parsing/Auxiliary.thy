@@ -566,12 +566,6 @@ lemma derivers_last_step_single_Nt:
     "(X, map Tm v) \<in> P" "w = u @ v @ x"
   using assms deriver_imp_handle_Tms by (metis (no_types, lifting) derive_decomp deriver_imp_derive)
 
-lemma derivern_singleton_imp_singleton_produces_hd:
-  assumes "P \<turnstile> [Nt A] \<Rightarrow>r(Suc n) X # \<alpha>"
-  obtains \<beta> B \<gamma> m \<delta> where "P \<turnstile> [Nt A] \<Rightarrow>r \<beta> @ Nt B # \<gamma>" 
-    "P \<turnstile> [Nt B] \<Rightarrow>r(m) X # \<delta>" "m < Suc n" 
-  sorry
-
 section \<open>Others\<close>
 
 lemma derives_non_word_imp_non_word:

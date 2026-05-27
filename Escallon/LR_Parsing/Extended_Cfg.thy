@@ -59,15 +59,15 @@ lemma in_items_imp_in_Hists [intro]:
 lemmas It_defs = It_def items_of_Prods_def
 
 lemma in_Prods_imp_in_It:
-  "prod_of_item i \<in> Prods G' \<Longrightarrow> i \<in> It G'"
+  "prod_of_item i \<in> Prods G \<Longrightarrow> i \<in> It G"
   unfolding It_defs by (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq)
 
 lemma in_It_imp_in_Prods:
-  "i \<in> It G' \<Longrightarrow> prod_of_item i \<in> Prods G'"
+  "i \<in> It G \<Longrightarrow> prod_of_item i \<in> Prods G"
   unfolding It_defs by auto
 
 lemma in_Prods_iff_in_It:
-  "prod_of_item i \<in> Prods G' = (i \<in> It G')"
+  "prod_of_item i \<in> Prods G = (i \<in> It G)"
   using in_Prods_imp_in_It in_It_imp_in_Prods by auto
 
 lemma prod_of_item_eq_imp_in_Prods_eq:

@@ -66,13 +66,13 @@ lemma in_It_imp_in_Prods:
   "i \<in> It G' \<Longrightarrow> prod_of_item i \<in> Prods G'"
   unfolding It_defs by auto
 
-lemma in_Prods_eq_in_It:
+lemma in_Prods_iff_in_It:
   "prod_of_item i \<in> Prods G' = (i \<in> It G')"
   using in_Prods_imp_in_It in_It_imp_in_Prods by auto
 
 lemma prod_of_item_eq_imp_in_Prods_eq:
   "prod_of_item i = prod_of_item j \<Longrightarrow> i \<in> It G' \<longleftrightarrow> j \<in> It G'"
-  by (cases i, cases j) (metis in_Prods_eq_in_It)
+  by (cases i, cases j) (metis in_Prods_iff_in_It)
 
 lemma hd_in_prods_imp_derives_expanded_hist:
   assumes "(Y, \<alpha>) \<in> P"
@@ -225,6 +225,20 @@ lemma reduced_imp_prod_substring_derives_Tms:
   using reduced_imp_Nts_subset_derives_Tms[OF _ assms(2)]
    prod_substring_imp_Nts_subset[OF assms(1)] by blast
 
+lemma reduced_imp_prod_singleton_derives_Tms:
+  assumes "(A, \<alpha> @ Nt B # \<gamma>) \<in> Prods G"
+    "reduced G"
+  obtains v where "Prods G \<turnstile> [Nt B] \<Rightarrow>* map Tm v"
+  using reduced_imp_prod_substring_derives_Tms[of A \<alpha> "[Nt B]" \<gamma>] assms by auto
+
+lemma reduced_imp_prod_derives_Tms:
+  assumes "(A, \<alpha>) \<in> Prods G"
+    "reduced G"
+  obtains v where "Prods G \<turnstile> [Nt A] \<Rightarrow> \<alpha>"
+    "Prods G \<turnstile> \<alpha> \<Rightarrow>* map Tm v"
+  using reduced_imp_prod_substring_derives_Tms[of A "[]" \<alpha> "[]"] assms derive.intros 
+  by (metis append.right_neutral append_Nil)
+
 lemma reduced_imp_prod_distinct:
   assumes "(A, \<alpha>) \<in> Prods G"
     "reduced G"
@@ -285,6 +299,15 @@ lemma reduced_derives_imp_derives_Tms:
   obtains v where "Prods G \<turnstile> \<alpha> \<Rightarrow>* map Tm v"
   using reduced_derives_imp_substring_derives_Tms[of _ "[]" _ "[]"] assms 
   by (metis append.right_neutral append_Nil)
+
+lemma reduced_Nts_in_It:
+  assumes "A \<in> Nts (Prods G)" "reduced G"
+  obtains \<alpha> \<beta> where "[A \<rightarrow> \<alpha> . \<beta>] \<in> It G"
+  using assms unfolding It_defs 
+  by (metis (mono_tags, lifting) append.right_neutral derives_Nt_map_TmD mem_Collect_eq
+      reduced_imp_derives_Tms_singleton)
+
+    
 
 section \<open>Extending a reduced CFG by a new starting symbol S'\<close>
 

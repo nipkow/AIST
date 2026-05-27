@@ -12,12 +12,17 @@ record ('q, 'a) npda = states :: "'q set"
 
 type_synonym ('q, 'a) config = "'q list \<times> 'a list"
 
+(* Placeholder, should be states M 
+consts Q :: "'s::fresh0 set" *)
+
 locale npda =
   fixes M :: "('q, 'a) npda"
   assumes init:       "init M \<in> states M"
       and final:      "final M \<subseteq> states M"
-      and nxt:        "(ps, a, qs) \<in> nxt M \<Longrightarrow> ps \<noteq> [] \<and> set ps \<subseteq> states M \<and> set qs \<subseteq> states M"
-      and eps:        "(ps, qs) \<in> eps M \<Longrightarrow> ps \<noteq> [] \<and> set ps \<subseteq> states M \<and> set qs \<subseteq> states M"
+      and nxt:        "(ps, a, qs) \<in> nxt M \<Longrightarrow> ps \<noteq> [] \<and> qs \<noteq> [] 
+        \<and> set ps \<subseteq> states M \<and> set qs \<subseteq> states M"
+      and eps:        "(ps, qs) \<in> eps M \<Longrightarrow> ps \<noteq> [] \<and> qs \<noteq> [] 
+        \<and> set ps \<subseteq> states M \<and> set qs \<subseteq> states M"
       and finite:     "finite (states M)"
       and finite_nxt: "finite (nxt M)"
       and finite_eps: "finite (eps M)"
@@ -32,7 +37,7 @@ inductive_cases step_epsE[elim]: "(ps, w) \<turnstile> (qs, w)"
 
 lemma step_imp_Cons[elim]:
   assumes "(ps, u) \<turnstile> (qs, v)"
-  obtains p ps' where "ps = p#ps'"
+  obtains p ps' q qs' where "ps = p#ps'" "qs = q#qs'"
   using assms nxt eps by cases (metis list.exhaust Nil_is_append_conv)+
 
 
@@ -45,7 +50,35 @@ abbreviation stepn :: "('q,'a) config \<Rightarrow> nat \<Rightarrow> ('q,'a) co
 definition Lang :: "'a list set" where
   "Lang \<equiv> {w. \<exists>f \<in> final M. ([init M], w) \<turnstile>* ([f], [])}"
 
+(*
+
+Towards npda \<Longrightarrow> pda
+
+definition states_of_eps :: "('s list \<times> 's list) set \<Rightarrow> 's set" where
+  "states_of_eps \<E> \<equiv> \<Union>(ps, qs) \<in> \<E>. set ps \<union> set qs"
+
+popwrt_eps should turn 
+
+  ps \<turnstile> qs for ps = p\<^sub>0#p\<^sub>1#...#p\<^sub>n 
+
+into
+
+  p\<^sub>0#p\<^sub>1#...#p\<^sub>n \<turnstile> p\<^sub>1#...#p\<^sub>n \<turnstile> ... \<turnstile> p\<^sub>n \<turnstile> qs
+
+fun popwrt_eps :: "'s set \<Rightarrow> 's list \<Rightarrow> 's list \<Rightarrow> ('s \<times> 's) list" where
+  "popwrt_eps Q qs \<gamma> = undefined"
+
+
+
+definition List_pda :: "('q, 'a, 'q) pda" where
+  "List_pda \<equiv> 
+    \<lparr>pda.init_state = undefined, init_symbol = undefined, final_states = undefined, delta = undefined, delta_eps = undefined\<rparr>"
+
+*)
+
 end
+
+section \<open>Equivalence with PDAs\<close>
 
 datatype ('a, 'b, 'c) sum3 = Qtyp 'a | Styp 'b | Q'typ 'c
 

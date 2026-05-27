@@ -11,12 +11,12 @@ step[intro]:  "\<lbrakk>P \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* \<rho> \
     P \<turnstile> \<alpha> @ Nt X # map Tm v \<Rightarrow>r \<alpha> @ \<alpha>' @ Nt Y # \<beta> @ map Tm v; P \<turnstile> \<beta> \<Rightarrow>r* map Tm u\<rbrakk>
     \<Longrightarrow> P \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* [X \<rightarrow> \<alpha>' . Nt Y # \<beta>]#\<rho> \<Rightarrow>r* \<alpha> @ \<alpha>' @ Nt Y # map Tm u @ map Tm v"
 
-lemma rm_chain_imp_eq_or_rightmost:
+lemma rm_chain_imp_eq_or_rsentential:
   assumes "P \<Turnstile> \<alpha> \<Rightarrow>r* \<rho> \<Rightarrow>r* \<beta>"
   shows "(\<alpha> = \<beta> \<and> \<rho> = []) \<or> (\<exists>\<gamma> X v. \<beta> = \<gamma> @ Nt X # map Tm v)"
   using assms by cases (simp, metis append.assoc map_append)
 
-lemma rm_chain_left_rightmost_imp_rightmost:
+lemma rm_chain_rsentential_imp_rsentential:
   assumes "P \<Turnstile> \<alpha>\<^sub>0 @ Nt X # map Tm u \<Rightarrow>r* \<rho> \<Rightarrow>r* \<beta>"
   obtains \<gamma> X v where "\<beta> = \<gamma> @ Nt X # map Tm v"
   using assms that by cases (blast, metis append.assoc map_append)
@@ -50,7 +50,7 @@ lemma rm_chain_singleton_imp_eq:
   shows "C = B \<and> (\<exists>u v. w = u @ v \<and> P \<turnstile> \<beta> \<Rightarrow>r* map Tm u)"
   using assms proof cases
   case (step \<alpha>' v u)
-  with right_derivs_eq_imp_eq_tl[of _ _ _ "\<alpha>' @ \<alpha>" C] have "w = u @ v"
+  with right_sententials_eq_imp_tl_eq[of _ _ _ "\<alpha>' @ \<alpha>" C] have "w = u @ v"
     by fastforce
   moreover with step have "C = B" by simp
   ultimately show ?thesis using step by blast 
@@ -70,7 +70,7 @@ lemma rm_chain_imp_hd_prod_rightmost:
     "P \<turnstile> \<beta> \<Rightarrow>r* map Tm u" "w = u @ v" | "\<alpha>\<^sub>0 = \<gamma> @ Nt B # map Tm w" "\<rho> = []"
 using assms proof cases
   case (step \<rho> \<alpha> X v \<alpha>' Y \<beta> u)
-  moreover with right_derivs_eq_imp_eq_tl[of _ _ _ "\<alpha> @ \<alpha>'"] have "w = u@v" by simp
+  moreover with right_sententials_eq_imp_tl_eq[of _ _ _ "\<alpha> @ \<alpha>'"] have "w = u@v" by simp
   moreover from this have "B = Y" using step(2) by simp
   ultimately show ?thesis using that by blast
 qed argo
@@ -89,7 +89,7 @@ lemma rm_chain_Cons_imp_prod_rightmost:
   obtains \<delta> u v w where "\<gamma> = \<delta> @ Nt B # map Tm w"
     "P \<turnstile> \<beta> \<Rightarrow>r* map Tm u" "w = u @ v"
 proof -
-  note rm_chain_imp_eq_or_rightmost[OF assms]
+  note rm_chain_imp_eq_or_rsentential[OF assms]
   then show thesis
   proof
     assume "\<exists>\<gamma>' X v. \<gamma> = \<gamma>' @ Nt X # map Tm v"
@@ -134,7 +134,7 @@ lemma rm_chain_snoc:
   obtains u where "P \<turnstile> \<beta> \<Rightarrow>r* map Tm u" 
     "P \<Turnstile> \<alpha> @ \<alpha>' @ Nt Y # map Tm u @ map Tm v \<Rightarrow>r* \<rho> \<Rightarrow>r* \<gamma>"
   using assms 
-  by (smt (verit, best) append_same_eq right_derivs_eq_imp_eq_tl rm_chain_decomp rm_chain_reflE
+  by (smt (verit, best) append_same_eq right_sententials_eq_imp_tl_eq rm_chain_decomp rm_chain_reflE
       rm_chain_stepE)
 
 lemma rm_chain_substring:
@@ -142,7 +142,7 @@ lemma rm_chain_substring:
   obtains u where "w = u @ v"
   using assms proof (induction "\<alpha> @ Nt X # map Tm v" \<rho> "\<beta> @ Nt Y # map Tm w" arbitrary: \<beta> Y w)
   case refl
-  then show ?case using right_derivs_eq_imp_eq_tl[OF refl(1)] by simp
+  then show ?case using right_sententials_eq_imp_tl_eq[OF refl(1)] by simp
 next
   case (step \<rho> \<alpha>' X v \<gamma> Y' \<beta>' u)
   then show ?case 
@@ -163,7 +163,7 @@ next
     case (step \<alpha>' X' w \<gamma> Y \<beta> x)
     then show ?thesis using Cons.IH[OF step(3)] 
       by (metis (no_types, lifting) Cons.prems append_assoc append_same_eq hist_Cons history_unfold
-          map_append right_derivs_eq_imp_eq_tl rm_chain_singleton_imp_eq)
+          map_append right_sententials_eq_imp_tl_eq rm_chain_singleton_imp_eq)
   qed
 qed
 
@@ -184,7 +184,6 @@ qed
 
 lemma derivers_singleton_imp_rm_chain:
   assumes "P \<turnstile> [Nt A] \<Rightarrow>r(Suc n) \<alpha> @ Nt X # map Tm v"
-    "A \<in> Nts P"
   obtains \<rho> where "P \<Turnstile> [Nt A] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<alpha> @ Nt X # map Tm v"
   using assms(1) proof (induction "Suc n" arbitrary: \<alpha> X v n thesis rule: less_induct)
   case (less n)
@@ -231,7 +230,7 @@ lemma derivers_singleton_imp_rm_chain:
       proof (cases k)
         case 0
         with k_steps(1) have eqs: "\<alpha>' = [] \<and> A = C \<and> w = []" 
-          by (metis append1_eq_conv eq_Nil_appendI map_is_Nil_conv relpowp_0_E right_derivs_eq_imp_eq_tl
+          by (metis append1_eq_conv eq_Nil_appendI map_is_Nil_conv relpowp_0_E right_sententials_eq_imp_tl_eq
               sym.inject(1)) 
         moreover with k_steps(3) have "P \<turnstile> \<beta>' \<Rightarrow>r* map Tm v" using eqs suffix_derivers_v by simp
         ultimately show ?thesis using less(2) rm_chain.step[of P "[Nt A]" "[]" "[]" A "[]" \<alpha>'' X \<beta>']
@@ -254,4 +253,4 @@ lemma derivers_singleton_imp_rm_chain:
   qed
 qed
 
-end
+end 

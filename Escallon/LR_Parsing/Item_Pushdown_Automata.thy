@@ -33,6 +33,7 @@ locale ipda = Extended_Cfg G for G :: "('n::fresh0, 't) Cfg" +
   assumes ipda: "M = Extended_Cfg.IPDA G"
 begin
 
+section \<open>Basic Properties\<close>
 
 lemma init_state_ipda [simp]:
   "init_state M = [S' \<rightarrow> [] . [Nt S]]"
@@ -372,7 +373,7 @@ qed
 corollary step_imp_in_It:
   assumes "(i # \<rho>, u) \<turnstile> (j # \<sigma>, v)"
   shows "i \<in> It G'" "j \<in> It G'"
-  using step_imp_in_Prods[OF assms] in_Prods_eq_in_It by auto
+  using step_imp_in_Prods[OF assms] in_Prods_iff_in_It by auto
 
 lemma step_imp_not_Nil:
   assumes "(\<rho>, u) \<turnstile> (\<sigma>, v)"
@@ -694,6 +695,7 @@ proof -
   finally show ?thesis .
 qed
 
+section \<open>Language Equivalence\<close>
 
 lemma derive_imp_completes:
   assumes "Prods G' \<turnstile> \<beta> \<Rightarrow> map Tm w"

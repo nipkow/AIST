@@ -9,7 +9,7 @@ begin
 context Extended_Cfg
 begin
 
-section \<open>char(G)\<close>
+section \<open>The Characteristic Finite Automaton\<close>
 
 definition char_fa :: "(('n, 't) sym, ('n, 't) item) nfa" where
   "char_fa \<equiv> let 
@@ -21,6 +21,8 @@ definition char_fa :: "(('n, 't) sym, ('n, 't) item) nfa" where
          _ \<Rightarrow> {}); 
       \<E> = {([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . \<gamma>]) | X \<alpha> Y \<beta> \<gamma>. (X, \<alpha> @Nt Y#\<beta>) \<in> P \<and> (Y, \<gamma>) \<in> P} in
     \<lparr>nfa.states = Q, nfa.init = {[S' \<rightarrow> [] . [Nt S]]}, nfa.final = F, nfa.nxt = \<Delta>, nfa.eps = \<E>\<rparr>"
+
+subsubsection \<open>Basic Properties\<close>
 
 lemma states_char_fa [simp]: 
   "nfa.states char_fa = It G'"
@@ -79,6 +81,13 @@ lemma eps_char_fa_subst_states:
   "nfa.eps char_fa \<subseteq> nfa.states char_fa \<times> nfa.states char_fa"
   using in_Prods_imp_in_It by force
 
+lemma deriver_singleton_imp_eps:
+  assumes "Prods G' \<turnstile> [Nt A] \<Rightarrow>r \<alpha>"
+    "[X \<rightarrow> \<beta> . Nt A # \<gamma>] \<in> It G'"
+  shows "([X \<rightarrow> \<beta> . Nt A # \<gamma>], [A \<rightarrow> [] . \<alpha>]) \<in> nfa.eps char_fa"
+  unfolding eps_char_fa using assms deriver_singleton in_It_imp_in_Prods
+  by fastforce
+
 sublocale char_fa: nfa char_fa 
 proof (unfold_locales, goal_cases 1 2 nxt_closed 3)
   case (nxt_closed q x)
@@ -92,6 +101,8 @@ proof (unfold_locales, goal_cases 1 2 nxt_closed 3)
       using nxt_closed q_def by (auto simp: It_defs)
   qed (use nxt_closed q_def in fastforce)+
 qed (use G'_def It_defs finite_It[OF G'_finite] in fastforce)+
+
+subsection \<open>Properties of \<epsilon>-transitions and the \<epsilon>-closure\<close>
 
 lemma in_eps_char_imp_in_It:
   assumes "(p,q) \<in> nfa.eps char_fa"
@@ -119,6 +130,40 @@ proof
        using q_in_epsclo char_fa.epsclo_def by blast
   qed
 qed (auto simp add: char_fa.epsclo_def)
+
+lemma eps_star_of_char_state_subset_states:
+  "q \<in> nfa.states char_fa \<Longrightarrow> {q'. (q, q') \<in> (nfa.eps char_fa)\<^sup>*} \<subseteq> nfa.states char_fa"
+  using in_eps_char_star_imp_in_It in_eps_char_imp_in_It by auto
+
+lemma subset_states_char_imp_epsclo_eq_UN_eps_star:
+  assumes "Q \<subseteq> nfa.states char_fa"
+  shows "char_fa.epsclo Q = (\<Union>q\<in>Q. {q'. (q, q') \<in> (nfa.eps char_fa)\<^sup>*})"
+proof -
+  let ?Qc = "nfa.states char_fa"
+  have "char_fa.epsclo Q = ?Qc \<inter> (\<Union>q\<in>Q. {q'. (q, q') \<in> (nfa.eps char_fa)\<^sup>*})"
+    unfolding char_fa.epsclo_def by presburger
+  also have "... = (\<Union>q\<in>Q. {q'. (q, q') \<in> (nfa.eps char_fa)\<^sup>*} \<inter> ?Qc) " by blast
+  also from assms eps_star_of_char_state_subset_states have 
+    "... = (\<Union>q\<in>Q. {q'. (q, q') \<in> (nfa.eps char_fa)\<^sup>*})" by fast
+  finally show ?thesis .
+qed
+
+
+lemma step_epsclo_subset:
+  assumes "(p, q) \<in> nfa.eps char_fa"
+  shows "char_fa.epsclo {q} \<subset> char_fa.epsclo {p}"
+proof -
+  note epsclo_def = char_fa.epsclo_def
+  note in_states = in_eps_char_imp_in_It[OF assms, unfolded states_char_fa[symmetric]]
+  hence "char_fa.epsclo {q} = {q'. (q, q') \<in> (nfa.eps char_fa)\<^sup>*}" 
+    using subset_states_char_imp_epsclo_eq_UN_eps_star by simp
+  also have "... \<subset> {q. (p, q) \<in> (nfa.eps char_fa)\<^sup>*}" sorry
+  also have "... = nfa.states char_fa \<inter> {q. (p, q) \<in> (nfa.eps char_fa)\<^sup>*}"
+    using in_eps_char_star_imp_in_It in_eps_char_imp_in_It unfolding states_char_fa 
+    by (metis (no_types, lifting) assms inf.absorb_iff2 mem_Collect_eq subsetI) 
+  also have "... = char_fa.epsclo {p}" unfolding epsclo_def by blast
+  finally show ?thesis oops
+
 
 lemma in_It_imp_eps_char_fa:
   assumes "[X \<rightarrow> \<alpha> . Nt Y # \<beta>] \<in> It G'"
@@ -148,6 +193,14 @@ proof -
     ultimately show ?thesis using that unfolding eps_char_fa by force
   qed (use that \<gamma>_def in presburger)
 qed
+
+lemma derivern_imp_hd_or_Nil_eps_reachable:
+  assumes "Prods G' \<turnstile> [Nt A] \<Rightarrow>r(Suc n) Y # \<gamma>"
+  obtains 
+    \<alpha> X \<beta> where "[A \<rightarrow> [] . \<alpha>] \<in> It G'" "([A \<rightarrow> [] . \<alpha>], [X \<rightarrow> [] . Y # \<beta>]) \<in> (nfa.eps char_fa)\<^sup>*" |
+    \<alpha> X where "[A \<rightarrow> [] . \<alpha>] \<in> It G'" 
+      "([A \<rightarrow> [] . \<alpha>], [X \<rightarrow> [] . []]) \<in> (nfa.eps char_fa)\<^sup>*" "Nt X \<noteq> Y"
+  sorry
 
 end
  
@@ -313,35 +366,14 @@ qed
 
 end
 
-section \<open>Equivalences between \<open>char(G)\<close>, \<open>IPDA\<close>, and rightmost derivations\<close>
+section \<open>Properties of \<open>char(G)\<close> computations\<close>
 
 context Extended_Cfg
 begin
 
-interpretation P: ipda G IPDA 
-  by standard simp
-
-corollary ipda_IPDA: 
-  "ipda G IPDA"
-  by (rule P.ipda_axioms)
-
 notation char_fa.step (infix \<open>\<turnstile>c\<close> 55)
 notation char_fa.steps (infix \<open>\<turnstile>c*\<close> 55)
 notation char_fa.stepn (\<open>_ \<turnstile>c'(_') _\<close> 55)
-
-type_synonym ('q,'s) ipda_config = "('q,'s) item list \<times> 's list"
-
-abbreviation IPDA_step :: "('n,'t) item list \<times> 't list \<Rightarrow> ('n,'t) item list \<times> 't list 
-                    \<Rightarrow> bool" (infix \<open>\<turnstile>P\<close> 55) where
-  "(\<turnstile>P) \<equiv> (ipda.step IPDA)"
-
-abbreviation IPDA_steps :: "('n,'t) item list \<times> 't list \<Rightarrow> ('n,'t) item list \<times> 't list 
-                    \<Rightarrow> bool" (infix \<open>\<turnstile>P*\<close> 55) where
-  "(\<turnstile>P*) \<equiv> (ipda.steps IPDA)"
-
-abbreviation IPDA_stepn :: "('n,'t) item list \<times> 't list \<Rightarrow> nat \<Rightarrow> ('n,'t) item list \<times> 't list 
-                    \<Rightarrow> bool" ( \<open>_ \<turnstile>P'(_') _\<close> 55) where
-  "c0 \<turnstile>P(n) c1 \<equiv> (ipda.stepn IPDA) c0 n c1"
 
 lemma char_step_cases[consumes 1, case_names nxt eps, cases set: char_fa.step]:
   assumes "c0 \<turnstile>c c1"
@@ -438,6 +470,100 @@ proof (induction \<beta> arbitrary: \<alpha>)
     using Cons.prems by simp
   finally show ?case .
 qed simp
+
+lemma char_steps_unchanged_imp_in_eps_star:
+  "(p, \<zeta>) \<turnstile>c* (q, \<zeta>) \<Longrightarrow> (p, q) \<in> (nfa.eps char_fa)\<^sup>*"
+proof (induction "(p, \<zeta>)" arbitrary: p rule: converse_rtranclp_induct)
+  case (step c)
+  from this(1) show ?case 
+  proof cases
+    case (eps X \<alpha> Y \<beta> \<delta> \<gamma>)
+    then obtain r where "c = (r, \<zeta>)" by blast
+    with step have "(p, r) \<in> nfa.eps char_fa" by blast
+    also note eps_star = step(3)[OF \<open>c = (r, \<zeta>)\<close>]
+    finally show ?thesis .
+  qed (use step(2) char_fa.steps_len_dec in fastforce)
+qed simp
+
+lemma in_eps_star_imp_char_steps_unchanged: 
+  "(p, q) \<in> (nfa.eps char_fa)\<^sup>* \<Longrightarrow> (p, \<zeta>) \<turnstile>c* (q, \<zeta>)"
+proof (induction rule: converse_rtrancl_induct)
+  case (step y z)
+  with char_fa.step_eps[OF this(1), of \<zeta>] show ?case by simp
+qed simp
+
+lemma derivers_imp_hd_Tm_or_Nil_in_eps_star:
+  assumes "Prods G' \<turnstile> [Nt A] \<Rightarrow>r* map Tm u @ Nt X # map Tm x" 
+    "Prods G' \<turnstile> map Tm u @ Nt X # map Tm x \<Rightarrow>r map Tm w"
+  obtains \<alpha> B a \<beta> v where "[A \<rightarrow> [] . \<alpha>] \<in> It G'" "u = a # v"
+    "([A \<rightarrow> [] . \<alpha>], [B \<rightarrow> [] . Tm a # \<beta>]) \<in> (nfa.eps char_fa)\<^sup>*" |
+    \<alpha> where "[A \<rightarrow> [] . \<alpha>] \<in> It G'" "u = []" 
+    "([A \<rightarrow> [] . \<alpha>], [X \<rightarrow> [] . []]) \<in> (nfa.eps char_fa)\<^sup>*"
+  oops
+(* proof -
+  from assms obtain n where "Prods G' \<turnstile> [Nt A] \<Rightarrow>r(n) map Tm u @ Nt X # map Tm x" 
+    using rtranclp_imp_relpowp by fast
+  moreover from assms(2) obtain v where "(X, map Tm v) \<in> Prods G'" "w = u @ v @ x"
+    using deriver_imp_handle_Tms by meson
+  ultimately show thesis using assms(2) that 
+  proof (induction n arbitrary: A thesis u X x v rule: less_induct_Suc)
+    case 0
+    hence A_prod: "(A, map Tm v) \<in> Prods G'" 
+      by (metis list.simps(8) map_Tm_Nt_eq_map_Tm_Nt relpowp_0_E self_append_conv2)
+    with in_Prods_imp_in_It have A_It: "[A \<rightarrow> [] . map Tm v] \<in> It G'" by force 
+    show ?case using A_It 0 by (cases v) fastforce+
+  next
+    case (Suc n)
+    then obtain w B \<alpha> where n_steps: "Prods G' \<turnstile> [Nt A] \<Rightarrow>r map Tm w @ Nt B # \<alpha>" 
+      "Prods G' \<turnstile> map Tm w @ Nt B # \<alpha> \<Rightarrow>r(n) map Tm u @ Nt X # map Tm x"
+    proof -
+      from Suc obtain \<beta> where "Prods G' \<turnstile> [Nt A] \<Rightarrow>r \<beta>" 
+        "Prods G' \<turnstile> \<beta> \<Rightarrow>r(n) map Tm u @ Nt X # map Tm x" 
+        by (metis relpowp_Suc_D2)
+      with non_word_has_first_Nt show thesis using that derives_non_word_imp_non_word
+        by (metis derivers_imp_derives relpowp_imp_rtranclp)
+    qed
+    hence "(A, map Tm w @ Nt B # \<alpha>) \<in> Prods G'" by (simp add: deriver_singleton)
+    note n_steps(2) also note Suc(5)
+    finally obtain y m where "Prods G' \<turnstile> [Nt B] \<Rightarrow>r(m) map Tm y" "m \<le> Suc n"
+      using derivern_leq[of _ _ "map Tm w" "[Nt B]" \<alpha> "u@v@x"] Suc(4)
+      by (metis append_Cons append_Nil)
+    (* obtain last step of this derivern. Then use IH (should be trivial afterwards) *)
+    thm nfa.Power_dfa_def
+    show ?case proof (cases w)
+      case Nil
+      then show ?thesis sorry
+    next
+      case (Cons a list)
+      then show ?thesis sorry
+    qed
+  qed
+qed *)
+
+
+section \<open>Equivalences between \<open>char(G)\<close>, \<open>IPDA\<close>, and rightmost derivations\<close>
+
+interpretation P: ipda G IPDA 
+  by standard simp
+
+corollary ipda_IPDA: 
+  "ipda G IPDA"
+  by (rule P.ipda_axioms)
+
+type_synonym ('q,'s) ipda_config = "('q,'s) item list \<times> 's list"
+
+abbreviation IPDA_step :: "('n,'t) item list \<times> 't list \<Rightarrow> ('n,'t) item list \<times> 't list 
+                    \<Rightarrow> bool" (infix \<open>\<turnstile>P\<close> 55) where
+  "(\<turnstile>P) \<equiv> (ipda.step IPDA)"
+
+abbreviation IPDA_steps :: "('n,'t) item list \<times> 't list \<Rightarrow> ('n,'t) item list \<times> 't list 
+                    \<Rightarrow> bool" (infix \<open>\<turnstile>P*\<close> 55) where
+  "(\<turnstile>P*) \<equiv> (ipda.steps IPDA)"
+
+abbreviation IPDA_stepn :: "('n,'t) item list \<times> 't list \<Rightarrow> nat \<Rightarrow> ('n,'t) item list \<times> 't list 
+                    \<Rightarrow> bool" ( \<open>_ \<turnstile>P'(_') _\<close> 55) where
+  "c0 \<turnstile>P(n) c1 \<equiv> (ipda.stepn IPDA) c0 n c1"
+
 
 text \<open>Step 1: If \<open>char(G)\<close> reaches \<open>([A \<rightarrow> \<alpha>.\<beta>], \<epsilon>)\<close> with input \<open>\<gamma>\<close>, 
       \<open>\<gamma>\<close>  is a reliable prefix of G for \<open>[A \<rightarrow> \<alpha>.\<beta>]\<close>.\<close>
@@ -542,7 +668,7 @@ next
       "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<alpha>'' @ Nt X # map Tm v'"
       "Prods G' \<turnstile> \<alpha>'' @ Nt X # map Tm v' \<Rightarrow>r \<alpha>'' @ \<alpha>' @ Nt A # \<beta>' @ map Tm v'"
       "Prods G' \<turnstile> \<beta>' \<Rightarrow>r* map Tm u" "u @ v' = w" "\<alpha>'' @ \<alpha>' = \<gamma>"
-      by (smt (verit, best) append.assoc append_same_eq map_append right_derivs_eq_imp_eq_tl)
+      by (smt (verit, best) append.assoc append_same_eq map_append right_sententials_eq_imp_tl_eq)
     then obtain \<rho>' where \<rho>'_def:
       "([X \<rightarrow> \<alpha>' @ [Nt A] . \<beta>'] # \<rho>' @ [init_symbol IPDA], u@v') 
           \<turnstile>P* ([P.final_state, init_symbol IPDA], [])"
@@ -645,7 +771,7 @@ next
     "([A \<rightarrow> \<alpha> @ \<beta> . []] # (i # \<rho>) @ [init_symbol IPDA], v) 
       \<turnstile>P* ([P.final_state, init_symbol IPDA], [])" by blast
   have A_in_Prods: "(A, \<alpha>@\<beta>) \<in> Prods G'"
-    using P.steps_neq_in_It[OF A_complete(2)] in_Prods_eq_in_It by force
+    using P.steps_neq_in_It[OF A_complete(2)] in_Prods_iff_in_It by force
   have "([A \<rightarrow> \<alpha> @ \<beta> . []] # (i # \<rho>) @ [init_symbol IPDA], v)
        \<turnstile>P ([X \<rightarrow> \<alpha>' @ [Nt A] . \<beta>'] # \<rho> @ [init_symbol IPDA], v)"
     using chain A_in_Prods X_in_Prods by auto
@@ -666,110 +792,7 @@ next
   finally show ?case .
 qed
 
-(* Attempts to prove equivalence of IPDA and derivers for fixed w (needed?)
-
-
-lemma ipda_comp_imp_derivers:
-  assumes "([A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol IPDA], w) \<turnstile>P* ([P.final_state, init_symbol IPDA], [])"
-  obtains u v where "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm u" "w = u @ v" 
-    "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* hist \<rho> @ Nt A # map Tm v" 
-proof (cases \<rho>)
-  case Nil
-  with P.reaches_without_stack_imp_S' assms have 
-    "[A \<rightarrow> \<alpha> . \<beta>] = init_state IPDA \<or> [A \<rightarrow> \<alpha> . \<beta>] = P.final_state" 
-    by simp
-  then show ?thesis 
-  proof (standard, goal_cases init final)
-    case init
-    with assms have "w \<in> P.Lang"using Nil 
-      by (simp add: P.Lang_def)
-    with P.Lang_eq_Lang_G Lang_preserved have "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm w"
-      unfolding Lang_def using init G_derives_imp_G'_derives by simp
-    then show ?case using that[of _ "[]"] init  by (simp add: Nil)
-  next
-    case final
-    then show ?case using that Nil P.complete_S'_steps_refl assms by force
-  qed
-next
-  case (Cons i \<sigma>)
-  then show ?thesis sorry
-qed
-
-lemma ipda_reaches_final_imp_rm_chain_new:
-  assumes "([A \<rightarrow> \<alpha> . \<beta>] # [X \<rightarrow> \<alpha>' . Nt A # \<beta>'] # \<sigma> @ [init_symbol IPDA], w) 
-    \<turnstile>P* ([P.final_state, init_symbol IPDA], [])"
-  shows  "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* [X \<rightarrow> \<alpha>' . Nt A # \<beta>'] # \<sigma> \<Rightarrow>r* hist \<sigma> @ \<alpha>' @ Nt A # map Tm w"
-  using assms proof (induction "([A \<rightarrow> \<alpha> . \<beta>] # [X \<rightarrow> \<alpha>' . Nt A # \<beta>'] # \<sigma> @ [init_symbol IPDA], w)" 
-    arbitrary: A \<alpha> \<beta> X \<alpha>' \<beta>' \<sigma> w rule: converse_rtranclp_induct)
-  case (step z)
-  from P.step_imp_in_It this(1) have A_in_It: "[A \<rightarrow> \<alpha> . \<beta>] \<in> It G'" 
-    using P.step_imp_not_Nil by (smt (verit, ccfv_SIG) P.step_cases)
-  note step(1)
-  then show ?case
-  proof cases
-    case (shift A' \<gamma> a \<delta> i \<rho> u)
-    hence "z = ([A \<rightarrow> \<alpha> @ [Tm a] . \<delta>] # [X \<rightarrow> \<alpha>' . Nt A # \<beta>'] # \<sigma> @ [init_symbol IPDA], u)"
-      by blast
-    note step(3)[OF this] 
-    then show ?thesis using step \<proof>
-  next
-    case (reduce Y \<alpha> X \<beta> \<gamma> \<rho> w)
-    then show ?thesis \<proof>
-  next
-    case (expand Y \<alpha> X \<beta> \<gamma> i \<rho> w)
-    then show ?thesis \<proof>
-  qed 
-qed simp
-
-lemma ipda_comp_eq_derivers:
-  "(\<exists>\<rho>. ([A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol IPDA], w) \<turnstile>P* ([P.final_state, init_symbol IPDA], []) \<and>
-    hist \<rho> = \<gamma>)
-  = (\<exists>u v. w = u @ v \<and> Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm u 
-    \<and> Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma> @ Nt A # map Tm v
-    \<and> Prods G' \<turnstile> \<gamma> @ Nt A # map Tm v \<Rightarrow>r \<gamma> @ \<alpha> @ \<beta> @ map Tm v)" (is "?ipda = ?derivers")
-proof
-  assume ipda: ?ipda
-  hence "(A, \<alpha> @ \<beta>) \<in> Prods G'"
-    by (metis append.assoc char_imp_derivers deriver_imp_in_Prods ipda_imp_char)
-  hence "\<forall> \<gamma> w. Prods G' \<turnstile> \<gamma> @ Nt A # map Tm w \<Rightarrow>r \<gamma> @ \<alpha> @ \<beta> @ map Tm w"
-    using deriver.intros by fastforce
-  with ipda show ?derivers using ipda_comp_imp_derivers by fastforce
-next
-  assume ?derivers
-  then obtain u v where "w = u @ v" 
-    "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma> @ Nt A # map Tm v" 
-    "Prods G' \<turnstile> \<gamma> @ Nt A # map Tm v \<Rightarrow>r \<gamma> @ \<alpha> @ \<beta> @ map Tm v"
-    "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm u"
-    by blast
-  from this(1) derivers_imp_ipda[OF this(2-)] show ?ipda by metis
-qed
-
-*)
-
-lemma char_imp_ipda:
-  assumes "([S' \<rightarrow> [] . [Nt S]], \<gamma>) \<turnstile>c* ([A \<rightarrow> \<alpha> . \<beta>], [])"
-  obtains w \<rho> where 
-    "([A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol IPDA], w) \<turnstile>P* ([P.final_state, init_symbol IPDA], [])"
-    "\<gamma> = hist \<rho> @ \<alpha>"
-proof -
-  from char_imp_derivers[OF assms(1)] obtain \<gamma>' w where deriv:
-    "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma>' @ Nt A # map Tm w"
-    "Prods G' \<turnstile> \<gamma>' @ Nt A # map Tm w \<Rightarrow>r \<gamma>' @ \<alpha> @ \<beta> @ map Tm w"
-    "\<gamma> = \<gamma>' @ \<alpha>" by metis
-  moreover from this obtain v where "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm v" 
-    using reduced_derives_imp_substring_derives_Tms[of G' "\<gamma>' @ \<alpha>" \<beta> "map Tm w", 
-                                        OF _ G'_reduced G'_not_empty] G'_def append.assoc
-    by (metis (no_types, lifting) Cfg.sel(2) derivers_imp_derives rtranclp.rtrancl_into_rtrancl)
-  ultimately show thesis using derivers_imp_ipda that by metis
-qed
-
-corollary char_eq_ipda:
-  "([S' \<rightarrow> [] . [Nt S]], \<gamma>) \<turnstile>c* ([A \<rightarrow> \<alpha> . \<beta>], []) 
-  = (\<exists>w \<rho>. ([A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol IPDA], w) \<turnstile>P* ([P.final_state, init_symbol IPDA], []) \<and>
-    \<gamma> = hist \<rho> @ \<alpha>)"
-  using char_imp_ipda ipda_imp_char by metis
-
-lemma derivers_imp_char:
+corollary derivers_imp_char:
   assumes
     "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma>' @ Nt A # map Tm w"
     "Prods G' \<turnstile> \<gamma>' @ Nt A # map Tm w \<Rightarrow>r \<gamma>' @ \<alpha> @ \<beta> @ map Tm w"
@@ -808,7 +831,7 @@ proof -
     using char_eq_reliable_prefix by fastforce
 qed
 
-section \<open>The Canonical LR(0) Automaton and Parser\<close>
+section \<open>The Canonical LR(0) Automaton\<close>
 
 definition LR\<^sub>0 :: "(('n, 't) sym, ('n, 't) item set) dfa" where
   "LR\<^sub>0 \<equiv> nfa.Power_dfa char_fa"
@@ -820,7 +843,8 @@ lemma states_dfa_LR0 [simp]:
   "dfa.states LR\<^sub>0 = char_fa.epsclo ` Pow (It G')"
   unfolding LR\<^sub>0_def by simp
 
-lemma in_states_dfa_LR0_imp_eps_star_in_states:
+
+lemma in_states_dfa_LR0_imp_eps_star_in_state:
   assumes "i \<in> q"
     "q \<in> dfa.states LR\<^sub>0"
     "(i,j) \<in> (nfa.eps char_fa)\<^sup>*"
@@ -833,6 +857,13 @@ proof -
   moreover with assms have "(k,j) \<in> (nfa.eps char_fa)\<^sup>*" by auto
   ultimately show ?thesis using in_eps_char_star_imp_in_It unfolding states_char_fa by blast
 qed
+
+lemma in_states_dfa_LR0_imp_eps_in_state:
+  assumes "i \<in> q"
+    "q \<in> dfa.states LR\<^sub>0"
+    "(i,j) \<in> (nfa.eps char_fa)"
+  shows "j \<in> q"
+  using assms in_states_dfa_LR0_imp_eps_star_in_state by blast
 
 lemma in_state_imp_in_It:
   assumes "Q \<in> dfa.states LR\<^sub>0" "i \<in> Q"
@@ -870,6 +901,7 @@ proof -
   with finite_dfa_LR0_nempty_syms finite_surj show ?thesis by blast
 qed
 
+section \<open>The Canonical LR(0) Parser\<close>
 
 definition P\<^sub>0 :: "(('n, 't) item set, 't) npda" where
   "P\<^sub>0 \<equiv> let 
@@ -1044,6 +1076,8 @@ proof -
     by (smt (verit, ccfv_threshold) Un_iff assms(1) mem_Collect_eq)
 qed
 
+section \<open>LR(0)-Adequate and Inadequate States\<close>
+
 definition completes :: "('n, 't) item set \<Rightarrow> ('n, 't) item set" where
   "completes q \<equiv> {i \<in> q. case i of [X \<rightarrow> \<alpha> . \<beta>] \<Rightarrow> \<beta> = []}"
 
@@ -1056,67 +1090,58 @@ lemma completesE [elim]:
   using assms unfolding completes_def 
   by (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq)
 
-definition "noncompletes q \<equiv> q - completes q"
+lemma completes_singleton_imp_eq:
+  assumes "completes q = {[X \<rightarrow> \<alpha> . []]}"
+    "[A \<rightarrow> \<beta> . []] \<in> q"
+  shows "[A \<rightarrow> \<beta> . []] = [X \<rightarrow> \<alpha> . []]"
+  using assms unfolding completes_def by fastforce
 
-lemma noncompletes_subset [simp]:
-  "noncompletes q \<subseteq> q" unfolding noncompletes_def by fast
+
+
+abbreviation "noncompletes q \<equiv> q - completes q"
 
 lemma noncompletesE [elim]:
   assumes "i \<in> noncompletes q"
   obtains X \<alpha> Y \<beta> where "i = [X \<rightarrow> \<alpha> . Y # \<beta>]"
-  using assms unfolding noncompletes_def completes_def
+  using assms unfolding completes_def
   by (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq neq_Nil_conv
       set_diff_eq)
 
 inductive shift_reduce :: "('n, 't) item set \<Rightarrow> bool" where
-  "\<lbrakk>([p], a, ps) \<in> npda.nxt P\<^sub>0; (p#ps', qs) \<in> npda.eps P\<^sub>0; ([p], ps) \<noteq> (p#ps', qs)\<rbrakk> 
-    \<Longrightarrow> shift_reduce p"
+  "\<lbrakk>([p], a, ps) \<in> npda.nxt P\<^sub>0; (p#ps', qs) \<in> npda.eps P\<^sub>0\<rbrakk> \<Longrightarrow> shift_reduce p"
 
 definition reduce_reduce :: "('n, 't) item set \<Rightarrow> bool" where
   "reduce_reduce q \<equiv> card (completes q) > Suc 0"
 
 definition "LR0_inadequate q \<equiv> shift_reduce q \<or> reduce_reduce q"
 
-definition "LR0_adequate q \<equiv> \<not>LR0_inadequate q"
-thm char_fa.Power_dfa_def
-lemmas LR0_adequate_defs = LR0_adequate_def LR0_inadequate_def
+abbreviation "LR0_adequate q \<equiv> \<not>LR0_inadequate q"
 
 lemma complete_noncomplete_Tm_imp_inadequate:
-  assumes "completes q \<noteq> {}" "[X \<rightarrow> \<alpha> . Tm a # \<beta>] \<in> noncompletes q"
+  assumes "completes q \<noteq> {}" "[X \<rightarrow> \<alpha> . Tm a # \<beta>] \<in> q"
   shows "LR0_inadequate q"
   sorry
 
-lemma noncomplete_imp_complete_or_Tm:
-  assumes "[X \<rightarrow> \<beta> . Nt Y # \<gamma>] \<in> q"
+lemma LR0_adequate_complete_cases[consumes 1, case_names empty singleton]:
+  assumes "LR0_adequate q"
     "q \<in> dfa.states LR\<^sub>0"
+  obtains "completes q = {}" |
+    A \<alpha> where "completes q = {[A \<rightarrow> \<alpha> . []]}"
+proof -
+  from assms consider "card (completes q) = 0" | "card (completes q) = Suc 0" 
+    unfolding LR0_inadequate_def reduce_reduce_def by linarith
+  thus thesis by cases 
+      (metis card_0_eq completes_subset finite_subset image_iff states_dfa_LR0 that(1) assms(2) 
+        char_fa.finite_epsclo, metis card_1_singleton_iff singletonI completesE that(2))
+qed
+(*
+lemma noncomplete_imp_reaches_complete_or_Tm:
+  assumes "[X \<rightarrow> \<beta> . Nt Y # \<gamma>] \<in> It G'"
   obtains A where "([X \<rightarrow> \<beta> . Nt Y # \<gamma>], [A \<rightarrow> [] . []]) \<in> (nfa.eps char_fa)\<^sup>*" |
       A a \<alpha> where "([X \<rightarrow> \<beta> . Nt Y # \<gamma>], [A \<rightarrow> [] . Tm a # \<alpha>]) \<in> (nfa.eps char_fa)\<^sup>*"
-  using assms proof (induction "card q" arbitrary: q X \<beta> Y \<gamma> thesis)
-  case (Suc n)
-  hence "[X \<rightarrow> \<beta> . Nt Y # \<gamma>] \<in> It G'" using in_state_imp_in_It by auto
-  from in_It_imp_eps_char_fa_distinct[OF this] obtain \<delta> where XY_eps:
-    "([X \<rightarrow> \<beta> . Nt Y # \<gamma>], [Y \<rightarrow> [] . \<delta>]) \<in> nfa.eps char_fa" 
-    "[X \<rightarrow> \<beta> . Nt Y # \<gamma>] \<noteq> [Y \<rightarrow> [] . \<delta>]" by blast
-  with Suc(5,6) have Y_in_q: "[Y \<rightarrow> [] . \<delta>] \<in> q" 
-    using in_states_dfa_LR0_imp_eps_star_in_states by blast
-  from XY_eps consider "\<delta> = []" | a \<alpha> where "\<delta> = Tm a # \<alpha>" | (Nt) Z \<zeta> where "\<delta> = Nt Z # \<zeta>"
-    using list.exhaust sym.exhaust by metis
-  then show ?case 
-  proof cases
-    case Nt
-    let ?r = "q - {[X \<rightarrow> \<beta> . Nt Y # \<gamma>]}"
-    have "[Y \<rightarrow> [] . \<delta>] \<in> ?r" using Y_in_q XY_eps by blast
-    moreover note Y_in_q
-    moreover have "card ?r = n" using Suc by auto      
-    ultimately consider A where "([Y \<rightarrow> [] . \<delta>], [A \<rightarrow> [] . []]) \<in> (nfa.eps char_fa)\<^sup>*" | 
-      A a \<alpha> where "([Y \<rightarrow> [] . \<delta>], [A \<rightarrow> [] . Tm a # \<alpha>]) \<in> (nfa.eps char_fa)\<^sup>*" 
-      using Suc(1)[of ?r Y "[]" Z \<zeta>] Suc(2-) Nt sorry (* Put together with Nt *)
-      
-    then show ?thesis sorry
-  qed (use Suc XY_eps in fast)+
-qed fastforce
+  oops
 
-lemma LR_adequate_completes_proper_subset_imp_empty:
+lemma LR_adequate_completes_psubset_imp_Nil:
   assumes "LR0_adequate q"
     "q \<in> dfa.states LR\<^sub>0"
     "completes q = {[A \<rightarrow> \<alpha> . []]}"
@@ -1127,53 +1152,280 @@ proof (cases \<alpha>)
   from assms obtain p qs where in_eps: "(q # qs, [p, last (q # qs)]) \<in> npda.eps P\<^sub>0"
     "length qs = length \<alpha>" using P0_complete_imp_reduce 
     by (metis completes_subset insert_subset)
+  with Cons have neq: "[q] \<noteq> q # qs" by fastforce
   from assms obtain Y \<gamma> Z \<delta> where Y_def: "[Y \<rightarrow> \<gamma> . Z # \<delta>] \<in> q"
-    using noncompletesE by (metis DiffE noncompletes_def psubset_imp_ex_mem)
+    using noncompletesE by (metis DiffE psubset_imp_ex_mem)
+  with in_state_imp_in_It[THEN in_It_imp_in_Prods] have Y_prod: "(Y, \<gamma> @ Z # \<delta>) \<in> Prods G'" 
+    using assms(2) by (metis item.case)
   show ?thesis 
   proof (cases Z)
     case (Nt B)
-    then show ?thesis sorry
+    then obtain n w where "Prods G' \<turnstile> [Nt B] \<Rightarrow>r(Suc n) map Tm w" 
+    proof -
+      from reduced_imp_prod_singleton_derives_Tms Y_prod Nt G'_reduced obtain w where
+        "Prods G' \<turnstile> [Nt B] \<Rightarrow>* map Tm w" by meson
+      with derivers_iff_derives have "Prods G' \<turnstile> [Nt B] \<Rightarrow>r* map Tm w" by blast
+      then obtain n where "Prods G' \<turnstile> [Nt B] \<Rightarrow>r(Suc n) map Tm w" using rtranclp_imp_relpowp
+        by (metis deriven_Nt_map_TmD derivern_iff_deriven)
+      then show thesis using that by blast
+    qed
+    with derivern_imp_last_step obtain u v x C where 
+      "Prods G' \<turnstile> [Nt B] \<Rightarrow>r(n) map Tm u @ Nt C # map Tm x" 
+      "Prods G' \<turnstile> map Tm u @ Nt C # map Tm x \<Rightarrow>r map Tm (u @ v @ x)"
+      by meson       
+    with derivers_imp_hd_Tm_or_Nil_in_eps_star consider
+      (Tm) \<zeta> D a \<eta> where "[B \<rightarrow> [] . \<zeta>] \<in> It G'" 
+          "([B \<rightarrow> [] . \<zeta>], [D \<rightarrow> [] . Tm a # \<eta>]) \<in> (nfa.eps char_fa)\<^sup>*" |
+      (Nil) \<zeta> D where "[B \<rightarrow> [] . \<zeta>] \<in> It G'" 
+          "([B \<rightarrow> [] . \<zeta>], [D \<rightarrow> [] . []]) \<in> (nfa.eps char_fa)\<^sup>*" using relpowp_imp_rtranclp by metis
+    then show ?thesis proof cases
+      case Tm
+      with Y_prod[unfolded Nt] in_It_imp_in_Prods item.case have 
+        "([Y \<rightarrow> \<gamma> . Nt B # \<delta>], [B \<rightarrow> [] . \<zeta>]) \<in> nfa.eps char_fa"
+        unfolding eps_char_fa by force
+      also note Tm(2)
+      finally have in_nxt: "([q], a, dfa.nxt LR\<^sub>0 q (Tm a) # [q]) \<in> npda.nxt P\<^sub>0"
+        unfolding nxt_P0 using assms(2)
+        by (metis (lifting) Nt P0_read_iff_in_q Y_def in_states_dfa_LR0_imp_eps_star_in_state
+            nxt_P0)
+      with assms(1) show ?thesis using shift_reduce.intros in_eps neq 
+        unfolding LR0_inadequate_def by blast
+    next
+      case Nil
+      with Y_prod[unfolded Nt] in_It_imp_in_Prods item.case have 
+        "([Y \<rightarrow> \<gamma> . Nt B # \<delta>], [B \<rightarrow> [] . \<zeta>]) \<in> nfa.eps char_fa"
+        unfolding eps_char_fa by force
+      also note Nil(2)
+      finally have "[D \<rightarrow> [] . []] \<in> q" using Y_def[unfolded Nt] assms(2) 
+          in_states_dfa_LR0_imp_eps_star_in_state by blast
+      then show ?thesis using assms(3) Cons unfolding completes_def 
+        by (metis (lifting) empty_iff insert_iff item.case item.inject mem_Collect_eq)
+    qed
   next
     case (Tm a)
     from P0_read_iff_in_q Y_def[unfolded this] have in_nxt: 
       "([q], a, [dfa.nxt LR\<^sub>0 q (Tm a), q]) \<in> npda.nxt P\<^sub>0" by blast
     moreover have "[q] \<noteq> q # qs" using in_eps(2) Cons by auto
     ultimately have "shift_reduce q" using shift_reduce.intros in_eps by fast
-    then show ?thesis using assms(1) unfolding LR0_adequate_defs by argo
+    then show ?thesis using assms(1) unfolding LR0_inadequate_def by argo
   qed
-qed simp
+  oops
+*)  
 
-lemma LR_adequate_completes_proper_subset_imp_derivers:
-  assumes "LR0_adequate q"
-    "completes q = {[A \<rightarrow> \<alpha>\<^sub>0 . []]}"
-    "completes q \<subset> q"
-  shows "\<forall>i \<in> noncompletes q. \<exists>X \<alpha> Y \<beta>. i = [X \<rightarrow> \<alpha> . Y # \<beta>] \<and> 
-      (\<forall>\<gamma> w. Prods G' \<turnstile> [Y] \<Rightarrow>r* \<gamma> \<and> Prods G' \<turnstile> \<gamma> \<Rightarrow>r* map Tm w 
-        \<longrightarrow> Prods G' \<turnstile> \<gamma> \<Rightarrow>r* Nt A # map Tm w \<and> Prods G' \<turnstile> Nt A # map Tm w \<Rightarrow>r map Tm w)"
-proof -
-  from assms obtain X \<alpha> Y' \<beta> where X_def: "[X \<rightarrow> \<alpha> . Y' # \<beta>] \<in> noncompletes q" 
-    using noncompletesE unfolding noncompletes_def by (metis psubset_imp_ex_mem)
-  then obtain Y where "Y' = Nt Y"
-    using complete_noncomplete_Tm_imp_inadequate assms unfolding LR0_adequate_def 
-    by (cases Y') auto
-  note X_def = X_def[unfolded this]
-  show ?thesis sorry
+lemma derivern_appendD:
+  assumes "P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r(n) \<gamma>"
+  obtains \<delta> \<zeta> m k where "m + k = n" "P \<turnstile> \<alpha> \<Rightarrow>r(m) \<delta>" "P \<turnstile> \<beta> \<Rightarrow>r(k) \<zeta>" "\<gamma> = \<delta> @ \<zeta>"
+  using assms proof (induction n arbitrary: \<alpha> \<beta> thesis)
+  case 0
+  then show ?case by simp
+next
+  case (Suc n)
+  then obtain \<eta> where stepn: "P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r \<eta>" "P \<turnstile> \<eta> \<Rightarrow>r(n) \<gamma>" by (metis relpowp_Suc_D2)
+  consider (Tms) v where "\<beta> = map Tm v" | (rightmost) \<beta>' A w where "\<beta> = \<beta>' @ Nt A # map Tm w"
+    by (metis destTm.cases ex_map_conv syms_split_rightmost)
+  then show ?case proof cases
+    case Tms
+    with stepn obtain \<alpha>' A \<alpha>'' u where "\<alpha> = \<alpha>' @ Nt A # map Tm u" 
+      "\<eta> = \<alpha>' @ \<alpha>'' @ map Tm (u@v)" 
+      by (smt (verit, ccfv_threshold) append.assoc deriver.simps deriver_append_map_Tm
+          map_append)
+    from Suc.IH[of "\<alpha>' @ \<alpha>''" "map Tm (u@v)"] stepn[unfolded this(2)] 
+     show ?thesis  
+       by (metis Suc.prems Tms add.right_neutral derivern_append_map_Tm relpowp_0_I)
+  next
+    case rightmost
+    with stepn(1) obtain \<alpha>' where step: "(A, \<alpha>') \<in> P" "\<eta> = \<alpha> @ \<beta>' @ \<alpha>' @ map Tm w" 
+      by (smt (verit, ccfv_threshold) append.assoc append_eq_append_conv list.inject list.size(4)
+          right_sententials_eq_imp_tl_eq sym.inject(1) deriver.cases)
+    from Suc.IH[of \<alpha> "\<beta>' @ \<alpha>' @ map Tm w"] stepn[unfolded this] obtain m k \<delta> \<zeta> where ih:
+      "m + k = n" "P \<turnstile> \<alpha> \<Rightarrow>r(m) \<delta>" "P \<turnstile> \<beta>' @ \<alpha>' @ map Tm w \<Rightarrow>r(k) \<zeta>" "\<gamma> = \<delta> @ \<zeta>" by blast
+    with step rightmost have "P \<turnstile> \<beta> \<Rightarrow>r(Suc k) \<zeta>" 
+      using deriver.intros by (meson relpowp_Suc_I2)
+    with ih show ?thesis using Suc.prems(1) by force
+  qed
 qed
 
-lemma LR0_adequateE:
+lemma LR_adequate_completes_singleton_imp_derivern_Suc:
   assumes "LR0_adequate q"
-    "finite q"
+    "q \<in> dfa.states LR\<^sub>0"
+    "completes q = {[A \<rightarrow> \<alpha>\<^sub>0 . []]}"
+    "[X \<rightarrow> \<alpha> . Nt Y # \<beta>] \<in> noncompletes q"
+    and Y_derivers: "Prods G' \<turnstile> [Nt Y] \<Rightarrow>r(Suc n) \<gamma>" "Prods G' \<turnstile> \<gamma> \<Rightarrow>r map Tm w"
+  shows "\<gamma> = Nt A # map Tm w \<and> \<alpha>\<^sub>0 = []"
+  using assms(4-) proof (induction "Suc n" arbitrary: Y n \<gamma> w rule: less_induct)
+  case less
+  hence X_in_q: "[X \<rightarrow> \<alpha> . Nt Y # \<beta>] \<in> q" using completes_subset by blast
+  from less assms(1-3) have X_prod: "(X, \<alpha> @ Nt Y # \<beta>) \<in> Prods G'" 
+    using in_state_imp_in_It in_It_imp_in_Prods by (metis Diff_iff item.case)
+  from less consider 
+    (Nil) "Prods G' \<turnstile> [Nt Y] \<Rightarrow>r []" "Prods G' \<turnstile> [] \<Rightarrow>r(n) \<gamma>" |
+    (Nt) B \<delta> where "Prods G' \<turnstile> [Nt Y] \<Rightarrow>r Nt B # \<delta>" "Prods G' \<turnstile> Nt B # \<delta> \<Rightarrow>r(n) \<gamma>" |
+    (Tm) a \<delta> where "Prods G' \<turnstile> [Nt Y] \<Rightarrow>r Tm a # \<delta>" "Prods G' \<turnstile> Tm a # \<delta> \<Rightarrow>r(n) \<gamma>"
+    using list.exhaust sym.exhaust by (metis relpowp_Suc_D2)
+  then show ?case proof cases
+    case Nil
+    then show ?thesis using less 
+      by (metis deriver_imp_derive list.simps(8) not_derive_map_Tm relpowp_E2)
+  next
+    case Nt
+    with derivern_appendD[of n _ "[Nt B]" \<delta>] obtain \<zeta> \<eta> m k where stepmk: 
+      "Prods G' \<turnstile> [Nt B] \<Rightarrow>r(m) \<zeta>" "Prods G' \<turnstile> \<delta> \<Rightarrow>r(k) \<eta>" "m + k = n" "\<gamma> = \<zeta> @ \<eta>"
+      by (metis append.left_neutral append_Cons)
+    then consider
+      (refl) "Prods G' \<turnstile> [Nt B] \<Rightarrow>r(0) \<zeta>" |
+      (Nil) l where "m = Suc l" "Prods G' \<turnstile> [Nt B] \<Rightarrow>r []" "Prods G' \<turnstile> [] \<Rightarrow>r(l) \<zeta>" |
+      (Nt2) C \<theta> l where "m = Suc l" "Prods G' \<turnstile> [Nt B] \<Rightarrow>r Nt C # \<theta>" "Prods G' \<turnstile> Nt C # \<theta> \<Rightarrow>r(l) \<zeta>" |
+      (Tm) a \<theta> l where "m = Suc l" "Prods G' \<turnstile> [Nt B] \<Rightarrow>r Tm a # \<theta>" "Prods G' \<turnstile> Tm a # \<theta> \<Rightarrow>r(l) \<zeta>"
+    using list.exhaust sym.exhaust nat.exhaust by (metis relpowp_Suc_D2)
+  then show ?thesis proof cases
+      case refl
+      then show ?thesis sorry
+    next
+      case Nil
+      hence "\<zeta> = []" "l = 0" using derivern_imp_deriven by fastforce+
+      with stepmk have "Prods G' \<turnstile> \<delta> \<Rightarrow>r(k + l) \<eta>" using Nil by simp
+      with derivern_prepend have Bw: "Prods G' \<turnstile> Nt B # \<delta> \<Rightarrow>r(k + l) Nt B # \<eta>" 
+        by (metis append_Cons append_Nil)
+      from Nt deriver_singleton have "([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . Nt B # \<delta>]) \<in> nfa.eps char_fa"
+        using X_prod unfolding eps_char_fa by fastforce
+      also from Nil have "([Y \<rightarrow> [] . Nt B # \<delta>], [B \<rightarrow> [] . []]) \<in> nfa.eps char_fa" 
+        by (metis deriver_singleton_imp_eps in_eps_char_imp_in_It calculation)
+      finally have "[B \<rightarrow> [] . []] = [A \<rightarrow> \<alpha>\<^sub>0 . []]"
+        using in_states_dfa_LR0_imp_eps_star_in_state[OF X_in_q assms(2)] assms trancl_into_rtrancl
+        by (metis completes_singleton_imp_eq)
+      then show ?thesis using Bw Nt Nil stepmk sorry
+    next
+      case Nt2
+      then show ?thesis sorry
+    next
+      case Tm
+      then show ?thesis sorry
+    qed
+  next
+    case Tm
+    with deriver_singleton have "([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . Tm a # \<delta>]) \<in> nfa.eps char_fa"
+      using X_prod unfolding eps_char_fa by fastforce
+    then show ?thesis using P0_read_iff_in_q assms in_states_dfa_LR0_imp_eps_in_state
+      by (metis DiffD1 Extended_Cfg.complete_noncomplete_Tm_imp_inadequate Extended_Cfg_axioms 
+          empty_not_insert less.prems(1))
+  qed
+qed
+
+
+proof - 
+  from assms have X_It: "[X \<rightarrow> \<alpha> . Nt Y # \<beta>] \<in> It G'" using in_state_imp_in_It by blast
+  hence Nt_Y: "Y \<in> Nts (Prods G')" unfolding It_defs Nts_def Nts_syms_def by fastforce
+  from derivers_last_step_single_Nt Y_derivers obtain u v x Z where uvx:
+    "\<gamma> = map Tm u @ Nt Z # map Tm x" "(Z, map Tm v) \<in> Prods G'" "w = u @ v @ x" 
+    using relpowp_imp_rtranclp by metis
+  let ?X' = "hd (map Tm u @ [Nt Z])"
+  have \<gamma>_X': "\<gamma> = ?X' # tl (map Tm u @ [Nt Z]) @ map Tm x" using uvx by simp
+  from derivern_imp_hd_or_Nil_eps_reachable Y_derivers[unfolded uvx(2-) this] consider 
+    (Z_hd) \<delta> B \<zeta> where "[Y \<rightarrow> [] . \<delta>] \<in> It G'" 
+              "([Y \<rightarrow> [] . \<delta>], [B \<rightarrow> [] . Nt Z # \<zeta>]) \<in> (nfa.eps char_fa)\<^sup>*" "u = []" |
+    (Tm_hd) \<delta> B a y \<zeta> where "[Y \<rightarrow> [] . \<delta>] \<in> It G'" 
+              "([Y \<rightarrow> [] . \<delta>], [B \<rightarrow> [] . Tm a # \<zeta>]) \<in> (nfa.eps char_fa)\<^sup>*" "u = a # y" |
+    (Nil)    \<delta> B where "[Y \<rightarrow> [] . \<delta>] \<in> It G'" 
+              "([Y \<rightarrow> [] . \<delta>], [B \<rightarrow> [] . []]) \<in> (nfa.eps char_fa)\<^sup>*" "B \<noteq> Z"
+  proof cases
+    case (1 \<alpha> X \<beta>)
+    then show ?thesis using \<gamma>_X' that by (cases u) force+
+  next
+    case (2 \<alpha> X)
+    then show ?thesis proof (cases u)
+      case Nil
+      then show ?thesis using \<gamma>_X' that 2 by force
+    next
+      case (Cons a v)
+      then show ?thesis using \<gamma>_X' that(3) 2 
+    qed
+
+  qed
+
+  thus ?thesis proof cases
+    case Z_hd
+     with uvx(2) have BZ: "([B \<rightarrow> [] . Nt Z # \<zeta>], [Z \<rightarrow> [] . map Tm v]) \<in> nfa.eps char_fa"
+       using in_Prods_iff_in_It in_eps_char_star_imp_in_It by force
+     from Z_hd X_It have "([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . \<delta>]) \<in> nfa.eps char_fa" 
+       using in_It_imp_in_Prods by fastforce
+     note X_eps_Z = converse_rtrancl_into_rtrancl[OF this Z_hd(2), THEN rtrancl_into_rtrancl[OF _ BZ]]
+     show ?thesis 
+     proof (cases v)
+       case Nil
+       with X_eps_Z assms have "[Z \<rightarrow> [] . map Tm v] = [A \<rightarrow> \<alpha>\<^sub>0 . []]" 
+         using in_states_dfa_LR0_imp_eps_star_in_state unfolding completes_def 
+         by (metis (lifting) DiffE item.case map_is_Nil_conv mem_Collect_eq singleton_iff)
+       then show ?thesis using uvx Z_hd  by simp
+     next
+       case (Cons a y)
+       with X_eps_Z assms have "[Z \<rightarrow> [] . Tm a # map Tm y] \<in> q" 
+         using in_states_dfa_LR0_imp_eps_star_in_state by simp
+       then show ?thesis using assms 
+         by (metis complete_noncomplete_Tm_imp_inadequate empty_iff insertCI)
+     qed
+  next
+    case Tm_hd
+    with X_It have "([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . \<delta>]) \<in> nfa.eps char_fa"
+      using in_It_imp_in_Prods by fastforce
+    also note Tm_hd(2)
+    finally have "[B \<rightarrow> [] . Tm a # \<zeta>] \<in> q" 
+      using in_states_dfa_LR0_imp_eps_star_in_state assms by blast
+    then show ?thesis 
+      using P0_read_iff_in_q assms(1,3) complete_noncomplete_Tm_imp_inadequate by simp
+  next
+    case Nil
+    then show ?thesis sorry
+  qed
+qed
+
+lemma LR_adequate_completes_singleton_imp_derivers:
+  assumes "LR0_adequate q"
+    "q \<in> dfa.states LR\<^sub>0"
+    "completes q = {[A \<rightarrow> \<alpha>\<^sub>0 . []]}"
+    "[X \<rightarrow> \<alpha> . Nt Y # \<beta>] \<in> noncompletes q"
+    and Y_derivers: "Prods G' \<turnstile> [Nt Y] \<Rightarrow>r* \<gamma>" "Prods G' \<turnstile> \<gamma> \<Rightarrow>r map Tm w"
+  shows "\<gamma> = Nt A # map Tm w \<and> \<alpha>\<^sub>0 = []"
+  using Y_derivers(1) proof cases
+  case rtrancl_refl
+  with Y_derivers(2) have step: "([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . map Tm w]) \<in> nfa.eps char_fa"
+    using deriver_singleton_imp_eps assms(2,4) completes_subset in_state_imp_in_It 
+    by blast
+  show ?thesis 
+  proof (cases w)
+    case Nil
+    with step assms have "[Y \<rightarrow> [] . []] = [A \<rightarrow> \<alpha>\<^sub>0 . []]" using completes_singleton_imp_eq
+      by (metis Diff_iff in_states_dfa_LR0_imp_eps_star_in_state list.map_disc_iff
+          r_into_rtrancl)
+    then show ?thesis using Nil rtrancl_refl by simp
+  next
+    case (Cons a v)
+    then show ?thesis using rtrancl_refl step complete_noncomplete_Tm_imp_inadequate 
+        in_states_dfa_LR0_imp_eps_in_state assms by (metis Diff_iff insert_not_empty list.simps(9))
+  qed
+next
+  case (rtrancl_into_rtrancl b)
+  then obtain n where "Prods G' \<turnstile> [Nt Y] \<Rightarrow>r(n) b" using rtranclp_imp_relpowp by fast
+  also note rtrancl_into_rtrancl(2)
+  finally show ?thesis using LR_adequate_completes_singleton_imp_derivern_Suc assms
+    by blast
+qed
+
+
+
+lemma LR0_adequate_cases[consumes 2, case_names completes_empty singleton comp_unique]:
+  assumes "LR0_adequate q"
+    "q \<in> dfa.states LR\<^sub>0"
   obtains "completes q = {}" |
     A \<alpha> where "q = {[A \<rightarrow> \<alpha> . []]}" |
       A where "completes q = {[A \<rightarrow> [] . []]}" 
-      "\<forall>i \<in> noncompletes q. \<exists>X \<alpha> Y \<beta>. i = [X \<rightarrow> \<alpha> . Y # \<beta>] \<and> 
-      (\<forall>\<gamma> w. Prods G' \<turnstile> [Y] \<Rightarrow>r* \<gamma> \<and> Prods G' \<turnstile> \<gamma> \<Rightarrow>r* map Tm w 
-        \<longrightarrow> Prods G' \<turnstile> \<gamma> \<Rightarrow>r* Nt A # map Tm w \<and> Prods G' \<turnstile> Nt A # map Tm w \<Rightarrow>r map Tm w)"
+      "\<And>X \<alpha> Y \<beta> n w \<gamma>. \<lbrakk>[X \<rightarrow> \<alpha> . Y # \<beta>] \<in> noncompletes q; 
+      Prods G' \<turnstile> [Y] \<Rightarrow>r* \<gamma>; Prods G' \<turnstile> \<gamma> \<Rightarrow>r map Tm w\<rbrakk> \<Longrightarrow> \<gamma> = Nt A # map Tm w"
 proof -
-  from assms consider 
+  from assms(2) have "finite q" by auto
+  with assms consider 
     (empty) "completes q = {}" | 
     (singleton) A \<alpha> where "completes q = {[A \<rightarrow> \<alpha> . []]}"
-    unfolding LR0_adequate_defs by (metis Suc_lessI card_1_singleton_iff 
+    unfolding LR0_inadequate_def by (metis Suc_lessI card_1_singleton_iff 
         card_gt_0_iff completesE completes_subset finite_subset singletonI reduce_reduce_def)
   thus ?thesis
   proof cases
@@ -1182,9 +1434,29 @@ proof -
   next
     case singleton
     show ?thesis proof (cases "q = completes q")
-      case False
-      then show ?thesis using LR_adequate_completes_proper_subset completes_subset assms(1)
-        singleton that by (metis psubsetI)
+      case False { 
+        fix X \<alpha> Y \<beta> assume "[X \<rightarrow> \<alpha> . Y # \<beta>] \<in> noncompletes q"
+        hence "\<exists>Z. Y = Nt Z" using singleton complete_noncomplete_Tm_imp_inadequate assms(1) 
+          by (cases Y) simp_all        
+      } 
+      note in_nc_imp_Nt = this
+      with LR_adequate_completes_singleton_imp_derivers[OF assms singleton] have 
+        "\<And>X \<alpha> Y \<beta> n w \<gamma>. \<lbrakk>[X \<rightarrow> \<alpha> . Y # \<beta>] \<in> noncompletes q;
+          Prods G' \<turnstile> [Y] \<Rightarrow>r* \<gamma>; Prods G' \<turnstile> \<gamma> \<Rightarrow>r map Tm w\<rbrakk> \<Longrightarrow> \<gamma> = Nt A # map Tm w"
+        by metis
+      moreover have "\<alpha> = []" 
+      proof -
+        from False in_nc_imp_Nt obtain X \<alpha>' Y \<beta> where It: "[X \<rightarrow> \<alpha>' . Nt Y # \<beta>] \<in> noncompletes q"     
+          by (metis completes_subset noncompletesE psubsetI psubset_imp_ex_mem)
+        hence "(X, \<alpha>' @ Nt Y # \<beta>) \<in> Prods G'" 
+          by (metis Diff_iff Extended_Cfg.in_state_imp_in_It Extended_Cfg_axioms assms(2) 
+              in_It_imp_in_Prods item.case)
+        with reduced_imp_prod_singleton_derives_Tms[OF _ G'_reduced] obtain v where
+          "Prods G' \<turnstile> [Nt Y] \<Rightarrow>r* map Tm v" using derivers_iff_derives by metis
+        with LR_adequate_completes_singleton_imp_derivers[OF assms singleton It] show ?thesis
+          by (smt (verit, best) Cons_eq_map_D rtranclp.simps sym.distinct(1))
+      qed
+      ultimately show thesis using that(3) singleton by presburger  
     qed (use singleton that in simp)
   qed
 qed
@@ -1192,8 +1464,6 @@ qed
 end
 
 section \<open>LR(k) Grammars\<close>
-
-(* TODO: LR(0)-(in)adequate states *)
 
 definition LR :: "nat \<Rightarrow> ('n::fresh0, 't) Cfg \<Rightarrow> bool" where
   "LR k G \<equiv> \<forall>\<alpha> X \<beta> w \<gamma> Y x y. 

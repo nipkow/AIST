@@ -135,24 +135,11 @@ lemma Tms_iff_no_Nts:
   "(\<exists>w. \<alpha> = map Tm w) \<longleftrightarrow> (\<nexists>A. Nt A \<in> set \<alpha>)"
   by (rule iffI) (use sym.exhaust in force, use no_Nts_imp_Tms in blast)
 
+text \<open>Same as @{thm non_word_has_last_Nt}, except with Cons instead of \<open>@\<close>.}\<close>
 lemma syms_split_rightmost:
   assumes "\<exists>A. Nt A \<in> set \<alpha>"
   obtains \<beta> A u where "\<alpha> = \<beta> @ Nt A # map Tm u"
-  using assms proof (induction "length \<alpha>" arbitrary: \<alpha> thesis rule: less_induct)
-  case less
-  then obtain X \<beta> where \<alpha>_def: "\<alpha> = X#\<beta>" 
-    by (metis list.set_cases)
-  show ?case 
-  proof (cases "\<exists>A. Nt A \<in> set \<beta>")
-    case True
-    show thesis using less(1)[OF _ _ True] less(2) unfolding \<alpha>_def 
-      by (metis Cons_eq_appendI length_Cons lessI)
-  next
-    case False
-    show ?thesis using no_Nts_imp_Tms[OF False] less(2)[of "[]"] less(3) False 
-      unfolding \<alpha>_def by force
-  qed
-qed
+  using assms non_word_has_last_Nt in_Nts_syms by fastforce
 
 lemma rightmost_eq_imp_tl_substring:
   assumes "\<alpha> @ Nt X # map Tm w = \<alpha>' @ \<gamma> @ map Tm v"
@@ -235,7 +222,7 @@ qed
 
 section \<open>Rightmost derivations\<close>
 
-lemma right_derivs_eq_impossible:
+lemma right_sententials_eq_impossible:
   assumes "\<beta> @ Nt A # map Tm u = \<beta>' @ Nt A' # map Tm u'" (is "?w = ?w'")
     "length \<beta> < length \<beta>'" (is "?n < ?m")
   shows False
@@ -246,7 +233,7 @@ proof -
   then show False using inds(2) assms(1) by simp
 qed
 
-lemma right_derivs_eq_imp_eq_tl:
+lemma right_sententials_eq_imp_tl_eq:
   assumes "\<beta> @ Nt A # map Tm u = \<beta>' @ Nt A' # map Tm u'"
   shows "u = u'"
 proof (rule ccontr)
@@ -257,7 +244,7 @@ proof (rule ccontr)
     with assms have "length \<beta> \<noteq> length \<beta>'" by fastforce
     then consider "length \<beta> < length \<beta>'" | "length \<beta>' < length \<beta>" by linarith
     then show ?thesis
-      using right_derivs_eq_impossible assms assms[symmetric] 
+      using right_sententials_eq_impossible assms assms[symmetric] 
       by cases fast+
   qed (use assms neq in auto)
 qed
@@ -266,7 +253,7 @@ lemma deriver_imp_in_Prods:
   assumes "P \<turnstile> \<gamma> @ Nt A#map Tm w \<Rightarrow>r \<gamma>@\<alpha>@map Tm w"
   shows "(A, \<alpha>) \<in> P"
   using deriver.cases[OF assms]
-  by (metis append_eq_append_conv length_Cons list.inject right_derivs_eq_imp_eq_tl
+  by (metis append_eq_append_conv length_Cons list.inject right_sententials_eq_imp_tl_eq
       sym.inject(1))
 
 lemma deriver_imp_handle:
@@ -278,8 +265,24 @@ proof -
     "\<beta> @ Nt A # map Tm u = \<beta>' @ Nt A' # map Tm u'"
     "\<gamma> @ Nt X # map Tm v = \<beta>' @ \<alpha>' @ map Tm u'"
     "(A', \<alpha>') \<in> P" by metis
-  with right_derivs_eq_imp_eq_tl[OF this(1)] show thesis using that by simp
+  with right_sententials_eq_imp_tl_eq[OF this(1)] show thesis using that by simp
+qed 
+
+lemma deriver_imp_handle_Tms:
+  assumes "P \<turnstile> map Tm u @ Nt A#map Tm x \<Rightarrow>r map Tm w"
+  obtains v where "w = u @ v @ x" "(A, map Tm v) \<in> P"
+proof -
+  from deriver.cases[OF assms] obtain u' A' x' \<alpha> where eqs:
+    "map Tm u @ Nt A # map Tm x = u' @ Nt A' # map Tm x'"
+    "map Tm w = u' @ \<alpha> @ map Tm x'" 
+    "(A', \<alpha>) \<in> P" by metis
+  moreover note x_eq = right_sententials_eq_imp_tl_eq[OF this(1)]
+  moreover then have "A = A'" "map Tm u = u'" using eqs(1) by auto
+  moreover obtain v where "\<alpha> = map Tm v" using eqs(2) 
+    by (metis map_eq_append_conv)
+  ultimately show thesis using that map_Tm_inject_iff by fastforce
 qed
+
 
 lemma derives_Nts_subset_preserved:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>* \<beta>"
@@ -332,7 +335,7 @@ lemma derivers_tl_substring:
   obtains u where "w = u@v"
   using assms proof (induction "\<beta> @ Nt B # map Tm w" arbitrary: \<beta> B w thesis)
   case base
-  then show ?case using right_derivs_eq_imp_eq_tl[OF base(1)] by blast
+  then show ?case using right_sententials_eq_imp_tl_eq[OF base(1)] by blast
 next
   case (step y \<beta> B w)
   then obtain \<gamma> C u where y_def: "y = \<gamma> @ Nt C # map Tm u" 
@@ -373,27 +376,10 @@ proof -
     case Nt
     obtain \<eta> D y where "Nt C # \<zeta> = \<eta> @ Nt D # map Tm y" 
         by (meson list.set_intros(1) syms_split_rightmost)
-   moreover from this have "B = D" using deriv Nt right_derivs_eq_imp_eq_tl[of \<beta> B w "\<alpha> @ \<delta> @ \<eta>" D "y@u"]
+   moreover from this have "B = D" using deriv Nt right_sententials_eq_imp_tl_eq[of \<beta> B w "\<alpha> @ \<delta> @ \<eta>" D "y@u"]
      by simp
    ultimately show ?thesis using Nt that deriv by (metis append.assoc append_Cons)
   qed
-qed
-
-lemma derivern_last_step:
-  assumes "P \<turnstile> \<alpha> \<Rightarrow>r(Suc n) map Tm w"
-  obtains u A v where "P \<turnstile> \<alpha> \<Rightarrow>r(n) map Tm u@Nt A#map Tm v" "P \<turnstile> map Tm u@Nt A#map Tm v \<Rightarrow>r map Tm w"
-  using assms proof (induction n arbitrary: \<alpha> thesis w)
-  case 0
-  hence "P \<turnstile> \<alpha> \<Rightarrow>r map Tm w" by auto
-  then obtain x A \<beta> v where "\<alpha> = x@Nt A#map Tm v" "x@\<beta>@map Tm v = map Tm w" 
-    using deriver.cases by metis
-  then show ?case using 0 
-    by (smt (verit, best) map_eq_append_conv relpowp_0_E relpowp_Suc_E)
-next
-  case (Suc n)
-  from Suc(3) obtain \<beta> where "P \<turnstile> \<alpha> \<Rightarrow>r \<beta>" "P \<turnstile> \<beta> \<Rightarrow>r(Suc n) map Tm w" 
-    by (metis relpowp_Suc_D2)
-  then show ?case using Suc by (metis relpowp_Suc_I2)
 qed
 
 lemma derivers_induct[consumes 1, case_names base step]:
@@ -410,6 +396,21 @@ next
   case (step y z)
   from deriver.cases[OF step(2)] step(1,3-) show ?case by metis
 qed
+
+lemma converse_derivers_induct[consumes 1, case_names base step]:
+  assumes "P \<turnstile> xs \<Rightarrow>r* ys"
+  and "Q ys"
+  and "\<And>A \<alpha> u v. \<lbrakk>(A, \<alpha>) \<in> P; P \<turnstile> u @ \<alpha> @ map Tm v \<Rightarrow>r* ys; Q (u @ \<alpha> @ map Tm v)\<rbrakk> 
+    \<Longrightarrow> Q (u @ Nt A # map Tm v)"
+shows "Q xs"
+  using assms proof (induction rule: converse_rtranclp_induct)
+  case base
+  from this(1) show ?case .
+next
+  case (step y z)
+  from deriver.cases[OF step(1)] step(2-) show ?case by metis
+qed
+
 
 lemma derivern_induct[consumes 1, case_names 0 Suc]:
   assumes "P \<turnstile> xs \<Rightarrow>r(n) ys"
@@ -535,7 +536,54 @@ lemma deriven_leq:
   obtains m v where "Prods G \<turnstile> \<beta> \<Rightarrow>(m) map Tm v" "m \<le> n"
   using assms by (metis add_leD1 deriven_append_map_Tm le_add2)
 
+lemma derivern_leq:
+  assumes "Prods G \<turnstile> \<alpha> @ \<beta> @ \<gamma> \<Rightarrow>r(n) map Tm w"
+  obtains m v where "Prods G \<turnstile> \<beta> \<Rightarrow>r(m) map Tm v" "m \<le> n"
+  using assms derivern_iff_deriven deriven_leq by meson
+
+
+lemma derivern_imp_last_step:
+  assumes "P \<turnstile> \<alpha> \<Rightarrow>r(Suc n) map Tm w"
+  obtains u v x X where "P \<turnstile> \<alpha> \<Rightarrow>r(n) map Tm u @ Nt X # map Tm x"
+    "P \<turnstile> map Tm u @ Nt X # map Tm x \<Rightarrow>r map Tm (u @ v @ x)" "w = u @ v @ x"
+  using assms proof (induction n arbitrary: \<alpha> thesis)
+  case 0
+  hence "P \<turnstile> \<alpha> \<Rightarrow>r map Tm w" by auto
+  then show ?case using 0(2) deriver.cases 
+    by (smt (verit, ccfv_threshold) "0.prems"(1) derive_decomp deriver_imp_derive
+        relpowp_Suc_E)
+next
+  case (Suc n)
+  then obtain \<beta> where "P \<turnstile> \<alpha> \<Rightarrow>r \<beta>" "P \<turnstile> \<beta> \<Rightarrow>r(Suc n) map Tm w" 
+    by (metis relpowp_Suc_D2)
+  with Suc.IH[OF _ this(2)] show ?case using Suc.prems(1) 
+    by (metis (no_types, opaque_lifting) relpowp_Suc_I2)
+qed
+
+lemma derivers_last_step_single_Nt:
+  assumes "P \<turnstile> \<alpha> \<Rightarrow>r* \<beta>" "P \<turnstile> \<beta> \<Rightarrow>r map Tm w"
+  obtains u v x X where "\<beta> = map Tm u @ Nt X # map Tm x"
+    "(X, map Tm v) \<in> P" "w = u @ v @ x"
+  using assms deriver_imp_handle_Tms by (metis (no_types, lifting) derive_decomp deriver_imp_derive)
+
+lemma derivern_singleton_imp_singleton_produces_hd:
+  assumes "P \<turnstile> [Nt A] \<Rightarrow>r(Suc n) X # \<alpha>"
+  obtains \<beta> B \<gamma> m \<delta> where "P \<turnstile> [Nt A] \<Rightarrow>r \<beta> @ Nt B # \<gamma>" 
+    "P \<turnstile> [Nt B] \<Rightarrow>r(m) X # \<delta>" "m < Suc n" 
+  sorry
+
 section \<open>Others\<close>
+
+lemma derives_non_word_imp_non_word:
+  assumes "P \<turnstile> \<alpha> \<Rightarrow>* \<beta> @ Nt X # \<gamma>"
+  shows "Nts_syms \<alpha> \<noteq> {}"
+proof 
+  assume "Nts_syms \<alpha> = {}"
+  then obtain w where "\<alpha> = map Tm w" using Nts_syms_empty_iff by blast
+  with assms have "\<beta> @ Nt X # \<gamma> = map Tm w" 
+    by (simp add: derives_map_Tm_iff)
+  thus False by (metis Tms_iff_no_Nts in_set_conv_decomp)
+qed
 
 lemma prod_substring_imp_Nts_subset:
   "(A, \<alpha> @ \<beta> @ \<gamma>) \<in> P \<Longrightarrow> Nts_syms \<beta> \<subseteq> Nts P"
@@ -549,5 +597,19 @@ proof -
     (\<Union>n \<in> B. {xs|xs \<alpha>. set xs \<subseteq> A \<and> length xs = n})" by auto
   with assms finite_lists_length_eq show ?thesis by auto
 qed
+
+lemma less_induct_Suc[case_names 0 Suc]:
+  assumes "P 0"
+    "\<And>n. (\<And>m. m < Suc n \<Longrightarrow> P m) \<Longrightarrow> P (Suc n)"
+  shows "P n"
+  using assms proof (induction n rule: less_induct)
+  case (less n)
+  show ?case 
+  proof (cases n)
+    case (Suc m)
+    then show ?thesis using less by blast
+  qed (use less in simp)
+qed
+
 
 end

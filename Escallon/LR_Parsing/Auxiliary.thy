@@ -566,6 +566,39 @@ lemma derivers_last_step_single_Nt:
     "(X, map Tm v) \<in> P" "w = u @ v @ x"
   using assms deriver_imp_handle_Tms by (metis (no_types, lifting) derive_decomp deriver_imp_derive)
 
+lemma derivern_appendD:
+  assumes "P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r(n) \<gamma>"
+  obtains \<delta> \<zeta> m k where "m + k = n" "P \<turnstile> \<alpha> \<Rightarrow>r(m) \<delta>" "P \<turnstile> \<beta> \<Rightarrow>r(k) \<zeta>" "\<gamma> = \<delta> @ \<zeta>"
+  using assms proof (induction n arbitrary: \<alpha> \<beta> thesis)
+  case 0
+  then show ?case by simp
+next
+  case (Suc n)
+  then obtain \<eta> where stepn: "P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r \<eta>" "P \<turnstile> \<eta> \<Rightarrow>r(n) \<gamma>" by (metis relpowp_Suc_D2)
+  consider (Tms) v where "\<beta> = map Tm v" | (rightmost) \<beta>' A w where "\<beta> = \<beta>' @ Nt A # map Tm w"
+    by (metis destTm.cases ex_map_conv syms_split_rightmost)
+  then show ?case proof cases
+    case Tms
+    with stepn obtain \<alpha>' A \<alpha>'' u where "\<alpha> = \<alpha>' @ Nt A # map Tm u" 
+      "\<eta> = \<alpha>' @ \<alpha>'' @ map Tm (u@v)" 
+      by (smt (verit, ccfv_threshold) append.assoc deriver.simps deriver_append_map_Tm
+          map_append)
+    from Suc.IH[of "\<alpha>' @ \<alpha>''" "map Tm (u@v)"] stepn[unfolded this(2)] 
+     show ?thesis  
+       by (metis Suc.prems Tms add.right_neutral derivern_append_map_Tm relpowp_0_I)
+  next
+    case rightmost
+    with stepn(1) obtain \<alpha>' where step: "(A, \<alpha>') \<in> P" "\<eta> = \<alpha> @ \<beta>' @ \<alpha>' @ map Tm w" 
+      by (smt (verit, ccfv_threshold) append.assoc append_eq_append_conv list.inject list.size(4)
+          right_sententials_eq_imp_tl_eq sym.inject(1) deriver.cases)
+    from Suc.IH[of \<alpha> "\<beta>' @ \<alpha>' @ map Tm w"] stepn[unfolded this] obtain m k \<delta> \<zeta> where ih:
+      "m + k = n" "P \<turnstile> \<alpha> \<Rightarrow>r(m) \<delta>" "P \<turnstile> \<beta>' @ \<alpha>' @ map Tm w \<Rightarrow>r(k) \<zeta>" "\<gamma> = \<delta> @ \<zeta>" by blast
+    with step rightmost have "P \<turnstile> \<beta> \<Rightarrow>r(Suc k) \<zeta>" 
+      using deriver.intros by (meson relpowp_Suc_I2)
+    with ih show ?thesis using Suc.prems(1) by force
+  qed
+qed
+
 section \<open>Others\<close>
 
 lemma derives_non_word_imp_non_word:

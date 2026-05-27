@@ -1157,39 +1157,6 @@ proof -
         char_fa.finite_epsclo, metis card_1_singleton_iff singletonI completesE that(2))
 qed
 
-lemma derivern_appendD:
-  assumes "P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r(n) \<gamma>"
-  obtains \<delta> \<zeta> m k where "m + k = n" "P \<turnstile> \<alpha> \<Rightarrow>r(m) \<delta>" "P \<turnstile> \<beta> \<Rightarrow>r(k) \<zeta>" "\<gamma> = \<delta> @ \<zeta>"
-  using assms proof (induction n arbitrary: \<alpha> \<beta> thesis)
-  case 0
-  then show ?case by simp
-next
-  case (Suc n)
-  then obtain \<eta> where stepn: "P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r \<eta>" "P \<turnstile> \<eta> \<Rightarrow>r(n) \<gamma>" by (metis relpowp_Suc_D2)
-  consider (Tms) v where "\<beta> = map Tm v" | (rightmost) \<beta>' A w where "\<beta> = \<beta>' @ Nt A # map Tm w"
-    by (metis destTm.cases ex_map_conv syms_split_rightmost)
-  then show ?case proof cases
-    case Tms
-    with stepn obtain \<alpha>' A \<alpha>'' u where "\<alpha> = \<alpha>' @ Nt A # map Tm u" 
-      "\<eta> = \<alpha>' @ \<alpha>'' @ map Tm (u@v)" 
-      by (smt (verit, ccfv_threshold) append.assoc deriver.simps deriver_append_map_Tm
-          map_append)
-    from Suc.IH[of "\<alpha>' @ \<alpha>''" "map Tm (u@v)"] stepn[unfolded this(2)] 
-     show ?thesis  
-       by (metis Suc.prems Tms add.right_neutral derivern_append_map_Tm relpowp_0_I)
-  next
-    case rightmost
-    with stepn(1) obtain \<alpha>' where step: "(A, \<alpha>') \<in> P" "\<eta> = \<alpha> @ \<beta>' @ \<alpha>' @ map Tm w" 
-      by (smt (verit, ccfv_threshold) append.assoc append_eq_append_conv list.inject list.size(4)
-          right_sententials_eq_imp_tl_eq sym.inject(1) deriver.cases)
-    from Suc.IH[of \<alpha> "\<beta>' @ \<alpha>' @ map Tm w"] stepn[unfolded this] obtain m k \<delta> \<zeta> where ih:
-      "m + k = n" "P \<turnstile> \<alpha> \<Rightarrow>r(m) \<delta>" "P \<turnstile> \<beta>' @ \<alpha>' @ map Tm w \<Rightarrow>r(k) \<zeta>" "\<gamma> = \<delta> @ \<zeta>" by blast
-    with step rightmost have "P \<turnstile> \<beta> \<Rightarrow>r(Suc k) \<zeta>" 
-      using deriver.intros by (meson relpowp_Suc_I2)
-    with ih show ?thesis using Suc.prems(1) by force
-  qed
-qed
-
 lemma LR_adequate_completes_singleton_imp_derivern_Suc:
   assumes "LR0_adequate q"
     "q \<in> dfa.states LR\<^sub>0"
@@ -1252,11 +1219,12 @@ proof -
     qed
   next
     case (Tm a)
-    then show ?thesis using reachable complete_noncomplete_Tm_imp_inadequate assms 
-        in_states_dfa_LR0_imp_eps_star_in_state  
-      by (metis (lifting) Diff_iff Extended_Cfg.in_state_imp_in_It Extended_Cfg_axioms append_Nil
-          deriver_singleton deriver_singleton_imp_eps empty_not_insert in_It_imp_in_Prods
-          in_states_dfa_LR0_imp_eps_in_state item.case) (* TODO refactor *)
+    from reachable have "([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . \<gamma>']) \<in> nfa.eps char_fa"
+      using assms in_state_imp_in_It eps_char_fa 
+      by (metis (lifting) DiffE append_Nil in_It_imp_in_Prods item.case prod_imp_eps)
+    also note reachable(2)[unfolded Tm]
+    finally  show ?thesis using reachable complete_noncomplete_Tm_imp_inadequate assms 
+        in_states_dfa_LR0_imp_eps_star_in_state by blast
   qed
 qed
 
@@ -1281,8 +1249,9 @@ lemma LR_adequate_completes_singleton_imp_derivers:
     then show ?thesis using Nil rtrancl_refl by simp
   next
     case (Cons a v)
-    then show ?thesis using rtrancl_refl step complete_noncomplete_Tm_imp_inadequate 
-        in_states_dfa_LR0_imp_eps_in_state assms by (metis Diff_iff insert_not_empty list.simps(9))
+    then show ?thesis 
+      using step complete_noncomplete_Tm_imp_inadequate in_states_dfa_LR0_imp_eps_in_state assms 
+      by (metis (mono_tags, lifting) Diff_iff empty_not_insert list.simps(9))
   qed
 next
   case (rtrancl_into_rtrancl b)
@@ -1292,14 +1261,24 @@ next
     by blast
 qed
 
+text \<open>For every LR(0)-adequate state \<open>q\<close>, one of the following holds:
+\begin{itemize}
+\item \<open>q\<close> contains no complete items
+\item \<open>q\<close> consists of exactly one complete item
+\item \<open>q\<close> contains exactly one complete item @{term "[A \<rightarrow> [] . []]"} and all noncomplete items in \<open>q\<close>
+are of the form @{term "[A \<rightarrow> \<alpha> . Nt Y # \<beta>]"} where all rightmost derivations for Y leading to a word \<open>w\<close>
+are of the form \<open>Y \<Rightarrow>r* Aw \<Rightarrow>r w\<close>.
+\end{itemize}\<close>
+
 lemma LR0_adequate_cases[consumes 2, case_names completes_empty singleton comp_unique]:
   assumes "LR0_adequate q"
     "q \<in> dfa.states LR\<^sub>0"
   obtains "completes q = {}" |
     A \<alpha> where "q = {[A \<rightarrow> \<alpha> . []]}" |
       A where "completes q = {[A \<rightarrow> [] . []]}" 
-      "\<And>X \<alpha> Y \<beta> n w \<gamma>. \<lbrakk>[X \<rightarrow> \<alpha> . Y # \<beta>] \<in> noncompletes q; 
-      Prods G' \<turnstile> [Y] \<Rightarrow>r* \<gamma>; Prods G' \<turnstile> \<gamma> \<Rightarrow>r map Tm w\<rbrakk> \<Longrightarrow> \<gamma> = Nt A # map Tm w"
+      "\<And>i. i \<in> noncompletes q \<Longrightarrow> \<exists>X \<alpha> Y \<beta>. i = [X \<rightarrow> \<alpha> . Nt Y # \<beta>]"
+      "\<And>X \<alpha> Y \<beta> w \<gamma>. \<lbrakk>[X \<rightarrow> \<alpha> . Nt Y # \<beta>] \<in> noncompletes q; 
+      Prods G' \<turnstile> [Nt Y] \<Rightarrow>r* \<gamma>; Prods G' \<turnstile> \<gamma> \<Rightarrow>r map Tm w\<rbrakk> \<Longrightarrow> \<gamma> = Nt A # map Tm w"
 proof -
   from assms(2) have "finite q" by auto
   with assms consider 
@@ -1314,14 +1293,15 @@ proof -
   next
     case singleton
     show ?thesis proof (cases "q = completes q")
-      case False { 
+      case False 
+      { 
         fix X \<alpha> Y \<beta> assume "[X \<rightarrow> \<alpha> . Y # \<beta>] \<in> noncompletes q"
         hence "\<exists>Z. Y = Nt Z" using singleton complete_noncomplete_Tm_imp_inadequate assms(1,2) 
           by (cases Y) simp_all
       } 
       note in_nc_imp_Nt = this
-      with LR_adequate_completes_singleton_imp_derivers[OF assms singleton] have 
-        "\<And>X \<alpha> Y \<beta> n w \<gamma>. \<lbrakk>[X \<rightarrow> \<alpha> . Y # \<beta>] \<in> noncompletes q;
+      moreover with LR_adequate_completes_singleton_imp_derivers[OF assms singleton] have 
+        "\<And>X \<alpha> Y \<beta> w \<gamma>. \<lbrakk>[X \<rightarrow> \<alpha> . Y # \<beta>] \<in> noncompletes q;
           Prods G' \<turnstile> [Y] \<Rightarrow>r* \<gamma>; Prods G' \<turnstile> \<gamma> \<Rightarrow>r map Tm w\<rbrakk> \<Longrightarrow> \<gamma> = Nt A # map Tm w"
         by metis
       moreover have "\<alpha> = []" 
@@ -1336,7 +1316,7 @@ proof -
         with LR_adequate_completes_singleton_imp_derivers[OF assms singleton It] show ?thesis
           by (smt (verit, best) Cons_eq_map_D rtranclp.simps sym.distinct(1))
       qed
-      ultimately show thesis using that(3) singleton by presburger  
+      ultimately show thesis using that(3) singleton by (metis noncompletesE)
     qed (use singleton that in simp)
   qed
 qed

@@ -1007,7 +1007,6 @@ locale Earley_Gw_eps_T = Earley_Gw_eps where ps = ps for ps :: "('n,'t) prods" +
   assumes T_nth_Bound: "(T_nth :: ('n, 't) item list list \<Rightarrow> nat \<Rightarrow> nat) as k \<le> T_nth_IL k"
   and T_update_Bound: "(T_list_update :: ('n, 't) item list list \<Rightarrow> nat \<Rightarrow> ('n, 't) item list \<Rightarrow> nat) as k a \<le> T_nth_IL k"
   and mono_nth: "mono T_nth_IL" (*mono f*)
-  and dist_ps: "distinct ps"
 begin
 
 (* general List and prod time bounds *)
@@ -1085,7 +1084,8 @@ proof-
   then have "from x < length (froms il) \<Longrightarrow> length ((froms il) ! from x) \<le> (card P) * Suc K" using 1 2
     using distinct_card by (fastforce)
   then have "from x < length (froms il) \<Longrightarrow> length ((froms il) ! from x) \<le> L * Suc K"
-    using distinct_card dist_ps by (fastforce simp add: L_def)
+    using card_length[of ps] L_def
+    by (metis (no_types, lifting) dual_order.trans mult_le_cancel2)
   then show ?thesis using wf(2) T_isin_general[of il x] by auto
 qed
 
@@ -1235,7 +1235,7 @@ proof -
   finally show ?thesis using 1 2 by auto
 qed
 
-lemma distinct_Init: 
+(*lemma distinct_Init: 
   shows "distinct Init_L"
 proof -                                           
   have "inj_on (\<lambda> p. Item p 0 0) (set ps)"
@@ -1251,7 +1251,10 @@ proof -
     using inj_on_def by auto
   then have "distinct (map (\<lambda> p. Item p 0 k) ps)" using dist_ps by (simp add: distinct_map)
   then show ?thesis using dist_ps by (simp add: Predict_L_def distinct_map_filter)
-qed
+qed*)
+
+lemma Predict_Length: "length (Predict_L x k) \<le> L"
+  by (auto simp add: Predict_L_def L_def)
 
 lemma distinct_Complete_L: 
   assumes "distinct (Bs ! from y)" shows "distinct (Complete_L Bs y)"
@@ -1325,8 +1328,8 @@ proof-
   have "is_complete b \<Longrightarrow> distinct (Bs ! from b)" using assms
       by (simp add: wf_bin1_def wf_item1_def IL1 bbs)
   then have lengthStep: "length (?step) \<le> L * (Suc K) * (Suc (length Bs))" 
-    using card_wf1[of "set (?step)" "length Bs"] assms distinct_Complete_L distinct_Predict_L wfStep
-    by (simp add: distinct_card wfbin1_impl_wfbin)
+    using card_wf1[of "set (?step)" "length Bs"] assms distinct_Complete_L wfStep Predict_Length[of b "length Bs"]
+    by (auto simp add: distinct_card wfbin1_impl_wfbin )
   then have "T_union_LIL (?step) il1 \<le> length (?step) * (3 * T_nth_IL (length Bs) + L * Suc K + 2) + 1"
     using T_union_LIL_wf[of il1 ?step] assms wfStep forall_from_Suc[OF wfStep] by (auto simp add: IL1)
   also have "... \<le> L * (Suc K) * (Suc (length Bs)) * (3 * T_nth_IL (length Bs) + L * Suc K + 2) + 1"
@@ -1586,7 +1589,7 @@ qed
 lemma distinct_bins_L: "k \<le> length w \<Longrightarrow> i < Suc k \<Longrightarrow> distinct ((bins_L k) ! i)"
 proof(induction k arbitrary: i)
   case 0
-  then show ?case using distinct_Init distinct_close2[of "[]" "IL_of_List 0 Init_L"] length_IL_of_List
+  then show ?case using distinct_close2[of "[]" "IL_of_List 0 Init_L"] length_IL_of_List
     using IL_of_List_inv[OF forall_from_Suc] set_IL_of_List wf1_Init_L wf_bins1_def wf1_IL_of_List by auto
 next
   case (Suc k)

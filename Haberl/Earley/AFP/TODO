@@ -1,0 +1,47 @@
+Important
+=========
+
+DERIVE O bounds directly using Lemma: f(n+1) = f n + g n ...
+Can Lemma be generalized, eg
+Lemma f(n) : O(%n. n * g(n)) ???
+Automate transition from T_f(xs) -> T_f(n) without precondition
+Additional complication: terms like g(h...)
+because we now need T_g(size(h(...))
+
+Pre-computation:
+T_Init_L(') is a hack.
+Better: make Init_L_G a locale parameter
+Earley_G_L = Earley_G
++ fixes Init_L_G assumes Init_L_G = Init_L ps S
+Now Init_L_G needs no time
+
+IL verification relates back to inductive Close2
+but should use recursive close2L (May change complexity constants)
+
+Closure (B,C): use lists directly, not sets?
+
+Generic Array (type?) theory (Collection + syntax + lemmas)
+
+Get rid of locales and replace with params?
++ time_fun works
++ can separate precomputed values more easily
+- Defn of Earley etc depends on G and w
+
+Allow epsilon. Aycock and Horspool: nullable + predictor.
+
+
+Minor
+=====
+
+Item: get rid of rule index, use (A, rev \alpha, \beta, from).
+(Improves constants
+
+Complexity proofs: do not expand bounds of T_isin etc
+but make upper bounds depend of them
+
+Clean O proofs
+what is w: 't list or sym list?
+combine Predict and Complete?
+
+Generic Closure2 worklist: inductive set -> inductive list -> while
+Only relevant to obtain reusable component

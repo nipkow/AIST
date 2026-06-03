@@ -1,0 +1,70 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{isabelle,isabellesym}
+
+% this should be the last package used
+\usepackage{pdfsetup}
+
+% urls in roman style, theory text in math-similar italics
+\urlstyle{rm}
+\isabellestyle{literal}
+
+
+\begin{document}
+
+\title{Earley With Time}
+\author{Alexander Haberl and Tobias Nipkow}
+\maketitle
+
+\begin{abstract}
+This is a verified development of both an executable recognizer and parser
+implementing Earley's algorithm. It is accompanied by verified complexity
+analyses parameterized by the time it takes to access the nth element of a list.
+The asymptotic complexities of the recognizer and parser are the same:
+cubic, if nth is constant-time, or quartic, if nth is linear-time.
+Therefore our purely functional implementation has quartic complexity. 
+
+Restrictions: the grammar must be epsilon-free and the parser returns only
+a single parse tree.
+\end{abstract}
+
+\newpage
+\tableofcontents
+
+\newpage
+\section{Introduction}
+
+Earley's algorithm \cite{Earley-CACM} is a parsing algorithm for arbitrary context-free
+languages. The recognizer only solves the word problem and does not return a parse tree.
+Jones~\cite{Jones} was the first to present a rigorous correctness proof of the recognizer.
+Rau and Nipkow~\cite{RauN-ITP24} verified an executable Earley parser that follows the work
+of Scott~\cite{Scott-ENTCS08} and returns a shared packed parse forest (SPPF).
+They verify soundness but not completeness and argue that their implementation has quartic complexity.
+Nipkow and Rau~\cite{NipkowR-CBJ24} also develop separately the beginning
+of a streamlined, stepwise development of Earley's recognizer.
+
+The current AFP entry includes the theory by Nipkow and Rau
+and completes the refinement to both an executable recognizer and parser.
+Moreover, it contains verified complexity analyses
+parameterized by the time it takes to access the nth element of a list.
+The analysis is carried out precisely, with all the constants.
+It employs the time function infrastructure described elsewhere \cite{Nipkow-ACMbook}.
+
+The asymptotic complexities of the recognizer and parser are the same:
+cubic, if nth is constant-time, or quartic, if nth is linear-time.
+Therefore our purely functional implementation has quartic complexity,
+confirming the informal argument by Rau and Nipkow~\cite{RauN-ITP24}.
+
+In a last step, the precise analysis is abstracted with the help of a Big O notation
+in order to present the asymptotic complexities concisely.
+
+% include generated text of all theories
+\newpage
+\input{session}
+
+\newpage
+\bibliographystyle{abbrv}
+\bibliography{root}
+\addcontentsline{toc}{section}{References}
+
+\end{document}

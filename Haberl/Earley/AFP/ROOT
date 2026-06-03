@@ -1,0 +1,11 @@
+session Earley = HOL +
+  sessions
+    "HOL-Library"
+    "Context_Free_Grammar"
+  theories
+    Earley_Parser_Time
+    Earley_Big_O
+    Sugar
+  document_files
+    root.tex
+    root.bib

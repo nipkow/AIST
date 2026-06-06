@@ -1,5 +1,5 @@
 theory Big_O
-imports Main
+imports Main "HOL-Library.Time_Functions"
 begin
 
 text \<open>This is a very simple formalization of Big O only on \<open>nat\<close> and only
@@ -320,7 +320,9 @@ corollary pow_diff_tight:
   shows "n ^ (k+1) + (k+1) * n ^ k + 1 \<le> (n+1) ^ (k+1)"
   using assms pow_diff_strong[of n "k-1"] by simp
 
-lemma lin_rec_le_O_solution:
+text \<open>Our Master Lemma ;-)\<close>
+
+lemma lin_rec_O_solution:
   fixes f g :: "nat \<Rightarrow> nat"
   assumes "\<And>n. f(Suc n) = f n + g n"
   and "g \<le>O (\<lambda>n. n^k)"
@@ -347,5 +349,145 @@ proof -
   thus ?thesis
     unfolding le_O_def by auto
 qed
+
+text \<open>The following definition is more for convenience (and does not cater for \<open>IF\<close> (yet?)).\<close>
+
+text \<open>Functions \<open>f\<close> and \<open>g\<close> typically operate on \<open>'a = nat\<close>
+ and \<open>m\<close> measures the size of the actual input type \<open>'b\<close>.\<close>
+definition le_O_measure :: "('a \<Rightarrow> nat) \<Rightarrow> ('a \<Rightarrow> nat) \<Rightarrow> ('b \<Rightarrow> 'a) \<Rightarrow> bool"
+  ("(_/ \<le>O _/ WRT _)" [50, 1000, 0] 0) where
+"(f \<le>O g WRT m) = ((f o m) \<le>O (g o m))"
+
+lemma le_O_measureI: "f \<le>O g \<Longrightarrow> f \<le>O g WRT m"
+unfolding le_O_measure_def le_O_def by auto
+
+
+subsubsection \<open>Example: \<open>append\<close>\<close>
+
+text\<open>The \<open>T_append\<close> recursion pattern but now on \<open>nat\<close> instead of \<open>list\<close>.
+(Could be reused for other functions, e.g. length.)\<close>
+
+fun T_append_n :: "nat \<Rightarrow> nat" where
+"T_append_n 0 = 1" |
+"T_append_n (Suc n) = T_append_n n + 1"
+
+text\<open>Is the step of finding \<open>T_f_n\<close> given \<open>T_f\<close> creative? Always possible?\<close>
+
+text \<open>\<open>T_append_n\<close> is correct wrt \<open>T_append\<close>:\<close>
+lemma T_append_T_append_n: "T_append xs ys = T_append_n (length xs)"
+  by (induction xs) auto
+text \<open>The proof is and should be trivial. Otherwise the \<open>_n\<close> variant is probably not quite right.\<close>
+
+text \<open>The complexity of \<open>T_append_n\<close> using our Master Lemma:\<close>
+
+lemma T_append_n_O_id: "T_append_n \<le>O (\<lambda>n. n)"
+proof -
+  have 1: "(\<lambda>n. 1) \<le>O (\<lambda>n. n ^ 0)"
+    by (simp add: le_O_k)
+  from lin_rec_O_solution[of T_append_n, OF T_append_n.simps(2) 1]
+  show ?thesis by simp
+qed
+
+text \<open>Now we start lifting \<open>T_append_n_O_id\<close> to \<open>T_append\<close>.
+This should be routine or even automatic.\<close>
+
+lemma T_append_O_id_WRT: "T_append_n \<le>O (\<lambda>n. n) WRT (\<lambda>(xs, ys). length xs)"
+  by (simp add: T_append_n_O_id le_O_measureI)
+
+text \<open>The final theorem about the \<open>T_append\<close>:\<close>
+corollary T_append_O: "(\<lambda>(xs,ys). T_append xs ys) \<le>O (\<lambda>(xs,ys). length xs)"
+  unfolding T_append_T_append_n using T_append_O_id_WRT unfolding le_O_measure_def comp_def
+  by (simp add: split_def)
+
+
+subsubsection \<open>Example: \<open>rev\<close>\<close>
+
+thm T_rev.simps(2)
+
+text \<open>The definition of \<open>T_rev\<close> contains the summand \<open>T_append (rev xs)\<close>.
+However, \<open>T_rev_n\<close> operates on \<open>nat\<close>: there is no \<open>xs\<close>. We need to use "the size of \<open>rev xs\<close>".
+Luckily, we know that \<open>rev\<close> preserves the length. Thus the following definition works.
+Such knowledge about how auxiliary functions change the size of their input will often be necessary.\<close>
+fun T_rev_n :: "nat \<Rightarrow> nat" where
+"T_rev_n 0 = 1" |
+"T_rev_n (Suc n) = T_rev_n n + T_append_n n + 1"
+
+lemma T_rev_T_rev_n: "T_rev xs = T_rev_n (length xs)"
+  by (induction xs) (auto simp: T_append_T_append_n)
+
+text \<open>The complexity proof needs a bit of \<open>\<le>0\<close> reasoning (via \<open>le_O_Suc1\<close>).
+For more complex functions there could be more of that.\<close>
+lemma T_rev_n_O_pow2: "T_rev_n \<le>O (\<lambda>n. n^2)"
+proof -
+  have *: "T_rev_n (Suc n) = T_rev_n n + (T_append_n n + 1)" for n
+    by (simp add: algebra_simps)
+  from lin_rec_O_solution[of T_rev_n, OF *, of 1] T_append_n_O_id
+  show ?thesis by (simp add: le_O_Suc1 power2_eq_square)
+qed
+
+lemma T_rev_O_pow2_WRT: "T_rev_n \<le>O (\<lambda>n. n^2) WRT length"
+  by (simp add: T_rev_n_O_pow2 le_O_measureI)
+
+corollary T_rev_O: "T_rev \<le>O (\<lambda>x. (length x)^2)"
+  unfolding T_rev_T_rev_n using T_rev_O_pow2_WRT unfolding le_O_measure_def comp_def
+  by (simp add: split_def)
+
+
+subsubsection \<open>Example: \<open>nth\<close>\<close>
+
+thm T_nth.simps
+
+text \<open>This example is trickier because \<open>nth\<close> is a partial function.
+Therefore many lemmas a conditional now. There are also two plausible candidates for \<open>T_nth_n\<close>.
+Both work equally well.\<close>
+
+text \<open>Variant 1\<close>
+
+fun T_nth_n :: "nat \<Rightarrow> nat" where
+"T_nth_n (Suc m) = T_nth_n m + 1"
+
+lemma T_nth_T_nth_n: "n < length xs \<Longrightarrow> T_nth xs n \<le> T_nth_n (length xs)"
+  by (induction xs n rule: T_nth.induct) (auto simp: T_nth.simps split: nat.splits)
+corollary T_nth_T_nth_n_O:
+  "(\<lambda>(xs,n). T_nth xs n) \<le>O (\<lambda>(xs,n). T_nth_n (length xs)) IF (\<lambda>(xs,n). n < length xs)"
+by (simp add: T_nth_T_nth_n le_O_if_le2)
+
+lemma T_nth_n_O_id: "T_nth_n \<le>O (\<lambda>m. m)"
+proof -
+  from lin_rec_O_solution[of T_nth_n "%_. 1" 0, OF T_nth_n.simps]
+  show ?thesis by (simp add: le_O_id)
+qed
+
+lemma T_nth_n_O_id_WRT: "T_nth_n \<le>O (\<lambda>n. n) WRT (length o fst)"
+  by (simp add: T_nth_n_O_id le_O_measureI)
+
+corollary T_nth_O: "(\<lambda>(xs,n). T_nth xs n) \<le>O (\<lambda>(xs,n). length xs) IF (\<lambda>(xs,n). n < length xs)"
+  using T_nth_T_nth_n_O T_nth_n_O_id_WRT unfolding le_O_measure_def comp_def split_def
+  using le_O_trans2 by blast
+
+text \<open>Variant 2\<close>
+
+fun T_nth_n2 :: "nat \<Rightarrow> nat" where
+"T_nth_n2 0 = 1" |
+"T_nth_n2 (Suc n) = T_nth_n2 n + 1"
+
+lemma T_nth_T_nth_n2: "n < length xs \<Longrightarrow> T_nth xs n = T_nth_n2 n"
+  by (induction xs n rule: T_nth.induct) (auto simp: T_nth.simps split: nat.splits)
+corollary T_nth_T_nth_n2_O:
+  "(\<lambda>(xs,n). T_nth xs n) \<le>O (\<lambda>(xs,n). T_nth_n2 n) IF (\<lambda>(xs,n). n < length xs)"
+by (simp add: T_nth_T_nth_n2 le_O_if_le2)
+
+lemma T_nth_n2_O_id: "T_nth_n2 \<le>O (\<lambda>n. n)"
+proof -
+  from lin_rec_O_solution[of T_nth_n2 "%_. 1" 0, OF T_nth_n2.simps(2)]
+  show ?thesis by (simp add: le_O_id)
+qed
+
+lemma T_nth_n2_O_id_WRT: "T_nth_n2 \<le>O (\<lambda>n. n) WRT snd"
+  by (simp add: T_nth_n2_O_id le_O_measureI)
+
+corollary T_nth_O2: "(\<lambda>(xs,n). T_nth xs n) \<le>O (\<lambda>(xs,n). n) IF (\<lambda>(xs,n). n < length xs)"
+  using T_nth_T_nth_n2_O T_nth_n2_O_id_WRT unfolding le_O_measure_def comp_def split_def
+  using le_O_trans2 by blast
 
 end

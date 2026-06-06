@@ -143,7 +143,7 @@ definition recognized :: "(nat \<times> ('n,'t) item) set \<Rightarrow> bool" wh
   "recognized I \<equiv> \<exists>(k,x) \<in> I. is_final x \<and> k = length w"
 
 definition Init :: "('n,'t) item set" where
-  "Init = { Item r 0 0 | r. r \<in> P \<and> lhs r = (S) }"
+  "Init = { Item r 0 0 | r. r \<in> P \<and> lhs r = S }"
 
 definition Predict :: "nat \<Rightarrow> ('n,'t) item \<Rightarrow> ('n,'t) item set" where
   "Predict k x = { Item r 0 k | r. r \<in> P \<and> next_sym x (Nt(lhs r)) }"

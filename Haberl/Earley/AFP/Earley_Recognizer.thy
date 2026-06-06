@@ -745,7 +745,6 @@ context Earley_Gw
 begin
 (*code declarations for recognizer*)
   declare Earley_Gw.Predict_L_def[code]
-  declare Earley_Gw.mv_dot_def[code]
   declare Earley_Gw.Complete_L_def[code]
   declare Earley_Gw.Scan_L_def[code]
   declare Earley_Gw.Init_L_def[code]

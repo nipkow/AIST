@@ -1,10 +1,15 @@
 Important
 =========
 
+Modularize bounds to simplify local code changes. Do not expand all T-bounds all the time.
+Idea: if f uses g and h, express T_f bound only in terms of T_g and T_h (?)
+(Of course at the end, everything needs to be expanded)
+
 DERIVE O bounds directly using Lemma: f(n+1) = f n + g n ...
 Can Lemma be generalized, eg
-Lemma f(n) : O(%n. n * g(n)) ???
-Automate transition from T_f(xs) -> T_f(n) without precondition
+Lemma If f(n+1) = f(n) + h(n)*g1(n) + g2(n) (???)
+  and h(n) <=0 n and g1(n) <=O n^k1 and g2(n) <=O n^k2
+  then f(n) <=O h(n) * n^(k1+1) + n^(k2+1)  ???
 Additional complication: terms like g(h...)
 because we now need T_g(size(h(...))
 
@@ -17,6 +22,12 @@ Now Init_L_G needs no time
 
 IL verification relates back to inductive Close2
 but should use recursive close2L (May change complexity constants)
+
+Layout: lines <= 100, esp for arithmetic formulas:
+group, indent, break arithmetic formulas
+
+Use new Array theory to allow easy code generation and to deal with
+annoyances like xs @ [x] in function bins.
 
 Closure (B,C): use lists directly, not sets?
 

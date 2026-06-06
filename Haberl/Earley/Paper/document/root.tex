@@ -91,13 +91,14 @@ Alexander Haberl\inst{2}}
 \maketitle
 
 \begin{abstract}
-The starting point of this paper is a recent formal verification by Nipkow and Rau
+This paper starts from a recent formal verification
 of an abstract inductive but not directly executable (i.e.\ recursive) version of Earley's recognizer.
 The aim of that work was a particularly simple, abstract formalization and stepwise refinement
 towards executability. We continue this work and refine it to an executable
 implementation together with a proof of the running time: cubic if the $n$-th element of
 a list can be accessed in constant time, and quartic if access takes linear time.
-We present the running time analysis with the help of a simple Big $O$ formalization. 
+We present the running time analysis with the help of a simple Big $O$ formalization.
+Everything has been formalized in Isabelle/HOL.
 \end{abstract}
 
 \section{Introduction}
@@ -111,10 +112,10 @@ and are the basis of many further refinements (e.g.\ \cite{Scott-ENTCS08}).
 This paper focuses on Earley's original version.
 
 The first rigourous mathematical proof of Earley's algorithm is due to Jones \cite{Jones,Jones:tr}.
-This was the starting point of the work by Nipkow and Rau \cite{NipkowR-CBJ24}, our starting point now.
+This was the starting point of the work by Nipkow and Rau \cite{NipkowR-CBJ24}.
 We continue their work as follows.
 First we refine the recognizer from sets to lists, then from inductive to recursive, and finally
-we augment the lists wih a more efficient array-like data structure.
+we augment the lists with a more efficient array-like data structure.
 Then we present a complexity analysis that proves the well-known cubic bound
 if we can access the $n$-th element of a list in constant time.
 If that access takes linear time, we obtain a quartic bound.
@@ -130,7 +131,19 @@ Rau and Nipkow \cite{RauN24} have verified an Earley parser based on the work of
 Their work is more monolithic whereas ours aims for simple refinement steps and proofs.
 %Their parser correctness theorems consider only a single parse tree.
 
-This paper is largely based on the forthcoming master's thesis by the second author.
+This paper is largely based on the master's thesis by the second author \cite{Haberl}.
+
+There are a number of related publications on verified parsing algorithms and parser generators
+for a variety of grammars and formalisms:
+for SLR grammars \cite{BarthwalN09},
+parsing expression grammars \cite{KoprowskiB-LMiCS11,BlaudeauS-CPP20},
+parser combinators \cite{Ridge-CPP11},
+LL(1) grammars \cite{LasserCFR-ITP19} and
+non-left-recursive grammars \cite{LasserCFR-PLDI21}.
+There is also a verified validator for LR(1) automata \cite{JourdanPL-ESOP12}.
+What sets our work apart is the algorithm and the complexity analysis.
+
+
 
 %\begin{table}
 %\caption{Table captions should be placed above the tables.}\label{tab1}

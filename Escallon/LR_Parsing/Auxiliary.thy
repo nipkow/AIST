@@ -1,5 +1,5 @@
 theory Auxiliary
-  imports Context_Free_Grammar.Context_Free_Grammar 
+  imports Context_Free_Grammar.Context_Free_Grammar Finite_Automata_HF.Finite_Automata_HF
 begin 
 
 section \<open>Lists\<close>
@@ -56,6 +56,45 @@ proof -
   from in_A have "set ?xs \<subseteq> A" by fastforce
   moreover have "length ?xs = n" by simp
   ultimately show thesis using that by blast
+qed
+
+lemma list_eq_less_imp_substring:
+  assumes "as @ bs = xs @ ys" "length as < length xs"
+  obtains as' where "xs = as @ as'"
+  using assms by (metis append_eq_append_conv2 length_append not_add_less1)
+
+lemma take_diff:
+  "take n xs = take n ys \<Longrightarrow> take (n-m) xs = take (n-m) ys"
+proof (induction n arbitrary: xs ys)
+  case 0
+  then show ?case by simp
+next
+  case (Suc n)
+  hence Nil_iff: "xs = [] = (ys = [])" by fastforce
+  then show ?case proof (cases xs)
+    case Nil
+    then show ?thesis using Nil_iff by blast
+  next
+    case (Cons a as)
+    with Nil_iff obtain b bs where ys_def: "ys = b#bs" using list.exhaust 
+      by auto
+    show ?thesis using Suc unfolding ys_def Cons 
+      by (metis One_nat_def Suc_diff_diff diff_zero list.inject take_Cons' take_Suc_Cons)
+  qed
+qed
+
+lemma list_append_cases[consumes 1, case_names left right]:
+  assumes "as @ bs = xs @ y # ys"
+  obtains 
+    xs' where "as = xs @ y # xs'" "ys = xs' @ bs" |
+    bs' where "xs = as @ bs'" "bs = bs' @ y # ys"
+using assms proof (induction as arbitrary: xs thesis)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a as)
+  show ?case 
+    by (cases xs) (use Cons in auto)
 qed
 
 section \<open>Syms (generalize to all list types?)\<close>
@@ -141,7 +180,7 @@ lemma syms_split_rightmost:
   obtains \<beta> A u where "\<alpha> = \<beta> @ Nt A # map Tm u"
   using assms non_word_has_last_Nt in_Nts_syms by fastforce
 
-lemma rightmost_eq_imp_tl_substring:
+lemma rightmost_eq_tl_lt_imp_substring:
   assumes "\<alpha> @ Nt X # map Tm w = \<alpha>' @ \<gamma> @ map Tm v"
   obtains u where "w = u @ v"
   using assms that by (cases "Nt X \<in> set \<gamma>")
@@ -158,12 +197,12 @@ proof -
   then show thesis
   proof cases
     case Tms
-    then show ?thesis using rightmost_eq_imp_tl_substring[OF assms[unfolded Tms]] that 
+    then show ?thesis using rightmost_eq_tl_lt_imp_substring[OF assms[unfolded Tms]] that 
       by fastforce
   next
     case rightmost
     with assms[unfolded this] show ?thesis 
-      using rightmost_eq_imp_tl_substring[of "\<alpha> @ Nt X # \<beta>'" Y u] 
+      using rightmost_eq_tl_lt_imp_substring[of "\<alpha> @ Nt X # \<beta>'" Y u] 
       by (metis append.assoc append_Cons map_append that)
   qed
 qed
@@ -220,7 +259,58 @@ next
   show ?thesis using False that(1) Cons_eq_appendI assms by force
 qed
 
-section \<open>Rightmost derivations\<close>
+lemma eq_tl_lt_imp_substring:
+  assumes "\<alpha> @ map Tm x = \<beta> @ map Tm y"
+    "length x \<le> length y"
+  obtains \<gamma> x' where "x' @ x = y" "\<gamma> @ map Tm x' = \<alpha>"
+using assms proof (induction y arbitrary: \<alpha> x thesis rule: rev_induct)
+  case (snoc a y)
+  then show ?case by (cases x rule: rev_cases) auto
+qed simp
+
+lemma eq_hd_lt_imp_substring:
+  assumes "\<alpha> @ map Tm x = \<beta> @ map Tm y"
+    "length \<alpha> \<le> length \<beta>"
+  obtains x' where "\<alpha> @ map Tm x' = \<beta>"  "x' @ y = x"
+  using assms proof (induction \<beta> arbitrary: \<alpha> x thesis)
+  case (Cons X \<beta>)
+  show ?case proof (cases \<alpha>)
+    case Nil
+    with Cons(3) obtain z where "X # \<beta> = map Tm z" 
+      by (metis list.simps(8) map_eq_append_conv)
+    then show ?thesis using Cons.prems unfolding Nil 
+      by (metis append_self_conv2 map_Tm_inject_iff map_append)
+  qed (use Cons in auto)
+qed simp
+
+lemma syms_app_cases [consumes 1]:
+  assumes "\<gamma> @ \<delta> = \<alpha> @ \<beta> @ map Tm w"
+  obtains u v where "\<gamma> = \<alpha> @ \<beta> @ map Tm u" "\<delta> = map Tm v" "w = u @ v" |
+    \<delta>' where "\<delta> = \<delta>' @ map Tm w" "\<gamma> @ \<delta>' = \<alpha> @ \<beta>" 
+  using assms proof (induction "\<gamma> @ \<delta>" arbitrary: \<gamma> \<delta> \<alpha> \<beta> w thesis rule: rev_induct)
+  case (snoc X \<zeta>)
+  note X_snoc = this
+  show ?case proof (cases w rule: rev_cases)
+    case (snoc u a)
+    note a_snoc = this
+    show ?thesis proof (cases \<delta> rule: rev_cases)
+      case Nil
+      then show ?thesis using a_snoc X_snoc by force
+    next
+      case (snoc \<eta> Y)
+      note X_snoc(1)[of \<gamma> \<eta> \<alpha> \<beta> u]
+      then show ?thesis
+        using snoc X_snoc(2-) a_snoc by cases force+
+    qed
+  qed (use snoc in simp)
+qed simp
+
+lemma syms_tl_cases [consumes 1]:
+  assumes "\<alpha> @ \<beta> @ map Tm u = \<gamma> @ \<delta> @ map Tm v"
+  obtains \<zeta> x where "v = x @ u" "\<zeta> @ map Tm x = \<alpha> @ \<beta>" |
+    \<zeta> x where "u = x @ v" "\<zeta> @ map Tm x = \<gamma> @ \<delta>"
+  by (cases rule: le_cases[of "length u" "length v"]) 
+    (metis assms append_assoc that eq_tl_lt_imp_substring)+
 
 lemma right_sententials_eq_impossible:
   assumes "\<beta> @ Nt A # map Tm u = \<beta>' @ Nt A' # map Tm u'" (is "?w = ?w'")
@@ -232,6 +322,7 @@ proof -
     using index_gt_left_imp_right[of \<beta> ?m "Nt A" "map Tm u", OF assms(2)] by auto
   then show False using inds(2) assms(1) by simp
 qed
+
 
 lemma right_sententials_eq_imp_tl_eq:
   assumes "\<beta> @ Nt A # map Tm u = \<beta>' @ Nt A' # map Tm u'"
@@ -248,6 +339,8 @@ proof (rule ccontr)
       by cases fast+
   qed (use assms neq in auto)
 qed
+
+section \<open>Rightmost derivations\<close>
 
 lemma deriver_imp_in_Prods:
   assumes "P \<turnstile> \<gamma> @ Nt A#map Tm w \<Rightarrow>r \<gamma>@\<alpha>@map Tm w"
@@ -599,6 +692,18 @@ next
   qed
 qed
 
+lemma derives_map_Tm_rm_cases[case_names Tms Nt]:
+  assumes "P \<turnstile> \<alpha> \<Rightarrow>* map Tm w"
+  obtains "\<alpha> = map Tm w" | 
+    n u v x X where "P \<turnstile> \<alpha> \<Rightarrow>r(n) map Tm u @ Nt X # map Tm x"
+    "P \<turnstile> map Tm u @ Nt X # map Tm x \<Rightarrow>r map Tm (u @ v @ x)" "w = u @ v @ x"
+proof -
+  from assms obtain n where derivern: "P \<turnstile> \<alpha> \<Rightarrow>r(n) map Tm w"
+    using derivers_iff_derives  by (metis rtranclp_power)
+  show thesis by (cases n) 
+      (use that derivern in simp, use that derivern derivern_imp_last_step in meson)
+qed
+
 section \<open>Others\<close>
 
 lemma derives_non_word_imp_non_word:
@@ -638,5 +743,18 @@ lemma less_induct_Suc[case_names 0 Suc]:
   qed (use less in simp)
 qed
 
+context nfa begin
+lemma Power_nextl_eq_nfa_nextl [simp]:
+  "(dfa.nextl Power_dfa (dfa.init Power_dfa) u) = nextl (init M) u"
+proof (induct u rule: List.rev_induct)
+  case Nil show ?case
+    using hinsert_def by (simp add: dfa.nextl.simps(1) dfa_Power)
+next
+  case (snoc x u) then show ?case
+    using init finite_nextl nextl_state [THEN subsetD]
+    by (simp add: dfa.nextl_snoc dfa_Power)
+qed
+
+end
 
 end

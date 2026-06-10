@@ -176,7 +176,7 @@ qed
 
 
 lemma delta_eps_complete_imp_reducing:
-  assumes "delta_eps M ([Y \<rightarrow> \<alpha> . []]) q \<noteq> {}"
+  assumes "delta_eps M [Y \<rightarrow> \<alpha> . []] q \<noteq> {}"
   obtains X \<beta> \<gamma> where "q = [X \<rightarrow> \<beta> . Nt Y # \<gamma>]" "(X, \<beta> @ Nt Y # \<gamma>) \<in> Prods G'" "(Y, \<alpha>) \<in> Prods G'"
 proof -
   obtain X \<beta> \<gamma> where q_def: "q = [X \<rightarrow> \<beta> . \<gamma>]" using item.exhaust by metis

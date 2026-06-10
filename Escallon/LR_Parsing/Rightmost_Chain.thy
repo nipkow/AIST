@@ -182,15 +182,16 @@ proof -
   ultimately show ?thesis using assms(1) rm_chain.step that by fastforce
 qed
 
-lemma derivers_singleton_imp_rm_chain:
+lemma derivern_Suc_singleton_imp_rm_chain:
   assumes "P \<turnstile> [Nt A] \<Rightarrow>r(Suc n) \<alpha> @ Nt X # map Tm v"
-  obtains \<rho> where "P \<Turnstile> [Nt A] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<alpha> @ Nt X # map Tm v"
+  obtains B \<alpha>' \<beta> \<rho> where "P \<Turnstile> [Nt A] \<Rightarrow>r* [B \<rightarrow> \<alpha>' . Nt X # \<beta>] # \<rho> \<Rightarrow>r* \<alpha> @ Nt X # map Tm v"
   using assms(1) proof (induction "Suc n" arbitrary: \<alpha> X v n thesis rule: less_induct)
   case (less n)
   show ?case 
   proof (cases n)
     case 0
-    then show ?thesis using rm_chain.step[of P "[Nt A]" "[]" "[]" A "[]" \<alpha> X] less by auto
+    then show ?thesis using rm_chain.step[of P "[Nt A]" "[]" "[]" A "[]" \<alpha> X] less 
+      by force
   next
     case (Suc m)
     note Suc_m = this

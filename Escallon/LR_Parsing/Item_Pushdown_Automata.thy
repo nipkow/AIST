@@ -702,7 +702,7 @@ lemma derive_imp_completes:
     "(A, \<alpha> @ \<beta> @ \<gamma>) \<in> Prods G'"
   shows "([A \<rightarrow> \<alpha> . \<beta>@\<gamma>] # \<rho> @ [init_symbol M], w @ x) \<turnstile>* ([A \<rightarrow> \<alpha>@\<beta> . \<gamma>] # \<rho> @ [init_symbol M], x)"
 proof -
-  from derive_decomp[OF assms(1)] obtain u v X y where \<beta>_decomp:
+  from derive_word_imp_single_Nt[OF assms(1)] obtain u v X y where \<beta>_decomp:
     "\<beta> = map Tm u @ Nt X # map Tm y" "Prods G' \<turnstile> [Nt X] \<Rightarrow> map Tm v" "w = u @ v @ y" by metis
   with completes_Tms[of A \<alpha> u "Nt X # map Tm y @ \<gamma>" _ "v @ y @ x"] have 
     "([A \<rightarrow> \<alpha> . \<beta> @ \<gamma>] # \<rho> @ [init_symbol M], w @ x) 
@@ -766,7 +766,7 @@ proof -
           from derivern_singleton_imp_prod[OF \<beta>'_decomp(3)] obtain \<gamma>' j'' where Y_prod: 
             "Prods G' \<turnstile> [Nt Y] \<Rightarrow> \<gamma>'" "Prods G' \<turnstile> \<gamma>' \<Rightarrow>(j'') map Tm v'"
             "j'' < n"
-            using \<beta>'_decomp(7) by (metis order_less_trans)
+            using \<beta>'_decomp(7) by (metis Suc_lessD)
           hence Y_prod': "(Y, \<gamma>') \<in> Prods G'" using derive_singleton 
             by (metis sym.inject(1))
           from m_steps \<beta>'_decomp(1) have X_step: "(X, \<xi>\<^sub>1 @ Nt Y # \<xi>\<^sub>2) \<in> Prods G'" 

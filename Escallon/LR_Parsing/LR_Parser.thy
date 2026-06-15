@@ -9,20 +9,19 @@ begin
 context Extended_Cfg
 begin
 
-section \<open>The Characteristic Finite Automaton\<close>
+section \<open>The Characteristic Finite Automaton to a Context-Free Grammar\<close>
 
 definition char_fa :: "(('n, 't) sym, ('n, 't) item) nfa" where
   "char_fa \<equiv> let 
-      I = Prods G';
-      Q = It G';
-      F = {[X \<rightarrow> \<alpha> . []] |X \<alpha>. [X \<rightarrow> \<alpha> . []] \<in> It G'};
+      P = Prods G';
       \<Delta> = (\<lambda>s a. case s of 
-        [X \<rightarrow> \<alpha> . Y # \<beta>]  \<Rightarrow> if a = Y \<and> (X, \<alpha>@Y#\<beta>) \<in> I then {[X \<rightarrow> \<alpha>@[Y] . \<beta>]} else {}| 
+        [X \<rightarrow> \<alpha> . Y # \<beta>]  \<Rightarrow> if a = Y \<and> (X, \<alpha>@Y#\<beta>) \<in> P then {[X \<rightarrow> \<alpha>@[Y] . \<beta>]} else {}| 
          _ \<Rightarrow> {}); 
-      \<E> = {([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . \<gamma>]) | X \<alpha> Y \<beta> \<gamma>. (X, \<alpha> @Nt Y#\<beta>) \<in> I \<and> (Y, \<gamma>) \<in> I} in
-    \<lparr>nfa.states = Q, nfa.init = {[S' \<rightarrow> [] . [Nt S]]}, nfa.final = F, nfa.nxt = \<Delta>, nfa.eps = \<E>\<rparr>"
+      \<E> = {([X \<rightarrow> \<alpha> . Nt Y # \<beta>], [Y \<rightarrow> [] . \<gamma>]) | X \<alpha> Y \<beta> \<gamma>. (X, \<alpha> @Nt Y#\<beta>) \<in> P \<and> (Y, \<gamma>) \<in> P} in
+    \<lparr>nfa.states = It G', nfa.init = {[S' \<rightarrow> [] . [Nt S]]}, nfa.final = completes (It G'), 
+      nfa.nxt = \<Delta>, nfa.eps = \<E>\<rparr>"
 
-subsubsection \<open>Basic Properties\<close>
+subsection \<open>Basic Properties\<close>
 
 lemma states_char_fa [simp]: 
   "nfa.states char_fa = It G'"
@@ -33,7 +32,7 @@ lemma init_char_fa [simp]:
   unfolding char_fa_def by (meson nfa.select_convs(2))
 
 lemma final_char_fa [simp]:
-  "nfa.final char_fa = {[X \<rightarrow> \<alpha> . []] |X \<alpha>. [X \<rightarrow> \<alpha> . []] \<in> It G'}"
+  "nfa.final char_fa = completes (It G')"
   unfolding char_fa_def by (meson nfa.select_convs(3))
 
 lemma nxt_char_fa [simp]:
@@ -96,6 +95,10 @@ lemma prod_imp_eps:
 
 sublocale char_fa: nfa char_fa 
 proof (unfold_locales, goal_cases 1 2 nxt_closed 3)
+  case 2
+  then show ?case 
+    using G'_def It_defs finite_It[OF G'_finite] completes_subset by force
+next
   case (nxt_closed q x)
   then obtain X \<alpha> \<beta> where q_def: "q = [X \<rightarrow> \<alpha> . \<beta>]" by (metis item.exhaust)
   consider (empty) "\<beta> = []" | (eq) xs where "\<beta> = x # xs" | (neq) y ys where "\<beta> = y # ys" "y \<noteq> x"
@@ -209,8 +212,7 @@ next
       by (metis Nts_syms_map_Tm destTm.cases list.simps(9))
     then obtain \<chi> where X'_Prod: "(X', \<chi>) \<in> Prods G'" "\<chi> @ \<delta> = Y # \<gamma>" 
       using Tms step_Sucn(2) deriver.cases 
-      by (smt (verit) append_eq_append_conv append_self_conv2 length_Cons map_Tm_Nt_eq_map_Tm_Nt
-          right_sententials_eq_imp_tl_eq)
+      by (smt (verit) append_self_conv2 rm_eq_imp_eq)
     have "\<chi> \<noteq> []"
       by standard (use X'_Prod Tms Suc.prems(3) in auto)
     with X'_Prod obtain \<zeta> where \<zeta>_def: "\<chi> = Y # \<zeta>" by (metis Cons_eq_append_conv)
@@ -225,8 +227,7 @@ next
     proof -
       from deriver.cases[OF step_Sucn(2)] rightmost obtain \<eta> where
         "X # \<delta> = (X # \<zeta>) @ Nt Z # map Tm w" "Y # \<gamma> = (X # \<zeta>) @ \<eta> @ map Tm w" "(Z, \<eta>) \<in> Prods G'"
-        by (smt (verit) append_Cons append_eq_append_conv deriver_imp_in_Prods length_Cons
-            right_sententials_eq_imp_tl_eq step_Sucn(2))
+        by (smt (verit) append_Cons rm_eq_imp_eq) 
       thus thesis using that append.assoc by simp
     qed
     then show ?thesis using ih Suc.prems(1) by fast
@@ -708,7 +709,7 @@ next
       "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<alpha>'' @ Nt X # map Tm v'"
       "Prods G' \<turnstile> \<alpha>'' @ Nt X # map Tm v' \<Rightarrow>r \<alpha>'' @ \<alpha>' @ Nt A # \<beta>' @ map Tm v'"
       "Prods G' \<turnstile> \<beta>' \<Rightarrow>r* map Tm u" "u @ v' = w" "\<alpha>'' @ \<alpha>' = \<gamma>"
-      by (smt (verit, best) append.assoc append_same_eq map_append right_sententials_eq_imp_tl_eq)
+      by (smt (verit, best) append.assoc map_append rm_eq_imp_eq)
     then obtain \<rho>' where \<rho>'_def:
       "([X \<rightarrow> \<alpha>' @ [Nt A] . \<beta>'] # \<rho>' @ [init_symbol IPDA], u@v') 
           \<turnstile>I* ([I.final_state, init_symbol IPDA], [])"
@@ -845,8 +846,8 @@ proof -
   from derivers_imp_ipda[OF assms this] ipda_imp_char show ?thesis by metis
 qed
 
-text \<open>\<open>\<gamma>\<close> is a reliable prefix to \<open>[A \<rightarrow> \<alpha>.\<beta>]\<close> if there exists a rightmost derivation
-      \<open>S' \<Rightarrow>r* \<gamma>'Aw \<Rightarrow>r \<gamma>'\<alpha>\<beta>w\<close> with \<open>\<gamma> = \<gamma>'\<alpha>\<close>:\<close>
+text \<open>\<open>\<gamma>\<close> is a reliable prefix to \<open>[A \<rightarrow> \<alpha>.\<beta>]\<close> (or equivalently, \<open>[A \<rightarrow> \<alpha>.\<beta>]\<close> is valid for \<open>\<gamma>\<close>) 
+      if there exists a rightmost derivation \<open>S' \<Rightarrow>r* \<gamma>'Aw \<Rightarrow>r \<gamma>'\<alpha>\<beta>w\<close> with \<open>\<gamma> = \<gamma>'\<alpha>\<close>:\<close>
 
 inductive reliable_prefix :: "('n, 't) item \<Rightarrow> ('n, 't) syms \<Rightarrow> bool" where
   "\<lbrakk>Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma>' @ Nt A # map Tm w;  
@@ -871,12 +872,17 @@ theorem char_eq_reliable_prefix:
 text \<open>\<open>char(G)\<close> accepts the set of reliable prefixes to complete items:\<close>
 
 theorem char_lang_is_realiables_of_complete_items:
-  "char_fa.language = {\<gamma>. \<exists>A \<alpha>. [A \<rightarrow> \<alpha> . []] \<in> It G' \<and> reliable_prefix [A \<rightarrow> \<alpha> . []] \<gamma>}"
+  "char_fa.language = {\<gamma>. \<exists>i \<in> completes (It G'). reliable_prefix i \<gamma>}"
 proof -
   note char_fa.eps_subst_states_imp_language_eq_init_final_reachable[OF eps_char_fa_subst_states]
   thus ?thesis
-    using char_eq_reliable_prefix by fastforce
+    using char_eq_reliable_prefix final_char_fa 
+    by (smt (verit, del_insts) Collect_cong completesE init_char_fa insertCI singletonD)
 qed
+
+lemma char_fa_init_valid_for_Nil [simp]:
+  "reliable_prefix [S' \<rightarrow> [] . [Nt S]] []"
+  using char_eq_reliable_prefix by fast
 
 lemma char_fa_nextl_is_valids:
   "nfa.nextl char_fa (nfa.init char_fa) w = {i. reliable_prefix i w}"
@@ -902,17 +908,95 @@ proof -
     case (step \<alpha>' v u)
     hence derivers_A: "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha>' @ Nt A # map Tm v" 
       using rm_chain_imp_derivers by blast
-    from step have "\<alpha> = \<alpha>' @ \<alpha>''" 
-      by (metis append.assoc append_same_eq map_append right_sententials_eq_imp_tl_eq)
+    from step(1) have "\<alpha> = \<alpha>' @ \<alpha>''" "w = u @ v"
+      using rm_eq_imp_eq[of \<alpha> X w "\<alpha>' @ \<alpha>''" X "u@v"] by auto
     with that[OF derivers_A] step show ?thesis 
       by (metis append.assoc append_Cons append_Nil derivers_append_map_Tm derivers_prepend)
   qed
 qed
 
-(* TODO: when Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(Suc n), Y # \<beta>' must be substring of \<beta> (roughly) *)
+lemma derivern_Suc_substring_reliable:
+  assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(Suc n) \<alpha> @ \<beta> @ Nt X # map Tm w"
+  obtains A \<alpha>' Y \<beta>' w' where "reliable_prefix [A \<rightarrow> \<alpha>' . Y # \<beta>'] \<alpha>"
+    "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ Y # \<beta>' @ map Tm w'"
+    "Prods G' \<turnstile> Y # \<beta>' @ map Tm w' \<Rightarrow>r* \<beta> @ Nt X # map Tm w"
+proof -
+  from G'_derivern_Suc_imp_no_S'[OF assms[THEN derivern_imp_deriven]] have 
+    "[Nt S'] \<noteq> \<alpha> @ \<beta> @ Nt X # map Tm w" 
+      by (metis in_Nts_syms list.set_intros(1))
+  moreover from assms obtain  \<rho> where 
+   "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<alpha> @ \<beta> @ Nt X # map Tm w"
+   using derivern_Suc_singleton_imp_rm_chain by (metis append.assoc)
+  ultimately show thesis using that 
+  proof (induction \<rho> arbitrary: thesis X \<alpha> \<beta> w)
+    case Nil
+    then show ?case using append_eq_Cons_conv by auto
+  next
+    case (Cons i \<rho>)
+    note that = Cons.prems(3)
+    from Cons(3) show ?case proof cases
+      case (step \<alpha>' A v \<alpha>'' Y \<beta>' u)
+      note i_step = this
+      hence eqs [simp]: "\<alpha>' @ \<alpha>'' = \<alpha> @ \<beta> \<and> Y = X \<and> u @ v = w"
+        by (metis Cons.prems(2) append.assoc append_eq_map_conv hist_Cons history_unfold list.inject
+            map_Tm_inject_iff rm_chain_singleton_left_is_hist same_append_eq sym.inject(1))
+      from step(3) show ?thesis proof cases
+        case refl
+        with eqs i_step have is_S: "\<alpha> @ \<beta> @ Nt Y # \<beta>' @ map Tm v = [Nt S] \<and> \<alpha> = []"
+          using S'_derive_imp_S deriver_imp_derive append.assoc 
+          by (smt (verit, best) Cons_eq_append_conv Nil_is_append_conv list.discI)
+        moreover then have "\<beta> @ Nt X # map Tm w = [Nt S] \<and> w = []" 
+          using i_step(5) eqs by (auto simp: append_eq_Cons_conv derivers_iff_derives)
+        ultimately show ?thesis using refl that[of S' "[]" "Nt S" "[]" w] 
+          using char_fa_init_valid_for_Nil eqs step(4) by force
+      next
+        case (step _ _ _ _ _ _ _ _)
+        with rm_chain_S'_Cons_imp_neq have neq_S': "[Nt S'] \<noteq> \<alpha>' @ Nt A # map Tm v" by auto
+        from eqs consider (\<alpha>_in_\<alpha>') \<gamma> where "\<alpha>' = \<alpha> @ \<gamma>" "\<beta> = \<gamma> @ \<alpha>''" | 
+          (\<alpha>'_in_\<alpha>) \<gamma> where "\<alpha> = \<alpha>' @ \<gamma>" "\<alpha>'' = \<gamma> @ \<beta>" 
+          by (metis append_eq_append_conv2)
+        then show ?thesis proof cases
+          case \<alpha>_in_\<alpha>'
+          hence "Prods G' \<turnstile> \<gamma> @ Nt A # map Tm v \<Rightarrow>r \<beta> @ Nt X # \<beta>' @ map Tm v"
+            using i_step(4) deriver_prefix_indep
+              [of _ \<alpha> "\<gamma> @ Nt A # map Tm v" "\<gamma> @ \<alpha>'' @ Nt Y # \<beta>' @ map Tm v" _ _ _ "[]"] 
+            by auto
+          also have "Prods G' \<turnstile> ... \<Rightarrow>r* \<beta> @ Nt X # map Tm w"
+            using i_step(5)[THEN derivers_append_map_Tm, THEN derivers_prepend, of "\<beta> @ [Nt X]" v]
+              append.assoc eqs by (metis append_Cons append_Nil map_append)
+          finally have A_derivers: "Prods G' \<turnstile> \<gamma> @ Nt A # map Tm v \<Rightarrow>r* \<beta> @ Nt X # map Tm w" .
+          from \<alpha>_in_\<alpha>' neq_S' have "[Nt S'] \<noteq> \<alpha> @ \<gamma> @ Nt A # map Tm v" by simp
+          from Cons.IH[OF this] i_step(3)[unfolded \<alpha>_in_\<alpha>'] show ?thesis 
+            using Cons.prems(1) append.assoc that A_derivers 
+            by (metis (no_types, lifting) rtranclp_trans)
+        next
+          case \<alpha>'_in_\<alpha>
+          with i_step(4) have A_deriver: "Prods G' \<turnstile> \<alpha>' @ Nt A # map Tm v \<Rightarrow>r \<alpha> @ (\<beta> @ Nt X # \<beta>') @ map Tm v"
+            by simp
+          with rm_chain_imp_derivers[OF i_step(3)] have 1: "reliable_prefix [A \<rightarrow> \<gamma> . \<beta> @ Nt X # \<beta>'] \<alpha>"
+            using \<alpha>'_in_\<alpha>(1) by standard
+          have 2: "Prods G' \<turnstile> \<beta> @ Nt X # \<beta>' @ map Tm v \<Rightarrow>r* \<beta> @ Nt X # map Tm w"
+            using i_step(5)[THEN derivers_append_map_Tm, THEN derivers_prepend, of "\<beta> @ [Nt X]" v]
+              eqs by (metis append.assoc append_Cons append_Nil map_append)  
+          show ?thesis  proof -
+            obtain X' \<xi> where X'_def: "\<beta> @ Nt X # \<beta>' = X' # \<xi>" 
+              by (metis Nil_is_append_conv neq_Nil_conv)
+            with 2 have "Prods G' \<turnstile> X' # \<xi> @ map Tm v \<Rightarrow>r* \<beta> @ Nt X # map Tm w"   
+              by (metis append.assoc append_Cons)
+            note 1[unfolded X'_def] rm_chain_imp_derivers[OF i_step(3), THEN rtranclp.rtrancl_into_rtrancl, 
+              OF A_deriver, unfolded X'_def] this
+            with that show thesis by force
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+
 lemma derivers_substring_reliable:
-  assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ \<beta> @ Nt X # map Tm w"
-  obtains A \<alpha>' Y \<beta>' where "reliable_prefix [A \<rightarrow> \<alpha>' . Y # \<beta>'] \<alpha>"
+assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ \<beta> @ Nt X # map Tm w"
+  obtains A \<alpha>' \<gamma> Y \<beta>' w' where "reliable_prefix [A \<rightarrow> \<alpha>' . Y # \<beta>'] \<alpha>" 
 proof -
   from assms obtain n where derivern: "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(n) \<alpha> @ \<beta> @ Nt X # map Tm w"
     using rtranclp_imp_relpowp by fast
@@ -925,46 +1009,9 @@ proof -
         list.distinct(1) relpowp_0_E that)
   next
     case (Suc m)
-    with derivern obtain  \<rho> where 
-      "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<alpha> @ \<beta> @ Nt X # map Tm w"
-      using derivern_Suc_singleton_imp_rm_chain by (metis append.assoc)
-    with that show thesis proof (induction \<rho> arbitrary: thesis X \<alpha> \<beta> w)
-      case Nil
-      hence eqs [simp]: "\<alpha> = [] \<and> \<beta> = [] \<and> X = S' \<and> w = []" 
-        using append_eq_Cons_conv by fastforce
-      have "reliable_prefix ([S' \<rightarrow> [] . [Nt S]]) \<alpha>" 
-      proof
-        show "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* [] @ Nt S' # map Tm []" by simp
-        show "Prods G' \<turnstile> ... \<Rightarrow>r \<alpha> @ [Nt S] @ map Tm []" using G'_derive_S 
-          by (simp add: derive_singleton deriver_singleton)
-      qed simp
-      then show ?case using Nil by simp
-    next
-      case (Cons i \<rho>)
-      from this(3) show ?case proof cases
-        case (step \<alpha>' A v \<alpha>'' Y \<beta>' u)
-        hence eqs [simp]: "\<alpha>' @ \<alpha>'' = \<alpha> @ \<beta> \<and> Y = X \<and> u @ v = w"
-          by (metis Cons.prems(2) append.assoc append_eq_map_conv hist_Cons history_unfold list.inject
-              map_Tm_inject_iff rm_chain_singleton_left_is_hist same_append_eq sym.inject(1))
-        then consider (\<alpha>_in_\<alpha>') \<gamma> where "\<alpha>' = \<alpha> @ \<gamma>" | 
-          (\<alpha>'_in_\<alpha>) \<gamma> \<delta> where "\<alpha> = \<alpha>' @ \<gamma>" "\<alpha>'' = \<gamma> @ \<delta>" 
-          by (metis append_eq_append_conv2)
-        then show ?thesis proof cases
-          case \<alpha>_in_\<alpha>'
-          from Cons.IH step(3)[unfolded this] show ?thesis 
-            using Cons.prems(1) append.assoc by metis
-        next
-          case \<alpha>'_in_\<alpha>
-          have "reliable_prefix [A \<rightarrow> \<gamma> . \<delta> @ Nt Y # \<beta>'] \<alpha>"
-            using step rm_chain_imp_derivers \<alpha>'_in_\<alpha> step by fastforce
-          then show ?thesis using Cons.prems(1) 
-            by (metis Nil_is_append_conv neq_Nil_conv)
-        qed
-      qed
-    qed
+    with derivern_Suc_substring_reliable show thesis using derivern that by meson
   qed
 qed
-
 
 lemma derivers_imp_reliable [case_names rm_valid nc_valid]:
   assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma> @ Nt Y # map Tm y"
@@ -975,7 +1022,7 @@ lemma derivers_imp_reliable [case_names rm_valid nc_valid]:
 proof -
   from assms(3) have "\<gamma> @ \<delta> = \<alpha> @ \<beta> @ map Tm y'" by simp
   thus thesis 
-  proof (cases rule: syms_app_cases)
+  proof (cases rule: app_eq_rm_cases)
     case (1 u v)
     then show ?thesis using assms derivers_substring_reliable that(2) 
       by (metis append_assoc)
@@ -1325,33 +1372,6 @@ notation P0.stepn (\<open>_ \<turnstile>P'(_') _\<close> 55)
 
 section \<open>LR(0)-Adequate and Inadequate States\<close>
 
-definition completes :: "('n, 't) item set \<Rightarrow> ('n, 't) item set" where
-  "completes q \<equiv> {i \<in> q. case i of [X \<rightarrow> \<alpha> . \<beta>] \<Rightarrow> \<beta> = []}"
-
-lemma completes_subset [simp]:
-  "completes q \<subseteq> q" unfolding completes_def by simp
-
-lemma completesE [elim]:
-  assumes "i \<in> completes q"
-  obtains X \<alpha> where "i = [X \<rightarrow> \<alpha> . []]"
-  using assms unfolding completes_def 
-  by (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq)
-
-lemma completes_singleton_imp_eq:
-  assumes "completes q = {[X \<rightarrow> \<alpha> . []]}"
-    "[A \<rightarrow> \<beta> . []] \<in> q"
-  shows "[A \<rightarrow> \<beta> . []] = [X \<rightarrow> \<alpha> . []]"
-  using assms unfolding completes_def by fastforce
-
-abbreviation "noncompletes q \<equiv> q - completes q"
-
-lemma noncompletesE [elim]:
-  assumes "i \<in> noncompletes q"
-  obtains X \<alpha> Y \<beta> where "i = [X \<rightarrow> \<alpha> . Y # \<beta>]"
-  using assms unfolding completes_def
-  by (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq neq_Nil_conv
-      set_diff_eq)
-
 inductive shift_reduce :: "('n, 't) item set \<Rightarrow> bool" where
   "\<lbrakk>([p], a, ps) \<in> npda.nxt P\<^sub>0; (p#ps', qs) \<in> npda.eps P\<^sub>0\<rbrakk> \<Longrightarrow> shift_reduce p"
 
@@ -1613,14 +1633,6 @@ lemma LR0_impossible:
   shows "\<alpha> \<noteq> \<gamma> \<Longrightarrow> False" "X \<noteq> Y \<Longrightarrow> False" "x \<noteq> y \<Longrightarrow> False"
   using assms unfolding is_LR_def by auto
 
-lemma deriver_prepend:
-  assumes "P \<turnstile> \<alpha> \<Rightarrow>r \<beta>"
-  shows "P \<turnstile> \<gamma> @ \<alpha> \<Rightarrow>r \<gamma> @ \<beta>"
-  using assms proof cases
-  case (1 A \<alpha> u v)
-  then show ?thesis using deriver.intros[OF 1(3), of "\<gamma> @ u" v] by auto
-qed
-
 lemma shift_reduce_imp_not_LR0:
   assumes "q \<in> dfa.states LR\<^sub>0"
     "shift_reduce q"
@@ -1704,27 +1716,120 @@ proof (rule ccontr)
   qed (use shift_reduce_imp_not_LR0 LR0 q_inadequate in auto)
 qed
 
-lemma 
-  assumes "LR0_adequate p" "p = {i. reliable_prefix i \<alpha>}"
-    "completes p = {[X \<rightarrow> [] . []]}"
-    "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ Nt X # map Tm w"
-    "Prods G' \<turnstile> \<alpha> @ Nt X # map Tm w \<Rightarrow>r \<alpha> @ map Tm w"
-    "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma> @ Nt Y # map Tm x"
-    "Prods G' \<turnstile> \<gamma> @ Nt Y # map Tm x \<Rightarrow>r \<alpha> @ map Tm y"
-    "\<alpha> @ map Tm y = \<gamma> @ \<gamma>' @ map Tm x" "(Y, \<gamma>') \<in> Prods G'"
-    "\<gamma> \<noteq> \<alpha> \<or> X \<noteq> Y \<or> x \<noteq> y" "\<gamma> = \<alpha> @ \<alpha>'"
-  obtains \<delta> Y' \<eta> \<alpha>' where "[Y \<rightarrow> \<delta> . Nt Y' # \<eta>] \<in> p" "\<alpha> = \<alpha>' @ \<delta>"
-proof -
-  from assms obtain z where "\<gamma>' = map Tm z" "map Tm y = \<alpha>' @ map Tm z @ map Tm x"     
-    by (metis (full_types) append_assoc append_eq_map_conv same_append_eq)
-  have "reliable_prefix [Y \<rightarrow> [] . map Tm z] \<alpha>"
-    apply standard
-    sorry
-  show ?thesis sorry
+lemma derivers_appendD:
+  "(P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r* \<gamma>) = 
+    ((\<exists>\<beta>'. P \<turnstile> \<beta> \<Rightarrow>r* \<beta>' \<and> \<gamma> = \<alpha> @ \<beta>') \<or> (\<exists>\<alpha>' v. P \<turnstile> \<alpha> \<Rightarrow>r* \<alpha>' \<and> P \<turnstile> \<beta> \<Rightarrow>r* map Tm v \<and> \<gamma> = \<alpha>' @ map Tm v))" 
+  (is "_ = ?EX")
+proof
+  show "P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r* \<gamma> \<Longrightarrow> ?EX"
+  proof (induction "\<alpha> @ \<beta>" arbitrary: \<alpha> \<beta> rule: converse_rtranclp_induct)
+    case (step z)
+      show ?case proof (cases \<beta> rule: syms_rm_cases)
+        case (Tms w)
+        then show ?thesis using step(3)[of _ "map Tm w"] 
+          by (metis (no_types, lifting) derivern_append_map_Tm rtranclp.simps rtranclp_power 
+              rtranclp_trans step.hyps(1,2))
+      next
+        case (Nt \<beta>' A w)
+        with step obtain \<delta> where z_app: "P \<turnstile> \<beta> \<Rightarrow>r \<beta>' @ \<delta> @ map Tm w"  "z = \<alpha> @ \<beta>' @ \<delta> @ map Tm w"   
+          by (smt (verit, best) append.assoc deriver.cases deriver.intros rm_eq_imp_eq)
+        from step(3)[OF this(2)] consider 
+          \<beta>'' where "P \<turnstile> \<beta>' @ \<delta> @ map Tm w \<Rightarrow>r* \<beta>''" "\<gamma> = \<alpha> @ \<beta>''" |
+          \<alpha>'' v where "P \<turnstile> \<alpha>  \<Rightarrow>r* \<alpha>''" "P \<turnstile> \<beta>' @ \<delta> @ map Tm w \<Rightarrow>r* map Tm v"  "\<gamma> = \<alpha>'' @ map Tm v"  
+          using derivers_imp_derives derives_map_Tm_iff by blast
+        thus ?thesis using z_app by cases fastforce+
+      qed
+    qed simp
+next
+  assume ?EX
+  then show "P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r* \<gamma>" by standard 
+      (use derivers_prepend in blast, metis derivers_prepend derivers_append_map_Tm rtranclp_trans)
 qed
-    
 
-(* Default intro? *)
+lemma derivers_append_cases [consumes 1, case_names suffix prefix]:
+  assumes "P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r* \<gamma>"
+  obtains \<beta>' where "P \<turnstile> \<beta> \<Rightarrow>r* \<beta>'" "\<gamma> = \<alpha> @ \<beta>'" |
+    \<alpha>' v where "P \<turnstile> \<alpha> \<Rightarrow>r* \<alpha>'" "P \<turnstile> \<beta> \<Rightarrow>r* map Tm v" "\<gamma> = \<alpha>' @ map Tm v"
+  using derivers_appendD[THEN iffD1, OF assms] by blast
+
+
+lemma derivers_leftmost_derivers_last_step:
+  assumes "Prods G' \<turnstile> Nt A # \<alpha> \<Rightarrow>r* \<beta>"
+    "Prods G' \<turnstile> \<beta> \<Rightarrow>r map Tm w"
+  obtains \<gamma> u v where "Prods G' \<turnstile> [Nt A] \<Rightarrow>r* \<gamma>" "Prods G' \<turnstile> \<gamma> \<Rightarrow>r map Tm u"
+    "\<beta> = \<gamma> @ map Tm v" "Prods G' \<turnstile> \<alpha> \<Rightarrow>r* map Tm v" "w = u @ v"
+proof -
+  from assms have "Prods G' \<turnstile> [Nt A] @ \<alpha> \<Rightarrow>r* \<beta>" by simp
+  then show thesis proof (cases rule: derivers_append_cases)
+    case (suffix \<alpha>')
+    from assms(2) show thesis unfolding suffix proof (cases, goal_cases deriver)
+      case (deriver A' \<gamma> u' v')
+      hence eqs [simp]: "u' = []" "A' = A" "map Tm v' = \<alpha>'"  
+      proof -
+        from deriver have "u' = [] \<and> A' = A \<and> map Tm v' = \<alpha>'" 
+          by (metis Tms_iff_no_Nt append_Cons append_Nil list.inject neq_Nil_conv sym.inject(1))
+        thus "u' = []" "A' = A" "map Tm v' = \<alpha>'"  by blast+
+      qed
+      moreover from deriver obtain u where "\<gamma> = map Tm u" "Prods G' \<turnstile> [Nt A] \<Rightarrow>r map Tm u"
+        unfolding eqs by (metis append_eq_map_conv deriver_singleton)
+      ultimately show ?thesis using that[of "[Nt A]" u v'] suffix deriver 
+        by (metis append_Cons append_Nil map_Tm_Nt_eq_map_Tm_Nt map_append rtranclp.rtrancl_refl)
+    qed 
+  next
+    case (prefix \<gamma> v)
+    from assms(2) obtain u where "Prods G' \<turnstile> \<gamma> \<Rightarrow>r map Tm u" "w = u @ v"
+      unfolding prefix(3) by (smt (verit, ccfv_threshold) append_eq_map_conv deriver_append_map_Tm
+          map_Tm_inject_iff)
+    with prefix show thesis using that by blast
+  qed
+qed
+
+lemma prefix_comp_unique_imp_eps:
+  assumes "LR0_adequate {i. reliable_prefix i \<alpha>}" (is "LR0_adequate ?p")
+    "reliable_prefix [X \<rightarrow> [] . []] \<alpha>"
+    "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ \<alpha>' @ Nt Y # map Tm x"
+    "Prods G' \<turnstile> \<alpha> @ \<alpha>' @ Nt Y # map Tm x \<Rightarrow>r \<alpha> @ map Tm y"
+  shows "\<alpha>' = [] \<and> Y = X \<and> x = y"
+proof -
+  from assms(2) obtain w where X_derivers: "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ Nt X # map Tm w"
+    "Prods G' \<turnstile> \<alpha> @ Nt X # map Tm w \<Rightarrow>r \<alpha> @ map Tm w" 
+    using reliable_prefixE by force
+  from assms(3) show ?thesis proof (cases rule: stepcnt_cases)
+    case refl
+    with assms(4) have "\<alpha> @ map Tm y = [Nt S]" 
+      using S'_derive_imp_S deriver_imp_derive by auto
+    moreover then have"y = []" 
+      by (metis Nil_is_append_conv list.map_disc_iff syms_split_tl)
+    ultimately show ?thesis using refl by auto
+  next
+    case (step n)
+    from derivern_Suc_substring_reliable[OF this] obtain A \<beta> Z' \<gamma> z where
+      A_reliable: "reliable_prefix [A \<rightarrow> \<beta> . Z' # \<gamma>] \<alpha>" 
+        "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ Z' # \<gamma> @ map Tm z"
+        "Prods G' \<turnstile> Z' # \<gamma> @ map Tm z \<Rightarrow>r* \<alpha>' @ Nt Y # map Tm x"
+      by blast
+    from assms(3,4) have deriver_y: "Prods G' \<turnstile> \<alpha>' @ Nt Y # map Tm x \<Rightarrow>r map Tm y"
+      by (metis append_Nil deriver_prefix_indep)
+    have "?p \<in> dfa.states LR\<^sub>0" 
+      by (metis dfa_LR0.nextl_init_state nextl_dfa_LR0_is_valids)
+    with assms(1) show ?thesis proof (cases rule: LR0_adequate_cases)
+      case (comp_unique B)
+      with assms(2) have AX [simp]: "B = X"
+        by auto
+      from A_reliable obtain Z'' where Z''_def [simp]: "Z' = Nt Z''" using comp_unique by auto
+      from A_reliable(3) deriver_y obtain \<gamma>' u v  where decomp: 
+        "Prods G' \<turnstile> [Nt Z''] \<Rightarrow>r* \<gamma>'" "Prods G' \<turnstile> \<gamma>' \<Rightarrow>r map Tm u" 
+        "Prods G' \<turnstile> \<gamma> @ map Tm z \<Rightarrow>r* map Tm v"
+        "\<gamma>' @ map Tm v = \<alpha>' @ Nt Y # map Tm x" "y = u @ v"
+        using derivers_leftmost_derivers_last_step[of Z'' "\<gamma> @ map Tm z" "\<alpha>' @ Nt Y # map Tm x" y] 
+        unfolding Z''_def by metis
+      with comp_unique have "\<gamma>' = Nt X # map Tm u" using A_reliable by simp
+      with decomp show ?thesis 
+        by (metis (no_types, lifting) append_Cons map_append rm_eq_imp_eq self_append_conv2)
+    qed (use assms(2) completes_def in fastforce, use A_reliable assms(2) in auto)
+  qed
+qed
+
 lemma LRk_wlog:
   assumes "\<And>\<alpha> X \<beta> w \<gamma> Y x y \<delta>. \<lbrakk>Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ Nt X # map Tm w; 
     Prods G' \<turnstile> \<alpha> @ Nt X # map Tm w \<Rightarrow>r \<alpha> @ \<beta> @ map Tm w; 
@@ -1737,14 +1842,15 @@ proof (standard, goal_cases LR)
   case (LR \<alpha> X \<beta> w \<gamma> Y x y)
   from this(4) show ?case proof (cases, goal_cases deriver)
     case (deriver A \<delta> u v)
-    hence eqs [simp]: "u = \<gamma>" "A = Y" "v = x" using right_sententials_eq_imp_tl_eq by fastforce+
+    hence eqs [simp]: "u = \<gamma>" "A = Y" "v = x" using rm_eq_imp_eq by fastforce+
     show ?thesis proof (cases "length (\<alpha> @ \<beta>)" "length (\<gamma> @ \<delta>)" rule: le_cases)
       case le
       then show ?thesis using assms deriver LR unfolding eqs by metis
     next
       case ge
       with deriver(2) obtain z where \<alpha>\<beta>_eq: "\<alpha> @ \<beta> = \<gamma> @ \<delta> @ map Tm z" "x = z@y" unfolding eqs 
-        using eq_hd_lt_imp_substring[of "\<gamma> @ \<delta>" x "\<alpha> @ \<beta>" y] append.assoc by metis 
+        using eq_hd_lt_imp_substring[of "\<gamma> @ \<delta>" "map Tm x" "\<alpha> @ \<beta>" "map Tm y"] append.assoc 
+      by (metis (no_types, opaque_lifting) append_eq_map_conv map_Tm_inject_iff)
       from this(2) LR(5) have take_eq: "take k x = take k (z@w)" 
       proof -
         have "take k x = take k z @ take (k - length z) y" 
@@ -1785,8 +1891,9 @@ proof (rule LRk_wlog, goal_cases LR)
     with X_reliable have singleton: "p = {[X \<rightarrow> \<beta> . []]}" 
       using p_nextl nextl_dfa_LR0_is_valids by force
     from LR(6,8) obtain z where z_defs: "\<gamma> @ \<delta> = \<alpha> @ \<beta> @ map Tm z" "z @ x = y"
-      using eq_hd_lt_imp_substring[of "\<alpha> @ \<beta>" y "\<gamma> @ \<delta>" x] append.assoc by metis
-    from this show ?thesis proof (cases rule: syms_app_cases)
+      using eq_hd_lt_imp_substring[of "\<alpha> @ \<beta>" "map Tm y" "\<gamma> @ \<delta>" "map Tm x"] append.assoc 
+      by (metis (no_types, opaque_lifting) append_eq_map_conv map_Tm_inject_iff)
+    from this show ?thesis proof (cases rule: app_eq_rm_cases)
       case (1 u v)
       with derivers_substring_reliable[of "\<alpha> @ \<beta>" "map Tm u" Y x] LR(3)
       obtain B \<alpha>'' C \<beta>'' where "reliable_prefix [B \<rightarrow> \<alpha>'' . C # \<beta>''] (\<alpha> @ \<beta>)" by fastforce
@@ -1801,14 +1908,34 @@ proof (rule LRk_wlog, goal_cases LR)
     qed
   next
     case (comp_unique A)
-    with p_valids X_reliable have comp_unique: "completes p = {[X \<rightarrow> \<beta> . []]}" "\<beta> = []"
+    with p_valids X_reliable have comp_X: "completes p = {[X \<rightarrow> \<beta> . []]}" "\<beta> = []"
       unfolding completes_def by auto 
-    thm derivers_imp_reliable
-    show ?thesis proof (rule ccontr)
-      assume "\<not>?thesis"
-      show False sorry
+    from LR(6) have eq: "(\<alpha> @ \<beta>) @ map Tm y = \<gamma> @ \<delta> @ map Tm x" by simp
+    show ?thesis proof (cases rule: substring_app_cases[OF eq LR(8)])
+      case (1 _ _)
+      with prefix_comp_unique_imp_eps[OF p_adequate(1)[unfolded p_valids]] X_reliable
+        comp_X LR show ?thesis by (metis append.assoc append.right_neutral)
+    next
+      case (2 \<delta>\<^sub>1 x')
+      from LR(3) have Y_reliable: "reliable_prefix [Y \<rightarrow> \<delta>\<^sub>1 . map Tm x'] (\<alpha> @ \<beta>)" 
+      proof
+        from LR(4,6) 2 show "Prods G' \<turnstile> \<gamma> @ Nt Y # map Tm x \<Rightarrow>r (\<alpha> @ \<beta>) @ map Tm x' @ map Tm x"          
+          by (metis eq map_append)
+      qed (rule 2)
+      show ?thesis proof (cases x')
+        case Nil
+        with Y_reliable p_valids have "[Y \<rightarrow> \<delta>\<^sub>1 . map Tm x'] \<in> completes p" unfolding completes_def 
+          by simp
+        with comp_X have "[Y \<rightarrow> \<delta>\<^sub>1 . map Tm x'] = [X \<rightarrow> [] . []]" by simp
+        with 2 show ?thesis using comp_X by simp
+      next
+        case (Cons a x'')
+        from Y_reliable p_valids have "[Y \<rightarrow> \<delta>\<^sub>1 . Tm a # map Tm x''] \<in> noncompletes p"
+          unfolding Cons by auto
+        then show ?thesis using comp_unique(2) sym.exhaust by blast
+      qed
     qed
-  qed (use p_valids X_reliable completes_def in auto)
+  qed (use p_valids X_reliable completes_def in fastforce)
 qed
     
 

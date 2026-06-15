@@ -158,6 +158,40 @@ proof -
   with finite_lists_length_eq_set finite_Hists assms(2) show ?thesis by auto
 qed
 
+subsection \<open>Complete and Noncomplete Items\<close>
+
+definition completes :: "('n, 't) item set \<Rightarrow> ('n, 't) item set" where
+  "completes I \<equiv> {i \<in> I. case i of [X \<rightarrow> \<alpha> . \<beta>] \<Rightarrow> \<beta> = []}"
+
+lemma completes_subset [simp]:
+  "completes I \<subseteq> I" unfolding completes_def by simp
+
+lemma completesD [dest]:
+  "i \<in> completes I \<Longrightarrow> i \<in> I"
+  using completes_subset by blast
+
+lemma completesE [elim]:
+  assumes "i \<in> completes I"
+  obtains X \<alpha> where "i = [X \<rightarrow> \<alpha> . []]"
+  using assms unfolding completes_def 
+  by (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq)
+
+lemma completes_singleton_imp_eq:
+  assumes "completes I = {[X \<rightarrow> \<alpha> . []]}"
+    "[A \<rightarrow> \<beta> . []] \<in> I"
+  shows "[A \<rightarrow> \<beta> . []] = [X \<rightarrow> \<alpha> . []]"
+  using assms unfolding completes_def by fastforce
+
+abbreviation "noncompletes I \<equiv> I - completes I"
+
+lemma noncompletesE [elim]:
+  assumes "i \<in> noncompletes I"
+  obtains X \<alpha> Y \<beta> where "i = [X \<rightarrow> \<alpha> . Y # \<beta>]"
+  using assms unfolding completes_def
+  by (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq neq_Nil_conv
+      set_diff_eq)
+
+
 (* mv? *)
 section \<open>Reduced Grammars\<close>
 
@@ -316,13 +350,13 @@ lemma reduced_reachable_imp_rsentential_reachable:
     by (simp add: Cons_eq_append_conv)
 next
   case (step \<delta> X \<zeta> \<eta>)
-  from this(4) show ?case proof (cases rule: list_append_cases)
+  from this(4) show ?case proof (cases rule: list_app_eq_nempty_cases)
     case (left \<alpha>')
     with step(2)[of \<alpha> A "\<alpha>' @ Nt X # \<zeta>"] show thesis using step(5) by auto
   next
     case (right \<zeta>')
     from this(2) show ?thesis 
-    proof (cases rule: list_append_cases)
+    proof (cases rule: list_app_eq_nempty_cases)
       case (left \<eta>')
       from step(2)[of \<delta> X \<zeta>] obtain \<gamma> v where "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>r* \<gamma> @ Nt X # map Tm v" 
         by auto
@@ -364,7 +398,6 @@ lemma reduced_in_Prods_imp_rsentential_reachable:
   obtains \<gamma> v where "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>r* \<gamma> @ Nt A # map Tm v"
   using reduced_Nt_imp_rsentential_reachable[OF assms(1,2)] assms(3) 
   by (metis Nts_Lhss_Rhs_Nts Un_iff in_LhssI)
-
     
 
 section \<open>Extending a reduced CFG by a new starting symbol S'\<close>
@@ -500,6 +533,12 @@ next
         subsetD)
   finally show ?case .
 qed
+
+lemma G'_derivern_Suc_imp_no_S':
+  "Prods G' \<turnstile> [Nt S'] \<Rightarrow>(Suc n) \<beta> \<Longrightarrow> S' \<notin> Nts_syms \<beta>"
+  by (drule G'_derivern_Suc_imp_G_derivern)
+    (metis G_not_empty Lang_empty_if_notin_Lhss Nts_Lhss_Rhs_Nts S_def UnCI derives_imp_in_Prods
+      in_mono relpowp_imp_rtranclp S'_notin_Nts_Prods_G)
   
   
 lemma Lang_preserved:

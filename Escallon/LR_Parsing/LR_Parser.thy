@@ -676,15 +676,15 @@ lemma derivers_imp_ipda:
     "Prods G' \<turnstile> \<gamma> @ Nt A # map Tm w \<Rightarrow>r \<gamma> @ \<alpha> @ \<beta> @ map Tm w"
     "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm v"
   obtains \<rho> where 
-    "([A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol IPDA], v@w) \<turnstile>I* ([I.final_state, init_symbol IPDA], [])" 
+    "([A \<rightarrow> \<alpha> . \<beta>] # \<rho>, v@w) \<turnstile>I* ([I.final_state], [])" 
     "hist \<rho> = \<gamma>"
   using assms(1) proof cases
   case rtrancl_refl
   with assms have eqs: "\<gamma> = [] \<and> w = [] \<and> \<alpha>@\<beta> = [Nt S]" 
     using S'_derive_imp_S append_eq_Cons_conv deriver_imp_derive by fastforce
   then show thesis using S'_derive_imp_S I.deriver_imp_IPDA_comp assms that 
-    by (metis I.hist_init I.init_symbol_ipda append.right_neutral append_Nil hist_singleton list.inject
-        rtrancl_refl sym.inject(1))
+    by (metis append.right_neutral hist_Nil local.rtrancl_refl map_Tm_Nt_eq_map_Tm_Nt
+        self_append_conv2)
 next
   case (rtrancl_into_rtrancl b)
   then obtain n where "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(Suc n) \<gamma> @ Nt A # map Tm w" 
@@ -697,8 +697,7 @@ next
     then have eqs: "\<gamma> = [] \<and> w = [] \<and> \<alpha>@\<beta> = [Nt S] \<and> A = S'" 
       using S'_derive_imp_S append_eq_Cons_conv deriver_imp_derive by fastforce
     then show thesis using S'_derive_imp_S I.deriver_imp_IPDA_comp Nil
-    by (metis I.hist_init I.init_symbol_ipda append.right_neutral append_Nil hist_singleton
-        list.simps(8))
+      by (metis append.right_neutral append_Nil hist_Nil list.simps(8))
   next
     case (Cons i \<rho>)
     then obtain X \<alpha>' \<beta>' where X_defs:
@@ -711,8 +710,8 @@ next
       "Prods G' \<turnstile> \<beta>' \<Rightarrow>r* map Tm u" "u @ v' = w" "\<alpha>'' @ \<alpha>' = \<gamma>"
       by (smt (verit, best) append.assoc map_append rm_eq_imp_eq)
     then obtain \<rho>' where \<rho>'_def:
-      "([X \<rightarrow> \<alpha>' @ [Nt A] . \<beta>'] # \<rho>' @ [init_symbol IPDA], u@v') 
-          \<turnstile>I* ([I.final_state, init_symbol IPDA], [])"
+      "([X \<rightarrow> \<alpha>' @ [Nt A] . \<beta>'] # \<rho>', u@v') 
+          \<turnstile>I* ([I.final_state], [])"
       "hist \<rho>' = \<alpha>''" 
       using Cons(1)[OF X_chain(1) rm_chain_imp_derivers[OF X_chain(1)], of "\<alpha>' @ [Nt A]" \<beta>']
       by (metis append.assoc append_Cons append_Nil derivers_imp_derives)
@@ -723,11 +722,11 @@ next
     from Cons(4) have A_in_prods: "(A, \<alpha> @ \<beta>) \<in> Prods G'" 
       by (simp add: deriver_imp_in_Prods)
     with I.derives_imp_completes[OF Cons(5)] have 
-      "([A \<rightarrow> \<alpha> . \<beta>] # ?\<rho> @ [init_symbol IPDA], v @ w) \<turnstile>I* ([A \<rightarrow> \<alpha>@\<beta> . []] # ?\<rho> @ [init_symbol IPDA], w)"
+      "([A \<rightarrow> \<alpha> . \<beta>] # ?\<rho>, v @ w) \<turnstile>I* ([A \<rightarrow> \<alpha>@\<beta> . []] # ?\<rho>, w)"
       by (metis append.right_neutral)
-    also have "... \<turnstile>I ([X \<rightarrow> \<alpha>' @ [Nt A] . \<beta>'] # \<rho>' @ [init_symbol IPDA], u@v')"
+    also have "... \<turnstile>I ([X \<rightarrow> \<alpha>' @ [Nt A] . \<beta>'] # \<rho>', u@v')"
       using X_chain(4) A_in_prods X_in_prods by simp
-    also have "... \<turnstile>I* ([I.final_state, init_symbol IPDA], [])" using \<rho>'_def by presburger
+    also have "... \<turnstile>I* ([I.final_state], [])" using \<rho>'_def by presburger
     finally show ?case using hist_\<rho> Cons(6) by presburger
   qed
 qed 
@@ -735,30 +734,32 @@ qed
 text \<open>Towards step 3\<close>
 
 lemma ipda_reaches_final_imp_rm_chain:
-  assumes "([A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol IPDA], w) \<turnstile>I* ([I.final_state, init_symbol IPDA], [])"
+  assumes "([A \<rightarrow> \<alpha> . \<beta>] # \<rho>, w) \<turnstile>I* ([I.final_state], [])"
   obtains "\<rho> = []" |
     \<sigma> X \<alpha>' \<beta>' \<gamma> where "\<rho> = [X \<rightarrow> \<alpha>' . Nt A # \<beta>'] # \<sigma>" "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<gamma>"
-  using assms proof (induction "([A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol IPDA], w)" arbitrary: A \<alpha> \<beta> \<rho> w thesis
+  using assms proof (induction "([A \<rightarrow> \<alpha> . \<beta>] # \<rho>, w)" arbitrary: A \<alpha> \<beta> \<rho> w thesis
                       rule: converse_rtranclp_induct)
   case (step z)
   from I.step_imp_in_It this(1) have A_in_It: "[A \<rightarrow> \<alpha> . \<beta>] \<in> It G'" 
     using I.step_imp_not_Nil by (smt (verit, ccfv_SIG) I.step_cases)
-  from I.step_app_init_symbol_preserved step(1) obtain B \<gamma> \<delta> \<tau> v where z\<tau>_def:
-    "z = ([B \<rightarrow> \<gamma> . \<delta>] # \<tau> @ [init_symbol IPDA], v)" using prod.exhaust by metis
+  from step(1) obtain B \<gamma> \<delta> \<tau> v where z\<tau>_def:
+    "z = ([B \<rightarrow> \<gamma> . \<delta>] # \<tau>, v)" using prod.exhaust 
+    by (metis I.step_imp_not_Nil item.exhaust list.exhaust)
   note step(3)[OF this] 
   then show thesis
   proof (cases, goal_cases Nil chain)
     case Nil
-    with z\<tau>_def have z_B_init: "z = ([[B \<rightarrow> \<gamma> . \<delta>], init_symbol IPDA], v)" by blast
+    with z\<tau>_def have z_B_init: "z = ([[B \<rightarrow> \<gamma> . \<delta>]], v)" by blast
     with step(2) I.reaches_without_stack_imp_S' consider 
-      "[B \<rightarrow> \<gamma> . \<delta>] = init_state IPDA" |
+      "[B \<rightarrow> \<gamma> . \<delta>] = init IPDA" |
       "[B \<rightarrow> \<gamma> . \<delta>] = I.final_state" by blast
     then show thesis
     proof cases
       case 2
       note step(1)[unfolded z_B_init this] 
-      note I.step_reaches_final_imp_S[OF this]
-      then show ?thesis using step(5) G'_derive_S derive_singleton_imp_singleton_chain by force
+      with I.step_reaches_final_imp_S[of _ _ _ \<rho> "[]"] show ?thesis using step(5) G'_derive_S 
+          derive_singleton_imp_singleton_chain 
+        by (metis I.init_ipda append.right_neutral item.inject list.inject prod.inject)
     qed (use step(1) in cases, use step z_B_init in auto)
   next
     case (chain X \<alpha>' \<beta>' \<sigma> \<zeta>)
@@ -772,11 +773,11 @@ lemma ipda_reaches_final_imp_rm_chain:
       from prod_imp_rm_chain_step[OF this BA_in_prods G'_reduced] step.prems(2) reduce chain(1)
       show thesis by fastforce       
     next
-      case (expand Y \<eta> X' \<theta> \<iota> i \<upsilon> x)
+      case (expand Y \<eta> X' \<theta> \<iota> \<upsilon> x)
       show ?thesis
       proof (cases \<rho>)
-        case (Cons j \<xi>)
-        from Cons expand have "\<tau> = [A \<rightarrow> \<theta> . Nt B # \<iota>] # i # \<xi>" by auto
+        case (Cons i \<xi>)
+        from Cons expand have "\<tau> = [A \<rightarrow> \<theta> . Nt B # \<iota>] # i # \<xi>"  by auto
         from rm_chain_second_produces_hd[OF chain(2)[unfolded this]] obtain Z \<gamma>' \<delta>' where
           "\<rho> = [Z \<rightarrow> \<gamma>' . Nt A # \<delta>'] # \<xi>" using Cons expand by auto
         moreover obtain \<zeta>' where "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<zeta>'"
@@ -791,7 +792,7 @@ text \<open>Step 3: If the configuration \<open>([A \<rightarrow> \<alpha>.\<bet
      \<open>([A \<rightarrow> \<alpha>.\<beta>], \<epsilon>)\<close> is reachable by \<open>char(G)\<close> with input \<open>hist(\<rho>)\<alpha>\<close>.\<close>
 
 lemma ipda_imp_char:
-  assumes "([A \<rightarrow> \<alpha> . \<beta>] # \<rho> @ [init_symbol IPDA], w) \<turnstile>I* ([I.final_state, init_symbol IPDA], [])"
+  assumes "([A \<rightarrow> \<alpha> . \<beta>] # \<rho>, w) \<turnstile>I* ([I.final_state], [])"
   shows "([S' \<rightarrow> [] . [Nt S]], hist \<rho> @ \<alpha>) \<turnstile>c* ([A \<rightarrow> \<alpha> . \<beta>], [])"
 using assms proof (induction \<rho> arbitrary: A \<alpha> \<beta> w)
   case Nil
@@ -807,17 +808,17 @@ next
   hence X_in_Prods: "(X, \<alpha>' @ Nt A # \<beta>') \<in> Prods G'" 
     by (simp add: rm_chain_imp_prod)
   from I.reaches_final_imp_completes[OF Cons(2)] obtain v where A_complete:
-    "([A \<rightarrow> \<alpha> . \<beta>] # (i # \<rho>) @ [init_symbol IPDA], w) 
-      \<turnstile>I* ([A \<rightarrow> \<alpha> @ \<beta> . []] # (i # \<rho>) @ [init_symbol IPDA], v)"
-    "([A \<rightarrow> \<alpha> @ \<beta> . []] # (i # \<rho>) @ [init_symbol IPDA], v) 
-      \<turnstile>I* ([I.final_state, init_symbol IPDA], [])" by blast
+    "([A \<rightarrow> \<alpha> . \<beta>] # i # \<rho>, w) 
+      \<turnstile>I* ([A \<rightarrow> \<alpha> @ \<beta> . []] # i # \<rho>, v)"
+    "([A \<rightarrow> \<alpha> @ \<beta> . []] # i # \<rho>, v) 
+      \<turnstile>I* ([I.final_state], [])" by blast
   have A_in_Prods: "(A, \<alpha>@\<beta>) \<in> Prods G'"
     using I.steps_neq_in_It[OF A_complete(2)] in_Prods_iff_in_It by force
-  have "([A \<rightarrow> \<alpha> @ \<beta> . []] # (i # \<rho>) @ [init_symbol IPDA], v)
-       \<turnstile>I ([X \<rightarrow> \<alpha>' @ [Nt A] . \<beta>'] # \<rho> @ [init_symbol IPDA], v)"
+  have "([A \<rightarrow> \<alpha> @ \<beta> . []] # i # \<rho>, v)
+       \<turnstile>I ([X \<rightarrow> \<alpha>' @ [Nt A] . \<beta>'] # \<rho>, v)"
     using chain A_in_Prods X_in_Prods by auto
   with I.step_not_expanding_imp_reaches[OF this] A_complete have 
-    "... \<turnstile>I* ([I.final_state, init_symbol IPDA], [])" 
+    "... \<turnstile>I* ([I.final_state], [])" 
     by (metis (no_types, lifting) I.complete_S'_step_impossible I.step_not_expanding_unique
         converse_rtranclpE list.sel(1))
   note X_comp = Cons.IH[OF this]

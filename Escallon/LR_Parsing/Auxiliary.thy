@@ -613,7 +613,7 @@ lemma derive_word_imp_single_Nt:
 proof -
   from assms have "P \<turnstile> \<alpha> \<Rightarrow>(Suc 0) map Tm w" by auto
   from derives_decomp_less[OF this] show thesis using that 
-    by (metis (no_types, lifting) ext add_is_0 not_less_zero one_is_add relpowp_0_E
+    by (metis (no_types, lifting) add_is_0 not_less_zero one_is_add relpowp_0_E
         relpowp_Suc_0) 
 qed
 
@@ -833,5 +833,4 @@ next
 qed
 
 end
-
 end

@@ -589,5 +589,4 @@ proof -
 qed
 
 end
-
 end

@@ -179,7 +179,7 @@ next
     case (step \<alpha>' X' w \<gamma> Y \<beta> x)
     then show ?thesis using Cons.IH[OF step(3)] 
       by (metis (no_types, lifting) Cons.prems append_assoc hist_Cons history_unfold
-          map_append rm_eq_imp_eq rm_chain_singleton_imp_eq)
+          map_append rm_eq_imp_eq(1) rm_chain_singleton_imp_eq)
   qed
 qed
 
@@ -269,4 +269,4 @@ lemma derivern_Suc_singleton_imp_rm_chain:
   qed
 qed
 
-end 
+end

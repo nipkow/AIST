@@ -955,7 +955,7 @@ proof -
         with rm_chain_S'_Cons_imp_neq have neq_S': "[Nt S'] \<noteq> \<alpha>' @ Nt A # map Tm v" by auto
         from eqs consider (\<alpha>_in_\<alpha>') \<gamma> where "\<alpha>' = \<alpha> @ \<gamma>" "\<beta> = \<gamma> @ \<alpha>''" | 
           (\<alpha>'_in_\<alpha>) \<gamma> where "\<alpha> = \<alpha>' @ \<gamma>" "\<alpha>'' = \<gamma> @ \<beta>" 
-          by (metis append_eq_append_conv2)
+        by (metis append_eq_append_conv2[of \<alpha>' \<alpha>'' \<alpha> \<beta>])
         then show ?thesis proof cases
           case \<alpha>_in_\<alpha>'
           hence "Prods G' \<turnstile> \<gamma> @ Nt A # map Tm v \<Rightarrow>r \<beta> @ Nt X # \<beta>' @ map Tm v"
@@ -1945,5 +1945,4 @@ theorem is_LR0_iff_no_LR0_inadequate_states:
   using is_LR0_imp_no_LR0_inadequate_states no_LR0_inadequate_states_imp_is_LR0 by metis
 
 end
-
 end

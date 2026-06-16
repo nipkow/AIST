@@ -1,9 +1,54 @@
-Important
-=========
+AFP submission
+==============
 
-Modularize bounds to simplify local code changes. Do not expand all T-bounds all the time.
+Layout: lines <= 100, esp for arithmetic formulas:
+group, indent, break arithmetic formulas
+
+Modularize bounds to simplify local code changes.
+Do not expand all T-bounds all the time.
 Idea: if f uses g and h, express T_f bound only in terms of T_g and T_h (?)
 (Of course at the end, everything needs to be expanded)
+
+IL verification relates back to inductive Close2
+but should use recursive close2L (May change complexity constants)
+(Change union_IL and diff(_IL))
+
+Allow epsilon. Aycock and Horspool: nullable + predictor.
+
+Get rid of potentially expensive w ! i.
+- Make w an immutable array: import "HOL-Library.IArray"
+- Or: bins recursive over i and w
+
+(?) Get rid of last in bins
+Get rid of expensive xs @ [x] in function bins (elsewhere?)
+Initialize bins to the right length, use update_list later on.
+(Helps if update is better than linear)
+
+(?) Get rid of w0 and use w only.
+
+Pre-computation:
+T_Init_L(') is a hack.
+Better: make Init_L_G a locale parameter
+Earley_G_Init = Earley_G
++ fixes Init_L_G assumes Init_L_G = Init_L ps S
+Now Init_L_G needs no time
+
+(???) Closure (B,C): use lists directly, not sets?
+
+(?) Get rid of locales and replace with params
++ time_fun works
++ can separate precomputed values more easily
+- Defn of Earley etc depends on G and w
+
+Use PreCo in later stages of refinement.
+
+Later
+=====
+
+Use (new) Array theory with constant time access (see AFP/Collections)
+Generic Array (type?) theory (Collection + syntax + lemmas)
+
+Use Eberl's BigO foundation.
 
 DERIVE O bounds directly using Lemma: f(n+1) = f n + g n ...
 Can Lemma be generalized, eg
@@ -13,46 +58,15 @@ Lemma If f(n+1) = f(n) + h(n)*g1(n) + g2(n) (???)
 Additional complication: terms like g(h...)
 because we now need T_g(size(h(...))
 
-Pre-computation:
-T_Init_L(') is a hack.
-Better: make Init_L_G a locale parameter
-Earley_G_L = Earley_G
-+ fixes Init_L_G assumes Init_L_G = Init_L ps S
-Now Init_L_G needs no time
+(?) Item: get rid of rule index, use (A, rev \alpha, \beta, from).
+(Improves constants)
 
-IL verification relates back to inductive Close2
-but should use recursive close2L (May change complexity constants)
-
-Layout: lines <= 100, esp for arithmetic formulas:
-group, indent, break arithmetic formulas
-
-Use new Array theory to allow easy code generation and to deal with
-annoyances like xs @ [x] in function bins.
-
-Closure (B,C): use lists directly, not sets?
-
-Generic Array (type?) theory (Collection + syntax + lemmas)
-
-Get rid of locales and replace with params?
-+ time_fun works
-+ can separate precomputed values more easily
-- Defn of Earley etc depends on G and w
-
-Allow epsilon. Aycock and Horspool: nullable + predictor.
-
+(?) Efficient rep. of G using IArray. Precompute Predict
 
 Minor
 =====
 
-Item: get rid of rule index, use (A, rev \alpha, \beta, from).
-(Improves constants
-
-Complexity proofs: do not expand bounds of T_isin etc
-but make upper bounds depend of them
-
-Clean O proofs
-what is w: 't list or sym list?
 combine Predict and Complete?
 
-Generic Closure2 worklist: inductive set -> inductive list -> while
-Only relevant to obtain reusable component
+[Generic Closure2 worklist: inductive set -> inductive list -> while
+ Only relevant to obtain reusable component]

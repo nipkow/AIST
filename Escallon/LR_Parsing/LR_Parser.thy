@@ -71,6 +71,27 @@ proof -
   ultimately show thesis using that by presburger
 qed
 
+lemma char_fa_nxts_is_shifts:
+  assumes "Q \<subseteq> It G'"
+  shows "(\<Union>i \<in> Q. nfa.nxt char_fa i A) = {[X \<rightarrow> \<alpha> @ [A] \<cdot> \<beta>]|X \<alpha> \<beta>. [X \<rightarrow> \<alpha> \<cdot> A # \<beta>] \<in> Q}"
+  (is "?Un = ?S")
+proof (standard; standard)
+  fix i
+  assume Un: "i \<in> ?Un"
+  then obtain j where in_nxt: "i \<in> nfa.nxt char_fa j A" by blast
+  consider X \<alpha> where "j = [X \<rightarrow> \<alpha> \<cdot> []]" | X \<alpha> \<beta> where "j = [X \<rightarrow> \<alpha> \<cdot> A # \<beta>]" | 
+    X \<alpha> B \<beta> where "j = [X \<rightarrow> \<alpha> \<cdot> B # \<beta>]" "B \<noteq> A" 
+    by (metis item.exhaust neq_Nil_conv)
+  thus "i \<in> ?S" using in_nxt Un in_nxt_char_fa_imp_shift by cases force+
+next
+  fix i 
+  assume S: "i \<in> ?S"
+  then obtain X \<alpha> \<beta> where "i = [X \<rightarrow> \<alpha> @ [A] \<cdot> \<beta>]" "[X \<rightarrow> \<alpha> \<cdot> A # \<beta>] \<in> Q" by blast
+  moreover then have "nfa.nxt char_fa [X \<rightarrow> \<alpha> \<cdot> A # \<beta>] A = {i}" 
+    using assms in_It_imp_in_Prods by force
+  ultimately show "i \<in> ?Un" by blast
+qed
+
 lemma eps_char_fa [simp]:
   "nfa.eps char_fa 
     = {([X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>], [Y \<rightarrow> [] \<cdot> \<gamma>]) | X \<alpha> Y \<beta> \<gamma>. (X, \<alpha> @ Nt Y # \<beta>) \<in> Prods G' \<and> (Y, \<gamma>) \<in> Prods G'}"
@@ -847,6 +868,8 @@ proof -
   from derivers_imp_ipda[OF assms this] ipda_imp_char show ?thesis by metis
 qed
 
+section \<open>Reliable Prefixes\<close>
+
 text \<open>\<open>\<gamma>\<close> is a reliable prefix to \<open>[A \<rightarrow> \<alpha>.\<beta>]\<close> (or equivalently, \<open>[A \<rightarrow> \<alpha>.\<beta>]\<close> is valid for \<open>\<gamma>\<close>) 
       if there exists a rightmost derivation \<open>S' \<Rightarrow>r* \<gamma>'Aw \<Rightarrow>r \<gamma>'\<alpha>\<beta>w\<close> with \<open>\<gamma> = \<gamma>'\<alpha>\<close>:\<close>
 
@@ -1065,15 +1088,15 @@ lemma states_dfa_LR0 [simp]:
   unfolding LR\<^sub>0_def by (simp add: char_fa.dfa_Power dfa.states_Accessible_dfa)
 
 
-lemma dfa_LR0_state_imp_char_fa_Power_state [dest]:
+lemma dfa_LR0_states_subset [dest]:
   "q \<in> dfa.states LR\<^sub>0 \<Longrightarrow> q \<in> dfa.states char_fa.Power_dfa"
   using char_fa.dfa_Power dfa.accessible_imp_states by fastforce 
 
-lemma dfa_LR0_nxt_eq_char_fa_Power_nxt [simp]:
+lemma dfa_LR0_nxt [simp]:
   "dfa.nxt LR\<^sub>0 = dfa.nxt char_fa.Power_dfa"
   unfolding LR\<^sub>0_def using char_fa.dfa_Power dfa.nxt_Accessible_dfa by metis
 
-lemma dfa_LR0_nextl_eq_char_fa_Power_nextl [simp]:
+lemma dfa_LR0_nextl [simp]:
   "dfa.nextl LR\<^sub>0 (dfa.init LR\<^sub>0) = dfa.nextl char_fa.Power_dfa (dfa.init char_fa.Power_dfa)"
   unfolding LR\<^sub>0_def using char_fa.dfa_Power dfa.init_Accessible
     dfa.init_Accessible_dfa dfa.nextl_Accessible_dfa by fastforce
@@ -1145,7 +1168,7 @@ qed
 lemma nextl_dfa_LR0_is_valids:
   "dfa.nextl LR\<^sub>0 (dfa.init LR\<^sub>0) \<gamma> = {i. reliable_prefix i \<gamma>}"
   using LR\<^sub>0_def char_fa.Power_nextl_eq_nfa_nextl char_fa_nextl_is_valids 
-   dfa_LR0_nextl_eq_char_fa_Power_nextl by presburger
+   dfa_LR0_nextl by presburger
 
 lemma state_imp_valids:
   "p \<in> dfa.states LR\<^sub>0 \<Longrightarrow> \<exists>\<gamma>. p = {i. reliable_prefix i \<gamma>}"
@@ -2015,113 +2038,176 @@ theorem is_LR0_iff_no_LR0_inadequates:
   "is_LR 0 = (\<forall>q\<in>npda.states P\<^sub>0. LR0_adequate q)"
   using is_LR0_imp_no_LR0_inadequate_states no_LR0_inadequate_states_imp_is_LR0 by metis
 
-text \<open>If the \<open>P\<^sub>0\<close> parser has no LR(0)-inadequate states, it is deterministic:\<close>
+section \<open>Determinism of \<open>P\<^sub>0\<close> and Language Equivalence\<close>
 
-theorem no_LR0_inadequates_imp_P0_deterministic:
-  assumes "\<forall>q\<in>npda.states P\<^sub>0. LR0_adequate q"
-    "p \<in> npda.states P\<^sub>0" 
-    "(p # ps, u) \<turnstile>P (qs, v)" "(p # ps, u) \<turnstile>P (qs', v')"
-  shows "(qs, v) = (qs', v')"
-proof -
-  from assms have p_adequate: "LR0_adequate p"
-    by blast
-  show ?thesis
-  using assms(3) proof (cases, goal_cases qs_step qs_eps)
-    case (qs_step ps0 a0 qs0 rs0)
-    from assms(4) show ?thesis 
-    proof (cases, goal_cases qs'_step _)
-      case (qs'_step ps1 a1 qs1 rs1)
-      with qs_step nxt_P0E have eq: "(ps0, a0, qs0) = (ps1, a1, qs1)" 
-        by (smt (verit, best) append_Cons list.inject)
-      with qs_step qs'_step show ?thesis by auto
-    next
-      case (step_eps _ _ _)
-      then show ?thesis using qs_step(4) shift_reduce.intros p_adequate eps_P0E
-        unfolding LR0_inadequate_def 
-        by (smt (verit, ccfv_threshold) P0.eps append_eq_Cons_conv list.inject nxt_P0E
-            qs_step(1))
-    qed
+lemma LR_adequate_imp_P0_nxt_unique:
+  assumes "p \<in> npda.states P\<^sub>0" "LR0_adequate p"
+    "p # ps = ps' @ rs" "(ps', a, qs) \<in> npda.nxt P\<^sub>0" "(p # ps, a # w) \<turnstile>P c1"
+  shows "(qs @ rs, w) = c1"
+  using assms(5) proof (cases, goal_cases qs'_nxt _)
+  case (qs'_nxt ps'' qs' _)
+  with assms nxt_P0E have eq: "(ps', a, qs) = (ps'', a, qs')" 
+    by (smt (verit, best) append_Cons list.inject)
+  with assms qs'_nxt show ?thesis by auto
+next
+  case (step_eps _ _ _)
+  then show ?thesis using assms(4) shift_reduce.intros assms(2) eps_P0E
+    unfolding LR0_inadequate_def 
+    by (smt (verit, ccfv_threshold) P0.eps append_eq_Cons_conv list.inject nxt_P0E
+        assms(3))
+qed
+
+lemma LR_adequate_eps_tl_eq_imp_P0_eps_unique:
+  assumes "p \<in> npda.states P\<^sub>0" "LR0_adequate p"
+    "p # ps = p # ps0 @ rs0" "(p # ps0, qs0) \<in> npda.eps P\<^sub>0" "(p # ps0, qs1) \<in> npda.eps P\<^sub>0"
+  shows "qs0 @ rs0 = qs1 @ rs0"
+  using assms(4) proof (cases rule: eps_P0E)
+  case (reduce p'' ps'' X \<alpha>)
+  note qs_reduce = this
+  hence qs_eqs [simp]: "p'' = p" "ps'' = ps0" by auto
+  have comp_singleton: "completes p = {[X \<rightarrow> \<alpha> \<cdot> []]}" 
+    using complete_in_adequate_imp_singleton[OF _ assms(2,1)]
+      qs_reduce unfolding completes_def by auto
+  from assms(5) show ?thesis proof (cases rule: eps_P0E)
+    case (reduce _ _ Y \<beta>)
+    with assms(2) qs_reduce have "[X \<rightarrow> \<alpha> \<cdot> []] = [Y \<rightarrow> \<beta> \<cdot> []]"
+      using comp_singleton unfolding completes_def 
+      by (metis (mono_tags, lifting) item.case list.inject mem_Collect_eq singletonD)
+    then show ?thesis using qs_reduce reduce 
+      using assms(4-) by fastforce
   next
-    case (qs_eps ps0 qs0 rs0)
-    with eps_P0E obtain ps0' where ps0_eq [simp]: "ps0 = p # ps0'" 
-      by (metis Cons_eq_append_conv P0.eps)
-    from assms(4) show ?thesis
-    proof (cases, goal_cases qs'_step qs'_eps)
-      case (qs'_step ps1 a qs1 rs1)
-      with nxt_P0E have ps1_eq: "ps1 = [p]" by auto
-      from shift_reduce.intros[OF qs'_step(4)[unfolded ps1_eq] qs_eps(4)[unfolded ps0_eq]]
-      show ?case using p_adequate unfolding LR0_inadequate_def by satx
-    next
-      case (qs'_eps ps1 qs1 rs1)
-      with eps_P0E obtain ps1' where ps1_eq [simp]: "ps1 = p # ps1'" 
-        by (metis Cons_eq_append_conv P0.eps)
-      show ?case proof (cases "ps0' = ps1'")
-        case True
-        with qs_eps qs'_eps have rs_eq: "rs0 = rs1" by auto
-        from qs_eps(4)[unfolded ps0_eq] show ?thesis proof (cases rule: eps_P0E)
-          case (reduce p'' ps'' X \<alpha>)
-          note qs_reduce = this
-          hence qs_eqs [simp]: "p'' = p" "ps'' = ps0'" by auto
-          have comp_singleton: "completes p = {[X \<rightarrow> \<alpha> \<cdot> []]}" 
-            using complete_in_adequate_imp_singleton[OF _ p_adequate assms(2)]
-              qs_reduce unfolding completes_def by auto
-          from qs'_eps(4)[unfolded ps1_eq] show ?thesis proof (cases rule: eps_P0E)
-            case (reduce _ _ Y \<beta>)
-            with p_adequate qs_reduce have "[X \<rightarrow> \<alpha> \<cdot> []] = [Y \<rightarrow> \<beta> \<cdot> []]"
-              using comp_singleton unfolding completes_def 
-              by (metis (mono_tags, lifting) item.case list.inject mem_Collect_eq singletonD)
-            then show ?thesis using qs_reduce reduce 
-              using True qs'_eps(2,3) qs_eps(2,3) rs_eq by fastforce
-          next
-            case (finish _)
-            with p_adequate qs_reduce have "[X \<rightarrow> \<alpha> \<cdot> []] = [S' \<rightarrow> [Nt S] \<cdot> []]"
-              using comp_singleton unfolding completes_def 
-              by (metis (mono_tags, lifting) item.case list.inject mem_Collect_eq singletonD)
-            then show ?thesis using qs_reduce by blast
-          qed
-        next
-          case (finish _)
-          note qs_finish = this
-          hence comp_singleton: "completes p = {[S' \<rightarrow> [Nt S] \<cdot> []]}" 
-            using complete_in_adequate_imp_singleton[OF _ p_adequate assms(2)]
-               unfolding completes_def by auto
-          from qs'_eps(4)[unfolded ps1_eq] show ?thesis proof (cases rule: eps_P0E)
-            case (reduce p ps' X \<alpha>)
-            with p_adequate qs_finish comp_singleton show ?thesis 
-              by (metis (no_types, lifting) completes_singleton_imp_eq item.inject list.inject)
-          next
-            case (finish _)
-            then show ?thesis using qs_finish qs'_eps(2,3) qs_eps(2,3) rs_eq by fastforce
-          qed
-        qed
-      next
-        case False
-        with qs_eps qs'_eps have neq: "length ps0' \<noteq> length ps1'" 
-          by fastforce
-        from qs_eps(4)[unfolded ps0_eq] show ?thesis 
-        proof (cases rule: eps_P0E)
-          case (reduce p'' ps'' X \<alpha>)
-          have comp_singleton: "completes p = {[X \<rightarrow> \<alpha> \<cdot> []]}" 
-            using complete_in_adequate_imp_singleton[OF _ p_adequate assms(2)]
-              reduce unfolding completes_def by auto
-          from qs'_eps(4)[unfolded ps1_eq] show ?thesis 
-            using comp_singleton reduce neq by (cases rule: eps_P0E) 
-              (metis completes_singleton_imp_eq item.inject list.inject)+
-        next
-          case (finish p)
-          have comp_singleton: "completes p = {[S' \<rightarrow> [Nt S] \<cdot> []]}" 
-            using complete_in_adequate_imp_singleton[OF _ p_adequate assms(2)]
-              finish unfolding completes_def by auto          
-          from qs'_eps(4)[unfolded ps1_eq] show ?thesis 
-            using comp_singleton finish neq by (cases rule: eps_P0E) 
-              (metis completes_singleton_imp_eq item.inject list.inject, metis list.inject)
-        qed
-      qed
-    qed
+    case (finish _)
+    with assms(2) qs_reduce have "[X \<rightarrow> \<alpha> \<cdot> []] = [S' \<rightarrow> [Nt S] \<cdot> []]"
+      using comp_singleton unfolding completes_def 
+      by (metis (mono_tags, lifting) item.case list.inject mem_Collect_eq singletonD)
+    then show ?thesis using qs_reduce by blast
+  qed
+next
+  case (finish _)
+  note qs_finish = this
+  hence comp_singleton: "completes p = {[S' \<rightarrow> [Nt S] \<cdot> []]}" 
+    using complete_in_adequate_imp_singleton[OF _ assms(2,1)]
+       unfolding completes_def by auto
+  from assms(5) show ?thesis proof (cases rule: eps_P0E)
+    case (reduce p ps' X \<alpha>)
+    with assms(2) qs_finish comp_singleton show ?thesis 
+      by (metis (no_types, lifting) completes_singleton_imp_eq item.inject list.inject)
+  next
+    case (finish _)
+    then show ?thesis using qs_finish assms(4-) by fastforce
   qed
 qed
 
-section \<open>Language Equivalence between Parser and Grammar\<close>
+lemma LR_adequate_imp_P0_eps_unique:
+  assumes "p \<in> npda.states P\<^sub>0" "LR0_adequate p"
+    and qs_eps: "p # ps = p # ps0 @ rs0" "(p # ps0, qs0) \<in> npda.eps P\<^sub>0"
+    and qs'_eps: "p # ps = p # ps1 @ rs1" "(p # ps1, qs1) \<in> npda.eps P\<^sub>0"
+  shows "qs0 @ rs0 = qs1 @ rs1"
+proof (cases "ps0 = ps1")
+  case True
+  with qs_eps qs'_eps have rs_eq: "rs0 = rs1" by auto
+  with True LR_adequate_eps_tl_eq_imp_P0_eps_unique[OF assms(1,2)] qs_eps qs'_eps
+  show ?thesis by metis
+next
+  case False
+  with qs_eps qs'_eps have neq: "length ps0 \<noteq> length ps1" 
+    by fastforce
+  from qs_eps(2) show ?thesis 
+  proof (cases rule: eps_P0E)
+    case (reduce p'' ps'' X \<alpha>)
+    have comp_singleton: "completes p = {[X \<rightarrow> \<alpha> \<cdot> []]}" 
+      using complete_in_adequate_imp_singleton[OF _ assms(2,1)]
+        reduce unfolding completes_def by auto
+    from qs'_eps(2) show ?thesis 
+      using comp_singleton reduce neq by (cases rule: eps_P0E) 
+        (metis completes_singleton_imp_eq item.inject list.inject)+
+  next
+    case (finish p)
+    have comp_singleton: "completes p = {[S' \<rightarrow> [Nt S] \<cdot> []]}" 
+      using complete_in_adequate_imp_singleton[OF _ assms(2,1)]
+        finish unfolding completes_def by auto          
+    from qs'_eps(2) show ?thesis 
+      using comp_singleton finish neq by (cases rule: eps_P0E) 
+        (metis completes_singleton_imp_eq item.inject list.inject, metis list.inject)
+  qed
+qed
+
+
+
+text \<open>If a state of \<open>P\<^sub>0\<close> is LR(0)-adequate, it behaves deterministically on that state:\<close>
+
+lemma LR0_adequate_imp_P0_step_unique:
+  assumes "p \<in> npda.states P\<^sub>0" "LR0_adequate p"
+    "(p # ps, u) \<turnstile>P c0" "(p # ps, u) \<turnstile>P c1"
+  shows "c0 = c1"
+using assms(3) proof (cases, goal_cases qs_nxt qs_eps)
+  case (qs_eps ps0 qs0 rs0)
+  with eps_P0E obtain ps0' where ps0_eq: "ps0 = p # ps0'" 
+    by (metis Cons_eq_append_conv P0.eps)
+  from assms(4) show ?thesis
+  proof (cases, goal_cases qs'_nxt qs'_eps)
+    case (qs'_eps ps1 qs1 rs1)
+    with eps_P0E obtain ps1' where ps1_eq: "ps1 = p # ps1'" 
+      by (metis Cons_eq_append_conv P0.eps)
+    from LR_adequate_imp_P0_eps_unique[OF assms(1,2)] qs_eps qs'_eps show ?thesis 
+      unfolding ps0_eq ps1_eq by (smt (verit, ccfv_SIG) Cons_eq_appendI)
+  qed (use assms LR_adequate_imp_P0_nxt_unique in blast)
+qed (use assms LR_adequate_imp_P0_nxt_unique in blast)
+
+theorem no_LR0_inadequates_imp_P0_stepn_unique:
+  assumes "\<forall>p \<in> npda.states P\<^sub>0. LR0_adequate p"
+    "set ps \<subseteq> npda.states P\<^sub>0"
+    "(ps, u) \<turnstile>P(n) c0" "(ps, u) \<turnstile>P(n) c1"
+  shows "c0 = c1"
+  using assms(3-,2) proof (induction n arbitrary: ps u)
+  case (Suc n)
+  then obtain p qs where Cons [simp]: "ps = p # qs"  
+    by (metis P0.step_imp_Cons relpowp_Suc_E2 surj_pair)
+  obtain ps' u' where "(p # qs, u) \<turnstile>P (ps', u')" "(ps', u') \<turnstile>P(n) c0" "(ps', u') \<turnstile>P(n) c1"
+  proof -
+    from Suc obtain p0 ps0 u0 p1 ps1 u1 where 
+      "(ps, u) \<turnstile>P (p0 # ps0, u0)" "(p0 # ps0, u0) \<turnstile>P(n) c0"
+      "(ps, u) \<turnstile>P (p1 # ps1, u1)" "(p1 # ps1, u1) \<turnstile>P(n) c1"
+      using relpowp_Suc_D2 P0.step_imp_Cons by (smt (verit, ccfv_SIG) surj_pair)
+    moreover from Suc.prems(3) assms(1) have "p \<in> npda.states P\<^sub>0" "LR0_adequate p"
+      by auto
+    ultimately show thesis using that LR0_adequate_imp_P0_step_unique Cons by metis
+  qed
+  moreover from this(1) Suc.prems(3) have "set ps' \<subseteq> npda.states P\<^sub>0"
+    using P0.step_states_imp_states by simp
+  ultimately show ?case using Suc.IH by presburger
+qed simp
+
+text \<open>If \<open>P\<^sub>0\<close> has no LR(0)-inadequate states, it is deterministic:\<close>
+
+corollary no_LR0_inadequates_imp_P0_deterministic:
+  assumes "\<forall>p \<in> npda.states P\<^sub>0. LR0_adequate p"
+    "([npda.init P\<^sub>0], w) \<turnstile>P(n) c0" "([npda.init P\<^sub>0], w) \<turnstile>P(n) c1"
+  shows "c0 = c1"
+  using assms no_LR0_inadequates_imp_P0_stepn_unique[OF assms(1) _ assms(2-)] P0.init by simp
+
+thm shift_reduce.intros
+subsection \<open>Language Equivalence of \<open>P\<^sub>0\<close> and its Grammar\<close>
+
+lemma dfa_LR0_nxt_is_epsclo_of_shift:
+  assumes "Q \<in> dfa.states LR\<^sub>0"
+  shows "dfa.nxt LR\<^sub>0 Q Y = char_fa.epsclo {[X \<rightarrow> \<alpha> @ [Y] \<cdot> \<beta>]|X \<alpha> \<beta>. [X \<rightarrow> \<alpha> \<cdot> Y # \<beta>] \<in> Q}"
+proof -
+  from dfa_LR0_states_subset[OF assms(1)] char_fa.epsclo_idem
+  have "dfa.nxt LR\<^sub>0 Q Y = (\<Union>i \<in> Q. char_fa.epsclo (nfa.nxt char_fa i Y))"
+    unfolding dfa_LR0_nxt char_fa.nxt_Power_dfa char_fa.states_Power_dfa by blast
+  also have "... = char_fa.epsclo (\<Union>i \<in> Q. (nfa.nxt char_fa i Y))"
+    by auto
+  finally show ?thesis using char_fa_nxts_is_shifts 
+    by (metis (lifting) assms in_state_imp_in_It subsetI)
+qed
+
+
+lemma P0_imp_IPDA: (* Not true. Fix *)
+  assumes "(P # PS, u) \<turnstile>P* (Q # QS, v)"
+  obtains i j \<rho> \<sigma> where "i \<in> P" "j \<in> Q" "\<forall>n. \<rho> ! n \<in> PS ! n" "\<forall>n. \<sigma> ! n \<in> QS ! n"
+    "(i # \<rho>, u) \<turnstile>I* (j # \<sigma>, v)"
+  sorry
 
 lemma P0_Lang_subset_Lang_G:
   "P0.Lang \<subseteq> LangS G'"

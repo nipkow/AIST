@@ -35,10 +35,16 @@ step_eps[intro]: "(ps, qs) \<in> eps M \<Longrightarrow> (ps@rs, w) \<turnstile>
 inductive_cases step_nxtE[elim]: "(ps, a#w) \<turnstile> (qs, w)"
 inductive_cases step_epsE[elim]: "(ps, w) \<turnstile> (qs, w)"
 
-lemma step_imp_Cons[elim]:
+lemma step_imp_Cons:
   assumes "(ps, u) \<turnstile> (qs, v)"
   obtains p ps' q qs' where "ps = p#ps'" "qs = q#qs'"
   using assms nxt eps by cases (metis list.exhaust Nil_is_append_conv)+
+
+lemma step_states_imp_states:
+  assumes "(ps, u) \<turnstile> (qs, v)"
+    "set ps \<subseteq> states M"
+  shows "set qs \<subseteq> states M"
+  using assms nxt eps by cases auto
 
 
 abbreviation steps :: "('q,'a) config \<Rightarrow> ('q,'a) config \<Rightarrow> bool" (infix \<open>\<turnstile>*\<close> 55) where

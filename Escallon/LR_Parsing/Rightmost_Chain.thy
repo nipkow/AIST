@@ -11,6 +11,7 @@ step[intro]:  "\<lbrakk>P \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* \<rho> \
     P \<turnstile> \<alpha> @ Nt X # map Tm v \<Rightarrow>r \<alpha> @ \<alpha>' @ Nt Y # \<beta> @ map Tm v; P \<turnstile> \<beta> \<Rightarrow>r* map Tm u\<rbrakk>
     \<Longrightarrow> P \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* [X \<rightarrow> \<alpha>' \<cdot> Nt Y # \<beta>]#\<rho> \<Rightarrow>r* \<alpha> @ \<alpha>' @ Nt Y # map Tm u @ map Tm v"
 
+
 lemma rm_chain_imp_eq_or_rsentential:
   assumes "P \<Turnstile> \<alpha> \<Rightarrow>r* \<rho> \<Rightarrow>r* \<beta>"
   shows "(\<alpha> = \<beta> \<and> \<rho> = []) \<or> (\<exists>\<gamma> X v. \<beta> = \<gamma> @ Nt X # map Tm v)"
@@ -267,6 +268,6 @@ lemma derivern_Suc_singleton_imp_rm_chain:
       qed
     qed
   qed
-qed
+qed    
 
 end

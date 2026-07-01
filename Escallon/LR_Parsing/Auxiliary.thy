@@ -97,7 +97,9 @@ next
     by (cases xs) (use Cons in auto)
 qed
 
-
+lemma last_of_Cons_idx_len_tl:
+  "x = last (y # xs) \<Longrightarrow> x = (y # xs) ! (length xs)"
+  by (induction xs rule: rev_induct) auto
 
 section \<open>Syms (generalize to all list types?)\<close>
 
@@ -773,6 +775,41 @@ lemma deriver_prefix_indep:
   qed
 qed
 
+lemma derivers_appendD:
+  "(P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r* \<gamma>) = 
+    ((\<exists>\<beta>'. P \<turnstile> \<beta> \<Rightarrow>r* \<beta>' \<and> \<gamma> = \<alpha> @ \<beta>') \<or> (\<exists>\<alpha>' v. P \<turnstile> \<alpha> \<Rightarrow>r* \<alpha>' \<and> P \<turnstile> \<beta> \<Rightarrow>r* map Tm v \<and> \<gamma> = \<alpha>' @ map Tm v))" 
+  (is "_ = ?EX")
+proof
+  show "P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r* \<gamma> \<Longrightarrow> ?EX"
+  proof (induction "\<alpha> @ \<beta>" arbitrary: \<alpha> \<beta> rule: converse_rtranclp_induct)
+    case (step z)
+      show ?case proof (cases \<beta> rule: syms_rm_cases)
+        case (Tms w)
+        then show ?thesis using step(3)[of _ "map Tm w"] 
+          by (metis (no_types, lifting) derivern_append_map_Tm rtranclp.simps rtranclp_power 
+              rtranclp_trans step.hyps(1,2))
+      next
+        case (Nt \<beta>' A w)
+        with step obtain \<delta> where z_app: "P \<turnstile> \<beta> \<Rightarrow>r \<beta>' @ \<delta> @ map Tm w"  "z = \<alpha> @ \<beta>' @ \<delta> @ map Tm w"   
+          by (smt (verit, best) append.assoc deriver.cases deriver.intros rm_eq_imp_eq)
+        from step(3)[OF this(2)] consider 
+          \<beta>'' where "P \<turnstile> \<beta>' @ \<delta> @ map Tm w \<Rightarrow>r* \<beta>''" "\<gamma> = \<alpha> @ \<beta>''" |
+          \<alpha>'' v where "P \<turnstile> \<alpha>  \<Rightarrow>r* \<alpha>''" "P \<turnstile> \<beta>' @ \<delta> @ map Tm w \<Rightarrow>r* map Tm v"  "\<gamma> = \<alpha>'' @ map Tm v"  
+          using derivers_imp_derives derives_map_Tm_iff by blast
+        thus ?thesis using z_app by cases fastforce+
+      qed
+    qed simp
+next
+  assume ?EX
+  then show "P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r* \<gamma>" by standard 
+      (use derivers_prepend in blast, metis derivers_prepend derivers_append_map_Tm rtranclp_trans)
+qed
+
+lemma derivers_append_cases [consumes 1, case_names suffix prefix]:
+  assumes "P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r* \<gamma>"
+  obtains \<beta>' where "P \<turnstile> \<beta> \<Rightarrow>r* \<beta>'" "\<gamma> = \<alpha> @ \<beta>'" |
+    \<alpha>' v where "P \<turnstile> \<alpha> \<Rightarrow>r* \<alpha>'" "P \<turnstile> \<beta> \<Rightarrow>r* map Tm v" "\<gamma> = \<alpha>' @ map Tm v"
+  using derivers_appendD[THEN iffD1, OF assms] by blast
 
 section \<open>Others\<close>
 
@@ -831,6 +868,11 @@ next
     using init finite_nextl nextl_state [THEN subsetD]
     by (simp add: dfa.nextl_snoc dfa_Power)
 qed
+
+lemma in_states_imp_in_epsclo:
+  assumes "q \<in> nfa.states M" "q \<in> Q"
+  shows "q \<in> epsclo Q"
+  unfolding epsclo_def using assms by blast
 
 end
 end

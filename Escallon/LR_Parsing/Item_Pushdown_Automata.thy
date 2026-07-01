@@ -1,7 +1,7 @@
 theory Item_Pushdown_Automata
   imports 
     Extended_Cfg
-    N_Pushdown_Automata
+    Generalized_Pushdown_Automata
 begin
 
 (* Problem when defining \<Delta>: IPDA uses \<Delta> :: 'q list \<Rightarrow> 'a \<Rightarrow> 'q list
@@ -14,9 +14,9 @@ Possible solutions:
 A definition with variant 2, using [S' \<rightarrow> [] \<cdot> []] as a dummy starting stack symbol:
 *)
 
-print_record "(('n, 't) item, 't) npda"
+print_record "(('n, 't) item, 't) gpda"
 
-definition (in Extended_Cfg) IPDA :: "(('n, 't) item, 't) npda" where
+definition (in Extended_Cfg) IPDA :: "(('n, 't) item, 't) gpda" where
   "IPDA \<equiv> let
     P = Prods G';
     \<Delta> = {([[X \<rightarrow> \<beta> \<cdot> Tm a # \<gamma>]], a, [[X \<rightarrow> \<beta> @ [Tm a] \<cdot> \<gamma>]])|X \<beta> a \<gamma>. (X, \<beta> @ Tm a # \<gamma>) \<in> P};
@@ -24,13 +24,13 @@ definition (in Extended_Cfg) IPDA :: "(('n, 't) item, 't) npda" where
         | X \<beta> Y \<gamma> \<alpha>. (X, \<beta> @ Nt Y # \<gamma>) \<in> P \<and> (Y, \<alpha>) \<in> P} \<union> 
         {([[Y \<rightarrow> \<alpha> \<cdot> []], [X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>]], [[X \<rightarrow> \<beta> @ [Nt Y] \<cdot> \<gamma>]])
         | Y \<alpha> X \<beta> \<gamma>. (X, \<beta> @ Nt Y # \<gamma>) \<in> P \<and> (Y, \<alpha>) \<in> P}     
-  in \<lparr>npda.states = It G', init = [S' \<rightarrow> [] \<cdot> [Nt S]], final = {[S' \<rightarrow> [Nt S] \<cdot> []]}, nxt = \<Delta>, eps = \<E>\<rparr>"
+  in \<lparr>gpda.states = It G', init = [S' \<rightarrow> [] \<cdot> [Nt S]], final = {[S' \<rightarrow> [Nt S] \<cdot> []]}, nxt = \<Delta>, eps = \<E>\<rparr>"
 
 (* \<lparr>init = [S' \<rightarrow> [] \<cdot> [Nt S]], init_symbol = [S' \<rightarrow> [] \<cdot> []], 
       final = {[S' \<rightarrow> [Nt S] \<cdot> []]}, nxt = \<Delta>, eps = \<E>\<rparr> *)
 
 locale ipda = Extended_Cfg G for G :: "('n::fresh0, 't) Cfg" +
-  fixes M :: "(('n, 't) item, 't) npda"
+  fixes M :: "(('n, 't) item, 't) gpda"
   assumes ipda: "M = Extended_Cfg.IPDA G"
 begin
 
@@ -38,7 +38,7 @@ section \<open>Basic Properties\<close>
 
 lemma init_ipda [simp]:
   "init M = [S' \<rightarrow> [] \<cdot> [Nt S]]"
-  using ipda unfolding IPDA_def by (meson npda.select_convs(2))
+  using ipda unfolding IPDA_def by (meson gpda.select_convs(2))
 
 abbreviation "final_state \<equiv> [S' \<rightarrow> [Nt S] \<cdot> []]"
 
@@ -674,26 +674,87 @@ proof -
   thus ?thesis by (simp add: append_eq_Cons_conv)
 qed
 
+lemma reachable_Cons_imp_expanded:
+  assumes "([init M], u) \<turnstile>(n) ([A \<rightarrow> \<alpha> \<cdot> \<beta>] # i # \<rho>, v)"
+  obtains u' m k where "([init M], u) \<turnstile>(m) (i # \<rho>, u')"
+    "(i # \<rho>, u') \<turnstile> ([A \<rightarrow> [] \<cdot> \<alpha> @ \<beta>] # i # \<rho>, u')"
+    "([A \<rightarrow> [] \<cdot> \<alpha> @ \<beta>] # i # \<rho>, u') \<turnstile>(k) ([A \<rightarrow> \<alpha> \<cdot> \<beta>] # i # \<rho>, v)" "Suc m + k = n"
+  using assms proof (induction n arbitrary: A \<alpha> \<beta> i \<rho> v thesis rule: less_induct)
+  case (less n)
+  note that = less.prems(1)
+  from less(3) obtain m c where m_steps: "n = Suc m" 
+    "([init M], u) \<turnstile>(m) c" "c \<turnstile> ([A \<rightarrow> \<alpha> \<cdot> \<beta>] # i # \<rho>, v)" 
+    by (metis list.distinct(1) list.inject prod.inject relpowp_E)
+  from m_steps(3) show ?case proof cases
+    case (shift _ \<alpha>' a _ \<sigma> _)
+    then show ?thesis using less.IH[of m i \<rho> A \<alpha>' "Tm a # \<beta>" "a # v"] m_steps that 
+      by (smt (verit, best) add_Suc_right append.assoc append_Cons append_Nil item.inject lessI
+          list.inject prod.inject relpowp_Suc_I)
+  next
+    case (reduce Y \<gamma>' X \<alpha>' _ \<sigma> w)
+    with less.IH[of m "[A \<rightarrow> \<alpha>' \<cdot> Nt Y # \<beta>]" \<sigma> Y \<gamma>' "[]" w] m_steps obtain k j u' where k_steps:
+      "([gpda.init M], u) \<turnstile>(k) ([A \<rightarrow> \<alpha>' \<cdot> Nt Y # \<beta>] # i # \<rho>, u')"
+      "([A \<rightarrow> \<alpha>' \<cdot> Nt Y # \<beta>] # i # \<rho>, u') \<turnstile>(Suc j) c" "k + Suc j = m"
+      by (smt (verit, ccfv_threshold) add_Suc_shift item.inject lessI list.inject old.prod.inject
+          relpowp_Suc_I2)
+    with less.IH[OF _ _ this(1)] obtain m' k' v' where m'_steps: "([gpda.init M], u) \<turnstile>(m') (i # \<rho>, v')"
+      "(i # \<rho>, v') \<turnstile> ([A \<rightarrow> [] \<cdot> \<alpha> @ \<beta>] # i # \<rho>, v')"
+      "([A \<rightarrow> [] \<cdot> \<alpha> @ \<beta>] # i # \<rho>, v') \<turnstile>(k') ([A \<rightarrow> \<alpha>' \<cdot> Nt Y # \<beta>] # i # \<rho>, u')"
+      "Suc m' + k' = k" using reduce m_steps(1) by auto
+    note this(1,2)
+    moreover have "([A \<rightarrow> [] \<cdot> \<alpha> @ \<beta>] # i # \<rho>, v') \<turnstile>(Suc k' + Suc j) ([A \<rightarrow> \<alpha> \<cdot> \<beta>] # i # \<rho>, v)"
+      using m'_steps(3)[THEN relpowp_trans, OF k_steps(2), THEN relpowp_Suc_I, OF m_steps(3)]
+      by simp
+    moreover have "Suc m' + (Suc k' + Suc j) = n" 
+      using k_steps(3) m'_steps(4) m_steps(1) by simp
+    ultimately show ?thesis using that by presburger
+  next
+    case (expand _ _ X _ \<gamma> \<sigma> w)
+    then show ?thesis using that[of m w 0] m_steps by auto
+  qed
+qed
+
+
+lemma reaches_final_imp_no_stack:
+  assumes "([init M], u) \<turnstile>* (final_state # \<rho>, v)"
+  shows "\<rho> = []" 
+  using assms proof (cases \<rho>)
+  case (Cons i \<sigma>)
+  obtain w where
+    "([init M], u) \<turnstile>* (i # \<sigma>, w)" "(i # \<sigma>, w) \<turnstile> (init M # i # \<sigma>, w)"
+  proof -
+    from assms obtain n where "([init M], u) \<turnstile>(n) (final_state # i # \<sigma>, v)"
+      using rtranclp_imp_relpowp unfolding Cons by metis
+    from reachable_Cons_imp_expanded[OF this] show ?thesis using that relpowp_imp_rtranclp  
+      by (metis append.right_neutral init_ipda)
+  qed
+  from this(2) show ?thesis proof cases
+    case (expand Y \<alpha> X \<beta> \<gamma> \<rho> w)
+    then show ?thesis 
+    using S'_Prod_notin_G(1) assms local.Cons reachable_snd_not_empty_imp_hd_in_G by fastforce
+  qed simp_all
+qed
+
 definition Lang :: "'t list set" where
   "Lang \<equiv> {w. ([init M], w) \<turnstile>* ([final_state], [])}"
 
 lemma invariant: 
-  assumes "([init M], u@v) \<turnstile>* (\<rho>, v)"
+  assumes "([init M], u@v) \<turnstile>* (rev \<rho>, v)"
   shows "Prods G \<turnstile> hist \<rho> \<Rightarrow>* map Tm u"
 proof -
-  from assms obtain n where "([init M], u@v) \<turnstile>(n) (\<rho>, v)"
+  from assms obtain n where "([init M], u@v) \<turnstile>(n) (rev \<rho>, v)"
     using rtranclp_imp_relpowp by fast
   then show ?thesis
   proof (induction n arbitrary:u v \<rho>)
     case (Suc n)
-    then obtain \<sigma> w where n_steps: "([init M], u @ v) \<turnstile>(n) (\<sigma>, w)" "(\<sigma>, w) \<turnstile> (\<rho>, v)"
-      by auto
+    then obtain \<sigma> w where n_steps: "([init M], u @ v) \<turnstile>(n) (rev \<sigma>, w)" "(rev \<sigma>, w) \<turnstile> (rev \<rho>, v)"
+      by (metis relpowp_Suc_E rev_swap surj_pair)
     from this(2) show ?case 
     proof (cases rule: step_cases)
       case (shift A \<alpha> a \<beta> i \<tau>)
       with steps_shift_decomp n_steps(1)[THEN relpowp_imp_rtranclp]
       obtain x where u_decomp: "u = x @ [a]" "w = a # v" 
-        using n_steps(2) by blast
+        using n_steps(2) by (metis prod.inject)
       with Suc.IH[of x "a#v"] n_steps(1) have derives_x: "Prods G \<turnstile> hist \<sigma> \<Rightarrow>* map Tm x"
         by simp
       moreover have "hist \<rho> = hist \<sigma> @ [Tm a]" using shift unfolding hist_defs by simp
@@ -705,8 +766,8 @@ proof -
         from n_steps reduce have Y_prod: "(Y, \<alpha>) \<in> Prods G" 
           using reachable_snd_not_empty_imp_hd_in_G 
             relpowp_imp_rtranclp by fastforce
-        from reduce have "hist \<rho> = hist \<tau> @ \<beta> @ [Nt Y]" by simp
-        also have "Prods G \<turnstile> ... \<Rightarrow>* hist \<tau> @ \<beta> @ \<alpha>"
+        from reduce have "hist \<rho> = hist (rev \<tau>) @ \<beta> @ [Nt Y]" by simp
+        also have "Prods G \<turnstile> ... \<Rightarrow>* hist (rev \<tau>) @ \<beta> @ \<alpha>"
           using Y_prod derives_prepend by (metis derive_singleton r_into_rtranclp) 
         also have "... = hist \<sigma>" using reduce by auto
         finally show ?thesis .
@@ -722,9 +783,14 @@ qed
 
 lemma Lang_subst_Lang_G:
   "Lang \<subseteq> LangS G"
-  unfolding Lang_def Context_Free_Grammar.Lang_def S_def 
-  by (standard, metis Nil_is_append_conv append.right_neutral hist_Cons hist_singleton
-     invariant mem_Collect_eq)
+proof 
+  fix w
+  assume "w \<in> Lang"
+  hence "([gpda.init M], w) \<turnstile>* ([final_state], [])" unfolding Lang_def
+    by blast
+  with invariant[of w "[]" "[final_state]"] show "w \<in> LangS G" 
+    using G'_derives_from_S_imp_in_Lang G_derives_imp_G'_derives Lang_preserved by force
+qed
 
 lemma Lang_G_subst_Lang: 
   "LangS G \<subseteq> Lang"
@@ -762,6 +828,8 @@ proof -
         Lang_eq_Lang_G Lang_preserved hist_singleton rtrancl_refl init_ipda ipda by force
   qed
 qed
+
+ 
 
 end
 end

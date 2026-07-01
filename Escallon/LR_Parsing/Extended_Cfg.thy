@@ -16,7 +16,7 @@ lemma history_unfold [simp]: "history [A \<rightarrow> \<alpha> \<cdot> \<beta>]
   unfolding history_def by simp
 
 definition hist :: "('n, 't) item list \<Rightarrow> ('n,'t) syms" where
-  "hist \<rho> \<equiv> concat (map history (rev \<rho>))"
+  "hist \<rho> \<equiv> concat (map history \<rho>)"
 
 lemma hist_Nil [simp]:
   "hist [] = []" 
@@ -26,8 +26,12 @@ lemma hist_singleton [simp]:
   "hist ([[A \<rightarrow> \<alpha> \<cdot> \<beta>]]) = \<alpha>"
   unfolding hist_def by simp
 
-lemma hist_Cons[simp]:
-  "hist (i#\<rho>) = hist \<rho> @ history i"
+lemma hist_Cons [simp]:
+  "hist (i#\<rho>) = history i @ hist \<rho>"
+  unfolding hist_def by simp
+
+lemma hist_append [simp]:
+  "hist (\<rho> @ \<sigma>) = hist \<rho> @ hist \<sigma>"
   unfolding hist_def by simp
 
 lemmas hist_defs = hist_def history_def
@@ -72,11 +76,11 @@ lemma prod_of_item_eq_imp_in_Prods_eq:
   "prod_of_item i = prod_of_item j \<Longrightarrow> i \<in> It G' \<longleftrightarrow> j \<in> It G'"
   by (cases i, cases j) (metis in_Prods_iff_in_It)
 
-lemma hd_in_prods_imp_derives_expanded_hist:
-  assumes "(Y, \<alpha>) \<in> P"
-  shows "P \<turnstile> hist ([X \<rightarrow> \<beta> @ [Nt Y] \<cdot> \<gamma>] # \<rho>) \<Rightarrow>*  hist ([Y \<rightarrow> \<alpha> \<cdot> []] # [X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] # \<rho>)"         
-    (is "P \<turnstile> ?h1 \<Rightarrow>* ?h2")
-  using assms by (auto simp: derive_prepend derive_singleton r_into_rtranclp)
+lemma prod_imp_derives_expanded_hist:
+  assumes "(Y, \<beta>) \<in> P"
+  shows "P \<turnstile> hist (\<rho> @ [X \<rightarrow> \<alpha> @ [Nt Y] \<cdot> \<gamma>] # \<sigma>) \<Rightarrow>  hist (\<rho> @ [X \<rightarrow> \<alpha> \<cdot> Nt Y # \<gamma>] # [Y \<rightarrow> \<beta> \<cdot> []] # \<sigma>)"         
+    (is "P \<turnstile> ?h1 \<Rightarrow> ?h2")
+  using derive.intros[OF assms, of "hist \<rho> @ \<alpha>"] by simp
 
 lemma prod_items_finite:
   "finite {[A \<rightarrow> \<alpha> \<cdot> \<beta>] | \<alpha> \<beta>. (A, \<alpha>@\<beta>) = (A, w)}"
@@ -467,7 +471,6 @@ lemma S'_Prod_notin_G':
     by (cases rule: G'_Prod_cases) auto
 qed
 
-
 lemma S'_derive_imp_S:
   assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow> \<alpha>"
   shows "\<alpha> = [Nt S]"
@@ -539,7 +542,16 @@ lemma G'_derivern_Suc_imp_no_S':
   by (drule G'_derivern_Suc_imp_G_derivern)
     (metis G_not_empty Lang_empty_if_notin_Lhss Nts_Lhss_Rhs_Nts S_def UnCI derives_imp_in_Prods
       in_mono relpowp_imp_rtranclp S'_notin_Nts_Prods_G)
-  
+
+lemma S'_derives_S'_imp_refl:
+  assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow>* \<alpha> @ Nt S' # \<beta>"
+  shows "\<alpha> = [] \<and> \<beta> = []"
+  using assms proof cases
+  case (rtrancl_into_rtrancl b)
+  then show ?thesis using G'_derivern_Suc_imp_no_S' 
+    by (metis Nts_syms_append Un_iff in_Nts_syms list.set_intros(1) relpowp_Suc_I
+        rtranclp_imp_relpowp)
+qed (simp add: append_eq_Cons_conv)
   
 lemma Lang_preserved:
   "LangS G' = LangS G"

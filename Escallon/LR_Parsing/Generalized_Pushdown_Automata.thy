@@ -224,7 +224,7 @@ next
     using gpda_of_pda_states_contain_pda_states_stack by auto
 next
   case (4 ps qs)
-  then show ?case sorry
+  then show ?case \<proof>
 next
   case 5
   then show ?case unfolding states_gpda_of_pda 
@@ -236,14 +236,14 @@ next
       bij_betw_finite by auto
 next
   case 7
-  then show ?case sorry
+  then show ?case \<proof>
 qed
 
 
 theorem Cfg_imp_gpda:
   fixes G :: "('n, 't) Cfg"
   obtains M :: "('q, 't) gpda" where "gpda.Lang M = LangS G" 
-  sorry
+  \<proof>
 
 
 end

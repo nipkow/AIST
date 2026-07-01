@@ -811,6 +811,190 @@ lemma derivers_append_cases [consumes 1, case_names suffix prefix]:
     \<alpha>' v where "P \<turnstile> \<alpha> \<Rightarrow>r* \<alpha>'" "P \<turnstile> \<beta> \<Rightarrow>r* map Tm v" "\<gamma> = \<alpha>' @ map Tm v"
   using derivers_appendD[THEN iffD1, OF assms] by blast
 
+section \<open>NFAs\<close>
+
+context nfa begin
+lemma Power_nextl_eq_nfa_nextl [simp]:
+  "(dfa.nextl Power_dfa (dfa.init Power_dfa) u) = nextl (init M) u"
+proof (induct u rule: List.rev_induct)
+  case Nil show ?case
+    using hinsert_def by (simp add: dfa.nextl.simps(1) dfa_Power)
+next
+  case (snoc x u) then show ?case
+    using init finite_nextl nextl_state [THEN subsetD]
+    by (simp add: dfa.nextl_snoc dfa_Power)
+qed
+
+lemma in_states_imp_in_epsclo:
+  assumes "q \<in> nfa.states M" "q \<in> Q"
+  shows "q \<in> epsclo Q"
+  unfolding epsclo_def using assms by blast
+
+
+
+subsection \<open>NFA Configurations and Steps\<close>
+
+type_synonym ('b,'c) config = "'b \<times> 'c list"
+
+inductive step :: "('s,'a) config \<Rightarrow> ('s,'a) config \<Rightarrow> bool" (infix \<open>\<turnstile>\<close> 55) where
+step_nxt[intro]:  "q \<in> nfa.nxt M p a \<Longrightarrow> (p,a#u) \<turnstile> (q,u)" |
+step_eps[intro]:  "(p,q) \<in> nfa.eps M \<Longrightarrow> (p,w) \<turnstile> (q,w)"
+
+inductive_cases step_nxtE[elim]: "(q,a#u) \<turnstile> (r,u)"
+inductive_cases step_epsE[elim]: "(q,w) \<turnstile> (r,w)"
+
+lemma step_equal_or_Cons:
+  assumes "(p,u) \<turnstile> (q,v)"
+  shows "u = v \<or> (\<exists>a. u = a#v)"
+  using assms by cases auto
+
+lemma step_len_dec:
+  assumes "(p,u) \<turnstile> (q,v)"
+  shows "length u \<ge> length v" 
+  using step_equal_or_Cons[OF assms] by fastforce
+
+abbreviation stepn  (\<open>_ \<turnstile>'(_') _\<close> 55) where
+  "c0 \<turnstile>(n) c1 \<equiv> (step ^^ n) c0 c1"
+
+abbreviation steps (infix \<open>\<turnstile>*\<close> 55) where
+  "steps \<equiv> (step \<^sup>*\<^sup>*)"
+
+lemma steps_len_dec:
+  "(p,u) \<turnstile>* (q,v) \<Longrightarrow> length u \<ge> length v" 
+  by (induction "(p,u)" "(q,v)" arbitrary: q v rule: rtranclp.induct)
+  (use step_len_dec surj_pair le_trans in fastforce)+
+
+lemma nxt_indep:
+  assumes "(p, a # u) \<turnstile> (q, u)"
+  shows "(p, a # v) \<turnstile> (q, v)"
+  using assms by auto
+
+lemma eps_indep:
+  assumes "(p, u) \<turnstile> (q, u)"
+  shows "(p, v) \<turnstile> (q, v)"
+  using assms by blast
+
+lemma step_imp_nempty_or_eq:
+  assumes "(p, u) \<turnstile> (q, v)"
+  shows "u \<noteq> [] \<or> u = v"
+  using assms by cases auto
+
+lemma stepn_append:
+  assumes "(p, u@v) \<turnstile>(n) (q, v)"
+  shows "(p, u@w) \<turnstile>(n) (q, w)"
+  using assms proof (induction n arbitrary: p u q)
+  case 0
+  then show ?case by simp
+next
+  case (Suc n)
+  then obtain r x where n_steps: "(p, u@v) \<turnstile> (r, x)" "(r, x) \<turnstile>(n) (q, v)" 
+    by (metis eq_fst_iff relpowp_Suc_D2)
+  from this(1) show ?case 
+  proof cases
+    case (step_nxt a)
+    then obtain y where u_decomp: "u = a # y" "x = y @ v" using n_steps 
+      by (metis append_eq_Cons_conv impossible_Cons relpowp_imp_rtranclp steps_len_dec)
+    hence "(p, u @ w) \<turnstile> (r, y @ w)" by (auto simp: step_nxt(2))
+    also note Suc.IH[OF n_steps(2)[unfolded u_decomp(2)]]
+    finally show ?thesis .
+  next
+    case step_eps
+    with Suc.IH n_steps(2) have "(r, u @ w) \<turnstile>(n) (q, w)" by blast
+    then show ?thesis using eps_indep[OF n_steps(1)[unfolded step_eps(1)], of "u @ w"] 
+      by (meson relpowp_Suc_I2)
+  qed
+qed
+
+lemma steps_append:
+  "(p, u @ v) \<turnstile>* (q, v) \<Longrightarrow> (p, u @ w) \<turnstile>* (q, w)"
+  using stepn_append[THEN relpowp_imp_rtranclp] rtranclp_imp_relpowp by metis
+
+lemma in_epsclo_imp_reachable:
+  assumes "q \<in> epsclo Q"
+  obtains p where "p \<in> Q" "(p, w) \<turnstile>* (q, w)"
+proof -
+  from assms obtain p where "p \<in> Q" "(p, q) \<in> (nfa.eps M)\<^sup>*"
+    unfolding epsclo_def by blast
+  from this(2) show thesis
+    using that by (induction arbitrary: thesis) 
+      (use \<open>p \<in> Q\<close> in simp, metis step_eps rtranclp.simps)
+qed 
+
+lemma in_nextl_imp_reaches:
+  assumes "q \<in> nextl Q w"
+  obtains p where "p \<in> Q" "(p, w) \<turnstile>* (q, [])"
+  using assms proof (induction w arbitrary: Q thesis)
+  case Nil
+  hence "q \<in> epsclo Q" by auto
+  then show ?case using Nil(1) in_epsclo_imp_reachable by blast
+next
+  case (Cons a w) 
+  then obtain p where p_defs: "p \<in> (\<Union>q \<in> epsclo Q. nfa.nxt M q a)" "(p, w) \<turnstile>* (q, [])"
+    using nextl.simps(2) by metis
+  then obtain r where r_defs: "r \<in> epsclo Q" "p \<in> nfa.nxt M r a" by blast
+  with in_epsclo_imp_reachable obtain s where "s \<in> Q" "(s, a#w) \<turnstile>* (r, a#w)" by blast
+  note this(2)
+  also from r_defs have "(r, a#w) \<turnstile> (p, w)" by blast
+  also note p_defs(2)
+  finally show ?case using \<open>s \<in> Q\<close> Cons by fast
+qed
+
+lemma reachable_imp_in_nextl:
+  assumes "p \<in> nfa.states M"
+    "nfa.eps M \<subseteq> nfa.states M \<times> nfa.states M"
+    "(p, w) \<turnstile>* (q, [])"
+  shows "q \<in> nextl {p} w"
+  using assms(3,1) proof (induction rule: converse_rtranclp_induct2)
+  case refl
+  then show ?case using epsclo_def by simp
+next
+  case (step p u r v)
+  from step(1) show ?case
+  proof cases
+    case (step_nxt a)
+    with nfa.nxt[OF nfa_axioms step(4)] step have q_in_nextl_r: "q \<in> nextl {r} v" 
+      by blast                                            
+    have "nextl {p} u = nextl (\<Union>q\<in>epsclo {p}. nfa.nxt M q a) v"    
+      using step_nxt(1) nextl.simps(2) by blast
+    with step_nxt have "nextl {r} v \<subseteq> nextl {p} u" 
+      by (metis (mono_tags, lifting) Int_insert_left_if1 UN_I empty_subsetI insert_subset nextl_mono
+          nfa.epsclo_increasing nfa_axioms step.prems)
+    then show ?thesis using q_in_nextl_r by blast 
+  next
+    case step_eps
+    hence r_subst_p: "epsclo {r} \<subseteq> epsclo {p}"
+      unfolding epsclo_def by auto
+    from step_eps step(3) assms have q_in_nextl_r: "q \<in> nextl {r} u" by blast
+    also have "... = nextl (epsclo {r}) u" by simp
+    also from r_subst_p have "... \<subseteq> nextl (epsclo {p}) u" 
+      using nextl_mono by presburger
+    also have "... = nextl {p} u" by simp
+    finally show ?thesis .
+  qed
+qed
+
+lemma eps_subst_states_imp_nextl_eq_reachable:
+  assumes "nfa.eps M \<subseteq> nfa.states M \<times> nfa.states M"
+  shows "i \<in> nextl (nfa.init M) w = (\<exists>q \<in> nfa.init M. (q, w) \<turnstile>* (i, []))"
+proof
+  show "i \<in> nextl (nfa.init M) w \<Longrightarrow> \<exists>q\<in>nfa.init M. (q, w) \<turnstile>* (i, [])"
+    using in_nextl_imp_reaches by metis
+next
+  show "\<exists>q\<in>nfa.init M. (q, w) \<turnstile>* (i, []) \<Longrightarrow> i \<in> nextl (nfa.init M) w"
+    using reachable_imp_in_nextl[OF _ assms] 
+    by (metis Set.set_insert empty_subsetI insert_subset nextl_mono nfa.init nfa_axioms)
+qed
+
+
+lemma eps_subst_states_imp_language_eq_init_final_reachable:
+  assumes "nfa.eps M \<subseteq> nfa.states M \<times> nfa.states M"
+  shows "language = {w. \<exists>q\<^sub>0 \<in> nfa.init M. \<exists>f \<in> nfa.final M. (q\<^sub>0, w) \<turnstile>* (f, [])}"
+  (is "_ = ?r")
+  using eps_subst_states_imp_nextl_eq_reachable[OF assms] unfolding language_def
+  by blast
+
+end
+
 section \<open>Others\<close>
 
 lemma derives_non_word_imp_non_word:
@@ -857,22 +1041,4 @@ lemma stepcnt_cases [consumes 1, case_names refl step]:
   shows P
   using assms(1) by cases (use assms(2-) rtranclp_imp_relpowp in fastforce)+
 
-context nfa begin
-lemma Power_nextl_eq_nfa_nextl [simp]:
-  "(dfa.nextl Power_dfa (dfa.init Power_dfa) u) = nextl (init M) u"
-proof (induct u rule: List.rev_induct)
-  case Nil show ?case
-    using hinsert_def by (simp add: dfa.nextl.simps(1) dfa_Power)
-next
-  case (snoc x u) then show ?case
-    using init finite_nextl nextl_state [THEN subsetD]
-    by (simp add: dfa.nextl_snoc dfa_Power)
-qed
-
-lemma in_states_imp_in_epsclo:
-  assumes "q \<in> nfa.states M" "q \<in> Q"
-  shows "q \<in> epsclo Q"
-  unfolding epsclo_def using assms by blast
-
-end
 end

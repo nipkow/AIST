@@ -10,11 +10,9 @@ record ('q, 'a) gpda = states :: "'q set"
                        nxt    :: "('q list \<times> 'a \<times> 'q list) set"
                        eps    :: "('q list \<times> 'q list) set"
                       
-
-type_synonym ('q, 'a) config = "'q list \<times> 'a list"
-
 (* Placeholder, should be states M 
-consts Q :: "'s::fresh0 set" *)
+consts Q :: "'s::fresh0 set" 
+*)
 
 locale gpda =
   fixes M :: "('q, 'a) gpda"
@@ -28,6 +26,8 @@ locale gpda =
       and finite_nxt: "finite (nxt M)"
       and finite_eps: "finite (eps M)"
 begin
+
+type_synonym ('s, 'b) config = "'s list \<times> 'b list"
 
 inductive step :: "('q,'a) config \<Rightarrow> ('q,'a) config \<Rightarrow> bool" (infix \<open>\<turnstile>\<close> 55) where
 step_nxt[intro]: "(ps, a, qs) \<in> nxt M \<Longrightarrow> (ps@rs, a#w) \<turnstile> (qs@rs, w)" |

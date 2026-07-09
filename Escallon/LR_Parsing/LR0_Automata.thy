@@ -4,7 +4,7 @@ theory LR0_Automata
     Rightmost_Chain
 begin
 
-
+section \<open>The Canonical LR(0) Parser's Underlying Automata\<close>
 
 context Extended_Cfg
 begin
@@ -28,7 +28,7 @@ abbreviation IPDA_stepn :: "('n,'t) item list \<times> 't list \<Rightarrow> nat
                     \<Rightarrow> bool" ( \<open>_ \<turnstile>I'(_') _\<close> 55) where
   "c0 \<turnstile>I(n) c1 \<equiv> (ipda.stepn IPDA) c0 n c1"
 
-section \<open>The Characteristic Finite Automaton to a Context-Free Grammar\<close>
+subsection \<open>The Characteristic Finite Automaton to a Context-Free Grammar\<close>
 
 definition char_fa :: "(('n, 't) sym, ('n, 't) item) nfa" where
   "char_fa \<equiv> let 
@@ -40,7 +40,7 @@ definition char_fa :: "(('n, 't) sym, ('n, 't) item) nfa" where
     \<lparr>nfa.states = It G', nfa.init = {[S' \<rightarrow> [] \<cdot> [Nt S]]}, nfa.final = completes (It G'), 
       nfa.nxt = \<Delta>, nfa.eps = \<E>\<rparr>"
 
-subsection \<open>Basic Properties\<close>
+subsubsection \<open>Basic Properties\<close>
 
 lemma states_char_fa [simp]: 
   "nfa.states char_fa = It G'"
@@ -157,7 +157,7 @@ next
   qed (use nxt_closed q_def in fastforce)+
 qed (use G'_def It_defs finite_It[OF G'_finite] in fastforce)+
 
-subsection \<open>Properties of \<epsilon>-transitions and the \<epsilon>-closure\<close>
+subsubsection \<open>Properties of \<epsilon>-transitions and the \<epsilon>-closure\<close>
 
 lemma in_eps_char_imp_in_It:
   assumes "(p,q) \<in> nfa.eps char_fa"
@@ -346,7 +346,7 @@ next
   finally show ?case using step.prems[of "j # \<sigma>"] by simp
 qed
 
-subsection \<open>Properties of \<open>char(G)\<close> computations\<close>
+subsubsection \<open>Properties of \<open>char(G)\<close> computations\<close>
 
 notation char_fa.step (infix \<open>\<turnstile>c\<close> 55)
 notation char_fa.steps (infix \<open>\<turnstile>c*\<close> 55)
@@ -524,7 +524,7 @@ proof -
   qed simp
 qed
 
-section \<open>Equivalences between \<open>char(G)\<close>, \<open>IPDA\<close>, and rightmost derivations\<close>
+subsection \<open>Equivalences between \<open>char(G)\<close>, \<open>IPDA\<close>, and rightmost derivations\<close>
 
 text \<open>Step 1: If \<open>char(G)\<close> reaches \<open>([A \<rightarrow> \<alpha>.\<beta>], \<epsilon>)\<close> with input \<open>\<gamma>\<close>, 
       \<open>\<gamma>\<close>  is a reliable prefix of G for \<open>[A \<rightarrow> \<alpha>.\<beta>]\<close>.\<close>
@@ -766,7 +766,7 @@ proof -
   from derivers_imp_ipda[OF assms this] ipda_imp_char show ?thesis by metis
 qed
 
-section \<open>Reliable Prefixes\<close>
+subsection \<open>Reliable Prefixes\<close>
 
 text \<open>\<open>\<gamma>\<close> is a reliable prefix to \<open>[A \<rightarrow> \<alpha>.\<beta>]\<close> (or equivalently, \<open>[A \<rightarrow> \<alpha>.\<beta>]\<close> is valid for \<open>\<gamma>\<close>) 
       if there exists a rightmost derivation \<open>S' \<Rightarrow>r* \<gamma>'Aw \<Rightarrow>r \<gamma>'\<alpha>\<beta>w\<close> with \<open>\<gamma> = \<gamma>'\<alpha>\<close>:\<close>
@@ -1031,7 +1031,7 @@ proof -
 qed
 
 
-section \<open>The Canonical LR(0) Automaton\<close>
+subsection \<open>The Canonical LR(0) Automaton\<close>
 
 definition LR\<^sub>0 :: "(('n, 't) sym, ('n, 't) item set) dfa" where
   "LR\<^sub>0 \<equiv> dfa.Accessible_dfa char_fa.Power_dfa"

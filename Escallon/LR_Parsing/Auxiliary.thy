@@ -830,8 +830,6 @@ lemma in_states_imp_in_epsclo:
   shows "q \<in> epsclo Q"
   unfolding epsclo_def using assms by blast
 
-
-
 subsection \<open>NFA Configurations and Steps\<close>
 
 type_synonym ('b,'c) config = "'b \<times> 'c list"

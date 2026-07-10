@@ -119,10 +119,7 @@ lemma eps_P0_reduceI:
     using assms(1) by metis
 qed (use assms in auto)
 
-
-
-
-lemmas P\<^sub>0_simps [simp] = states_P0 init_P0 final_P0 nxt_P0 eps_P0
+lemmas P\<^sub>0_simps [simp] = states_P0 init_P0 nxt_P0 eps_P0
 
 lemma nxt_P0E [elim]:
   assumes "(qs, a, qs') \<in> gpda.nxt P\<^sub>0"

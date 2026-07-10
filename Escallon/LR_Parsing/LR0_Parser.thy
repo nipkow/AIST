@@ -1678,5 +1678,8 @@ theorem P0_Lang_eq_Lang_G:
   "P0.Lang = LangS G'"
   using P0_sound P0_complete by standard
 
+thy_deps
+unused_thms Context_Free_Grammar Finite_Automata_HF Pushdown_Automata -
+
 end
 end

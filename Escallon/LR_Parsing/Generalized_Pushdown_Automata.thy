@@ -254,5 +254,4 @@ theorem Cfg_imp_gpda:
   obtains M :: "('q, 't) gpda" where "gpda.Lang M = LangS G" 
   \<proof>
 
-
 end

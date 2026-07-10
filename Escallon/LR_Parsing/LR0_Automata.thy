@@ -847,6 +847,8 @@ lemma validI [intro]:
   "reliable_prefix i \<gamma> \<Longrightarrow> i \<in> valids \<gamma>"
   unfolding valids_def by blast
 
+
+
 lemma char_fa_nextl_is_valids:
   "nfa.nextl char_fa (nfa.init char_fa) w = valids w"
 proof -
@@ -991,6 +993,53 @@ proof -
     case (Suc m)
     with derivern_Suc_substring_reliable show thesis using derivern that by meson
   qed
+qed
+
+lemma nempty_valids_imp_nempty_valids_prefix:
+  assumes "valids (\<alpha>@\<beta>) \<noteq> {}"
+  shows "valids \<alpha> \<noteq> {}"
+proof -
+  from assms obtain X \<gamma> \<delta> where reliable: "reliable_prefix [X \<rightarrow> \<gamma> \<cdot> \<delta>] (\<alpha> @ \<beta>)"
+    unfolding valids_def by (metis Collect_empty_eq item.exhaust)
+  then obtain \<gamma>' w where derivers: "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma>' @ Nt X # map Tm w" "\<gamma>' @ \<gamma> = \<alpha> @ \<beta>"
+    by (smt (verit, best) item.inject reliable_prefix.cases)
+  then consider \<alpha>' where "\<gamma>' @ \<alpha>' = \<alpha>" "\<alpha>' @ \<beta> = \<gamma>" | \<zeta> where "\<gamma>' = \<alpha> @ \<zeta>" 
+    by (metis append_eq_append_conv2)
+  then show ?thesis proof cases
+    case 1
+    with reliable have "reliable_prefix [X \<rightarrow> \<alpha>' \<cdot> \<beta> @ \<delta>] \<alpha>" by simp
+    then show ?thesis by blast
+  next
+    case 2
+    from derivers(1) show ?thesis using derivers_substring_reliable[of \<alpha> \<zeta> X w] unfolding 2
+      by auto
+  qed
+qed
+
+lemma valids_prod_imp_complete_in_valids_derive:
+  assumes "valids (\<alpha> @ [Nt A]) \<noteq> {}"
+    "(A, \<beta>) \<in> Prods G'"
+  shows "[A \<rightarrow> \<beta> \<cdot> []] \<in> valids (\<alpha> @ \<beta>)"
+proof -
+  from assms obtain X \<zeta> \<eta> where X_reliable: "reliable_prefix [X \<rightarrow> \<zeta> \<cdot> \<eta>] (\<alpha> @ [Nt A])" 
+    unfolding valids_def  reliable_prefix.simps by fastforce
+  then obtain \<gamma> v where "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma> @ Nt X # map Tm v"
+    "Prods G' \<turnstile> \<gamma> @ Nt X # map Tm v \<Rightarrow>r \<gamma> @ \<zeta> @ \<eta> @ map Tm v" "\<gamma> @ \<zeta> = \<alpha> @ [Nt A]" 
+    by (elim reliable_prefixE) auto
+  hence "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ Nt A # \<eta> @ map Tm v" 
+    by (metis (no_types, lifting) append_Cons append_Nil append_eq_append_conv2
+        rtranclp.rtrancl_into_rtrancl)
+  moreover from derivers_imp_derives[OF this] obtain u where "Prods G' \<turnstile> \<eta> \<Rightarrow>r* map Tm u"
+    using reduced_derives_imp_substring_derives_Tms[of G' "\<alpha> @ [Nt A]" \<eta> "map Tm v"]
+      G'_reduced G'_not_empty derivers_iff_derives[THEN iffD2] G'_def 
+    by (metis Cfg.sel(2) append_Cons append_Nil append_eq_appendI)
+  ultimately have "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ Nt A # map Tm (u @ v)" 
+    using derivers_prepend[of _ \<eta> "map Tm u" "\<alpha> @ [Nt A]"] 
+      derivers_append_map_Tm[of _ "(\<alpha> @ [Nt A]) @ \<eta>" "(\<alpha> @ [Nt A]) @ map Tm u" v]
+    by fastforce
+  moreover have "Prods G' \<turnstile> ... \<Rightarrow>r \<alpha> @ \<beta> @ map Tm (u @ v)" using assms(2) 
+    by (blast intro: deriver.intros)
+  ultimately show "[A \<rightarrow> \<beta> \<cdot> []] \<in> valids (\<alpha> @ \<beta>)" by fastforce
 qed
 
 lemma derivers_imp_reliable [case_names rm_valid nc_valid]:

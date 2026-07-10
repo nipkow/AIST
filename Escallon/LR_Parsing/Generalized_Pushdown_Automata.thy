@@ -12,6 +12,7 @@ record ('q, 'a) gpda = states :: "'q set"
                       
 (* Placeholder, should be states M 
 consts Q :: "'s::fresh0 set" 
+
 *)
 
 locale gpda =
@@ -30,11 +31,19 @@ begin
 type_synonym ('s, 'b) config = "'s list \<times> 'b list"
 
 inductive step :: "('q,'a) config \<Rightarrow> ('q,'a) config \<Rightarrow> bool" (infix \<open>\<turnstile>\<close> 55) where
-step_nxt[intro]: "(ps, a, qs) \<in> nxt M \<Longrightarrow> (ps@rs, a#w) \<turnstile> (qs@rs, w)" |
-step_eps[intro]: "(ps, qs) \<in> eps M \<Longrightarrow> (ps@rs, w) \<turnstile> (qs@rs, w)"
+step_nxt: "(ps, a, qs) \<in> nxt M \<Longrightarrow> (ps@rs, a#w) \<turnstile> (qs@rs, w)" |
+step_eps: "(ps, qs) \<in> eps M \<Longrightarrow> (ps@rs, w) \<turnstile> (qs@rs, w)"
 
 inductive_cases step_nxtE[elim]: "(ps, a#w) \<turnstile> (qs, w)"
 inductive_cases step_epsE[elim]: "(ps, w) \<turnstile> (qs, w)"
+
+lemma nxtI [intro]:
+  "\<lbrakk>ps = ps' @ rs; qs = qs' @ rs; (ps', a, qs') \<in> nxt M\<rbrakk> \<Longrightarrow> (ps, a # w) \<turnstile> (qs, w)"
+  using step_nxt by presburger
+
+lemma epsI [intro]:
+  "\<lbrakk>ps = ps' @ rs; qs = qs' @ rs; (ps', qs') \<in> eps M\<rbrakk> \<Longrightarrow> (ps, w) \<turnstile> (qs, w)"
+  using step_eps by presburger
 
 lemma step_imp_Cons:
   assumes "(ps, u) \<turnstile> (qs, v)"

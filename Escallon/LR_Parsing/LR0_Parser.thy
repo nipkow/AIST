@@ -36,6 +36,25 @@ lemma init_P0_is_valids_empty:
 
 abbreviation "P0_final \<equiv> {[S' \<rightarrow> [] \<cdot> []]}"
 
+lemma S'_eps_not_reliable:
+  assumes "reliable_prefix [S' \<rightarrow> [] \<cdot> []] \<gamma>"
+  shows False
+  using assms proof cases
+  case (1 \<gamma>' w)
+  from this(3) have "(S', []) \<in> Prods G'" 
+    using deriver_imp_in_Prods by force
+  then show False 
+    using G'_Prod_cases S'_Prod_notin_G(1) by auto
+qed
+
+lemma P0_final_not_valids:
+  "P0_final \<noteq> valids \<gamma>"
+  using S'_eps_not_reliable unfolding valids_def by blast
+
+lemma valids_in_states_imp_in_dfa_LR0_states [dest]:
+  "valids \<gamma> \<in> gpda.states P\<^sub>0 \<Longrightarrow> valids \<gamma> \<in> dfa.states LR\<^sub>0"
+  unfolding states_P0 using P0_final_not_valids by blast
+
 lemma final_P0 [simp]:
   "gpda.final P\<^sub>0 = {P0_final}"
   unfolding P\<^sub>0_def by (meson gpda.select_convs(3))
@@ -48,7 +67,6 @@ lemma init_P0_contains_S'S [simp]:
 lemma P0_init_not_final [simp]:
   "gpda.init P\<^sub>0 \<notin> gpda.final P\<^sub>0"
   unfolding final_P0 init_dfa_LR0 using init_P0_contains_S'S by fast
-
 
 lemma P0_final_item_notin_It [simp]:
   "[S' \<rightarrow> [] \<cdot> []] \<notin> It G'"
@@ -91,6 +109,18 @@ lemma eps_P0:
     q\<^sub>n qs X \<alpha>. set (q\<^sub>n#qs) \<subseteq> dfa.states LR\<^sub>0 \<and> [X \<rightarrow> \<alpha> \<cdot> []] \<in> q\<^sub>n \<and> length \<alpha> = length qs \<and> X \<noteq> S'} \<union>
   {([q, dfa.init LR\<^sub>0], [P0_final])|q. q \<in> dfa.states LR\<^sub>0 \<and> [S' \<rightarrow> [Nt S] \<cdot> []] \<in> q}"
   unfolding P\<^sub>0_def by (meson gpda.select_convs(5))
+
+lemma eps_P0_reduceI:
+  assumes "qs = [dfa.nxt LR\<^sub>0 (last (p#ps)) (Nt X), last (p#ps)]" 
+    "set (p#ps) \<subseteq> dfa.states LR\<^sub>0" "[X \<rightarrow> \<alpha> \<cdot> []] \<in> p" "length \<alpha> = length ps" "X \<noteq> S'" 
+  shows "(p#ps, qs) \<in> gpda.eps P\<^sub>0"
+  unfolding eps_P0 proof (rule UnI1, standard, intro exI, intro conjI)
+  show "(p # ps, qs) = (let q = last (p # ps) in (p # ps, [dfa.nxt LR\<^sub>0 q (Nt X), q]))"
+    using assms(1) by metis
+qed (use assms in auto)
+
+
+
 
 lemmas P\<^sub>0_simps [simp] = states_P0 init_P0 final_P0 nxt_P0 eps_P0
 
@@ -1058,7 +1088,58 @@ lemma P0_final_step_is_finish:
   obtains q where "q \<in> dfa.states LR\<^sub>0" "(qs, u) = ([q, dfa.init LR\<^sub>0], v)" "[S' \<rightarrow> [Nt S] \<cdot> []] \<in> q"
   using assms by cases auto
 
-lemma PO_finishI:
+lemma P0_nxtI [intro]:
+  assumes "ps = p # ps'" "qs = dfa.nxt LR\<^sub>0 p (Tm a) # p # ps'" 
+    "p \<in> dfa.states LR\<^sub>0" "dfa.nxt LR\<^sub>0 p (Tm a) \<noteq> {}"
+  shows "(ps, a # w) \<turnstile>P (qs, w)"
+proof
+  show "ps = [p] @ ps'" using assms by simp
+  show "qs  = [dfa.nxt LR\<^sub>0 p (Tm a), p] @ ps'" using assms by simp
+  from assms show "([p], a, [dfa.nxt LR\<^sub>0 p (Tm a), p]) \<in> gpda.nxt P\<^sub>0" 
+    by simp
+qed
+
+lemma P0_valids_nxtI:
+  assumes "valids (\<gamma> @ [Tm a]) \<noteq> {}" "valids \<gamma> \<in> dfa.states LR\<^sub>0"
+  shows "(valids \<gamma> # qs, a # w) \<turnstile>P (valids (\<gamma> @ [Tm a]) # valids \<gamma> # qs, w)"
+proof
+  show "valids (\<gamma> @ [Tm a]) # valids \<gamma> # qs = dfa.nxt LR\<^sub>0 (valids \<gamma>) (Tm a) # valids \<gamma>  # qs"
+    using nxt_dfa_LR0_shift_is_valids_app[OF assms(2)] by presburger
+  from nxt_dfa_LR0_shift_is_valids_app[OF assms(2)] show "dfa.nxt LR\<^sub>0 (valids \<gamma>) (Tm a) \<noteq> {}"
+    using assms by simp
+qed (use assms in simp_all) 
+thm eps_P0
+
+lemma P0_valids_reduceI:
+  assumes 
+    "[A \<rightarrow> \<beta> \<cdot> []] \<in> valids (\<gamma> @ \<beta>)" (is "_ \<in> ?\<gamma>\<beta>")  
+    "set (take (Suc (length \<beta>)) (valids (\<gamma> @ \<beta>) # ps)) \<subseteq> dfa.states LR\<^sub>0"
+    "A \<noteq> S'"
+    "(valids (\<gamma> @ \<beta>) # ps) ! (length \<beta>) = valids \<gamma>"
+    "length (valids (\<gamma> @ \<beta>) # ps) > length \<beta>"
+  shows "(valids (\<gamma> @ \<beta>) # ps, w) \<turnstile>P (valids (\<gamma> @ [Nt A]) # drop (length \<beta>) (valids (\<gamma> @ \<beta>) # ps), w)"
+proof 
+  from assms obtain qs where qs_def: "qs = take (length \<beta>) ps"
+    by presburger
+  let ?q = "last (?\<gamma>\<beta> # take (length \<beta>) ps)"
+  show "(?\<gamma>\<beta> # take (length \<beta>) ps, [dfa.nxt LR\<^sub>0 ?q (Nt A), ?q]) \<in> gpda.eps P\<^sub>0"
+    by (rule eps_P0_reduceI) (use qs_def assms in auto)
+  show "valids (\<gamma> @ \<beta>) # ps = (valids (\<gamma> @ \<beta>) # take (length \<beta>) ps) @ drop (length \<beta>) ps" 
+    by simp
+  from assms have last_eq_\<gamma>: "(last (valids (\<gamma> @ \<beta>) # take (length \<beta>) ps)) = valids \<gamma>"  
+    by (metis last_snoc length_Cons take_Suc_Cons take_Suc_conv_app_nth)
+  show "valids (\<gamma> @ [Nt A]) # drop (length \<beta>) (valids (\<gamma> @ \<beta>) # ps) =
+    [dfa.nxt LR\<^sub>0 (last (valids (\<gamma> @ \<beta>) # take (length \<beta>) ps)) (Nt A),
+     last (valids (\<gamma> @ \<beta>) # take (length \<beta>) ps)] @
+    drop (length \<beta>) ps"
+    unfolding last_eq_\<gamma> 
+    by (smt (verit, ccfv_SIG) append.assoc append_Cons append_take_drop_id assms(4,5)
+        dfa_LR0.nextl_init_state length_Cons less_SucI nextl_dfa_LR0_is_valids
+        nxt_dfa_LR0_shift_is_valids_app same_append_eq take_Suc_Cons
+        take_Suc_conv_app_nth)
+qed
+
+lemma P0_finishI:
   assumes "q \<in> dfa.states LR\<^sub>0" "[S' \<rightarrow> [Nt S] \<cdot> []] \<in> q"
   shows "(q # gpda.init P\<^sub>0 # qs, w) \<turnstile>P (P0_final # qs, w)"
 proof -
@@ -1066,6 +1147,13 @@ proof -
     by simp
   thus ?thesis using P0.step_eps[of "[q, dfa.init LR\<^sub>0]" "[P0_final]" qs w] by fastforce
 qed
+
+lemma valids_S_Nil_step_finish:
+  "(valids [Nt S] # valids [] # qs, w) \<turnstile>P (P0_final # qs, w)"
+  unfolding init_P0_is_valids_empty[symmetric] 
+  by (rule P0_finishI) (use dfa_LR0.nextl_init_state nextl_dfa_LR0_is_valids in force,
+      metis Extended_Cfg.in_states_imp_valid Extended_Cfg.validI Extended_Cfg_axioms
+      S'_complete_reliable_imp_S ipda.final_state_in_It ipda_IPDA states_char_fa)
 
 (* TODO refactor *)
 lemma P0_stack_substr_reachable:
@@ -1185,9 +1273,22 @@ lemma sw_stepI [intro]:
   shows "X # \<alpha>' \<Turnstile> c\<^sub>0 \<turnstile>P* c\<^sub>2"
   using assms sw_step by blast
 
+lemma sw_shift:
+  assumes "\<alpha> \<Turnstile> c\<^sub>0 \<turnstile>P* (ps, a # w)" "(ps, a # w) \<turnstile>P (qs, w)"
+  shows "Tm a # \<alpha> \<Turnstile> c\<^sub>0 \<turnstile>P* (qs, w)"
+  using assms(2) proof cases
+  case (shift r rs a w)
+  from assms show ?thesis 
+    by standard (use shift in auto)
+qed simp_all
+
 lemma stack_word_imp_P0_steps:
   "\<alpha> \<Turnstile> c\<^sub>0 \<turnstile>P* c\<^sub>1 \<Longrightarrow> c\<^sub>0 \<turnstile>P* c\<^sub>1"
   by (induction rule: stack_word.induct) auto
+
+lemma P0_init_stack_word_length_inv:
+  "\<alpha> \<Turnstile> ([gpda.init P\<^sub>0], u) \<turnstile>P* (qs, v) \<Longrightarrow> Suc (length \<alpha>) = length qs"
+  by (induction "([gpda.init P\<^sub>0], u)" "(qs, v)" arbitrary: qs v rule: stack_word.induct) auto
 
 lemma P0_steps_imp_stack_word:
   assumes "c0 \<turnstile>P* (q # qs, w)" "q \<in> dfa.states LR\<^sub>0"
@@ -1218,7 +1319,7 @@ lemma P0_steps_imp_stack_word:
   qed (use P0_final_item_notin_It in_state_imp_in_It that(2) in auto)
 qed fast
 
-lemma P0_hd_is_valids_of_stack_word:
+lemma P0_nth_is_valids_of_nth_stack_word:
   "\<alpha> \<Turnstile> ([gpda.init P\<^sub>0], u) \<turnstile>P* (q # qs, v) \<Longrightarrow> 
     \<forall>n < length (q # qs). (q # qs) ! n  = valids (rev (drop n \<alpha>))"
 proof (induction "([gpda.init P\<^sub>0], u)" "(q # qs, v)" arbitrary: q qs u v rule: stack_word.induct)
@@ -1266,33 +1367,28 @@ proof (induction "([gpda.init P\<^sub>0], u)" "(q # qs, v)" arbitrary: q qs u v 
   qed
 qed (use init_P0_is_valids_empty valids_def in force)
 
-(* True? *)
-lemma "valids (\<alpha> @ [X]) = valids (\<beta> @ [Y]) \<Longrightarrow> valids \<alpha> = valids \<beta>"
-  sorry
-  
-lemma P0_steps_valid_imp_sw:
-  "([gpda.init P\<^sub>0], u) \<turnstile>P* (valids \<gamma> # qs, v) \<Longrightarrow> rev \<gamma> \<Turnstile> ([gpda.init P\<^sub>0], u) \<turnstile>P* (valids \<gamma> # qs, v)"
-proof (induction "(valids \<gamma> # qs, v)" arbitrary: \<gamma> qs v  rule: rtranclp_induct)
-  case base
-  moreover then have "\<gamma> = []" 
-    using Extended_Cfg.dfa_LR0_init_reliable_Nil Extended_Cfg_axioms init_P0 by blast
-  ultimately show ?case by auto
-next
-  case (step y)
-  obtain \<gamma>' X where snoc: "\<gamma> = \<gamma>' @ [X]" sorry
-  from step(2) show ?case proof cases
-    case (shift r rs a w)
-    with snoc have "r = valids \<gamma>'" using nxt_dfa_LR0_shift_is_valids_app sorry
-    then show ?thesis sorry
-  next
-    case (reduce p\<^sub>n ps p\<^sub>0 qs X \<alpha> w)
-    then show ?thesis sorry
-  next
-    case (finish q qs w)
-    then show ?thesis sorry
-  qed
+lemma sw_last_is_init:
+  assumes "\<alpha> \<Turnstile> ([gpda.init P\<^sub>0], u) \<turnstile>P* (q # qs, v)"
+  shows "last (q # qs) = gpda.init P\<^sub>0"
+proof -
+  note len_qqs_Suc_len_\<alpha> = P0_init_stack_word_length_inv[OF assms]
+  hence "last (q # qs) = (q # qs) ! (length \<alpha>)"
+    by (simp add: last_of_Cons_idx_len_tl)
+  also with P0_nth_is_valids_of_nth_stack_word[OF assms] have 
+    "... = valids (rev (drop (length \<alpha>) \<alpha>))" using len_qqs_Suc_len_\<alpha> by force
+  finally show ?thesis using init_P0_is_valids_empty by auto
 qed
- 
+
+lemma sw_second_is_valids_tl:
+  assumes "\<alpha> \<Turnstile> ([gpda.init P\<^sub>0], u) \<turnstile>P* (p # q # qs, v)"
+  shows "q = valids (rev (tl \<alpha>))"
+proof -
+  note len_pqqs_Suc_len_\<alpha> = P0_init_stack_word_length_inv[OF assms]
+  have "q = (p # q # qs) ! Suc 0" by simp
+  also from P0_nth_is_valids_of_nth_stack_word[OF assms] have 
+    "... = valids (rev (drop (Suc 0) \<alpha>))" by auto
+  finally show ?thesis by (simp add: drop_Suc)
+qed
 
 lemma P0_invariant1:
   "\<lbrakk>\<alpha> \<Turnstile> ([gpda.init P\<^sub>0], u @ v) \<turnstile>P* (q # qs, v); q \<noteq> {}\<rbrakk> \<Longrightarrow> Prods G' \<turnstile> rev \<alpha> \<Rightarrow>r* map Tm u"
@@ -1316,7 +1412,7 @@ proof (induction "([gpda.init P\<^sub>0], u @ v)" "(q # qs, v)" arbitrary: q qs 
     moreover from this obtain \<alpha>' where "\<alpha> = rev \<beta> @ \<alpha>'"
     proof -
       have "p\<^sub>n = (p\<^sub>n # rs @ ss) ! 0" by simp
-      with P0_hd_is_valids_of_stack_word[of _ _ p\<^sub>n "rs @ ss"] reduce sw_step have 
+      with P0_nth_is_valids_of_nth_stack_word[of _ _ p\<^sub>n "rs @ ss"] reduce sw_step have 
         "reliable_prefix [Y \<rightarrow> \<beta> \<cdot> []] (rev \<alpha>)"
         by (metis drop0 length_greater_0_conv list.distinct(1) validD)
       then obtain \<alpha>' where "rev \<alpha> = \<alpha>' @ \<beta>"  
@@ -1346,10 +1442,6 @@ proof (induction "([gpda.init P\<^sub>0], u @ v)" "(q # qs, v)" arbitrary: q qs 
     ultimately show ?thesis using dfa_LR0_nxt_final_impossible_P0 by blast
   qed
 qed simp
-
-lemma P0_init_stack_word_length_inv:
-  "\<alpha> \<Turnstile> ([gpda.init P\<^sub>0], u) \<turnstile>P* (qs, v) \<Longrightarrow> Suc (length \<alpha>) = length qs"
-  by (induction "([gpda.init P\<^sub>0], u)" "(qs, v)" arbitrary: qs v rule: stack_word.induct) auto
 
 lemma P0_init_reaches_S'S_comp_imp_derivers:
   assumes "([gpda.init P\<^sub>0], w) \<turnstile>P* ([q, dfa.init LR\<^sub>0], [])"
@@ -1389,52 +1481,6 @@ proof
       G'_derives_from_S_imp_in_Lang derivers_imp_derives by blast
 qed
 
-lemma P0_completes_Tms:
-  assumes "[A \<rightarrow> \<alpha> \<cdot> map Tm u @ \<gamma>] \<in> valids \<delta>" "valids \<delta> \<in> dfa.states LR\<^sub>0"
-    "rev \<delta> \<Turnstile> ([gpda.init P\<^sub>0], w) \<turnstile>P* (valids \<delta> # qs, u @ v)"
-  obtains ps where "Suc (length ps) = length u"
-    "rev (\<delta> @ map Tm u) \<Turnstile> (valids \<delta> # qs, u @ v) \<turnstile>P* (valids (\<delta> @ map Tm u) # ps @ valids \<delta> # qs, v)"
-  sorry
-
-lemma derives_imp_P0_completes:
-  assumes "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm u"
-    "[A \<rightarrow> \<alpha> \<cdot> \<beta> @ \<gamma>] \<in> valids \<delta>" "valids \<delta> \<in> dfa.states LR\<^sub>0"
-    "rev \<delta> \<Turnstile> ([gpda.init P\<^sub>0], w) \<turnstile>P* (valids \<delta> # qs, u @ v)"
-  obtains ps where "Suc (length ps) = length \<beta>"
-    "rev (\<delta> @ \<beta>) \<Turnstile> (valids \<delta> # qs, u @ v) \<turnstile>P* (valids (\<delta> @ \<beta>) # ps @ valids \<delta> # qs, v)"
-proof -
-  from assms obtain n where "Prods G' \<turnstile> \<beta> \<Rightarrow>(n) map Tm u" 
-    using rtranclp_imp_relpowp by fast
-  from this assms(2-) that show thesis
-  proof (induction n arbitrary: A \<alpha> \<beta> \<gamma> qs u v \<delta> thesis rule: less_induct)
-    case (less n)
-    show ?case
-    proof (cases n)
-      case (Suc m)
-      with derives_decomp_less less(2) obtain \<beta>\<^sub>1 i x X j y \<beta>\<^sub>2 k z where \<beta>_decomp:
-        "\<beta> = \<beta>\<^sub>1 @ Nt X # \<beta>\<^sub>2" "Prods G' \<turnstile> \<beta>\<^sub>1 \<Rightarrow>(i) map Tm x" "Prods G' \<turnstile> [Nt X] \<Rightarrow>(j) map Tm y"
-        "Prods G' \<turnstile> \<beta>\<^sub>2 \<Rightarrow>(k) map Tm z" "u = x @ y @ z" "i + j + k = n" "j > 0" 
-        by (smt (verit, best))
-      hence leqs: "i < n" "k < n" by auto
-      from less.IH[OF this(1) \<beta>_decomp(2), of A \<alpha> "Nt X # \<beta>\<^sub>2 @ \<gamma>" \<delta> qs "y @ z @ v"] less(3-5)
-        \<beta>_decomp(1,5) obtain ps\<^sub>0 where first:
-        "Suc (length ps\<^sub>0) = length \<beta>\<^sub>1"
-        "rev (\<delta> @ \<beta>\<^sub>1) \<Turnstile> (valids \<delta> # qs, u @ v) \<turnstile>P* (valids (\<delta> @ \<beta>\<^sub>1) # ps\<^sub>0 @ valids \<delta> # qs, y @ z @ v)"
-        by auto
-      from \<beta>_decomp(6-) consider (eq) "j = n" | (lt) "j < n" by force
-      then show ?thesis proof cases
-        case eq
-        then show ?thesis sorry
-      next
-        case lt
-        note first(2)
-        thm less.IH[of j "[Nt X]" y A "\<alpha> @ \<beta>\<^sub>1" \<beta>\<^sub>2 "\<delta> @ \<beta>\<^sub>1" "ps\<^sub>0 @ valids \<delta> # qs" "z @ v"]
-        then show ?thesis sorry
-      qed
-    qed (use less P0_completes_Tms in force)
-  qed
-qed
-
 
 (*TODO: Formalize the shift-reduce parser M\<^sub>G and prove (roughly)
 
@@ -1444,49 +1490,190 @@ qed
     
  *)
 
-interpretation MG: srpda G' "SRPDA G'" 
-  using G'_finite G'_reduced G'_not_empty by unfold_locales auto
+abbreviation "M\<^sub>G \<equiv> SRPDA G"
 
-abbreviation "M\<^sub>G \<equiv> SRPDA G'"
+interpretation MG: srpda G M\<^sub>G 
+   by unfold_locales auto
 
 notation MG.step (infix \<open>\<turnstile>M\<close> 55)
 notation MG.steps (infix \<open>\<turnstile>M*\<close> 55)
 notation MG.stepn (\<open>_ \<turnstile>M'(_') _\<close> 55)
 
+lemma P0_final_not_dfa_LR0_state:
+  "P0_final \<notin> dfa.states LR\<^sub>0"
+  using Extended_Cfg.state_imp_valids Extended_Cfg_axioms P0_final_not_valids by blast
+
+lemma hd_not_final_imp_stack_is_dfa_LR0_states:
+  "\<lbrakk>([gpda.init P\<^sub>0], u) \<turnstile>P* (q#qs, v); q \<noteq> P0_final\<rbrakk> \<Longrightarrow> set (q#qs) \<subseteq> dfa.states LR\<^sub>0"
+proof (induction "q#qs" v arbitrary: q qs rule: rtranclp_induct2)
+  case (step ps v w)
+  from this(2) show ?case proof cases
+    case (shift r rs a x)
+    then show ?thesis 
+      using step P0_final_not_dfa_LR0_state dfa_LR0.nxt by auto
+  next
+    case (reduce r\<^sub>n rs r\<^sub>0 ss X \<alpha> x)
+    with step(3) P0_final_not_dfa_LR0_state have rn_rs_ss_states: 
+      "set (r\<^sub>n # rs @ ss) \<subseteq> dfa.states LR\<^sub>0" 
+      by blast
+    with reduce have "set (r\<^sub>0 # ss) \<subseteq> dfa.states LR\<^sub>0" by auto
+    moreover with dfa_LR0.nxt have "dfa.nxt LR\<^sub>0 r\<^sub>0 (Nt X) \<in> dfa.states LR\<^sub>0"
+      by auto
+    ultimately show ?thesis using reduce(3) by simp
+  qed (use step in fast)
+qed (use dfa_LR0.init in simp)
+  
+
 lemma MG_steps_imp_stack_word:
-  assumes "([gpda.init M\<^sub>G], u @ v) \<turnstile>M* (map Sym \<alpha> @ [gpda.init M\<^sub>G], v)"
-  obtains qs where "\<alpha> \<Turnstile> ([gpda.init P\<^sub>0], u @ v) \<turnstile>P* (valids \<alpha> # qs, v)"
-  sorry
+  assumes "([gpda.init M\<^sub>G], u) \<turnstile>M* (map Sym \<alpha> @ [gpda.init M\<^sub>G], v)" "valids (rev \<alpha>) \<noteq> {}"
+  obtains qs where "\<alpha> \<Turnstile> ([gpda.init P\<^sub>0], u) \<turnstile>P* (valids (rev \<alpha>) # qs, v)"
+  using assms proof (induction "(map Sym \<alpha> @ [gpda.init M\<^sub>G], v)" arbitrary: \<alpha> v thesis rule: rtranclp_induct)
+  case base
+  then show ?case using base(2)[of "[]"] init_P0_is_valids_empty by force
+next
+  case (step c)
+  from this(2) show ?case proof cases
+    case (shift x xs a w)
+    show ?thesis proof (cases xs rule: rev_cases)
+      case Nil
+      with shift step(1) have eq: 
+        "(map Sym \<alpha> @ [gpda.init M\<^sub>G], v) = ([Sym (Tm a), gpda.init M\<^sub>G], w)" "u = a # w"
+        using MG.reaches_Init_imp_refl by auto
+      have "[Tm a] \<Turnstile> ([gpda.init P\<^sub>0], a # w) \<turnstile>P* ([valids [Tm a], gpda.init P\<^sub>0], w)"
+      proof (rule sw_shift)
+        show "([gpda.init P\<^sub>0], a # w) \<turnstile>P ([valids [Tm a], gpda.init P\<^sub>0], w)" 
+        proof
+          show "[valids [Tm a], gpda.init P\<^sub>0] = dfa.nxt LR\<^sub>0 (gpda.init P\<^sub>0) (Tm a) # [gpda.init P\<^sub>0]"
+            using init_P0_is_valids_empty nxt_dfa_LR0_shift_is_valids_app dfa_LR0.init by simp
+          from step(5) eq show "dfa.nxt LR\<^sub>0 (gpda.init P\<^sub>0) (Tm a) \<noteq> {}"
+            using nxt_dfa_LR0_shift_is_valids_app init_P0_is_valids_empty dfa_LR0.init by auto
+        qed (use dfa_LR0.init in auto)
+      qed blast 
+      then show ?thesis using step(4) eq by auto
+    next
+      case (snoc ys y)
+      with shift step have \<alpha>_eq: "map Sym \<alpha> = Sym (Tm a) # x # ys" "y = gpda.init M\<^sub>G" by auto
+      with snoc shift obtain \<beta> where c_eq: "c = (map Sym \<beta> @ [gpda.init M\<^sub>G], a # w)" "\<beta> = tl \<alpha>"
+        using Cons_eq_map_conv by fastforce
+      with nempty_valids_imp_nempty_valids_prefix[] step(5) have 
+        valids_\<beta>_nempty: "valids (rev \<beta>) \<noteq> {}" using \<alpha>_eq(1) by force
+      with step(3)[OF c_eq(1)] obtain qs where sw_\<beta>:
+        "\<beta> \<Turnstile> ([gpda.init P\<^sub>0], u) \<turnstile>P* (valids (rev \<beta>) # qs, a # w)" 
+        by metis
+      hence "Tm a # \<beta> \<Turnstile> ([gpda.init P\<^sub>0], u) \<turnstile>P* (valids (rev \<alpha>) # valids (rev \<beta>) # qs, w)"
+      proof (rule sw_shift)
+        show "(valids (rev \<beta>) # qs, a # w) \<turnstile>P (valids (rev \<alpha>) # valids (rev \<beta>) # qs, w)"
+        proof -
+          from c_eq \<alpha>_eq have rev_\<alpha>_app: "rev \<alpha> = rev \<beta> @ [Tm a]" by fastforce
+          show ?thesis unfolding rev_\<alpha>_app proof (rule P0_valids_nxtI)
+            from sw_\<beta> have "([gpda.init P\<^sub>0], u) \<turnstile>P* (valids (rev \<beta>) # qs, a # w)"
+              using stack_word_imp_P0_steps by blast
+            thus "valids (rev \<beta>) \<in> dfa.states LR\<^sub>0"  
+              by (metis dfa_LR0.nextl_init_state nextl_dfa_LR0_is_valids)
+          qed (use rev_\<alpha>_app step(5) in simp)
+        qed
+      qed
+      then show ?thesis using step \<alpha>_eq c_eq shift by fastforce
+    qed
+  next
+    case (reduce A \<beta> xs w)
+    show ?thesis proof (cases xs rule: rev_cases)
+      case (snoc ys y)
+      with reduce obtain \<gamma> where \<gamma>_def: "map Sym \<gamma> = ys" by auto
+      with snoc reduce have \<alpha>_Cons: "\<alpha> = Nt A # \<gamma>" by auto
+      have A\<beta>_valid_for_\<gamma>\<beta>: "[A \<rightarrow> \<beta> \<cdot> []] \<in> valids (rev \<gamma> @ \<beta>)"
+      proof -
+        from step(5) \<gamma>_def reduce snoc have "valids (rev \<gamma> @ [Nt A]) \<noteq> {}" by force
+        from valids_prod_imp_complete_in_valids_derive[OF this] reduce(1) show ?thesis 
+          using G_Prods_subset_G' by blast
+      qed  
+      with snoc reduce step(3)[of "rev \<beta> @ \<gamma>" w] obtain qs where sw_\<beta>\<gamma>:
+        "rev \<beta> @ \<gamma> \<Turnstile> ([gpda.init P\<^sub>0], u) \<turnstile>P* (valids (rev \<gamma> @ \<beta>) # qs, w)"
+        using \<gamma>_def by auto
+      then have "Nt A # \<gamma> \<Turnstile> ([gpda.init P\<^sub>0], u) \<turnstile>P* (valids (rev \<gamma> @ [Nt A]) # drop (length \<beta>) (valids (rev \<gamma> @ \<beta>) # qs), w)"
+      proof
+        from A\<beta>_valid_for_\<gamma>\<beta>
+        show "(valids (rev \<gamma> @ \<beta>) # qs, w) \<turnstile>P (valids (rev \<gamma> @ [Nt A]) # drop (length \<beta>) (valids (rev \<gamma> @ \<beta>) # qs), w)"
+        proof (rule P0_valids_reduceI)
+          show "set (take (Suc (length \<beta>)) (valids (rev \<gamma> @ \<beta>) # qs)) \<subseteq> dfa.states LR\<^sub>0"
+                (is "?Q \<subseteq> _")
+          proof -
+            have "?Q \<subseteq> set (valids (rev \<gamma> @ \<beta>) # qs)" 
+              by (meson set_take_subset)
+            also from sw_\<beta>\<gamma>[THEN stack_word_imp_P0_steps] have "... \<subseteq> dfa.states LR\<^sub>0" 
+              using hd_not_final_imp_stack_is_dfa_LR0_states P0_final_not_valids by metis
+            finally show ?thesis .
+          qed
+          from reduce(1) show "A \<noteq> S'" using S'_Prod_notin_G G_Prods_subset_G'
+            by blast
+          from P0_init_stack_word_length_inv[OF sw_\<beta>\<gamma>] 
+          show "length \<beta> < length (valids (rev \<gamma> @ \<beta>) # qs)" by auto
+          with P0_nth_is_valids_of_nth_stack_word[OF sw_\<beta>\<gamma>] show 
+            "(valids (rev \<gamma> @ \<beta>) # qs) ! length \<beta> = valids (rev \<gamma>)"
+            by simp
+        qed
+        show valids_take_drop:
+          "(valids (rev \<gamma> @ \<beta>) # qs, w) 
+            = (take (length \<beta>) (valids (rev \<gamma> @ \<beta>) # qs) @ valids (rev \<gamma>) # drop (Suc (length \<beta>)) (valids (rev \<gamma> @ \<beta>) # qs), w)"
+        proof -
+          from P0_init_stack_word_length_inv[OF sw_\<beta>\<gamma>] have "length \<beta> < length (valids (rev \<gamma> @ \<beta>) # qs)"
+            by simp
+          moreover with P0_nth_is_valids_of_nth_stack_word[OF sw_\<beta>\<gamma>]
+          have "(valids (rev \<gamma> @ \<beta>) # qs) ! (length \<beta>) = valids (rev (drop (length \<beta>) (rev \<beta> @ \<gamma>)))"
+            by simp
+          moreover have "... = valids (rev \<gamma>)" by simp
+          ultimately show ?thesis using id_take_nth_drop by metis
+        qed
+        show "(valids (rev \<gamma> @ [Nt A]) # drop (length \<beta>) (valids (rev \<gamma> @ \<beta>) # qs), w) =
+    (dfa.nxt LR\<^sub>0 (valids (rev \<gamma>)) (Nt A) # valids (rev \<gamma>) # drop (Suc (length \<beta>)) (valids (rev \<gamma> @ \<beta>) # qs), w)"
+        proof -
+          have "valids (rev \<gamma> @ [Nt A]) = dfa.nxt LR\<^sub>0 (valids (rev \<gamma>)) (Nt A)"
+          proof -
+            from valids_take_drop have "valids (rev \<gamma>) \<in> set (valids (rev \<gamma> @ \<beta>) # qs)"
+              by (metis Pair_inject in_set_conv_decomp)
+            with P0.steps_init_imp_states sw_\<beta>\<gamma>[THEN stack_word_imp_P0_steps] 
+            have "valids (rev \<gamma>) \<in> gpda.states P\<^sub>0" by blast
+            thus ?thesis 
+              using nxt_dfa_LR0_shift_is_valids_app by blast
+          qed
+          with valids_take_drop show ?thesis 
+            by (metis append_take_drop_id prod.inject same_append_eq)
+        qed
+      qed (use P0_init_stack_word_length_inv[OF sw_\<beta>\<gamma>] in simp)
+     then show ?thesis using snoc reduce \<alpha>_Cons step(4) by auto
+    qed (use reduce in simp)
+  qed (cases \<alpha>, auto)
+qed
+
 
 
 lemma P0_complete:
   "LangS G' \<subseteq> P0.Lang"
 proof
   fix w
-  assume in_G': "w \<in> LangS G'"
-  then have "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* map Tm w" 
-    using derivers_iff_derives[THEN iffD2] unfolding Lang_def G'_def by auto
-  hence S_derives_w: "Prods G' \<turnstile> [Nt S] \<Rightarrow>* map Tm w"   
-    using derivers_iff_derives in_G' in_Lang_imp_S_derives by blast
-  have 
-    "([gpda.init P\<^sub>0], w) \<turnstile>P* ([valids [Nt S], gpda.init P\<^sub>0], [])"
+  assume "w \<in> LangS G'"
+  hence "w \<in> LangS G" using Lang_preserved by blast
+  note in_Lang_MG = set_mp[OF MG.srpda_complete this]
+  note MG_reaches_S = this[THEN MG.in_Lang_imp_reaches_S]
+  hence "([gpda.init P\<^sub>0], w) \<turnstile>P* ([valids [Nt S], gpda.init P\<^sub>0], [])"
   proof -
-    from derives_imp_P0_completes[ of "[Nt S]" w S' "[]" "[]" "[]" w "[]" "[]"] obtain ps where
-      "Suc (length ps) = length [Nt S]" 
-      "[Nt S] \<Turnstile> ([valids []], w) \<turnstile>P* (valids [Nt S] # ps @ [valids []], [])"
-      using dfa_LR0.init init_P0_is_valids_empty S_derives_w by auto
-    then show ?thesis using init_P0_is_valids_empty 
-      by (simp add: stack_word_imp_P0_steps)
+    obtain qs where
+      "[Nt S] \<Turnstile> ([gpda.init P\<^sub>0], w) \<turnstile>P* (valids [Nt S] # qs, [])" 
+    proof -
+      have "valids (rev [Nt S]) \<noteq> {}" 
+        by (metis (no_types, lifting) S'_complete_reliable_imp_S empty_iff in_states_imp_valid
+            ipda.final_state_in_It ipda_IPDA rev_singleton_conv states_char_fa validI)
+      with MG_reaches_S MG_steps_imp_stack_word[of w "[Nt S]" "[]"] show thesis 
+        using that by auto
+    qed
+    moreover from this obtain q where qs_singleton: "qs = [q]"
+      using P0_init_stack_word_length_inv by fastforce
+    moreover with sw_last_is_init[OF calculation(1)] have "q = gpda.init P\<^sub>0"
+      by auto
+    ultimately show ?thesis using stack_word_imp_P0_steps by blast
   qed
   also have "... \<turnstile>P ([P0_final], [])"
-  proof (rule PO_finishI)
-    show "[S' \<rightarrow> [Nt S] \<cdot> []] \<in> valids [Nt S]"
-      using dfa_LR0_nxt_is_epsclo_of_shift dfa_LR0.init 
-      by (metis (lifting) S'_complete_reliable_imp_S in_states_imp_valid ipda.final_state_in_It
-          ipda_IPDA states_char_fa validI)
-    show "valids [Nt S] \<in> dfa.states LR\<^sub>0" 
-      using dfa_LR0.nextl_init_state nextl_dfa_LR0_is_valids by fastforce
-  qed 
+    using valids_S_Nil_step_finish[of "[]"] init_P0_is_valids_empty by presburger
   finally show "w \<in> P0.Lang" unfolding P0.Lang_def by fastforce
 qed
  

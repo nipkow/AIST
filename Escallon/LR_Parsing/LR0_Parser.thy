@@ -599,6 +599,54 @@ proof -
   qed
 qed
 
+lemma prefix_comp_unique_imp_eps:
+  assumes "LR0_adequate (valids \<alpha>)" (is "LR0_adequate ?p")
+    "[X \<rightarrow> [] \<cdot> []] \<in> valids \<alpha>"
+    "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ \<alpha>' @ Nt Y # map Tm x"
+    "Prods G' \<turnstile> \<alpha> @ \<alpha>' @ Nt Y # map Tm x \<Rightarrow>r \<alpha> @ map Tm y"
+  shows "\<alpha>' = [] \<and> Y = X \<and> x = y"
+proof -
+  from assms(2) obtain w where X_derivers: "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ Nt X # map Tm w"
+    "Prods G' \<turnstile> \<alpha> @ Nt X # map Tm w \<Rightarrow>r \<alpha> @ map Tm w" 
+    using reliable_prefixE unfolding valids_def by force
+  from assms(3) show ?thesis proof (cases rule: stepcnt_cases)
+    case refl
+    with assms(4) have "\<alpha> @ map Tm y = [Nt S]" 
+      using S'_derive_imp_S deriver_imp_derive by auto
+    moreover then have"y = []" 
+      by (metis Nil_is_append_conv list.map_disc_iff syms_split_tl)
+    ultimately show ?thesis using refl by auto
+  next
+    case (step n)
+    from derivern_Suc_substring_reliable[OF this] obtain A \<beta> Z' \<gamma> z where
+      A_reliable: "reliable_prefix [A \<rightarrow> \<beta> \<cdot> Z' # \<gamma>] \<alpha>" 
+        "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ Z' # \<gamma> @ map Tm z"
+        "Prods G' \<turnstile> Z' # \<gamma> @ map Tm z \<Rightarrow>r* \<alpha>' @ Nt Y # map Tm x"
+      by blast
+    from assms(3,4) have deriver_y: "Prods G' \<turnstile> \<alpha>' @ Nt Y # map Tm x \<Rightarrow>r map Tm y"
+      by (metis append_Nil deriver_prefix_indep)
+    have "?p \<in> gpda.states P\<^sub>0" 
+      using dfa_LR0.nextl_init_state nextl_dfa_LR0_is_valids by force
+    with assms(1) show ?thesis proof (cases rule: LR0_adequate_cases)
+      case (comp_unique B)
+      with assms(2) have AX [simp]: "B = X"
+        by auto
+      from A_reliable obtain Z'' where Z''_def [simp]: "Z' = Nt Z''" using comp_unique 
+         by (auto simp: valids_def)
+      from A_reliable(3) deriver_y obtain \<gamma>' u v  where decomp: 
+        "Prods G' \<turnstile> [Nt Z''] \<Rightarrow>r* \<gamma>'" "Prods G' \<turnstile> \<gamma>' \<Rightarrow>r map Tm u" 
+        "Prods G' \<turnstile> \<gamma> @ map Tm z \<Rightarrow>r* map Tm v"
+        "\<gamma>' @ map Tm v = \<alpha>' @ Nt Y # map Tm x" "y = u @ v"
+        using derivers_leftmost_derivers_last_step[of _ Z'' "\<gamma> @ map Tm z" "\<alpha>' @ Nt Y # map Tm x" y] 
+        unfolding Z''_def by metis
+      with comp_unique have "\<gamma>' = Nt X # map Tm u" using A_reliable 
+        by (simp add: valids_def)
+      with decomp show ?thesis 
+        by (metis (no_types, lifting) append_Cons map_append rm_eq_imp_eq self_append_conv2)
+    qed (use assms(2) completes_def in fastforce, use A_reliable assms(2) valids_def in auto)
+  qed
+qed
+
 section \<open>LR(k) Grammars\<close>
 
 definition is_LR :: "nat \<Rightarrow> bool" where
@@ -713,86 +761,7 @@ proof (rule ccontr)
   qed (use shift_reduce_imp_not_LR0 LR0 q_inadequate in auto)
 qed
 
-lemma derivers_leftmost_derivers_last_step:
-  assumes "Prods G' \<turnstile> Nt A # \<alpha> \<Rightarrow>r* \<beta>"
-    "Prods G' \<turnstile> \<beta> \<Rightarrow>r map Tm w"
-  obtains \<gamma> u v where "Prods G' \<turnstile> [Nt A] \<Rightarrow>r* \<gamma>" "Prods G' \<turnstile> \<gamma> \<Rightarrow>r map Tm u"
-    "\<beta> = \<gamma> @ map Tm v" "Prods G' \<turnstile> \<alpha> \<Rightarrow>r* map Tm v" "w = u @ v"
-proof -
-  from assms have "Prods G' \<turnstile> [Nt A] @ \<alpha> \<Rightarrow>r* \<beta>" by simp
-  then show thesis proof (cases rule: derivers_append_cases)
-    case (suffix \<alpha>')
-    from assms(2) show thesis unfolding suffix proof (cases, goal_cases deriver)
-      case (deriver A' \<gamma> u' v')
-      hence eqs [simp]: "u' = []" "A' = A" "map Tm v' = \<alpha>'"  
-      proof -
-        from deriver have "u' = [] \<and> A' = A \<and> map Tm v' = \<alpha>'" 
-          by (metis Tms_iff_no_Nt append_Cons append_Nil list.inject neq_Nil_conv sym.inject(1))
-        thus "u' = []" "A' = A" "map Tm v' = \<alpha>'"  by blast+
-      qed
-      moreover from deriver obtain u where "\<gamma> = map Tm u" "Prods G' \<turnstile> [Nt A] \<Rightarrow>r map Tm u"
-        unfolding eqs by (metis append_eq_map_conv deriver_singleton)
-      ultimately show ?thesis using that[of "[Nt A]" u v'] suffix deriver 
-        by (metis append_Cons append_Nil map_Tm_Nt_eq_map_Tm_Nt map_append rtranclp.rtrancl_refl)
-    qed 
-  next
-    case (prefix \<gamma> v)
-    from assms(2) obtain u where "Prods G' \<turnstile> \<gamma> \<Rightarrow>r map Tm u" "w = u @ v"
-      unfolding prefix(3) by (smt (verit, ccfv_threshold) append_eq_map_conv deriver_append_map_Tm
-          map_Tm_inject_iff)
-    with prefix show thesis using that by blast
-  qed
-qed
-
-lemma prefix_comp_unique_imp_eps:
-  assumes "LR0_adequate (valids \<alpha>)" (is "LR0_adequate ?p")
-    "[X \<rightarrow> [] \<cdot> []] \<in> valids \<alpha>"
-    "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ \<alpha>' @ Nt Y # map Tm x"
-    "Prods G' \<turnstile> \<alpha> @ \<alpha>' @ Nt Y # map Tm x \<Rightarrow>r \<alpha> @ map Tm y"
-  shows "\<alpha>' = [] \<and> Y = X \<and> x = y"
-proof -
-  from assms(2) obtain w where X_derivers: "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ Nt X # map Tm w"
-    "Prods G' \<turnstile> \<alpha> @ Nt X # map Tm w \<Rightarrow>r \<alpha> @ map Tm w" 
-    using reliable_prefixE unfolding valids_def by force
-  from assms(3) show ?thesis proof (cases rule: stepcnt_cases)
-    case refl
-    with assms(4) have "\<alpha> @ map Tm y = [Nt S]" 
-      using S'_derive_imp_S deriver_imp_derive by auto
-    moreover then have"y = []" 
-      by (metis Nil_is_append_conv list.map_disc_iff syms_split_tl)
-    ultimately show ?thesis using refl by auto
-  next
-    case (step n)
-    from derivern_Suc_substring_reliable[OF this] obtain A \<beta> Z' \<gamma> z where
-      A_reliable: "reliable_prefix [A \<rightarrow> \<beta> \<cdot> Z' # \<gamma>] \<alpha>" 
-        "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ Z' # \<gamma> @ map Tm z"
-        "Prods G' \<turnstile> Z' # \<gamma> @ map Tm z \<Rightarrow>r* \<alpha>' @ Nt Y # map Tm x"
-      by blast
-    from assms(3,4) have deriver_y: "Prods G' \<turnstile> \<alpha>' @ Nt Y # map Tm x \<Rightarrow>r map Tm y"
-      by (metis append_Nil deriver_prefix_indep)
-    have "?p \<in> gpda.states P\<^sub>0" 
-      using dfa_LR0.nextl_init_state nextl_dfa_LR0_is_valids by force
-    with assms(1) show ?thesis proof (cases rule: LR0_adequate_cases)
-      case (comp_unique B)
-      with assms(2) have AX [simp]: "B = X"
-        by auto
-      from A_reliable obtain Z'' where Z''_def [simp]: "Z' = Nt Z''" using comp_unique 
-         by (auto simp: valids_def)
-      from A_reliable(3) deriver_y obtain \<gamma>' u v  where decomp: 
-        "Prods G' \<turnstile> [Nt Z''] \<Rightarrow>r* \<gamma>'" "Prods G' \<turnstile> \<gamma>' \<Rightarrow>r map Tm u" 
-        "Prods G' \<turnstile> \<gamma> @ map Tm z \<Rightarrow>r* map Tm v"
-        "\<gamma>' @ map Tm v = \<alpha>' @ Nt Y # map Tm x" "y = u @ v"
-        using derivers_leftmost_derivers_last_step[of Z'' "\<gamma> @ map Tm z" "\<alpha>' @ Nt Y # map Tm x" y] 
-        unfolding Z''_def by metis
-      with comp_unique have "\<gamma>' = Nt X # map Tm u" using A_reliable 
-        by (simp add: valids_def)
-      with decomp show ?thesis 
-        by (metis (no_types, lifting) append_Cons map_append rm_eq_imp_eq self_append_conv2)
-    qed (use assms(2) completes_def in fastforce, use A_reliable assms(2) valids_def in auto)
-  qed
-qed
-
-lemma LRk_wlog:
+lemma is_LR_wlogI:
   assumes "\<And>\<alpha> X \<beta> w \<gamma> Y x y \<delta>. \<lbrakk>Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ Nt X # map Tm w; 
     Prods G' \<turnstile> \<alpha> @ Nt X # map Tm w \<Rightarrow>r \<alpha> @ \<beta> @ map Tm w; 
     Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma> @ Nt Y # map Tm x; 
@@ -836,10 +805,12 @@ proof (standard, goal_cases LR)
   qed
 qed
 
+section \<open>Determinism of \<open>P\<^sub>0\<close>\<close>
+
 lemma no_LR0_inadequate_states_imp_is_LR0:  
   assumes adequates: "\<forall>q\<in>gpda.states P\<^sub>0. LR0_adequate q"
   shows "is_LR 0" 
-proof (rule LRk_wlog, goal_cases LR)
+proof (rule is_LR_wlogI, goal_cases LR)
   case (LR \<alpha> X \<beta> w \<gamma> Y x y \<delta>)
   obtain p where p_nextl: "dfa.nextl LR\<^sub>0 (dfa.init LR\<^sub>0) (\<alpha>@\<beta>) = p" by presburger
   with adequates have p_adequate: "LR0_adequate p" "p \<in> dfa.states LR\<^sub>0" using states_P0 
@@ -906,8 +877,6 @@ qed
 theorem is_LR0_iff_no_LR0_inadequates:
   "is_LR 0 = (\<forall>q\<in>gpda.states P\<^sub>0. LR0_adequate q)"
   using is_LR0_imp_no_LR0_inadequate_states no_LR0_inadequate_states_imp_is_LR0 by metis
-
-section \<open>Determinism of \<open>P\<^sub>0\<close> and Language Equivalence\<close>
 
 notation P0.step (infix \<open>\<turnstile>P\<close> 55)
 notation P0.steps (infix \<open>\<turnstile>P*\<close> 55)
@@ -1005,9 +974,7 @@ next
   qed
 qed
 
-
-
-text \<open>If a state of \<open>P\<^sub>0\<close> is LR(0)-adequate, it behaves deterministically on that state:\<close>
+text \<open>If a state of \<open>P\<^sub>0\<close> is LR(0)-adequate, \<open>P\<^sub>0\<close> behaves deterministically on that state:\<close>
 
 lemma LR0_adequate_imp_P0_step_unique:
   assumes "p \<in> gpda.states P\<^sub>0" "LR0_adequate p"
@@ -1027,8 +994,10 @@ using assms(3) proof (cases, goal_cases qs_nxt qs_eps)
   qed (use assms LR_adequate_imp_P0_nxt_unique in blast)
 qed (use assms LR_adequate_imp_P0_nxt_unique in blast)
 
-theorem no_LR0_inadequates_imp_P0_stepn_unique:
-  assumes "\<forall>p \<in> gpda.states P\<^sub>0. LR0_adequate p"
+text \<open>If \<open>P\<^sub>0\<close> has no LR(0)-inadequate states, it is deterministic:\<close>
+
+theorem is_LR0_imp_P0_stepn_unique:
+  assumes "is_LR 0"
     "set ps \<subseteq> gpda.states P\<^sub>0"
     "(ps, u) \<turnstile>P(n) c0" "(ps, u) \<turnstile>P(n) c1"
   shows "c0 = c1"
@@ -1043,7 +1012,7 @@ theorem no_LR0_inadequates_imp_P0_stepn_unique:
       "(ps, u) \<turnstile>P (p1 # ps1, u1)" "(p1 # ps1, u1) \<turnstile>P(n) c1"
       using relpowp_Suc_D2 P0.step_imp_Cons by (smt (verit, ccfv_SIG) surj_pair)
     moreover from Suc.prems(3) assms(1) have "p \<in> gpda.states P\<^sub>0" "LR0_adequate p"
-      by auto
+      using is_LR0_iff_no_LR0_inadequates by auto
     ultimately show thesis using that LR0_adequate_imp_P0_step_unique Cons by metis
   qed
   moreover from this(1) Suc.prems(3) have "set ps' \<subseteq> gpda.states P\<^sub>0"
@@ -1051,16 +1020,13 @@ theorem no_LR0_inadequates_imp_P0_stepn_unique:
   ultimately show ?case using Suc.IH by presburger
 qed simp
 
-text \<open>If \<open>P\<^sub>0\<close> has no LR(0)-inadequate states, it is deterministic:\<close>
-
-corollary no_LR0_inadequates_imp_P0_deterministic:
-  assumes "\<forall>p \<in> gpda.states P\<^sub>0. LR0_adequate p"
+corollary is_LR0_imp_P0_deterministic:
+  assumes "is_LR 0"
     "([gpda.init P\<^sub>0], w) \<turnstile>P(n) c0" "([gpda.init P\<^sub>0], w) \<turnstile>P(n) c1"
   shows "c0 = c1"
-  using assms no_LR0_inadequates_imp_P0_stepn_unique[OF assms(1) _ assms(2-)] P0.init by simp
+  using assms is_LR0_imp_P0_stepn_unique[OF assms(1) _ assms(2-)] P0.init by simp
 
-
-subsection \<open>Language Equivalence of \<open>P\<^sub>0\<close> and its Grammar\<close>
+section \<open>Language Equivalence of \<open>P\<^sub>0\<close> and its Grammar\<close>
 
 lemma P0_step_cases [consumes 1, case_names shift reduce finish, cases set: P0.step]:
   assumes "c\<^sub>0 \<turnstile>P c\<^sub>1"
@@ -1677,9 +1643,6 @@ qed
 theorem P0_Lang_eq_Lang_G:
   "P0.Lang = LangS G'"
   using P0_sound P0_complete by standard
-
-thy_deps
-unused_thms Context_Free_Grammar Finite_Automata_HF Pushdown_Automata -
 
 end
 end

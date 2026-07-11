@@ -811,6 +811,37 @@ lemma derivers_append_cases [consumes 1, case_names suffix prefix]:
     \<alpha>' v where "P \<turnstile> \<alpha> \<Rightarrow>r* \<alpha>'" "P \<turnstile> \<beta> \<Rightarrow>r* map Tm v" "\<gamma> = \<alpha>' @ map Tm v"
   using derivers_appendD[THEN iffD1, OF assms] by blast
 
+lemma derivers_leftmost_derivers_last_step:
+  assumes "P \<turnstile> Nt A # \<alpha> \<Rightarrow>r* \<beta>"
+    "P \<turnstile> \<beta> \<Rightarrow>r map Tm w"
+  obtains \<gamma> u v where "P \<turnstile> [Nt A] \<Rightarrow>r* \<gamma>" "P \<turnstile> \<gamma> \<Rightarrow>r map Tm u"
+    "\<beta> = \<gamma> @ map Tm v" "P \<turnstile> \<alpha> \<Rightarrow>r* map Tm v" "w = u @ v"
+proof -
+  from assms have "P \<turnstile> [Nt A] @ \<alpha> \<Rightarrow>r* \<beta>" by simp
+  then show thesis proof (cases rule: derivers_append_cases)
+    case (suffix \<alpha>')
+    from assms(2) show thesis unfolding suffix proof (cases, goal_cases deriver)
+      case (deriver A' \<gamma> u' v')
+      hence eqs [simp]: "u' = []" "A' = A" "map Tm v' = \<alpha>'"  
+      proof -
+        from deriver have "u' = [] \<and> A' = A \<and> map Tm v' = \<alpha>'" 
+          by (metis Tms_iff_no_Nt append_Cons append_Nil list.inject neq_Nil_conv sym.inject(1))
+        thus "u' = []" "A' = A" "map Tm v' = \<alpha>'"  by blast+
+      qed
+      moreover from deriver obtain u where "\<gamma> = map Tm u" "P \<turnstile> [Nt A] \<Rightarrow>r map Tm u"
+        unfolding eqs by (metis append_eq_map_conv deriver_singleton)
+      ultimately show ?thesis using that[of "[Nt A]" u v'] suffix deriver 
+        by (metis append_Cons append_Nil map_Tm_Nt_eq_map_Tm_Nt map_append rtranclp.rtrancl_refl)
+    qed 
+  next
+    case (prefix \<gamma> v)
+    from assms(2) obtain u where "P \<turnstile> \<gamma> \<Rightarrow>r map Tm u" "w = u @ v"
+      unfolding prefix(3) by (smt (verit, ccfv_threshold) append_eq_map_conv deriver_append_map_Tm
+          map_Tm_inject_iff)
+    with prefix show thesis using that by blast
+  qed
+qed
+
 section \<open>NFAs\<close>
 
 context nfa begin

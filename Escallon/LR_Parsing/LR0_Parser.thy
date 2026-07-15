@@ -642,7 +642,7 @@ proof -
       with comp_unique have "\<gamma>' = Nt X # map Tm u" using A_reliable 
         by (simp add: valids_def)
       with decomp show ?thesis 
-        by (metis (no_types, lifting) append_Cons map_append rm_eq_imp_eq self_append_conv2)
+        by (metis (no_types, lifting) append_Cons map_append Nt_map_Tm_eq_Nt_map_TmD self_append_conv2)
     qed (use assms(2) completes_def in fastforce, use A_reliable assms(2) valids_def in auto)
   qed
 qed
@@ -773,7 +773,7 @@ proof (standard, goal_cases LR)
   case (LR \<alpha> X \<beta> w \<gamma> Y x y)
   from this(4) show ?case proof (cases, goal_cases deriver)
     case (deriver A \<delta> u v)
-    hence eqs [simp]: "u = \<gamma>" "A = Y" "v = x" using rm_eq_imp_eq by fastforce+
+    hence eqs [simp]: "u = \<gamma>" "A = Y" "v = x" using Nt_map_Tm_eq_Nt_map_TmD by fastforce+
     show ?thesis proof (cases "length (\<alpha> @ \<beta>)" "length (\<gamma> @ \<delta>)" rule: le_cases)
       case le
       then show ?thesis using assms deriver LR unfolding eqs by metis

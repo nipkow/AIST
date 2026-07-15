@@ -51,7 +51,7 @@ lemma rm_chain_singleton_imp_eq:
   shows "C = B \<and> (\<exists>u v. w = u @ v \<and> P \<turnstile> \<beta> \<Rightarrow>r* map Tm u)"
   using assms proof cases
   case (step \<alpha>' v u)
-  with rm_eq_imp_eq[of _ _ _ "\<alpha>' @ \<alpha>" C] have "w = u @ v"
+  with Nt_map_Tm_eq_Nt_map_TmD[of _ _ _ "\<alpha>' @ \<alpha>" C] have "w = u @ v"
     by fastforce
   moreover with step have "C = B" by simp
   ultimately show ?thesis using step by blast 
@@ -71,7 +71,7 @@ lemma rm_chain_imp_hd_prod_rightmost:
     "P \<turnstile> \<beta> \<Rightarrow>r* map Tm u" "w = u @ v" | "\<alpha>\<^sub>0 = \<gamma> @ Nt B # map Tm w" "\<rho> = []"
 using assms proof cases
   case (step \<rho> \<alpha> X v \<alpha>' Y \<beta> u)
-  moreover with rm_eq_imp_eq[of _ _ _ "\<alpha> @ \<alpha>'"] have "w = u@v" by simp
+  moreover with Nt_map_Tm_eq_Nt_map_TmD[of _ _ _ "\<alpha> @ \<alpha>'"] have "w = u@v" by simp
   moreover from this have "B = Y" using step(2) by simp
   ultimately show ?thesis using that by blast
 qed argo
@@ -151,7 +151,7 @@ lemma rm_chain_snoc:
   obtains u where "P \<turnstile> \<beta> \<Rightarrow>r* map Tm u" 
     "P \<Turnstile> \<alpha> @ \<alpha>' @ Nt Y # map Tm u @ map Tm v \<Rightarrow>r* \<rho> \<Rightarrow>r* \<gamma>"
   using assms 
-  by (smt (verit, best) rm_eq_imp_eq rm_chain_decomp rm_chain_reflE
+  by (smt (verit, best) Nt_map_Tm_eq_Nt_map_TmD rm_chain_decomp rm_chain_reflE
       rm_chain_stepE)
 
 lemma rm_chain_substring:
@@ -159,7 +159,7 @@ lemma rm_chain_substring:
   obtains u where "w = u @ v"
   using assms proof (induction "\<alpha> @ Nt X # map Tm v" \<rho> "\<beta> @ Nt Y # map Tm w" arbitrary: \<beta> Y w)
   case refl
-  then show ?case using rm_eq_imp_eq[OF refl(1)] by simp
+  then show ?case using Nt_map_Tm_eq_Nt_map_TmD[OF refl(1)] by simp
 next
   case (step \<rho> \<alpha>' X v \<gamma> Y' \<beta>' u)
   then show ?case 
@@ -230,7 +230,7 @@ lemma derivern_Suc_singleton_imp_rm_chain:
       proof (cases k)
         case 0
         with k_steps(1) have eqs: "\<alpha>' = [] \<and> A = C \<and> w = []" 
-          by (metis eq_Nil_appendI map_is_Nil_conv relpowp_0_E rm_eq_imp_eq) 
+          by (metis eq_Nil_appendI map_is_Nil_conv relpowp_0_E Nt_map_Tm_eq_Nt_map_TmD) 
         moreover with k_steps(3) have "P \<turnstile> \<beta>' \<Rightarrow>r* map Tm v" using eqs suffix_derivers_v by simp
         ultimately show ?thesis using less(2) rm_chain.step[of P "[Nt A]" "[]" "[]" A "[]" \<alpha>'' X \<beta>']
           0 k_steps 

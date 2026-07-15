@@ -363,21 +363,12 @@ proof -
   ultimately show thesis using that map_Tm_inject_iff by fastforce
 qed
 
-
 lemma derives_Nts_subset_preserved:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>* \<beta>"
     "Nts_syms \<alpha> \<subseteq> Nts P"
   shows "Nts_syms \<beta> \<subseteq> Nts P"
-  using assms proof induction
-  case base
-  then show ?case .
-next
-  case (step y z)
-  from step(3)[OF step(4)] step(2) show ?case 
-    by (smt (verit, ccfv_threshold) Nts_Lhss_Rhs_Nts Un_iff derive_Nts_syms_subset subset_eq)
-qed
-
-
+  using derives_Nts_syms_subset[OF assms(1)] assms(2) Nts_Lhss_Rhs_Nts[of P]
+  by blast
 
 lemma derivers_append_map_Tm:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>r* u"
@@ -465,8 +456,8 @@ qed
 lemma derivers_induct[consumes 1, case_names base step]:
   assumes "P \<turnstile> xs \<Rightarrow>r* ys"
   and "Q xs"
-  and "\<And>u A v w. \<lbrakk> P \<turnstile> xs \<Rightarrow>r* u @ Nt A #  map Tm v; Q (u @ Nt A # map Tm v); (A,w) \<in> P \<rbrakk> 
-      \<Longrightarrow> Q (u @ w @ map Tm v)"
+  and "\<And>u A v \<alpha>. \<lbrakk> P \<turnstile> xs \<Rightarrow>r* u @ Nt A # map Tm v; Q (u @ Nt A # map Tm v); (A,\<alpha>) \<in> P \<rbrakk> 
+      \<Longrightarrow> Q (u @ \<alpha> @ map Tm v)"
   shows "Q ys"
 using assms
 proof (induction rule: rtranclp_induct)

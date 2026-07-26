@@ -90,8 +90,6 @@ text "Our second preliminary lemma is the Lemma 4.6. This lemma will provide us 
 
 text "This construction uses previous constructions from the book, "
 
-
-
 lemma productives_when_derive_tms:
   fixes P :: "('n, 't) Prods" and S A :: "'n" 
   assumes "useful P S A"

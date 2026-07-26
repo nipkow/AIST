@@ -101,6 +101,7 @@ proof -
    qed
  qed
 
+text "Equivalently:"
 corollary ex_one_symbol: 
   fixes G' :: "('n, t) Cfg"
   assumes usefulG': "(\<forall>X. X \<in> Nts (Prods G') \<longrightarrow> useful (Prods G') (Start G') X)" and
@@ -111,7 +112,7 @@ corollary ex_one_symbol:
 using assms fact1[OF assms] by meson
 
 
-
+text "If \<open>X \<Rightarrow>* wXz\<close>, then \<open>w\<close> and \<open>z\<close> needs to have different symbols."
 theorem fact2:
 fixes G' :: "('n, t) Cfg"
   assumes usefulG': "(\<forall>X. X \<in> Nts (Prods G') \<longrightarrow> useful (Prods G') (Start G') X)" and
@@ -209,7 +210,7 @@ proof -
 qed
 
 
-
+text "If \<open>X \<Rightarrow>* wXz\<close>, then \<open>w\<close> and \<open>z\<close> needs to have the exact same length."
 theorem fact3:
 fixes G' :: "('n, t) Cfg"
   assumes usefulG': "(\<forall>X. X \<in> Nts (Prods G') \<longrightarrow> useful (Prods G') (Start G') X)" and
@@ -359,7 +360,8 @@ qed
 
 
 
-
+text "If \<open>X \<Rightarrow>* wXz\<close>, then \<open>w\<close> and \<open>z\<close> combined needs 
+     to pump the same amount of \<open>A,C\<close> as \<open>B,D\<close>"
 lemma derives_more_counts_eq:
   fixes G' :: "('n, t) Cfg" and X :: "'n" and x y :: "t list" 
   assumes usefulG': "(\<forall>X. X \<in> Nts (Prods G') \<longrightarrow> useful (Prods G') (Start G') X)" and
@@ -451,7 +453,11 @@ proof -
   qed
 qed
 
-  
+text "If \<open>X \<Rightarrow>* wXz\<close>, then
+      - if \<open>w = {a}*\<close> then \<open>z = {b}*\<close> or \<open>y = {d}*\<close>,
+      - if \<open>w = {b}*\<close> then \<open>z = {c}*\<close>,
+      - if \<open>w = {c}*\<close> then \<open>z = {d}*\<close>, and
+      - \<open>w \<noteq> {d}*\<close>."  
 theorem fact5:
 fixes G' :: "('n, t) Cfg"
   assumes usefulG': "(\<forall>X. X \<in> Nts (Prods G') \<longrightarrow> useful (Prods G') (Start G') X)" and
@@ -577,7 +583,7 @@ proof -
  qed
 
 
-
+text "If \<open>X \<Rightarrow>* wXz\<close>, then \<open>X\<close> is in one of the classes \<open>Cab, Cad, Cbc, Ccd\<close>."
 theorem fact5_classes:
 fixes G' :: "('n, t) Cfg"
 assumes usefulG': "(\<forall>X. X \<in> Nts (Prods G') \<longrightarrow> useful (Prods G') (Start G') X)" and
@@ -894,7 +900,7 @@ proof -
 qed
 
 
-
+text "If \<open>X \<Rightarrow>* wXz\<close>, then if \<open>X\<close> is in \<open>Cab\<close> or \<open>Cad\<close>, \<open>Y\<close> is not in there; and vice versa."
 lemma fact6:
   fixes G' :: "('n, t) Cfg" and X Y :: "'n" and x y :: "t list" 
   assumes usefulG': "(\<forall>X. X \<in> Nts (Prods G') \<longrightarrow> useful (Prods G') (Start G') X)" and

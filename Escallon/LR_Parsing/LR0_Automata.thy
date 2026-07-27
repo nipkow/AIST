@@ -256,7 +256,7 @@ next
       by (metis Nts_syms_map_Tm destTm.cases list.simps(9))
     then obtain \<chi> where X'_Prod: "(X', \<chi>) \<in> Prods G'" "\<chi> @ \<delta> = Y # \<gamma>" 
       using Tms step_Sucn(2) deriver.cases 
-      by (smt (verit) append_self_conv2 rm_eq_imp_eq)
+      by (smt (verit) append_self_conv2 Nt_map_Tm_eq_Nt_map_TmD)
     have "\<chi> \<noteq> []"
       by standard (use X'_Prod Tms Suc.prems(3) in auto)
     with X'_Prod obtain \<zeta> where \<zeta>_def: "\<chi> = Y # \<zeta>" by (metis Cons_eq_append_conv)
@@ -271,7 +271,7 @@ next
     proof -
       from deriver.cases[OF step_Sucn(2)] rightmost obtain \<eta> where
         "X # \<delta> = (X # \<zeta>) @ Nt Z # map Tm w" "Y # \<gamma> = (X # \<zeta>) @ \<eta> @ map Tm w" "(Z, \<eta>) \<in> Prods G'"
-        by (smt (verit) append_Cons rm_eq_imp_eq) 
+        by (smt (verit) append_Cons Nt_map_Tm_eq_Nt_map_TmD) 
       thus thesis using that append.assoc by simp
     qed
     then show ?thesis using ih Suc.prems(1) by fast
@@ -626,7 +626,7 @@ next
       "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<alpha>'' @ Nt X # map Tm v'"
       "Prods G' \<turnstile> \<alpha>'' @ Nt X # map Tm v' \<Rightarrow>r \<alpha>'' @ \<alpha>' @ Nt A # \<beta>' @ map Tm v'"
       "Prods G' \<turnstile> \<beta>' \<Rightarrow>r* map Tm u" "u @ v' = w" "\<alpha>'' @ \<alpha>' = \<gamma>"
-      by (smt (verit, best) append.assoc map_append rm_eq_imp_eq)
+      by (smt (verit, best) append.assoc map_append Nt_map_Tm_eq_Nt_map_TmD)
     then obtain \<rho>' where \<rho>'_def:
       "([X \<rightarrow> \<alpha>' @ [Nt A] \<cdot> \<beta>'] # \<rho>', u@v') 
           \<turnstile>I* ([I.final_state], [])"
@@ -889,7 +889,7 @@ proof -
     hence derivers_A: "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha>' @ Nt A # map Tm v" 
       using rm_chain_imp_derivers by blast
     from step(1) have "\<alpha> = \<alpha>' @ \<alpha>''" "w = u @ v"
-      using rm_eq_imp_eq[of \<alpha> X w "\<alpha>' @ \<alpha>''" X "u@v"] by auto
+      using Nt_map_Tm_eq_Nt_map_TmD[of \<alpha> X w "\<alpha>' @ \<alpha>''" X "u@v"] by auto
     with that[OF derivers_A] step show ?thesis 
       by (metis append.assoc append_Cons append_Nil derivers_append_map_Tm derivers_prepend)
   qed
@@ -918,7 +918,7 @@ proof -
       case (step \<alpha>' A v \<alpha>'' Y \<beta>' u)
       note i_step = this
       from this(2) have eqs [simp]: "\<alpha>' @ \<alpha>'' = \<alpha> @ \<beta> \<and> Y = X \<and> u @ v = w"
-        using rm_eq_imp_eq[of "\<alpha> @ \<beta>" X w "\<alpha>' @ \<alpha>''" Y "u @ v"]  
+        using Nt_map_Tm_eq_Nt_map_TmD[of "\<alpha> @ \<beta>" X w "\<alpha>' @ \<alpha>''" Y "u @ v"]  
         by (metis append_eq_appendI map_append)
       from step(3) show ?thesis proof cases
         case refl

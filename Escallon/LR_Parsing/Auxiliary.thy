@@ -63,10 +63,6 @@ lemma list_eq_less_imp_substring:
   obtains as' where "xs = as @ as'"
   using assms by (metis append_eq_append_conv2 length_append not_add_less1)
 
-lemma take_cong_le:
-  "take n xs = take n ys \<Longrightarrow> m \<le> n \<Longrightarrow> take m xs = take m ys"
-  by (metis min_def take_take)
-
 corollary take_diff:
   "take n xs = take n ys \<Longrightarrow> take (n-m) xs = take (n-m) ys"
 by (meson diff_le_self take_cong_le)
@@ -95,8 +91,7 @@ lemma syms_split_last_eq_imp_tl_eq:
   assumes "\<alpha> @ Nt A # map Tm w = \<beta> @ Nt A # \<gamma> @ map Tm v"
     "Nt A \<notin> set \<gamma>"
   obtains u where "\<gamma> = map Tm u" "w = u@v"
-  using assms
-  by(auto simp: append_eq_append_conv2 Cons_eq_append_conv append_eq_Cons_conv map_eq_append_conv append_eq_map_conv)
+  using assms by(auto simp: append_eq_iffs)
 
 lemma syms_decomp_rightmost:
   assumes "\<alpha> @ Nt A # map Tm w = \<beta> @ \<gamma> @ \<delta> @ map Tm x"
@@ -141,7 +136,7 @@ lemma Tms_iff_no_Nt:
 
 text \<open>Same as @{thm non_word_has_last_Nt}, except with Cons instead of \<open>@\<close>.}\<close>
 lemma syms_split_rightmost:
-  assumes "\<exists>A. Nt A \<in> set \<alpha>"
+  assumes "Nt A \<in> set \<alpha>"
   obtains \<beta> A u where "\<alpha> = \<beta> @ Nt A # map Tm u"
   using assms non_word_has_last_Nt in_Nts_syms by fastforce
 
@@ -329,14 +324,14 @@ proof -
   then show False using inds(2) assms(1) by simp
 qed
 
-lemma Nt_map_Tm_eq_Nt_map_TmD:
+lemma Nt_map_Tm_eq_Nt_map_TmD:(* TODO mv and make dual [simp]*)
   "\<alpha> @ Nt A # map Tm u = \<alpha>' @ Nt A' # map Tm u' \<Longrightarrow> \<alpha>=\<alpha>' \<and> A=A' \<and> u=u'"
 by(auto simp: append_eq_append_conv2 append_eq_Cons_conv Cons_eq_append_conv append_eq_map_conv map_eq_append_conv)
 
 
 section \<open>Rightmost derivations\<close>
 
-lemma deriver_imp_in_Prods:
+lemma deriver_imp_in_Prods:(* TODO mv *)
   assumes "P \<turnstile> \<gamma> @ Nt A#map Tm w \<Rightarrow>r \<gamma>@\<alpha>@map Tm w"
   shows "(A, \<alpha>) \<in> P"
   using deriver.cases[OF assms]
@@ -363,20 +358,20 @@ proof -
   ultimately show thesis using that map_Tm_inject_iff by fastforce
 qed
 
-lemma derives_Nts_subset_preserved:
+lemma derives_Nts_subset_preserved:(* TODO mv *)
   assumes "P \<turnstile> \<alpha> \<Rightarrow>* \<beta>"
     "Nts_syms \<alpha> \<subseteq> Nts P"
   shows "Nts_syms \<beta> \<subseteq> Nts P"
   using derives_Nts_syms_subset[OF assms(1)] assms(2) Nts_Lhss_Rhs_Nts[of P]
   by blast
 
-lemma derivers_append_map_Tm:
+lemma derivers_append_map_Tm:(* TODO mv *)
   assumes "P \<turnstile> \<alpha> \<Rightarrow>r* u"
   shows "P \<turnstile> \<alpha>@map Tm v \<Rightarrow>r* u @ map Tm v"
   using assms by (simp add: derivern_append_map_Tm rtranclp_power)
 
 
-lemma derivers_prepend:
+lemma derivers_prepend:(* TODO mv *)
   assumes "P \<turnstile> \<beta> \<Rightarrow>r* u"
   shows "P \<turnstile> \<alpha>@\<beta> \<Rightarrow>r* \<alpha> @ u"
   using assms derivern_prepend rtranclp_power by (smt (verit))+
@@ -453,7 +448,7 @@ proof -
   qed
 qed
 
-lemma derivers_induct[consumes 1, case_names base step]:
+lemma derivers_induct[consumes 1, case_names base step]:(*TODO mv*)
   assumes "P \<turnstile> xs \<Rightarrow>r* ys"
   and "Q xs"
   and "\<And>u A v \<alpha>. \<lbrakk> P \<turnstile> xs \<Rightarrow>r* u @ Nt A # map Tm v; Q (u @ Nt A # map Tm v); (A,\<alpha>) \<in> P \<rbrakk> 
@@ -468,7 +463,7 @@ next
   from deriver.cases[OF step(2)] step(1,3-) show ?case by metis
 qed
 
-lemma converse_derivers_induct[consumes 1, case_names base step]:
+lemma converse_derivers_induct[consumes 1, case_names base step]:(*TODO mv*)
   assumes "P \<turnstile> xs \<Rightarrow>r* ys"
   and "Q ys"
   and "\<And>A \<alpha> u v. \<lbrakk>(A, \<alpha>) \<in> P; P \<turnstile> u @ \<alpha> @ map Tm v \<Rightarrow>r* ys; Q (u @ \<alpha> @ map Tm v)\<rbrakk> 
@@ -482,8 +477,7 @@ next
   from deriver.cases[OF step(1)] step(2-) show ?case by metis
 qed
 
-
-lemma derivern_induct[consumes 1, case_names 0 Suc]:
+lemma derivern_induct[consumes 1, case_names 0 Suc]:(*TODO mv*)
   assumes "P \<turnstile> xs \<Rightarrow>r(n) ys"
   and "Q 0 xs"
   and "\<And>n u A v w. \<lbrakk> P \<turnstile> xs \<Rightarrow>r(n) u @ Nt A#map Tm v; Q n (u @ Nt A#map Tm v); (A,w) \<in> P \<rbrakk> 
@@ -506,14 +500,7 @@ lemma derivels_empty_imp_no_Tms:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>l* []"
     "\<alpha> \<noteq> []"
   obtains X \<beta> where "\<alpha> = Nt X # \<beta>"
-proof -
-  from assms obtain \<beta> where "P \<turnstile> \<alpha> \<Rightarrow>l \<beta>" "P \<turnstile> \<beta> \<Rightarrow>l* []" 
-    by (metis converse_rtranclpE)
-  with derivel.cases obtain u X \<gamma> where "\<alpha> = map Tm u @ Nt X # \<gamma>" by meson
-  moreover from this have "map Tm u = []" using assms 
-    by (simp add: derivels_map_Tm_append)
-  ultimately show thesis using that by blast
-qed
+by (metis assms(1,2) derivels_imp_derives derives_Cons_Nil neq_Nil_conv)
 
 lemma derives_decomp_less:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>(Suc n) map Tm w"
@@ -535,24 +522,20 @@ proof -
 qed
 
 
-lemma derive_word_imp_single_Nt:
+lemma derive_word_imp_single_Nt:(*TODO mv*)
   assumes "P \<turnstile> \<alpha> \<Rightarrow> map Tm w"
   obtains u v X x where 
     "\<alpha> = map Tm u @ Nt X # map Tm x" "P \<turnstile> [Nt X] \<Rightarrow> map Tm v" "w = u @ v @ x"
-proof -
-  from assms have "P \<turnstile> \<alpha> \<Rightarrow>(Suc 0) map Tm w" by auto
-  from derives_decomp_less[OF this] show thesis using that 
-    by (metis (no_types, lifting) add_is_0 not_less_zero one_is_add relpowp_0_E
-        relpowp_Suc_0) 
-qed
+using assms
+by(auto simp add: derive.simps append_eq_iffs)
 
-lemma derivern_singleton_imp_prod:
+lemma derivern_singleton_imp_prod:(*TODO mv*)
   assumes "P \<turnstile> [Nt X] \<Rightarrow>(n) map Tm w"
   obtains \<alpha> m where "n = Suc m" "P \<turnstile> [Nt X] \<Rightarrow> \<alpha>"
     "P \<turnstile> \<alpha> \<Rightarrow>(m) map Tm w"
   using assms by (cases n) (force, metis relpowp_Suc_D2)
 
-lemma app_derivers_app:
+lemma app_derivers_app:(*TODO gen.map Tm v and mv*)
   assumes "P \<turnstile> \<alpha> \<Rightarrow>r* map Tm u"
     "P \<turnstile> \<beta> \<Rightarrow>r* map Tm v"
   shows "P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r* map Tm (u@v)"
@@ -676,7 +659,7 @@ proof -
       (use that derivern in simp, use that derivern derivern_imp_last_step in meson)
 qed
 
-lemma deriver_prepend:
+lemma deriver_prepend:(*TODO mv*)
   assumes "P \<turnstile> \<alpha> \<Rightarrow>r \<beta>"
   shows "P \<turnstile> \<gamma> @ \<alpha> \<Rightarrow>r \<gamma> @ \<beta>"
   using assms proof cases
@@ -772,7 +755,7 @@ qed
 section \<open>NFAs\<close>
 
 context nfa begin
-lemma Power_nextl_eq_nfa_nextl [simp]:
+lemma Power_nextl_eq_nfa_nextl [simp]:(*TODO mv?*)
   "(dfa.nextl Power_dfa (dfa.init Power_dfa) u) = nextl (init M) u"
 proof (induct u rule: List.rev_induct)
   case Nil show ?case

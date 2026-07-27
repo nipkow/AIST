@@ -9,9 +9,6 @@ begin
 
 subsection "Definition of an Ambiguous Grammar"
 
-text "A CFG is ambiguous, if there exists a word for which there is two leftmost derivations (or different parse tree, which we do not model, because 
-      the proof of inherent ambiguity uses the definition through leftmost derivations)."
-
 abbreviation ambiguous :: "('n, 't) Cfg \<Rightarrow> bool" 
   where 
     "ambiguous G \<equiv> \<not> unambiguous (Prods G) (Start G)" 
@@ -52,8 +49,8 @@ proof -
 
   then have ptP1: "parse_tree (Prods G) t1" and ptP2: "parse_tree (Prods G) t2"
     using subset_tree[OF pt_1 p1_subst] subset_tree[OF pt_2 p2_subst] by auto
-  then have v_pt_1: "valid_parse_tree (Prods G) (Start G) (map Tm w) t1" and v_pt_2: "valid_parse_tree (Prods G) (Start G) (map Tm w) t2"
-    using ptP1 size1 fr1 root1 ptP2 size2 fr2 root2 unfolding valid_parse_tree_def by auto
+  then have v_pt_1: "parse_tree_tms (Prods G) t1 (Start G) w" and v_pt_2: "parse_tree_tms (Prods G) t2 (Start G) w "
+    using ptP1 size1 fr1 root1 ptP2 size2 fr2 root2 unfolding parse_tree_syms_def by auto
 
   have "P1 \<noteq> P2" using conj deriven_Nt_Cons_map_Tm p2_deriven by force 
 
@@ -67,8 +64,8 @@ proof -
   have "\<not> unambiguous (Prods G) (Start G)" 
   proof (rule ccontr)
     assume "\<not>?thesis"
-    then have ambig: "\<And>w t1 t2. w \<in> Lang (Prods G) (Start G) \<Longrightarrow> valid_parse_tree (Prods G) (Start G) (map Tm w) t1 \<Longrightarrow> valid_parse_tree (Prods G) (Start G) (map Tm w) t2 \<Longrightarrow> t1 = t2"
-      unfolding unambiguous_def by blast
+    then have ambig: "\<And>w t1 t2. w \<in> Lang (Prods G) (Start G) \<Longrightarrow> parse_tree_tms (Prods G) t1 (Start G) w \<Longrightarrow> parse_tree_tms (Prods G) t2 (Start G) w \<Longrightarrow> t1 = t2"
+      unfolding ambiguous_def by blast
     have "t1 = t2" using ambig[OF w_in_L v_pt_1 v_pt_2] by simp
     thus False using uneq by simp
   qed

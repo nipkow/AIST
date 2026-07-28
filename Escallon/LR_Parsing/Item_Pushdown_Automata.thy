@@ -434,7 +434,7 @@ lemma derive_imp_completes:
     "(A, \<alpha> @ \<beta> @ \<gamma>) \<in> Prods G'"
   shows "([A \<rightarrow> \<alpha> \<cdot> \<beta>@\<gamma>] # \<rho>, w @ x) \<turnstile>* ([A \<rightarrow> \<alpha>@\<beta> \<cdot> \<gamma>] # \<rho>, x)"
 proof -
-  from derive_word_imp_single_Nt[OF assms(1)] obtain u v X y where \<beta>_decomp:
+  from derive_map_TmD[OF assms(1)] obtain u v X y where \<beta>_decomp:
     "\<beta> = map Tm u @ Nt X # map Tm y" "Prods G' \<turnstile> [Nt X] \<Rightarrow> map Tm v" "w = u @ v @ y" by metis
   with completes_Tms[of A \<alpha> u "Nt X # map Tm y @ \<gamma>" _ "v @ y @ x"] have 
     "([A \<rightarrow> \<alpha> \<cdot> \<beta> @ \<gamma>] # \<rho>, w @ x) 
@@ -463,12 +463,12 @@ proof -
     proof (cases n)
       case (Suc m)
       note Suc_m = this
-      with derives_decomp_less obtain \<delta>\<^sub>1 i u X j v \<delta>\<^sub>2 k y where
+      with deriven_decomp_less obtain \<delta>\<^sub>1 i u X j v \<delta>\<^sub>2 k y where
         \<beta>_decomp:
         "\<beta> = \<delta>\<^sub>1 @ Nt X # \<delta>\<^sub>2"
         "Prods G' \<turnstile> \<delta>\<^sub>1 \<Rightarrow>(i) map Tm u" "Prods G' \<turnstile> [Nt X] \<Rightarrow>(j) map Tm v" "Prods G' \<turnstile> \<delta>\<^sub>2 \<Rightarrow>(k) map Tm y"
         "w = u @ v @ y" "i + j + k = n" "j > 0" 
-        using less(3)  by (smt (verit, best))
+        using less(3) by (smt (verit, best))
       hence leqs: "i < n" "k < n" by auto
       have first: "([A \<rightarrow> \<alpha> \<cdot> \<beta> @ \<gamma>] # \<rho>, w @ x) 
               \<turnstile>* ([A \<rightarrow> \<alpha> @ \<delta>\<^sub>1 \<cdot> Nt X # \<delta>\<^sub>2 @ \<gamma>] # \<rho>, v @ y @ x)"
@@ -489,16 +489,16 @@ proof -
         show ?thesis 
         proof (cases m)
           case (Suc m')
-          from derives_decomp_less[OF m_steps(2)[unfolded Suc]] obtain \<xi>\<^sub>1 i' u' Y j' v' \<xi>\<^sub>2 k' y' 
+          from deriven_decomp_less[OF m_steps(2)[unfolded Suc]] obtain \<xi>\<^sub>1 i' u' Y j' v' \<xi>\<^sub>2 k' y' 
             where \<beta>'_decomp:
             "\<beta>' = \<xi>\<^sub>1 @ Nt Y # \<xi>\<^sub>2" "Prods G' \<turnstile> \<xi>\<^sub>1 \<Rightarrow>(i') map Tm u'" "Prods G' \<turnstile> [Nt Y] \<Rightarrow>(j') map Tm v'"
             "Prods G' \<turnstile> \<xi>\<^sub>2 \<Rightarrow>(k') map Tm y'" "v = u' @ v' @ y'" "i' < n" "j' < n" "k' < n"
             using Suc Suc_m 
             by (smt (verit, ccfv_threshold) add.commute add_lessD1 lessI)
-          from derivern_singleton_imp_prod[OF \<beta>'_decomp(3)] obtain \<gamma>' j'' where Y_prod: 
+          from deriven_Nt_map_TmD[OF \<beta>'_decomp(3)] obtain \<gamma>' j'' where Y_prod: 
             "Prods G' \<turnstile> [Nt Y] \<Rightarrow> \<gamma>'" "Prods G' \<turnstile> \<gamma>' \<Rightarrow>(j'') map Tm v'"
             "j'' < n"
-            using \<beta>'_decomp(7) by (metis Suc_lessD)
+            using \<beta>'_decomp(7) Suc_lessD derive_singleton by blast
           hence Y_prod': "(Y, \<gamma>') \<in> Prods G'" using derive_singleton 
             by (metis sym.inject(1))
           from m_steps \<beta>'_decomp(1) have X_step: "(X, \<xi>\<^sub>1 @ Nt Y # \<xi>\<^sub>2) \<in> Prods G'" 
@@ -532,7 +532,7 @@ proof -
         case False
         hence "j < n" using \<beta>_decomp by linarith
         then show ?thesis
-          using first last derivern_singleton_imp_prod[OF \<beta>_decomp(3)] less.prems(1)
+          using first last \<beta>_decomp(3) less.prems(1)
           by (smt (verit, ccfv_threshold) \<beta>_decomp(1,3) append.assoc append_Cons append_self_conv2 less.IH
               rtranclp_trans)
       qed

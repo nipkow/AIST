@@ -324,18 +324,8 @@ proof -
   then show False using inds(2) assms(1) by simp
 qed
 
-lemma Nt_map_Tm_eq_Nt_map_TmD:(* TODO mv and make dual [simp]*)
-  "\<alpha> @ Nt A # map Tm u = \<alpha>' @ Nt A' # map Tm u' \<Longrightarrow> \<alpha>=\<alpha>' \<and> A=A' \<and> u=u'"
-by(auto simp: append_eq_append_conv2 append_eq_Cons_conv Cons_eq_append_conv append_eq_map_conv map_eq_append_conv)
-
 
 section \<open>Rightmost derivations\<close>
-
-lemma deriver_imp_in_Prods:(* TODO mv *)
-  assumes "P \<turnstile> \<gamma> @ Nt A#map Tm w \<Rightarrow>r \<gamma>@\<alpha>@map Tm w"
-  shows "(A, \<alpha>) \<in> P"
-  using deriver.cases[OF assms]
-  by (metis append_eq_append_conv Nt_map_Tm_eq_Nt_map_TmD)
 
 lemma deriver_imp_handle:
   assumes "P \<turnstile> \<beta> @ Nt A#map Tm u \<Rightarrow>r \<gamma> @ Nt X#map Tm v"
@@ -358,23 +348,27 @@ proof -
   ultimately show thesis using that map_Tm_inject_iff by fastforce
 qed
 
-lemma derives_Nts_subset_preserved:(* TODO mv *)
+lemma derives_Nts_subset_preserved:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>* \<beta>"
     "Nts_syms \<alpha> \<subseteq> Nts P"
   shows "Nts_syms \<beta> \<subseteq> Nts P"
-  using derives_Nts_syms_subset[OF assms(1)] assms(2) Nts_Lhss_Rhs_Nts[of P]
-  by blast
+  using assms(1,2) derives_Nts_iff by blast
 
-lemma derivers_append_map_Tm:(* TODO mv *)
+lemma derivers_append_map_Tm:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>r* u"
   shows "P \<turnstile> \<alpha>@map Tm v \<Rightarrow>r* u @ map Tm v"
-  using assms by (simp add: derivern_append_map_Tm rtranclp_power)
+  by (meson assms derivern_append_map_Tm rtranclp_power)
 
-
-lemma derivers_prepend:(* TODO mv *)
+lemma derivers_prepend:
   assumes "P \<turnstile> \<beta> \<Rightarrow>r* u"
   shows "P \<turnstile> \<alpha>@\<beta> \<Rightarrow>r* \<alpha> @ u"
-  using assms derivern_prepend rtranclp_power by (smt (verit))+
+  using assms derivern_prepend rtranclp_power by metis
+
+lemma deriver_imp_in_Prods:
+  assumes "P \<turnstile> \<gamma> @ Nt A#map Tm w \<Rightarrow>r \<gamma>@\<alpha>@map Tm w"
+  shows "(A, \<alpha>) \<in> P"
+  using deriver.cases[OF assms]
+  by (metis append_eq_append_conv Nt_map_Tm_eq_Nt_map_TmD)
 
 lemma deriver_cases[consumes 1, case_names rightmost Tms]:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>r \<beta>"
@@ -448,61 +442,13 @@ proof -
   qed
 qed
 
-lemma derivers_induct[consumes 1, case_names base step]:(*TODO mv*)
-  assumes "P \<turnstile> xs \<Rightarrow>r* ys"
-  and "Q xs"
-  and "\<And>u A v \<alpha>. \<lbrakk> P \<turnstile> xs \<Rightarrow>r* u @ Nt A # map Tm v; Q (u @ Nt A # map Tm v); (A,\<alpha>) \<in> P \<rbrakk> 
-      \<Longrightarrow> Q (u @ \<alpha> @ map Tm v)"
-  shows "Q ys"
-using assms
-proof (induction rule: rtranclp_induct)
-  case base
-  from this(1) show ?case .
-next
-  case (step y z)
-  from deriver.cases[OF step(2)] step(1,3-) show ?case by metis
-qed
-
-lemma converse_derivers_induct[consumes 1, case_names base step]:(*TODO mv*)
-  assumes "P \<turnstile> xs \<Rightarrow>r* ys"
-  and "Q ys"
-  and "\<And>A \<alpha> u v. \<lbrakk>(A, \<alpha>) \<in> P; P \<turnstile> u @ \<alpha> @ map Tm v \<Rightarrow>r* ys; Q (u @ \<alpha> @ map Tm v)\<rbrakk> 
-    \<Longrightarrow> Q (u @ Nt A # map Tm v)"
-shows "Q xs"
-  using assms proof (induction rule: converse_rtranclp_induct)
-  case base
-  from this(1) show ?case .
-next
-  case (step y z)
-  from deriver.cases[OF step(1)] step(2-) show ?case by metis
-qed
-
-lemma derivern_induct[consumes 1, case_names 0 Suc]:(*TODO mv*)
-  assumes "P \<turnstile> xs \<Rightarrow>r(n) ys"
-  and "Q 0 xs"
-  and "\<And>n u A v w. \<lbrakk> P \<turnstile> xs \<Rightarrow>r(n) u @ Nt A#map Tm v; Q n (u @ Nt A#map Tm v); (A,w) \<in> P \<rbrakk> 
-    \<Longrightarrow> Q (Suc n) (u @ w @ map Tm v)"
-  shows "Q n ys"
-using assms(1) proof (induction n arbitrary: ys)
-  case 0
-  thus ?case using assms(2) by auto
-next
-  case (Suc n)
-  from relpowp_Suc_E[OF Suc.prems]
-  obtain xs' where n: "P \<turnstile> xs \<Rightarrow>r(n) xs'" and 1: "P \<turnstile> xs' \<Rightarrow>r ys" by auto
-  from deriver.cases[OF 1] obtain u A v w where "xs' = u @ Nt A # map Tm v" "(A,w) \<in> P" "ys = u @ w @ map Tm v"
-    by metis
-  with Suc.IH[OF n] assms(3) n
-  show ?case by blast
-qed
-
 lemma derivels_empty_imp_no_Tms:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>l* []"
     "\<alpha> \<noteq> []"
   obtains X \<beta> where "\<alpha> = Nt X # \<beta>"
 by (metis assms(1,2) derivels_imp_derives derives_Cons_Nil neq_Nil_conv)
 
-lemma derives_decomp_less:
+lemma deriven_decomp_less:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>(Suc n) map Tm w"
   obtains \<gamma>\<^sub>1 i u X j v \<gamma>\<^sub>2 k x where
     "\<alpha> = \<gamma>\<^sub>1 @ Nt X # \<gamma>\<^sub>2"
@@ -521,27 +467,7 @@ proof -
   ultimately show thesis using that by fastforce
 qed
 
-
-lemma derive_word_imp_single_Nt:(*TODO mv*)
-  assumes "P \<turnstile> \<alpha> \<Rightarrow> map Tm w"
-  obtains u v X x where 
-    "\<alpha> = map Tm u @ Nt X # map Tm x" "P \<turnstile> [Nt X] \<Rightarrow> map Tm v" "w = u @ v @ x"
-using assms
-by(auto simp add: derive.simps append_eq_iffs)
-
-lemma derivern_singleton_imp_prod:(*TODO mv*)
-  assumes "P \<turnstile> [Nt X] \<Rightarrow>(n) map Tm w"
-  obtains \<alpha> m where "n = Suc m" "P \<turnstile> [Nt X] \<Rightarrow> \<alpha>"
-    "P \<turnstile> \<alpha> \<Rightarrow>(m) map Tm w"
-  using assms by (cases n) (force, metis relpowp_Suc_D2)
-
-lemma app_derivers_app:(*TODO gen.map Tm v and mv*)
-  assumes "P \<turnstile> \<alpha> \<Rightarrow>r* map Tm u"
-    "P \<turnstile> \<beta> \<Rightarrow>r* map Tm v"
-  shows "P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r* map Tm (u@v)"
-  using assms derivers_iff_derives by (metis derives_append_map_Tm)
-
-lemma derivers_singleton_imp_produced:
+lemma derivern_singleton_imp_produced:
   assumes "P \<turnstile> [Nt A] \<Rightarrow>r(Suc n) \<alpha> @ Nt X # \<beta>"
   obtains m \<alpha>' B v \<alpha>'' \<beta>' where
     "m < Suc n"
@@ -599,7 +525,7 @@ lemma derivern_imp_last_step:
   case 0
   hence "P \<turnstile> \<alpha> \<Rightarrow>r map Tm w" by auto
   then show ?case using 0(2) deriver.cases 
-    by (smt (verit, ccfv_threshold) "0.prems"(1) derive_word_imp_single_Nt deriver_imp_derive
+    by (smt (verit, ccfv_threshold) "0.prems"(1) derive_map_TmD deriver_imp_derive
         relpowp_Suc_E)
 next
   case (Suc n)
@@ -613,7 +539,7 @@ lemma derivers_last_step_single_Nt:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>r* \<beta>" "P \<turnstile> \<beta> \<Rightarrow>r map Tm w"
   obtains u v x X where "\<beta> = map Tm u @ Nt X # map Tm x"
     "(X, map Tm v) \<in> P" "w = u @ v @ x"
-  using assms deriver_imp_handle_Tms by (metis (no_types, lifting) derive_word_imp_single_Nt deriver_imp_derive)
+  using assms deriver_imp_handle_Tms by (metis (no_types, lifting) derive_map_TmD deriver_imp_derive)
 
 lemma derivern_appendD:
   assumes "P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r(n) \<gamma>"
@@ -659,13 +585,10 @@ proof -
       (use that derivern in simp, use that derivern derivern_imp_last_step in meson)
 qed
 
-lemma deriver_prepend:(*TODO mv*)
+lemma deriver_prepend:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>r \<beta>"
   shows "P \<turnstile> \<gamma> @ \<alpha> \<Rightarrow>r \<gamma> @ \<beta>"
-  using assms proof cases
-  case (1 A \<alpha> u v)
-  then show ?thesis using deriver.intros[OF 1(3), of "\<gamma> @ u" v] by auto
-qed
+  by (metis assms derivern_prepend relpowp_Suc_0)
 
 lemma deriver_prefix_indep:
   assumes "P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r \<alpha> @ \<gamma>"

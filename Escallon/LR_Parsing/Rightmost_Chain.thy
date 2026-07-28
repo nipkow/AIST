@@ -214,7 +214,7 @@ lemma derivern_Suc_singleton_imp_rm_chain:
         using Suc_steps(2) by auto
       hence B_deriver: "P \<turnstile> [Nt B] \<Rightarrow>r map Tm z" using deriver_singleton 
         deriver_imp_in_Prods[OF Suc_steps(3)] by fast
-      from \<beta>\<gamma>_decomp derivers_singleton_imp_produced[of m P A \<delta> X "map Tm y @ Nt B # map Tm u"] 
+      from \<beta>\<gamma>_decomp derivern_singleton_imp_produced[of m P A \<delta> X "map Tm y @ Nt B # map Tm u"] 
         Suc_steps(1) Suc
       obtain k \<alpha>' C w \<alpha>'' \<beta>' where k_steps:
         "P \<turnstile> [Nt A] \<Rightarrow>r(k) \<alpha>' @ Nt C # map Tm w"

@@ -2,199 +2,6 @@ theory Extended_Cfg
   imports Auxiliary
 begin
 
-section \<open>Context-Free Items\<close>
-
-datatype ('n, 't) item = Item 'n  "('n, 't) syms"  "('n, 't) syms" ("[_ \<rightarrow> _ \<cdot> _]")
-
-abbreviation prod_of_item :: "('n, 't) item \<Rightarrow> ('n, 't) prod" where
-  "prod_of_item i \<equiv> case i of [A \<rightarrow> \<alpha> \<cdot> \<beta>] \<Rightarrow> (A, \<alpha>@\<beta>)"
-
-definition history :: "('n, 't) item \<Rightarrow> ('n, 't) syms" where
-  "history i \<equiv> case i of [A \<rightarrow> \<alpha> \<cdot> \<beta>] \<Rightarrow> \<alpha>"
-
-lemma history_unfold [simp]: "history [A \<rightarrow> \<alpha> \<cdot> \<beta>] = \<alpha>"
-  unfolding history_def by simp
-
-definition hist :: "('n, 't) item list \<Rightarrow> ('n,'t) syms" where
-  "hist \<rho> \<equiv> concat (map history \<rho>)"
-
-lemma hist_Nil [simp]:
-  "hist [] = []" 
-  unfolding hist_def by simp
-
-lemma hist_singleton [simp]:
-  "hist ([[A \<rightarrow> \<alpha> \<cdot> \<beta>]]) = \<alpha>"
-  unfolding hist_def by simp
-
-lemma hist_Cons [simp]:
-  "hist (i#\<rho>) = history i @ hist \<rho>"
-  unfolding hist_def by simp
-
-lemma hist_append [simp]:
-  "hist (\<rho> @ \<sigma>) = hist \<rho> @ hist \<sigma>"
-  unfolding hist_def by simp
-
-lemmas hist_defs = hist_def history_def
-
-definition items_of_Prods :: "('n, 't) Prods \<Rightarrow> ('n, 't) item set" where
-  "items_of_Prods P \<equiv> {[A \<rightarrow> \<alpha> \<cdot> \<beta>] | A \<alpha> \<beta>. (A, \<alpha>@\<beta>) \<in> P}"
-
-definition It :: "('n, 't) Cfg \<Rightarrow> ('n, 't) item set" where
-  "It G = items_of_Prods (Prods G)"
-
-definition Nts_of_items :: "('n, 't) item set \<Rightarrow> 'n set" where
-  "Nts_of_items I \<equiv> (\<lambda>i. case i of [A \<rightarrow> \<alpha> \<cdot> \<beta>] \<Rightarrow> A) ` I"
-
-definition Hists_of_items :: "('n, 't) item set \<Rightarrow> ('n, 't) syms set" where
-  "Hists_of_items I \<equiv> (\<lambda>i. case i of [A \<rightarrow> \<alpha> \<cdot> \<beta>] \<Rightarrow> \<alpha>) ` I"
-
-lemma in_items_imp_in_Nts [intro]:
-  assumes "[A \<rightarrow> \<alpha> \<cdot> \<beta>] \<in> I"
-  shows "A \<in> Nts_of_items I"
-  using assms unfolding Nts_of_items_def by force
-
-lemma in_items_imp_in_Hists [intro]:
-  assumes "[A \<rightarrow> \<alpha> \<cdot> \<beta>] \<in> I"
-  shows "\<alpha> \<in> Hists_of_items I"
-  using assms unfolding Hists_of_items_def by force
-
-lemmas It_defs = It_def items_of_Prods_def
-
-lemma in_Prods_imp_in_It:
-  "prod_of_item i \<in> Prods G \<Longrightarrow> i \<in> It G"
-  unfolding It_defs by (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq)
-
-lemma in_It_imp_in_Prods:
-  "i \<in> It G \<Longrightarrow> prod_of_item i \<in> Prods G"
-  unfolding It_defs by auto
-
-lemma in_Prods_iff_in_It:
-  "prod_of_item i \<in> Prods G = (i \<in> It G)"
-  using in_Prods_imp_in_It in_It_imp_in_Prods by auto
-
-lemma prod_of_item_eq_imp_in_Prods_eq:
-  "prod_of_item i = prod_of_item j \<Longrightarrow> i \<in> It G' \<longleftrightarrow> j \<in> It G'"
-  by (cases i, cases j) (metis in_Prods_iff_in_It)
-
-lemma prod_imp_derives_expanded_hist:
-  assumes "(Y, \<beta>) \<in> P"
-  shows "P \<turnstile> hist (\<rho> @ [X \<rightarrow> \<alpha> @ [Nt Y] \<cdot> \<gamma>] # \<sigma>) \<Rightarrow>  hist (\<rho> @ [X \<rightarrow> \<alpha> \<cdot> Nt Y # \<gamma>] # [Y \<rightarrow> \<beta> \<cdot> []] # \<sigma>)"         
-    (is "P \<turnstile> ?h1 \<Rightarrow> ?h2")
-  using derive.intros[OF assms, of "hist \<rho> @ \<alpha>"] by simp
-
-lemma prod_items_finite:
-  "finite {[A \<rightarrow> \<alpha> \<cdot> \<beta>] | \<alpha> \<beta>. (A, \<alpha>@\<beta>) = (A, w)}"
-proof (induction w)
-  case (Cons a w)
-  let ?it = "{[A \<rightarrow> \<alpha> \<cdot> \<beta>] |\<alpha> \<beta>. (A, \<alpha> @ \<beta>) = (A, w)}"
-  have "{[A \<rightarrow> \<alpha> \<cdot> \<beta>] |\<alpha> \<beta>. (A, \<alpha> @ \<beta>) = (A, a # w)} 
-        = {[A \<rightarrow> (a#\<alpha>) \<cdot> \<beta>]|\<alpha> \<beta>. [A \<rightarrow> \<alpha> \<cdot> \<beta>]\<in>?it} \<union> {[A \<rightarrow> [] \<cdot> (a#\<beta>)]|\<beta>. [A \<rightarrow> [] \<cdot> \<beta>]\<in>?it}" 
-    (is "?cons = ?app_\<alpha> \<union> ?app_\<beta>")
-  proof
-    show "?cons \<subseteq> ?app_\<alpha> \<union> ?app_\<beta>"
-    proof
-      fix i
-      assume in_cons: "i \<in> ?cons"
-      then obtain \<alpha> \<beta> where \<alpha>\<beta>: "i = [A \<rightarrow> \<alpha> \<cdot> \<beta>]" "\<alpha> @ \<beta> = a # w"
-        by blast
-      show "i \<in> ?app_\<alpha> \<union> ?app_\<beta>" using \<alpha>\<beta> by (cases \<alpha>) auto
-    qed
-  next
-    show "?app_\<alpha> \<union> ?app_\<beta> \<subseteq> ?cons" 
-    proof
-      fix i 
-      assume in_apps: "i \<in> ?app_\<alpha> \<union> ?app_\<beta>"
-      then consider (in_app_\<alpha>) "i \<in> ?app_\<alpha>" | (in_app_\<beta>) "i \<in> ?app_\<beta>" by blast
-      then show "i \<in> ?cons" by cases fastforce+
-    qed
-  qed
-  moreover have "bij_betw (\<lambda>i. case i of [A \<rightarrow> \<alpha> \<cdot> \<beta>] \<Rightarrow> [A \<rightarrow> (a#\<alpha>) \<cdot> \<beta>]) ?it ?app_\<alpha>" 
-    (is "bij_betw ?f _ _")
-  proof -
-    have "inj_on ?f ?it" 
-      by (smt (verit, del_insts) inj_onCI item.case item.exhaust item.inject list.inject)
-    moreover have "?f ` ?it = ?app_\<alpha>" by force
-    ultimately show ?thesis unfolding bij_betw_def by simp
-  qed
-  moreover have "finite ?app_\<beta>" 
-  proof -
-    have "{[A \<rightarrow> [] \<cdot> \<beta>]|\<beta>. [A \<rightarrow> [] \<cdot> \<beta>]\<in>?it} \<subseteq> ?it" by blast
-    moreover have 
-      "bij_betw (\<lambda>i. case i of [A \<rightarrow> \<alpha> \<cdot> \<beta>] \<Rightarrow> [A \<rightarrow> \<alpha> \<cdot> a#\<beta>]) {[A \<rightarrow> [] \<cdot> \<beta>]|\<beta>. [A \<rightarrow> [] \<cdot> \<beta>]\<in>?it} ?app_\<beta>"
-      by simp
-    ultimately show ?thesis using Cons by simp
-  qed
-  ultimately show ?case using local.Cons bij_betw_finite by fastforce
-qed simp
-
-lemma finite_items_of_Prods:
-  assumes "finite P"
-shows "finite (items_of_Prods P)"
-proof -
-  have "items_of_Prods P = (\<Union>(A,w)\<in>P. {[A \<rightarrow> \<alpha> \<cdot> \<beta>] | \<alpha> \<beta>. (A, \<alpha>@\<beta>) = (A, w)})" 
-    unfolding items_of_Prods_def by auto
-  with prod_items_finite show ?thesis using assms by fastforce
-qed
-
-corollary finite_It:
-  assumes "finite (Prods G)"
-shows "finite (It G)"
-  using assms finite_items_of_Prods unfolding It_def by auto
-
-lemma finite_items_imp_finite_Nts:
-  assumes "finite I"
-  shows "finite (Nts_of_items I)"
-  using assms unfolding Nts_of_items_def by blast
-
-lemma finite_items_imp_finite_Hists:
-  assumes "finite I"
-  shows "finite (Hists_of_items I)"
-  using assms unfolding Hists_of_items_def by blast
-
-lemma finite_lists_length_eq_Hists:
-  assumes "finite I" "finite A"
-  shows "finite {xs |xs \<alpha>. set xs \<subseteq> A \<and> length xs = length \<alpha> \<and> \<alpha> \<in> (Hists_of_items I)}"
-proof -
-  note finite_Hists = finite_items_imp_finite_Hists[OF assms(1)]
-  have "{xs|xs \<alpha>. set xs \<subseteq> A \<and> length xs = length \<alpha> \<and> \<alpha> \<in> (Hists_of_items I)}
-        = {xs|xs n. set xs \<subseteq> A \<and> length xs = n \<and> n \<in> length ` (Hists_of_items I)}"
-    by blast
-  with finite_lists_length_eq_set finite_Hists assms(2) show ?thesis by auto
-qed
-
-subsection \<open>Complete and Noncomplete Items\<close>
-
-definition completes :: "('n, 't) item set \<Rightarrow> ('n, 't) item set" where
-  "completes I \<equiv> {i \<in> I. case i of [X \<rightarrow> \<alpha> \<cdot> \<beta>] \<Rightarrow> \<beta> = []}"
-
-lemma completes_subset [simp]:
-  "completes I \<subseteq> I" unfolding completes_def by simp
-
-lemma completesD [dest]:
-  "i \<in> completes I \<Longrightarrow> i \<in> I"
-  using completes_subset by blast
-
-lemma completesE [elim]:
-  assumes "i \<in> completes I"
-  obtains X \<alpha> where "i = [X \<rightarrow> \<alpha> \<cdot> []]"
-  using assms unfolding completes_def 
-  by (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq)
-
-lemma completes_singleton_imp_eq:
-  assumes "completes I = {[X \<rightarrow> \<alpha> \<cdot> []]}"
-    "[A \<rightarrow> \<beta> \<cdot> []] \<in> I"
-  shows "[A \<rightarrow> \<beta> \<cdot> []] = [X \<rightarrow> \<alpha> \<cdot> []]"
-  using assms unfolding completes_def by fastforce
-
-abbreviation "noncompletes I \<equiv> I - completes I"
-
-lemma noncompletesE [elim]:
-  assumes "i \<in> noncompletes I"
-  obtains X \<alpha> Y \<beta> where "i = [X \<rightarrow> \<alpha> \<cdot> Y # \<beta>]"
-  using assms unfolding completes_def
-  by (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq neq_Nil_conv
-      set_diff_eq)
-
 
 (* mv? *)
 section \<open>Reduced Grammars\<close>
@@ -336,13 +143,6 @@ lemma reduced_derives_imp_derives_Tms:
   using reduced_derives_imp_substring_derives_Tms[of _ "[]" _ "[]"] assms 
   by (metis append.right_neutral append_Nil)
 
-lemma reduced_Nts_in_It:
-  assumes "A \<in> Nts (Prods G)" "reduced G"
-  obtains \<alpha> \<beta> where "[A \<rightarrow> \<alpha> \<cdot> \<beta>] \<in> It G"
-  using assms unfolding It_defs 
-  by (metis (mono_tags, lifting) append.right_neutral derives_Nt_map_TmD mem_Collect_eq
-      reduced_imp_derives_Tms_singleton)
-
 lemma reduced_reachable_imp_rsentential_reachable:
   assumes "reduced G"
     "LangS G \<noteq> {}"
@@ -413,15 +213,16 @@ locale Extended_Cfg =
       and G_not_empty: "LangS G \<noteq> {}"
 begin
 
-definition "S \<equiv> Start G"
+abbreviation "S \<equiv> Start G"
 definition "S' \<equiv> fresh0 (Nts (Prods G) \<union> {S})"
 definition "G' \<equiv> Cfg (Prods G \<union> {(S', [Nt S])}) S'"
 
+declare S'_def[simp]
+
+(* TODO: rename to finite_G' *)
 lemma G'_finite:
   "finite (Prods G')"
   using G_finite G'_def by simp
-
-lemmas S_defs[simp] = S_def S'_def
 
 lemma S_neq_S'[simp]:
   "S \<noteq> S'" 
@@ -447,9 +248,22 @@ lemma G'_derive_S:
   unfolding G'_def using derive_singleton by auto
 
 lemma G_derives_imp_G'_derives:
-  assumes "Prods G \<turnstile> \<alpha> \<Rightarrow>* w"
-  shows "Prods G' \<turnstile> \<alpha> \<Rightarrow>* w"
+  assumes "Prods G \<turnstile> \<alpha> \<Rightarrow>* \<beta>"
+  shows "Prods G' \<turnstile> \<alpha> \<Rightarrow>* \<beta>"
   using assms G_Prods_subset_G' by (simp add: derives_mono)
+
+lemma G_deriver_imp_G'_deriver:
+  assumes "Prods G \<turnstile> \<alpha> \<Rightarrow>r \<beta>"
+  shows "Prods G' \<turnstile> \<alpha> \<Rightarrow>r \<beta>"
+  using assms G_Prods_subset_G' deriver.intros deriver.cases 
+  by (smt (verit, best) subset_eq)
+
+lemma G_derivers_imp_G'_derivers:
+  assumes "Prods G \<turnstile> \<alpha> \<Rightarrow>r* \<beta>"
+  shows "Prods G' \<turnstile> \<alpha> \<Rightarrow>r* \<beta>"
+  using assms G_Prods_subset_G' 
+  by (smt (verit, best) deriver.cases deriver.intros mono_rtranclp subset_eq)
+
 
 lemma S'_notin_Nts_Prods_G [simp]:
   "S' \<notin> (Nts (Prods G))" 
@@ -486,11 +300,27 @@ proof -
   thus ?thesis by simp
 qed
 
+lemma S'_deriver_imp_S:
+  assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r \<alpha>"
+  shows "\<alpha> = [Nt S]"
+  using S'_derive_imp_S assms deriver_imp_derive by blast
+
 lemma G_derives_from_S_imp_G'_derives_from_S':
   assumes "Prods G \<turnstile> [Nt S] \<Rightarrow>* w"
   shows "Prods G' \<turnstile> [Nt S'] \<Rightarrow>* w"
   using assms G_derives_imp_G'_derives G'_derive_S
   by fastforce
+
+lemma G_derivers_from_S_imp_G'_derivers_from_S':
+  assumes "Prods G \<turnstile> [Nt S] \<Rightarrow>r* w"
+  shows "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* w"
+proof -
+  from G'_derive_S have "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r [Nt S]" 
+    by (simp add: derive_singleton deriver_singleton)
+  with assms G_derivers_imp_G'_derivers show ?thesis 
+    by fastforce
+qed
+
 
 lemma G'_derives_from_S_imp_derives_from_S':
   assumes "Prods G' \<turnstile> [Nt S] \<Rightarrow>* \<alpha>"
@@ -519,7 +349,25 @@ proof (induction rule: rtranclp_induct)
     by simp
 qed simp
 
-lemma G'_derivern_Suc_imp_G_derivern:
+lemma G'_deriver_imp_G_deriver_if_no_S':
+  assumes "Prods G' \<turnstile> \<alpha> \<Rightarrow>r \<gamma>"
+  shows "Nt S' \<notin> set \<alpha> \<Longrightarrow> Prods G \<turnstile> \<alpha> \<Rightarrow>r \<gamma>"
+  by (smt (verit, ccfv_threshold) Extended_Cfg.G'_Prod_cases Extended_Cfg_axioms assms deriver.cases
+      deriver.intros in_set_conv_decomp prod.inject)
+
+lemma G'_derivers_imp_G_derivers_if_no_S':
+  "\<lbrakk>Prods G' \<turnstile> \<alpha> \<Rightarrow>r* \<gamma>; Nt S' \<notin> set \<alpha>\<rbrakk> \<Longrightarrow> Prods G \<turnstile> \<alpha> \<Rightarrow>r* \<gamma>"
+proof (induction rule: rtranclp_induct)
+  case (step \<beta> \<gamma>)
+  note step(3)[OF step(4)]
+  moreover from this have "Nt S' \<notin> set \<beta>" 
+    using S'_notin_Nts_Prods_G derivers_imp_derives derives_set_subset in_Nts_iff_in_Syms step.prems
+    by fastforce
+  ultimately  show ?case using step G'_deriver_imp_G_deriver_if_no_S'[OF step(2)]
+    by simp
+qed simp
+
+lemma G'_deriven_Suc_imp_G_deriven:
   "Prods G' \<turnstile> [Nt S'] \<Rightarrow>(Suc n) \<beta> \<Longrightarrow> Prods G \<turnstile> [Nt S] \<Rightarrow>(n) \<beta>"
 proof (induction n arbitrary: \<beta>)
   case 0
@@ -532,28 +380,75 @@ next
     by presburger
   also with step_Sucn have "Prods G \<turnstile> ... \<Rightarrow> \<beta>" 
     by (metis G'_derive_imp_G_derive_if_no_S' G_not_empty Lang_empty_if_notin_Lhss Nts_Lhss_Rhs_Nts
-        S'_notin_Nts_Prods_G S_def Un_iff derives_imp_in_Prods in_Nts_syms relpowp_imp_rtranclp
+        S'_notin_Nts_Prods_G Un_iff derives_imp_in_Prods in_Nts_syms relpowp_imp_rtranclp
         subsetD)
   finally show ?case .
 qed
 
-lemma G'_derivern_Suc_imp_no_S':
+
+lemma G'_deriven_Suc_imp_no_S':
   "Prods G' \<turnstile> [Nt S'] \<Rightarrow>(Suc n) \<beta> \<Longrightarrow> S' \<notin> Nts_syms \<beta>"
-  by (drule G'_derivern_Suc_imp_G_derivern)
-    (metis G_not_empty Lang_empty_if_notin_Lhss Nts_Lhss_Rhs_Nts S_def UnCI derives_imp_in_Prods
+  by (drule G'_deriven_Suc_imp_G_deriven)
+    (metis G_not_empty Lang_empty_if_notin_Lhss Nts_Lhss_Rhs_Nts UnCI derives_imp_in_Prods
       in_mono relpowp_imp_rtranclp S'_notin_Nts_Prods_G)
+
+lemma G'_derivern_Suc_imp_G_derivern:
+  "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(Suc n) \<beta> \<Longrightarrow> Prods G \<turnstile> [Nt S] \<Rightarrow>r(n) \<beta>"
+proof (induction n arbitrary: \<beta>)
+  case 0
+  then show ?case using S'_deriver_imp_S by auto
+next
+  case (Suc n)
+  then obtain \<alpha> where step_Sucn: "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(Suc n) \<alpha>" "Prods G' \<turnstile> \<alpha> \<Rightarrow>r \<beta>"
+    by (meson relpowp_Suc_E)
+  with Suc.IH have stepn: "Prods G \<turnstile> [Nt S] \<Rightarrow>r(n) \<alpha>" 
+    by presburger
+  also with step_Sucn have "Prods G \<turnstile> ... \<Rightarrow>r \<beta>" 
+  proof -
+    from stepn have no_S': "S' \<notin> Nts_syms \<alpha>"
+      using G'_deriven_Suc_imp_no_S' derivern_imp_deriven step_Sucn(1) by blast
+    from step_Sucn(2) show ?thesis proof cases
+      case (1 A \<alpha> u v)
+      from this(3) show ?thesis using 1 no_S' 
+        by (cases rule: G'_Prod_cases) (auto intro: deriver.intros) 
+    qed
+  qed
+  finally show ?case .
+qed
+
+lemma G_into_G'_derivers:
+  assumes "Prods G \<turnstile> \<alpha> \<Rightarrow>r* \<beta>" "S' \<notin> Nts_syms \<alpha>" "Prods G' \<turnstile> \<beta> \<Rightarrow>r \<gamma>" 
+  shows "Prods G \<turnstile> \<beta> \<Rightarrow>r \<gamma>"
+proof -
+  from assms(1,2) have S'_notin_\<beta>: "S' \<notin> Nts_syms \<beta>" 
+    using S'_notin_Nts_Prods_G Nts_Lhss_Rhs_Nts derivers_imp_derives derives_Nts_syms_subset 
+    by fastforce
+  from assms(3) show ?thesis
+  proof cases
+    case (1 A \<alpha> u v)
+    from this(3) show ?thesis proof (cases rule: G'_Prod_cases)
+      case init
+      then show ?thesis using 1 S'_notin_\<beta> by simp
+    next
+      case prod_G
+      then show ?thesis using 1 
+        by (blast intro: deriver.intros)
+    qed
+  qed
+qed
+
 
 lemma S'_derives_S'_imp_refl:
   assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow>* \<alpha> @ Nt S' # \<beta>"
   shows "\<alpha> = [] \<and> \<beta> = []"
   using assms proof cases
   case (rtrancl_into_rtrancl b)
-  then show ?thesis using G'_derivern_Suc_imp_no_S' 
+  then show ?thesis using G'_deriven_Suc_imp_no_S' 
     by (metis Nts_syms_append Un_iff in_Nts_syms list.set_intros(1) relpowp_Suc_I
         rtranclp_imp_relpowp)
 qed (simp add: append_eq_Cons_conv)
   
-lemma Lang_preserved:
+theorem Lang_preserved:
   "LangS G' = LangS G"
 proof
   show "LangS G' \<subseteq> LangS G"
@@ -561,10 +456,11 @@ proof
     fix w
     assume "w \<in> LangS G'"
     hence "Prods G' \<turnstile> [Nt S'] \<Rightarrow>* map Tm w" unfolding Lang_def G'_def by simp
-    then obtain \<alpha> where "Prods G' \<turnstile> [Nt S'] \<Rightarrow> \<alpha>" "Prods G' \<turnstile> \<alpha> \<Rightarrow>* map Tm w" 
-      by (meson derive_singleton derives_Nt_map_TmD)
-    from S'_derive_imp_S[OF this(1)] this(2) show "w \<in> LangS G" 
-      using G'_derives_imp_G_derives_if_no_S' S_neq_S' unfolding Lang_def by simp
+    then obtain n where "Prods G' \<turnstile> [Nt S'] \<Rightarrow>(Suc n) map Tm w"
+      by (metis G'_derive_S not_derive_map_Tm stepcnt_cases)
+    with G'_deriven_Suc_imp_G_deriven have "Prods G \<turnstile> [Nt S] \<Rightarrow>* map Tm w"
+      using relpowp_imp_rtranclp by meson
+    then show "w \<in> LangS G" unfolding Lang_def by simp
   qed
 next
   show "LangS G \<subseteq> LangS G'" using G_derives_from_S_imp_G'_derives_from_S'
@@ -582,7 +478,7 @@ lemma in_Lang_imp_S_derives:
   assumes "w \<in> LangS G'"
   shows "Prods G' \<turnstile> [Nt S] \<Rightarrow>* map Tm w"
   using assms unfolding Lang_def 
-  by (metis G_derives_imp_G'_derives Lang_def Lang_preserved S_def mem_Collect_eq)
+  by (metis G_derives_imp_G'_derives Lang_def Lang_preserved mem_Collect_eq)
 
 
 lemma G'_reduced:
@@ -591,7 +487,7 @@ proof -
   have "\<forall>A \<in> Nts (Prods G) \<union> {S}. useful (Prods G') S' A"
     using G_reduced G_not_empty Lang_preserved G_derives_imp_G'_derives Lang_nempty_imp_useful_S
     unfolding reduced_def useful_def Lang_def 
-    by (metis G_derives_from_S_imp_G'_derives_from_S' S_def Un_iff singleton_iff) 
+    by (metis G_derives_from_S_imp_G'_derives_from_S' Un_iff singleton_iff) 
   moreover have "useful (Prods G') S' S'" 
     using Lang_nempty_imp_useful_S G_not_empty Lang_preserved G'_def by fastforce
   ultimately have "\<forall>A \<in> Nts (Prods G'). useful (Prods G') S' A"

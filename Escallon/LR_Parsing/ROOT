@@ -1,0 +1,18 @@
+session LR0_Base = HOL +
+  sessions 
+    Context_Free_Grammar
+    Finite_Automata_HF
+    Pushdown_Automata
+  theories
+    LR0_Parser
+
+session thesis in thesis = LR0_Base +
+  options [document = pdf, show_question_marks = false, names_short = true, 
+      document_output = "output"]
+  sessions 
+    LR0_Base
+  theories 
+    Paper 
+  document_files
+    "root.tex"
+    "root.bib"

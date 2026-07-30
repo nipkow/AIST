@@ -1,5 +1,7 @@
 theory Rightmost_Chain
-  imports Extended_Cfg
+  imports 
+    Extended_Cfg 
+    Item_Pushdown_Automata
 begin
 
 inductive rm_chain :: "('a, 'b) Prods \<Rightarrow> ('a, 'b) syms \<Rightarrow> ('a, 'b) item list \<Rightarrow> ('a, 'b) syms 
@@ -123,7 +125,7 @@ lemma (in Extended_Cfg) rm_chain_S'_Cons_imp_neq:
     using rtranclp_imp_relpowp by metis
   also note step(4)
   also note derivern_\<alpha>
-  finally show ?thesis using G'_derivern_Suc_imp_no_S' derivern_imp_deriven 
+  finally show ?thesis using G'_deriven_Suc_imp_no_S' derivern_imp_deriven 
     by (metis add_Suc in_Nts_syms list.set_intros(1))
 qed
 

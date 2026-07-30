@@ -20,6 +20,9 @@ locale srpda = Extended_Cfg G for G :: "('n::fresh0, 't) Cfg" +
   assumes srpda: "M = SRPDA G"
 begin
 
+lemma srpda_states [simp]: "states M = UNIV"
+  using srpda unfolding SRPDA_def by simp
+
 lemma srpda_init [simp]:
   "gpda.init M = Init" using srpda unfolding SRPDA_def by simp
 
@@ -33,6 +36,9 @@ lemma srpda_eps [simp]:
   using srpda unfolding SRPDA_def by simp
 
 type_synonym ('nts, 'tms) config = "('nts, 'tms) srpda_state list \<times> 'tms list"
+
+(* eps can push a Nt A onto the stack without reading any stack symbols if (A, []) \<in> Prods G',
+   making locale gpda impossible to use due to gpda.eps  *)
 
 inductive step :: "('n, 't) config \<Rightarrow> ('n, 't) config \<Rightarrow> bool" 
   (infix \<open>\<turnstile>\<close> 55) where

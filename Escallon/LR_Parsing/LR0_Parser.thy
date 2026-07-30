@@ -226,7 +226,7 @@ lemma eps_P0_cases[consumes 1, case_names reduce finish]:
   using assms unfolding eps_P0 by standard (smt (verit, best) mem_Collect_eq prod.inject)+
 
 interpretation P0: gpda P\<^sub>0
-proof (unfold_locales, goal_cases _ _ nxt eps _ finite_nxt finite_eps)
+proof (unfold_locales, goal_cases _ _ nxt eps _)
   case (nxt ps a qs)
   with nxt_P0E obtain p where "ps = [p]"
   "p \<in> dfa.states LR\<^sub>0" "qs = [dfa.nxt LR\<^sub>0 p (Tm a), p]" "dfa.nxt LR\<^sub>0 p (Tm a) \<noteq> {}"
@@ -245,25 +245,6 @@ next
       by (metis (no_types, lifting) Un_iff empty_set insert_subset last_in_set list.simps(15) 
           states_P0 subset_code(1))
   qed (use dfa_LR0.init in simp)
-next
-  case finite_nxt
-  have "finite {(q, a)|q a. q \<in> dfa.states LR\<^sub>0 \<and> dfa.nxt LR\<^sub>0 q (Tm a) \<noteq> {}}" (is "finite ?R")
-  proof -
-    have "?R = (\<Union>q \<in> dfa.states LR\<^sub>0. {(q,a)| a. dfa.nxt LR\<^sub>0 q (Tm a) \<noteq> {}})" 
-      by blast
-    with finite_dfa_LR0_nempty_Tms dfa_LR0.finite show ?thesis by auto
-  qed
-  moreover have "bij_betw (\<lambda>(q, a). ([q], a, dfa.nxt LR\<^sub>0 q (Tm a) # [q])) ?R (gpda.nxt P\<^sub>0)"
-    (is "bij_betw ?f _ _")
-  proof -
-    have "inj_on ?f ?R" by standard auto
-  moreover have "?f ` ?R = (gpda.nxt P\<^sub>0)" unfolding nxt_P0 by fastforce
-  ultimately show ?thesis unfolding bij_betw_def by satx
-  qed
-  ultimately show ?case using bij_betw_finite by blast
-next
-  case finite_eps
-  then show ?case using finite_eps_P0_reduce finite_eps_P0_finish by fastforce
 qed (use dfa_LR0.init dfa_LR0.finite in simp_all)
 
 lemma P0_read_iff_in_q:
@@ -667,6 +648,157 @@ lemma is_LRI [intro]:
   shows "is_LR k"
   unfolding is_LR_def using assms by blast
 
+definition is_LR' :: "nat \<Rightarrow> ('a, 'b) Cfg \<Rightarrow> bool" where
+  "is_LR' k H \<equiv> \<forall>\<alpha> X \<beta> w \<gamma> Y x y. 
+    Prods H \<turnstile> [Nt (Start H)] \<Rightarrow>r* \<alpha> @ Nt X # map Tm w \<and> 
+                        Prods H \<turnstile> \<alpha> @ Nt X # map Tm w \<Rightarrow>r \<alpha> @ \<beta> @ map Tm w \<and> 
+    Prods H \<turnstile> [Nt (Start H)] \<Rightarrow>r* \<gamma> @ Nt Y # map Tm x \<and> 
+                        Prods H \<turnstile> \<gamma> @ Nt Y # map Tm x \<Rightarrow>r \<alpha> @ \<beta> @ map Tm y \<and> 
+    take k w = take k y \<longrightarrow> \<alpha> = \<gamma> \<and> X = Y \<and> x = y"
+
+lemma is_LRI' [intro]:
+  assumes 
+    "\<And>\<alpha> X \<beta> w \<gamma> Y x y. \<lbrakk>Prods H \<turnstile> [Nt (Start H)] \<Rightarrow>r* \<alpha> @ Nt X # map Tm w; 
+      Prods H \<turnstile> \<alpha> @ Nt X # map Tm w \<Rightarrow>r \<alpha> @ \<beta> @ map Tm w; 
+      Prods H \<turnstile> [Nt (Start H)] \<Rightarrow>r* \<gamma> @ Nt Y # map Tm x; 
+      Prods H \<turnstile> \<gamma> @ Nt Y # map Tm x \<Rightarrow>r \<alpha> @ \<beta> @ map Tm y; take k w = take k y\<rbrakk> 
+      \<Longrightarrow> \<alpha> = \<gamma> \<and> X = Y \<and> x = y"
+  shows "is_LR' k H"
+  unfolding is_LR'_def using assms by blast
+
+lemma LR'k_G'_imp_LR'k_G:
+  assumes "is_LR' k G'" 
+  shows "is_LR' k G"
+proof (standard, goal_cases)
+  case (1 \<alpha> X \<beta> w \<gamma> Y x y)
+  with G_derivers_from_S_imp_G'_derivers_from_S' G_deriver_imp_G'_deriver have 
+    "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ Nt X # map Tm w" 
+    "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma> @ Nt Y # map Tm x"
+    "Prods G' \<turnstile> \<alpha> @ Nt X # map Tm w \<Rightarrow>r \<alpha> @ \<beta> @ map Tm w"
+    "Prods G' \<turnstile> \<gamma> @ Nt Y # map Tm x \<Rightarrow>r \<alpha> @ \<beta> @ map Tm y"
+    by auto
+  with 1(5) show ?case using assms unfolding is_LR'_def G'_def by auto
+qed
+
+
+lemma LR'_Suc_G_imp_LR'_Suc_G':
+  assumes "is_LR' (Suc k) G" "\<nexists>n. Prods G \<turnstile> [Nt S] \<Rightarrow>(Suc n) [Nt S]"
+  shows "is_LR' (Suc k) G'"
+proof (standard, goal_cases)
+  case (1 \<alpha> X \<beta> w \<gamma> Y x y)
+  then obtain n m where step_nm:
+    "Prods G' \<turnstile> [Nt (Start G')] \<Rightarrow>r(n) \<alpha> @ Nt X # map Tm w"
+    "Prods G' \<turnstile> [Nt (Start G')] \<Rightarrow>r(m) \<gamma> @ Nt Y # map Tm x"
+    using rtranclp_imp_relpowp by metis
+  show ?case proof (cases n)
+    case 0
+    note n0 = this
+    show ?thesis proof (cases m)
+      case 0
+      then show ?thesis using n0 step_nm 1 
+        by (metis Cfg.sel(2) G'_def Nt_map_Tm_eq_Nt_map_TmD S'_derive_imp_S deriver_imp_derive 
+            relpowp_0_E same_append_eq)
+    next
+      case (Suc m')
+      from n0 step_nm 1 have "\<alpha> = [] \<and> \<beta> = [Nt S] \<and> w = []" 
+        by (simp add: Cons_eq_append_conv G'_def S'_derive_imp_S deriver_imp_derive)
+      with Suc step_nm 1 have "Prods G' \<turnstile> [Nt S'] \<Rightarrow>(Suc (Suc m')) [Nt S]"
+        by (metis Cfg.sel(2) G'_def append_self_conv derivern_imp_deriven map_is_Nil_conv nat.discI
+            relpowp_Suc_I self_append_conv2 take_eq_Nil)
+      from G'_deriven_Suc_imp_G_deriven[OF this] show ?thesis using assms(2) by blast
+    qed
+  next
+    case (Suc n')
+    note Suc_n' = this
+    show ?thesis proof (cases m)
+      case 0
+      with step_nm 1 have "\<alpha> @ \<beta> = [Nt S] \<and> y = []" 
+      proof -
+        from 0 step_nm have "\<gamma> @ Nt Y # map Tm x = [Nt S']"
+          unfolding G'_def by fastforce
+        with 1 show ?thesis
+          by (metis Extended_Cfg.S'_deriver_imp_S Extended_Cfg_axioms Nil_is_append_conv append_self_conv
+              append_self_conv2 map_is_Nil_conv syms_split_tl)
+      qed
+      with 1 step_nm have "Prods G' \<turnstile> [Nt S'] \<Rightarrow>(Suc (Suc n')) [Nt S]" 
+        by (metis Cfg.sel(2) G'_def Suc_n' Zero_not_Suc derivern_imp_deriven list.map_disc_iff 
+            relpowp_Suc_I self_append_conv take_eq_Nil2)
+      from G'_deriven_Suc_imp_G_deriven[OF this] show ?thesis using assms(2) by blast
+    next
+      case (Suc m')
+      with step_nm G'_derivern_Suc_imp_G_derivern have step_n'm':
+        "Prods G \<turnstile> [Nt S] \<Rightarrow>r(n') \<alpha> @ Nt X # map Tm w"
+        "Prods G \<turnstile> [Nt S] \<Rightarrow>r(m') \<gamma> @ Nt Y # map Tm x"
+        using Suc_n' unfolding G'_def by auto
+      moreover with 1 have 
+        "Prods G \<turnstile> \<alpha> @ Nt X # map Tm w \<Rightarrow>r \<alpha> @ \<beta> @ map Tm w"
+        "Prods G \<turnstile> \<gamma> @ Nt Y # map Tm x \<Rightarrow>r \<alpha> @ \<beta> @ map Tm y"
+        using G_into_G'_derivers relpowp_imp_rtranclp S_neq_S' by fastforce+ 
+       ultimately show ?thesis using assms(1) 1 
+         by (smt (verit) is_LR'_def relpowp_imp_rtranclp)
+    qed
+  qed
+qed
+
+lemma LR'0_Suc_G_imp_LR'0_Suc_G':
+  assumes "is_LR' 0 G" "\<nexists>n \<alpha>. Prods G \<turnstile> [Nt S] \<Rightarrow>(Suc n) Nt S # \<alpha>"
+  shows "is_LR' 0 G'"
+proof (standard, goal_cases)
+  case (1 \<alpha> X \<beta> w \<gamma> Y x y)
+  then obtain n m where step_nm:
+    "Prods G' \<turnstile> [Nt (Start G')] \<Rightarrow>r(n) \<alpha> @ Nt X # map Tm w"
+    "Prods G' \<turnstile> [Nt (Start G')] \<Rightarrow>r(m) \<gamma> @ Nt Y # map Tm x"
+    using rtranclp_imp_relpowp by metis
+  show ?case proof (cases n)
+    case 0
+    note n0 = this
+    show ?thesis proof (cases m)
+      case 0
+      then show ?thesis using n0 step_nm 1 
+        by (metis Cfg.sel(2) G'_def Nt_map_Tm_eq_Nt_map_TmD S'_derive_imp_S deriver_imp_derive 
+            relpowp_0_E same_append_eq)
+    next
+      case (Suc m')
+      from n0 step_nm 1 have "\<alpha> = [] \<and> \<beta> = [Nt S] \<and> w = []" 
+        by (simp add: Cons_eq_append_conv G'_def S'_derive_imp_S deriver_imp_derive)
+      with Suc step_nm 1 have "Prods G' \<turnstile> [Nt S'] \<Rightarrow>(Suc (Suc m')) Nt S # map Tm y"
+        by (metis (no_types, lifting) Cfg.sel(2) G'_def append_Cons append_self_conv2 
+            derivern_imp_deriven relpowp_Suc_I)
+      from G'_deriven_Suc_imp_G_deriven[OF this] show ?thesis using assms(2) by blast
+    qed
+  next
+    case (Suc n')
+    note Suc_n' = this
+    show ?thesis proof (cases m)
+      case 0
+      with step_nm 1 have "\<alpha> @ \<beta> = [Nt S] \<and> y = []" 
+      proof -
+        from 0 step_nm have "\<gamma> @ Nt Y # map Tm x = [Nt S']"
+          unfolding G'_def by fastforce
+        with 1 show ?thesis
+          by (metis Extended_Cfg.S'_deriver_imp_S Extended_Cfg_axioms Nil_is_append_conv append_self_conv
+              append_self_conv2 map_is_Nil_conv syms_split_tl)
+      qed
+      with 1 step_nm have "Prods G' \<turnstile> [Nt S'] \<Rightarrow>(Suc (Suc n')) Nt S # map Tm w" 
+        by (metis Cfg.sel(2) G'_def Suc_n' append.assoc append.right_neutral append_Cons
+            derivern_imp_deriven relpowp_Suc_I same_append_eq)
+      from G'_deriven_Suc_imp_G_deriven[OF this] show ?thesis using assms(2) by blast
+    next
+      case (Suc m')
+      with step_nm G'_derivern_Suc_imp_G_derivern have step_n'm':
+        "Prods G \<turnstile> [Nt S] \<Rightarrow>r(n') \<alpha> @ Nt X # map Tm w"
+        "Prods G \<turnstile> [Nt S] \<Rightarrow>r(m') \<gamma> @ Nt Y # map Tm x"
+        using Suc_n' unfolding G'_def by auto
+      moreover with 1 have 
+        "Prods G \<turnstile> \<alpha> @ Nt X # map Tm w \<Rightarrow>r \<alpha> @ \<beta> @ map Tm w"
+        "Prods G \<turnstile> \<gamma> @ Nt Y # map Tm x \<Rightarrow>r \<alpha> @ \<beta> @ map Tm y"
+        using G_into_G'_derivers relpowp_imp_rtranclp S_neq_S' by fastforce+ 
+       ultimately show ?thesis using assms(1) 1 
+         by (smt (verit) is_LR'_def relpowp_imp_rtranclp)
+    qed
+  qed
+qed
+
 lemma LR0_impossible:
   assumes "is_LR 0"
     "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ Nt X # map Tm w"
@@ -773,8 +905,7 @@ proof (standard, goal_cases LR)
   case (LR \<alpha> X \<beta> w \<gamma> Y x y)
   from this(4) show ?case proof (cases, goal_cases deriver)
     case (deriver A \<delta> u v)
-    hence eqs [simp]: "u = \<gamma>" "A = Y" "v = x" using Nt_map_Tm_eq_Nt_map_TmD by fastforce+
-    show ?thesis proof (cases "length (\<alpha> @ \<beta>)" "length (\<gamma> @ \<delta>)" rule: le_cases)
+    hence eqs [simp]: "u = \<gamma>" "A = Y" "v = x" using Nt_map_Tm_eq_Nt_map_TmD by fastforce+    show ?thesis proof (cases "length (\<alpha> @ \<beta>)" "length (\<gamma> @ \<delta>)" rule: le_cases)
       case le
       then show ?thesis using assms deriver LR unfolding eqs by metis
     next
@@ -875,7 +1006,7 @@ qed
     
 
 theorem is_LR0_iff_no_LR0_inadequates:
-  "is_LR 0 = (\<forall>q\<in>gpda.states P\<^sub>0. LR0_adequate q)"
+  "is_LR 0 \<longleftrightarrow> (\<forall>q\<in>gpda.states P\<^sub>0. LR0_adequate q)"
   using is_LR0_imp_no_LR0_inadequate_states no_LR0_inadequate_states_imp_is_LR0 by metis
 
 notation P0.step (infix \<open>\<turnstile>P\<close> 55)
@@ -1044,7 +1175,7 @@ next
   case (step_eps ps qs rs w)
   from this(3,1,2) show ?thesis using step_eps that(2-) 
       by (cases rule: eps_P0E) auto
-qed
+  qed
 
 lemma P0_final_step_is_finish:
   assumes "(qs, u) \<turnstile>P ([P0_final], v)" 

@@ -16,15 +16,15 @@ corollary ipda_IPDA:
 
 abbreviation IPDA_step :: "('n,'t) item list \<times> 't list \<Rightarrow> ('n,'t) item list \<times> 't list 
                     \<Rightarrow> bool" (infix \<open>\<turnstile>I\<close> 55) where
-  "(\<turnstile>I) \<equiv> (ipda.step IPDA)"
+  "(\<turnstile>I) \<equiv> (gpda.step IPDA)"
 
 abbreviation IPDA_steps :: "('n,'t) item list \<times> 't list \<Rightarrow> ('n,'t) item list \<times> 't list 
                     \<Rightarrow> bool" (infix \<open>\<turnstile>I*\<close> 55) where
-  "(\<turnstile>I*) \<equiv> (ipda.steps IPDA)"
+  "(\<turnstile>I*) \<equiv> (gpda.steps IPDA)"
 
 abbreviation IPDA_stepn :: "('n,'t) item list \<times> 't list \<Rightarrow> nat \<Rightarrow> ('n,'t) item list \<times> 't list 
                     \<Rightarrow> bool" ( \<open>_ \<turnstile>I'(_') _\<close> 55) where
-  "c0 \<turnstile>I(n) c1 \<equiv> (ipda.stepn IPDA) c0 n c1"
+  "c0 \<turnstile>I(n) c1 \<equiv> (gpda.stepn IPDA) c0 n c1"
 
 section \<open>The Characteristic Finite Automaton to a Context-Free Grammar\<close>
 
@@ -155,7 +155,8 @@ next
   qed (use nxt_closed q_def in fastforce)+
 qed (use G'_def It_defs finite_It[OF G'_finite] in fastforce)+
 
-subsection \<open>Properties of \<epsilon>-transitions and the \<epsilon>-closure\<close>
+subsection \<open>Properties of \texorpdfstring{$\epsilon$}{epsilon}-transitions and the 
+  \texorpdfstring{$\epsilon$}{epsilon}-closure\<close>
 
 lemma in_eps_char_imp_in_It:
   assumes "(p,q) \<in> nfa.eps char_fa"
@@ -901,7 +902,7 @@ lemma derivern_Suc_substring_reliable:
     "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ Y # \<beta>' @ map Tm w'"
     "Prods G' \<turnstile> Y # \<beta>' @ map Tm w' \<Rightarrow>r* \<beta> @ Nt X # map Tm w"
 proof -
-  from G'_derivern_Suc_imp_no_S'[OF assms[THEN derivern_imp_deriven]] have 
+  from G'_deriven_Suc_imp_no_S'[OF assms[THEN derivern_imp_deriven]] have 
     "[Nt S'] \<noteq> \<alpha> @ \<beta> @ Nt X # map Tm w" 
       by (metis in_Nts_syms list.set_intros(1))
   moreover from assms obtain  \<rho> where 

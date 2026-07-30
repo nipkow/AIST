@@ -6,7 +6,7 @@ section \<open>Lists\<close>
 
 lemma index_gt_left_imp_right:
   assumes "length xs < m" "m < length (xs@y#ys)"
-        shows "(xs@y#ys)!m \<in> set ys"
+  shows "(xs@y#ys)!m \<in> set ys"
 proof -
   have "(xs@y#ys)!m = (y#ys)!(m-length xs)" 
     using assms(1) by (meson le_eq_less_or_eq nth_append_right)
@@ -134,7 +134,7 @@ lemma Tms_iff_no_Nt:
   "(\<exists>w. \<alpha> = map Tm w) \<longleftrightarrow> (\<nexists>\<beta> A \<gamma>. \<alpha> = \<beta> @ Nt A # \<gamma>)"
   using Tms_iff_no_Nts by (metis in_set_conv_decomp)
 
-text \<open>Same as @{thm non_word_has_last_Nt}, except with Cons instead of \<open>@\<close>.}\<close>
+text \<open>Same as @{thm non_word_has_last_Nt}, except with Cons instead of \<open>@\<close>.\<close>
 lemma syms_split_rightmost:
   assumes "Nt A \<in> set \<alpha>"
   obtains \<beta> A u where "\<alpha> = \<beta> @ Nt A # map Tm u"

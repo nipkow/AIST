@@ -1,0 +1,87 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{isabelle,isabellesym}
+
+% further packages required for unusual symbols (see also
+% isabellesym.sty), use only when needed
+
+\usepackage{amsmath,amssymb}
+  %for \<leadsto>, \<box>, \<diamond>, \<sqsupset>, \<mho>, \<Join>,
+  %\<lhd>, \<lesssim>, \<greatersim>, \<lessapprox>, \<greaterapprox>,
+  %\<triangleq>, \<yen>, \<lozenge>
+\usepackage{amsthm}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{definition}[theorem]{Definition}
+
+\usepackage{mathtools}
+
+% CFGs
+
+\newcommand{\derive}[1][]{\ensuremath{\Rightarrow_{#1}}}
+\newcommand{\derives}[1][]{\ensuremath{\xRightarrow[]{*}_{#1}}}
+\newcommand{\deriven}[2][]{\ensuremath{\xRightarrow[]{#2}_{#1}}}
+
+\newcommand{\deriver}[1][]{\ensuremath{\xRightarrow[\mathrm{rm}]{}_{#1}}}
+\newcommand{\derivers}[1][]{\ensuremath{\xRightarrow[\mathrm{rm}]{*}_{#1}}}
+\newcommand{\derivern}[2][]{\ensuremath{\xRightarrow[\mathrm{rm}]{#2}_{#1}}}
+
+%\usepackage{eurosym}
+  %for \<euro>
+
+%\usepackage[only,bigsqcap,bigparallel,fatsemi,interleave,sslash]{stmaryrd}
+  %for \<Sqinter>, \<Parallel>, \<Zsemi>, \<Parallel>, \<sslash>
+
+%\usepackage{eufrak}
+  %for \<AA> ... \<ZZ>, \<aa> ... \<zz> (also included in amssymb)
+
+%\usepackage{textcomp}
+  %for \<onequarter>, \<onehalf>, \<threequarters>, \<degree>, \<cent>,
+  %\<currency>
+
+% this should be the last package used
+\usepackage{pdfsetup}
+
+% urls in roman style, theory text in math-similar italics
+\urlstyle{rm}
+\isabellestyle{it}
+
+% for uniform font size
+%\renewcommand{\isastyle}{\isastyleminor}
+
+\newcommand{\concept}[1]{\textbf{#1}}
+
+\begin{document}
+
+\title{Formal Verification of LR(0) Parsing Theory}
+\author{Felipe Escall\'{o}n}
+\maketitle
+
+\begin{abstract}
+
+This paper presents a formal verification of the LR(0) parsing algorithms and theory as specified by 
+Wilhelm et al.\cite{Wilhelm}, as well as a proof that the language accepted by the canonical LR(0) 
+parser is exactly that of its underlying context-free grammar. 
+
+\end{abstract}
+
+\tableofcontents
+
+% sane default for proof documents
+\parindent 0pt\parskip 0.5ex
+
+% generated text of all theories
+\input{session}
+
+% optional bibliography
+\bibliographystyle{abbrv}
+\bibliography{root}
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

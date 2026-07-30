@@ -4,17 +4,207 @@ theory Item_Pushdown_Automata
     Generalized_Pushdown_Automata
 begin
 
-(* Problem when defining \<Delta>: IPDA uses \<Delta> :: 'q list \<Rightarrow> 'a \<Rightarrow> 'q list
-                              (defined as \<Delta>: Q\<^sup>+ \<times> V\<^sub>T \<Rightarrow> Q\<^sup>* in the book)
-Possible solutions: 
-  1. Make Q ('n, 't) item list
-  2. Since state = top of stack: instead of state q and stack q#qs do state q and stack qs
-      \<Longrightarrow> problems with empty stack? (IPDA accepts with final state)
+section \<open>Context-Free Items\<close>
 
-A definition with variant 2, using [S' \<rightarrow> [] \<cdot> []] as a dummy starting stack symbol:
-*)
+datatype ('n, 't) item = Item 'n  "('n, 't) syms"  "('n, 't) syms" ("[_ \<rightarrow> _ \<cdot> _]")
 
-print_record "(('n, 't) item, 't) gpda"
+abbreviation prod_of_item :: "('n, 't) item \<Rightarrow> ('n, 't) prod" where
+  "prod_of_item i \<equiv> case i of [A \<rightarrow> \<alpha> \<cdot> \<beta>] \<Rightarrow> (A, \<alpha>@\<beta>)"
+
+definition history :: "('n, 't) item \<Rightarrow> ('n, 't) syms" where
+  "history i \<equiv> case i of [A \<rightarrow> \<alpha> \<cdot> \<beta>] \<Rightarrow> \<alpha>"
+
+lemma history_unfold [simp]: "history [A \<rightarrow> \<alpha> \<cdot> \<beta>] = \<alpha>"
+  unfolding history_def by simp
+
+definition hist :: "('n, 't) item list \<Rightarrow> ('n,'t) syms" where
+  "hist \<rho> \<equiv> concat (map history \<rho>)"
+
+lemma hist_Nil [simp]:
+  "hist [] = []" 
+  unfolding hist_def by simp
+
+lemma hist_singleton [simp]:
+  "hist ([[A \<rightarrow> \<alpha> \<cdot> \<beta>]]) = \<alpha>"
+  unfolding hist_def by simp
+
+lemma hist_Cons [simp]:
+  "hist (i#\<rho>) = history i @ hist \<rho>"
+  unfolding hist_def by simp
+
+lemma hist_append [simp]:
+  "hist (\<rho> @ \<sigma>) = hist \<rho> @ hist \<sigma>"
+  unfolding hist_def by simp
+
+lemmas hist_defs = hist_def history_def
+
+definition items_of_Prods :: "('n, 't) Prods \<Rightarrow> ('n, 't) item set" where
+  "items_of_Prods P \<equiv> {[A \<rightarrow> \<alpha> \<cdot> \<beta>] | A \<alpha> \<beta>. (A, \<alpha>@\<beta>) \<in> P}"
+
+definition It :: "('n, 't) Cfg \<Rightarrow> ('n, 't) item set" where
+  "It G = items_of_Prods (Prods G)"
+
+definition Nts_of_items :: "('n, 't) item set \<Rightarrow> 'n set" where
+  "Nts_of_items I \<equiv> (\<lambda>i. case i of [A \<rightarrow> \<alpha> \<cdot> \<beta>] \<Rightarrow> A) ` I"
+
+definition Hists_of_items :: "('n, 't) item set \<Rightarrow> ('n, 't) syms set" where
+  "Hists_of_items I \<equiv> (\<lambda>i. case i of [A \<rightarrow> \<alpha> \<cdot> \<beta>] \<Rightarrow> \<alpha>) ` I"
+
+lemma in_items_imp_in_Nts [intro]:
+  assumes "[A \<rightarrow> \<alpha> \<cdot> \<beta>] \<in> I"
+  shows "A \<in> Nts_of_items I"
+  using assms unfolding Nts_of_items_def by force
+
+lemma in_items_imp_in_Hists [intro]:
+  assumes "[A \<rightarrow> \<alpha> \<cdot> \<beta>] \<in> I"
+  shows "\<alpha> \<in> Hists_of_items I"
+  using assms unfolding Hists_of_items_def by force
+
+lemmas It_defs = It_def items_of_Prods_def
+
+lemma in_Prods_imp_in_It:
+  "prod_of_item i \<in> Prods G \<Longrightarrow> i \<in> It G"
+  unfolding It_defs by (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq)
+
+lemma in_It_imp_in_Prods:
+  "i \<in> It G \<Longrightarrow> prod_of_item i \<in> Prods G"
+  unfolding It_defs by auto
+
+lemma in_Prods_iff_in_It:
+  "prod_of_item i \<in> Prods G = (i \<in> It G)"
+  using in_Prods_imp_in_It in_It_imp_in_Prods by auto
+
+lemma prod_of_item_eq_imp_in_Prods_eq:
+  "prod_of_item i = prod_of_item j \<Longrightarrow> i \<in> It G' \<longleftrightarrow> j \<in> It G'"
+  by (cases i, cases j) (metis in_Prods_iff_in_It)
+
+lemma prod_imp_derives_expanded_hist:
+  assumes "(Y, \<beta>) \<in> P"
+  shows "P \<turnstile> hist (\<rho> @ [X \<rightarrow> \<alpha> @ [Nt Y] \<cdot> \<gamma>] # \<sigma>) \<Rightarrow>  hist (\<rho> @ [X \<rightarrow> \<alpha> \<cdot> Nt Y # \<gamma>] # [Y \<rightarrow> \<beta> \<cdot> []] # \<sigma>)"         
+    (is "P \<turnstile> ?h1 \<Rightarrow> ?h2")
+  using derive.intros[OF assms, of "hist \<rho> @ \<alpha>"] by simp
+
+lemma prod_items_finite:
+  "finite {[A \<rightarrow> \<alpha> \<cdot> \<beta>] | \<alpha> \<beta>. (A, \<alpha>@\<beta>) = (A, w)}"
+proof (induction w)
+  case (Cons a w)
+  let ?it = "{[A \<rightarrow> \<alpha> \<cdot> \<beta>] |\<alpha> \<beta>. (A, \<alpha> @ \<beta>) = (A, w)}"
+  have "{[A \<rightarrow> \<alpha> \<cdot> \<beta>] |\<alpha> \<beta>. (A, \<alpha> @ \<beta>) = (A, a # w)} 
+        = {[A \<rightarrow> (a#\<alpha>) \<cdot> \<beta>]|\<alpha> \<beta>. [A \<rightarrow> \<alpha> \<cdot> \<beta>]\<in>?it} \<union> {[A \<rightarrow> [] \<cdot> (a#\<beta>)]|\<beta>. [A \<rightarrow> [] \<cdot> \<beta>]\<in>?it}" 
+    (is "?cons = ?app_\<alpha> \<union> ?app_\<beta>")
+  proof
+    show "?cons \<subseteq> ?app_\<alpha> \<union> ?app_\<beta>"
+    proof
+      fix i
+      assume in_cons: "i \<in> ?cons"
+      then obtain \<alpha> \<beta> where \<alpha>\<beta>: "i = [A \<rightarrow> \<alpha> \<cdot> \<beta>]" "\<alpha> @ \<beta> = a # w"
+        by blast
+      show "i \<in> ?app_\<alpha> \<union> ?app_\<beta>" using \<alpha>\<beta> by (cases \<alpha>) auto
+    qed
+  next
+    show "?app_\<alpha> \<union> ?app_\<beta> \<subseteq> ?cons" 
+    proof
+      fix i 
+      assume in_apps: "i \<in> ?app_\<alpha> \<union> ?app_\<beta>"
+      then consider (in_app_\<alpha>) "i \<in> ?app_\<alpha>" | (in_app_\<beta>) "i \<in> ?app_\<beta>" by blast
+      then show "i \<in> ?cons" by cases fastforce+
+    qed
+  qed
+  moreover have "bij_betw (\<lambda>i. case i of [A \<rightarrow> \<alpha> \<cdot> \<beta>] \<Rightarrow> [A \<rightarrow> (a#\<alpha>) \<cdot> \<beta>]) ?it ?app_\<alpha>" 
+    (is "bij_betw ?f _ _")
+  proof -
+    have "inj_on ?f ?it" 
+      by (smt (verit, del_insts) inj_onCI item.case item.exhaust item.inject list.inject)
+    moreover have "?f ` ?it = ?app_\<alpha>" by force
+    ultimately show ?thesis unfolding bij_betw_def by simp
+  qed
+  moreover have "finite ?app_\<beta>" 
+  proof -
+    have "{[A \<rightarrow> [] \<cdot> \<beta>]|\<beta>. [A \<rightarrow> [] \<cdot> \<beta>]\<in>?it} \<subseteq> ?it" by blast
+    moreover have 
+      "bij_betw (\<lambda>i. case i of [A \<rightarrow> \<alpha> \<cdot> \<beta>] \<Rightarrow> [A \<rightarrow> \<alpha> \<cdot> a#\<beta>]) {[A \<rightarrow> [] \<cdot> \<beta>]|\<beta>. [A \<rightarrow> [] \<cdot> \<beta>]\<in>?it} ?app_\<beta>"
+      by simp
+    ultimately show ?thesis using Cons by simp
+  qed
+  ultimately show ?case using local.Cons bij_betw_finite by fastforce
+qed simp
+
+lemma finite_items_of_Prods:
+  assumes "finite P"
+shows "finite (items_of_Prods P)"
+proof -
+  have "items_of_Prods P = (\<Union>(A,w)\<in>P. {[A \<rightarrow> \<alpha> \<cdot> \<beta>] | \<alpha> \<beta>. (A, \<alpha>@\<beta>) = (A, w)})" 
+    unfolding items_of_Prods_def by auto
+  with prod_items_finite show ?thesis using assms by fastforce
+qed
+
+corollary finite_It:
+  assumes "finite (Prods G)"
+shows "finite (It G)"
+  using assms finite_items_of_Prods unfolding It_def by auto
+
+lemma finite_items_imp_finite_Nts:
+  assumes "finite I"
+  shows "finite (Nts_of_items I)"
+  using assms unfolding Nts_of_items_def by blast
+
+lemma finite_items_imp_finite_Hists:
+  assumes "finite I"
+  shows "finite (Hists_of_items I)"
+  using assms unfolding Hists_of_items_def by blast
+
+lemma finite_lists_length_eq_Hists:
+  assumes "finite I" "finite A"
+  shows "finite {xs |xs \<alpha>. set xs \<subseteq> A \<and> length xs = length \<alpha> \<and> \<alpha> \<in> (Hists_of_items I)}"
+proof -
+  note finite_Hists = finite_items_imp_finite_Hists[OF assms(1)]
+  have "{xs|xs \<alpha>. set xs \<subseteq> A \<and> length xs = length \<alpha> \<and> \<alpha> \<in> (Hists_of_items I)}
+        = {xs|xs n. set xs \<subseteq> A \<and> length xs = n \<and> n \<in> length ` (Hists_of_items I)}"
+    by blast
+  with finite_lists_length_eq_set finite_Hists assms(2) show ?thesis by auto
+qed
+
+subsection \<open>Complete and Noncomplete Items\<close>
+
+definition completes :: "('n, 't) item set \<Rightarrow> ('n, 't) item set" where
+  "completes I \<equiv> {i \<in> I. case i of [X \<rightarrow> \<alpha> \<cdot> \<beta>] \<Rightarrow> \<beta> = []}"
+
+lemma completes_subset [simp]:
+  "completes I \<subseteq> I" unfolding completes_def by simp
+
+lemma completesD [dest]:
+  "i \<in> completes I \<Longrightarrow> i \<in> I"
+  using completes_subset by blast
+
+lemma completesE [elim]:
+  assumes "i \<in> completes I"
+  obtains X \<alpha> where "i = [X \<rightarrow> \<alpha> \<cdot> []]"
+  using assms unfolding completes_def 
+  by (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq)
+
+lemma completes_singleton_imp_eq:
+  assumes "completes I = {[X \<rightarrow> \<alpha> \<cdot> []]}"
+    "[A \<rightarrow> \<beta> \<cdot> []] \<in> I"
+  shows "[A \<rightarrow> \<beta> \<cdot> []] = [X \<rightarrow> \<alpha> \<cdot> []]"
+  using assms unfolding completes_def by fastforce
+
+abbreviation "noncompletes I \<equiv> I - completes I"
+
+lemma noncompletesE [elim]:
+  assumes "i \<in> noncompletes I"
+  obtains X \<alpha> Y \<beta> where "i = [X \<rightarrow> \<alpha> \<cdot> Y # \<beta>]"
+  using assms unfolding completes_def
+  by (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq neq_Nil_conv
+      set_diff_eq)
+
+lemma reduced_Nts_in_It:
+  assumes "A \<in> Nts (Prods G)" "reduced G"
+  obtains \<alpha> \<beta> where "[A \<rightarrow> \<alpha> \<cdot> \<beta>] \<in> It G"
+  using assms unfolding It_defs 
+  by (metis (mono_tags, lifting) append.right_neutral derives_Nt_map_TmD mem_Collect_eq
+      reduced_imp_derives_Tms_singleton)
+
+section \<open>The Item Pushdown Automaton\<close>
 
 definition (in Extended_Cfg) IPDA :: "(('n, 't) item, 't) gpda" where
   "IPDA \<equiv> let
@@ -26,15 +216,17 @@ definition (in Extended_Cfg) IPDA :: "(('n, 't) item, 't) gpda" where
         | Y \<alpha> X \<beta> \<gamma>. (X, \<beta> @ Nt Y # \<gamma>) \<in> P \<and> (Y, \<alpha>) \<in> P}     
   in \<lparr>gpda.states = It G', init = [S' \<rightarrow> [] \<cdot> [Nt S]], final = {[S' \<rightarrow> [Nt S] \<cdot> []]}, nxt = \<Delta>, eps = \<E>\<rparr>"
 
-(* \<lparr>init = [S' \<rightarrow> [] \<cdot> [Nt S]], init_symbol = [S' \<rightarrow> [] \<cdot> []], 
-      final = {[S' \<rightarrow> [Nt S] \<cdot> []]}, nxt = \<Delta>, eps = \<E>\<rparr> *)
 
 locale ipda = Extended_Cfg G for G :: "('n::fresh0, 't) Cfg" +
   fixes M :: "(('n, 't) item, 't) gpda"
   assumes ipda: "M = Extended_Cfg.IPDA G"
 begin
 
-section \<open>Basic Properties\<close>
+subsection \<open>Basic Properties\<close>
+
+lemma states_ipda [simp]:
+  "states M = It G'"
+  using ipda unfolding IPDA_def by (meson gpda.select_convs(1))
 
 lemma init_ipda [simp]:
   "init M = [S' \<rightarrow> [] \<cdot> [Nt S]]"
@@ -93,28 +285,35 @@ lemma in_eps_imp_prods:
 lemma in_final_imp_final_state:
   assumes "q \<in> final M"
   shows "q = final_state"
-  using assms unfolding IPDA_def S'_def S_def by simp
+  using assms unfolding IPDA_def S'_def by simp
 
-section \<open>Step\<close>
+interpretation gpda M
+proof (standard, goal_cases)
+  case 1
+  then show ?case 
+    by (simp add: G'_def IPDA_def in_Prods_imp_in_It ipda)
+next
+  case 2
+  then show ?case 
+    using final_state_in_It by simp
+next
+  case (3 ps a qs)
+  with nxt_nempty_imp_Tm_eq obtain X \<beta> \<gamma> where "ps = [[X \<rightarrow> \<beta> \<cdot> Tm a # \<gamma>]]"
+    "(X, \<beta> @ Tm a # \<gamma>) \<in> Prods G'" "qs = [[X \<rightarrow> \<beta> @ [Tm a] \<cdot> \<gamma>]]" by blast
+  with in_Prods_imp_in_It show ?case by force
+next
+  case (4 ps qs)
+  then show ?case 
+    using in_Prods_imp_in_It by (cases rule: eps_cases) force+
+next
+  case 5
+  then show ?case using finite_It[OF G'_finite] by simp
+qed
 
-inductive step :: "('n,'t) item list \<times> 't list \<Rightarrow> ('n,'t) item list \<times> 't list 
-                    \<Rightarrow> bool" (infix \<open>\<turnstile>\<close> 55) where
-step_nxt[intro]: "(\<alpha>, a, \<alpha>') \<in> nxt M \<Longrightarrow> (\<alpha>@\<beta>,a#w) \<turnstile> (\<alpha>'@\<beta>,w)" |
-step_eps[intro]: "(\<alpha>, \<alpha>') \<in> eps M \<Longrightarrow> (\<alpha>@\<beta>, w) \<turnstile> (\<alpha>'@\<beta>, w)"
+corollary gpda_ipda: "gpda M"
+  by (fact gpda_axioms)
 
-inductive_cases step_nxtE[elim]: "(s, x#w) \<turnstile> (s', w)"
-inductive_cases step_epsE[elim]: "(s, w) \<turnstile> (s', w)"
-
-lemma step_equal_or_Cons:
-  assumes "(p,u) \<turnstile> (q,v)"
-  shows "u = v \<or> (\<exists>a. u = a#v)"
-  using assms by cases auto
-
-lemma step_len_dec:
-  assumes "(p,u) \<turnstile> (q,v)"
-  shows "length u \<ge> length v" 
-  using step_equal_or_Cons[OF assms] by fastforce
-
+subsection \<open>Step\<close>
 
 lemma shifting [simp]:
   assumes "(A, \<alpha> @ Tm a # \<beta>) \<in> Prods G'"
@@ -145,7 +344,7 @@ lemma expanding:
   shows "([X \<rightarrow> \<beta> \<cdot> Nt Y#\<gamma>]#\<rho>, w) \<turnstile> ([Y \<rightarrow> [] \<cdot> \<alpha>]#[X \<rightarrow> \<beta> \<cdot> Nt Y#\<gamma>]#\<rho>, w)"
 proof -
   have "([[X \<rightarrow> \<beta> \<cdot> Nt Y#\<gamma>]] @ \<rho>, w) \<turnstile> ([[Y \<rightarrow> [] \<cdot> \<alpha>], [X \<rightarrow> \<beta> \<cdot> Nt Y#\<gamma>]] @ \<rho>, w)"
-    using assms by fastforce
+    using assms step_eps by fastforce
   thus ?thesis by simp
 qed
 
@@ -206,13 +405,7 @@ lemma step_reaches_final_imp_S:
   using assms(1) by cases auto
 
 
-section \<open>Steps\<close>
-
-abbreviation steps (infix \<open>\<turnstile>*\<close> 50) where
-  "steps \<equiv> (step \<^sup>*\<^sup>*)"
-
-abbreviation stepn ( \<open>_ \<turnstile>'(_') _\<close> 50) where
-  "stepn c0 n c1 \<equiv> (step ^^ n) c0 c1"
+subsection \<open>Steps\<close>
 
 lemma step_not_expanding_imp_reaches:
   assumes "(\<rho>, u) \<turnstile> c0" "(\<rho>, u) \<turnstile>(Suc n) c1"
@@ -288,8 +481,7 @@ qed (auto simp: It_defs G'_def)
 
 lemma reachable_imp_not_Nil:
   "\<lbrakk>(\<rho>, u) \<turnstile>* (\<sigma>, v); \<rho> \<noteq> []\<rbrakk> \<Longrightarrow> \<sigma> \<noteq> []"
-  by (induction rule: rtranclp_induct2)
-    (simp, use step.cases in blast)
+  by (induction rule: rtranclp_induct2) (simp, cases rule: step.cases, auto)
 
 lemma reachable_imp_substring:
   assumes "(\<rho>, w) \<turnstile>* (\<sigma>, v)"
@@ -313,7 +505,7 @@ lemma init_expands[elim]:
   using assms proof cases
   case (expand Y \<alpha> X \<beta> \<gamma> \<rho> w)
   then show ?thesis 
-    using G'_def S_neq_S' that assms by auto
+    using G'_def S_neq_S' that assms by fastforce
 qed auto
 
 lemma complete_S'_step_impossible:
@@ -389,7 +581,8 @@ proof -
     by (metis relpowp_Suc_D2 rtranclp_power surj_pair)
   moreover have "u = u'"
     using step_equal_or_Cons step by fast
-  moreover with step have "([init M], ps) \<in> eps M" by auto
+  moreover with step have "([init M], ps) \<in> eps M" 
+    by fastforce
   ultimately show thesis using that by blast
 qed
 
@@ -427,7 +620,7 @@ proof -
   finally show ?thesis .
 qed
 
-section \<open>Language Equivalence\<close>
+subsection \<open>Language Equivalence\<close>
 
 lemma derive_imp_completes:
   assumes "Prods G' \<turnstile> \<beta> \<Rightarrow> map Tm w"
@@ -563,7 +756,8 @@ lemma reaches_final_imp_complete_reaches_final:
       "j + k = m" using less.IH 
       by (smt (verit, ccfv_SIG) Suc ipda.step_cases ipda_axioms lessI prod.inject)
     from this(5) reaches_final_imp_in_It have B_in_Prods: "(B, \<gamma> @ \<delta>) \<in> Prods G'"
-      using relpowp_imp_rtranclp in_It_imp_in_Prods by fastforce
+      using relpowp_imp_rtranclp in_It_imp_in_Prods 
+      by (metis append.right_neutral item.case)
     from step(1) show ?thesis
     proof cases
       case (shift A' \<alpha>' a \<beta>' \<rho>' y)
@@ -684,7 +878,8 @@ lemma reachable_Cons_imp_expanded:
   note that = less.prems(1)
   from less(3) obtain m c where m_steps: "n = Suc m" 
     "([init M], u) \<turnstile>(m) c" "c \<turnstile> ([A \<rightarrow> \<alpha> \<cdot> \<beta>] # i # \<rho>, v)" 
-    by (metis list.distinct(1) list.inject prod.inject relpowp_E)
+    by (metis (no_types, lifting) list.distinct(1) list.inject prod.inject
+        relpowp_E)
   from m_steps(3) show ?case proof cases
     case (shift _ \<alpha>' a _ \<sigma> _)
     then show ?thesis using less.IH[of m i \<rho> A \<alpha>' "Tm a # \<beta>" "a # v"] m_steps that 
@@ -735,9 +930,6 @@ lemma reaches_final_imp_no_stack:
   qed simp_all
 qed
 
-definition Lang :: "'t list set" where
-  "Lang \<equiv> {w. ([init M], w) \<turnstile>* ([final_state], [])}"
-
 lemma invariant: 
   assumes "([init M], u@v) \<turnstile>* (rev \<rho>, v)"
   shows "Prods G \<turnstile> hist \<rho> \<Rightarrow>* map Tm u"
@@ -787,7 +979,7 @@ proof
   fix w
   assume "w \<in> Lang"
   hence "([gpda.init M], w) \<turnstile>* ([final_state], [])" unfolding Lang_def
-    by blast
+    by auto
   with invariant[of w "[]" "[final_state]"] show "w \<in> LangS G" 
     using G'_derives_from_S_imp_in_Lang G_derives_imp_G'_derives Lang_preserved by force
 qed
@@ -825,7 +1017,8 @@ proof -
     with assms have "v \<in> LangS G'"  
       using G'_derives_from_S_imp_in_Lang derivers_imp_derives by blast
     then show ?thesis using eq_S Lang_def right 
-        Lang_eq_Lang_G Lang_preserved hist_singleton rtrancl_refl init_ipda ipda by force
+        Lang_eq_Lang_G Lang_preserved hist_singleton rtrancl_refl init_ipda ipda 
+      using in_final_imp_final_state mem_Collect_eq by auto
   qed
 qed
 

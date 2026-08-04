@@ -141,7 +141,7 @@ sublocale char_fa: nfa char_fa
 proof (unfold_locales, goal_cases 1 2 nxt_closed 3)
   case 2
   then show ?case 
-    using G'_def It_defs finite_It[OF G'_finite] completes_subset by force
+    using G'_def It_def finite_It[OF G'_finite] completes_subset by force
 next
   case (nxt_closed q x)
   then obtain X \<alpha> \<beta> where q_def: "q = [X \<rightarrow> \<alpha> \<cdot> \<beta>]" by (metis item.exhaust)
@@ -151,9 +151,9 @@ next
   proof cases
     case eq
     then show ?thesis 
-      using nxt_closed q_def by (auto simp: It_defs)
+      using nxt_closed q_def by (auto simp: It_def)
   qed (use nxt_closed q_def in fastforce)+
-qed (use G'_def It_defs finite_It[OF G'_finite] in fastforce)+
+qed (use G'_def It_def finite_It[OF G'_finite] in fastforce)+
 
 subsection \<open>Properties of \texorpdfstring{$\epsilon$}{epsilon}-transitions and the 
   \texorpdfstring{$\epsilon$}{epsilon}-closure\<close>

@@ -38,11 +38,8 @@ lemma hist_append [simp]:
 
 lemmas hist_defs = hist_def history_def
 
-definition items_of_Prods :: "('n, 't) Prods \<Rightarrow> ('n, 't) item set" where
-  "items_of_Prods P \<equiv> {[A \<rightarrow> \<alpha> \<cdot> \<beta>] | A \<alpha> \<beta>. (A, \<alpha>@\<beta>) \<in> P}"
-
 definition It :: "('n, 't) Cfg \<Rightarrow> ('n, 't) item set" where
-  "It G = items_of_Prods (Prods G)"
+  "It G = {[A \<rightarrow> \<alpha> \<cdot> \<beta>] |A \<alpha> \<beta>. (A, \<alpha>@\<beta>) \<in> Prods G}"
 
 definition Nts_of_items :: "('n, 't) item set \<Rightarrow> 'n set" where
   "Nts_of_items I \<equiv> (\<lambda>i. case i of [A \<rightarrow> \<alpha> \<cdot> \<beta>] \<Rightarrow> A) ` I"
@@ -60,15 +57,13 @@ lemma in_items_imp_in_Hists [intro]:
   shows "\<alpha> \<in> Hists_of_items I"
   using assms unfolding Hists_of_items_def by force
 
-lemmas It_defs = It_def items_of_Prods_def
-
 lemma in_Prods_imp_in_It:
   "prod_of_item i \<in> Prods G \<Longrightarrow> i \<in> It G"
-  unfolding It_defs by (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq)
+  unfolding It_def by (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq)
 
 lemma in_It_imp_in_Prods:
   "i \<in> It G \<Longrightarrow> prod_of_item i \<in> Prods G"
-  unfolding It_defs by auto
+  unfolding It_def by auto
 
 lemma in_Prods_iff_in_It:
   "prod_of_item i \<in> Prods G = (i \<in> It G)"
@@ -85,63 +80,38 @@ lemma prod_imp_derives_expanded_hist:
   using derive.intros[OF assms, of "hist \<rho> @ \<alpha>"] by simp
 
 lemma prod_items_finite:
-  "finite {[A \<rightarrow> \<alpha> \<cdot> \<beta>] | \<alpha> \<beta>. (A, \<alpha>@\<beta>) = (A, w)}"
-proof (induction w)
-  case (Cons a w)
-  let ?it = "{[A \<rightarrow> \<alpha> \<cdot> \<beta>] |\<alpha> \<beta>. (A, \<alpha> @ \<beta>) = (A, w)}"
-  have "{[A \<rightarrow> \<alpha> \<cdot> \<beta>] |\<alpha> \<beta>. (A, \<alpha> @ \<beta>) = (A, a # w)} 
-        = {[A \<rightarrow> (a#\<alpha>) \<cdot> \<beta>]|\<alpha> \<beta>. [A \<rightarrow> \<alpha> \<cdot> \<beta>]\<in>?it} \<union> {[A \<rightarrow> [] \<cdot> (a#\<beta>)]|\<beta>. [A \<rightarrow> [] \<cdot> \<beta>]\<in>?it}" 
-    (is "?cons = ?app_\<alpha> \<union> ?app_\<beta>")
-  proof
-    show "?cons \<subseteq> ?app_\<alpha> \<union> ?app_\<beta>"
-    proof
-      fix i
-      assume in_cons: "i \<in> ?cons"
-      then obtain \<alpha> \<beta> where \<alpha>\<beta>: "i = [A \<rightarrow> \<alpha> \<cdot> \<beta>]" "\<alpha> @ \<beta> = a # w"
-        by blast
-      show "i \<in> ?app_\<alpha> \<union> ?app_\<beta>" using \<alpha>\<beta> by (cases \<alpha>) auto
-    qed
-  next
-    show "?app_\<alpha> \<union> ?app_\<beta> \<subseteq> ?cons" 
-    proof
-      fix i 
-      assume in_apps: "i \<in> ?app_\<alpha> \<union> ?app_\<beta>"
-      then consider (in_app_\<alpha>) "i \<in> ?app_\<alpha>" | (in_app_\<beta>) "i \<in> ?app_\<beta>" by blast
-      then show "i \<in> ?cons" by cases fastforce+
-    qed
-  qed
-  moreover have "bij_betw (\<lambda>i. case i of [A \<rightarrow> \<alpha> \<cdot> \<beta>] \<Rightarrow> [A \<rightarrow> (a#\<alpha>) \<cdot> \<beta>]) ?it ?app_\<alpha>" 
-    (is "bij_betw ?f _ _")
-  proof -
-    have "inj_on ?f ?it" 
-      by (smt (verit, del_insts) inj_onCI item.case item.exhaust item.inject list.inject)
-    moreover have "?f ` ?it = ?app_\<alpha>" by force
-    ultimately show ?thesis unfolding bij_betw_def by simp
-  qed
-  moreover have "finite ?app_\<beta>" 
-  proof -
-    have "{[A \<rightarrow> [] \<cdot> \<beta>]|\<beta>. [A \<rightarrow> [] \<cdot> \<beta>]\<in>?it} \<subseteq> ?it" by blast
-    moreover have 
-      "bij_betw (\<lambda>i. case i of [A \<rightarrow> \<alpha> \<cdot> \<beta>] \<Rightarrow> [A \<rightarrow> \<alpha> \<cdot> a#\<beta>]) {[A \<rightarrow> [] \<cdot> \<beta>]|\<beta>. [A \<rightarrow> [] \<cdot> \<beta>]\<in>?it} ?app_\<beta>"
-      by simp
-    ultimately show ?thesis using Cons by simp
-  qed
-  ultimately show ?case using local.Cons bij_betw_finite by fastforce
-qed simp
-
-lemma finite_items_of_Prods:
-  assumes "finite P"
-shows "finite (items_of_Prods P)"
+  "finite {[A \<rightarrow> \<alpha> \<cdot> \<beta>] | \<alpha> \<beta>. \<alpha>@\<beta> = w}"
 proof -
-  have "items_of_Prods P = (\<Union>(A,w)\<in>P. {[A \<rightarrow> \<alpha> \<cdot> \<beta>] | \<alpha> \<beta>. (A, \<alpha>@\<beta>) = (A, w)})" 
-    unfolding items_of_Prods_def by auto
-  with prod_items_finite show ?thesis using assms by fastforce
+  let ?f = "\<lambda>n. [A \<rightarrow> take n w \<cdot> drop n w]"
+  have "bij_betw ?f {..< Suc (length w)} {[A \<rightarrow> \<alpha> \<cdot> \<beta>] | \<alpha> \<beta>. \<alpha>@\<beta> = w}"
+    unfolding bij_betw_def proof
+    show "inj_on ?f {..<Suc (length w)}"
+      by standard (auto, metis less_Suc_eq_le length_take min_absorb2)
+  next
+    show "?f ` {..< Suc (length w)} = {[A \<rightarrow> \<alpha> \<cdot> \<beta>] | \<alpha> \<beta>. \<alpha>@\<beta> = w}"
+    proof
+      show "{[A \<rightarrow> \<alpha> \<cdot> \<beta>] | \<alpha> \<beta>. \<alpha>@\<beta> = w} \<subseteq> ?f ` {..< Suc (length w)}"
+      proof
+        fix i
+        assume "i \<in> {[A \<rightarrow> \<alpha> \<cdot> \<beta>] | \<alpha> \<beta>. \<alpha>@\<beta> = w}"
+        then obtain \<alpha> \<beta> where i_def: "i = [A \<rightarrow> \<alpha> \<cdot> \<beta>]" "w = \<alpha> @ \<beta>" by blast
+        moreover from i_def have "i = [A \<rightarrow> take (length \<alpha>) w \<cdot> drop (length \<alpha>) w]"
+          by simp
+        ultimately show "i \<in> ?f ` {..< Suc (length w)}" by fastforce
+      qed
+    qed auto
+  qed
+  then show ?thesis using bij_betw_finite by fast
 qed
 
 corollary finite_It:
   assumes "finite (Prods G)"
-shows "finite (It G)"
-  using assms finite_items_of_Prods unfolding It_def by auto
+  shows "finite (It G)"
+proof -
+  have "It G = (\<Union>(A,w)\<in>Prods G. {[A \<rightarrow> \<alpha> \<cdot> \<beta>] | \<alpha> \<beta>. \<alpha>@\<beta> = w})"
+    unfolding It_def by auto
+  with prod_items_finite show ?thesis using assms by fastforce
+qed
 
 lemma finite_items_imp_finite_Nts:
   assumes "finite I"
@@ -200,7 +170,7 @@ lemma noncompletesE [elim]:
 lemma reduced_Nts_in_It:
   assumes "A \<in> Nts (Prods G)" "reduced G"
   obtains \<alpha> \<beta> where "[A \<rightarrow> \<alpha> \<cdot> \<beta>] \<in> It G"
-  using assms unfolding It_defs 
+  using assms unfolding It_def
   by (metis (mono_tags, lifting) append.right_neutral derives_Nt_map_TmD mem_Collect_eq
       reduced_imp_derives_Tms_singleton)
 
@@ -240,7 +210,7 @@ lemma final_ipda [simp]:
 
 lemma final_state_in_It [simp]:
   "final_state \<in> It G'"
-  unfolding It_defs G'_def by auto
+  unfolding It_def G'_def by auto
 
 lemma nxt_ipda [simp]:
   "nxt M = {([[X \<rightarrow> \<beta> \<cdot> Tm a # \<gamma>]], a, [[X \<rightarrow> \<beta> @ [Tm a] \<cdot> \<gamma>]])|X \<beta> a \<gamma>. (X, \<beta> @ Tm a # \<gamma>) \<in> Prods G'}"
@@ -477,7 +447,7 @@ proof (induction arbitrary: i rule: rtranclp_induct2)
   case (step \<rho>0 u \<rho>1 v)
   from step(2) show ?case 
     using steps_in_It step step_imp_in_It(2) by cases auto
-qed (auto simp: It_defs G'_def)
+qed (auto simp: It_def G'_def)
 
 lemma reachable_imp_not_Nil:
   "\<lbrakk>(\<rho>, u) \<turnstile>* (\<sigma>, v); \<rho> \<noteq> []\<rbrakk> \<Longrightarrow> \<sigma> \<noteq> []"

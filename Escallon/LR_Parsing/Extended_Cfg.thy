@@ -2,7 +2,6 @@ theory Extended_Cfg
   imports Auxiliary
 begin
 
-
 (* mv? *)
 section \<open>Reduced Grammars\<close>
 
@@ -334,7 +333,7 @@ lemma G'_derives_from_S_imp_in_Lang:
   unfolding Lang_def G'_def by simp
 
 lemma G'_derive_imp_G_derive_if_no_S':
-  "\<lbrakk>Prods G' \<turnstile> \<alpha> \<Rightarrow> \<gamma>; Nt S' \<notin> set \<alpha>\<rbrakk> \<Longrightarrow> Prods G \<turnstile> \<alpha> \<Rightarrow> \<gamma>"
+  "\<lbrakk>Prods G' \<turnstile> \<alpha> \<Rightarrow> \<beta>; Nt S' \<notin> set \<alpha>\<rbrakk> \<Longrightarrow> Prods G \<turnstile> \<alpha> \<Rightarrow> \<beta>"
   using G'_def by (simp add: derive_iff in_set_conv_decomp)
 
 lemma G'_derives_imp_G_derives_if_no_S':
@@ -379,18 +378,26 @@ next
   with Suc.IH have stepn: "Prods G \<turnstile> [Nt S] \<Rightarrow>(n) \<alpha>" 
     by presburger
   also with step_Sucn have "Prods G \<turnstile> ... \<Rightarrow> \<beta>" 
-    by (metis G'_derive_imp_G_derive_if_no_S' G_not_empty Lang_empty_if_notin_Lhss Nts_Lhss_Rhs_Nts
-        S'_notin_Nts_Prods_G Un_iff derives_imp_in_Prods in_Nts_syms relpowp_imp_rtranclp
-        subsetD)
+  proof -
+    from stepn have "S' \<notin> Nts_syms \<alpha>"  
+      using S_neq_S' S_deriven_Suc_imp_all_nts_in_Nts S'_notin_Nts_Prods_G 
+      by (cases n) fastforce+
+    with G'_derive_imp_G_derive_if_no_S' step_Sucn(2) show ?thesis 
+      unfolding Nts_syms_def by blast
+  qed
   finally show ?case .
 qed
 
 
 lemma G'_deriven_Suc_imp_no_S':
-  "Prods G' \<turnstile> [Nt S'] \<Rightarrow>(Suc n) \<beta> \<Longrightarrow> S' \<notin> Nts_syms \<beta>"
-  by (drule G'_deriven_Suc_imp_G_deriven)
-    (metis G_not_empty Lang_empty_if_notin_Lhss Nts_Lhss_Rhs_Nts UnCI derives_imp_in_Prods
-      in_mono relpowp_imp_rtranclp S'_notin_Nts_Prods_G)
+  assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow>(Suc n) \<beta>"
+  shows "S' \<notin> Nts_syms \<beta>"
+proof -
+  note G_derives = assms[THEN G'_deriven_Suc_imp_G_deriven, THEN relpowp_imp_rtranclp]
+  then show ?thesis 
+    using S_deriven_Suc_imp_all_nts_in_Nts S'_notin_Nts_Prods_G S_neq_S' 
+    by (cases rule: stepcnt_cases) fastforce+
+qed 
 
 lemma G'_derivern_Suc_imp_G_derivern:
   "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(Suc n) \<beta> \<Longrightarrow> Prods G \<turnstile> [Nt S] \<Rightarrow>r(n) \<beta>"
@@ -468,7 +475,8 @@ next
 qed
 
 corollary G'_not_empty: 
-  "LangS G' \<noteq> {}" using Lang_preserved G_not_empty by simp
+  "LangS G' \<noteq> {}" 
+  using Lang_preserved G_not_empty by simp
 
 
 lemma Nts_G'_is_union[simp]: "Nts (Prods G) \<union> {S',S} = Nts (Prods G')"
@@ -484,16 +492,14 @@ lemma in_Lang_imp_S_derives:
 lemma G'_reduced:
    "reduced G'"
 proof - 
-  have "\<forall>A \<in> Nts (Prods G) \<union> {S}. useful (Prods G') S' A"
-    using G_reduced G_not_empty Lang_preserved G_derives_imp_G'_derives Lang_nempty_imp_useful_S
-    unfolding reduced_def useful_def Lang_def 
-    by (metis G_derives_from_S_imp_G'_derives_from_S' Un_iff singleton_iff) 
+  have S_in_Nts_G: "S \<in> Nts (Prods G)"
+    using G_not_empty by (metis Lang_empty_if_notin_Lhss Nts_Lhss_Rhs_Nts Un_iff)
+  then have "\<forall>A \<in> Nts (Prods G). useful (Prods G') S' A"
+    using G_reduced G_derives_imp_G'_derives unfolding reduced_def useful_def Lang_def 
+    by (metis G_derives_from_S_imp_G'_derives_from_S') 
   moreover have "useful (Prods G') S' S'" 
     using Lang_nempty_imp_useful_S G_not_empty Lang_preserved G'_def by fastforce
-  ultimately have "\<forall>A \<in> Nts (Prods G'). useful (Prods G') S' A"
-    using Nts_G'_is_union by blast
-  moreover from Nts_G'_is_union have "Nts (Prods G') = Nts (Prods G') \<union> {S'}" by blast
-  ultimately show ?thesis unfolding reduced_def G'_def by auto 
+  ultimately show ?thesis using Nts_G'_is_union S_in_Nts_G unfolding reduced_def G'_def by force
 qed
 
 end

@@ -15,8 +15,6 @@
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{corollary}[theorem]{Corollary}
 \newtheorem{definition}[theorem]{Definition}
-\newtheorem{assumption}[theorem]{Assumption}
-\newtheorem{example}[theorem]{Example}
 
 \usepackage{mathtools}
 \usepackage{mathpartir}
@@ -25,8 +23,8 @@
 
 \newcommand{\It}[1][G]{\ensuremath{\mathrm{It}_{#1}} }
 \newcommand{\cfitem}[3]{\ensuremath{{[#1 \to #2 \:\cdot\: #3]}}}
-\newcommand{\iitem}[2]{\ensuremath{{[#1 \to \:\cdot\: #2]}}}
-\newcommand{\citem}[2]{\ensuremath{{[#1 \to #2 \:\cdot\:]}}}
+\newcommand{\iitem}[2]{\ensuremath{{[#1 \to \; \:\cdot\; #2\;]}}}
+\newcommand{\citem}[2]{\ensuremath{{[#1 \to #2 \;\cdot\; \;]}}}
 
 % CFGs
 
@@ -95,3 +93,5 @@ parser is exactly that of its underlying context-free grammar.
 %%% mode: latex
 %%% TeX-master: t
 %%% End:
+\endinput
+%:%file=~/Documents/uni/semester6/thesis/Escallon/LR_Parsing/thesis/document/root.tex%:%

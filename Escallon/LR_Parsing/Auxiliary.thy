@@ -442,12 +442,6 @@ proof -
   qed
 qed
 
-lemma derivels_empty_imp_no_Tms:
-  assumes "P \<turnstile> \<alpha> \<Rightarrow>l* []"
-    "\<alpha> \<noteq> []"
-  obtains X \<beta> where "\<alpha> = Nt X # \<beta>"
-by (metis assms(1,2) derivels_imp_derives derives_Cons_Nil neq_Nil_conv)
-
 lemma deriven_decomp_less:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>(Suc n) map Tm w"
   obtains \<gamma>\<^sub>1 i u X j v \<gamma>\<^sub>2 k x where
@@ -673,6 +667,28 @@ proof -
           map_Tm_inject_iff)
     with prefix show thesis using that by blast
   qed
+qed
+
+lemma S_deriven_Suc_imp_all_nts_in_Nts:
+  assumes "A \<in> Nts_syms \<alpha>"
+    "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>(Suc n) \<alpha>" 
+  shows "A \<in> Nts (Prods G)"
+  using assms(2,1) proof (induction n arbitrary: \<alpha>)
+  case 0
+  hence "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow> \<alpha>" by auto
+  then show ?case 
+    using 0 Cons_eq_append_conv unfolding Nts_def 
+    by cases (auto simp: Cons_eq_append_conv)
+next
+  case (Suc n)
+  then obtain \<alpha>' where step_Suc: "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>(Suc n) \<alpha>'" "Prods G \<turnstile> \<alpha>' \<Rightarrow> \<alpha>"
+    by auto
+  then consider 
+    B \<beta> \<gamma> \<delta> where "\<alpha>' = \<gamma> @ [Nt B] @ \<delta>" "\<alpha> = \<gamma> @ \<beta> @ \<delta>" "(B, \<beta>) \<in> Prods G" "A \<in> Nts_syms \<beta>" |
+    B \<beta> \<gamma> \<delta> where "\<alpha>' = \<gamma> @ [Nt B] @ \<delta>" "\<alpha> = \<gamma> @ \<beta> @ \<delta>" "(B, \<beta>) \<in> Prods G" "A \<notin> Nts_syms \<beta>"
+    by (meson derive.cases)
+  then show ?case 
+    using Suc step_Suc unfolding Nts_def Nts_syms_def by cases auto
 qed
 
 section \<open>NFAs\<close>

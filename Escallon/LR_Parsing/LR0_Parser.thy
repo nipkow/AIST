@@ -143,6 +143,54 @@ lemma eps_P0E [elim, consumes 1, case_names reduce finish]:
   then show ?case using reduce(1) by simp
 qed blast
 
+lemma eps_P0_cases[consumes 1, case_names reduce finish]:
+  assumes "(ps, qs) \<in> gpda.eps P\<^sub>0"
+  obtains r rs X \<alpha> where 
+    "ps = r # rs" "qs = (let q = last (r # rs) in dfa.nxt LR\<^sub>0 q (Nt X) # [q])"
+    "set (r # rs) \<subseteq> dfa.states LR\<^sub>0" "[X \<rightarrow> \<alpha> \<cdot> []] \<in> r" "length \<alpha> = length rs" |
+    q where "q \<in> dfa.states LR\<^sub>0" "ps = [q, dfa.init LR\<^sub>0]" "qs = [P0_final]"
+  using assms unfolding eps_P0 by standard (smt (verit, best) mem_Collect_eq prod.inject)+
+
+interpretation P0: gpda P\<^sub>0
+proof (unfold_locales, goal_cases _ _ nxt eps _)
+  case (nxt ps a qs)
+  with nxt_P0E obtain p where "ps = [p]"
+  "p \<in> dfa.states LR\<^sub>0" "qs = [dfa.nxt LR\<^sub>0 p (Tm a), p]" "dfa.nxt LR\<^sub>0 p (Tm a) \<noteq> {}"
+    by force
+  with dfa_LR0.nxt show ?case by simp
+next
+  case (eps ps qs)
+  then show ?case 
+  proof (cases rule: eps_P0_cases, intro conjI)
+    case (reduce r rs X \<alpha>)
+    then show "qs \<noteq> []" "set ps \<subseteq> gpda.states P\<^sub>0" and ps_Cons: "ps \<noteq> []"
+      by (metis list.distinct(1), auto)
+    from reduce(3) have "dfa.nxt LR\<^sub>0 (last (r # rs)) (Nt X) \<in> dfa.states LR\<^sub>0"
+      using dfa_LR0.nxt last_in_set by blast
+    with reduce(1-3) ps_Cons show "set qs \<subseteq> gpda.states P\<^sub>0" 
+      by (metis (no_types, lifting) Un_iff empty_set insert_subset last_in_set list.simps(15) 
+          states_P0 subset_code(1))
+  qed (use dfa_LR0.init in simp)
+qed (use dfa_LR0.init dfa_LR0.finite in simp_all)
+
+subsubsection \<open>Finiteness of \<open>P\<^sub>0\<close> transitions\<close>
+
+theorem finite_nxt_P0:
+  "finite (gpda.nxt P\<^sub>0)"
+proof (rule finite_surj)
+  thm nxt_P0
+  show " gpda.nxt P\<^sub>0 \<subseteq> ((\<lambda>(q, a). ([q], a, [dfa.nxt LR\<^sub>0 q (Tm a), q])) ` 
+        {(q, a)|q a. q \<in> dfa.states LR\<^sub>0 \<and> dfa.nxt LR\<^sub>0 q (Tm a) \<noteq> {}})"
+    unfolding nxt_P0 by fastforce
+  show "finite {(q, a) |q a. q \<in> dfa.states LR\<^sub>0 \<and> dfa.nxt LR\<^sub>0 q (Tm a) \<noteq> {}}"
+  (is "finite ?T")
+  proof -
+    have T_Un: "?T = (\<Union>q \<in> dfa.states LR\<^sub>0. {(q, a)| a. dfa.nxt LR\<^sub>0 q (Tm a) \<noteq> {}})" 
+      by blast
+    with dfa_LR0.finite show ?thesis 
+      using finite_dfa_LR0_nempty_Tms by fastforce
+  qed
+qed
 
 lemma finite_lists_complete_length_eq:
   "finite {q # qs| q qs X \<alpha>. set (q # qs) \<subseteq> dfa.states LR\<^sub>0 \<and> [X \<rightarrow> \<alpha> \<cdot> []] \<in> q \<and> 
@@ -180,7 +228,6 @@ proof (rule finite_surj)
   qed
 qed
 
-
 lemma finite_eps_P0_reduce:
   "finite {let q = last (q\<^sub>n#qs) in (q\<^sub>n # qs, dfa.nxt LR\<^sub>0 q (Nt X) # [q])|
     q\<^sub>n qs X \<alpha>. set (q\<^sub>n#qs) \<subseteq> dfa.states LR\<^sub>0 \<and> [X \<rightarrow> \<alpha> \<cdot> []] \<in> q\<^sub>n \<and> length \<alpha> = length qs \<and> X \<noteq> S'}"
@@ -217,35 +264,15 @@ proof (rule finite_surj)
     by blast
 qed (rule dfa_LR0.finite)
 
-lemma eps_P0_cases[consumes 1, case_names reduce finish]:
-  assumes "(ps, qs) \<in> gpda.eps P\<^sub>0"
-  obtains r rs X \<alpha> where 
-    "ps = r # rs" "qs = (let q = last (r # rs) in dfa.nxt LR\<^sub>0 q (Nt X) # [q])"
-    "set (r # rs) \<subseteq> dfa.states LR\<^sub>0" "[X \<rightarrow> \<alpha> \<cdot> []] \<in> r" "length \<alpha> = length rs" |
-    q where "q \<in> dfa.states LR\<^sub>0" "ps = [q, dfa.init LR\<^sub>0]" "qs = [P0_final]"
-  using assms unfolding eps_P0 by standard (smt (verit, best) mem_Collect_eq prod.inject)+
+theorem finite_eps_P0:
+  "finite (gpda.eps P\<^sub>0)"
+  unfolding eps_P0 using finite_eps_P0_reduce finite_eps_P0_finish by blast
 
-interpretation P0: gpda P\<^sub>0
-proof (unfold_locales, goal_cases _ _ nxt eps _)
-  case (nxt ps a qs)
-  with nxt_P0E obtain p where "ps = [p]"
-  "p \<in> dfa.states LR\<^sub>0" "qs = [dfa.nxt LR\<^sub>0 p (Tm a), p]" "dfa.nxt LR\<^sub>0 p (Tm a) \<noteq> {}"
-    by force
-  with dfa_LR0.nxt show ?case by simp
-next
-  case (eps ps qs)
-  then show ?case 
-  proof (cases rule: eps_P0_cases, intro conjI)
-    case (reduce r rs X \<alpha>)
-    then show "qs \<noteq> []" "set ps \<subseteq> gpda.states P\<^sub>0" and ps_Cons: "ps \<noteq> []"
-      by (metis list.distinct(1), auto)
-    from reduce(3) have "dfa.nxt LR\<^sub>0 (last (r # rs)) (Nt X) \<in> dfa.states LR\<^sub>0"
-      using dfa_LR0.nxt last_in_set by blast
-    with reduce(1-3) ps_Cons show "set qs \<subseteq> gpda.states P\<^sub>0" 
-      by (metis (no_types, lifting) Un_iff empty_set insert_subset last_in_set list.simps(15) 
-          states_P0 subset_code(1))
-  qed (use dfa_LR0.init in simp)
-qed (use dfa_LR0.init dfa_LR0.finite in simp_all)
+
+section \<open>LR(0)-Adequate and Inadequate States\<close>
+
+inductive shift_reduce :: "('n, 't) item set \<Rightarrow> bool" where
+  "\<lbrakk>([p], a, ps) \<in> gpda.nxt P\<^sub>0; (p#ps', qs) \<in> gpda.eps P\<^sub>0\<rbrakk> \<Longrightarrow> shift_reduce p"
 
 lemma P0_read_iff_in_q:
 "([q], a, dfa.nxt LR\<^sub>0 q (Tm a) # [q]) \<in> gpda.nxt P\<^sub>0 
@@ -278,6 +305,38 @@ next
   thus "([q], a, dfa.nxt LR\<^sub>0 q (Tm a) # [q]) \<in> gpda.nxt P\<^sub>0" using nxt_P0 q_state by blast
 qed
 
+lemma shift_reduceE [elim]:
+  assumes "shift_reduce q"
+  obtains X \<alpha> a \<beta> Y \<gamma> where "[X \<rightarrow> \<alpha> \<cdot> Tm a # \<beta>] \<in> q" "[Y \<rightarrow> \<gamma> \<cdot> []] \<in> q"
+  using assms shift_reduce.cases 
+  by (smt (verit, ccfv_threshold) P0_read_iff_in_q Extended_Cfg_axioms Un_iff eps_P0
+      list.sel(1) mem_Collect_eq nxt_P0 prod.inject)
+
+definition reduce_reduce :: "('n, 't) item set \<Rightarrow> bool" where
+  "reduce_reduce q \<equiv> card (completes q) > Suc 0"
+
+lemma reduce_reduceE [elim]:
+  assumes "reduce_reduce q"
+  obtains X \<alpha> Y \<beta> where "[X \<rightarrow> \<alpha> \<cdot> []] \<in> q" "[Y \<rightarrow> \<beta> \<cdot> []] \<in> q" "[X \<rightarrow> \<alpha> \<cdot> []] \<noteq> [Y \<rightarrow> \<beta> \<cdot> []]"
+proof -
+  from assms obtain n where cardq: "card (completes q) = Suc (Suc n)" unfolding reduce_reduce_def 
+    by (metis Suc_less_eq2 Suc_pred)
+  moreover from this have nempty: "completes q \<noteq> {}" by fastforce
+  ultimately obtain X \<alpha> where Xq: "[X \<rightarrow> \<alpha> \<cdot> []] \<in> q" 
+    using completes_subset by blast
+  let ?p = "completes q - {[X \<rightarrow> \<alpha> \<cdot> []]}"
+  from cardq have cardp: "card ?p = Suc n" using Xq 
+    by (metis DiffI card_Diff_singleton diff_Suc_1 item.inject neq_Nil_conv noncompletesE)
+  moreover from this have "?p \<noteq> {}" by fastforce
+  moreover from completes_subset[of q] have "?p \<subseteq> q" by blast
+  ultimately obtain Y \<beta> where "[Y \<rightarrow> \<beta> \<cdot> []] \<in> q" "[X \<rightarrow> \<alpha> \<cdot> []] \<noteq> [Y \<rightarrow> \<beta> \<cdot> []]" by blast
+  with Xq show thesis using that by presburger
+qed
+
+definition "LR0_inadequate q \<equiv> shift_reduce q \<or> reduce_reduce q"
+
+abbreviation "LR0_adequate q \<equiv> \<not>LR0_inadequate q"
+
 lemma P0_complete_imp_reduce:
   assumes "[X \<rightarrow> \<alpha> \<cdot> []] \<in> q"
     "X \<noteq> S'"
@@ -309,45 +368,6 @@ proof -
     then show ?thesis using P0_complete_imp_reduce[OF X_def False assms(2)] that by meson
   qed
 qed
-
-
-
-section \<open>LR(0)-Adequate and Inadequate States\<close>
-
-inductive shift_reduce :: "('n, 't) item set \<Rightarrow> bool" where
-  "\<lbrakk>([p], a, ps) \<in> gpda.nxt P\<^sub>0; (p#ps', qs) \<in> gpda.eps P\<^sub>0\<rbrakk> \<Longrightarrow> shift_reduce p"
-
-lemma shift_reduceE [elim]:
-  assumes "shift_reduce q"
-  obtains X \<alpha> a \<beta> Y \<gamma> where "[X \<rightarrow> \<alpha> \<cdot> Tm a # \<beta>] \<in> q" "[Y \<rightarrow> \<gamma> \<cdot> []] \<in> q"
-  using assms shift_reduce.cases 
-  by (smt (verit, ccfv_threshold) Extended_Cfg.P0_read_iff_in_q Extended_Cfg_axioms Un_iff eps_P0
-      list.sel(1) mem_Collect_eq nxt_P0 prod.inject)
-
-definition reduce_reduce :: "('n, 't) item set \<Rightarrow> bool" where
-  "reduce_reduce q \<equiv> card (completes q) > Suc 0"
-
-lemma reduce_reduceE [elim]:
-  assumes "reduce_reduce q"
-  obtains X \<alpha> Y \<beta> where "[X \<rightarrow> \<alpha> \<cdot> []] \<in> q" "[Y \<rightarrow> \<beta> \<cdot> []] \<in> q" "[X \<rightarrow> \<alpha> \<cdot> []] \<noteq> [Y \<rightarrow> \<beta> \<cdot> []]"
-proof -
-  from assms obtain n where cardq: "card (completes q) = Suc (Suc n)" unfolding reduce_reduce_def 
-    by (metis Suc_less_eq2 Suc_pred)
-  moreover from this have nempty: "completes q \<noteq> {}" by fastforce
-  ultimately obtain X \<alpha> where Xq: "[X \<rightarrow> \<alpha> \<cdot> []] \<in> q" 
-    using completes_subset by blast
-  let ?p = "completes q - {[X \<rightarrow> \<alpha> \<cdot> []]}"
-  from cardq have cardp: "card ?p = Suc n" using Xq 
-    by (metis DiffI card_Diff_singleton diff_Suc_1 item.inject neq_Nil_conv noncompletesE)
-  moreover from this have "?p \<noteq> {}" by fastforce
-  moreover from completes_subset[of q] have "?p \<subseteq> q" by blast
-  ultimately obtain Y \<beta> where "[Y \<rightarrow> \<beta> \<cdot> []] \<in> q" "[X \<rightarrow> \<alpha> \<cdot> []] \<noteq> [Y \<rightarrow> \<beta> \<cdot> []]" by blast
-  with Xq show thesis using that by presburger
-qed
-
-definition "LR0_inadequate q \<equiv> shift_reduce q \<or> reduce_reduce q"
-
-abbreviation "LR0_adequate q \<equiv> \<not>LR0_inadequate q"
 
 lemma complete_noncomplete_Tm_imp_inadequate:
   assumes "completes q \<noteq> {}" "[X \<rightarrow> \<alpha> \<cdot> Tm a # \<beta>] \<in> q" "q \<in> dfa.states LR\<^sub>0"

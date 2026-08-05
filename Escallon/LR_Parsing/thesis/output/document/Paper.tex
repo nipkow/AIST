@@ -21,6 +21,143 @@
 %
 \isatagdocument
 %
+\isamarkupsection{Introduction%
+}
+\isamarkuptrue%
+%
+\isamarkupsubsection{\isa{LR{\isacharparenleft}{\kern0pt}k{\isacharparenright}{\kern0pt}} Parsing%
+}
+\isamarkuptrue%
+%
+\isamarkupsubsection{The Isabelle Theorem Prover%
+}
+\isamarkuptrue%
+%
+\isamarkupsubsection{Isabelle Notation%
+}
+\isamarkuptrue%
+%
+\isamarkupsubsubsection{General Notation%
+}
+\isamarkuptrue%
+%
+\endisatagdocument
+{\isafolddocument}%
+%
+\isadelimdocument
+%
+\endisadelimdocument
+%
+\begin{isamarkuptext}%
+A term \isa{t} of type \isa{{\isasymtau}} is notated as \isa{t\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isasymtau}}, with type variables \isa{\isatfree{{\isacharprime}{\kern0pt}a}}, \isa{\isatfree{{\isacharprime}{\kern0pt}b}},
+\isa{\isatfree{{\isacharprime}{\kern0pt}c}}, etc. Tuple types are notated using \isa{{\isasymtimes}}: for \isa{x\isactrlsub {\isadigit{0}}\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}a\isactrlsub {\isadigit{0}}{\isacharcomma}{\kern0pt}\ x\isactrlsub {\isadigit{1}}\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}a\isactrlsub {\isadigit{1}}{\isacharcomma}{\kern0pt}{\isasymdots}{\isacharcomma}{\kern0pt}\ x\isactrlsub n\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}a\isactrlsub n}, we write
+\isa{{\isacharparenleft}{\kern0pt}x\isactrlsub {\isadigit{0}}{\isacharcomma}{\kern0pt}x\isactrlsub {\isadigit{1}}{\isacharcomma}{\kern0pt}{\isasymdots}{\isacharcomma}{\kern0pt}x\isactrlsub n{\isacharparenright}{\kern0pt}\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}a\isactrlsub {\isadigit{0}}\ {\isasymtimes}\ {\isacharprime}{\kern0pt}a\isactrlsub {\isadigit{1}}\ {\isasymtimes}\ {\isasymdots}\ {\isasymtimes}\ {\isacharprime}{\kern0pt}a\isactrlsub n}.
+ Type constructors are usually written postfix, as one can see in types such as
+\isa{\isatfree{{\isacharprime}{\kern0pt}a}\ \isatconst{set}}, and in cases of multiple types \isa{{\isacharprime}{\kern0pt}a\isactrlsub {\isadigit{0}}{\isacharcomma}{\kern0pt}\ {\isacharprime}{\kern0pt}a\isactrlsub {\isadigit{1}}{\isacharcomma}{\kern0pt}{\isasymdots}{\isacharcomma}{\kern0pt}{\isacharprime}{\kern0pt}a\isactrlsub n}, they are written as 
+\mbox{\isa{{\isacharparenleft}{\kern0pt}{\isacharprime}{\kern0pt}a\isactrlsub {\isadigit{0}}{\isacharcomma}{\kern0pt}{\isacharprime}{\kern0pt}a\isactrlsub {\isadigit{1}}{\isacharcomma}{\kern0pt}{\isasymdots}{\isacharcomma}{\kern0pt}{\isacharprime}{\kern0pt}a\isactrlsub n{\isacharparenright}{\kern0pt}}}. One of the most common types in this formalization, \isa{{\isacharparenleft}{\kern0pt}\isatfree{{\isacharprime}{\kern0pt}n}{\isacharcomma}{\kern0pt}\ \isatfree{{\isacharprime}{\kern0pt}t}{\isacharparenright}{\kern0pt}\ \isatconst{sym}}, 
+is an example for this.\\
+The keyword \isakeyword{datatype} is used to declare algebraic data types, which can be seen in 
+\isa{\isatfree{{\isacharprime}{\kern0pt}a}\ \isatconst{list}}:
+
+\isa{\isakeywordONE{datatype}\ \isatfree{{\isacharprime}{\kern0pt}a}\ \isatconst{list}\ {\isacharequal}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}\ {\isacharbar}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isacharhash}{\kern0pt}{\isacharparenright}{\kern0pt}\ \isatfree{{\isacharprime}{\kern0pt}a}\ {\isacharparenleft}{\kern0pt}\isatfree{{\isacharprime}{\kern0pt}a}\ \isatconst{list}{\isacharparenright}{\kern0pt}}
+
+Furthermore, lists are concatenated with the operator \isa{{\isacharat}{\kern0pt}}, \isa{\isaconst{rev}} reverses a list, \isa{\isaconst{set}}
+converts a list to a set, \isa{\isafree{xs}\ensuremath{_{[\mathit{\isafree{n}}]}}} returns the \isa{n}-th element of the list \isa{xs} (with 
+0-indexing), \isa{\isafree{xs}{\isacharbar}{\kern0pt}\isactrlbsub \isafree{n}\isactrlesub } is the prefix of length \isa{n} of \isa{xs}, and \isa{\isactrlbsub \isafree{n}\isactrlesub {\isacharbar}{\kern0pt}\isafree{xs}} is the 
+suffix of \isa{xs} starting at index \isa{n}.\par
+
+Pattern matching on a term \isa{{\isasymtau}} is done with the keywords \isakeyword{case} and \isakeyword{of}. For 
+patterns \isa{{\isasympi}\isactrlsub {\isadigit{0}}{\isacharcomma}{\kern0pt}\ {\isasympi}\isactrlsub {\isadigit{1}}{\isacharcomma}{\kern0pt}\ {\isasymdots}{\isacharcomma}{\kern0pt}\ {\isasympi}\isactrlsub n} and expressions \isa{e\isactrlsub {\isadigit{0}}{\isacharcomma}{\kern0pt}\ e\isactrlsub {\isadigit{1}}{\isacharcomma}{\kern0pt}\ {\isasymdots}{\isacharcomma}{\kern0pt}\ e\isactrlsub n}:
+\begin{quote}
+\isa{\textsf{case}\ \isafree{xs}\ \textsf{of}\ {\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}\ {\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}\ {\isacharbar}{\kern0pt}\ \isabound{y}\ {\isacharhash}{\kern0pt}\ \isabound{ys}\ {\isasymRightarrow}\ {\isacharbrackleft}{\kern0pt}\isabound{y}{\isacharbrackright}{\kern0pt}}\\
+\isakeyword{case} \isa{{\isasymtau}} \isakeyword{of} \isa{{\isasympi}\isactrlsub {\isadigit{0}}\ {\isasymRightarrow}\ e\isactrlsub {\isadigit{0}}\ {\isacharbar}{\kern0pt}\ {\isasympi}\isactrlsub {\isadigit{1}}\ {\isasymRightarrow}\ e\isactrlsub {\isadigit{1}}\ {\isacharbar}{\kern0pt}\ {\isasymdots}\ {\isacharbar}{\kern0pt}\ {\isasympi}\isactrlsub n\ {\isasymRightarrow}\ e\isactrlsub n}\\
+$\mathbf{case}\ \tau\ \mathbf{of}\ \pi_0 \Rightarrow e_0 \mid \pi_1 \Rightarrow e_1 \mid \ldots 
+\mid \pi_n \Rightarrow e_n$\\
+\isa{\isacommand{case}~$\tau$~\isacommand{of}~$\pi_{0}$~\isasymRightarrow{}~$e_{0}$
+~\isacharbar~$\pi_{1}$~\isasymRightarrow{}~$e_{1}$
+~\isacharbar~\isasymdots~\isacharbar~$\pi_{n}$~\isasymRightarrow{}~$e_{n}$}
+
+\end{quote}%
+\end{isamarkuptext}\isamarkuptrue%
+%
+\isadelimdocument
+%
+\endisadelimdocument
+%
+\isatagdocument
+%
+\isamarkupsubsubsection{Context-Free Grammars%
+}
+\isamarkuptrue%
+%
+\endisatagdocument
+{\isafolddocument}%
+%
+\isadelimdocument
+%
+\endisadelimdocument
+%
+\begin{isamarkuptext}%
+Nipkow et al.\cite{Nipkow} introduce type \isa{{\isacharparenleft}{\kern0pt}\isatfree{{\isacharprime}{\kern0pt}n}{\isacharcomma}{\kern0pt}\ \isatfree{{\isacharprime}{\kern0pt}t}{\isacharparenright}{\kern0pt}\ \isatconst{sym}} for context-free grammar 
+\concept{symbols} as a tagged union consisting of nonterminals (\isa{\isaconst{Nt}}) and terminals (\isa{\isaconst{Tm}}) 
+of type \isa{\isatfree{{\isacharprime}{\kern0pt}n}} and \isa{\isatfree{{\isacharprime}{\kern0pt}t}} respectively:
+
+\isa{\isakeywordONE{datatype}\ {\isacharparenleft}{\kern0pt}\isatfree{{\isacharprime}{\kern0pt}n}{\isacharcomma}{\kern0pt}\ \isatfree{{\isacharprime}{\kern0pt}t}{\isacharparenright}{\kern0pt}\ \isatconst{sym}\ {\isacharequal}{\kern0pt}\ \isaconst{Nt}\ \isatfree{{\isacharprime}{\kern0pt}n}\ {\isacharbar}{\kern0pt}\ \isaconst{Tm}\ \isatfree{{\isacharprime}{\kern0pt}t}}
+
+Besides defining this type for symbols, they also define the following abbreviations:
+\begin{quote}
+\begin{tabular}{ll}
+Lists of symbols & \isa{{\isacharparenleft}{\kern0pt}{\isacharprime}{\kern0pt}n{\isacharcomma}{\kern0pt}{\isacharprime}{\kern0pt}t{\isacharparenright}{\kern0pt}\ syms\ {\isacharequal}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isacharprime}{\kern0pt}n{\isacharcomma}{\kern0pt}\ {\isacharprime}{\kern0pt}t{\isacharparenright}{\kern0pt}\ sym\ list}\\
+Productions & \isa{{\isacharparenleft}{\kern0pt}{\isacharprime}{\kern0pt}n{\isacharcomma}{\kern0pt}{\isacharprime}{\kern0pt}t{\isacharparenright}{\kern0pt}\ prod\ {\isacharequal}{\kern0pt}\ {\isacharprime}{\kern0pt}n\ {\isasymtimes}\ {\isacharparenleft}{\kern0pt}{\isacharprime}{\kern0pt}n{\isacharcomma}{\kern0pt}{\isacharprime}{\kern0pt}t{\isacharparenright}{\kern0pt}\ syms}\\
+Sets of productions & \isa{{\isacharparenleft}{\kern0pt}{\isacharprime}{\kern0pt}n{\isacharcomma}{\kern0pt}{\isacharprime}{\kern0pt}t{\isacharparenright}{\kern0pt}\ Prods\ {\isacharequal}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isacharprime}{\kern0pt}n{\isacharcomma}{\kern0pt}{\isacharprime}{\kern0pt}t{\isacharparenright}{\kern0pt}\ prod\ set}
+\end{tabular}
+\end{quote}
+
+Lastly, Nipkow et al. also define the datatype for context-free grammars:
+\isakeyword{datatype} \isa{{\isacharparenleft}{\kern0pt}{\isacharprime}{\kern0pt}n{\isacharcomma}{\kern0pt}\ {\isacharprime}{\kern0pt}t{\isacharparenright}{\kern0pt}\ Cfg\ {\isacharequal}{\kern0pt}\ Cfg\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}{\isacharprime}{\kern0pt}n{\isacharcomma}{\kern0pt}{\isacharprime}{\kern0pt}t{\isacharparenright}{\kern0pt}\ Prods{\isacharparenright}{\kern0pt}\ {\isacharprime}{\kern0pt}n} 
+% antiquotation \isa{\isakeywordONE{datatype}\ {\isacharparenleft}{\kern0pt}\isatfree{{\isacharprime}{\kern0pt}n}{\isacharcomma}{\kern0pt}\ \isatfree{{\isacharprime}{\kern0pt}t}{\isacharparenright}{\kern0pt}\ \isatconst{Cfg}\ {\isacharequal}{\kern0pt}\ \isaconst{Cfg}\ {\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}\isatfree{{\isacharprime}{\kern0pt}n}\ {\isasymtimes}\ {\isacharparenleft}{\kern0pt}\isatfree{{\isacharprime}{\kern0pt}n}{\isacharcomma}{\kern0pt}\ \isatfree{{\isacharprime}{\kern0pt}t}{\isacharparenright}{\kern0pt}\ \isatconst{sym}\ \isatconst{list}{\isacharparenright}{\kern0pt}\ \isatconst{set}{\isacharparenright}{\kern0pt}\ \isatfree{{\isacharprime}{\kern0pt}n}} unfolds type synonyms Prods and prod
+
+\isa{\isaconst{Cfg}\ \isafree{P}\ \isafree{S}} denotes a context-free grammar with production set \isa{P} and start symbol \isa{S}. If 
+\isa{\isafree{G}\ {\isacharequal}{\kern0pt}\ \isaconst{Cfg}\ \isafree{P}\ \isafree{S}}, \isa{\isaconst{Prods}\ \isafree{G}} refers to \isa{P}, and analogously, \isa{\isaconst{Start}\ \isafree{G}} refers to 
+\isa{S}.\\
+A derivation step from \isa{{\isasymphi}} to \isa{{\isasympsi}} under production set \isa{P} is notated as \mbox{\isa{\isafree{P}\ {\isasymturnstile}\ \isafree{{\isasymphi}}\ {\isasymRightarrow}\ \isafree{{\isasympsi}}}}.
+More formally, for any nonterminal \isa{A}, and symbols \isa{{\isasymbeta}}, \isa{{\isasymalpha}} and \isa{{\isasymgamma}} holds:
+\begin{quote} 
+\isa{{\isacharparenleft}{\kern0pt}\isafree{A}{\isacharcomma}{\kern0pt}\ \isafree{{\isasymbeta}}{\isacharparenright}{\kern0pt}\ {\isasymin}\ \isafree{P}\ {\isasymLongrightarrow}\ \isafree{P}\ {\isasymturnstile}\ \isafree{{\isasymalpha}}\ {\isacharat}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isafree{A}{\isacharbrackright}{\kern0pt}\ {\isacharat}{\kern0pt}\ \isafree{{\isasymgamma}}\ {\isasymRightarrow}\ \isafree{{\isasymalpha}}\ {\isacharat}{\kern0pt}\ \isafree{{\isasymbeta}}\ {\isacharat}{\kern0pt}\ \isafree{{\isasymgamma}}}
+\end{quote}
+
+Moreover, we denote the reflexive transitive closure of derivations by \mbox{\isa{\isafree{P}\ {\isasymturnstile}\ \isafree{{\isasymphi}}\ {\isasymRightarrow}{\isacharasterisk}{\kern0pt}\ \isafree{{\isasympsi}}}}, 
+and derivations of length \isa{n} by \isa{\isafree{P}\ {\isasymturnstile}\ \isafree{{\isasymphi}}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}\isafree{n}{\isacharparenright}{\kern0pt}\ \isafree{{\isasympsi}}}. Rightmost derivations are notated analogously, 
+with \isa{{\isasymRightarrow}r}, \isa{{\isasymRightarrow}r{\isacharasterisk}{\kern0pt}} and \isa{{\isasymRightarrow}r{\isacharparenleft}{\kern0pt}n{\isacharparenright}{\kern0pt}} respectively.
+
+Lastly, Nipkow et al. define the language of a nonterminal w.r.t a set of 
+productions:
+\begin{quote}
+\isa{\isaconst{Lang}\ \isavar{P}\ \isavar{A}\ {\isacharequal}{\kern0pt}\ {\isacharbraceleft}{\kern0pt}\isabound{w}\ {\isacharbar}{\kern0pt}\ \isavar{P}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isavar{A}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharasterisk}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isabound{w}{\isacharbraceright}{\kern0pt}}
+\end{quote}
+And based on this, the language of a grammar:
+\begin{quote}
+\isa{LangS\ G\ {\isacharequal}{\kern0pt}\ Lang\ {\isacharparenleft}{\kern0pt}Prods\ G{\isacharparenright}{\kern0pt}\ {\isacharparenleft}{\kern0pt}Start\ G{\isacharparenright}{\kern0pt}}
+\end{quote}
+ 
+Besides type variables \isa{\isatfree{{\isacharprime}{\kern0pt}n}} for nonterminals and \isa{\isatfree{{\isacharprime}{\kern0pt}t}} for terminals, we use the following 
+variable conventions: for brevity, we refer to \isa{{\isacharparenleft}{\kern0pt}{\isacharprime}{\kern0pt}n{\isacharcomma}{\kern0pt}\ {\isacharprime}{\kern0pt}t{\isacharparenright}{\kern0pt}\ sym} and \isa{{\isacharparenleft}{\kern0pt}{\isacharprime}{\kern0pt}n{\isacharcomma}{\kern0pt}\ {\isacharprime}{\kern0pt}t{\isacharparenright}{\kern0pt}\ syms} simply as \isa{sym}
+and \isa{syms} respectively; \isa{A{\isacharcomma}{\kern0pt}\ B{\isacharcomma}{\kern0pt}\ C\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}n}; \isa{a{\isacharcomma}{\kern0pt}\ b{\isacharcomma}{\kern0pt}\ c\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}t}; \isa{u{\isacharcomma}{\kern0pt}\ v{\isacharcomma}{\kern0pt}\ w\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}t\ list}; and finally
+\isa{{\isasymalpha}{\isacharcomma}{\kern0pt}\ {\isasymbeta}{\isacharcomma}{\kern0pt}\ {\isasymgamma}\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isacharprime}{\kern0pt}n{\isacharcomma}{\kern0pt}\ {\isacharprime}{\kern0pt}t{\isacharparenright}{\kern0pt}\ syms}.
+
+For further definitions and notation, we defer to the AFP entry by Nipkow et al~\cite{Nipkow}.%
+\end{isamarkuptext}\isamarkuptrue%
+%
+\isadelimdocument
+%
+\endisadelimdocument
+%
+\isatagdocument
+%
+\isamarkupsection{Previous Work%
+}
+\isamarkuptrue%
+%
 \isamarkupsection{Basic Definitions%
 }
 \isamarkuptrue%
@@ -37,71 +174,170 @@
 \endisadelimdocument
 %
 \begin{isamarkuptext}%
-\begin{definition}[Reduced grammar]
-A CFG is a \concept{reduced grammar} if its productions contain only useful symbols, or equivalently,
-no unreachable or unproductive symbols.%:\\\isa{\isaconst{reduced}\ \isavar{G}\ {\isasymequiv}\ {\isasymforall}\isabound{A}{\isasymin}\isaconst{Nts}\ {\isacharparenleft}{\kern0pt}\isaconst{Prods}\ \isavar{G}{\isacharparenright}{\kern0pt}{\isachardot}{\kern0pt}\ \isaconst{useful}\ {\isacharparenleft}{\kern0pt}\isaconst{Prods}\ \isavar{G}{\isacharparenright}{\kern0pt}\ {\isacharparenleft}{\kern0pt}\isaconst{Start}\ \isavar{G}{\isacharparenright}{\kern0pt}\ \isabound{A}} 
-\end{definition}
+In general, context-free grammars (CFGs) can contain problematic nonterminals which can be 
+removed from the grammar without altering the language. Working with grammars that lack such 
+nonterminals is ideal, since having them increases computational complexity and makes the grammar 
+less well-behaved.
 
-Let \isa{G} be a context-free grammar with productions \isa{P}, start symbol \isa{S}, set of nonterminals \isa{N} and 
-terminals \isa{T}. In order to simplify 
-the process of parsing and operate on more well-behaved grammars, we will assume certain properties: \\
+\begin{example}
+Let \isa{G} be a CFG with productions:
+\begin{center}
+\begin{tabular}{cc}
+\isa{Start\ G\ {\isasymrightarrow}\ A\ {\isacharbar}{\kern0pt}\ AB} & \isa{A\ {\isasymrightarrow}\ aA\ {\isacharbar}{\kern0pt}\ a}\\
+\isa{C\ {\isasymrightarrow}\ aacc\ {\isacharbar}{\kern0pt}\ BCD} & \isa{D\ {\isasymrightarrow}\ BC\ {\isacharbar}{\kern0pt}\ D}
+\end{tabular}
+\end{center}
+
+Each nonterminal except for \isa{Start\ G} and \isa{A} carries problems with it:
+\begin{itemize}
+\item There are no productions where \isa{B} is on the left-hand side. This means that if \isa{Start\ G} 
+reaches a sentential form \isa{{\isasymalpha}} such that \isa{Nt\ B\ {\isasymin}\ set\ {\isasymalpha}}, no word will be derived from \isa{{\isasymalpha}}. 
+\item \isa{Start\ G} cannot reach \isa{C}, meaning no productions containing \isa{C}, or reachable only 
+through \isa{C} (e.g. reaching \isa{D} using production \mbox{\isa{C\ {\isasymrightarrow}\ BCD}}), can be used to derive words in \isa{LangS\ G}.
+\item \isa{D}, as opposed to \isa{B}, does show up on the LHS of certain productions, but none of these productions
+can lead to a word: \isa{D\ {\isasymrightarrow}\ BC} contains \isa{B}, which cannot derive a \isa{{\isacharprime}{\kern0pt}t\ list}, and \isa{D\ {\isasymrightarrow}\ D} has no effect.
+Furthermore, similarly to \isa{C}, \isa{D} cannot be reached by \isa{Start\ G}.
+\end{itemize}
+\end{example}
+
+Nipkow et al.\cite{Nipkow} define \concept{useful} nonterminals w.r.t. a set of productions and a start 
+symbol:
+\begin{quote}
+\isa{\isaconst{productives}\ {\isasymequiv}\ {\isasymlambda}\isabound{P}\ \isabound{{\isasymalpha}}{\isachardot}{\kern0pt}\ {\isasymexists}\isabound{w}{\isachardot}{\kern0pt}\ \isabound{P}\ {\isasymturnstile}\ \isabound{{\isasymalpha}}\ {\isasymRightarrow}{\isacharasterisk}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isabound{w}}\\
+\isa{\isaconst{useful}\ \isavar{P}\ \isavar{S}\ \isavar{A}\ {\isacharequal}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isasymexists}\isabound{{\isasymbeta}}{\isachardot}{\kern0pt}\ \isavar{P}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isavar{S}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharasterisk}{\kern0pt}\ \isabound{{\isasymbeta}}\ {\isasymand}\ \isaconst{Nt}\ \isavar{A}\ {\isasymin}\ \isaconst{set}\ \isabound{{\isasymbeta}}\ {\isasymand}\ \isaconst{productives}\ \isavar{P}\ \isabound{{\isasymbeta}}{\isacharparenright}{\kern0pt}}
+\end{quote}
+
+For a CFG \isa{G}, \isa{A\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}n} is \concept{reachable} if there exists a \isa{{\isasymbeta}\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ syms} such that 
+\mbox{\isa{A\ {\isasymin}\ set\ {\isasymbeta}}} and \isa{\isaconst{Prods}\ \isafree{G}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ {\isacharparenleft}{\kern0pt}\isaconst{Start}\ \isafree{G}{\isacharparenright}{\kern0pt}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharasterisk}{\kern0pt}\ \isafree{{\isasymbeta}}}. Otherwise, it is \concept{unreachable}.
+Similarly, it is \concept{productive} if \isa{\isaconst{productive}\ {\isacharparenleft}{\kern0pt}\isaconst{Prods}\ \isafree{G}{\isacharparenright}{\kern0pt}\ \isafree{A}} holds, and 
+\concept{unproductive} otherwise. A useful nonterminal is therefore a nonterminal that is both 
+reachable and productive. 
+
+Nipkow et al. have proved that removing all unreachable and unproductive nonterminals preserves the
+language:
+\begin{quote}
+\isa{\isaconst{restrict{\isacharunderscore}{\kern0pt}Nts}\ \isavar{R}\ \isavar{P}\ {\isacharequal}{\kern0pt}\ {\isacharbraceleft}{\kern0pt}{\isacharparenleft}{\kern0pt}\isabound{A}{\isacharcomma}{\kern0pt}\ \isabound{{\isasymalpha}}{\isacharparenright}{\kern0pt}\ {\isacharbar}{\kern0pt}\ {\isacharparenleft}{\kern0pt}\isabound{A}{\isacharcomma}{\kern0pt}\ \isabound{{\isasymalpha}}{\isacharparenright}{\kern0pt}\ {\isasymin}\ \isavar{P}\ {\isasymand}\ {\isacharparenleft}{\kern0pt}{\isasymforall}\isabound{B}{\isasymin}{\isacharbraceleft}{\kern0pt}\isabound{A}{\isacharbraceright}{\kern0pt}\ {\isasymunion}\ \isaconst{Nts{\isacharunderscore}{\kern0pt}syms}\ \isabound{{\isasymalpha}}{\isachardot}{\kern0pt}\ \isavar{R}\ \isabound{B}{\isacharparenright}{\kern0pt}{\isacharbraceright}{\kern0pt}}\\
+\isa{\isaconst{Lang}\ {\isacharparenleft}{\kern0pt}\isaconst{restrict{\isacharunderscore}{\kern0pt}Nts}\ {\isacharparenleft}{\kern0pt}\isaconst{useful}\ \isavar{P}\ \isavar{S}{\isacharparenright}{\kern0pt}\ \isavar{P}{\isacharparenright}{\kern0pt}\ \isavar{S}\ {\isacharequal}{\kern0pt}\ \isaconst{Lang}\ \isavar{P}\ \isavar{S}}
+\end{quote}%
+\end{isamarkuptext}\isamarkuptrue%
+%
+\begin{isamarkuptext}%
+Based on these definitions, and thanks to the fact that we can construct a CFG with only useful
+symbols equivalent to an arbitrary CFG, we can use these well-behaved grammars as the foundation
+of our automata in future sections, which we will call \concept{reduced grammars}:
+
+\begin{quote}
+\isa{\isaconst{reduced}\ \isavar{G}\ {\isasymequiv}\ {\isasymforall}\isabound{A}{\isasymin}\isaconst{Nts}\ {\isacharparenleft}{\kern0pt}\isaconst{Prods}\ \isavar{G}{\isacharparenright}{\kern0pt}{\isachardot}{\kern0pt}\ \isaconst{useful}\ {\isacharparenleft}{\kern0pt}\isaconst{Prods}\ \isavar{G}{\isacharparenright}{\kern0pt}\ {\isacharparenleft}{\kern0pt}\isaconst{Start}\ \isavar{G}{\isacharparenright}{\kern0pt}\ \isabound{A}}
+\end{quote}
+
+Let \isa{G} be a fixed CFG whose start symbol is \isa{S}. We assume the following properties:
 
 \begin{itemize}
-\item \isa{P} is finite.
-\item \isa{L{\isacharparenleft}{\kern0pt}G{\isacharparenright}{\kern0pt}\ {\isasymnoteq}\ {\isasymemptyset}}
-\item \isa{G} is reduced.
+\item \isa{\isaconst{finite}\ {\isacharparenleft}{\kern0pt}\isaconst{Prods}\ \isafree{G}{\isacharparenright}{\kern0pt}}
+\item \isa{\isaconst{LangS}\ \isafree{G}\ {\isasymnoteq}\ {\isasymemptyset}}
+\item \isa{\isaconst{reduced}\ \isafree{G}}
 \end{itemize}
 
-We then extend \isa{G} by a fresh start symbol \isa{S{\isacharprime}{\kern0pt}} with a single production \mbox{\isa{S{\isacharprime}{\kern0pt}\ {\isasymrightarrow}\ S}}. 
-The resulting grammar, which we conventionally call \isa{G{\isacharprime}{\kern0pt}}, is the \concept{extended grammar}, or the 
-\concept{extension}, of \isa{G}. We analogously refer to the set of productions of $G'$, often called $P'$, 
-as the \concept{extension} of \isa{P} or the \concept{extended set of productions} of \isa{G}.
-Formally: \\
+We extend \isa{G} by a fresh start symbol \isa{S{\isacharprime}{\kern0pt}} with a single production \mbox{$S' \to S$}. 
+The resulting grammar, which we define to be \isa{G{\isacharprime}{\kern0pt}}, is the \concept{extended grammar}, or the 
+\concept{extension}, of $G$. We analogously refer to the set of productions of $G'$, 
+as the extension of \isa{Prods\ G} or the \concept{extended set of productions} of $G$.
+Formally:
+\begin{quote}
+\isa{\isaconst{S{\isacharprime}{\kern0pt}}\ {\isasymequiv}\ \isaconst{fresh{\isadigit{0}}}\ {\isacharparenleft}{\kern0pt}\isaconst{Nts}\ {\isacharparenleft}{\kern0pt}\isaconst{Prods}\ \isafree{G}{\isacharparenright}{\kern0pt}\ {\isasymunion}\ {\isacharbraceleft}{\kern0pt}\isaconst{S}{\isacharbraceright}{\kern0pt}{\isacharparenright}{\kern0pt}}\\
+\isa{\isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymequiv}\ \isaconst{Cfg}\ {\isacharparenleft}{\kern0pt}\isaconst{Prods}\ \isafree{G}\ {\isasymunion}\ {\isacharbraceleft}{\kern0pt}{\isacharparenleft}{\kern0pt}\isaconst{S{\isacharprime}{\kern0pt}}{\isacharcomma}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S}{\isacharbrackright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharbraceright}{\kern0pt}{\isacharparenright}{\kern0pt}\ \isaconst{S{\isacharprime}{\kern0pt}}}
+\end{quote}
 
-\begin{definition}[Extended grammar]
-Let $G = (N, T, P, S)$ be a CFG. The extension of G is 
-$G' := (N \cup \{S'\}, T, P \cup \{S' \to S\}, S')$
-\end{definition}
-
-We now prove that extending a grammar preserves certain properties.
-
-\begin{lemma}\label{G'_derive_imp_G_derive_if_no_S'}
-If \isa{{\isasymalpha}}~\derive[G']~\isa{{\isasymbeta}} and \isa{S{\isacharprime}{\kern0pt}\ {\isasymnotin}\ {\isasymalpha}}, then \isa{{\isasymalpha}}~\derive[G]~\isa{{\isasymbeta}}.
+We now prove that extending a grammar preserves both language and reduction.%
+\end{isamarkuptext}\isamarkuptrue%
+%
+\begin{isamarkuptext}%
+\begin{lemma}\label{S_deriven_Suc_imp_all_nts_in_Nts}
+Let \isa{G} be an arbitrary CFG. If \mbox{\isa{\isaconst{Prods}\ \isafree{G}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ {\isacharparenleft}{\kern0pt}\isaconst{Start}\ \isafree{G}{\isacharparenright}{\kern0pt}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}\isaconst{Suc}\ \isafree{n}{\isacharparenright}{\kern0pt}\ \isafree{{\isasymalpha}}}} and 
+\isa{\isafree{A}\ {\isasymin}\ \isaconst{Nts{\isacharunderscore}{\kern0pt}syms}\ \isafree{{\isasymalpha}}}, then \isa{\isafree{A}\ {\isasymin}\ \isaconst{Nts}\ {\isacharparenleft}{\kern0pt}\isaconst{Prods}\ \isafree{G}{\isacharparenright}{\kern0pt}}.
 \begin{proof}
-Since \isa{{\isasymalpha}}~\derive[G']~\isa{{\isasymbeta}}, there exist \isa{{\isasymgamma}\ {\isasymin}\ {\isacharparenleft}{\kern0pt}N\ {\isasymunion}\ T{\isacharparenright}{\kern0pt}\isactrlsup {\isacharasterisk}{\kern0pt}}, \isa{w\ {\isasymin}\ T\isactrlsup {\isacharasterisk}{\kern0pt}} and \mbox{\isa{X\ {\isasymrightarrow}\ {\isasymdelta}\ {\isasymin}\ P{\isacharprime}{\kern0pt}}} such that 
-\isa{{\isasymalpha}\ {\isacharequal}{\kern0pt}\ {\isasymgamma}Xw} and \isa{{\isasymbeta}\ {\isacharequal}{\kern0pt}\ {\isasymgamma}{\isasymdelta}w}. Since \isa{S{\isacharprime}{\kern0pt}\ {\isasymnotin}\ {\isasymalpha}}, \isa{X\ {\isasymrightarrow}\ {\isasymdelta}\ {\isasymnoteq}\ S{\isacharprime}{\kern0pt}\ {\isasymrightarrow}\ S}, which implies \isa{X\ {\isasymrightarrow}\ {\isasymdelta}\ {\isasymin}\ P}. 
-The derivation then also exists in \isa{G}.
+We do a proof by induction on \isa{n} for arbitrary \isa{{\isasymalpha}}. In the base case, the derivation is a 
+single step \isa{\isaconst{Prods}\ \isafree{G}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ {\isacharparenleft}{\kern0pt}\isaconst{Start}\ \isafree{G}{\isacharparenright}{\kern0pt}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}\ \isafree{{\isasymalpha}}}, meaning \isa{{\isacharparenleft}{\kern0pt}Start\ G{\isacharcomma}{\kern0pt}\ {\isasymalpha}{\isacharparenright}{\kern0pt}\ {\isasymin}\ Prods\ G}. Together with 
+the fact that \isa{A\ {\isasymin}\ Nts{\isacharunderscore}{\kern0pt}syms\ {\isasymalpha}}, this implies \isa{\isafree{A}\ {\isasymin}\ \isaconst{Nts}\ {\isacharparenleft}{\kern0pt}\isaconst{Prods}\ \isafree{G}{\isacharparenright}{\kern0pt}}.\\
+For the inductive case, we must prove the statement holds for \isa{{\isasymalpha}} assuming 
+\isa{\isaconst{Prods}\ \isafree{G}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ {\isacharparenleft}{\kern0pt}\isaconst{Start}\ \isafree{G}{\isacharparenright}{\kern0pt}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}\isaconst{Suc}\ {\isacharparenleft}{\kern0pt}\isaconst{Suc}\ \isafree{n}{\isacharparenright}{\kern0pt}{\isacharparenright}{\kern0pt}\ \isafree{{\isasymalpha}}} for some \isa{n} and \isa{\isafree{A}\ {\isasymin}\ \isaconst{Nts{\isacharunderscore}{\kern0pt}syms}\ \isafree{{\isasymalpha}}}. 
+This implies there is a second-to-last step of the form:\\
+\isa{Prods\ G\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}Nt\ {\isacharparenleft}{\kern0pt}Start\ G{\isacharparenright}{\kern0pt}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}Suc\ n{\isacharparenright}{\kern0pt}\ {\isasymgamma}\ {\isacharat}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}Nt\ B{\isacharbrackright}{\kern0pt}\ {\isacharat}{\kern0pt}\ {\isasymdelta}\ {\isasymRightarrow}\ {\isasymgamma}\ {\isacharat}{\kern0pt}\ {\isasymbeta}\ {\isacharat}{\kern0pt}\ {\isasymdelta}\ {\isacharequal}{\kern0pt}\ {\isasymalpha}} with \isa{{\isacharparenleft}{\kern0pt}B{\isacharcomma}{\kern0pt}\ {\isasymbeta}{\isacharparenright}{\kern0pt}\ {\isasymin}\ Prods\ G}\\
+We now make a case distinction on whether \isa{A\ {\isasymin}\ Nts{\isacharunderscore}{\kern0pt}syms\ {\isasymbeta}} holds.\\
+If \isa{A\ {\isasymin}\ Nts{\isacharunderscore}{\kern0pt}syms\ {\isasymbeta}}, then \isa{A\ {\isasymin}\ Nts\ {\isacharparenleft}{\kern0pt}Prods\ G{\isacharparenright}{\kern0pt}} by the fact that \isa{{\isacharparenleft}{\kern0pt}B{\isacharcomma}{\kern0pt}\ {\isasymbeta}{\isacharparenright}{\kern0pt}\ {\isasymin}\ Prods\ G} directly.\\
+If \isa{A\ {\isasymnotin}\ Nts{\isacharunderscore}{\kern0pt}syms\ {\isasymbeta}}, this together with \isa{A\ {\isasymin}\ Nts{\isacharunderscore}{\kern0pt}syms\ {\isasymalpha}} implies \isa{A\ {\isasymin}\ Nts{\isacharunderscore}{\kern0pt}syms\ {\isacharparenleft}{\kern0pt}{\isasymgamma}\ {\isacharat}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}Nt\ B{\isacharbrackright}{\kern0pt}\ {\isacharat}{\kern0pt}\ {\isasymdelta}{\isacharparenright}{\kern0pt}}. 
+By the induction hypothesis, this implies \isa{A\ {\isasymin}\ Nts\ {\isacharparenleft}{\kern0pt}Prods\ G{\isacharparenright}{\kern0pt}}, and the proof is thus complete.
+\end{proof}
+\end{lemma}%
+\end{isamarkuptext}\isamarkuptrue%
+%
+\begin{isamarkuptext}%
+\begin{lemma}\label{G'_derive_imp_G_derive_if_no_S'}
+\isa{{\isasymlbrakk}\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ \isavar{{\isasymalpha}}\ {\isasymRightarrow}\ \isavar{{\isasymbeta}}{\isacharsemicolon}{\kern0pt}\ \isaconst{Nt}\ \isaconst{S{\isacharprime}{\kern0pt}}\ {\isasymnotin}\ \isaconst{set}\ \isavar{{\isasymalpha}}{\isasymrbrakk}\ {\isasymLongrightarrow}\ \isaconst{Prods}\ \isafree{G}\ {\isasymturnstile}\ \isavar{{\isasymalpha}}\ {\isasymRightarrow}\ \isavar{{\isasymbeta}}}
+\begin{proof}
+Since \isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ \isafree{{\isasymalpha}}\ {\isasymRightarrow}\ \isafree{{\isasymbeta}}}, there exist \isa{{\isasymgamma}{\isacharcomma}{\kern0pt}\ {\isasymzeta}\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ syms} and \isa{{\isacharparenleft}{\kern0pt}\isafree{X}{\isacharcomma}{\kern0pt}\ \isafree{{\isasymdelta}}{\isacharparenright}{\kern0pt}\ {\isasymin}\ \isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}} such 
+that \isa{\isafree{{\isasymalpha}}\ {\isacharequal}{\kern0pt}\ \isafree{{\isasymgamma}}\ {\isacharat}{\kern0pt}\ \isaconst{Nt}\ \isafree{X}\ {\isacharhash}{\kern0pt}\ \isafree{{\isasymzeta}}} and \isa{\isafree{{\isasymbeta}}\ {\isacharequal}{\kern0pt}\ \isafree{{\isasymgamma}}\ {\isacharat}{\kern0pt}\ \isafree{{\isasymdelta}}\ {\isacharat}{\kern0pt}\ \isafree{{\isasymzeta}}}. Furthermore, \isa{\isaconst{Nt}\ \isaconst{S{\isacharprime}{\kern0pt}}\ {\isasymnotin}\ \isaconst{set}\ \isafree{{\isasymalpha}}} 
+implies \isa{{\isacharparenleft}{\kern0pt}\isafree{X}{\isacharcomma}{\kern0pt}\ \isafree{{\isasymdelta}}{\isacharparenright}{\kern0pt}\ {\isasymnoteq}\ {\isacharparenleft}{\kern0pt}\isaconst{S{\isacharprime}{\kern0pt}}{\isacharcomma}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S}{\isacharbrackright}{\kern0pt}{\isacharparenright}{\kern0pt}}, which itself implies \isa{{\isacharparenleft}{\kern0pt}\isafree{X}{\isacharcomma}{\kern0pt}\ \isafree{{\isasymdelta}}{\isacharparenright}{\kern0pt}\ {\isasymin}\ \isaconst{Prods}\ \isafree{G}}.
+The derivation then also exists under \isa{Prods\ G}.
 \end{proof}
 \end{lemma}
 
 \begin{lemma}\label{G'_deriven_Suc_imp_G_deriven}
-If a derivation \isa{S{\isacharprime}{\kern0pt}}~\deriven[G']{n+1}~\isa{{\isasymalpha}} exists,
-there also exists a derivation \isa{S}~\deriven[G]{n}~\isa{{\isasymalpha}}.
+\isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S{\isacharprime}{\kern0pt}}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}\isaconst{Suc}\ \isavar{n}{\isacharparenright}{\kern0pt}\ \isavar{{\isasymbeta}}\ {\isasymLongrightarrow}\ \isaconst{Prods}\ \isafree{G}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}\isavar{n}{\isacharparenright}{\kern0pt}\ \isavar{{\isasymbeta}}}
 \begin{proof} 
-The proof is by trivial induction on n using Lemma~\ref{G' no S' imp G} and the fact that
-for any \isa{{\isasymbeta}}, \isa{S}~\derives[G]~\isa{{\isasymbeta}} implies $S' \notin \beta$.
+The proof is by trivial induction on \isa{n} using Lemma~\ref{S_deriven_Suc_imp_all_nts_in_Nts} and 
+Lemma~\ref{G'_derive_imp_G_derive_if_no_S'} in conjunction with the fact that 
+\isa{\isaconst{S{\isacharprime}{\kern0pt}}\ {\isasymnotin}\ \isaconst{Nts}\ {\isacharparenleft}{\kern0pt}\isaconst{Prods}\ \isafree{G}{\isacharparenright}{\kern0pt}}.
 \end{proof}
 \end{lemma}
 
-\begin{theorem}[Extending a grammar preserves the language]
-\isa{L{\isacharparenleft}{\kern0pt}G{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ L{\isacharparenleft}{\kern0pt}G{\isacharparenright}{\kern0pt}}
+\begin{theorem}\label{Lang_preserved}[Preservation of language]
+\isa{\isaconst{LangS}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isacharequal}{\kern0pt}\ \isaconst{LangS}\ \isafree{G}}
 \begin{proof} 
-Let $w \in L(G')$. Then there exists a derivation of the form \\
-\isa{S{\isacharprime}{\kern0pt}}~\derive[G']~\isa{S} \derives \isa{w}. Therefore, there exists an $n \in \mathbb{N}$ such that 
-\isa{S{\isacharprime}{\kern0pt}}~\deriven[G']{n+1}~\isa{w}. By Lemma~\ref{G'_deriven_Suc_imp_G_deriven}, this implies the existence 
-of a derivation \isa{S}~\deriven[G]{n}~\isa{w}, and thus $w \in L(G)$. \\
-Conversely, let $w \in L(G)$. Then there exists a derivation \isa{S}~\derives~\isa{w} under \isa{P}. Since 
-\isa{S{\isacharprime}{\kern0pt}}~\derive[G]~\isa{S} and $P \subseteq  P'$ , \isa{S{\isacharprime}{\kern0pt}}~\derives[G']~\isa{w} also holds by 
-transitivity. Therefore, $w \in L(G')$. This completes the proof. 
+Let \isa{\isafree{w}\ {\isasymin}\ \isaconst{LangS}\ \isaconst{G{\isacharprime}{\kern0pt}}}. Then there exists a derivation of the form
+\begin{quote}
+\isa{Prods\ G{\isacharprime}{\kern0pt}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}Nt\ S{\isacharprime}{\kern0pt}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}\ {\isacharbrackleft}{\kern0pt}Nt\ S{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharasterisk}{\kern0pt}\ map\ Tm\ w}
+\end{quote}
+Therefore, there exists an \isa{n\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ nat} such that 
+\begin{quote}
+\isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S{\isacharprime}{\kern0pt}}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}\isaconst{Suc}\ \isafree{n}{\isacharparenright}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{w}}.
+\end{quote}
+By Lemma~\ref{G'_deriven_Suc_imp_G_deriven}, this implies the existence of a derivation\\
+\isa{\isaconst{Prods}\ \isafree{G}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}\isafree{n}{\isacharparenright}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{w}}, and thus \isa{\isafree{w}\ {\isasymin}\ \isaconst{LangS}\ \isafree{G}}. \\
+Conversely, let \isa{\isafree{w}\ {\isasymin}\ \isaconst{LangS}\ \isafree{G}}. Then there exists a derivation\\
+\isa{\isaconst{Prods}\ \isafree{G}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharasterisk}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{w}}. Since \isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S{\isacharprime}{\kern0pt}}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S}{\isacharbrackright}{\kern0pt}} and 
+\isa{\isaconst{Prods}\ \isafree{G}\ {\isasymsubseteq}\ \isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}}, \isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S{\isacharprime}{\kern0pt}}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharasterisk}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{w}} also holds by 
+transitivity and the monotonicity of \isa{{\isasymRightarrow}{\isacharasterisk}{\kern0pt}}, as proven by Nipkow et al.:
+
+\begin{quote}
+\isa{{\isasymlbrakk}\isavar{P}\ {\isasymsubseteq}\ \isavar{P{\isacharprime}{\kern0pt}}{\isacharsemicolon}{\kern0pt}\ \isavar{P}\ {\isasymturnstile}\ \isavar{u}\ {\isasymRightarrow}{\isacharasterisk}{\kern0pt}\ \isavar{v}{\isasymrbrakk}\ {\isasymLongrightarrow}\ \isavar{P{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ \isavar{u}\ {\isasymRightarrow}{\isacharasterisk}{\kern0pt}\ \isavar{v}}
+\end{quote}
+
+Therefore, \isa{\isafree{w}\ {\isasymin}\ \isaconst{LangS}\ \isaconst{G{\isacharprime}{\kern0pt}}}. This completes the proof.
 \end{proof}
 \end{theorem}
 
 \begin{theorem}[Preservation of reduction]
-If $G$ is reduced and $L(G) \neq \emptyset$, $G'$ is reduced.
+If \isa{G} is reduced and \isa{\isaconst{LangS}\ \isafree{G}\ {\isasymnoteq}\ {\isasymemptyset}}, \isa{G{\isacharprime}{\kern0pt}} is reduced.
 \begin{proof}
-Since $G$ is reduced, 
+Since \isa{G} is reduced, all nonterminals in \isa{Prods\ G} are useful, and the fact that \isa{\isaconst{LangS}\ \isafree{G}\ {\isasymnoteq}\ {\isasymemptyset}}
+implies that there exist \isa{{\isasymalpha}\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ syms} and \isa{w\ {\isasymin}\ LangS\ G} such that  
+\begin{quote}
+\isa{Prods\ G\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}Nt\ S{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}\ {\isasymalpha}\ {\isasymRightarrow}{\isacharasterisk}{\kern0pt}\ map\ Tm\ w}
+\end{quote}
+This implies that \isa{S\ {\isasymin}\ Nts\ {\isacharparenleft}{\kern0pt}Prods\ G{\isacharparenright}{\kern0pt}}. Since \isa{Prods\ G\ {\isasymsubseteq}\ Prods\ G{\isacharprime}{\kern0pt}}, this
+means that all nonterminals in \isa{Nts\ {\isacharparenleft}{\kern0pt}Prods\ G{\isacharparenright}{\kern0pt}} are useful in \isa{Prods\ G{\isacharprime}{\kern0pt}}. Therefore, to show that 
+\isa{G{\isacharprime}{\kern0pt}} is reduced, it suffices to show that \isa{S{\isacharprime}{\kern0pt}} is useful in \isa{Prods\ G{\isacharprime}{\kern0pt}}, i.e., reachable and productive. 
+Reachability is trivial by the reflexivity of \isa{{\isasymRightarrow}{\isacharasterisk}{\kern0pt}}. To show that it is productive, we need to show 
+that there exists a \isa{w\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}t\ list} such that \isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S{\isacharprime}{\kern0pt}}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharasterisk}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{w}}, which is 
+equivalent to showing there exists some \isa{w\ {\isasymin}\ LangS\ G{\isacharprime}{\kern0pt}}. This follows directly from our assumption 
+that \isa{\isaconst{LangS}\ \isafree{G}\ {\isasymnoteq}\ {\isasymemptyset}} and Theorem~\ref{Lang_preserved}.
 \end{proof}
-\end{theorem}%
+\end{theorem}
+
+We have now defined a way to extend a context-free grammar by a new start symbol, which, as we will 
+see in future sections, will allow us to simplify the definition of multiple automata in many 
+regards.%
 \end{isamarkuptext}\isamarkuptrue%
 %
 \isadelimdocument
@@ -123,46 +359,54 @@ Since $G$ is reduced,
 %
 \begin{isamarkuptext}%
 \begin{definition}[Context-free item]
-A \concept{context-free item} for a CFG with production set \isa{P} is a triple \isa{{\isacharparenleft}{\kern0pt}A{\isacharcomma}{\kern0pt}\ {\isasymalpha}{\isacharcomma}{\kern0pt}\ {\isasymbeta}{\isacharparenright}{\kern0pt}} such 
-that \isa{A\ {\isasymrightarrow}\ {\isasymalpha}{\isasymbeta}\ {\isasymin}\ P}. We write the item \isa{{\isacharparenleft}{\kern0pt}A{\isacharcomma}{\kern0pt}\ {\isasymalpha}{\isacharcomma}{\kern0pt}\ {\isasymbeta}{\isacharparenright}{\kern0pt}} as \isa{{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}}\ {\isasymcdot}\ \isafree{{\isasymbeta}}{\isacharbrackright}{\kern0pt}}.
+A \concept{context-free item} for a CFG \isa{G} is a triple \isa{{\isacharparenleft}{\kern0pt}A{\isacharcomma}{\kern0pt}\ {\isasymalpha}{\isacharcomma}{\kern0pt}\ {\isasymbeta}{\isacharparenright}{\kern0pt}} such 
+that \isa{{\isacharparenleft}{\kern0pt}\isafree{A}{\isacharcomma}{\kern0pt}\ \isafree{{\isasymalpha}}\ {\isacharat}{\kern0pt}\ \isafree{{\isasymbeta}}{\isacharparenright}{\kern0pt}\ {\isasymin}\ \isaconst{Prods}\ \isafree{G}}. We write the item \isa{{\isacharparenleft}{\kern0pt}A{\isacharcomma}{\kern0pt}\ {\isasymalpha}{\isacharcomma}{\kern0pt}\ {\isasymbeta}{\isacharparenright}{\kern0pt}} as \isa{{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}}\ {\isasymcdot}\ \isafree{{\isasymbeta}}{\isacharbrackright}{\kern0pt}}.
 \end{definition}
 
 Context-free items allow tracking the current state of the parsing process. Generally, as parsers
-work towards deriving a string, the symbols to the right of the bullet (e.g. \isa{{\isasymbeta}} in \isa{{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}}\ {\isasymcdot}\ \isafree{{\isasymbeta}}{\isacharbrackright}{\kern0pt}})
-are shifted to the left of the bullet. The symbols to the left of the bullet are therefore the 
-substring of \isa{{\isasymalpha}{\isasymbeta}} that has already been processed. We refer to these symbols as the \concept{history}
-of the item. 
+work towards deriving a string, the symbols to the right of the bullet (e.g. \isa{{\isasymbeta}} in 
+\isa{{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}}\ {\isasymcdot}\ \isafree{{\isasymbeta}}{\isacharbrackright}{\kern0pt}}) are shifted towards the left. If \isa{{\isacharparenleft}{\kern0pt}A{\isacharcomma}{\kern0pt}\ {\isasymalpha}{\isacharat}{\kern0pt}{\isasymbeta}{\isacharparenright}{\kern0pt}\ {\isasymin}\ Prods\ G}, the item
+\isa{{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}}\ {\isasymcdot}\ \isafree{{\isasymbeta}}{\isacharbrackright}{\kern0pt}} denotes the situation where a word has already been derived from the substring 
+\isa{{\isasymalpha}}, with a suffix still left to be derived from \isa{{\isasymbeta}}. We call the symbols that have already been 
+shifted the \concept{history} of the item.\\
 
-By this definition of history, \isa{{\isasymalpha}\ {\isacharequal}{\kern0pt}\ {\isasymepsilon}} denotes the situation where nothing has been derived from \isa{A} 
-yet. Analogously, \isa{{\isasymbeta}\ {\isacharequal}{\kern0pt}\ {\isasymepsilon}} denotes the situation where a substring of the input has been completely 
-derived from \isa{A}. These items are therefore called \concept{initial} and \concept{complete} items
-respectively. For both of these kinds of item, \isa{{\isasymepsilon}} is implicit, e.g., instead of \isa{{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}}\ {\isasymcdot}\ \isafree{{\isasymepsilon}}{\isacharbrackright}{\kern0pt}},
-we write \isa{{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}}\ {\isasymcdot}\ {\isacharbrackright}{\kern0pt}}.
+For \isa{{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}}\ {\isasymcdot}\ \isafree{{\isasymbeta}}{\isacharbrackright}{\kern0pt}}, \isa{{\isasymalpha}\ {\isacharequal}{\kern0pt}\ {\isasymepsilon}} denotes the situation where nothing has been 
+derived from \isa{A} yet. Analogously, \isa{{\isasymbeta}\ {\isacharequal}{\kern0pt}\ {\isasymepsilon}} denotes the situation where a substring of the 
+input has been completely derived from \isa{A}. These items are therefore called \concept{initial} and 
+\concept{complete} items respectively. For both of these kinds of item, we write \isa{{\isasymepsilon}} implicitly, 
+e.g., instead of \isa{{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}}\ {\isasymcdot}\ \isafree{{\isasymepsilon}}{\isacharbrackright}{\kern0pt}}, we write \isa{{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}}\ {\isasymcdot}\ {\isacharbrackright}{\kern0pt}}.\\
 
-We also lift the definition of history from items to lists of items:\\
-\isa{\isaconst{hist}\ \isavar{{\isasymrho}}\ {\isasymequiv}\ \isaconst{concat}\ {\isacharparenleft}{\kern0pt}\isaconst{map}\ \isaconst{history}\ \isavar{{\isasymrho}}{\isacharparenright}{\kern0pt}}\\
+Additionally, we denote the set of all complete items in a set of items \isa{I} by \isa{\isaconst{completes}\ \isafree{I}}:
+\begin{quote}
+\isa{\isaconst{completes}\ \isavar{I}\ {\isasymequiv}\ {\isacharbraceleft}{\kern0pt}\isabound{i}\ {\isasymin}\ \isavar{I}\ {\isacharbar}{\kern0pt}\ \textsf{case}\ \isabound{i}\ \textsf{of}\ {\isacharbrackleft}{\kern0pt}\isabound{X}\ {\isasymrightarrow}\ \isabound{{\isasymalpha}}\ {\isasymcdot}\ \isabound{{\isasymbeta}}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}\ \isabound{{\isasymbeta}}\ {\isacharequal}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharbraceright}{\kern0pt}}
+\end{quote}
 
-Lastly, we refer to the set of all items of a CFG \isa{G} as \It. If \isa{P} is the set of 
-productions of \isa{G}:\\
-$\It = \{[A \to \alpha \cdot \beta]~|A~\alpha~\beta.~(A,~\alpha\beta) \in P\}$
+We also lift the definition of history from items to lists of items:
+\begin{quote}
+\isa{\isaconst{hist}\ \isavar{{\isasymrho}}\ {\isasymequiv}\ \isaconst{concat}\ {\isacharparenleft}{\kern0pt}\isaconst{map}\ \isaconst{history}\ \isavar{{\isasymrho}}{\isacharparenright}{\kern0pt}}
+\end{quote}
+
+Lastly, we refer to the set of all items of a CFG \isa{G} as \isa{\ensuremath{\mathrm{It}_{\isafree{G}}}}:
+\begin{quote}
+\isa{\ensuremath{\mathrm{It}_{\isavar{G}}}\ {\isacharequal}{\kern0pt}\ {\isacharbraceleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isabound{A}\ {\isasymrightarrow}\ \isabound{{\isasymalpha}}\ {\isasymcdot}\ \isabound{{\isasymbeta}}{\isacharbrackright}{\kern0pt}\ {\isacharbar}{\kern0pt}\ {\isacharparenleft}{\kern0pt}\isabound{A}{\isacharcomma}{\kern0pt}\ \isabound{{\isasymalpha}}\ {\isacharat}{\kern0pt}\ \isabound{{\isasymbeta}}{\isacharparenright}{\kern0pt}\ {\isasymin}\ \isaconst{Prods}\ \isavar{G}{\isacharbraceright}{\kern0pt}}
+\end{quote}
 
 \begin{lemma}\label{prod_items_finite}
-The set $\{[A \to \alpha \cdot \beta]~|\alpha~\beta.~\alpha\beta = w\}$ is finite for arbitrary 
-$A$ and $w$.
+\isa{\isaconst{finite}\ {\isacharbraceleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isavar{A}\ {\isasymrightarrow}\ \isabound{{\isasymalpha}}\ {\isasymcdot}\ \isabound{{\isasymbeta}}{\isacharbrackright}{\kern0pt}\ {\isacharbar}{\kern0pt}\ \isabound{{\isasymalpha}}\ {\isacharat}{\kern0pt}\ \isabound{{\isasymbeta}}\ {\isacharequal}{\kern0pt}\ \isavar{w}{\isacharbraceright}{\kern0pt}}
 \begin{proof}
-The proof is trivial by showing the existence of a bijection with the first  \isa{{\isacharbar}{\kern0pt}\isafree{w}{\isacharbar}{\kern0pt}} 
-with the mapping:\\
-\isa{\isafree{f}\ \isafree{n}\ {\isacharequal}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isaconst{take}\ \isafree{n}\ \isafree{w}\ {\isasymcdot}\ \isaconst{drop}\ \isafree{n}\ \isafree{w}{\isacharbrackright}{\kern0pt}}
+The proof is trivial by showing the existence of a bijection between this set and the first 
+\isa{{\isacharbar}{\kern0pt}\isafree{w}{\isacharbar}{\kern0pt}} natural numbers using the mapping\\ \isa{\isafree{f}\ \isafree{n}\ {\isacharequal}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{w}{\isacharbar}{\kern0pt}\isactrlbsub \isafree{n}\isactrlesub \ {\isasymcdot}\ \isactrlbsub \isafree{n}\isactrlesub {\isacharbar}{\kern0pt}\isafree{w}{\isacharbrackright}{\kern0pt}}.
 \end{proof}
 \end{lemma}
 
 \begin{lemma}
-If \isa{G} is a CFG with finite productions \isa{P}, \It is finite.
+If \isa{G} is a CFG such that \isa{Prods\ G} is finite, \isa{\ensuremath{\mathrm{It}_{\isafree{G}}}} is finite.
 \begin{proof}
-The definition of \It is clearly equivalent to the union of the sets of items for 
-each production in \isa{P}. Formally:\\
-$\mathrm{It}_{G} = 
-  \bigcup_{(A,~w) \in P} \{[A \to \alpha \cdot \beta]~|\alpha~\beta.~\alpha\beta = w\}$\\
+The definition of \isa{\ensuremath{\mathrm{It}_{\isafree{G}}}} is clearly equivalent to the union of the sets of items for 
+each production in \isa{Prods\ G}. Formally:
+\begin{quote}
+\isa{\ensuremath{\mathrm{It}_{\isafree{G}}}\ {\isacharequal}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isasymUnion}\isactrlbsub {\isacharparenleft}{\kern0pt}\isabound{A}{\isacharcomma}{\kern0pt}\ \isabound{w}{\isacharparenright}{\kern0pt}{\isasymin}\isaconst{Prods}\ \isafree{G}\isactrlesub \ {\isacharbraceleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isabound{A}\ {\isasymrightarrow}\ \isabound{{\isasymalpha}}\ {\isasymcdot}\ \isabound{{\isasymbeta}}{\isacharbrackright}{\kern0pt}\ {\isacharbar}{\kern0pt}\ \isabound{{\isasymalpha}}\ {\isacharat}{\kern0pt}\ \isabound{{\isasymbeta}}\ {\isacharequal}{\kern0pt}\ \isabound{w}{\isacharbraceright}{\kern0pt}{\isacharparenright}{\kern0pt}}
+\end{quote}
 By Lemma~\ref{prod_items_finite}, each of these sets is finite, meaning their union is also finite.
 \end{proof}
 \end{lemma}%
@@ -191,48 +435,46 @@ LR(0) parser. Most of these automata, including the parser itself, require a sta
 unlike conventional pushdown automata, it is sometimes necessary for them to read multiple stack 
 symbols in a single transition steps.
 
-\begin{definition}[Generalized pushdown automaton]
-A \concept{generalized pushdown automaton} (GPDA) is a  5-tuple $M = (Q,\Sigma,\Delta,q_{0},F)$ with
-
+We define generalized pushdown automata (GPDAs) as a record of type \isa{{\isacharparenleft}{\kern0pt}\isatfree{{\isacharprime}{\kern0pt}q}{\isacharcomma}{\kern0pt}\ \isatfree{{\isacharprime}{\kern0pt}a}{\isacharparenright}{\kern0pt}\ \isatconst{gpda}} where 
+\isa{\isatfree{{\isacharprime}{\kern0pt}q}} is the type of stack symbols, \isa{\isatfree{{\isacharprime}{\kern0pt}a}} the type of alphabet symbols, and
 \begin{itemize}
-\item Q: finite set of states
-\item \Sigma: input alphabet
-\item $\Delta \subseteq Q^{+} \times \Sigma \cup \{\epsilon\} \times Q^{*}$: transition relation
-\item $q_{0} \in Q$: initial state
-\item F \subseteq Q: set of final states
+\item \isa{states\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}q\ set} is a finite set of states.
+\item \isa{init\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}q} is the initial state with \isa{init\ {\isasymin}\ states}.
+\item \isa{final\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}q\ set} is a set of final states with \isa{final\ {\isasymsubseteq}\ states}.
+\item \isa{nxt\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isacharprime}{\kern0pt}q\ list\ {\isasymtimes}\ {\isacharprime}{\kern0pt}a\ {\isasymtimes}\ {\isacharprime}{\kern0pt}q\ list{\isacharparenright}{\kern0pt}\ set} is the transition relation with input reading.
+\item \isa{eps\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isacharprime}{\kern0pt}q\ list\ {\isasymtimes}\ {\isacharprime}{\kern0pt}q\ list{\isacharparenright}{\kern0pt}\ set} is the transition relation for \isa{{\isasymepsilon}}-transitions.
 \end{itemize}
-\end{definition} 
 
 It is worth noting that, differently from traditional PDAs, GPDAs do not have a dedicated state. 
 Instead, the topmost stack symbols (with varying length) are used to determine the transition. 
-Another important aspect is the fact that Wilhelm et al. define $\Delta$ to be finite, which we
-ignore for the sake of simplicity.
+Another important aspect is the fact that Wilhelm et al. define the transition relation to be finite, 
+which we ignore for the sake of simplicity as this is of no importance to the correctness of our 
+automata. This is of interest, however, in the case of the canonical LR(0) parser, which we will 
+discuss later.
 
-A \concept{configuration} for a GPDA $M$ with states $Q$ and alphabet $\Sigma$ is a tuple 
-$(qs, w) \in Q^{*} \times \Sigma^{*}$, where $qs$ denotes the current stack, and w the remaining input 
-to be read. In accordance with the Isabelle/HOL list datatype, we define the topmost stack symbol as 
+For \isa{M\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isacharprime}{\kern0pt}q{\isacharcomma}{\kern0pt}\ {\isacharprime}{\kern0pt}a{\isacharparenright}{\kern0pt}\ gpda} we define a \concept{configuration} as a tuple 
+\isa{{\isacharparenleft}{\kern0pt}qs{\isacharcomma}{\kern0pt}\ w{\isacharparenright}{\kern0pt}\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}q\ list\ {\isasymtimes}\ {\isacharprime}{\kern0pt}a\ list} where \isa{qs} denotes the current stack, and \isa{w} the remaining input to 
+be read. In accordance with the Isabelle/HOL list datatype, we define the topmost stack symbol as 
 the leftmost list element, deviating from Wilhelm et al. in this regard. \\
 
-A configuration is \concept{initial} if the stack consists of a singleton list containing 
-the initial state $q_{0}$, while a \concept{final} configuration for a GPDA with final states $F$ 
-consists of a singleton list with some $f \in F$ on the stack after completely consuming the input, 
-i.e., the remaining input is \epsilon.
+A configuration of \isa{M} is \concept{initial} if the stack consists of a singleton list containing 
+the initial state \isa{\isaconst{init}\ \isafree{M}}, while a \concept{final} configuration for \isa{M} consists of a 
+singleton list with some final state on the stack after completely consuming the input, 
+i.e., a configuration of the form \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}f{\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ {\isasymepsilon}{\isacharparenright}{\kern0pt}} for some \isa{f\ {\isasymin}\ final\ M}.
 
-We now define the step relation for GPDAs. We differentiate between \concept{delta} and 
-\concept{epsilon transitions}:
+We now define the step relation for GPDAs:
 
-\isa{\mbox{}\inferrule{\mbox{{\isacharparenleft}{\kern0pt}\isavar{ps}{\isacharcomma}{\kern0pt}\ \isavar{a}{\isacharcomma}{\kern0pt}\ \isavar{qs}{\isacharparenright}{\kern0pt}\ {\isasymin}\ \isaconst{nxt}\ \isafree{M}}}{\mbox{{\isacharparenleft}{\kern0pt}\isavar{ps}\ {\isacharat}{\kern0pt}\ \isavar{rs}{\isacharcomma}{\kern0pt}\ \isavar{a}\ {\isasymcdot}\ \isavar{w}{\isacharparenright}{\kern0pt}\ {\isasymturnstile}\ {\isacharparenleft}{\kern0pt}\isavar{qs}\ {\isacharat}{\kern0pt}\ \isavar{rs}{\isacharcomma}{\kern0pt}\ \isavar{w}{\isacharparenright}{\kern0pt}}}\isasep\isanewline%
-\mbox{}\inferrule{\mbox{{\isacharparenleft}{\kern0pt}\isavar{ps}{\isacharcomma}{\kern0pt}\ \isavar{qs}{\isacharparenright}{\kern0pt}\ {\isasymin}\ \isaconst{eps}\ \isafree{M}}}{\mbox{{\isacharparenleft}{\kern0pt}\isavar{ps}\ {\isacharat}{\kern0pt}\ \isavar{rs}{\isacharcomma}{\kern0pt}\ \isavar{w}{\isacharparenright}{\kern0pt}\ {\isasymturnstile}\ {\isacharparenleft}{\kern0pt}\isavar{qs}\ {\isacharat}{\kern0pt}\ \isavar{rs}{\isacharcomma}{\kern0pt}\ \isavar{w}{\isacharparenright}{\kern0pt}}}} % correct?
+\isa{{\isacharparenleft}{\kern0pt}\isavar{ps}{\isacharcomma}{\kern0pt}\ \isavar{a}{\isacharcomma}{\kern0pt}\ \isavar{qs}{\isacharparenright}{\kern0pt}\ {\isasymin}\ \isaconst{nxt}\ \isafree{M}\ {\isasymLongrightarrow}\ {\isacharparenleft}{\kern0pt}\isavar{ps}\ {\isacharat}{\kern0pt}\ \isavar{rs}{\isacharcomma}{\kern0pt}\ \isavar{a}\ {\isacharhash}{\kern0pt}\ \isavar{w}{\isacharparenright}{\kern0pt}\ {\isasymturnstile}\ {\isacharparenleft}{\kern0pt}\isavar{qs}\ {\isacharat}{\kern0pt}\ \isavar{rs}{\isacharcomma}{\kern0pt}\ \isavar{w}{\isacharparenright}{\kern0pt}\isasep\isanewline%
+{\isacharparenleft}{\kern0pt}\isavar{ps}{\isacharcomma}{\kern0pt}\ \isavar{qs}{\isacharparenright}{\kern0pt}\ {\isasymin}\ \isaconst{eps}\ \isafree{M}\ {\isasymLongrightarrow}\ {\isacharparenleft}{\kern0pt}\isavar{ps}\ {\isacharat}{\kern0pt}\ \isavar{rs}{\isacharcomma}{\kern0pt}\ \isavar{w}{\isacharparenright}{\kern0pt}\ {\isasymturnstile}\ {\isacharparenleft}{\kern0pt}\isavar{qs}\ {\isacharat}{\kern0pt}\ \isavar{rs}{\isacharcomma}{\kern0pt}\ \isavar{w}{\isacharparenright}{\kern0pt}}
 
-We refer to sequences of configurations as \concept{computations}, and denote $n$-step computations
-with $\vdash^{n}$. For computations with an unspecified number of steps, we use the 
-reflexive-transitive closure of $\vdash$, written as $\vdash^{*}$.\\
+We refer to sequences of configurations as \concept{computations}, and denote \isa{n}-step computations
+with \isa{{\isasymturnstile}{\isacharparenleft}{\kern0pt}n{\isacharparenright}{\kern0pt}}, and its reflexive-transitive closure with \isa{{\isasymturnstile}{\isacharasterisk}{\kern0pt}}.\\
 
-Finally, we define the \concept{language} $L(M)$ for a GPDA $M$ with initial state $q_{0}$, alphabet 
-$\Sigma$ and final state set $F$ as the set of words for which $M$ can reach a final configuration 
-from the corresponding initial configuration:\\
-
-$L(M) = \{w \in \Sigma^{*}~|\exists f \in F.~(q_{0}, w) \vdash^{*} (f, \epsilon)\}$%
+Finally, we define the \concept{language} \isa{\isaconst{Lang}} for \isa{M} as the set of words for which \isa{M} 
+can reach a final configuration from the corresponding initial configuration:
+\begin{quote}
+\isa{\isaconst{Lang}\ {\isasymequiv}\ {\isacharbraceleft}{\kern0pt}\isabound{w}\ {\isacharbar}{\kern0pt}\ {\isasymexists}\isabound{f}{\isasymin}\isaconst{final}\ \isafree{M}{\isachardot}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isaconst{init}\ \isafree{M}{\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ \isabound{w}{\isacharparenright}{\kern0pt}\ {\isasymturnstile}{\isacharasterisk}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isabound{f}{\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharparenright}{\kern0pt}{\isacharbraceright}{\kern0pt}}
+\end{quote}%
 \end{isamarkuptext}\isamarkuptrue%
 %
 \isadelimdocument
@@ -256,22 +498,14 @@ $L(M) = \{w \in \Sigma^{*}~|\exists f \in F.~(q_{0}, w) \vdash^{*} (f, \epsilon)
 One of the main objectives in the construction of our parser is determinism. Despite the ability of
 PDAs of recognizing CFLs, they are non-deterministic in general, which means they are not easily
 implemented in practice. In this section, we define the Item Pushdown Automaton to a 
-context-free grammar, from which we will later derive a deterministic parser.
+context-free grammar, from which we will later derive a deterministic parser.\\
 
-\begin{definition}[Item pushdown automaton]
-Let $G = (N, T, P, S)$ be a reduced CFG, $G'$ its extension, and $P'$ the extension of $P$. The 
-\concept{Item Pushdown Automaton} (IPDA) to $G$ is the GPDA \\
-$I_{G} = (\It,T,\Delta,,\{[S' \to S \cdot]\})$
-\end{definition}
-
-\begin{tabular}{ll}
-latex item & \cfitem{A}{\alpha}{\beta}\\
-isabelle item & \isa{{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}}\ {\isasymcdot}\ \isafree{{\isasymbeta}}{\isacharbrackright}{\kern0pt}}\\
-latex initial item & \iitem{A}{\alpha}\\
-isabelle initial item & \isa{{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \ {\isasymcdot}\ \isafree{{\isasymalpha}}\ {\isacharbrackright}{\kern0pt}}\\
-complete item & \citem{A}{\alpha}\\ffrgthyjhgfds
-isabelle complete item & \isa{{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}}\ {\isasymcdot}\ {\isacharbrackright}{\kern0pt}}\\
-\end{tabular}%
+The \concept{item pushdown automaton} (IPDA) to a CFG \isa{G} with extension \isa{G{\isacharprime}{\kern0pt}} is the 
+\isa{{\isacharparenleft}{\kern0pt}{\isacharparenleft}{\kern0pt}{\isacharprime}{\kern0pt}n{\isacharcomma}{\kern0pt}\ {\isacharprime}{\kern0pt}t{\isacharparenright}{\kern0pt}\ item{\isacharcomma}{\kern0pt}\ {\isacharprime}{\kern0pt}t{\isacharparenright}{\kern0pt}\ gpda}:
+\begin{quote}
+\isa{{\isasymlparr}\isaconst{states}\ {\isacharequal}{\kern0pt}\ \ensuremath{\mathrm{It}_{\isaconst{G{\isacharprime}{\kern0pt}}}}{\isacharcomma}{\kern0pt}\ \isaconst{init}\ {\isacharequal}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}\isaconst{S{\isacharprime}{\kern0pt}}\ {\isasymrightarrow}\ \ {\isasymcdot}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S}{\isacharbrackright}{\kern0pt}\ {\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ \isaconst{final}\ {\isacharequal}{\kern0pt}\ {\isacharbraceleft}{\kern0pt}\mbox{{\isacharbrackleft}{\kern0pt}\isaconst{S{\isacharprime}{\kern0pt}}\ {\isasymrightarrow}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S}{\isacharbrackright}{\kern0pt}\ {\isasymcdot}\ {\isacharbrackright}{\kern0pt}}{\isacharbraceright}{\kern0pt}{\isacharcomma}{\kern0pt}\ \isaconst{nxt}\ {\isacharequal}{\kern0pt}\ \isafree{{\isasymDelta}}{\isacharcomma}{\kern0pt}\ \isaconst{eps}\ {\isacharequal}{\kern0pt}\ \isafree{{\isasymE}}{\isasymrparr}}
+\end{quote}
+where%
 \end{isamarkuptext}\isamarkuptrue%
 %
 \isadelimdocument
@@ -285,6 +519,14 @@ isabelle complete item & \isa{{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasym
 \isamarkuptrue%
 %
 \isamarkupsection{The Canonical LR(0) Parser%
+}
+\isamarkuptrue%
+%
+\isamarkupsection{Conclusion%
+}
+\isamarkuptrue%
+%
+\isamarkupsubsection{Discussion of future work%
 }
 \isamarkuptrue%
 %
@@ -311,184 +553,358 @@ isabelle complete item & \isa{{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasym
 \end{isabellebody}%
 \endinput
 %:%file=~/Documents/uni/semester6/thesis/Escallon/LR_Parsing/thesis/Paper.thy%:%
-%:%24=19%:%
-%:%28=20%:%
-%:%40=28%:%
-%:%41=29%:%
-%:%42=30%:%
-%:%43=31%:%
-%:%44=32%:%
-%:%45=33%:%
-%:%46=34%:%
-%:%47=35%:%
-%:%48=36%:%
-%:%49=37%:%
-%:%50=38%:%
-%:%51=39%:%
-%:%52=40%:%
-%:%53=41%:%
-%:%54=42%:%
-%:%55=43%:%
-%:%56=44%:%
-%:%57=45%:%
-%:%58=46%:%
-%:%59=47%:%
-%:%60=48%:%
-%:%61=49%:%
-%:%62=50%:%
-%:%63=51%:%
-%:%64=52%:%
-%:%65=53%:%
-%:%66=54%:%
-%:%67=55%:%
-%:%68=56%:%
-%:%69=57%:%
-%:%70=58%:%
-%:%71=59%:%
-%:%72=60%:%
-%:%73=61%:%
-%:%74=62%:%
-%:%75=63%:%
-%:%76=64%:%
-%:%77=65%:%
-%:%78=66%:%
-%:%79=67%:%
-%:%80=68%:%
-%:%81=69%:%
-%:%82=70%:%
-%:%83=71%:%
-%:%84=72%:%
-%:%85=73%:%
-%:%86=74%:%
-%:%87=75%:%
-%:%88=76%:%
-%:%89=77%:%
-%:%90=78%:%
-%:%91=79%:%
-%:%92=80%:%
-%:%93=81%:%
-%:%94=82%:%
-%:%95=83%:%
-%:%96=84%:%
-%:%97=85%:%
-%:%98=86%:%
-%:%99=87%:%
-%:%100=88%:%
-%:%101=89%:%
-%:%102=90%:%
-%:%103=91%:%
-%:%104=92%:%
-%:%113=96%:%
-%:%125=99%:%
-%:%126=100%:%
-%:%127=101%:%
-%:%128=102%:%
-%:%129=103%:%
-%:%130=104%:%
-%:%131=105%:%
-%:%132=106%:%
-%:%133=107%:%
-%:%134=108%:%
-%:%135=109%:%
-%:%136=110%:%
-%:%137=111%:%
-%:%138=112%:%
-%:%139=113%:%
-%:%140=114%:%
-%:%141=115%:%
-%:%142=116%:%
-%:%143=117%:%
-%:%144=118%:%
-%:%145=119%:%
-%:%146=120%:%
-%:%147=121%:%
-%:%148=122%:%
-%:%149=123%:%
-%:%150=124%:%
-%:%151=125%:%
-%:%152=126%:%
-%:%153=127%:%
-%:%154=128%:%
-%:%155=129%:%
-%:%156=130%:%
-%:%157=131%:%
-%:%158=132%:%
-%:%159=133%:%
-%:%160=134%:%
-%:%161=135%:%
-%:%162=136%:%
-%:%163=137%:%
-%:%164=138%:%
-%:%165=139%:%
-%:%166=140%:%
-%:%167=141%:%
-%:%168=142%:%
-%:%177=151%:%
-%:%189=153%:%
-%:%190=154%:%
-%:%191=155%:%
-%:%192=156%:%
-%:%193=157%:%
-%:%194=158%:%
-%:%195=159%:%
-%:%196=160%:%
-%:%197=161%:%
-%:%198=162%:%
-%:%199=163%:%
-%:%200=164%:%
-%:%201=165%:%
-%:%202=166%:%
-%:%203=167%:%
-%:%204=168%:%
-%:%205=169%:%
-%:%206=170%:%
-%:%207=171%:%
-%:%208=172%:%
-%:%209=173%:%
-%:%210=174%:%
-%:%211=175%:%
-%:%212=176%:%
-%:%213=177%:%
-%:%214=178%:%
-%:%215=179%:%
-%:%216=180%:%
-%:%217=181%:%
-%:%218=182%:%
-%:%219=183%:%
-%:%220=184%:%
-%:%221=185%:%
-%:%222=186%:%
-%:%223=187%:%
-%:%225=188%:%
-%:%226=189%:%
-%:%227=190%:%
-%:%228=191%:%
-%:%229=192%:%
-%:%230=193%:%
-%:%231=194%:%
-%:%232=195%:%
-%:%233=196%:%
-%:%234=197%:%
-%:%235=198%:%
-%:%244=207%:%
-%:%256=210%:%
-%:%257=211%:%
-%:%258=212%:%
-%:%259=213%:%
-%:%260=214%:%
-%:%261=215%:%
-%:%262=216%:%
-%:%263=217%:%
-%:%264=218%:%
-%:%265=219%:%
-%:%266=220%:%
-%:%267=221%:%
-%:%268=222%:%
-%:%269=223%:%
-%:%270=224%:%
-%:%271=225%:%
-%:%272=226%:%
-%:%273=227%:%
-%:%274=228%:%
-%:%283=232%:%
-%:%287=233%:%
+%:%24=30%:%
+%:%28=31%:%
+%:%32=32%:%
+%:%36=33%:%
+%:%40=34%:%
+%:%52=36%:%
+%:%53=37%:%
+%:%54=38%:%
+%:%55=39%:%
+%:%56=40%:%
+%:%57=41%:%
+%:%58=42%:%
+%:%59=43%:%
+%:%60=44%:%
+%:%61=45%:%
+%:%62=46%:%
+%:%63=47%:%
+%:%64=48%:%
+%:%65=49%:%
+%:%66=50%:%
+%:%67=51%:%
+%:%68=52%:%
+%:%69=53%:%
+%:%70=54%:%
+%:%71=55%:%
+%:%72=56%:%
+%:%73=57%:%
+%:%74=58%:%
+%:%75=59%:%
+%:%76=60%:%
+%:%77=61%:%
+%:%78=62%:%
+%:%79=63%:%
+%:%80=64%:%
+%:%89=66%:%
+%:%101=68%:%
+%:%102=69%:%
+%:%103=70%:%
+%:%104=71%:%
+%:%105=72%:%
+%:%106=73%:%
+%:%107=74%:%
+%:%108=75%:%
+%:%109=76%:%
+%:%110=77%:%
+%:%111=78%:%
+%:%112=79%:%
+%:%113=80%:%
+%:%114=81%:%
+%:%115=82%:%
+%:%116=83%:%
+%:%117=84%:%
+%:%118=85%:%
+%:%119=86%:%
+%:%120=87%:%
+%:%121=88%:%
+%:%122=89%:%
+%:%123=90%:%
+%:%124=91%:%
+%:%125=92%:%
+%:%126=93%:%
+%:%127=94%:%
+%:%128=95%:%
+%:%129=96%:%
+%:%130=97%:%
+%:%131=98%:%
+%:%132=99%:%
+%:%133=100%:%
+%:%134=101%:%
+%:%135=102%:%
+%:%136=103%:%
+%:%137=104%:%
+%:%138=105%:%
+%:%139=106%:%
+%:%140=107%:%
+%:%141=108%:%
+%:%142=109%:%
+%:%143=110%:%
+%:%144=111%:%
+%:%145=112%:%
+%:%146=113%:%
+%:%147=114%:%
+%:%148=115%:%
+%:%157=118%:%
+%:%161=120%:%
+%:%165=121%:%
+%:%177=125%:%
+%:%178=126%:%
+%:%179=127%:%
+%:%180=128%:%
+%:%181=129%:%
+%:%182=130%:%
+%:%183=131%:%
+%:%184=132%:%
+%:%185=133%:%
+%:%186=134%:%
+%:%187=135%:%
+%:%188=136%:%
+%:%189=137%:%
+%:%190=138%:%
+%:%191=139%:%
+%:%192=140%:%
+%:%193=141%:%
+%:%194=142%:%
+%:%195=143%:%
+%:%196=144%:%
+%:%197=145%:%
+%:%198=146%:%
+%:%199=147%:%
+%:%200=148%:%
+%:%201=149%:%
+%:%202=150%:%
+%:%203=151%:%
+%:%204=152%:%
+%:%205=153%:%
+%:%206=154%:%
+%:%207=155%:%
+%:%208=156%:%
+%:%209=157%:%
+%:%210=158%:%
+%:%211=159%:%
+%:%212=160%:%
+%:%213=161%:%
+%:%214=162%:%
+%:%215=163%:%
+%:%216=164%:%
+%:%217=165%:%
+%:%218=166%:%
+%:%219=167%:%
+%:%220=168%:%
+%:%221=169%:%
+%:%225=176%:%
+%:%226=177%:%
+%:%227=178%:%
+%:%228=179%:%
+%:%229=180%:%
+%:%230=181%:%
+%:%231=182%:%
+%:%232=183%:%
+%:%233=184%:%
+%:%234=185%:%
+%:%235=186%:%
+%:%236=187%:%
+%:%237=188%:%
+%:%238=189%:%
+%:%239=190%:%
+%:%240=191%:%
+%:%241=192%:%
+%:%242=193%:%
+%:%243=194%:%
+%:%244=195%:%
+%:%245=196%:%
+%:%246=197%:%
+%:%247=198%:%
+%:%248=199%:%
+%:%249=200%:%
+%:%250=201%:%
+%:%251=202%:%
+%:%255=208%:%
+%:%256=209%:%
+%:%257=210%:%
+%:%258=211%:%
+%:%259=212%:%
+%:%260=213%:%
+%:%261=214%:%
+%:%262=215%:%
+%:%263=216%:%
+%:%264=217%:%
+%:%265=218%:%
+%:%266=219%:%
+%:%267=220%:%
+%:%268=221%:%
+%:%269=222%:%
+%:%270=223%:%
+%:%271=224%:%
+%:%275=231%:%
+%:%276=232%:%
+%:%277=233%:%
+%:%278=234%:%
+%:%279=235%:%
+%:%280=236%:%
+%:%281=237%:%
+%:%282=238%:%
+%:%283=239%:%
+%:%284=240%:%
+%:%285=241%:%
+%:%286=242%:%
+%:%287=243%:%
+%:%288=244%:%
+%:%289=245%:%
+%:%290=246%:%
+%:%291=247%:%
+%:%292=248%:%
+%:%293=249%:%
+%:%294=250%:%
+%:%295=251%:%
+%:%296=252%:%
+%:%297=253%:%
+%:%298=254%:%
+%:%299=255%:%
+%:%300=256%:%
+%:%301=257%:%
+%:%302=258%:%
+%:%303=259%:%
+%:%304=260%:%
+%:%305=261%:%
+%:%306=262%:%
+%:%307=263%:%
+%:%308=264%:%
+%:%309=265%:%
+%:%310=266%:%
+%:%311=267%:%
+%:%312=268%:%
+%:%313=269%:%
+%:%314=270%:%
+%:%315=271%:%
+%:%316=272%:%
+%:%317=273%:%
+%:%318=274%:%
+%:%319=275%:%
+%:%320=276%:%
+%:%321=277%:%
+%:%322=278%:%
+%:%323=279%:%
+%:%324=280%:%
+%:%325=281%:%
+%:%326=282%:%
+%:%327=283%:%
+%:%328=284%:%
+%:%329=285%:%
+%:%330=286%:%
+%:%331=287%:%
+%:%332=288%:%
+%:%333=289%:%
+%:%334=290%:%
+%:%335=291%:%
+%:%336=292%:%
+%:%337=293%:%
+%:%338=294%:%
+%:%339=295%:%
+%:%340=296%:%
+%:%349=298%:%
+%:%361=300%:%
+%:%362=301%:%
+%:%363=302%:%
+%:%364=303%:%
+%:%365=304%:%
+%:%366=305%:%
+%:%367=306%:%
+%:%368=307%:%
+%:%369=308%:%
+%:%370=309%:%
+%:%371=310%:%
+%:%372=311%:%
+%:%373=312%:%
+%:%374=313%:%
+%:%375=314%:%
+%:%376=315%:%
+%:%377=316%:%
+%:%378=317%:%
+%:%379=318%:%
+%:%380=319%:%
+%:%381=320%:%
+%:%382=321%:%
+%:%383=322%:%
+%:%384=323%:%
+%:%385=324%:%
+%:%386=325%:%
+%:%387=326%:%
+%:%388=327%:%
+%:%389=328%:%
+%:%390=329%:%
+%:%391=330%:%
+%:%392=331%:%
+%:%393=332%:%
+%:%394=333%:%
+%:%395=334%:%
+%:%396=335%:%
+%:%397=336%:%
+%:%398=337%:%
+%:%399=338%:%
+%:%400=339%:%
+%:%401=340%:%
+%:%402=341%:%
+%:%403=342%:%
+%:%404=343%:%
+%:%405=344%:%
+%:%406=345%:%
+%:%407=346%:%
+%:%408=347%:%
+%:%409=348%:%
+%:%410=349%:%
+%:%411=350%:%
+%:%412=351%:%
+%:%421=353%:%
+%:%433=361%:%
+%:%434=362%:%
+%:%435=363%:%
+%:%436=364%:%
+%:%437=365%:%
+%:%438=366%:%
+%:%439=367%:%
+%:%440=368%:%
+%:%441=369%:%
+%:%442=370%:%
+%:%443=371%:%
+%:%444=372%:%
+%:%445=373%:%
+%:%446=374%:%
+%:%447=375%:%
+%:%448=376%:%
+%:%449=377%:%
+%:%450=378%:%
+%:%451=379%:%
+%:%452=380%:%
+%:%453=381%:%
+%:%454=382%:%
+%:%455=383%:%
+%:%456=384%:%
+%:%457=385%:%
+%:%458=386%:%
+%:%459=387%:%
+%:%460=388%:%
+%:%461=389%:%
+%:%462=390%:%
+%:%463=391%:%
+%:%464=392%:%
+%:%465=393%:%
+%:%466=394%:%
+%:%468=395%:%
+%:%469=396%:%
+%:%470=397%:%
+%:%471=398%:%
+%:%472=399%:%
+%:%473=400%:%
+%:%474=401%:%
+%:%475=402%:%
+%:%476=403%:%
+%:%477=404%:%
+%:%486=406%:%
+%:%498=414%:%
+%:%499=415%:%
+%:%500=416%:%
+%:%501=417%:%
+%:%502=418%:%
+%:%503=419%:%
+%:%504=420%:%
+%:%505=421%:%
+%:%506=423%:%
+%:%507=424%:%
+%:%508=425%:%
+%:%517=429%:%
+%:%521=430%:%
+%:%525=432%:%
+%:%529=433%:%

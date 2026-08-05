@@ -5,6 +5,8 @@ theory Paper
     "HOL-Library.LaTeXsugar"
 begin
 
+section \<open>setup\<close>
+
 declare [[names_short, show_question_marks = false]]
 
 no_notation (latex) Cons (\<open>_ \<cdot>/ _\<close> [66,65] 65)
@@ -45,10 +47,24 @@ The keyword \isakeyword{datatype} is used to declare algebraic data types, which
 
 @{datatype list}
 
-Furthermore, lists are concatenated with the operator \<open>@\<close>, @{const rev} reverses a list, @{const set}
-converts a list to a set, @{term "xs!n"} returns the \<open>n\<close>-th element of the list \<open>xs\<close> (with 
-0-indexing), @{term "take n xs"} is the prefix of length \<open>n\<close> of \<open>xs\<close>, and @{term "drop n xs"} is the 
-suffix of \<open>xs\<close> starting at index \<open>n\<close>.\<close>
+If \<open>xs = y # ys\<close>, \<open>hd xs = y\<close> and \<open>tl xs = ys\<close>. Furthermore, lists are concatenated with the operator 
+\<open>@\<close>, @{const rev} reverses a list, @{const set} converts a list to a set, @{term "xs!n"} returns the 
+\<open>n\<close>-th element of the list \<open>xs\<close> (with 0-indexing), @{term "take n xs"} is the prefix of length \<open>n\<close> 
+of \<open>xs\<close>, and @{term "drop n xs"} is the suffix of \<open>xs\<close> starting at index \<open>n\<close>.\par
+
+Pattern matching on a term \<open>\<tau>\<close> is done with the keywords \isakeyword{case} and \isakeyword{of}. For 
+patterns \<open>\<pi>\<^sub>1, \<pi>\<^sub>2, \<dots>, \<pi>\<^sub>n\<close> and expressions \<open>e\<^sub>1, e\<^sub>2, \<dots>, e\<^sub>n\<close>, the expression
+\begin{quote}
+\isa{\textsf{case}\ \isafree{\isasymtau}\ \textsf{of}} \<open>\<pi>\<^sub>1 \<Rightarrow> e\<^sub>1 | \<pi>\<^sub>2 \<Rightarrow> e\<^sub>2 | \<dots> | \<pi>\<^sub>n \<Rightarrow> e\<^sub>n\<close>
+\end{quote}
+
+returns \<open>e\<^sub>i\<close> if \<open>\<tau>\<close> matches \<open>\<pi>\<^sub>i\<close> and it does not match any \<open>\<pi>\<^sub>j\<close> with \<open>0 < j < i\<close>. If \<open>\<tau>\<close> matches no
+\<open>\<pi>\<^sub>i\<close>, @{const undefined} is returned. It is worth noting that variables introduced in \<open>\<pi>\<^sub>i\<close> are bound
+on \<open>e\<^sub>i\<close>. A simple example on lists returning @{const Nil} if the input is @{const Nil}, and a 
+singleton list containing the first element otherwise:
+\begin{quote}
+@{term \<open>case xs of [] \<Rightarrow> [] | y # ys \<Rightarrow> [y]\<close>}
+\end{quote}\<close>
 
 subsubsection \<open>Context-Free Grammars\<close>
 
@@ -67,13 +83,13 @@ Sets of productions & \<open>('n,'t) Prods = ('n,'t) prod set\<close>
 \end{tabular}
 \end{quote}
 
+where we informally write \<open>(A, \<alpha>) :: ('n, 't) prod\<close> as \<open>A \<rightarrow> \<alpha>\<close>.\par 
 Lastly, Nipkow et al. also define the datatype for context-free grammars:
 \isakeyword{datatype} \<open>('n, 't) Cfg = Cfg (('n,'t) Prods) 'n\<close> 
-% antiquotation @{datatype Cfg} unfolds type synonyms Prods and prod
 
 @{term "Cfg P S"} denotes a context-free grammar with production set \<open>P\<close> and start symbol \<open>S\<close>. If 
 @{term "G = Cfg P S"}, @{term "Prods G"} refers to \<open>P\<close>, and analogously, @{term "Start G"} refers to 
-\<open>S\<close>.\\
+\<open>S\<close>.\par
 A derivation step from \<open>\<phi>\<close> to \<open>\<psi>\<close> under production set \<open>P\<close> is notated as \mbox{@{term \<open>P \<turnstile> \<phi> \<Rightarrow> \<psi>\<close>}}.
 More formally, for any nonterminal \<open>A\<close>, and symbols \<open>\<beta>\<close>, \<open>\<alpha>\<close> and \<open>\<gamma>\<close> holds:
 \begin{quote} 
@@ -82,7 +98,7 @@ More formally, for any nonterminal \<open>A\<close>, and symbols \<open>\<beta>\
 
 Moreover, we denote the reflexive transitive closure of derivations by \mbox{@{term \<open>P \<turnstile> \<phi> \<Rightarrow>* \<psi>\<close>}}, 
 and derivations of length \<open>n\<close> by @{term \<open>P \<turnstile> \<phi> \<Rightarrow>(n) \<psi>\<close>}. Rightmost derivations are notated analogously, 
-with \<open>\<Rightarrow>r\<close>, \<open>\<Rightarrow>r*\<close> and \<open>\<Rightarrow>r(n)\<close> respectively.
+with \<open>\<Rightarrow>r\<close>, \<open>\<Rightarrow>r*\<close> and \<open>\<Rightarrow>r(n)\<close> respectively.\par
 
 Lastly, Nipkow et al. define the language of a nonterminal w.r.t a set of 
 productions:
@@ -97,7 +113,7 @@ And based on this, the language of a grammar:
 Besides type variables @{typ 'n} for nonterminals and @{typ 't} for terminals, we use the following 
 variable conventions: for brevity, we refer to \<open>('n, 't) sym\<close> and \<open>('n, 't) syms\<close> simply as @{type sym}
 and @{type syms} respectively; \<open>A, B, C :: 'n\<close>; \<open>a, b, c :: 't\<close>; \<open>u, v, w :: 't list\<close>; and finally
-\<open>\<alpha>, \<beta>, \<gamma> :: ('n, 't) syms\<close>.
+\<open>\<alpha>, \<beta>, \<gamma> :: ('n, 't) syms\<close>.\par
 
 For further definitions and notation, we defer to the AFP entry by Nipkow et al~\<^cite>\<open>Nipkow\<close>.
 \<close>
@@ -146,7 +162,7 @@ For a CFG \<open>G\<close>, \<open>A :: 'n\<close> is \concept{reachable} if the
 \mbox{\<open>A \<in> set \<beta>\<close>} and @{prop \<open>Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* \<beta>\<close>}. Otherwise, it is \concept{unreachable}.
 Similarly, it is \concept{productive} if @{prop \<open>productives (Prods G) [Nt A]\<close>} holds, and 
 \concept{unproductive} otherwise. A useful nonterminal is therefore a nonterminal that is both 
-reachable and productive. 
+reachable and productive.\par
 
 Nipkow et al. have proved that removing all unreachable and unproductive nonterminals preserves the
 language:
@@ -176,11 +192,10 @@ Let \<open>G\<close> be a fixed CFG whose start symbol is \<open>S\<close>. We a
 \item @{prop \<open>reduced G\<close>}
 \end{itemize}
 
-We extend \<open>G\<close> by a fresh start symbol \<open>S'\<close> with a single production \mbox{$S' \to S$}. 
+We extend \<open>G\<close> by a fresh start symbol \<open>S'\<close> with a single production \<open>(S', [Nt S])\<close>. 
 The resulting grammar, which we define to be \<open>G'\<close>, is the \concept{extended grammar}, or the 
 \concept{extension}, of $G$. We analogously refer to the set of productions of $G'$, 
-as the extension of \<open>Prods G\<close> or the \concept{extended set of productions} of $G$.
-Formally:
+as the extension of \<open>Prods G\<close> or the \concept{extended set of productions} of $G$. Formally:
 \begin{quote}
 @{thm S'_def}\\
 @{thm G'_def}
@@ -198,11 +213,13 @@ Let \<open>G\<close> be an arbitrary CFG. If \mbox{@{prop \<open>Prods G \<turns
 \begin{proof}
 We do a proof by induction on \<open>n\<close> for arbitrary \<open>\<alpha>\<close>. In the base case, the derivation is a 
 single step @{prop \<open>Prods G \<turnstile> [Nt (Start G)] \<Rightarrow> \<alpha>\<close>}, meaning \<open>(Start G, \<alpha>) \<in> Prods G\<close>. Together with 
-the fact that \<open>A \<in> Nts_syms \<alpha>\<close>, this implies @{prop \<open>A \<in> Nts (Prods G)\<close>}.\\
+the fact that \<open>A \<in> Nts_syms \<alpha>\<close>, this implies @{prop \<open>A \<in> Nts (Prods G)\<close>}.\par
 For the inductive case, we must prove the statement holds for \<open>\<alpha>\<close> assuming 
 @{prop \<open>Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>(Suc (Suc n)) \<alpha>\<close>} for some \<open>n\<close> and @{prop \<open>A \<in> Nts_syms \<alpha>\<close>}. 
-This implies there is a second-to-last step of the form:\\
-\<open>Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>(Suc n) \<gamma> @ [Nt B] @ \<delta> \<Rightarrow> \<gamma> @ \<beta> @ \<delta> = \<alpha>\<close> with \<open>(B, \<beta>) \<in> Prods G\<close>\\
+This implies there is a last step of the form\par
+
+\<open>Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>(Suc n) \<gamma> @ [Nt B] @ \<delta> \<Rightarrow> \<gamma> @ \<beta> @ \<delta> = \<alpha>\<close> with \<open>(B, \<beta>) \<in> Prods G\<close>.\par
+
 We now make a case distinction on whether \<open>A \<in> Nts_syms \<beta>\<close> holds.\\
 If \<open>A \<in> Nts_syms \<beta>\<close>, then \<open>A \<in> Nts (Prods G)\<close> by the fact that \<open>(B, \<beta>) \<in> Prods G\<close> directly.\\
 If \<open>A \<notin> Nts_syms \<beta>\<close>, this together with \<open>A \<in> Nts_syms \<alpha>\<close> implies \<open>A \<in> Nts_syms (\<gamma> @ [Nt B] @ \<delta>)\<close>. 
@@ -300,7 +317,18 @@ For @{term \<open>[A \<rightarrow> \<alpha> \<cdot> \<beta>]\<close>}, \<open>\<
 derived from \<open>A\<close> yet. Analogously, \<open>\<beta> = \<epsilon>\<close> denotes the situation where a substring of the 
 input has been completely derived from \<open>A\<close>. These items are therefore called \concept{initial} and 
 \concept{complete} items respectively. For both of these kinds of item, we write \<open>\<epsilon>\<close> implicitly, 
-e.g., instead of @{term \<open>[A \<rightarrow> \<alpha> \<cdot> \<epsilon>]\<close>}, we write @{term \<open>[A \<rightarrow> \<alpha> \<cdot> ]\<close>}.
+e.g., instead of @{term \<open>[A \<rightarrow> \<alpha> \<cdot> \<epsilon>]\<close>}, we write @{term \<open>[A \<rightarrow> \<alpha> \<cdot> ]\<close>}.\par
+
+Additionally, we denote the set of all complete items in a set of items \<open>I\<close> by @{term \<open>completes I\<close>}:
+\begin{quote}
+@{thm completes_def}
+\end{quote}
+
+An item that is not complete is referred to as \concept{noncomplete}, and we correspondingly define
+@{const noncompletes} as the complement of @{const completes}:
+\begin{quote}
+@{abbrev noncompletes}
+\end{quote}
 
 We also lift the definition of history from items to lists of items:
 \begin{quote}
@@ -311,6 +339,13 @@ Lastly, we refer to the set of all items of a CFG \<open>G\<close> as @{term \<o
 \begin{quote}
 @{thm It_def}
 \end{quote}
+
+\begin{lemma}\label{in_Prods_iff_in_It}
+@{term \<open>(A, \<alpha>@\<beta>) \<in> Prods G \<longleftrightarrow> [A \<rightarrow> \<alpha> \<cdot> \<beta>] \<in> It G\<close>}
+\begin{proof}
+Trivial by the definition of @{term \<open>It G\<close>}.
+\end{proof}
+\end{lemma}
 
 \begin{lemma}\label{prod_items_finite}
 @{thm prod_items_finite}
@@ -331,13 +366,14 @@ each production in \<open>Prods G\<close>. Formally:
 By Lemma~\ref{prod_items_finite}, each of these sets is finite, meaning their union is also finite.
 \end{proof}
 \end{lemma}\<close>
+
+subsection \<open>Generalized Pushdown Automata\<close>
+
 (*<*)
 end
 context gpda
 begin
 (*>*)
-
-subsection \<open>Generalized Pushdown Automata\<close>
 
 text \<open>Throughout this paper, we define several automata to lay the foundations for the canonical 
 LR(0) parser. Most of these automata, including the parser itself, require a stack to operate, but 
@@ -350,7 +386,7 @@ We define generalized pushdown automata (GPDAs) as a record of type @{typ "('q, 
 \item \<open>states :: 'q set\<close> is a finite set of states.
 \item \<open>init :: 'q\<close> is the initial state with \<open>init \<in> states\<close>.
 \item \<open>final :: 'q set\<close> is a set of final states with \<open>final \<subseteq> states\<close>.
-\item \<open>nxt :: ('q list \<times> 'a \<times> 'q list) set\<close> is the transition relation with input reading.
+\item \<open>nxt :: ('q list \<times> 'a \<times> 'q list) set\<close> is the transition relation consuming input symbols.
 \item \<open>eps :: ('q list \<times> 'q list) set\<close> is the transition relation for \<open>\<epsilon>\<close>-transitions.
 \end{itemize}
 
@@ -364,7 +400,7 @@ discuss later.
 For \<open>M :: ('q, 'a) gpda\<close> we define a \concept{configuration} as a tuple 
 \<open>(qs, w) :: 'q list \<times> 'a list\<close> where \<open>qs\<close> denotes the current stack, and \<open>w\<close> the remaining input to 
 be read. In accordance with the Isabelle/HOL list datatype, we define the topmost stack symbol as 
-the leftmost list element, deviating from Wilhelm et al. in this regard. \\
+the leftmost list element, deviating from Wilhelm et al. in this regard.\par
 
 A configuration of \<open>M\<close> is \concept{initial} if the stack consists of a singleton list containing 
 the initial state @{term \<open>init M\<close>}, while a \concept{final} configuration for \<open>M\<close> consists of a 
@@ -376,34 +412,61 @@ We now define the step relation for GPDAs:
 @{thm step_nxt step_eps}
 
 We refer to sequences of configurations as \concept{computations}, and denote \<open>n\<close>-step computations
-with \<open>\<turnstile>(n)\<close>, and its reflexive-transitive closure with \<open>\<turnstile>*\<close>.\\
+with \<open>\<turnstile>(n)\<close>, and its reflexive-transitive closure with \<open>\<turnstile>*\<close>.\par
 
 Finally, we define the \concept{language} @{term \<open>Lang\<close>} for \<open>M\<close> as the set of words for which \<open>M\<close> 
 can reach a final configuration from the corresponding initial configuration:
 \begin{quote}
 @{thm Lang_def}
 \end{quote}\<close>
+
+section \<open>The Item Pushdown Automaton\<close>
+
 (*<*) 
 end
 context Extended_Cfg
 begin
 (*>*)
 
-section \<open>The Item Pushdown Automaton\<close>
-
 text \<open>One of the main objectives in the construction of our parser is determinism. Despite the ability of
 PDAs of recognizing CFLs, they are non-deterministic in general, which means they are not easily
 implemented in practice. In this section, we define the Item Pushdown Automaton to a 
-context-free grammar, from which we will later derive a deterministic parser.\\
+context-free grammar, from which we will later derive a deterministic parser.\par
 
 The \concept{item pushdown automaton} (IPDA) to a CFG \<open>G\<close> with extension \<open>G'\<close> is the 
 \<open>(('n, 't) item, 't) gpda\<close>:
 \begin{quote}
-@{term \<open>\<lparr>gpda.states = It G', init = [S' \<rightarrow> [] \<cdot> [Nt S]], final = {mbox [S' \<rightarrow> [Nt S] \<cdot> []]}, 
+@{term \<open>I\<^sub>G = \<lparr>gpda.states = It G', init = [S' \<rightarrow> [] \<cdot> [Nt S]], final = {mbox [S' \<rightarrow> [Nt S] \<cdot> []]}, 
   nxt = \<Delta>, eps = \<E>\<rparr>\<close>}
 \end{quote}
-where \<open>\<Delta> = TODO\<close> and \<open>\<E> = TODO\<close>
-\<close>
+
+Overall, the IPDA has three types of transitions. We call transitions in @{const nxt} \concept{shifting} 
+transitions:
+
+\begin{quote}
+@{term \<open>\<Delta> = {([[X \<rightarrow> \<beta> \<cdot> Tm a # \<gamma>]], a, [[X \<rightarrow> \<beta> @ [Tm a] \<cdot> \<gamma>]])|X \<beta> a \<gamma>. (X, \<beta> @ Tm a # \<gamma>) \<in> 
+              Prods G'}\<close>}
+\end{quote}
+
+The other two transition types are in \<open>eps\<close>; we have
+\begin{itemize}
+\item \concept{expanding} transitions\\ 
+  @{term \<open>E = {([[X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>]], [[Y \<rightarrow> [] \<cdot> \<alpha>], [X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>]]) 
+        | X \<beta> Y \<gamma> \<alpha>. (X, \<beta> @ Nt Y # \<gamma>) \<in> Prods G' \<and> (Y, \<alpha>) \<in> Prods G'}\<close>}, and
+\item \concept{reducing} transitions\\
+  @{term \<open>R = {([[Y \<rightarrow> \<alpha> \<cdot> []], [X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>]], [[X \<rightarrow> \<beta> @ [Nt Y] \<cdot> \<gamma>]]) 
+        | Y \<alpha> X \<beta> \<gamma>. (X, \<beta> @ Nt Y # \<gamma>) \<in> Prods G' \<and> (Y, \<alpha>) \<in> Prods G'}\<close>}
+\end{itemize}
+
+We then define \<open>\<E> = E \<union> R\<close>. Our definitions differ slightly from those by Wilhelm et al.: in all
+transition sets, we explicitly restrict the elements to items that correspond to productions of \<open>G'\<close>.
+In their book, Wilhelm et al. define the transition relation of a GPDA with state set \<open>Q\<close> and input
+alphabet \<open>V\<^sub>T\<close> to be a subset of \<open>Q\<^sup>+ \<times> V\<^sub>T \<times> Q\<^sup>*\<close>. We approximate this in the record type of GPDAs, 
+as we stated before, by definining \mbox{\<open>nxt :: ('q list \<times> 'a \<times> 'q list) set\<close>} and 
+\<open>eps :: ('q list \<times> 'q list) set\<close> for a \<open>('q, 'a) gpda\<close>. Our definitions of \mbox{\<open>nxt IPDA\<close>} and \<open>eps IPDA\<close>
+therefore enforce this by explicitly restricting the set to items whose corresponding production is 
+in \<open>Prods G'\<close>, which is equivalent to the items themselves being in @{term \<open>It G'\<close>} by 
+Lemma~\ref{in_Prods_iff_in_It}.\<close>
 
 section \<open>The Characteristic Finite Automaton and the Canonical LR(0) Automaton\<close>
 section \<open>The Canonical LR(0) Parser\<close>

@@ -271,7 +271,7 @@ lemma S'_notin_Nts_Prods_G [simp]:
 
 lemma S'_Prod_notin_G:
   "(S', \<alpha>) \<notin> Prods G"
-  "Nt S' \<in> set \<alpha> \<Longrightarrow> (X, \<alpha>) \<notin> Prods G"
+  "Nt S' \<in> set \<beta> \<Longrightarrow> (X, \<beta>) \<notin> Prods G"
   using S'_notin_Nts_Prods_G unfolding Nts_def Nts_syms_def by blast+
 
 lemma S'_Prod_notin_G':

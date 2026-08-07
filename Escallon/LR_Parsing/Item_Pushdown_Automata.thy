@@ -202,7 +202,7 @@ lemma init_ipda [simp]:
   "init M = [S' \<rightarrow> [] \<cdot> [Nt S]]"
   using ipda unfolding IPDA_def by (meson gpda.select_convs(2))
 
-abbreviation "final_state \<equiv> [S' \<rightarrow> [Nt S] \<cdot> []]"
+abbreviation (input) "final_state \<equiv> [S' \<rightarrow> [Nt S] \<cdot> []]"
 
 lemma final_ipda [simp]:
   "final M = {final_state}"
@@ -362,6 +362,19 @@ proof -
   qed simp
 qed
 
+lemma reducing_imp_in_Prods_G:
+  assumes "([Y \<rightarrow> \<alpha> \<cdot> []] # [X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] # \<rho>, u) \<turnstile> ([X \<rightarrow> \<beta> @ [Nt Y] \<cdot> \<gamma>] # \<rho>, u)"
+  shows "(Y, \<alpha>) \<in> Prods G"
+  using assms proof cases
+  case (reduce Y \<alpha> X \<beta> \<gamma> \<rho> w)
+  with step_imp_in_Prods have Prods_G': "(Y, \<alpha>) \<in> Prods G'" "(X, \<beta> @ Nt Y # \<gamma>) \<in> Prods G'"
+    using assms by fastforce+
+  from this(1) show ?thesis proof (cases rule: G'_Prod_cases)
+    case init
+    with reduce Prods_G' show ?thesis using S'_Prod_notin_G' by simp
+  qed (use reduce in simp)
+qed simp_all
+
 lemma step_not_expanding_unique:
   assumes "(\<rho>, u) \<turnstile> c0" "(\<rho>, u) \<turnstile> c1"
     "\<exists>X \<alpha> a \<beta>. hd \<rho> = [X \<rightarrow> \<alpha> \<cdot> []] \<or> hd \<rho> = [X \<rightarrow> \<alpha> \<cdot> Tm a # \<beta>]"
@@ -397,11 +410,11 @@ lemma steps_len_dec:
 
 lemma completes_Tms:
   "(A, \<alpha> @ map Tm u @ \<beta>) \<in> Prods G' 
-    \<Longrightarrow> ([A \<rightarrow> \<alpha> \<cdot> map Tm u @ \<beta>]#is, u@v) \<turnstile>* ([A \<rightarrow> \<alpha> @ map Tm u \<cdot> \<beta>]#is, v)"
+    \<Longrightarrow> ([A \<rightarrow> \<alpha> \<cdot> map Tm u @ \<beta>]#\<rho>, u@v) \<turnstile>* ([A \<rightarrow> \<alpha> @ map Tm u \<cdot> \<beta>]#\<rho>, v)"
 proof (induction u arbitrary: \<alpha>)
   case (Cons a u)
-  hence "([A \<rightarrow> \<alpha> \<cdot> map Tm (a # u) @ \<beta>] #  is, (a # u) @ v) 
-        \<turnstile> ([A \<rightarrow> \<alpha> @ [Tm a] \<cdot> map Tm u @ \<beta>] # is, u @ v)"
+  hence "([A \<rightarrow> \<alpha> \<cdot> map Tm (a # u) @ \<beta>] #  \<rho>, (a # u) @ v) 
+        \<turnstile> ([A \<rightarrow> \<alpha> @ [Tm a] \<cdot> map Tm u @ \<beta>] # \<rho>, u @ v)"
     by simp
   also note Cons(1)[of "\<alpha>@[Tm a]"] 
   finally show ?case using Cons by auto
@@ -452,15 +465,6 @@ qed (auto simp: It_def G'_def)
 lemma reachable_imp_not_Nil:
   "\<lbrakk>(\<rho>, u) \<turnstile>* (\<sigma>, v); \<rho> \<noteq> []\<rbrakk> \<Longrightarrow> \<sigma> \<noteq> []"
   by (induction rule: rtranclp_induct2) (simp, cases rule: step.cases, auto)
-
-lemma reachable_imp_substring:
-  assumes "(\<rho>, w) \<turnstile>* (\<sigma>, v)"
-  obtains u where "w = u @ v"
-  using assms proof (induction arbitrary: thesis rule: rtranclp_induct2)
-  case (step \<sigma> v \<tau> x)
-  then obtain u where "w = u @ v" by blast
-  then show thesis using step_equal_or_Cons[OF step(2)] step(4) by auto
-qed simp
 
 corollary steps_shift_decomp:
   assumes "(\<rho>, u @ v) \<turnstile>* ([A \<rightarrow> \<alpha> \<cdot> Tm a # \<beta>] # \<sigma>, a # v)"
@@ -913,24 +917,23 @@ proof -
       by (metis relpowp_Suc_E rev_swap surj_pair)
     from this(2) show ?case 
     proof (cases rule: step_cases)
-      case (shift A \<alpha> a \<beta> i \<tau>)
+      case (shift A \<alpha> a \<beta> \<tau> x)
       with steps_shift_decomp n_steps(1)[THEN relpowp_imp_rtranclp]
-      obtain x where u_decomp: "u = x @ [a]" "w = a # v" 
+      obtain y where u_decomp: "u = y @ [a]" "w = a # v" 
         using n_steps(2) by (metis prod.inject)
-      with Suc.IH[of x "a#v"] n_steps(1) have derives_x: "Prods G \<turnstile> hist \<sigma> \<Rightarrow>* map Tm x"
+      with Suc.IH[of y "a#v"] n_steps(1) have derives_y: "Prods G \<turnstile> hist \<sigma> \<Rightarrow>* map Tm y"
         by simp
       moreover have "hist \<rho> = hist \<sigma> @ [Tm a]" using shift unfolding hist_defs by simp
-      ultimately show ?thesis using derives_append[OF derives_x] u_decomp by simp
+      ultimately show ?thesis using derives_append[OF derives_y] u_decomp by simp
     next
       case (reduce Y \<alpha> X \<beta> \<gamma> \<tau> x)
-      have "Prods G \<turnstile> hist \<rho> \<Rightarrow>* hist \<sigma>"
+      have "Prods G \<turnstile> hist \<rho> \<Rightarrow> hist \<sigma>"
       proof -
-        from n_steps reduce have Y_prod: "(Y, \<alpha>) \<in> Prods G" 
-          using reachable_snd_not_empty_imp_hd_in_G 
-            relpowp_imp_rtranclp by fastforce
+        from n_steps(2)[unfolded reduce] have Y_prod: "(Y, \<alpha>) \<in> Prods G" 
+          using reducing_imp_in_Prods_G by simp 
         from reduce have "hist \<rho> = hist (rev \<tau>) @ \<beta> @ [Nt Y]" by simp
-        also have "Prods G \<turnstile> ... \<Rightarrow>* hist (rev \<tau>) @ \<beta> @ \<alpha>"
-          using Y_prod derives_prepend by (metis derive_singleton r_into_rtranclp) 
+        also have "Prods G \<turnstile> ... \<Rightarrow> hist (rev \<tau>) @ \<beta> @ \<alpha>"
+          using Y_prod[THEN derive.intros, of "hist (rev \<tau>) @ \<beta>" "[]"] by simp
         also have "... = hist \<sigma>" using reduce by auto
         finally show ?thesis .
       qed

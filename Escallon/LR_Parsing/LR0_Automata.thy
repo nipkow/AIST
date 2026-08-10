@@ -31,12 +31,12 @@ section \<open>The Characteristic Finite Automaton to a Context-Free Grammar\<cl
 definition char_fa :: "(('n, 't) sym, ('n, 't) item) nfa" where
   "char_fa \<equiv> let 
       P = Prods G';
-      \<Delta> = (\<lambda>s a. case s of 
+      \<Delta> = (\<lambda>q a. case q of 
         [X \<rightarrow> \<alpha> \<cdot> Y # \<beta>]  \<Rightarrow> if a = Y \<and> (X, \<alpha>@Y#\<beta>) \<in> P then {[X \<rightarrow> \<alpha>@[Y] \<cdot> \<beta>]} else {}| 
          _ \<Rightarrow> {}); 
-      \<E> = {([X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>], [Y \<rightarrow> [] \<cdot> \<gamma>]) | X \<alpha> Y \<beta> \<gamma>. (X, \<alpha> @Nt Y#\<beta>) \<in> P \<and> (Y, \<gamma>) \<in> P} in
-    \<lparr>nfa.states = It G', nfa.init = {[S' \<rightarrow> [] \<cdot> [Nt S]]}, nfa.final = completes (It G'), 
-      nfa.nxt = \<Delta>, nfa.eps = \<E>\<rparr>"
+      \<E> = {([X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>], [Y \<rightarrow> [] \<cdot> \<gamma>]) | X \<alpha> Y \<beta> \<gamma>. (X, \<alpha> @ Nt Y # \<beta>) \<in> P \<and> (Y, \<gamma>) \<in> P} in
+    \<lparr>nfa.states = It G', init = {[S' \<rightarrow> [] \<cdot> [Nt S]]}, final = completes (It G'), 
+      nxt = \<Delta>, eps = \<E>\<rparr>"
 
 subsection \<open>Basic Properties\<close>
 
@@ -53,7 +53,7 @@ lemma final_char_fa [simp]:
   unfolding char_fa_def by (meson nfa.select_convs(3))
 
 lemma nxt_char_fa [simp]:
-  "nfa.nxt char_fa = (\<lambda>s a. case s of 
+  "nfa.nxt char_fa = (\<lambda>q a. case q of 
         [X \<rightarrow> \<alpha> \<cdot> Y # \<beta>]  \<Rightarrow> if a = Y \<and> ((X, \<alpha> @ Y # \<beta>) \<in> Prods G') then {[X \<rightarrow> \<alpha> @ [Y] \<cdot> \<beta>]} 
   else {} | _ \<Rightarrow> {})"
   unfolding char_fa_def by (meson nfa.select_convs(4))
@@ -609,7 +609,7 @@ next
   then obtain n where "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(Suc n) \<gamma> @ Nt A # map Tm w" 
     by (meson relpowp_Suc_I rtranclp_imp_relpowp)
   from derivern_Suc_singleton_imp_rm_chain[OF this] obtain \<rho> where 
-    "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<gamma> @ Nt A # map Tm w"
+    "Prods G' \<turnstile> [Nt S'] \<midarrow>\<rho>\<rightarrow>r* \<gamma> @ Nt A # map Tm w"
     using Nts_G'_is_union by blast
   then show ?thesis using assms that proof (induction \<rho> arbitrary: \<gamma> A w \<alpha> \<beta> v thesis)
     case Nil
@@ -624,7 +624,7 @@ next
       using rm_chain_imp_hd_prod_rightmost[OF Cons(2)]
       by (metis list.distinct(1) list.inject)
     with rm_chain_stepE Cons(2) obtain \<alpha>'' u v' where X_chain:
-      "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<alpha>'' @ Nt X # map Tm v'"
+      "Prods G' \<turnstile> [Nt S'] \<midarrow>\<rho>\<rightarrow>r* \<alpha>'' @ Nt X # map Tm v'"
       "Prods G' \<turnstile> \<alpha>'' @ Nt X # map Tm v' \<Rightarrow>r \<alpha>'' @ \<alpha>' @ Nt A # \<beta>' @ map Tm v'"
       "Prods G' \<turnstile> \<beta>' \<Rightarrow>r* map Tm u" "u @ v' = w" "\<alpha>'' @ \<alpha>' = \<gamma>"
       by (smt (verit, best) append.assoc map_append Nt_map_Tm_eq_Nt_map_TmD)
@@ -655,7 +655,7 @@ text \<open>Towards step 3\<close>
 lemma ipda_reaches_final_imp_rm_chain:
   assumes "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile>I* ([I.final_state], [])"
   obtains "\<rho> = []" |
-    \<sigma> X \<alpha>' \<beta>' \<gamma> where "\<rho> = [X \<rightarrow> \<alpha>' \<cdot> Nt A # \<beta>'] # \<sigma>" "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<gamma>"
+    \<sigma> X \<alpha>' \<beta>' \<gamma> where "\<rho> = [X \<rightarrow> \<alpha>' \<cdot> Nt A # \<beta>'] # \<sigma>" "Prods G' \<turnstile> [Nt S'] \<midarrow>\<rho>\<rightarrow>r* \<gamma>"
   using assms proof (induction "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w)" arbitrary: A \<alpha> \<beta> \<rho> w thesis
                       rule: converse_rtranclp_induct)
   case (step z)
@@ -699,7 +699,7 @@ lemma ipda_reaches_final_imp_rm_chain:
         from Cons expand have "\<tau> = [A \<rightarrow> \<theta> \<cdot> Nt B # \<iota>] # i # \<xi>"  by auto
         from rm_chain_second_produces_hd[OF chain(2)[unfolded this]] obtain Z \<gamma>' \<delta>' where
           "\<rho> = [Z \<rightarrow> \<gamma>' \<cdot> Nt A # \<delta>'] # \<xi>" using Cons expand by auto
-        moreover obtain \<zeta>' where "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<zeta>'"
+        moreover obtain \<zeta>' where "Prods G' \<turnstile> [Nt S'] \<midarrow>\<rho>\<rightarrow>r* \<zeta>'"
           using expand Cons rm_chain_decomp chain(2) by fastforce
         ultimately show thesis using step.prems(2) by blast
       qed (rule step.prems(1))
@@ -722,7 +722,7 @@ using assms proof (induction \<rho> arbitrary: A \<alpha> \<beta> w)
 next
   case (Cons i \<rho>)
   with ipda_reaches_final_imp_rm_chain obtain X \<alpha>' \<beta>' \<gamma> where chain:
-    "i = [X \<rightarrow> \<alpha>' \<cdot> Nt A # \<beta>']" "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* i # \<rho> \<Rightarrow>r* \<gamma>" by blast
+    "i = [X \<rightarrow> \<alpha>' \<cdot> Nt A # \<beta>']" "Prods G' \<turnstile> [Nt S'] \<midarrow>i # \<rho>\<rightarrow>r* \<gamma>" by blast
   hence X_in_Prods: "(X, \<alpha>' @ Nt A # \<beta>') \<in> Prods G'" 
     by (simp add: rm_chain_imp_prod)
   from I.reaches_final_imp_completes[OF Cons(2)] obtain v where A_complete:
@@ -883,7 +883,7 @@ lemma derivern_Suc_imp_reliable:
     "Prods G' \<turnstile> \<alpha> @ \<beta> @ map Tm v \<Rightarrow>r* \<alpha> @ Nt X # map Tm w"
 proof -
   from assms obtain A \<alpha>'' \<beta> \<rho> where 
-    "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* [A \<rightarrow> \<alpha>'' \<cdot> Nt X # \<beta>] # \<rho> \<Rightarrow>r* \<alpha> @ Nt X # map Tm w"
+    "Prods G' \<turnstile> [Nt S'] \<midarrow>[A \<rightarrow> \<alpha>'' \<cdot> Nt X # \<beta>] # \<rho>\<rightarrow>r* \<alpha> @ Nt X # map Tm w"
     by (meson derivern_Suc_singleton_imp_rm_chain)
   then show thesis proof cases
     case (step \<alpha>' v u)
@@ -906,7 +906,7 @@ proof -
     "[Nt S'] \<noteq> \<alpha> @ \<beta> @ Nt X # map Tm w" 
       by (metis in_Nts_syms list.set_intros(1))
   moreover from assms obtain  \<rho> where 
-   "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<alpha> @ \<beta> @ Nt X # map Tm w"
+   "Prods G' \<turnstile> [Nt S'] \<midarrow>\<rho>\<rightarrow>r* \<alpha> @ \<beta> @ Nt X # map Tm w"
    using derivern_Suc_singleton_imp_rm_chain by (metis append.assoc)
   ultimately show thesis using that 
   proof (induction \<rho> arbitrary: thesis X \<alpha> \<beta> w)

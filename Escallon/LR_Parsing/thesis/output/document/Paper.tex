@@ -557,16 +557,23 @@ The \concept{item pushdown automaton} (IPDA) to a CFG \isa{G} with extension \is
 Overall, the IPDA has three types of transitions. We call transitions in \isa{\isaconst{nxt}} \concept{shifting} 
 transitions:
 
-\begin{quote}
-\isa{\isafree{{\isasymDelta}}\ {\isacharequal}{\kern0pt}\ {\isacharbraceleft}{\kern0pt}{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isabound{X}\ {\isasymrightarrow}\ \isabound{{\isasymbeta}}\ {\isasymcdot}\ \isaconst{Tm}\ \isabound{a}\ {\isacharhash}{\kern0pt}\ \isabound{{\isasymgamma}}{\isacharbrackright}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ \isabound{a}{\isacharcomma}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isabound{X}\ {\isasymrightarrow}\ \isabound{{\isasymbeta}}\ {\isacharat}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}\isaconst{Tm}\ \isabound{a}{\isacharbrackright}{\kern0pt}\ {\isasymcdot}\ \isabound{{\isasymgamma}}{\isacharbrackright}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharbar}{\kern0pt}\ {\isacharparenleft}{\kern0pt}\isabound{X}{\isacharcomma}{\kern0pt}\ \isabound{{\isasymbeta}}\ {\isacharat}{\kern0pt}\ \isaconst{Tm}\ \isabound{a}\ {\isacharhash}{\kern0pt}\ \isabound{{\isasymgamma}}{\isacharparenright}{\kern0pt}\ {\isasymin}\ \isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}{\isacharbraceright}{\kern0pt}}
-\end{quote}
+\begin{multline}
+\isa{{\isasymDelta}\ {\isacharequal}{\kern0pt}\ {\isacharbraceleft}{\kern0pt}{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}X\ {\isasymrightarrow}\ {\isasymbeta}\ {\isasymcdot}\ Tm\ a\ {\isacharhash}{\kern0pt}\ {\isasymgamma}{\isacharbrackright}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ a{\isacharcomma}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}X\ {\isasymrightarrow}\ {\isasymbeta}\ {\isacharat}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}Tm\ a{\isacharbrackright}{\kern0pt}\ {\isasymcdot}\ {\isasymgamma}{\isacharbrackright}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharparenright}{\kern0pt}} \\
+\isa{{\isacharbar}{\kern0pt}X\ {\isasymbeta}\ a\ {\isasymgamma}{\isachardot}{\kern0pt}\ {\isacharparenleft}{\kern0pt}X{\isacharcomma}{\kern0pt}\ {\isasymbeta}\ {\isacharat}{\kern0pt}\ Tm\ a\ {\isacharhash}{\kern0pt}\ {\isasymgamma}{\isacharparenright}{\kern0pt}\ {\isasymin}\ Prods\ G{\isacharprime}{\kern0pt}{\isacharbraceright}{\kern0pt}}
+\end{multline}
 
 The other two transition types are in \isa{eps}; we have
 \begin{itemize}
 \item \concept{expanding} transitions\\ 
-  \isa{\isafree{E}\ {\isacharequal}{\kern0pt}\ {\isacharbraceleft}{\kern0pt}{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isabound{X}\ {\isasymrightarrow}\ \isabound{{\isasymbeta}}\ {\isasymcdot}\ \isaconst{Nt}\ \isabound{Y}\ {\isacharhash}{\kern0pt}\ \isabound{{\isasymgamma}}{\isacharbrackright}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isabound{Y}\ {\isasymrightarrow}\ \ {\isasymcdot}\ \isabound{{\isasymalpha}}\ {\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}\isabound{X}\ {\isasymrightarrow}\ \isabound{{\isasymbeta}}\ {\isasymcdot}\ \isaconst{Nt}\ \isabound{Y}\ {\isacharhash}{\kern0pt}\ \isabound{{\isasymgamma}}{\isacharbrackright}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharbar}{\kern0pt}\ {\isacharparenleft}{\kern0pt}\isabound{X}{\isacharcomma}{\kern0pt}\ \isabound{{\isasymbeta}}\ {\isacharat}{\kern0pt}\ \isaconst{Nt}\ \isabound{Y}\ {\isacharhash}{\kern0pt}\ \isabound{{\isasymgamma}}{\isacharparenright}{\kern0pt}\ {\isasymin}\ \isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymand}\ {\isacharparenleft}{\kern0pt}\isabound{Y}{\isacharcomma}{\kern0pt}\ \isabound{{\isasymalpha}}{\isacharparenright}{\kern0pt}\ {\isasymin}\ \isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}{\isacharbraceright}{\kern0pt}}, and
+\begin{multline}
+  \isa{E\ {\isacharequal}{\kern0pt}\ {\isacharbraceleft}{\kern0pt}{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}X\ {\isasymrightarrow}\ {\isasymbeta}\ {\isasymcdot}\ Nt\ Y\ {\isacharhash}{\kern0pt}\ {\isasymgamma}{\isacharbrackright}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}Y\ {\isasymrightarrow}\ {\isasymcdot}\ {\isasymalpha}{\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}X\ {\isasymrightarrow}\ {\isasymbeta}\ {\isasymcdot}\ Nt\ Y\ {\isacharhash}{\kern0pt}\ {\isasymgamma}{\isacharbrackright}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharparenright}{\kern0pt}}\\ 
+  \isa{{\isacharbar}{\kern0pt}\ X\ {\isasymbeta}\ Y\ {\isasymgamma}\ {\isasymalpha}{\isachardot}{\kern0pt}\ {\isacharparenleft}{\kern0pt}X{\isacharcomma}{\kern0pt}\ {\isasymbeta}\ {\isacharat}{\kern0pt}\ Nt\ Y\ {\isacharhash}{\kern0pt}\ {\isasymgamma}{\isacharparenright}{\kern0pt}\ {\isasymin}\ Prods\ G{\isacharprime}{\kern0pt}\ {\isasymand}\ {\isacharparenleft}{\kern0pt}Y{\isacharcomma}{\kern0pt}\ {\isasymalpha}{\isacharparenright}{\kern0pt}\ {\isasymin}\ Prods\ G{\isacharprime}{\kern0pt}{\isacharbraceright}{\kern0pt}} \mathrm{,\ and}
+\end{multline}
 \item \concept{reducing} transitions\\
-  \isa{\isafree{R}\ {\isacharequal}{\kern0pt}\ {\isacharbraceleft}{\kern0pt}{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isabound{Y}\ {\isasymrightarrow}\ \isabound{{\isasymalpha}}\ {\isasymcdot}\ {\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}\isabound{X}\ {\isasymrightarrow}\ \isabound{{\isasymbeta}}\ {\isasymcdot}\ \isaconst{Nt}\ \isabound{Y}\ {\isacharhash}{\kern0pt}\ \isabound{{\isasymgamma}}{\isacharbrackright}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isabound{X}\ {\isasymrightarrow}\ \isabound{{\isasymbeta}}\ {\isacharat}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isabound{Y}{\isacharbrackright}{\kern0pt}\ {\isasymcdot}\ \isabound{{\isasymgamma}}{\isacharbrackright}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isacharbar}{\kern0pt}\ {\isacharparenleft}{\kern0pt}\isabound{X}{\isacharcomma}{\kern0pt}\ \isabound{{\isasymbeta}}\ {\isacharat}{\kern0pt}\ \isaconst{Nt}\ \isabound{Y}\ {\isacharhash}{\kern0pt}\ \isabound{{\isasymgamma}}{\isacharparenright}{\kern0pt}\ {\isasymin}\ \isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymand}\ {\isacharparenleft}{\kern0pt}\isabound{Y}{\isacharcomma}{\kern0pt}\ \isabound{{\isasymalpha}}{\isacharparenright}{\kern0pt}\ {\isasymin}\ \isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}{\isacharbraceright}{\kern0pt}}
+\begin{multline}
+  \isa{R\ {\isacharequal}{\kern0pt}\ {\isacharbraceleft}{\kern0pt}{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}Y\ {\isasymrightarrow}\ {\isasymalpha}\ {\isasymcdot}\ {\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}X\ {\isasymrightarrow}\ {\isasymbeta}\ {\isasymcdot}\ Nt\ Y\ {\isacharhash}{\kern0pt}\ {\isasymgamma}{\isacharbrackright}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}X\ {\isasymrightarrow}\ {\isasymbeta}\ {\isacharat}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}Nt\ Y{\isacharbrackright}{\kern0pt}\ {\isasymcdot}\ {\isasymgamma}{\isacharbrackright}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharparenright}{\kern0pt}}\\
+  \isa{{\isacharbar}{\kern0pt}\ Y\ {\isasymalpha}\ X\ {\isasymbeta}\ {\isasymgamma}{\isachardot}{\kern0pt}\ {\isacharparenleft}{\kern0pt}X{\isacharcomma}{\kern0pt}\ {\isasymbeta}\ {\isacharat}{\kern0pt}\ Nt\ Y\ {\isacharhash}{\kern0pt}\ {\isasymgamma}{\isacharparenright}{\kern0pt}\ {\isasymin}\ Prods\ G{\isacharprime}{\kern0pt}\ {\isasymand}\ {\isacharparenleft}{\kern0pt}Y{\isacharcomma}{\kern0pt}\ {\isasymalpha}{\isacharparenright}{\kern0pt}\ {\isasymin}\ Prods\ G{\isacharprime}{\kern0pt}{\isacharbraceright}{\kern0pt}}
+\end{multline}
 \end{itemize}
 
 We then define \isa{{\isasymE}\ {\isacharequal}{\kern0pt}\ E\ {\isasymunion}\ R}. Our definitions differ slightly from those by Wilhelm et al.: in all
@@ -709,7 +716,7 @@ The invariant is therefore satisfied, completing the proof.
 \isa{\isaconst{Lang}\ \isaconst{I\isactrlsub G}\ {\isasymsubseteq}\ \isaconst{LangS}\ \isafree{G}}
 \begin{proof}
 Assume \isa{\isafree{w}\ {\isasymin}\ \isaconst{Lang}\ \isaconst{I\isactrlsub G}}. Then, 
-\mbox{\isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}gpda{\isachardot}{\kern0pt}init\ I\isactrlsub G{\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ w{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}gpda{\isachardot}{\kern0pt}init\ I\isactrlsub G{\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ w\ {\isacharat}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharparenright}{\kern0pt}\ \ {\isasymturnstile}{\isacharasterisk}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}final{\isacharunderscore}{\kern0pt}state{\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharparenright}{\kern0pt}}}. By 
+\[ \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}init\ I\isactrlsub G{\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ w{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}}\ \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isaconst{init}\ \isaconst{I\isactrlsub G}{\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ \isafree{w}\ {\isacharat}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharparenright}{\kern0pt}\ {\isasymturnstile}{\isacharasterisk}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isaconst{S{\isacharprime}{\kern0pt}}\ {\isasymrightarrow}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S}{\isacharbrackright}{\kern0pt}\ {\isasymcdot}\ {\isacharbrackright}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharparenright}{\kern0pt}} \] By 
 Lemma~\ref{ipda.invariant}, this implies \isa{\isaconst{Prods}\ \isafree{G}\ {\isasymturnstile}\ \isaconst{hist}\ {\isacharbrackleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isaconst{S{\isacharprime}{\kern0pt}}\ {\isasymrightarrow}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S}{\isacharbrackright}{\kern0pt}\ {\isasymcdot}\ {\isacharbrackright}{\kern0pt}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharasterisk}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{w}}.
 Since \isa{\isaconst{hist}\ {\isacharbrackleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isaconst{S{\isacharprime}{\kern0pt}}\ {\isasymrightarrow}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S}{\isacharbrackright}{\kern0pt}\ {\isasymcdot}\ {\isacharbrackright}{\kern0pt}{\isacharbrackright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S}{\isacharbrackright}{\kern0pt}}, this proves that \isa{\isafree{w}\ {\isasymin}\ \isaconst{LangS}\ \isafree{G}}.  
 \end{proof}
@@ -725,42 +732,165 @@ Trivial by induction on the length of \isa{u}.
 \end{proof}
 \end{lemma}
 
-\begin{lemma}[Derivation implies IPDA completion]
+\begin{lemma}\label{derives_imp_completes}[Derivation implies IPDA completion]
 If \isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ \isafree{{\isasymbeta}}\ {\isasymRightarrow}{\isacharasterisk}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{w}} and \isa{{\isacharparenleft}{\kern0pt}\isafree{A}{\isacharcomma}{\kern0pt}\ \isafree{{\isasymalpha}}\ {\isacharat}{\kern0pt}\ \isafree{{\isasymbeta}}\ {\isacharat}{\kern0pt}\ \isafree{{\isasymgamma}}{\isacharparenright}{\kern0pt}\ {\isasymin}\ \isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}}, then for any 
-\isa{A{\isacharcomma}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ x} holds: 
+\isa{{\isasymrho}{\isacharcomma}{\kern0pt}\ x} holds: 
 \[ \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}}\ {\isasymcdot}\ \isafree{{\isasymbeta}}\ {\isacharat}{\kern0pt}\ \isafree{{\isasymgamma}}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ \isafree{{\isasymrho}}{\isacharcomma}{\kern0pt}\ \isafree{w}\ {\isacharat}{\kern0pt}\ \isafree{x}{\isacharparenright}{\kern0pt}\ {\isasymturnstile}{\isacharasterisk}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}}\ {\isacharat}{\kern0pt}\ \isafree{{\isasymbeta}}\ {\isasymcdot}\ \isafree{{\isasymgamma}}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ \isafree{{\isasymrho}}{\isacharcomma}{\kern0pt}\ \isafree{x}{\isacharparenright}{\kern0pt}} \]
 \begin{proof}
 We do a proof by strong induction on the length of the derivation \isa{n}.\par
 If \isa{n\ {\isacharequal}{\kern0pt}\ {\isadigit{0}}}, \isa{{\isasymbeta}\ {\isacharequal}{\kern0pt}\ map\ Tm\ w}, and the implication holds by Lemma~\ref{completes_Tms}.\par
-If \isa{n\ {\isacharequal}{\kern0pt}\ Suc\ m} for some \isa{m\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ nat}, the derivation can be decomposed for \isa{{\isasymdelta}\isactrlsub {\isadigit{1}}{\isacharcomma}{\kern0pt}\ {\isasymdelta}\isactrlsub {\isadigit{2}}\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ syms}, \isa{X\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}n}, 
+If \isa{n\ {\isacharequal}{\kern0pt}\ Suc\ m} for some \isa{m\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ nat}, the derivation can be decomposed into \isa{{\isasymdelta}\isactrlsub {\isadigit{1}}{\isacharcomma}{\kern0pt}\ {\isasymdelta}\isactrlsub {\isadigit{2}}\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ syms}, \isa{X\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}n}, 
 \isa{u{\isacharcomma}{\kern0pt}\ v{\isacharcomma}{\kern0pt}\ y\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}t\ list} and \isa{i{\isacharcomma}{\kern0pt}\ j{\isacharcomma}{\kern0pt}\ k\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ nat} such that:
-\[ \isa{\isafree{{\isasymbeta}}\ {\isacharequal}{\kern0pt}\ \isafree{{\isasymdelta}\isactrlsub {\isadigit{1}}}\ {\isacharat}{\kern0pt}\ \isaconst{Nt}\ \isafree{X}\ {\isacharhash}{\kern0pt}\ \isafree{{\isasymdelta}\isactrlsub {\isadigit{2}}}} \]
-\[ \isa{\isafree{w}\ {\isacharequal}{\kern0pt}\ \isafree{u}\ {\isacharat}{\kern0pt}\ \isafree{v}\ {\isacharat}{\kern0pt}\ \isafree{y}} \]
-\[ \isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ \isafree{{\isasymdelta}\isactrlsub {\isadigit{1}}}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}\isafree{i}{\isacharparenright}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{u}} \]
-\[ \isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isafree{X}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}\isafree{j}{\isacharparenright}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{v}} \]
-\[ \isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ \isafree{{\isasymdelta}\isactrlsub {\isadigit{2}}}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}\isafree{k}{\isacharparenright}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{y}} \]
+\begin{subequations}
+\begin{gather}
+\isa{\isafree{{\isasymbeta}}\ {\isacharequal}{\kern0pt}\ \isafree{{\isasymdelta}\isactrlsub {\isadigit{1}}}\ {\isacharat}{\kern0pt}\ \isaconst{Nt}\ \isafree{X}\ {\isacharhash}{\kern0pt}\ \isafree{{\isasymdelta}\isactrlsub {\isadigit{2}}}}\label{d_imp_c.b_decomp(1)}\\
+\isa{\isafree{w}\ {\isacharequal}{\kern0pt}\ \isafree{u}\ {\isacharat}{\kern0pt}\ \isafree{v}\ {\isacharat}{\kern0pt}\ \isafree{y}}\label{d_imp_c.b_decomp(2)}\\
+\isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ \isafree{{\isasymdelta}\isactrlsub {\isadigit{1}}}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}\isafree{i}{\isacharparenright}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{u}}\\
+\isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isafree{X}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}\isafree{j}{\isacharparenright}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{v}}\\
+\isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ \isafree{{\isasymdelta}\isactrlsub {\isadigit{2}}}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}\isafree{k}{\isacharparenright}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{y}}\\
+\isa{\isafree{n}\ {\isacharequal}{\kern0pt}\ \isafree{i}\ {\isacharplus}{\kern0pt}\ \isafree{j}\ {\isacharplus}{\kern0pt}\ \isafree{k}}\label{d_imp_c.b_decomp(6)}
+\end{gather}
+\end{subequations}
 
 Furthermore, \isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isafree{X}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}\isafree{j}{\isacharparenright}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{v}} implies \isa{{\isadigit{0}}\ {\isacharless}{\kern0pt}\ \isafree{j}}, since \isa{\isafree{j}\ {\isacharequal}{\kern0pt}\ {\isadigit{0}}}
 would imply \isa{{\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isafree{X}{\isacharbrackright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{v}}, which is a contradiction. We will now do a case distinction 
 on whether \isa{\isafree{j}\ {\isacharequal}{\kern0pt}\ \isafree{n}} holds.\par
-If \isa{j\ {\isacharequal}{\kern0pt}\ n}, then \isa{i\ {\isacharequal}{\kern0pt}\ j\ {\isacharequal}{\kern0pt}\ {\isadigit{0}}} and therefore \isa{{\isasymdelta}\isactrlsub {\isadigit{1}}\ {\isacharequal}{\kern0pt}\ map\ Tm\ u} and \isa{{\isasymdelta}\isactrlsub {\isadigit{2}}\ {\isacharequal}{\kern0pt}\ map\ Tm\ y} hold. \isa{j\ {\isacharequal}{\kern0pt}\ n} also 
+If \isa{j\ {\isacharequal}{\kern0pt}\ n}, then \isa{i\ {\isacharequal}{\kern0pt}\ j\ {\isacharequal}{\kern0pt}\ {\isadigit{0}}} and therefore
+ 
+\begin{equation}\label{d_imp_c.d1u_d2y}
+\isa{{\isasymdelta}\isactrlsub {\isadigit{1}}\ {\isacharequal}{\kern0pt}\ map\ Tm\ u}\ \mathrm{and\ } \isa{{\isasymdelta}\isactrlsub {\isadigit{2}}\ {\isacharequal}{\kern0pt}\ map\ Tm\ y}
+\end{equation} 
+
+hold. \isa{j\ {\isacharequal}{\kern0pt}\ n} also
 implies the existence of some \isa{{\isasymbeta}{\isacharprime}{\kern0pt}\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ syms} such that 
-\[ \isa{Prods\ G{\isacharprime}{\kern0pt}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}Nt\ X{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}\ {\isasymbeta}{\isacharprime}{\kern0pt}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}m{\isacharparenright}{\kern0pt}\ map\ Tm\ v} \]
+
+\begin{equation}\label{eq:d_imp_c.stepm}
+\isa{Prods\ G{\isacharprime}{\kern0pt}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}Nt\ X{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}\ {\isasymbeta}{\isacharprime}{\kern0pt}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}m{\isacharparenright}{\kern0pt}\ map\ Tm\ v}
+\end{equation}
 
 We now distinguish yet another two cases, now on \isa{m}. From now on in this proof, instead of 
-\isa{\isaconst{map}\ \isaconst{Tm}\ \isafree{z}} we simply write \isa{\isafree{z}} for all \isa{z\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}t\ list}.\par
+\isa{\isaconst{map}\ \isaconst{Tm}\ \isafree{z}} we occasionally write \isa{\isafree{z}} for \isa{z\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}t\ list}. We will also sometimes 
+concatenate lists without an explicit operator, meaning we write \isa{\isafree{{\isasymalpha}}\ {\isacharat}{\kern0pt}\ \isafree{{\isasymbeta}}} as \isa{{\isasymalpha}{\isasymbeta}}. 
+Furthermore, $\isa{{\isasymturnstile}\isactrlsub S}$, $\isa{{\isasymturnstile}\isactrlsub R}$, and $\isa{{\isasymturnstile}\isactrlsub E}$ denote shifting, reducing, and expanding transitions 
+respectively.\par
 
-If \isa{m\ {\isacharequal}{\kern0pt}\ {\isadigit{0}}}, then \isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isafree{X}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}\ \isafree{v}}, i.e. \isa{{\isacharparenleft}{\kern0pt}\isafree{X}{\isacharcomma}{\kern0pt}\ \isafree{v}{\isacharparenright}{\kern0pt}\ {\isasymin}\ \isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}}. With the 
-decomposition of the derivation and Lemma~\ref{completes_Tms} (abbreviated as "L\ref{completes_Tms}") 
-we have:
-\begin{multline} 
-\isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}}\ {\isasymcdot}\ \isafree{{\isasymbeta}}\ {\isacharat}{\kern0pt}\ \isafree{{\isasymgamma}}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ \isafree{{\isasymrho}}{\isacharcomma}{\kern0pt}\ \isafree{w}\ {\isacharat}{\kern0pt}\ \isafree{x}{\isacharparenright}{\kern0pt}}\\ 
-\isa{{\isacharequal}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}\ {\isasymcdot}\ u\ {\isacharat}{\kern0pt}\ Nt\ X\ {\isacharhash}{\kern0pt}\ y\ {\isacharat}{\kern0pt}\ {\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ u\ {\isacharat}{\kern0pt}\ v\ {\isacharat}{\kern0pt}\ y\ {\isacharat}{\kern0pt}\ x{\isacharparenright}{\kern0pt}}\\
-\overset{L\ref{completes_Tms}}{\vdash*} \isa{{\isasymturnstile}{\isacharasterisk}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}\ {\isacharat}{\kern0pt}\ u\ {\isasymcdot}\ Nt\ X\ {\isacharhash}{\kern0pt}\ y\ {\isacharat}{\kern0pt}\ {\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ v\ {\isacharat}{\kern0pt}\ y\ {\isacharat}{\kern0pt}\ x{\isacharparenright}{\kern0pt}}\\
-\overset{expand}{\vdash} \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}X\ {\isasymrightarrow}\ {\isasymcdot}\ v{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}\ {\isacharat}{\kern0pt}\ u\ {\isasymcdot}\ Nt\ X\ {\isacharhash}{\kern0pt}\ y\ {\isacharat}{\kern0pt}\ {\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ v\ {\isacharat}{\kern0pt}\ y\ {\isacharat}{\kern0pt}\ x{\isacharparenright}{\kern0pt}}
-\end{multline}
+If \isa{m\ {\isacharequal}{\kern0pt}\ {\isadigit{0}}}, then \isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isafree{X}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}\ \isafree{v}}. By Lemma~\ref{completes_Tms} 
+(L\ref{completes_Tms}) we have:
+
+\begin{align*}
+&\isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}}\ {\isasymcdot}\ \isafree{{\isasymbeta}{\isasymgamma}}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ \isafree{{\isasymrho}}{\isacharcomma}{\kern0pt}\ \isafree{wx}{\isacharparenright}{\kern0pt}}\\
+&\;\overset{(\ref{d_imp_c.b_decomp(1)}, \ref{d_imp_c.b_decomp(2)}, \ref{d_imp_c.d1u_d2y})}{=\ }
+  \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}\ {\isasymcdot}\ u\ {\isacharat}{\kern0pt}\ Nt\ X\ {\isacharhash}{\kern0pt}\ y{\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ uvyx{\isacharparenright}{\kern0pt}}\\
+&\;\overset{(L\ref{completes_Tms})}{\isa{{\isasymturnstile}{\isacharasterisk}{\kern0pt}}\ } 
+  \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}u\ {\isasymcdot}\ Nt\ X\ {\isacharhash}{\kern0pt}\ y{\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ vyx{\isacharparenright}{\kern0pt}}\\
+&\;\isa{{\isasymturnstile}\isactrlsub E\ {\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}X\ {\isasymrightarrow}\ {\isasymcdot}\ v{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}u\ {\isasymcdot}\ Nt\ X\ {\isacharhash}{\kern0pt}\ y{\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ vyx{\isacharparenright}{\kern0pt}}\\
+&\;\overset{(L\ref{completes_Tms})}{\isa{{\isasymturnstile}{\isacharasterisk}{\kern0pt}}\ }
+  \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}X\ {\isasymrightarrow}\ v\ {\isasymcdot}\ {\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}u\ {\isasymcdot}\ Nt\ X\ {\isacharhash}{\kern0pt}\ y{\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ yx{\isacharparenright}{\kern0pt}}\\
+&\;\isa{{\isasymturnstile}\isactrlsub R\ {\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}u{\isacharbrackleft}{\kern0pt}Nt\ X{\isacharbrackright}{\kern0pt}\ {\isasymcdot}\ y{\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ yx{\isacharparenright}{\kern0pt}}\\
+&\;\overset{(L\ref{completes_Tms})}{\isa{{\isasymturnstile}{\isacharasterisk}{\kern0pt}}\ }
+  \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}u{\isacharbrackleft}{\kern0pt}Nt\ X{\isacharbrackright}{\kern0pt}y\ {\isasymcdot}\ {\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ x{\isacharparenright}{\kern0pt}} 
+\overset{(\ref{d_imp_c.b_decomp(1)}, \ref{d_imp_c.d1u_d2y})}{=\ } \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}{\isasymbeta}\ {\isasymcdot}\ {\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ x{\isacharparenright}{\kern0pt}}
+\end{align*}
+
+Therefore, the implication holds.\par
+
+Otherwise, if \isa{m\ {\isacharequal}{\kern0pt}\ Suc\ m{\isacharprime}{\kern0pt}} for some \isa{m{\isacharprime}{\kern0pt}}, the derivation \isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ \isafree{{\isasymbeta}{\isacharprime}{\kern0pt}}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}\isafree{m}{\isacharparenright}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{v}} can 
+be decomposed as we did before: there exist \isa{{\isasymxi}\isactrlsub {\isadigit{1}}{\isacharcomma}{\kern0pt}\ {\isasymxi}\isactrlsub {\isadigit{2}}\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ syms}, \isa{Y\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}n}, \isa{u{\isacharprime}{\kern0pt}{\isacharcomma}{\kern0pt}\ v{\isacharprime}{\kern0pt}{\isacharcomma}{\kern0pt}\ y{\isacharprime}{\kern0pt}\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}t\ list}, 
+and \isa{i{\isacharprime}{\kern0pt}{\isacharcomma}{\kern0pt}\ j{\isacharprime}{\kern0pt}{\isacharcomma}{\kern0pt}\ k{\isacharprime}{\kern0pt}\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ nat} such that:
+
+\begin{subequations}
+\begin{gather}
+\isa{\isafree{{\isasymbeta}{\isacharprime}{\kern0pt}}\ {\isacharequal}{\kern0pt}\ \isafree{{\isasymxi}\isactrlsub {\isadigit{1}}}\ {\isacharat}{\kern0pt}\ \isaconst{Nt}\ \isafree{Y}\ {\isacharhash}{\kern0pt}\ \isafree{{\isasymxi}\isactrlsub {\isadigit{2}}}}\label{d_imp_c.b'_decomp(1)}\\
+\isa{\isafree{v}\ {\isacharequal}{\kern0pt}\ \isafree{u{\isacharprime}{\kern0pt}}\ {\isacharat}{\kern0pt}\ \isafree{v{\isacharprime}{\kern0pt}}\ {\isacharat}{\kern0pt}\ \isafree{y{\isacharprime}{\kern0pt}}}\label{d_imp_c.b'_decomp(2)}\\
+\isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ \isafree{{\isasymxi}\isactrlsub {\isadigit{1}}}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}\isafree{i{\isacharprime}{\kern0pt}}{\isacharparenright}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{u{\isacharprime}{\kern0pt}}}\\
+\isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isafree{Y}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}\isafree{j{\isacharprime}{\kern0pt}}{\isacharparenright}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{v{\isacharprime}{\kern0pt}}}\\
+\isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ \isafree{{\isasymxi}\isactrlsub {\isadigit{2}}}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}\isafree{k{\isacharprime}{\kern0pt}}{\isacharparenright}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{y{\isacharprime}{\kern0pt}}}\\
+\isa{\isafree{i{\isacharprime}{\kern0pt}}\ {\isacharplus}{\kern0pt}\ \isafree{j{\isacharprime}{\kern0pt}}\ {\isacharplus}{\kern0pt}\ \isafree{k{\isacharprime}{\kern0pt}}\ {\isacharequal}{\kern0pt}\ \isafree{m}}
+\end{gather}
+\end{subequations}
+
+This in turn implies that \isa{\isafree{i{\isacharprime}{\kern0pt}}\ {\isacharless}{\kern0pt}\ \isafree{n}}, \isa{\isafree{j{\isacharprime}{\kern0pt}}\ {\isacharless}{\kern0pt}\ \isafree{n}} and \isa{\isafree{k{\isacharprime}{\kern0pt}}\ {\isacharless}{\kern0pt}\ \isafree{n}}, and once again,
+\isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isafree{Y}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}\isafree{j{\isacharprime}{\kern0pt}}{\isacharparenright}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{v{\isacharprime}{\kern0pt}}} implies that \isa{{\isadigit{0}}\ {\isacharless}{\kern0pt}\ \isafree{j{\isacharprime}{\kern0pt}}}, i.e., 
+\isa{\isafree{j{\isacharprime}{\kern0pt}}\ {\isacharequal}{\kern0pt}\ \isaconst{Suc}\ \isafree{j{\isacharprime}{\kern0pt}{\isacharprime}{\kern0pt}}} for some \isa{j{\isacharprime}{\kern0pt}{\isacharprime}{\kern0pt}}, meaning this derivation of \isa{v{\isacharprime}{\kern0pt}} is of the form 
+
+\begin{equation}\label{eq:d_imp_c.stepj''}
+\isa{Prods\ G{\isacharprime}{\kern0pt}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}Nt\ Y{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}\ {\isasymgamma}{\isacharprime}{\kern0pt}\ {\isasymRightarrow}{\isacharparenleft}{\kern0pt}j{\isacharprime}{\kern0pt}{\isacharprime}{\kern0pt}{\isacharparenright}{\kern0pt}\ map\ Tm\ v{\isacharprime}{\kern0pt}} \mathrm{\ for\ some\ } \isa{{\isasymgamma}{\isacharprime}{\kern0pt}\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ syms}
+\end{equation}
+
+Since \isa{\isafree{i{\isacharprime}{\kern0pt}}\ {\isacharless}{\kern0pt}\ \isafree{n}}, \isa{\isafree{j{\isacharprime}{\kern0pt}{\isacharprime}{\kern0pt}}\ {\isacharless}{\kern0pt}\ \isafree{n}} and \isa{\isafree{k{\isacharprime}{\kern0pt}}\ {\isacharless}{\kern0pt}\ \isafree{n}}, we can use the Induction Hypothesis
+(IH) on these derivations. We therefore have: 
+
+\begin{align*}
+&\isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}}\ {\isasymcdot}\ \isafree{{\isasymbeta}}\ {\isacharat}{\kern0pt}\ \isafree{{\isasymgamma}}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ \isafree{{\isasymrho}}{\isacharcomma}{\kern0pt}\ \isafree{wx}{\isacharparenright}{\kern0pt}}\\
+&\;\overset{(\ref{d_imp_c.b_decomp(1)}, \ref{d_imp_c.b_decomp(2)}, \ref{d_imp_c.d1u_d2y})}{=\ }
+  \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}\ {\isasymcdot}\ u\ {\isacharat}{\kern0pt}\ Nt\ X\ {\isacharhash}{\kern0pt}\ y{\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ uvyx{\isacharparenright}{\kern0pt}}\\
+&\;\overset{(L\ref{completes_Tms})}{\isa{{\isasymturnstile}{\isacharasterisk}{\kern0pt}}\ } \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}u\ {\isasymcdot}\ Nt\ X\ {\isacharhash}{\kern0pt}\ y{\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ vyx{\isacharparenright}{\kern0pt}}\\
+&\;\overset{(\ref{eq:d_imp_c.stepm})}{\isa{{\isasymturnstile}\isactrlsub E}\ } \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}X\ {\isasymrightarrow}\ {\isasymcdot}\ {\isasymbeta}{\isacharprime}{\kern0pt}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}u\ {\isasymcdot}\ Nt\ X\ {\isacharhash}{\kern0pt}\ y{\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ vyx{\isacharparenright}{\kern0pt}}\\
+&\;\overset{(\ref{d_imp_c.b'_decomp(1)}, \ref{d_imp_c.b'_decomp(2)})}{=\ }
+  \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}X\ {\isasymrightarrow}\ {\isasymcdot}\ {\isasymxi}\isactrlsub {\isadigit{1}}\ {\isacharat}{\kern0pt}\ Nt\ Y\ {\isacharhash}{\kern0pt}\ {\isasymxi}\isactrlsub {\isadigit{2}}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}u\ {\isasymcdot}\ Nt\ X\ {\isacharhash}{\kern0pt}\ y{\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ u{\isacharprime}{\kern0pt}v{\isacharprime}{\kern0pt}y{\isacharprime}{\kern0pt}yx{\isacharparenright}{\kern0pt}}\\
+&\;\overset{(IH)}{\isa{{\isasymturnstile}{\isacharasterisk}{\kern0pt}}\ } \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}X\ {\isasymrightarrow}\ {\isasymxi}\isactrlsub {\isadigit{1}}\ {\isasymcdot}\ Nt\ Y\ {\isacharhash}{\kern0pt}\ {\isasymxi}\isactrlsub {\isadigit{2}}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}u\ {\isasymcdot}\ Nt\ X\ {\isacharhash}{\kern0pt}\ y{\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ v{\isacharprime}{\kern0pt}y{\isacharprime}{\kern0pt}yx{\isacharparenright}{\kern0pt}}\\
+&\;\overset{(\ref{eq:d_imp_c.stepj''})}{\isa{{\isasymturnstile}\isactrlsub E}\ } 
+  \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}Y\ {\isasymrightarrow}\ {\isasymcdot}\ {\isasymgamma}{\isacharprime}{\kern0pt}{\isacharbrackright}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}X\ {\isasymrightarrow}\ {\isasymxi}\isactrlsub {\isadigit{1}}\ {\isasymcdot}\ Nt\ Y\ {\isacharhash}{\kern0pt}\ {\isasymxi}\isactrlsub {\isadigit{2}}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}u\ {\isasymcdot}\ Nt\ X\ {\isacharhash}{\kern0pt}\ y{\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ v{\isacharprime}{\kern0pt}y{\isacharprime}{\kern0pt}yx{\isacharparenright}{\kern0pt}}\\
+&\;\overset{(IH)}{\isa{{\isasymturnstile}{\isacharasterisk}{\kern0pt}}\ } \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}Y\ {\isasymrightarrow}\ {\isasymgamma}{\isacharprime}{\kern0pt}\ {\isasymcdot}{\isacharbrackright}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}X\ {\isasymrightarrow}\ {\isasymxi}\isactrlsub {\isadigit{1}}\ {\isasymcdot}\ Nt\ Y\ {\isacharhash}{\kern0pt}\ {\isasymxi}\isactrlsub {\isadigit{2}}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}u\ {\isasymcdot}\ Nt\ X\ {\isacharhash}{\kern0pt}\ y{\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ y{\isacharprime}{\kern0pt}yx{\isacharparenright}{\kern0pt}}\\
+&\; \isa{{\isasymturnstile}\isactrlsub R\ {\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}X\ {\isasymrightarrow}\ {\isasymxi}\isactrlsub {\isadigit{1}}{\isacharbrackleft}{\kern0pt}Nt\ Y{\isacharbrackright}{\kern0pt}\ {\isasymcdot}\ {\isasymxi}\isactrlsub {\isadigit{2}}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}u\ {\isasymcdot}\ Nt\ X\ {\isacharhash}{\kern0pt}\ y{\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ y{\isacharprime}{\kern0pt}yx{\isacharparenright}{\kern0pt}}\\
+&\;\overset{(IH)}{\isa{{\isasymturnstile}{\isacharasterisk}{\kern0pt}}\ } \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}X\ {\isasymrightarrow}\ {\isasymxi}\isactrlsub {\isadigit{1}}{\isacharbrackleft}{\kern0pt}Nt\ Y{\isacharbrackright}{\kern0pt}{\isasymxi}\isactrlsub {\isadigit{2}}\ {\isasymcdot}\ {\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}u\ {\isasymcdot}\ Nt\ X\ {\isacharhash}{\kern0pt}\ y{\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ yx{\isacharparenright}{\kern0pt}}\\
+&\; \isa{{\isasymturnstile}\isactrlsub R\ {\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}u{\isacharbrackleft}{\kern0pt}Nt\ X{\isacharbrackright}{\kern0pt}\ {\isasymcdot}\ y{\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ yx{\isacharparenright}{\kern0pt}}\\
+&\;\overset{(L\ref{completes_Tms})}{\isa{{\isasymturnstile}{\isacharasterisk}{\kern0pt}}\ }
+  \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}u{\isacharbrackleft}{\kern0pt}Nt\ X{\isacharbrackright}{\kern0pt}y\ {\isasymcdot}\ {\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ x{\isacharparenright}{\kern0pt}} 
+\overset{(\ref{d_imp_c.b_decomp(1)}, \ref{d_imp_c.d1u_d2y})}{=\ } \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}{\isasymbeta}\ {\isasymcdot}\ {\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ x{\isacharparenright}{\kern0pt}}
+\end{align*}
+
+Therefore, the implication also holds in the case where \isa{\isafree{j}\ {\isacharequal}{\kern0pt}\ \isafree{n}}. We now consider the case 
+where \isa{\isafree{j}\ {\isasymnoteq}\ \isafree{n}}:\par
+
+With \isa{\isafree{n}\ {\isacharequal}{\kern0pt}\ \isafree{i}\ {\isacharplus}{\kern0pt}\ \isafree{j}\ {\isacharplus}{\kern0pt}\ \isafree{k}} and \isa{{\isadigit{0}}\ {\isacharless}{\kern0pt}\ \isafree{j}}, we know that \isa{\isafree{i}\ {\isacharless}{\kern0pt}\ \isafree{n}}, \isa{\isafree{j}\ {\isacharless}{\kern0pt}\ \isafree{n}}, and
+\isa{\isafree{k}\ {\isacharless}{\kern0pt}\ \isafree{n}} all hold. Therefore, we can use the IH for each of the derivations in the 
+decomposition:
+
+\begin{align*}
+&\isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}}\ {\isasymcdot}\ \isafree{{\isasymbeta}{\isasymgamma}}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ \isafree{{\isasymrho}}{\isacharcomma}{\kern0pt}\ \isafree{wx}{\isacharparenright}{\kern0pt}}\\
+&\;\isa{{\isacharequal}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}\ {\isasymcdot}\ {\isasymdelta}\isactrlsub {\isadigit{1}}\ {\isacharat}{\kern0pt}\ Nt\ X\ {\isacharhash}{\kern0pt}\ {\isasymdelta}\isactrlsub {\isadigit{2}}{\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ uvyx{\isacharparenright}{\kern0pt}}\\
+&\;\overset{(IH)}{\isa{{\isasymturnstile}{\isacharasterisk}{\kern0pt}}\ } \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}{\isasymdelta}\isactrlsub {\isadigit{1}}\ {\isasymcdot}\ Nt\ X\ {\isacharhash}{\kern0pt}\ {\isasymdelta}\isactrlsub {\isadigit{2}}{\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ vyx{\isacharparenright}{\kern0pt}}\\
+&\;\overset{(IH)}{\isa{{\isasymturnstile}{\isacharasterisk}{\kern0pt}}\ } \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}{\isasymdelta}\isactrlsub {\isadigit{1}}\ {\isacharat}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}Nt\ X{\isacharbrackright}{\kern0pt}\ {\isasymcdot}\ {\isasymdelta}\isactrlsub {\isadigit{2}}{\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ yx{\isacharparenright}{\kern0pt}}\\
+&\;\overset{(IH)}{\isa{{\isasymturnstile}{\isacharasterisk}{\kern0pt}}\ } \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}{\isasymdelta}\isactrlsub {\isadigit{1}}{\isacharbrackleft}{\kern0pt}Nt\ X{\isacharbrackright}{\kern0pt}{\isasymdelta}\isactrlsub {\isadigit{2}}\ {\isasymcdot}\ {\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ x{\isacharparenright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}A\ {\isasymrightarrow}\ {\isasymalpha}{\isasymbeta}\ {\isasymcdot}\ {\isasymgamma}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ {\isasymrho}{\isacharcomma}{\kern0pt}\ x{\isacharparenright}{\kern0pt}}\\
+\end{align*}
+
+The implication thus holds for all cases and the proof is complete.
 \end{proof}
-\end{lemma}%
+\end{lemma}
+
+With this lemma we can finally prove the second direction in the language equivalence proof:
+
+\begin{lemma}\label{ipda.Lang_G_subst_Lang}
+\isa{\isaconst{LangS}\ \isafree{G}\ {\isasymsubseteq}\ \isaconst{Lang}\ \isaconst{I\isactrlsub G}}
+\begin{proof}
+Assume \isa{\isafree{w}\ {\isasymin}\ \isaconst{LangS}\ \isafree{G}}. Since \isa{\isaconst{Prods}\ \isafree{G}\ {\isasymsubseteq}\ \isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}}, this implies 
+\[ \isa{\isaconst{Prods}\ \isaconst{G{\isacharprime}{\kern0pt}}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S}{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}{\isacharasterisk}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{w}} \] by the monotonicity of derivations as proved by 
+Nipkow et al. With Lemma~\ref{derives_imp_completes} follows 
+\[ \isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isaconst{S{\isacharprime}{\kern0pt}}\ {\isasymrightarrow}\ \ {\isasymcdot}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S}{\isacharbrackright}{\kern0pt}\ {\isacharbrackright}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ \isafree{w}{\isacharparenright}{\kern0pt}\ {\isasymturnstile}{\isacharasterisk}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isaconst{S{\isacharprime}{\kern0pt}}\ {\isasymrightarrow}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isaconst{S}{\isacharbrackright}{\kern0pt}\ {\isasymcdot}\ {\isacharbrackright}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharcomma}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isacharparenright}{\kern0pt}} \] 
+
+This is equivalent to \isa{\isafree{w}\ {\isasymin}\ \isaconst{Lang}\ \isaconst{I\isactrlsub G}}.
+\end{proof}
+\end{lemma}
+
+And thus with Lemma~\ref{ipda.Lang_subst_Lang_G}:
+
+\begin{theorem}\label{ipda.Lang_eq_Lang_G}
+\isa{\isaconst{Lang}\ \isaconst{I\isactrlsub G}\ {\isacharequal}{\kern0pt}\ \isaconst{LangS}\ \isafree{G}}
+\qed
+\end{theorem}
+
+We have now defined a nondeterministic GPDA that works with items and accepts exactly its underlying 
+language. As a final remark, it is worth pointing out that our proof differs somewhat from that of 
+Wilhelm et al. Rather than of Lemma~\ref{derives_imp_completes}, they prove a special case thereof, 
+namely the statement
+\begin{quote}
+For each derivation \isa{Prods\ G\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}Nt\ A{\isacharbrackright}{\kern0pt}\ {\isasymRightarrow}\ {\isasymalpha}\ {\isasymRightarrow}{\isacharasterisk}{\kern0pt}\ map\ Tm\ w}, 
+\mbox{\isa{{\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \ {\isasymcdot}\ \isafree{{\isasymalpha}}\ {\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ \isafree{{\isasymrho}}{\isacharcomma}{\kern0pt}\ \isafree{w}\ {\isacharat}{\kern0pt}\ \isafree{v}{\isacharparenright}{\kern0pt}\ {\isasymturnstile}{\isacharasterisk}{\kern0pt}\ {\isacharparenleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}}\ {\isasymcdot}\ {\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ \isafree{{\isasymrho}}{\isacharcomma}{\kern0pt}\ \isafree{v}{\isacharparenright}{\kern0pt}}} for arbitrary \isa{{\isasymrho}\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ item\ list} and 
+\isa{v\ {\isacharcolon}{\kern0pt}{\isacharcolon}{\kern0pt}\ {\isacharprime}{\kern0pt}t\ list}.
+\end{quote}
+
+However, this statement is too weak, as we will soon need the stronger lemma we have proved instead.%
 \end{isamarkuptext}\isamarkuptrue%
 %
 \isadelimdocument
@@ -772,6 +902,24 @@ we have:
 \isamarkupsection{The Characteristic Finite Automaton and the Canonical LR(0) Automaton%
 }
 \isamarkuptrue%
+%
+\endisatagdocument
+{\isafolddocument}%
+%
+\isadelimdocument
+%
+\endisadelimdocument
+%
+\begin{isamarkuptext}%
+In this section, we will show the relation between rightmost derivations and the IPDA in more 
+detail, as well as the define finite automata that the canonical LR(0) parser will operate with.%
+\end{isamarkuptext}\isamarkuptrue%
+%
+\isadelimdocument
+%
+\endisadelimdocument
+%
+\isatagdocument
 %
 \isamarkupsection{The Canonical LR(0) Parser%
 }
@@ -898,506 +1046,636 @@ we have:
 %:%174=122%:%
 %:%178=124%:%
 %:%182=125%:%
-%:%194=129%:%
-%:%195=130%:%
-%:%196=131%:%
-%:%197=132%:%
-%:%198=133%:%
-%:%199=134%:%
-%:%200=135%:%
-%:%201=136%:%
-%:%202=137%:%
-%:%203=138%:%
-%:%204=139%:%
-%:%205=140%:%
-%:%206=141%:%
-%:%207=142%:%
-%:%208=143%:%
-%:%209=144%:%
-%:%210=145%:%
-%:%211=146%:%
-%:%212=147%:%
-%:%213=148%:%
-%:%214=149%:%
-%:%215=150%:%
-%:%216=151%:%
-%:%217=152%:%
-%:%218=153%:%
-%:%219=154%:%
-%:%220=155%:%
-%:%221=156%:%
-%:%222=157%:%
-%:%223=158%:%
-%:%224=159%:%
-%:%225=160%:%
-%:%226=161%:%
-%:%227=162%:%
-%:%228=163%:%
-%:%229=164%:%
-%:%230=165%:%
-%:%231=166%:%
-%:%232=167%:%
-%:%233=168%:%
-%:%234=169%:%
-%:%235=170%:%
-%:%236=171%:%
-%:%237=172%:%
-%:%238=173%:%
-%:%242=180%:%
-%:%243=181%:%
-%:%244=182%:%
-%:%245=183%:%
-%:%246=184%:%
-%:%247=185%:%
-%:%248=186%:%
-%:%249=187%:%
-%:%250=188%:%
-%:%251=189%:%
-%:%252=190%:%
-%:%253=191%:%
-%:%254=192%:%
-%:%255=193%:%
-%:%256=194%:%
-%:%257=195%:%
-%:%258=196%:%
-%:%259=197%:%
-%:%260=198%:%
-%:%261=199%:%
-%:%262=200%:%
-%:%263=201%:%
-%:%264=202%:%
-%:%265=203%:%
-%:%266=204%:%
-%:%267=205%:%
-%:%271=211%:%
-%:%272=212%:%
-%:%273=213%:%
-%:%274=214%:%
-%:%275=215%:%
-%:%276=216%:%
-%:%277=217%:%
-%:%278=218%:%
-%:%279=219%:%
-%:%280=220%:%
-%:%281=221%:%
-%:%282=222%:%
-%:%283=223%:%
-%:%284=224%:%
-%:%285=225%:%
-%:%286=226%:%
-%:%287=227%:%
-%:%288=228%:%
-%:%289=229%:%
-%:%293=236%:%
-%:%294=237%:%
-%:%295=238%:%
-%:%296=239%:%
-%:%297=240%:%
-%:%298=241%:%
-%:%299=242%:%
-%:%300=243%:%
-%:%301=244%:%
-%:%302=245%:%
-%:%303=246%:%
-%:%304=247%:%
-%:%305=248%:%
-%:%306=249%:%
-%:%307=250%:%
-%:%308=251%:%
-%:%309=252%:%
-%:%310=253%:%
-%:%311=254%:%
-%:%312=255%:%
-%:%313=256%:%
-%:%314=257%:%
-%:%315=258%:%
-%:%316=259%:%
-%:%317=260%:%
-%:%318=261%:%
-%:%319=262%:%
-%:%320=263%:%
-%:%321=264%:%
-%:%322=265%:%
-%:%323=266%:%
-%:%324=267%:%
-%:%325=268%:%
-%:%326=269%:%
-%:%327=270%:%
-%:%328=271%:%
-%:%329=272%:%
-%:%330=273%:%
-%:%331=274%:%
-%:%332=275%:%
-%:%333=276%:%
-%:%334=277%:%
-%:%335=278%:%
-%:%336=279%:%
-%:%337=280%:%
-%:%338=281%:%
-%:%339=282%:%
-%:%340=283%:%
-%:%341=284%:%
-%:%342=285%:%
-%:%343=286%:%
-%:%344=287%:%
-%:%345=288%:%
-%:%346=289%:%
-%:%347=290%:%
-%:%348=291%:%
-%:%349=292%:%
-%:%350=293%:%
-%:%351=294%:%
-%:%352=295%:%
-%:%353=296%:%
-%:%354=297%:%
-%:%355=298%:%
-%:%356=299%:%
-%:%357=300%:%
-%:%358=301%:%
-%:%367=303%:%
-%:%379=305%:%
-%:%380=306%:%
-%:%381=307%:%
-%:%382=308%:%
-%:%383=309%:%
-%:%384=310%:%
-%:%385=311%:%
-%:%386=312%:%
-%:%387=313%:%
-%:%388=314%:%
-%:%389=315%:%
-%:%390=316%:%
-%:%391=317%:%
-%:%392=318%:%
-%:%393=319%:%
-%:%394=320%:%
-%:%395=321%:%
-%:%396=322%:%
-%:%397=323%:%
-%:%398=324%:%
-%:%399=325%:%
-%:%400=326%:%
-%:%401=327%:%
-%:%402=328%:%
-%:%403=329%:%
-%:%404=330%:%
-%:%405=331%:%
-%:%406=332%:%
-%:%407=333%:%
-%:%408=334%:%
-%:%409=335%:%
-%:%410=336%:%
-%:%411=337%:%
-%:%412=338%:%
-%:%413=339%:%
-%:%414=340%:%
-%:%415=341%:%
-%:%416=342%:%
-%:%417=343%:%
-%:%418=344%:%
-%:%419=345%:%
-%:%420=346%:%
-%:%421=347%:%
-%:%422=348%:%
-%:%423=349%:%
-%:%424=350%:%
-%:%425=351%:%
-%:%426=352%:%
-%:%427=353%:%
-%:%428=354%:%
-%:%429=355%:%
-%:%430=356%:%
-%:%431=357%:%
-%:%432=358%:%
-%:%433=359%:%
-%:%434=360%:%
-%:%435=361%:%
-%:%436=362%:%
-%:%437=363%:%
-%:%438=364%:%
-%:%439=365%:%
-%:%440=366%:%
-%:%444=367%:%
-%:%445=368%:%
-%:%446=369%:%
-%:%447=370%:%
-%:%448=371%:%
-%:%457=373%:%
-%:%469=381%:%
-%:%470=382%:%
-%:%471=383%:%
-%:%472=384%:%
-%:%473=385%:%
-%:%474=386%:%
-%:%475=387%:%
-%:%476=388%:%
-%:%477=389%:%
-%:%478=390%:%
-%:%479=391%:%
-%:%480=392%:%
-%:%481=393%:%
-%:%482=394%:%
-%:%483=395%:%
-%:%484=396%:%
-%:%485=397%:%
-%:%486=398%:%
-%:%487=399%:%
-%:%488=400%:%
-%:%489=401%:%
-%:%490=402%:%
-%:%491=403%:%
-%:%492=404%:%
-%:%493=405%:%
-%:%494=406%:%
-%:%495=407%:%
-%:%496=408%:%
-%:%497=409%:%
-%:%498=410%:%
-%:%499=411%:%
-%:%500=412%:%
-%:%501=413%:%
-%:%502=414%:%
-%:%507=415%:%
-%:%508=416%:%
-%:%509=417%:%
-%:%510=418%:%
-%:%511=419%:%
-%:%512=420%:%
-%:%513=421%:%
-%:%514=422%:%
-%:%515=423%:%
-%:%516=424%:%
-%:%517=425%:%
-%:%518=426%:%
-%:%519=427%:%
-%:%520=428%:%
-%:%521=429%:%
-%:%522=430%:%
-%:%523=431%:%
-%:%524=432%:%
-%:%525=433%:%
-%:%534=435%:%
-%:%546=456%:%
-%:%547=457%:%
-%:%548=458%:%
-%:%549=459%:%
-%:%550=460%:%
-%:%551=461%:%
-%:%552=462%:%
-%:%553=463%:%
-%:%554=465%:%
-%:%555=466%:%
-%:%556=467%:%
-%:%557=468%:%
-%:%558=469%:%
-%:%559=470%:%
-%:%560=471%:%
-%:%561=473%:%
-%:%562=474%:%
-%:%563=475%:%
-%:%564=476%:%
-%:%565=477%:%
-%:%566=478%:%
-%:%567=479%:%
-%:%567=480%:%
-%:%568=481%:%
-%:%569=482%:%
-%:%569=483%:%
-%:%570=484%:%
-%:%571=485%:%
-%:%572=486%:%
-%:%573=487%:%
-%:%574=488%:%
-%:%575=489%:%
-%:%576=490%:%
-%:%577=491%:%
-%:%578=492%:%
-%:%579=493%:%
-%:%580=494%:%
-%:%581=495%:%
-%:%582=496%:%
-%:%583=497%:%
-%:%584=498%:%
-%:%585=499%:%
-%:%586=500%:%
-%:%587=501%:%
-%:%588=502%:%
-%:%589=503%:%
-%:%590=504%:%
-%:%591=505%:%
-%:%592=506%:%
-%:%593=507%:%
-%:%594=508%:%
-%:%595=509%:%
-%:%596=510%:%
-%:%597=511%:%
-%:%598=512%:%
-%:%599=513%:%
-%:%600=514%:%
-%:%601=515%:%
-%:%602=516%:%
-%:%603=517%:%
-%:%604=518%:%
-%:%605=519%:%
-%:%606=520%:%
-%:%607=521%:%
-%:%608=522%:%
-%:%609=523%:%
-%:%610=524%:%
-%:%611=525%:%
-%:%612=526%:%
-%:%613=527%:%
-%:%614=528%:%
-%:%615=529%:%
-%:%616=530%:%
-%:%617=531%:%
-%:%618=532%:%
-%:%619=533%:%
-%:%620=534%:%
-%:%621=535%:%
-%:%622=536%:%
-%:%623=537%:%
-%:%624=538%:%
-%:%625=539%:%
-%:%626=540%:%
-%:%627=541%:%
-%:%628=542%:%
-%:%629=543%:%
-%:%630=544%:%
-%:%631=545%:%
-%:%632=546%:%
-%:%633=547%:%
-%:%634=548%:%
-%:%635=549%:%
-%:%636=550%:%
-%:%637=551%:%
-%:%638=552%:%
-%:%639=553%:%
-%:%640=554%:%
-%:%641=555%:%
-%:%642=556%:%
-%:%643=557%:%
-%:%644=558%:%
-%:%645=559%:%
-%:%646=560%:%
-%:%647=561%:%
-%:%648=562%:%
-%:%649=563%:%
-%:%650=564%:%
-%:%651=565%:%
-%:%652=566%:%
-%:%653=567%:%
-%:%654=568%:%
-%:%655=569%:%
-%:%656=570%:%
-%:%657=571%:%
-%:%658=572%:%
-%:%659=573%:%
-%:%660=574%:%
-%:%661=575%:%
-%:%662=576%:%
-%:%663=577%:%
-%:%664=578%:%
-%:%665=579%:%
-%:%666=580%:%
-%:%667=581%:%
-%:%668=582%:%
-%:%669=583%:%
-%:%670=584%:%
-%:%671=585%:%
-%:%672=586%:%
-%:%673=587%:%
-%:%674=588%:%
-%:%675=589%:%
-%:%676=590%:%
-%:%677=591%:%
-%:%678=592%:%
-%:%679=593%:%
-%:%680=594%:%
-%:%681=595%:%
-%:%682=596%:%
-%:%683=597%:%
-%:%684=598%:%
-%:%685=599%:%
-%:%686=600%:%
-%:%687=601%:%
-%:%688=602%:%
-%:%689=603%:%
-%:%690=604%:%
-%:%691=605%:%
-%:%692=606%:%
-%:%693=607%:%
-%:%694=608%:%
-%:%695=609%:%
-%:%696=610%:%
-%:%697=611%:%
-%:%698=612%:%
-%:%699=613%:%
-%:%700=614%:%
-%:%701=615%:%
-%:%702=616%:%
-%:%703=617%:%
-%:%704=618%:%
-%:%705=619%:%
-%:%706=620%:%
-%:%707=621%:%
-%:%708=622%:%
-%:%709=623%:%
-%:%710=624%:%
-%:%711=625%:%
-%:%712=626%:%
-%:%713=627%:%
-%:%714=628%:%
-%:%715=629%:%
-%:%716=630%:%
-%:%717=631%:%
-%:%718=632%:%
-%:%719=633%:%
-%:%720=634%:%
-%:%721=635%:%
-%:%722=636%:%
-%:%723=637%:%
-%:%724=638%:%
-%:%725=639%:%
-%:%726=640%:%
-%:%727=641%:%
-%:%728=642%:%
-%:%729=643%:%
-%:%730=644%:%
-%:%731=645%:%
-%:%732=646%:%
-%:%733=647%:%
-%:%734=648%:%
-%:%735=649%:%
-%:%736=650%:%
-%:%737=651%:%
-%:%738=652%:%
-%:%739=653%:%
-%:%740=654%:%
-%:%741=655%:%
-%:%742=656%:%
-%:%743=657%:%
-%:%744=658%:%
-%:%745=659%:%
-%:%746=660%:%
-%:%747=661%:%
-%:%748=662%:%
-%:%749=663%:%
-%:%750=664%:%
-%:%751=665%:%
-%:%752=666%:%
-%:%753=667%:%
-%:%754=668%:%
-%:%755=669%:%
-%:%756=670%:%
-%:%757=671%:%
-%:%758=672%:%
-%:%759=673%:%
-%:%760=674%:%
-%:%761=675%:%
-%:%762=676%:%
-%:%763=677%:%
-%:%772=679%:%
-%:%776=680%:%
-%:%780=682%:%
-%:%784=683%:%
+%:%194=127%:%
+%:%195=128%:%
+%:%196=129%:%
+%:%197=130%:%
+%:%198=131%:%
+%:%199=132%:%
+%:%200=133%:%
+%:%201=134%:%
+%:%202=135%:%
+%:%203=136%:%
+%:%204=137%:%
+%:%205=138%:%
+%:%206=139%:%
+%:%207=140%:%
+%:%208=141%:%
+%:%209=142%:%
+%:%210=143%:%
+%:%211=144%:%
+%:%212=145%:%
+%:%213=146%:%
+%:%214=147%:%
+%:%215=148%:%
+%:%216=149%:%
+%:%217=150%:%
+%:%218=151%:%
+%:%219=152%:%
+%:%220=153%:%
+%:%221=154%:%
+%:%222=155%:%
+%:%223=156%:%
+%:%224=157%:%
+%:%225=158%:%
+%:%226=159%:%
+%:%227=160%:%
+%:%228=161%:%
+%:%229=162%:%
+%:%230=163%:%
+%:%231=164%:%
+%:%232=165%:%
+%:%233=166%:%
+%:%234=167%:%
+%:%235=168%:%
+%:%236=169%:%
+%:%237=170%:%
+%:%238=171%:%
+%:%242=178%:%
+%:%243=179%:%
+%:%244=180%:%
+%:%245=181%:%
+%:%246=182%:%
+%:%247=183%:%
+%:%248=184%:%
+%:%249=185%:%
+%:%250=186%:%
+%:%251=187%:%
+%:%252=188%:%
+%:%253=189%:%
+%:%254=190%:%
+%:%255=191%:%
+%:%256=192%:%
+%:%257=193%:%
+%:%258=194%:%
+%:%259=195%:%
+%:%260=196%:%
+%:%261=197%:%
+%:%262=198%:%
+%:%263=199%:%
+%:%264=200%:%
+%:%265=201%:%
+%:%266=202%:%
+%:%267=203%:%
+%:%271=209%:%
+%:%272=210%:%
+%:%273=211%:%
+%:%274=212%:%
+%:%275=213%:%
+%:%276=214%:%
+%:%277=215%:%
+%:%278=216%:%
+%:%279=217%:%
+%:%280=218%:%
+%:%281=219%:%
+%:%282=220%:%
+%:%283=221%:%
+%:%284=222%:%
+%:%285=223%:%
+%:%286=224%:%
+%:%287=225%:%
+%:%288=226%:%
+%:%289=227%:%
+%:%293=234%:%
+%:%294=235%:%
+%:%295=236%:%
+%:%296=237%:%
+%:%297=238%:%
+%:%298=239%:%
+%:%299=240%:%
+%:%300=241%:%
+%:%301=242%:%
+%:%302=243%:%
+%:%303=244%:%
+%:%304=245%:%
+%:%305=246%:%
+%:%306=247%:%
+%:%307=248%:%
+%:%308=249%:%
+%:%309=250%:%
+%:%310=251%:%
+%:%311=252%:%
+%:%312=253%:%
+%:%313=254%:%
+%:%314=255%:%
+%:%315=256%:%
+%:%316=257%:%
+%:%317=258%:%
+%:%318=259%:%
+%:%319=260%:%
+%:%320=261%:%
+%:%321=262%:%
+%:%322=263%:%
+%:%323=264%:%
+%:%324=265%:%
+%:%325=266%:%
+%:%326=267%:%
+%:%327=268%:%
+%:%328=269%:%
+%:%329=270%:%
+%:%330=271%:%
+%:%331=272%:%
+%:%332=273%:%
+%:%333=274%:%
+%:%334=275%:%
+%:%335=276%:%
+%:%336=277%:%
+%:%337=278%:%
+%:%338=279%:%
+%:%339=280%:%
+%:%340=281%:%
+%:%341=282%:%
+%:%342=283%:%
+%:%343=284%:%
+%:%344=285%:%
+%:%345=286%:%
+%:%346=287%:%
+%:%347=288%:%
+%:%348=289%:%
+%:%349=290%:%
+%:%350=291%:%
+%:%351=292%:%
+%:%352=293%:%
+%:%353=294%:%
+%:%354=295%:%
+%:%355=296%:%
+%:%356=297%:%
+%:%357=298%:%
+%:%358=299%:%
+%:%367=301%:%
+%:%379=303%:%
+%:%380=304%:%
+%:%381=305%:%
+%:%382=306%:%
+%:%383=307%:%
+%:%384=308%:%
+%:%385=309%:%
+%:%386=310%:%
+%:%387=311%:%
+%:%388=312%:%
+%:%389=313%:%
+%:%390=314%:%
+%:%391=315%:%
+%:%392=316%:%
+%:%393=317%:%
+%:%394=318%:%
+%:%395=319%:%
+%:%396=320%:%
+%:%397=321%:%
+%:%398=322%:%
+%:%399=323%:%
+%:%400=324%:%
+%:%401=325%:%
+%:%402=326%:%
+%:%403=327%:%
+%:%404=328%:%
+%:%405=329%:%
+%:%406=330%:%
+%:%407=331%:%
+%:%408=332%:%
+%:%409=333%:%
+%:%410=334%:%
+%:%411=335%:%
+%:%412=336%:%
+%:%413=337%:%
+%:%414=338%:%
+%:%415=339%:%
+%:%416=340%:%
+%:%417=341%:%
+%:%418=342%:%
+%:%419=343%:%
+%:%420=344%:%
+%:%421=345%:%
+%:%422=346%:%
+%:%423=347%:%
+%:%424=348%:%
+%:%425=349%:%
+%:%426=350%:%
+%:%427=351%:%
+%:%428=352%:%
+%:%429=353%:%
+%:%430=354%:%
+%:%431=355%:%
+%:%432=356%:%
+%:%433=357%:%
+%:%434=358%:%
+%:%435=359%:%
+%:%436=360%:%
+%:%437=361%:%
+%:%438=362%:%
+%:%439=363%:%
+%:%440=364%:%
+%:%444=365%:%
+%:%445=366%:%
+%:%446=367%:%
+%:%447=368%:%
+%:%448=369%:%
+%:%457=371%:%
+%:%469=379%:%
+%:%470=380%:%
+%:%471=381%:%
+%:%472=382%:%
+%:%473=383%:%
+%:%474=384%:%
+%:%475=385%:%
+%:%476=386%:%
+%:%477=387%:%
+%:%478=388%:%
+%:%479=389%:%
+%:%480=390%:%
+%:%481=391%:%
+%:%482=392%:%
+%:%483=393%:%
+%:%484=394%:%
+%:%485=395%:%
+%:%486=396%:%
+%:%487=397%:%
+%:%488=398%:%
+%:%489=399%:%
+%:%490=400%:%
+%:%491=401%:%
+%:%492=402%:%
+%:%493=403%:%
+%:%494=404%:%
+%:%495=405%:%
+%:%496=406%:%
+%:%497=407%:%
+%:%498=408%:%
+%:%499=409%:%
+%:%500=410%:%
+%:%501=411%:%
+%:%502=412%:%
+%:%507=413%:%
+%:%508=414%:%
+%:%509=415%:%
+%:%510=416%:%
+%:%511=417%:%
+%:%512=418%:%
+%:%513=419%:%
+%:%514=420%:%
+%:%515=421%:%
+%:%516=422%:%
+%:%517=423%:%
+%:%518=424%:%
+%:%519=425%:%
+%:%520=426%:%
+%:%521=427%:%
+%:%522=428%:%
+%:%523=429%:%
+%:%524=430%:%
+%:%525=431%:%
+%:%534=433%:%
+%:%546=454%:%
+%:%547=455%:%
+%:%548=456%:%
+%:%549=457%:%
+%:%550=458%:%
+%:%551=459%:%
+%:%552=460%:%
+%:%553=461%:%
+%:%554=463%:%
+%:%555=464%:%
+%:%556=465%:%
+%:%557=466%:%
+%:%558=467%:%
+%:%559=468%:%
+%:%560=469%:%
+%:%561=470%:%
+%:%562=471%:%
+%:%563=472%:%
+%:%564=473%:%
+%:%565=474%:%
+%:%566=475%:%
+%:%567=476%:%
+%:%568=477%:%
+%:%569=478%:%
+%:%570=479%:%
+%:%571=480%:%
+%:%572=481%:%
+%:%573=482%:%
+%:%574=483%:%
+%:%575=484%:%
+%:%576=485%:%
+%:%577=486%:%
+%:%578=487%:%
+%:%579=488%:%
+%:%580=489%:%
+%:%581=490%:%
+%:%582=491%:%
+%:%583=492%:%
+%:%584=493%:%
+%:%585=494%:%
+%:%586=495%:%
+%:%587=496%:%
+%:%588=497%:%
+%:%589=498%:%
+%:%590=499%:%
+%:%591=500%:%
+%:%592=501%:%
+%:%593=502%:%
+%:%594=503%:%
+%:%595=504%:%
+%:%596=505%:%
+%:%597=506%:%
+%:%598=507%:%
+%:%599=508%:%
+%:%600=509%:%
+%:%601=510%:%
+%:%602=511%:%
+%:%603=512%:%
+%:%604=513%:%
+%:%605=514%:%
+%:%606=515%:%
+%:%607=516%:%
+%:%608=517%:%
+%:%609=518%:%
+%:%610=519%:%
+%:%611=520%:%
+%:%612=521%:%
+%:%613=522%:%
+%:%614=523%:%
+%:%615=524%:%
+%:%616=525%:%
+%:%617=526%:%
+%:%618=527%:%
+%:%619=528%:%
+%:%620=529%:%
+%:%621=530%:%
+%:%622=531%:%
+%:%623=532%:%
+%:%624=533%:%
+%:%625=534%:%
+%:%626=535%:%
+%:%627=536%:%
+%:%628=537%:%
+%:%629=538%:%
+%:%630=539%:%
+%:%631=540%:%
+%:%632=541%:%
+%:%633=542%:%
+%:%634=543%:%
+%:%635=544%:%
+%:%636=545%:%
+%:%637=546%:%
+%:%638=547%:%
+%:%639=548%:%
+%:%640=549%:%
+%:%641=550%:%
+%:%642=551%:%
+%:%643=552%:%
+%:%644=553%:%
+%:%645=554%:%
+%:%646=555%:%
+%:%647=556%:%
+%:%648=557%:%
+%:%649=558%:%
+%:%650=559%:%
+%:%651=560%:%
+%:%652=561%:%
+%:%653=562%:%
+%:%654=563%:%
+%:%655=564%:%
+%:%656=565%:%
+%:%657=566%:%
+%:%658=567%:%
+%:%659=568%:%
+%:%660=569%:%
+%:%661=570%:%
+%:%662=571%:%
+%:%663=572%:%
+%:%664=573%:%
+%:%665=574%:%
+%:%666=575%:%
+%:%667=576%:%
+%:%668=577%:%
+%:%669=578%:%
+%:%670=579%:%
+%:%671=580%:%
+%:%672=581%:%
+%:%673=582%:%
+%:%674=583%:%
+%:%675=584%:%
+%:%676=585%:%
+%:%677=586%:%
+%:%678=587%:%
+%:%679=588%:%
+%:%680=589%:%
+%:%681=590%:%
+%:%682=591%:%
+%:%683=592%:%
+%:%684=593%:%
+%:%685=594%:%
+%:%686=595%:%
+%:%687=596%:%
+%:%688=597%:%
+%:%689=598%:%
+%:%690=599%:%
+%:%691=600%:%
+%:%692=601%:%
+%:%693=602%:%
+%:%694=603%:%
+%:%695=604%:%
+%:%696=605%:%
+%:%697=606%:%
+%:%698=607%:%
+%:%699=608%:%
+%:%700=609%:%
+%:%701=610%:%
+%:%702=611%:%
+%:%703=612%:%
+%:%704=613%:%
+%:%705=614%:%
+%:%706=615%:%
+%:%707=616%:%
+%:%708=617%:%
+%:%709=618%:%
+%:%710=619%:%
+%:%711=620%:%
+%:%712=621%:%
+%:%713=622%:%
+%:%714=623%:%
+%:%715=624%:%
+%:%716=625%:%
+%:%717=626%:%
+%:%718=627%:%
+%:%719=628%:%
+%:%720=629%:%
+%:%721=630%:%
+%:%722=631%:%
+%:%723=632%:%
+%:%724=633%:%
+%:%725=634%:%
+%:%726=635%:%
+%:%727=636%:%
+%:%728=637%:%
+%:%729=638%:%
+%:%730=639%:%
+%:%731=640%:%
+%:%732=641%:%
+%:%733=642%:%
+%:%734=643%:%
+%:%735=644%:%
+%:%736=645%:%
+%:%737=646%:%
+%:%738=647%:%
+%:%739=648%:%
+%:%740=649%:%
+%:%741=650%:%
+%:%742=651%:%
+%:%743=652%:%
+%:%744=653%:%
+%:%745=654%:%
+%:%746=655%:%
+%:%747=656%:%
+%:%748=657%:%
+%:%749=658%:%
+%:%750=659%:%
+%:%751=660%:%
+%:%752=661%:%
+%:%753=662%:%
+%:%754=663%:%
+%:%755=664%:%
+%:%756=665%:%
+%:%757=666%:%
+%:%758=667%:%
+%:%759=668%:%
+%:%760=669%:%
+%:%761=670%:%
+%:%762=671%:%
+%:%763=672%:%
+%:%764=673%:%
+%:%765=674%:%
+%:%766=675%:%
+%:%767=676%:%
+%:%768=677%:%
+%:%769=678%:%
+%:%770=679%:%
+%:%771=680%:%
+%:%772=681%:%
+%:%773=682%:%
+%:%774=683%:%
+%:%775=684%:%
+%:%776=685%:%
+%:%777=686%:%
+%:%778=687%:%
+%:%779=688%:%
+%:%780=689%:%
+%:%781=690%:%
+%:%782=691%:%
+%:%783=692%:%
+%:%784=693%:%
+%:%785=694%:%
+%:%786=695%:%
+%:%787=696%:%
+%:%788=697%:%
+%:%789=698%:%
+%:%790=699%:%
+%:%791=700%:%
+%:%792=701%:%
+%:%793=702%:%
+%:%794=703%:%
+%:%795=704%:%
+%:%796=705%:%
+%:%797=706%:%
+%:%798=707%:%
+%:%799=708%:%
+%:%800=709%:%
+%:%801=710%:%
+%:%802=711%:%
+%:%803=712%:%
+%:%804=713%:%
+%:%805=714%:%
+%:%806=715%:%
+%:%807=716%:%
+%:%808=717%:%
+%:%809=718%:%
+%:%810=719%:%
+%:%811=720%:%
+%:%812=721%:%
+%:%813=722%:%
+%:%814=723%:%
+%:%815=724%:%
+%:%816=725%:%
+%:%817=726%:%
+%:%818=727%:%
+%:%819=728%:%
+%:%820=729%:%
+%:%821=730%:%
+%:%822=731%:%
+%:%823=732%:%
+%:%824=733%:%
+%:%825=734%:%
+%:%826=735%:%
+%:%827=736%:%
+%:%828=737%:%
+%:%829=738%:%
+%:%830=739%:%
+%:%831=740%:%
+%:%832=741%:%
+%:%833=742%:%
+%:%834=743%:%
+%:%835=744%:%
+%:%836=745%:%
+%:%837=746%:%
+%:%838=747%:%
+%:%839=748%:%
+%:%840=749%:%
+%:%841=750%:%
+%:%842=751%:%
+%:%843=752%:%
+%:%844=753%:%
+%:%845=754%:%
+%:%846=755%:%
+%:%847=756%:%
+%:%848=757%:%
+%:%849=758%:%
+%:%850=759%:%
+%:%851=760%:%
+%:%852=761%:%
+%:%853=762%:%
+%:%854=763%:%
+%:%855=764%:%
+%:%856=765%:%
+%:%857=766%:%
+%:%858=767%:%
+%:%859=768%:%
+%:%860=769%:%
+%:%861=770%:%
+%:%862=771%:%
+%:%863=772%:%
+%:%864=773%:%
+%:%865=774%:%
+%:%866=775%:%
+%:%867=776%:%
+%:%868=777%:%
+%:%869=778%:%
+%:%870=779%:%
+%:%871=780%:%
+%:%872=781%:%
+%:%873=782%:%
+%:%874=783%:%
+%:%875=784%:%
+%:%876=785%:%
+%:%877=786%:%
+%:%878=787%:%
+%:%879=788%:%
+%:%880=789%:%
+%:%881=790%:%
+%:%882=791%:%
+%:%883=792%:%
+%:%884=793%:%
+%:%885=794%:%
+%:%886=795%:%
+%:%887=796%:%
+%:%888=797%:%
+%:%889=798%:%
+%:%890=799%:%
+%:%891=800%:%
+%:%892=801%:%
+%:%893=802%:%
+%:%902=804%:%
+%:%914=812%:%
+%:%915=813%:%
+%:%924=817%:%
+%:%928=819%:%
+%:%932=820%:%

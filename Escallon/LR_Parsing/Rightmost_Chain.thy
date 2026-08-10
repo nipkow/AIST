@@ -6,50 +6,51 @@ begin
 
 inductive rm_chain :: "('a, 'b) Prods \<Rightarrow> ('a, 'b) syms \<Rightarrow> ('a, 'b) item list \<Rightarrow> ('a, 'b) syms 
                             \<Rightarrow> bool" 
-   (\<open>_ \<Turnstile> _ \<Rightarrow>r* _ \<Rightarrow>r* _\<close> 30) for P where
-refl[intro]: "P \<Turnstile> \<alpha> \<Rightarrow>r* [] \<Rightarrow>r* \<alpha>" |
+   (\<open>_ \<turnstile> _ \<midarrow>_\<rightarrow>r* _\<close> 30) for P where
 
-step[intro]:  "\<lbrakk>P \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* \<rho> \<Rightarrow>r* \<alpha> @ Nt X # map Tm v; 
+refl[intro]: "P \<turnstile> \<alpha> \<midarrow>[]\<rightarrow>r* \<alpha>" |
+
+step[intro]:  "\<lbrakk>P \<turnstile> \<alpha>\<^sub>0 \<midarrow>\<rho>\<rightarrow>r* \<alpha> @ Nt X # map Tm v; 
     P \<turnstile> \<alpha> @ Nt X # map Tm v \<Rightarrow>r \<alpha> @ \<alpha>' @ Nt Y # \<beta> @ map Tm v; P \<turnstile> \<beta> \<Rightarrow>r* map Tm u\<rbrakk>
-    \<Longrightarrow> P \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* [X \<rightarrow> \<alpha>' \<cdot> Nt Y # \<beta>]#\<rho> \<Rightarrow>r* \<alpha> @ \<alpha>' @ Nt Y # map Tm u @ map Tm v"
+    \<Longrightarrow> P \<turnstile> \<alpha>\<^sub>0 \<midarrow>[X \<rightarrow> \<alpha>' \<cdot> Nt Y # \<beta>]#\<rho>\<rightarrow>r* \<alpha> @ \<alpha>' @ Nt Y # map Tm u @ map Tm v"
 
 
 lemma rm_chain_imp_eq_or_rsentential:
-  assumes "P \<Turnstile> \<alpha> \<Rightarrow>r* \<rho> \<Rightarrow>r* \<beta>"
+  assumes "P \<turnstile> \<alpha> \<midarrow>\<rho>\<rightarrow>r* \<beta>"
   shows "(\<alpha> = \<beta> \<and> \<rho> = []) \<or> (\<exists>\<gamma> X v. \<beta> = \<gamma> @ Nt X # map Tm v)"
   using assms by cases (simp, metis append.assoc map_append)
 
 lemma rm_chain_rsentential_imp_rsentential:
-  assumes "P \<Turnstile> \<alpha>\<^sub>0 @ Nt X # map Tm u \<Rightarrow>r* \<rho> \<Rightarrow>r* \<beta>"
+  assumes "P \<turnstile> \<alpha>\<^sub>0 @ Nt X # map Tm u \<midarrow>\<rho>\<rightarrow>r* \<beta>"
   obtains \<gamma> X v where "\<beta> = \<gamma> @ Nt X # map Tm v"
   using assms that by cases (blast, metis append.assoc map_append)
 
 lemma rm_chain_Tms_impossible[simp]:
-  assumes "P \<Turnstile> \<alpha> \<Rightarrow>r* [A \<rightarrow> x#xs \<cdot> map Tm u]#\<rho> \<Rightarrow>r* \<beta>"
+  assumes "P \<turnstile> \<alpha> \<midarrow>[A \<rightarrow> x#xs \<cdot> map Tm u]#\<rho>\<rightarrow>r* \<beta>"
   shows False
   using assms by cases auto
 
 lemma rm_chain_imp_Nt_hd[elim]:
-  assumes "P \<Turnstile> \<alpha> \<Rightarrow>r* [A \<rightarrow> \<alpha>' \<cdot> \<beta>]#\<rho> \<Rightarrow>r* \<gamma>"
+  assumes "P \<turnstile> \<alpha> \<midarrow>[A \<rightarrow> \<alpha>' \<cdot> \<beta>]#\<rho>\<rightarrow>r* \<gamma>"
   obtains B \<beta>' where "\<beta> = Nt B # \<beta>'"
   using assms by cases auto
 
-inductive_cases rm_chain_reflE[elim]: "P \<Turnstile> \<alpha> \<Rightarrow>r* [] \<Rightarrow>r* \<beta>"
-inductive_cases rm_chain_stepE[elim]: "P \<Turnstile> \<alpha> \<Rightarrow>r* [A \<rightarrow> \<alpha>' \<cdot> Nt B # \<beta>]#\<rho> \<Rightarrow>r* \<gamma>"
+inductive_cases rm_chain_reflE[elim]: "P \<turnstile> \<alpha> \<midarrow>[]\<rightarrow>r* \<beta>"
+inductive_cases rm_chain_stepE[elim]: "P \<turnstile> \<alpha> \<midarrow>[A \<rightarrow> \<alpha>' \<cdot> Nt B # \<beta>]#\<rho>\<rightarrow>r* \<gamma>"
 
 lemma rm_chain_imp_prod:
-  assumes "P \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* [A \<rightarrow> \<alpha> \<cdot> \<beta>]#\<rho> \<Rightarrow>r* \<gamma>"
+  assumes "P \<turnstile> \<alpha>\<^sub>0 \<midarrow>[A \<rightarrow> \<alpha> \<cdot> \<beta>]#\<rho>\<rightarrow>r* \<gamma>"
   shows "(A, \<alpha>@\<beta>) \<in> P"
   using assms syms_split_rightmost by cases (simp add: deriver_imp_in_Prods)
 
 
 lemma rm_chain_imp_prods:
-  assumes "P \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* \<rho> \<Rightarrow>r* \<gamma>"
+  assumes "P \<turnstile> \<alpha>\<^sub>0 \<midarrow>\<rho>\<rightarrow>r* \<gamma>"
   shows "\<forall>i \<in> set \<rho>. prod_of_item i \<in> P"
   using assms by induction (use rm_chain_imp_prod in fastforce)+
 
 lemma rm_chain_singleton_imp_eq:
-  assumes "P \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* [A \<rightarrow> \<alpha> \<cdot> Nt C # \<beta>]#\<rho> \<Rightarrow>r* \<gamma> @ Nt B # map Tm w"
+  assumes "P \<turnstile> \<alpha>\<^sub>0 \<midarrow>[A \<rightarrow> \<alpha> \<cdot> Nt C # \<beta>]#\<rho>\<rightarrow>r* \<gamma> @ Nt B # map Tm w"
   shows "C = B \<and> (\<exists>u v. w = u @ v \<and> P \<turnstile> \<beta> \<Rightarrow>r* map Tm u)"
   using assms proof cases
   case (step \<alpha>' v u)
@@ -61,14 +62,14 @@ qed
 
 lemma derive_singleton_imp_singleton_chain:
   assumes "P \<turnstile> [Nt A] \<Rightarrow> [Nt B]"
-  shows "P \<Turnstile> [Nt A] \<Rightarrow>r* [[A \<rightarrow> [] \<cdot> [Nt B]]] \<Rightarrow>r* [Nt B]"
+  shows "P \<turnstile> [Nt A] \<midarrow>[[A \<rightarrow> [] \<cdot> [Nt B]]]\<rightarrow>r* [Nt B]"
   using assms rm_chain.step[of P "[Nt A]" "[]" "[]" A "[]" "[]" B "[]" "[]"]
     by (simp add: derive_singleton deriver_singleton rm_chain.refl)
 
 
 
 lemma rm_chain_imp_hd_prod_rightmost:
-  assumes "P \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* \<rho> \<Rightarrow>r* \<gamma> @ Nt B # map Tm w"
+  assumes "P \<turnstile> \<alpha>\<^sub>0 \<midarrow>\<rho>\<rightarrow>r* \<gamma> @ Nt B # map Tm w"
   obtains A \<alpha> \<beta> "is" u v where "\<rho> = [A \<rightarrow> \<alpha> \<cdot> Nt B # \<beta>] # is"
     "P \<turnstile> \<beta> \<Rightarrow>r* map Tm u" "w = u @ v" | "\<alpha>\<^sub>0 = \<gamma> @ Nt B # map Tm w" "\<rho> = []"
 using assms proof cases
@@ -79,7 +80,7 @@ using assms proof cases
 qed argo
 
 lemma rm_chain_second_produces_hd:
-  assumes "Prods G' \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* [A \<rightarrow> \<alpha> \<cdot> Nt B # \<beta>] # i # \<rho> \<Rightarrow>r* \<gamma>"
+  assumes "Prods G' \<turnstile> \<alpha>\<^sub>0 \<midarrow>[A \<rightarrow> \<alpha> \<cdot> Nt B # \<beta>] # i # \<rho>\<rightarrow>r* \<gamma>"
   obtains X \<alpha>' \<beta>' where "i = [X \<rightarrow> \<alpha>' \<cdot> Nt A # \<beta>']"
   using assms proof cases
   case (step \<alpha> v u)
@@ -88,7 +89,7 @@ lemma rm_chain_second_produces_hd:
 qed
 
 lemma rm_chain_Cons_imp_prod_rightmost:
-  assumes "P \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* [A \<rightarrow> \<alpha> \<cdot> Nt B # \<beta>] # \<rho> \<Rightarrow>r* \<gamma>"
+  assumes "P \<turnstile> \<alpha>\<^sub>0 \<midarrow>[A \<rightarrow> \<alpha> \<cdot> Nt B # \<beta>] # \<rho>\<rightarrow>r* \<gamma>"
   obtains \<delta> u v w where "\<gamma> = \<delta> @ Nt B # map Tm w"
     "P \<turnstile> \<beta> \<Rightarrow>r* map Tm u" "w = u @ v"
 proof -
@@ -103,7 +104,7 @@ proof -
 qed
 
 lemma rm_chain_imp_derivers:
-  assumes "P \<Turnstile> \<alpha> \<Rightarrow>r* \<rho> \<Rightarrow>r* \<beta>"
+  assumes "P \<turnstile> \<alpha> \<midarrow>\<rho>\<rightarrow>r* \<beta>"
   shows "P \<turnstile> \<alpha> \<Rightarrow>r* \<beta>"
   using assms proof induction
   case (step \<alpha>\<^sub>0 \<rho> \<alpha> X v \<alpha>' Y \<beta> u)
@@ -114,7 +115,7 @@ lemma rm_chain_imp_derivers:
 qed simp
 
 lemma (in Extended_Cfg) rm_chain_S'_Cons_imp_neq:
-  assumes "Prods G' \<Turnstile> [Nt S'] \<Rightarrow>r* i # \<rho> \<Rightarrow>r* \<alpha>"
+  assumes "Prods G' \<turnstile> [Nt S'] \<midarrow>i # \<rho>\<rightarrow>r* \<alpha>"
   shows "[Nt S'] \<noteq> \<alpha>"
   using assms proof cases
   case (step \<alpha>' X v \<alpha>'' Y \<beta> u)
@@ -131,16 +132,16 @@ qed
 
 
 lemma rm_chain_append:
-  assumes "P \<Turnstile> \<alpha> \<Rightarrow>r* \<sigma> \<Rightarrow>r* \<beta>"
-    "P \<Turnstile> \<beta> \<Rightarrow>r* \<rho> \<Rightarrow>r* \<gamma>"
-  shows "P \<Turnstile> \<alpha> \<Rightarrow>r* \<rho>@\<sigma> \<Rightarrow>r* \<gamma>"
+  assumes "P \<turnstile> \<alpha> \<midarrow>\<sigma>\<rightarrow>r* \<beta>"
+    "P \<turnstile> \<beta> \<midarrow>\<rho>\<rightarrow>r* \<gamma>"
+  shows "P \<turnstile> \<alpha> \<midarrow>\<rho>@\<sigma>\<rightarrow>r* \<gamma>"
   using assms(2,1) by induction auto
 
 lemma rm_chain_decomp:
-  assumes "P \<Turnstile> \<alpha> \<Rightarrow>r* \<rho>@\<sigma> \<Rightarrow>r* \<gamma>"
+  assumes "P \<turnstile> \<alpha> \<midarrow>\<rho>@\<sigma>\<rightarrow>r* \<gamma>"
   obtains \<beta> where 
-    "P \<Turnstile> \<alpha> \<Rightarrow>r* \<sigma> \<Rightarrow>r* \<beta>"
-    "P \<Turnstile> \<beta> \<Rightarrow>r* \<rho> \<Rightarrow>r* \<gamma>"
+    "P \<turnstile> \<alpha> \<midarrow>\<sigma>\<rightarrow>r* \<beta>"
+    "P \<turnstile> \<beta> \<midarrow>\<rho>\<rightarrow>r* \<gamma>"
   using assms proof (induction \<rho> arbitrary: \<gamma>)
   case (Cons a \<rho>)
   then show ?case 
@@ -149,15 +150,15 @@ qed auto
 
 
 lemma rm_chain_snoc:
-  assumes "P \<Turnstile> \<alpha> @ Nt X # map Tm v \<Rightarrow>r* \<rho> @ [[X \<rightarrow> \<alpha>' \<cdot> Nt Y # \<beta>]] \<Rightarrow>r* \<gamma>"
+  assumes "P \<turnstile> \<alpha> @ Nt X # map Tm v \<midarrow>\<rho> @ [[X \<rightarrow> \<alpha>' \<cdot> Nt Y # \<beta>]]\<rightarrow>r* \<gamma>"
   obtains u where "P \<turnstile> \<beta> \<Rightarrow>r* map Tm u" 
-    "P \<Turnstile> \<alpha> @ \<alpha>' @ Nt Y # map Tm u @ map Tm v \<Rightarrow>r* \<rho> \<Rightarrow>r* \<gamma>"
+    "P \<turnstile> \<alpha> @ \<alpha>' @ Nt Y # map Tm u @ map Tm v \<midarrow>\<rho>\<rightarrow>r* \<gamma>"
   using assms 
   by (smt (verit, best) Nt_map_Tm_eq_Nt_map_TmD rm_chain_decomp rm_chain_reflE
       rm_chain_stepE)
 
 lemma rm_chain_substring:
-  assumes "P \<Turnstile> \<alpha> @ Nt X # map Tm v \<Rightarrow>r* \<rho> \<Rightarrow>r* \<beta> @ Nt Y # map Tm w"
+  assumes "P \<turnstile> \<alpha> @ Nt X # map Tm v \<midarrow>\<rho>\<rightarrow>r* \<beta> @ Nt Y # map Tm w"
   obtains u where "w = u @ v"
   using assms proof (induction "\<alpha> @ Nt X # map Tm v" \<rho> "\<beta> @ Nt Y # map Tm w" arbitrary: \<beta> Y w)
   case refl
@@ -169,11 +170,11 @@ next
 qed 
 
 lemma prod_imp_rm_chain_step:
-  assumes "Prods G \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* \<rho> \<Rightarrow>r* \<alpha> @ Nt X # map Tm v"
+  assumes "Prods G \<turnstile> \<alpha>\<^sub>0 \<midarrow>\<rho>\<rightarrow>r* \<alpha> @ Nt X # map Tm v"
     "(X, \<alpha>' @ Nt A # \<beta>) \<in> Prods G"
     "reduced G"
   obtains u where "Prods G \<turnstile> \<beta> \<Rightarrow>r* map Tm u"
-    "Prods G \<Turnstile> \<alpha>\<^sub>0 \<Rightarrow>r* [X \<rightarrow> \<alpha>' \<cdot> Nt A # \<beta>] # \<rho> \<Rightarrow>r* \<alpha> @ \<alpha>' @ Nt A # map Tm (u@v)"
+    "Prods G \<turnstile> \<alpha>\<^sub>0 \<midarrow>[X \<rightarrow> \<alpha>' \<cdot> Nt A # \<beta>] # \<rho>\<rightarrow>r* \<alpha> @ \<alpha>' @ Nt A # map Tm (u@v)"
 proof -
   from assms have "Prods G \<turnstile> \<alpha> @ Nt X # map Tm v \<Rightarrow>r \<alpha> @ \<alpha>' @ Nt A # \<beta> @ map Tm v" 
     using deriver.intros by fastforce
@@ -185,7 +186,7 @@ qed
 
 lemma derivern_Suc_singleton_imp_rm_chain:
   assumes "P \<turnstile> [Nt A] \<Rightarrow>r(Suc n) \<alpha> @ Nt X # map Tm v"
-  obtains B \<alpha>' \<beta> \<rho> where "P \<Turnstile> [Nt A] \<Rightarrow>r* [B \<rightarrow> \<alpha>' \<cdot> Nt X # \<beta>] # \<rho> \<Rightarrow>r* \<alpha> @ Nt X # map Tm v"
+  obtains B \<alpha>' \<beta> \<rho> where "P \<turnstile> [Nt A] \<midarrow>[B \<rightarrow> \<alpha>' \<cdot> Nt X # \<beta>] # \<rho>\<rightarrow>r* \<alpha> @ Nt X # map Tm v"
   using assms(1) proof (induction "Suc n" arbitrary: \<alpha> X v n thesis rule: less_induct)
   case (less n)
   show ?case 
@@ -200,7 +201,7 @@ lemma derivern_Suc_singleton_imp_rm_chain:
       "\<beta> @ \<gamma> @ map Tm u = \<alpha> @ Nt X # map Tm v" "P \<turnstile> \<beta> @ Nt B # map Tm u \<Rightarrow>r \<beta> @ \<gamma> @ map Tm u"
       using deriver.cases by (smt (verit, del_insts) relpowp_Suc_E)
     with less(1)[OF _ this(1)] Suc obtain \<rho> where last_chain_step: 
-      "P \<Turnstile> [Nt A] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<beta> @ Nt B # map Tm u" using less.hyps by blast
+      "P \<turnstile> [Nt A] \<midarrow>\<rho>\<rightarrow>r* \<beta> @ Nt B # map Tm u" using less.hyps by blast
     show ?thesis
     proof (cases "Nt X \<in> set \<gamma>")
       case True
@@ -241,7 +242,7 @@ lemma derivern_Suc_singleton_imp_rm_chain:
       next
         case (Suc j)
         from less(1)[OF _ _ k_steps(1)[unfolded Suc]] obtain \<rho> where \<rho>_def:
-          "P \<Turnstile> [Nt A] \<Rightarrow>r* \<rho> \<Rightarrow>r* \<alpha>' @ Nt C # map Tm w" using k_steps(5)[unfolded Suc] Suc_m
+          "P \<turnstile> [Nt A] \<midarrow>\<rho>\<rightarrow>r* \<alpha>' @ Nt C # map Tm w" using k_steps(5)[unfolded Suc] Suc_m
           by auto
         moreover from suffix_derivers_v obtain u' where "P \<turnstile> \<beta>' \<Rightarrow>r* map Tm u'" "u' @ w = v"
           by (metis converse_rtranclpE derivers_iff_derives derives_append_map_Tm map_Tm_inject_iff

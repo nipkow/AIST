@@ -4,49 +4,6 @@ begin
 
 section \<open>Lists\<close>
 
-lemma index_gt_left_imp_right:
-  assumes "length xs < m" "m < length (xs@y#ys)"
-  shows "(xs@y#ys)!m \<in> set ys"
-proof -
-  have "(xs@y#ys)!m = (y#ys)!(m-length xs)" 
-    using assms(1) by (meson le_eq_less_or_eq nth_append_right)
-  also have "... = ys!(m-length xs-1)" 
-    using assms(1) by simp
-  finally show ?thesis 
-    by (metis One_nat_def Suc_pred add_diff_inverse_nat add_less_cancel_left assms length_Cons
-        length_append less_Suc_eq not_less_eq nth_mem zero_less_diff)
-qed
-
-lemma list_app_last_is_next_hd:
-  assumes "w = u@v@y"
-    "w = xs@a#y"
-    "v \<noteq> []"
-  shows "last v = a"
-  using assms 
-  by (metis append.assoc append_Cons append_Nil append_same_eq last_append last_snoc)
-
-lemma x_notin_tl_imp_eq:
-  assumes "ws @ x # xs = ys @ x # zs"
-  "x \<notin> set xs" "x \<notin> set zs"
-shows "ws = ys \<and> xs = zs"
-  using assms proof (induction xs arbitrary: zs rule: rev_induct)
-  case Nil
-  have "zs = []"
-    by (metis Nil.prems(1,3) last_ConsL last_ConsR last_appendR last_in_set list.simps(3))
-  then show ?case using Nil(1) by blast
-next
-  case (snoc a xs)
-  obtain a' zs' where zs_snoc: "zs = zs' @ [a']"
-  proof -
-    have "\<exists>a zs'. zs = zs' @ [a]"
-      by (metis snoc.prems(1) snoc.prems(2) rev_exhaust last_in_set last.simps 
-          last_appendR list.distinct(1))
-    thus thesis using that by blast
-  qed
-  with snoc have "ws = ys \<and> xs = zs'" by force
-  then show ?case using zs_snoc snoc by blast
-qed
-
 lemma list_of_subset:
   assumes "A \<noteq> {}"
   obtains xs where "set xs \<subseteq> A" "length xs = n"
@@ -57,11 +14,6 @@ proof -
   moreover have "length ?xs = n" by simp
   ultimately show thesis using that by blast
 qed
-
-lemma list_eq_less_imp_substring:
-  assumes "as @ bs = xs @ ys" "length as < length xs"
-  obtains as' where "xs = as @ as'"
-  using assms by (metis append_eq_append_conv2 length_append not_add_less1)
 
 corollary take_diff:
   "take n xs = take n ys \<Longrightarrow> take (n-m) xs = take (n-m) ys"
@@ -209,13 +161,6 @@ lemma syms_rm_cases [case_names Tms Nt]:
   using assms non_word_has_last_Nt by (cases \<alpha> rule: syms_cases) 
     (blast, meson in_set_conv_decomp syms_split_rightmost)
 
-lemma syms_lm_cases [case_names Tms Nt]:
-  assumes "\<And>w. \<alpha> = map Tm w \<Longrightarrow> P"
-    "\<And>w A \<beta>. \<alpha> = map Tm w @ Nt A # \<beta> \<Longrightarrow> P"
-  shows P
-  using assms by (cases \<alpha> rule: syms_cases) 
-    (blast, metis Nts_syms_empty_iff non_word_has_first_Nt)
-
 lemma nonword_eq_append_map_Tm_cases:
   assumes "\<alpha> @ Nt X # \<beta> = \<alpha>' @ \<gamma> @ map Tm v"
   obtains \<alpha>'' \<beta>'  where "\<alpha> = \<alpha>' @ \<alpha>''" "\<gamma> = \<alpha>'' @ Nt X # \<beta>'" "\<beta> = \<beta>' @ map Tm v" |
@@ -306,25 +251,6 @@ lemma app_eq_rm_cases:
   qed (use snoc in simp)
 qed simp
 
-lemma rms_app_eq_tl_cases:
-  assumes "\<alpha> @ \<beta> @ map Tm u = \<gamma> @ \<delta> @ map Tm v"
-  obtains \<zeta> x where "v = x @ u" "\<zeta> @ map Tm x = \<alpha> @ \<beta>" |
-    \<zeta> x where "u = x @ v" "\<zeta> @ map Tm x = \<gamma> @ \<delta>"
-  using that by (cases rule: le_cases[of "length u" "length v"]) 
-    (metis assms append_assoc  eq_tl_lt_imp_substring)+
-
-lemma right_sententials_eq_impossible:
-  assumes "\<beta> @ Nt A # map Tm u = \<beta>' @ Nt A' # map Tm u'" (is "?w = ?w'")
-    "length \<beta> < length \<beta>'" (is "?n < ?m")
-  shows False
-proof -
-  have inds: "?w!?n = Nt A" "?w'!?m = Nt A'" by auto 
-  with assms obtain a where "?w!?m = Tm a"
-    using index_gt_left_imp_right[of \<beta> ?m "Nt A" "map Tm u", OF assms(2)] by auto
-  then show False using inds(2) assms(1) by simp
-qed
-
-
 section \<open>Rightmost derivations\<close>
 
 lemma deriver_imp_handle:
@@ -348,12 +274,6 @@ proof -
   ultimately show thesis using that map_Tm_inject_iff by fastforce
 qed
 
-lemma derives_Nts_subset_preserved:
-  assumes "P \<turnstile> \<alpha> \<Rightarrow>* \<beta>"
-    "Nts_syms \<alpha> \<subseteq> Nts P"
-  shows "Nts_syms \<beta> \<subseteq> Nts P"
-  using assms(1,2) derives_Nts_iff by blast
-
 lemma derivers_append_map_Tm:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>r* u"
   shows "P \<turnstile> \<alpha>@map Tm v \<Rightarrow>r* u @ map Tm v"
@@ -369,78 +289,6 @@ lemma deriver_imp_in_Prods:
   shows "(A, \<alpha>) \<in> P"
   using deriver.cases[OF assms]
   by (metis append_eq_append_conv Nt_map_Tm_eq_Nt_map_TmD)
-
-lemma deriver_cases[consumes 1, case_names rightmost Tms]:
-  assumes "P \<turnstile> \<alpha> \<Rightarrow>r \<beta>"
-  obtains \<gamma> A u \<gamma>' B v where "\<alpha> = \<gamma> @ Nt A # map Tm u" "\<beta> = \<gamma>' @ Nt B # map Tm v" |
-          \<gamma> A u v where "\<alpha> = \<gamma> @ Nt A # map Tm u" "\<beta> = map Tm v"
-proof -
-  from assms obtain \<gamma> A u \<delta> where \<alpha>\<beta>_defs: "\<alpha> = \<gamma> @ Nt A # map Tm u" "\<beta> = \<gamma> @ \<delta> @ map Tm u"
-    using deriver.cases by meson
-  consider "\<nexists>B. Nt B \<in> set \<delta>" | B where "Nt B \<in> set \<delta>" by blast
-  then show thesis
-  proof cases
-    case 1
-    show ?thesis 
-      by (meson \<alpha>\<beta>_defs(1) syms_split_rightmost Tms_iff_no_Nts that(1,2)) 
-  next
-    case 2
-    then show ?thesis using syms_split_rightmost \<alpha>\<beta>_defs 
-      by (metis Tms_iff_no_Nts that(1,2))
-  qed
-qed
-
-lemma derivers_tl_substring:
-  assumes "P \<turnstile> \<alpha> @ Nt A # map Tm v \<Rightarrow>r* \<beta> @ Nt B # map Tm w"
-  obtains u where "w = u@v"
-  using assms proof (induction "\<beta> @ Nt B # map Tm w" arbitrary: \<beta> B w thesis)
-  case base
-  then show ?case using Nt_map_Tm_eq_Nt_map_TmD[OF base(1)] by blast
-next
-  case (step y \<beta> B w)
-  then obtain \<gamma> C u where y_def: "y = \<gamma> @ Nt C # map Tm u" 
-    by (metis deriver_cases)
-  with step(3) obtain x where u_decomp: "u = x@v" by blast
-  from step(2) obtain \<delta> where eq: "\<beta> @ Nt B # map Tm w = \<gamma> @ \<delta> @ map Tm u" 
-    unfolding y_def using deriver_imp_handle by metis
-  consider "Nt B \<in> set \<delta>" | "Nt B \<notin> set \<delta>" "Nt B \<in> set \<gamma>"
-  proof (cases "Nt B \<in> set \<delta>")
-    case False
-    then show ?thesis using eq that 
-      by (metis Un_iff ex_map_conv in_set_conv_decomp set_append sym.distinct(1))
-  qed (use that in simp)
-  then show ?case
-    using eq u_decomp step by cases 
-      ((metis append.assoc syms_decomp_rightmost2),
-        (metis append.assoc append_Nil syms_decomp_rightmost[of \<beta> B _ "[]" \<gamma> \<delta>]))
-qed
-
-lemma deriver_rightmost_cases[consumes 1, case_names prod prefix]:
-  assumes "P \<turnstile> \<alpha> @ Nt A # map Tm u \<Rightarrow>r \<beta> @ Nt B # map Tm w"
-  obtains \<gamma> v where "\<beta> @ Nt B # map Tm w = \<alpha> @ \<gamma> @ Nt B # map Tm v @ map Tm u" |
-          \<delta> v x where "\<alpha> = \<delta> @ Nt B # map Tm x" "\<beta> @ Nt B # map Tm w = \<alpha> @ map Tm (v@u)"
-proof -
-  from assms obtain \<gamma> where deriv: "\<beta> @ Nt B # map Tm w = \<alpha> @ \<gamma> @ map Tm u" "(A, \<gamma>) \<in> P" 
-    by (metis deriver_imp_handle)
-  then consider (Tms) x where "\<gamma> = map Tm x" | (Nt) \<delta> C \<zeta> where "\<gamma> = \<delta> @ Nt C # \<zeta>" 
-    by (metis split_list Tms_iff_no_Nts)
-  then show ?thesis 
-  proof cases
-    case Tms
-    with deriv have "\<beta> @ Nt B # map Tm w = \<alpha> @ map Tm (x@u)" by auto
-    moreover from this obtain \<delta> v where "\<alpha> = \<delta> @ Nt B # map Tm v" 
-      by (metis Nts_syms_append Nts_syms_map_Tm append.right_neutral append_Nil in_Nts_syms 
-          in_set_conv_decomp list.simps(8) syms_decomp_rightmost2)
-    ultimately show ?thesis using deriv that by blast
-  next
-    case Nt
-    obtain \<eta> D y where "Nt C # \<zeta> = \<eta> @ Nt D # map Tm y" 
-        by (meson list.set_intros(1) syms_split_rightmost)
-   moreover from this have "B = D" using deriv Nt Nt_map_Tm_eq_Nt_map_TmD[of \<beta> B w "\<alpha> @ \<delta> @ \<eta>" D "y@u"]
-     by simp
-   ultimately show ?thesis using Nt that deriv by (metis append.assoc append_Cons)
-  qed
-qed
 
 lemma deriven_decomp_less:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>(Suc n) map Tm w"
@@ -500,17 +348,6 @@ lemma derivern_singleton_imp_produced:
   qed
 qed
 
-lemma deriven_leq:
-  assumes "Prods G \<turnstile> \<alpha> @ \<beta> @ \<gamma> \<Rightarrow>(n) map Tm w"
-  obtains m v where "Prods G \<turnstile> \<beta> \<Rightarrow>(m) map Tm v" "m \<le> n"
-  using assms by (metis add_leD1 deriven_append_map_Tm le_add2)
-
-lemma derivern_leq:
-  assumes "Prods G \<turnstile> \<alpha> @ \<beta> @ \<gamma> \<Rightarrow>r(n) map Tm w"
-  obtains m v where "Prods G \<turnstile> \<beta> \<Rightarrow>r(m) map Tm v" "m \<le> n"
-  using assms derivern_iff_deriven deriven_leq by meson
-
-
 lemma derivern_imp_last_step:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>r(Suc n) map Tm w"
   obtains u v x X where "P \<turnstile> \<alpha> \<Rightarrow>r(n) map Tm u @ Nt X # map Tm x"
@@ -534,38 +371,6 @@ lemma derivers_last_step_single_Nt:
   obtains u v x X where "\<beta> = map Tm u @ Nt X # map Tm x"
     "(X, map Tm v) \<in> P" "w = u @ v @ x"
   using assms deriver_imp_handle_Tms by (metis (no_types, lifting) derive_map_TmD deriver_imp_derive)
-
-lemma derivern_appendD:
-  assumes "P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r(n) \<gamma>"
-  obtains \<delta> \<zeta> m k where "m + k = n" "P \<turnstile> \<alpha> \<Rightarrow>r(m) \<delta>" "P \<turnstile> \<beta> \<Rightarrow>r(k) \<zeta>" "\<gamma> = \<delta> @ \<zeta>"
-  using assms proof (induction n arbitrary: \<alpha> \<beta> thesis)
-  case 0
-  then show ?case by simp
-next
-  case (Suc n)
-  then obtain \<eta> where stepn: "P \<turnstile> \<alpha> @ \<beta> \<Rightarrow>r \<eta>" "P \<turnstile> \<eta> \<Rightarrow>r(n) \<gamma>" by (metis relpowp_Suc_D2)
-  consider (Tms) v where "\<beta> = map Tm v" | (rightmost) \<beta>' A w where "\<beta> = \<beta>' @ Nt A # map Tm w"
-    by (metis destTm.cases ex_map_conv syms_split_rightmost)
-  then show ?case proof cases
-    case Tms
-    with stepn obtain \<alpha>' A \<alpha>'' u where "\<alpha> = \<alpha>' @ Nt A # map Tm u" 
-      "\<eta> = \<alpha>' @ \<alpha>'' @ map Tm (u@v)" 
-      by (smt (verit, ccfv_threshold) append.assoc deriver.simps deriver_append_map_Tm
-          map_append)
-    from Suc.IH[of "\<alpha>' @ \<alpha>''" "map Tm (u@v)"] stepn[unfolded this(2)] 
-     show ?thesis  
-       by (metis Suc.prems Tms add.right_neutral derivern_append_map_Tm relpowp_0_I)
-  next
-    case rightmost
-    with stepn(1) obtain \<alpha>' where step: "(A, \<alpha>') \<in> P" "\<eta> = \<alpha> @ \<beta>' @ \<alpha>' @ map Tm w" 
-      by (smt (verit, ccfv_threshold) append.assoc Nt_map_Tm_eq_Nt_map_TmD deriver.cases)
-    from Suc.IH[of \<alpha> "\<beta>' @ \<alpha>' @ map Tm w"] stepn[unfolded this] obtain m k \<delta> \<zeta> where ih:
-      "m + k = n" "P \<turnstile> \<alpha> \<Rightarrow>r(m) \<delta>" "P \<turnstile> \<beta>' @ \<alpha>' @ map Tm w \<Rightarrow>r(k) \<zeta>" "\<gamma> = \<delta> @ \<zeta>" by blast
-    with step rightmost have "P \<turnstile> \<beta> \<Rightarrow>r(Suc k) \<zeta>" 
-      using deriver.intros by (meson relpowp_Suc_I2)
-    with ih show ?thesis using Suc.prems(1) by force
-  qed
-qed
 
 lemma derives_map_Tm_rm_cases[case_names Tms Nt]:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>* map Tm w"
@@ -742,20 +547,10 @@ lemma steps_len_dec:
   by (induction "(p,u)" "(q,v)" arbitrary: q v rule: rtranclp.induct)
   (use step_len_dec surj_pair le_trans in fastforce)+
 
-lemma nxt_indep:
-  assumes "(p, a # u) \<turnstile> (q, u)"
-  shows "(p, a # v) \<turnstile> (q, v)"
-  using assms by auto
-
 lemma eps_indep:
   assumes "(p, u) \<turnstile> (q, u)"
   shows "(p, v) \<turnstile> (q, v)"
   using assms by blast
-
-lemma step_imp_nempty_or_eq:
-  assumes "(p, u) \<turnstile> (q, v)"
-  shows "u \<noteq> [] \<or> u = v"
-  using assms by cases auto
 
 lemma stepn_append:
   assumes "(p, u@v) \<turnstile>(n) (q, v)"
@@ -875,17 +670,6 @@ end
 
 section \<open>Others\<close>
 
-lemma derives_non_word_imp_non_word:
-  assumes "P \<turnstile> \<alpha> \<Rightarrow>* \<beta> @ Nt X # \<gamma>"
-  shows "Nts_syms \<alpha> \<noteq> {}"
-proof 
-  assume "Nts_syms \<alpha> = {}"
-  then obtain w where "\<alpha> = map Tm w" using Nts_syms_empty_iff by blast
-  with assms have "\<beta> @ Nt X # \<gamma> = map Tm w" 
-    by (simp add: derives_map_Tm_iff)
-  thus False by (metis Tms_iff_no_Nts in_set_conv_decomp)
-qed
-
 lemma prod_substring_imp_Nts_subset:
   "(A, \<alpha> @ \<beta> @ \<gamma>) \<in> P \<Longrightarrow> Nts_syms \<beta> \<subseteq> Nts P"
   unfolding Nts_def by fastforce
@@ -897,19 +681,6 @@ proof -
   have "{xs|xs n. set xs \<subseteq> A \<and> length xs = n \<and> n \<in> B} = 
     (\<Union>n \<in> B. {xs|xs \<alpha>. set xs \<subseteq> A \<and> length xs = n})" by auto
   with assms finite_lists_length_eq show ?thesis by auto
-qed
-
-lemma less_induct_Suc[case_names 0 Suc]:
-  assumes "P 0"
-    "\<And>n. (\<And>m. m < Suc n \<Longrightarrow> P m) \<Longrightarrow> P (Suc n)"
-  shows "P n"
-  using assms proof (induction n rule: less_induct)
-  case (less n)
-  show ?case 
-  proof (cases n)
-    case (Suc m)
-    then show ?thesis using less by blast
-  qed (use less in simp)
 qed
 
 lemma stepcnt_cases [consumes 1, case_names refl step]:

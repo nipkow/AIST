@@ -69,16 +69,6 @@ lemma in_Prods_iff_in_It:
   "prod_of_item i \<in> Prods G = (i \<in> It G)"
   using in_Prods_imp_in_It in_It_imp_in_Prods by auto
 
-lemma prod_of_item_eq_imp_in_Prods_eq:
-  "prod_of_item i = prod_of_item j \<Longrightarrow> i \<in> It G' \<longleftrightarrow> j \<in> It G'"
-  by (cases i, cases j) (metis in_Prods_iff_in_It)
-
-lemma prod_imp_derives_expanded_hist:
-  assumes "(Y, \<beta>) \<in> P"
-  shows "P \<turnstile> hist (\<rho> @ [X \<rightarrow> \<alpha> @ [Nt Y] \<cdot> \<gamma>] # \<sigma>) \<Rightarrow>  hist (\<rho> @ [X \<rightarrow> \<alpha> \<cdot> Nt Y # \<gamma>] # [Y \<rightarrow> \<beta> \<cdot> []] # \<sigma>)"         
-    (is "P \<turnstile> ?h1 \<Rightarrow> ?h2")
-  using derive.intros[OF assms, of "hist \<rho> @ \<alpha>"] by simp
-
 lemma prod_items_finite:
   "finite {[A \<rightarrow> \<alpha> \<cdot> \<beta>] | \<alpha> \<beta>. \<alpha>@\<beta> = w}"
 proof -
@@ -167,13 +157,6 @@ lemma noncompletesE [elim]:
   by (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq neq_Nil_conv
       set_diff_eq)
 
-lemma reduced_Nts_in_It:
-  assumes "A \<in> Nts (Prods G)" "reduced G"
-  obtains \<alpha> \<beta> where "[A \<rightarrow> \<alpha> \<cdot> \<beta>] \<in> It G"
-  using assms unfolding It_def
-  by (metis (mono_tags, lifting) append.right_neutral derives_Nt_map_TmD mem_Collect_eq
-      reduced_imp_derives_Tms_singleton)
-
 section \<open>The Item Pushdown Automaton\<close>
 
 definition (in Extended_Cfg) IPDA :: "(('n, 't) item, 't) gpda" where
@@ -216,21 +199,11 @@ lemma nxt_ipda [simp]:
   "nxt M = {([[X \<rightarrow> \<beta> \<cdot> Tm a # \<gamma>]], a, [[X \<rightarrow> \<beta> @ [Tm a] \<cdot> \<gamma>]])|X \<beta> a \<gamma>. (X, \<beta> @ Tm a # \<gamma>) \<in> Prods G'}"
   using ipda unfolding IPDA_def by (meson select_convs(4))
 
-lemma nxt_Tm_neq_empty [simp]:
-  assumes "a \<noteq> b"
-  shows "([X \<rightarrow> \<alpha> \<cdot> Tm a # \<gamma>] # ps, b, q) \<notin> nxt M"
-  using assms unfolding IPDA_def by simp
-
 lemma nxt_nempty_imp_Tm_eq:
   assumes "(ps, a, qs) \<in> nxt M"
   obtains X \<beta> \<gamma> where "ps = [[X \<rightarrow> \<beta> \<cdot> Tm a # \<gamma>]]" "(X, \<beta> @ Tm a # \<gamma>) \<in> Prods G'"
     "qs = [[X \<rightarrow> \<beta> @ [Tm a] \<cdot> \<gamma>]]"
   using assms by auto
-
-lemma nxt_nempty_imp_Tm_eq_Item:
-  assumes "([[X \<rightarrow> \<beta> \<cdot> Tm a # \<gamma>]], b, q) \<in>  nxt M"
-  shows "(X, \<beta> @ Tm a # \<gamma>) \<in> Prods G'" "a = b"
-  using nxt_nempty_imp_Tm_eq[OF assms] by blast+
 
 lemma eps_ipda [simp]:
   "eps M =  {([[X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>]], [Y \<rightarrow> [] \<cdot> \<alpha>] # [[X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>]])
@@ -246,11 +219,6 @@ lemma eps_cases [consumes 1, case_names expand reduce]:
     Y \<alpha> X \<beta> \<gamma> where "ps = [[Y \<rightarrow> \<alpha> \<cdot> []], [X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>]]" "qs =  [[X \<rightarrow> \<beta> @ [Nt Y] \<cdot> \<gamma>]]"
      "(X, \<beta> @ Nt Y # \<gamma>) \<in> Prods G'" "(Y, \<alpha>) \<in> Prods G'"
   using assms unfolding eps_ipda by auto
-
-lemma in_eps_imp_prods:
-  assumes "(p # ps, q # qs) \<in> eps M"
-  shows "prod_of_item p \<in> Prods G'" "prod_of_item q \<in> Prods G'"
-  using assms by auto
 
 lemma in_final_imp_final_state:
   assumes "q \<in> final M"
@@ -280,9 +248,6 @@ next
   then show ?case using finite_It[OF G'_finite] by simp
 qed
 
-corollary gpda_ipda: "gpda M"
-  by (fact gpda_axioms)
-
 subsection \<open>Step\<close>
 
 lemma shifting [simp]:
@@ -303,11 +268,6 @@ proof -
     by (rule step_eps) (use assms in fastforce)
   thus ?thesis by simp
 qed
-
-lemma expanding_in_eps:
-  assumes "(Y, \<alpha>) \<in> Prods G'" "(X, \<beta> @ Nt Y # \<gamma>) \<in> Prods G'" 
-  shows "([[X \<rightarrow> \<beta> \<cdot> Nt Y#\<gamma>]], [[Y \<rightarrow> [] \<cdot> \<alpha>], [X \<rightarrow> \<beta> \<cdot> Nt Y#\<gamma>]]) \<in> eps M"
-  using assms by auto
 
 lemma expanding:
   assumes "(Y, \<alpha>) \<in> Prods G'" "(X, \<beta> @ Nt Y # \<gamma>) \<in> Prods G'"
@@ -348,20 +308,6 @@ lemma step_imp_not_Nil:
   shows "\<rho> \<noteq> [] \<and> \<sigma> \<noteq> []"
   using assms by cases auto
 
-lemma expanding_imp_in_Prods_G:
-  assumes "([X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>] # \<rho>, u) \<turnstile> ([Y \<rightarrow> [] \<cdot> \<gamma>] # [X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>] # \<rho>, v)"
-  shows "(Y, \<gamma>) \<in> Prods G"
-proof -
-  from assms have "(Y, \<gamma>) \<in> Prods G'" using step_imp_in_Prods by fastforce
-  then show ?thesis
-  proof (cases rule: G'_Prod_cases)
-    case init
-    with assms have "(X, \<alpha> @ Nt S' # \<beta>) \<in> Prods G'"
-      using step_imp_in_Prods by fastforce
-    then show ?thesis using S'_Prod_notin_G' by simp
-  qed simp
-qed
-
 lemma reducing_imp_in_Prods_G:
   assumes "([Y \<rightarrow> \<alpha> \<cdot> []] # [X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] # \<rho>, u) \<turnstile> ([X \<rightarrow> \<beta> @ [Nt Y] \<cdot> \<gamma>] # \<rho>, u)"
   shows "(Y, \<alpha>) \<in> Prods G"
@@ -380,7 +326,6 @@ lemma step_not_expanding_unique:
     "\<exists>X \<alpha> a \<beta>. hd \<rho> = [X \<rightarrow> \<alpha> \<cdot> []] \<or> hd \<rho> = [X \<rightarrow> \<alpha> \<cdot> Tm a # \<beta>]"
   shows "c0 = c1"
   using assms(1) by (cases; use assms(2) in cases, use assms(3) in auto)
-
 
 lemma step_reaches_final_imp_S:
   assumes "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho> @ \<sigma>, u) \<turnstile> (final_state # \<sigma>, v)"
@@ -402,12 +347,6 @@ lemma stepn_neq_imp_not_expanding_reaches:
   obtains m where "n = Suc m" "c0 \<turnstile>(m) c1"
   using assms step_not_expanding_imp_reaches by (metis relpowp_E2)
 
-                                                         
-lemma steps_len_dec:
-  "(p,u) \<turnstile>* (q,v) \<Longrightarrow> length u \<ge> length v" 
-  by (induction "(p,u)" "(q,v)" arbitrary: q v rule: rtranclp.induct)
-  (use step_len_dec surj_pair le_trans in fastforce)+
-
 lemma completes_Tms:
   "(A, \<alpha> @ map Tm u @ \<beta>) \<in> Prods G' 
     \<Longrightarrow> ([A \<rightarrow> \<alpha> \<cdot> map Tm u @ \<beta>]#\<rho>, u@v) \<turnstile>* ([A \<rightarrow> \<alpha> @ map Tm u \<cdot> \<beta>]#\<rho>, v)"
@@ -425,19 +364,6 @@ lemma steps_in_It:
   by (induction "j # \<sigma>" v arbitrary: j \<sigma> rule: rtranclp_induct2)
     (simp, metis neq_Nil_conv step_imp_in_It(2) step_imp_not_Nil)
 
-lemma steps_Suc_in_It:
-  assumes "(i # \<rho>, u) \<turnstile>(Suc n) (j # \<sigma>, v)"
-  shows  "i \<in> It G'" "j \<in> It G'"
-proof -
-  from assms obtain c where "(i # \<rho>, u) \<turnstile> c" 
-    by (metis relpowp_Suc_D2)
-  with step_imp_in_It(1) show "i \<in> It G'" 
-    by (smt (verit, ccfv_threshold) step_cases)
-  with assms[THEN relpowp_imp_rtranclp] show "j \<in> It G'"
-    using steps_in_It by simp
-qed
-
-
 lemma steps_neq_in_It:
   assumes "(i # \<rho>, u) \<turnstile>* (j # \<sigma>, v)" "(i # \<rho>, u) \<noteq> (j # \<sigma>, v)"
   shows "i \<in> It G' \<and> j \<in> It G'"
@@ -453,167 +379,18 @@ lemma reaches_final_imp_in_It:
   shows "i \<in> It G'"
   using final_state_in_It steps_neq_in_It assms by (cases "i = final_state") blast+
 
-lemma reachable_imp_in_It:
-  "\<lbrakk>([init M], u) \<turnstile>* (\<rho>, v); i \<in> set \<rho>\<rbrakk> 
-    \<Longrightarrow> i \<in> It G'"
-proof (induction arbitrary: i rule: rtranclp_induct2)
-  case (step \<rho>0 u \<rho>1 v)
-  from step(2) show ?case 
-    using steps_in_It step step_imp_in_It(2) by cases auto
-qed (auto simp: It_def G'_def)
-
-lemma reachable_imp_not_Nil:
-  "\<lbrakk>(\<rho>, u) \<turnstile>* (\<sigma>, v); \<rho> \<noteq> []\<rbrakk> \<Longrightarrow> \<sigma> \<noteq> []"
-  by (induction rule: rtranclp_induct2) (simp, cases rule: step.cases, auto)
-
 corollary steps_shift_decomp:
   assumes "(\<rho>, u @ v) \<turnstile>* ([A \<rightarrow> \<alpha> \<cdot> Tm a # \<beta>] # \<sigma>, a # v)"
     "([A \<rightarrow> \<alpha> \<cdot> Tm a # \<beta>] # \<sigma>, a # v) \<turnstile> (\<tau>, v)"
   obtains x where "u = x @ [a]"
   using reachable_imp_substring[OF assms(1)] by auto
 
-lemma init_expands[elim]:
-  assumes "(init M # \<rho>, u) \<turnstile> (\<sigma>, v)"
-  obtains \<alpha> where "(\<sigma>, v) = ([S \<rightarrow> [] \<cdot> \<alpha>] # init M # \<rho>, u)"
-    "(S, \<alpha>) \<in> Prods G"
-  using assms proof cases
-  case (expand Y \<alpha> X \<beta> \<gamma> \<rho> w)
-  then show ?thesis 
-    using G'_def S_neq_S' that assms by fastforce
-qed auto
-
 lemma complete_S'_step_impossible:
   assumes "([S' \<rightarrow> \<alpha> \<cdot> []] # \<rho>, w) \<turnstile> c"
   shows False
   using assms S'_Prod_notin_G' assms step_imp_in_Prods by cases force+
 
-lemma second_notin_It_imp_complete_step_impossible:
-  assumes "([A \<rightarrow> \<alpha> \<cdot> []] # i # \<rho>, w) \<turnstile> c"
-    "i \<notin> It G'"
-  shows False
-  using assms proof cases
-  case (reduce Y \<alpha> X \<beta> \<gamma> \<rho> w)
-  then show False using assms 
-      prod_of_item_eq_imp_in_Prods_eq[of "[X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>]" "[X \<rightarrow> \<beta> @ [Nt Y] \<cdot> \<gamma>]"] 
-      step_imp_in_It by auto
-qed simp_all
-
-lemma complete_S'_steps_refl:
-  assumes "([[S' \<rightarrow> \<alpha> \<cdot> []]], w) \<turnstile>* c"
-  shows "([[S' \<rightarrow> \<alpha> \<cdot> []]], w) = c"
-  using assms complete_S'_step_impossible by (cases rule: converse_rtranclpE) blast+
-
-lemma reachable_imp_init_or_in_G:
-  assumes "([init M], u) \<turnstile>* (\<rho>, v)"
-  obtains \<sigma> \<alpha> \<beta> where "\<rho> = \<sigma> @ [[S' \<rightarrow> \<alpha> \<cdot> \<beta>]]" "\<alpha> @ \<beta> = [Nt S]"
-    "\<forall>i \<in> set \<sigma>. case i of [X \<rightarrow> \<gamma> \<cdot> \<delta>] \<Rightarrow> (X, \<gamma>@\<delta>) \<in> Prods G"
-proof -
-  from assms obtain n where "([init M], u) \<turnstile>(n) (\<rho>, v)"
-    using rtranclp_imp_relpowp by fast
-  then show thesis using that proof (induction n arbitrary: thesis \<rho> v)
-    case 0
-    then show ?case by auto
-  next
-    case (Suc n)
-    then obtain \<sigma> w where n_steps: "([init M], u) \<turnstile>(n) (\<sigma>, w)" 
-      "(\<sigma>, w) \<turnstile> (\<rho>, v)" by auto
-    from Suc.IH[OF this(1)] obtain \<tau> \<alpha> \<beta> where \<tau>_def:
-      "\<sigma> = \<tau> @ [[S' \<rightarrow> \<alpha> \<cdot> \<beta>]]" "\<alpha> @ \<beta> = [Nt S]" 
-      "\<forall>i \<in> set \<tau>. case i of [X \<rightarrow> \<gamma> \<cdot> \<delta>] \<Rightarrow> (X, \<gamma>@\<delta>) \<in> Prods G" (is "\<forall>i \<in> _. ?in_Prods i")
-      by blast
-    from n_steps(2) show ?case 
-    proof (cases \<tau>)
-      case Nil
-      with \<tau>_def n_steps(2) have \<sigma>_init: "\<sigma> = [init M]"
-        using complete_S'_step_impossible[of "[Nt S]"] append_eq_Cons_conv by fastforce 
-      with n_steps init_expands show ?thesis 
-        using Suc.prems(2)[of _ "[]" "[Nt S]"] \<sigma>_init by force
-    next
-      case (Cons i \<upsilon>)
-      hence \<sigma>_def: "\<sigma> = i # \<upsilon> @ [[S' \<rightarrow> \<alpha> \<cdot> \<beta>]]" using \<tau>_def by simp
-      from n_steps(2)[unfolded this] show ?thesis 
-      proof cases
-        case (expand Y \<alpha>' X \<beta>' \<gamma> \<rho>' w')
-        moreover with Cons have
-          "\<rho> = [Y \<rightarrow> [] \<cdot> \<alpha>'] # \<tau> @ [[S' \<rightarrow> \<alpha> \<cdot> \<beta>]]" by simp
-        moreover from expand \<tau>_def Cons have "\<forall>i\<in>set ([Y \<rightarrow> [] \<cdot> \<alpha>'] # \<tau>). ?in_Prods i" 
-          using \<sigma>_def  expanding_imp_in_Prods_G expand n_steps(2) \<tau>_def(3) by auto
-        ultimately show ?thesis using Suc.prems(2) \<tau>_def Cons by fastforce
-      qed (cases \<upsilon>, (use \<tau>_def Cons Suc in auto))+
-    qed
-  qed 
-qed
-
-lemma first_step_is_eps:
-  assumes "([init M], u) \<turnstile>(Suc n) (qs, v)"
-  obtains \<alpha> where 
-    "([init M], u) \<turnstile> ([[S \<rightarrow> [] \<cdot> \<alpha>], init M], u)"
-    "([[S \<rightarrow> [] \<cdot> \<alpha>], init M], u) \<turnstile>* (qs, v)"
-proof -
-  from assms obtain ps u' where step: "([init M], u) \<turnstile> (ps, u')"
-    and steps: "(ps, u') \<turnstile>* (qs, v)"
-    by (metis relpowp_Suc_D2 rtranclp_power surj_pair)
-  moreover have "u = u'"
-    using step_equal_or_Cons step by fast
-  moreover with step have "([init M], ps) \<in> eps M" 
-    by fastforce
-  ultimately show thesis using that by blast
-qed
-
-lemma reachable_snd_not_empty_imp_hd_in_G:
-  assumes "([init M], u) \<turnstile>* ([A \<rightarrow> \<alpha> \<cdot> \<beta>] # [B \<rightarrow> \<gamma> \<cdot> \<delta>] # \<rho>, v)"
-    "\<gamma>@\<delta> \<noteq> []"
-  shows "(A, \<alpha>@\<beta>) \<in> Prods G"
-proof -
-  from reachable_imp_init_or_in_G[OF assms(1)] obtain \<sigma> \<alpha>' \<beta>' where \<sigma>_def:
-    "[A \<rightarrow> \<alpha> \<cdot> \<beta>] # [B \<rightarrow> \<gamma> \<cdot> \<delta>] # \<rho> = \<sigma> @ [[S' \<rightarrow> \<alpha>' \<cdot> \<beta>']]" "\<alpha>' @ \<beta>' = [Nt S]"
-    "\<forall>i\<in>set \<sigma>. case i of [X \<rightarrow> \<gamma> \<cdot> \<delta>] \<Rightarrow> (X, \<gamma> @ \<delta>) \<in> Prods G"
-    by blast
-  have "\<sigma> \<noteq> []" 
-    by standard (use assms(2) \<sigma>_def in auto)
-  from this show ?thesis using \<sigma>_def Cons_eq_append_conv 
-    by fastforce
-qed
-
-lemma singleton_derive_imp_completes:
-  assumes "Prods G' \<turnstile> [Nt X] \<Rightarrow> map Tm u"
-    "(A, \<alpha> @ Nt X # \<beta>) \<in> Prods G'"
-  shows "([A \<rightarrow> \<alpha> \<cdot> [Nt X] @ \<beta>] # \<rho>, u @ v) 
-          \<turnstile>* ([A \<rightarrow> \<alpha> @ [Nt X] \<cdot> \<beta>] # \<rho>, v)"
-proof -
-  note deriv = derive_singleton[of "Prods G'" "Nt X" "map Tm u"]
-  with assms expanding have 
-    "([A \<rightarrow> \<alpha> \<cdot> [Nt X] @ \<beta>] # \<rho>, u @ v) 
-      \<turnstile> ([X \<rightarrow> [] \<cdot> map Tm u] # [A \<rightarrow> \<alpha> \<cdot> [Nt X] @ \<beta>] # \<rho>, u @ v)"
-    by auto
-  also with completes_Tms step_imp_in_Prods have 
-    "... \<turnstile>* ([X \<rightarrow> map Tm u \<cdot> []] # [A \<rightarrow> \<alpha> \<cdot> [Nt X] @ \<beta>] # \<rho>, v)" 
-    by (metis deriv append.right_neutral append_Nil assms(1) completes_Tms sym.inject(1))
-  also  have "... \<turnstile> ([A \<rightarrow> \<alpha> @ [Nt X] \<cdot> \<beta>] # \<rho>, v)"
-    using assms deriv by auto
-  finally show ?thesis .
-qed
-
 subsection \<open>Language Equivalence\<close>
-
-lemma derive_imp_completes:
-  assumes "Prods G' \<turnstile> \<beta> \<Rightarrow> map Tm w"
-    "(A, \<alpha> @ \<beta> @ \<gamma>) \<in> Prods G'"
-  shows "([A \<rightarrow> \<alpha> \<cdot> \<beta>@\<gamma>] # \<rho>, w @ x) \<turnstile>* ([A \<rightarrow> \<alpha>@\<beta> \<cdot> \<gamma>] # \<rho>, x)"
-proof -
-  from derive_map_TmD[OF assms(1)] obtain u v X y where \<beta>_decomp:
-    "\<beta> = map Tm u @ Nt X # map Tm y" "Prods G' \<turnstile> [Nt X] \<Rightarrow> map Tm v" "w = u @ v @ y" by metis
-  with completes_Tms[of A \<alpha> u "Nt X # map Tm y @ \<gamma>" _ "v @ y @ x"] have 
-    "([A \<rightarrow> \<alpha> \<cdot> \<beta> @ \<gamma>] # \<rho>, w @ x) 
-      \<turnstile>* ([A \<rightarrow> \<alpha> @ map Tm u \<cdot> Nt X # map Tm y @ \<gamma>] # \<rho>, v @ y @ x)" 
-    using assms by simp
-  also from singleton_derive_imp_completes[OF \<beta>_decomp(2), of _ "\<alpha> @ map Tm u" _ _ "y@x"] have 
-    "... \<turnstile>* ([A \<rightarrow> \<alpha> @ map Tm u @ [Nt X] \<cdot> map Tm y @ \<gamma>] # \<rho>, y @ x)"
-    using \<beta>_decomp(1) assms(2) by auto
-  also from completes_Tms have "... \<turnstile>* ([A \<rightarrow> \<alpha> @ \<beta> \<cdot> \<gamma>] # \<rho>, x)"
-    using \<beta>_decomp by (smt (verit) append.assoc append_Cons append_Nil assms(2))
-  finally show ?thesis .
-qed
 
 lemma derives_imp_completes:
   assumes "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm w"
@@ -781,21 +558,6 @@ proof -
     by simp
 qed
 
-lemma reaches_final_imp_second_is_chain:
-  assumes "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # i # \<rho>, w) \<turnstile>* ([final_state], [])"
-  obtains X \<alpha>' \<beta>' where "i = [X \<rightarrow> \<alpha>' \<cdot> Nt A # \<beta>']"
-proof -
-  from assms reaches_final_imp_completes obtain x where 
-    "([A \<rightarrow> \<alpha> @ \<beta> \<cdot> []] # i # \<rho>, x) \<turnstile>* ([final_state], [])"
-    by metis
-  then show thesis
-  proof (cases rule: converse_rtranclpE)
-    case (step y)
-    from this(1) show ?thesis 
-      using that by cases auto
-  qed force
-qed
-
 lemma reaches_final_imp_last_is_init_or_final:
   "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile>* ([final_state], []) \<Longrightarrow> 
   last ([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>) = init M \<or> last ([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>) = final_state"
@@ -805,69 +567,7 @@ proof (induction "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w)" arbi
     using step by cases auto
 qed simp
 
-lemma reachable_Cons_imp_expanded:
-  assumes "([init M], u) \<turnstile>(n) ([A \<rightarrow> \<alpha> \<cdot> \<beta>] # i # \<rho>, v)"
-  obtains u' m k where "([init M], u) \<turnstile>(m) (i # \<rho>, u')"
-    "(i # \<rho>, u') \<turnstile> ([A \<rightarrow> [] \<cdot> \<alpha> @ \<beta>] # i # \<rho>, u')"
-    "([A \<rightarrow> [] \<cdot> \<alpha> @ \<beta>] # i # \<rho>, u') \<turnstile>(k) ([A \<rightarrow> \<alpha> \<cdot> \<beta>] # i # \<rho>, v)" "Suc m + k = n"
-  using assms proof (induction n arbitrary: A \<alpha> \<beta> i \<rho> v thesis rule: less_induct)
-  case (less n)
-  note that = less.prems(1)
-  from less(3) obtain m c where m_steps: "n = Suc m" 
-    "([init M], u) \<turnstile>(m) c" "c \<turnstile> ([A \<rightarrow> \<alpha> \<cdot> \<beta>] # i # \<rho>, v)" 
-    by (metis (no_types, lifting) list.distinct(1) list.inject prod.inject
-        relpowp_E)
-  from m_steps(3) show ?case proof cases
-    case (shift _ \<alpha>' a _ \<sigma> _)
-    then show ?thesis using less.IH[of m i \<rho> A \<alpha>' "Tm a # \<beta>" "a # v"] m_steps that 
-      by (smt (verit, best) add_Suc_right append.assoc append_Cons append_Nil item.inject lessI
-          list.inject prod.inject relpowp_Suc_I)
-  next
-    case (reduce Y \<gamma>' X \<alpha>' _ \<sigma> w)
-    with less.IH[of m "[A \<rightarrow> \<alpha>' \<cdot> Nt Y # \<beta>]" \<sigma> Y \<gamma>' "[]" w] m_steps obtain k j u' where k_steps:
-      "([gpda.init M], u) \<turnstile>(k) ([A \<rightarrow> \<alpha>' \<cdot> Nt Y # \<beta>] # i # \<rho>, u')"
-      "([A \<rightarrow> \<alpha>' \<cdot> Nt Y # \<beta>] # i # \<rho>, u') \<turnstile>(Suc j) c" "k + Suc j = m"
-      by (smt (verit, ccfv_threshold) add_Suc_shift item.inject lessI list.inject old.prod.inject
-          relpowp_Suc_I2)
-    with less.IH[OF _ _ this(1)] obtain m' k' v' where m'_steps: "([gpda.init M], u) \<turnstile>(m') (i # \<rho>, v')"
-      "(i # \<rho>, v') \<turnstile> ([A \<rightarrow> [] \<cdot> \<alpha> @ \<beta>] # i # \<rho>, v')"
-      "([A \<rightarrow> [] \<cdot> \<alpha> @ \<beta>] # i # \<rho>, v') \<turnstile>(k') ([A \<rightarrow> \<alpha>' \<cdot> Nt Y # \<beta>] # i # \<rho>, u')"
-      "Suc m' + k' = k" using reduce m_steps(1) by auto
-    note this(1,2)
-    moreover have "([A \<rightarrow> [] \<cdot> \<alpha> @ \<beta>] # i # \<rho>, v') \<turnstile>(Suc k' + Suc j) ([A \<rightarrow> \<alpha> \<cdot> \<beta>] # i # \<rho>, v)"
-      using m'_steps(3)[THEN relpowp_trans, OF k_steps(2), THEN relpowp_Suc_I, OF m_steps(3)]
-      by simp
-    moreover have "Suc m' + (Suc k' + Suc j) = n" 
-      using k_steps(3) m'_steps(4) m_steps(1) by simp
-    ultimately show ?thesis using that by presburger
-  next
-    case (expand _ _ X _ \<gamma> \<sigma> w)
-    then show ?thesis using that[of m w 0] m_steps by auto
-  qed
-qed
-
-
-lemma reaches_final_imp_no_stack:
-  assumes "([init M], u) \<turnstile>* (final_state # \<rho>, v)"
-  shows "\<rho> = []" 
-  using assms proof (cases \<rho>)
-  case (Cons i \<sigma>)
-  obtain w where
-    "([init M], u) \<turnstile>* (i # \<sigma>, w)" "(i # \<sigma>, w) \<turnstile> (init M # i # \<sigma>, w)"
-  proof -
-    from assms obtain n where "([init M], u) \<turnstile>(n) (final_state # i # \<sigma>, v)"
-      using rtranclp_imp_relpowp unfolding Cons by metis
-    from reachable_Cons_imp_expanded[OF this] show ?thesis using that relpowp_imp_rtranclp  
-      by (metis append.right_neutral init_ipda)
-  qed
-  from this(2) show ?thesis proof cases
-    case (expand Y \<alpha> X \<beta> \<gamma> \<rho> w)
-    then show ?thesis 
-    using S'_Prod_notin_G(1) assms local.Cons reachable_snd_not_empty_imp_hd_in_G by fastforce
-  qed simp_all
-qed
-
-lemma invariant: 
+lemma invariant:
   assumes "([init M], u@v) \<turnstile>* (rev \<rho>, v)"
   shows "Prods G \<turnstile> hist \<rho> \<Rightarrow>* map Tm u"
 proof -

@@ -20,9 +20,6 @@ locale srpda = Extended_Cfg G for G :: "('n::fresh0, 't) Cfg" +
   assumes srpda: "M = SRPDA G"
 begin
 
-lemma srpda_states [simp]: "states M = UNIV"
-  using srpda unfolding SRPDA_def by simp
-
 lemma srpda_init [simp]:
   "gpda.init M = Init" using srpda unfolding SRPDA_def by simp
 
@@ -73,22 +70,6 @@ abbreviation steps :: "('n, 't) config \<Rightarrow> ('n, 't) config \<Rightarro
 abbreviation stepn :: "('n, 't) config \<Rightarrow> nat \<Rightarrow> ('n, 't) config \<Rightarrow> bool" (\<open>_ \<turnstile>'(_') _\<close> 55) where
   "c\<^sub>0 \<turnstile>(n) c\<^sub>1 \<equiv> (step ^^ n) c\<^sub>0 c\<^sub>1"
 
-lemma reachable_imp_substring:
-  assumes "(xs, w) \<turnstile>* (ys, v)"
-  obtains u where "w = u @ v"
-  using assms proof (induction "(ys, v)" arbitrary: ys v thesis rule: rtranclp_induct)
-  case (step y)
-  from step(2) show ?case proof (cases rule: step.cases)
-    case (step_nxt rs a ss ts)
-    with step(3)[of _ "a # v"] step(4)[of "_ @ [a]"] show ?thesis by auto
-  qed (use step in auto)
-qed simp
-
-lemma steps_len_dec:
-  "(xs, w) \<turnstile>* (ys, v) \<Longrightarrow> length w \<ge> length v"
-  using reachable_imp_substring by fastforce
-
-
 lemma into_Init_impossible:
   assumes "c \<turnstile> (Init # xs, w)" 
   shows "False"
@@ -135,44 +116,6 @@ lemma Tm_top_of_stack_imp_consumed:
   assumes "c \<turnstile> (Sym (Tm a) # \<alpha>, w)" 
   shows "c = (\<alpha>, a # w)"
   using assms by cases auto
-
-lemma eps_step_stack_indep:
-  assumes "(\<alpha>, u) \<turnstile> (\<beta>, u)"
-  shows "(\<alpha>, v) \<turnstile> (\<beta>, v)"
-  using assms by cases 
-    (simp, 
-      (smt (verit, ccfv_threshold) assms not_Cons_self2 prod.inject srpda.step.cases 
-        srpda.step_eps srpda_axioms)+)
-
-lemma eps_stack_indep:
-  "(\<alpha>, u) \<turnstile>* (\<beta>, u) \<Longrightarrow> (\<alpha>, v) \<turnstile>* (\<beta>, v)"
-proof (induction "(\<alpha>, u)" arbitrary: \<alpha> rule: converse_rtranclp_induct)
-  case (step c)
-  then obtain \<gamma> w where "c = (\<gamma>, w)" using old.prod.exhaust by metis
-  with step(1) have c_\<gamma>u: "c = (\<gamma>, u)"
-    using steps_len_dec step.cases step.hyps(2) by fastforce
-  with step(1) eps_step_stack_indep have "(\<alpha>, v) \<turnstile> (\<gamma>, v)" by blast
-  with step(3) c_\<gamma>u show ?case by simp
-qed simp
-
-lemma tl_indep:
-  "(\<alpha>, u @ v) \<turnstile>* (\<gamma>, v) \<Longrightarrow> (\<alpha>, u @ w) \<turnstile>* (\<gamma>, w)"
-proof (induction "(\<alpha>, u @ v)" arbitrary: \<alpha> u rule: converse_rtranclp_induct)
-  case (step c)
-  show ?case proof (cases u)
-    case Nil
-    then show ?thesis using step(1,2) eps_stack_indep 
-      by (metis append_Nil converse_rtranclp_into_rtranclp)
-  next
-    case (Cons a u')
-    from step(1) show ?thesis 
-      using step Cons by cases 
-        (metis (no_types, lifting) append_Cons list.inject shifts converse_rtranclp_into_rtranclp 
-          prod.inject,
-         metis (no_types, lifting) reduces converse_rtranclp_into_rtranclp prod.inject,
-         metis (no_types, lifting) finishes converse_rtranclp_into_rtranclp prod.inject)
-  qed
-qed simp
 
 lemma Tms_on_stack_imp_consumed:
   "(\<alpha>, u @ v @ w) \<turnstile>* (map (Sym \<circ> Tm) (rev v) @ \<beta>, w) \<Longrightarrow> (\<alpha>, u @ v @ w) \<turnstile>* (\<beta>, v @ w)"

@@ -380,40 +380,6 @@ proof -
   ultimately show ?thesis unfolding LR0_inadequate_def using shift_reduce.intros by blast
 qed
 
-
-lemma LR0_adequate_complete_cases[consumes 2, case_names empty singleton]:
-  assumes "LR0_adequate q"
-    "q \<in> gpda.states P\<^sub>0"
-  obtains "completes q = {}" |
-    A \<alpha> where "completes q = {[A \<rightarrow> \<alpha> \<cdot> []]}"
-proof -
-  from assms(2) consider (final) "q = {[S' \<rightarrow> [] \<cdot> []]}" | (LR0) "q \<in> dfa.states LR\<^sub>0"
-    by force
-  thus thesis proof cases
-    case LR0
-    hence "finite q" by fastforce
-    hence finite: "finite (completes q)" using completes_subset finite_subset by blast
-    from assms consider "card (completes q) = 0" | "card (completes q) = Suc 0" 
-      unfolding LR0_inadequate_def reduce_reduce_def by linarith
-    thus thesis proof cases
-      case 1
-      then show ?thesis using 1 card_0_eq that finite by meson
-    next
-      case 2
-      then show ?thesis using card_1_singleton_iff completesE that 
-        by (metis singletonI)
-    qed
-  qed (use that in blast)
-qed
-
-lemma complete_in_adequate_imp_singleton:
-  assumes "i \<in> completes q"
-    "LR0_adequate q"
-    "q \<in> gpda.states P\<^sub>0"
-  shows "completes q = {i}"
-  using assms(2-) by (cases rule: LR0_adequate_complete_cases) (use assms in auto)
-
-
 lemma LR_adequate_completes_singleton_imp_derivern_Suc:
   assumes "LR0_adequate q"
     "q \<in> dfa.states LR\<^sub>0"
@@ -760,7 +726,7 @@ proof (standard, goal_cases)
   qed
 qed
 
-lemma LR'0_Suc_G_imp_LR'0_Suc_G':
+lemma LR'0_G_imp_LR'0_G':
   assumes "is_LR' 0 G" "\<nexists>n \<alpha>. Prods G \<turnstile> [Nt S] \<Rightarrow>(Suc n) Nt S # \<alpha>"
   shows "is_LR' 0 G'"
 proof (standard, goal_cases)
@@ -1029,155 +995,11 @@ theorem is_LR0_iff_no_LR0_inadequates:
   "is_LR 0 \<longleftrightarrow> (\<forall>q\<in>gpda.states P\<^sub>0. LR0_adequate q)"
   using is_LR0_imp_no_LR0_inadequate_states no_LR0_inadequate_states_imp_is_LR0 by metis
 
+section \<open>Language Equivalence of \<open>P\<^sub>0\<close> and its Grammar\<close>
+
 notation P0.step (infix \<open>\<turnstile>P\<close> 55)
 notation P0.steps (infix \<open>\<turnstile>P*\<close> 55)
 notation P0.stepn (\<open>_ \<turnstile>P'(_') _\<close> 55)
-
-lemma LR_adequate_imp_P0_nxt_unique:
-  assumes "p \<in> gpda.states P\<^sub>0" "LR0_adequate p"
-    "p # ps = ps' @ rs" "(ps', a, qs) \<in> gpda.nxt P\<^sub>0" "(p # ps, a # w) \<turnstile>P c1"
-  shows "(qs @ rs, w) = c1"
-  using assms(5) proof (cases, goal_cases qs'_nxt _)
-  case (qs'_nxt ps'' qs' _)
-  with assms nxt_P0E have eq: "(ps', a, qs) = (ps'', a, qs')" 
-    by (smt (verit, best) append_Cons list.inject)
-  with assms qs'_nxt show ?thesis by auto
-next
-  case (step_eps _ _ _)
-  then show ?thesis using assms(4) shift_reduce.intros assms(2) eps_P0E
-    unfolding LR0_inadequate_def 
-    by (smt (verit, ccfv_threshold) P0.eps append_eq_Cons_conv list.inject nxt_P0E
-        assms(3))
-qed
-
-lemma LR_adequate_eps_tl_eq_imp_P0_eps_unique:
-  assumes "p \<in> gpda.states P\<^sub>0" "LR0_adequate p"
-    "p # ps = p # ps0 @ rs0" "(p # ps0, qs0) \<in> gpda.eps P\<^sub>0" "(p # ps0, qs1) \<in> gpda.eps P\<^sub>0"
-  shows "qs0 @ rs0 = qs1 @ rs0"
-  using assms(4) proof (cases rule: eps_P0E)
-  case (reduce p'' ps'' X \<alpha>)
-  note qs_reduce = this
-  hence qs_eqs [simp]: "p'' = p" "ps'' = ps0" by auto
-  have comp_singleton: "completes p = {[X \<rightarrow> \<alpha> \<cdot> []]}" 
-    using complete_in_adequate_imp_singleton[OF _ assms(2,1)]
-      qs_reduce unfolding completes_def by auto
-  from assms(5) show ?thesis proof (cases rule: eps_P0E)
-    case (reduce _ _ Y \<beta>)
-    with assms(2) qs_reduce have "[X \<rightarrow> \<alpha> \<cdot> []] = [Y \<rightarrow> \<beta> \<cdot> []]"
-      using comp_singleton unfolding completes_def 
-      by (metis (mono_tags, lifting) item.case list.inject mem_Collect_eq singletonD)
-    then show ?thesis using qs_reduce reduce 
-      using assms(4-) by fastforce
-  next
-    case (finish _)
-    with assms(2) qs_reduce have "[X \<rightarrow> \<alpha> \<cdot> []] = [S' \<rightarrow> [Nt S] \<cdot> []]"
-      using comp_singleton unfolding completes_def 
-      by (metis (mono_tags, lifting) item.case list.inject mem_Collect_eq singletonD)
-    then show ?thesis using qs_reduce by blast
-  qed
-next
-  case (finish _)
-  note qs_finish = this
-  hence comp_singleton: "completes p = {[S' \<rightarrow> [Nt S] \<cdot> []]}" 
-    using complete_in_adequate_imp_singleton[OF _ assms(2,1)]
-       unfolding completes_def by auto
-  from assms(5) show ?thesis proof (cases rule: eps_P0E)
-    case (reduce p ps' X \<alpha>)
-    with assms(2) qs_finish comp_singleton show ?thesis 
-      by (metis (no_types, lifting) completes_singleton_imp_eq item.inject list.inject)
-  next
-    case finish
-    then show ?thesis using qs_finish assms(4-) by fastforce
-  qed
-qed
-
-lemma LR_adequate_imp_P0_eps_unique:
-  assumes "p \<in> gpda.states P\<^sub>0" "LR0_adequate p"
-    and qs_eps: "p # ps = p # ps0 @ rs0" "(p # ps0, qs0) \<in> gpda.eps P\<^sub>0"
-    and qs'_eps: "p # ps = p # ps1 @ rs1" "(p # ps1, qs1) \<in> gpda.eps P\<^sub>0"
-  shows "qs0 @ rs0 = qs1 @ rs1"
-proof (cases "ps0 = ps1")
-  case True
-  with qs_eps qs'_eps have rs_eq: "rs0 = rs1" by auto
-  with True LR_adequate_eps_tl_eq_imp_P0_eps_unique[OF assms(1,2)] qs_eps qs'_eps
-  show ?thesis by metis
-next
-  case False
-  with qs_eps qs'_eps have neq: "length ps0 \<noteq> length ps1" 
-    by fastforce
-  from qs_eps(2) show ?thesis 
-  proof (cases rule: eps_P0E)
-    case (reduce p'' ps'' X \<alpha>)
-    have comp_singleton: "completes p = {[X \<rightarrow> \<alpha> \<cdot> []]}" 
-      using complete_in_adequate_imp_singleton[OF _ assms(2,1)]
-        reduce unfolding completes_def by auto
-    from qs'_eps(2) show ?thesis 
-      using comp_singleton reduce neq by (cases rule: eps_P0E) 
-        (metis completes_singleton_imp_eq item.inject list.inject)+
-  next
-    case (finish p)
-    have comp_singleton: "completes p = {[S' \<rightarrow> [Nt S] \<cdot> []]}" 
-      using complete_in_adequate_imp_singleton[OF _ assms(2,1)]
-        finish unfolding completes_def by auto          
-    from qs'_eps(2) show ?thesis 
-      using comp_singleton finish neq by (cases rule: eps_P0E) 
-        (metis completes_singleton_imp_eq item.inject list.inject, metis list.inject)
-  qed
-qed
-
-text \<open>If a state of \<open>P\<^sub>0\<close> is LR(0)-adequate, \<open>P\<^sub>0\<close> behaves deterministically on that state:\<close>
-
-lemma LR0_adequate_imp_P0_step_unique:
-  assumes "p \<in> gpda.states P\<^sub>0" "LR0_adequate p"
-    "(p # ps, u) \<turnstile>P c0" "(p # ps, u) \<turnstile>P c1"
-  shows "c0 = c1"
-using assms(3) proof (cases, goal_cases qs_nxt qs_eps)
-  case (qs_eps ps0 qs0 rs0)
-  with eps_P0E obtain ps0' where ps0_eq: "ps0 = p # ps0'" 
-    by (metis Cons_eq_append_conv P0.eps)
-  from assms(4) show ?thesis
-  proof (cases, goal_cases qs'_nxt qs'_eps)
-    case (qs'_eps ps1 qs1 rs1)
-    with eps_P0E obtain ps1' where ps1_eq: "ps1 = p # ps1'" 
-      by (metis Cons_eq_append_conv P0.eps)
-    from LR_adequate_imp_P0_eps_unique[OF assms(1,2)] qs_eps qs'_eps show ?thesis 
-      unfolding ps0_eq ps1_eq by (smt (verit, ccfv_SIG) Cons_eq_appendI)
-  qed (use assms LR_adequate_imp_P0_nxt_unique in blast)
-qed (use assms LR_adequate_imp_P0_nxt_unique in blast)
-
-text \<open>If \<open>P\<^sub>0\<close> has no LR(0)-inadequate states, it is deterministic:\<close>
-
-theorem is_LR0_imp_P0_stepn_unique:
-  assumes "is_LR 0"
-    "set ps \<subseteq> gpda.states P\<^sub>0"
-    "(ps, u) \<turnstile>P(n) c0" "(ps, u) \<turnstile>P(n) c1"
-  shows "c0 = c1"
-  using assms(3-,2) proof (induction n arbitrary: ps u)
-  case (Suc n)
-  then obtain p qs where Cons [simp]: "ps = p # qs"  
-    by (metis P0.step_imp_Cons relpowp_Suc_E2 surj_pair)
-  obtain ps' u' where "(p # qs, u) \<turnstile>P (ps', u')" "(ps', u') \<turnstile>P(n) c0" "(ps', u') \<turnstile>P(n) c1"
-  proof -
-    from Suc obtain p0 ps0 u0 p1 ps1 u1 where 
-      "(ps, u) \<turnstile>P (p0 # ps0, u0)" "(p0 # ps0, u0) \<turnstile>P(n) c0"
-      "(ps, u) \<turnstile>P (p1 # ps1, u1)" "(p1 # ps1, u1) \<turnstile>P(n) c1"
-      using relpowp_Suc_D2 P0.step_imp_Cons by (smt (verit, ccfv_SIG) surj_pair)
-    moreover from Suc.prems(3) assms(1) have "p \<in> gpda.states P\<^sub>0" "LR0_adequate p"
-      using is_LR0_iff_no_LR0_inadequates by auto
-    ultimately show thesis using that LR0_adequate_imp_P0_step_unique Cons by metis
-  qed
-  moreover from this(1) Suc.prems(3) have "set ps' \<subseteq> gpda.states P\<^sub>0"
-    using P0.step_states_imp_states by simp
-  ultimately show ?case using Suc.IH by presburger
-qed simp
-
-corollary is_LR0_imp_P0_deterministic:
-  assumes "is_LR 0"
-    "([gpda.init P\<^sub>0], w) \<turnstile>P(n) c0" "([gpda.init P\<^sub>0], w) \<turnstile>P(n) c1"
-  shows "c0 = c1"
-  using assms is_LR0_imp_P0_stepn_unique[OF assms(1) _ assms(2-)] P0.init by simp
-
-section \<open>Language Equivalence of \<open>P\<^sub>0\<close> and its Grammar\<close>
 
 lemma P0_step_cases [consumes 1, case_names shift reduce finish, cases set: P0.step]:
   assumes "c\<^sub>0 \<turnstile>P c\<^sub>1"
@@ -1268,109 +1090,6 @@ lemma valids_S_Nil_step_finish:
   by (rule P0_finishI) (use dfa_LR0.nextl_init_state nextl_dfa_LR0_is_valids in force,
       metis Extended_Cfg.in_states_imp_valid Extended_Cfg.validI Extended_Cfg_axioms
       S'_complete_reliable_imp_S ipda.final_state_in_It ipda_IPDA states_char_fa)
-
-(* TODO refactor *)
-lemma P0_stack_substr_reachable:
-  assumes "([gpda.init P\<^sub>0], u) \<turnstile>P(n) (p # ps @ q # qs, v)" "p \<in> dfa.states LR\<^sub>0"
-  obtains m u' where "m < n" "([gpda.init P\<^sub>0], u) \<turnstile>P(m) (q # qs, u')"
-    "(q # qs, u') \<turnstile>P(n - m) (p # ps @ q # qs, v)"
-  using assms proof (induction n arbitrary: p ps q qs v thesis)
-  case (Suc n)
-  note that = Suc.prems(1)
-  from Suc obtain c where n_steps: "([gpda.init P\<^sub>0], u) \<turnstile>P(n) c" "c \<turnstile>P (p # ps @ q # qs, v)"
-    by auto
-  from this(2) show ?case proof cases
-    case (shift r rs a w)
-    show ?thesis proof (cases ps)
-      case Nil
-      with shift have "r # rs = q # qs" by auto
-      note n_steps[unfolded shift this]
-      from Suc.prems(1)[OF _ this(1)] show thesis 
-        using shift n_steps(2) \<open>r # rs = q # qs\<close> by auto
-    next
-      case (Cons s ss)
-      with Suc.IH[of q qs s ss] obtain m u' where "m < n" "([gpda.init P\<^sub>0], u) \<turnstile>P(m) (q # qs, u')"
-        "(q # qs, u') \<turnstile>P(n - m) c" using n_steps shift by auto
-      then show ?thesis using n_steps(2) that 
-        using Suc_diff_le le_eq_less_or_eq less_Suc_eq by auto
-    qed
-  next
-    case (reduce r\<^sub>n rs r\<^sub>0 ss X \<alpha> w)
-    show ?thesis proof (cases ss)
-      case Nil
-      note ss_Nil = this
-      from reduce(3) have eqs [simp]: "p # ps = [dfa.nxt LR\<^sub>0 r\<^sub>0 (Nt X)]" "q # qs = [r\<^sub>0]" 
-        unfolding Nil by (simp_all add: append_eq_Cons_conv)
-      show ?thesis proof (cases rs rule: rev_cases)
-        case Nil
-        with reduce ss_Nil have "c = (q # qs, w)" by force
-        then show ?thesis using that[of n] n_steps by auto
-      next
-        case (snoc rs')
-        with ss_Nil reduce have "c = (r\<^sub>n # rs' @ q # qs, w)" by auto
-        with Suc.IH[OF _ n_steps(1)[unfolded this]] show ?thesis 
-          using that n_steps(2) Suc_diff_le le_eq_less_or_eq less_Suc_eq 
-            list.set_intros(1) reduce(4) relpowp_Suc_I subsetD by auto
-      qed
-    next
-      case (Cons a as)
-      note ss_Cons = this
-      show ?thesis proof (cases ps)
-        case Nil
-        with reduce(3) have rss[simp]: "r\<^sub>0 # ss = q # qs" by auto
-        show ?thesis proof (cases rs rule: rev_cases)
-          case Nil
-          with reduce rss have "c = (q # qs, w)" by force
-          then show ?thesis using n_steps that by fastforce
-        next
-          case (snoc rs' _)
-          with reduce rss have "c = (r\<^sub>n # rs' @ q # qs, w)" by fastforce
-          moreover from reduce have "r\<^sub>n \<in> dfa.states LR\<^sub>0" by fastforce
-          ultimately show ?thesis using that Suc.IH[of q qs r\<^sub>n rs' w] n_steps      
-            by (metis (no_types, lifting) Suc_diff_le less_Suc_eq_le less_or_eq_imp_le relpowp_Suc_I)
-        qed
-      next
-        case (Cons b bs)
-        with reduce(3) obtain ss' where q_substr: "ss = ss' @ q # qs" 
-          by auto
-        hence "c = (r\<^sub>n # (rs @ ss') @ q # qs, w)" using reduce by fastforce
-        moreover from reduce have "r\<^sub>n \<in> dfa.states LR\<^sub>0" by force
-        ultimately obtain m u' where 
-          "m < n" "([gpda.init P\<^sub>0], u) \<turnstile>P(m) (q # qs, u')" "(q # qs, u') \<turnstile>P(n - m) c"
-          using  Suc.IH[of q qs r\<^sub>n "rs @ ss'" w] n_steps reduce by blast
-        then show ?thesis using n_steps that Suc_diff_le le_eq_less_or_eq less_Suc_eq by auto
-      qed
-    qed
-  qed (use Suc(4) P0_final_item_notin_It in_state_imp_in_It in blast)
-qed simp
-
-lemma P0_stack_inc_Suc_0_or_dec:
-  assumes "(ps, u) \<turnstile>P (qs, v)" "length ps \<noteq> length qs"
-  shows "length ps > length qs \<or> length qs = Suc (length ps)"
-  using assms proof cases
-  case (reduce _ ps')
-  show ?thesis using assms(2) reduce by (cases ps') auto
-qed simp_all
-
-lemma tl_of_stack_contains_no_empty:
-  "\<lbrakk>([gpda.init P\<^sub>0], u) \<turnstile>P* (q # qs, v); q \<in> dfa.states LR\<^sub>0\<rbrakk> \<Longrightarrow> {} \<notin> set qs"
-proof (induction "q # qs" v arbitrary: q qs rule: rtranclp_induct2)
-  case (step ps v w)
-  from this(2) show ?case proof cases
-    case (shift r rs a x)
-    then show ?thesis using step by fastforce
-  next
-    case (reduce r\<^sub>n rs r\<^sub>0 ss X \<alpha> x)
-    then show ?thesis using step 
-      by (metis (no_types, lifting) ext Un_iff empty_iff last_in_set list.distinct(1) list.inject
-          list.set_intros(1) prod.inject set_ConsD set_append subset_eq)
-  next
-    case (finish r rs x)
-    then show ?thesis using step(4) step.hyps(3) by fastforce
-  qed
-qed simp
-
-
   
 inductive stack_word :: "('n, 't) syms \<Rightarrow> ('n, 't) item set list \<times> 't list 
   \<Rightarrow> ('n, 't) item set list \<times> 't list \<Rightarrow> bool" (\<open>_ \<turnstile> _ \<turnstile>P* _\<close> 55)  where
@@ -1491,17 +1210,6 @@ proof -
   also with P0_nth_is_valids_of_nth_stack_word[OF assms] have 
     "... = valids (rev (drop (length \<alpha>) \<alpha>))" using len_qqs_Suc_len_\<alpha> by force
   finally show ?thesis using init_P0_is_valids_empty by auto
-qed
-
-lemma sw_second_is_valids_tl:
-  assumes "\<alpha> \<turnstile> ([gpda.init P\<^sub>0], u) \<turnstile>P* (p # q # qs, v)"
-  shows "q = valids (rev (tl \<alpha>))"
-proof -
-  note len_pqqs_Suc_len_\<alpha> = P0_init_stack_word_length_inv[OF assms]
-  have "q = (p # q # qs) ! Suc 0" by simp
-  also from P0_nth_is_valids_of_nth_stack_word[OF assms] have 
-    "... = valids (rev (drop (Suc 0) \<alpha>))" by auto
-  finally show ?thesis by (simp add: drop_Suc)
 qed
 
 lemma P0_invariant1:
@@ -1792,6 +1500,9 @@ qed
 theorem P0_Lang_eq_Lang_G:
   "P0.Lang = LangS G'"
   using P0_sound P0_complete by standard
+
+thy_deps
+unused_thms Context_Free_Grammar Finite_Automata_HF Pushdown_Automata -
 
 end
 end

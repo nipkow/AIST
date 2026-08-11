@@ -13,22 +13,6 @@ lemma Lang_nempty_imp_useful_S:
   shows "useful (Prods G) (Start G) (Start G)"
   using assms unfolding useful_def Lang_def by fastforce
 
-(* TODO mv *)
-lemma reduced_imp_restrict_useful_id: 
-  assumes "reduced G" 
-  shows  "restrict_Nts (useful (Prods G) (Start G)) (Prods G) = Prods G" (is "?R = ?P")
-proof 
-  show "?R \<subseteq> ?P"
-    by (metis restrict_Nts_subset)
-  show "?P \<subseteq> ?R"
-    unfolding restrict_Nts_def using assms Nts_def reduced_def by fastforce
-qed
-
-lemma restrict_useful_id_imp_reduced:
-  assumes "restrict_Nts (useful (Prods G) (Start G)) (Prods G) = Prods G" 
-  shows "reduced G"
-  using assms unfolding restrict_Nts_def reduced_def Nts_def by fast
-
 lemma reduced_imp_derives_Tms_singleton:
   assumes "reduced G"
     "A \<in> Nts (Prods G)"
@@ -73,40 +57,6 @@ lemma reduced_imp_prod_singleton_derives_Tms:
   obtains v where "Prods G \<turnstile> [Nt B] \<Rightarrow>* map Tm v"
   using reduced_imp_prod_substring_derives_Tms[of A \<alpha> "[Nt B]" \<gamma>] assms by auto
 
-lemma reduced_imp_prod_derives_Tms:
-  assumes "(A, \<alpha>) \<in> Prods G"
-    "reduced G"
-  obtains v where "Prods G \<turnstile> [Nt A] \<Rightarrow> \<alpha>"
-    "Prods G \<turnstile> \<alpha> \<Rightarrow>* map Tm v"
-  using reduced_imp_prod_substring_derives_Tms[of A "[]" \<alpha> "[]"] assms derive.intros 
-  by (metis append.right_neutral append_Nil)
-
-lemma reduced_imp_prod_distinct:
-  assumes "(A, \<alpha>) \<in> Prods G"
-    "reduced G"
-  obtains \<beta> where "(A, \<beta>) \<in> Prods G" "Nt A \<notin> set \<beta>"
-proof -
-  from assms obtain w n where "Prods G \<turnstile> [Nt A] \<Rightarrow>(n) map Tm w"
-    using rtranclp_imp_relpowp by (metis append.right_neutral append_Nil derives_Cons_rule
-        reduced_imp_prod_substring_derives_Tms)
-  then show thesis using that
-  proof (induction n arbitrary: A w thesis rule: less_induct)
-    case (less n)
-    then obtain m \<alpha> where m_steps: "n = Suc m" "Prods G \<turnstile> [Nt A] \<Rightarrow> \<alpha>" "Prods G \<turnstile> \<alpha> \<Rightarrow>(m) map Tm w" 
-      using relpowp_Suc_D2 by (metis deriven_Nt_map_TmD)
-    then show ?case proof (cases "Nt A \<in> set \<alpha>")
-      case True
-      with m_steps obtain \<beta> \<gamma> where "\<alpha> = \<beta> @ [Nt A] @ \<gamma>" using split_list by fastforce
-      then obtain i v where "Prods G \<turnstile> [Nt A] \<Rightarrow>(i) map Tm v" "i < n" using deriven_leq
-          m_steps(1,3) by (metis le_imp_less_Suc)
-      then show ?thesis using less.IH less.prems(2) by blast
-    next
-      case False
-      then show ?thesis using m_steps less.prems(2)[of \<alpha>] by (simp add: derive_singleton)
-    qed
-  qed
-qed
-
 lemma derives_imp_in_Prods:
   assumes "Start G \<in> Nts (Prods G)"
   shows "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* \<alpha> \<Longrightarrow> Nts_syms \<alpha> \<subseteq> Nts (Prods G)"
@@ -134,13 +84,6 @@ proof -
   from reduced_imp_Nts_subset_derives_Tms[OF this assms(2)] show thesis using that by blast
 qed
 
-lemma reduced_derives_imp_derives_Tms:
-  assumes  "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>* \<alpha>"
-    "reduced G"
-    "LangS G \<noteq> {}"
-  obtains v where "Prods G \<turnstile> \<alpha> \<Rightarrow>* map Tm v"
-  using reduced_derives_imp_substring_derives_Tms[of _ "[]" _ "[]"] assms 
-  by (metis append.right_neutral append_Nil)
 
 lemma reduced_reachable_imp_rsentential_reachable:
   assumes "reduced G"
@@ -336,36 +279,6 @@ lemma G'_derive_imp_G_derive_if_no_S':
   "\<lbrakk>Prods G' \<turnstile> \<alpha> \<Rightarrow> \<beta>; Nt S' \<notin> set \<alpha>\<rbrakk> \<Longrightarrow> Prods G \<turnstile> \<alpha> \<Rightarrow> \<beta>"
   using G'_def by (simp add: derive_iff in_set_conv_decomp)
 
-lemma G'_derives_imp_G_derives_if_no_S':
-  "\<lbrakk>Prods G' \<turnstile> \<alpha> \<Rightarrow>* \<gamma>; Nt S' \<notin> set \<alpha>\<rbrakk> \<Longrightarrow> Prods G \<turnstile> \<alpha> \<Rightarrow>* \<gamma>"
-proof (induction rule: rtranclp_induct)
-  case (step \<beta> \<gamma>)
-  note step(3)[OF step(4)]
-  moreover from this have "Nt S' \<notin> set \<beta>" 
-    using S'_notin_Nts_Prods_G derives_set_subset in_Nts_iff_in_Syms step.prems 
-    by fastforce
-  ultimately  show ?case using step G'_derive_imp_G_derive_if_no_S'[OF step(2)]
-    by simp
-qed simp
-
-lemma G'_deriver_imp_G_deriver_if_no_S':
-  assumes "Prods G' \<turnstile> \<alpha> \<Rightarrow>r \<gamma>"
-  shows "Nt S' \<notin> set \<alpha> \<Longrightarrow> Prods G \<turnstile> \<alpha> \<Rightarrow>r \<gamma>"
-  by (smt (verit, ccfv_threshold) Extended_Cfg.G'_Prod_cases Extended_Cfg_axioms assms deriver.cases
-      deriver.intros in_set_conv_decomp prod.inject)
-
-lemma G'_derivers_imp_G_derivers_if_no_S':
-  "\<lbrakk>Prods G' \<turnstile> \<alpha> \<Rightarrow>r* \<gamma>; Nt S' \<notin> set \<alpha>\<rbrakk> \<Longrightarrow> Prods G \<turnstile> \<alpha> \<Rightarrow>r* \<gamma>"
-proof (induction rule: rtranclp_induct)
-  case (step \<beta> \<gamma>)
-  note step(3)[OF step(4)]
-  moreover from this have "Nt S' \<notin> set \<beta>" 
-    using S'_notin_Nts_Prods_G derivers_imp_derives derives_set_subset in_Nts_iff_in_Syms step.prems
-    by fastforce
-  ultimately  show ?case using step G'_deriver_imp_G_deriver_if_no_S'[OF step(2)]
-    by simp
-qed simp
-
 lemma G'_deriven_Suc_imp_G_deriven:
   "Prods G' \<turnstile> [Nt S'] \<Rightarrow>(Suc n) \<beta> \<Longrightarrow> Prods G \<turnstile> [Nt S] \<Rightarrow>(n) \<beta>"
 proof (induction n arbitrary: \<beta>)
@@ -481,13 +394,6 @@ corollary G'_not_empty:
 
 lemma Nts_G'_is_union[simp]: "Nts (Prods G) \<union> {S',S} = Nts (Prods G')"
   using G'_def in_Nts_iff_in_Syms by force
-
-lemma in_Lang_imp_S_derives:
-  assumes "w \<in> LangS G'"
-  shows "Prods G' \<turnstile> [Nt S] \<Rightarrow>* map Tm w"
-  using assms unfolding Lang_def 
-  by (metis G_derives_imp_G'_derives Lang_def Lang_preserved mem_Collect_eq)
-
 
 lemma G'_reduced:
    "reduced G'"

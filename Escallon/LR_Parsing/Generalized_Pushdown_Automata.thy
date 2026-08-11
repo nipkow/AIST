@@ -43,26 +43,11 @@ lemma epsI [intro]:
   "\<lbrakk>ps = ps' @ rs; qs = qs' @ rs; (ps', qs') \<in> eps M\<rbrakk> \<Longrightarrow> (ps, w) \<turnstile> (qs, w)"
   using step_eps by presburger
 
-lemma step_imp_Cons:
-  assumes "(ps, u) \<turnstile> (qs, v)"
-  obtains p ps' q qs' where "ps = p#ps'" "qs = q#qs'"
-  using assms nxt eps by cases (metis list.exhaust Nil_is_append_conv)+
-
 lemma step_states_imp_states:
   assumes "(ps, u) \<turnstile> (qs, v)"
     "set ps \<subseteq> states M"
   shows "set qs \<subseteq> states M"
   using assms nxt eps by cases auto
-
-lemma step_equal_or_Cons:
-  assumes "(p,u) \<turnstile> (q,v)"
-  shows "u = v \<or> (\<exists>a. u = a#v)"
-  using assms by cases auto
-
-lemma step_len_dec:
-  assumes "(p,u) \<turnstile> (q,v)"
-  shows "length u \<ge> length v" 
-  using step_equal_or_Cons[OF assms] by fastforce
 
 abbreviation steps :: "('q,'a) config \<Rightarrow> ('q,'a) config \<Rightarrow> bool" (infix \<open>\<turnstile>*\<close> 55) where
   "steps \<equiv> step\<^sup>*\<^sup>*"

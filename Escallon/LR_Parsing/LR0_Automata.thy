@@ -169,52 +169,6 @@ proof
   qed
 qed (auto simp add: char_fa.epsclo_def)
 
-lemma eps_star_of_char_state_subset_states:
-  "q \<in> nfa.states char_fa \<Longrightarrow> {q'. (q, q') \<in> (nfa.eps char_fa)\<^sup>*} \<subseteq> nfa.states char_fa"
-  using in_eps_char_star_imp_in_It in_eps_char_imp_in_It by auto
-
-lemma subset_states_char_imp_epsclo_eq_UN_eps_star:
-  assumes "Q \<subseteq> nfa.states char_fa"
-  shows "char_fa.epsclo Q = (\<Union>q\<in>Q. {q'. (q, q') \<in> (nfa.eps char_fa)\<^sup>*})"
-proof -
-  let ?Qc = "nfa.states char_fa"
-  have "char_fa.epsclo Q = ?Qc \<inter> (\<Union>q\<in>Q. {q'. (q, q') \<in> (nfa.eps char_fa)\<^sup>*})"
-    unfolding char_fa.epsclo_def by presburger
-  also have "... = (\<Union>q\<in>Q. {q'. (q, q') \<in> (nfa.eps char_fa)\<^sup>*} \<inter> ?Qc) " by blast
-  also from assms eps_star_of_char_state_subset_states have 
-    "... = (\<Union>q\<in>Q. {q'. (q, q') \<in> (nfa.eps char_fa)\<^sup>*})" by fast
-  finally show ?thesis .
-qed
-
-lemma in_It_imp_eps_char_fa:
-  assumes "[X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>] \<in> It G'"
-  obtains \<gamma> where "([X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>], [Y \<rightarrow> [] \<cdot> \<gamma>]) \<in> nfa.eps char_fa"
-proof -
-  from assms have X_prod: "(X, \<alpha> @ Nt Y # \<beta>) \<in> Prods G'" using in_It_imp_in_Prods by fastforce
-  with reduced_imp_prod_substring_derives_Tms[of X \<alpha> "[Nt Y]" \<beta>, OF _ G'_reduced] 
-  obtain \<gamma> where "(Y, \<gamma>) \<in> Prods G'" by (metis derives_Nt_Cons_map_Tm append_Cons eq_Nil_appendI)
-  with that X_prod show thesis unfolding eps_char_fa by blast
-qed
-
-lemma in_It_imp_eps_char_fa_distinct:
-  assumes "[X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>] \<in> It G'"
-  obtains \<gamma> where "([X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>], [Y \<rightarrow> [] \<cdot> \<gamma>]) \<in> nfa.eps char_fa" 
-    "([X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>]) \<noteq> ([Y \<rightarrow> [] \<cdot> \<gamma>])"
-proof -
-  from in_It_imp_eps_char_fa obtain \<gamma> where 
-    \<gamma>_def: "([X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>], [Y \<rightarrow> [] \<cdot> \<gamma>]) \<in> nfa.eps char_fa"
-    using assms by blast
-  show thesis
-  proof (cases "[X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>] = [Y \<rightarrow> [] \<cdot> \<gamma>]")
-    case True
-    with reduced_imp_prod_distinct[OF _ G'_reduced] obtain \<gamma>' where "(Y, \<gamma>') \<in> Prods G'"
-      "Nt Y \<notin> set \<gamma>'" using assms[THEN in_It_imp_in_Prods] by auto
-    moreover with True have "([X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>], [Y \<rightarrow> [] \<cdot> \<gamma>']) \<in> nfa.eps char_fa"
-      unfolding eps_char_fa using assms[THEN in_It_imp_in_Prods] by fastforce
-    ultimately show ?thesis using that unfolding eps_char_fa by force
-  qed (use that \<gamma>_def in presburger)
-qed
-
 lemma derivern_non_word_imp_hd_eps_reachable:
   assumes "Prods G' \<turnstile> [Nt A] \<Rightarrow>r(Suc n) Y # \<gamma>"
     "Nts_syms (Y # \<gamma>) \<noteq> {}"
@@ -263,72 +217,6 @@ next
   qed
 qed
 
-lemma produced_imp_in_eps_star:
-  assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(Suc n) Nt A # map Tm w"
-  obtains X \<beta> where "([S' \<rightarrow> [] \<cdot> [Nt S]], [X \<rightarrow> [] \<cdot> Nt A # \<beta>]) \<in> (nfa.eps char_fa)\<^sup>*"
-proof -
-  from derivern_non_word_imp_hd_eps_reachable[OF assms] obtain 
-    X \<beta> where "([S' \<rightarrow> [] \<cdot> [Nt S]], [X \<rightarrow> [] \<cdot> Nt A # \<beta>]) \<in> (nfa.eps char_fa)\<^sup>*" 
-  proof -
-    from derivern_non_word_imp_hd_eps_reachable[OF assms] obtain 
-    X \<alpha> \<beta> where "([S' \<rightarrow> [] \<cdot> \<alpha>], [X \<rightarrow> [] \<cdot> Nt A # \<beta>]) \<in> (nfa.eps char_fa)\<^sup>*" 
-      "[S' \<rightarrow> [] \<cdot> \<alpha>] \<in> It G'" 
-      by (metis all_not_in_conv in_Nts_syms list.set_intros(1))
-    moreover from this have "\<alpha> = [Nt S]" using in_It_imp_in_Prods 
-      using S'_derive_imp_S derive_singleton by fastforce
-    ultimately show thesis using that by blast
-  qed
-  thus ?thesis using that by blast
-qed 
-
-lemma in_eps_S'_imp_left_Nil:
-   "([S' \<rightarrow> [] \<cdot> [Nt S]], [A \<rightarrow> \<alpha> \<cdot> \<beta>]) \<in> (nfa.eps char_fa)\<^sup>* \<Longrightarrow> \<alpha> = []"
-  by (induction "[A \<rightarrow> \<alpha> \<cdot> \<beta>]" rule: rtrancl_induct) auto
-
-lemma in_eps_S'_imp_produced:
-  assumes "([S' \<rightarrow> [] \<cdot> [Nt S]], [A \<rightarrow> \<alpha> \<cdot> \<beta>]) \<in> (nfa.eps char_fa)\<^sup>*"
-  obtains w where "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* Nt A # map Tm w"
-  using assms proof (induction "[A \<rightarrow> \<alpha> \<cdot> \<beta>]" arbitrary: A \<alpha> \<beta> thesis rule: rtrancl_induct)
-  case base
-  from this[of "[]"] show ?case by simp
-next
-  case (step i)
-  hence Nil: "\<alpha> = []" by fastforce
-  from step(2) obtain B \<delta> where i_def: "i = [B \<rightarrow> [] \<cdot> Nt A # \<delta>]" using item.exhaust 
-    using in_eps_S'_imp_left_Nil step.hyps(1) by auto
-  then obtain x where \<delta>_derivers: "Prods G' \<turnstile> \<delta> \<Rightarrow>r* map Tm x"
-  proof -
-    from step(1) have "(B, Nt A # \<delta>) \<in> Prods G'"
-      using i_def step.hyps(2) by force
-    with reduced_imp_prod_substring_derives_Tms[of B "[Nt A]" \<delta> "[]", OF _ G'_reduced]
-    show thesis using derivers_iff_derives 
-      by (metis append.right_neutral append_Cons append_Nil that)
-  qed
-  from i_def step obtain w where B_steps: "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* Nt B # map Tm w" by blast
-  also from step(2) have "Prods G' \<turnstile> ... \<Rightarrow>r Nt A # \<delta> @ map Tm w" unfolding i_def 
-    using deriver.intros[of _ _ _ "[]"] by fastforce
-  also have "Prods G' \<turnstile> ... \<Rightarrow>r* Nt A # map Tm x @ map Tm w"
-    using derivers_append_map_Tm[OF \<delta>_derivers, of w, THEN derivers_prepend[of _ _ _ "[Nt A]"]]
-    by simp
-  finally show ?case using step.prems[of "x@w"] by auto
-qed
-
-lemma in_char_eps_imp_IPDA_reachable:
-  assumes "(i, j) \<in> (nfa.eps char_fa)\<^sup>*"
-  obtains \<sigma> where "(i # \<rho>, w) \<turnstile>I* (j # \<sigma> @ \<rho>, w)"
-  using assms proof (induction arbitrary: thesis rule: rtrancl_induct)
-  case base
-  from base[of "[]"] show ?case by simp
-next
-  case (step j k)
-  from step.hyps(2) obtain A \<alpha> X \<beta> \<gamma> where eps: "j = [A \<rightarrow> \<alpha> \<cdot> Nt X # \<beta>]" "k = [X \<rightarrow> [] \<cdot> \<gamma>]"
-    "(A, \<alpha> @ Nt X # \<beta>) \<in> Prods G'" "(X, \<gamma>) \<in> Prods G'" by blast
-  from step.IH obtain \<sigma> where "(i # \<rho>, w) \<turnstile>I* (j # \<sigma> @ \<rho>, w)" by blast
-  also from eps have "... \<turnstile>I (k # j # \<sigma> @ \<rho>, w)" 
-    using I.expanding by presburger
-  finally show ?case using step.prems[of "j # \<sigma>"] by simp
-qed
-
 subsection \<open>Properties of \<open>char(G)\<close> computations\<close>
 
 notation char_fa.step (infix \<open>\<turnstile>c\<close> 55)
@@ -356,18 +244,6 @@ lemma char_step_imp_in_Prods [dest]:
   shows "prod_of_item p \<in> Prods G' \<and> prod_of_item q \<in> Prods G'"
   using assms by cases auto
 
-lemma char_stepn_Suc_imp_in_Prods:
-  "(p, \<alpha>) \<turnstile>c(Suc n) (q, \<beta>) \<Longrightarrow> prod_of_item p \<in> Prods G' \<and> prod_of_item q \<in> Prods G'"
-  using char_step_imp_in_Prods by (induction n) 
-    (force, metis (lifting) relpowp_Suc_E relpowp_Suc_E2 surj_pair)
-
-lemma char_steps_in_Prods_imp_in_Prods:
-  assumes "prod_of_item p \<in> Prods G'"
-   "(p, \<alpha>) \<turnstile>c* (q, \<beta>)" 
- shows "prod_of_item p \<in> Prods G' \<and> prod_of_item q \<in> Prods G'"
-  using assms rtranclp_imp_relpowp char_stepn_Suc_imp_in_Prods
-  by (metis (no_types, lifting) prod.inject relpowp_E)
-
 lemma char_reachable_imp_substring:
   assumes "([S' \<rightarrow> [] \<cdot> [Nt S]], \<gamma>) \<turnstile>c* ([A \<rightarrow> \<alpha> \<cdot> \<beta>], \<delta>)"
   obtains \<zeta> where "\<gamma> = \<zeta> @ \<alpha> @ \<delta>"
@@ -383,22 +259,6 @@ next
     then show ?thesis using eps step by auto
   qed (use step in force)   
 qed
-
-lemma char_steps_append:
-  "(p, \<alpha> @ \<beta>) \<turnstile>c* (q, \<beta>) \<Longrightarrow> (p, \<alpha> @ \<gamma>) \<turnstile>c* (q, \<gamma>)"
-proof (induction p "\<alpha> @ \<beta>" arbitrary: \<alpha> rule: converse_rtranclp_induct2)
-  case (step p q \<delta>)
-  show ?case 
-  proof (cases \<alpha>)
-    case Nil
-    then show ?thesis using step 
-      by (meson char_fa.stepn_append converse_rtranclp_into_rtranclp rtranclp_power)
-  next
-    case (Cons X \<alpha>')
-    then show ?thesis using step 
-      by (meson char_fa.stepn_append relpowp_Suc_I2 rtranclp_power)
-  qed
-qed simp
 
 lemma char_consumes_last_imp_butlast_reaches:
   assumes "([S' \<rightarrow> [] \<cdot> [Nt S]], \<delta> @ \<alpha> @ [X]) \<turnstile>c* ([A \<rightarrow> \<alpha> @ [X] \<cdot> \<gamma>], [])"
@@ -445,18 +305,6 @@ proof (induction "(p, \<zeta>)" arbitrary: p rule: converse_rtranclp_induct)
   qed (use step(2) char_fa.steps_len_dec in fastforce)
 qed simp
 
-lemma in_eps_star_imp_char_steps_unchanged: 
-  "(p, q) \<in> (nfa.eps char_fa)\<^sup>* \<Longrightarrow> (p, \<zeta>) \<turnstile>c* (q, \<zeta>)"
-proof (induction rule: converse_rtrancl_induct)
-  case (step y z)
-  with char_fa.step_eps[OF this(1), of \<zeta>] show ?case by simp
-qed simp
-
-lemma char_step_left_nonempty_imp_not_eps:
-  assumes "([A \<rightarrow> \<alpha> \<cdot> \<beta>], X # \<gamma>) \<turnstile>c ([B \<rightarrow> \<delta> @ [Y] \<cdot> \<zeta>], \<eta>)"
-  obtains \<beta>' where "\<beta> = X # \<beta>'" "([B \<rightarrow> \<delta> @ [Y] \<cdot> \<zeta>], \<eta>) = ([A \<rightarrow> \<alpha> @ [X] \<cdot> \<beta>'], \<gamma>)"
-  using assms by cases fast+
-
 lemma char_eps_impossible:
   assumes "([A \<rightarrow> \<alpha> \<cdot> \<beta>], []) \<turnstile>c ([B \<rightarrow> \<delta> @ [Y] \<cdot> \<zeta>], \<eta>)"
   shows False using assms by cases auto
@@ -493,7 +341,7 @@ proof -
           with Suc step have
             "([S' \<rightarrow> [] \<cdot> [Nt S]], \<gamma> @ [X]) \<turnstile>c(m) ([Y \<rightarrow> \<delta>' \<cdot> Z # \<zeta>], [Z])"
             "([Y \<rightarrow> \<delta>' \<cdot> Z # \<zeta>], [Z]) \<turnstile>c ([Y \<rightarrow> \<delta>' @ [Z] \<cdot> \<zeta>], [])" 
-            using char_step_left_nonempty_imp_not_eps char_eps_impossible
+            using char_eps_impossible
             by (smt (verit, del_insts) Extended_Cfg.char_step_cases Extended_Cfg_axioms 
                 append1_eq_conv eps(1,2) item.inject prod.inject relpowp_Suc_E,
             use eps(1,4) snoc in force)
@@ -710,10 +558,6 @@ lemma reliable_prefixI [intro]:
   shows "reliable_prefix [A \<rightarrow> \<alpha> \<cdot> \<beta>] \<gamma>"
   using assms reliable_prefix.intros by auto
 
-lemma reliable_app [simp]:
-  "reliable_prefix [A \<rightarrow> \<alpha> \<cdot> \<beta> @ \<gamma>] \<gamma>' \<Longrightarrow> reliable_prefix [A \<rightarrow> \<alpha> @ \<beta> \<cdot> \<gamma>] (\<gamma>' @ \<beta>)"
-  by (elim reliable_prefixE) auto
-
 lemma reliable_app2 [simp]:
   "reliable_prefix [A \<rightarrow> \<alpha> @ \<beta> \<cdot> \<gamma>] (\<gamma>' @ \<beta>) \<Longrightarrow> reliable_prefix [A \<rightarrow> \<alpha> \<cdot> \<beta> @ \<gamma>] \<gamma>'"
   by (elim reliable_prefixE) auto
@@ -803,26 +647,6 @@ lemma eps_reliable_preserved:
   qed
 qed satx
 
-lemma derivern_Suc_imp_reliable:
-  assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(Suc n) \<alpha> @ Nt X # map Tm w"
-  obtains A \<alpha>' \<beta> v where "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha>' @ Nt A # map Tm v"
-    "Prods G' \<turnstile> \<alpha>' @ Nt A # map Tm v \<Rightarrow>r \<alpha> @ \<beta> @ map Tm v"
-    "Prods G' \<turnstile> \<alpha> @ \<beta> @ map Tm v \<Rightarrow>r* \<alpha> @ Nt X # map Tm w"
-proof -
-  from assms obtain A \<alpha>'' \<beta> \<rho> where 
-    "Prods G' \<turnstile> [Nt S'] \<midarrow>[A \<rightarrow> \<alpha>'' \<cdot> Nt X # \<beta>] # \<rho>\<rightarrow>r* \<alpha> @ Nt X # map Tm w"
-    by (meson derivern_Suc_singleton_imp_rm_chain)
-  then show thesis proof cases
-    case (step \<alpha>' v u)
-    hence derivers_A: "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha>' @ Nt A # map Tm v" 
-      using rm_chain_imp_derivers by blast
-    from step(1) have "\<alpha> = \<alpha>' @ \<alpha>''" "w = u @ v"
-      using Nt_map_Tm_eq_Nt_map_TmD[of \<alpha> X w "\<alpha>' @ \<alpha>''" X "u@v"] by auto
-    with that[OF derivers_A] step show ?thesis 
-      by (metis append.assoc append_Cons append_Nil derivers_append_map_Tm derivers_prepend)
-  qed
-qed
-
 lemma derivern_Suc_substring_reliable:
   assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(Suc n) \<alpha> @ \<beta> @ Nt X # map Tm w"
   obtains A \<alpha>' Y \<beta>' w' where "reliable_prefix [A \<rightarrow> \<alpha>' \<cdot> Y # \<beta>'] \<alpha>"
@@ -902,6 +726,7 @@ proof -
 qed
 
 
+
 lemma derivers_substring_reliable:
 assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ \<beta> @ Nt X # map Tm w"
   obtains A \<alpha>' \<gamma> Y \<beta>' w' where "reliable_prefix [A \<rightarrow> \<alpha>' \<cdot> Y # \<beta>'] \<alpha>" 
@@ -967,29 +792,6 @@ proof -
     by (blast intro: deriver.intros)
   ultimately show "[A \<rightarrow> \<beta> \<cdot> []] \<in> valids (\<alpha> @ \<beta>)" by fastforce
 qed
-
-lemma derivers_imp_reliable [case_names rm_valid nc_valid]:
-  assumes "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma> @ Nt Y # map Tm y"
-    "Prods G' \<turnstile> \<gamma> @ Nt Y # map Tm y \<Rightarrow>r \<gamma> @ \<delta> @ map Tm y"
-    "\<gamma> @ \<delta> @ map Tm y = \<alpha> @ \<beta> @ map Tm (y'@y)"
-  obtains \<delta>\<^sub>1 \<delta>\<^sub>2 where "reliable_prefix [Y \<rightarrow> \<delta>\<^sub>1 \<cdot> \<delta>\<^sub>2] (\<alpha> @ \<beta>)" "\<gamma> @ \<delta>\<^sub>1 = \<alpha> @ \<beta>" "\<delta>\<^sub>1 @ \<delta>\<^sub>2 = \<delta>" | 
-    A \<zeta> B \<eta> where "reliable_prefix [A \<rightarrow> \<zeta> \<cdot> B # \<eta>] (\<alpha> @ \<beta>)" 
-proof -
-  from assms(3) have "\<gamma> @ \<delta> = \<alpha> @ \<beta> @ map Tm y'" by simp
-  thus thesis 
-  proof (cases rule: app_eq_rm_cases)
-    case (1 u v)
-    then show ?thesis using assms derivers_substring_reliable that(2) 
-      by (metis append_assoc)
-  next
-    case (2 \<delta>')
-    from assms(1) have "reliable_prefix [Y \<rightarrow> \<delta>' \<cdot> map Tm y'] (\<alpha> @ \<beta>)"
-      using "2"(1,2) assms(2) reliable_prefix.intros by fastforce
-    then show ?thesis using that(1) 2 by blast
-  qed
-qed
-
-
 
 lemma in_states_imp_valid:
   assumes "[X \<rightarrow> \<alpha> \<cdot> \<beta>] \<in> nfa.states char_fa"

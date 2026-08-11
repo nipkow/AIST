@@ -1114,7 +1114,7 @@ in the chain's item list
 we know that @{prop \<open>hd \<delta> = Nt A\<close>}, meaning the LHS nonterminal of each item is produced in the 
 successor item. Wilhelm et al. use these chains on multiple occasions only informally. By formalizing
 them, we will be able in the future to induct on them more rigorously, which will be of utmost 
-important in the coming section.\<close>
+importance in the coming section.\<close>
 
 section \<open>The Characteristic Finite Automaton and the Canonical LR(0) Automaton\<close>
 (*<*)

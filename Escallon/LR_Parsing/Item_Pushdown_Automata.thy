@@ -384,7 +384,7 @@ lemma step_not_expanding_unique:
 
 lemma step_reaches_final_imp_S:
   assumes "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho> @ \<sigma>, u) \<turnstile> (final_state # \<sigma>, v)"
-  shows "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho> @ \<sigma>, u) = ([S \<rightarrow> \<alpha> \<cdot> \<beta>] # init M # \<sigma>, v)"
+  shows "[A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho> = [[S \<rightarrow> \<alpha> \<cdot> []], init M]"
   using assms(1) by cases auto
 
 
@@ -615,7 +615,6 @@ proof -
   finally show ?thesis .
 qed
 
-
 lemma derives_imp_completes:
   assumes "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm w"
     "(A, \<alpha> @ \<beta> @ \<gamma>) \<in> Prods G'"
@@ -653,48 +652,18 @@ proof -
         from True \<beta>_decomp(6,7) Suc obtain \<beta>' where m_steps:
           "Prods G' \<turnstile> [Nt X] \<Rightarrow> \<beta>'" "Prods G' \<turnstile> \<beta>' \<Rightarrow>(m) map Tm v"
           using \<beta>_decomp(3) by (meson relpowp_Suc_D2)
-        show ?thesis 
-        proof (cases m)
-          case (Suc m')
-          from deriven_decomp_less[OF m_steps(2)[unfolded Suc]] obtain \<xi>\<^sub>1 i' u' Y j' v' \<xi>\<^sub>2 k' y' 
-            where \<beta>'_decomp:
-            "\<beta>' = \<xi>\<^sub>1 @ Nt Y # \<xi>\<^sub>2" "Prods G' \<turnstile> \<xi>\<^sub>1 \<Rightarrow>(i') map Tm u'" "Prods G' \<turnstile> [Nt Y] \<Rightarrow>(j') map Tm v'"
-            "Prods G' \<turnstile> \<xi>\<^sub>2 \<Rightarrow>(k') map Tm y'" "v = u' @ v' @ y'" "i' < n" "j' < n" "k' < n"
-            using Suc Suc_m 
-            by (smt (verit, ccfv_threshold) add.commute add_lessD1 lessI)
-          from deriven_Nt_map_TmD[OF \<beta>'_decomp(3)] obtain \<gamma>' j'' where Y_prod: 
-            "Prods G' \<turnstile> [Nt Y] \<Rightarrow> \<gamma>'" "Prods G' \<turnstile> \<gamma>' \<Rightarrow>(j'') map Tm v'"
-            "j'' < n"
-            using \<beta>'_decomp(7) Suc_lessD derive_singleton by blast
-          hence Y_prod': "(Y, \<gamma>') \<in> Prods G'" using derive_singleton 
-            by (metis sym.inject(1))
-          from m_steps \<beta>'_decomp(1) have X_step: "(X, \<xi>\<^sub>1 @ Nt Y # \<xi>\<^sub>2) \<in> Prods G'" 
-            "([A \<rightarrow> \<alpha> @ \<delta>\<^sub>1 \<cdot> Nt X # \<delta>\<^sub>2 @ \<gamma>] # \<rho>, v @ y @ x) 
-              \<turnstile> ([X \<rightarrow> [] \<cdot> \<xi>\<^sub>1 @ Nt Y # \<xi>\<^sub>2] # ?\<sigma>, v @ y @ x)" 
-            using expanding_singleton \<beta>_decomp(1) less.prems(1) by 
-              (metis derive_singleton sym.inject(1), force)
-          note first
-          also note X_step(2)
-          also from less(1)[OF \<beta>'_decomp(6) _ \<beta>'_decomp(2), of _ _ _ _ "v' @ y' @ y @ x"] 
-          have "... \<turnstile>* ([X \<rightarrow> \<xi>\<^sub>1 \<cdot> Nt Y # \<xi>\<^sub>2] # ?\<sigma>, v' @ y' @ y @ x)" 
-               (is "_ \<turnstile>* (?\<tau>, _)")
-          using \<beta>'_decomp(5) append.assoc append_Nil X_step(1)
-            by (metis \<beta>'_decomp(5) append_Nil)
-          also with Y_prod' have "... \<turnstile> ([Y \<rightarrow> [] \<cdot> \<gamma>'] # ?\<tau>, v' @ y' @ y @ x)" 
-             using X_step(1) expanding by presburger
-          also from less(1)[OF Y_prod(3) _ Y_prod(2), of Y "[]" "[]" _ "y' @ y @ x"]
-          have "... \<turnstile>* ([Y \<rightarrow> \<gamma>' \<cdot> []] # ?\<tau>, y' @ y @ x)" 
-            using Y_prod' by simp
-          also have "... \<turnstile> ([X \<rightarrow> \<xi>\<^sub>1 @ [Nt Y] \<cdot> \<xi>\<^sub>2] # ?\<sigma>, y' @ y @ x)"
-            using reducing Y_prod' X_step(1) by presburger
-          also from less(1)[OF \<beta>'_decomp(8) _ \<beta>'_decomp(4), of X _ "[]" _ "y @ x"] have
-            "... \<turnstile>* ([X \<rightarrow> \<beta>' \<cdot> []] # ?\<sigma>, y @ x)"
-            using \<beta>'_decomp(1) append.assoc X_step(1) 
-            by (metis append.right_neutral append_Cons append_Nil)
-          finally show ?thesis using reducing last X_step(1) \<beta>'_decomp less.prems(1) \<beta>_decomp
-            by (smt (verit) append.assoc append_Cons converse_rtranclp_into_rtranclp 
-                derive_singleton m_steps(1) rtranclp_trans sym.inject(1))
-        qed (use derive_imp_completes \<beta>_decomp Tms Suc_m less.prems relpowp_Suc_0 in metis)
+        note first
+        also from expanding_singleton m_steps(1) have 
+          "(?\<sigma>, v @ y @ x) \<turnstile> ([X \<rightarrow> [] \<cdot> \<beta>'] # ?\<sigma>, v @ y @ x)"
+          using \<beta>_decomp(1)  less.prems(1) by force
+        also from less.IH[of m X "[]" \<beta>' "[]" v ?\<sigma> "y@x"] derive.cases[OF m_steps(1)] m_steps(2)
+        have "... \<turnstile>* ([X \<rightarrow> \<beta>' \<cdot> []] # ?\<sigma>, y @ x)" using Suc 
+          by (metis append.right_neutral append_Nil derive_singleton lessI m_steps(1)
+              sym.inject(1))
+        also have "... \<turnstile> ([A \<rightarrow> \<alpha> @ \<delta>\<^sub>1 @ [Nt X] \<cdot> \<delta>\<^sub>2 @ \<gamma>] # \<rho>, y @ x)"
+          by (smt (verit, best) Cons_eq_appendI \<beta>_decomp(1) append.assoc derive_singleton ipda.reducing
+              ipda_axioms less.prems(1) m_steps(1) sym.inject(1))
+        finally show ?thesis using last by auto
       next
         case False
         hence "j < n" using \<beta>_decomp by linarith
@@ -827,20 +796,14 @@ proof -
   qed force
 qed
 
-lemma reaches_without_stack_imp_S':
-  assumes "([[A \<rightarrow> \<alpha> \<cdot> \<beta>]], w) \<turnstile>* ([final_state], [])"
-  shows "[A \<rightarrow> \<alpha> \<cdot> \<beta>] = init M \<or> [A \<rightarrow> \<alpha> \<cdot> \<beta>] = final_state"
-proof -
-  from reaches_final_imp_completes[of _ _ _ "[]"] assms obtain u v where "w = u @ v"
-    "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm u"
-    "([[A \<rightarrow> \<alpha> \<cdot> \<beta>]], w) \<turnstile>* ([[A \<rightarrow> \<alpha> @ \<beta> \<cdot> []]], v)"
-    "([[A \<rightarrow> \<alpha> @ \<beta> \<cdot> []]], v) \<turnstile>* ([final_state], [])"
-    (is "?complete \<turnstile>* ?final")
-    by metis
-  from this(4) have "?complete = ?final"
-    using ipda.step_cases ipda_axioms by (cases rule: converse_rtranclpE) blast+
-  thus ?thesis by (simp add: append_eq_Cons_conv)
-qed
+lemma reaches_final_imp_last_is_init_or_final:
+  "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile>* ([final_state], []) \<Longrightarrow> 
+  last ([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>) = init M \<or> last ([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>) = final_state"
+proof (induction "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w)" arbitrary: A \<alpha> \<beta> \<rho> w rule: converse_rtranclp_induct)
+  case (step z)
+  from this(1) show ?case 
+    using step by cases auto
+qed simp
 
 lemma reachable_Cons_imp_expanded:
   assumes "([init M], u) \<turnstile>(n) ([A \<rightarrow> \<alpha> \<cdot> \<beta>] # i # \<rho>, v)"

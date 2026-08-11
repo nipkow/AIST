@@ -347,9 +347,9 @@ shifted the \concept{history} of the item.
 For @{term \<open>[A \<rightarrow> \<alpha> \<cdot> \<beta>]\<close>}, \<open>\<alpha> = \<epsilon>\<close> denotes the situation where nothing has been 
 derived from \<open>A\<close> yet. Analogously, \<open>\<beta> = \<epsilon>\<close> denotes the situation where a substring of the 
 input has been completely derived from \<open>A\<close>. These items are therefore called \concept{initial} and 
-\concept{complete} items respectively. For both of these kinds of item, we write \<open>\<epsilon>\<close> implicitly, 
-e.g., instead of @{term \<open>[A \<rightarrow> \<alpha> \<cdot> \<epsilon>]\<close>}, we write @{term \<open>[A \<rightarrow> \<alpha> \<cdot> ]\<close>}. Additionally, we denote the 
-set of all complete items in a set of items \<open>I\<close> by @{term \<open>completes I\<close>}:
+\concept{complete} items respectively. For both of these kinds of item, we often write the empty 
+list implicitly, e.g., instead of @{term \<open>[A \<rightarrow> \<alpha> \<cdot> []]\<close>}, we write @{term \<open>[A \<rightarrow> \<alpha> \<cdot> ]\<close>}. 
+Additionally, we denote the set of all complete items in a set of items \<open>I\<close> by @{term \<open>completes I\<close>}:
 \begin{equation*}
 @{thm completes_def}.
 \end{equation*}
@@ -675,13 +675,26 @@ If
 and @{prop \<open>(A, \<alpha> @ \<beta> @ \<gamma>) \<in> Prods G'\<close>}, then for any \<open>\<rho>, x\<close> holds: 
 \[ @{prop \<open>([A \<rightarrow> \<alpha> \<cdot> \<beta>@\<gamma>] # \<rho>, w @ x) \<turnstile>* ([A \<rightarrow> \<alpha>@\<beta> \<cdot> \<gamma>] # \<rho>, x)\<close>}. \]
 \begin{proof}
-We do a proof by strong induction on the length of the derivation \<open>n\<close>.\par
-If \<open>n = 0\<close>, \<open>\<beta> = map Tm w\<close>, and the implication holds by Lemma~\ref{completes_Tms}.\par
-If \<open>n = Suc m\<close> for some \<open>m :: nat\<close>, the derivation can be decomposed into \<open>\<delta>\<^sub>1, \<delta>\<^sub>2 :: syms\<close>, \<open>X :: 'n\<close>, 
-\<open>u, v, y :: 't list\<close> and \<open>i, j, k :: nat\<close> such that:
+Since \<open>\<beta>\<close> derives \<open>w\<close>, there exists an \<open>n :: nat\<close> such that 
+\[ @{prop \<open>Prods G' \<turnstile> \<beta> \<Rightarrow>(n) map Tm w\<close>}. \] 
+We do a proof by strong induction on the length of the derivation \<open>n\<close>.
+If \<open>n = 0\<close>, \<open>\<beta> = map Tm w\<close>, and the implication holds by Lemma~\ref{completes_Tms}.
+
+If \<open>n = Suc m\<close> for some \<open>m :: nat\<close>, there exists at least one nonterminal \<open>X\<close> in \<open>\<beta>\<close>. \<open>\<beta>\<close> is therefore
+of the form 
+\begin{equation}\label{d_imp_c.b_decomp(1)}
+@{prop \<open>\<beta> = \<delta>\<^sub>1 @ Nt X # \<delta>\<^sub>2\<close>}
+\end{equation}
+for \<open>\<delta>\<^sub>1, \<delta>\<^sub>2 :: syms\<close>. Furthermore, Nipkow et al. have proved
+\begin{multline*}
+ \<open>P \<turnstile> u @ v \<Rightarrow>(n) w\<close>\\
+  \<open>\<longleftrightarrow> (\<exists>n1 n2 w1 w2. n = n1 + n2 \<and> w = w1 @ w2\<close>\\ 
+  \<open>\<and> P \<turnstile> u \<Rightarrow>(n1) w1 \<and> P \<turnstile> v \<Rightarrow>(n2) w2)\<close>.
+\end{multline*}
+
+By applying this lemma twice, the derivation of \<open>w\<close> can be decomposed such that:
 \begin{subequations}
 \begin{gather}
-@{prop \<open>\<beta> = \<delta>\<^sub>1 @ Nt X # \<delta>\<^sub>2\<close>}\label{d_imp_c.b_decomp(1)}\\
 @{prop \<open>w = u @ v @ y\<close>}\label{d_imp_c.b_decomp(2)}\\
 @{prop \<open>Prods G' \<turnstile> \<delta>\<^sub>1 \<Rightarrow>(i) map Tm u\<close>}\label{d_imp_c.d1}\\
 @{prop \<open>Prods G' \<turnstile> [Nt X] \<Rightarrow>(j) map Tm v\<close>}\label{d_imp_c.X}\\
@@ -689,77 +702,40 @@ If \<open>n = Suc m\<close> for some \<open>m :: nat\<close>, the derivation can
 @{prop \<open>n = i + j + k\<close>}.\label{d_imp_c.b_decomp(6)}
 \end{gather}
 \end{subequations}
-Furthermore, @{prop \<open>Prods G' \<turnstile> [Nt X] \<Rightarrow>(j) map Tm v\<close>} implies @{prop \<open>j > 0\<close>}, since @{prop \<open>j = 0\<close>}
-would imply @{prop \<open>[Nt X] = map Tm v\<close>}, which is a contradiction. We will now do a case distinction 
-on whether @{prop \<open>j = n\<close>} holds.\par
-If \<open>j = n\<close>, then \<open>i = k = 0\<close> and therefore
+For some \<open>u, v, y :: 't list\<close> and \<open>i, j, k :: nat\<close>.
+
+@{prop \<open>Prods G' \<turnstile> [Nt X] \<Rightarrow>(j) map Tm v\<close>} implies @{prop \<open>j > 0\<close>}, since @{prop \<open>j = 0\<close>}
+would imply @{prop \<open>[Nt X] = map Tm v\<close>}, which is a contradiction. Furthermore, \eqref{d_imp_c.b_decomp(6)}
+implies that \<open>i\<close>, \<open>j\<close> and \<open>k\<close> are all less or equal to \<open>n\<close>. From this and the additional constraint
+that \<open>j\<close> cannot be \<open>0\<close>, we know that there are only two cases: either @{prop \<open>j = n\<close>} and \<open>i = k = 0\<close>,
+or \<open>i\<close>, \<open>j\<close>, and \<open>k\<close> are strictly less than \<open>n\<close>. We now distinguish these cases.
+We can now distinguish two cases:
+
+If \<open>j = n\<close> and \<open>i = k = 0\<close>, 
 \begin{gather}\label{d_imp_c.d1u_d2y}
 \<open>\<delta>\<^sub>1 = map Tm u\<close> \text{ and } \<open>\<delta>\<^sub>2 = map Tm y\<close>
 \end{gather} 
-hold. \<open>j = n\<close> also implies the existence of some \<open>\<beta>' :: syms\<close> such that 
+hold by \eqref{d_imp_c.d1} and \eqref{d_imp_c.d2}. \<open>j = n\<close> also implies the existence of some 
+\<open>\<beta>' :: syms\<close> such that 
 \begin{equation}\label{eq:d_imp_c.stepm}
 \<open>Prods G' \<turnstile> [Nt X] \<Rightarrow> \<beta>' \<Rightarrow>(m) map Tm v\<close>.
 \end{equation}
-We now distinguish yet another two cases, now on \<open>m\<close>. \<open>\<turnstile>\<^sub>R\<close> and \<open>\<turnstile>\<^sub>E\<close> denote a reducing and an expanding 
-transition respectively.
 
-If \<open>m = 0\<close>, then @{prop \<open>Prods G' \<turnstile> [Nt X] \<Rightarrow> v\<close>}. With Lemma~\ref{completes_Tms}
-(L\ref{completes_Tms}) follows:
-\begin{align*}
-&@{term \<open>([A \<rightarrow> \<alpha> \<cdot> \<beta> @ \<gamma>] # \<rho>, w @ x)\<close>}\\
-&\;\overset{(\ref{d_imp_c.b_decomp(1)}, \ref{d_imp_c.b_decomp(2)}, \ref{d_imp_c.d1u_d2y})}{=\ }
- @{term \<open>([A \<rightarrow> \<alpha> \<cdot> map Tm u @ Nt X # map Tm y @ \<gamma>] # \<rho>, u @ v @ y @ x)\<close>}\\
-&\;\overset{(L\ref{completes_Tms})}{\<open>\<turnstile>*\<close>\ } 
-  @{term \<open>([A \<rightarrow> \<alpha> @ map Tm u \<cdot> Nt X # map Tm y @ \<gamma>] # \<rho>, v @ y @ x)\<close>}\\
-&\;\<open>\<turnstile>\<^sub>E\<close>\ @{term \<open>([X \<rightarrow> \<cdot> map Tm v] # [A \<rightarrow> \<alpha> @ map Tm u \<cdot> Nt X # map Tm y @ \<gamma>] # \<rho>, v @ y @ x)\<close>}\\
-&\;\overset{(L\ref{completes_Tms})}{\<open>\<turnstile>*\<close>\ }
-  @{term \<open>([X \<rightarrow> map Tm v \<cdot> ] # [A \<rightarrow> \<alpha> @ map Tm u \<cdot> Nt X # map Tm y @ \<gamma>] # \<rho>, y @ x)\<close>}\\
-&\;\<open>\<turnstile>\<^sub>R\<close>\ @{term \<open>([A \<rightarrow> \<alpha> @ map Tm u @ [Nt X] \<cdot> map Tm y @ \<gamma>] # \<rho>, y @ x)\<close>}\\
-&\;\overset{(L\ref{completes_Tms})}{\<open>\<turnstile>*\<close>\ }
-  @{term \<open>([A \<rightarrow> \<alpha> @ map Tm u @ [Nt X] @ map Tm y \<cdot> \<gamma>] # \<rho>, x)\<close>}
-\overset{(\ref{d_imp_c.b_decomp(1)}, \ref{d_imp_c.d1u_d2y})}{=\ } \<open>([A \<rightarrow> \<alpha> @ \<beta> \<cdot> \<gamma>] # \<rho>, x).\<close>
-\end{align*}
-Therefore, the implication holds.
-
-Otherwise, if \<open>m = Suc m'\<close> for some \<open>m'\<close>, the derivation @{prop \<open>Prods G' \<turnstile> \<beta>' \<Rightarrow>(m) map Tm v\<close>} can 
-be decomposed as we did before: there exist \<open>\<xi>\<^sub>1, \<xi>\<^sub>2 :: syms\<close>, \<open>Y :: 'n\<close>, \<open>u', v', y' :: 't list\<close>, 
-and \<open>i', j', k' :: nat\<close> such that:
-\begin{subequations}
-\begin{gather}
-@{prop \<open>\<beta>' = \<xi>\<^sub>1 @ Nt Y # \<xi>\<^sub>2\<close>}\label{d_imp_c.b'_decomp(1)}\\
-@{prop \<open>v = u' @ v' @ y'\<close>}\label{d_imp_c.b'_decomp(2)}\\
-@{prop \<open>Prods G' \<turnstile> \<xi>\<^sub>1 \<Rightarrow>(i') map Tm u'\<close>}\label{d_imp_c.xi1}\\
-@{prop \<open>Prods G' \<turnstile> [Nt Y] \<Rightarrow>(j') map Tm v'\<close>}\label{d_imp_c.Y}\\
-@{prop \<open>Prods G' \<turnstile> \<xi>\<^sub>2 \<Rightarrow>(k') map Tm y'\<close>}\\
-@{prop \<open>i' + j' + k' = m\<close>}.
-\end{gather}
-\end{subequations}
-
-This in turn implies that @{prop \<open>i' < n\<close>}, @{prop \<open>j' < n\<close>} and @{prop \<open>k' < n\<close>}, and once again,
-\eqref{d_imp_c.Y} implies that @{prop \<open>j' > 0\<close>}, i.e., @{prop \<open>j' = Suc j''\<close>} for some \<open>j''\<close>, 
-meaning this derivation of \<open>v'\<close> is of the form 
-\begin{equation}\label{eq:d_imp_c.stepj''}
-\<open>Prods G' \<turnstile> [Nt Y] \<Rightarrow> \<gamma>' \<Rightarrow>(j'') map Tm v'\<close>
-\end{equation}
-for some \<open>\<gamma>' :: syms\<close>. Furthermore, @{prop \<open>j' < n\<close>} implies @{prop \<open>j'' < n\<close>}, and  since 
-\begin{gather}\label{ijk'_less}
-@{prop \<open>i' < n\<close>} \text{, } @{prop \<open>j'' < n\<close>} \text{ and } @{prop \<open>k' < n\<close>}, 
-\end{gather}
-we can use the induction hypothesis (IH) on their corresponding derivations. 
-Let @{term \<open>\<sigma> = [A \<rightarrow> \<alpha> @ map Tm u \<cdot> Nt X # map Tm y @ \<gamma>] # \<rho>\<close>}. The computation then is similar to 
-the previous case, except that
-\[ @{term \<open>([A \<rightarrow> \<alpha> @ map Tm u \<cdot> Nt X # map Tm y @ \<gamma>] # \<rho>, v @ y @ x)\<close>} \] 
-now expands to 
-\[ @{term \<open>([X \<rightarrow> \<cdot> \<xi>\<^sub>1 @ Nt Y # \<xi>\<^sub>2] # \<sigma>, u' @ v' @ y' @ y @ x)\<close>} \]
-by \eqref{eq:d_imp_c.stepm}, \eqref{d_imp_c.b'_decomp(1)} and \eqref{d_imp_c.b'_decomp(2)}.
-By the induction hypothesis, 
-\<open>I\<^sub>G\<close> can then complete \<open>\<xi>\<^sub>1\<close>:
-\[ ... \overset{(IH, \ref{d_imp_c.xi1}, \ref{ijk'_less})}{\<open>\<turnstile>*\<close>\ } 
-@{term \<open>([X \<rightarrow> \<xi>\<^sub>1 \<cdot> Nt Y # \<xi>\<^sub>2] # \<sigma>, v' @ y' @ y @ x)\<close>}, \]
-and now by \eqref{eq:d_imp_c.stepj''}, \<open>I\<^sub>G\<close> expands:
-\[ ...\ \<open>\<turnstile>\<^sub>E\<close>\ @{term \<open>([Y \<rightarrow> \<cdot> \<gamma>'] # [X \<rightarrow> \<xi>\<^sub>1 \<cdot> Nt Y # \<xi>\<^sub>2] # \<sigma>, v' @ y' @ y @ x)\<close>}. \]
-The computation then continues analogously to the first case, applying the IH again to complete 
-\<open>\<gamma>'\<close> and \<open>\<xi>\<^sub>2\<close>. Therefore, the implication also holds in the case where @{prop \<open>j = n\<close>}. 
+From \eqref{d_imp_c.b_decomp(1)}, \eqref{d_imp_c.b_decomp(2)}, and \eqref{d_imp_c.d1u_d2y}, we can 
+rewrite @{term \<open>([A \<rightarrow> \<alpha> \<cdot> \<beta> @ \<gamma>] # \<rho>, w @ x)\<close>} as 
+\[ @{term \<open>([A \<rightarrow> \<alpha> \<cdot> map Tm u @ [Nt X] @ map Tm y @ \<gamma>] # \<rho>, u @ v @ y @ x)\<close>}. \]
+By Lemma~\ref{completes_Tms}, this configuration reaches
+\[ @{term \<open>([A \<rightarrow> \<alpha> @ map Tm u \<cdot> Nt X # map Tm y @ \<gamma>] # \<rho>, v @ y @ x)\<close>}, \]
+and since \<open>X\<close> derives \<open>\<beta>'\<close>, this expands to 
+\begin{multline*}
+\<open>([X \<rightarrow> \<cdot> \<beta>'] # [A \<rightarrow> \<alpha> @ map Tm u \<cdot> Nt X # map Tm y @ \<gamma>] # \<rho>,\<close>\\ 
+  \<open>v @ y @ x)\<close>.
+\end{multline*}
+\eqref{eq:d_imp_c.stepm} and the induction hypothesis imply that from this 
+configuration, \<open>I\<^sub>G\<close> reaches
+\[ @{term \<open>([X \<rightarrow> \<beta>' \<cdot> ] # [A \<rightarrow> \<alpha> @ map Tm u \<cdot> Nt X #  map Tm y @ \<gamma>] # \<rho>, y @ x)\<close>}, \]
+since \<open>m < Suc m = n\<close>. \<open>I\<^sub>G\<close> then trivially reaches @{term \<open>([A \<rightarrow> \<alpha> @ \<beta> \<cdot> \<gamma>] # \<rho>, x)\<close>} after a 
+reducing transition and applying Lemma~\ref{completes_Tms} once again.
 
 Finally, we now consider the case where @{prop \<open>j \<noteq> n\<close>}:
 
@@ -808,6 +784,338 @@ for arbitrary \<open>\<rho> :: item list\<close> and \<open>v :: 't list\<close>
 
 However, this statement is too weak, as we will soon need the stronger lemma we have proved instead.\<close>
 
+subsection \<open>Rightmost Chains\<close>
+
+(*<*)
+end
+context
+  fixes 
+       Xn1 :: 'n
+  and  Xn2 :: 'n 
+  and  \<alpha>n1 :: "('n, 't) syms"
+  and  \<beta>n1 :: "('n, 't) syms"
+  and "is" :: "('n, 't) item"
+  and   \<alpha>s :: "('n, 't) syms"       
+  and   vs :: "'t list "            
+begin
+
+notation (latex output)  Xn1 (\<open>\<^latex>\<open>\ensuremath{X_{n-1}}\<close>\<close>)
+notation (latex output)  Xn2 (\<open>\<^latex>\<open>\ensuremath{X_{n-2}}\<close>\<close>)
+notation (latex output)  \<alpha>n1 (\<open>\<^latex>\<open>\ensuremath{\alpha_{n-1}}\<close>\<close>)
+notation (latex output)  \<beta>n1 (\<open>\<^latex>\<open>\ensuremath{\beta_{n-1}}\<close>\<close>)
+
+
+(*>*)
+
+text \<open>Wilhelm et al. informally assert that for a rightmost derivation 
+\<open>Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma>' @ Nt A # map Tm w \<Rightarrow>r \<gamma>' @ \<alpha> @ \<beta> @ map Tm w\<close>, there exists a decomposition
+of the form
+\begin{equation}\label{WSH rm chain}
+\begin{split}
+\<open>Prods G'\<close>\ & \<open>\<turnstile> [Nt S'] \<Rightarrow>r \<alpha>\<^sub>1 @ Nt X\<^sub>1 # \<beta>\<^sub>1 \<Rightarrow>r* \<alpha>\<^sub>1 @ Nt X\<^sub>1 # map Tm v\<^sub>1\<close>\\
+        & \<open>\<Rightarrow>r \<alpha>\<^sub>1\<alpha>\<^sub>2 @ Nt X\<^sub>2 # \<beta>\<^sub>2 @ map Tm v\<^sub>1\<close>\\ 
+        & \<open>\<Rightarrow>r* ... \<Rightarrow>r* \<alpha>\<^sub>1 ... \<alpha>\<^sub>n @ Nt X\<^sub>n # map Tm (v\<^sub>n ... v\<^sub>1)\<close>\\
+        & \<open>\<Rightarrow>r (\<alpha>\<^sub>1 ... \<alpha>\<^sub>n) \<alpha>\<beta> @ map Tm (v\<^sub>n ... v\<^sub>1)\<close>.
+\end{split}
+\end{equation}
+where \<open>X\<^sub>n = A\<close>. In the above expression, we omit most concatenation operators @{term \<open>(@)\<close>} for 
+compactness. Instead, we denote concatenation by juxtaposition (such as in \<open>(\<alpha>\<^sub>1 ... \<alpha>\<^sub>n) \<alpha>\<beta>\<close> instead
+of \<open>(\<alpha>\<^sub>1 @ ... @ \<alpha>\<^sub>n) @ \<alpha> @ \<beta>\<close>).
+
+We now formalize this concept by defining \concept{rightmost chains} inductively. If sentential 
+form \<open>\<alpha>\<close> reaches sentential form \<open>\<beta>\<close> with rightmost chain \<open>\<rho>\<close> under production set \<open>P\<close>, we write 
+@{prop \<open>P \<turnstile> \<alpha> \<midarrow>\<rho>\<rightarrow>r* \<beta>\<close>}. For a fixed \<open>P\<close>, we define
+\begin{gather*}
+\text{(refl.) }@{thm rm_chain.refl}\\
+\intertext{and}
+\text{(step) }@{thm [mode=Rule] rm_chain.step}.
+\end{gather*}
+
+\begin{example}\label{ex:rm_chain}
+By our definition of rightmost chains, we would write \eqref{WSH rm chain} as~\footnote{Note that we 
+once more omit most concatenation operators, replacing them by juxtaposition.}
+\begin{multline*}
+\<open>P \<turnstile> [Nt S'] \<midarrow>[\<close> @{term Xn1}\ \<open>\<rightarrow> \<alpha>\<^sub>n \<cdot> Nt X\<^sub>n # \<beta>\<^sub>n] # [\<close> @{term Xn2}\ \<open>\<rightarrow>\<close>\ @{term \<alpha>n1}\ \<open>\<cdot>\<close>\ 
+  @{term \<open>Nt Xn1 # \<beta>n1\<close>}]\\ 
+  \<open># ... # [[S' \<rightarrow> \<alpha>\<^sub>1 \<cdot> Nt X\<^sub>1 # \<beta>\<^sub>1]]\<rightarrow>r* \<alpha>\<^sub>1 ... \<alpha>\<^sub>n @ Nt X\<^sub>n # map Tm (v\<^sub>n...v\<^sub>1)\<close>.
+\end{multline*}
+\end{example}
+We will now show the equivalence between rightmost chains and rightmost derivations.
+
+\begin{lemma}\label{rm_chain_imp_derivers}
+If @{prop \<open>P \<turnstile> \<alpha> \<midarrow>\<rho>\<rightarrow>r* \<beta>\<close>}, then @{prop \<open>P \<turnstile> \<alpha> \<Rightarrow>r* \<beta>\<close>}
+\begin{proof}
+By induction on the structure of the rightmost chain.
+\end{proof}
+\end{lemma}
+
+\begin{lemma}\label{derivern_singleton_imp_produced}
+If @{prop \<open>P \<turnstile> [Nt A] \<Rightarrow>r(Suc n) \<alpha> @ Nt X # \<beta>\<close>}, there exists a step in the rightmost derivation 
+where \<open>\<alpha>\<close> was fully derived, \<open>X\<close> was produced, and the string to the right of \<open>X\<close> derives \<open>\<beta>\<close>. More 
+formally: there exist \<open>m :: nat\<close>, \<open>\<alpha>', \<alpha>'', \<beta>' :: syms\<close>, \<open>B :: 'n\<close> and \<open>v :: 't list\<close> such that
+\begin{gather*}
+@{prop \<open>m < Suc n\<close>}\\
+@{prop \<open>P \<turnstile> [Nt A] \<Rightarrow>r(m) \<alpha>' @ Nt B # map Tm v\<close>}\\
+@{prop \<open>P \<turnstile> \<alpha>' @ Nt B # map Tm v \<Rightarrow>r \<alpha>' @ \<alpha>'' @ Nt X # \<beta>' @ map Tm v\<close>}\\
+@{prop \<open>\<alpha> = \<alpha>' @ \<alpha>''\<close>}\\
+@{prop \<open>P \<turnstile> \<beta>' @ map Tm v \<Rightarrow>r* \<beta>\<close>}.
+\end{gather*}
+\begin{proof}
+We do a proof by strong induction on @{term \<open>Suc n\<close>} for arbitrary \<open>\<alpha>\<close> and \<open>\<beta>\<close>. We now distinguish
+the two usual cases of \<open>n\<close>:
+
+If \<open>n = 0\<close>, the implication holds for @{prop \<open>m = 0\<close>}, @{prop \<open>\<alpha>' = []\<close>}, @{prop \<open>v = []\<close>}, 
+  @{prop \<open>\<alpha>'' = \<alpha>\<close>}, @{prop \<open>\<beta>' = \<beta>\<close>} and @{prop \<open>A = B\<close>}. 
+
+For the case where @{prop \<open>n = Suc k\<close>} for some \<open>k\<close>, the derivation is of the form
+\begin{multline}\label{prodd_stepn}
+\<open>P \<turnstile> [Nt A] \<Rightarrow>r(n) \<alpha>' @ Nt B # map Tm v \<Rightarrow>r \<alpha>' @ \<gamma> @ map Tm v\<close>\\ 
+\<open>= \<alpha> @ Nt X # \<beta>\<close>
+\end{multline}
+
+We now distinguish two further cases: \<open>X\<close> is in \<open>\<gamma>\<close>, meaning \<open>\<alpha>'\<close> is a prefix of \<open>\<alpha>\<close>, or 
+\<open>X\<close> is in \<open>\<alpha>'\<close> and not in \<open>\<gamma>\<close>, meaning \<open>\<alpha>\<close> is a prefix of \<open>\<alpha>'\<close>.
+
+If \<open>X\<close> is in \<open>\<gamma>\<close> and \<open>\<alpha>'\<close> is a prefix of \<open>\<alpha>\<close>, there exist \<open>\<delta>, \<zeta> :: syms\<close> such that \<open>\<gamma> = \<delta> @ Nt X # \<zeta>\<close>,
+\<open>\<alpha> = \<alpha>' @ \<delta>\<close> and \<open>\<beta> = \<zeta> @ map Tm v\<close>. The implication then holds for \<open>m = n\<close>.
+
+If \<open>X\<close> is in \<open>\<alpha>'\<close> and not in \<open>\<gamma>\<close>, there exist \<open>\<delta>, \<zeta> :: syms\<close> such that \<open>\<alpha>' = \<delta> @ Nt X # \<zeta>\<close>. From
+\eqref{prodd_stepn} we then get
+\[ @{prop \<open>P \<turnstile> [Nt A] \<Rightarrow>r(n) \<delta> @ Nt X # \<zeta> @ Nt B # map Tm v\<close>}. \]
+Furthermore, since \<open>Suc k = n < Suc n\<close>, and due to the fact that our induction hypothesis holds for 
+arbitrary \<open>\<alpha>\<close> and \<open>\<beta>\<close>, we can apply it for \<open>\<delta>\<close> and \<open>(\<zeta> @ Nt B # map Tm v)\<close>, by which the implication holds.
+\end{proof}
+\end{lemma}
+
+\begin{lemma}
+If @{prop \<open>P \<turnstile> [Nt A] \<Rightarrow>r(Suc n) \<alpha> @ Nt X # map Tm v\<close>}, then there exists a rightmost chain of the 
+form 
+\[ @{prop \<open>P \<turnstile> [Nt A] \<midarrow>[B \<rightarrow> \<alpha>' \<cdot> Nt X # \<beta>] # \<rho>\<rightarrow>r* \<alpha> @ Nt X # map Tm v\<close>}. \]
+\begin{proof}
+We do a proof by strong induction on @{term \<open>Suc n\<close>} for arbitrary \<open>\<alpha>, X,\<close> and \<open>v\<close>. Furthermore, 
+we do a case distinction on \<open>n\<close>:
+
+If \<open>n = 0\<close>, then 
+\[ @{prop \<open>P \<turnstile> [Nt A] \<midarrow>[[A \<rightarrow> \<alpha> \<cdot> Nt X # map Tm v]]\<rightarrow>r* \<alpha> @ Nt X # map Tm v\<close>}. \]
+
+Otherwise, let \<open>n = Suc m\<close> for some \<open>m\<close>. From 
+\[ @{prop \<open>P \<turnstile> [Nt A] \<Rightarrow>r(Suc n) \<alpha> @ Nt X # map Tm v\<close>}, \]
+there exist \<open>\<beta>, B, u,\<close> and \<open>\<gamma>\<close> such that 
+\begin{gather}
+\<open>P \<turnstile> [Nt A] \<Rightarrow>r(Suc m) \<beta> @ Nt B # map Tm u \<Rightarrow>r \<beta> @ \<gamma> @ map Tm u\<close>\label{der_rm.Suc_steps}\\
+\intertext{and}
+@{prop \<open>\<beta> @ \<gamma> @ map Tm u = \<alpha> @ Nt X # map Tm v\<close>}.\label{der_rm.bgu}
+\end{gather}
+Since \<open>Suc m = n < Suc n\<close>, by the induction hypothesis, \eqref{der_rm.Suc_steps} implies the
+existence of some \<open>\<rho>\<close> such that 
+\begin{equation}\label{der_rm.ih}
+@{prop \<open>P \<turnstile> [Nt A] \<midarrow>\<rho>\<rightarrow>r* \<beta> @ Nt B # map Tm u\<close>}.
+\end{equation}
+Since \<open>B\<close> derives \<open>\<gamma>\<close> in the last step of the derivation, we now distinguish two more cases:
+either \<open>X\<close> was produced by \<open>B\<close> in this final derivation step, meaning @{prop \<open>Nt X \<in> set \<gamma>\<close>}, 
+or, if \<open>B\<close> did not produce \<open>X\<close>, \<open>X\<close> was already in the sentential form before the final step.
+
+If @{prop \<open>Nt X \<in> set \<gamma>\<close>}, note that \eqref{der_rm.bgu} implies that \<open>X\<close> is the rightmost nonterminal
+in the sentential form, meaning there exists an instance of \<open>X\<close> followed exclusively by terminals. 
+Therefore, and with the fact that \<open>X\<close> is in \<open>\<gamma>\<close>, and \<open>\<gamma>\<close> itself is only followed by terminals, there 
+exist \<open>\<delta> :: syms\<close> and \<open>w :: 't list\<close> such that @{prop \<open>\<gamma> = \<delta> @ Nt X # map Tm w\<close>} and @{prop \<open>w @ u = v\<close>}. 
+With \eqref{der_rm.ih} this implies
+\begin{multline}\label{der_rm.True}
+\<open>P \<turnstile> [Nt A] \<midarrow>[B \<rightarrow> \<delta> \<cdot> Nt X # map Tm w] # \<rho>\<rightarrow>r*\<close>\\ 
+  \<open>\<beta> @ \<delta> @ Nt X # map Tm (w @ u)\<close>.
+\end{multline}
+Furthermore, we have
+\begin{multline*} 
+\<open>\<beta> @ \<delta> @ Nt X # map Tm (w @ u) = \<beta> @ \<gamma> @ map Tm u\<close>\\ 
+  \<open>= \<alpha> @ Nt X # map Tm v\<close>
+\end{multline*}
+From @{prop \<open>w @ u = v\<close>} we know that 
+\[ @{prop \<open>\<beta> @ \<delta> @ Nt X # map Tm (w@u) = \<alpha> @ Nt X # map Tm v\<close>} \]
+implies @{prop \<open>\<beta> @ \<delta> = \<alpha>\<close>}, meaning \eqref{der_rm.True} is exactly the rightmost chain we 
+were trying to construct.
+
+On the other hand, if @{prop \<open>Nt X \<notin> set \<gamma>\<close>}, the fact that \<open>X\<close> is the rightmost nonterminal in 
+\<open>\<beta> @ \<gamma> @ map Tm u\<close> implies the existence of \<open>\<delta> :: syms\<close> and \<open>y, z :: 't list\<close> such that
+\begin{gather}
+\<open>\<beta> = \<delta> @ Nt X # map Tm y\<close>\label{der_rm.b_dec}\\
+\<open>\<gamma> = map Tm z\<close>\label{der_rm.g_tms}\\
+\<open>v = y @ z @ u\<close>.\label{der_rm.yzu}
+\end{gather}
+By Lemma~\ref{derivern_singleton_imp_produced}, \<open>n = Suc m\<close> implies the existence of some sentential 
+form @{term \<open>\<alpha>' @ Nt C # map Tm w\<close>} such that
+\begin{gather} 
+\begin{multlined}\label{der_rm.prodd(1)}
+\<open>P \<turnstile> [Nt A] \<Rightarrow>r(k) \<alpha>' @ Nt C # map Tm w\<close>\\
+  \<open>\<Rightarrow>r \<alpha>' @ \<alpha>'' @ Nt X # \<beta>' @ map Tm w\<close>
+\end{multlined}\\
+\intertext{and}
+\<open>P \<turnstile> \<beta>' @ map Tm w \<Rightarrow>r* map Tm y @ Nt B # map Tm u\<close>\label{der_rm.prodd(2)}
+\end{gather}
+for \<open>\<delta> = \<alpha>' @ \<alpha>''\<close> and \<open>k < Suc m\<close>. Moreover, from \eqref{der_rm.prodd(2)}, \eqref{der_rm.Suc_steps} 
+and \eqref{der_rm.g_tms}, we have 
+\begin{multline}\label{der_rm.suffix_derivers_v}
+\<open>P \<turnstile> \<beta>' @ map Tm w \<Rightarrow>r* map Tm y @ Nt B # map Tm u\<close>\\ 
+  \<open>\<Rightarrow>r map Tm (y @ z @ u)\<close>\ \overset{\eqref{der_rm.yzu}}{=\ } \<open>map Tm v\<close>
+\end{multline}
+From \eqref{der_rm.bgu},\eqref{der_rm.b_dec}, \eqref{der_rm.g_tms}, and \eqref{der_rm.yzu} we also 
+have 
+\begin{equation} \label{der_rm.da}
+  @{prop \<open>\<delta> = \<alpha>\<close>}.
+\end{equation}
+
+Since our induction hypothesis only holds for a nonzero number of steps, we need to do a case 
+distinction on the \<open>k\<close> steps in \eqref{der_rm.prodd(1)}.
+
+If \<open>k = 0\<close>, \eqref{der_rm.prodd(1)} implies that \<open>\<alpha>' = [] = w\<close> and \<open>A = C\<close>. This in turn implies
+that \<open>\<delta> = \<alpha>''\<close>. With \eqref{der_rm.da} and \eqref{der_rm.suffix_derivers_v}, this implies 
+\[ @{prop \<open>P \<turnstile> [Nt A] \<midarrow>[[A \<rightarrow> \<alpha>'' \<cdot> Nt X # \<beta>']]\<rightarrow>r* \<alpha> @ Nt X # map Tm v\<close>}. \]
+
+If, on the other hand, \<open>k = Suc j\<close> for some \<open>j\<close>, we can apply the induction hypothesis for \<open>C\<close>
+with \eqref{der_rm.prodd(1)}, i.e., there exists some \<open>\<rho>\<close> such that
+\[ @{prop \<open>P \<turnstile> [Nt A] \<midarrow>\<rho>\<rightarrow>r* \<alpha>' @ Nt C # map Tm w\<close>}. \]
+We can then use \eqref{der_rm.prodd(1)}, \eqref{der_rm.suffix_derivers_v}, \eqref{der_rm.da}, and 
+\<open>\<delta> = \<alpha>' @ \<alpha>''\<close> to show that 
+\[ @{prop \<open>P \<turnstile> [Nt A] \<midarrow>[C \<rightarrow> \<alpha>'' \<cdot> Nt X # \<beta>'] # \<rho>\<rightarrow>r* \<alpha> @ Nt X # map Tm v\<close>} \]
+holds, completing the proof.
+\end{proof}
+\end{lemma}
+
+Wilhelm et al.~\cite[p. 107]{Wilhelm} furthermore claim that if @{term \<open>([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>', w)\<close>}
+reaches the final configuration @{term \<open>([[S' \<rightarrow> \<cdot> [Nt S]]], [])\<close>}, then \<open>\<rho>'\<close> is of the form
+\[ \<open>\<rho>' = [\<close> @{term Xn1}\ \<open>\<rightarrow> \<alpha>\<^sub>n \<cdot> Nt X\<^sub>n # \<beta>\<^sub>n] # ... # [[S' \<rightarrow> \<alpha>\<^sub>1 \<cdot> Nt X\<^sub>1 # \<beta>\<^sub>1]]\<close> \]
+for some \<open>n \<ge> 0\<close> and \<open>X\<^sub>n = A\<close>~\footnote{We have adapted the original claim to our own notation for 
+the sake of consistency and clarity.} It is worth noting that this structure of \<open>\<rho>'\<close> is essentially
+the same as that of the item list in a rightmost chain (cf. Example~\ref{ex:rm_chain}). Therefore,
+if some \<open>\<sigma> :: item list\<close> is part of some rightmost chain, we will be able to derive the same 
+structure that Wilhelm et al. describe. We will now work towards proving a similar claim.\<close>
+
+(*<*)
+end
+context ipda
+begin
+
+(*>*)
+
+text\<open>
+\begin{lemma}\label{reaches_final_imp_last_is_init_or_final}
+If @{prop \<open>([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile>* ([final_state], [])\<close>}, then the last element in
+@{term \<open>[A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>\<close>} is either @{term \<open>[S' \<rightarrow> \<cdot> [Nt S']]\<close>} or @{const final_state}.
+\begin{proof}
+By backwards induction on the length of the computation, making a case distinction on whether
+the first step is shifting, expanding, or reducing in the transitive case.
+\end{proof}
+\end{lemma}
+
+\begin{lemma}\label{step_reaches_final_imp_S}
+If @{prop \<open>([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho> @ \<sigma>, u) \<turnstile> (final_state # \<sigma>, v)\<close>},
+then 
+\[ \<open>[A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho> = [[S \<rightarrow> \<alpha> \<cdot> ], [S' \<rightarrow> \<cdot> [Nt S]]]\<close> \]
+\begin{proof}
+By case distinction on the three types of transition.
+\end{proof}
+\end{lemma}
+
+\begin{lemma}\label{rm_chain_Cons_imp_prod_rightmost}
+If @{prop \<open>P \<turnstile> \<alpha>\<^sub>0 \<midarrow>[A \<rightarrow> \<alpha> \<cdot> Nt B # \<beta>] # \<rho>\<rightarrow>r* \<gamma>\<close>}, there exist \<open>\<delta> :: syms\<close> and \<open>u, v, w :: 't list\<close> 
+such that 
+\begin{gather*}
+@{prop \<open>\<gamma> = \<delta> @ Nt B # map Tm w\<close>}\\
+@{prop \<open>P \<turnstile> \<beta> \<Rightarrow>r* map Tm u\<close>}\\
+\intertext{and}
+@{prop \<open>w = u @ v\<close>}
+\end{gather*}
+\begin{proof}
+Trivial by rule inversion.
+\end{proof}
+\end{lemma}
+
+\begin{lemma}\label{ipda_reaches_final_imp_rm_chain}
+If @{prop \<open>([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile>* ([final_state], [])\<close>}, then either
+\begin{gather*}
+@{prop \<open>\<rho> = []\<close>},
+\intertext{or there exist \<open>\<sigma> :: item list\<close>, \<open>X :: 'n\<close> and \<open>\<alpha>', \<beta>', \<gamma> :: syms\<close> such that}
+@{prop \<open>\<rho> = [X \<rightarrow> \<alpha>' \<cdot> Nt A # \<beta>'] # \<sigma>\<close>} \text{ and } @{prop \<open>Prods G' \<turnstile> [Nt S'] \<midarrow>\<rho>\<rightarrow>r* \<gamma>\<close>}. 
+\end{gather*}
+\begin{proof}
+We do a proof by backwards induction on the length of the computation of @{const I\<^sub>G} for arbitrary 
+\<open>A, \<alpha>, \<beta>, \<rho>\<close>, and \<open>w\<close>.
+
+The reflexive case is trivial since it implies directly that \<open>\<rho> = []\<close>.
+
+For the transitive case, the computation is of the form
+\[ \<open>([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile> ([B \<rightarrow> \<gamma> \<cdot> \<delta>] # \<tau>, v) \<turnstile>* ([final_state], [])\<close>  \]
+for some \<open>B\<close>, \<open>\<gamma>\<close>, \<open>\<delta>\<close>, \<open>\<tau>\<close> and \<open>v\<close>. This is due to the fact that in all three types of transition, 
+\<open>I\<^sub>G\<close> replaces a nonzero amount of topmost stack symbols by a nonempty list, meaning that a step can 
+never lead to an empty stack. We can now apply the induction hypothesis on the shorter computation 
+starting on @{term \<open>([B \<rightarrow> \<gamma> \<cdot> \<delta>] # \<tau>, v)\<close>}, meaning \<open>\<tau>\<close> is either empty, or it is in some rightmost
+chain as we already described.
+
+If \<open>\<tau> = []\<close>, by Lemma~\ref{reaches_final_imp_last_is_init_or_final} we know that @{term \<open>[B \<rightarrow> \<gamma> \<cdot> \<delta>]\<close>}
+is either the initial or final state. If this item were the initial state, this would lead to a 
+contradiction, which we can prove by a case distinction on the transition 
+\[ \<open>([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile> ([[S' \<rightarrow> \<cdot> [Nt S]]], v)\<close>. \]
+Therefore, @{term \<open>[B \<rightarrow> \<gamma> \<cdot> \<delta>]\<close>} must be the final state @{const final_state}. Therefore
+\[ @{prop \<open>([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile> ([[S' \<rightarrow> [Nt S] \<cdot> []]], v)\<close>}. \]
+This implies that 
+\begin{gather*}
+@{prop \<open>[A \<rightarrow> \<alpha> \<cdot> \<beta>] = [S \<rightarrow> \<alpha> \<cdot> ]\<close>}
+\intertext{and}
+@{prop [source] \<open>\<rho> = [S' \<rightarrow> \<cdot> [Nt S]] # []\<close>}
+\end{gather*}
+by Lemma~\ref{step_reaches_final_imp_S} for \<open>\<sigma> = []\<close>. Therefore, \<open>\<rho>\<close> has the structure of our claim.
+
+For the second case, \<open>\<tau>\<close> has the structure
+\begin{gather}\label{ipda_rm.ih}
+@{prop \<open>\<tau> = [X \<rightarrow> \<alpha>' \<cdot> Nt B # \<beta>'] # \<sigma>\<close>}\\
+@{prop \<open>Prods G' \<turnstile> [Nt S'] \<midarrow>\<tau>\<rightarrow>r* \<zeta>\<close>}
+\end{gather}
+for some \<open>X :: 'n\<close>, \<open>\<alpha>', \<beta>, \<zeta> :: syms\<close> and \<open>\<sigma> :: item list\<close>. We can now do a case distinction on the 
+step @{prop \<open>([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile> ([B \<rightarrow> \<gamma> \<cdot> \<delta>] # \<tau>, v)\<close>}.
+
+If the transition is shifting, we have @{prop \<open>A = B\<close>} and @{prop \<open>\<rho> = \<tau>\<close>}. The implication holds by 
+\eqref{ipda_rm.ih}.
+
+If the transition is reducing, we know that 
+\begin{equation}\label{ipda_rm.r}
+@{prop \<open>([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) = ([A \<rightarrow> \<alpha> \<cdot> []] # [B \<rightarrow> \<theta> \<cdot> Nt A # \<delta>] # \<tau>, w)\<close>},
+\end{equation}
+for some \<open>\<theta>\<close> where @{prop \<open>\<gamma> = \<theta> @ [Nt A]\<close>}, meaning that \<open>(B, \<theta> @ Nt A # \<delta>)\<close> is in \<open>Prods G'\<close>. By
+Lemma~\ref{rm_chain_Cons_imp_prod_rightmost}, \eqref{ipda_rm.ih} implies that \<open>\<zeta>\<close> is of the form
+\[ @{prop \<open>\<zeta> = \<zeta>' @ Nt B # map Tm u\<close>} \]
+for some \<open>\<zeta>'\<close> and \<open>u\<close>. Moreover, since \<open>G'\<close> is reduced, there exists a \<open>v :: 't list\<close> that the string \<open>\<delta>\<close> can derive.  
+With the fact that \<open>B\<close> produces \<open>\<theta> @ Nt A # \<delta>\<close>, we can extend the chain in \eqref{ipda_rm.ih} by the 
+item @{term \<open>[B \<rightarrow> \<theta> \<cdot> Nt A # \<delta>]\<close>}, i.e.
+\[ @{prop \<open>Prods G' \<turnstile> [Nt S'] \<midarrow>[B \<rightarrow> \<theta> \<cdot> Nt A # \<delta>] # \<tau>\<rightarrow>r* \<zeta>' @ \<theta> @ Nt A # map Tm (v@u)\<close>}  \]
+The implication therefore holds by \eqref{ipda_rm.r}.
+
+If the transition is expanding, we have
+\begin{equation}\label{ipda_rm.e}
+ @{prop \<open>([B \<rightarrow> \<gamma> \<cdot> \<delta>] # \<tau>, v) = ([B \<rightarrow> [] \<cdot> \<delta>] # [A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w)\<close>}.
+\end{equation}
+If \<open>\<rho> = []\<close>, the implication holds directly. Otherwise, if \<open>\<rho> = i # \<sigma>\<close> for some \<open>i\<close> and \<open>\<sigma>\<close>, 
+from \eqref{ipda_rm.ih} and \eqref{ipda_rm.e} we get
+\[ @{prop \<open>Prods G' \<turnstile> [Nt S'] \<midarrow>[A \<rightarrow> \<alpha> \<cdot> \<beta>] # i # \<sigma>\<rightarrow>r* \<zeta>\<close>}. \]
+By inversion of the step rule for rightmost chains, this implies the existence of some \<open>\<eta>\<close> such that
+\[ @{prop \<open>Prods G' \<turnstile> [Nt S'] \<midarrow>\<rho>\<rightarrow>r* \<eta>\<close>},\] 
+and then we can show that \<open>i\<close> is of the form @{prop \<open>i = [Z \<rightarrow> \<gamma>' \<cdot> Nt A # \<delta>']\<close>} for some 
+\<open>Z, \<gamma>'\<close>, and \<open>\<delta>'\<close> by performing rule inversion again, this time on the rightmost chain term that 
+results from the first rule inversion. With the existence of \<open>\<eta>\<close> and this structure of \<open>i\<close>, the 
+proof is complete.
+\end{proof}
+\end{lemma}
+
+We have now formalized the notion of rightmost chains, proved their existence is equivalent to that
+of generic rightmost derivations, and proved that every IPDA stack that reaches an accepting state 
+has such a chain of items on the stack. With these chains, we are now able to describe a very 
+well-behaved relation between the nonterminals directly to the right of the bullet and the 
+nonterminal to the left of the arrow of the preceding item: for any two neighboring items
+in the chain's item list 
+\[ ...  \<open># [A \<rightarrow> \<alpha> \<cdot> \<beta>] # [B \<rightarrow> \<gamma> \<cdot> \<delta>] #\<close> ... \]
+we know that @{prop \<open>hd \<delta> = Nt A\<close>}, meaning the LHS nonterminal of each item is produced in the 
+successor item. Wilhelm et al. use these chains on multiple occasions only informally. By formalizing
+them, we will be able in the future to induct on them more rigorously, which will be of utmost 
+important in the coming section.\<close>
+
 section \<open>The Characteristic Finite Automaton and the Canonical LR(0) Automaton\<close>
 (*<*)
 end
@@ -852,48 +1160,6 @@ leading to this particular item, as explained by Wilhelm et al.~\cite[p. 103]{Wi
 
 We will now work towards showing certain equivalences between @{const char_fa} computations, rightmost 
 derivations, and @{const ipda.I\<^sub>G} computations.\<close>
-
-subsection \<open>Rightmost Chains\<close>
-
-text \<open>Wilhelm et al. informally assert that for a rightmost derivation 
-\<open>Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma>' @ Nt A # map Tm w \<Rightarrow>r \<gamma>' @ \<alpha> @ \<beta> @ map Tm w\<close>, there exists a decomposition
-of the form
-\begin{equation}\label{WSH rm chain}
-\begin{split}
-\<open>Prods G'\<close>\ & \<open>\<turnstile> [Nt S'] \<Rightarrow>r \<alpha>\<^sub>1 @ Nt X\<^sub>1 # \<beta>\<^sub>1 \<Rightarrow>r* \<alpha>\<^sub>1 @ Nt X\<^sub>1 # map Tm v\<^sub>1\<close>\\
-        & \<open>\<Rightarrow>r \<alpha>\<^sub>1\<alpha>\<^sub>2 @ Nt X\<^sub>2 # \<beta>\<^sub>2 @ map Tm v\<^sub>1\<close>\\ 
-        & \<open>\<Rightarrow>r* ... \<Rightarrow>r* \<alpha>\<^sub>1\<alpha>\<^sub>2 ... \<alpha>\<^sub>n @ Nt X\<^sub>n # map Tm (v\<^sub>n ... v\<^sub>2v\<^sub>1)\<close>\\
-        & \<open>\<Rightarrow>r (\<alpha>\<^sub>1 ... \<alpha>\<^sub>n) \<alpha>\<beta> @ map Tm (v\<^sub>n ... v\<^sub>1)\<close>.
-\end{split}
-\end{equation}
-where \<open>X\<^sub>n = A\<close> and terms such as \<open>\<alpha>\<^sub>1\<alpha>\<^sub>2\<close>, \<open>\<alpha>\<beta>\<close>, or \<open>v\<^sub>2v\<^sub>1\<close> denote the concatenation of the individual 
-\<open>\<alpha>\<^sub>1, \<alpha>\<^sub>2, \<alpha>, \<beta> :: syms\<close>, and  \<open>v\<^sub>2, v\<^sub>1 :: 't list\<close>. 
-
-We will now formalize this concept by defining \concept{rightmost chains} inductively. If sentential 
-form \<open>\<alpha>\<close> reaches sentential form \<open>\<beta>\<close> with rightmost chain \<open>\<rho>\<close> under production set \<open>P\<close>, we write 
-@{prop \<open>P \<turnstile> \<alpha> \<midarrow>\<rho>\<rightarrow>r* \<beta>\<close>}. We define the following rules for some fixed \<open>P\<close>:
-\begin{itemize}
-\item @{thm rm_chain.refl} 
-\item 
-@{thm [mode=Rule] rm_chain.step}
-\end{itemize}
-
-\begin{example}
-By our definition of rightmost chains, we would write \eqref{WSH rm chain} as
-\begin{equation*}
-\begin{split}
-\<open>P \<turnstile> [Nt S']\<close> & \<open>\<midarrow>[\<close>X_{n-1} \<open>\<rightarrow> \<alpha>\<^sub>n \<cdot> Nt X\<^sub>n # \<beta>\<^sub>n] #\<close> \cfitem{X_{n-2}}{\alpha_{n-1}}{Nt X_{n-1} 
-  \# \beta_{n-1}}\\
-              & 
-\begin{multlined}
-\# ... \<open># [S' \<rightarrow> \<alpha>\<^sub>1 \<cdot> Nt X\<^sub>1 # \<beta>\<^sub>1] # []\<rightarrow>\<close>\\ 
-  \<open>\<alpha>\<^sub>1 @ \<alpha>\<^sub>2 @ \<sigma> \<alpha>\<^sub>n @ Nt X\<^sub>n # map Tm (v\<^sub>n @ ... @ v\<^sub>2 @ v\<^sub>1)\<close>.
-\end{multlined}
-\end{split}
-\end{equation*}
-\end{example}
-
-\<close>
 
 
 

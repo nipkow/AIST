@@ -8,23 +8,7 @@ context Extended_Cfg
 begin
 
 interpretation I: ipda G IPDA 
-  by standard simp
-
-corollary ipda_IPDA: 
-  "ipda G IPDA"
-  by (rule I.ipda_axioms)
-
-abbreviation IPDA_step :: "('n,'t) item list \<times> 't list \<Rightarrow> ('n,'t) item list \<times> 't list 
-                    \<Rightarrow> bool" (infix \<open>\<turnstile>I\<close> 55) where
-  "(\<turnstile>I) \<equiv> (gpda.step IPDA)"
-
-abbreviation IPDA_steps :: "('n,'t) item list \<times> 't list \<Rightarrow> ('n,'t) item list \<times> 't list 
-                    \<Rightarrow> bool" (infix \<open>\<turnstile>I*\<close> 55) where
-  "(\<turnstile>I*) \<equiv> (gpda.steps IPDA)"
-
-abbreviation IPDA_stepn :: "('n,'t) item list \<times> 't list \<Rightarrow> nat \<Rightarrow> ('n,'t) item list \<times> 't list 
-                    \<Rightarrow> bool" ( \<open>_ \<turnstile>I'(_') _\<close> 55) where
-  "c0 \<turnstile>I(n) c1 \<equiv> (gpda.stepn IPDA) c0 n c1"
+  by (fact ipda_IPDA)
 
 section \<open>The Characteristic Finite Automaton to a Context-Free Grammar\<close>
 
@@ -650,63 +634,6 @@ next
   qed
 qed 
 
-text \<open>Towards step 3\<close>
-
-lemma ipda_reaches_final_imp_rm_chain:
-  assumes "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile>I* ([I.final_state], [])"
-  obtains "\<rho> = []" |
-    \<sigma> X \<alpha>' \<beta>' \<gamma> where "\<rho> = [X \<rightarrow> \<alpha>' \<cdot> Nt A # \<beta>'] # \<sigma>" "Prods G' \<turnstile> [Nt S'] \<midarrow>\<rho>\<rightarrow>r* \<gamma>"
-  using assms proof (induction "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w)" arbitrary: A \<alpha> \<beta> \<rho> w thesis
-                      rule: converse_rtranclp_induct)
-  case (step z)
-  from I.step_imp_in_It this(1) have A_in_It: "[A \<rightarrow> \<alpha> \<cdot> \<beta>] \<in> It G'" 
-    using I.step_imp_not_Nil by (smt (verit, ccfv_SIG) I.step_cases)
-  from step(1) obtain B \<gamma> \<delta> \<tau> v where z\<tau>_def:
-    "z = ([B \<rightarrow> \<gamma> \<cdot> \<delta>] # \<tau>, v)" using prod.exhaust 
-    by (metis I.step_imp_not_Nil item.exhaust list.exhaust)
-  note step(3)[OF this] 
-  then show thesis
-  proof (cases, goal_cases Nil chain)
-    case Nil
-    with z\<tau>_def have z_B_init: "z = ([[B \<rightarrow> \<gamma> \<cdot> \<delta>]], v)" by blast
-    with step(2) I.reaches_without_stack_imp_S' consider 
-      "[B \<rightarrow> \<gamma> \<cdot> \<delta>] = init IPDA" |
-      "[B \<rightarrow> \<gamma> \<cdot> \<delta>] = I.final_state" by blast
-    then show thesis
-    proof cases
-      case 2
-      note step(1)[unfolded z_B_init this] 
-      with I.step_reaches_final_imp_S[of _ _ _ \<rho> "[]"] show ?thesis using step(5) G'_derive_S 
-          derive_singleton_imp_singleton_chain 
-        by (metis I.init_ipda append.right_neutral item.inject list.inject prod.inject)
-    qed (use step(1) in cases, use step z_B_init in auto)
-  next
-    case (chain X \<alpha>' \<beta>' \<sigma> \<zeta>)
-    from step(1)[unfolded z\<tau>_def] show ?thesis proof cases
-      case (reduce Y \<eta> X' \<theta> \<iota> \<upsilon> x)
-      hence BA_in_prods: "(B, \<theta> @ Nt A # \<delta>) \<in> Prods G'"
-        using step(1) z\<tau>_def I.step_imp_in_Prods by force 
-      from rm_chain_Cons_imp_prod_rightmost chain obtain \<zeta>' u where \<zeta>_rm: "\<zeta> = \<zeta>' @ Nt B # map Tm u"
-        by meson
-      note chain(2)[unfolded chain(1) this]
-      from prod_imp_rm_chain_step[OF this BA_in_prods G'_reduced] step.prems(2) reduce chain(1)
-      show thesis by fastforce       
-    next
-      case (expand Y \<eta> X' \<theta> \<iota> \<upsilon> x)
-      show ?thesis
-      proof (cases \<rho>)
-        case (Cons i \<xi>)
-        from Cons expand have "\<tau> = [A \<rightarrow> \<theta> \<cdot> Nt B # \<iota>] # i # \<xi>"  by auto
-        from rm_chain_second_produces_hd[OF chain(2)[unfolded this]] obtain Z \<gamma>' \<delta>' where
-          "\<rho> = [Z \<rightarrow> \<gamma>' \<cdot> Nt A # \<delta>'] # \<xi>" using Cons expand by auto
-        moreover obtain \<zeta>' where "Prods G' \<turnstile> [Nt S'] \<midarrow>\<rho>\<rightarrow>r* \<zeta>'"
-          using expand Cons rm_chain_decomp chain(2) by fastforce
-        ultimately show thesis using step.prems(2) by blast
-      qed (rule step.prems(1))
-    qed (use step(5) chain in fastforce)
-  qed
-qed simp
-
 text \<open>Step 3: If the configuration \<open>([A \<rightarrow> \<alpha>.\<beta>]\<rho>, w)\<close> is accepted by the \<open>IPDA\<close>, the configuration
      \<open>([A \<rightarrow> \<alpha>.\<beta>], \<epsilon>)\<close> is reachable by \<open>char(G)\<close> with input \<open>hist(\<rho>)\<alpha>\<close>.\<close>
 
@@ -715,8 +642,8 @@ lemma ipda_imp_char:
   shows "([S' \<rightarrow> [] \<cdot> [Nt S]], hist (rev \<rho>) @ \<alpha>) \<turnstile>c* ([A \<rightarrow> \<alpha> \<cdot> \<beta>], [])"
 using assms proof (induction \<rho> arbitrary: A \<alpha> \<beta> w)
   case Nil
-  with I.reaches_without_stack_imp_S' consider (init) "[A \<rightarrow> \<alpha> \<cdot> \<beta>] = [S' \<rightarrow> [] \<cdot> [Nt S]]" | 
-    (final) "[A \<rightarrow> \<alpha> \<cdot> \<beta>] = [S' \<rightarrow> [Nt S] \<cdot> []]" by auto
+  with I.reaches_final_imp_last_is_init_or_final consider (init) "[A \<rightarrow> \<alpha> \<cdot> \<beta>] = [S' \<rightarrow> [] \<cdot> [Nt S]]" | 
+    (final) "[A \<rightarrow> \<alpha> \<cdot> \<beta>] = [S' \<rightarrow> [Nt S] \<cdot> []]" by fastforce
   then show ?case 
     by cases (fastforce simp: G'_def)+
 next

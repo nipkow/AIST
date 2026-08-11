@@ -469,7 +469,7 @@ lemma derivern_singleton_imp_produced:
     "P \<turnstile> \<alpha>' @ Nt B # map Tm v \<Rightarrow>r \<alpha>' @ \<alpha>'' @ Nt X # \<beta>' @ map Tm v"
     "\<alpha> = \<alpha>' @ \<alpha>''"
     "P \<turnstile> \<beta>' @ map Tm v \<Rightarrow>r* \<beta>"
-  using assms proof (induction "Suc n" arbitrary: n \<alpha> X \<beta> thesis rule: less_induct)
+  using assms proof (induction "Suc n" arbitrary: n \<alpha> \<beta> thesis rule: less_induct)
   case less
   show ?case 
   proof (cases n)
@@ -489,7 +489,7 @@ lemma derivern_singleton_imp_produced:
     next
       case (2 \<alpha>'')
       with n_steps have "P \<turnstile> [Nt A] \<Rightarrow>r(n) \<alpha> @ Nt X # \<alpha>'' @ Nt B # map Tm v" by simp
-      with less(1)[of _ X \<alpha> "\<alpha>'' @ Nt B # map Tm v"] obtain k \<delta> C w \<zeta> \<beta>' where k_steps:
+      with less(1)[of _ \<alpha> "\<alpha>'' @ Nt B # map Tm v"] obtain k \<delta> C w \<zeta> \<beta>' where k_steps:
         "k < Suc m" "P \<turnstile> [Nt A] \<Rightarrow>r(k) \<delta> @ Nt C # map Tm w"
         "P \<turnstile> \<delta> @ Nt C # map Tm w \<Rightarrow>r \<delta> @ \<zeta> @ Nt X # \<beta>' @ map Tm w" "\<alpha> = \<delta> @ \<zeta>"
         "P \<turnstile> \<beta>' @ map Tm w \<Rightarrow>r* \<alpha>'' @ Nt B # map Tm v" using Suc by blast

@@ -38,17 +38,6 @@ lemma derive_singleton_imp_singleton_chain:
   using assms rm_chain.step[of P "[Nt A]" "[]" "[]" A "[]" "[]" B "[]" "[]"]
     by (simp add: derive_singleton deriver_singleton rm_chain.refl)
 
-lemma rm_chain_imp_hd_prod_rightmost:
-  assumes "P \<turnstile> \<alpha>\<^sub>0 \<midarrow>\<rho>\<rightarrow>r* \<gamma> @ Nt B # map Tm w"
-  obtains A \<alpha> \<beta> "is" u v where "\<rho> = [A \<rightarrow> \<alpha> \<cdot> Nt B # \<beta>] # is"
-    "P \<turnstile> \<beta> \<Rightarrow>r* map Tm u" "w = u @ v" | "\<alpha>\<^sub>0 = \<gamma> @ Nt B # map Tm w" "\<rho> = []"
-using assms proof cases
-  case (step \<rho> \<alpha> X v \<alpha>' Y \<beta> u)
-  moreover with Nt_map_Tm_eq_Nt_map_TmD[of _ _ _ "\<alpha> @ \<alpha>'"] have "w = u@v" by simp
-  moreover from this have "B = Y" using step(2) by simp
-  ultimately show ?thesis using that by blast
-qed argo
-
 lemma rm_chain_second_produces_hd:
   assumes "Prods G' \<turnstile> \<alpha>\<^sub>0 \<midarrow>[A \<rightarrow> \<alpha> \<cdot> Nt B # \<beta>] # i # \<rho>\<rightarrow>r* \<gamma>"
   obtains X \<alpha>' \<beta>' where "i = [X \<rightarrow> \<alpha>' \<cdot> Nt A # \<beta>']"

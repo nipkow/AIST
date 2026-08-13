@@ -326,7 +326,7 @@ proof -
     using completes_subset by blast
   let ?p = "completes q - {[X \<rightarrow> \<alpha> \<cdot> []]}"
   from cardq have cardp: "card ?p = Suc n" using Xq 
-    by (metis DiffI card_Diff_singleton diff_Suc_1 item.inject neq_Nil_conv noncompletesE)
+    by (metis DiffI card_Diff_singleton diff_Suc_1 item.inject neq_Nil_conv incompletesE)
   moreover from this have "?p \<noteq> {}" by fastforce
   moreover from completes_subset[of q] have "?p \<subseteq> q" by blast
   ultimately obtain Y \<beta> where "[Y \<rightarrow> \<beta> \<cdot> []] \<in> q" "[X \<rightarrow> \<alpha> \<cdot> []] \<noteq> [Y \<rightarrow> \<beta> \<cdot> []]" by blast
@@ -369,7 +369,7 @@ proof -
   qed
 qed
 
-lemma complete_noncomplete_Tm_imp_inadequate:
+lemma complete_incomplete_Tm_imp_inadequate:
   assumes "completes q \<noteq> {}" "[X \<rightarrow> \<alpha> \<cdot> Tm a # \<beta>] \<in> q" "q \<in> dfa.states LR\<^sub>0"
   shows "LR0_inadequate q"
 proof -
@@ -384,7 +384,7 @@ lemma LR_adequate_completes_singleton_imp_derivern_Suc:
   assumes "LR0_adequate q"
     "q \<in> dfa.states LR\<^sub>0"
     "completes q = {[A \<rightarrow> \<alpha>\<^sub>0 \<cdot> []]}"
-    "[X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>] \<in> noncompletes q"
+    "[X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>] \<in> incompletes q"
     and Y_derivers: "Prods G' \<turnstile> [Nt Y] \<Rightarrow>r(Suc n) \<gamma>" "Prods G' \<turnstile> \<gamma> \<Rightarrow>r map Tm w"
   shows "\<gamma> = Nt A # map Tm w \<and> \<alpha>\<^sub>0 = []"
 proof -
@@ -429,14 +429,14 @@ proof -
             unfolding eps_char_fa using calculation in_eps_char_star_imp_in_It assms BCu 
               \<open>D = Tm a\<close> by auto
           finally show ?thesis using in_states_dfa_LR0_imp_eps_star_in_state assms 
-            by (metis Diff_iff complete_noncomplete_Tm_imp_inadequate empty_iff insertCI)
+            by (metis Diff_iff complete_incomplete_Tm_imp_inadequate empty_iff insertCI)
         qed simp
         ultimately show ?thesis by simp
       qed
       ultimately show ?thesis using Z\<delta> Nt by fast
     next
       case (Cons a v)
-      then show ?thesis using XC complete_noncomplete_Tm_imp_inadequate assms 
+      then show ?thesis using XC complete_incomplete_Tm_imp_inadequate assms 
         by (metis (mono_tags, lifting) Diff_iff in_states_dfa_LR0_imp_eps_star_in_state 
             insert_not_empty list.simps(9))
     qed
@@ -446,7 +446,7 @@ proof -
       using assms in_state_imp_in_It eps_char_fa 
       by (metis (lifting) DiffE append_Nil in_It_imp_in_Prods item.case prod_imp_eps)
     also note reachable(2)[unfolded Tm]
-    finally  show ?thesis using reachable complete_noncomplete_Tm_imp_inadequate assms 
+    finally  show ?thesis using reachable complete_incomplete_Tm_imp_inadequate assms 
         in_states_dfa_LR0_imp_eps_star_in_state by blast
   qed
 qed
@@ -473,7 +473,7 @@ lemma LR_adequate_completes_singleton_imp_derivers:
   next
     case (Cons a v)
     then show ?thesis 
-      using step complete_noncomplete_Tm_imp_inadequate in_states_dfa_LR0_imp_eps_in_state assms 
+      using step complete_incomplete_Tm_imp_inadequate in_states_dfa_LR0_imp_eps_in_state assms 
       by (metis (mono_tags, lifting) empty_not_insert list.simps(9))
   qed
 next
@@ -488,7 +488,7 @@ text \<open>For every LR(0)-adequate state \<open>q\<close>, one of the followin
 \begin{itemize}
 \item \<open>q\<close> contains no complete items
 \item \<open>q\<close> consists of exactly one complete item
-\item \<open>q\<close> contains exactly one complete item @{term "[A \<rightarrow> [] \<cdot> []]"} and all noncomplete items in \<open>q\<close>
+\item \<open>q\<close> contains exactly one complete item @{term "[A \<rightarrow> [] \<cdot> []]"} and all incomplete items in \<open>q\<close>
 are of the form @{term "[A \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>]"} where all rightmost derivations for Y leading to a word \<open>w\<close>
 are of the form \<open>Y \<Rightarrow>r* Aw \<Rightarrow>r w\<close>.
 \end{itemize}\<close>
@@ -499,7 +499,7 @@ lemma LR0_adequate_dfa_cases:
   obtains "completes q = {}" |
     A \<alpha> where "q = {[A \<rightarrow> \<alpha> \<cdot> []]}" |
       A where "completes q = {[A \<rightarrow> [] \<cdot> []]}" 
-      "\<And>i. i \<in> noncompletes q \<Longrightarrow> \<exists>X \<alpha> Y \<beta>. i = [X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>]"
+      "\<And>i. i \<in> incompletes q \<Longrightarrow> \<exists>X \<alpha> Y \<beta>. i = [X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>]"
       "\<And>X \<alpha> Y \<beta> w \<gamma>. \<lbrakk>[X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>] \<in> q; 
       Prods G' \<turnstile> [Nt Y] \<Rightarrow>r* \<gamma>; Prods G' \<turnstile> \<gamma> \<Rightarrow>r map Tm w\<rbrakk> \<Longrightarrow> \<gamma> = Nt A # map Tm w"
 proof -
@@ -518,8 +518,8 @@ proof -
     show ?thesis proof (cases "q = completes q")
       case False 
       { 
-        fix X \<alpha> Y \<beta> assume "[X \<rightarrow> \<alpha> \<cdot> Y # \<beta>] \<in> noncompletes q"
-        hence "\<exists>Z. Y = Nt Z" using singleton complete_noncomplete_Tm_imp_inadequate assms(1,2) 
+        fix X \<alpha> Y \<beta> assume "[X \<rightarrow> \<alpha> \<cdot> Y # \<beta>] \<in> incompletes q"
+        hence "\<exists>Z. Y = Nt Z" using singleton complete_incomplete_Tm_imp_inadequate assms(1,2) 
           by (cases Y) simp_all
       } 
       note in_nc_imp_Nt = this
@@ -530,7 +530,7 @@ proof -
       moreover have "\<alpha> = []" 
       proof -
         from False in_nc_imp_Nt obtain X \<alpha>' Y \<beta> where It: "[X \<rightarrow> \<alpha>' \<cdot> Nt Y # \<beta>] \<in> q"     
-          by (metis DiffD1 completes_subset noncompletesE psubsetI psubset_imp_ex_mem)
+          by (metis DiffD1 completes_subset incompletesE psubsetI psubset_imp_ex_mem)
         hence "(X, \<alpha>' @ Nt Y # \<beta>) \<in> Prods G'" 
           by (metis Extended_Cfg.in_state_imp_in_It Extended_Cfg_axioms assms(2) 
               in_It_imp_in_Prods item.case)
@@ -539,7 +539,7 @@ proof -
         with LR_adequate_completes_singleton_imp_derivers[OF assms singleton It] show ?thesis
           by (smt (verit, best) Cons_eq_map_D rtranclp.simps sym.distinct(1))
       qed
-      ultimately show thesis using that(3) singleton by (metis noncompletesE)
+      ultimately show thesis using that(3) singleton by (metis incompletesE)
     qed (use singleton that in simp)
   qed
 qed
@@ -551,7 +551,7 @@ lemma LR0_adequate_cases[consumes 2, case_names completes_empty singleton comp_u
   obtains "completes q = {}" |
     A \<alpha> where "q = {[A \<rightarrow> \<alpha> \<cdot> []]}" |
       A where "completes q = {[A \<rightarrow> [] \<cdot> []]}" 
-      "\<And>i. i \<in> noncompletes q \<Longrightarrow> \<exists>X \<alpha> Y \<beta>. i = [X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>]"
+      "\<And>i. i \<in> incompletes q \<Longrightarrow> \<exists>X \<alpha> Y \<beta>. i = [X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>]"
       "\<And>X \<alpha> Y \<beta> w \<gamma>. \<lbrakk>[X \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>] \<in> q; 
       Prods G' \<turnstile> [Nt Y] \<Rightarrow>r* \<gamma>; Prods G' \<turnstile> \<gamma> \<Rightarrow>r map Tm w\<rbrakk> \<Longrightarrow> \<gamma> = Nt A # map Tm w"
 proof -
@@ -851,6 +851,8 @@ proof
   qed
 qed
 
+section \<open>Determinism of \<open>P\<^sub>0\<close>\<close>
+
 lemma is_LR0_imp_no_LR0_inadequate_states:
   assumes LR0: "is_LR 0"
   shows "\<forall>q\<in>gpda.states P\<^sub>0. LR0_adequate q"
@@ -922,8 +924,6 @@ proof (standard, goal_cases LR)
   qed
 qed
 
-section \<open>Determinism of \<open>P\<^sub>0\<close>\<close>
-
 lemma no_LR0_inadequate_states_imp_is_LR0:  
   assumes adequates: "\<forall>q\<in>gpda.states P\<^sub>0. LR0_adequate q"
   shows "is_LR 0" 
@@ -982,7 +982,7 @@ proof (rule is_LR_wlogI, goal_cases LR)
         with 2 show ?thesis using comp_X by simp
       next
         case (Cons a x'')
-        from Y_reliable p_valids have "[Y \<rightarrow> \<delta>\<^sub>1 \<cdot> Tm a # map Tm x''] \<in> noncompletes p"
+        from Y_reliable p_valids have "[Y \<rightarrow> \<delta>\<^sub>1 \<cdot> Tm a # map Tm x''] \<in> incompletes p"
           unfolding Cons by (auto simp: valids_def)
         then show ?thesis using comp_unique(2) sym.exhaust by blast
       qed
@@ -1501,7 +1501,6 @@ theorem P0_Lang_eq_Lang_G:
   "P0.Lang = LangS G'"
   using P0_sound P0_complete by standard
 
-thy_deps
 unused_thms Context_Free_Grammar Finite_Automata_HF Pushdown_Automata -
 
 end

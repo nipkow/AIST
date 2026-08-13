@@ -148,10 +148,10 @@ lemma completes_singleton_imp_eq:
   shows "[A \<rightarrow> \<beta> \<cdot> []] = [X \<rightarrow> \<alpha> \<cdot> []]"
   using assms unfolding completes_def by fastforce
 
-abbreviation "noncompletes I \<equiv> I - completes I"
+abbreviation "incompletes I \<equiv> I - completes I"
 
-lemma noncompletesE [elim]:
-  assumes "i \<in> noncompletes I"
+lemma incompletesE [elim]:
+  assumes "i \<in> incompletes I"
   obtains X \<alpha> Y \<beta> where "i = [X \<rightarrow> \<alpha> \<cdot> Y # \<beta>]"
   using assms unfolding completes_def
   by (metis (mono_tags, lifting) item.case item.exhaust mem_Collect_eq neq_Nil_conv
@@ -341,12 +341,6 @@ lemma step_not_expanding_imp_reaches:
   shows "c0 \<turnstile>(n) c1"
   using step_not_expanding_unique assms by (metis relpowp_Suc_D2)
 
-lemma stepn_neq_imp_not_expanding_reaches:
-  assumes "(\<rho>, u) \<turnstile> c0" "(\<rho>, u) \<turnstile>(n) c1" "(\<rho>, u) \<noteq> c1"
-    "\<exists>X \<alpha> a \<beta>. hd \<rho> = [X \<rightarrow> \<alpha> \<cdot> []] \<or> hd \<rho> = [X \<rightarrow> \<alpha> \<cdot> Tm a # \<beta>]"
-  obtains m where "n = Suc m" "c0 \<turnstile>(m) c1"
-  using assms step_not_expanding_imp_reaches by (metis relpowp_E2)
-
 lemma completes_Tms:
   "(A, \<alpha> @ map Tm u @ \<beta>) \<in> Prods G' 
     \<Longrightarrow> ([A \<rightarrow> \<alpha> \<cdot> map Tm u @ \<beta>]#\<rho>, u@v) \<turnstile>* ([A \<rightarrow> \<alpha> @ map Tm u \<cdot> \<beta>]#\<rho>, v)"
@@ -373,11 +367,6 @@ lemma steps_neq_in_It:
     by (metis list.exhaust old.prod.exhaust step_imp_not_Nil)
   then show ?thesis using steps_in_It step assms(1) by blast
 qed (use assms(2) in simp)
-
-lemma reaches_final_imp_in_It:
-  assumes "(i # \<rho>, u) \<turnstile>* (final_state # \<sigma>, v)"
-  shows "i \<in> It G'"
-  using final_state_in_It steps_neq_in_It assms by (cases "i = final_state") blast+
 
 corollary steps_shift_decomp:
   assumes "(\<rho>, u @ v) \<turnstile>* ([A \<rightarrow> \<alpha> \<cdot> Tm a # \<beta>] # \<sigma>, a # v)"
@@ -409,8 +398,8 @@ proof -
       with deriven_decomp_less obtain \<delta>\<^sub>1 i u X j v \<delta>\<^sub>2 k y where
         \<beta>_decomp:
         "\<beta> = \<delta>\<^sub>1 @ Nt X # \<delta>\<^sub>2"
-        "Prods G' \<turnstile> \<delta>\<^sub>1 \<Rightarrow>(i) map Tm u" "Prods G' \<turnstile> [Nt X] \<Rightarrow>(j) map Tm v" "Prods G' \<turnstile> \<delta>\<^sub>2 \<Rightarrow>(k) map Tm y"
-        "w = u @ v @ y" "i + j + k = n" "j > 0" 
+        "Prods G' \<turnstile> \<delta>\<^sub>1 \<Rightarrow>(i) map Tm u" "Prods G' \<turnstile> [Nt X] \<Rightarrow>(j) map Tm v" 
+        "Prods G' \<turnstile> \<delta>\<^sub>2 \<Rightarrow>(k) map Tm y" "w = u @ v @ y" "i + j + k = n" "j > 0" 
         using less(3) by (smt (verit, best))
       hence leqs: "i < n" "k < n" by auto
       have first: "([A \<rightarrow> \<alpha> \<cdot> \<beta> @ \<gamma>] # \<rho>, w @ x) 
@@ -453,110 +442,53 @@ proof -
   qed
 qed
 
-lemma reaches_final_imp_complete_reaches_final:
-  assumes "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile>(n) ([final_state], [])"
-  obtains u v m k where
-    "m + k = n"
-    "w = u @ v"
-    "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm u"
-    "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile>(m) ([A \<rightarrow> \<alpha> @ \<beta> \<cdot> []] # \<rho>, v)"
-    "([A \<rightarrow> \<alpha> @ \<beta> \<cdot> []] # \<rho>, v) \<turnstile>(k) ([final_state], [])"
-  using assms proof (induction n arbitrary: A \<alpha> \<beta> \<rho> w thesis rule: less_induct)
-  case (less n)
-  show ?case 
-  proof (cases n)
-    case (Suc m)
-    then obtain \<sigma> x where step: "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile> (\<sigma>, x)"
-      "(\<sigma>, x) \<turnstile>(m) ([final_state], [])"
-      using less.prems(2) by (metis relpowp_Suc_D2 surj_pair)
-    from step obtain B \<gamma> \<delta> \<tau> u v j k where \<sigma>_complete:
-      "\<sigma> = [B \<rightarrow> \<gamma> \<cdot> \<delta>] # \<tau>" "x = u @ v" "Prods G' \<turnstile> \<delta> \<Rightarrow>* map Tm u"
-      "([B \<rightarrow> \<gamma> \<cdot> \<delta>] # \<tau>, u @ v) \<turnstile>(j) ([B \<rightarrow> \<gamma> @ \<delta> \<cdot> []] # \<tau>, v)"
-      "([B \<rightarrow> \<gamma> @ \<delta> \<cdot> []] # \<tau>, v) \<turnstile>(k) ([final_state], [])"
-      "j + k = m" using less.IH 
-      by (smt (verit, ccfv_SIG) Suc ipda.step_cases ipda_axioms lessI prod.inject)
-    from this(5) reaches_final_imp_in_It have B_in_Prods: "(B, \<gamma> @ \<delta>) \<in> Prods G'"
-      using relpowp_imp_rtranclp in_It_imp_in_Prods 
-      by (metis append.right_neutral item.case)
-    from step(1) show ?thesis
-    proof cases
-      case (shift A' \<alpha>' a \<beta>' \<rho>' y)
-      with \<sigma>_complete have eqs: "w = a # u @ v" "B = A" "\<gamma> = \<alpha> @ [Tm a]" "\<delta> = \<beta>'" by auto
-      with shift have 
-        "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile> ([A \<rightarrow> \<alpha> @ [Tm a] \<cdot> \<beta>'] # \<rho>, u @ v)"
-        using step by auto
-      also have "... \<turnstile>(j) ([A \<rightarrow> \<alpha> @ \<beta> \<cdot> []] # \<rho>, v)" 
-        using eqs \<sigma>_complete shift by simp
-      finally show ?thesis using less.prems(1)[of "Suc j" k "a # u" v] \<sigma>_complete[unfolded eqs] Suc
-        using derives_Cons shift by auto
-    next
-      case (reduce Y \<alpha>' X \<beta>' \<gamma>' \<rho>' y)
-      then show ?thesis using less.prems(1)[of 0 n "[]" w] less.prems(2) by force
-    next
-      case (expand Y \<gamma>' X \<alpha>' \<beta>' \<rho>' y)
-      with \<sigma>_complete have eqs: "B = Y" "w = u @ v" "X = A" "\<delta> = \<gamma>'" "\<beta> = Nt Y # \<beta>'" by auto
-      with expand step step_imp_in_Prods have Y_derives: "Prods G' \<turnstile> [Nt Y] \<Rightarrow>* map Tm u" 
-        using \<sigma>_complete(3) by (metis append.right_neutral append_Nil derives_Cons_rule item.case)
-      from eqs expand have exp_step:
-        "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) 
-          \<turnstile> ([Y \<rightarrow> [] \<cdot> \<gamma>'] # [A \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>'] # \<rho>, u @ v)"
-        using step by auto
-      moreover with \<sigma>_complete eqs have j_steps: 
-        "... \<turnstile>(j) ([Y \<rightarrow> \<gamma>' \<cdot> []] # [A \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>'] # \<rho>, v)"
-        using expand by simp
-      moreover have reduct_step: "... \<turnstile> ([A \<rightarrow> \<alpha> @ [Nt Y] \<cdot> \<beta>'] # \<rho>, v)"
-        using expand step step_imp_in_Prods by force
-      moreover with less.IH obtain v' x' j' k' l where complete_reaches: "v = v' @ x'" "Prods G' \<turnstile> \<beta>' \<Rightarrow>* map Tm v'"
-        "... \<turnstile>(j') ([A \<rightarrow> \<alpha> @ \<beta> \<cdot> []] # \<rho>, x')"
-        "([A \<rightarrow> \<alpha> @ \<beta> \<cdot> []] # \<rho>, x') \<turnstile>(k') ([final_state], [])"
-        "k = Suc l"
-        "j' + k' = l"
-      proof - (* TODO refactor *)
-        from expand step \<sigma>_complete eqs have 
-          "([Y \<rightarrow> \<gamma>' \<cdot> []] # [A \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>'] # \<rho>, v) 
-            \<turnstile>(k) ([final_state], [])"
-          by auto
-        moreover have "[Y \<rightarrow> \<gamma>' \<cdot> []] # [A \<rightarrow> \<alpha> \<cdot> Nt Y # \<beta>'] # \<rho> 
-          \<noteq> [final_state]"  by auto
-        ultimately obtain l where l_steps: "k = Suc l"
-          "([A \<rightarrow> \<alpha> @ [Nt Y] \<cdot> \<beta>'] # \<rho>, v) \<turnstile>(l) ([final_state], [])"
-          using eqs step \<sigma>_complete reducing stepn_neq_imp_not_expanding_reaches reduct_step 
-          by (metis list.sel(1) prod.inject)
-        moreover with \<sigma>_complete(6) Suc have lt: "l < n" by linarith
-        ultimately show thesis using less.IH[OF lt _ l_steps(2)] that expand eqs
-          by (smt (verit, best) Cons_eq_append_conv append.assoc append_self_conv2)
-      qed
-      ultimately have A_completes: "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) 
-          \<turnstile>(Suc (Suc j) + j') ([A \<rightarrow> \<alpha> @ \<beta> \<cdot> []] # \<rho>, x')"
-        by (meson relpowp_Suc_I relpowp_Suc_I2 relpowp_trans)
-      from complete_reaches(2) Y_derives eqs(5) have "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm (u @ v')"
-        by (metis derives_Cons_iff derives_Nt_map_TmD map_append)
-      from less.prems(1)[OF _ _ this A_completes complete_reaches(4)] show thesis
-        using eqs(2)[unfolded complete_reaches(1)] \<sigma>_complete(6) complete_reaches(5-) Suc
-        by force
-    qed  
-  qed (use less in simp)
-qed
-
-
 lemma reaches_final_imp_completes:
-  assumes "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile>* ([final_state], [])"
-  obtains u v where 
-    "w = u @ v"
-    "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm u"
-    "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile>* ([A \<rightarrow> \<alpha> @ \<beta> \<cdot> []] # \<rho>, v)"
-    "([A \<rightarrow> \<alpha> @ \<beta> \<cdot> []] # \<rho>, v) \<turnstile>* ([final_state], [])"
-proof -
-  from assms have A_in_Prods: "(A, \<alpha> @ \<beta>) \<in> Prods G'" 
-    using reaches_final_imp_in_It in_It_imp_in_Prods by fastforce
-  from reaches_final_imp_complete_reaches_final assms rtranclp_imp_relpowp obtain u v where complete:
-    "w = u @ v"
-    "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm u"
-    "([A \<rightarrow> \<alpha> @ \<beta> \<cdot> []] # \<rho>, v) \<turnstile>* ([final_state], [])" 
-    using relpowp_imp_rtranclp by metis
-  with derives_imp_completes[OF this(2), of A \<alpha> "[]"] A_in_Prods show thesis using that
-    by simp
+  assumes "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, u) \<turnstile>(n) ([final_state], [])"
+  shows  
+    "\<exists>v i j. (([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, u) \<turnstile>(i) ([A \<rightarrow> \<alpha> @ \<beta> \<cdot> []] # \<rho>, v)) \<and>
+    (([A \<rightarrow> \<alpha> @ \<beta> \<cdot> []] # \<rho>, v) \<turnstile>(j) ([final_state], [])) \<and> i + j = n"
+using assms proof (induction n arbitrary: A \<alpha> \<beta> \<rho> u rule: less_induct)
+  case (less n)
+  then show ?case proof (cases n)
+    case (Suc m)
+    with less obtain c where stepm: "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, u) \<turnstile> c" "c \<turnstile>(m) ([final_state], [])"
+      by (meson relpowp_Suc_D2)
+    from this(1) show ?thesis proof cases
+      case (shift _ _ a \<beta>' _ u')
+      with less stepm Suc obtain w i j where "c \<turnstile>(i) ([A \<rightarrow> \<alpha> @ \<beta> \<cdot> []] # \<rho>, w)"
+        "([A \<rightarrow> \<alpha> @ \<beta> \<cdot> []] # \<rho>, w) \<turnstile>(j) ([final_state], [])" "i + j = m"
+        by (smt (verit, ccfv_threshold) append.assoc append_Cons append_Nil item.inject lessI
+            list.inject prod.inject)
+      with stepm show ?thesis 
+        by (metis (no_types, lifting) Suc add_Suc relpowp_Suc_I2)
+    next 
+      case reduce
+      then show ?thesis using Suc less 
+        by (smt (verit, del_insts) add.left_neutral append.right_neutral item.inject list.inject
+            prod.inject relpowp_0_E relpowp_Suc_0 relpowp_Suc_E stepm(1))
+    next
+      case (expand Y \<gamma> _ _ \<delta> _ _)
+      with less stepm Suc obtain w i j where ij: "c \<turnstile>(i) ([Y \<rightarrow> \<gamma> \<cdot> []] # [A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w)"
+        "([Y \<rightarrow> \<gamma> \<cdot> []] # [A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile>(j) ([final_state], [])" "i + j = m"
+        by (smt (verit, del_insts) lessI prod.inject self_append_conv2)
+      then obtain k c' where Suc_k: "j = Suc k" "([Y \<rightarrow> \<gamma> \<cdot> []] # [A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile> c'"
+        "c' \<turnstile>(k) ([final_state], [])" 
+        by (cases j) (simp, metis ij(2) relpowp_Suc_D2)
+      from Suc_k(2) show ?thesis 
+      proof cases
+        case (reduce Z _ _ _ \<zeta>)
+        with Suc_k(1,3) ij(3) Suc less obtain m' n' x where m'n':
+          "c' \<turnstile>(m') ([A \<rightarrow> \<alpha> @ \<beta> \<cdot> []] # \<rho>, x)" 
+          "([A \<rightarrow> \<alpha> @ \<beta> \<cdot> []] # \<rho>, x) \<turnstile>(n') ([final_state], [])" "m' + n' = k" 
+          by (smt (verit, ccfv_threshold) Suc_lessD append.assoc append_Cons append_Nil item.inject
+              less_add_Suc2 list.inject prod.inject)
+        note stepm(1) also note ij(1) also note Suc_k(2) also note m'n'(1)
+        finally show ?thesis using ij Suc_k m'n' Suc by force
+      qed simp_all
+    qed
+  qed (use less in auto)
 qed
+
 
 lemma reaches_final_imp_last_is_init_or_final:
   "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile>* ([final_state], []) \<Longrightarrow> 
@@ -626,7 +558,7 @@ lemma Lang_G_subst_Lang:
     derives_imp_completes[of _ _ S' "[]" "[]" "[]" "[]"] 
   unfolding Lang_def Context_Free_Grammar.Lang_def by auto
 
-corollary Lang_eq_Lang_G:
+theorem Lang_eq_Lang_G:
   "Lang = LangS G"
   using Lang_subst_Lang_G Lang_G_subst_Lang by order
 

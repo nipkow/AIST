@@ -15,9 +15,9 @@ definition P\<^sub>0 :: "(('n, 't) item set, 't) gpda" where
   q\<^sub>0 = dfa.init LR\<^sub>0;
   Q = dfa.states LR\<^sub>0;
   f = {[S' \<rightarrow> [] \<cdot> []]};
-  \<Delta>\<^sub>0 = {([q], a, \<Delta>\<^sub>G q (Tm a) # [q])|q a. q \<in> dfa.states LR\<^sub>0 \<and> \<Delta>\<^sub>G q (Tm a) \<noteq> {}};
-  \<E> = {let q = last (q\<^sub>n#qs) in (q\<^sub>n # qs, \<Delta>\<^sub>G q (Nt X) # [q])| 
-       q\<^sub>n qs X \<alpha>. set (q\<^sub>n#qs) \<subseteq> Q \<and> [X \<rightarrow> \<alpha> \<cdot> []] \<in> q\<^sub>n \<and> length \<alpha> = length qs \<and> X \<noteq> S'} \<union>
+  \<Delta>\<^sub>0 = {([q], a, \<Delta>\<^sub>G q (Tm a) # [q])|q a. q \<in> Q \<and> \<Delta>\<^sub>G q (Tm a) \<noteq> {}};
+  \<E> = {let q = last (q\<^sub>n#qs) in (q\<^sub>n # qs, \<Delta>\<^sub>G q (Nt X) # [q])
+        | q\<^sub>n qs X \<alpha>. set (q\<^sub>n#qs) \<subseteq> Q \<and> [X \<rightarrow> \<alpha> \<cdot> []] \<in> q\<^sub>n \<and> length \<alpha> = length qs \<and> X \<noteq> S'} \<union>
       {([q, q\<^sub>0], [f])|q. q \<in> Q \<and> [S' \<rightarrow> [Nt S] \<cdot> []] \<in> q}
  in \<lparr>gpda.states = Q \<union> {f}, init = q\<^sub>0, final = {f}, nxt = \<Delta>\<^sub>0, eps = \<E>\<rparr>"
 
@@ -172,6 +172,9 @@ next
           states_P0 subset_code(1))
   qed (use dfa_LR0.init in simp)
 qed (use dfa_LR0.init dfa_LR0.finite in simp_all)
+
+corollary gpda_P0: "gpda P\<^sub>0"
+  by (fact P0.gpda_axioms)
 
 subsubsection \<open>Finiteness of \<open>P\<^sub>0\<close> transitions\<close>
 
@@ -1302,15 +1305,6 @@ proof
     using P0_init_reaches_S'S_comp_imp_derivers 
       G'_derives_from_S_imp_in_Lang derivers_imp_derives by blast
 qed
-
-
-(*TODO: Formalize the shift-reduce parser M\<^sub>G and prove (roughly)
-
-    Prods G' \<turnstile> \<alpha> \<Rightarrow>r* map Tm u \<Longrightarrow> (q\<^sub>0\<^sub>,\<^sub>M, u @ v) \<turnstile>M\<^sub>G* (\<alpha> @ [q\<^sub>0], v)
-
-    (q\<^sub>0\<^sub>,\<^sub>M, u @ v) \<turnstile>M\<^sub>G* (\<alpha> @ [q\<^sub>0], v) \<Longrightarrow> \<exists>qs. \<alpha> \<turnstile> (q\<^sub>0\<^sub>,\<^sub>P, u @ v) \<turnstile>P* (valids \<alpha> # qs, v)
-    
- *)
 
 abbreviation "M\<^sub>G \<equiv> SRPDA G"
 

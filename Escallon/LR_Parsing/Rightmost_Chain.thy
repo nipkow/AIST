@@ -169,24 +169,17 @@ qed
 context Extended_Cfg
 begin
 
-abbreviation IPDA_step :: "('n,'t) item list \<times> 't list \<Rightarrow> ('n,'t) item list \<times> 't list 
-                    \<Rightarrow> bool" (infix \<open>\<turnstile>I\<close> 55) where
-  "(\<turnstile>I) \<equiv> (gpda.step IPDA)"
+interpretation I: ipda G IPDA
+  by unfold_locales simp
 
-abbreviation IPDA_steps :: "('n,'t) item list \<times> 't list \<Rightarrow> ('n,'t) item list \<times> 't list 
-                    \<Rightarrow> bool" (infix \<open>\<turnstile>I*\<close> 55) where
-  "(\<turnstile>I*) \<equiv> (gpda.steps IPDA)"
-
-abbreviation IPDA_stepn :: "('n,'t) item list \<times> 't list \<Rightarrow> nat \<Rightarrow> ('n,'t) item list \<times> 't list 
-                    \<Rightarrow> bool" ( \<open>_ \<turnstile>I'(_') _\<close> 55) where
-  "c0 \<turnstile>I(n) c1 \<equiv> (gpda.stepn IPDA) c0 n c1"
-
-interpretation I: ipda G IPDA 
-  by standard simp
-
-corollary ipda_IPDA: 
+corollary ipda_IPDA:
   "ipda G IPDA"
-  by (rule I.ipda_axioms)
+  by (fact I.ipda_axioms)
+
+notation I.step (infix \<open>\<turnstile>I\<close> 55)
+notation I.steps (infix \<open>\<turnstile>I*\<close> 55)
+notation I.stepn ( \<open>_ \<turnstile>I'(_') _\<close> 55)
+
 
 lemma ipda_reaches_final_imp_rm_chain:
   assumes "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w) \<turnstile>I* ([I.final_state], [])"

@@ -225,7 +225,7 @@ lemma in_final_imp_final_state:
   shows "q = final_state"
   using assms unfolding IPDA_def S'_def by simp
 
-interpretation gpda M
+sublocale gpda M
 proof (standard, goal_cases)
   case 1
   then show ?case 
@@ -247,6 +247,10 @@ next
   case 5
   then show ?case using finite_It[OF G'_finite] by simp
 qed
+
+corollary gpda_IPDA:
+  "gpda IPDA"
+  using ipda gpda_axioms by presburger
 
 subsection \<open>Step\<close>
 

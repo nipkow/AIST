@@ -8,7 +8,11 @@ context Extended_Cfg
 begin
 
 interpretation I: ipda G IPDA 
-  by (fact ipda_IPDA)
+  by unfold_locales simp
+
+notation I.step (infix \<open>\<turnstile>I\<close> 55)
+notation I.steps (infix \<open>\<turnstile>I*\<close> 55)
+notation I.stepn ( \<open>_ \<turnstile>I'(_') _\<close> 55)
 
 section \<open>The Characteristic Finite Automaton to a Context-Free Grammar\<close>
 
@@ -418,23 +422,23 @@ next
       "Prods G' \<turnstile> \<alpha>'' @ Nt X # map Tm v' \<Rightarrow>r \<alpha>'' @ \<alpha>' @ Nt A # \<beta>' @ map Tm v'"
       "Prods G' \<turnstile> \<beta>' \<Rightarrow>r* map Tm u" "u @ v' = w" "\<alpha>'' @ \<alpha>' = \<gamma>"
       by (smt (verit, best) append.assoc map_append Nt_map_Tm_eq_Nt_map_TmD)
-    then obtain \<rho>' where \<rho>'_def:
-      "([X \<rightarrow> \<alpha>' @ [Nt A] \<cdot> \<beta>'] # \<rho>', u@v') \<turnstile>I* ([I.final_state], [])"
-      "hist (rev \<rho>') = \<alpha>''" 
+    then obtain \<tau> where \<tau>_def:
+      "([X \<rightarrow> \<alpha>' @ [Nt A] \<cdot> \<beta>'] # \<tau>, u@v') \<turnstile>I* ([I.final_state], [])"
+      "hist (rev \<tau>) = \<alpha>''" 
       using Cons(1)[OF X_chain(1) rm_chain_imp_derivers[OF X_chain(1)], of "\<alpha>' @ [Nt A]" \<beta>']
       by (metis append.assoc append_Cons append_Nil derivers_imp_derives)
     from X_defs have X_in_prods: "(X, \<alpha>' @ Nt A # \<beta>') \<in> Prods G'"
       by (metis Cons.prems(1) rm_chain_imp_prod)
-    let ?\<rho> = "[X \<rightarrow> \<alpha>' \<cdot> Nt A # \<beta>'] # \<rho>'"
-    have hist_\<rho>: "hist (rev ?\<rho>) = \<gamma>" using X_chain(5) \<rho>'_def(2) by simp
+    let ?\<rho> = "[X \<rightarrow> \<alpha>' \<cdot> Nt A # \<beta>'] # \<tau>"
+    have hist_\<rho>: "hist (rev ?\<rho>) = \<gamma>" using X_chain(5) \<tau>_def(2) by simp
     from Cons(4) have A_in_prods: "(A, \<alpha> @ \<beta>) \<in> Prods G'" 
       by (simp add: deriver_imp_in_Prods)
     with I.derives_imp_completes[OF Cons(5)] have 
       "([A \<rightarrow> \<alpha> \<cdot> \<beta>] # ?\<rho>, v @ w) \<turnstile>I* ([A \<rightarrow> \<alpha>@\<beta> \<cdot> []] # ?\<rho>, w)"
       by (metis append.right_neutral)
-    also have "... \<turnstile>I ([X \<rightarrow> \<alpha>' @ [Nt A] \<cdot> \<beta>'] # \<rho>', u@v')"
+    also have "... \<turnstile>I ([X \<rightarrow> \<alpha>' @ [Nt A] \<cdot> \<beta>'] # \<tau>, u@v')"
       using X_chain(4) A_in_prods X_in_prods by simp
-    also have "... \<turnstile>I* ([I.final_state], [])" using \<rho>'_def by presburger
+    also have "... \<turnstile>I* ([I.final_state], [])" using \<tau>_def by presburger
     finally show ?case using hist_\<rho> Cons(6) by presburger
   qed
 qed 

@@ -42,7 +42,7 @@ lemma rm_chain_second_produces_hd:
   assumes "Prods G' \<turnstile> \<alpha>\<^sub>0 \<midarrow>[A \<rightarrow> \<alpha> \<cdot> Nt B # \<beta>] # i # \<rho>\<rightarrow>r* \<gamma>"
   obtains X \<alpha>' \<beta>' where "i = [X \<rightarrow> \<alpha>' \<cdot> Nt A # \<beta>']"
   using assms proof cases
-  case (step \<alpha> v u)
+  case (step \<alpha>' v u)
   from step(2) show ?thesis
     using step that by cases (metis rm_chain_singleton_imp_eq)
 qed

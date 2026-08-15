@@ -30,6 +30,8 @@ abbreviation initial_item :: "'n \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t
   "[A \<rightarrow> \<cdot> \<alpha> ] \<equiv>  [A \<rightarrow> [] \<cdot> \<alpha>]"
 abbreviation complete_item :: "'n \<Rightarrow> ('n,'t) syms \<Rightarrow> ('n,'t) item" ("[_ \<rightarrow> _ \<cdot> ]") where
   "[A \<rightarrow> \<alpha> \<cdot> ]  \<equiv>  [A \<rightarrow> \<alpha> \<cdot> []]"
+abbreviation empty_item :: "'n \<Rightarrow> ('n,'t) item" ("[_ \<rightarrow> \<cdot> ]") where
+  "[A \<rightarrow> \<cdot> ]  \<equiv>  [A \<rightarrow> [] \<cdot> []]"
 
 notation (latex output) It (\<open>\<^latex>\<open>\ensuremath{\mathrm{It}_{\<close>_\<^latex>\<open>}}\<close>\<close>)
 
@@ -49,8 +51,12 @@ text \<open>A term \<open>t\<close> of type \<open>\<tau>\<close> is notated as 
 \mbox{\<open>('a\<^sub>0,'a\<^sub>1,\<dots>,'a\<^sub>n)\<close>}. One of the most common types in this formalization, @{typ "('n, 't) sym"}, 
 is an example for this.
 
-The keyword \isakeyword{datatype} is used to declare algebraic data types, which can be seen in 
-@{typ "'a list"}:
+The keyword \isakeyword{datatype} is used to declare algebraic data types, which can be seen in the 
+commonly used type of natural numbers @{typ nat}, which we define recursively:
+\begin{quote}
+@{datatype nat}
+\end{quote}
+Another example is the type for lists, @{typ "'a list"}, which we will also be using frequently:
 \begin{quote}
 @{datatype list}
 \end{quote}
@@ -280,7 +286,7 @@ for some \<open>n\<close>. Lemma~\ref{G'_deriven_Suc_imp_G_deriven} then implies
 Conversely, let @{prop \<open>w \<in> LangS G\<close>}. Then there exists a derivation
 \[ @{prop \<open>Prods G \<turnstile> [Nt S] \<Rightarrow>* map Tm w\<close>}. \] 
 Since @{prop \<open>Prods G \<subseteq> Prods G'\<close>}, this derivation also exists in \<open>G'\<close>. This, along with the fact 
-that that \<open>S'\<close> derives \<open>S\<close> in \<open>G'\<close>, implies that @{prop \<open>w \<in> LangS G'\<close>}, completing the proof.
+that that \<open>S'\<close> derives \<open>S\<close> in \<open>G'\<close>, implies that @{prop \<open>w \<in> LangS G'\<close>}.
 \end{proof}
 \end{theorem}
 
@@ -325,8 +331,10 @@ shifted the \concept{history} of the item.
 For @{term \<open>[A \<rightarrow> \<alpha> \<cdot> \<beta>]\<close>}, \<open>\<alpha> = \<epsilon>\<close> denotes the situation where nothing has been 
 derived from \<open>A\<close> yet. Analogously, \<open>\<beta> = \<epsilon>\<close> denotes the situation where a substring of the 
 input has been completely derived from \<open>A\<close>. These items are therefore called \concept{initial} and 
-\concept{complete} items respectively. For both of these kinds of item, we often write the empty 
-list implicitly, e.g., instead of @{term \<open>[A \<rightarrow> \<alpha> \<cdot> []]\<close>}, we write @{term \<open>[A \<rightarrow> \<alpha> \<cdot> ]\<close>}. 
+\concept{complete} items respectively. 
+We often write the empty list implicitly on either side of the bullet, e.g., instead of @{term \<open>[A \<rightarrow> \<alpha> \<cdot> []]\<close>}, we write 
+@{term \<open>[A \<rightarrow> \<alpha> \<cdot> ]\<close>}. We also use this convention if both sides of the bullet are empty.
+
 Additionally, we denote the set of all complete items in a set of items \<open>I\<close> by @{term \<open>completes I\<close>}:
 \begin{equation*}
 @{thm completes_def}.
@@ -510,19 +518,7 @@ We will now work towards proving that \<open>I\<^sub>G\<close> accepts exactly @
 
 subsection \<open>Language Equivalence\<close>
 
-text\<open>\begin{lemma}\label{reducing_imp_in_Prods_G}
-If there exists an IPDA reduction step
-\[ @{prop \<open>([Y \<rightarrow> \<alpha> \<cdot> []] # [X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] # \<rho>, u) \<turnstile> ([X \<rightarrow> \<beta> @ [Nt Y] \<cdot> \<gamma>] # \<rho>, u)\<close>}, \]
-then @{prop \<open>(Y, \<alpha>) \<in> Prods G\<close>}
-\begin{proof}
-By the definition of reducing transitions we know that \<open>(Y, \<alpha>), (X, \<beta> @ Nt Y # \<gamma>) \<in> Prods G'\<close>. 
-Hence, either \<open>(Y, \<alpha>) \<in> Prods G\<close> or \<open>(Y, \<alpha>) = (S', [Nt S])\<close>. We can prove by contradiction that 
-@{prop \<open>(Y, \<alpha>) \<noteq> (S', [Nt S])\<close>}, using the fact that \<open>Y\<close> is on the RHS of \<open>(X, \<beta> @ Nt Y # \<gamma>)\<close> 
-and that the only production in @{term \<open>Prods G'\<close>} containing \<open>S'\<close> is \<open>(S', [Nt S])\<close>.
-\end{proof}
-\end{lemma}
-
-\begin{lemma}[IPDA invariant]\label{ipda.invariant}
+text\<open>\begin{lemma}[IPDA invariant]\label{ipda.invariant}
 @{prop \<open>([init M], u @ v) \<turnstile>I* (rev \<rho>, v)\<close>} implies\\ @{prop \<open>Prods G \<turnstile> hist \<rho> \<Rightarrow>* map Tm u\<close>}.
 \begin{proof}
 We do a proof by induction on the length \<open>n\<close> of the computation for arbitrary \<open>u, v,\<close> and \<open>\<rho>\<close>.
@@ -565,8 +561,9 @@ For the reducing case, we have a second-to-last configuration
 \intertext{and final configuration} 
 @{term \<open>rev \<rho> = [X \<rightarrow> \<beta> @ [Nt Y] \<cdot> \<gamma>] # \<tau>\<close>}\label{eq:ipda.invariant.rho_reduce}
 \end{gather}
-for some \<open>Y, \<alpha>, X, \<beta>, \<gamma>\<close> and \<open>\<tau>\<close>. By Lemma~\ref{reducing_imp_in_Prods_G}, we know that 
-\mbox{@{prop \<open>(Y, \<alpha>) \<in> Prods G\<close>}}. From all this follows that
+for some \<open>Y, \<alpha>, X, \<beta>, \<gamma>\<close> and \<open>\<tau>\<close>. Since the complete item @{term \<open>[Y \<rightarrow> \<alpha> \<cdot> ]\<close>} is reduced. Therefore,
+@{prop \<open>(Y, \<alpha>) \<in> Prods G\<close>} must hold; otherwise, @{prop \<open>(Y, \<alpha>) = (S', [Nt S])\<close>}, which would 
+contradict the definition of \<open>G'\<close> and \<open>S'\<close> since @{prop \<open>[X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] \<in> It G'\<close>}.
 \begin{equation}\label{eq:ipda.invariant.reduce_rs}
 @{prop \<open>Prods G \<turnstile> hist \<rho> \<Rightarrow> hist (rev \<tau>) @ \<beta> @ [Nt A]\<close>}.
 \end{equation}
@@ -585,7 +582,7 @@ have
 \<open>Prods G \<turnstile> hist \<rho>\<close> &\ \<open>= hist ((rev \<tau>) @  [X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] @ [Y \<rightarrow> [] \<cdot> \<alpha>])\<close>\\
 &\ \<open>= hist (rev \<tau>) @ \<beta> \<Rightarrow>* map Tm u\<close>. 
 \end{align*}
-The invariant is therefore satisfied, completing the proof.
+The invariant is therefore satisfied for all cases.
 \end{proof}
 \end{lemma}
 
@@ -798,7 +795,8 @@ If \<open>X\<close> is in \<open>\<alpha>'\<close> and not in \<open>\<gamma>\<c
 \eqref{prodd_stepn} we then get
 \[ @{prop \<open>P \<turnstile> [Nt A] \<Rightarrow>r(n) \<delta> @ Nt X # \<zeta> @ Nt B # map Tm v\<close>}. \]
 Furthermore, since \<open>Suc k = n < Suc n\<close>, and due to the fact that our induction hypothesis holds for 
-arbitrary \<open>\<alpha>\<close> and \<open>\<beta>\<close>, we can apply it for \<open>\<delta>\<close> and \<open>(\<zeta> @ Nt B # map Tm v)\<close>, by which the implication holds.
+arbitrary \<open>\<alpha>\<close> and \<open>\<beta>\<close>, we can apply it for \<open>\<delta>\<close> and \<open>(\<zeta> @ Nt B # map Tm v)\<close>, by which the implication 
+holds.
 \end{proof}
 \end{lemma}
 
@@ -881,7 +879,7 @@ with \eqref{der_rm.prodd(1)}, i.e., there exists some \<open>\<rho>\<close> such
 We can then use \eqref{der_rm.prodd(1)}, \eqref{der_rm.suffix_derivers_v}, \eqref{der_rm.da}, and 
 \<open>\<delta> = \<alpha>' @ \<alpha>''\<close> to show that 
 \[ @{prop \<open>P \<turnstile> [Nt A] \<midarrow>[C \<rightarrow> \<alpha>'' \<cdot> Nt X # \<beta>'] # \<rho>\<rightarrow>r* \<alpha> @ Nt X # map Tm v\<close>} \]
-holds, completing the proof.
+holds, finishing the proof.
 \end{proof}
 \end{lemma}
 
@@ -939,12 +937,15 @@ Trivial by rule inversion.
 If @{prop \<open>Prods G' \<turnstile> \<alpha>\<^sub>0 \<midarrow>[A \<rightarrow> \<alpha> \<cdot> Nt B # \<beta>] # i # \<rho>\<rightarrow>r* \<gamma>\<close>},
 then there exist \<open>X, \<alpha>',\<close> and \<open>\<beta>'\<close> such that \<open>i = [X \<rightarrow> \<alpha>' \<cdot> Nt A # \<beta>']\<close>
 \begin{proof}
-By rule inversion, we know there exist \<open>\<alpha> :: syms\<close> and \<open>v, u :: 't list\<close> where
-\begin{equation}
-@{prop \<open>Prods G' \<turnstile> \<alpha>\<^sub>0 \<midarrow>i # \<rho>\<rightarrow>r* \<alpha> @ Nt A # map Tm v\<close>}.
-\end{equation}
-The implication then follows by a second rule inversion on this rightmost chain, using the other
-facts that we have obtained from the first rule inversion.
+By rule inversion, we know there exist \<open>\<alpha>' :: syms\<close> and \<open>v, u :: 't list\<close> where
+\begin{gather}
+@{prop \<open>\<gamma> = \<alpha>' @ \<alpha> @ Nt B # map Tm u @ map Tm v\<close>}\\
+@{prop \<open>Prods G' \<turnstile> \<alpha>\<^sub>0 \<midarrow>i # \<rho>\<rightarrow>r* \<alpha>' @ Nt A # map Tm v\<close>}\label{rmc_snd_hd.step}\\
+@{prop \<open>Prods G' \<turnstile> \<alpha>' @ Nt A # map Tm v \<Rightarrow>r \<alpha>' @ \<alpha> @ Nt B # \<beta> @ map Tm v\<close>}\\
+@{prop \<open>Prods G' \<turnstile> \<beta> \<Rightarrow>r* map Tm u\<close>}
+\end{gather}
+The implication then follows from all these facts by doing a second rule inversion, this time on 
+\eqref{rmc_snd_hd.step}.
 \end{proof}
 \end{lemma}
 
@@ -1013,8 +1014,7 @@ Finally, by inversion of the step rule for rightmost chains, this implies the ex
 such that
 \[ @{prop \<open>Prods G' \<turnstile> [Nt S'] \<midarrow>\<rho>\<rightarrow>r* \<eta>\<close>},\] 
 and by Lemma~\ref{rm_chain_second_produces_hd}, \<open>i\<close> is of the form @{prop \<open>i = [Z \<rightarrow> \<gamma>' \<cdot> Nt A # \<delta>']\<close>} 
-for some \<open>Z, \<gamma>'\<close>, and \<open>\<delta>'\<close>. With the existence of \<open>\<eta>\<close> and this structure of \<open>i\<close>, the proof is 
-complete.
+for some \<open>Z, \<gamma>'\<close>, and \<open>\<delta>'\<close>. Together with the existence of \<open>\<eta>\<close>, this completes the proof.
 \end{proof}
 \end{lemma}
 
@@ -1034,6 +1034,14 @@ section \<open>The Characteristic Finite Automaton and the Canonical \<open>LR(0
 (*<*)
 notation (latex output) char_fa
   (\<open>\<^latex>\<open>\ensuremath{\mathrm{char}(G)}\<close>\<close>)
+
+notation (latex output) "LR\<^sub>0"
+  (\<open>\<^latex>\<open>\ensuremath{LR_0(G)}\<close>\<close>)
+
+notation (latex output) "P\<^sub>0"
+  (\<open>\<^latex>\<open>\ensuremath{P_0(G)}\<close>\<close>)
+
+
 (*>*)
 
 text \<open>In this section, we will show the relation between rightmost derivations and the IPDA in more 
@@ -1312,20 +1320,18 @@ If the first step is a shifting or a reducing transition, the implication holds 
 hypothesis.
 
 If the first step is an expanding transition, there exist \<open>Y :: 'n\<close> and \<open>\<gamma> :: syms\<close> with
-\begin{gather}
-\<open>\<beta> = Nt Y # \<gamma>\<close>\label{rf_comp.b}
-\intertext{and}
-\begin{multlined}
+\<open>\<beta> = Nt Y # \<gamma>\<close> and
+\begin{multline*}
 \<open>([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, u) \<turnstile>I ([Y \<rightarrow>  \<cdot> \<gamma>] # [A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, u)\<close>\\
   \<open>\<turnstile>I(m) ([\<close>@{term I.final_state}\<open>], [])\<close>.
-\end{multlined}
-\end{gather}
+\end{multline*}
+
 By the IH, this implies the existence of some \<open>v :: 't list\<close> and \<open>i, j :: nat\<close> with 
 \begin{multline*}
 \<open>([Y \<rightarrow>  \<cdot> \<gamma>] # [A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, u) \<turnstile>I(i) ([Y \<rightarrow> \<gamma> \<cdot> ] # [A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, v)\<close>\\
   \<open>\<turnstile>I(j) ([\<close>@{term I.final_state}\<open>], [])\<close>
 \end{multline*}
-and \<open>i + j = m\<close>. By \eqref{rf_comp.b}, the first step of the computation
+and \<open>i + j = m\<close>. With the fact that \<open>\<beta> = Nt Y # \<gamma>\<close>, the first step of the computation
 \[ \<open>([Y \<rightarrow> \<gamma> \<cdot> ] # [A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, v) \<turnstile>I(j) ([\<close>@{term I.final_state}\<open>], [])\<close> \]
 is invariably a reducing transition, and since the resulting configuration reaches the accepting 
 configuration in \<open>j - 1 < n\<close> steps, we can use the IH again to finish the proof.
@@ -1383,7 +1389,7 @@ also exists. Furthermore \eqref{ipda_char.red} implies that \mbox{@{term \<open>
 by the definition of the \<open>I\<^sub>G\<close> transition relations. Therefore, \eqref{ipda_char.calc} continues with
 \[ \<open>... \<turnstile>c ([A \<rightarrow> [] \<cdot> \<alpha> @ \<beta>], \<alpha>)\<close>. \]
 The RHS can then reach our target configuration by Lemma~\ref{char_steps_consume}, completing the
-proof of both the Lemma. Along with Lemmas~\ref{char_imp_derivers} and \ref{derivers_imp_ipda},  
+proof. Along with Lemmas~\ref{char_imp_derivers} and \ref{derivers_imp_ipda},  
 this also completes the proof of Theorem~\ref{char_derivers_ipda_iffs}.
 \end{proof}
 \end{lemma}
@@ -1437,10 +1443,10 @@ For every state @{prop \<open>q \<in> dfa.states LR\<^sub>0\<close>}, there exis
 @{prop \<open>q = valids \<gamma>\<close>}.
 \begin{proof}
 By the definition of the powerset construction and Lemma~\ref{char_fa_nextl_is_valids}, we know
-that the state \<open>LR\<^sub>0\<close> reaches after reading an input string \<open>\<alpha> :: syms\<close> is exactly @{term \<open>valids \<alpha>\<close>}.
-Moreover, since we define the states of \<open>LR\<^sub>0\<close> to be the restricted to the reachable states resulting 
+that the state @{const LR\<^sub>0} reaches after reading an input string \<open>\<alpha> :: syms\<close> is exactly @{term \<open>valids \<alpha>\<close>}.
+Moreover, since we define the states of @{const LR\<^sub>0} to be the restricted to the reachable states resulting 
 from the powerset construction of @{term char_fa}, we also know that there exists an input string \<open>\<gamma>\<close> 
-such that \<open>LR\<^sub>0\<close> is in state \<open>q\<close> after reading \<open>\<gamma>\<close>; therefore, \<open>q = valids \<gamma>\<close>.
+such that @{const LR\<^sub>0} is in state \<open>q\<close> after reading \<open>\<gamma>\<close>; therefore, \<open>q = valids \<gamma>\<close>.
 \end{proof}
 \end{lemma}
 
@@ -1472,7 +1478,7 @@ Theorem~\ref{char_eq_reliable_prefix}.
 \end{lemma}
 
 \begin{lemma}\label{dfa_LR0_nxt_is_epsclo_of_shift}
-For any state of \<open>LR\<^sub>0\<close> @{prop \<open>Q\<close>} and a symbol \<open>Y\<close>, 
+For any state of @{const LR\<^sub>0} @{prop \<open>Q\<close>} and a symbol \<open>Y\<close>, 
 @{term \<open>dfa.nxt LR\<^sub>0 Q Y\<close>} is equivalent to the set
 \[ @{term \<open>char_fa.epsclo {[X \<rightarrow> \<alpha> @ [Y] \<cdot> \<beta>]|X \<alpha> \<beta>. [X \<rightarrow> \<alpha> \<cdot> Y # \<beta>] \<in> Q}\<close>} \]
 where @{term \<open>char_fa.epsclo P\<close>} denotes the \<open>\<epsilon>\<close>-closure of set \<open>P\<close> for @{const char_fa}.
@@ -1497,8 +1503,7 @@ Lemma~\ref{eps_reliable_preserved}.
 We now show that @{term \<open>valids (\<gamma> @ [X])\<close>} is a subset of \<open>\<E>\<close> to complete the proof.
 
 We assume @{prop \<open>i \<in> valids (\<gamma> @ [X])\<close>}, which means that either
-\<open>i\<close> is a complete item, or a incomplete item of the form 
-\[ @{term \<open>[A \<rightarrow> \<alpha> @ [X] \<cdot> \<beta>]\<close>}. \]
+\<open>i\<close> is a complete item, or a incomplete item of the form @{term \<open>[A \<rightarrow> \<alpha> @ [X] \<cdot> \<beta>]\<close>}.
 We now distinguish these two cases.
 
 If \<open>i\<close> is complete, we know it is a reachable state of @{const char_fa}. We show by induction on the 
@@ -1516,8 +1521,8 @@ once again.
 As is the case with any DFA resulting from the powerset construction of an NFA, the canonical 
 \<open>LR(0)\<close> automaton, working on sets of context-free items, effectively navigates all possible
 NFA computations simultaneously, thereby achieving deterministic behavior. Furthermore, by 
-Lemmas~\ref{state_imp_valids} and \ref{nxt_dfa_LR0_shift_is_valids_app}, since all \<open>LR\<^sub>0\<close> states are 
-sets of valid items, and \<open>LR\<^sub>0\<close> transitions are equivalent to appending a symbol to a reliable prefix 
+Lemmas~\ref{state_imp_valids} and \ref{nxt_dfa_LR0_shift_is_valids_app}, since all @{const LR\<^sub>0} states are 
+sets of valid items, and @{const LR\<^sub>0} transitions are equivalent to appending a symbol to a reliable prefix 
 shared by all the items in the current state, we can use the canonical \<open>LR(0)\<close> automaton to determine 
 in parallel all the items one could possibly be processing given what has already been derived, and 
 by the presence of complete items, detect positions for reduction, as we will now see in the 
@@ -1538,9 +1543,9 @@ subsection \<open>Definition\<close>
 text\<open>
 \begin{definition}[Canonical \<open>LR(0) parser\<close>]
 Let @{term \<Delta>\<^sub>G} be the transition relation of the canonical \<open>LR(0)\<close> automaton @{const LR\<^sub>0}, 
-\<open>q\<^sub>0\<close> the initial state of @{const LR\<^sub>0}, \<open>Q\<close> the set of states of \<open>LR\<^sub>0\<close>, and \<open>f\<close> the singleton set
-@{term \<open>{[S' \<rightarrow> [] \<cdot> []]}\<close>}.
-The \concept{canonical \<open>LR(0)\<close> parser} to the CFG \<open>G\<close> is the @{typeof P\<^sub>0}
+\<open>q\<^sub>0\<close> the initial state of @{const LR\<^sub>0}, \<open>Q\<close> the set of states of @{const LR\<^sub>0}, and \<open>f\<close> the singleton 
+set @{term \<open>{[S' \<rightarrow> [] \<cdot> []]}\<close>}.
+The \concept{canonical LR(0) parser} to the CFG \<open>G\<close> is the @{typeof P\<^sub>0}
 \[ @{const P\<^sub>0} = @{term \<open>\<lparr>states = Q \<union> {f}, init = q\<^sub>0, final = {f}, nxt = \<Delta>\<^sub>0, eps = \<E>\<rparr>\<close>}. \]
 \end{definition}
 
@@ -1571,12 +1576,12 @@ Finish transitions therefore correspond to the set
 \end{enumerate}
 The set \<open>\<E>\<close> is therefore defined as the union of the sets for reduce and finish transitions. 
 
-Our definition of \<open>P\<^sub>0\<close> is very similar to that of Wilhelm et al., except that we, as we did when
+Our definition of @{const P\<^sub>0} is very similar to that of Wilhelm et al., except that we, as we did when
 defining \<open>I\<^sub>G\<close>, restrict the elements of the transition relations to elements of \<open>Q\<close> explicitly
 to overcome the same problem we had in the IPDA section. In this case, however, this has one more
-benefit: since \<open>Q\<close> is actually a subset of the states of \<open>P\<^sub>0\<close>, by restricting our transition functions
+benefit: since \<open>Q\<close> is actually a subset of the states of @{const P\<^sub>0}, by restricting our transition functions
 to \<open>Q\<close> only, instead of @{term \<open>Q \<union> {f}\<close>}, our transition relations are more well-defined, since we
-guarantee that every state that gets passed to the \<open>LR\<^sub>0\<close> transition function is a state in \<open>LR\<^sub>0\<close>. A 
+guarantee that every state that gets passed to the @{const LR\<^sub>0} transition function is a state in @{const LR\<^sub>0}. A 
 second detail we added is the condition @{prop \<open>X \<noteq> S'\<close>} in the reduce transition relation. This 
 could lead to nondeterministic behavior, since the finish transition condition 
 @{prop \<open>[S' \<rightarrow> [Nt S] \<cdot> []] \<in> q\<close>} also implies the reduce transition condition 
@@ -1585,36 +1590,70 @@ property causes reduce and finish transitions to be mutually exclusive, avoiding
 
 subsection \<open>\<open>LR(0)\<close>-Adequate and Inadequate States\<close>
 
-text \<open>Even though our modified \<open>P\<^sub>0\<close> definition circumvents the issue between reduce and finish 
+text \<open>Even though our modified @{const P\<^sub>0} definition circumvents the issue between reduce and finish 
 transitions we described before, nondeterminism is still a problem in several other cases. We 
 define two types of \concept{conflicts} that can be present in parser states which can lead to 
-nondeterministic behavior:
+nondeterministic behavior, as defined by Wilhelm et al.~\cite[p. 110]{Wilhelm}:
 
 \begin{definition}[Shift-reduce/reduce-reduce conflicts and LR(0) inadequacy]
-Let \<open>q\<close> be a state of \<open>P\<^sub>0\<close>. We say \<open>q\<close> has a \concept{shift-reduce conflict} if it allows for 
-\<open>P\<^sub>0\<close> to make both a shift and a reduce transition.
+Let \<open>q\<close> be a state of @{const P\<^sub>0}. We say \<open>q\<close> has a \concept{shift-reduce conflict} if it allows for 
+@{const P\<^sub>0} to make both a shift and a reduce transition.
 
 Moreover, \<open>q\<close> is said to have a \concept{reduce-reduce conflict} if it is possible to perform 
-multiple reducing transitions.
+reducing transitions for two distinct productions.
 
 If \<open>q\<close> has either of these conflicts, it is \concept{\<open>LR(0)\<close>-inadequate}. Otherwise, it is 
 \concept{\<open>LR(0)\<close> adequate}.
 \end{definition}
 
-It is worth noting that the only factor that determines that a reducing transition is possible, by 
-looking solely at a single state, is the presence of a complete item, since finishing transitions 
-are considered only a special case of reducing transitions. 
+It is worth noting that in this context, we consider finishing transitions a special case of reducing
+transitions. Therefore, for a state to permit a reducing transition for a production @{term \<open>(A, \<alpha>)\<close>},
+it suffices for it to contain the complete item @{term \<open>[A \<rightarrow> \<alpha> \<cdot> ]\<close>}.
 
 Because of this, we formally define \<open>q\<close> to have a reduce-reduce conflict if 
-@{term \<open>card (completes q) > 1\<close>}, and a shift-reduce conflict if there exist two tuples
-@{prop \<open>([q], a, rs\<^sub>1) \<in> gpda.nxt P\<^sub>0\<close>} and @{prop \<open>(q#qs, rs\<^sub>2) \<in> gpda.eps P\<^sub>0\<close>}. 
+@{term \<open>mbox0 (card (completes q) > 1)\<close>}. Meanwhile, there is a shift-reduce conflict if there exist two 
+tuples @{prop \<open>([q], a, rs\<^sub>1) \<in> gpda.nxt P\<^sub>0\<close>} and @{prop \<open>(q#qs, rs\<^sub>2) \<in> gpda.eps P\<^sub>0\<close>}. This is
+equivalent to \<open>q\<close> containing at least one complete item, and an incomplete item of the form 
+@{term \<open>[X \<rightarrow> \<alpha> \<cdot> Tm a # \<beta>]\<close>}.
 
+We will now show a lemma that Wilhelm et al. present without proof and we will need in the future to 
+show the final theorem of the \<open>LR(0)\<close> section in the book. First, we prove an 
+auxiliary lemma:
 
+\begin{lemma}\label{derivern_non_word_imp_hd_eps_reachable}
+If @{prop \<open>Prods G' \<turnstile> [Nt A] \<Rightarrow>r(Suc n) Y # \<gamma>\<close>} and \<open>Y # \<gamma>\<close> is not a terminal word, then there exist
+\<open>X :: 'n\<close> and \<open>\<alpha>, \<beta> :: syms\<close> such that \mbox{@{term \<open>[A \<rightarrow> \<cdot> \<alpha>] \<in> It G'\<close>}} and 
+@{prop \<open>([A \<rightarrow> [] \<cdot> \<alpha>], [X \<rightarrow> [] \<cdot> Y # \<beta>]) \<in> (nfa.eps char_fa)\<^sup>*\<close>}.
+\begin{proof}
+We induct on \<open>n\<close> for arbitrary \<open>Y\<close> and \<open>\<gamma>\<close>.
 
-We will now show a lemma that Wilhelm et al. presented without proof and we will need to show the
-final result of the \<open>LR(0)\<close> section in the book.
+If \<open>n = 0\<close>, then @{prop \<open>(A, Y # \<gamma>) \<in> Prods G'\<close>}, and the implication holds trivially by reflexivity.
 
-\begin{lemma}
+If \<open>n > 0\<close>, we consider the final step in the derivation. The sentential form that derives 
+@{term \<open>Y # \<gamma>\<close>} in the last step must be nonempty and contain at least one nonterminal symbol. Let
+@{term \<open>X # \<delta>\<close>} be this sentential form. By the induction hypothesis, there exist
+\<open>\<alpha>, \<beta> :: syms\<close> and \<open>W :: 'n\<close> such that \mbox{@{prop \<open>[A \<rightarrow> [] \<cdot> \<alpha>] \<in> It G'\<close>}} and 
+\begin{equation}\label{der_hd_eps.ih}
+@{prop \<open>([A \<rightarrow> [] \<cdot> \<alpha>], [W \<rightarrow> [] \<cdot> X # \<beta>]) \<in> (nfa.eps char_fa)\<^sup>*\<close>}. 
+\end{equation}
+We can now do a case distinction on
+whether \<open>\<delta>\<close> consists exclusively of terminals.
+
+If \<open>\<delta>\<close> contains no nonterminals, there exists an \<open>X' :: 'n\<close> such that @{prop \<open>X = Nt X'\<close>}. Furthermore, 
+there also exists a production @{prop \<open>(X', \<chi>) \<in> Prods G'\<close>} which was applied in the last derivation 
+step  was applied, meaning @{prop \<open>\<chi> @ \<delta> = Y # \<gamma>\<close>}. This implies that \<open>\<chi>\<close> cannot be the empty word; 
+if this were the case, @{term \<open>Y # \<gamma>\<close>} would contain no nonterminals, which contradicts our assumption 
+that it is not a terminal word. Therefore, @{prop \<open>\<chi> = Y # \<zeta>\<close>} for some \<open>\<zeta> :: syms\<close>. From all this 
+follows @{prop \<open>([W \<rightarrow> [] \<cdot> Nt X' # \<beta>], [X' \<rightarrow> [] \<cdot> Y # \<zeta>]) \<in> mbox0 (nfa.eps char_fa)\<close>}.
+The implication then holds by \eqref{der_hd_eps.ih}.
+
+On the other hand, if \<open>\<delta>\<close> contains at least a nonterminal, we know that @{prop \<open>X = Y\<close>} since there
+exists a nonterminal to the right of \<open>X\<close>, meaning that after the final rightmost derivation step,
+it remains unchanged. This completes the proof by \eqref{der_hd_eps.ih}.
+\end{proof}
+\end{lemma}
+
+\begin{lemma}\label{LR0_adequate_cases}
 If a state \<open>q\<close> is \<open>LR(0)\<close>-adequate, one of the following holds:
 \begin{enumerate}
 \item @{prop \<open>completes q = {}\<close>}
@@ -1626,21 +1665,107 @@ and every rightmost derivation of a word \<open>w\<close>
 implies @{prop \<open>\<gamma> = Nt A # map Tm w\<close>}.
 \end{enumerate}
 \begin{proof}
-Since \<open>q\<close> is a state of \<open>P\<^sub>0\<close>, it is either the final state @{term P0_final} or a state of 
+Since \<open>q\<close> is a state of @{const P\<^sub>0}, it is either the final state @{term P0_final} or a state of 
 @{const LR\<^sub>0}. If @{prop \<open>q = P0_final\<close>}, it is trivially \<open>LR(0)\<close>-adequate and fulfills (2).
 
-Now, we assume \<open>q\<close> is a state of \<open>LR\<^sub>0\<close>. Since \<open>q\<close> is \<open>LR(0) adequate\<close>, we know it has either zero or
-one complete items. % TODO
-\end{proof}
-\end{lemma}
+Now, we assume \<open>q\<close> is a state of @{const LR\<^sub>0}. Since \<open>q\<close> is \<open>LR(0)\<close>- adequate, we can distinguish two cases:
+either \<open>q\<close> has no complete items, or exactly one complete item. If \<open>q\<close> has no complete items, it 
+fulfills condition (1).
 
-\<close>
+Otherwise, 
+\begin{equation}\label{ad_cases.compq}
+@{prop \<open>completes q = {[A \<rightarrow> \<alpha> \<cdot> ]}\<close>}
+\end{equation} 
+for some \<open>A\<close> and \<open>\<alpha>\<close>. We do another case distinction 
+on whether \<open>q\<close> has any incomplete items; if it has none, it fullfils condition (2).
+
+Otherwise, let @{prop \<open>[X \<rightarrow> \<alpha>' \<cdot> Z # \<beta>] \<in> q\<close>}. We know that \<open>Z\<close> must be a nonterminal, since if it
+were some terminal symbol \<open>Tm a\<close>, the reading transition 
+@{term \<open>mbox ([q], a, [dfa.nxt LR\<^sub>0 q (Tm a), q])\<close>} would be possible, and since \<open>q\<close> also contains a 
+complete item, a shift-reduce conflict would be present, contradicting the premise that \<open>q\<close> is 
+\<open>LR(0)\<close>-adequate. Thus, let @{prop \<open>Z = Nt Y\<close>}.
+
+Since \<open>G'\<close> is reduced, we know that there must exist a rightmost derivation of a terminal word \<open>w\<close>
+of the form \<open>Prods G' \<turnstile> [Nt Y] \<Rightarrow>r* \<gamma> \<Rightarrow>r map Tm w\<close> for some \<open>\<gamma> :: syms\<close>. To complete our proof, 
+we need to show that @{prop \<open>mbox0 (\<gamma> = Nt A # map Tm w)\<close>} and @{prop \<open>\<alpha> = []\<close>}. We begin by doing a 
+case distinction on the reflexive transitive closure of the derivation from \<open>Y\<close> to \<open>\<gamma>\<close>:
+
+In the reflexive case, \<open>Y\<close> derives @{term \<open>map Tm w\<close>} in a single step, meaning 
+\[ @{prop \<open>(Y, map Tm w) \<in> Prods G'\<close>}. \] 
+Therefore, @{term \<open>([X \<rightarrow> \<alpha>' \<cdot> Nt Y # \<beta>], [Y \<rightarrow> \<cdot> map Tm w])\<close>} is in the \<open>\<epsilon>\<close>-transition relation of 
+@{const char_fa}; this and @{prop \<open>[X \<rightarrow> \<alpha>' \<cdot> Nt Y # \<beta>] \<in> q\<close>} imply that 
+@{prop \<open>mbox0 ([Y \<rightarrow> \<cdot> map Tm w] \<in> q)\<close>} as well. We can now do a case distinction on \<open>w\<close>: if 
+@{prop \<open>w = []\<close>}, the implication holds since @{prop \<open>[Y \<rightarrow>  \<cdot> map Tm w] = [A \<rightarrow> \<alpha>  \<cdot> ]\<close>} and 
+@{prop \<open>[Nt Y] = \<gamma>\<close>}. If on the other hand \<open>w\<close> is nonempty, \<open>q\<close> has a shift-reduce conflict, which
+contradicts its \<open>LR(0)\<close>-adequacy. This completes the reflexive case, and we can now move on to the 
+other case.
+
+For the transitive case, we know \<open>Y\<close> derives \<open>\<gamma>\<close>  in @{term \<open>Suc n\<close>} steps for some \<open>n :: nat\<close>. 
+Since \<open>\<gamma>\<close> derives \<open>map Tm w\<close> in the final step, it must be nonempty and contain at least one 
+nonterminal. Therefore, let 
+\begin{equation}\label{ad_cases.gWd}
+@{prop \<open>\<gamma> = W # \<delta>\<close>}
+\end{equation}
+ for some \<open>W :: sym\<close> and \<open>\<delta> :: syms\<close>. From all this, 
+Lemma~\ref{derivern_non_word_imp_hd_eps_reachable} tells us there exist \<open>\<gamma>', \<zeta> :: syms\<close> and 
+\<open>B :: 'n\<close> such that @{prop \<open>[Y \<rightarrow> [] \<cdot> \<gamma>'] \<in> It G'\<close>} and
+\begin{equation}\label{ad_cases.YB_eps} 
+@{prop \<open>([Y \<rightarrow> [] \<cdot> \<gamma>'], [B \<rightarrow> [] \<cdot> W # \<zeta>]) \<in> (nfa.eps char_fa)\<^sup>*\<close>}. 
+\end{equation}
+Moreover, by contradiction we know that \<open>W\<close> must be a nonterminal: if this is not the case, 
+@{prop \<open>W = Tm a\<close>} for some \<open>a :: 't\<close>. By transitivity, this along with 
+@{prop \<open>[X \<rightarrow> \<alpha>' \<cdot> Z # \<beta>] \<in> q\<close>}, @{prop \<open>Z = Nt Y\<close>}, and \eqref{ad_cases.YB_eps} implies that 
+@{prop \<open>[B \<rightarrow> [] \<cdot> Tm a # \<zeta>] \<in> q\<close>}, permitting a reading transition on state \<open>q\<close>. Since 
+@{term \<open>completes q\<close>} is nonempty, such a reading transition would make \<open>q\<close> \<open>LR(0)\<close>-inadequate, 
+leading to a contradiction to our original assumption. Therefore, let @{prop \<open>W = Nt C\<close>} for some
+\<open>C :: 'n\<close>. Then the last step of the rightmost derivation must consist of some production 
+@{prop \<open>(C, map Tm u) \<in> Prods G'\<close>} for some terminal word \<open>u\<close> with 
+\begin{equation}\label{ad_cases.udw}
+@{term \<open>map Tm u @ \<delta> = map Tm w\<close>}.
+\end{equation}
+This implies that @{prop \<open>([B \<rightarrow> \<cdot> W # \<zeta>], [C \<rightarrow> \<cdot> map Tm u]) \<in> nfa.eps char_fa\<close>}, and 
+once again with @{prop \<open>[X \<rightarrow> \<alpha>' \<cdot> Z # \<beta>] \<in> q\<close>}, @{prop \<open>Z = Nt Y\<close>}, and \eqref{ad_cases.YB_eps}, 
+this implies that @{prop \<open>([X \<rightarrow> \<alpha>' \<cdot> Z # \<beta>], [C \<rightarrow> \<cdot> map Tm u]) \<in> (nfa.eps char_fa)\<^sup>*\<close>} by transitivity.
+This means that the item @{term \<open>[C \<rightarrow> \<cdot> map Tm u]\<close>} is also in \<open>q\<close>. This and \eqref{ad_cases.compq} 
+imply 
+\begin{equation}\label{C_eq_comp}
+@{prop [source] \<open>[C \<rightarrow> [] \<cdot> map Tm u] = [A \<rightarrow> \<alpha> \<cdot> []]\<close>}.
+\end{equation}
+This follows from the fact that @{term \<open>[C \<rightarrow> \<cdot> map Tm u]\<close>} can only be an incomplete item if \<open>u\<close> is 
+nonempty, but this would allow a reading transition to take place. As we already showed, this would 
+lead to a contradiction. Therefore, by \eqref{ad_cases.gWd}, \eqref{ad_cases.udw}, and 
+\eqref{C_eq_comp}, the criteria for condition (3) of our original claim are fulfilled. 
+\end{proof}
+\end{lemma}\<close>
 
 subsection \<open>\<open>LR(k)\<close> Grammars\<close>
-subsubsection \<open>Definition\<close>
+
+text \<open>\begin{definition}[LR(k) Grammar]
+\<open>G'\<close> is an \concept{LR(k) grammar} if for any \<open>\<alpha>, \<beta>, \<gamma> :: syms\<close>, \<open>X, Y :: 'n\<close>, and 
+\<open>w, x, y :: 't list\<close>
+\begin{gather*}
+\begin{multlined}
+\<open>Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ Nt X # map Tm w \<Rightarrow>r \<alpha> @ \<beta> @ map Tm w\<close>
+\end{multlined}
+\intertext{and}
+\begin{multlined}
+\<open>Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma> @ Nt Y # map Tm x \<Rightarrow>r \<alpha> @ \<beta> @ map Tm y\<close>
+\end{multlined}
+\end{gather*}
+and @{prop \<open>take k w = take k y\<close>}\\[4\jot] 
+implies @{prop \<open>\<alpha> = \<gamma>\<close>} @{prop \<open>X = Y\<close>}, and @{prop \<open>x = y\<close>}.
+\end{definition}
+
+It is worth noting that our definition, in accordance with that of Wilhelm et 
+al.~\cite[p. 113]{Wilhelm}, is restricted to the extension of a CFG. We will discuss a more 
+generalized definition applicable to an arbitrary CFG in a later section, but the original definition 
+suffices for the main theorem we show, since it relates the \<open>LR(k)\<close> condition only to the parser,
+which we have also restricted to extended grammars.
+\<close>
+
 subsubsection \<open>Equivalence with \<open>LR(0)\<close>-Adequate States\<close>
 subsubsection \<open>Preservation of the \<open>LR(k)\<close> Condition in Extended Grammars\<close>
-subsection \<open>Language Equivalence of \<open>P\<^sub>0\<close> and its Grammar\<close>
+subsection \<open>Language Equivalence of @{const P\<^sub>0} and its Grammar\<close>
 subsubsection \<open>Stack Words: Proving Soundness\<close>
 subsubsection \<open>The Shift-Reduce Pushdown Automaton: Proving Completeness\<close>
 
@@ -1652,7 +1777,7 @@ subsubsection \<open>Implementing an Executable \<open>LR(0)\<close> Parser\<clo
 
 (* Finiteness *)
 text \<open>In the GPDA section, we mentioned that we disregard the finiteness of our GPDA transition 
-relations since they are of no importance for most of our GPDAs. This is not the case for \<open>P\<^sub>0\<close>, 
+relations since they are of no importance for most of our GPDAs. This is not the case for @{const P\<^sub>0}, 
 however, since in order to use the parser, one must be able to execute the transition relation.
 
 \<close>

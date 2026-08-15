@@ -542,14 +542,6 @@ abbreviation stepn  (\<open>_ \<turnstile>'(_') _\<close> 55) where
 abbreviation steps (infix \<open>\<turnstile>*\<close> 55) where
   "steps \<equiv> (step \<^sup>*\<^sup>*)"
 
-lemma steps_substring:
-  "(p, w) \<turnstile>* (q, v) \<Longrightarrow> \<exists>u. w = u@v"
-proof (induction "(q, v)" arbitrary: q v rule: rtranclp_induct)
-  case (step y)
-  from this(2) show ?case 
-    using step by cases auto
-qed auto
-
 lemma steps_len_dec:
   "(p,u) \<turnstile>* (q,v) \<Longrightarrow> length u \<ge> length v" 
   by (induction "(p,u)" "(q,v)" arbitrary: q v rule: rtranclp.induct)

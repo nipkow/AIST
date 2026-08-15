@@ -208,13 +208,9 @@ next
     finally show ?thesis using Suc.prems(1) ih(1) by fast
   next
     case rightmost
-    obtain \<eta> where "X # \<zeta> @ \<eta> @ map Tm w = Y # \<gamma>"
-    proof -
-      from deriver.cases[OF step_Sucn(2)] rightmost obtain \<eta> where
-        "X # \<delta> = (X # \<zeta>) @ Nt Z # map Tm w" "Y # \<gamma> = (X # \<zeta>) @ \<eta> @ map Tm w" "(Z, \<eta>) \<in> Prods G'"
-        by (smt (verit) append_Cons Nt_map_Tm_eq_Nt_map_TmD) 
-      thus thesis using that append.assoc by simp
-    qed
+    from step_Sucn(2) have "X = Y" 
+      using rightmost by (cases rule: deriver.cases) 
+        (metis Nt_map_Tm_eq_Nt_map_TmD append_Cons list.inject)
     then show ?thesis using ih Suc.prems(1) by fast
   qed
 qed
@@ -285,10 +281,6 @@ proof (induction "(p, \<zeta>)" arbitrary: p rule: converse_rtranclp_induct)
     finally show ?thesis .
   qed (use step(2) char_fa.steps_len_dec in fastforce)
 qed simp
-
-lemma char_eps_impossible:
-  assumes "([A \<rightarrow> \<alpha> \<cdot> \<beta>], []) \<turnstile>c ([B \<rightarrow> \<delta> @ [Y] \<cdot> \<zeta>], \<eta>)"
-  shows False using assms by cases auto
 
 lemma char_reaches_left_empty_imp_expanded_last:
   assumes "([S' \<rightarrow> [] \<cdot> [Nt S]], \<gamma> @ [X]) \<turnstile>c* ([A \<rightarrow> \<alpha> \<cdot> \<beta>], [])"

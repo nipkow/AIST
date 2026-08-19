@@ -1,6 +1,6 @@
 theory Item_Pushdown_Automata
   imports 
-    Extended_Cfg
+    Reduced_Cfg
     Generalized_Pushdown_Automata
 begin
 
@@ -159,7 +159,7 @@ lemma incompletesE [elim]:
 
 section \<open>The Item Pushdown Automaton\<close>
 
-definition (in Extended_Cfg) IPDA :: "(('n, 't) item, 't) gpda" where
+definition (in Reduced_Cfg) IPDA :: "(('n, 't) item, 't) gpda" where
   "IPDA \<equiv> let
     P = Prods G';
     \<Delta> = {([[X \<rightarrow> \<beta> \<cdot> Tm a # \<gamma>]], a, [[X \<rightarrow> \<beta> @ [Tm a] \<cdot> \<gamma>]])|X \<beta> a \<gamma>. (X, \<beta> @ Tm a # \<gamma>) \<in> P};
@@ -170,9 +170,9 @@ definition (in Extended_Cfg) IPDA :: "(('n, 't) item, 't) gpda" where
   in \<lparr>gpda.states = It G', init = [S' \<rightarrow> [] \<cdot> [Nt S]], final = {[S' \<rightarrow> [Nt S] \<cdot> []]}, nxt = \<Delta>, eps = \<E>\<rparr>"
 
 
-locale ipda = Extended_Cfg G for G :: "('n::fresh0, 't) Cfg" +
+locale ipda = Reduced_Cfg G for G :: "('n::fresh0, 't) Cfg" +
   fixes M :: "(('n, 't) item, 't) gpda"
-  assumes ipda: "M = Extended_Cfg.IPDA G"
+  assumes ipda: "M = Reduced_Cfg.IPDA G"
 begin
 
 subsection \<open>Basic Properties\<close>
@@ -245,7 +245,7 @@ next
     using in_Prods_imp_in_It by (cases rule: eps_cases) force+
 next
   case 5
-  then show ?case using finite_It[OF G'_finite] by simp
+  then show ?case using finite_It[OF finite_G'] by simp
 qed
 
 corollary gpda_IPDA:

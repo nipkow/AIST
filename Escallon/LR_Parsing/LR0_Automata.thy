@@ -4,7 +4,7 @@ theory LR0_Automata
     Rightmost_Chain
 begin
 
-context Extended_Cfg
+context Reduced_Cfg
 begin
 
 interpretation I: ipda G IPDA 
@@ -128,7 +128,7 @@ sublocale char_fa: nfa char_fa
 proof (unfold_locales, goal_cases 1 2 nxt_closed 3)
   case 2
   then show ?case 
-    using G'_def It_def finite_It[OF G'_finite] completes_subset by force
+    using G'_def It_def finite_It[OF finite_G'] completes_subset by force
 next
   case (nxt_closed q x)
   then obtain X \<alpha> \<beta> where q_def: "q = [X \<rightarrow> \<alpha> \<cdot> \<beta>]" by (metis item.exhaust)
@@ -140,7 +140,7 @@ next
     then show ?thesis 
       using nxt_closed q_def by (auto simp: It_def)
   qed (use nxt_closed q_def in fastforce)+
-qed (use G'_def It_def finite_It[OF G'_finite] in fastforce)+
+qed (use G'_def It_def finite_It[OF finite_G'] in fastforce)+
 
 subsection \<open>Properties of \<open>\<epsilon>\<close>-transitions and the \<open>\<epsilon>\<close>-closure\<close>
 
@@ -354,7 +354,7 @@ proof -
         "Prods G' \<turnstile> \<zeta> @ Nt X # map Tm w \<Rightarrow>r \<zeta> @ \<alpha>' @ Nt A # \<beta>' @ map Tm w" "\<gamma> = \<zeta> @ \<alpha>'"
         by auto
       moreover from this obtain v where \<beta>_deriv: "Prods G' \<turnstile> \<beta>' \<Rightarrow>r* map Tm v"
-        using reduced_derives_imp_substring_derives_Tms[OF _ G'_reduced G'_not_empty, of "\<zeta>@\<alpha>'@[Nt A]" \<beta>']
+        using reduced_nonempty_derives_imp_substring_derives_Tms[OF G'_reduced G'_nonempty, of "\<zeta>@\<alpha>'@[Nt A]" \<beta>']
           derivers_imp_derives
         by (metis (no_types, opaque_lifting) Cfg.sel(2) G'_def append.assoc append_Cons append_Nil
             derivers_iff_derives rtranclp.rtrancl_into_rtrancl)
@@ -494,9 +494,9 @@ corollary derivers_imp_char:
   shows "([S' \<rightarrow> [] \<cdot> [Nt S]], \<gamma>' @ \<alpha>) \<turnstile>c* ([A \<rightarrow> \<alpha> \<cdot> \<beta>], [])"
 proof -
   note rtranclp.rtrancl_into_rtrancl[OF assms]
-  with reduced_derives_imp_substring_derives_Tms obtain v where
+  with reduced_nonempty_derives_imp_substring_derives_Tms obtain v where
     "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm v" 
-    using G'_reduced G'_not_empty G'_def derivers_imp_derives by (metis Cfg.sel(2) append.assoc)
+    using G'_reduced G'_nonempty G'_def derivers_imp_derives by (metis Cfg.sel(2) append.assoc)
   from derivers_imp_ipda[OF assms this] ipda_imp_char show ?thesis by metis
 qed
 
@@ -508,9 +508,9 @@ proof (standard, goal_cases)
   from char_imp_derivers[OF this] obtain \<gamma>' w where
     "Prods G' \<turnstile> [Nt S'] \<Rightarrow>* \<gamma>' @ \<alpha> @ \<beta> @ map Tm w"
     using derivers_imp_derives by (metis rtranclp.rtrancl_into_rtrancl)
-  moreover with reduced_derives_imp_substring_derives_Tms[of G' "\<gamma>' @ \<alpha>" \<beta> "map Tm w"]
+  moreover with reduced_nonempty_derives_imp_substring_derives_Tms[of G' "\<gamma>' @ \<alpha>" \<beta> "map Tm w"]
   obtain v where "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm v" 
-    using G'_not_empty G'_reduced G'_def by auto
+    using G'_nonempty G'_reduced G'_def by auto
   ultimately show ?case using char_imp_derivers[OF 1] derivers_imp_ipda by metis
 qed (use ipda_imp_char in blast)
 
@@ -525,8 +525,8 @@ proof (standard, goal_cases)
     by blast
   note derivers(1) also note derivers(2)
   finally obtain x where "Prods G' \<turnstile> \<beta> \<Rightarrow>* map Tm x"
-    using G'_reduced G'_not_empty derivers_imp_derives 
-      reduced_derives_imp_substring_derives_Tms[of G' "\<gamma>' @ \<alpha>" \<beta> "map Tm u"] 
+    using G'_reduced G'_nonempty derivers_imp_derives 
+      reduced_nonempty_derives_imp_substring_derives_Tms[of G' "\<gamma>' @ \<alpha>" \<beta> "map Tm u"] 
     by (metis Cfg.sel(2) G'_def append.assoc)
   then show ?case using derivers derivers_imp_ipda by metis
 qed (use ipda_imp_char char_imp_derivers in blast)
@@ -617,11 +617,11 @@ lemma validI [intro]:
   unfolding valids_def by blast
 
 lemma char_fa_nextl_is_valids:
-  "nfa.nextl char_fa (nfa.init char_fa) w = valids w"
+  "nfa.nextl char_fa (nfa.init char_fa) \<gamma> = valids \<gamma>"
 proof -
-  have "valids w = {i. ([S' \<rightarrow> [] \<cdot> [Nt S]], w) \<turnstile>c* (i, [])}"
+  have "valids \<gamma> = {i. ([S' \<rightarrow> [] \<cdot> [Nt S]], \<gamma>) \<turnstile>c* (i, [])}"
     using char_eq_reliable_prefix unfolding valids_def by (metis item.exhaust)
-  also have "... = nfa.nextl char_fa (nfa.init char_fa) w"
+  also have "... = nfa.nextl char_fa (nfa.init char_fa) \<gamma>"
     using char_fa.eps_subst_states_imp_nextl_eq_reachable[OF eps_char_fa_subst_states]
     by auto
   finally show ?thesis by order
@@ -654,7 +654,7 @@ proof -
   from G'_deriven_Suc_imp_no_S'[OF assms[THEN derivern_imp_deriven]] have 
     "[Nt S'] \<noteq> \<alpha> @ \<beta> @ Nt X # map Tm w" 
       by (metis in_Nts_syms list.set_intros(1))
-  moreover from assms obtain  \<rho> where 
+  moreover from assms obtain \<rho> where 
    "Prods G' \<turnstile> [Nt S'] \<midarrow>\<rho>\<rightarrow>r* \<alpha> @ \<beta> @ Nt X # map Tm w"
    using derivern_Suc_singleton_imp_rm_chain by (metis append.assoc)
   ultimately show thesis using that 
@@ -680,8 +680,7 @@ proof -
         ultimately show ?thesis using refl that[of S' "[]" "Nt S" "[]" w] 
           using char_fa_init_valid_for_Nil eqs step(4) by force
       next
-        case (step _ _ _ _ _ _ _ _)
-        with rm_chain_S'_Cons_imp_neq have neq_S': "[Nt S'] \<noteq> \<alpha>' @ Nt A # map Tm v" by auto
+        case step
         from eqs consider (\<alpha>_in_\<alpha>') \<gamma> where "\<alpha>' = \<alpha> @ \<gamma>" "\<beta> = \<gamma> @ \<alpha>''" | 
           (\<alpha>'_in_\<alpha>) \<gamma> where "\<alpha> = \<alpha>' @ \<gamma>" "\<alpha>'' = \<gamma> @ \<beta>" 
         by (metis append_eq_append_conv2[of \<alpha>' \<alpha>'' \<alpha> \<beta>])
@@ -695,7 +694,8 @@ proof -
             using i_step(5)[THEN derivers_append_map_Tm, THEN derivers_prepend, of "\<beta> @ [Nt X]" v]
               append.assoc eqs by (metis append_Cons append_Nil map_append)
           finally have A_derivers: "Prods G' \<turnstile> \<gamma> @ Nt A # map Tm v \<Rightarrow>r* \<beta> @ Nt X # map Tm w" .
-          from \<alpha>_in_\<alpha>' neq_S' have "[Nt S'] \<noteq> \<alpha> @ \<gamma> @ Nt A # map Tm v" by simp
+          from \<alpha>_in_\<alpha>' have "[Nt S'] \<noteq> \<alpha> @ \<gamma> @ Nt A # map Tm v"
+            using step rm_chain_S'_Cons_imp_neq by auto
           from Cons.IH[OF this] i_step(3)[unfolded \<alpha>_in_\<alpha>'] show ?thesis 
             using Cons.prems(1) append.assoc that A_derivers 
             by (metis (no_types, lifting) rtranclp_trans)
@@ -706,17 +706,14 @@ proof -
           with rm_chain_imp_derivers[OF i_step(3)] have 1: "reliable_prefix [A \<rightarrow> \<gamma> \<cdot> \<beta> @ Nt X # \<beta>'] \<alpha>"
             using \<alpha>'_in_\<alpha>(1) by standard
           have 2: "Prods G' \<turnstile> \<beta> @ Nt X # \<beta>' @ map Tm v \<Rightarrow>r* \<beta> @ Nt X # map Tm w"
-            using i_step(5)[THEN derivers_append_map_Tm, THEN derivers_prepend, of "\<beta> @ [Nt X]" v]
-              eqs by (metis append.assoc append_Cons append_Nil map_append)  
-          show ?thesis  proof -
-            obtain X' \<xi> where X'_def: "\<beta> @ Nt X # \<beta>' = X' # \<xi>" 
-              by (metis Nil_is_append_conv neq_Nil_conv)
-            with 2 have "Prods G' \<turnstile> X' # \<xi> @ map Tm v \<Rightarrow>r* \<beta> @ Nt X # map Tm w"   
-              by (metis append.assoc append_Cons)
-            note 1[unfolded X'_def] rm_chain_imp_derivers[OF i_step(3), THEN rtranclp.rtrancl_into_rtrancl, 
-              OF A_deriver, unfolded X'_def] this
-            with that show thesis by force
-          qed
+          using i_step(5)[THEN derivers_append_map_Tm, THEN derivers_prepend, of "\<beta> @ [Nt X]" v]
+            eqs by (metis append.assoc append_Cons append_Nil map_append)  
+          obtain X' \<xi> where X'_def: "\<beta> @ Nt X # \<beta>' = X' # \<xi>" 
+            by (metis Nil_is_append_conv neq_Nil_conv)
+          note rm_chain_imp_derivers[OF i_step(3), THEN rtranclp.rtrancl_into_rtrancl, 
+            OF A_deriver, unfolded X'_def]
+          with 1[unfolded X'_def] 2 X'_def that show thesis    
+            by (metis append.assoc append_Cons)
         qed
       qed
     qed
@@ -777,8 +774,8 @@ proof -
     by (metis (no_types, lifting) append_Cons append_Nil append_eq_append_conv2
         rtranclp.rtrancl_into_rtrancl)
   moreover from derivers_imp_derives[OF this] obtain u where "Prods G' \<turnstile> \<eta> \<Rightarrow>r* map Tm u"
-    using reduced_derives_imp_substring_derives_Tms[of G' "\<alpha> @ [Nt A]" \<eta> "map Tm v"]
-      G'_reduced G'_not_empty derivers_iff_derives[THEN iffD2] G'_def 
+    using reduced_nonempty_derives_imp_substring_derives_Tms[of G' "\<alpha> @ [Nt A]" \<eta> "map Tm v"]
+      G'_reduced G'_nonempty derivers_iff_derives[THEN iffD2] G'_def 
     by (metis Cfg.sel(2) append_Cons append_Nil append_eq_appendI)
   ultimately have "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ Nt A # map Tm (u @ v)" 
     using derivers_prepend[of _ \<eta> "map Tm u" "\<alpha> @ [Nt A]"] 
@@ -796,7 +793,7 @@ proof -
   from assms have prod: "(X, \<alpha>@\<beta>) \<in> Prods G'"
     using in_It_imp_in_Prods by fastforce
   then obtain \<gamma> w where "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<gamma> @ Nt X # map Tm w"
-    using reduced_in_Prods_imp_rsentential_reachable[OF G'_reduced G'_not_empty]
+    using reduced_in_Prods_imp_rsentential_reachable[OF G'_reduced G'_nonempty]
     by (metis Cfg.sel(2) G'_def)
   hence "reliable_prefix [X \<rightarrow> \<alpha> \<cdot> \<beta>] (\<gamma> @ \<alpha>)"
     using prod deriver.intros by fastforce
@@ -878,20 +875,20 @@ lemma in_state_imp_in_It:
   using assms states_dfa_LR0 states_char_fa char_fa.epsclo_subset by fastforce
 
 lemma finite_dfa_LR0_nempty_syms:
-  "finite {a. dfa.nxt LR\<^sub>0 q a \<noteq> {}}"
+  "finite {X. dfa.nxt LR\<^sub>0 q X \<noteq> {}}"
 proof -
-  have "{a. dfa.nxt LR\<^sub>0 q a \<noteq> {}} = {a. dfa.nxt LR\<^sub>0 (q \<inter> It G') a \<noteq> {}}"
+  have "{X. dfa.nxt LR\<^sub>0 q X \<noteq> {}} = {X. dfa.nxt LR\<^sub>0 (q \<inter> It G') X \<noteq> {}}"
     by simp
-  moreover have "... \<subseteq> (\<lambda>i. case i of [X \<rightarrow> \<alpha> \<cdot> Y # \<beta>] \<Rightarrow> Y) ` char_fa.epsclo (q \<inter> It G')"
+  moreover have "... \<subseteq> (\<lambda>i. case i of [X' \<rightarrow> \<alpha> \<cdot> Y # \<beta>] \<Rightarrow> Y) ` char_fa.epsclo (q \<inter> It G')"
     (is "?A \<subseteq> ?f ` ?Q'")
   proof 
-    fix a
-    assume "a \<in> ?A"
-    then obtain p where "p \<in> ?Q'" "nfa.nxt char_fa p a \<noteq> {}"
+    fix X
+    assume "X \<in> ?A"
+    then obtain p where "p \<in> ?Q'" "nfa.nxt char_fa p X \<noteq> {}"
       by fastforce
-    moreover with nxt_char_fa_nempty_imp_hd obtain X \<alpha> \<beta> where "p = [X \<rightarrow> \<alpha> \<cdot> a # \<beta>]"
+    moreover with nxt_char_fa_nempty_imp_hd obtain X' \<alpha> \<beta> where "p = [X' \<rightarrow> \<alpha> \<cdot> X # \<beta>]"
       using item.exhaust by metis
-    ultimately show "a \<in> ?f ` ?Q'" by force
+    ultimately show "X \<in> ?f ` ?Q'" by force
   qed
   ultimately show ?thesis using finite_surj char_fa.finite_epsclo by metis
 qed
@@ -904,7 +901,7 @@ proof -
   with finite_dfa_LR0_nempty_syms finite_surj show ?thesis by blast
 qed
 
-lemma nextl_dfa_LR0_is_valids:
+corollary nextl_dfa_LR0_is_valids:
   "dfa.nextl LR\<^sub>0 (dfa.init LR\<^sub>0) \<gamma> = valids \<gamma>"
   using LR\<^sub>0_def char_fa.Power_nextl_eq_nfa_nextl char_fa_nextl_is_valids 
    dfa_LR0_nextl by presburger

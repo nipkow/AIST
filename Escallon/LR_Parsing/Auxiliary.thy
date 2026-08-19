@@ -260,20 +260,6 @@ lemma deriver_imp_handle:
   using deriver.cases[OF assms] Nt_map_Tm_eq_Nt_map_TmD
   by metis
 
-lemma deriver_imp_handle_Tms:
-  assumes "P \<turnstile> map Tm u @ Nt A#map Tm x \<Rightarrow>r map Tm w"
-  obtains v where "w = u @ v @ x" "(A, map Tm v) \<in> P"
-proof -
-  from deriver.cases[OF assms] obtain u' A' x' \<alpha> where eqs:
-    "map Tm u @ Nt A # map Tm x = u' @ Nt A' # map Tm x'"
-    "map Tm w = u' @ \<alpha> @ map Tm x'" 
-    "(A', \<alpha>) \<in> P" by metis
-  moreover note x_eq = Nt_map_Tm_eq_Nt_map_TmD[OF this(1)]
-  moreover obtain v where "\<alpha> = map Tm v" using eqs(2) 
-    by (metis map_eq_append_conv)
-  ultimately show thesis using that map_Tm_inject_iff by fastforce
-qed
-
 lemma derivers_append_map_Tm:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>r* u"
   shows "P \<turnstile> \<alpha>@map Tm v \<Rightarrow>r* u @ map Tm v"
@@ -365,12 +351,6 @@ next
   with Suc.IH[OF _ this(2)] show ?case using Suc.prems(1) 
     by (metis (no_types, opaque_lifting) relpowp_Suc_I2)
 qed
-
-lemma derivers_last_step_single_Nt:
-  assumes "P \<turnstile> \<alpha> \<Rightarrow>r* \<beta>" "P \<turnstile> \<beta> \<Rightarrow>r map Tm w"
-  obtains u v x X where "\<beta> = map Tm u @ Nt X # map Tm x"
-    "(X, map Tm v) \<in> P" "w = u @ v @ x"
-  using assms deriver_imp_handle_Tms by (metis (no_types, lifting) derive_map_TmD deriver_imp_derive)
 
 lemma derives_map_Tm_rm_cases[case_names Tms Nt]:
   assumes "P \<turnstile> \<alpha> \<Rightarrow>* map Tm w"

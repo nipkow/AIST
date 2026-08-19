@@ -1,6 +1,6 @@
 theory Shift_Reduce_PDA
   imports 
-    Extended_Cfg
+    Reduced_Cfg
     Generalized_Pushdown_Automata
 begin
 
@@ -15,7 +15,7 @@ definition SRPDA :: "('n, 't) Cfg \<Rightarrow> (('n, 't) srpda_state, 't) gpda"
     eps = {(map Sym (rev \<alpha>), [Sym (Nt A)])|A \<alpha>. (A, \<alpha>) \<in> Prods G} 
         \<union> {([Sym (Nt (Start G)), Init], [Final])}\<rparr>"
 
-locale srpda = Extended_Cfg G for G :: "('n::fresh0, 't) Cfg" +
+locale srpda = Reduced_Cfg G for G :: "('n::fresh0, 't) Cfg" +
   fixes M :: "(('n, 't) srpda_state, 't) gpda"
   assumes srpda: "M = SRPDA G"
 begin

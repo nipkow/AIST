@@ -14,10 +14,8 @@ locale gpda =
   fixes M :: "('q, 'a) gpda"
   assumes init:       "init M \<in> states M"
       and final:      "final M \<subseteq> states M"
-      and nxt:        "(ps, a, qs) \<in> nxt M \<Longrightarrow> ps \<noteq> [] \<and> qs \<noteq> [] 
-        \<and> set ps \<subseteq> states M \<and> set qs \<subseteq> states M"
-      and eps:        "(ps, qs) \<in> eps M \<Longrightarrow> ps \<noteq> [] \<and> qs \<noteq> [] 
-        \<and> set ps \<subseteq> states M \<and> set qs \<subseteq> states M"
+      and nxt:        "(ps, a, qs) \<in> nxt M \<Longrightarrow> ps \<noteq> [] \<and> set ps \<subseteq> states M \<and> set qs \<subseteq> states M"
+      and eps:        "(ps, qs) \<in> eps M \<Longrightarrow> ps \<noteq> [] \<and> set ps \<subseteq> states M \<and> set qs \<subseteq> states M"
       and finite:     "finite (states M)"
 (* 
   Necessary only for L(GPDA) \<subseteq> L(PDA) to hold. 

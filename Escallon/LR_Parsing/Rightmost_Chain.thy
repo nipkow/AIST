@@ -1,6 +1,6 @@
 theory Rightmost_Chain
   imports 
-    Extended_Cfg 
+    Reduced_Cfg 
     Item_Pushdown_Automata
 begin
 
@@ -64,7 +64,7 @@ lemma rm_chain_imp_derivers:
   then show ?case using step by simp
 qed simp
 
-lemma (in Extended_Cfg) rm_chain_S'_Cons_imp_neq:
+lemma (in Reduced_Cfg) rm_chain_S'_Cons_imp_neq:
   assumes "Prods G' \<turnstile> [Nt S'] \<midarrow>i # \<rho>\<rightarrow>r* \<alpha>"
   shows "[Nt S'] \<noteq> \<alpha>"
   using assms proof cases
@@ -166,7 +166,7 @@ lemma derivern_Suc_singleton_imp_rm_chain:
   qed
 qed    
 
-context Extended_Cfg
+context Reduced_Cfg
 begin
 
 interpretation I: ipda G IPDA

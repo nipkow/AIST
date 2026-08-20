@@ -56,7 +56,7 @@ lemma nxt_char_fa_in_Prods_imp_singleton:
   shows "nfa.nxt char_fa [X \<rightarrow> \<alpha> \<cdot> Y # \<beta>] Y = {[X \<rightarrow> \<alpha> @ [Y] \<cdot> \<beta>]}"
   using assms by simp
 
-lemma nxt_char_fa_nempty_imp_hd:
+lemma nxt_char_fa_nonempty_imp_hd:
   assumes "nfa.nxt char_fa [X \<rightarrow> \<alpha> \<cdot> \<beta>] a \<noteq> {}" 
   obtains \<gamma> where "\<beta> = a # \<gamma>" "(X, \<alpha>@\<beta>) \<in> Prods G'"
   using assms 
@@ -69,7 +69,7 @@ lemma in_nxt_char_fa_imp_shift:
 proof -
   obtain X \<alpha> \<beta> Y \<gamma> \<delta> where pq_defs: "p = [X \<rightarrow> \<alpha> \<cdot> \<beta>]" "q = [Y \<rightarrow> \<gamma> \<cdot> \<delta>]" 
     using item.exhaust by meson
-  moreover with nxt_char_fa_nempty_imp_hd assms obtain \<zeta> where "\<beta> = a # \<zeta>" "(X, \<alpha>@\<beta>) \<in> Prods G'" 
+  moreover with nxt_char_fa_nonempty_imp_hd assms obtain \<zeta> where "\<beta> = a # \<zeta>" "(X, \<alpha>@\<beta>) \<in> Prods G'" 
     by blast
   moreover with nxt_char_fa_in_Prods_imp_singleton have "q = [X \<rightarrow> \<alpha> @ [a] \<cdot> \<zeta>]"
     using assms pq_defs(1) by blast
@@ -739,7 +739,7 @@ proof -
   qed
 qed
 
-lemma nempty_valids_imp_nempty_valids_prefix:
+lemma nempty_valids_imp_nonempty_valids_prefix:
   assumes "valids (\<alpha>@\<beta>) \<noteq> {}"
   shows "valids \<alpha> \<noteq> {}"
 proof -
@@ -874,7 +874,7 @@ lemma in_state_imp_in_It:
   shows "i \<in> It G'"
   using assms states_dfa_LR0 states_char_fa char_fa.epsclo_subset by fastforce
 
-lemma finite_dfa_LR0_nempty_syms:
+lemma finite_dfa_LR0_nonempty_syms:
   "finite {X. dfa.nxt LR\<^sub>0 q X \<noteq> {}}"
 proof -
   have "{X. dfa.nxt LR\<^sub>0 q X \<noteq> {}} = {X. dfa.nxt LR\<^sub>0 (q \<inter> It G') X \<noteq> {}}"
@@ -886,19 +886,19 @@ proof -
     assume "X \<in> ?A"
     then obtain p where "p \<in> ?Q'" "nfa.nxt char_fa p X \<noteq> {}"
       by fastforce
-    moreover with nxt_char_fa_nempty_imp_hd obtain X' \<alpha> \<beta> where "p = [X' \<rightarrow> \<alpha> \<cdot> X # \<beta>]"
+    moreover with nxt_char_fa_nonempty_imp_hd obtain X' \<alpha> \<beta> where "p = [X' \<rightarrow> \<alpha> \<cdot> X # \<beta>]"
       using item.exhaust by metis
     ultimately show "X \<in> ?f ` ?Q'" by force
   qed
   ultimately show ?thesis using finite_surj char_fa.finite_epsclo by metis
 qed
 
-corollary finite_dfa_LR0_nempty_Tms:
+corollary finite_dfa_LR0_nonempty_Tms:
   "finite {a. dfa.nxt LR\<^sub>0 q (Tm a) \<noteq> {}}"
 proof -
   have "{a. dfa.nxt LR\<^sub>0 q (Tm a) \<noteq> {}} \<subseteq> destTm ` {a. dfa.nxt LR\<^sub>0 q a \<noteq> {}}"
     by force
-  with finite_dfa_LR0_nempty_syms finite_surj show ?thesis by blast
+  with finite_dfa_LR0_nonempty_syms finite_surj show ?thesis by blast
 qed
 
 corollary nextl_dfa_LR0_is_valids:
@@ -980,7 +980,7 @@ proof (simp only: dfa_LR0_nxt_is_epsclo_of_shift[OF assms], standard)
   qed
 qed
 
-lemma nxt_dfa_LR0_nempty_imp_ex_shift:
+lemma nxt_dfa_LR0_nonempty_imp_ex_shift:
   assumes "Q \<in> dfa.states LR\<^sub>0" "dfa.nxt LR\<^sub>0 Q Y \<noteq> {}"
   obtains X \<alpha> \<beta> where "[X \<rightarrow> \<alpha> \<cdot> Y # \<beta>] \<in> Q" "[X \<rightarrow> \<alpha> @ [Y] \<cdot> \<beta>] \<in> dfa.nxt LR\<^sub>0 Q Y"
 proof -
@@ -1025,13 +1025,13 @@ proof (simp only: dfa_LR0_nxt_is_epsclo_of_shift[OF assms])
   qed (use eq in simp)
 qed
 
-lemma inj_nxt_dfa_LR0_if_nempty:
+lemma inj_nxt_dfa_LR0_if_nonempty:
   assumes "q \<in> dfa.states LR\<^sub>0" "dfa.nxt LR\<^sub>0 q X = dfa.nxt LR\<^sub>0 q Y"
     "dfa.nxt LR\<^sub>0 q X \<noteq> {}"
   shows "X = Y"
 proof -
   obtain A \<alpha> \<beta> where "[A \<rightarrow> \<alpha> @ [X] \<cdot> \<beta>] \<in> dfa.nxt LR\<^sub>0 q X" "[A \<rightarrow> \<alpha> \<cdot> X # \<beta>] \<in> q"
-    using nxt_dfa_LR0_nempty_imp_ex_shift assms by metis
+    using nxt_dfa_LR0_nonempty_imp_ex_shift assms by metis
   moreover from this have "[A \<rightarrow> \<alpha> @ [X] \<cdot> \<beta>] \<in> dfa.nxt LR\<^sub>0 q Y"
     using assms by argo
   ultimately show ?thesis using in_nxt_dfa_LR0_imp_shift_or_left_empty

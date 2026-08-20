@@ -199,7 +199,7 @@ lemma nxt_ipda [simp]:
   "nxt M = {([[X \<rightarrow> \<beta> \<cdot> Tm a # \<gamma>]], a, [[X \<rightarrow> \<beta> @ [Tm a] \<cdot> \<gamma>]])|X \<beta> a \<gamma>. (X, \<beta> @ Tm a # \<gamma>) \<in> Prods G'}"
   using ipda unfolding IPDA_def by (meson select_convs(4))
 
-lemma nxt_nempty_imp_Tm_eq:
+lemma nxt_nonempty_imp_Tm_eq:
   assumes "(ps, a, qs) \<in> nxt M"
   obtains X \<beta> \<gamma> where "ps = [[X \<rightarrow> \<beta> \<cdot> Tm a # \<gamma>]]" "(X, \<beta> @ Tm a # \<gamma>) \<in> Prods G'"
     "qs = [[X \<rightarrow> \<beta> @ [Tm a] \<cdot> \<gamma>]]"
@@ -236,7 +236,7 @@ next
     using final_state_in_It by simp
 next
   case (3 ps a qs)
-  with nxt_nempty_imp_Tm_eq obtain X \<beta> \<gamma> where "ps = [[X \<rightarrow> \<beta> \<cdot> Tm a # \<gamma>]]"
+  with nxt_nonempty_imp_Tm_eq obtain X \<beta> \<gamma> where "ps = [[X \<rightarrow> \<beta> \<cdot> Tm a # \<gamma>]]"
     "(X, \<beta> @ Tm a # \<gamma>) \<in> Prods G'" "qs = [[X \<rightarrow> \<beta> @ [Tm a] \<cdot> \<gamma>]]" by blast
   with in_Prods_imp_in_It show ?case by force
 next

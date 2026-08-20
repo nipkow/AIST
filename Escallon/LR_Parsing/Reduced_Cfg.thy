@@ -320,13 +320,13 @@ lemma reduced_nonempty_reachable_imp_rsentential_reachable:
     by (simp add: Cons_eq_append_conv)
 next
   case (step \<delta> X \<zeta> \<eta>)
-  from this(4) show ?case proof (cases rule: list_app_eq_nempty_cases)
+  from this(4) show ?case proof (cases rule: list_app_eq_nonempty_cases)
     case (left \<alpha>')
     with step(2)[of \<alpha> A "\<alpha>' @ Nt X # \<zeta>"] show thesis using step(5) by auto
   next
     case (right \<zeta>')
     from this(2) show ?thesis 
-    proof (cases rule: list_app_eq_nempty_cases)
+    proof (cases rule: list_app_eq_nonempty_cases)
       case (left \<eta>')
       from step(2)[of \<delta> X \<zeta>] obtain \<gamma> v where "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>r* \<gamma> @ Nt X # map Tm v" 
         by auto

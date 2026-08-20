@@ -12,7 +12,7 @@ lemma map_Sym_inject_iff[simp]: "map Sym xs = map Sym ys \<longleftrightarrow> x
 definition SRPDA :: "('n, 't) Cfg \<Rightarrow> (('n, 't) srpda_state, 't) gpda" where
   "SRPDA G \<equiv> \<lparr>gpda.states = UNIV, init = Init, final = {Final}, 
     nxt = range (\<lambda>(q, x). ([q], x, [Sym (Tm x), q])), 
-    eps = {(map Sym (rev \<alpha>), [Sym (Nt A)])|A \<alpha>. (A, \<alpha>) \<in> Prods G} 
+    eps = {(map Sym (rev \<alpha>) @ [q], [Sym (Nt A), q])|A \<alpha> q. (A, \<alpha>) \<in> Prods G} 
         \<union> {([Sym (Nt (Start G)), Init], [Final])}\<rparr>"
 
 locale srpda = Reduced_Cfg G for G :: "('n::fresh0, 't) Cfg" +
@@ -20,22 +20,27 @@ locale srpda = Reduced_Cfg G for G :: "('n::fresh0, 't) Cfg" +
   assumes srpda: "M = SRPDA G"
 begin
 
+lemma srpda_states [simp]:
+  "gpda.states M = UNIV"
+  using srpda unfolding SRPDA_def by simp
+
 lemma srpda_init [simp]:
-  "gpda.init M = Init" using srpda unfolding SRPDA_def by simp
+  "gpda.init M = Init" 
+  using srpda unfolding SRPDA_def by simp
 
 lemma srpda_nxt [simp]:
   "gpda.nxt M = range (\<lambda>(q, x). ([q], x, [Sym (Tm x), q]))" 
   using srpda unfolding SRPDA_def by simp
 
 lemma srpda_eps [simp]:
-  "gpda.eps M = {(map Sym (rev \<alpha>), [Sym (Nt A)])|A \<alpha>. (A, \<alpha>) \<in> Prods G} 
+  "gpda.eps M = {(map Sym (rev \<alpha>) @ [q], [Sym (Nt A), q])|A \<alpha> q. (A, \<alpha>) \<in> Prods G} 
     \<union> {([Sym (Nt (Start G)), Init], [Final])}"
   using srpda unfolding SRPDA_def by simp
 
 type_synonym ('nts, 'tms) config = "('nts, 'tms) srpda_state list \<times> 'tms list"
 
-(* eps can push a Nt A onto the stack without reading any stack symbols if (A, []) \<in> Prods G',
-   making locale gpda impossible to use due to gpda.eps  *)
+(* 'n 't must be finite for the set of states to be finite, making locale gpda impossible to use 
+  due to our types not being of sort :: finite *)
 
 inductive step :: "('n, 't) config \<Rightarrow> ('n, 't) config \<Rightarrow> bool" 
   (infix \<open>\<turnstile>\<close> 55) where
@@ -56,9 +61,8 @@ lemma shifts [simp]:
 
 lemma reduces [simp]:
   assumes "(A, \<alpha>) \<in> Prods G"
-  shows "(map Sym (rev \<alpha>) @ \<beta>, w) \<turnstile> (Sym (Nt A) # \<beta>, w)"
-  using assms step_eps by (metis (mono_tags, lifting) Un_insert_right append.simps(1,2) 
-      insert_iff mem_Collect_eq srpda_eps sup_bot.right_neutral)
+  shows "(map Sym (rev \<alpha>) @ X # \<beta>, w) \<turnstile> (Sym (Nt A) # X # \<beta>, w)"
+  using assms step_eps srpda.step_eps srpda_axioms by fastforce
 
 lemma finishes [simp]:
   "(Sym (Nt (Start G)) # Init # \<alpha>, w) \<turnstile> (Final # \<alpha>, w)"
@@ -122,15 +126,12 @@ lemma Tms_on_stack_imp_consumed:
 proof (induction v arbitrary: u w rule: rev_induct)
   case (snoc a v)
   from this(2) have 
-    "(\<alpha>, u @ (v @ [a]) @ w) \<turnstile>* (map (Sym \<circ> Tm) (rev v) @ \<beta>, a # w)" (is "?steps")
-    "(map (Sym \<circ> Tm) (rev v) @ \<beta>, a # w) \<turnstile> (map (Sym \<circ> Tm) (rev (v @ [a])) @ \<beta>, w)" (is "?step")
-  proof -
-    from snoc(2) have "?steps \<and> ?step" proof cases
-      case (rtrancl_into_rtrancl c)
-      then show ?thesis using Tm_top_of_stack_imp_consumed by simp
-    qed simp
-    thus ?steps ?step by auto
-  qed
+    "(\<alpha>, u @ (v @ [a]) @ w) \<turnstile>* (map (Sym \<circ> Tm) (rev v) @ \<beta>, a # w)"
+  proof cases
+    case (rtrancl_into_rtrancl c)
+    then show ?thesis 
+      using Tm_top_of_stack_imp_consumed by simp
+  qed simp
   with snoc.IH show ?case by fastforce
 qed simp
 
@@ -151,7 +152,7 @@ next
       have "([Init], w) \<turnstile>* (map Sym (rev (\<gamma> @ \<delta>)) @ [Init], v)"
       by (simp add: rev_map)
     also have "... \<turnstile> (Sym (Nt A) # map Sym (rev \<gamma>) @ [Init], v)"
-      using 1(3) by simp
+      using 1(3) by (cases \<gamma> rule: rev_cases) auto
     also have "... \<turnstile>* (map (Sym \<circ> Tm) (rev v) @ Sym (Nt A) # map Sym (rev \<gamma>) @ [Init], [])"
       using prefix_consumable[of _ _ v "[]"] by simp
     finally show ?thesis

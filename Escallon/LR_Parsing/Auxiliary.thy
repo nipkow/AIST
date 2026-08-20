@@ -19,7 +19,7 @@ corollary take_diff:
   "take n xs = take n ys \<Longrightarrow> take (n-m) xs = take (n-m) ys"
 by (meson diff_le_self take_cong_le)
 
-lemma list_app_eq_nempty_cases[consumes 1, case_names left right]:
+lemma list_app_eq_nonempty_cases[consumes 1, case_names left right]:
   assumes "as @ bs = xs @ y # ys"
   obtains 
     xs' where "as = xs @ y # xs'" "ys = xs' @ bs" |

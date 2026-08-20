@@ -26,11 +26,12 @@ notation subs (\<open>\<^latex>\<open>\ensuremath{\<close>_\<^latex>\<open>_{\<c
 no_notation (latex) Cons (\<open>_ \<cdot>/ _\<close> [66,65] 65)
 
 syntax (latex output)
-  "_take" :: "'a list \<Rightarrow> nat \<Rightarrow> 'a list" ("_|\<^bsub>_\<^esub>" [1000,0] 1000)
+  "_take" :: "'a list \<Rightarrow> nat \<Rightarrow> 'a list" ("_|\<^bsub>_\<^esub>" [999,1000] 1000)
 translations 
   "_take xs n" <= "CONST take n xs"
 
-notation (latex output) drop (\<open>\<^bsub>_\<^esub>|_\<close>)
+notation (latex output) drop (\<open>\<^bsub>_\<^esub>|_\<close> [1000,999] 1000)
+
 
 notation (latex output) LangS (\<open>L'(_')\<close>)
 notation (latex output) gpda.Lang (\<open>L'(_')\<close>)
@@ -500,10 +501,12 @@ section \<open>The Item Pushdown Automaton\<close>
 end
 context ipda
 begin
+interpretation I: gpda IPDA
+  by (fact gpda_IPDA)
 
-notation step (infix \<open>\<turnstile>I\<close> 55)
-notation steps (infix \<open>\<turnstile>I*\<close> 55)
-notation stepn (\<open>_ \<turnstile>I'(_') _\<close> 55)
+notation I.step (infix \<open>\<turnstile>I\<close> 55)
+notation I.steps (infix \<open>\<turnstile>I*\<close> 55)
+notation I.stepn (\<open>_ \<turnstile>I'(_') _\<close> 55)
 
 (*>*)
 
@@ -526,14 +529,14 @@ unless stated otherwise, let \<open>G\<close> be a CFG with start symbol \<open>
 The \concept{item pushdown automaton} (IPDA) to \<open>G\<close> is the @{typeof IPDA}:
 \begin{multline*}
   \<open>I\<^sub>G = \<lparr>states = It G', init = [S' \<rightarrow> \<cdot> [Nt S]],\<close>\\
-  \<open>final = {[S' \<rightarrow> [Nt S] \<cdot> ]}, nxt = \<Delta>, eps = \<E>\<rparr>\<close>
+  \<open>final = {[S' \<rightarrow> [Nt S] \<cdot> ]}, nxt = \<Delta>\<^sub>I, eps = \<E>\<^sub>I\<rparr>\<close>
 \end{multline*}
 where 
 \begin{multline*}
-\<open>\<Delta> = {([[X \<rightarrow> \<beta> \<cdot> Tm a # \<gamma>]], a, [[X \<rightarrow> \<beta> @ [Tm a] \<cdot> \<gamma>]])\<close>\\
+\<open>\<Delta>\<^sub>I = {([[X \<rightarrow> \<beta> \<cdot> Tm a # \<gamma>]], a, [[X \<rightarrow> \<beta> @ [Tm a] \<cdot> \<gamma>]])\<close>\\
 \<open>| X \<beta> a \<gamma>. (X, \<beta> @ Tm a # \<gamma>) \<in> Prods G'}\<close>
 \end{multline*}
-and \<open>\<E> = E \<union> R\<close> for
+and \<open>\<E>\<^sub>I = E \<union> R\<close> for
 \begin{gather*}
 \begin{multlined}
   \<open>E = {([[X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>]], [[Y \<rightarrow> \<cdot> \<alpha>], [X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>]])\<close>\\ 
@@ -599,10 +602,9 @@ If @{term "([init M], u @ v) \<turnstile>I(0) (rev \<rho>, v)"}, then
 \begin{gather*} 
 \<open>[init M] = rev \<rho> = [[S' \<rightarrow> \<cdot> [Nt S]]]\<close> \text{ and } @{prop \<open>u @ v = v\<close>} 
 \end{gather*}
-hold. This in turn implies @{prop \<open>hist \<rho> = []\<close>} and @{prop \<open>u = []\<close>}. Since
-\mbox{@{prop \<open>Prods G \<turnstile> [] \<Rightarrow>* []\<close>}} holds, the invariant holds.
+hold. This in turn implies @{prop \<open>hist \<rho> = []\<close>} and @{prop \<open>u = []\<close>}, fulfilling the invariant.
 
-On the other hand, if @{term "([init M], u @ v) \<turnstile>I(Suc n) (rev \<rho>, v)"} for some \<open>n :: nat\<close>,
+On the other hand, if @{term \<open>([init M], u @ v) \<turnstile>I(Suc n) (rev \<rho>, v)\<close>} for some \<open>n :: nat\<close>,
 we distinguish cases on the final step of the computation.
 
 If the last step was a shifting transition there exist \<open>A, \<alpha>, a, \<beta>, \<tau>, a, \<close> and \<open>x\<close> such that
@@ -614,10 +616,8 @@ the second to last configuration was of the form
 \end{gather}
 This implies the existence of some \<open>y :: 't list\<close> such that the initial input was of the form
 \<open>uv = yav\<close>. This, together with \eqref{eq:ipda.invariant.shift}, and the induction hypothesis implies 
-\begin{multline*}
-\<open>Prods G \<turnstile> hist (rev \<tau> @ [[A \<rightarrow> \<alpha> \<cdot> Tm a # \<beta>]])\<close>\\ 
-  \<open>= hist (rev \<tau>) @ \<alpha> \<Rightarrow>* map Tm y\<close>.
-\end{multline*}
+\<open>Prods G \<turnstile> hist (rev \<tau> @ [[A \<rightarrow> \<alpha> \<cdot> Tm a # \<beta>]])\<close> = \<open>hist (rev \<tau>) @ \<alpha> \<Rightarrow>* map Tm y\<close>.
+
 With \<open>uv = yav\<close> this implies
 \begin{align*}
   \<open>Prods G \<turnstile> hist (rev \<rho>)\<close> 
@@ -627,27 +627,21 @@ With \<open>uv = yav\<close> this implies
 \end{align*}
 The invariant therefore holds.
 
-For the reducing case, we have a second-to-last configuration
-\begin{gather}
-@{term \<open>([Y \<rightarrow> \<alpha> \<cdot> ] # [X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] # \<tau>, v)\<close>}\label{eq:ipda.invariant.reduce}\\
-\intertext{and final configuration} 
-@{term \<open>rev \<rho> = [X \<rightarrow> \<beta> @ [Nt Y] \<cdot> \<gamma>] # \<tau>\<close>}\label{eq:ipda.invariant.rho_reduce}
-\end{gather}
-for some \<open>Y, \<alpha>, X, \<beta>, \<gamma>\<close> and \<open>\<tau>\<close>. Since the complete item @{term \<open>[Y \<rightarrow> \<alpha> \<cdot> ]\<close>} is reduced. Therefore,
-@{prop \<open>(Y, \<alpha>) \<in> Prods G\<close>} must hold; otherwise, @{prop \<open>(Y, \<alpha>) = (S', [Nt S])\<close>}, which would 
-contradict the definition of \<open>G'\<close> and \<open>S'\<close> since @{prop \<open>[X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] \<in> It G'\<close>}.
-\begin{equation}\label{eq:ipda.invariant.reduce_rs}
-@{prop \<open>Prods G \<turnstile> hist \<rho> \<Rightarrow> hist (rev \<tau>) @ \<beta> @ [Nt A]\<close>}.
-\end{equation}
-By the induction hypothesis, we also know that @{term \<open>hist (rev \<tau>) @ \<beta> @ [Nt A]\<close>} derives \<open>u\<close>, 
-meaning the invariant holds once again by transitivity.
+For the reducing case, we have a second-to-last configuration 
+@{term \<open>([Y \<rightarrow> \<alpha> \<cdot> ] # [X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] # \<tau>, v)\<close>}, and \<open>\<rho>\<close> is such that 
+@{term \<open>rev \<rho> = [X \<rightarrow> \<beta> @ [Nt Y] \<cdot> \<gamma>] # \<tau>\<close>} for some \<open>Y, \<alpha>, X, \<beta>, \<gamma>\<close> and \<open>\<tau>\<close>. Since the complete item
+@{term \<open>[Y \<rightarrow> \<alpha> \<cdot> ]\<close>} is reduced. Therefore, @{prop \<open>(Y, \<alpha>) \<in> Prods G\<close>} must hold; otherwise,
+@{prop \<open>(Y, \<alpha>) = (S', [Nt S])\<close>}, which would contradict the definition of \<open>G'\<close> and \<open>S'\<close> since
+@{prop \<open>[X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] \<in> It G'\<close>}.
 
-Finally, in the expanding case we have
-\begin{gather*}
-@{term \<open>([X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] # \<tau>, v)\<close>}
-\intertext{and} 
+With all this and the induction hypothesis follows 
+\[ @{prop \<open>Prods G \<turnstile> hist \<rho> \<Rightarrow>r hist (rev \<tau>) @ \<beta> @ \<alpha>\<close>} 
+  \overset{(IH)}{\Rightarrow\mkern-5mu r} \<open>map Tm u\<close>. \] 
+Therefore, the invariant holds once again.
+
+Finally, in the expanding case we have @{term \<open>([X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] # \<tau>, v)\<close>} and 
 @{prop \<open>rev \<rho> = [Y \<rightarrow> [] \<cdot> \<alpha>] # [X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] # \<tau>\<close>}
-\end{gather*}
+
 By the induction hypothesis we have once more \<open>Prods G \<turnstile> hist (rev \<tau>) @ \<beta> \<Rightarrow>* map Tm u\<close>. We then 
 have
 \begin{align*}
@@ -839,7 +833,7 @@ We will now show the equivalence between rightmost chains and rightmost derivati
 \begin{lemma}\label{rm_chain_imp_derivers}
 If @{prop \<open>P \<turnstile> \<alpha> \<midarrow>\<rho>\<rightarrow>r* \<beta>\<close>}, then @{prop \<open>P \<turnstile> \<alpha> \<Rightarrow>r* \<beta>\<close>}
 \begin{proof}
-By induction on the structure of the rightmost chain.
+By rule induction on the rightmost chain.
 \end{proof}
 \end{lemma}
 
@@ -1491,8 +1485,7 @@ such that @{prop \<open>\<gamma> = \<gamma>' @ \<alpha>\<close>}. Alternatively,
 \end{definition}
 
 \begin{theorem}\label{char_eq_reliable_prefix}[Equivalence of @{const char_fa} computations and reliable prefixes]
-There exists a @{const char_fa} computation
-\[ @{prop \<open>([S' \<rightarrow> [] \<cdot> [Nt S]], \<gamma>) \<turnstile>c* ([A \<rightarrow> \<alpha> \<cdot> \<beta>], [])\<close>} \]
+There exists a @{const char_fa} computation @{prop \<open>([S' \<rightarrow> [] \<cdot> [Nt S]], \<gamma>) \<turnstile>c* ([A \<rightarrow> \<alpha> \<cdot> \<beta>], [])\<close>}
 if and only if @{term \<open>[A \<rightarrow> \<alpha> \<cdot> \<beta>]\<close>} is valid for \<open>\<gamma>\<close>.
 \begin{proof}
 This is a consequence of Lemmas~\ref{char_imp_derivers}, \ref{derivers_imp_ipda}, and 
@@ -1635,7 +1628,7 @@ Let @{term \<Delta>\<^sub>G} be the transition relation of the canonical \<open>
 \<open>q\<^sub>0\<close> the initial state of @{const LR\<^sub>0}, \<open>Q\<close> the set of states of @{const LR\<^sub>0}, and \<open>f\<close> the singleton 
 set @{term \<open>{[S' \<rightarrow> \<cdot> ]}\<close>}.
 The \concept{canonical \<open>LR(0)\<close> parser} to the CFG \<open>G\<close> is the @{typeof P\<^sub>0}
-\[ @{const P\<^sub>0} = @{term \<open>\<lparr>states = Q \<union> {f}, init = q\<^sub>0, final = {f}, nxt = \<Delta>\<^sub>0, eps = \<E>\<rparr>\<close>}. \]
+\[ @{const P\<^sub>0} = @{term \<open>\<lparr>states = Q \<union> {f}, init = q\<^sub>0, final = {f}, nxt = \<Delta>\<^sub>0, eps = \<E>\<^sub>0\<rparr>\<close>}. \]
 \end{definition}
 
 Similarly to the IPDA, we define three types of transitions, two of which are in the
@@ -1663,7 +1656,7 @@ reducing the topmost state to the singleton state @{term \<open>{f}\<close>} if 
 Finish transitions therefore correspond to the set 
 \[ @{term \<open>{([q, q\<^sub>0], [f])|q. q \<in> Q \<and> [S' \<rightarrow> [Nt S] \<cdot> ] \<in> q}\<close>}. \]
 \end{enumerate}
-The set \<open>\<E>\<close> is therefore defined as the union of the sets for reduce and finish transitions. 
+The set \<open>\<E>\<^sub>0\<close> is therefore defined as the union of the sets for reduce and finish transitions. 
 
 Our definition of @{const P\<^sub>0} is very similar to that of Wilhelm et al., except that we, as we did when
 defining \<open>I\<^sub>G\<close>, restrict the elements of the transition relations to elements of \<open>Q\<close> explicitly
@@ -2415,10 +2408,15 @@ our goal of verifying the \<open>LR(0)\<close> parsing theory as presented by Wi
 showing a second major result about the canonical \<open>LR(0)\<close> parser which is not in the original text.\<close>
 
 subsection \<open>Language Equivalence of @{const P\<^sub>0} and its Grammar\<close>
-
+(*<*) 
+notation (latex output) P0.Lang 
+  (\<open>\<^latex>\<open>\ensuremath{L(P_0(G))}\<close>\<close>)
+(*>*)
 text \<open>Now that we have finished formalizing the basic \<open>LR(0)\<close> theory, the most interesting question
 that remains open is perhaps the correctness of the canonical \<open>LR(0)\<close> parser we have formalized.
-We will answer this question by proving that @{const P\<^sub>0} accepts exactly @{term \<open>LangS G\<close>}.\<close>
+We will answer this question by proving that @{const P\<^sub>0} accepts exactly @{term \<open>LangS G\<close>}. In this
+section, we denote parser steps, their reflexive transitive closure, and \<open>n\<close>-step computations by
+\<open>\<turnstile>P\<close>, \<open>\<turnstile>P*\<close>, and \<open>\<turnstile>P(n)\<close> respectively.\<close>
 
 subsubsection \<open>Stack Words: Proving Soundness\<close>
 
@@ -2429,16 +2427,18 @@ et al. on the parser's stack~\cite[p. 110]{Wilhelm}:
 \begin{quote}
 The construction of @{const LR\<^sub>0} guarantees that for each noninitial and nonfinal state \<open>q\<close> there
 exists exactly one entry symbol under which the automaton can make a transition into \<open>q\<close>. The
-pushdown contents \<open>q\<^sub>0, \<dots>, q\<^sub>n\<close> with @{prop\<open>q\<^sub>0 = subs q G 0\<close>} corresponds therefore to a uniquely determined
-word \<open>\<alpha> = [X\<^sub>1, \<dots>, X\<^sub>n] :: syms\<close> for which $\Delta_G\ q_i\ X_{i+1} = q_{i+1}$ holds. This
-word \<open>\<alpha>\<close> is a reliable prefix, and \<open>q\<^sub>n\<close> is the set of all items valid for \<open>\<alpha>\<close>.
+pushdown contents \<open>q\<^sub>0, \<dots>, q\<^sub>n\<close> with @{prop\<open>q\<^sub>0 = subs q G 0\<close>}~\footnote{Recall that the authors define
+the topmost stack symbol to be the rightmost one when writing out a list, which is the opposite of 
+our convention.} corresponds therefore to a uniquely determined word \<open>\<alpha> = [X\<^sub>1, \<dots>, X\<^sub>n] :: syms\<close> for
+which $\Delta_G\ q_i\ X_{i+1} = q_{i+1}$ holds. This word \<open>\<alpha>\<close> is a reliable prefix, and \<open>q\<^sub>n\<close> is the
+set of all items valid for \<open>\<alpha>\<close>.
 \end{quote}
 
 The authors do not develop this idea further. It is of particular interest, as we will soon see,
 what the relation between the reliable prefix \<open>\<alpha>\<close> and the input that has been consumed at that point
 is. We use this intuitive explanation of the inner workings of the parser's stack as inspiration to 
 formalize what we call the parser's \concept{stack words}. For configurations of @{const P\<^sub>0} \<open>c\<^sub>0\<close> and
-\<open>c\<^sub>1\<close>, we write @{prop \<open>\<alpha> \<turnstile> c\<^sub>0 \<turnstile>P* c\<^sub>1\<close>} to mean that \<open>c\<^sub>0\<close> reaches \<open>c\<^sub>1\<close> with stack word \<open>\<alpha>\<close>. This is 
+\<open>c\<^sub>1\<close>, we write @{prop \<open>\<alpha> \<Turnstile> c\<^sub>0 \<turnstile>P* c\<^sub>1\<close>} to mean that \<open>c\<^sub>0\<close> reaches \<open>c\<^sub>1\<close> with stack word \<open>\<alpha>\<close>. This is 
 defined inductively with a
 \concept{reflexive} rule:
 \begin{gather*}
@@ -2461,20 +2461,418 @@ keep track of the symbols that the authors describe in the excerpt. It is worth 
 stack words are stored in reverse, once again, to make the inductive rules more fitting to the
 Isabelle list datatype It is also important to note that stack words as we defined them have a 
 caveat: the stack word that is being tracked only truly corresponds to the parser's stack if 
-for @{prop \<open>\<alpha> \<turnstile> c\<^sub>0 \<turnstile>P* c\<^sub>1\<close>}, the stack of \<open>c\<^sub>0\<close> is empty, i.e., @{prop \<open>c\<^sub>0 = ([p], w)\<close>} for some state 
+for @{prop \<open>\<alpha> \<Turnstile> c\<^sub>0 \<turnstile>P* c\<^sub>1\<close>}, the stack of \<open>c\<^sub>0\<close> is empty, i.e., @{prop \<open>c\<^sub>0 = ([p], w)\<close>} for some state 
 \<open>p\<close> and input \<open>w\<close>. This limitation, however, is not an obstacle for us, since the starting 
 configuration of the parser fulfills this precondition.
+
+In order to prove the parser sound, we will first need to show some additional properties.
+
+\begin{lemma}\label{inj_nxt_dfa_LR0_if_nonempty}
+If @{prop \<open>dfa.nxt LR\<^sub>0 q X = dfa.nxt LR\<^sub>0 q Y\<close>} and @{prop \<open>dfa.nxt LR\<^sub>0 q X \<noteq> {}\<close>}, then
+@{prop \<open>X = Y\<close>} holds.
+\begin{proof}
+With Lemma~\ref{char_fa_nxts_is_shifts} we can show that for any state \<open>p\<close> of @{const LR\<^sub>0} holds
+\[ @{prop \<open>dfa.nxt LR\<^sub>0 p X = char_fa.epsclo {[X' \<rightarrow> \<alpha> @ [X] \<cdot> \<beta>]|X' \<alpha> \<beta>. [X' \<rightarrow> \<alpha> \<cdot> X # \<beta>] \<in> p}\<close>}. \]
+The claim then follows trivially.
+\end{proof}
+\end{lemma}
+
+\begin{lemma}\label{P0_init_stack_word_length_inv}
+If @{term \<open>([gpda.init P\<^sub>0], u)\<close>} reaches some configuration @{term \<open>(qs, v)\<close>} with stack word \<open>\<alpha>\<close>, 
+then @{term \<open>length qs = length \<alpha> + 1\<close>} holds.
+\begin{proof}
+By rule induction on the stack word.
+\end{proof}
+\end{lemma}
+
+\begin{lemma}\label{stack_word_imp_P0_steps}
+If @{prop \<open>\<alpha> \<Turnstile> c\<^sub>0 \<turnstile>P* c\<^sub>1\<close>}, then @{prop \<open>c\<^sub>0 \<turnstile>P* c\<^sub>1\<close>}.
+\begin{proof}
+By rule induction on the stack word.
+\end{proof}
+\end{lemma}
+
+\begin{lemma}\label{P0_steps_imp_stack_word}
+If a computation @{prop \<open>c\<^sub>0 \<turnstile>P* (q # qs, w)\<close>} exists for some state of @{const LR\<^sub>0} \<open>q\<close>, 
+there exists a stack word \<open>\<alpha>\<close> with which \<open>c\<^sub>0\<close> reaches \<open>(q # qs, w)\<close>.
+\begin{proof}
+The proof is by induction on the length of the computation, with a case distinction on the 
+transition type in the last step for the transitive case, and using the fact that after a 
+finish transition, the topmost state on the stack is not a state of @{const LR\<^sub>0}.
+\end{proof}
+\end{lemma}
+
+\begin{lemma}\label{P0_nth_is_valids_of_nth_stack_word}
+If @{prop \<open>\<alpha> \<Turnstile> ([gpda.init P\<^sub>0], u) \<turnstile>P* (q # qs, v)\<close>}, then 
+\[ @{prop \<open>(q # qs) ! n  = valids (rev (drop n \<alpha>))\<close>} \]
+holds for $\<open>0 \<le> n\<close> < @{term \<open>length (q # qs)\<close>}$.
+\begin{proof}
+We perform rule induction on the stack word for arbitrary \<open>q, qs, u,\<close> and \<open>v\<close>.
+
+The reflexive case holds by showing that @{prop \<open>gpda.init P\<^sub>0 = valids []\<close>} using 
+Lemma~\ref{nextl_dfa_LR0_is_valids}.
+
+For the step case, we know the initial configuration reaches some configuration 
+@{term  \<open>(ps @ q # qs, v)\<close>} with stack word \<open>\<alpha>\<close>, and then the parser takes a step from this
+configuration into @{term \<open>(dfa.nxt LR\<^sub>0 q X # q # qs, w)\<close>}. We need to show that 
+for $\<open>0 \<le> n\<close> < @{term \<open>length (dfa.nxt LR\<^sub>0 q X # q # qs)\<close>}$, 
+@{prop \<open>mbox0 ((dfa.nxt LR\<^sub>0 q X # q # qs) ! n) = valids (rev (drop n (X # drop (length ps) \<alpha>)))\<close>}
+holds. We now distinguish the usual cases on the final step.
+
+In the reading transition case, we know the stack word after the step is exactly \<open>X # \<alpha>\<close>.
+Furthermore, by the induction hypothesis we know that for all $\<open>0 \<le> n\<close> < @{term \<open>length (q # qs)\<close>}$
+holds @{prop \<open>(q # qs) ! n  = valids (rev (drop n \<alpha>))\<close>}. Thus, we know \<open>q\<close> is exactly @{term \<open>valids \<alpha>\<close>}.
+Moreover, by Lemma~\ref{nxt_dfa_LR0_shift_is_valids_app}, @{term \<open>dfa.nxt LR\<^sub>0 q X\<close>} is 
+@{term \<open>mbox0 (valids (rev (X # \<alpha>)))\<close>}. With all this, the implication holds.
+
+If the transition is reducing, the induction hypothesis tells us that for all 
+$\<open>0 \<le> n\<close> < @{term \<open>length (q # qs)\<close>}$ holds 
+@{prop \<open>(q # qs) ! n = valids (rev (drop (length ps + n) \<alpha>))\<close>}, which implies that 
+@{prop \<open>q = valids (rev (drop (length ps) \<alpha>))\<close>}. With this we can then use
+Lemma~\ref{nxt_dfa_LR0_shift_is_valids_app} to show that the implication once again holds, 
+finishing the proof.
+\end{proof}
+\end{lemma}
+
+This lemma highlights the correspondence between the stack word and the stack that we described. In
+particular, compare this to what Wilhelm et al. explain in the excerpt we quoted: ``This word \<open>\<alpha>\<close> is
+a reliable prefix, and \<open>q\<^sub>n\<close> is the set of all items valid for \<open>\<alpha>\<close>.'', where \<open>q\<^sub>n\<close> refers to the topmost
+stack state. Our lemma shows that this property is not only true, but also remains true for every
+suffix of the stack and the stack word.
 
 We will now show the parser's soundness with the following invariant:
 
 \begin{lemma}\label{P0_invariant}
-If @{prop \<open>\<alpha> \<turnstile> ([gpda.init P\<^sub>0], u @ v) \<turnstile>P* (q # qs, v)\<close>} and @{prop \<open>q \<noteq> {}\<close>}, then 
+If @{prop \<open>\<alpha> \<Turnstile> ([gpda.init P\<^sub>0], u @ v) \<turnstile>P* (q # qs, v)\<close>} and @{prop \<open>q \<noteq> {}\<close>}, then 
   @{prop \<open>Prods G' \<turnstile> rev \<alpha> \<Rightarrow>r* map Tm u\<close>}
+\begin{proof}
+We proceed by rule induction on the stack word for arbitrary \<open>q, qs, u,\<close> and \<open>v\<close>.
+
+The reflexive case is trivial since @{prop \<open>u @ v = v\<close>} implies @{prop \<open>u = []\<close>}.
+
+In the step case, we know the starting configuration with input @{term \<open>u @ v\<close>} reaches some
+configuration @{term \<open>(ps @ q # qs, w)\<close>} with some stack word \<open>\<alpha>\<close>. We will call this configuration
+\<open>c\<^sub>1\<close>. Furthermore, we also know that the successor configuration is
+@{term \<open>(mbox0 (dfa.nxt LR\<^sub>0 q X # q # qs), v)\<close>} with @{prop \<open>dfa.nxt LR\<^sub>0 q X \<noteq> {}\<close>}. Let \<open>c\<^sub>2\<close> be
+this successor configuration. 
+
+Our goal is to show that
+\[ @{prop \<open>Prods G' \<turnstile> rev (X # drop (length ps) \<alpha>) \<Rightarrow>r* map Tm u\<close>} \]
+holds. 
+
+From the case assumptions, we know there exists some \<open>u'\<close> such that @{prop \<open>u @ v = u' @ w\<close>}. By
+the induction hypothesis, this implies that @{prop \<open>Prods G' \<turnstile> rev \<alpha> \<Rightarrow>r* map Tm u'\<close>}. We can now 
+distinguish cases based on the type of transition in the step @{prop \<open>c\<^sub>1 \<turnstile>P c\<^sub>2\<close>}.
+
+If the step is a read transition, we know that \<open>ps\<close> is the empty list, and @{prop \<open>u = u' @ [a]\<close>}. 
+Furthermore, we also know that @{term \<open>rev (X # drop (length ps) \<alpha>)\<close>} is exactly 
+@{term \<open>rev \<alpha> @ [Tm a]\<close>}. Therefore, the invariant is fulfilled.
+
+If the step is a reducing transition, we know there is an item @{term \<open>[Y \<rightarrow> \<beta> \<cdot> ]\<close>} in the topmost
+state of @{term \<open>ps @ q # qs\<close>} which signaled the reduction, i.e., @{term \<open>length \<beta>\<close>} stack states 
+were removed. By Lemma~\ref{P0_nth_is_valids_of_nth_stack_word}, this means that @{term \<open>[Y \<rightarrow> \<beta> \<cdot> ]\<close>}
+is valid for \<open>rev \<alpha>\<close>. This implies that \<open>\<alpha>\<close> is of the form @{term \<open>rev \<beta> @ \<alpha>'\<close>} for some
+\<open>\<alpha>' :: syms\<close>. Since we know that the length of \<open>\<beta>\<close> equals the length of \<open>ps\<close>, this means
+that @{prop \<open>\<alpha> = rev \<beta> @ drop (length ps) \<alpha>\<close>}. Since we know that after the reducing configuration,
+@{term \<open>dfa.nxt LR\<^sub>0 q (Nt Y)\<close>} is the topmost, with Lemma~\ref{inj_nxt_dfa_LR0_if_nonempty} we know that
+@{prop \<open>X = Nt Y\<close>} holds by our assumption that @{term \<open>dfa.nxt LR\<^sub>0 q X\<close>} is nonempty. Moreover, from
+the reducing transition assumptions we know that @{prop \<open>u' = u\<close>} must hold, since the remaining
+input after the transition is \<open>v\<close>, and we know that this transition does not consume symbols. From
+all this, we can show the invariant is satisfied.
+
+The last case, which is that of the finish transition, contradicts the structure of the stack word.
+This is because the topmost state being @{term \<open>dfa.nxt LR\<^sub>0 q X\<close>} means that it is either empty,
+or a state of @{const LR\<^sub>0}. This is a direct consequence of the definition of the transition
+functions of @{const LR\<^sub>0} and @{const char_fa}. Since @{term P0_final} is not a state of
+@{const LR\<^sub>0}, this case cannot occur. The proof of the invariant is therefore complete.
+\end{proof}
 \end{lemma}
 
-\<close>
+\begin{theorem}[Soundness of the canonical \<open>LR(0)\<close> parser]\label{P0_sound}
+Every word accepted by @{const P\<^sub>0} is a word in @{term \<open>LangS G\<close>}.
+\begin{proof}
+We begin by fixing \<open>w\<close> and assuming that @{prop \<open>w \<in> P0.Lang\<close>}. Therefore, the initial computation 
+of @{const P\<^sub>0} reaches the final configuration @{term \<open>([mbox {[S' \<rightarrow> [] \<cdot> []]}], [])\<close>}. We know this 
+computation has nonzero length because @{term P0_final} is distinct from the initial state.
+We also know that the last step of the computation must have been a finishing transition, meaning
+there exists a state \<open>q\<close> of @{const LR\<^sub>0} such that @{prop \<open>[S' \<rightarrow> [Nt S] \<cdot> ] \<in> q\<close>} for which 
+@{const P\<^sub>0} computes @{prop \<open>mbox ([gpda.init P\<^sub>0], w) \<turnstile>P* ([q, dfa.init LR\<^sub>0], [])\<close>}. With this, we know by 
+Lemma~\ref{P0_steps_imp_stack_word} that there exists some \<open>\<alpha> :: syms\<close> with
+\[ @{prop \<open>\<alpha> \<Turnstile> ([gpda.init P\<^sub>0], w) \<turnstile>P* ([q, dfa.init LR\<^sub>0], [])\<close>}. \] 
+We also know by Lemma~\ref{P0_init_stack_word_length_inv} that this stack word is of the form 
+@{prop \<open>\<alpha> = [X]\<close>} for some symbol \<open>X\<close>. By Lemma~\ref{P0_nth_is_valids_of_nth_stack_word}, we know 
+that @{prop \<open>q = valids [X]\<close>}, and since @{prop \<open>mbox0 ([S' \<rightarrow> [Nt S] \<cdot> ] \<in> q)\<close>}, there exists a \<open>\<gamma>\<close> such 
+that @{prop \<open>[X] = \<gamma> @ [Nt S]\<close>} since \<open>[X]\<close> is a reliable prefix for this item. This forces 
+@{prop \<open>X = Nt S\<close>}, and by Lemma~\ref{P0_invariant} this stack word implies 
+@{prop \<open>Prods G' \<turnstile> [Nt S] \<Rightarrow>r* map Tm w\<close>}. Since \<open>S'\<close> derives \<open>[Nt S]\<close> by definition, this means 
+that @{prop \<open>w \<in> LangS G'\<close>}, and the proof is complete by the language preservation of the grammar 
+extension.
+\end{proof}
+\end{theorem}\<close>
 
 subsubsection \<open>The Shift-Reduce Pushdown Automaton: Proving Completeness\<close>
+
+(*<*)
+interpretation MG: srpda G M\<^sub>G 
+  by unfold_locales auto
+
+notation MG.step (infix \<open>\<turnstile>M\<close> 55)
+notation MG.steps (infix \<open>\<turnstile>M*\<close> 55)
+notation (latex output) MG.Lang
+  (\<open>\<^latex>\<open>\ensuremath{L(M_G)}\<close>\<close>)
+
+
+(*>*)
+
+text \<open>Now that we have proven the soundness of our parser, all that is left is proving its 
+completeness, i.e., that every word in the grammar is accepted by the parser.
+
+We will again need stack words to prove completeness, but constructing a valid parser computation 
+from a rightmost derivation directly is quite challenging since the parser's construction, albeit
+ideal for our original goal of achieving a deterministic parsing algorithm, is too far removed from 
+the pure concept of rightmost derivations. We will overcome this by defining the
+\concept{shift-reduce pushdown automaton} (SRPDA), proving the completeness of this machine w.r.t
+the grammar, and then show the relation between SRPDA and @{const P\<^sub>0} computations, which will allow
+us to prove the parser complete. Our definition of the SRPDA is based on the lecture slides by
+Petter~\cite{Petter}.
+
+The SRPDA is an automaton that uses a CFG's symbols as its states. In order to distinguish an
+initial or final state from symbols that are being parsed by the automaton, it is necessary for us
+to extend the grammar's symbols by two more. We achieve this with a new datatype @{type srpda_state}:
+\[ @{datatype srpda_state} \]
+
+\begin{definition}[Shift-reduce pushdown automaton]
+The shift-reduce pushdown automaton (SRPDA) to an arbitrary CFG @{term_type \<open>G :: ('n, 't) Cfg\<close>}
+is the @{typeof M\<^sub>G}
+\begin{multline*}
+\<open>M\<^sub>G = \<lparr>gpda.states = UNIV, init = Init, final = {Final}\<close>\\
+  \<open>nxt = range (\<lambda>(q, x). ([q], x, [Sym (Tm x), q])), eps = \<E>\<^sub>M\<rparr>\<close>
+\end{multline*}
+\end{definition}
+
+Where @{const range} denotes the image of a function, and a term of the form (\<open>\<lambda>x\<^sub>1 x\<^sub>2 \<dots> x\<^sub>n. y\<close>) 
+denotes a mapping that takes parameters \<open>x\<^sub>1, x\<^sub>2, \<dots>, x\<^sub>n\<close> and returns \<open>y\<close>. 
+
+We define three types of transition once again:
+\begin{itemize}
+\item in a \concept{reading} transition, \<open>M\<^sub>G\<close> reads a symbol from the input, and pushes it onto the 
+stack. This corresponds, as is the case with the other automata we have defined until now, to the 
+\<open>nxt\<close> relation. Since we define the relation as the range of the mapping, this transition is
+completely independent from the current state.
+\item \concept{Reducing} transitions allow the SRPDA to reduce a topmost stack string \<open>\<alpha>\<close> to a 
+nonterminal \<open>A\<close> if the production \<open>(A, \<alpha>)\<close> is in \<open>G\<close>. Formally, this is the set
+\[ @{term \<open>{(map Sym (rev \<alpha>) @ [q], [Sym (Nt A), q])|A \<alpha> q. (A, \<alpha>) \<in> Prods G}\<close>} \]
+\item Lastly, the \concept{finishing} transition, very similarly to the canonical \<open>LR(0)\<close> parser, 
+signals that the consumed input has successfully been reduced to the start symbol. This corresponds
+to the singleton set @{term \<open>([Sym (Nt (Start G)), Init], [Final])\<close>}
+\end{itemize}
+\<open>\<E>\<^sub>M\<close> is once again the union of reducing transitions and the singleton finishing transition set.
+
+The SRPDA, unlike our \<open>LR(0)\<close> parser, computes reductions extremely similar to how its grammar
+derives words. Essentially, it mimics the grammar's derivation of a word, but backwards. It is worth
+noting that this automaton is not a GPDA in the strict sense of our definition. This is due to the 
+fact that we define the alphabet of a CFG through types rather than sets. Since our SRPDA states 
+are the grammar's symbols, in order to satisfy the assumption that the set of states is finite, one 
+would need to prove that the types for terminals and nonterminals are both finite. Applying such a
+constraint to a type is much more restrictive than to a set, and we purposefully avoid doing it so
+our parser can be used for grammars of arbitrary types. The fact that this automaton does not fulfill
+the finiteness condition in general is not problematic for our purposes, but it is a discrepancy
+with our original GPDA definition that is worth noting.
+
+We will now prove that the SRPDA to our reduced grammar \<open>G\<close> is complete, i.e., every word in 
+@{term \<open>LangS G\<close>} is accepted by @{const M\<^sub>G}. We denote \<open>M\<^sub>G\<close> steps and their reflexive transitive
+closure as \<open>\<turnstile>M\<close> and \<open>\<turnstile>M*\<close> respectively.
+
+\begin{lemma}\label{prefix_consumable}
+@{prop \<open>(X # \<alpha>, u @ v) \<turnstile>M* (map (Sym \<circ> Tm) (rev u) @ X # \<alpha>, v)\<close>} holds for any SRPDA state list 
+\<open>X # \<alpha>\<close> and input \<open>u @ v :: 't list\<close>.
+\begin{proof}
+By induction on \<open>u\<close> for arbitrary \<open>X\<close> and \<open>\<alpha>\<close>.
+\end{proof}
+\end{lemma}
+
+\begin{lemma}\label{Tms_on_stack_imp_consumed}
+@{prop \<open>(\<alpha>, u @ v @ w) \<turnstile>M* (map (Sym \<circ> Tm) (rev v) @ \<beta>, w)\<close>} implies
+\[ @{prop \<open>(\<alpha>, u @ v @ w) \<turnstile>M* (\<beta>, v @ w)\<close>}. \]
+\begin{proof}
+The proof is by reverse induction on \<open>v\<close> for arbitrary \<open>u\<close> and \<open>w\<close>, i.e., for the step case, we 
+append an element on the right, instead of on the left as we do in a regular list induction.
+
+The base case is trivial.
+
+In the inductive case, \<open>v = x @ [a]\<close> for some \<open>x :: 't list\<close> and \<open>a :: 't\<close>. With the case 
+assumptions, we have
+\[ @{prop \<open>(\<alpha>, u @ (v @ [a]) @ w) \<turnstile>M* (map (Sym \<circ> Tm) (rev (v @ [a])) @ \<beta>, w)\<close>}. \]
+We distinguish the reflexive and transitive cases on this computation to prove that the SRPDA 
+computes
+\[ @{prop \<open>(\<alpha>, u @ (v @ [a]) @ w) \<turnstile>M* (map (Sym \<circ> Tm) (rev v) @ \<beta>, a # w)\<close>}. \]
+The claim then follows directly by the induction hypothesis.
+\end{proof}
+\end{lemma}
+
+\begin{lemma}[SRPDA invariant]\label{srpda.invariant}
+If @{prop \<open>Prods G \<turnstile> \<alpha> \<Rightarrow>r* map Tm w\<close>}, then 
+\[ @{prop \<open>([Init], w) \<turnstile>M* (map Sym (rev \<alpha>) @ [Init], [])\<close>}. \]
+\begin{proof}
+We use reverse induction on the length of the derivation. 
+
+The reflexive case is trivial by Lemma~\ref{prefix_consumable}.
+
+For the transitive case, we consider the first step of the derivation.
+
+We know that \<open>\<alpha> = \<beta> @ Nt A # map Tm v\<close> for some \<open>A :: 'n\<close>, \<open>\<beta> :: syms\<close>, and \<open>v :: 't list\<close>, and the 
+right sentential form produced is @{term \<open>\<beta> @ \<gamma> @ map Tm v\<close>} for some \<open>\<gamma> :: syms\<close> such that 
+@{prop \<open>(A, \<gamma>) \<in> Prods G\<close>}. By the induction hypothesis we know that 
+@{prop \<open>([Init], w) \<turnstile>M* (map Sym (rev (\<beta> @ \<gamma> @ map Tm v)) @ [Init], [])\<close>} holds.
+By Lemma~\ref{Tms_on_stack_imp_consumed}, this implies that the starting configuration for \<open>w\<close> also 
+reaches @{term \<open>(map Sym (rev \<delta> @ rev \<gamma>) @ [Init], v)\<close>}. The SRPDA can then reduce \<open>rev \<delta>\<close> to \<open>A\<close>, 
+and put @{term \<open>rev v\<close>} on the stack by Lemma~\ref{prefix_consumable}. Since this is equivalent to 
+\<open>rev \<alpha>\<close>, the proof is now complete.
+\end{proof}
+\end{lemma}
+
+We can now use this invariant to show completeness.
+
+\begin{lemma}[Completeness of the shift-reduce PDA]\label{srpda_complete}
+If a word is in @{term \<open>LangS G\<close>}, it is accepted by @{const M\<^sub>G}.
+\begin{proof}
+We begin by fixing some \<open>w\<close> in 
+@{term \<open>LangS G\<close>}. This implies that @{prop \<open>Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>r* map Tm w\<close>}.
+By Lemma~\ref{srpda.invariant}, this derivation implies the existence of the computation
+\[ @{prop \<open>([Init], w) \<turnstile>M* ([Sym (Nt (Start G)), Init], [])\<close>}. \]
+Trivially, the configuration @{term \<open>([Sym (Nt (Start G)), Init], [])\<close>} reaches 
+@{term \<open>([Final], [])\<close>} in a single step via a finishing transition, meaning @{prop \<open>w \<in> MG.Lang\<close>}.
+The proof is thus complete.
+\end{proof}
+\end{lemma}
+
+We will now show the relation between @{const M\<^sub>G} and @{const P\<^sub>0} which will allow us to prove the 
+parser's correctness. It is worth noting that we are using the SRPDA for \<open>G\<close>, not for \<open>G'\<close>. 
+We first show an auxiliary lemma.
+
+\begin{lemma}\label{nempty_valids_imp_nonempty_valids_prefix}
+If @{prop \<open>valids (\<alpha>@\<beta>) \<noteq> {}\<close>}, then @{prop \<open>valids \<alpha> \<noteq> {}\<close>}
+\begin{proof}
+Since @{prop \<open>valids (\<alpha>@\<beta>) \<noteq> {}\<close>}, there exists an item @{term \<open>[X \<rightarrow> \<gamma> \<cdot> \<delta>]\<close>} valid for \<open>\<alpha> @ \<beta>\<close>. 
+Therefore, there exists a \<open>\<gamma>'\<close> such that \<open>\<alpha> @ \<beta> = \<gamma>' @ \<gamma>\<close>. We now distinguish cases on whether \<open>\<alpha>\<close> is 
+a prefix of \<open>\<gamma>'\<close>. If it is, we show there must exist a valid item for \<open>\<alpha>\<close> by 
+Lemma~\ref{derivers_substring_reliable}. Otherwise, there exists an \<open>\<alpha>'\<close> with \<open>\<gamma>' @ \<alpha>' = \<alpha>\<close> and 
+\<open>\<alpha>' @ \<beta> = \<gamma>\<close>, and thus item @{term \<open>[X \<rightarrow> \<alpha>' \<cdot> \<beta> @ \<delta>]\<close>} is valid for \<open>\<alpha>\<close>, completing the proof.
+\end{proof}
+\end{lemma}
+
+\begin{lemma}\label{MG_steps_imp_stack_word}
+If @{prop \<open>([Init], u) \<turnstile>M* (map Sym \<alpha> @ [Init], v)\<close>} and 
+@{prop \<open>valids (rev \<alpha>) \<noteq> {}\<close>}, there exists a stack \<open>qs\<close> such that 
+\[ @{prop \<open>\<alpha> \<Turnstile> ([gpda.init P\<^sub>0], u) \<turnstile>P* (valids (rev \<alpha>) # qs, v)\<close>}. \]
+\begin{proof}
+We induct on the length of the computation for arbitrary \<open>\<alpha>\<close> and \<open>v\<close>.
+
+The reflexive case holds trivially for \<open>qs = []\<close>, since the initial state is @{term \<open>valids []\<close>}.
+
+In the transitive case, we distinguish the type of transition for the final step of the computation.
+
+If the final step is a reading transition, we know the second-to-last configuration is of the form 
+\<open>c = (x # xs, a # v)\<close>. We then distinguish cases based on whether \<open>xs\<close> is empty. 
+
+If it is, we know \<open>\<alpha>\<close> is @{term \<open>[Sym (Tm a)]\<close>}. We can therefore show that 
+@{prop \<open>\<alpha> \<Turnstile> ([gpda.init P\<^sub>0], a # v) \<turnstile>P* ([valids [Tm a], gpda.init P\<^sub>0], v)\<close>}
+by first showing that @{prop \<open>([gpda.init P\<^sub>0], a # v) \<turnstile>P ([valids [Tm a], gpda.init P\<^sub>0], v)\<close>}
+holds, using the fact that @{term \<open>gpda.init P\<^sub>0\<close>} is @{term \<open>valids []\<close>}, the fact that 
+@{prop \<open>valids \<alpha> \<noteq> {}\<close>} and Lemma~\ref{nxt_dfa_LR0_shift_is_valids_app}. This completes the empty case.
+
+If \<open>xs\<close> on the other hand is nonempty, we know that \<open>c = (map Sym (tl \<alpha>) @ [gpda.init M\<^sub>G], a # v)\<close>.
+From Lemma~\ref{nempty_valids_imp_nonempty_valids_prefix} we know that 
+@{term \<open>valids (rev (tl \<alpha>)) \<noteq> {}\<close>} by our assumption that @{prop \<open>valids (rev \<alpha>) \<noteq> {}\<close>}. We can 
+therefore use the induction hypothesis to obtain some \<open>qs\<close> with
+@{prop \<open>tl \<alpha> \<Turnstile> ([gpda.init P\<^sub>0], u) \<turnstile>P* (valids (rev \<beta>) # qs, a # v)\<close>}.
+We can then finish the proof for this case by showing  
+@{prop \<open>Tm a # tl \<alpha> \<Turnstile> ([gpda.init P\<^sub>0], u) \<turnstile>P* (valids (rev \<alpha>) # valids (rev \<beta>) # qs, v)\<close>}
+analogously to the case where @{prop \<open>xs = []\<close>}, finishing the shifting transition case.
+
+For the reducing transition case, we know that \<open>c = (map Sym (rev \<beta>) @ map Sym \<gamma> @ [gpda.init M\<^sub>G], v)\<close>.
+and @{prop \<open>\<alpha> = Nt A # \<gamma>\<close>}. Since \<open>A\<close> produces \<open>\<beta>\<close> and we originally assumed that @{term \<open>valids \<alpha> \<noteq> {}\<close>},
+we can use the definition of reliable prefixes to show that 
+@{prop \<open>[A \<rightarrow> \<beta> \<cdot> []] \<in> valids (rev \<gamma> @ \<beta>)\<close>}. We can now use the IH once again to obtain some \<open>qs\<close> 
+such that 
+\begin{equation}\label{MG_sw}
+@{prop \<open>rev \<beta> @ \<gamma> \<Turnstile> ([gpda.init P\<^sub>0], u) \<turnstile>P* (valids (rev \<gamma> @ \<beta>) # qs, v)\<close>}.
+\end{equation}
+
+In order to show the implication holds, it suffices for us to show now that 
+@{prop \<open>Nt A # \<gamma> \<Turnstile> ([gpda.init P\<^sub>0], u) 
+      \<turnstile>P* (valids (rev \<gamma> @ [Nt A]) # drop (length \<beta>) (valids (rev \<gamma> @ \<beta>) # qs), v)\<close>}
+
+We first show the existence of the reduction step 
+\begin{equation}\label{redstep}
+@{prop \<open>(valids (rev \<gamma> @ \<beta>) # qs, v)
+  \<turnstile>P (valids (rev \<gamma> @ [Nt A]) # drop (length \<beta>) (valids (rev \<gamma> @ \<beta>) # qs), v)\<close>}.
+\end{equation}
+This follows from the fact that @{prop \<open>[A \<rightarrow> \<beta> \<cdot> []] \<in> valids (rev \<gamma> @ \<beta>)\<close>}, and with 
+Lemmas~\ref{P0_nth_is_valids_of_nth_stack_word} and \ref{P0_init_stack_word_length_inv} for 
+\eqref{MG_sw}, which we use to prove that 
+@{prop \<open>(valids (rev \<gamma> @ \<beta>) # qs) ! length \<beta> = valids (rev \<gamma>)\<close>}. The property that 
+@{prop \<open>A \<noteq> S'\<close>} is guaranteed by the fact that \<open>A\<close> is in a production of \<open>G\<close>, since it originates
+from the computation of @{const M\<^sub>G}.
+
+Next, we need to show that this reduction pops a topmost stack string off the stack, and pushes 
+the successor function of the topmost state after popping. We know this popped string is exactly 
+@{term \<open>take (length \<beta>) (valids (rev \<gamma> @ \<beta>) # qs)\<close>}. With 
+Lemma~\ref{P0_init_stack_word_length_inv} again for \eqref{MG_sw}, and 
+Lemma~\ref{nxt_dfa_LR0_shift_is_valids_app} we can rewrite the reduction step \eqref{redstep} as
+\[ 
+@{prop \<open>(take (length \<beta>) (valids (rev \<gamma> @ \<beta>) # qs) 
+          @ valids (rev \<gamma>) # drop ((length \<beta>)+1) (valids (rev \<gamma> @ \<beta>) # qs), v) 
+    \<turnstile>P (dfa.nxt LR\<^sub>0 (valids (rev \<gamma>)) (Nt A) 
+          # valids (rev \<gamma>) # drop ((length \<beta>)+1) (valids (rev \<gamma> @ \<beta>) # qs), v)\<close>}.
+\]
+Finally, we can also use the same instance of the lemma to show that 
+@{prop \<open>\<gamma> = drop (length \<beta>) (rev \<beta> @ \<gamma>)\<close>}, completing the 
+proof for the computation with stack word @{prop \<open>Nt A # \<gamma> = \<alpha>\<close>}. Since the topmost state of the 
+configuration on the RHS of the stack word computation is equal to @{term \<open>rev \<alpha>\<close>}, the proof for the
+reduce case is complete.
+\end{proof}
+\end{lemma}
+
+We can at last prove our parser complete.
+
+\begin{theorem}[Completeness of the canonical \<open>LR(0)\<close> parser]\label{P0_complete}
+Every word in @{term \<open>LangS G\<close>} is accepted by @{const P\<^sub>0}.
+\begin{proof}
+We begin by fixing some \<open>w\<close> in @{term \<open>LangS G\<close>}. By Lemma~\ref{srpda_complete}, this implies
+that @{prop \<open>w \<in> MG.Lang\<close>}, i.e., @{prop \<open>([Init], w) \<turnstile>M* ([Final], [])\<close>}. Since @{const Init}
+and @{const Final} are distinct by definition, the computation has nonzero length, meaning 
+@{prop \<open>([Init], w) \<turnstile>M* ([Sym (Nt S), Init], [])\<close>} holds. Furthermore, it is trivial to prove that
+the set @{term \<open>valids [Nt S]\<close>} is nonempty by showing that the item @{term \<open>[S' \<rightarrow> [Nt S] \<cdot> ]\<close>} is
+a member. We can now use Lemma~\ref{MG_steps_imp_stack_word} to obtain some \<open>qs\<close> where
+\[ @{prop \<open>[Nt S] \<Turnstile> ([gpda.init P\<^sub>0], w) \<turnstile>P* (valids [Nt S] # qs, [])\<close>}. \]
+By Lemmas~\ref{P0_nth_is_valids_of_nth_stack_word} and \ref{P0_init_stack_word_length_inv}, we can 
+then show that @{prop \<open>qs = [gpda.init P\<^sub>0]\<close>}. With Lemma~\ref{stack_word_imp_P0_steps}, this implies
+that @{prop \<open>([gpda.init P\<^sub>0], w) \<turnstile>P* ([valids [Nt S], gpda.init P\<^sub>0], [])\<close>} holds. By the fact that
+@{term \<open>[S' \<rightarrow> [Nt S] \<cdot> ]\<close>} is in @{term \<open>valids [Nt S]\<close>}, we know that the RHS configuration of this
+computation can then perform a finishing transition, meaning that 
+\[ @{prop \<open>([gpda.init P\<^sub>0], w) \<turnstile>P* ([P0_final], [])\<close>}. \]
+This is equivalent to @{prop \<open>w \<in> P0.Lang\<close>}, completing the proof.
+\end{proof}
+\end{theorem}
+
+With the completeness, we can prove our final goal.
+
+\begin{theorem}[Correctness of the canonical \<open>LR(0)\<close> parser]
+The language accepted by the canonical \<open>LR(0)\<close> parser is exactly the language of its underlying 
+context-free grammar.
+\begin{proof}
+This is a consequence of Theorems~\ref{P0_sound} and \ref{P0_complete}.
+\end{proof}
+\end{theorem}
+
+This concludes our formalization of the canonical \<open>LR(0)\<close> parser and the general \<open>LR(0)\<close> parsing 
+theory. With this theorem along with the equivalence between \<open>LR(0)\<close> grammars and the parser 
+having no \<open>LR(0)\<close>-inadequate states, we have successfully formalized the parsing algorithm 
+presented by Wilhelm et al., and verified the correctness of their theories while additionally
+proving the parser itself correct. 
+
+\<close>
 
 section \<open>Conclusion\<close>
 subsection \<open>Results\<close>

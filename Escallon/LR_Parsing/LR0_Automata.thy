@@ -739,7 +739,7 @@ proof -
   qed
 qed
 
-lemma nempty_valids_imp_nonempty_valids_prefix:
+lemma nonempty_valids_imp_nonempty_valids_prefix:
   assumes "valids (\<alpha>@\<beta>) \<noteq> {}"
   shows "valids \<alpha> \<noteq> {}"
 proof -

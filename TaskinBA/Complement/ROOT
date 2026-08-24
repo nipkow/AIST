@@ -1,13 +1,10 @@
-session Det_Pushdown_Automata = Pushdown_Automata +
+session DPDA_Complement_HU = Pushdown_Automata +
   options [document = pdf, document_output = "output"]
-
-sessions
+  sessions
     Pushdown_Automata
-
   theories
     Det_Pushdown_Automata
-    Complement_DPDA
-
+    DPDA_Complement_HU
   document_files
     "root.bib"
     "root.tex"

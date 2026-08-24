@@ -1,12 +1,12 @@
+(* TODO mv to Pushdown_Automata *)
+
 section \<open>Deterministic Pushdown Automata\<close>
 
 theory Det_Pushdown_Automata
   imports Pushdown_Automata.Pushdown_Automata
 begin
 
-subsection \<open>Definition\<close>
-
-text \<open>The following definition of a deterministic pushdown automaton has been introduced by Hopcroft and Ullman\cite{hopcroftullman}:\<close>
+text \<open>A deterministic pushdown automaton, following Hopcroft and Ullman \cite{HopcroftU79}:\<close>
 
 locale dpda = pda M for M :: "('q :: finite, 'a :: finite, 's :: finite) pda" +
   assumes \<delta>_nonempty: "\<delta> M q a X \<noteq> {} \<longrightarrow> \<delta>\<epsilon> M q X = {}"
@@ -14,16 +14,14 @@ locale dpda = pda M for M :: "('q :: finite, 'a :: finite, 's :: finite) pda" +
       and \<delta>\<epsilon>_singleton: "\<delta>\<epsilon> M q X = {} \<or> (\<exists>p \<gamma>. \<delta>\<epsilon> M q X = {(p, \<gamma>)})"
 begin
 
-text \<open>\noindent Given a configuration:
-      \begin{itemize}
-        \item The property @{thm [source] \<delta>_nonempty} prevents the automaton to freely choose from an epsilon step and a true step.
-        \item The property @{thm [source] \<delta>_singleton} allows for at most one true step.
-        \item The property @{thm [source] \<delta>\<epsilon>_singleton} allows for at most one epsilon step.
-      \end{itemize}\<close>
+text \<open>In every configuration,
+\begin{itemize}
+\item @{thm [source] \<delta>_nonempty} enforces that not both an epsilon step and a true step can be enabled.
+\item @{thm [source] \<delta>_singleton} allows for at most one true step.
+\item @{thm [source] \<delta>\<epsilon>_singleton} allows for at most one epsilon step.
+\end{itemize}\<close>
 
-subsection \<open>Determinism\<close>
-
-text \<open>The automaton can take at most one step in a given configuration:\<close>
+text \<open>The automaton can take at most one step from any configuration:\<close>
 lemma dpda_step: "step (q, w, \<alpha>) = {} \<or> (\<exists>p u \<gamma>. step (q, w, \<alpha>) = {(p, u, \<gamma>)})"
 proof (cases \<alpha>)
   case [simp]: (Cons X \<alpha>')
@@ -65,4 +63,5 @@ using assms proof (induction "(q, w, \<alpha>)" "(p, u, \<gamma>)" arbitrary: q 
 qed auto
 
 end
+
 end

@@ -1355,7 +1355,7 @@ next
       with shift step have \<alpha>_eq: "map Sym \<alpha> = Sym (Tm a) # x # ys" "y = gpda.init M\<^sub>G" by auto
       with snoc shift obtain \<beta> where c_eq: "c = (map Sym \<beta> @ [gpda.init M\<^sub>G], a # w)" "\<beta> = tl \<alpha>"
         using Cons_eq_map_conv by fastforce
-      with nempty_valids_imp_nonempty_valids_prefix step(5) have 
+      with nonempty_valids_imp_nonempty_valids_prefix step(5) have 
         valids_\<beta>_nonempty: "valids (rev \<beta>) \<noteq> {}" using \<alpha>_eq(1) by force
       with step(3)[OF c_eq(1)] obtain qs where sw_\<beta>:
         "\<beta> \<Turnstile> ([gpda.init P\<^sub>0], u) \<turnstile>P* (valids (rev \<beta>) # qs, a # w)" 

@@ -510,7 +510,7 @@ proof -
   from assms obtain n where "([init M], u@v) \<turnstile>(n) (rev \<rho>, v)"
     using rtranclp_imp_relpowp by fast
   then show ?thesis
-  proof (induction n arbitrary:u v \<rho>)
+  proof (induction n arbitrary: u v \<rho>)
     case (Suc n)
     then obtain \<sigma> w where n_steps: "([init M], u @ v) \<turnstile>(n) (rev \<sigma>, w)" "(rev \<sigma>, w) \<turnstile> (rev \<rho>, v)"
       by (metis relpowp_Suc_E rev_swap surj_pair)

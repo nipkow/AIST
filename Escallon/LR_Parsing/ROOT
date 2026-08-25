@@ -2,7 +2,6 @@ session LR0_Base = HOL +
   sessions 
     Context_Free_Grammar
     Finite_Automata_HF
-    Pushdown_Automata
   theories
     LR0_Parser
 

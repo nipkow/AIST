@@ -837,7 +837,17 @@ lemma is_LRI' [intro]:
   shows "is_LR' k G"
   unfolding is_LR'_def using assms by blast
 
-context Extended_Cfg
+lemma LR'_impossible:
+  assumes "is_LR' k G"
+    "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>r* \<alpha> @ Nt X # map Tm w"
+    "Prods G \<turnstile> \<alpha> @ Nt X # map Tm w \<Rightarrow>r \<alpha> @ \<beta> @ map Tm w"
+    "Prods G \<turnstile> [Nt (Start G)] \<Rightarrow>r* \<gamma> @ Nt Y # map Tm x"
+    "Prods G \<turnstile> \<gamma> @ Nt Y # map Tm x \<Rightarrow>r \<alpha> @ \<beta> @ map Tm y"
+    "take k w = take k y"
+  shows "\<alpha> \<noteq> \<gamma> \<Longrightarrow> False" "X \<noteq> Y \<Longrightarrow> False" "x \<noteq> y \<Longrightarrow> False"
+  using assms unfolding is_LR'_def by auto
+
+context Reduced_Cfg
 begin
 
 lemma LR'k_G'_imp_LR'k_G:
@@ -856,7 +866,7 @@ qed
 
 
 lemma LR'0_G_imp_LR'0_G':
-  assumes "is_LR' 0 G" "\<nexists>n \<alpha>. Prods G \<turnstile> [Nt S] \<Rightarrow>(Suc n) Nt S # \<alpha>"
+  assumes "is_LR' 0 G" "\<nexists>n \<alpha>. Prods G \<turnstile> [Nt S] \<Rightarrow>r(Suc n) Nt S # \<alpha>"
   shows "is_LR' 0 G'"
 proof (standard, goal_cases)
   case (1 \<alpha> X \<beta> w \<gamma> Y x y)
@@ -876,10 +886,9 @@ proof (standard, goal_cases)
       case (Suc m')
       from n0 step_nm 1 have "\<alpha> = [] \<and> \<beta> = [Nt S] \<and> w = []" 
         by (simp add: Cons_eq_append_conv G'_def S'_derive_imp_S deriver_imp_derive)
-      with Suc step_nm 1 have "Prods G' \<turnstile> [Nt S'] \<Rightarrow>(Suc (Suc m')) Nt S # map Tm y"
-        by (metis (no_types, lifting) Cfg.sel(2) G'_def append_Cons append_self_conv2 
-            derivern_imp_deriven relpowp_Suc_I)
-      from G'_deriven_Suc_imp_G_deriven[OF this] show ?thesis using assms(2) by blast
+      with Suc step_nm 1 have "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(Suc (Suc m')) Nt S # map Tm y"
+        by (metis (no_types, lifting) Cfg.sel(2) G'_def append_Cons append_self_conv2 relpowp_Suc_I)
+      from G'_derivern_Suc_imp_G_derivern[OF this] show ?thesis using assms(2) by blast
     qed
   next
     case (Suc n')
@@ -894,10 +903,10 @@ proof (standard, goal_cases)
           by (metis Extended_Cfg.S'_deriver_imp_S Extended_Cfg_axioms Nil_is_append_conv append_self_conv
               append_self_conv2 map_is_Nil_conv syms_split_tl)
       qed
-      with 1 step_nm have "Prods G' \<turnstile> [Nt S'] \<Rightarrow>(Suc (Suc n')) Nt S # map Tm w" 
+      with 1 step_nm have "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(Suc (Suc n')) Nt S # map Tm w" 
         by (metis Cfg.sel(2) G'_def Suc_n' append.assoc append.right_neutral append_Cons
-            derivern_imp_deriven relpowp_Suc_I same_append_eq)
-      from G'_deriven_Suc_imp_G_deriven[OF this] show ?thesis using assms(2) by blast
+            relpowp_Suc_I same_append_eq)
+      from G'_derivern_Suc_imp_G_derivern[OF this] show ?thesis using assms(2) by blast
     next
       case (Suc m')
       with step_nm G'_derivern_Suc_imp_G_derivern have step_n'm':
@@ -914,8 +923,41 @@ proof (standard, goal_cases)
   qed
 qed
 
+lemma G_LR0_lrec_imp_not_G'_LR0:
+  assumes "is_LR' 0 G" "Prods G \<turnstile> [Nt S] \<Rightarrow>r(Suc n) Nt S # \<alpha>"
+  shows "\<not>is_LR' 0 G'"
+proof
+  assume G'_LR0: "is_LR' 0 G'"
+  from assms reduced_nonempty_derives_imp_substring_derives_Tms
+    [OF reduced_G G_nonempty, of "[Nt S]" \<alpha> "[]"] obtain v m where 1: "Prods G \<turnstile> \<alpha> \<Rightarrow>r(m) map Tm v"  
+    by (metis append.right_neutral append_Cons derivern_iff_deriven derivers_imp_derives
+        eq_Nil_appendI relpowp_imp_rtranclp rtranclp_imp_relpowp)
+  with assms obtain k where "Prods G \<turnstile> [Nt S] \<Rightarrow>r(Suc k) Nt S # map Tm v"
+  proof -
+    note assms(2)
+    also from 1 have "Prods G \<turnstile> Nt S # \<alpha> \<Rightarrow>r(m) Nt S # map Tm v"   
+      by (metis append_Cons append_Nil derivern_prepend)
+    finally show thesis using that by auto
+  qed
+  then obtain \<gamma> Y x where "Prods G \<turnstile> [Nt S] \<Rightarrow>r(k) \<gamma> @ Nt Y # map Tm x" 
+    "Prods G \<turnstile> \<gamma> @ Nt Y # map Tm x \<Rightarrow>r Nt S # map Tm v"
+    by (smt (verit, best) deriver.cases relpowp_Suc_E)
+  moreover hence "S' \<noteq> Y" 
+    by (metis Nt_map_Tm_eq_Nt_map_Tm_iff S'_Prod_notin_G(1) deriver.cases)
+  ultimately show False using LR'_impossible(2)[OF G'_LR0, of "[]" S' "[]" "[Nt S]" \<gamma> Y x v]
+    by (metis Cfg.sel(2) G'_def G_deriver_imp_G'_deriver
+        G_derivers_from_S_imp_G'_derivers_from_S' append_Cons append_Nil char_derivers_ipda_iffs(2)
+        deriver_imp_in_Prods deriver_singleton list.simps(8) relpowp_imp_rtranclp
+        rtranclp.rtrancl_refl take0)
+qed
+
+theorem G'_LR0_iff_G_LR0_lrec_free:
+  "is_LR' 0 G' = (is_LR' 0 G \<and> (\<nexists>n \<alpha>. Prods G \<turnstile> [Nt S] \<Rightarrow>r(Suc n) Nt S # \<alpha>))"
+  using G_LR0_lrec_imp_not_G'_LR0 LR'0_G_imp_LR'0_G' 
+  by (metis LR'k_G'_imp_LR'k_G)
+
 lemma LR'_Suc_G_imp_LR'_Suc_G':
-  assumes "is_LR' (Suc k) G" "\<nexists>n. Prods G \<turnstile> [Nt S] \<Rightarrow>(Suc n) [Nt S]"
+  assumes "is_LR' (Suc k) G" "\<nexists>n. Prods G \<turnstile> [Nt S] \<Rightarrow>r(Suc n) [Nt S]"
   shows "is_LR' (Suc k) G'"
 proof (standard, goal_cases)
   case (1 \<alpha> X \<beta> w \<gamma> Y x y)
@@ -935,10 +977,10 @@ proof (standard, goal_cases)
       case (Suc m')
       from n0 step_nm 1 have "\<alpha> = [] \<and> \<beta> = [Nt S] \<and> w = []" 
         by (simp add: Cons_eq_append_conv G'_def S'_derive_imp_S deriver_imp_derive)
-      with Suc step_nm 1 have "Prods G' \<turnstile> [Nt S'] \<Rightarrow>(Suc (Suc m')) [Nt S]"
-        by (metis Cfg.sel(2) G'_def append_self_conv derivern_imp_deriven map_is_Nil_conv nat.discI
+      with Suc step_nm 1 have "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(Suc (Suc m')) [Nt S]"
+        by (metis Cfg.sel(2) G'_def append_self_conv map_is_Nil_conv nat.discI
             relpowp_Suc_I self_append_conv2 take_eq_Nil)
-      from G'_deriven_Suc_imp_G_deriven[OF this] show ?thesis using assms(2) by blast
+      from G'_derivern_Suc_imp_G_derivern[OF this] show ?thesis using assms(2) by blast
     qed
   next
     case (Suc n')
@@ -953,10 +995,10 @@ proof (standard, goal_cases)
           by (metis Extended_Cfg.S'_deriver_imp_S Extended_Cfg_axioms Nil_is_append_conv append_self_conv
               append_self_conv2 map_is_Nil_conv syms_split_tl)
       qed
-      with 1 step_nm have "Prods G' \<turnstile> [Nt S'] \<Rightarrow>(Suc (Suc n')) [Nt S]" 
-        by (metis Cfg.sel(2) G'_def Suc_n' Zero_not_Suc derivern_imp_deriven list.map_disc_iff 
+      with 1 step_nm have "Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(Suc (Suc n')) [Nt S]" 
+        by (metis Cfg.sel(2) G'_def Suc_n' Zero_not_Suc list.map_disc_iff 
             relpowp_Suc_I self_append_conv take_eq_Nil2)
-      from G'_deriven_Suc_imp_G_deriven[OF this] show ?thesis using assms(2) by blast
+      from G'_derivern_Suc_imp_G_derivern[OF this] show ?thesis using assms(2) by blast
     next
       case (Suc m')
       with step_nm G'_derivern_Suc_imp_G_derivern have step_n'm':
@@ -972,6 +1014,29 @@ proof (standard, goal_cases)
     qed
   qed
 qed
+
+lemma G_LR_Suc_cycle_imp_not_G'_LR_Suc:
+  assumes "is_LR' k G" "Prods G \<turnstile> [Nt S] \<Rightarrow>r(Suc n) [Nt S]"
+  shows "\<not>is_LR' k G'"
+proof 
+  assume is_LRk: "is_LR' k G'"
+  from assms obtain \<gamma> Y x where "Prods G \<turnstile> [Nt S] \<Rightarrow>r(n) \<gamma> @ Nt Y # map Tm x"
+    "Prods G \<turnstile> \<gamma> @ Nt Y # map Tm x \<Rightarrow>r [Nt S]"
+    by (smt (verit, best) deriver.cases relpowp_Suc_E)
+  moreover have "Y \<noteq> S'"
+    by (metis Nt_map_Tm_eq_Nt_map_Tm_iff S'_Prod_notin_G(1) calculation(2) deriver.cases)
+  ultimately show False using LR'_impossible(2)[OF is_LRk, of "[]" S' "[]" "[Nt S]" \<gamma> Y x "[]"]
+    by (metis Cfg.sel(2) G'_def G'_derive_S G_deriver_imp_G'_deriver
+        G_derivers_from_S_imp_G'_derivers_from_S' append.right_neutral append_self_conv2
+        derive_singleton deriver.intros list.map_disc_iff relpowp_imp_rtranclp
+        rtranclp.rtrancl_refl)
+qed
+
+theorem G'_LR_Suc_iff_G_LR_Suc_cycle_free:
+  "is_LR' (Suc k) G' = (is_LR' (Suc k) G \<and> (\<nexists>n. Prods G \<turnstile> [Nt S] \<Rightarrow>r(Suc n) [Nt S]))"
+  using LR'_Suc_G_imp_LR'_Suc_G' G_LR_Suc_cycle_imp_not_G'_LR_Suc 
+    by (metis LR'k_G'_imp_LR'k_G)
+
 
 end
 
@@ -1477,8 +1542,6 @@ qed
 theorem P0_Lang_eq_Lang_G:
   "P0.Lang = LangS G"
   using P0_sound P0_complete by standard
-
-unused_thms Context_Free_Grammar Pushdown_Automata Finite_Automata_HF -
 
 end
 end

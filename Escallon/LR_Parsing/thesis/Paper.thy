@@ -101,7 +101,15 @@ Isabelle. In this formalization, the authors introduce CFGs, derivations (includ
 rightmost derivations), and the elimination of unreachable and unproductive nonterminals, which are
 foundational elements in parsing theory.
 
-% TODO\<close>
+On the topic of \<open>LR\<close> parsing, Jourdan et al.~\cite{Jourdan} formalized an \<open>LR(1)\<close> validator in 2012,
+which determines whether a given \<open>LR(1)\<close> parser is correct w.r.t a given CFG, using the Coq proof
+assistant (now renamed to the Rocq Prover). In other areas of general parsing theory,  Rau~\cite{Rau}
+formalized an executable Early parser in 2023, and in the following year, Tilscher and
+Wimmer~\cite{Tilscher} formalized an \<open>LL(1)\<close> parser generator, a formalization which was itself
+based on an \<open>LL(1)\<close> parser generator that was itself verified in the Rocq Prover.
+
+This thesis presents the first formalization of \<open>LR\<close> parsing theory in Isabelle, and is the first
+to address \<open>LR(0)\<close> parsing theory in particular.\<close>
 
 subsection \<open>Isabelle Notation\<close>
 subsubsection \<open>General Notation\<close>
@@ -302,6 +310,17 @@ exists in \<open>G\<close>, completing the proof.
 \end{proof}
 \end{lemma}
 
+\begin{lemma}\label{G'_derivern_Suc_imp_G_derivern}
+If there exists a derivation in \<open>G'\<close>
+\[ @{prop \<open>Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(Suc n) \<beta>\<close>}, \]
+then there also exists a derivation in \<open>G\<close>
+\[ @{prop \<open>Prods G \<turnstile> [Nt S] \<Rightarrow>r(n) \<beta>\<close>}. \]
+\begin{proof}
+Analogous to the proof of Lemma~\ref{G'_deriven_Suc_imp_G_deriven}.
+\end{proof}
+\end{lemma}
+
+
 \begin{theorem}\label{Lang_preserved}[Preservation of language]
 @{thm Lang_preserved}
 \begin{proof} 
@@ -484,7 +503,7 @@ We prove this property by showing there exists a bijection between this set and 
 \end{proof}
 \end{lemma}\<close>
 
-subsection \<open>Generalized Pushdown Automata\<close>
+subsection \<open>Generalized Pushdown Automata\label{sec:gpdas}\<close>
 
 (*<*)
 end
@@ -516,7 +535,7 @@ and both \<open>ps\<close> and \<open>qs\<close> are subsets of \<open>states\<c
 
 It is worth noting that, differently from traditional PDAs, GPDAs do not have a dedicated state. 
 Instead, a variable amount of topmost stack symbols are used to determine the transition. 
-Therefore, if \<open>M\<close> is a GPDA, talking about "the state" of \<open>M\<close> at a given time is a shorthand to 
+Therefore, if \<open>M\<close> is a GPDA, talking about ``the state'' of \<open>M\<close> at a given time is a shorthand to 
 refer to the topmost state on \<open>M\<close>'s stack at that moment.
 
 Another important aspect is that as opposed to our definition of GPDAs, Wilhelm et al. define them
@@ -654,7 +673,10 @@ We will now work towards proving that \<open>I\<^sub>G\<close> accepts exactly @
 
 subsection \<open>Language Equivalence\<close>
 
-text\<open>\begin{lemma}[IPDA invariant]\label{ipda.invariant}
+text\<open>We will first show that the IPDA is sound, that is, its language is a subset of the grammar. We
+first prove an invariant following the original proof by Wilhelm et al.
+
+\begin{lemma}[IPDA invariant]\label{ipda.invariant}
 @{prop \<open>([init M], u @ v) \<turnstile>I* (rev \<rho>, v)\<close>} implies\\ @{prop \<open>Prods G \<turnstile> hist \<rho> \<Rightarrow>* map Tm u\<close>}.
 \begin{proof}
 We proceed by induction on the length \<open>n\<close> of the computation for arbitrary \<open>u, v,\<close> and \<open>\<rho>\<close>.
@@ -810,22 +832,24 @@ And thus with Lemma~\ref{ipda.Lang_subst_Lang_G}:
 \qed
 \end{theorem}
 
-We have now defined a nondeterministic GPDA that works with items and accepts exactly its underlying 
-language. With this IPDA definition, we can see one of the benefits of extending \<open>G\<close>: if we were to 
-define the set of final states to be the set of all complete items of the form @{term \<open>[S \<rightarrow> \<alpha> \<cdot> ]\<close>},
-the automaton could encounter a final state before the end of a computation. Since \<open>S'\<close> is in not 
-on the RHS of any production, this scenario can not occur after the extension.\par
-
-As a final remark, it is worth pointing out that our proof differs somewhat from that of
-Wilhelm et al. Rather than of Lemma~\ref{derives_imp_completes}, they prove a special case 
+Our completeness proof differs somewhat from that of Wilhelm et al. Rather than
+Lemma~\ref{derives_imp_completes}, they prove a special case 
 thereof~\cite[p. 61]{Wilhelm}, namely the statement
 \begin{quote}
 \textit{For each derivation \<open>Prods G \<turnstile> [Nt A] \<Rightarrow> \<alpha> \<Rightarrow>* map Tm w\<close> with \<open>A :: 'n\<close>, 
 \[ @{prop \<open>([A \<rightarrow> \<cdot> \<alpha>] # \<rho>, w @ v) \<turnstile>I* ([A \<rightarrow> \<alpha> \<cdot> ] # \<rho>, v)\<close>} \] 
 for arbitrary \<open>\<rho> :: item list\<close> and \<open>v :: 't list\<close>.}
 \end{quote}
+Despite this weaker statement being sufficient for the IPDA's correctness proof, we will need the
+stronger lemma in order to prove the first of the two major theorems from the book that we will
+formalize in a future section.
 
-However, this statement is too weak, as we will soon need the stronger lemma we have proved instead.\<close>
+We have now defined a nondeterministic GPDA that works with items and accepts exactly its underlying 
+language. Note that the IPDA is the first of multiple automata where we can see the benefit of
+extending the grammar: if we were to define the set of final states to be the set of all complete
+items of the form @{term \<open>[S \<rightarrow> \<alpha> \<cdot> ]\<close>}, the automaton could encounter a final state before the end
+of a computation. Since \<open>S'\<close> is in not on the RHS of any production, this scenario can not occur
+after the extension.\<close>
 
 section \<open>Rightmost Chains: Decomposing Rightmost Derivations\<close>
 
@@ -846,13 +870,11 @@ of the form
         & \<open>\<Rightarrow>r (\<alpha>\<^sub>1 \<dots> \<alpha>\<^sub>n) \<alpha>\<beta> @ map Tm (v\<^sub>n \<dots> v\<^sub>1)\<close>.
 \end{split}
 \end{equation}
-where \<open>X\<^sub>n = A\<close>. In the above expression, we omit most concatenation operators @{term \<open>(@)\<close>} for 
-compactness. Instead, we denote concatenation by juxtaposition (such as in \<open>(\<alpha>\<^sub>1 \<dots> \<alpha>\<^sub>n) \<alpha>\<beta>\<close> instead
-of \<open>(\<alpha>\<^sub>1 @ \<dots> @ \<alpha>\<^sub>n) @ \<alpha> @ \<beta>\<close>).
-
-We now formalize this concept by defining \concept{rightmost chains} inductively. If sentential 
-form \<open>\<alpha>\<close> reaches sentential form \<open>\<beta>\<close> with rightmost chain \<open>\<rho>\<close> under production set \<open>P\<close>, we write 
-@{prop \<open>P \<turnstile> \<alpha> \<midarrow>\<rho>\<rightarrow>r* \<beta>\<close>}. For a fixed \<open>P\<close>, we define a \concept{reflexive} rule:
+where \<open>X\<^sub>n = A\<close>~\footnote{This expression denotes concatenation by juxtaposition instead of the usual
+concatenation operator @{term \<open>(@)\<close>} for compactness.}. We now formalize this concept by defining
+\concept{rightmost chains} inductively. If sentential form \<open>\<alpha>\<close> reaches sentential form \<open>\<beta>\<close> with
+rightmost chain \<open>\<rho>\<close> under production set \<open>P\<close>, we write @{prop \<open>P \<turnstile> \<alpha> \<midarrow>\<rho>\<rightarrow>r* \<beta>\<close>}. For a fixed \<open>P\<close>,
+we define a \concept{reflexive} rule:
 \begin{gather*}
 @{thm rm_chain.refl}\\
 \intertext{and a \concept{step} rule:}
@@ -988,23 +1010,19 @@ and \eqref{der_rm.yzu}, we have
 @{prop \<open>P \<turnstile> \<beta>' @ map Tm w \<Rightarrow>r* map Tm v\<close>}
 \end{equation}
 From \eqref{der_rm.bgu},\eqref{der_rm.b_dec}, \eqref{der_rm.g_tms}, and \eqref{der_rm.yzu} we also 
-have 
-\begin{equation} \label{der_rm.da}
-  @{prop \<open>\<delta> = \<alpha>\<close>}.
-\end{equation}
-
-Since our induction hypothesis only holds for a nonzero number of steps, we need to distinguish 
-cases on the \<open>k\<close> steps in \eqref{der_rm.prodd(1)}.
+have @{prop \<open>\<delta> = \<alpha>\<close>}. Since our induction hypothesis only holds for a nonzero number of steps, we
+need to distinguish cases on the \<open>k\<close> steps in \eqref{der_rm.prodd(1)}.
 
 If \<open>k = 0\<close>, \eqref{der_rm.prodd(1)} implies that \<open>\<alpha>' = [] = w\<close> and \<open>A = C\<close>. This in turn implies
-that \<open>\<delta> = \<alpha>''\<close>. With \eqref{der_rm.da} and \eqref{der_rm.suffix_derivers_v}, this implies 
+that \<open>\<delta> = \<alpha>''\<close>. With \eqref{der_rm.suffix_derivers_v} and substituting \<open>\<delta>\<close> for \<open>\<alpha>\<close>, this implies 
 \[ @{prop \<open>P \<turnstile> [Nt A] \<midarrow>[[A \<rightarrow> \<alpha>'' \<cdot> Nt X # \<beta>']]\<rightarrow>r* \<alpha> @ Nt X # map Tm v\<close>}. \]
 
 If, on the other hand, \<open>k = Suc j\<close> for some \<open>j\<close>, we can apply the induction hypothesis for \<open>C\<close>
-with \eqref{der_rm.prodd(1)}, i.e., there exists some \<open>\<rho>\<close> such that
-\[ @{prop \<open>P \<turnstile> [Nt A] \<midarrow>\<rho>\<rightarrow>r* \<alpha>' @ Nt C # map Tm w\<close>}. \]
-We can then use \eqref{der_rm.prodd(1)}, \eqref{der_rm.suffix_derivers_v}, \eqref{der_rm.da}, and 
-\<open>\<delta> = \<alpha>' @ \<alpha>''\<close> to show that 
+with \eqref{der_rm.prodd(1)}, i.e., there exists some \<open>\<rho>\<close> such that @{term \<open>[Nt A]\<close>} reaches
+@{term \<open>\<alpha>' @ Nt C # map Tm w\<close>} with rightmost chain \<open>\<rho>\<close>~\footnote{The induction hypothesis actually
+gives us more precise information about \<open>\<rho>\<close>, but we will not need it for our proof.}.
+We can then use \eqref{der_rm.prodd(1)}, \eqref{der_rm.suffix_derivers_v}, and \<open>\<alpha> = \<delta> = \<alpha>' @ \<alpha>''\<close>
+to show that 
 \[ @{prop \<open>P \<turnstile> [Nt A] \<midarrow>[C \<rightarrow> \<alpha>'' \<cdot> Nt X # \<beta>'] # \<rho>\<rightarrow>r* \<alpha> @ Nt X # map Tm v\<close>} \]
 holds, finishing the proof.
 \end{proof}
@@ -1030,7 +1048,7 @@ interpretation I: ipda G IPDA
 
 notation I.step (infix \<open>\<turnstile>I\<close> 55)
 notation I.steps (infix \<open>\<turnstile>I*\<close> 55)
-notation I.stepn (\<open>_ \<turnstile>I'(_') _\<close> 55)
+notation (latex) I.stepn (\<open>_ \<turnstile>I'(_') _\<close> 55)
 
 (*>*)
 
@@ -1297,7 +1315,7 @@ for some \<open>u :: 't list\<close>.
 \item There exists a computation 
 \[ @{prop \<open>([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, v) \<turnstile>I* ([I.final_state], [])\<close>} \]
 of the IPDA @{const I\<^sub>G} for some \<open>\<rho> :: item list\<close> and \<open>v :: 't list\<close> such that 
-@{prop \<open>hist (rev \<rho>) = \<gamma>\<close>} holds.
+@{prop \<open>mbox0 (hist (rev \<rho>)) = \<gamma>\<close>} holds.
 \end{enumerate}
 \end{theorem}
 
@@ -1522,6 +1540,18 @@ the proof of Theorem~\ref{char_derivers_ipda_iffs}.
 \end{proof}
 \end{lemma}
 
+With this, we have proved all three implications. It is worth noting that, for the last two
+implications, our proofs follow the main argumentation of Wilhelm et al., since our original
+motivation to introduce the concept of rightmost chains was precisely to formalize the notion of
+decomposing rightmost derivations akin to what Wilhelm et al. describe, and they, like we did in our
+formalization of rightmost chains, argue that IPDA stacks leading to accepting configurations have
+a structure that closely resembles these decompositions, but this relation is not explicitly stated
+in the book. Furthermore, in order to correct the original theorem of equivalences, we 
+explicitly needed the first statement in Theorem~\ref{char_derivers_ipda_iffs} to require the input
+of @{const char_fa} to contain \<open>\<alpha>\<close> as a suffix. Therefore, the Theorem cannot be used directly in
+any scenario where the original one is without showing additional properties of the input. We can 
+simply circumvent this by using the individual implication lemmas by which we proved the theorem.
+
 We now define the notion of \concept{reliable prefixes}:
 
 \begin{definition}[Reliable prefix]
@@ -1621,6 +1651,9 @@ Follows by the definition of the \<open>nxt\<close> function of the DFA resultin
 as well as Lemma~\ref{char_fa_nxts_is_shifts}.
 \end{proof}
 \end{lemma}
+
+We now prove a lemma that will be once again essential to numerous proofs in the coming section, but
+was not part of the work of Wilhelm et al.
 
 \begin{lemma}\label{nxt_dfa_LR0_shift_is_valids_app}
 If @{prop \<open>valids \<gamma> \<in> dfa.states LR\<^sub>0\<close>}, then
@@ -1727,7 +1760,7 @@ described above because the item \<open>[S' \<rightarrow> \<cdot> ]\<close> is n
 by the definition of \<open>G'\<close>. The choice of \<open>f\<close>, however, is irrelevant as long as it is not an element
 of \<open>Q\<close>.\<close>
 
-subsubsection \<open>Finiteness of the Transition Relations of @{const P\<^sub>0}\<close>
+subsubsection \<open>Finiteness of the Transition Relations of @{const P\<^sub>0}\label{sec:finite}\<close>
 
 text \<open>We mentioned when defining GPDAs that we do not assume the transition relation to be finite.
 This is only because the first GPDA we defined, i.e., the IPDA, only acts as a theoretical construct 
@@ -1805,7 +1838,7 @@ the finiteness of the states of @{const LR\<^sub>0} and Lemma~\ref{finite_eps_P0
 \end{proposition}
 
 With Propositions~\ref{finite_nxt_P0} and \ref{finite_eps_P0} we have shown a sufficient condition
-for an executable transition function of the canonical \<open>LR(0)\<close> parser. \<close>
+for an executable transition function of the canonical \<open>LR(0)\<close> parser.\<close>
 
 subsection \<open>\<open>LR(0)\<close>-Adequate and Inadequate States\<close>
 
@@ -2326,7 +2359,7 @@ al., is restricted to the extension of a CFG. Since extending a grammar preserve
 such as the language and quality of being reduced, as we showed in Theorem~\ref{Lang_preserved} and
 Lemma~\ref{G'_reduced}, one could intuitively assume that the extension has no effect on the original
 grammar's fulfillment of the \<open>LR(k)\<close> condition. In our formalization of \<open>LR(k)\<close>, we remained working
-within the context of our Extended Grammars, which fixes \<open>G'\<close> as the extension of the original CFG \<open>G\<close>.
+within the context of our extended grammars, which fixes \<open>G'\<close> as the extension of the original CFG \<open>G\<close>.
 Since our grammars are fixed, we defined the \<open>LR(k)\<close> condition per Wilhelm et al. as the predicate 
 \<open>is_LR :: nat \<Rightarrow> bool\<close>:
 \begin{quote}
@@ -2339,13 +2372,12 @@ Consider now the more general \<open>is_LR' :: nat \<Rightarrow> ('a, 'b) Cfg \<
 This definition for arbitrary CFGs, is not preserved by extension, i.e., for our fixed \<open>G\<close> and \<open>G'\<close>,
 the equality 
 \[ @{term \<open>is_LR' k G\<close>} \overset{?}{=} @{term\<open>is_LR' k G'\<close>} \]
-does not hold in general. We will prove two lemmas that show that for grammars with certain 
-properties, the extension does preserve the \<open>LR(k)\<close> condition, and in the process explain why the 
-property is necessary for the condition to be preserved.
+does not hold in general. We will prove two necessary and sufficient conditions that show that for
+grammars with certain properties, the extension does preserve the \<open>LR(k)\<close> condition.
 
 One direction of the claim does hold for all \<open>k\<close>:
 
-\begin{lemma}
+\begin{lemma}\label{LR'k_G'_imp_LR'k_G}
 Let \<open>G\<close> be a CFG and \<open>G'\<close> its extension. For all \<open>k\<close> holds
 \[ @{thm LR'k_G'_imp_LR'k_G} \]
 \begin{proof}
@@ -2353,16 +2385,15 @@ Trivial using the fact that @{term \<open>Prods G \<subseteq> Prods G'\<close>}.
 \end{proof}
 \end{lemma}
 
-We show two lemmas for the converse:
+We now show the converse for \<open>k = 0\<close> and \<open>k > 0\<close> separately. For the remainder of this section, let 
+\<open>G\<close> again be a reduced grammar with finite productions, start symbol \<open>S\<close> and nonempty language, and
+\<open>G'\<close> its extension with start symbol \<open>S'\<close>. 
 
 \begin{lemma}\label{LR'0_G_imp_LR'0_G'}[Preservation of \<open>LR(0)\<close>]
-Let \<open>G\<close> be a reduced \<open>LR(0)\<close> grammar with start symbol \<open>S\<close> and nonempty language, and \<open>G'\<close> 
-its extension with start symbol \<open>S'\<close>. 
-Furthermore, assume there does not exist a left recursion of the form
-\[ @{prop \<open>Prods G \<turnstile> [Nt S] \<Rightarrow>(Suc n) Nt S # \<alpha>\<close>} \]
-for any \<open>n :: nat\<close> or \<open>\<alpha> :: syms\<close>. 
-
-Then \<open>G'\<close> is an \<open>LR(0)\<close> grammar.
+Assume \<open>G\<close> is an \<open>LR(0)\<close> grammar. Furthermore, assume there does not exist a left recursion of the
+form
+\[ @{prop \<open>Prods G \<turnstile> [Nt S] \<Rightarrow>r(Suc n) Nt S # \<alpha>\<close>} \]
+for any \<open>n :: nat\<close> or \<open>\<alpha> :: syms\<close>. Then \<open>G'\<close> is an \<open>LR(0)\<close> grammar.
 \begin{proof}
 Consider the rightmost derivations 
 \begin{gather*}
@@ -2380,30 +2411,51 @@ If \<open>n = m = 0\<close>, the implication holds trivially.
 
 If \<open>n = 0\<close> and \<open>m = Suc m'\<close> for some \<open>m'\<close>, we know from \<open>n = 0\<close> that \<open>\<alpha> = []\<close>, \<open>\<beta> = [Nt S]\<close>, and 
 \<open>w = []\<close>.
-This also implies that @{prop \<open>Prods G' \<turnstile> [Nt S'] \<Rightarrow>(Suc (Suc m')) Nt S # map Tm y\<close>}, by 
-Lemma~\ref{G'_deriven_Suc_imp_G_deriven}, this contradicts our assumption about the absence of left 
+This also implies that @{prop \<open>Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(Suc (Suc m')) Nt S # map Tm y\<close>}, by 
+Lemma~\ref{G'_derivern_Suc_imp_G_derivern}, this contradicts our assumption about the absence of left 
 recursions for \<open>S\<close> in \<open>G\<close>.
-
-If we did not assume that \<open>G\<close> is free of such left recursions, the \<open>LR(0)\<close> condition would be broken: 
-from \<open>n = 0\<close>, we know that \<open>X = S'\<close>. Since \<open>S'\<close> is not in \<open>G\<close>, this immediately makes the condition 
-\<open>X = Y\<close> unsatisfiable. Besides this, the \<open>Y\<close> that produces \<open>S\<close> could also produce terminals to its 
-right, violating the \<open>x = y\<close> condition as well. 
 
 The opposite case, \<open>n = Suc n'\<close> for some \<open>n'\<close> and \<open>m = 0\<close>, is analogous.
 
-Finally, for the case where both derivations have nonzero length, one can show the same
-property from Lemma~\ref{G'_deriven_Suc_imp_G_deriven} holds for rightmost derivations as well, i.e.,
-\[ @{thm G'_derivern_Suc_imp_G_derivern}. \] 
-The proof is analogous to that of Lemma~\ref{G'_deriven_Suc_imp_G_deriven}. With this property, the
-final case is trivial.
+Finally, the case where both derivations have nonzero length is trivial by
+Lemma~\ref{G'_derivern_Suc_imp_G_derivern}.
 \end{proof}
 \end{lemma}
 
+We will now show that a non-left-recursive start symbol through rightmost derivations is a necessary
+condition as well.
+
+\begin{lemma}\label{G_LR0_lrec_imp_not_G'_LR0}
+If \<open>G\<close> is an \<open>LR(0)\<close> grammar with a left recursion of the form 
+@{prop \<open>Prods G \<turnstile> [Nt S] \<Rightarrow>r(Suc n) Nt S # \<alpha>\<close>}, \<open>G'\<close> is not an \<open>LR(0)\<close> grammar.
+\begin{proof}
+Since it is a reduced grammar, we know there exists some \<open>v :: 't list\<close> derived by \<open>\<alpha>\<close>, i.e., there 
+also exists some k with
+@{prop \<open>Prods G \<turnstile> [Nt S] \<Rightarrow>r(Suc k) Nt S # map Tm v\<close>}.
+We can then decompose this derivation as 
+\<open>Prods G \<turnstile> [Nt S] \<Rightarrow>r* \<gamma> @ Nt Y # map Tm x \<Rightarrow>r Nt S # map Tm v\<close> for some \<open>\<gamma> :: syms\<close>, \<open>Y :: 'n\<close>, and 
+\<open>x :: 't list\<close>. Trivially, this implies \<open>Y \<noteq> S'\<close>.
+
+Furthermore, we know \<open>G'\<close> has a derivation 
+\<open>Prods G' \<turnstile> [Nt S'] \<Rightarrow>r* \<alpha> @ Nt X # map Tm w \<Rightarrow>r \<alpha> @ \<beta> @ map Tm w\<close> with \<open>\<alpha> = []\<close>, \<open>X = S'\<close>, 
+\<open>\<beta> = [Nt S]\<close>, and \<open>w = []\<close> by reflexivity. We can therefore express the right sentential form 
+\<open>Nt S # map Tm v\<close> as \<open>\<alpha> @ \<beta> @ map Tm v\<close>, and the \<open>LR(0)\<close> condition is thus violated since \<open>X \<noteq> Y\<close>.
+\end{proof}
+\end{lemma}
+
+From these lemmas and Lemma~\ref{LR'k_G'_imp_LR'k_G} follows the first equivalence.
+
+\begin{theorem}\label{G'_LR0_iff_G_LR0_lrec_free}
+\<open>G'\<close> is an \<open>LR(0)\<close> grammar if and only if \<open>G\<close> is an \<open>LR(0)\<close> grammar with no left recursion of the 
+form @{prop \<open>Prods G \<turnstile> [Nt S] \<Rightarrow>r(Suc n) Nt S # \<alpha>\<close>} for any \<open>n\<close>.
+\end{theorem}
+
+We now move on to \<open>k > 0\<close>.
+
 \begin{lemma}\label{LR'_Suc_G_imp_LR'_Suc_G'}[Preservation of \<open>LR(k)\<close> for nonzero \<open>k\<close>]
-Let \<open>G\<close> be an \<open>LR(k)\<close> grammar for \<open>k > 0\<close> with start symbol \<open>S\<close> and \<open>G'\<close> its extension with start 
-symbol \<open>S'\<close>. Furthermore, assume there does not exist a cycle
-\[ @{prop \<open>Prods G \<turnstile> [Nt S] \<Rightarrow>(Suc n) [Nt S]\<close>} \]
-for any \<open>n :: nat\<close>. 
+Let \<open>G\<close> be an \<open>LR(k)\<close> grammar for \<open>k > 0\<close>. Furthermore, assume there does not exist a cycle
+\[ @{prop \<open>Prods G \<turnstile> [Nt S] \<Rightarrow>r(Suc n) [Nt S]\<close>} \]
+for any \<open>n :: nat\<close>. Then \<open>G'\<close> is an \<open>LR(k)\<close> grammar
 \begin{proof}
 Consider the rightmost derivations 
 \begin{gather*}
@@ -2421,21 +2473,38 @@ This case once again implies that
 @{prop \<open>\<alpha> = []\<close>}, @{prop \<open>\<beta> = [Nt S]\<close>}, \text{ and } @{prop \<open>w = []\<close>},
 \end{equation}
 and we again have a left recursion of the form 
-\[ @{prop \<open>Prods G' \<turnstile> [Nt S'] \<Rightarrow>(Suc (Suc m')) Nt S # map Tm y\<close>}. \]
+\[ @{prop \<open>Prods G' \<turnstile> [Nt S'] \<Rightarrow>r(Suc (Suc m')) Nt S # map Tm y\<close>}. \]
 However, in this case, since @{prop \<open>k > 0\<close>} and @{prop \<open>w = []\<close>}, @{prop \<open>take k w = take k y\<close>} 
 can only hold if \<open>y = []\<close>. This contradicts the assumption that \<open>G\<close> is cycle-free.
-
-Similarly to the \<open>LR(0)\<close> case, if \<open>G\<close> were not cycle-free, this case would violate the 
-\<open>LR(k)\<close> condition since, again, $\<open>X\<close> \overset{!}{=} \<open>Y\<close>$ cannot hold, but although this situation 
-bears similarity to the case for \<open>LR(0)\<close>, it has a rather meaningful implication: \<open>LR(k)\<close> grammars 
-with nonzero \<open>k\<close> are possible to extend despite left recursions, which makes them much more powerful 
-than \<open>LR(0)\<close> grammars in this regard. If a left recursion is possible, the lookahead prevents 
-\<open>S' \<rightarrow> S\<close> from creating ambiguity, since this production always implies the lookahead is empty, as 
-we can see in \eqref{LR_Suc_k}.
 
 The proof for the other cases is analogous to that of Lemma~\ref{LR'0_G_imp_LR'0_G'}.
 \end{proof}
 \end{lemma}
+
+We will once again show that this condition is necessary.
+
+\begin{lemma}\label{G_LR_Suc_cycle_imp_not_G'_LR_Suc}
+If \<open>G\<close> is an \<open>LR(k)\<close> grammar for \<open>k > 0\<close> with a cycle through its start symbol \<open>S\<close> reachable
+via rightmost derivations, \<open>G'\<close> is not an
+\<open>LR(k)\<close> grammar.
+\begin{proof}
+A cycle through \<open>S\<close> via rightmost derivations implies the existence of some \<open>n\<close> such that
+\<open>Prods G \<turnstile> [Nt S] \<Rightarrow>r(n) \<gamma> @ Nt Y # map Tm x \<Rightarrow>r [Nt S]\<close> for some \<open>\<gamma> :: syms\<close>, \<open>Y :: 'n\<close>, and 
+\<open>x :: 't list\<close>. This again implies that \<open>Y \<noteq> S'\<close>, and the \<open>LR(k)\<close> condition is violated similarly 
+to how it occurs in the proof of Lemma~\ref{G_LR0_lrec_imp_not_G'_LR0}, with one important 
+distinction: in this case, the condition is violated because \<open>x\<close> must be empty for 
+\<open>\<gamma> @ Nt Y # map Tm x\<close> to derive \<open>[Nt S]\<close>. Therefore, \<open>\<gamma> @ Nt Y # map Tm x\<close> derives 
+@{term \<open>\<alpha> @ \<beta> @ map Tm x\<close>} with \<open>\<alpha> = \<beta> = map Tm x = []\<close> and thus the property 
+\<open>take (Suc k) x = take (Suc k) w = []\<close> holds.
+\end{proof}
+\end{lemma}
+
+Once more, from the above two lemmas and Lemma~\ref{LR'k_G'_imp_LR'k_G} follows the equality.
+
+\begin{theorem}\label{G'_LR_Suc_iff_G_LR_Suc_cycle_free}
+\<open>G'\<close> is an \<open>LR(k)\<close> grammar for \<open>k > 0\<close> if and only if \<open>G\<close> has no cycles of the form 
+@{prop \<open>Prods G \<turnstile> [Nt S] \<Rightarrow>r(Suc n) [Nt S]\<close>} for any \<open>n\<close>.
+\end{theorem}
 
 It is worth highlighting that in the CFG section of the book, Wilhelm et al. 
 explain:~\cite[p. 52]{Wilhelm}
@@ -2445,20 +2514,36 @@ then there exist exactly one parse tree, one leftmost and one rightmost derivati
 syntactically correct program.
 \end{quote}
 
-This is of great importance to our result from Lemma~\ref{LR'_Suc_G_imp_LR'_Suc_G'}: a grammar
-with a cycle through its start symbol has infinitely many derivations for every word in the
+This is of great importance to our result from Theorem~\ref{G'_LR_Suc_iff_G_LR_Suc_cycle_free}: a 
+grammar with a cycle through its start symbol has infinitely many derivations for every word in the
 language, i.e., it is ambiguous. We can therefore conclude, based on our results and the authors'
 claims about the importance of grammars being unambiguous, that the precondition for the preservation
-of the \<open>LR(k)\<close> condition for \<open>k > 0\<close>, i.e., the grammar being cycle-free, is essentially guaranteed
-to hold in practice. This is because the extension only causes the previously satisfied condition to 
-be violated in grammars which the theory we are formalizing already deems inadequate to begin with.
+of the \<open>LR(k)\<close> condition for \<open>k > 0\<close>, i.e., the grammar being cycle-free under rightmost derivations, 
+is essentially guaranteed to hold in practice. This is because the extension only causes the 
+previously satisfied condition to be violated in grammars which the theory we are formalizing 
+already deems inadequate to begin with. In fact, our result even shows that one could extend a
+grammar with a cycle through its start symbol without introducing ambiguity, provided that this cycle
+does not consist exclusively of rightmost derivations. The extension thus only affects a \emph{subset}
+of grammars that are already dismissed as unsuitable.
 
 For the case of \<open>k = 0\<close>, however, this does become problematic. Grammars with left recursions
-are fairly standard, meaning that our precondition makes it possible to guarantee the preservation
-of the \<open>LR(0)\<close> condition only for a subset of \<open>LR(0)\<close> grammars, namely those that lack a left-recursive
-start symbol. It is worth noting that our formal proof only delivers a sufficient condition for the 
-preservation of the \<open>LR(0)\<close> condition, but its necessity remains an open question.
+are fairly standard, meaning that our precondition shows that only a subset of \<open>LR(0)\<close> grammars that
+are used in practice allows for the extension, namely those that lack a left-recursive start symbol
+whose left recursion is reachable with rightmost derivations. Since our parser and its underlying
+automata are defined exclusively for extended grammars, this means that it is possible for an
+unextended grammar \<open>G\<close> to fulfill the \<open>LR(0)\<close> condition while @{const LR\<^sub>0} contains \<open>LR(0)\<close>-inadequate
+states. Therefore, the canonical \<open>LR(0)\<close> parser as defined by Wilhelm et al. is not able to parse
+an arbitrary \<open>LR(0)\<close> grammar deterministically in general.
 
+Theorem~\ref{G'_LR0_iff_G_LR0_lrec_free} also shows that one needs to be careful when treating the
+\<open>LR(0)\<close> condition as interchangeable for \<open>G\<close> and \<open>G'\<close>. Wilhelm et al. do so 
+themselves~\cite[p. 113]{Wilhelm}: after they introduce their definition of \<open>LR(k)\<close>, which is
+defined only for an extended grammar, they immediately go on to show an example of an unextended
+grammar that fulfills the (generalized) \<open>LR(0)\<close> condition. This is not problematic for this
+particular grammar, but given that left recursions are not uncommon in general, our results suggest
+that it is sometimes necessary to differentiate explicitly between the fulfillment of the condition
+by the unextended and extended grammars instead of treating them as equivalent.
+ 
 With these results and our proof of Theorem~\ref{is_LR0_iff_no_LR0_inadequates}, we have completed
 our goal of verifying the \<open>LR(0)\<close> parsing theory as presented by Wilhelm et al. We now move on towards
 showing a second major result about the canonical \<open>LR(0)\<close> parser which is not in the original text.\<close>
@@ -2729,11 +2814,15 @@ derives words. Essentially, it mimics the grammar's derivation of a word, but ba
 noting that this automaton is not a GPDA in the strict sense of our definition. This is due to the 
 fact that we define the alphabet of a CFG through types rather than sets. Since our SRPDA states 
 are the grammar's symbols, in order to satisfy the assumption that the set of states is finite, one 
-would need to prove that the types for terminals and nonterminals are both finite. Applying such a
-constraint to a type is much more restrictive than to a set, and we purposefully avoid doing it so
-our parser can be used for grammars of arbitrary types. The fact that this automaton does not fulfill
-the finiteness condition in general is not problematic for our purposes, but it is a discrepancy
-with our original GPDA definition that is worth noting.
+would need to prove that the types for terminals and nonterminals are both finite. Therefore, if we
+wanted to use the SRPDA for the same grammar as our parser, we would need to require the parser's
+type variables to be finite as well. Applying such a constraint to a type is much more restrictive 
+than to a set, and we purposefully avoid doing it so our parser can be used for grammars of arbitrary 
+types. This is because since we work with grammars with finitely many productions, there are also
+finitely many symbols that are actually produced by the grammar regardless of the finiteness of the
+type itself. The fact that the SRPDA does not fulfill the finiteness condition in general is not
+problematic for our purposes, but it is a discrepancy with our original GPDA definition that is worth
+noting.
 
 We will now prove that the SRPDA to our reduced grammar \<open>G\<close> is complete, i.e., every word in 
 @{term \<open>LangS G\<close>} is accepted by @{const M\<^sub>G}. We denote \<open>M\<^sub>G\<close> steps and their reflexive transitive
@@ -2932,13 +3021,120 @@ proving the parser itself correct.\<close>
 
 section \<open>Conclusion\<close>
 subsection \<open>Results\<close>
-subsection \<open>Discussion of future work\<close>
-subsubsection \<open>Addressing Grammar Extensions: Necessary Conditions\<close>
-subsubsection \<open>Implementing an Executable \<open>LR(0)\<close> Parser\<close>
 
-subsubsection \<open>Formalizing \<open>LR(k)\<close> theory for general \<open>k\<close>\<close>
-(* maybe *)
-subsubsection \<open>Equivalence of PDAs and GPDAs\<close>
+text \<open>In this thesis, we formally verified the \<open>LR(0)\<close> parsing theory presented by Wilhelm et al., 
+in particular two main theorems: Theorem~\ref{char_derivers_ipda_iffs}, which shows how exactly the 
+characteristic finite automaton, rightmost derivations, and the item pushdown automaton relate to
+each other, and Theorem~\ref{is_LR0_iff_no_LR0_inadequates}, which states the equivalence between an
+extended grammar satisfying the \<open>LR(0)\<close> condition, and the canonical \<open>LR(0)\<close> automaton for this grammar
+having no \<open>LR(0)\<close> inadequate states. Additionally, we provided a formal proof of correctness of the
+canonical \<open>LR(0)\<close> parser, meaning that it accepts exactly the language of its underlying grammar.
+
+We began by formalizing the concept of a reduced grammar using the previous
+definitions and lemmas by Nipkow et al.~\cite{Nipkow}, and we formally introduced the concept of
+extending such grammars by a new starting symbol, proving that these extensions preserve the basic
+properties of language and reduction. We also formally defined generalized pushdown automata, which
+operate similarly to ordinary PDAs, except for the fact that they are able to read topmost stack
+strings of variable length instead of only the topmost symbol.
+
+We then defined the item pushdown automaton and proved its correctness w.r.t its underlying grammar
+\<open>G'\<close>. Our formalization of this property required us to strengthen a lemma that Wilhelm et al. used,
+particularly in order to later prove one of the two main theorems we formalized. Our correctness
+proof followed the original argument closely, with the main difference being that their weaker lemma 
+was simply a special case of our stronger one, Lemma~\ref{derives_imp_completes}.
+
+A major addition that was absent in the book was the introduction of rightmost chains. This allowed
+us to formalize an intuitive manner of decomposing an arbitrary rightmost derivation, and we proved
+the existence of such chains for any rightmost derivation. We also showed that an IPDA stack that
+leads to an accepting state also corresponds to one of these rightmost chains. These properties were
+essential to prove the first of the two theorems in the book. We proved this theorem, which
+corresponds to our Theorem~\ref{char_derivers_ipda_iffs}, after defining the characteristic finite 
+automaton @{const char_fa}. The proof for this theorem was divided into three separate implications
+in a circular proof, the first of which contained multiple errors, most importantly in the
+application of the induction hypothesis, and had to be rewritten. The remaining two implications,
+however, followed the original argumentation of Wilhelm et al., which was possible with our
+aforementioned formalization of rightmost chains. With the lemmas we used to prove this theorem, we
+defined reliable prefixes and valid items, and we established that @{const char_fa} accepts exactly
+the set of reliable prefixes to complete items. We then defined the canonical \<open>LR(0)\<close> automaton
+@{const LR\<^sub>0}, and proved two essential properties: every state of this automaton is the set of valid 
+items for some string \<open>\<gamma>\<close>, @{term \<open>valids \<gamma>\<close>}, and for its transition function \<open>nxt\<close> holds 
+@{prop \<open>dfa.nxt LR\<^sub>0 (valids \<gamma>) X = valids (\<gamma> @ [X])\<close>} for any string \<open>\<gamma>\<close> and symbol \<open>X\<close>, provided
+that \<open>valids \<gamma>\<close> is a state of @{const LR\<^sub>0}.
+
+We then defined the canonical \<open>LR(0)\<close> parser @{const P\<^sub>0} with minor differences to the definition by
+Wilhelm et al., in particular, restricting reducing transitions to items @{term \<open>[X \<rightarrow> \<alpha> \<cdot> \<beta>]\<close>} with 
+\<open>X \<noteq> S'\<close> to avoid intrinsic reduce-reduce conflicts in finishing transitions. We also showed the
+transition relations of the parser to be finite, which leaves the door open for the development of
+an executable canonical \<open>LR(0)\<close> parser. Afterwards, we defined the notion of \<open>LR(0)\<close> inadequacy,
+and presented a proof for Lemma~\ref{LR0_adequate_cases} which was absent from the book. With this
+lemma and the subsequent definition of the \<open>LR(k)\<close> condition for the extended grammar \<open>G'\<close>, we showed
+that \<open>G'\<close> is an \<open>LR(0)\<close> grammar if and only if @{const LR\<^sub>0} has no \<open>LR(0)\<close>-inadequate states. Our
+proof had major differences with that of Wilhelm et al., since we found certain errors in their
+argumentation, and corrected them. 
+
+Furthermore, we discussed whether the extension of an \<open>LR(k)\<close> grammar is \<open>LR(k)\<close> itself, since the
+original definition by Wilhelm et al. is only defined for extended grammars, and found that the
+extension is \<open>LR(0)\<close> if and only if the original grammar \<open>G\<close> is \<open>LR(0)\<close> and its start symbol
+\<open>S\<close> lacks a left-recursion of the form @{prop \<open>Prods G \<turnstile> [Nt S] \<Rightarrow>r(Suc n) Nt S # \<alpha>\<close>}., and
+similarly for \<open>k > 0\<close>, the extension is \<open>LR(k)\<close> if and only if the original grammar is \<open>LR(k)\<close> and
+it has no cycles of the form @{prop \<open>Prods G \<turnstile> [Nt S] \<Rightarrow>r(Suc n) [Nt S]\<close>}. These results lead us to
+conclude that the act of arbitrarily extending a grammar as we did originally is not problematic for
+\<open>k > 0\<close>, since grammars with cycles that cause the extension to violate the \<open>LR(k)\<close> condition should
+not be used in practice per Wilhelm et al. We can also conclude, however, that indiscriminately
+extending an \<open>LR(0)\<close> grammar can be troublesome, and since the the canonical parser by Wilhelm et al.
+is only defined for extended grammars, it is possible that \<open>LR(0)\<close> grammars exist which are not
+suitable for the parser after the extension.
+
+Lastly, we formalized the concept of stack words, inspired by an intuitive explanation by Wilhelm et
+al. of how the parser operates. We furthermore formalized the shift-reduce pushdown automaton
+based on the definition by Petter~\cite{Petter}, and proved its completeness w.r.t its underlying
+grammar. With these two constructions, we finally proved the correctness of the canonical \<open>LR(0)\<close>
+parser.\<close>
+  
+subsection \<open>Future Work\<close>
+
+text \<open>In terms of how our formalization could be extended, we did not formally address the equivalence
+between \<open>LR(0)\<close> inadequacy and determinism. Wilhelm et al. briefly define determinism in the PDA
+chapter of the book~\cite[p. 58]{Wilhelm}, but do not address this equivalence anywhere in the
+\<open>LR(0)\<close> section.
+
+On a similar note, another topic of interest would be the development of an executable canonical
+\<open>LR(0)\<close> parser. Although we verified the parser's properties proven by Wilhem et al. and proved it
+correct, it is not executable as we defined it. This gap could be closed in the future, as discussed 
+in Section~\ref{sec:finite}, which would allow the parser to be applied in practice for concrete
+grammars.
+
+There is also a question out of the scope of parsing theory itself, but is of relevance in automata
+theory, particularly as an addition for the AFP. Standard pushdown automata have been formalized by
+Taskin and Nipkow~\cite{Taskin} and submitted to the Archive, and one could fully formalize GPDAs
+and prove their equivalence with the existing PDAs. As we mentioned in Section~\ref{sec:gpdas}, 
+however, our definition must be slightly modified: one must explicitly assume that the transition
+relations are finite. This is because for a PDA to simulate a GPDA, it must pop a topmost stack
+string of length \<open>n\<close>, which the GPDA pops in one transition step, in \<open>n\<close> transition steps. In order
+to perform this simulation, one must naturally define a new state for each step, which is only
+possible if the GPDA's transition relation is finite. Furthermore, PDAs as defined by Taskin and 
+Nipkow treat the type of states as the set of states for the PDA, and since the set of states of a 
+PDA must be finite, the type for states is finite, and the same applies for stack symbols, and even 
+the input alphabet. Since our GPDA definition is not as restrictive in its types, this raises
+numerous questions as to how one could show this equivalence without sacrificing generality.
+Finite types also raise a separate question: how can the states of the GPDA be extended? Our answer
+to this, which we used to define extended grammars, is to use Popescu's and Bauereiss's fresh
+identifiers~\cite{Popescu}, but this solution is antithetical to finite types, since types of class
+\<open>fresh\<close> are infinite by definition.
+
+Lastly, a broader topic that is also of great interest is the generalization of our formalization
+for \<open>LR(k)\<close> parsing of arbitrary \<open>k\<close>. This generalization raises questions as fundamental as how one
+should model \<open>LR(k)\<close> items in Isabelle: since these items contain a \<open>k\<close>-length lookahead, one must
+be able to restrict the definition of \<open>LR(k)\<close> items to items with lookaheads of specific lengths. 
+\<open>LR(k)\<close> items would also come with additional challenges: in order to guarantee that a grammar has
+finitely many such items, it must have infinitely many symbols. Intuitively, this is not problematic,
+since a grammar with finite productions trivially also has finitely many terminals and nonterminals.
+However, as we could see in the case of the shift-reduce PDA, the common convention of defining the
+symbols through a type only means one would need to restrict \<open>LR(k)\<close> items to work only with finite
+types, which can be severely restrictive. If one wishes to work with general types without imposing
+such restrictions, it is perhaps necessary to define the grammar's symbols through sets instead of
+types.\<close>
+
 
 (*<*)
 end

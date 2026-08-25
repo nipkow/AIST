@@ -1058,13 +1058,11 @@ of the form
         & \isa{{\isasymRightarrow}r\ {\isacharparenleft}{\kern0pt}{\isasymalpha}\isactrlsub {\isadigit{1}}\ {\isasymdots}\ {\isasymalpha}\isactrlsub n{\isacharparenright}{\kern0pt}\ {\isasymalpha}{\isasymbeta}\ {\isacharat}{\kern0pt}\ map\ Tm\ {\isacharparenleft}{\kern0pt}v\isactrlsub n\ {\isasymdots}\ v\isactrlsub {\isadigit{1}}{\isacharparenright}{\kern0pt}}.
 \end{split}
 \end{equation}
-where \isa{X\isactrlsub n\ {\isacharequal}{\kern0pt}\ A}. In the above expression, we omit most concatenation operators \isa{{\isacharparenleft}{\kern0pt}{\isacharat}{\kern0pt}{\isacharparenright}{\kern0pt}} for 
-compactness. Instead, we denote concatenation by juxtaposition (such as in \isa{{\isacharparenleft}{\kern0pt}{\isasymalpha}\isactrlsub {\isadigit{1}}\ {\isasymdots}\ {\isasymalpha}\isactrlsub n{\isacharparenright}{\kern0pt}\ {\isasymalpha}{\isasymbeta}} instead
-of \isa{{\isacharparenleft}{\kern0pt}{\isasymalpha}\isactrlsub {\isadigit{1}}\ {\isacharat}{\kern0pt}\ {\isasymdots}\ {\isacharat}{\kern0pt}\ {\isasymalpha}\isactrlsub n{\isacharparenright}{\kern0pt}\ {\isacharat}{\kern0pt}\ {\isasymalpha}\ {\isacharat}{\kern0pt}\ {\isasymbeta}}).
-
-We now formalize this concept by defining \concept{rightmost chains} inductively. If sentential 
-form \isa{{\isasymalpha}} reaches sentential form \isa{{\isasymbeta}} with rightmost chain \isa{{\isasymrho}} under production set \isa{P}, we write 
-\isa{\isafree{P}\ {\isasymturnstile}\ \isafree{{\isasymalpha}}\ {\isasymmidarrow}\isafree{{\isasymrho}}{\isasymrightarrow}r{\isacharasterisk}{\kern0pt}\ \isafree{{\isasymbeta}}}. For a fixed \isa{P}, we define a \concept{reflexive} rule:
+where \isa{X\isactrlsub n\ {\isacharequal}{\kern0pt}\ A}~\footnote{This expression denotes concatenation by juxtaposition instead of the usual
+concatenation operator \isa{{\isacharparenleft}{\kern0pt}{\isacharat}{\kern0pt}{\isacharparenright}{\kern0pt}} for compactness.}. We now formalize this concept by defining
+\concept{rightmost chains} inductively. If sentential form \isa{{\isasymalpha}} reaches sentential form \isa{{\isasymbeta}} with
+rightmost chain \isa{{\isasymrho}} under production set \isa{P}, we write \isa{\isafree{P}\ {\isasymturnstile}\ \isafree{{\isasymalpha}}\ {\isasymmidarrow}\isafree{{\isasymrho}}{\isasymrightarrow}r{\isacharasterisk}{\kern0pt}\ \isafree{{\isasymbeta}}}. For a fixed \isa{P},
+we define a \concept{reflexive} rule:
 \begin{gather*}
 \isa{\isavar{P}\ {\isasymturnstile}\ \isavar{{\isasymalpha}}\ {\isasymmidarrow}{\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isasymrightarrow}r{\isacharasterisk}{\kern0pt}\ \isavar{{\isasymalpha}}}\\
 \intertext{and a \concept{step} rule:}
@@ -1200,23 +1198,18 @@ and \eqref{der_rm.yzu}, we have
 \isa{\isafree{P}\ {\isasymturnstile}\ \isafree{{\isasymbeta}{\isacharprime}{\kern0pt}}\ {\isacharat}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{w}\ {\isasymRightarrow}r{\isacharasterisk}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{v}}
 \end{equation}
 From \eqref{der_rm.bgu},\eqref{der_rm.b_dec}, \eqref{der_rm.g_tms}, and \eqref{der_rm.yzu} we also 
-have 
-\begin{equation} \label{der_rm.da}
-  \isa{\isafree{{\isasymdelta}}\ {\isacharequal}{\kern0pt}\ \isafree{{\isasymalpha}}}.
-\end{equation}
-
-Since our induction hypothesis only holds for a nonzero number of steps, we need to distinguish 
-cases on the \isa{k} steps in \eqref{der_rm.prodd(1)}.
+have \isa{\isafree{{\isasymdelta}}\ {\isacharequal}{\kern0pt}\ \isafree{{\isasymalpha}}}. Since our induction hypothesis only holds for a nonzero number of steps, we
+need to distinguish cases on the \isa{k} steps in \eqref{der_rm.prodd(1)}.
 
 If \isa{k\ {\isacharequal}{\kern0pt}\ {\isadigit{0}}}, \eqref{der_rm.prodd(1)} implies that \isa{{\isasymalpha}{\isacharprime}{\kern0pt}\ {\isacharequal}{\kern0pt}\ {\isacharbrackleft}{\kern0pt}{\isacharbrackright}{\kern0pt}\ {\isacharequal}{\kern0pt}\ w} and \isa{A\ {\isacharequal}{\kern0pt}\ C}. This in turn implies
-that \isa{{\isasymdelta}\ {\isacharequal}{\kern0pt}\ {\isasymalpha}{\isacharprime}{\kern0pt}{\isacharprime}{\kern0pt}}. With \eqref{der_rm.da} and \eqref{der_rm.suffix_derivers_v}, this implies 
+that \isa{{\isasymdelta}\ {\isacharequal}{\kern0pt}\ {\isasymalpha}{\isacharprime}{\kern0pt}{\isacharprime}{\kern0pt}}. With \eqref{der_rm.suffix_derivers_v} and substituting \isa{{\isasymdelta}} for \isa{{\isasymalpha}}, this implies 
 \[ \isa{\isafree{P}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isafree{A}{\isacharbrackright}{\kern0pt}\ {\isasymmidarrow}{\isacharbrackleft}{\kern0pt}{\isacharbrackleft}{\kern0pt}\isafree{A}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}{\isacharprime}{\kern0pt}{\isacharprime}{\kern0pt}}\ {\isasymcdot}\ \isaconst{Nt}\ \isafree{X}\ {\isacharhash}{\kern0pt}\ \isafree{{\isasymbeta}{\isacharprime}{\kern0pt}}{\isacharbrackright}{\kern0pt}{\isacharbrackright}{\kern0pt}{\isasymrightarrow}r{\isacharasterisk}{\kern0pt}\ \isafree{{\isasymalpha}}\ {\isacharat}{\kern0pt}\ \isaconst{Nt}\ \isafree{X}\ {\isacharhash}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{v}}. \]
 
 If, on the other hand, \isa{k\ {\isacharequal}{\kern0pt}\ Suc\ j} for some \isa{j}, we can apply the induction hypothesis for \isa{C}
 with \eqref{der_rm.prodd(1)}, i.e., there exists some \isa{{\isasymrho}} such that
 \[ \isa{\isafree{P}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isafree{A}{\isacharbrackright}{\kern0pt}\ {\isasymmidarrow}\isafree{{\isasymrho}}{\isasymrightarrow}r{\isacharasterisk}{\kern0pt}\ \isafree{{\isasymalpha}{\isacharprime}{\kern0pt}}\ {\isacharat}{\kern0pt}\ \isaconst{Nt}\ \isafree{C}\ {\isacharhash}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{w}}. \]
-We can then use \eqref{der_rm.prodd(1)}, \eqref{der_rm.suffix_derivers_v}, \eqref{der_rm.da}, and 
-\isa{{\isasymdelta}\ {\isacharequal}{\kern0pt}\ {\isasymalpha}{\isacharprime}{\kern0pt}\ {\isacharat}{\kern0pt}\ {\isasymalpha}{\isacharprime}{\kern0pt}{\isacharprime}{\kern0pt}} to show that 
+We can then use \eqref{der_rm.prodd(1)}, \eqref{der_rm.suffix_derivers_v}, and \isa{{\isasymalpha}\ {\isacharequal}{\kern0pt}\ {\isasymdelta}\ {\isacharequal}{\kern0pt}\ {\isasymalpha}{\isacharprime}{\kern0pt}\ {\isacharat}{\kern0pt}\ {\isasymalpha}{\isacharprime}{\kern0pt}{\isacharprime}{\kern0pt}}
+to show that 
 \[ \isa{\isafree{P}\ {\isasymturnstile}\ {\isacharbrackleft}{\kern0pt}\isaconst{Nt}\ \isafree{A}{\isacharbrackright}{\kern0pt}\ {\isasymmidarrow}{\isacharbrackleft}{\kern0pt}\isafree{C}\ {\isasymrightarrow}\ \isafree{{\isasymalpha}{\isacharprime}{\kern0pt}{\isacharprime}{\kern0pt}}\ {\isasymcdot}\ \isaconst{Nt}\ \isafree{X}\ {\isacharhash}{\kern0pt}\ \isafree{{\isasymbeta}{\isacharprime}{\kern0pt}}{\isacharbrackright}{\kern0pt}\ {\isacharhash}{\kern0pt}\ \isafree{{\isasymrho}}{\isasymrightarrow}r{\isacharasterisk}{\kern0pt}\ \isafree{{\isasymalpha}}\ {\isacharat}{\kern0pt}\ \isaconst{Nt}\ \isafree{X}\ {\isacharhash}{\kern0pt}\ \isaconst{map}\ \isaconst{Tm}\ \isafree{v}} \]
 holds, finishing the proof.
 \end{proof}
@@ -4294,13 +4287,13 @@ proving the parser itself correct.%
 %:%1224=1012%:%
 %:%1225=1013%:%
 %:%1226=1014%:%
-%:%1227=1015%:%
-%:%1228=1016%:%
-%:%1229=1017%:%
-%:%1230=1018%:%
-%:%1231=1019%:%
-%:%1232=1020%:%
-%:%1233=1021%:%
+%:%1243=1030%:%
+%:%1244=1031%:%
+%:%1245=1032%:%
+%:%1246=1033%:%
+%:%1247=1034%:%
+%:%1248=1035%:%
+%:%1249=1036%:%
 %:%1250=1037%:%
 %:%1251=1038%:%
 %:%1252=1039%:%
@@ -4415,29 +4408,29 @@ proving the parser itself correct.%
 %:%1361=1148%:%
 %:%1362=1149%:%
 %:%1363=1150%:%
-%:%1364=1151%:%
-%:%1365=1152%:%
-%:%1366=1153%:%
-%:%1367=1154%:%
-%:%1368=1155%:%
-%:%1369=1156%:%
-%:%1370=1157%:%
-%:%1379=1159%:%
-%:%1391=1173%:%
-%:%1392=1174%:%
-%:%1396=1176%:%
-%:%1397=1177%:%
-%:%1398=1178%:%
-%:%1399=1179%:%
-%:%1408=1181%:%
+%:%1372=1152%:%
+%:%1384=1166%:%
+%:%1385=1167%:%
+%:%1389=1169%:%
+%:%1390=1170%:%
+%:%1391=1171%:%
+%:%1392=1172%:%
+%:%1401=1174%:%
+%:%1413=1176%:%
+%:%1414=1177%:%
+%:%1415=1178%:%
+%:%1416=1179%:%
+%:%1417=1180%:%
+%:%1418=1181%:%
+%:%1419=1182%:%
 %:%1420=1183%:%
-%:%1421=1184%:%
-%:%1422=1185%:%
-%:%1423=1186%:%
-%:%1424=1187%:%
-%:%1425=1188%:%
-%:%1426=1189%:%
-%:%1427=1190%:%
+%:%1427=1186%:%
+%:%1428=1187%:%
+%:%1429=1188%:%
+%:%1430=1189%:%
+%:%1431=1190%:%
+%:%1432=1191%:%
+%:%1433=1192%:%
 %:%1434=1193%:%
 %:%1435=1194%:%
 %:%1436=1195%:%
@@ -4797,14 +4790,14 @@ proving the parser itself correct.%
 %:%1790=1549%:%
 %:%1791=1550%:%
 %:%1792=1551%:%
-%:%1793=1552%:%
-%:%1794=1553%:%
-%:%1795=1554%:%
-%:%1796=1555%:%
-%:%1797=1556%:%
-%:%1798=1557%:%
-%:%1799=1558%:%
-%:%1808=1560%:%
+%:%1801=1553%:%
+%:%1813=1555%:%
+%:%1814=1556%:%
+%:%1815=1557%:%
+%:%1816=1558%:%
+%:%1817=1559%:%
+%:%1818=1560%:%
+%:%1819=1561%:%
 %:%1820=1562%:%
 %:%1821=1563%:%
 %:%1822=1564%:%
@@ -4900,15 +4893,15 @@ proving the parser itself correct.%
 %:%1912=1654%:%
 %:%1913=1655%:%
 %:%1914=1656%:%
-%:%1915=1657%:%
-%:%1916=1658%:%
-%:%1917=1659%:%
-%:%1918=1660%:%
-%:%1919=1661%:%
-%:%1920=1662%:%
-%:%1921=1663%:%
-%:%1930=1665%:%
-%:%1960=1675%:%
+%:%1923=1658%:%
+%:%1953=1668%:%
+%:%1965=1670%:%
+%:%1966=1671%:%
+%:%1967=1672%:%
+%:%1968=1673%:%
+%:%1969=1674%:%
+%:%1970=1675%:%
+%:%1971=1676%:%
 %:%1972=1677%:%
 %:%1973=1678%:%
 %:%1974=1679%:%
@@ -4954,14 +4947,14 @@ proving the parser itself correct.%
 %:%2014=1719%:%
 %:%2015=1720%:%
 %:%2016=1721%:%
-%:%2017=1722%:%
-%:%2018=1723%:%
-%:%2019=1724%:%
-%:%2020=1725%:%
-%:%2021=1726%:%
-%:%2022=1727%:%
-%:%2023=1728%:%
-%:%2032=1730%:%
+%:%2025=1723%:%
+%:%2037=1725%:%
+%:%2038=1726%:%
+%:%2039=1727%:%
+%:%2040=1728%:%
+%:%2041=1729%:%
+%:%2042=1730%:%
+%:%2043=1731%:%
 %:%2044=1732%:%
 %:%2045=1733%:%
 %:%2046=1734%:%
@@ -4994,17 +4987,17 @@ proving the parser itself correct.%
 %:%2073=1761%:%
 %:%2074=1762%:%
 %:%2075=1763%:%
-%:%2076=1764%:%
-%:%2077=1765%:%
-%:%2078=1766%:%
-%:%2079=1767%:%
-%:%2080=1768%:%
-%:%2081=1769%:%
-%:%2082=1770%:%
-%:%2082=1771%:%
-%:%2083=1772%:%
-%:%2084=1773%:%
-%:%2085=1774%:%
+%:%2075=1764%:%
+%:%2076=1765%:%
+%:%2077=1766%:%
+%:%2078=1767%:%
+%:%2078=1768%:%
+%:%2079=1769%:%
+%:%2080=1770%:%
+%:%2081=1771%:%
+%:%2082=1772%:%
+%:%2083=1773%:%
+%:%2084=1774%:%
 %:%2085=1775%:%
 %:%2086=1776%:%
 %:%2087=1777%:%
@@ -5032,14 +5025,14 @@ proving the parser itself correct.%
 %:%2109=1799%:%
 %:%2110=1800%:%
 %:%2111=1801%:%
-%:%2112=1802%:%
-%:%2113=1803%:%
-%:%2114=1804%:%
-%:%2115=1805%:%
-%:%2116=1806%:%
-%:%2117=1807%:%
-%:%2118=1808%:%
-%:%2127=1810%:%
+%:%2120=1803%:%
+%:%2132=1805%:%
+%:%2133=1806%:%
+%:%2134=1807%:%
+%:%2135=1808%:%
+%:%2136=1809%:%
+%:%2137=1810%:%
+%:%2138=1811%:%
 %:%2139=1812%:%
 %:%2140=1813%:%
 %:%2141=1814%:%
@@ -5179,14 +5172,14 @@ proving the parser itself correct.%
 %:%2275=1948%:%
 %:%2276=1949%:%
 %:%2277=1950%:%
-%:%2278=1951%:%
-%:%2279=1952%:%
-%:%2280=1953%:%
-%:%2281=1954%:%
-%:%2282=1955%:%
-%:%2283=1956%:%
-%:%2284=1957%:%
-%:%2293=1959%:%
+%:%2286=1952%:%
+%:%2298=1954%:%
+%:%2299=1955%:%
+%:%2300=1956%:%
+%:%2301=1957%:%
+%:%2302=1958%:%
+%:%2303=1959%:%
+%:%2304=1960%:%
 %:%2305=1961%:%
 %:%2306=1962%:%
 %:%2307=1963%:%
@@ -5539,14 +5532,14 @@ proving the parser itself correct.%
 %:%2654=2310%:%
 %:%2655=2311%:%
 %:%2656=2312%:%
-%:%2657=2313%:%
-%:%2658=2314%:%
-%:%2659=2315%:%
-%:%2660=2316%:%
-%:%2661=2317%:%
-%:%2662=2318%:%
-%:%2663=2319%:%
-%:%2672=2321%:%
+%:%2665=2314%:%
+%:%2677=2316%:%
+%:%2678=2317%:%
+%:%2679=2318%:%
+%:%2680=2319%:%
+%:%2681=2320%:%
+%:%2682=2321%:%
+%:%2683=2322%:%
 %:%2684=2323%:%
 %:%2685=2324%:%
 %:%2686=2325%:%
@@ -5682,20 +5675,20 @@ proving the parser itself correct.%
 %:%2816=2455%:%
 %:%2817=2456%:%
 %:%2818=2457%:%
-%:%2819=2458%:%
-%:%2820=2459%:%
-%:%2821=2460%:%
-%:%2822=2461%:%
-%:%2823=2462%:%
-%:%2824=2463%:%
-%:%2825=2464%:%
-%:%2834=2466%:%
-%:%2846=2471%:%
-%:%2847=2472%:%
-%:%2848=2473%:%
-%:%2849=2474%:%
-%:%2850=2475%:%
-%:%2859=2477%:%
+%:%2827=2459%:%
+%:%2839=2464%:%
+%:%2840=2465%:%
+%:%2841=2466%:%
+%:%2842=2467%:%
+%:%2843=2468%:%
+%:%2852=2470%:%
+%:%2864=2472%:%
+%:%2865=2473%:%
+%:%2866=2474%:%
+%:%2867=2475%:%
+%:%2868=2476%:%
+%:%2869=2477%:%
+%:%2870=2478%:%
 %:%2871=2479%:%
 %:%2872=2480%:%
 %:%2873=2481%:%
@@ -5878,14 +5871,14 @@ proving the parser itself correct.%
 %:%3050=2658%:%
 %:%3051=2659%:%
 %:%3052=2660%:%
-%:%3053=2661%:%
-%:%3054=2662%:%
-%:%3055=2663%:%
-%:%3056=2664%:%
-%:%3057=2665%:%
-%:%3058=2666%:%
-%:%3059=2667%:%
-%:%3068=2669%:%
+%:%3061=2662%:%
+%:%3086=2676%:%
+%:%3087=2677%:%
+%:%3088=2678%:%
+%:%3089=2679%:%
+%:%3090=2680%:%
+%:%3091=2681%:%
+%:%3092=2682%:%
 %:%3093=2683%:%
 %:%3094=2684%:%
 %:%3095=2685%:%
@@ -6128,17 +6121,10 @@ proving the parser itself correct.%
 %:%3332=2922%:%
 %:%3333=2923%:%
 %:%3334=2924%:%
-%:%3335=2925%:%
-%:%3336=2926%:%
-%:%3337=2927%:%
-%:%3338=2928%:%
-%:%3339=2929%:%
-%:%3340=2930%:%
-%:%3341=2931%:%
-%:%3350=2933%:%
-%:%3354=2934%:%
-%:%3358=2935%:%
-%:%3362=2936%:%
-%:%3366=2937%:%
-%:%3370=2939%:%
-%:%3374=2941%:%
+%:%3343=2926%:%
+%:%3347=2927%:%
+%:%3351=2928%:%
+%:%3355=2929%:%
+%:%3359=2930%:%
+%:%3363=2932%:%
+%:%3367=2934%:%

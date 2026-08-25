@@ -1,7 +1,6 @@
 theory Generalized_Pushdown_Automata
   imports
     Auxiliary
-    Pushdown_Automata.Pushdown_Automata 
 begin
 
 record ('q, 'a) gpda = states :: "'q set"

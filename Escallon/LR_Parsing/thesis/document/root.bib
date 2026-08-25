@@ -1,3 +1,30 @@
+@inproceedings{Jourdan,
+  author = {Jourdan, Jacques-Henri and Pottier, Fran{\c{c}}ois and Leroy, Xavier},
+  title = {Validating {LR(1)} Parsers},
+  booktitle = {European Symposium on Programming (ESOP)},
+  year = {2012},
+  month = {March},
+  publisher = {Springer},
+  pages = {397--416},
+  abstract = {An LR(1) parser is a finite-state automaton, equipped
+                  with a stack, which uses a combination of its
+                  current state and one lookahead symbol in order to
+                  determine which action to perform next. We present a
+                  validator which, when applied to a context-free
+                  grammar G and an automaton A, checks that A and G
+                  agree. Validating the parser provides the
+                  correctness guarantees required by verified
+                  compilers and other high-assurance software that
+                  involves parsing. The validation process is
+                  independent of which technique was used to construct
+                  A. The validator is implemented and proved correct
+                  using the Coq proof assistant.  As an application,
+                  we build a formally-verified parser for the C99
+                  language.},
+  doi = {10.1007/978-3-642-28869-2_20},
+  pdf = {pdf/jourdan2012validating.pdf}
+}
+
 @article{Nipkow,
   author  = {Tobias Nipkow and Markus Gscho{\ss}mann and Felix Krayer and Fabian Lehr and Bruno Philipp and August Martin Stimpfle and Kaan Taskin and Akihisa Yamada},
   title   = {Context-Free Grammars and Languages},
@@ -27,6 +54,50 @@
   year         = {2025},
   note         = {Part of the lecture \emph{Compiler Construction} (IN2227) during the 2025 summer 
                 semester at the Technical University of Munich}
+}
+
+@article{Popescu,
+  author  = {Andrei Popescu and Thomas Bauereiss},
+  title   = {Fresh identifiers},
+  journal = {Archive of Formal Proofs},
+  month   = {August},
+  year    = {2021},
+  note    = {\url{https://isa-afp.org/entries/Fresh_Identifiers.html},
+             Formal proof development},
+  ISSN    = {2150-914x},
+}
+
+@article{Rau,
+  author  = {Martin Rau},
+  title   = {Earley Parser},
+  journal = {Archive of Formal Proofs},
+  month   = {July},
+  year    = {2023},
+  note    = {\url{https://isa-afp.org/entries/Earley_Parser.html},
+             Formal proof development},
+  ISSN    = {2150-914x},
+}
+
+@article{Taskin,
+  author  = {Kaan Taskin and Tobias Nipkow},
+  title   = {Pushdown Automata},
+  journal = {Archive of Formal Proofs},
+  month   = {October},
+  year    = {2025},
+  note    = {\url{https://isa-afp.org/entries/Pushdown_Automata.html},
+             Formal proof development},
+  ISSN    = {2150-914x},
+}
+
+@article{Tilscher,
+  author  = {Sarah Tilscher and Simon Wimmer},
+  title   = {LL(1) Parser Generator},
+  journal = {Archive of Formal Proofs},
+  month   = {May},
+  year    = {2024},
+  note    = {\url{https://isa-afp.org/entries/LL1_Parser.html},
+             Formal proof development},
+  ISSN    = {2150-914x},
 }
 
 @Inbook{Wilhelm,

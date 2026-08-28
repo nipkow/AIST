@@ -4,10 +4,10 @@ theory LR0_Parser
     Shift_Reduce_PDA
 begin
 
+section \<open>The \<open>LR(0)\<close> Parser\<close>
+
 context Reduced_Cfg
 begin
-
-section \<open>The Canonical LR(0) Parser\<close>
 
 definition P\<^sub>0 :: "(('n, 't) item set, 't) gpda" where
   "P\<^sub>0 \<equiv> let 
@@ -1036,12 +1036,6 @@ theorem G'_LR_Suc_iff_G_LR_Suc_cycle_free:
   "is_LR' (Suc k) G' = (is_LR' (Suc k) G \<and> (\<nexists>n. Prods G \<turnstile> [Nt S] \<Rightarrow>r(Suc n) [Nt S]))"
   using LR'_Suc_G_imp_LR'_Suc_G' G_LR_Suc_cycle_imp_not_G'_LR_Suc 
     by (metis LR'k_G'_imp_LR'k_G)
-
-
-end
-
-context Reduced_Cfg
-begin
 
 section \<open>Language Equivalence of \<open>P\<^sub>0\<close> and its Grammar\<close>
 

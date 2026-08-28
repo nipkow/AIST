@@ -15,3 +15,6 @@ session thesis in thesis = LR0_Base +
   document_files
     "root.tex"
     "root.bib"
+    "settings.tex"
+    "tumlogo.pdf"
+    

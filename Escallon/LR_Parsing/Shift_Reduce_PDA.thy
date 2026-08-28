@@ -126,12 +126,8 @@ lemma Tms_on_stack_imp_consumed:
 proof (induction v arbitrary: u w rule: rev_induct)
   case (snoc a v)
   from this(2) have 
-    "(\<alpha>, u @ (v @ [a]) @ w) \<turnstile>* (map (Sym \<circ> Tm) (rev v) @ \<beta>, a # w)"
-  proof cases
-    case (rtrancl_into_rtrancl c)
-    then show ?thesis 
-      using Tm_top_of_stack_imp_consumed by simp
-  qed simp
+    "(\<alpha>, u @ v @ [a] @ w) \<turnstile>* (map (Sym \<circ> Tm) (rev v) @ \<beta>, a # w)"
+    using Tm_top_of_stack_imp_consumed by cases simp_all
   with snoc.IH show ?case by fastforce
 qed simp
 

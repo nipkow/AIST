@@ -1,5 +1,90 @@
-@article{Nipkow,
-  author  = {Tobias Nipkow and Markus Gscho{\ss}mann and Felix Krayer and Fabian Lehr and Bruno Philipp and August Martin Stimpfle and Kaan Taskin and Akihisa Yamada},
+@InProceedings{Barthwal,
+author="Barthwal, Aditi
+and Norrish, Michael",
+editor="Castagna, Giuseppe",
+title="Verified, Executable Parsing",
+booktitle="Programming Languages and Systems",
+year="2009",
+publisher="Springer Berlin Heidelberg",
+address="Berlin, Heidelberg",
+pages="160--174",
+abstract="We describe the mechanisation of an SLR parser produced by a parser generator, covering
+background properties of context-free languages and grammars, as well as the construction of an SLR
+automaton. Among the various properties proved about the parser we show, in particular, soundness:
+if the parser results in a parse tree on a given input, then the parse tree is valid with respect to
+the grammar, and the leaves of the parse tree match the input; completeness: if the input is in the
+language of the grammar then the parser constructs the correct parse tree for the input with respect
+to the grammar; and non-ambiguity: grammars successfully converted to SLR automata are unambiguous.",
+isbn="978-3-642-00590-9"
+}
+
+@inproceedings{Blaudeau,
+author = {Blaudeau, Clement and Shankar, Natarajan},
+title = {A verified packrat parser interpreter for parsing expression grammars},
+year = {2020},
+isbn = {9781450370974},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3372885.3373836},
+doi = {10.1145/3372885.3373836},
+abstract = {Parsing expression grammars (PEGs) offer a natural opportunity for building verified parser interpreters based on higher-order parsing combinators. PEGs are expressive, unambiguous, and efficient to parse in a top-down recursive descent style. We use the rich type system of the PVS specification language and verification system to formalize the metatheory of PEGs and define a reference implementation of a recursive parser interpreter for PEGs. In order to ensure termination of parsing, we define a notion of a well-formed grammar. Rather than relying on an inductive definition of parsing, we use abstract syntax trees that represent the computational trace of the parser to provide an effective proof certificate for correct parsing and ensure that parsing properties including soundness and completeness are maintained. The correctness properties are embedded in the types of the operations so that the proofs can be easily constructed from local proof obligations. Building on the reference parser interpreter, we define a packrat parser interpreter as well as an extension that is capable of semantic interpretation. Both these parser interpreters are proved equivalent to the reference one. All of the parsers are executable. The proofs are formalized in mathematical terms so that similar parser interpreters can be defined in any specification language with a type system similar to PVS.},
+booktitle = {Proceedings of the 9th ACM SIGPLAN International Conference on Certified Programs and Proofs},
+pages = {3–17},
+numpages = {15},
+keywords = {well-formed grammars, verified parser, semantic parsing, packrat parsing, abstract syntax tree, PVS, PEG grammar},
+location = {New Orleans, LA, USA},
+series = {CPP 2020}
+}
+
+@inproceedings{Jourdan,
+  author = {Jourdan, Jacques-Henri and Pottier, Fran{\c{c}}ois and Leroy, Xavier},
+  title = {Validating {LR(1)} Parsers},
+  booktitle = {European Symposium on Programming (ESOP)},
+  year = {2012},
+  month = {March},
+  publisher = {Springer},
+  pages = {397--416},
+  abstract = {An LR(1) parser is a finite-state automaton, equipped
+                  with a stack, which uses a combination of its
+                  current state and one lookahead symbol in order to
+                  determine which action to perform next. We present a
+                  validator which, when applied to a context-free
+                  grammar G and an automaton A, checks that A and G
+                  agree. Validating the parser provides the
+                  correctness guarantees required by verified
+                  compilers and other high-assurance software that
+                  involves parsing. The validation process is
+                  independent of which technique was used to construct
+                  A. The validator is implemented and proved correct
+                  using the Coq proof assistant.  As an application,
+                  we build a formally-verified parser for the C99
+                  language.},
+  doi = {10.1007/978-3-642-28869-2_20},
+  pdf = {pdf/jourdan2012validating.pdf}
+}
+
+@InProceedings{Lasser,
+  author =	{Lasser, Sam and Casinghino, Chris and Fisher, Kathleen and Roux, Cody},
+  title =	{{A Verified LL(1) Parser Generator}},
+  booktitle =	{10th International Conference on Interactive Theorem Proving (ITP 2019)},
+  pages =	{24:1--24:18},
+  series =	{Leibniz International Proceedings in Informatics (LIPIcs)},
+  ISBN =	{978-3-95977-122-1},
+  ISSN =	{1868-8969},
+  year =	{2019},
+  volume =	{141},
+  editor =	{Harrison, John and O'Leary, John and Tolmach, Andrew},
+  publisher =	{Schloss Dagstuhl -- Leibniz-Zentrum f{\"u}r Informatik},
+  address =	{Dagstuhl, Germany},
+  URL =		{https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.ITP.2019.24},
+  URN =		{urn:nbn:de:0030-drops-110794},
+  doi =		{10.4230/LIPIcs.ITP.2019.24},
+  annote =	{Keywords: interactive theorem proving, top-down parsing}
+}
+
+@article{Nipkow-AFP,
+  author  = {Tobias Nipkow and Markus Gscho{\ss}mann and Felix Krayer and Fabian Lehr and Bruno
+    Philipp and August Martin Stimpfle and Kaan Taskin and Akihisa Yamada},
   title   = {Context-Free Grammars and Languages},
   journal = {Archive of Formal Proofs},
   month   = {May},
@@ -7,6 +92,43 @@
   note    = {\url{https://isa-afp.org/entries/Context_Free_Grammar.html},
              Formal proof development},
   ISSN    = {2150-914x},
+}
+
+@InProceedings{Nipkow-Paper,
+author="Nipkow, Tobias
+and Lehr, Fabian
+and Roos, Moritz
+and Yamada, Akihisa",
+editor="Biere, Armin
+and Lutz, Carsten
+and Negri, Sara",
+title="A Unified Formalization of Context-Free Grammar Theory",
+booktitle="Automated Reasoning",
+year="2026",
+publisher="Springer Nature Switzerland",
+address="Cham",
+pages="181--199",
+abstract="We present an Isabelle/HOL formalization of the theory of context-free grammars and their 
+links to finite automata. In particular we focus on first-time formalizations of an executable
+translation into Greibach Normal Form, the Chomsky-Sch{\"u}tzenberger Representation Theorem and
+Parikh's Theorem.",
+isbn="978-3-032-32592-1"
+}
+
+
+@Inbook{Nipkow-Book,
+author="Nipkow, Tobias and Klein, Gerwin",
+title="Concrete Semantics with Isabelle/HOL",
+year="2014",
+publisher="Springer International Publishing",
+address="Cham",
+pages="1--69",
+abstract="Isabelle is a generic system for implementing logical formalisms, and Isabelle/HOL is the
+specialization of Isabelle for HOL, which abbreviates Higher-Order Logic. We introduce HOL step by
+step following the equation.",
+isbn="978-3-319-10542-0",
+doi="10.1007/978-3-319-10542-0_1",
+url="https://doi.org/10.1007/978-3-319-10542-0_1"
 }
 
 @article{Paulson,
@@ -27,6 +149,47 @@
   year         = {2025},
   note         = {Part of the lecture \emph{Compiler Construction} (IN2227) during the 2025 summer 
                 semester at the Technical University of Munich}
+}
+
+@article{Popescu,
+  author  = {Andrei Popescu and Thomas Bauereiss},
+  title   = {Fresh identifiers},
+  journal = {Archive of Formal Proofs},
+  month   = {August},
+  year    = {2021},
+  note    = {\url{https://isa-afp.org/entries/Fresh_Identifiers.html},
+             Formal proof development},
+  ISSN    = {2150-914x},
+}
+
+@InProceedings{Rau,
+  author =	{Rau, Martin and Nipkow, Tobias},
+  title =	{{A Verified Earley Parser}},
+  booktitle =	{15th International Conference on Interactive Theorem Proving (ITP 2024)},
+  pages =	{31:1--31:18},
+  series =	{Leibniz International Proceedings in Informatics (LIPIcs)},
+  ISBN =	{978-3-95977-337-9},
+  ISSN =	{1868-8969},
+  year =	{2024},
+  volume =	{309},
+  editor =	{Bertot, Yves and Kutsia, Temur and Norrish, Michael},
+  publisher =	{Schloss Dagstuhl -- Leibniz-Zentrum f{\"u}r Informatik},
+  address =	{Dagstuhl, Germany},
+  URL =		{https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.ITP.2024.31},
+  URN =		{urn:nbn:de:0030-drops-207596},
+  doi =		{10.4230/LIPIcs.ITP.2024.31},
+  annote =	{Keywords: Verification, Parsers, Earley, Isabelle}
+}
+
+@article{Taskin,
+  author  = {Kaan Taskin and Tobias Nipkow},
+  title   = {Pushdown Automata},
+  journal = {Archive of Formal Proofs},
+  month   = {October},
+  year    = {2025},
+  note    = {\url{https://isa-afp.org/entries/Pushdown_Automata.html},
+             Formal proof development},
+  ISSN    = {2150-914x},
 }
 
 @Inbook{Wilhelm,

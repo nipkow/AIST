@@ -51,72 +51,78 @@ adheres to the syntax rules of the source language. Wilhelm, Seidl, and Hack (fr
 ``Wilhelm et al.'') present the \<open>LR(k)\<close> parsing algorithms and their underlying theory in their book 
 ``\emph{Compiler Design: Syntactic and Semantic Analysis}''~\cite{Wilhelm}. This
 thesis focuses on one variant of \<open>LR(k)\<close> parsing, namely \<open>LR(0)\<close>, and presents two major results:
-a formalization of this section of the book using the Isabelle Proof 
-Assistant~\footnote{Some notes on terminology: the word ``formal'' when used throughout this thesis
-carries exactly this meaning, i.e., machine-checked. Similarly, a ``formalization'' denotes the
-translation of definitions, theorems, and proofs into code that is then machine-checked, in the
-case of this thesis by Isabelle.}, and a formal proof of the correctness of the parser
-constructed from the canonical \<open>LR(0)\<close> automaton. The parser's correctness is not discussed by
-Wilhelm et al.
-
-The motivations for each of these goals are not identical, albeit similar. The first one is quite
-similar to most (if not all) formal verification projects. In few words: informal proofs often
-contain errors. Authors naturally rely on intuition to some extent to write such proofs, and some
-arguments may seem to be correct on the surface, but turn out to be false if one looks at them more
-closely. Machine-checked proofs prevent intuition from betraying the author: every statement and
-every logical step in a proof, however simple, is verified by the proof assistant, thereby confirming
-the correctness of the statements being proved. Such proofs have some caveats, however. In particular,
-since proof assistants require reasoning that is logically sound, the outcome of formal verification
-is the assurance that the theorems proved are indeed a consequence of the definitions and assumptions
-provided, but there is no guarantee that the formal axioms, definitions and assumptions themselves
-are faithful to their informal counterparts. Therefore, this is precisely one of the areas where a
-formalization has the most room for debate. There are other questions which machine-checked proofs
-raise, such as how trustworthy the proof assistants themselves are, but such discussions are in
-general not related to any particular formalized result. The official Isabelle 
+a formalization~\footnote{Some notes on terminology: the word ``formal'' when used throughout this
+thesis carries exactly this meaning, i.e., machine-checked. Similarly, a ``formalization'' denotes
+the translation of definitions, theorems, and proofs into code that is then machine-checked, in the
+case of this thesis by Isabelle.} of this section of the book using the Isabelle Proof Assistant,
+and a formal proof of the correctness of the parser constructed from the canonical \<open>LR(0)\<close> automaton,
+a property which Wilhelm et al. do not discuss in the original text. The official Isabelle
 documentation~\footnote{\url{https://isabelle.in.tum.de/documentation.html}} provides detailed
 information on the Isabelle Proof Assistant, and Nipkow and Klein offer an introduction to the
 system in their book \emph{``Concrete Semantics with Isabelle/HOL''}~\cite{Nipkow-Book}.
 
-Wilhelm et al., naturally, are no exception to the pitfalls of informal proofs we mentioned. Therefore,
-with Isabelle we are able to discover errors and fill missing gaps in their work, and thus draw
-conclusions on the correctness of their theorems. This leads to one of the two main questions I
-intend to answer: is the \<open>LR(0)\<close> parsing theory and the proofs thereof as presented by Wilhelm et al.
-correct, and if they are not, how must they be modified for this to be the case?
+The motivation for formalizing the work of Wilhelm et al. is one that is quite possibly shared among
+all formal verification projects. In few words, informal proofs often contain errors.
+Authors naturally rely on intuition to some extent to write
+such proofs, and some arguments may seem to be correct on the surface, but turn out to be false if
+one looks at them more closely. Wilhelm et al., naturally, are no exception to this problem, and one
+can therefore use a proof assistant like Isabelle to discover errors and fill missing gaps in their
+work more easily. Proof assistants prevent intuition from betraying the author: in machine-checked
+proofs, every statement and every logical step, however simple, is verified by the proof assistant,
+thereby confirming the correctness of the statements being proved. Thus, formal verification
+guarantees that the conclusions one draws are indeed a consequence of the given premises by demanding 
+logically sound reasoning. This leads to one of the two main questions I intend to answer: is \<open>LR(0)\<close>
+parsing theory as presented by Wilhelm et al. correct, and if it is not, how must it be modified to
+achieve correctness?
 
-In essence, the motivation for the \<open>LR(0)\<close> parser is to define a deterministic automaton
-that can determine whether a word is in a particular context-free grammar (CFG)~\footnote{In practice,
-parsers perform other tasks such as building an internal representation of the syntactic structure of
-the input, but this is out of the scope of the \<open>LR(0)\<close> parsing section of the book.}. In the \<open>LR(0)\<close>
-section of the book, the main objective of Wilhelm et al. is to show one particular property: the parser's
-determinism. The other core property of the parser, namely the fact that it recognizes the grammar's
-language, is not discussed by them. However, this question of correctness is just as fundamental as
-the one about determinism. Therefore, it is of great interest to answer a second question on top of
-the formalization of the authors' existing work: what is the language accepted by the \<open>LR(0)\<close> parser
-as defined by Wilhelm et al., and in particular, how does this language relate to that of the grammar
-from which it is constructed?
+Formal verification, naturally, is not infallible. In particular, the question that remains afterwards
+is whether the axioms, definitions and assumptions used are faithful to their informal counterparts.
+This is precisely one of the areas where a formalization has the most room for debate, and one of
+the main challenges in such a project. There are other questions which machine-checked proofs raise,
+such as how trustworthy the proof assistants themselves are, but these are not in the scope of this
+thesis.
 
-For the first question on the correctness of the book's \<open>LR(0)\<close> theory, I formalized two main theorems. 
+The motivation for the second result, namely proving the parser's correctness, boils down to the
+fact that in essence, the goal of building this parser is defining a deterministic automaton
+that can decide whether a word is in a particular context-free grammar 
+(CFG)~\footnote{In practice, parsers perform other tasks
+such as building an internal representation of the syntactic structure of the input, but this is out
+of the scope of the \<open>LR(0)\<close> parsing section of the book.}. In the \<open>LR(0)\<close> section of the book, the
+main objective of Wilhelm et al. is to show one particular property: the parser's determinism. The
+other core property of the parser, namely the fact that it recognizes the grammar's language, is not
+discussed by them. However, this question of correctness is just as fundamental as the one about
+determinism, since a parser that is deterministic but does not recognize the language of its grammar
+is not useful. It is therefore of great interest to answer a second question on top of the formalization
+of the authors' existing work: what is the language accepted by the \<open>LR(0)\<close> parser as defined by
+Wilhelm et al., and in particular, how does this language relate to that of the grammar from which it
+is constructed?
+
+For the first main question, on the correctness of the book, I formalized two main theorems. 
 The first one, which highlights the relation between the characteristic finite automaton, rightmost
-derivations, and the item pushdown automaton, was not fully correct, partly due to unclear wording
-and variable naming, but the consequences the authors derive from it are indeed correct. The proof
-of the theorem is circular and consists of three implications, two of which are correct. The proof
-of the third one was erroneous, and I corrected it. 
+derivations, and the item pushdown automaton, is not fully correct, partly due to unclear wording
+and variable naming, but the consequences the authors derive from it are correct. The proof
+of the theorem is circular and consists of three implications. The first one is erroneous, and I
+corrected it, while the remaining two are correct.
 
-The second theorem, which states that the canonical \<open>LR(0)\<close> automaton has no \<open>LR(0)\<close>-inadeuqate states if and
-only if the grammar is \<open>LR(0)\<close>, was correct, but the proof had major errors in one direction, and I
-present a corrected variant of the proof. 
+The second theorem, which states that the canonical \<open>LR(0)\<close> automaton has no \<open>LR(0)\<close>-inadequate states
+if and only if the grammar is \<open>LR(0)\<close>, is correct, but the proof has major errors in one direction,
+and I present a corrected variant. 
 
 Besides the two main theorems, there are other issues that I address throughout the thesis. The one
-that is worth highlighting is definition of the \<open>LR(k)\<close> condition. Wilhelm et al. define this
-condition for grammars extended by a new start symbol, but I present a proof that the satisfaction
-of the \<open>LR(k)\<close> condition is not preserved in general when extending a grammar in this way. Since the 
-\<open>LR(0)\<close> parser is defined only for extended grammars, this result shows that it is possible for an
-unextended grammar to satisfy the \<open>LR(0)\<close> condition while having a nondeterministic \<open>LR(0)\<close> parser,
-since its extension violates the condition, making the parser applicable only for a subset of \<open>LR(0)\<close>
-grammars.
+worth highlighting is definition of the \<open>LR(k)\<close> condition. Wilhelm et al. define this condition for
+grammars extended by a new start symbol, but I present a proof that the satisfaction of the \<open>LR(k)\<close>
+condition is not preserved in general when extending a grammar in this way. Since the \<open>LR(0)\<close> parser
+is defined only for extended grammars, this result shows that it is possible for an unextended grammar
+to satisfy the \<open>LR(0)\<close> condition while having a nondeterministic \<open>LR(0)\<close> parser, since its extension
+violates the condition, making the parser applicable only for a subset of \<open>LR(0)\<close> grammars.
 
-The parser's correctness has a much more straightforward answer: I have formally proved that it
-is indeed correct, meaning that it accepts exactly the language of its grammar.\<close>
+To answer the question regarding the parser's correctness, I have formally proved that it
+is indeed correct, meaning that it accepts exactly the language of its grammar. For this proof, I
+first introduce a concept I have named \emph{stack words}. This concept is based on an intuitive
+explanation by Wilhelm et al. of how symbols on the parser's stack relate to each other, and with it
+I show the parser's soundness. Afterwards, I formalize the \emph{shift-reduce pushdown
+automaton} following the lecture slides of Petter~\cite{Petter}. I then prove the parser's
+completeness by showing a relation between this automaton and the aforementioned stack words.\<close>
 
 section \<open>Previous Work\<close>
 
@@ -129,7 +135,7 @@ formal development of \<open>LR(0)\<close> theory I present.
 
 On the topic of \<open>LR\<close> parsing in particular, Barthwal et al.~\cite{Barthwal} verified an executable
 \<open>SLR\<close> parser in the HOL4 proof assistant. Additionally, Jourdan et al.~\cite{Jourdan} formalized an
-\<open>LR(1)\<close> validator, which determines whether a given \<open>LR(1)\<close> parser is correct w.r.t a given CFG,
+\<open>LR(1)\<close> validator, which determines whether a given \<open>LR(1)\<close> parser is correct w.r.t. a given CFG,
 using the Coq Proof Assistant. 
 
 In other areas of general parsing theory, Lasser et al.~\cite{Lasser} formalized an \<open>LL(1)\<close> parser
@@ -145,16 +151,16 @@ section \<open>Isabelle Notation\<close>
 subsection \<open>General Notation\<close>
 
 text \<open>A term \<open>t\<close> of type \<open>\<tau>\<close> is notated as \<open>t :: \<tau>\<close>, with type variables @{typ 'a}, @{typ 'b},
-@{typ 'c}, etc. Tuple types are notated using \<open>\<times>\<close>: for \<open>x\<^sub>0 :: 'a\<^sub>0, x\<^sub>1 :: 'a\<^sub>1,\<dots>, x\<^sub>n :: 'a\<^sub>n\<close>, we write
-\<open>(x\<^sub>0,x\<^sub>1,\<dots>,x\<^sub>n) :: 'a\<^sub>0 \<times> 'a\<^sub>1 \<times> \<dots> \<times> 'a\<^sub>n\<close>. We denote functions with the arrow \<open>\<Rightarrow>\<close>, and we notate the
+@{typ 'c}, etc. Tuple types are notated using \<open>\<times>\<close>: for \<open>x\<^sub>0 :: 'a\<^sub>0, x\<^sub>1 :: 'a\<^sub>1, \<dots>, x\<^sub>n :: 'a\<^sub>n\<close>, we write
+\<open>(x\<^sub>0, x\<^sub>1, \<dots>, x\<^sub>n) :: 'a\<^sub>0 \<times> 'a\<^sub>1 \<times> \<dots> \<times> 'a\<^sub>n\<close>. We denote functions with the arrow \<open>\<Rightarrow>\<close>, and we notate the
 image of a set \<open>A\<close> under function \<open>f\<close> as @{term \<open>f ` A\<close>}.
 
 Type constructors are usually written postfix, as one can see in types such as
-@{typ "'a set"}, and in cases of multiple types \<open>'a\<^sub>0, 'a\<^sub>1,\<dots>,'a\<^sub>n\<close>, they are written as 
-\mbox{\<open>('a\<^sub>0,'a\<^sub>1,\<dots>,'a\<^sub>n)\<close>}. One of the most common types in this formalization, @{typ "('n, 't) sym"}, 
+@{typ "'a set"}, and in cases of multiple types \<open>'a\<^sub>0, 'a\<^sub>1, \<dots>,'a\<^sub>n\<close>, they are written as 
+\mbox{\<open>('a\<^sub>0, 'a\<^sub>1, \<dots>, 'a\<^sub>n)\<close>}. One of the most common types in this formalization, @{typ "('n, 't) sym"}, 
 is an example for this.
 
-The keyword \isakeyword{datatype} is used to declare algebraic data types, which can be seen in the 
+The keyword \isakeyword{datatype} is used to declare algebraic data types. This can be seen in the 
 commonly used type of natural numbers @{typ nat}, which we define recursively:
 \begin{quote}
 @{datatype nat}
@@ -164,11 +170,15 @@ Another example is the type for lists, @{typ "'a list"}, which we will also be u
 @{datatype list}
 \end{quote}
 
-An explicit list can be either written as \<open>x\<^sub>0 # x\<^sub>1 # \<dots> # x\<^sub>n # []\<close> or as \<open>[x\<^sub>0, x\<^sub>1, \<dots>, x\<^sub>n]\<close>. If 
-\<open>xs = y # ys\<close>, \<open>hd xs = y\<close> and \<open>tl xs = ys\<close>. Furthermore, lists are concatenated with the operator 
-\<open>@\<close>, @{const rev} reverses a list, @{const set} converts a list to a set, @{term "xs!n"} returns the 
+The list constructor \<open>#\<close> is usually written infix. An explicit list can be either
+written as \<open>x\<^sub>0 # x\<^sub>1 # \<dots> # x\<^sub>n # []\<close> or as \<open>[x\<^sub>0, x\<^sub>1, \<dots>, x\<^sub>n]\<close>. If 
+\<open>xs = y # ys\<close>, \<open>hd xs = y\<close> and @{term \<open>mbox0 (tl xs) = ys\<close>}. Furthermore, lists are concatenated
+with the operator \<open>@\<close>, @{const rev} reverses a list, @{const set} converts a list to a set, @{term "xs!n"} returns the 
 \<open>n\<close>-th element of the list \<open>xs\<close> (with 0-indexing), @{term "take n xs"} is the prefix of length \<open>n\<close> 
 of \<open>xs\<close>, and @{term "drop n xs"} is the suffix of \<open>xs\<close> starting at index \<open>n\<close>.
+@{term \<open>map f xs\<close>} maps every element in \<open>xs :: 'a list\<close> with the function \<open>f :: 'a \<Rightarrow> 'b\<close>, i.e., 
+\<open>map f [x\<^sub>0, \<dots>, x\<^sub>n]\<close> = \mbox{\<open>[f x\<^sub>0, \<dots>, f x\<^sub>n]\<close>}, and lastly, @{term concat} concatenates a list of 
+lists: \<open>concat [xs\<^sub>0, \<dots>, xs\<^sub>n] = xs\<^sub>0 @ \<dots> @ xs\<^sub>n\<close>.
 
 Pattern matching on a term \<open>\<tau>\<close> is done with the keywords \isakeyword{case} and \isakeyword{of}. For 
 patterns \<open>\<pi>\<^sub>1, \<pi>\<^sub>2, \<dots>, \<pi>\<^sub>n\<close> and expressions \<open>e\<^sub>1, e\<^sub>2, \<dots>, e\<^sub>n\<close>, the expression
@@ -187,15 +197,19 @@ singleton list containing the first element otherwise:
 
 If premises \<open>A\<^sub>1, A\<^sub>2, \<dots>, A\<^sub>n\<close> imply \<open>B\<close>, we write \mbox{\<open>\<lbrakk>A\<^sub>1; A\<^sub>2; \<dots>; A\<^sub>n\<rbrakk> \<Longrightarrow> B\<close>.}
 
-Lastly, when inducting on a reflexive transitive closure, we distinguish two types of induction:
+When inducting on a reflexive transitive closure, we distinguish two types of induction:
 with \emph{forward} induction (or simply ``induction'' without a qualifier), we induct by growing the
 chain on the right, i.e., if \<open>r*\<close> is the reflexive transitive closure of \<open>r\<close> and we assume \<open>r* a c\<close>,
 we show \<open>P a\<close> for the base case. For the transitive case, we assume \<open>r* a b\<close>, \<open>r b c\<close>, and \<open>P b\<close>, 
 and show that this implies \<open>P c\<close>.
 
-On the other hand, \emph{backwards} induction grows the chain on the left, meaning that for \<open>r* a c\<close>,
+On the other hand, \emph{backwards} induction grows the chain on the left, meaning that for 
+@{term \<open>mbox0 (r* a c)\<close>},
 we show \<open>P c\<close> in the base case, and in the transitive case we assume \<open>r a b\<close>, \<open>P b\<close>, and \<open>r* b c\<close>,
-and we prove that \<open>P a\<close> holds.\<close>
+and we prove that \<open>P a\<close> holds.
+
+Lastly, the function \<open>fresh0 :: 'a set \<Rightarrow> 'a\<close> takes a set, and returns a fresh item for this set,
+i.e., some \<open>x :: 'a\<close> that is not in the set passed to \<open>fresh0\<close>.\<close>
 
 
 subsection \<open>Records and Finite Automata\<close>
@@ -215,11 +229,11 @@ Paulson's formalization of both nondeterministic and deterministic finite automa
 NFAs are defined by record @{typ \<open>('a, 'q) nfa\<close>} with alphabet type @{typ 'a} and state type 
 @{typ 'q}, with the following fields:
 \begin{itemize}
-\item \<open>states :: 'q set\<close>: a finite set of states
-\item \<open>init :: 'q set\<close>: the set of initial states, with \<open>init \<subseteq> states\<close>
-\item \<open>final :: 'q set\<close>: the set of final states, also with \<open>final \<subseteq> states\<close>
+\item \<open>states :: 'q set\<close>: a finite set of states.
+\item \<open>init :: 'q set\<close>: the set of initial states, with \<open>init \<subseteq> states\<close>.
+\item \<open>final :: 'q set\<close>: the set of final states, also with \<open>final \<subseteq> states\<close>.
 \item \<open>nxt :: 'q \<Rightarrow> 'a \<Rightarrow> 'q set\<close>: the transition function for reading transitions.
-\item \<open>eps :: ('q \<times> 'q) set\<close>: the \<open>\<epsilon>\<close>-transition relation
+\item \<open>eps :: ('q \<times> 'q) set\<close>: the \<open>\<epsilon>\<close>-transition relation.
 \end{itemize}
 
 Furthermore, function \<open>nextl :: 'q set \<Rightarrow> 'a list \<Rightarrow> 'q set\<close> for a NFA denotes the extension of 
@@ -228,7 +242,7 @@ Furthermore, function \<open>nextl :: 'q set \<Rightarrow> 'a list \<Rightarrow>
 DFAs are defined by a record @{typ \<open>('a, 'q) dfa\<close>} where @{typ 'a} and @{typ 'q} are again the 
 alphabet and state types respectively. The @{type dfa} record type has the same fields as 
 @{type nfa} except that it naturally lacks an \<open>\<epsilon>\<close>-transition relation. Moreover, in a DFA,
-\<open>init :: 'q\<close> is a unique initial state, and \<open>nxt :: 'q \<Rightarrow> 'a \<Rightarrow> 'q\<close> returns a unique state.
+\<open>init :: 'q\<close> is a unique initial state, and \<open>nxt :: 'q \<Rightarrow> 'a \<Rightarrow> 'q\<close> returns a unique state as well.
 
 We also define a \<open>nextl\<close> function for DFAs, lifting the \<open>nxt\<close> function of a DFA from symbols to 
 words with \<open>nextl :: 'q \<Rightarrow> 'a list \<Rightarrow> 'q\<close>.\<close>
@@ -238,7 +252,9 @@ subsection \<open>Context-Free Grammars\<close>
 text \<open>In their formalization of context-free grammars, Nipkow et al. introduce type
 @{typ "('n, 't) sym"} for context-free grammar \concept{symbols} as a tagged union consisting of
 nonterminals (@{const Nt}) and terminals (@{const Tm}) of type @{typ 'n} and @{typ 't} respectively:
-\[ @{datatype sym} \]
+\begin{quote}
+@{datatype sym}
+\end{quote}
 
 Besides defining this type for symbols, they also define the following abbreviations:
 \begin{quote}
@@ -248,38 +264,37 @@ Productions & \<open>('n,'t) prod = 'n \<times> ('n,'t) syms\<close>\\
 Sets of productions & \<open>('n,'t) Prods = ('n,'t) prod set\<close>
 \end{tabular}
 \end{quote}
-where we informally write \<open>(A, \<alpha>) :: ('n, 't) prod\<close> as \<open>A \<rightarrow> \<alpha>\<close>. For \mbox{\<open>\<alpha> :: ('n, 't) syms\<close>}, 
-@{term \<open>Nts_syms \<alpha>\<close>} returns the set of all \<open>X :: 'n\<close> such that @{prop \<open>Nt X \<in> set \<alpha>\<close>}. Similarly 
+where we informally write \<open>(A, \<alpha>) :: ('n, 't) prod\<close> as \<open>A \<rightarrow> \<alpha>\<close>. For \<open>\<alpha> :: ('n, 't) syms\<close>, 
+@{term \<open>mbox0 (Nts_syms \<alpha>)\<close>} returns the set of all \<open>X :: 'n\<close> such that @{prop \<open>Nt X \<in> set \<alpha>\<close>}. Similarly 
 for \<open>P :: ('n, 't) Prods\<close>, Nipkow et al. define @{term \<open>Nts P\<close>}:
 \begin{equation*}
 @{term \<open>Nts P = (\<Union>(A,\<alpha>)\<in>P. {A} \<union> Nts_syms \<alpha>)\<close>}.
 \end{equation*}
 
-They further define the datatype for context-free grammars:
-\begin{equation*}
-\isakeyword{datatype} \<open>('n, 't) Cfg = Cfg (('n,'t) Prods) 'n\<close>.
-\end{equation*}
-@{term "Cfg P S"} denotes a context-free grammar with production set \<open>P\<close> and start symbol \<open>S\<close>. If 
-@{term "G = Cfg P S"}, @{term "Prods G"} refers to \<open>P\<close>, and analogously, @{term "Start G"} refers to 
+They further define a datatype for context-free grammars:
+\begin{quote}
+\isakeyword{datatype}\ \<open>('n, 't) Cfg = Cfg (('n,'t) Prods) 'n\<close>
+\end{quote}
+where @{term "Cfg P S"} denotes a context-free grammar with production set \<open>P\<close> and start symbol \<open>S\<close>.
+If @{term "G = Cfg P S"}, @{term "Prods G"} refers to \<open>P\<close>, and analogously, @{term "Start G"} refers to 
 \<open>S\<close>.
 
-A derivation step from \<open>\<phi>\<close> to \<open>\<psi>\<close> under production set \<open>P\<close> is notated as \mbox{@{term \<open>P \<turnstile> \<phi> \<Rightarrow> \<psi>\<close>}}.
-More formally, for \<open>A :: 'n\<close> and \<open>\<alpha>, \<beta>, \<gamma> :: ('n, 't) syms\<close> they define:
+A derivation step from \<open>\<phi>\<close> to \<open>\<psi>\<close> under production set \<open>P\<close> is notated as @{term \<open>P \<turnstile> \<phi> \<Rightarrow> \<psi>\<close>}.
+More formally, for \<open>A :: 'n\<close> and \<open>\<alpha>, \<beta>, \<gamma> :: ('n, 't) syms\<close>, Nipkow et al. define:
 \begin{equation*} 
 @{thm derive.intros[of A \<beta> P \<alpha> \<gamma>]}.
 \end{equation*}
-Moreover, they denote the reflexive transitive closure of derivations by 
-\[ @{term \<open>P \<turnstile> \<phi> \<Rightarrow>* \<psi>\<close>}, \] 
+Similarly, they denote the reflexive transitive closure of derivations by @{term \<open>P \<turnstile> \<phi> \<Rightarrow>* \<psi>\<close>},
 and derivations of length \<open>n\<close> by @{term \<open>P \<turnstile> \<phi> \<Rightarrow>(n) \<psi>\<close>}. Rightmost derivations are notated analogously, 
 with \<open>\<Rightarrow>r\<close>, \<open>\<Rightarrow>r*\<close> and \<open>\<Rightarrow>r(n)\<close> respectively.
 
-Lastly, Nipkow et al. define the language of a nonterminal w.r.t a set of productions
+Lastly, they define the language of a nonterminal w.r.t. a set of productions
 \begin{equation*}
 @{thm Lang_def},
 \end{equation*}
-and based on this, the language of a grammar
+and based on this, the language of a CFG \<open>G\<close>
 \begin{equation*}
-@{term \<open>LangS G\<close>} = @{term [show_abbrevs=false] \<open>Lang (Prods G) (Start G)\<close>}
+@{term \<open>LangS G\<close>} = @{term [show_abbrevs=false] \<open>Lang (Prods G) (Start G)\<close>}.
 \end{equation*}
  
 Besides type variables @{typ 'n} for nonterminals and @{typ 't} for terminals, we use the following 
@@ -287,7 +302,7 @@ variable conventions: for brevity, we refer to \<open>('n, 't) sym\<close> and \
 and @{type syms} respectively; \<open>A, B, C :: 'n\<close>; \<open>a, b, c :: 't\<close>; \<open>u, v, w :: 't list\<close>; and finally
 \<open>\<alpha>, \<beta>, \<gamma> :: ('n, 't) syms\<close>. Further definitions and detailed explanations on the formalization can be 
 found on the AFP entry by Nipkow et al.~\cite{Nipkow-AFP}, as well as their paper on this
-formalization~\cite{Nipkpw-Paper}.\<close>
+formalization~\cite{Nipkow-Paper}.\<close>
 
 section \<open>Overview\<close>
 
@@ -295,9 +310,9 @@ text \<open>The thesis follows a similar structure to Wilhelm et al. First, we i
 definitions and assumptions regarding the CFGs we will be working with. We then define the item
 pushdown automaton, followed by a new section not present in the book: a formalized decomposition of
 rightmost derivations. Afterwards, we return to the book's structure with the characteristic finite
-automaton, the canonical \<open>LR(0)\<close> automaton, and lastly, the \<open>LR(0)\<close> parser. In the final 
-parser section, we first finish the formal verification of Wilhelm et al., and afterwards, we
-conclude the formalization results with the proof of the parser's correctness.\<close>
+automaton, the canonical \<open>LR(0)\<close> automaton, and lastly, the \<open>LR(0)\<close> parser. In the parser's section,
+we first finish the formal verification of Wilhelm et al., and we conclude with the
+proof of the parser's correctness.\<close>
 
 chapter \<open>Basic Definitions\<close>
 
@@ -321,15 +336,18 @@ abbreviation \<open>I\<^sub>G \<equiv> Reduced_Cfg.IPDA G\<close>
 text\<open>Throughout this thesis, we will define several automata which will aid us in our goal of 
 constructing a deterministic \<open>LR(0)\<close> parser for a context-free grammar \<open>G\<close>. Naturally, our 
 definitions will be defined based on the productions of the grammar, and the starting state of all 
-these automata relates to the start symbol of \<open>G\<close>, specifically the productions where \<open>Start G\<close> is
-on the LHS. In general, however, a context-free grammar's start symbol can appear on the right-hand 
+these automata relate to the start symbol \<open>S\<close> of \<open>G\<close>, specifically the productions where 
+@{term \<open>mbox0 (Start G)\<close>} is
+on the left-hand side. In general, however, a context-free grammar's start symbol can appear on the right-hand 
 side of a production, and in many cases we would like to be able to identify that a word has been 
-derived when a production of the form @{term \<open>(Start G, \<alpha>)\<close>} is encountered. If \<open>Start G\<close> is on the 
-RHS of a production, this is not possible.
+derived when a production of the form @{term \<open>(Start G, \<alpha>)\<close>} is encountered. If @{term \<open>Start G\<close>} is
+on the RHS of a production, this is not possible, since such a production could be encountered because
+of an instance of \<open>S\<close> that was produced at some point.
 
-To achieve this, we extend a context-free grammar \<open>G\<close> with finite set of productions \<open>P\<close> extended by
-a fresh start symbol \<open>S'\<close> with a single production \<open>(S', [Nt S])\<close>. The resulting grammar, which we 
-define to be \<open>G'\<close>, is the \concept{extended grammar}, or the \concept{extension}, of \<open>G\<close>. We 
+We therefore extend a context-free grammar \<open>G\<close> with finite set of productions \<open>P\<close> by
+a fresh start symbol \<open>S'\<close> and a single production \<open>(S', [Nt S])\<close>. With this, we are guaranteed that
+our new start symbol is never produced, and we can identify a complete derivation by this unique
+production. The resulting grammar, which we define to be \<open>G'\<close>, is the \concept{extended grammar}, or the \concept{extension}, of \<open>G\<close>. We 
 analogously refer to \<open>Prods G'\<close>, which we abbreviate as \<open>P'\<close>, as the extension of \<open>P\<close> or the 
 \concept{extended set of productions} of \<open>G\<close>. Formally:
 \begin{gather*}
@@ -349,7 +367,7 @@ We induct on \<open>n\<close>. If \<open>n = 0\<close>, \<open>\<beta> = [Nt S]\
 
 If \<open>n = Suc m\<close> for some \<open>m\<close>, the induction hypothesis tells us that sentential form \<open>\<alpha>\<close> that 
 derives \<open>\<beta>\<close> in the final derivation step can be derived by \<open>S\<close> in \<open>G\<close> in \<open>m\<close> steps. This means that 
-all nonterminals in \<open>\<alpha>\<close> are in \<open>G\<close>. Since the only production in @{term \<open>P' - P\<close>}, has 
+all nonterminals in \<open>\<alpha>\<close> are in \<open>G\<close>. Since the only production in \<open>P' \ P\<close> has 
 \<open>S' \<notin> Nts P\<close> in the LHS, the final derivation step @{prop \<open>P' \<turnstile> \<alpha> \<Rightarrow> \<beta>\<close>} also 
 exists in \<open>G\<close>, completing the proof.
 \end{proof}
@@ -402,7 +420,8 @@ Each nonterminal except for \<open>S\<close> and \<open>A\<close> carries proble
 \item There are no productions where \<open>B\<close> is on the left-hand side. This means that if \<open>S\<close> 
 reaches a sentential form \<open>\<alpha>\<close> such that \<open>Nt B \<in> set \<alpha>\<close>, no word will be derived from \<open>\<alpha>\<close>. 
 \item \<open>S\<close> cannot reach \<open>C\<close>, meaning no productions containing \<open>C\<close>, or reachable only 
-through \<open>C\<close> (e.g. reaching \<open>D\<close> using production \mbox{\<open>C \<rightarrow> BCD\<close>}), can be used to derive words in \<open>LangS G\<close>.
+through \<open>C\<close> (e.g. \<open>D\<close>, which can only be reached using production \mbox{\<open>C \<rightarrow> BCD\<close>}), can be used to
+derive words in @{term \<open>LangS G\<close>}.
 \item \<open>D\<close>, as opposed to \<open>B\<close>, does show up on the LHS of certain productions, but none of these productions
 can lead to a word: \<open>D \<rightarrow> BC\<close> contains \<open>B\<close>, which cannot derive a \<open>'t list\<close>, and \<open>D \<rightarrow> D\<close> has no effect.
 Furthermore, similarly to \<open>C\<close>, \<open>D\<close> cannot be reached by \<open>S\<close>.
@@ -428,7 +447,7 @@ Similarly to reachable terminals, a nonterminal that is not productive is \conce
 useful nonterminal is therefore a nonterminal that is both reachable and productive.
 
 Nipkow et al. have also proved that removing all nonterminals that are unreachable or unproductive, 
-i.e. all non-useful nonterminals, preserves the language~\cite[Lemma Lang\_restrict\_useful]{Nipkow}:
+i.e. all non-useful nonterminals, preserves the language~\cite[Lemma Lang\_restrict\_useful]{Nipkow-AFP}:
 \begin{lemma}
 Let 
 \[@{term [source] \<open>restrict_Nts R P = {(A,\<alpha>) \<in> P. \<forall>B \<in> {A} \<union> Nts_syms \<alpha>. R B}\<close>}. \]
@@ -454,13 +473,7 @@ As we can see, by applying this restriction to arbitrary grammars, the resulting
 productions can potentially become much smaller than the original one. This also guarantees that all
 nonterminals are more well-behaved; for example, since every nonterminal is productive, we know 
 that any part sentential form that can be derived from \<open>S\<close> contains only productive nonterminals and can
-therefore derive a word in the language:
-
-\begin{quote}
-@{thm [display] substring_derives}
-\end{quote}
-
-This property will be particularly useful in the coming sections.
+therefore derive a word in the language.
 
 With this, we now define the notion of \concept{reduced grammars}.
 \begin{definition}[Reduced grammar]
@@ -493,25 +506,27 @@ language and the usefulness of all nonterminals.\<close>
 section \<open>Context-Free Items\<close>
 
 text \<open>\begin{definition}[Context-free item]
-A \concept{context-free item} @{typ \<open>('n, 't) item\<close>} for a CFG \<open>G\<close> is a triple 
+A \concept{context-free item} for a CFG \<open>G\<close>, denoted by type  @{typ \<open>('n, 't) item\<close>}, is a triple 
 \mbox{\<open>(A, \<alpha>, \<beta>) :: 'n \<times> ('n, 't) syms \<times> ('n, 't) syms\<close>} such that 
 @{prop [show_abbrevs=false] \<open>(A, \<alpha>@\<beta>) \<in> Prods G\<close>}. We write the item \<open>(A, \<alpha>, \<beta>)\<close> as @{term \<open>[A \<rightarrow> \<alpha> \<cdot> \<beta>]\<close>}, and akin to
-@{type sym} and @{type syms}, we often abbreviate the item type to simply ``@{type item}'' for
-brevity.
+@{type sym} and @{type syms}, we often abbreviate the type @{typ \<open>('n, 't) item\<close>} to simply
+``@{type item}'' for brevity.
 \end{definition}
 
 Context-free items allow tracking the current state of the parsing process. Generally, as we
 work towards deriving a string, the symbols to the right of the bullet (e.g. \<open>\<beta>\<close> in 
-@{term \<open>[A \<rightarrow> \<alpha> \<cdot> \<beta>]\<close>}) are shifted towards the left. If \<open>(A, \<alpha>@\<beta>) \<in> Prods G\<close>, the item
+@{term \<open>[A \<rightarrow> \<alpha> \<cdot> \<beta>]\<close>}) are shifted towards the left. If \<open>(A, \<alpha> @ \<beta>) \<in> Prods G\<close>, the item
 @{term \<open>[A \<rightarrow> \<alpha> \<cdot> \<beta>]\<close>} denotes the situation where a word has already been derived from the substring 
 \<open>\<alpha>\<close>, with a suffix still left to be derived from \<open>\<beta>\<close>. We call the symbols that have already been 
-shifted the \concept{history} of the item.
+shifted the \concept{history} of the item:
+\[ @{thm history_def} \]
 
 For @{term \<open>[A \<rightarrow> \<alpha> \<cdot> \<beta>]\<close>}, \<open>\<alpha> = \<epsilon>\<close> denotes the situation where nothing has been 
 derived from \<open>A\<close> yet. Analogously, \<open>\<beta> = \<epsilon>\<close> denotes the situation where a substring of the 
 input has been completely derived from \<open>A\<close>. These items are therefore called \concept{initial} and 
 \concept{complete} items respectively. 
-We often write the empty list implicitly on either side of the bullet, e.g., instead of @{term \<open>[A \<rightarrow> \<alpha> \<cdot> []]\<close>}, we write 
+We often write the empty list implicitly on either side of the bullet, e.g., instead of
+\mbox{@{term [source] \<open>[A \<rightarrow> \<alpha> \<cdot> []]\<close>}}, we write 
 @{term \<open>[A \<rightarrow> \<alpha> \<cdot> ]\<close>}. We also use this convention if both sides of the bullet are empty.
 
 Additionally, we denote the set of all complete items in a set of items \<open>I\<close> by @{term \<open>completes I\<close>}:
@@ -523,7 +538,7 @@ An item that is not complete is referred to as \concept{incomplete}, and we corr
 \begin{equation*}
 @{abbrev \<open>incompletes I\<close>}.
 \end{equation*}
-We also lift the definition of history from items to lists of items:
+We also lift the definition of @{const history} from items to lists of items:
 \begin{equation*}
 @{thm hist_def},
 \end{equation*}
@@ -554,34 +569,36 @@ section \<open>Generalized Pushdown Automata\label{sec:gpdas}\<close>
 end
 context gpda
 begin
+
+notation (latex output) Lang (\<open>L'(M')\<close>)
+
 (*>*)
 
 text \<open>In later sections, we will define several automata to lay the foundations for the \<open>LR(0)\<close>
 parser. Most of these automata, including the parser itself, require a stack to operate, but 
 unlike conventional pushdown automata, it is sometimes necessary for them to read multiple stack 
-symbols in a single transition steps.
+symbols in a single transition step.
 \begin{definition}[Generalized pushdown automata]
-A generalized pushdown automata (GPDAs) is a record of type @{typ "('q, 'a) gpda"} where 
-@{typ 'q} is the type of stack symbols, @{typ 'a} the type of alphabet symbols, and
+A generalized pushdown automaton (GPDA) is a record of type @{typ "('q, 'a) gpda"} where 
+@{typ 'q} is the type of stack symbols, @{typ 'a} the type of alphabet symbols, and the fields
 \begin{itemize}
-\item \<open>states :: 'q set\<close> is a finite set of \concept{states}.
-\item \<open>init :: 'q\<close> is the \concept{initial state} with \<open>init \<in> states\<close>.
-\item \<open>final :: 'q set\<close> is a set of \concept{final states} with \<open>final \<subseteq> states\<close>.
-\item \<open>nxt :: ('q list \<times> 'a \<times> 'q list) set\<close> is the \concept{reading transition relation}, i.e., 
+\item \<open>states :: 'q set\<close>: a finite set of \concept{states}.
+\item \<open>init :: 'q\<close>: the \concept{initial state} with \<open>init \<in> states\<close>.
+\item \<open>final :: 'q set\<close>: the set of \concept{final states} with \<open>final \<subseteq> states\<close>.
+\item \<open>nxt :: ('q list \<times> 'a \<times> 'q list) set\<close>: the \concept{reading transition relation}, i.e., 
 the relation of transitions that read and consume the leftmost symbol of the remaining input.
-\item \<open>eps :: ('q list \<times> 'q list) set\<close> is the transition relation for \concept{\<open>\<epsilon>\<close>-transitions}, 
+\item \<open>eps :: ('q list \<times> 'q list) set\<close>: the transition relation for \concept{\<open>\<epsilon>\<close>-transitions}, 
 i.e., transitions that do not read the input.
 \end{itemize}
 Lastly, if \<open>M\<close> is a GPDA we assume for all @{prop \<open>(ps, a, qs) \<in> nxt M\<close>} that \<open>ps\<close> is nonempty, 
-and both \<open>ps\<close> and \<open>qs\<close> are subsets of \<open>states\<close>. We make the same assumption for all 
+and both \<open>ps\<close> and \<open>qs\<close> are subsets of the states of \<open>M\<close>. We make the same assumption for all 
 @{prop \<open>(ps, qs) \<in> eps M\<close>}.
-
 \end{definition}
 
 It is worth noting that, differently from traditional PDAs, GPDAs do not have a dedicated state. 
 Instead, a variable amount of topmost stack symbols are used to determine the transition. 
-Therefore, if \<open>M\<close> is a GPDA, talking about ``the state'' of \<open>M\<close> at a given time is a shorthand to 
-refer to the topmost state on \<open>M\<close>'s stack at that moment.
+Therefore, if \<open>M\<close> is a GPDA, talking about ``the state'' of \<open>M\<close> is simply a
+shorthand to refer to the topmost state on \<open>M\<close>'s stack.
 
 Another important aspect is that as opposed to our definition of GPDAs, Wilhelm et al. define them
 as having finite transition relations. This assumption is of importance in particular if one wishes
@@ -600,17 +617,18 @@ the leftmost list element, deviating from Wilhelm et al. in this regard.
 A configuration of \<open>M\<close> is \concept{initial} if the stack consists of a singleton list containing 
 the initial state @{term \<open>init M\<close>}, while a \concept{final} configuration for \<open>M\<close> consists of a 
 singleton list with some final state on the stack after completely consuming the input, 
-i.e., a configuration of the form \<open>([f], \<epsilon>)\<close> for some \<open>f \<in> final M\<close>.
+i.e., a configuration of the form @{term \<open>([f], [])\<close>} for some \<open>f \<in> final M\<close>.
 
 We now define the step relation \<open>\<turnstile>\<close> for GPDAs:
 \begin{gather*}
 @{thm step_nxt}\\
 @{thm step_eps}
 \end{gather*}
-We refer to sequences of steps as \concept{computations}, and denote \<open>n\<close>-step computations
-with \<open>\<turnstile>(n)\<close>, and its reflexive-transitive closure with \<open>\<turnstile>*\<close>.
+We refer to sequences of steps as \concept{computations}. Computations can naturally be described
+with the reflexive transitive closure of steps, which we denote with the infix operator \<open>\<turnstile>*\<close>, and
+similarly, we notate \<open>n\<close>-step computations with \<open>\<turnstile>(n)\<close>.
 
-Finally, we define the \concept{language} @{term \<open>Lang\<close>} for \<open>M\<close> as the set of words for which \<open>M\<close> 
+Finally, we define the \concept{language} @{term \<open>L\<close>} for \<open>M\<close> as the set of words for which \<open>M\<close> 
 can reach a final configuration from the corresponding initial configuration:
 \begin{equation*}
 @{thm Lang_def}.
@@ -620,6 +638,8 @@ can reach a final configuration from the corresponding initial configuration:
 chapter \<open>The Item Pushdown Automaton\<close>
 
 (*<*) 
+no_notation (latex output) Lang (\<open>L'(M')\<close>)
+
 end
 context ipda
 begin
@@ -638,8 +658,8 @@ notation (latex output) I.Lang
 section \<open>Definition\<close>
 
 text \<open>One of the main objectives in the construction of our parser is determinism. Despite the ability of
-PDAs of recognizing CFLs, they are non-deterministic in general, which means they are not easily
-implemented in practice. In this section, we define the Item Pushdown Automaton to a 
+PDAs of recognizing CFLs, they are nondeterministic in general, which means they are not easily
+implemented in practice. In this section, we define the item pushdown automaton to a 
 context-free grammar, from which we will later derive a deterministic parser. From this point onwards, 
 unless stated otherwise, let \<open>G\<close> be a CFG with production set \<open>P\<close> and start symbol \<open>S\<close> such that
 
@@ -650,12 +670,11 @@ unless stated otherwise, let \<open>G\<close> be a CFG with production set \<ope
 \item \<open>G'\<close> is the extension of \<open>G\<close> with start symbol \<open>S'\<close>. We again abbreviate \<open>Prods G'\<close> as \<open>P'\<close>.
 \end{itemize}
 
-
 \begin{definition}[Item pushdown automaton]
 The \concept{item pushdown automaton} (IPDA) to \<open>G\<close> is the @{typeof IPDA}:
 \begin{multline*}
-  \<open>I\<^sub>G = \<lparr>states =\<close> @{term \<open>It G'\<close>}, \<open> init = [S' \<rightarrow> \<cdot> [Nt S]],\<close>\\
-  \<open>final = {[S' \<rightarrow> [Nt S] \<cdot> ]}, nxt = \<Delta>\<^sub>I, eps = \<E>\<^sub>I\<rparr>\<close>
+  \<open>I\<^sub>G = \<lparr>states\<close> = @{term \<open>It G'\<close>},\ \<open> init = [S' \<rightarrow> \<cdot> [Nt S]], final = {[S' \<rightarrow> [Nt S] \<cdot> ]}, nxt = \<Delta>\<^sub>I,\<close>\\
+    \<open>eps = \<E>\<^sub>I\<rparr>\<close>
 \end{multline*}
 where 
 \begin{multline*}
@@ -676,8 +695,8 @@ and \<open>\<E>\<^sub>I = E \<union> R\<close> for
 \end{definition}
 
 Overall, the IPDA has three types of transitions. We call transitions in @{const nxt} \concept{shifting} 
-transitions, transitions in @{term \<open>E \<subseteq> \<E>\<close>} \concept{expanding} transitions, and transitions in 
-@{term \<open>R \<subseteq> \<E>\<close>} \concept{reducing} transitions. We denote @{const IPDA} steps by \<open>\<turnstile>I\<close>, \<open>\<turnstile>I*\<close> and
+transitions, transitions in @{term \<open>E \<subseteq> \<E>\<^sub>I\<close>} \concept{expanding} transitions, and transitions in 
+@{term \<open>R \<subseteq> \<E>\<^sub>I\<close>} \concept{reducing} transitions. We denote @{const IPDA} steps by \<open>\<turnstile>I\<close>, \<open>\<turnstile>I*\<close> and
 \<open>\<turnstile>I(n)\<close> analogously to the general GPDA steps. 
 
 Our definitions differ slightly from those by Wilhelm et al.: in all
@@ -685,17 +704,20 @@ transition sets, we explicitly restrict the elements to items that correspond to
 In their book, Wilhelm et al. define the transition relation of a GPDA with state set \<open>Q\<close> and input
 alphabet \<open>V\<^sub>T\<close> to be a subset of \mbox{\<open>Q\<^sup>+ \<times> V\<^sub>T \<times> Q\<^sup>*\<close>}. We approximate this in the record type of GPDAs, 
 as we stated before, by defining \mbox{\<open>nxt :: ('q list \<times> 'a \<times> 'q list) set\<close>} and 
-\mbox{\<open>eps :: ('q list \<times> 'q list) set\<close>} for a \<open>('q, 'a) gpda\<close>. Our definitions of \mbox{\<open>nxt IPDA\<close>} and \<open>eps IPDA\<close>
-therefore enforce this by explicitly restricting the set to items whose corresponding production is 
-in \<open>P'\<close>, which is equivalent to the items themselves being in @{term \<open>It G'\<close>}.
+\mbox{\<open>eps :: ('q list \<times> 'q list) set\<close>} for a \<open>('q, 'a) gpda\<close>. However, since we define the states
+of the GPDA as a set instead of as the type itself, these definitions for \<open>nxt\<close> and \<open>eps\<close> allow 
+lists containing elements of type \<open>'q\<close> but that are not in the set of states. Our definitions of 
+\<open>nxt\<close> and \<open>eps\<close> for \<open>I\<^sub>G\<close> circumvent this problem by explicitly restricting the sets to lists with
+items whose corresponding productions are in \<open>P'\<close>, which is equivalent to the items themselves being
+in @{term \<open>It G'\<close>}.
 
-Intuitively, \<open>I\<^sub>G\<close> accepts a word \<open>w\<close> by finding a rightmost derivation 
-\[ @{term \<open>P' \<turnstile> [Nt S'] \<Rightarrow>r* map Tm w\<close>}. \]
+We will now look at how the automaton we just defined operates. Intuitively, \<open>I\<^sub>G\<close> accepts a word \<open>w\<close>
+by finding a rightmost derivation @{term \<open>P' \<turnstile> [Nt S'] \<Rightarrow>r* map Tm w\<close>}.
 If the current state of \<open>I\<^sub>G\<close> is @{term \<open>[A \<rightarrow> \<alpha> \<cdot> Tm a # \<beta>]\<close>} for any \mbox{\<open>a :: 't\<close>}, \<open>I\<^sub>G\<close> will 
-invariably shift \<open>Tm a\<close>, effectively replacing this topmost item by @{term \<open>mbox [A \<rightarrow> \<alpha> @ [Tm a] \<cdot> \<beta>]\<close>}. 
+invariably shift \<open>Tm a\<close> by replacing this topmost item by @{term \<open>mbox [A \<rightarrow> \<alpha> @ [Tm a] \<cdot> \<beta>]\<close>}. 
 Similarly, if the state is some complete item @{term \<open>[Y \<rightarrow> \<alpha> \<cdot> ]\<close>}, it will reduce the item 
 and shift \<open>Nt Y\<close> on the second-topmost item if possible. If the stack is 
-@{term \<open>[Y \<rightarrow> \<alpha> \<cdot> ] # [X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] # \<rho>\<close>}, the act of reducing the first two items to 
+@{term \<open>[Y \<rightarrow> \<alpha> \<cdot> ] # [X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] # \<rho>\<close>}, the act of replacing the first two items by 
 @{term \<open>[X \<rightarrow> \<beta> @ [Nt Y] \<cdot> \<gamma>]\<close>} is equivalent to the backwards (i.e. right-to-left)
 application of a rightmost derivation step for some \<open>u :: 't list\<close> of the form
 \begin{equation*}
@@ -705,7 +727,8 @@ application of a rightmost derivation step for some \<open>u :: 't list\<close> 
 Lastly, the expanding case is the only transition type where nondeterministic behavior actually 
 presents itself. While reducing transitions correspond to the IPDA applying a backward step in a 
 rightmost derivation, the expanding step is essentially the IPDA nondeterministically choosing 
-\emph{which} production to reduce: as we will later prove, if the IPDA performs the expansion
+\emph{which} production it will attempt to reduce: as we will later prove, if \<open>I\<^sub>G\<close> performs the
+expansion
 \[ @{prop \<open>([X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] # \<rho>, w) \<turnstile>I ([Y \<rightarrow> \<cdot> \<alpha> ] # [X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] # \<rho>, w)\<close>} \]
 it will only complete \<open>\<alpha>\<close>, i.e., reach a configuration with stack
 @{term \<open>[Y \<rightarrow> \<alpha> \<cdot> ] # mbox [X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] # \<rho>\<close>}
@@ -714,11 +737,11 @@ We will now work towards proving that \<open>I\<^sub>G\<close> accepts exactly @
 
 section \<open>Language Equivalence\<close>
 
-text\<open>We will first show that the IPDA is sound, that is, its language is a subset of the grammar. We
-first prove an invariant following the original proof by Wilhelm et al.
+text\<open>We will first show that the IPDA \<open>I\<^sub>G\<close> is sound, that is, its language is a subset of
+@{term \<open>LangS G\<close>}. We first prove an invariant following the original proof by Wilhelm et al.
 
 \begin{lemma}[IPDA invariant]\label{ipda.invariant}
-@{prop \<open>([init M], u @ v) \<turnstile>I* (rev \<rho>, v)\<close>} implies\\ @{prop \<open>P \<turnstile> hist \<rho> \<Rightarrow>* map Tm u\<close>}.
+@{prop \<open>([init M], u @ v) \<turnstile>I* (rev \<rho>, v)\<close>} implies @{prop \<open>P \<turnstile> hist \<rho> \<Rightarrow>* mbox0 (map Tm u)\<close>}.
 \begin{proof}
 We proceed by induction on the length \<open>n\<close> of the computation for arbitrary \<open>u, v,\<close> and \<open>\<rho>\<close>.
 
@@ -738,12 +761,12 @@ the second to last configuration was of the form
 \end{gather}
 This implies the existence of some \<open>y :: 't list\<close> such that the initial input was of the form
 \<open>uv = yav\<close>. This, together with \eqref{eq:ipda.invariant.shift}, and the induction hypothesis implies 
-\<open>P \<turnstile> hist (rev \<tau> @ [[A \<rightarrow> \<alpha> \<cdot> Tm a # \<beta>]])\<close> = \<open>hist (rev \<tau>) @ \<alpha> \<Rightarrow>* map Tm y\<close>. With \<open>uv = yav\<close>
-and by substituting \eqref{eq:ipda.invariant.rho_shift}, it follows that
-\<open>P \<turnstile> hist \<rho> \<Rightarrow>* map Tm y @ [Tm a] = u\<close> holds, fulfilling the invariant.
+\[ \<open>P \<turnstile> hist (rev \<tau> @ [[A \<rightarrow> \<alpha> \<cdot> Tm a # \<beta>]])\<close> = \<open>hist (rev \<tau>) @ \<alpha> \<Rightarrow>* map Tm y\<close>. \] 
+With \<open>uv = yav\<close> and by substituting \eqref{eq:ipda.invariant.rho_shift}, it follows that
+\<open>P \<turnstile> hist \<rho> \<Rightarrow>* map Tm y @\<close>\ @{prop \<open>mbox [Tm a] = u\<close>} holds, fulfilling the invariant.
 
 For the reducing case, we have a second-to-last configuration 
-@{term \<open>([Y \<rightarrow> \<alpha> \<cdot> ] # [X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] # \<tau>, v)\<close>}, and 
+@{term \<open>([Y \<rightarrow> \<alpha> \<cdot> ] # mbox [X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] # \<tau>, v)\<close>}, and 
 @{term \<open>rev \<rho>\<close>} = @{term \<open>mbox [X \<rightarrow> \<beta> @ [Nt Y] \<cdot> \<gamma>] # \<tau>\<close>} holds for some \<open>Y, \<alpha>, X, \<beta>, \<gamma>\<close> and \<open>\<tau>\<close>.
 Moreover, @{prop \<open>(Y, \<alpha>) \<in> P\<close>} must hold; otherwise, @{prop \<open>[X \<rightarrow> \<beta> \<cdot> Nt Y # \<gamma>] \<in> It G'\<close>} 
 would imply that \<open>S'\<close> is on the RHS of a production in \<open>G'\<close>, which cannot be the case by definition.
@@ -771,8 +794,8 @@ The invariant is therefore satisfied for all cases.
 \begin{proof}
 Assume @{prop \<open>w \<in> gpda.Lang I\<^sub>G\<close>}. Then, 
 \[ \<open>([init I\<^sub>G], w) =\<close>\ @{prop \<open>([init I\<^sub>G], w @ []) \<turnstile>I* ([[S' \<rightarrow> [Nt S] \<cdot> ]], [])\<close>}. \] 
-By Lemma~\ref{ipda.invariant}, this implies @{prop \<open>P \<turnstile> hist [final_state] \<Rightarrow>* map Tm w\<close>}.
-Since @{prop \<open>hist [final_state] = [Nt S]\<close>}, this proves that @{prop \<open>w \<in> LangS G\<close>}.  
+By Lemma~\ref{ipda.invariant}, this implies @{prop \<open>P \<turnstile> hist [final_state] \<Rightarrow>* map Tm w\<close>}, and thus
+@{prop \<open>w \<in> LangS G\<close>}.  
 \end{proof}
 \end{lemma}
 
@@ -787,12 +810,11 @@ Trivial by induction on the length of \<open>u\<close>.
 \end{lemma}
 
 \begin{lemma}[Derivation implies IPDA completion]\label{derives_imp_completes}
-If 
-\[ @{prop \<open>P' \<turnstile> \<beta> \<Rightarrow>* map Tm w\<close>} \] 
-and @{prop \<open>(A, \<alpha> @ \<beta> @ \<gamma>) \<in> P'\<close>}, then for any \<open>\<rho>\<close> and \<open>x\<close> holds: 
+If @{prop \<open>P' \<turnstile> \<beta> \<Rightarrow>* map Tm w\<close>} and @{prop \<open>mbox (A, \<alpha> @ \<beta> @ \<gamma>) \<in> P'\<close>}, then for any \<open>\<rho>\<close> and \<open>x\<close> holds: 
 \[ @{prop \<open>([A \<rightarrow> \<alpha> \<cdot> \<beta>@\<gamma>] # \<rho>, w @ x) \<turnstile>I* ([A \<rightarrow> \<alpha>@\<beta> \<cdot> \<gamma>] # \<rho>, x)\<close>}. \]
 \begin{proof}
-We perform strong induction on the length of the derivation \<open>n\<close>.
+We perform strong induction on the length of the derivation \<open>n\<close> for arbitrary \<open>\<beta>, w, A, \<alpha>, \<gamma>, \<rho>, \<close>
+and \<open>x\<close>.
 If \<open>n = 0\<close>, \<open>\<beta> = map Tm w\<close>, and the implication holds by Lemma~\ref{completes_Tms}.
 
 If \<open>n = Suc m\<close> for some \<open>m :: nat\<close>, \<open>\<beta>\<close> must be of the form 
@@ -868,7 +890,7 @@ This is equivalent to @{prop \<open>w \<in> gpda.Lang I\<^sub>G\<close>}.
 
 And thus with Lemma~\ref{ipda.Lang_subst_Lang_G}:
 
-\begin{theorem}\label{ipda.Lang_eq_Lang_G}
+\begin{theorem}[Correctness of \<open>I\<^sub>G\<close>]\label{ipda.Lang_eq_Lang_G}
 @{prop \<open>gpda.Lang I\<^sub>G = LangS G\<close>}
 \qed
 \end{theorem}
@@ -882,15 +904,15 @@ thereof~\cite[p. 61]{Wilhelm}, namely the statement
 for arbitrary \<open>\<rho> :: item list\<close> and \<open>v :: 't list\<close>.}
 \end{quote}
 Despite this weaker statement being sufficient for the IPDA's correctness proof, we will need the
-stronger lemma in order to prove the first of the two major theorems from the book that we will
-formalize in a future section.
+stronger lemma in order to prove the first of the two major theorems from the book, which we will
+formalize in a later section.
 
-We have now defined a nondeterministic GPDA that works with items and accepts exactly its underlying 
-language. Note that the IPDA is the first of multiple automata where we can see the benefit of
+We have now defined a nondeterministic GPDA that works with the items of a CFG \<open>G\<close> and accepts
+exactly the language of \<open>G\<close>. Note that the IPDA is the first of multiple automata where we can see the benefit of
 extending the grammar: if we were to define the set of final states to be the set of all complete
 items of the form @{term \<open>[S \<rightarrow> \<alpha> \<cdot> ]\<close>}, the automaton could encounter a final state before the end
 of a computation. Since \<open>S'\<close> is in not on the RHS of any production, this scenario can not occur
-after the extension.\<close>
+in extended grammars.\<close>
 
 chapter \<open>Rightmost Chains: Decomposing Rightmost Derivations\<close>
 
@@ -911,8 +933,8 @@ of the form
         & \<open>\<Rightarrow>r (\<alpha>\<^sub>1 \<dots> \<alpha>\<^sub>n) \<alpha>\<beta> @ map Tm (v\<^sub>n \<dots> v\<^sub>1)\<close>.
 \end{split}
 \end{equation}
-where \<open>X\<^sub>n = A\<close>~\footnote{This expression denotes concatenation by juxtaposition instead of the usual
-concatenation operator @{term \<open>(@)\<close>} for compactness.}. We now formalize this concept by defining
+where \<open>X\<^sub>n = A\<close>~\footnote{This expression denotes concatenation mostly by juxtaposition instead of 
+the usual concatenation operator @{term \<open>(@)\<close>} for compactness.}. We now formalize this concept by defining
 \concept{rightmost chains} inductively. If sentential form \<open>\<alpha>\<close> reaches sentential form \<open>\<beta>\<close> with
 rightmost chain \<open>\<rho>\<close> under production set \<open>P\<close>, we write @{prop \<open>P \<turnstile> \<alpha> \<midarrow>\<rho>\<rightarrow>r* \<beta>\<close>}. For a fixed \<open>P\<close>,
 we define a \concept{reflexive} rule:
@@ -923,7 +945,7 @@ we define a \concept{reflexive} rule:
 \end{gather*}
 
 Essentially, rightmost chains allow us to store a list where each nonterminal produces the 
-next, and the \<open>\<beta>\<close> strings derive words in-between the \<open>X\<close>s that build our chain. For this, we 
+next, and the \<open>\<beta>\<^sub>i\<close> strings derive words in-between the \<open>X\<^sub>i\<close>s that build our chain. For this, we 
 repurpose context-free items in order to track the entirety of the production that each nonterminal 
 applies to produce the following nonterminal in the chain, with the bullet allowing us to pinpoint 
 \emph{where} in the production the next nonterminal is located. With this definition, we can describe
@@ -995,10 +1017,9 @@ If @{prop \<open>P \<turnstile> [Nt A] \<Rightarrow>r(Suc n) \<alpha> @ Nt X # m
 form 
 \[ @{prop \<open>P \<turnstile> [Nt A] \<midarrow>[B \<rightarrow> \<alpha>' \<cdot> Nt X # \<beta>] # \<rho>\<rightarrow>r* \<alpha> @ Nt X # map Tm v\<close>}. \]
 \begin{proof}
-We use strong induction on @{term \<open>Suc n\<close>} for arbitrary \<open>\<alpha>, X,\<close> and \<open>v\<close>. Furthermore, 
-we distinguish cases on \<open>n\<close>:
+We use strong induction on @{term \<open>Suc n\<close>} for arbitrary \<open>\<alpha>, X,\<close> and \<open>v\<close>.
 
-If \<open>n = 0\<close>, then 
+In the base case, \<open>n = 0\<close> implies 
 \[ @{prop \<open>P \<turnstile> [Nt A] \<midarrow>[[A \<rightarrow> \<alpha> \<cdot> Nt X # map Tm v]]\<rightarrow>r* \<alpha> @ Nt X # map Tm v\<close>}. \]
 
 Otherwise, let \<open>n = Suc m\<close> for some \<open>m\<close>. From 
@@ -1069,8 +1090,9 @@ holds, finishing the proof.
 \end{proof}
 \end{lemma}
 
-Wilhelm et al.~\cite[p. 107]{Wilhelm} furthermore claim that if @{term \<open>([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>', w)\<close>}
-reaches the final configuration @{term \<open>([[S' \<rightarrow> \<cdot> [Nt S]]], [])\<close>}, then \<open>\<rho>'\<close> is of the form
+Wilhelm et al.~\cite[p. 107]{Wilhelm} furthermore claim that if the IPDA with configuration
+@{term \<open>([A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>', w)\<close>} reaches the final configuration @{term \<open>([[S' \<rightarrow> \<cdot> [Nt S]]], [])\<close>},
+then \<open>\<rho>'\<close> is of the form
 \[ \<open>\<rho>' = [\<close> X_{n-1}\ \<open>\<rightarrow> \<alpha>\<^sub>n \<cdot> Nt X\<^sub>n # \<beta>\<^sub>n] # \<dots> # [[S' \<rightarrow> \<alpha>\<^sub>1 \<cdot> Nt X\<^sub>1 # \<beta>\<^sub>1]]\<close> \]
 for some \<open>n \<ge> 0\<close> and \<open>X\<^sub>n = A\<close>~\footnote{We have adapted the original claim to our own notation for 
 the sake of consistency and clarity.} It is worth noting that this structure of \<open>\<rho>'\<close> is essentially
@@ -1120,7 +1142,7 @@ Trivial by rule inversion.
 
 \begin{lemma}\label{rm_chain_second_produces_hd}
 If @{prop \<open>P' \<turnstile> \<alpha>\<^sub>0 \<midarrow>[A \<rightarrow> \<alpha> \<cdot> Nt B # \<beta>] # i # \<rho>\<rightarrow>r* \<gamma>\<close>},
-then there exist \<open>X, \<alpha>',\<close> and \<open>\<beta>'\<close> such that \<open>i = [X \<rightarrow> \<alpha>' \<cdot> Nt A # \<beta>']\<close>
+then there exist \<open>X, \<alpha>',\<close> and \<open>\<beta>'\<close> such that \<open>i = [X \<rightarrow> \<alpha>' \<cdot> Nt A # \<beta>']\<close>.
 \begin{proof}
 By rule inversion, we know there exist \<open>\<alpha>' :: syms\<close> and \<open>v, u :: 't list\<close> where
 \begin{subequations}
@@ -1131,8 +1153,7 @@ By rule inversion, we know there exist \<open>\<alpha>' :: syms\<close> and \<op
 @{prop \<open>P' \<turnstile> \<beta> \<Rightarrow>r* map Tm u\<close>}
 \end{gather}
 \end{subequations}
-The implication then follows from all these facts by doing a second rule inversion, this time on 
-\eqref{rmc_snd_hd.step}.
+The implication then follows from by a second rule inversion, this time on \eqref{rmc_snd_hd.step}.
 \end{proof}
 \end{lemma}
 
@@ -1184,15 +1205,14 @@ Lemma~\ref{rm_chain_Cons_imp_prod_rightmost}, \eqref{ipda_rm.ih} implies that \<
 for some \<open>\<zeta>'\<close> and \<open>u\<close>. Moreover, since \<open>G'\<close> is reduced, there exists a \<open>v :: 't list\<close> that the string \<open>\<delta>\<close> can derive.  
 With the fact that \<open>B\<close> produces \<open>\<theta> @ Nt A # \<delta>\<close>, we can extend the chain in \eqref{ipda_rm.ih} by the 
 item @{term \<open>[B \<rightarrow> \<theta> \<cdot> Nt A # \<delta>]\<close>}, i.e.
-\begin{multline*}
-\<open>P' \<turnstile> [Nt S'] \<midarrow>[B \<rightarrow> \<theta> \<cdot> Nt A # \<delta>] # \<tau>\<rightarrow>r*\<close> 
-  \\\<open>\<zeta>' @ \<theta> @ Nt A # map Tm (v@u)\<close>
-\end{multline*}
-The implication therefore holds by \eqref{ipda_rm.r}.
+\begin{equation*}
+@{prop \<open>P' \<turnstile> [Nt S'] \<midarrow>[B \<rightarrow> \<theta> \<cdot> Nt A # \<delta>] # \<tau>\<rightarrow>r* \<zeta>' @ \<theta> @ Nt A # map Tm (v@u)\<close>}
+\end{equation*}
+The implication therefore holds with \eqref{ipda_rm.r}.
 
 If the transition is expanding, we have
 \begin{equation}\label{ipda_rm.e}
- @{prop \<open>([B \<rightarrow> \<gamma> \<cdot> \<delta>] # \<tau>, v) = ([B \<rightarrow> [] \<cdot> \<delta>] # [A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w)\<close>}.
+ @{prop [source] \<open>([B \<rightarrow> \<gamma> \<cdot> \<delta>] # \<tau>, v) = ([B \<rightarrow> [] \<cdot> \<delta>] # [A \<rightarrow> \<alpha> \<cdot> \<beta>] # \<rho>, w)\<close>}.
 \end{equation}
 If \<open>\<rho> = []\<close>, the implication holds directly. Otherwise, if \<open>\<rho> = i # \<sigma>\<close> for some \<open>i\<close> and \<open>\<sigma>\<close>, 
 from \eqref{ipda_rm.ih} and \eqref{ipda_rm.e} we get
@@ -2788,7 +2808,7 @@ We will again need stack words to prove completeness, but constructing a valid p
 from a rightmost derivation directly is quite challenging since the parser's construction, albeit
 ideal for our original goal of achieving a deterministic parsing algorithm, is too far removed from 
 the pure concept of rightmost derivations. We will overcome this by defining the
-\concept{shift-reduce pushdown automaton} (SRPDA), proving the completeness of this machine w.r.t
+\concept{shift-reduce pushdown automaton} (SRPDA), proving the completeness of this machine w.r.t.
 the grammar, and then show the relation between SRPDA and @{const P\<^sub>0} computations, which will allow
 us to prove the parser complete. Our definition of the SRPDA is based on the lecture slides by
 Petter~\cite{Petter}.
@@ -3056,7 +3076,7 @@ properties of language and reduction. We also formally defined generalized pushd
 operate similarly to ordinary PDAs, except for the fact that they are able to read topmost stack
 strings of variable length instead of only the topmost symbol.
 
-We then defined the item pushdown automaton and proved its correctness w.r.t its underlying grammar
+We then defined the item pushdown automaton and proved its correctness w.r.t. its underlying grammar
 \<open>G'\<close>. Our formalization of this property required us to strengthen a lemma that Wilhelm et al. used,
 particularly in order to later prove one of the two main theorems we formalized. Our correctness
 proof followed the original argument closely, with the main difference being that their weaker lemma 
@@ -3106,7 +3126,7 @@ exist which are not suitable for the parser after the extension.
 
 Lastly, we formalized the concept of stack words, inspired by an intuitive explanation by Wilhelm et
 al. of how the parser operates. We furthermore formalized the shift-reduce pushdown automaton
-based on the definition by Petter~\cite{Petter}, and proved its completeness w.r.t its underlying
+based on the definition by Petter~\cite{Petter}, and proved its completeness w.r.t. its underlying
 grammar. With these two constructions, we finally proved the correctness of the canonical \<open>LR(0)\<close>
 parser.\<close>
   

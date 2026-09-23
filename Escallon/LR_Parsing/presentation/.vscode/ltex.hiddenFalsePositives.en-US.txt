@@ -1,0 +1,2 @@
+{"rule":"A_NNS","sentence":"^\\QThe item \\E(?:Dummy|Ina|Jimmy-|Dummy-|Maniquí-|Maniquíes-|Atrapa-|Dummy\\+|Dummy's\\+)[0-9]+\\Q is often written as A  Context-free items allow tracking the current state of the parsing proces.\\E$"}
+{"rule":"A_NNS","sentence":"^\\QThe item \\E(?:Dummy|Ina|Jimmy-|Dummy-|Maniquí-|Maniquíes-|Atrapa-|Dummy\\+|Dummy's\\+)[0-9]+\\Q is often written as A  Context-free items allow tracking the current state of the parsing process\\E$"}

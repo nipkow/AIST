@@ -1,0 +1,448 @@
+\documentclass{beamer}
+\usetheme{Boadilla}
+
+\setbeamertemplate{itemize item}[circle]
+
+\setbeamertemplate{sections/subsections in toc}[circle]
+\setbeamertemplate{blocks}[rounded][shadow=false]
+
+\usepackage{amsmath,amssymb}
+\usepackage{mathtools}
+\usepackage{mathpartir}
+
+\newcommand{\concept}[1]{\textbf{#1}}
+
+%Items
+
+\newcommand{\It}[1][G]{\ensuremath{\mathrm{It}_{#1}}}
+\newcommand{\cfitem}[3]{\ensuremath{{[#1 \to #2 \:\cdot\: #3]}}}
+
+% CFGs
+
+\newcommand{\derive}{\ensuremath{\Rightarrow}}
+\newcommand{\derives}{\ensuremath{\xRightarrow[]{*}}}
+\newcommand{\deriven}[1]{\ensuremath{\xRightarrow[]{#1}}}
+
+\newcommand{\deriver}{\ensuremath{\xRightarrow[\mathrm{rm}]}}
+\newcommand{\derivers}{\ensuremath{\xRightarrow[\mathrm{rm}]{*}}}
+\newcommand{\derivern}[1]{\ensuremath{\xRightarrow[\mathrm{rm}]{#1}}}
+
+\title{Formal Verification of $LR(0)$ Parsing Theory}
+\author[Felipe Escall\'{o}n]{Felipe Escall\'{o}n Tapias}
+\institute[TUM]{Technical University of Munich}
+\date{October 6th, 2026}
+
+\AtBeginSection[]{
+  \begin{frame}
+    \tableofcontents[currentsection,hideallsubsections]
+  \end{frame}
+}
+
+\AtBeginSubsection[]{
+  \begin{frame}
+    \tableofcontents[currentsection,currentsubsection,
+      sectionstyle=show/hide,
+      subsectionstyle=show/shaded/hide]
+  \end{frame}
+}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}
+\frametitle{Outline}
+\tableofcontents[hideallsubsections]
+\end{frame}
+
+\section{Introduction}
+
+\begin{frame}
+\frametitle{Syntactic Analysis}
+\begin{itemize}
+  \item One of the earliest stages in the compilation process
+  \item Verification of the adherence to the syntax rules by the input
+  \item $LR(k)$ parsing theory presented by Wilhelm et al.\ in the book 
+  \textit{Compiler Design: Syntactic and Semantic Analysis}
+  \item Scope of this thesis: $LR(0)$ parsing theory as presented in this book
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Major Results}
+\begin{itemize}
+  \item A formalization of the book's $LR(0)$ theory 
+  \item A formal proof of the correctness of the parser constructed from the 
+  canonical $LR(0)$ automaton as specified by the authors
+  \begin{itemize}
+    \item Not discussed by Wilhelm et al.
+  \end{itemize}
+  \item Achieved using the Isabelle Proof Assistant
+  \begin{itemize}
+    \item Building on the formalization of CFG theory by Nipkow et al.
+  \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Notes on Terminology}
+\begin{itemize}
+\item ``Formal'': machine-checked
+\item ``Formalization'': translation of definitions, theorems, and proofs into 
+code that is then machine-checked
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Why formal verification?}
+\begin{itemize}
+  \item Informal proofs often contain errors
+  \item Faulty arguments may seem correct on the surface
+  \item Proof assistants verify that each step in a proof is indeed a consequence 
+  of the previous steps
+  \begin{itemize}
+    \item Guarantee of the arguments' soundness
+  \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Why prove the parser correct?}
+\begin{itemize}
+  \item Motivation behind the $LR(0)$ parser: deterministic algorithm that 
+  decides whether a word is in a given CFG
+  \item Wilhelm et al.\ show that the parser is indeed deterministic for $LR(0)$ 
+  grammars
+  \item Remaining question: does the parser accept the language of the grammar 
+  it is constructed from?
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Main Questions}
+\begin{itemize}
+  \item Is $LR(0)$ parsing theory as presented by Wilhelm et al.\ correct, and if it is not,
+how must it be modified to achieve correctness?
+  \item What is the language accepted by the $LR(0)$ parser as defined by Wilhelm et
+al., and in particular, how does this language relate to that of the grammar from which it is
+constructed?
+\end{itemize}
+\end{frame}
+
+
+\section{Basic Definitions}
+
+\subsection{Extended and Reduced Grammars}
+
+\begin{frame}
+  \frametitle{Extending Grammars by a New Start Symbol}
+  \begin{itemize}
+    \item For a CFG with start symbol $S$, we wish to identify that a word has
+    been derived when a production of the form $(S, \alpha)$ is encountered
+    \begin{itemize}
+      \item Problem: grammars can have productions with $S$ on the RHS
+    \end{itemize}
+    \item Extending the grammar by a new start symbol $S'$ with a unique
+    production $(S',\ [Nt\ S])$ makes this possible
+  \end{itemize}
+  \begin{definitions}
+    \begin{center}
+    $S' = fresh0\ (Nts\ P \cup {S})$\\
+    $G' = Cfg\ (P \cup \{(S',\ [Nt\ S])\})\ S'$
+    \end{center}
+  \end{definitions}
+  \pause
+  \begin{theorem}[Preservation of language after extension]
+    If $G$ is a CFG and $G'$ its extension, then $L(G) = L(G')$ holds.
+  \end{theorem}
+  \pause
+  \begin{alertblock}{Remark}
+    Convention: $G$ is a CFG with extension $G'$.
+  \end{alertblock}
+  
+\end{frame}
+
+\begin{frame}
+  \frametitle{Reduced Grammars}
+  \begin{itemize}
+    \item CFGs can contain unreachable and unproductive nonterminals
+    \item Removal of such nonterminals does not alter the language
+    \begin{itemize}
+      \item Proved by Nipkow et al. in their formalization
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Reduced Grammars}
+  \begin{definitions}[Productive strings and useful symbols]
+    \begin{center}
+    $productives\ P\ \alpha = \exists w.\ P \vdash \alpha \derives w$\\
+    $useful\ P\ S\ A\ = 
+      \exists \beta.\ P \vdash [Nt\ S] \derives \beta \land Nt\ A \in set\ \beta 
+        \land productives\ P\ \beta$
+    \end{center}
+  \end{definitions}
+  \pause
+  \begin{definition}[Reduced grammar]
+    A CFG G is \concept{reduced} if $useful\ (Prods\ G)\ (Start\ G)\ A$ holds
+    for every $A\ \in Nts\ (Prods\ G)$.
+  \end{definition}
+  \pause
+  \begin{lemma}[Preservation of reduction]
+    If $G$ is reduced and $L(G)$ is nonempty, $G'$ is reduced.
+  \end{lemma}
+\end{frame}
+
+\subsection{Context-Free Items}
+
+\begin{frame}
+  \frametitle{Context-Free Items}
+  \begin{definition}
+    A context-free item for a CFG $G$ is a triple 
+    $(A, \alpha, \beta) :: {'}n \times ({'}n,{'}t)\ syms \times ({'}n,{'}t)\ syms$ such that
+    $(A, \alpha @ \beta) \in Prods\ G$.\\
+    The item $(A, \alpha, \beta)$ is often written as \cfitem{A}{\alpha}{\beta}
+  \end{definition}
+  \begin{itemize}
+    \item Context-free items allow tracking the current state of the parsing process
+    \item Symbols to the right of the bullet are shifted to the left as they are consumed
+    \item Empty strings are often written implicitly
+    \begin{itemize}
+      \item Example: \cfitem{A}{}{\beta} instead of \cfitem{A}{[]}{\beta}
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Further Definitions}
+  \begin{itemize}
+    \item An item of the form \cfitem{A}{\alpha}{} is \concept{complete}
+    \item An item of the form \cfitem{A}{}{\beta} is \concept{initial}
+    \item The \concept{history} of an item of the form \cfitem{A}{\alpha}{\beta} is $\alpha$
+    \item If $I$ is a set of items, $completes\ I$ denotes the set of complete items
+    in $I$
+    \begin{itemize}
+      \item $incompletes\ I$ denotes the set of items in $I$ that are not complete
+    \end{itemize}
+    \item If $\rho$ is a list of items, $hist\ \rho$ is the concatenation of the
+    histories of the items in $\rho$
+    \item \It\ denotes the set of all items of the CFG G
+  \end{itemize}
+  \begin{lemma}[Finiteness of \It]
+    If $G$ is a CFG such that $Prods\ G$ is finite, \It\ is finite.
+  \end{lemma}
+\end{frame}
+
+\subsection{Generalized Pushdown Automata}
+
+\begin{frame}
+  \frametitle{Generalized Pushdown Automata}
+  \begin{itemize}
+    \item Multiple automata that use a stack to operate will be defined
+    \item Reading multiple stack symbols in a single transition sometimes necessary
+    \item \concept{Generalized pushdown automata} behave like conventional PDAs but
+    are able to read topmost stack strings
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Generalized Pushdown Automata}
+  \begin{definition}
+    A generalized pushdown automaton (GPDA) is a record of type $({'}q, {'}a)\ gpda$
+    where ${'}q$ is the type of stack symbols, ${'}a$ the type of alphabet symbols, 
+    with fields
+    \begin{itemize}
+      \item $states :: {'}q\ set$: a finite set of \concept{states}
+      \item $init :: {'}q$: the \concept{initial state}, $init \in states$
+      \item $final :: {'}q$: the set of \concept{final states}, $final \subseteq states$
+      \item $nxt :: ({'}q\ list \times {'}a \times {'}q\ list)\ set$: the \concept{reading transition relation}
+      \item $eps :: ({'}q\ list \times {'}q\ list)\ set$: the \concept{$\epsilon$-transition relation}
+    \end{itemize}
+    For a GPDA $M$ must hold for all $(ps, a, qs) \in nxt\ M$ that $ps$ is nonempty, 
+    and both $ps$ and $qs$ are subsets of the states of $M$. This must also hold
+    for all $(ps, qs) \in eps\ M$.
+  \end{definition}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Generalized Pushdown Automata}
+  \begin{itemize}
+    \item Wilhelm et al. define GPDA transition relations as finite
+    \item Our proofs do not use this property
+    \begin{itemize}
+      \item We omit this constraint for the sake of simplicity
+    \end{itemize}
+    \item \alert{Finiteness relevant for the LR(0) parser}
+    \begin{itemize}
+      \item Discussed \hyperlink{parser_finiteness}{in a later section}
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Configurations}
+  \begin{itemize}
+    \item A \concept{configuration} for a $({'}q, {'}a)\ gpda$ is a tuple 
+    $(qs, w) :: {'}q\ list \times {'}a\ list$
+    \begin{itemize}
+      \item $qs$: current stack 
+      \item $w$: remaining input
+    \end{itemize}
+    \item A configuration for a GPDA $M$ is \concept{initial} if the stack 
+    consists of the list $[init\ M]$
+    \item A configuration for a GPDA $M$ is \concept{final} if it is of the form
+    $([f], [])$ for some $f \in final\ M$
+  \end{itemize}
+  \begin{alertblock}{Remark}
+    The topmost stack element is defined as the leftmost element of the list in 
+    accordance with the Isabelle $list$ datatype.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Steps}
+  \begin{itemize}
+    \item The \concept{step relation} is denoted by the infix operator $\vdash$
+    \item Defined by the rules
+    \begin{gather*}
+      (ps, a, qs) \in nxt\ M \Longrightarrow (ps @ rs, a \# w) \vdash (qs @ rs, w)\\
+      (ps, qs) \in eps\ M \Longrightarrow (ps @ rs, w) \vdash (qs @ rs, w)
+    \end{gather*}
+    \item \concept{computations} = sequences of steps
+    \begin{itemize}
+      \item denoted by the reflexive transitive closure of steps, written as $\vdash^*$
+    \end{itemize}
+    \item computations of length $n$ denoted by $\vdash^n$
+    \item The language of a GPDA $M$:
+    \[L(M) = \{w\ |\ \exists f \in final\ M.\ ([init M], w) \vdash^* ([f], [])\}\]
+  \end{itemize}
+\end{frame}
+
+\section{The Item Pushdown Automaton}
+
+\begin{frame}
+  \frametitle{Conventions}
+  Let $G$ be a CFG with start symbol $S$ and production set $P$ such that
+  \begin{itemize}
+    \item $P$ is finite
+    \item $L(G)$ is nonempty
+    \item $G$ is reduced
+    \item $G'$ is the extension of $G$ with start symbol $S'$ and production set $P'$
+  \end{itemize}
+\end{frame}
+
+\subsection{Definition}
+
+\begin{frame}
+  \frametitle{The Item Pushdown Automaton}
+  \begin{definition}
+    The \concept{item pushdown automaton} (IPDA) to G is the $(({'}n, {'t}) item, {'}t)\ gpda\ I_{G}$
+    with
+    \begin{itemize}
+      \item $states = \It[G']$
+      \item $init = \cfitem{S'}{}{[Nt\ S]}$
+      \item $final = \{\cfitem{S'}{[Nt\ S]}{}\}$
+    \end{itemize}
+  \end{definition}
+\end{frame}
+
+\begin{frame}
+  \frametitle{The Item Pushdown Automaton}
+  \begin{definition}
+    ...and transition relations
+    \begin{multline*}
+        nxt = \{([\cfitem{X}{\beta}{Tm\ a \# \gamma}], a, [\cfitem{X}{\beta @ [Tm\ a]}{\gamma}])\\
+        |\ X \beta a \gamma.\ (X, \beta @ Tm\ a \# \gamma) \in P'\}
+    \end{multline*}
+    and $eps = E \cup R$ for 
+    \begin{gather*}
+      \begin{multlined}
+        E = \{([\cfitem{X}{\beta}{Nt\ Y \# \gamma}], 
+          [\cfitem{Y}{}{\alpha}, \cfitem{X}{\beta}{Nt\ Y \# \gamma}])\\
+          |\ X \beta Y \gamma \alpha.\ (X, \beta @ Nt\ Y \# \gamma) \in P' 
+          \land (Y, \alpha) \in P'\}
+      \end{multlined}\\
+      \begin{multlined}
+        R = \{([\cfitem{Y}{\alpha}{}, \cfitem{X}{\beta}{Nt\ Y \# \gamma}], [\cfitem{X}{\beta @ [Nt\ Y]}{\gamma}])\\
+        |\ Y \alpha X \beta \gamma.\ (X, \beta @ Nt\ Y \# \gamma) \in P' 
+          \land (Y, \alpha) \in P'\}
+      \end{multlined}
+    \end{gather*}
+  \end{definition}
+  \begin{itemize}
+    \item IPDA steps notated by $\vdash_I$, $\vdash^{*}_{I}$, and $\vdash^{n}_{I}$
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{The Item Pushdown Automaton}
+  \begin{alertblock}{Remark}
+  \begin{itemize}
+    \item Type $({'}n, {'t}) item$ allows items not in \It[G'] on the stack
+    \item Restriction enforced by requiring productions to be in $P'$
+  \end{itemize}
+  \end{alertblock}
+\end{frame}
+
+\subsection{Language Equivalence}
+
+\begin{frame}
+  \frametitle{Soundness}
+  \begin{itemize}
+    \item Proof follows Wilhelm et al. closely
+  \end{itemize}
+  \pause
+  \begin{lemma}[IPDA invariant]
+    $([init\ M], u @ v) \vdash^{*}_{I} (rev\ \rho, v)$ implies 
+    $P \vdash hist\ \rho \derives map\ Tm\ u$.
+  \end{lemma}
+  \pause
+  \begin{lemma}[IPDA soundness]
+    $L(I_{G}) \subseteq L(G)$
+  \end{lemma}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Completeness}
+  \begin{lemma}[Derivation implies IPDA completion]
+    If $P' \vdash \beta \derives map\ Tm\ w$ and $(A, \alpha @ \beta @ \gamma) \in P'$,
+    then for any $\rho$ and $x$ holds
+    \[ (\cfitem{A}{\alpha}{\beta @ \gamma} \# \rho, w @ x)
+    \vdash^{*}_{I} (\cfitem{A}{\alpha @ \beta}{\gamma} \# \rho, x). \]
+  \end{lemma}
+  \pause
+  \begin{itemize}
+    \item Wilhelm et al. prove a weaker statement
+    \item Sufficient for IPDA completeness
+    \item Our stronger lemma will be needed in the future
+  \end{itemize}
+  \pause
+  \begin{lemma}[IPDA completeness]
+    $L(G) \subseteq L(I_{G})$
+  \end{lemma}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Correctness}
+  \begin{theorem}
+    $L(I_{G}) = L(G)$
+  \end{theorem}
+\end{frame}
+
+\section{Rightmost Chains}
+
+\section{The Characteristic Finite Automaton and Canonical $LR(0)$ Automaton}
+
+\section{The $LR(0)$ Parser}
+
+
+\begin{frame}[label=parser_finiteness]
+\frametitle{parser finitenes (tmp title)}
+\end{frame}
+
+\section{Conclusion}
+
+\end{document}

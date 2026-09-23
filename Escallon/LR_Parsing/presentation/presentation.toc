@@ -1,0 +1,12 @@
+\beamer@sectionintoc {1}{Introduction}{3}{0}{1}
+\beamer@sectionintoc {2}{Basic Definitions}{10}{0}{2}
+\beamer@subsectionintoc {2}{1}{Extended and Reduced Grammars}{11}{0}{2}
+\beamer@subsectionintoc {2}{2}{Context-Free Items}{19}{0}{2}
+\beamer@subsectionintoc {2}{3}{Generalized Pushdown Automata}{22}{0}{2}
+\beamer@sectionintoc {3}{The Item Pushdown Automaton}{28}{0}{3}
+\beamer@subsectionintoc {3}{1}{Definition}{30}{0}{3}
+\beamer@subsectionintoc {3}{2}{Language Equivalence}{34}{0}{3}
+\beamer@sectionintoc {4}{Rightmost Chains}{42}{0}{4}
+\beamer@sectionintoc {5}{The Characteristic Finite Automaton and Canonical $LR(0)$ Automaton}{43}{0}{5}
+\beamer@sectionintoc {6}{The $LR(0)$ Parser}{44}{0}{6}
+\beamer@sectionintoc {7}{Conclusion}{46}{0}{7}

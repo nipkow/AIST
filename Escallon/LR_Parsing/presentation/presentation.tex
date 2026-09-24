@@ -10,6 +10,17 @@
 \usepackage{mathtools}
 \usepackage{mathpartir}
 
+% Setting up isabelle ASCII operators as math mode operators
+
+\makeatletter
+\mathcode`\@="8000
+\catcode`\@=13  % make @ active
+\def@{\mathchar"2040} % 2 = binary operator, 040 = hex for @ (ASCII 64)
+\catcode`\@=11  % restore @ to letter
+\makeatother
+
+\newcommand{\cons}{\mathbin{\#}}
+
 \newcommand{\concept}[1]{\textbf{#1}}
 
 %Items
@@ -19,13 +30,29 @@
 
 % CFGs
 
-\newcommand{\derive}{\ensuremath{\Rightarrow}}
-\newcommand{\derives}{\ensuremath{\xRightarrow[]{*}}}
-\newcommand{\deriven}[1]{\ensuremath{\xRightarrow[]{#1}}}
+% derivation arrows (no prods)
 
-\newcommand{\deriver}{\ensuremath{\xRightarrow[\mathrm{rm}]}}
-\newcommand{\derivers}{\ensuremath{\xRightarrow[\mathrm{rm}]{*}}}
-\newcommand{\derivern}[1]{\ensuremath{\xRightarrow[\mathrm{rm}]{#1}}}
+\newcommand{\derivea}{\ensuremath{\Rightarrow[]{}}}
+\newcommand{\derivesa}{\ensuremath{\xRightarrow[]{*}}}
+\newcommand{\derivena}[1]{\ensuremath{\xRightarrow[]{#1}}}
+
+\newcommand{\derivera}{\ensuremath{\xRightarrow[\mathrm{rm}]{}}}
+\newcommand{\deriversa}{\ensuremath{\xRightarrow[\mathrm{rm}]{*}}}
+\newcommand{\deriverna}[1]{\ensuremath{\xRightarrow[\mathrm{rm}]{#1}}}
+
+% derivation arrows with prods
+
+\newcommand{\derive}[3]{\ensuremath{{#1} \vdash {#2} \derivea {#3}}}
+\newcommand{\derives}[3]{\ensuremath{{#1} \vdash {#2} \derivesa {#3}}}
+\newcommand{\deriven}[4]{\ensuremath{{#1} \vdash {#2} \derivena{#3} {#4}}}
+
+\newcommand{\deriver}[3]{\ensuremath{{#1} \vdash {#2} \derivera {#3}}}
+\newcommand{\derivers}[3]{\ensuremath{{#1} \vdash {#2} \deriversa {#3}}}
+\newcommand{\derivern}[4]{\ensuremath{{#1} \vdash {#2} \deriverna{#3} {#4}}}
+
+% RM Chains
+
+\newcommand{\chain}[4]{\ensuremath{{#1} \vdash {#2} -\!\!{#3}\!\rightarrow^{*}_{r} #4}}
 
 \title{Formal Verification of $LR(0)$ Parsing Theory}
 \author[Felipe Escall\'{o}n]{Felipe Escall\'{o}n Tapias}
@@ -179,9 +206,9 @@ constructed?
   \frametitle{Reduced Grammars}
   \begin{definitions}[Productive strings and useful symbols]
     \begin{center}
-    $productives\ P\ \alpha = \exists w.\ P \vdash \alpha \derives w$\\
+    $productives\ P\ \alpha = \exists w.\ \derives{P}{\alpha}{w}$\\
     $useful\ P\ S\ A\ = 
-      \exists \beta.\ P \vdash [Nt\ S] \derives \beta \land Nt\ A \in set\ \beta 
+      \exists \beta.\ \derives{P}{[Nt\ S]}{\beta} \land Nt\ A \in set\ \beta 
         \land productives\ P\ \beta$
     \end{center}
   \end{definitions}
@@ -227,8 +254,8 @@ constructed?
     \begin{itemize}
       \item $incompletes\ I$ denotes the set of items in $I$ that are not complete
     \end{itemize}
-    \item If $\rho$ is a list of items, $hist\ \rho$ is the concatenation of the
-    histories of the items in $\rho$
+    \item If $\varrho$ is a list of items, $hist\ \varrho$ is the concatenation of the
+    histories of the items in $\varrho$
     \item \It\ denotes the set of all items of the CFG G
   \end{itemize}
   \begin{lemma}[Finiteness of \It]
@@ -283,7 +310,7 @@ constructed?
 \end{frame}
 
 \begin{frame}
-  \frametitle{Configurations}
+  \frametitle{GPDA Configurations}
   \begin{itemize}
     \item A \concept{configuration} for a $({'}q, {'}a)\ gpda$ is a tuple 
     $(qs, w) :: {'}q\ list \times {'}a\ list$
@@ -303,12 +330,12 @@ constructed?
 \end{frame}
 
 \begin{frame}
-  \frametitle{Steps}
+  \frametitle{GPDA Steps}
   \begin{itemize}
     \item The \concept{step relation} is denoted by the infix operator $\vdash$
     \item Defined by the rules
     \begin{gather*}
-      (ps, a, qs) \in nxt\ M \Longrightarrow (ps @ rs, a \# w) \vdash (qs @ rs, w)\\
+      (ps, a, qs) \in nxt\ M \Longrightarrow (ps @ rs, a \cons w) \vdash (qs @ rs, w)\\
       (ps, qs) \in eps\ M \Longrightarrow (ps @ rs, w) \vdash (qs @ rs, w)
     \end{gather*}
     \item \concept{computations} = sequences of steps
@@ -324,7 +351,7 @@ constructed?
 \section{The Item Pushdown Automaton}
 
 \begin{frame}
-  \frametitle{Conventions}
+  \frametitle{Conventions Moving Forward}
   Let $G$ be a CFG with start symbol $S$ and production set $P$ such that
   \begin{itemize}
     \item $P$ is finite
@@ -354,20 +381,20 @@ constructed?
   \begin{definition}
     ...and transition relations
     \begin{multline*}
-        nxt = \{([\cfitem{X}{\beta}{Tm\ a \# \gamma}], a, [\cfitem{X}{\beta @ [Tm\ a]}{\gamma}])\\
-        |\ X \beta a \gamma.\ (X, \beta @ Tm\ a \# \gamma) \in P'\}
+        nxt = \{([\cfitem{X}{\beta}{Tm\ a \cons \gamma}], a, [\cfitem{X}{\beta @ [Tm\ a]}{\gamma}])\\
+        |\ X \beta a \gamma.\ (X, \beta @ Tm\ a \cons \gamma) \in P'\}
     \end{multline*}
     and $eps = E \cup R$ for 
     \begin{gather*}
       \begin{multlined}
-        E = \{([\cfitem{X}{\beta}{Nt\ Y \# \gamma}], 
-          [\cfitem{Y}{}{\alpha}, \cfitem{X}{\beta}{Nt\ Y \# \gamma}])\\
-          |\ X \beta Y \gamma \alpha.\ (X, \beta @ Nt\ Y \# \gamma) \in P' 
+        E = \{([\cfitem{X}{\beta}{Nt\ Y \cons \gamma}], 
+          [\cfitem{Y}{}{\alpha}, \cfitem{X}{\beta}{Nt\ Y \cons \gamma}])\\
+          |\ X \beta Y \gamma \alpha.\ (X, \beta @ Nt\ Y \cons \gamma) \in P' 
           \land (Y, \alpha) \in P'\}
       \end{multlined}\\
       \begin{multlined}
-        R = \{([\cfitem{Y}{\alpha}{}, \cfitem{X}{\beta}{Nt\ Y \# \gamma}], [\cfitem{X}{\beta @ [Nt\ Y]}{\gamma}])\\
-        |\ Y \alpha X \beta \gamma.\ (X, \beta @ Nt\ Y \# \gamma) \in P' 
+        R = \{([\cfitem{Y}{\alpha}{}, \cfitem{X}{\beta}{Nt\ Y \cons \gamma}], [\cfitem{X}{\beta @ [Nt\ Y]}{\gamma}])\\
+        |\ Y \alpha X \beta \gamma.\ (X, \beta @ Nt\ Y \cons \gamma) \in P' 
           \land (Y, \alpha) \in P'\}
       \end{multlined}
     \end{gather*}
@@ -381,7 +408,7 @@ constructed?
   \frametitle{The Item Pushdown Automaton}
   \begin{alertblock}{Remark}
   \begin{itemize}
-    \item Type $({'}n, {'t}) item$ allows items not in \It[G'] on the stack
+    \item Type $({'}n, {'t})\ item$ allows items not in \It[G'] on the stack
     \item Restriction enforced by requiring productions to be in $P'$
   \end{itemize}
   \end{alertblock}
@@ -396,11 +423,11 @@ constructed?
   \end{itemize}
   \pause
   \begin{lemma}[IPDA invariant]
-    $([init\ M], u @ v) \vdash^{*}_{I} (rev\ \rho, v)$ implies 
-    $P \vdash hist\ \rho \derives map\ Tm\ u$.
+    $([init\ M], u @ v) \vdash^{*}_{I} (rev\ \varrho, v)$ implies 
+    \derives{P}{hist\ \varrho}{map\ Tm\ u}.
   \end{lemma}
   \pause
-  \begin{lemma}[IPDA soundness]
+  \begin{lemma}[Soundness of the IPDA]
     $L(I_{G}) \subseteq L(G)$
   \end{lemma}
 \end{frame}
@@ -408,10 +435,10 @@ constructed?
 \begin{frame}
   \frametitle{Completeness}
   \begin{lemma}[Derivation implies IPDA completion]
-    If $P' \vdash \beta \derives map\ Tm\ w$ and $(A, \alpha @ \beta @ \gamma) \in P'$,
-    then for any $\rho$ and $x$ holds
-    \[ (\cfitem{A}{\alpha}{\beta @ \gamma} \# \rho, w @ x)
-    \vdash^{*}_{I} (\cfitem{A}{\alpha @ \beta}{\gamma} \# \rho, x). \]
+    If \derives{P'}{\beta}{map\ Tm\ w} and $(A, \alpha @ \beta @ \gamma) \in P'$,
+    then for any $\varrho$ and $x$ holds
+    \[ (\cfitem{A}{\alpha}{\beta @ \gamma} \cons \varrho, w @ x)
+    \vdash^{*}_{I} (\cfitem{A}{\alpha @ \beta}{\gamma} \cons \varrho, x). \]
   \end{lemma}
   \pause
   \begin{itemize}
@@ -420,19 +447,120 @@ constructed?
     \item Our stronger lemma will be needed in the future
   \end{itemize}
   \pause
-  \begin{lemma}[IPDA completeness]
+  \begin{lemma}[Completeness of the IPDA]
     $L(G) \subseteq L(I_{G})$
   \end{lemma}
 \end{frame}
 
 \begin{frame}
   \frametitle{Correctness}
-  \begin{theorem}
+  \begin{theorem}[Correctness of the IPDA]
     $L(I_{G}) = L(G)$
   \end{theorem}
 \end{frame}
 
 \section{Rightmost Chains}
+
+\subsection{Introduction}
+
+\begin{frame}
+  \frametitle{Rightmost Chains: Motivation}
+  \begin{quote}
+    Let us now assume that we have a rightmost derivation 
+    $S' \deriversa \gamma' A w \derivera \gamma' \alpha \beta$. This derivation
+    can be decomposed into
+    \begin{align*}
+    S' &\derivera \alpha_{1} X_{1} \beta_{1} \deriversa \alpha_{1} X_{1} v_{1}\\
+    &\deriversa \ldots \deriversa (\alpha_{1} \ldots \alpha_{n}) X_n (v_n \ldots v_1)\\
+    &\derivera (\alpha_{1} \ldots \alpha_{n}) \alpha \beta (v_n \ldots v_1)
+    \end{align*}
+    for $X_n = A$.
+  \end{quote}
+  \begin{flushright}
+  --- Wilhelm et al., p.~107
+  \end{flushright}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Rightmost Chains: Motivation}
+  \begin{itemize}
+    \item Goal: a definition of these decompositions which we can use in proofs
+    with ease
+    \item Our approach: an inductive definition of \concept{rightmost chains}
+    \item \chain{P}{\alpha}{\varrho}{\beta}: $\alpha$ reaches $\beta$ with
+    rightmost chain $\varrho$ under production set $P$
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Rightmost Chains: Definition}
+  \begin{gather*}
+    \onslide<1->{\inferrule[refl]{}{\chain{P}{\alpha}{[]}{\alpha}}\\[10pt]}
+    \onslide<2->{\inferrule[step]{
+      \chain{P}{\alpha_0}{\varrho}{\alpha @ Nt\ X \cons map\ Tm\ v} \\
+      \deriver{P}{\alpha @ Nt\ X \cons map\ Tm\ v}
+        {\alpha @ \alpha' @ Nt\ Y \cons \beta @ map\ Tm\ v} \\
+      \derivers{P}{\beta}{map\ Tm\ u}
+      }{\chain{P}{\alpha_0}{\cfitem{X}{\alpha'}{Nt\ Y \cons \beta} \cons \varrho}{\alpha @ \alpha' @ Nt\ Y \cons map\ Tm\ (u @ v)}}}
+  \end{gather*}
+\end{frame}
+
+\subsection{Properties}
+
+\begin{frame}
+  \frametitle{Equivalence with Rightmost Derivations}
+  \begin{itemize}
+    \item Wilhelm et al. do not prove the existence of the decomposition for
+    arbitrary rightmost derivations
+    \item We show an equivalence between the existence of rightmost derivations and
+    rightmost chains
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Equivalence with Rightmost Derivations}
+  \begin{lemma}[Rightmost chains imply rightmost derivations]
+    If \chain{P}{\alpha}{\varrho}{\beta}, then \derivers{P}{\alpha}{\beta}.
+  \end{lemma}
+  \pause
+  \begin{lemma}[Rightmost derivations imply rightmost chains]
+    If \derivern{P}{[Nt\ A]}{n+1}{\alpha @ Nt\ X \cons map\ Tm\ v}, then there
+    exists a rightmost chain of the form
+    \[ \chain{P}{[Nt\ A]}{\cfitem{B}{\alpha'}
+      {Nt\ X \cons \beta} \cons \varrho}{\alpha @ Nt\ X \cons map\ Tm\ v}. \]
+  \end{lemma}
+  \pause
+  \begin{alertblock}{Remark}
+    Showing the second lemma for the special case of $[Nt\ A]$ suffices.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Relation to IPDA Stacks}
+  \begin{itemize}
+    \item Wilhelm et al. make a claim about the structure of the stack of an IPDA
+    configuration that reaches the accepting configuration
+    \item This structure is identical to the item list of a rightmost chain
+    \item We show that IPDA configurations that reach the accepting configuration
+    correspond to some rightmost chain
+  \end{itemize}
+  \begin{lemma}[Correspondence of IPDA stacks to rightmost chains]
+    If $(\cfitem{A}{\alpha}{\beta} \cons \varrho, w)
+        \vdash_I^* ([\cfitem{S'}{[Nt\ S]}{}], [])$, then either $\varrho = []$ or
+    there exist $\sigma, X, \alpha', \beta'$, and $\gamma$ such that 
+    \[ \varrho = \cfitem{X}{\alpha'}{Nt\ A \cons \beta'} \cons \sigma
+      \text{ and } \chain{P'}{[Nt\ S']}{\varrho}{\gamma}. \]
+  \end{lemma}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Rightmost Chains: Results}
+  \begin{itemize}
+    \item Formalization of informal decomposition described by Wilhelm et al.
+    \item Inductive definition ideal for Isabelle proof development
+    \item Fundamental for proof of first major theorem
+  \end{itemize}
+\end{frame}
 
 \section{The Characteristic Finite Automaton and Canonical $LR(0)$ Automaton}
 

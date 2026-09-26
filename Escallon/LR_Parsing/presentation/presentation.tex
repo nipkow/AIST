@@ -1,14 +1,27 @@
 \documentclass{beamer}
 \usetheme{Boadilla}
 
+\usepackage{pgfpages}
+\setbeameroption{show notes on second screen}
+
 \setbeamertemplate{itemize item}[circle]
 
 \setbeamertemplate{sections/subsections in toc}[circle]
 \setbeamertemplate{blocks}[rounded][shadow=false]
+\setbeamertemplate{enumerate item}[circle]
 
 \usepackage{amsmath,amssymb}
 \usepackage{mathtools}
 \usepackage{mathpartir}
+
+\newcommand{\concept}[1]{\textbf{#1}}
+
+\newcommand{\var}[1]{\mathnormal{#1}}
+
+% code
+
+\newcommand{\caseof}[2]{\ensuremath{\texttt{case } {#1} \texttt{ of } {#2} \Rightarrow}}
+\newcommand{\itelse}[3]{\texttt{if } {#1} \texttt{ then } {#2} \texttt{ else } {#3}}
 
 % Setting up isabelle ASCII operators as math mode operators
 
@@ -21,11 +34,10 @@
 
 \newcommand{\cons}{\mathbin{\#}}
 
-\newcommand{\concept}[1]{\textbf{#1}}
 
-%Items
+% Items
 
-\newcommand{\It}[1][G]{\ensuremath{\mathrm{It}_{#1}}}
+\newcommand{\It}[1][G]{\ensuremath{\mathrm{It}_{\mathnormal{#1}}}}
 \newcommand{\cfitem}[3]{\ensuremath{{[#1 \to #2 \:\cdot\: #3]}}}
 
 % CFGs
@@ -50,9 +62,19 @@
 \newcommand{\derivers}[3]{\ensuremath{{#1} \vdash {#2} \deriversa {#3}}}
 \newcommand{\derivern}[4]{\ensuremath{{#1} \vdash {#2} \deriverna{#3} {#4}}}
 
+% Automata
+
+\newcommand{\ipda}{\ensuremath{\var{I}_G}}
+\newcommand{\charfa}{\ensuremath{\mathrm{char}\mathnormal{(G)}}}
+\newcommand{\lrdfa}{\ensuremath{\mathnormal{LR_0(G)}}}
+\newcommand{\parser}{\ensuremath{\mathnormal{P_0(G)}}}
+
 % RM Chains
 
 \newcommand{\chain}[4]{\ensuremath{{#1} \vdash {#2} -\!\!{#3}\!\rightarrow^{*}_{r} #4}}
+
+
+
 
 \title{Formal Verification of $LR(0)$ Parsing Theory}
 \author[Felipe Escall\'{o}n]{Felipe Escall\'{o}n Tapias}
@@ -335,8 +357,8 @@ constructed?
     \item The \concept{step relation} is denoted by the infix operator $\vdash$
     \item Defined by the rules
     \begin{gather*}
-      (ps, a, qs) \in nxt\ M \Longrightarrow (ps @ rs, a \cons w) \vdash (qs @ rs, w)\\
-      (ps, qs) \in eps\ M \Longrightarrow (ps @ rs, w) \vdash (qs @ rs, w)
+      (ps, a, qs) \in nxt\ M \implies (ps @ rs, a \cons w) \vdash (qs @ rs, w)\\
+      (ps, qs) \in eps\ M \implies (ps @ rs, w) \vdash (qs @ rs, w)
     \end{gather*}
     \item \concept{computations} = sequences of steps
     \begin{itemize}
@@ -344,7 +366,7 @@ constructed?
     \end{itemize}
     \item computations of length $n$ denoted by $\vdash^n$
     \item The language of a GPDA $M$:
-    \[L(M) = \{w\ |\ \exists f \in final\ M.\ ([init M], w) \vdash^* ([f], [])\}\]
+    \[L(M) = \{w \mid \exists f \in final\ M.\ ([init M], w) \vdash^* ([f], [])\}\]
   \end{itemize}
 \end{frame}
 
@@ -366,41 +388,40 @@ constructed?
 \begin{frame}
   \frametitle{The Item Pushdown Automaton}
   \begin{definition}
-    The \concept{item pushdown automaton} (IPDA) to G is the $(({'}n, {'t}) item, {'}t)\ gpda\ I_{G}$
-    with
-    \begin{itemize}
-      \item $states = \It[G']$
-      \item $init = \cfitem{S'}{}{[Nt\ S]}$
-      \item $final = \{\cfitem{S'}{[Nt\ S]}{}\}$
-    \end{itemize}
+    The \concept{item pushdown automaton} (IPDA) to G is the $(({'}n, {'t}) item, {'}t)\ gpda$
+    \ipda\ where
+    \begin{align*}
+      states &= \It[G']\\
+      init &= \cfitem{S'}{}{[Nt\ S]}\\
+      final &= \{\cfitem{S'}{[Nt\ S]}{}\}
+    \end{align*}
   \end{definition}
 \end{frame}
 
 \begin{frame}
   \frametitle{The Item Pushdown Automaton}
-  \begin{definition}
-    ...and transition relations
+  \begin{definition}[cont.]
     \begin{multline*}
         nxt = \{([\cfitem{X}{\beta}{Tm\ a \cons \gamma}], a, [\cfitem{X}{\beta @ [Tm\ a]}{\gamma}])\\
-        |\ X \beta a \gamma.\ (X, \beta @ Tm\ a \cons \gamma) \in P'\}
+        \mid X \beta a \gamma.\ (X, \beta @ Tm\ a \cons \gamma) \in P'\}
     \end{multline*}
     and $eps = E \cup R$ for 
     \begin{gather*}
       \begin{multlined}
         E = \{([\cfitem{X}{\beta}{Nt\ Y \cons \gamma}], 
           [\cfitem{Y}{}{\alpha}, \cfitem{X}{\beta}{Nt\ Y \cons \gamma}])\\
-          |\ X \beta Y \gamma \alpha.\ (X, \beta @ Nt\ Y \cons \gamma) \in P' 
+          \mid X \beta Y \gamma \alpha.\ (X, \beta @ Nt\ Y \cons \gamma) \in P' 
           \land (Y, \alpha) \in P'\}
-      \end{multlined}\\
+      \end{multlined}\\[10pt]
       \begin{multlined}
         R = \{([\cfitem{Y}{\alpha}{}, \cfitem{X}{\beta}{Nt\ Y \cons \gamma}], [\cfitem{X}{\beta @ [Nt\ Y]}{\gamma}])\\
-        |\ Y \alpha X \beta \gamma.\ (X, \beta @ Nt\ Y \cons \gamma) \in P' 
+        \mid Y \alpha X \beta \gamma.\ (X, \beta @ Nt\ Y \cons \gamma) \in P' 
           \land (Y, \alpha) \in P'\}
       \end{multlined}
     \end{gather*}
   \end{definition}
   \begin{itemize}
-    \item IPDA steps notated by $\vdash_I$, $\vdash^{*}_{I}$, and $\vdash^{n}_{I}$
+    \item IPDA steps notated by $\vdash_\var{I}$, $\vdash^{*}_{\var{I}}$, and $\vdash^{n}_{\var{I}}$
   \end{itemize}
 \end{frame}
 
@@ -423,7 +444,7 @@ constructed?
   \end{itemize}
   \pause
   \begin{lemma}[IPDA invariant]
-    $([init\ M], u @ v) \vdash^{*}_{I} (rev\ \varrho, v)$ implies 
+    $([init\ M], u @ v) \vdash^{*}_{\var{I}} (rev\ \varrho, v)$ implies 
     \derives{P}{hist\ \varrho}{map\ Tm\ u}.
   \end{lemma}
   \pause
@@ -438,7 +459,7 @@ constructed?
     If \derives{P'}{\beta}{map\ Tm\ w} and $(A, \alpha @ \beta @ \gamma) \in P'$,
     then for any $\varrho$ and $x$ holds
     \[ (\cfitem{A}{\alpha}{\beta @ \gamma} \cons \varrho, w @ x)
-    \vdash^{*}_{I} (\cfitem{A}{\alpha @ \beta}{\gamma} \cons \varrho, x). \]
+    \vdash^{*}_{\var{I}} (\cfitem{A}{\alpha @ \beta}{\gamma} \cons \varrho, x). \]
   \end{lemma}
   \pause
   \begin{itemize}
@@ -531,7 +552,8 @@ constructed?
   \end{lemma}
   \pause
   \begin{alertblock}{Remark}
-    Showing the second lemma for the special case of $[Nt\ A]$ suffices.
+    We have only shown the equivalence for the special case of lists consisting 
+    of a single nonterminal. This is sufficient for the upcoming theorems.
   \end{alertblock}
 \end{frame}
 
@@ -546,7 +568,7 @@ constructed?
   \end{itemize}
   \begin{lemma}[Correspondence of IPDA stacks to rightmost chains]
     If $(\cfitem{A}{\alpha}{\beta} \cons \varrho, w)
-        \vdash_I^* ([\cfitem{S'}{[Nt\ S]}{}], [])$, then either $\varrho = []$ or
+        \vdash_\var{I}^* ([\cfitem{S'}{[Nt\ S]}{}], [])$, then either $\varrho = []$ or
     there exist $\sigma, X, \alpha', \beta'$, and $\gamma$ such that 
     \[ \varrho = \cfitem{X}{\alpha'}{Nt\ A \cons \beta'} \cons \sigma
       \text{ and } \chain{P'}{[Nt\ S']}{\varrho}{\gamma}. \]
@@ -564,8 +586,216 @@ constructed?
 
 \section{The Characteristic Finite Automaton and Canonical $LR(0)$ Automaton}
 
+\subsection{The Characteristic Finite Automaton}
+
+\begin{frame}
+  \frametitle{The Characteristic Finite Automaton}
+  \begin{itemize}
+    \item Goal: exploring IPDA expansions in parallel
+    \item Productions selected for reduction
+    \item We define an NFA which can then be trivially converted to a DFA 
+    \begin{itemize}
+      \item Based on Paulson's formalization of finite automata
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{The Characteristic Finite Automaton}
+  \begin{definition}
+    The \concept{characteristic finite automaton} to G is the 
+    $(({'}n, {'}t) sym, ({'}n, {'}t) item)\ nfa$ \charfa\ where
+    \vspace{-3pt}
+    \begin{align*}
+      states &= \It[G']\\
+      init &= \{\cfitem{S'}{}{[Nt\ S]}\}\\
+      final &= completes\ \It[G']\\
+      nxt\ q\ a &= 
+        \begin{aligned}[t]
+          &\caseof{q}{\cfitem{X}{\alpha}{Y \cons \beta}}\\
+          &\texttt{if } a = Y \land (X, \alpha @ Y \cons \beta \in P')
+          \texttt{ then } \{\cfitem{X}{\alpha @ [Y]}{\beta}\}\\
+          &\texttt{else } \emptyset
+        \end{aligned}\\
+      eps &= 
+        \begin{multlined}[t]
+          \{(\cfitem{X}{\alpha}{Nt\ Y \cons \beta}, \cfitem{Y}{}{\gamma}) \\
+          \mid X\ \alpha\ Y\ \beta\ \gamma.\ (X, \alpha @ Nt\ Y \cons \beta) \in P'
+          \land (Y, \gamma) \in P'\}
+        \end{multlined}
+    \end{align*}
+  \end{definition}
+  \pause
+  \begin{itemize}
+    \item \charfa\ reaches an item $i$ by reading the concatenation of 
+    prefixes that \ipda\ processed in order to reach $i$
+    \item \charfa\ steps denoted by $\vdash_c$, $\vdash_c^*$, and $\vdash_c^n$
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Theorem 3.4.1: the Relation between \charfa, Rightmost Derivations, 
+  and \ipda}
+  \begin{quote}
+    Let $G$ be a CFG and $\gamma :: syms$. The following three
+    statements are equivalent:
+    \begin{enumerate}
+      \item There exists a computation
+      $(\cfitem{S'}{}{[Nt\ S]}, \gamma) \vdash_c^* (\cfitem{A}{\alpha}{\beta}, [])$
+      of the characteristic finite automaton \charfa.
+      \item There exists a rightmost derivation 
+      \derivers{P'}{[Nt\ S']}{\gamma' @ Nt\ A \cons w}
+      $\derivera \gamma' @ \alpha @ \beta @ w$ with
+      $\gamma = \gamma' @ \alpha$
+      \item There exists a computation 
+      $(\cfitem{A}{\alpha}{\beta} \cons \varrho, w)
+        \vdash_\var{I}^* ([\cfitem{S'}{[Nt\ S]}{}] ,[])$ of the IPDA \ipda\ such 
+        that $\gamma = hist\ (rev\ \varrho) @ \alpha$ holds.
+    \end{enumerate}
+  \end{quote}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Theorem 3.4.1: the Relation between \charfa, Rightmost Derivations, 
+  and \ipda}
+  \note{ 
+  \begin{itemize}
+    \item char(G) can read "Nt S" from input without performing epsilon transitions
+    \item IH applied for a general variable when it holds only for the
+    empty list
+    \item $w$ is the same in direction (2) → (3) (plus: assm beta derives v) ,
+    not otherwise
+  \end{itemize}
+  }
+  \begin{alertblock}{Problems}
+      \begin{itemize}
+        \item Equivalence of statements proven circularly
+        \begin{itemize}
+          \item $w$ in (2) and (3) is not the same string in general
+          \item $\gamma$ in (2) and (3) is meaningless
+          \item Corrected theorem is weaker, but individual implications are
+          correct
+        \end{itemize}
+        \item Proof of $(1) \implies (2)$ incorrect
+        \begin{itemize}
+          \item Base case does not consider all scenarios
+          \item Incorrect application of IH
+        \end{itemize}
+      \end{itemize}
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Correcting Theorem 3.4.1}
+  \begin{lemma}[$(1) \implies (2)$]
+    If there exists a computation
+      $(\cfitem{S'}{}{[Nt\ S]}, \gamma) \vdash_c^* (\cfitem{A}{\alpha}{\beta}, [])$
+      of \charfa, then there exists a rightmost derivation of the form
+      \derivers{P'}{[Nt\ S']}{\gamma' @ Nt\ A \cons w}
+      $\derivera \gamma' @ \alpha @ \beta @ w$ with
+      $\gamma = \gamma' @ \alpha$.
+  \end{lemma}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Correcting Theorem 3.4.1}
+  \note{Remark beta derives v assumption. WSH did not include.}
+  \begin{lemma}[$(2) \implies (3)$]
+    If there exists a rightmost derivation
+      \derivers{P'}{[Nt\ S']}{\gamma' @ Nt\ A \cons w}
+      $\derivera \gamma' @ \alpha @ \beta @ w$
+      with $\derives{P'}{\beta}{map\ Tm\ v}$, there exists an IPDA computation
+      $(\cfitem{A}{\alpha}{\beta} \cons \varrho, v @ w)
+        \vdash_\var{I}^* ([\cfitem{S'}{[Nt\ S]}{}] ,[])$ with
+        $\gamma' = hist\ (rev\ \varrho)$.
+  \end{lemma}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Correcting Theorem 3.4.1}
+  \begin{lemma}[$(3) \implies (1)$]
+    If there exists an IPDA computation 
+      $(\cfitem{A}{\alpha}{\beta} \cons \varrho, w)
+        \vdash_\var{I}^* ([\cfitem{S'}{[Nt\ S]}{}] ,[])$ 
+    then there exists a \charfa\ computation of the form
+      $(\cfitem{S'}{}{[Nt\ S]}, hist\ (rev \varrho) @ \alpha)
+        \vdash_c^* (\cfitem{A}{\alpha}{\beta}, [])$.
+  \end{lemma}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Correcting Theorem 3.4.1}
+  \note{Remark use of rightmost chains for bottom two lemmas}
+  \small
+  \begin{lemma}[$(1) \implies (2)$]
+    If there exists a computation
+      $(\cfitem{S'}{}{[Nt\ S]}, \gamma) \vdash_c^* (\cfitem{A}{\alpha}{\beta}, [])$
+      of \charfa, then there exists a rightmost derivation of the form
+      \derivers{P'}{[Nt\ S']}{\gamma' @ Nt\ A \cons w}
+      $\derivera \gamma' @ \alpha @ \beta @ w$ with
+      $\gamma = \gamma' @ \alpha$.
+  \end{lemma}
+  \begin{lemma}[$(2) \implies (3)$]
+    If there exists a rightmost derivation
+      \derivers{P'}{[Nt\ S']}{\gamma' @ Nt\ A \cons w}
+      $\derivera \gamma' @ \alpha @ \beta @ w$
+      with $\derives{P'}{\beta}{map\ Tm\ v}$, there exists an IPDA computation
+      $(\cfitem{A}{\alpha}{\beta} \cons \varrho, v @ w)
+        \vdash_\var{I}^* ([\cfitem{S'}{[Nt\ S]}{}] ,[])$ with
+        $\gamma' = hist\ (rev\ \varrho)$.
+  \end{lemma}
+  \begin{lemma}[$(3) \implies (1)$]
+    If there exists an IPDA computation 
+      $(\cfitem{A}{\alpha}{\beta} \cons \varrho, w)
+        \vdash_\var{I}^* ([\cfitem{S'}{[Nt\ S]}{}] ,[])$ 
+    then there exists a \charfa\ computation of the form
+      $(\cfitem{S'}{}{[Nt\ S]}, hist\ (rev \varrho) @ \alpha)
+        \vdash_c^* (\cfitem{A}{\alpha}{\beta}, [])$.
+  \end{lemma}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Consequence of Theorem 3.4.1}
+  \begin{definition}[Reliable prefix]
+    $\gamma$ is a \concept{reliable prefix} for item \cfitem{A}{\alpha}{\beta} 
+    if there exists a rightmost derivation 
+    $\derivers{P'}{[Nt\ S']}{\gamma' @ Nt\ A \cons map\ Tm\ w}
+    \derivera \gamma' @ \alpha @ \beta @ map\ Tm\ w$
+    such that $\gamma = \gamma' @ \alpha$.\\
+    Equivalently, \cfitem{A}{\alpha}{\beta} is a \concept{valid item} for $\gamma$.
+  \end{definition}
+  \begin{theorem}[Equivalence of \charfa\ computations and reliable prefixes]
+    There exists a \charfa\ computation
+    $(\cfitem{S'}{}{[Nt\ S]}, \gamma) \vdash_c^* (\cfitem{A}{\alpha}{\beta}, [])$
+    if and only if \cfitem{A}{\alpha}{\beta} is valid for $\gamma$.
+  \end{theorem}
+\end{frame}
+
+\subsection{The Canonical $LR(0)$ Automaton}
+
+\begin{frame}
+  \frametitle{The Canonical $LR(0)$ Automaton}
+  \begin{itemize}
+    \item Construction of a DFA which explores all \charfa\ transitions in
+    parallel
+  \end{itemize}
+  \pause
+  \begin{definition}[The Canonical $LR(0)$ Automaton]
+    The \concept{canonical $LR(0)$ automaton} \lrdfa\ is the
+    $(({'}n,{'}t) sym, ({'}n, {'}t) item\ set)\ dfa$ resulting from the
+    powerset construction of \charfa\ restricted to reachable states.
+  \end{definition}
+\end{frame}
+
 \section{The $LR(0)$ Parser}
 
+\subsection{Definition}
+
+\subsection{$LR(0)$ Adequacy}
+
+\subsection{$LR(k)$ Grammars}
+
+\subsection{Correctness}
 
 \begin{frame}[label=parser_finiteness]
 \frametitle{parser finitenes (tmp title)}

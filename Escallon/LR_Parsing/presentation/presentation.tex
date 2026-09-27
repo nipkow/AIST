@@ -3,6 +3,10 @@
 
 \usepackage{pgfpages}
 \setbeameroption{show notes on second screen}
+\pdfinfo{/Keywords (SP-Right)}
+
+\setbeamerfont{note page}{size=\Large}
+\setbeamertemplate{note page}[plain]
 
 \setbeamertemplate{itemize item}[circle]
 
@@ -10,9 +14,14 @@
 \setbeamertemplate{blocks}[rounded][shadow=false]
 \setbeamertemplate{enumerate item}[circle]
 
+\setbeamertemplate{theorems}[numbered]
+
 \usepackage{amsmath,amssymb}
 \usepackage{mathtools}
 \usepackage{mathpartir}
+
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem*{defcont}{Definition \arabic{theorem} (cont.)}
 
 \newcommand{\concept}[1]{\textbf{#1}}
 
@@ -21,7 +30,6 @@
 % code
 
 \newcommand{\caseof}[2]{\ensuremath{\texttt{case } {#1} \texttt{ of } {#2} \Rightarrow}}
-\newcommand{\itelse}[3]{\texttt{if } {#1} \texttt{ then } {#2} \texttt{ else } {#3}}
 
 % Setting up isabelle ASCII operators as math mode operators
 
@@ -68,11 +76,12 @@
 \newcommand{\charfa}{\ensuremath{\mathrm{char}\mathnormal{(G)}}}
 \newcommand{\lrdfa}{\ensuremath{\mathnormal{LR_0(G)}}}
 \newcommand{\parser}{\ensuremath{\mathnormal{P_0(G)}}}
+\newcommand{\srpda}{\ensuremath{\mathnormal{M_G}}}
 
-% RM Chains
+% RM Chains and stack words
 
 \newcommand{\chain}[4]{\ensuremath{{#1} \vdash {#2} -\!\!{#3}\!\rightarrow^{*}_{r} #4}}
-
+\newcommand{\sword}[3]{\ensuremath{{#1} \vDash {#2} \vdash_P^* {#3}}}
 
 
 
@@ -219,7 +228,7 @@ constructed?
     \item CFGs can contain unreachable and unproductive nonterminals
     \item Removal of such nonterminals does not alter the language
     \begin{itemize}
-      \item Proved by Nipkow et al. in their formalization
+      \item Proved by Nipkow et al. in their CFG formalization
     \end{itemize}
   \end{itemize}
 \end{frame}
@@ -398,28 +407,34 @@ constructed?
   \end{definition}
 \end{frame}
 
+
 \begin{frame}
   \frametitle{The Item Pushdown Automaton}
-  \begin{definition}[cont.]
-    \begin{multline*}
-        nxt = \{([\cfitem{X}{\beta}{Tm\ a \cons \gamma}], a, [\cfitem{X}{\beta @ [Tm\ a]}{\gamma}])\\
+  \begin{defcont}
+    \begin{align*}
+        &nxt = 
+    \begin{multlined}[t]
+        \{([\cfitem{X}{\beta}{Tm\ a \cons \gamma}], a, [\cfitem{X}{\beta @ [Tm\ a]}{\gamma}])\\
         \mid X \beta a \gamma.\ (X, \beta @ Tm\ a \cons \gamma) \in P'\}
-    \end{multline*}
-    and $eps = E \cup R$ for 
+    \end{multlined}\\
+    &\text{and } eps = E_\var{I} \cup R_\var{I} \text{ for}
+    \end{align*}
+    \vspace{-20pt}
     \begin{gather*}
       \begin{multlined}
-        E = \{([\cfitem{X}{\beta}{Nt\ Y \cons \gamma}], 
+        E_\var{I} = \{([\cfitem{X}{\beta}{Nt\ Y \cons \gamma}], 
           [\cfitem{Y}{}{\alpha}, \cfitem{X}{\beta}{Nt\ Y \cons \gamma}])\\
           \mid X \beta Y \gamma \alpha.\ (X, \beta @ Nt\ Y \cons \gamma) \in P' 
           \land (Y, \alpha) \in P'\}
       \end{multlined}\\[10pt]
       \begin{multlined}
-        R = \{([\cfitem{Y}{\alpha}{}, \cfitem{X}{\beta}{Nt\ Y \cons \gamma}], [\cfitem{X}{\beta @ [Nt\ Y]}{\gamma}])\\
+        R_\var{I} = \{([\cfitem{Y}{\alpha}{}, \cfitem{X}{\beta}{Nt\ Y \cons \gamma}],
+            [\cfitem{X}{\beta @ [Nt\ Y]}{\gamma}])\\
         \mid Y \alpha X \beta \gamma.\ (X, \beta @ Nt\ Y \cons \gamma) \in P' 
           \land (Y, \alpha) \in P'\}
       \end{multlined}
     \end{gather*}
-  \end{definition}
+  \end{defcont}
   \begin{itemize}
     \item IPDA steps notated by $\vdash_\var{I}$, $\vdash^{*}_{\var{I}}$, and $\vdash^{n}_{\var{I}}$
   \end{itemize}
@@ -455,7 +470,7 @@ constructed?
 
 \begin{frame}
   \frametitle{Completeness}
-  \begin{lemma}[Derivation implies IPDA completion]
+  \begin{lemma}[Derivation implies IPDA completion]\label{derivers_imp_completes}
     If \derives{P'}{\beta}{map\ Tm\ w} and $(A, \alpha @ \beta @ \gamma) \in P'$,
     then for any $\varrho$ and $x$ holds
     \[ (\cfitem{A}{\alpha}{\beta @ \gamma} \cons \varrho, w @ x)
@@ -544,7 +559,7 @@ constructed?
     If \chain{P}{\alpha}{\varrho}{\beta}, then \derivers{P}{\alpha}{\beta}.
   \end{lemma}
   \pause
-  \begin{lemma}[Rightmost derivations imply rightmost chains]
+  \begin{lemma}[Rightmost derivations imply rightmost chains]\label{deriver_rm}
     If \derivern{P}{[Nt\ A]}{n+1}{\alpha @ Nt\ X \cons map\ Tm\ v}, then there
     exists a rightmost chain of the form
     \[ \chain{P}{[Nt\ A]}{\cfitem{B}{\alpha'}
@@ -553,7 +568,7 @@ constructed?
   \pause
   \begin{alertblock}{Remark}
     We have only shown the equivalence for the special case of lists consisting 
-    of a single nonterminal. This is sufficient for the upcoming theorems.
+    of a single nonterminal. 
   \end{alertblock}
 \end{frame}
 
@@ -566,7 +581,7 @@ constructed?
     \item We show that IPDA configurations that reach the accepting configuration
     correspond to some rightmost chain
   \end{itemize}
-  \begin{lemma}[Correspondence of IPDA stacks to rightmost chains]
+  \begin{lemma}[Correspondence of IPDA stacks to rightmost chains]\label{ipda_rm}
     If $(\cfitem{A}{\alpha}{\beta} \cons \varrho, w)
         \vdash_\var{I}^* ([\cfitem{S'}{[Nt\ S]}{}], [])$, then either $\varrho = []$ or
     there exist $\sigma, X, \alpha', \beta'$, and $\gamma$ such that 
@@ -633,7 +648,7 @@ constructed?
   \end{itemize}
 \end{frame}
 
-\begin{frame}
+\begin{frame}\label{thm341}
   \frametitle{Theorem 3.4.1: the Relation between \charfa, Rightmost Derivations, 
   and \ipda}
   \begin{quote}
@@ -709,6 +724,9 @@ constructed?
         \vdash_\var{I}^* ([\cfitem{S'}{[Nt\ S]}{}] ,[])$ with
         $\gamma' = hist\ (rev\ \varrho)$.
   \end{lemma}
+  \begin{itemize}
+    \item Using Lemma~\ref{deriver_rm}
+  \end{itemize}
 \end{frame}
 
 \begin{frame}
@@ -721,6 +739,9 @@ constructed?
       $(\cfitem{S'}{}{[Nt\ S]}, hist\ (rev \varrho) @ \alpha)
         \vdash_c^* (\cfitem{A}{\alpha}{\beta}, [])$.
   \end{lemma}
+  \begin{itemize}
+    \item Using Lemma~\ref{ipda_rm}
+  \end{itemize}
 \end{frame}
 
 \begin{frame}
@@ -791,16 +812,405 @@ constructed?
 
 \subsection{Definition}
 
+\begin{frame}
+  \frametitle{The $LR(0)$ Parser}
+  \note{
+    \begin{itemize}
+      \item States restricted to Q explicitly akin to the IPDA
+      \item Extra: X neq S' avoids conflicts between finish and reduce
+      \item f is arbitrary item not in Q
+    \end{itemize}
+  }
+  \begin{definition}
+    Let $\varDelta_G$ be the transition relation of \lrdfa, $q_0$ the initial
+    state of \lrdfa, $Q$ the set of states of \lrdfa, and $f$ the set
+    $\{\cfitem{S'}{}{}\}$. The \concept{$LR(0)$ parser} to G is the 
+    $(({'}n, {'}t)\ item\ set, 't)\ gpda$ \parser\ where
+    \vspace{-5pt}
+    \begin{align*}
+      states &= Q \cup \{f\}\\
+      init &= q_0\\
+      final &= \{f\}\\
+      nxt &= \{([q], a, [\varDelta_G\ q\ (Tm\ a), q])
+        \mid q \in Q \land \varDelta_G\ q\ (Tm\ a) \neq \emptyset\}\\
+      \text{and } eps &= R_P \cup F_P \text{ for}
+    \end{align*}
+    \vspace{-30pt}
+    \begin{gather*}
+      \begin{multlined}
+        R_P = \{\texttt{let } q = last\ (q_n \cons qs) \texttt{ in }
+          (q_n \cons qs, \varDelta_G\ q\ (Nt\ X) \cons [q])\\
+          \mid q_n\ qs\ X\ \alpha.\ set\ (q_n \cons qs) \subseteq Q
+            \land \cfitem{X}{\alpha}{} \in q_n\\ \land |\alpha| = |qs|
+            \land X \neq S'\}
+      \end{multlined}\\[5 pt]
+      F_P = \{([q, q_0], [f]) \mid q \in Q \land \cfitem{S'}{[Nt\ S]}{} \in q\}
+    \end{gather*}
+  \end{definition}
+\end{frame}
+
+\begin{frame}[label=parser_finiteness]
+  \frametitle{Finiteness of $nxt$ and $eps$ of \parser}
+  \begin{itemize}
+    \item Executable parser of interest
+    \item Needed: function computing parser transitions
+    \item Possible approach: iterate on $nxt$ and $eps$ sets to construct function
+    \begin{itemize}
+      \item \alert{Transition relations must be finite}
+    \end{itemize}
+  \end{itemize}
+  \pause
+  \begin{proposition}
+    The $nxt$ relation of \parser\ is finite.
+  \end{proposition}
+  \begin{proposition}
+    The $eps$ relation of \parser\ is finite.
+  \end{proposition}
+\end{frame}
+
 \subsection{$LR(0)$ Adequacy}
+
+\begin{frame}
+  \frametitle{$LR(0)$ Adequate and Inadequate States}
+  \begin{definition}[Shift-reduce conflict]
+    Let $q$ be a state of \parser. $q$ has a \concept{shift-reduce conflict} if 
+    it allows for \parser\ to perform both a shift and a reduce transition.
+  \end{definition}
+  \begin{definition}[Reduce-reduce conflict]
+    Let $q$ be a state of \parser. $q$ has a \concept{reduce-reduce conflict} if 
+    reducing transitions according to two distinct productions are possible.
+  \end{definition}
+  \begin{definition}[$LR(0)$-adequacy]
+    A state of \parser\ is \concept{$LR(0)$-inadequate} if it has a shift-reduce
+    or a reduce-reduce conflict. Otherwise, it is \concept{$LR(0)$-adequate}.
+  \end{definition}
+\end{frame}
+
+\begin{frame}
+  \frametitle{$LR(0)$-Adequate Cases}
+  \begin{lemma}[Cases of $LR(0)$-adequate states]\label{lr_cases}
+    If a state $q$ of \parser\ is $LR(0)$-adequate, one of the following holds:
+    \begin{enumerate}
+      \item $completes\ q = \emptyset$
+      \item $q = \{\cfitem{A}{\alpha}{}\}$ for some $A$ and $\alpha$.
+      \item $completes\ q = \{\cfitem{A}{}{}\}$ and for every incomplete item
+      $i \in q$, there exist $X, Y, \alpha, \beta$ such that
+      $i = \cfitem{X}{\alpha}{Nt\ Y \cons \beta}$, and every rightmost derivation
+      of a word $w$ of the form $\derivers{P'}{[Nt\ Y]}{\gamma} \derivera map\ Tm\ w$
+      implies $\gamma = Nt\ A \cons map\ Tm\ w$.
+    \end{enumerate}
+  \end{lemma}
+  \begin{itemize}
+    \item Stated by Wilhelm et al. without proof
+  \end{itemize}
+\end{frame}
 
 \subsection{$LR(k)$ Grammars}
 
+\begin{frame}
+  \frametitle{$LR(k)$ Grammars}
+  \begin{definition}[$LR(k)$ Grammar]
+    $G'$ is an \concept{$LR(k)$ grammar} if 
+    \begin{gather*}
+      \derivers{P'}{[Nt\ S']}{\alpha @ Nt\ X \cons map\ Tm\ w}
+        \derivera \alpha @ \beta @ map\ Tm\ w
+      \intertext{and}
+      \derivers{P'}{[Nt\ S']}{\gamma @ Nt\ Y \cons map\ Tm\ x}
+        \derivera \alpha @ \beta @ map\ Tm\ y
+    \end{gather*}
+    and $w|_k = y|_k$\\[4\jot]
+    implies $\alpha = \gamma$, $X = Y$, and $x = y$.
+  \end{definition}
+  \begin{alertblock}{Remark}
+    This definition is restricted to the extension of a grammar.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}
+  \frametitle{$LR(k)$ Grammars}
+  \note{Explain: this allows assumption WLOG about length}
+  \begin{lemma}\label{lrk_wlog}
+    In order to prove that $G'$ is $LR(k)$ it suffices to prove:\\
+    The conjunction of the following statements
+    \begin{gather*}
+      \derivers{P'}{[Nt\ S']}{\alpha @ Nt\ X \cons map\ Tm\ w}
+        \derivera \alpha @ \beta @ map\ Tm\ w,\\
+      \derivers{P'}{[Nt\ S']}{\gamma @ Nt\ Y \cons map\ Tm\ x}
+        \derivera \alpha @ \beta @ map\ Tm\ y,\\
+      \gamma @ \delta @ map\ Tm\ x = \alpha @ \beta @ map\ Tm\ y,\\
+      |\alpha @ \beta| \leq |\gamma @ \delta|,\\
+      w|_k = y|_k
+    \end{gather*}
+    implies $\alpha = \gamma$, $X = Y$, and $x = y$.
+  \end{lemma}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Theorem 3.4.2: Equivalence of the $LR(0)$ Condition and
+    $LR(0)$ Adequacy}
+  \begin{theorem}\label{lr0_iff_no_inad}
+    $G'$ is an $LR(0)$ grammar if and only if \lrdfa\ has no $LR(0)$-inadequate states.
+  \end{theorem}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Discussion: Proof of Theorem 3.4.2}
+  \begin{itemize}
+    \item \textit{``$G'$ is $LR(0) \implies \lrdfa$ has no $LR(0)$-inadequate sates''}
+    correct
+    \item Converse incorrect
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Discussion: Proof of Theorem 3.4.2}
+  \begin{block}{Assumptions}
+    \vspace{-10 pt}
+    \begin{gather*}
+      \textit{\lrdfa\ has no $LR(0)$-inadequate states}\\
+      \derivers{P'}{[Nt\ S']}{\alpha @ Nt\ X \cons map\ Tm\ w}
+        \derivera \alpha @ \beta @ map\ Tm\ w\\
+      \derivers{P'}{[Nt\ S']}{\gamma @ Nt\ Y \cons map\ Tm\ x}
+        \derivera \alpha @ \beta @ map\ Tm\ y
+    \end{gather*}
+  \end{block}
+  \begin{block}{Goal}
+    $\alpha = \gamma$, $X = Y$, and $x = y$
+  \end{block}
+  \begin{itemize}
+    \item Strategy of Wilhelm et al.: case distinction on $\beta$
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Discussion: Proof of Theorem 3.4.2}
+  \small
+  \begin{block}{Assumptions}
+    \vspace{-10 pt}
+    \begin{gather}
+      \textit{\lrdfa\ has no $LR(0)$-inadequate states}\\
+      \derivers{P'}{[Nt\ S']}{\alpha @ Nt\ X \cons map\ Tm\ w}
+        \derivera \alpha @ \beta @ map\ Tm\ w\\
+      \derivers{P'}{[Nt\ S']}{\gamma @ Nt\ Y \cons map\ Tm\ x}
+        \derivera \alpha @ \beta @ map\ Tm\ y\label{derivers2}
+    \end{gather}
+  \end{block}
+  \normalsize
+  \begin{alertblock}{Problems}
+    \begin{itemize}
+      \item Implicit assumption: \eqref{derivers2} implies existence of item of 
+      the form \cfitem{Y}{\zeta}{\eta} valid for $\alpha @ \beta$
+      \item If $\delta$ is the handle in the last step of \eqref{derivers2}:
+      too many possible cases of
+      $\gamma @ \delta @ map\ Tm\ x = \alpha @ \beta @ map\ Tm\ y$
+    \end{itemize}
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Discussion: Proof of Theorem 3.4.2}
+  \begin{block}{Problems}
+    \begin{itemize}
+      \item Implicit assumption: \eqref{derivers2} implies existence of item of 
+      the form \cfitem{Y}{\zeta}{\eta} valid for $\alpha @ \beta$
+      \item If $\delta$ is the handle in the last step of \eqref{derivers2}:
+      too many possible cases of
+      $\gamma @ \delta @ map\ Tm\ x = \alpha @ \beta @ map\ Tm\ y$
+    \end{itemize}
+  \end{block}
+  \begin{block}{Corrections}
+    \begin{itemize}
+      \item Specific lemmas on the existence of items valid for $\alpha @ \beta$
+      \item Using Lemma~\ref{lrk_wlog} as introduction rule to simplify cases
+      \item Case distinction using Lemma~\ref{lr_cases}
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Preservation of the $LR(k)$ Condition in Extended Grammars}
+  \note{
+    \begin{itemize}
+      \item Grammars with left recursions standard; LR(0) problematic and needs care
+      \item Parser nondeterministic for unextended LR(0) grammars with such left recursions
+      \item Cycle = ambiguous grammar
+      \begin{itemize}
+        \item Not used in practice
+        \item LR(k+1) not problematic
+      \end{itemize}
+    \end{itemize}
+  }
+  \begin{itemize}
+    \item Original $LR(k)$ definition for extended grammars only
+    \item For CFG $G$ with extension $G'$: $G\ is\ LR(k) \overset{?}{=} G'\ is\ LR(k)$
+    does not hold in general
+  \end{itemize}
+  \begin{theorem}[Preservation of the $LR(0)$ condition]
+    $G'$ is an $LR(0)$ grammar if and only if $G$ is an $LR(0)$ grammar with no
+    left recursions of the form \derivern{P}{[Nt\ S]}{n+1}{Nt\ S \cons \alpha}.
+  \end{theorem}
+  \begin{theorem}[Preservation of the $LR(k)$ condition for $k > 0$]
+    $G'$ is an $LR(k)$ grammar for $k > 0$ if and only if $G$ is an $LR(k)$
+    grammar with no cycles of the form \derivern{P}{[Nt\ S]}{n+1}{[Nt\ S]}.
+  \end{theorem}
+\end{frame}
+
 \subsection{Correctness}
 
-\begin{frame}[label=parser_finiteness]
-\frametitle{parser finitenes (tmp title)}
+\begin{frame}
+  \frametitle{Stack Words}
+  \begin{itemize}
+    \item Based on an intuitive explanation by Wilhelm et al. of the parser's
+    stack
+    \item Symbols related to stack states tracked as a string
+    \item \sword{\alpha}{c_0}{c_1}: $c_0$ reaches $c_1$ with
+    \concept{stack word} $\alpha$
+    \item Parser steps denoted by $\vdash_P$, $\vdash_P^*$, and $\vdash_P^n$
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Stack Words: Definition}
+  \begin{gather*}
+    \onslide<1->{
+    \inferrule[refl]{}{\sword{[]}{c_0}{c_0}}
+    }\\[10 pt]
+    \onslide<2->{
+    \inferrule[step]{\sword{\alpha}{c_0}{(ps @ q \cons qs, u)} \\
+    (ps @ q \cons qs, u) \vdash_P (nxt\ \lrdfa\ q\ X \cons q \cons qs, v)}{
+      \sword{X \cons {}_{|ps|}|\alpha}{c_0}{(nxt\ \lrdfa\ q\ X \cons q \cons qs, v)}
+    }}
+  \end{gather*}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Proving Soundness with Stack Words}
+  \begin{lemma}[Stack word invariant]
+    If \sword{\alpha}{([init\ \parser], u @ v)}{(q \cons qs, v)} and $q \neq
+    \emptyset$, then \derivers{P'}{rev\ \alpha}{map\ Tm\ u}.
+  \end{lemma}
+  \begin{theorem}[Soundness of the $LR(0)$ parser]
+    Every word accepted by \parser\ is a word in $L(G)$.
+  \end{theorem}
+\end{frame}
+
+\begin{frame}
+  \frametitle{The Shift-Reduce Pushdown Automaton}
+  \begin{itemize}
+    \item $LR(0)$ parser too abstract 
+    \item Correspondence between derivations and automaton steps difficult to prove
+    \item Our approach: bridge using the \concept{shift-reduce pushdown automaton}
+    \begin{itemize}
+      \item Definition following Petter
+    \end{itemize}
+    \item First: extend grammar symbols using datatype $srpda{-}state$
+  \end{itemize}
+  \[ \texttt{datatype } ({'}n, {'}t)\ srpda{-}state = Sym\ (({'}n, {'}t)\ sym)
+  \mid Init \mid Final \]
+\end{frame}
+
+\begin{frame}
+  \frametitle{The Shift-Reduce Pushdown Automaton}
+\begin{definition}
+  The \concept{shift-reduce pushdown automaton} (SRPDA) for $G$ is the
+  $(({'}n, {'}t)\ srpda{-}state, {'}t)\ gpda\ \srpda$ where
+  \begin{align*}
+    states &= UNIV\\
+    init &= Init\\
+    final &= \{Final\}\\
+    nxt &= range\ (\lambda (q, x).\ ([q], x, [Sym\ (Tm\ x), q]))\\
+    eps &= 
+    \begin{multlined}[t]
+    \{(map\ Sym\ (rev\ \alpha) @ [q], [Sym\ (Nt\ A), q]) \mid (A, \alpha) \in P\}\\
+    \cup \{([Sym\ (Nt\ S), Init], [Final])\}
+    \end{multlined}
+  \end{align*}
+\end{definition}
+\begin{itemize}
+  \item We denote SRPDA steps by $\vdash_M$, $\vdash_M^*$, and $\vdash_M^n$
+\end{itemize}
+%\begin{alertblock}{Remark}
+% The SRPDA does not fulfill the GPDA assumption that the set of states is final,
+% since this only holds if the input alphabet is finite. However, this is not
+% a problem in our case.
+%\end{alertblock}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Proving Completeness with the SRPDA}
+  \begin{lemma}[SRPDA invariant]
+    If \derivers{P}{\alpha}{map\ Tm\ w}, then
+    $([Init], w) \vdash_M^* (map\ Sym\ (rev\ \alpha) @ [Init], [])$.
+  \end{lemma}
+  \begin{lemma}[SRPDA completeness]
+    If a word is in $L(G)$, it is accepted by \srpda.
+  \end{lemma}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Proving Completeness with the SRPDA}
+  \begin{lemma}
+    If $([Init], u) \vdash_M^* (map\ Sym\ (rev\ \alpha) @ [Init], v)$ and 
+    $valids\ (rev\ \alpha) \neq \emptyset$, there exists a stack $qs$ such that
+    \sword{\alpha}{([init\ \parser], u)}{(valids\ (rev\ \alpha) \cons qs, v)}.
+  \end{lemma}
+  \begin{theorem}[Completeness of the $LR(0)$ Parser]
+    Every word in $L(G)$ is accepted by \parser.
+  \end{theorem}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Correctness}
+  \begin{theorem}
+    The language accepted by the $LR(0)$ parser is exactly the language of G.
+  \end{theorem}
 \end{frame}
 
 \section{Conclusion}
+
+\begin{frame}[allowframebreaks]
+  \frametitle{Results}
+  \begin{itemize}
+    \item Formalization of reduced grammars and grammar extensions, and GPDAs
+    \item Definition of the IPDA and correctness proof 
+    \begin{itemize}
+      \item Lemma~\ref{derivers_imp_completes} as stronger variant used
+    \end{itemize}
+    \item Formalization of rightmost chains
+    \item Definition of \charfa\ and correction of Theorem~\hyperref[thm341]{3.4.1}
+    \begin{itemize}
+      \item Definition of \lrdfa
+    \end{itemize}
+    \item Definition of \parser\ restricting reducing transitions by $X \neq S'$ 
+    \item Finiteness of the transition relations of \parser
+    \item Definition of $LR(0)$ adequacy and proof of Lemma~\ref{lr_cases}
+    \item Definition of $LR(k)$ for $G'$
+    \item A corrected proof of Theorem~\ref{lr0_iff_no_inad}
+    \framebreak
+    \item Sufficient and necessary conditions for the preservation of the
+    generalized $LR(k)$ condition
+    \item Formalization of stack words and the SRPDA
+    \item Correctness proof for the $LR(0)$ parser
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Future Work}
+  \note{At final point: alphabet finiteness problematic since it's a type
+  \begin{itemize}
+  \item finiteness of \It\ important in my formalization
+  \end{itemize}}
+  \begin{itemize}
+    \item Formalization of the notion of determinism (Wilhelm et al., p. 58)
+    \begin{itemize}
+      \item Proof that the parser is deterministic iff \lrdfa\ has no 
+      $LR(0)$-inadequate states
+    \end{itemize}
+    \item An executable $LR(0)$ parser
+    \item Formalization of an $LR(0)$ parser with output (Wilhelm et al., p. 63) 
+    \item Formalization of GPDAs and equivalence with PDAs
+    \item Formalization of $LR(k)$ theory for arbitrary $k$
+  \end{itemize}
+\end{frame}
 
 \end{document}

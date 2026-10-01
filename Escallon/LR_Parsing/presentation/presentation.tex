@@ -70,6 +70,14 @@
 \newcommand{\derivers}[3]{\ensuremath{{#1} \vdash {#2} \deriversa {#3}}}
 \newcommand{\derivern}[4]{\ensuremath{{#1} \vdash {#2} \deriverna{#3} {#4}}}
 
+% Alphabets
+
+\newcommand{\sym}{\ensuremath{V_T \cup V_N}}
+\newcommand{\syms}{\ensuremath{{(V_T \cup V_N)}^*}}
+\newcommand{\syme}{\ensuremath{V_T \cup V_N'}}
+\newcommand{\symse}{\ensuremath{{(V_T \cup V_N')}^*}}
+
+
 % Automata
 
 \newcommand{\ipda}{\ensuremath{\var{I}_G}}
@@ -118,31 +126,32 @@
 \section{Introduction}
 
 \begin{frame}
-\frametitle{Syntactic Analysis}
+\frametitle{Scope of this Thesis}
 \begin{itemize}
-  \item One of the earliest stages in the compilation process
-  \item Verification of the adherence to the syntax rules by the input
-  \item $LR(k)$ parsing theory presented by Wilhelm et al.\ in the book 
-  \textit{Compiler Design: Syntactic and Semantic Analysis}
-  \item Scope of this thesis: $LR(0)$ parsing theory as presented in this book
-\end{itemize}
-\end{frame}
-
-\begin{frame}
-\frametitle{Major Results}
-\begin{itemize}
-  \item A formalization of the book's $LR(0)$ theory 
-  \item A formal proof of the correctness of the parser constructed from the 
-  canonical $LR(0)$ automaton as specified by the authors
-  \begin{itemize}
-    \item Not discussed by Wilhelm et al.
-  \end{itemize}
-  \item Achieved using the Isabelle Proof Assistant
+  \item Formalization $LR(0)$ parsing theory from Wilhelm et al. in 
+    \textit{Compiler Design: Syntactic and Semantic Analysis}
+  \item Using the Isabelle Proof Assistant
   \begin{itemize}
     \item Building on the formalization of CFG theory by Nipkow et al.
   \end{itemize}
 \end{itemize}
+\pause
+\structure{Major Results}
+\note{
+  \begin{itemize}
+    \item Errors in the book corrected
+    \item Book showed parser's determinism, correctness remained open
+  \end{itemize}
+}
+\begin{itemize}
+  \item Formal verification of the book's $LR(0)$ section
+  \item Formal proof of the correctness of the $LR(0)$ parser 
+  \begin{itemize}
+    \item Not discussed by Wilhelm et al.
+  \end{itemize}
+\end{itemize}
 \end{frame}
+
 
 \begin{frame}
 \frametitle{Notes on Terminology}
@@ -154,38 +163,11 @@ code that is then machine-checked
 \end{frame}
 
 \begin{frame}
-\frametitle{Why formal verification?}
-\begin{itemize}
-  \item Informal proofs often contain errors
-  \item Faulty arguments may seem correct on the surface
-  \item Proof assistants verify that each step in a proof is indeed a consequence 
-  of the previous steps
-  \begin{itemize}
-    \item Guarantee of the arguments' soundness
-  \end{itemize}
-\end{itemize}
-\end{frame}
-
-\begin{frame}
-\frametitle{Why prove the parser correct?}
-\begin{itemize}
-  \item Motivation behind the $LR(0)$ parser: deterministic algorithm that 
-  decides whether a word is in a given CFG
-  \item Wilhelm et al.\ show that the parser is indeed deterministic for $LR(0)$ 
-  grammars
-  \item Remaining question: does the parser accept the language of the grammar 
-  it is constructed from?
-\end{itemize}
-\end{frame}
-
-\begin{frame}
 \frametitle{Main Questions}
 \begin{itemize}
-  \item Is $LR(0)$ parsing theory as presented by Wilhelm et al.\ correct, and if it is not,
-how must it be modified to achieve correctness?
-  \item What is the language accepted by the $LR(0)$ parser as defined by Wilhelm et
-al., and in particular, how does this language relate to that of the grammar from which it is
-constructed?
+  \item Is $LR(0)$ parsing theory as presented by Wilhelm et al.\ correct?
+  \item What is the language accepted by the $LR(0)$ parser as defined by
+  Wilhelm et al.? 
 \end{itemize}
 \end{frame}
 
@@ -195,63 +177,25 @@ constructed?
 \subsection{Extended and Reduced Grammars}
 
 \begin{frame}
-  \frametitle{Extending Grammars by a New Start Symbol}
-  \begin{itemize}
-    \item For a CFG with start symbol $S$, we wish to identify that a word has
-    been derived when a production of the form $(S, \alpha)$ is encountered
-    \begin{itemize}
-      \item Problem: grammars can have productions with $S$ on the RHS
-    \end{itemize}
-    \item Extending the grammar by a new start symbol $S'$ with a unique
-    production $(S',\ [Nt\ S])$ makes this possible
-  \end{itemize}
-  \begin{definitions}
-    \begin{center}
-    $S' = fresh0\ (Nts\ P \cup {S})$\\
-    $G' = Cfg\ (P \cup \{(S',\ [Nt\ S])\})\ S'$
-    \end{center}
-  \end{definitions}
-  \pause
-  \begin{theorem}[Preservation of language after extension]
-    If $G$ is a CFG and $G'$ its extension, then $L(G) = L(G')$ holds.
-  \end{theorem}
-  \pause
-  \begin{alertblock}{Remark}
-    Convention: $G$ is a CFG with extension $G'$.
-  \end{alertblock}
-  
-\end{frame}
-
-\begin{frame}
-  \frametitle{Reduced Grammars}
-  \begin{itemize}
-    \item CFGs can contain unreachable and unproductive nonterminals
-    \item Removal of such nonterminals does not alter the language
-    \begin{itemize}
-      \item Proved by Nipkow et al. in their CFG formalization
-    \end{itemize}
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Reduced Grammars}
-  \begin{definitions}[Productive strings and useful symbols]
-    \begin{center}
-    $productives\ P\ \alpha = \exists w.\ \derives{P}{\alpha}{w}$\\
-    $useful\ P\ S\ A\ = 
-      \exists \beta.\ \derives{P}{[Nt\ S]}{\beta} \land Nt\ A \in set\ \beta 
-        \land productives\ P\ \beta$
-    \end{center}
-  \end{definitions}
-  \pause
+  \frametitle{Reduced and Extended Grammars}
   \begin{definition}[Reduced grammar]
-    A CFG G is \concept{reduced} if $useful\ (Prods\ G)\ (Start\ G)\ A$ holds
-    for every $A\ \in Nts\ (Prods\ G)$.
+    A CFG $G$ is \concept{reduced} if its productions contain only useful
+    nonterminals.
   \end{definition}
-  \pause
-  \begin{lemma}[Preservation of reduction]
-    If $G$ is reduced and $L(G)$ is nonempty, $G'$ is reduced.
-  \end{lemma}
+  \begin{definition}[Extended grammar]
+    Let $G$ be a CFG with production set $P$ and start symbol $S$.
+    The \concept{extension} of $G$ is the CFG resulting from extending $G$ by a
+    new start symbol $S'$, and $P$ by the production $S' \rightarrow S$. This resulting
+    grammar is therefore called \concept{extended}.
+  \end{definition}
+  \begin{block}{Convention}
+    \begin{itemize}
+      \item $G$ is a CFG with start symbol $S$ production set $P$, terminals $V_T$
+      and nonterminals $V_N$
+      \item $G'$ is the extension of $G$ with start symbol $S'$, production set $P'$,
+      and nonterminals $V_N'$
+    \end{itemize}
+  \end{block}
 \end{frame}
 
 \subsection{Context-Free Items}
@@ -259,9 +203,9 @@ constructed?
 \begin{frame}
   \frametitle{Context-Free Items}
   \begin{definition}
-    A context-free item for a CFG $G$ is a triple 
-    $(A, \alpha, \beta) :: {'}n \times ({'}n,{'}t)\ syms \times ({'}n,{'}t)\ syms$ such that
-    $(A, \alpha @ \beta) \in Prods\ G$.\\
+    A context-free item for $G$ is a triple 
+    $(A, \alpha, \beta) \in V_N \times \syms \times \syms$ such that
+    $(A, \alpha @ \beta) \in P$.\\
     The item $(A, \alpha, \beta)$ is often written as \cfitem{A}{\alpha}{\beta}
   \end{definition}
   \begin{itemize}
@@ -269,7 +213,7 @@ constructed?
     \item Symbols to the right of the bullet are shifted to the left as they are consumed
     \item Empty strings are often written implicitly
     \begin{itemize}
-      \item Example: \cfitem{A}{}{\beta} instead of \cfitem{A}{[]}{\beta}
+      \item Example: \cfitem{A}{}{\beta} instead of \cfitem{A}{\varepsilon}{\beta}
     \end{itemize}
   \end{itemize}
 \end{frame}
@@ -278,20 +222,13 @@ constructed?
   \frametitle{Further Definitions}
   \begin{itemize}
     \item An item of the form \cfitem{A}{\alpha}{} is \concept{complete}
-    \item An item of the form \cfitem{A}{}{\beta} is \concept{initial}
     \item The \concept{history} of an item of the form \cfitem{A}{\alpha}{\beta} is $\alpha$
     \item If $I$ is a set of items, $completes\ I$ denotes the set of complete items
     in $I$
-    \begin{itemize}
-      \item $incompletes\ I$ denotes the set of items in $I$ that are not complete
-    \end{itemize}
     \item If $\varrho$ is a list of items, $hist\ \varrho$ is the concatenation of the
     histories of the items in $\varrho$
-    \item \It\ denotes the set of all items of the CFG G
+    \item \It\ denotes the set of all items corresponding to the CFG G
   \end{itemize}
-  \begin{lemma}[Finiteness of \It]
-    If $G$ is a CFG such that $Prods\ G$ is finite, \It\ is finite.
-  \end{lemma}
 \end{frame}
 
 \subsection{Generalized Pushdown Automata}
@@ -307,75 +244,34 @@ constructed?
 \end{frame}
 
 \begin{frame}
-  \frametitle{Generalized Pushdown Automata}
-  \begin{definition}
-    A generalized pushdown automaton (GPDA) is a record of type $({'}q, {'}a)\ gpda$
-    where ${'}q$ is the type of stack symbols, ${'}a$ the type of alphabet symbols, 
-    with fields
-    \begin{itemize}
-      \item $states :: {'}q\ set$: a finite set of \concept{states}
-      \item $init :: {'}q$: the \concept{initial state}, $init \in states$
-      \item $final :: {'}q$: the set of \concept{final states}, $final \subseteq states$
-      \item $nxt :: ({'}q\ list \times {'}a \times {'}q\ list)\ set$: the \concept{reading transition relation}
-      \item $eps :: ({'}q\ list \times {'}q\ list)\ set$: the \concept{$\epsilon$-transition relation}
-    \end{itemize}
-    For a GPDA $M$ must hold for all $(ps, a, qs) \in nxt\ M$ that $ps$ is nonempty, 
-    and both $ps$ and $qs$ are subsets of the states of $M$. This must also hold
-    for all $(ps, qs) \in eps\ M$.
-  \end{definition}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Generalized Pushdown Automata}
-  \begin{itemize}
-    \item Wilhelm et al. define GPDA transition relations as finite
-    \item Our proofs do not use this property
-    \begin{itemize}
-      \item We omit this constraint for the sake of simplicity
-    \end{itemize}
-    \item \alert{Finiteness relevant for the LR(0) parser}
-    \begin{itemize}
-      \item Discussed \hyperlink{parser_finiteness}{in a later section}
-    \end{itemize}
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
   \frametitle{GPDA Configurations}
   \begin{itemize}
-    \item A \concept{configuration} for a $({'}q, {'}a)\ gpda$ is a tuple 
-    $(qs, w) :: {'}q\ list \times {'}a\ list$
+    \item A \concept{configuration} for a GPDA with states $Q$ and alphabet $\varSigma$ 
+    is a tuple
+    $(qs, w) \in Q^+ \times \varSigma^*$
     \begin{itemize}
       \item $qs$: current stack 
       \item $w$: remaining input
     \end{itemize}
-    \item A configuration for a GPDA $M$ is \concept{initial} if the stack 
-    consists of the list $[init\ M]$
-    \item A configuration for a GPDA $M$ is \concept{final} if it is of the form
-    $([f], [])$ for some $f \in final\ M$
+    \item A configuration for a GPDA $M$ with initial state $q_0$ is
+    \concept{initial} if the stack 
+    consists of the list $[q_0]$
+    \item If the set of final states of $M$ is F, a \concept{final configuration}
+    is of the form $([f], \varepsilon)$ for $f \in F$
   \end{itemize}
-  \begin{alertblock}{Remark}
-    The topmost stack element is defined as the leftmost element of the list in 
-    accordance with the Isabelle $list$ datatype.
-  \end{alertblock}
 \end{frame}
 
 \begin{frame}
   \frametitle{GPDA Steps}
   \begin{itemize}
-    \item The \concept{step relation} is denoted by the infix operator $\vdash$
-    \item Defined by the rules
-    \begin{gather*}
-      (ps, a, qs) \in nxt\ M \implies (ps @ rs, a \cons w) \vdash (qs @ rs, w)\\
-      (ps, qs) \in eps\ M \implies (ps @ rs, w) \vdash (qs @ rs, w)
-    \end{gather*}
-    \item \concept{computations} = sequences of steps
+    \item \concept{computations} = sequences of GPDA steps
     \begin{itemize}
       \item denoted by the reflexive transitive closure of steps, written as $\vdash^*$
     \end{itemize}
     \item computations of length $n$ denoted by $\vdash^n$
-    \item The language of a GPDA $M$:
-    \[L(M) = \{w \mid \exists f \in final\ M.\ ([init M], w) \vdash^* ([f], [])\}\]
+    \item The language of a GPDA $M$ with set of final states $F$ and initial state
+    $q_0$:
+    \[L(M) = \{w \mid \exists f \in F.\ ([q_0], w) \vdash^* ([f], \varepsilon)\}\]
   \end{itemize}
 \end{frame}
 
@@ -383,109 +279,52 @@ constructed?
 
 \begin{frame}
   \frametitle{Conventions Moving Forward}
-  Let $G$ be a CFG with start symbol $S$ and production set $P$ such that
   \begin{itemize}
+    \item $G$ is a CFG with start symbol $S$ production set $P$, terminals $V_T$
+    and nonterminals $V_N$
+    \item $G'$ is the extension of $G$ with start symbol $S'$, production set $P'$,
+    and nonterminals $V_N'$
+    \pause
     \item $P$ is finite
     \item $L(G)$ is nonempty
     \item $G$ is reduced
-    \item $G'$ is the extension of $G$ with start symbol $S'$ and production set $P'$
   \end{itemize}
 \end{frame}
-
-\subsection{Definition}
 
 \begin{frame}
   \frametitle{The Item Pushdown Automaton}
   \begin{definition}
-    The \concept{item pushdown automaton} (IPDA) to G is the $(({'}n, {'t}) item, {'}t)\ gpda$
-    \ipda\ where
+    The \concept{item pushdown automaton} (IPDA) to G is the GPDA \ipda\ with
+    alphabet $V_T$ and
     \begin{align*}
       states &= \It[G']\\
-      init &= \cfitem{S'}{}{[Nt\ S]}\\
-      final &= \{\cfitem{S'}{[Nt\ S]}{}\}
+      init &= \cfitem{S'}{}{S}\\
+      final &= \{\cfitem{S'}{S}{}\}\\
+      nxt &=
+    \begin{multlined}[t]
+        \{([\cfitem{X}{\beta}{a \gamma}], a, [\cfitem{X}{\beta a}{\gamma}])\\
+        \mid X\ \beta\ a\ \gamma.\ (X, \beta a \gamma) \in P'\}
+    \end{multlined}\\
+      eps &= \ldots
     \end{align*}
   \end{definition}
-\end{frame}
-
-
-\begin{frame}
-  \frametitle{The Item Pushdown Automaton}
-  \begin{defcont}
-    \begin{align*}
-        &nxt = 
-    \begin{multlined}[t]
-        \{([\cfitem{X}{\beta}{Tm\ a \cons \gamma}], a, [\cfitem{X}{\beta @ [Tm\ a]}{\gamma}])\\
-        \mid X \beta a \gamma.\ (X, \beta @ Tm\ a \cons \gamma) \in P'\}
-    \end{multlined}\\
-    &\text{and } eps = E_\var{I} \cup R_\var{I} \text{ for}
-    \end{align*}
-    \vspace{-20pt}
-    \begin{gather*}
-      \begin{multlined}
-        E_\var{I} = \{([\cfitem{X}{\beta}{Nt\ Y \cons \gamma}], 
-          [\cfitem{Y}{}{\alpha}, \cfitem{X}{\beta}{Nt\ Y \cons \gamma}])\\
-          \mid X \beta Y \gamma \alpha.\ (X, \beta @ Nt\ Y \cons \gamma) \in P' 
-          \land (Y, \alpha) \in P'\}
-      \end{multlined}\\[10pt]
-      \begin{multlined}
-        R_\var{I} = \{([\cfitem{Y}{\alpha}{}, \cfitem{X}{\beta}{Nt\ Y \cons \gamma}],
-            [\cfitem{X}{\beta @ [Nt\ Y]}{\gamma}])\\
-        \mid Y \alpha X \beta \gamma.\ (X, \beta @ Nt\ Y \cons \gamma) \in P' 
-          \land (Y, \alpha) \in P'\}
-      \end{multlined}
-    \end{gather*}
-  \end{defcont}
   \begin{itemize}
     \item IPDA steps notated by $\vdash_\var{I}$, $\vdash^{*}_{\var{I}}$, and $\vdash^{n}_{\var{I}}$
   \end{itemize}
 \end{frame}
 
 \begin{frame}
-  \frametitle{The Item Pushdown Automaton}
-  \begin{alertblock}{Remark}
+  \frametitle{IPDA Transitions}
   \begin{itemize}
-    \item Type $({'}n, {'t})\ item$ allows items not in \It[G'] on the stack
-    \item Restriction enforced by requiring productions to be in $P'$
+    \item \concept{shifting} transitions ($nxt$)
+    \[ (\cfitem{A}{\alpha}{a \beta} \varrho, aw) \vdash_{\var{I}} (\cfitem{A}{\alpha a}{\beta}\varrho, w) \]
+    \item \concept{expanding} transitions
+    \[ (\cfitem{A}{\alpha}{B \beta} \varrho, w) \vdash_{\var{I}} (\cfitem{b}{}{\gamma}
+    \cfitem{A}{\alpha}{B \beta} \varrho, w) \] 
+    \item \concept{reducing} transitions
+    \[(\cfitem{B}{\gamma}{} \cfitem{A}{\alpha}{B \beta} \varrho, w) \vdash_{\var{I}}
+    (\cfitem{A}{\alpha B}{\beta} \varrho, w)\] 
   \end{itemize}
-  \end{alertblock}
-\end{frame}
-
-\subsection{Language Equivalence}
-
-\begin{frame}
-  \frametitle{Soundness}
-  \begin{itemize}
-    \item Proof follows Wilhelm et al. closely
-  \end{itemize}
-  \pause
-  \begin{lemma}[IPDA invariant]
-    $([init\ M], u @ v) \vdash^{*}_{\var{I}} (rev\ \varrho, v)$ implies 
-    \derives{P}{hist\ \varrho}{map\ Tm\ u}.
-  \end{lemma}
-  \pause
-  \begin{lemma}[Soundness of the IPDA]
-    $L(I_{G}) \subseteq L(G)$
-  \end{lemma}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Completeness}
-  \begin{lemma}[Derivation implies IPDA completion]\label{derivers_imp_completes}
-    If \derives{P'}{\beta}{map\ Tm\ w} and $(A, \alpha @ \beta @ \gamma) \in P'$,
-    then for any $\varrho$ and $x$ holds
-    \[ (\cfitem{A}{\alpha}{\beta @ \gamma} \cons \varrho, w @ x)
-    \vdash^{*}_{\var{I}} (\cfitem{A}{\alpha @ \beta}{\gamma} \cons \varrho, x). \]
-  \end{lemma}
-  \pause
-  \begin{itemize}
-    \item Wilhelm et al. prove a weaker statement
-    \item Sufficient for IPDA completeness
-    \item Our stronger lemma will be needed in the future
-  \end{itemize}
-  \pause
-  \begin{lemma}[Completeness of the IPDA]
-    $L(G) \subseteq L(I_{G})$
-  \end{lemma}
 \end{frame}
 
 \begin{frame}
@@ -493,14 +332,17 @@ constructed?
   \begin{theorem}[Correctness of the IPDA]
     $L(I_{G}) = L(G)$
   \end{theorem}
+  \begin{itemize}
+    \item Proof follows Wilhelm et al.\ closely
+    \item Auxiliary lemma strengthened
+  \end{itemize}
 \end{frame}
 
 \section{Rightmost Chains}
 
-\subsection{Introduction}
-
 \begin{frame}
-  \frametitle{Rightmost Chains: Motivation}
+  \frametitle{Rightmost Chains}
+  \framesubtitle{Motivation}
   \begin{quote}
     Let us now assume that we have a rightmost derivation 
     $S' \deriversa \gamma' A w \derivera \gamma' \alpha \beta$. This derivation
@@ -518,85 +360,42 @@ constructed?
 \end{frame}
 
 \begin{frame}
-  \frametitle{Rightmost Chains: Motivation}
+  \frametitle{Rightmost Chains}
+  \framesubtitle{Definition}
   \begin{itemize}
-    \item Goal: a definition of these decompositions which we can use in proofs
-    with ease
-    \item Our approach: an inductive definition of \concept{rightmost chains}
     \item \chain{P}{\alpha}{\varrho}{\beta}: $\alpha$ reaches $\beta$ with
     rightmost chain $\varrho$ under production set $P$
   \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Rightmost Chains: Definition}
+  \pause
   \begin{gather*}
-    \onslide<1->{\inferrule[refl]{}{\chain{P}{\alpha}{[]}{\alpha}}\\[10pt]}
-    \onslide<2->{\inferrule[step]{
-      \chain{P}{\alpha_0}{\varrho}{\alpha @ Nt\ X \cons map\ Tm\ v} \\
-      \deriver{P}{\alpha @ Nt\ X \cons map\ Tm\ v}
-        {\alpha @ \alpha' @ Nt\ Y \cons \beta @ map\ Tm\ v} \\
-      \derivers{P}{\beta}{map\ Tm\ u}
-      }{\chain{P}{\alpha_0}{\cfitem{X}{\alpha'}{Nt\ Y \cons \beta} \cons \varrho}{\alpha @ \alpha' @ Nt\ Y \cons map\ Tm\ (u @ v)}}}
+    \inferrule[refl]{}{\chain{P}{\alpha}{\varepsilon}{\alpha}}\\[10pt]
+    \inferrule[step]{
+      \chain{P}{\alpha_0}{\varrho}{\alpha X v} \\
+      \deriver{P}{\alpha X v}
+        {\alpha \alpha' Y \beta v} \\
+      \derivers{P}{\beta}{u}
+      }{\chain{P}{\alpha_0}{\cfitem{X}{\alpha'}{Y \beta} \varrho}{\alpha \alpha' Y u v}}
   \end{gather*}
 \end{frame}
 
-\subsection{Properties}
-
 \begin{frame}
-  \frametitle{Equivalence with Rightmost Derivations}
-  \begin{itemize}
-    \item Wilhelm et al. do not prove the existence of the decomposition for
-    arbitrary rightmost derivations
-    \item We show an equivalence between the existence of rightmost derivations and
-    rightmost chains
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Equivalence with Rightmost Derivations}
+  \frametitle{Properties of Rightmost Chains}
   \begin{lemma}[Rightmost chains imply rightmost derivations]
     If \chain{P}{\alpha}{\varrho}{\beta}, then \derivers{P}{\alpha}{\beta}.
   \end{lemma}
-  \pause
   \begin{lemma}[Rightmost derivations imply rightmost chains]\label{deriver_rm}
-    If \derivern{P}{[Nt\ A]}{n+1}{\alpha @ Nt\ X \cons map\ Tm\ v}, then there
+    If \derivern{P}{A}{n+1}{\alpha X v}, then there
     exists a rightmost chain of the form
-    \[ \chain{P}{[Nt\ A]}{\cfitem{B}{\alpha'}
-      {Nt\ X \cons \beta} \cons \varrho}{\alpha @ Nt\ X \cons map\ Tm\ v}. \]
+    \[ \chain{P}{A}{\cfitem{B}{\alpha'}{X \beta} \varrho}{\alpha X v}. \]
   \end{lemma}
-  \pause
-  \begin{alertblock}{Remark}
-    We have only shown the equivalence for the special case of lists consisting 
-    of a single nonterminal. 
-  \end{alertblock}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Relation to IPDA Stacks}
-  \begin{itemize}
-    \item Wilhelm et al. make a claim about the structure of the stack of an IPDA
-    configuration that reaches the accepting configuration
-    \item This structure is identical to the item list of a rightmost chain
-    \item We show that IPDA configurations that reach the accepting configuration
-    correspond to some rightmost chain
-  \end{itemize}
   \begin{lemma}[Correspondence of IPDA stacks to rightmost chains]\label{ipda_rm}
-    If $(\cfitem{A}{\alpha}{\beta} \cons \varrho, w)
-        \vdash_\var{I}^* ([\cfitem{S'}{[Nt\ S]}{}], [])$, then either $\varrho = []$ or
+    If $(\cfitem{A}{\alpha}{\beta} \varrho, w)
+        \vdash_\var{I}^* ([\cfitem{S'}{S}{}], \varepsilon)$, then either
+        $\varrho = \varepsilon$ or
     there exist $\sigma, X, \alpha', \beta'$, and $\gamma$ such that 
-    \[ \varrho = \cfitem{X}{\alpha'}{Nt\ A \cons \beta'} \cons \sigma
-      \text{ and } \chain{P'}{[Nt\ S']}{\varrho}{\gamma}. \]
+     $\varrho = \cfitem{X}{\alpha'}{A \beta'} \sigma
+      \text{ and } \chain{P'}{S'}{\varrho}{\gamma}.$
   \end{lemma}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Rightmost Chains: Results}
-  \begin{itemize}
-    \item Formalization of informal decomposition described by Wilhelm et al.
-    \item Inductive definition ideal for Isabelle proof development
-    \item Fundamental for proof of first major theorem
-  \end{itemize}
 \end{frame}
 
 \section{The Characteristic Finite Automaton and Canonical $LR(0)$ Automaton}
@@ -605,142 +404,68 @@ constructed?
 
 \begin{frame}
   \frametitle{The Characteristic Finite Automaton}
+  \begin{definition}
+    The \concept{characteristic finite automaton} to G is the NFA \charfa\ with alphabet 
+    \syme\ and
+    \vspace{-3pt}
+    \begin{align*}
+      states &= \It[G']\\
+      init &= \{\cfitem{S'}{}{S}\}\\
+      final &= completes\ \It[G']\\
+      nxt &= \ldots\\
+      eps &= \ldots
+    \end{align*}
+  \end{definition}
   \begin{itemize}
-    \item Goal: exploring IPDA expansions in parallel
-    \item Productions selected for reduction
-    \item We define an NFA which can then be trivially converted to a DFA 
-    \begin{itemize}
-      \item Based on Paulson's formalization of finite automata
-    \end{itemize}
+    \item \charfa\ steps denoted by $\vdash_c$, $\vdash_c^*$, and $\vdash_c^n$
   \end{itemize}
 \end{frame}
 
 \begin{frame}
-  \frametitle{The Characteristic Finite Automaton}
-  \begin{definition}
-    The \concept{characteristic finite automaton} to G is the 
-    $(({'}n, {'}t) sym, ({'}n, {'}t) item)\ nfa$ \charfa\ where
-    \vspace{-3pt}
-    \begin{align*}
-      states &= \It[G']\\
-      init &= \{\cfitem{S'}{}{[Nt\ S]}\}\\
-      final &= completes\ \It[G']\\
-      nxt\ q\ a &= 
-        \begin{aligned}[t]
-          &\caseof{q}{\cfitem{X}{\alpha}{Y \cons \beta}}\\
-          &\texttt{if } a = Y \land (X, \alpha @ Y \cons \beta \in P')
-          \texttt{ then } \{\cfitem{X}{\alpha @ [Y]}{\beta}\}\\
-          &\texttt{else } \emptyset
-        \end{aligned}\\
-      eps &= 
-        \begin{multlined}[t]
-          \{(\cfitem{X}{\alpha}{Nt\ Y \cons \beta}, \cfitem{Y}{}{\gamma}) \\
-          \mid X\ \alpha\ Y\ \beta\ \gamma.\ (X, \alpha @ Nt\ Y \cons \beta) \in P'
-          \land (Y, \gamma) \in P'\}
-        \end{multlined}
-    \end{align*}
-  \end{definition}
-  \pause
+  \frametitle{\charfa\ Transitions}
   \begin{itemize}
-    \item \charfa\ reaches an item $i$ by reading the concatenation of 
-    prefixes that \ipda\ processed in order to reach $i$
-    \item \charfa\ steps denoted by $\vdash_c$, $\vdash_c^*$, and $\vdash_c^n$
+    \item $nxt$ transitions
+    \[ (\cfitem{A}{\alpha}{X \beta}, X \gamma) \vdash_c (\cfitem{A}{\alpha X}{\beta}, \gamma)\] 
+    \item $\varepsilon$-transitions
+    \[ (\cfitem{A}{\alpha}{X \beta}, \gamma) \vdash_c (\cfitem{X}{}{\alpha'}, \gamma) \]
   \end{itemize}
 \end{frame}
 
 \begin{frame}\label{thm341}
   \frametitle{Theorem 3.4.1: the Relation between \charfa, Rightmost Derivations, 
   and \ipda}
-  \begin{quote}
-    Let $G$ be a CFG and $\gamma :: syms$. The following three
-    statements are equivalent:
-    \begin{enumerate}
-      \item There exists a computation
-      $(\cfitem{S'}{}{[Nt\ S]}, \gamma) \vdash_c^* (\cfitem{A}{\alpha}{\beta}, [])$
-      of the characteristic finite automaton \charfa.
-      \item There exists a rightmost derivation 
-      \derivers{P'}{[Nt\ S']}{\gamma' @ Nt\ A \cons w}
-      $\derivera \gamma' @ \alpha @ \beta @ w$ with
-      $\gamma = \gamma' @ \alpha$
-      \item There exists a computation 
-      $(\cfitem{A}{\alpha}{\beta} \cons \varrho, w)
-        \vdash_\var{I}^* ([\cfitem{S'}{[Nt\ S]}{}] ,[])$ of the IPDA \ipda\ such 
-        that $\gamma = hist\ (rev\ \varrho) @ \alpha$ holds.
-    \end{enumerate}
-  \end{quote}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Theorem 3.4.1: the Relation between \charfa, Rightmost Derivations, 
-  and \ipda}
   \note{ 
   \begin{itemize}
-    \item char(G) can read "Nt S" from input without performing epsilon transitions
-    \item IH applied for a general variable when it holds only for the
-    empty list
+    \item (1) → (2)
+    \begin{itemize}
+      \item char(G) can read S from input without performing epsilon transitions
+      \item IH applied for a general variable when it holds only for the
+      empty list
+    \end{itemize}
     \item $w$ is the same in direction (2) → (3) (plus: assm beta derives v) ,
     not otherwise
   \end{itemize}
   }
-  \begin{alertblock}{Problems}
-      \begin{itemize}
-        \item Equivalence of statements proven circularly
-        \begin{itemize}
-          \item $w$ in (2) and (3) is not the same string in general
-          \item $\gamma$ in (2) and (3) is meaningless
-          \item Corrected theorem is weaker, but individual implications are
-          correct
-        \end{itemize}
-        \item Proof of $(1) \implies (2)$ incorrect
-        \begin{itemize}
-          \item Base case does not consider all scenarios
-          \item Incorrect application of IH
-        \end{itemize}
-      \end{itemize}
-  \end{alertblock}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Correcting Theorem 3.4.1}
-  \begin{lemma}[$(1) \implies (2)$]
-    If there exists a computation
-      $(\cfitem{S'}{}{[Nt\ S]}, \gamma) \vdash_c^* (\cfitem{A}{\alpha}{\beta}, [])$
-      of \charfa, then there exists a rightmost derivation of the form
-      \derivers{P'}{[Nt\ S']}{\gamma' @ Nt\ A \cons w}
-      $\derivera \gamma' @ \alpha @ \beta @ w$ with
-      $\gamma = \gamma' @ \alpha$.
-  \end{lemma}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Correcting Theorem 3.4.1}
-  \note{Remark beta derives v assumption. WSH did not include.}
-  \begin{lemma}[$(2) \implies (3)$]
-    If there exists a rightmost derivation
-      \derivers{P'}{[Nt\ S']}{\gamma' @ Nt\ A \cons w}
-      $\derivera \gamma' @ \alpha @ \beta @ w$
-      with $\derives{P'}{\beta}{map\ Tm\ v}$, there exists an IPDA computation
-      $(\cfitem{A}{\alpha}{\beta} \cons \varrho, v @ w)
-        \vdash_\var{I}^* ([\cfitem{S'}{[Nt\ S]}{}] ,[])$ with
-        $\gamma' = hist\ (rev\ \varrho)$.
-  \end{lemma}
+  \begin{quote}
+    Let $G$ be a CFG and $\gamma \in \symse $. The following three
+    statements are equivalent:
+    \begin{enumerate}
+      \item There exists a computation
+      $(\cfitem{S'}{}{S}, \gamma) \vdash_c^* (\cfitem{A}{\alpha}{\beta}, \varepsilon)$
+      of the characteristic finite automaton \charfa.
+      \item There exists a rightmost derivation 
+      \derivers{P'}{S'}{\gamma' A w}
+      $\derivera \gamma' \alpha \beta w$ with
+      $\gamma = \gamma' \alpha$
+      \item There exists a computation 
+      $(\cfitem{A}{\alpha}{\beta} \varrho, w)
+        \vdash_\var{I}^* ([\cfitem{S'}{S}{}] ,\varepsilon)$ of the IPDA \ipda\ such 
+        that $\gamma = hist\ (rev\ \varrho) \alpha$ holds.
+    \end{enumerate}
+  \end{quote}
   \begin{itemize}
-    \item Using Lemma~\ref{deriver_rm}
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Correcting Theorem 3.4.1}
-  \begin{lemma}[$(3) \implies (1)$]
-    If there exists an IPDA computation 
-      $(\cfitem{A}{\alpha}{\beta} \cons \varrho, w)
-        \vdash_\var{I}^* ([\cfitem{S'}{[Nt\ S]}{}] ,[])$ 
-    then there exists a \charfa\ computation of the form
-      $(\cfitem{S'}{}{[Nt\ S]}, hist\ (rev \varrho) @ \alpha)
-        \vdash_c^* (\cfitem{A}{\alpha}{\beta}, [])$.
-  \end{lemma}
-  \begin{itemize}
-    \item Using Lemma~\ref{ipda_rm}
+    \item Errors corrected
+    \item Theorem of equivalence weaker, but individual implications unchanged
   \end{itemize}
 \end{frame}
 
@@ -750,46 +475,29 @@ constructed?
   \small
   \begin{lemma}[$(1) \implies (2)$]
     If there exists a computation
-      $(\cfitem{S'}{}{[Nt\ S]}, \gamma) \vdash_c^* (\cfitem{A}{\alpha}{\beta}, [])$
+      $(\cfitem{S'}{}{S}, \gamma) \vdash_c^* (\cfitem{A}{\alpha}{\beta}, \varepsilon)$
       of \charfa, then there exists a rightmost derivation of the form
-      \derivers{P'}{[Nt\ S']}{\gamma' @ Nt\ A \cons w}
-      $\derivera \gamma' @ \alpha @ \beta @ w$ with
-      $\gamma = \gamma' @ \alpha$.
+      \derivers{P'}{S'}{\gamma' A w}
+      $\derivera \gamma' \alpha \beta w$ with
+      $\gamma = \gamma' \alpha$.
   \end{lemma}
   \begin{lemma}[$(2) \implies (3)$]
     If there exists a rightmost derivation
-      \derivers{P'}{[Nt\ S']}{\gamma' @ Nt\ A \cons w}
-      $\derivera \gamma' @ \alpha @ \beta @ w$
-      with $\derives{P'}{\beta}{map\ Tm\ v}$, there exists an IPDA computation
-      $(\cfitem{A}{\alpha}{\beta} \cons \varrho, v @ w)
-        \vdash_\var{I}^* ([\cfitem{S'}{[Nt\ S]}{}] ,[])$ with
+      \derivers{P'}{S'}{\gamma' A w}
+      $\derivera \gamma' \alpha \beta w$
+      with $\derives{P'}{\beta}{v}$, there exists an IPDA computation
+      $(\cfitem{A}{\alpha}{\beta} \varrho, v w)
+        \vdash_\var{I}^* ([\cfitem{S'}{S}{}] ,\varepsilon)$ with
         $\gamma' = hist\ (rev\ \varrho)$.
   \end{lemma}
   \begin{lemma}[$(3) \implies (1)$]
     If there exists an IPDA computation 
       $(\cfitem{A}{\alpha}{\beta} \cons \varrho, w)
-        \vdash_\var{I}^* ([\cfitem{S'}{[Nt\ S]}{}] ,[])$ 
+        \vdash_\var{I}^* ([\cfitem{S'}{S}{}] ,\varepsilon)$ 
     then there exists a \charfa\ computation of the form
-      $(\cfitem{S'}{}{[Nt\ S]}, hist\ (rev \varrho) @ \alpha)
-        \vdash_c^* (\cfitem{A}{\alpha}{\beta}, [])$.
+      $(\cfitem{S'}{}{S}, hist\ (rev \varrho) \alpha)
+        \vdash_c^* (\cfitem{A}{\alpha}{\beta}, \varepsilon)$.
   \end{lemma}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Consequence of Theorem 3.4.1}
-  \begin{definition}[Reliable prefix]
-    $\gamma$ is a \concept{reliable prefix} for item \cfitem{A}{\alpha}{\beta} 
-    if there exists a rightmost derivation 
-    $\derivers{P'}{[Nt\ S']}{\gamma' @ Nt\ A \cons map\ Tm\ w}
-    \derivera \gamma' @ \alpha @ \beta @ map\ Tm\ w$
-    such that $\gamma = \gamma' @ \alpha$.\\
-    Equivalently, \cfitem{A}{\alpha}{\beta} is a \concept{valid item} for $\gamma$.
-  \end{definition}
-  \begin{theorem}[Equivalence of \charfa\ computations and reliable prefixes]
-    There exists a \charfa\ computation
-    $(\cfitem{S'}{}{[Nt\ S]}, \gamma) \vdash_c^* (\cfitem{A}{\alpha}{\beta}, [])$
-    if and only if \cfitem{A}{\alpha}{\beta} is valid for $\gamma$.
-  \end{theorem}
 \end{frame}
 
 \subsection{The Canonical $LR(0)$ Automaton}
@@ -803,8 +511,8 @@ constructed?
   \pause
   \begin{definition}[The Canonical $LR(0)$ Automaton]
     The \concept{canonical $LR(0)$ automaton} \lrdfa\ is the
-    $(({'}n,{'}t) sym, ({'}n, {'}t) item\ set)\ dfa$ resulting from the
-    powerset construction of \charfa\ restricted to reachable states.
+    DFA resulting from the powerset construction of \charfa\ restricted to
+    reachable states.
   \end{definition}
 \end{frame}
 
@@ -822,31 +530,41 @@ constructed?
     \end{itemize}
   }
   \begin{definition}
-    Let $\varDelta_G$ be the transition relation of \lrdfa, $q_0$ the initial
+    Let $\varDelta_G$ be the transition function of \lrdfa, $q_{0,G}$ the initial
     state of \lrdfa, $Q$ the set of states of \lrdfa, and $f$ the set
     $\{\cfitem{S'}{}{}\}$. The \concept{$LR(0)$ parser} to G is the 
-    $(({'}n, {'}t)\ item\ set, 't)\ gpda$ \parser\ where
+    GPDA \parser\ with alphabet $V_T$ and 
     \vspace{-5pt}
     \begin{align*}
       states &= Q \cup \{f\}\\
-      init &= q_0\\
+      init &= q_{0,G}\\
       final &= \{f\}\\
-      nxt &= \{([q], a, [\varDelta_G\ q\ (Tm\ a), q])
-        \mid q \in Q \land \varDelta_G\ q\ (Tm\ a) \neq \emptyset\}\\
-      \text{and } eps &= R_P \cup F_P \text{ for}
+      nxt &= \{([q], a, [\varDelta_G(q,a), q])
+        \mid q \in Q \land \varDelta_G(q,a) \neq \emptyset\}\\
+      \text{and } eps &= \ldots
     \end{align*}
-    \vspace{-30pt}
-    \begin{gather*}
-      \begin{multlined}
-        R_P = \{\texttt{let } q = last\ (q_n \cons qs) \texttt{ in }
-          (q_n \cons qs, \varDelta_G\ q\ (Nt\ X) \cons [q])\\
-          \mid q_n\ qs\ X\ \alpha.\ set\ (q_n \cons qs) \subseteq Q
-            \land \cfitem{X}{\alpha}{} \in q_n\\ \land |\alpha| = |qs|
-            \land X \neq S'\}
-      \end{multlined}\\[5 pt]
-      F_P = \{([q, q_0], [f]) \mid q \in Q \land \cfitem{S'}{[Nt\ S]}{} \in q\}
-    \end{gather*}
   \end{definition}
+  \begin{itemize}
+    \item Parser steps denoted by $\vdash_P$, $\vdash_P^*$, and $\vdash_P^n$
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{\parser\ Transitions}
+  \begin{itemize}
+    \item \concept{Reading} transitions ($nxt$)
+    \[ (\cfitem{A}{\alpha}{a \beta} \varrho, aw) \vdash_P (\cfitem{A}{\alpha a}{\beta}, w) \]
+    \item \concept{Reducing} transitions
+    \begin{gather*}
+    (q_n \ldots q_1 q \varrho, w) \vdash_P (\varDelta_G(q, X) q \varrho, w)\\
+    \text{ if } \cfitem{X}{\alpha}{} \in q_n \text{ with } |\alpha| = n
+    \end{gather*}
+    \item {Finishing} transitions
+    \begin{gather*}
+      (q q_0 \varrho, w) \vdash_P (f \varrho, w)\\
+      \text{ if } \cfitem{S'}{S}{} \in q
+    \end{gather*}
+  \end{itemize}
 \end{frame}
 
 \begin{frame}[label=parser_finiteness]
@@ -893,15 +611,15 @@ constructed?
     \begin{enumerate}
       \item $completes\ q = \emptyset$
       \item $q = \{\cfitem{A}{\alpha}{}\}$ for some $A$ and $\alpha$.
-      \item $completes\ q = \{\cfitem{A}{}{}\}$ and for every incomplete item
-      $i \in q$, there exist $X, Y, \alpha, \beta$ such that
-      $i = \cfitem{X}{\alpha}{Nt\ Y \cons \beta}$, and every rightmost derivation
-      of a word $w$ of the form $\derivers{P'}{[Nt\ Y]}{\gamma} \derivera map\ Tm\ w$
-      implies $\gamma = Nt\ A \cons map\ Tm\ w$.
+      \item $completes\ q = \{\cfitem{A}{}{}\}$, and every incomplete item
+      $i \in q$ is of the form
+      $i = \cfitem{X}{\alpha}{Y \beta}$ such that every rightmost derivation
+      of a word $\derivers{P'}{Y}{\gamma} \derivera w$
+      implies $\gamma = A w$.
     \end{enumerate}
   \end{lemma}
   \begin{itemize}
-    \item Stated by Wilhelm et al. without proof
+    \item Stated by Wilhelm et al.\ without proof
   \end{itemize}
 \end{frame}
 
@@ -912,13 +630,10 @@ constructed?
   \begin{definition}[$LR(k)$ Grammar]
     $G'$ is an \concept{$LR(k)$ grammar} if 
     \begin{gather*}
-      \derivers{P'}{[Nt\ S']}{\alpha @ Nt\ X \cons map\ Tm\ w}
-        \derivera \alpha @ \beta @ map\ Tm\ w
-      \intertext{and}
-      \derivers{P'}{[Nt\ S']}{\gamma @ Nt\ Y \cons map\ Tm\ x}
-        \derivera \alpha @ \beta @ map\ Tm\ y
+      \derivers{P'}{S'}{\alpha X w} \derivera \alpha \beta w \text{ and}\\
+      \derivers{P'}{S'}{\gamma Y x} \derivera \alpha \beta y \text{ and}\\
+      w|_k = y|_k
     \end{gather*}
-    and $w|_k = y|_k$\\[4\jot]
     implies $\alpha = \gamma$, $X = Y$, and $x = y$.
   \end{definition}
   \begin{alertblock}{Remark}
@@ -931,16 +646,15 @@ constructed?
   \note{Explain: this allows assumption WLOG about length}
   \begin{lemma}\label{lrk_wlog}
     In order to prove that $G'$ is $LR(k)$ it suffices to prove:\\
-    The conjunction of the following statements
-    \begin{gather*}
-      \derivers{P'}{[Nt\ S']}{\alpha @ Nt\ X \cons map\ Tm\ w}
-        \derivera \alpha @ \beta @ map\ Tm\ w,\\
-      \derivers{P'}{[Nt\ S']}{\gamma @ Nt\ Y \cons map\ Tm\ x}
-        \derivera \alpha @ \beta @ map\ Tm\ y,\\
-      \gamma @ \delta @ map\ Tm\ x = \alpha @ \beta @ map\ Tm\ y,\\
-      |\alpha @ \beta| \leq |\gamma @ \delta|,\\
-      w|_k = y|_k
-    \end{gather*}
+    \begin{align*}
+      &\derivers{P'}{S'}{\alpha X w}
+        \derivera \alpha \beta w \\
+      {} &\land \derivers{P'}{S'}{\gamma Y x}
+        \derivera \alpha \beta y\\
+      {} &\land \gamma \delta x = \alpha \beta y\\
+      {} &\land |\alpha \beta| \leq |\gamma \delta|\\
+      {} &\land w|_k = y|_k
+    \end{align*}
     implies $\alpha = \gamma$, $X = Y$, and $x = y$.
   \end{lemma}
 \end{frame}
@@ -951,80 +665,13 @@ constructed?
   \begin{theorem}\label{lr0_iff_no_inad}
     $G'$ is an $LR(0)$ grammar if and only if \lrdfa\ has no $LR(0)$-inadequate states.
   \end{theorem}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Discussion: Proof of Theorem 3.4.2}
   \begin{itemize}
-    \item \textit{``$G'$ is $LR(0) \implies \lrdfa$ has no $LR(0)$-inadequate sates''}
-    correct
-    \item Converse incorrect
+    \item ``$\implies$'' correct
+    \item ``$\impliedby$'': multiple errors
+    \begin{itemize}
+      \item Rewritten using Lemmas~\ref{lrk_wlog} and~\ref{lr_cases}
+    \end{itemize}
   \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Discussion: Proof of Theorem 3.4.2}
-  \begin{block}{Assumptions}
-    \vspace{-10 pt}
-    \begin{gather*}
-      \textit{\lrdfa\ has no $LR(0)$-inadequate states}\\
-      \derivers{P'}{[Nt\ S']}{\alpha @ Nt\ X \cons map\ Tm\ w}
-        \derivera \alpha @ \beta @ map\ Tm\ w\\
-      \derivers{P'}{[Nt\ S']}{\gamma @ Nt\ Y \cons map\ Tm\ x}
-        \derivera \alpha @ \beta @ map\ Tm\ y
-    \end{gather*}
-  \end{block}
-  \begin{block}{Goal}
-    $\alpha = \gamma$, $X = Y$, and $x = y$
-  \end{block}
-  \begin{itemize}
-    \item Strategy of Wilhelm et al.: case distinction on $\beta$
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Discussion: Proof of Theorem 3.4.2}
-  \small
-  \begin{block}{Assumptions}
-    \vspace{-10 pt}
-    \begin{gather}
-      \textit{\lrdfa\ has no $LR(0)$-inadequate states}\\
-      \derivers{P'}{[Nt\ S']}{\alpha @ Nt\ X \cons map\ Tm\ w}
-        \derivera \alpha @ \beta @ map\ Tm\ w\\
-      \derivers{P'}{[Nt\ S']}{\gamma @ Nt\ Y \cons map\ Tm\ x}
-        \derivera \alpha @ \beta @ map\ Tm\ y\label{derivers2}
-    \end{gather}
-  \end{block}
-  \normalsize
-  \begin{alertblock}{Problems}
-    \begin{itemize}
-      \item Implicit assumption: \eqref{derivers2} implies existence of item of 
-      the form \cfitem{Y}{\zeta}{\eta} valid for $\alpha @ \beta$
-      \item If $\delta$ is the handle in the last step of \eqref{derivers2}:
-      too many possible cases of
-      $\gamma @ \delta @ map\ Tm\ x = \alpha @ \beta @ map\ Tm\ y$
-    \end{itemize}
-  \end{alertblock}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Discussion: Proof of Theorem 3.4.2}
-  \begin{block}{Problems}
-    \begin{itemize}
-      \item Implicit assumption: \eqref{derivers2} implies existence of item of 
-      the form \cfitem{Y}{\zeta}{\eta} valid for $\alpha @ \beta$
-      \item If $\delta$ is the handle in the last step of \eqref{derivers2}:
-      too many possible cases of
-      $\gamma @ \delta @ map\ Tm\ x = \alpha @ \beta @ map\ Tm\ y$
-    \end{itemize}
-  \end{block}
-  \begin{block}{Corrections}
-    \begin{itemize}
-      \item Specific lemmas on the existence of items valid for $\alpha @ \beta$
-      \item Using Lemma~\ref{lrk_wlog} as introduction rule to simplify cases
-      \item Case distinction using Lemma~\ref{lr_cases}
-    \end{itemize}
-  \end{block}
 \end{frame}
 
 \begin{frame}
@@ -1047,11 +694,11 @@ constructed?
   \end{itemize}
   \begin{theorem}[Preservation of the $LR(0)$ condition]
     $G'$ is an $LR(0)$ grammar if and only if $G$ is an $LR(0)$ grammar with no
-    left recursions of the form \derivern{P}{[Nt\ S]}{n+1}{Nt\ S \cons \alpha}.
+    left recursions of the form \derivern{P}{S}{n+1}{Nt\ S \cons \alpha}.
   \end{theorem}
   \begin{theorem}[Preservation of the $LR(k)$ condition for $k > 0$]
     $G'$ is an $LR(k)$ grammar for $k > 0$ if and only if $G$ is an $LR(k)$
-    grammar with no cycles of the form \derivern{P}{[Nt\ S]}{n+1}{[Nt\ S]}.
+    grammar with no cycles of the form \derivern{P}{S}{n+1}{S}.
   \end{theorem}
 \end{frame}
 
@@ -1060,26 +707,22 @@ constructed?
 \begin{frame}
   \frametitle{Stack Words}
   \begin{itemize}
-    \item Based on an intuitive explanation by Wilhelm et al. of the parser's
+    \item Based on an intuitive explanation by Wilhelm et al.\ of the parser's
     stack
     \item Symbols related to stack states tracked as a string
     \item \sword{\alpha}{c_0}{c_1}: $c_0$ reaches $c_1$ with
     \concept{stack word} $\alpha$
-    \item Parser steps denoted by $\vdash_P$, $\vdash_P^*$, and $\vdash_P^n$
   \end{itemize}
 \end{frame}
 
 \begin{frame}
   \frametitle{Stack Words: Definition}
   \begin{gather*}
-    \onslide<1->{
-    \inferrule[refl]{}{\sword{[]}{c_0}{c_0}}
-    }\\[10 pt]
-    \onslide<2->{
-    \inferrule[step]{\sword{\alpha}{c_0}{(ps @ q \cons qs, u)} \\
-    (ps @ q \cons qs, u) \vdash_P (nxt\ \lrdfa\ q\ X \cons q \cons qs, v)}{
-      \sword{X \cons {}_{|ps|}|\alpha}{c_0}{(nxt\ \lrdfa\ q\ X \cons q \cons qs, v)}
-    }}
+    \inferrule[refl]{}{\sword{\varepsilon}{c_0}{c_0}}\\[10 pt]
+    \inferrule[step]{\sword{\alpha}{c_0}{(\varrho q \sigma, u)} \\
+    (\varrho q \sigma, u) \vdash_P (\varDelta_G(q, X) q \sigma, v)}{
+      \sword{X ({}_{|\varrho|}|\alpha)}{c_0}{(\varDelta_G(q, X) q \sigma, v)}
+    }
   \end{gather*}
 \end{frame}
 
@@ -1096,63 +739,44 @@ constructed?
 
 \begin{frame}
   \frametitle{The Shift-Reduce Pushdown Automaton}
-  \begin{itemize}
-    \item $LR(0)$ parser too abstract 
-    \item Correspondence between derivations and automaton steps difficult to prove
-    \item Our approach: bridge using the \concept{shift-reduce pushdown automaton}
-    \begin{itemize}
-      \item Definition following Petter
-    \end{itemize}
-    \item First: extend grammar symbols using datatype $srpda{-}state$
-  \end{itemize}
-  \[ \texttt{datatype } ({'}n, {'}t)\ srpda{-}state = Sym\ (({'}n, {'}t)\ sym)
-  \mid Init \mid Final \]
-\end{frame}
-
-\begin{frame}
-  \frametitle{The Shift-Reduce Pushdown Automaton}
 \begin{definition}
   The \concept{shift-reduce pushdown automaton} (SRPDA) for $G$ is the
-  $(({'}n, {'}t)\ srpda{-}state, {'}t)\ gpda\ \srpda$ where
+  GPDA \srpda\ with alphabet $V_T$ and
   \begin{align*}
-    states &= UNIV\\
-    init &= Init\\
-    final &= \{Final\}\\
-    nxt &= range\ (\lambda (q, x).\ ([q], x, [Sym\ (Tm\ x), q]))\\
-    eps &= 
-    \begin{multlined}[t]
-    \{(map\ Sym\ (rev\ \alpha) @ [q], [Sym\ (Nt\ A), q]) \mid (A, \alpha) \in P\}\\
-    \cup \{([Sym\ (Nt\ S), Init], [Final])\}
-    \end{multlined}
+    states &= \sym \cup \{q_0, q_f\} \text{ for } (\sym) \cap \{q_0, q_f\} = \emptyset \\
+    init &= q_0\\
+    final &= \{q_f\}\\
+    nxt &= \ldots\\
+    eps &= \ldots
   \end{align*}
 \end{definition}
 \begin{itemize}
   \item We denote SRPDA steps by $\vdash_M$, $\vdash_M^*$, and $\vdash_M^n$
 \end{itemize}
-%\begin{alertblock}{Remark}
-% The SRPDA does not fulfill the GPDA assumption that the set of states is final,
-% since this only holds if the input alphabet is finite. However, this is not
-% a problem in our case.
-%\end{alertblock}
+\end{frame}
+
+\begin{frame}
+  \frametitle{\srpda\ Transitions}
+  \begin{itemize}
+    \item \concept{Reading} transitions
+    \[ (\alpha, aw) \vdash_M (a \alpha, w) \text{ for } \alpha \neq \varepsilon \]
+    \item \concept{Reducing} transitions
+      \[ (rev(\alpha)\beta, w) \vdash_M (A \beta, w) \text{ for } \beta \neq \varepsilon 
+      \text{ if } (A, \alpha) \in P \]
+    \item \concept{Finishing} transitions
+      \[ (S q_0 \alpha, w) \vdash_M (q_f \alpha, w) \]
+  \end{itemize}
 \end{frame}
 
 \begin{frame}
   \frametitle{Proving Completeness with the SRPDA}
-  \begin{lemma}[SRPDA invariant]
-    If \derivers{P}{\alpha}{map\ Tm\ w}, then
-    $([Init], w) \vdash_M^* (map\ Sym\ (rev\ \alpha) @ [Init], [])$.
-  \end{lemma}
   \begin{lemma}[SRPDA completeness]
     If a word is in $L(G)$, it is accepted by \srpda.
   \end{lemma}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Proving Completeness with the SRPDA}
   \begin{lemma}
-    If $([Init], u) \vdash_M^* (map\ Sym\ (rev\ \alpha) @ [Init], v)$ and 
-    $valids\ (rev\ \alpha) \neq \emptyset$, there exists a stack $qs$ such that
-    \sword{\alpha}{([init\ \parser], u)}{(valids\ (rev\ \alpha) \cons qs, v)}.
+    If $(q_0, u) \vdash_M^* (rev(\alpha) q_0, v)$ and 
+    $valids(rev(\alpha)) \neq \emptyset$, there exists a stack $\varrho$ such that
+    \sword{\alpha}{(q_{0,G}, u)}{(valids(rev(\alpha)) \varrho, v)}.
   \end{lemma}
   \begin{theorem}[Completeness of the $LR(0)$ Parser]
     Every word in $L(G)$ is accepted by \parser.

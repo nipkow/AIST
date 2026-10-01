@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.5.10)  27 SEP 2026 20:46
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.5.10)  1 OCT 2026 18:13
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -585,11 +585,11 @@ Package: mathpartir 2016/02/24 version 1.3.2 Math Paragraph for Typesetting Infe
 )
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 107.
+(hyperref)                removing `math shift' on input line 115.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 107.
+(hyperref)                removing `math shift' on input line 115.
 
 (/usr/local/texlive/2026/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
@@ -597,24 +597,24 @@ File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
 ) (./presentation.aux)
 \openout1 = `presentation.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 107.
-LaTeX Font Info:    ... okay on input line 107.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 107.
-LaTeX Font Info:    ... okay on input line 107.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 107.
-LaTeX Font Info:    ... okay on input line 107.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 107.
-LaTeX Font Info:    ... okay on input line 107.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 107.
-LaTeX Font Info:    ... okay on input line 107.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 107.
-LaTeX Font Info:    ... okay on input line 107.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 107.
-LaTeX Font Info:    ... okay on input line 107.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 107.
-LaTeX Font Info:    ... okay on input line 107.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 107.
-LaTeX Font Info:    ... okay on input line 107.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 115.
+LaTeX Font Info:    ... okay on input line 115.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 115.
+LaTeX Font Info:    ... okay on input line 115.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 115.
+LaTeX Font Info:    ... okay on input line 115.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 115.
+LaTeX Font Info:    ... okay on input line 115.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 115.
+LaTeX Font Info:    ... okay on input line 115.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 115.
+LaTeX Font Info:    ... okay on input line 115.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 115.
+LaTeX Font Info:    ... okay on input line 115.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 115.
+LaTeX Font Info:    ... okay on input line 115.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 115.
+LaTeX Font Info:    ... okay on input line 115.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -669,60 +669,60 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 48
  (/usr/local/texlive/2026/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live
 ))
-Package hyperref Info: Link coloring OFF on input line 107.
+Package hyperref Info: Link coloring OFF on input line 115.
  (./presentation.out) (./presentation.out)
 \@outlinefile=\write5
 \openout5 = `presentation.out'.
 
 LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
-(Font)                  OT1/cmr/m/n --> OT1/cmss/m/n on input line 107.
+(Font)                  OT1/cmr/m/n --> OT1/cmss/m/n on input line 115.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
-(Font)                  OT1/cmr/bx/n --> OT1/cmss/b/n on input line 107.
+(Font)                  OT1/cmr/bx/n --> OT1/cmss/b/n on input line 115.
 \symnumbers=\mathgroup6
 \sympureletters=\mathgroup7
 LaTeX Font Info:    Overwriting math alphabet `\mathrm' in version `normal'
-(Font)                  OT1/cmss/m/n --> OT1/cmr/m/n on input line 107.
-LaTeX Font Info:    Redeclaring math alphabet \mathbf on input line 107.
+(Font)                  OT1/cmss/m/n --> OT1/cmr/m/n on input line 115.
+LaTeX Font Info:    Redeclaring math alphabet \mathbf on input line 115.
 LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `normal'
-(Font)                  OT1/cmr/bx/n --> OT1/cmss/b/n on input line 107.
+(Font)                  OT1/cmr/bx/n --> OT1/cmss/b/n on input line 115.
 LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `bold'
-(Font)                  OT1/cmr/bx/n --> OT1/cmss/b/n on input line 107.
-LaTeX Font Info:    Redeclaring math alphabet \mathsf on input line 107.
+(Font)                  OT1/cmr/bx/n --> OT1/cmss/b/n on input line 115.
+LaTeX Font Info:    Redeclaring math alphabet \mathsf on input line 115.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `normal'
-(Font)                  OT1/cmss/m/n --> OT1/cmss/m/n on input line 107.
+(Font)                  OT1/cmss/m/n --> OT1/cmss/m/n on input line 115.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `bold'
-(Font)                  OT1/cmss/bx/n --> OT1/cmss/m/n on input line 107.
-LaTeX Font Info:    Redeclaring math alphabet \mathit on input line 107.
+(Font)                  OT1/cmss/bx/n --> OT1/cmss/m/n on input line 115.
+LaTeX Font Info:    Redeclaring math alphabet \mathit on input line 115.
 LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `normal'
-(Font)                  OT1/cmr/m/it --> OT1/cmss/m/it on input line 107.
+(Font)                  OT1/cmr/m/it --> OT1/cmss/m/it on input line 115.
 LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `bold'
-(Font)                  OT1/cmr/bx/it --> OT1/cmss/m/it on input line 107.
-LaTeX Font Info:    Redeclaring math alphabet \mathtt on input line 107.
+(Font)                  OT1/cmr/bx/it --> OT1/cmss/m/it on input line 115.
+LaTeX Font Info:    Redeclaring math alphabet \mathtt on input line 115.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `normal'
-(Font)                  OT1/cmtt/m/n --> OT1/cmtt/m/n on input line 107.
+(Font)                  OT1/cmtt/m/n --> OT1/cmtt/m/n on input line 115.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
-(Font)                  OT1/cmtt/m/n --> OT1/cmtt/m/n on input line 107.
+(Font)                  OT1/cmtt/m/n --> OT1/cmtt/m/n on input line 115.
 LaTeX Font Info:    Overwriting symbol font `numbers' in version `bold'
-(Font)                  OT1/cmss/m/n --> OT1/cmss/b/n on input line 107.
+(Font)                  OT1/cmss/m/n --> OT1/cmss/b/n on input line 115.
 LaTeX Font Info:    Overwriting symbol font `pureletters' in version `bold'
-(Font)                  OT1/cmss/m/it --> OT1/cmss/b/it on input line 107.
+(Font)                  OT1/cmss/m/it --> OT1/cmss/b/it on input line 115.
 LaTeX Font Info:    Overwriting math alphabet `\mathrm' in version `bold'
-(Font)                  OT1/cmss/b/n --> OT1/cmr/b/n on input line 107.
+(Font)                  OT1/cmss/b/n --> OT1/cmr/b/n on input line 115.
 LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `bold'
-(Font)                  OT1/cmss/b/n --> OT1/cmss/b/n on input line 107.
+(Font)                  OT1/cmss/b/n --> OT1/cmss/b/n on input line 115.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `bold'
-(Font)                  OT1/cmss/m/n --> OT1/cmss/b/n on input line 107.
+(Font)                  OT1/cmss/m/n --> OT1/cmss/b/n on input line 115.
 LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `bold'
-(Font)                  OT1/cmss/m/it --> OT1/cmss/b/it on input line 107.
+(Font)                  OT1/cmss/m/it --> OT1/cmss/b/it on input line 115.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
-(Font)                  OT1/cmtt/m/n --> OT1/cmtt/b/n on input line 107.
-LaTeX Font Info:    Redeclaring symbol font `pureletters' on input line 107.
+(Font)                  OT1/cmtt/m/n --> OT1/cmtt/b/n on input line 115.
+LaTeX Font Info:    Redeclaring symbol font `pureletters' on input line 115.
 LaTeX Font Info:    Overwriting symbol font `pureletters' in version `normal'
-(Font)                  OT1/cmss/m/it --> OT1/mathkerncmss/m/sl on input line 107.
+(Font)                  OT1/cmss/m/it --> OT1/mathkerncmss/m/sl on input line 115.
 LaTeX Font Info:    Overwriting symbol font `pureletters' in version `bold'
-(Font)                  OT1/cmss/b/it --> OT1/mathkerncmss/m/sl on input line 107.
+(Font)                  OT1/cmss/b/it --> OT1/mathkerncmss/m/sl on input line 115.
 LaTeX Font Info:    Overwriting symbol font `pureletters' in version `bold'
-(Font)                  OT1/mathkerncmss/m/sl --> OT1/mathkerncmss/bx/sl on input line 107.
+(Font)                  OT1/mathkerncmss/m/sl --> OT1/mathkerncmss/bx/sl on input line 115.
  (/usr/local/texlive/2026/texmf-dist/tex/latex/translator/translator-basic-dictionary-English.dict
 Dictionary: translator-basic-dictionary, Language: English 
 ) (/usr/local/texlive/2026/texmf-dist/tex/latex/translator/translator-bibliography-dictionary-English.dict
@@ -736,15 +736,15 @@ Dictionary: translator-numbers-dictionary, Language: English
 ) (/usr/local/texlive/2026/texmf-dist/tex/latex/translator/translator-theorem-dictionary-English.dict
 Dictionary: translator-theorem-dictionary, Language: English 
 ) (./presentation.nav)
-LaTeX Font Info:    Trying to load font information for U+msa on input line 107.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 115.
  (/usr/local/texlive/2026/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 107.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 115.
  (/usr/local/texlive/2026/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-LaTeX Font Info:    Trying to load font information for OT1+mathkerncmss on input line 107.
+LaTeX Font Info:    Trying to load font information for OT1+mathkerncmss on input line 115.
  (/usr/local/texlive/2026/texmf-dist/tex/latex/sansmathaccent/ot1mathkerncmss.fd
 File: ot1mathkerncmss.fd 2020/01/31 Fontinst v1.933 font definitions for OT1/mathkerncmss.
 ) (./presentation.toc) [2
@@ -754,13 +754,13 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation1}) 
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.116 \end{frame}
+l.124 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.116 \end{frame}
+l.124 \end{frame}
                  
 
 ] (./presentation.toc) [3
@@ -770,13 +770,13 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation2}) 
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.118 \section{Introduction}
+l.126 \section{Introduction}
                             
 pdfTeX warning (ext4): destination with the same identifier (name{page.2}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.118 \section{Introduction}
+l.126 \section{Introduction}
                             
 
 ] [4
@@ -786,13 +786,13 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation3}) 
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.129 \end{frame}
+l.153 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.3}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.129 \end{frame}
+l.153 \end{frame}
                  
 
 ] [5
@@ -802,29 +802,29 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation4}) 
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.145 \end{frame}
+l.153 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.4}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.145 \end{frame}
+l.153 \end{frame}
                  
 
-] [6
+{/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}] [6
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation5}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.154 \end{frame}
+l.163 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.5}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.154 \end{frame}
+l.163 \end{frame}
                  
 
 ] [7
@@ -834,62 +834,62 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation6}) 
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.167 \end{frame}
+l.172 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.6}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.167 \end{frame}
+l.172 \end{frame}
                  
 
-] [8
+] (./presentation.toc) [8
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation7}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.179 \end{frame}
-                 
+l.175 \section{Basic Definitions}
+                                 
 pdfTeX warning (ext4): destination with the same identifier (name{page.7}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.179 \end{frame}
-                 
+l.175 \section{Basic Definitions}
+                                 
 
-] [9
+] (./presentation.toc) [9
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation8}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.190 \end{frame}
-                 
+l.177 \subsection{Extended and Reduced Grammars}
+                                                
 pdfTeX warning (ext4): destination with the same identifier (name{page.8}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.190 \end{frame}
-                 
+l.177 \subsection{Extended and Reduced Grammars}
+                                                
 
-] (./presentation.toc) [10
+] [10
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation9}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.193 \section{Basic Definitions}
-                                 
+l.199 \end{frame}
+                 
 pdfTeX warning (ext4): destination with the same identifier (name{page.9}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.193 \section{Basic Definitions}
-                                 
+l.199 \end{frame}
+                 
 
 ] (./presentation.toc) [11
 
@@ -898,14 +898,14 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation10})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.195 \subsection{Extended and Reduced Grammars}
-                                                
+l.201 \subsection{Context-Free Items}
+                                     
 pdfTeX warning (ext4): destination with the same identifier (name{page.10}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.195 \subsection{Extended and Reduced Grammars}
-                                                
+l.201 \subsection{Context-Free Items}
+                                     
 
 ] [12
 
@@ -914,13 +914,13 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation11})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.223 \end{frame}
+l.219 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.11}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.223 \end{frame}
+l.219 \end{frame}
                  
 
 ] [13
@@ -930,30 +930,30 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation12})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.223 \end{frame}
+l.232 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.12}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.223 \end{frame}
+l.232 \end{frame}
                  
 
-] [14
+] (./presentation.toc) [14
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation13}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.223 \end{frame}
-                 
+l.234 \subsection{Generalized Pushdown Automata}
+                                                
 pdfTeX warning (ext4): destination with the same identifier (name{page.13}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.223 \end{frame}
-                 
+l.234 \subsection{Generalized Pushdown Automata}
+                                                
 
 ] [15
 
@@ -962,13 +962,13 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation14})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.234 \end{frame}
+l.244 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.14}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.234 \end{frame}
+l.244 \end{frame}
                  
 
 ] [16
@@ -978,13 +978,13 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation15})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.255 \end{frame}
+l.262 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.15}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.255 \end{frame}
+l.262 \end{frame}
                  
 
 ] [17
@@ -994,46 +994,46 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation16})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.255 \end{frame}
+l.276 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.16}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.255 \end{frame}
+l.276 \end{frame}
                  
 
-] [18
+] (./presentation.toc) [18
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation17}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.255 \end{frame}
-                 
+l.278 \section{The Item Pushdown Automaton}
+                                           
 pdfTeX warning (ext4): destination with the same identifier (name{page.17}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.255 \end{frame}
-                 
+l.278 \section{The Item Pushdown Automaton}
+                                           
 
-] (./presentation.toc) [19
+] [19
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation18}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.257 \subsection{Context-Free Items}
-                                     
+l.292 \end{frame}
+                 
 pdfTeX warning (ext4): destination with the same identifier (name{page.18}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.257 \subsection{Context-Free Items}
-                                     
+l.292 \end{frame}
+                 
 
 ] [20
 
@@ -1042,13 +1042,13 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation19})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.275 \end{frame}
+l.292 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.19}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.275 \end{frame}
+l.292 \end{frame}
                  
 
 ] [21
@@ -1058,30 +1058,30 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation20})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.295 \end{frame}
+l.314 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.20}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.295 \end{frame}
+l.314 \end{frame}
                  
 
-] (./presentation.toc) [22
+] [22
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation21}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.297 \subsection{Generalized Pushdown Automata}
-                                                
+l.328 \end{frame}
+                 
 pdfTeX warning (ext4): destination with the same identifier (name{page.21}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.297 \subsection{Generalized Pushdown Automata}
-                                                
+l.328 \end{frame}
+                 
 
 ] [23
 
@@ -1090,30 +1090,30 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation22})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.307 \end{frame}
+l.339 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.22}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.307 \end{frame}
+l.339 \end{frame}
                  
 
-] [24
+] (./presentation.toc) [24
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation23}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.326 \end{frame}
-                 
+l.341 \section{Rightmost Chains}
+                                
 pdfTeX warning (ext4): destination with the same identifier (name{page.23}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.326 \end{frame}
-                 
+l.341 \section{Rightmost Chains}
+                                
 
 ] [25
 
@@ -1122,29 +1122,34 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation24})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.341 \end{frame}
+l.360 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.24}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.341 \end{frame}
+l.360 \end{frame}
                  
 
-] [26
+]
+
+LaTeX Font Warning: Font shape `OT1/cmss/m/sc' in size <10> not available
+(Font)              Font shape `OT1/cmr/m/sc' tried instead on input line 379.
+
+[26
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation25}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.361 \end{frame}
+l.379 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.25}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.361 \end{frame}
+l.379 \end{frame}
                  
 
 ] [27
@@ -1154,46 +1159,55 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation26})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.380 \end{frame}
+l.379 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.26}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.380 \end{frame}
+l.379 \end{frame}
                  
 
-] (./presentation.toc) [28
+] [28
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation27}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.382 \section{The Item Pushdown Automaton}
-                                           
+l.399 \end{frame}
+                 
 pdfTeX warning (ext4): destination with the same identifier (name{page.27}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.382 \section{The Item Pushdown Automaton}
-                                           
+l.399 \end{frame}
+                 
 
-] [29
+]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 401.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 401.
+
+(./presentation.toc) [29
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation28}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.393 \end{frame}
-                 
+l.401 ...utomaton and Canonical $LR(0)$ Automaton}
+                                                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.28}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.393 \end{frame}
-                 
+l.401 ...utomaton and Canonical $LR(0)$ Automaton}
+                                                  
 
 ] (./presentation.toc) [30
 
@@ -1202,14 +1216,14 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation29})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.395 \subsection{Definition}
-                             
+l.403 ...tion{The Characteristic Finite Automaton}
+                                                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.29}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.395 \subsection{Definition}
-                             
+l.403 ...tion{The Characteristic Finite Automaton}
+                                                  
 
 ] [31
 
@@ -1218,13 +1232,13 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation30})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.408 \end{frame}
+l.422 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.30}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.408 \end{frame}
+l.422 \end{frame}
                  
 
 ] [32
@@ -1234,13 +1248,13 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation31})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.441 \end{frame}
+l.432 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.31}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.441 \end{frame}
+l.432 \end{frame}
                  
 
 ] [33
@@ -1250,46 +1264,55 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation32})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.451 \end{frame}
+l.470 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.32}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.451 \end{frame}
+l.470 \end{frame}
                  
 
-] (./presentation.toc) [34
+] [34
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation33}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.453 \subsection{Language Equivalence}
-                                       
+l.501 \end{frame}
+                 
 pdfTeX warning (ext4): destination with the same identifier (name{page.33}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.453 \subsection{Language Equivalence}
-                                       
+l.501 \end{frame}
+                 
 
-] [35
+]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 503.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 503.
+
+(./presentation.toc) [35
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation34}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.469 \end{frame}
-                 
+l.503 \subsection{The Canonical $LR(0)$ Automaton}
+                                                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.34}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.469 \end{frame}
-                 
+l.503 \subsection{The Canonical $LR(0)$ Automaton}
+                                                  
 
 ] [36
 
@@ -1298,13 +1321,13 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation35})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.469 \end{frame}
+l.517 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.35}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.469 \end{frame}
+l.517 \end{frame}
                  
 
 ] [37
@@ -1314,46 +1337,55 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation36})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.469 \end{frame}
+l.517 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.36}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.469 \end{frame}
+l.517 \end{frame}
                  
 
-] [38
+]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 519.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 519.
+
+(./presentation.toc) [38
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation37}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.489 \end{frame}
-                 
+l.519 \section{The $LR(0)$ Parser}
+                                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.37}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.489 \end{frame}
-                 
+l.519 \section{The $LR(0)$ Parser}
+                                  
 
-] [39
+] (./presentation.toc) [39
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation38}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.489 \end{frame}
-                 
+l.521 \subsection{Definition}
+                             
 pdfTeX warning (ext4): destination with the same identifier (name{page.38}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.489 \end{frame}
-                 
+l.521 \subsection{Definition}
+                             
 
 ] [40
 
@@ -1362,13 +1394,13 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation39})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.489 \end{frame}
+l.550 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.39}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.489 \end{frame}
+l.550 \end{frame}
                  
 
 ] [41
@@ -1378,62 +1410,71 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation40})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.496 \end{frame}
+l.568 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.40}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.496 \end{frame}
+l.568 \end{frame}
                  
 
-] (./presentation.toc) [42
+] [42
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation41}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.498 \section{Rightmost Chains}
-                                
+l.587 \end{frame}
+                 
 pdfTeX warning (ext4): destination with the same identifier (name{page.41}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.498 \section{Rightmost Chains}
-                                
+l.587 \end{frame}
+                 
 
-] (./presentation.toc) [43
+] [43
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation42}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.500 \subsection{Introduction}
-                               
+l.587 \end{frame}
+                 
 pdfTeX warning (ext4): destination with the same identifier (name{page.42}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.500 \subsection{Introduction}
-                               
+l.587 \end{frame}
+                 
 
-] [44
+]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 589.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 589.
+
+(./presentation.toc) [44
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation43}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.518 \end{frame}
-                 
+l.589 \subsection{$LR(0)$ Adequacy}
+                                   
 pdfTeX warning (ext4): destination with the same identifier (name{page.43}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.518 \end{frame}
-                 
+l.589 \subsection{$LR(0)$ Adequacy}
+                                   
 
 ] [45
 
@@ -1442,67 +1483,71 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation44})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.529 \end{frame}
+l.605 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.44}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.529 \end{frame}
+l.605 \end{frame}
                  
 
-]
-
-LaTeX Font Warning: Font shape `OT1/cmss/m/sc' in size <10> not available
-(Font)              Font shape `OT1/cmr/m/sc' tried instead on input line 542.
-
-[46
+] [46
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation45}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.542 \end{frame}
+l.624 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.45}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.542 \end{frame}
+l.624 \end{frame}
                  
 
-] [47
+]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 626.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 626.
+
+(./presentation.toc) [47
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation46}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.542 \end{frame}
-                 
+l.626 \subsection{$LR(k)$ Grammars}
+                                   
 pdfTeX warning (ext4): destination with the same identifier (name{page.46}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.542 \end{frame}
-                 
+l.626 \subsection{$LR(k)$ Grammars}
+                                   
 
-] (./presentation.toc) [48
+] [48
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation47}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.544 \subsection{Properties}
-                             
+l.642 \end{frame}
+                 
 pdfTeX warning (ext4): destination with the same identifier (name{page.47}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.544 \subsection{Properties}
-                             
+l.642 \end{frame}
+                 
 
 ] [49
 
@@ -1511,13 +1556,13 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation48})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.554 \end{frame}
+l.660 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.48}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.554 \end{frame}
+l.660 \end{frame}
                  
 
 ] [50
@@ -1527,13 +1572,13 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation49})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.573 \end{frame}
+l.675 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.49}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.573 \end{frame}
+l.675 \end{frame}
                  
 
 ] [51
@@ -1543,30 +1588,30 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation50})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.573 \end{frame}
+l.703 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.50}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.573 \end{frame}
+l.703 \end{frame}
                  
 
-] [52
+] (./presentation.toc) [52
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation51}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.573 \end{frame}
-                 
+l.705 \subsection{Correctness}
+                              
 pdfTeX warning (ext4): destination with the same identifier (name{page.51}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.573 \end{frame}
-                 
+l.705 \subsection{Correctness}
+                              
 
 ] [53
 
@@ -1575,13 +1620,13 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation52})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.591 \end{frame}
+l.716 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.52}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.591 \end{frame}
+l.716 \end{frame}
                  
 
 ] [54
@@ -1591,55 +1636,46 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation53})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.600 \end{frame}
+l.727 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.53}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.600 \end{frame}
+l.727 \end{frame}
                  
 
-]
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 602.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 602.
-
-(./presentation.toc) [55
+] [55
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation54}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.602 ...utomaton and Canonical $LR(0)$ Automaton}
-                                                  
+l.738 \end{frame}
+                 
 pdfTeX warning (ext4): destination with the same identifier (name{page.54}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.602 ...utomaton and Canonical $LR(0)$ Automaton}
-                                                  
+l.738 \end{frame}
+                 
 
-] (./presentation.toc) [56
+] [56
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation55}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.604 ...tion{The Characteristic Finite Automaton}
-                                                  
+l.756 \end{frame}
+                 
 pdfTeX warning (ext4): destination with the same identifier (name{page.55}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.604 ...tion{The Characteristic Finite Automaton}
-                                                  
+l.756 \end{frame}
+                 
 
 ] [57
 
@@ -1648,13 +1684,13 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation56})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.616 \end{frame}
+l.769 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.56}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.616 \end{frame}
+l.769 \end{frame}
                  
 
 ] [58
@@ -1664,13 +1700,13 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation57})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.649 \end{frame}
+l.784 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.57}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.649 \end{frame}
+l.784 \end{frame}
                  
 
 ] [59
@@ -1680,45 +1716,49 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation58})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.649 \end{frame}
+l.791 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.58}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.649 \end{frame}
+l.791 \end{frame}
                  
 
-] [60
+] (./presentation.toc) [60
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation59}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.671 \end{frame}
-                 
+l.793 \section{Conclusion}
+                          
 pdfTeX warning (ext4): destination with the same identifier (name{page.59}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.671 \end{frame}
-                 
+l.793 \section{Conclusion}
+                          
 
-] [61
+]
+
+LaTeX Warning: Reference `derivers_imp_completes' on page 61 undefined on input line 819.
+
+[61
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation60}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.701 \end{frame}
+l.819 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.60}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.701 \end{frame}
+l.819 \end{frame}
                  
 
 ] [62
@@ -1728,659 +1768,31 @@ pdfTeX warning (ext4): destination with the same identifier (name{Navigation61})
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.713 \end{frame}
+l.819 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.61}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.713 \end{frame}
+l.819 \end{frame}
                  
 
-{/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}] [63
+] [63
+
 
 
 pdfTeX warning (ext4): destination with the same identifier (name{Navigation62}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.730 \end{frame}
+l.838 \end{frame}
                  
 pdfTeX warning (ext4): destination with the same identifier (name{page.62}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.730 \end{frame}
+l.838 \end{frame}
                  
-
-] [64
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation63}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.745 \end{frame}
-                 
-pdfTeX warning (ext4): destination with the same identifier (name{page.63}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.745 \end{frame}
-                 
-
-] [65
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation64}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.776 \end{frame}
-                 
-pdfTeX warning (ext4): destination with the same identifier (name{page.64}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.776 \end{frame}
-                 
-
-] [66
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation65}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.793 \end{frame}
-                 
-pdfTeX warning (ext4): destination with the same identifier (name{page.65}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.793 \end{frame}
-                 
-
-]
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 795.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 795.
-
-(./presentation.toc) [67
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation66}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.795 \subsection{The Canonical $LR(0)$ Automaton}
-                                                  
-pdfTeX warning (ext4): destination with the same identifier (name{page.66}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.795 \subsection{The Canonical $LR(0)$ Automaton}
-                                                  
-
-] [68
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation67}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.809 \end{frame}
-                 
-pdfTeX warning (ext4): destination with the same identifier (name{page.67}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.809 \end{frame}
-                 
-
-] [69
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation68}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.809 \end{frame}
-                 
-pdfTeX warning (ext4): destination with the same identifier (name{page.68}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.809 \end{frame}
-                 
-
-]
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 811.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 811.
-
-(./presentation.toc) [70
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation69}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.811 \section{The $LR(0)$ Parser}
-                                  
-pdfTeX warning (ext4): destination with the same identifier (name{page.69}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.811 \section{The $LR(0)$ Parser}
-                                  
-
-] (./presentation.toc) [71
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation70}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.813 \subsection{Definition}
-                             
-pdfTeX warning (ext4): destination with the same identifier (name{page.70}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.813 \subsection{Definition}
-                             
-
-] [72
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation71}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.850 \end{frame}
-                 
-pdfTeX warning (ext4): destination with the same identifier (name{page.71}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.850 \end{frame}
-                 
-
-] [73
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation72}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.869 \end{frame}
-                 
-pdfTeX warning (ext4): destination with the same identifier (name{page.72}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.869 \end{frame}
-                 
-
-] [74
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation73}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.869 \end{frame}
-                 
-pdfTeX warning (ext4): destination with the same identifier (name{page.73}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.869 \end{frame}
-                 
-
-]
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 871.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 871.
-
-(./presentation.toc) [75
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation74}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.871 \subsection{$LR(0)$ Adequacy}
-                                   
-pdfTeX warning (ext4): destination with the same identifier (name{page.74}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.871 \subsection{$LR(0)$ Adequacy}
-                                   
-
-] [76
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation75}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.887 \end{frame}
-                 
-pdfTeX warning (ext4): destination with the same identifier (name{page.75}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.887 \end{frame}
-                 
-
-] [77
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation76}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.906 \end{frame}
-                 
-pdfTeX warning (ext4): destination with the same identifier (name{page.76}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.906 \end{frame}
-                 
-
-]
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 908.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 908.
-
-(./presentation.toc) [78
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation77}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.908 \subsection{$LR(k)$ Grammars}
-                                   
-pdfTeX warning (ext4): destination with the same identifier (name{page.77}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.908 \subsection{$LR(k)$ Grammars}
-                                   
-
-] [79
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation78}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.927 \end{frame}
-                 
-pdfTeX warning (ext4): destination with the same identifier (name{page.78}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.927 \end{frame}
-                 
-
-] [80
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation79}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.946 \end{frame}
-                 
-pdfTeX warning (ext4): destination with the same identifier (name{page.79}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.946 \end{frame}
-                 
-
-] [81
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation80}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.954 \end{frame}
-                 
-pdfTeX warning (ext4): destination with the same identifier (name{page.80}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.954 \end{frame}
-                 
-
-] [82
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation81}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.963 \end{frame}
-                 
-pdfTeX warning (ext4): destination with the same identifier (name{page.81}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.963 \end{frame}
-                 
-
-] [83
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation82}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.983 \end{frame}
-                 
-pdfTeX warning (ext4): destination with the same identifier (name{page.82}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.983 \end{frame}
-                 
-
-] [84
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation83}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1008 \end{frame}
-                  
-pdfTeX warning (ext4): destination with the same identifier (name{page.83}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1008 \end{frame}
-                  
-
-] [85
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation84}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1028 \end{frame}
-                  
-pdfTeX warning (ext4): destination with the same identifier (name{page.84}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1028 \end{frame}
-                  
-
-] [86
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation85}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1056 \end{frame}
-                  
-pdfTeX warning (ext4): destination with the same identifier (name{page.85}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1056 \end{frame}
-                  
-
-] (./presentation.toc) [87
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation86}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1058 \subsection{Correctness}
-                               
-pdfTeX warning (ext4): destination with the same identifier (name{page.86}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1058 \subsection{Correctness}
-                               
-
-] [88
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation87}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1070 \end{frame}
-                  
-pdfTeX warning (ext4): destination with the same identifier (name{page.87}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1070 \end{frame}
-                  
-
-] [89
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation88}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1084 \end{frame}
-                  
-pdfTeX warning (ext4): destination with the same identifier (name{page.88}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1084 \end{frame}
-                  
-
-] [90
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation89}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1084 \end{frame}
-                  
-pdfTeX warning (ext4): destination with the same identifier (name{page.89}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1084 \end{frame}
-                  
-
-] [91
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation90}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1095 \end{frame}
-                  
-pdfTeX warning (ext4): destination with the same identifier (name{page.90}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1095 \end{frame}
-                  
-
-] [92
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation91}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1110 \end{frame}
-                  
-pdfTeX warning (ext4): destination with the same identifier (name{page.91}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1110 \end{frame}
-                  
-
-] [93
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation92}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1137 \end{frame}
-                  
-pdfTeX warning (ext4): destination with the same identifier (name{page.92}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1137 \end{frame}
-                  
-
-] [94
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation93}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1148 \end{frame}
-                  
-pdfTeX warning (ext4): destination with the same identifier (name{page.93}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1148 \end{frame}
-                  
-
-] [95
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation94}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1160 \end{frame}
-                  
-pdfTeX warning (ext4): destination with the same identifier (name{page.94}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1160 \end{frame}
-                  
-
-] [96
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation95}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1167 \end{frame}
-                  
-pdfTeX warning (ext4): destination with the same identifier (name{page.95}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1167 \end{frame}
-                  
-
-] (./presentation.toc) [97
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation96}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1169 \section{Conclusion}
-                           
-pdfTeX warning (ext4): destination with the same identifier (name{page.96}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1169 \section{Conclusion}
-                           
-
-] [98
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation97}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1195 \end{frame}
-                  
-pdfTeX warning (ext4): destination with the same identifier (name{page.97}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1195 \end{frame}
-                  
-
-] [99
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation98}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1195 \end{frame}
-                  
-pdfTeX warning (ext4): destination with the same identifier (name{page.98}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1195 \end{frame}
-                  
-
-] [100
-
-
-
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation99}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1214 \end{frame}
-                  
-pdfTeX warning (ext4): destination with the same identifier (name{page.99}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1214 \end{frame}
-                  
 
 ]
 \tf@nav=\write6
@@ -2392,43 +1804,50 @@ l.1214 \end{frame}
 \tf@snm=\write8
 \openout8 = `presentation.snm'.
 
- [101
+ [64
 
 
-pdfTeX warning (ext4): destination with the same identifier (name{Navigation100}) has been already used, duplicate ignored
-
-\pgfpages@shipoutshipoutbox ...physicalpagesizes }
-                                                  \endgroup 
-l.1216 \end{document}
-                     
-pdfTeX warning (ext4): destination with the same identifier (name{page.100}) has been already used, duplicate ignored
+pdfTeX warning (ext4): destination with the same identifier (name{Navigation63}) has been already used, duplicate ignored
 
 \pgfpages@shipoutshipoutbox ...physicalpagesizes }
                                                   \endgroup 
-l.1216 \end{document}
-                     
+l.840 \end{document}
+                    
+pdfTeX warning (ext4): destination with the same identifier (name{page.63}) has been already used, duplicate ignored
+
+\pgfpages@shipoutshipoutbox ...physicalpagesizes }
+                                                  \endgroup 
+l.840 \end{document}
+                    
 
 ] (./presentation.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
+
+
+LaTeX Warning: There were undefined references.
+
 Package rerunfilecheck Info: File `presentation.out' has not changed.
-(rerunfilecheck)             Checksum: 1FBFFFCAC0BC90F7CB78A7F9836F7949;3203.
+(rerunfilecheck)             Checksum: 1522244E415D1006B239B78A0A1D3AD6;2703.
  ) 
 Here is how much of TeX's memory you used:
- 23521 strings out of 467525
- 454550 string characters out of 5418982
- 854955 words of memory out of 5000000
- 51681 multiletter control sequences out of 15000+600000
- 646625 words of font info for 107 fonts, out of 8000000 for 9000
+ 23366 strings out of 467525
+ 452960 string characters out of 5418982
+ 847633 words of memory out of 5000000
+ 51614 multiletter control sequences out of 15000+600000
+ 646019 words of font info for 104 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 128i,22n,123p,522b,865s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmcsc10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmss12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmss8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmssbx10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmssi10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmssi12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmssi8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/symbols/msam7.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sfss1440.pfb>
-Output written on presentation.pdf (100 pages, 490605 bytes).
+ 128i,22n,123p,521b,865s stack positions out of 10000i,1000n,20000p,200000b,200000s
+
+pdfTeX warning (dest): name{derivers_imp_completes} has been referenced but does not exist, replaced by a fixed one
+
+</usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmcsc10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmss12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmss8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmss9.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmssbx10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmssi10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmssi12.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmssi8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/symbols/msam7.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/cm-super/sfss1440.pfb>
+Output written on presentation.pdf (63 pages, 394909 bytes).
 PDF statistics:
- 3138 PDF objects out of 3580 (max. 8388607)
- 2865 compressed objects within 29 object streams
- 232 named destinations out of 1000 (max. 500000)
- 215 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 2079 PDF objects out of 2487 (max. 8388607)
+ 1880 compressed objects within 19 object streams
+ 153 named destinations out of 1000 (max. 500000)
+ 183 words of extra memory for PDF output out of 10000 (max. 10000000)
 

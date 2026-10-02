@@ -1,6 +1,6 @@
 # Fdb version 4
-["pdflatex"] 1790871225.58232 "/Users/felipe/Documents/uni/semester6/thesis/Escallon/LR_Parsing/presentation/presentation.tex" "presentation.pdf" "presentation" 1790871227.36746 0
-  "/Users/felipe/Documents/uni/semester6/thesis/Escallon/LR_Parsing/presentation/presentation.tex" 1790871223.74119 28178 2d40c184b7580f98eb7a88c2c766d45e ""
+["pdflatex"] 1790966407.22947 "/Users/felipe/Documents/uni/semester6/thesis/Escallon/LR_Parsing/presentation/presentation.tex" "presentation.pdf" "presentation" 1790966408.52723 0
+  "/Users/felipe/Documents/uni/semester6/thesis/Escallon/LR_Parsing/presentation/presentation.tex" 1790966405.66572 25531 a0398c2fe1a2b3bfac74bbc0058dce17 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/tfm/jknappen/ec/tcss1440.tfm" 1136768653 1536 20b080237b56d4b67bdb3a5b0a64b2f8 ""
@@ -28,7 +28,6 @@
   "/usr/local/texlive/2026/texmf-dist/fonts/tfm/public/cm/cmss9.tfm" 1136768653 1320 49357c421c0d469f88b867dd0c3d10e8 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/tfm/public/cm/cmssbx10.tfm" 1136768653 1272 e2d13f0df30bf3ad990bb9d028e37f34 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/tfm/public/cm/cmssi10.tfm" 1136768653 1520 ca2bb4b78ac9800bd686e30c6d19ef95 ""
-  "/usr/local/texlive/2026/texmf-dist/fonts/tfm/public/cm/cmssi8.tfm" 1136768653 1500 7f49257eca65a87057f17452e9fe3ef5 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/tfm/public/cm/cmsy10.tfm" 1136768653 1124 6c73e740cf17375f03eec0ee63599741 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/tfm/public/cm/cmsy6.tfm" 1136768653 1116 933a60c408fc0a863a92debe84b2d294 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/tfm/public/cm/cmsy8.tfm" 1136768653 1120 8b7d695260f3cff42e636090a8002094 ""
@@ -40,8 +39,6 @@
   "/usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb" 1248133631 36741 fa121aac0049305630cf160b86157ee4 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb" 1248133631 36281 c355509802a035cadc5f15869451dcee ""
   "/usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb" 1248133631 35469 70d41d2b9ea31d5d813066df7c99281c ""
-  "/usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb" 1248133631 35752 024fb6c41858982481f6968b5fc26508 ""
-  "/usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb" 1248133631 32722 d7379af29a190c3f453aba36302ff5a9 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb" 1248133631 32762 224316ccc9ad3ca0423a14971cfa7fc1 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb" 1248133631 32726 0a1aea6fcd6468ee2cf64d891f5c43c8 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb" 1248133631 24457 5cbb7bdf209d5d1ce9892a9b80a307cc ""
@@ -228,11 +225,11 @@
   "/usr/local/texlive/2026/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1778422336 5573038 b99aad5e4898a9034e953632f940512b ""
   "/usr/local/texlive/2026/texmf-var/web2c/pdftex/pdflatex.fmt" 1778422322 3636769 6f39302a2c7f9d734b4a4c2d9bb99710 ""
   "/usr/local/texlive/2026/texmf.cnf" 1774209515 577 648cd9f92f9c0eac486f4c71c85cfbbe ""
-  "presentation.aux" 1790871227.2875 14112 54eeb4ab32d4bdeb9a28290736b3f467 "pdflatex"
-  "presentation.nav" 1790871227.28877 8651 996a287f766345257c1fa97e53058c2e "pdflatex"
-  "presentation.out" 1790871227.28863 2703 1522244e415d1006b239b78a0a1d3ad6 "pdflatex"
-  "presentation.tex" 1790871223.74119 28178 2d40c184b7580f98eb7a88c2c766d45e ""
-  "presentation.toc" 1790871227.28881 1005 426050bb07e58d3f01d84a7a5fc9f78b "pdflatex"
+  "presentation.aux" 1790966408.45082 12771 b6f070b61c5727b192569a12233cca44 "pdflatex"
+  "presentation.nav" 1790966408.45208 8016 37847136b040a0b0831a4c327e84ff3e "pdflatex"
+  "presentation.out" 1790966408.45192 2703 37a0649f4213efd466b27307f1c4a74d "pdflatex"
+  "presentation.tex" 1790966405.66572 25531 a0398c2fe1a2b3bfac74bbc0058dce17 ""
+  "presentation.toc" 1790966408.45212 1005 2566e2b876ef5117721adf9c7161969b "pdflatex"
   (generated)
   "presentation.aux"
   "presentation.log"

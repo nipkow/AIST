@@ -3,14 +3,14 @@
 \beamer@subsectionintoc {2}{1}{Extended and Reduced Grammars}{9}{0}{2}
 \beamer@subsectionintoc {2}{2}{Context-Free Items}{11}{0}{2}
 \beamer@subsectionintoc {2}{3}{Generalized Pushdown Automata}{14}{0}{2}
-\beamer@sectionintoc {3}{The Item Pushdown Automaton}{18}{0}{3}
-\beamer@sectionintoc {4}{Rightmost Chains}{24}{0}{4}
-\beamer@sectionintoc {5}{The Characteristic Finite Automaton and Canonical $LR(0)$ Automaton}{29}{0}{5}
-\beamer@subsectionintoc {5}{1}{The Characteristic Finite Automaton}{30}{0}{5}
-\beamer@subsectionintoc {5}{2}{The Canonical $LR(0)$ Automaton}{35}{0}{5}
-\beamer@sectionintoc {6}{The $LR(0)$ Parser}{38}{0}{6}
-\beamer@subsectionintoc {6}{1}{Definition}{39}{0}{6}
-\beamer@subsectionintoc {6}{2}{$LR(0)$ Adequacy}{44}{0}{6}
-\beamer@subsectionintoc {6}{3}{$LR(k)$ Grammars}{47}{0}{6}
-\beamer@subsectionintoc {6}{4}{Correctness}{52}{0}{6}
-\beamer@sectionintoc {7}{Conclusion}{60}{0}{7}
+\beamer@sectionintoc {3}{The Item Pushdown Automaton}{17}{0}{3}
+\beamer@sectionintoc {4}{Rightmost Chains}{22}{0}{4}
+\beamer@sectionintoc {5}{The Characteristic Finite Automaton and Canonical $LR(0)$ Automaton}{27}{0}{5}
+\beamer@subsectionintoc {5}{1}{The Characteristic Finite Automaton}{28}{0}{5}
+\beamer@subsectionintoc {5}{2}{The Canonical $LR(0)$ Automaton}{33}{0}{5}
+\beamer@sectionintoc {6}{The $LR(0)$ Parser}{36}{0}{6}
+\beamer@subsectionintoc {6}{1}{Definition}{37}{0}{6}
+\beamer@subsectionintoc {6}{2}{$LR(0)$ Adequacy}{42}{0}{6}
+\beamer@subsectionintoc {6}{3}{$LR(k)$ Grammars}{45}{0}{6}
+\beamer@subsectionintoc {6}{4}{Correctness}{49}{0}{6}
+\beamer@sectionintoc {7}{Conclusion}{57}{0}{7}

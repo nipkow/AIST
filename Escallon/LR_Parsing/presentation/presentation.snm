@@ -1,9 +1,5 @@
-\beamer@slide {deriver_rm}{28}
-\beamer@slide {ipda_rm}{28}
-\beamer@slide {thm341}{33}
-\beamer@slide {parser_finiteness<1>}{42}
-\beamer@slide {parser_finiteness}{42}
-\beamer@slide {parser_finiteness<2>}{43}
-\beamer@slide {lr_cases}{46}
-\beamer@slide {lrk_wlog}{49}
-\beamer@slide {lr0_iff_no_inad}{50}
+\beamer@slide {thm341}{31}
+\beamer@slide {parser_finiteness<1>}{40}
+\beamer@slide {parser_finiteness}{40}
+\beamer@slide {parser_finiteness<2>}{41}
+\beamer@slide {lr0_iff_no_inad}{47}

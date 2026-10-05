@@ -48,20 +48,20 @@
 
 % derivation arrows with prods
 
-\newcommand{\derive}[3]{\ensuremath{{#1} \vdash {#2} \derivea {#3}}}
-\newcommand{\derives}[3]{\ensuremath{{#1} \vdash {#2} \derivesa {#3}}}
-\newcommand{\deriven}[4]{\ensuremath{{#1} \vdash {#2} \derivena{#3} {#4}}}
+\newcommand{\derive}[2]{\ensuremath{{#1} \derivea {#2}}}
+\newcommand{\derives}[2]{\ensuremath{{#1} \derivesa {#2}}}
+\newcommand{\deriven}[3]{\ensuremath{{#1} \derivena{#2} {#3}}}
 
-\newcommand{\deriver}[3]{\ensuremath{{#1} \vdash {#2} \derivera {#3}}}
-\newcommand{\derivers}[3]{\ensuremath{{#1} \vdash {#2} \deriversa {#3}}}
-\newcommand{\derivern}[4]{\ensuremath{{#1} \vdash {#2} \deriverna{#3} {#4}}}
+\newcommand{\deriver}[2]{\ensuremath{{#1} \derivera {#2}}}
+\newcommand{\derivers}[2]{\ensuremath{{#1} \deriversa {#2}}}
+\newcommand{\derivern}[3]{\ensuremath{{#1} \deriverna{#2} {#3}}}
 
 % Alphabets
 
-\newcommand{\sym}{\ensuremath{V_T \cup V_N}}
-\newcommand{\syms}{\ensuremath{{(V_T \cup V_N)}^*}}
-\newcommand{\syme}{\ensuremath{V_T \cup V_N'}}
-\newcommand{\symse}{\ensuremath{{(V_T \cup V_N')}^*}}
+\newcommand{\sym}{\ensuremath{T \cup N}}
+\newcommand{\syms}{\ensuremath{{(T \cup N)}^*}}
+\newcommand{\syme}{\ensuremath{T \cup N'}}
+\newcommand{\symse}{\ensuremath{{(T \cup N')}^*}}
 
 
 % Automata
@@ -126,7 +126,6 @@
     \item Building on the formalization of CFG theory by Nipkow et al.
   \end{itemize}
 \end{itemize}
-\pause
 \structure{Major Results}
 \note{
   \begin{itemize}
@@ -153,16 +152,6 @@ code that is then machine-checked
 \end{itemize}
 \end{frame}
 
-\begin{frame}
-\frametitle{Main Questions}
-\begin{itemize}
-  \item Is $LR(0)$ parsing theory as presented by Wilhelm et al.\ correct?
-  \item What is the language accepted by the $LR(0)$ parser as defined by
-  Wilhelm et al.? 
-\end{itemize}
-\end{frame}
-
-
 \section{Basic Definitions}
 
 \subsection{Extended and Reduced Grammars}
@@ -186,10 +175,10 @@ code that is then machine-checked
 \begin{frame}
   \frametitle{Context-Free Items}
   \begin{definition}
-    A context-free item for a CFG with productions $P$, terminals $V_T$ and nonterminals
-    $V_N$ is a triple 
-    $(A, \alpha, \beta) \in V_N \times \syms \times \syms$ such that
-    $(A, \alpha \beta) \in P$.\\
+    A context-free item for a CFG with productions $P$, terminals $T$ and nonterminals
+    $N$ is a triple 
+    $(A, \alpha, \beta) \in N \times \syms \times \syms$ such that
+    $A \rightarrow \alpha \beta \in P$.\\
     An item $(A, \alpha, \beta)$ is often written as \cfitem{A}{\alpha}{\beta}.
   \end{definition}
   \begin{itemize}
@@ -208,33 +197,39 @@ code that is then machine-checked
     \item An item of the form \cfitem{A}{}{\alpha} is \concept{initial}
     \item An item of the form \cfitem{A}{\alpha}{} is \concept{complete}
     \item The \concept{history} of an item \cfitem{A}{\alpha}{\beta} is $\alpha$
-    \item $\completes (I)$ denotes the set of complete items
-    in the item set $I$
-    \item If $\varrho$ is a list of items, $\hist (\varrho)$ is the concatenation of the
-    histories of the items in $\varrho$:
-    \[ \hist (\cfitem{A_1}{\alpha_1}{\beta_1}\ldots\cfitem{A_n}{\alpha_n}{\beta_n})
-        =  \alpha_1 \ldots \alpha_n \]
-    \item \It{G} denotes the set of all context-free items for the CFG $G$
+    \item $\hist$: concatenation of the
+    histories of the items in an item sequence
+    \small
+    \[ \hist (\cfitem{A_1}{\alpha_1}{\beta_1}\cfitem{A_2}{\alpha_2}{\beta_2}\ldots\cfitem{A_n}{\alpha_n}{\beta_n})
+        =  \alpha_1 \alpha_2 \ldots \alpha_n \]
+    \normalsize
+    \item \It{G}: set of all context-free items for the CFG $G$
+    \pause
+    \bigskip
+    \item $\rev$: reverse of a sequence
+    \[ \rev (i_1 i_2 \ldots i_n) = i_n \ldots i_2 i_1 \]
   \end{itemize}
 \end{frame}
 
 \subsection{Generalized Pushdown Automata}
 
 \begin{frame}
-  \frametitle{Generalized Pushdown Automata}
+  \frametitle{Generalized Pushdown Automata (GPDAs)}
   \note{Delta split into two to match Isabelle implementation}
   \begin{itemize}
-    \item \concept{Generalized pushdown automata} (GPDAs) behave like conventional PDAs but
-    are able to read topmost stack strings
-    \[ M = (\varSigma, Q, q_0, F, \varDelta, \varDelta_\varepsilon) \]
+    \item Similar to conventional PDAs
+    \begin{itemize}
+      \item Popping multiple stack symbols possible
+    \end{itemize}
+    \item GPDA $M$ is a 5-tuple
+    \[ M = (\varSigma, Q, q_0, F, \varDelta) \]
     \vspace{-25 pt}
     \begin{itemize}
       \item $\varSigma$: input alphabet
       \item $Q$: set of states
       \item $q_0$: initial state, $q_0 \in Q$
       \item $F$: set of final states, $F \subseteq Q$
-      \item $\varDelta$: reading transition relation
-      \item $\varDelta_\varepsilon$ $\varepsilon$-transition relation
+      \item $\varDelta$: transition relation
     \end{itemize}
     \vspace{2.5 pt}
     \item \concept{Configuration} for $M$:
@@ -245,20 +240,19 @@ code that is then machine-checked
     \end{itemize}
     \item \concept{Initial} configuration: $(q_0, w)$ for any $w$
     \item \concept{Final} configuration: $(f, \varepsilon)$ for $f \in F$ 
+    \item Language of $M$:
+    $L(M) = \{w \mid \exists f \in F.\ (q_0, w) \vdash^* (f, \varepsilon)\}$
   \end{itemize}
 \end{frame}
 
 \begin{frame}
   \frametitle{GPDA Steps}
   \begin{itemize}
-    \item GPDA steps are notated by $\vdash$
+    \item GPDA steps notated by $\vdash$
     \item \concept{computations} = sequences of GPDA steps
     \begin{itemize}
-      \item denoted by the reflexive transitive closure of steps, written as $\vdash^*$
+      \item reflexive transitive closure of steps ($\vdash^*$)
     \end{itemize}
-    \item computations of length $n$ denoted by $\vdash^n$
-    \item The language of a GPDA ($M$ as previously defined): 
-    \[L(M) = \{w \mid \exists f \in F.\ (q_0, w) \vdash^* (f, \varepsilon)\}\]
   \end{itemize}
 \end{frame}
 
@@ -267,13 +261,10 @@ code that is then machine-checked
 \begin{frame}
   \frametitle{Conventions Moving Forward}
   \begin{itemize}
-    \item $G$ is a CFG with start symbol $S$ production set $P$, terminals $V_T$
-    and nonterminals $V_N$
+    \item $G$ is a CFG with start symbol $S$ production set $P$, terminals $T$
+    and nonterminals $N$
     \item $G'$ is the extension of $G$ with start symbol $S'$, production set $P'$,
-    and nonterminals $V_N'$
-    \item $P$ is finite
-    \item $L(G)$ is nonempty
-    \item $G$ is reduced
+    and nonterminals $N'$
   \end{itemize}
 \end{frame}
 
@@ -281,8 +272,8 @@ code that is then machine-checked
   \frametitle{The Item Pushdown Automaton}
   \begin{definition}
     The \concept{item pushdown automaton} (IPDA) to G is the GPDA 
-    \[ \ipda = (V_T, \It{G'}, \cfitem{S'}{}{S}, \{\cfitem{S'}{S}{}\},
-      \varDelta_I, \varDelta_{I,\varepsilon}) \]
+    \[ \ipda = (T, \It{G'}, \cfitem{S'}{}{S}, \{\cfitem{S'}{S}{}\},
+      \varDelta_I \cup \varDelta_{I,\varepsilon}) \]
       where
     \begin{align*}
       \varDelta_I &=
@@ -294,19 +285,22 @@ code that is then machine-checked
     \end{align*}
   \end{definition}
   \begin{itemize}
-    \item IPDA steps notated by $\vdash_I$, $\vdash^{*}_{I}$, and $\vdash^{n}_{I}$
+    \item IPDA steps notated by $\vdash_I$ and $\vdash^{*}_{I}$
   \end{itemize}
 \end{frame}
 
 \begin{frame}
   \frametitle{IPDA Transitions}
   \begin{itemize}
-    \item \concept{Shifting} transitions ($nxt$)
+    \item \concept{Shifting} transitions ($\varDelta_I$)
     \[ (\cfitem{A}{\alpha}{a \beta} \varrho, aw) \vdash_{I} (\cfitem{A}{\alpha a}{\beta}\varrho, w) \]
-    \item \concept{Expanding} transitions
-    \[ (\cfitem{A}{\alpha}{B \beta} \varrho, w) \vdash_{I} (\cfitem{B}{}{\gamma}
-    \cfitem{A}{\alpha}{B \beta} \varrho, w) \] 
-    \item \concept{Reducing} transitions
+    \item \concept{Expanding} transitions ($\varDelta_{I,\varepsilon}$)
+    \begin{gather*}
+    (\cfitem{A}{\alpha}{B \beta} \varrho, w) \vdash_{I} (\cfitem{B}{}{\gamma}
+    \cfitem{A}{\alpha}{B \beta} \varrho, w)\\
+    \text{for } B \rightarrow \gamma \in P'
+    \end{gather*}
+    \item \concept{Reducing} transitions ($\varDelta_{I,\varepsilon}$)
     \[(\cfitem{B}{\gamma}{} \cfitem{A}{\alpha}{B \beta} \varrho, w) \vdash_{I}
     (\cfitem{A}{\alpha B}{\beta} \varrho, w)\] 
   \end{itemize}
@@ -334,8 +328,8 @@ code that is then machine-checked
     can be decomposed into
     \begin{align*}
     S' &\derivera \alpha_{1} X_{1} \beta_{1} \deriversa \alpha_{1} X_{1} v_{1}\\
-    &\deriversa \ldots \deriversa (\alpha_{1} \ldots \alpha_{n}) X_n (v_n \ldots v_1)\\
-    &\derivera (\alpha_{1} \ldots \alpha_{n}) \alpha \beta (v_n \ldots v_1)
+    &\deriversa \ldots \deriversa (\alpha_{1} \ldots \alpha_{n}) X_n (N \ldots v_1)\\
+    &\derivera (\alpha_{1} \ldots \alpha_{n}) \alpha \beta (N \ldots v_1)
     \end{align*}
     for $X_n = A$.
   \end{quote}
@@ -351,14 +345,13 @@ code that is then machine-checked
     \item \chain{P}{\alpha}{\varrho}{\beta}: $\alpha$ reaches $\beta$ with
     rightmost chain $\varrho$ under production set $P$
   \end{itemize}
-  \pause
   \begin{gather*}
     \inferrule[refl]{}{\chain{P}{\alpha}{\varepsilon}{\alpha}}\\[10pt]
     \inferrule[step]{
       \chain{P}{\alpha_0}{\varrho}{\alpha X v} \\
-      \deriver{P}{\alpha X v}
+      \deriver{\alpha X v}
         {\alpha \alpha' Y \beta v} \\
-      \derivers{P}{\beta}{u}
+      \derivers{\beta}{u}
       }{\chain{P}{\alpha_0}{\cfitem{X}{\alpha'}{Y \beta} \varrho}{\alpha \alpha' Y u v}}
   \end{gather*}
   \pause
@@ -383,14 +376,15 @@ code that is then machine-checked
       \begin{tabular}{r l}
         Alphabet: & \syme\\
         States: & \It{G'}\\
-        Initial state: & \{\cfitem{S'}{}{S}\}\\
-        Final states: & $\completes(\It{G'})$\\
-        Transition functions: & \ldots\\
+        Initial state: & \cfitem{S'}{}{S}\\
+        Final states: & $\{\cfitem{A}{\alpha}{\beta} \in \It{G'}
+          \mid \beta = \varepsilon\}$\\
+        Transition function: & \ldots\\
       \end{tabular}
     \end{center}
   \end{definition}
   \begin{itemize}
-    \item \charfa\ steps denoted by $\vdash_c$, $\vdash_c^*$, and $\vdash_c^n$
+    \item \charfa\ steps denoted by $\vdash_c$ and $\vdash_c^*$
   \end{itemize}
 \end{frame}
 
@@ -398,27 +392,18 @@ code that is then machine-checked
   \frametitle{\charfa\ Transitions}
   \begin{itemize}
     \item Reading transitions
-    \[ (\cfitem{A}{\alpha}{X \beta}, X \gamma) \vdash_c (\cfitem{A}{\alpha X}{\beta}, \gamma)\] 
+    \[ (\cfitem{X}{\alpha}{Y \beta}, Y \delta) \vdash_c (\cfitem{X}{\alpha Y}{\beta}, \delta)\] 
     \item $\varepsilon$-transitions
-    \[ (\cfitem{A}{\alpha}{X \beta}, \gamma) \vdash_c (\cfitem{X}{}{\alpha'}, \gamma) \]
+    \begin{gather*}
+    (\cfitem{X}{\alpha}{Y \beta}, \delta) \vdash_c (\cfitem{Y}{}{\gamma}, \delta)\\
+    \text{for } Y \rightarrow \gamma \in P'
+    \end{gather*}
   \end{itemize}
 \end{frame}
 
 \begin{frame}\label{thm341}
   \frametitle{Theorem 3.4.1: the Relation between \charfa, Rightmost Derivations, 
   and \ipda}
-  \note{ 
-  \begin{itemize}
-    \item (1) → (2)
-    \begin{itemize}
-      \item char(G) can read S from input without performing epsilon transitions
-      \item IH applied for a general variable when it holds only for the
-      empty list
-    \end{itemize}
-    \item $w$ is the same in direction (2) → (3) (plus: assm beta derives v) ,
-    not otherwise
-  \end{itemize}
-  }
   \begin{quote}
     Let $G$ be a CFG and $\gamma \in \symse $. The following three
     statements are equivalent:
@@ -427,8 +412,7 @@ code that is then machine-checked
       $(\cfitem{S'}{}{S}, \gamma) \vdash_c^* (\cfitem{A}{\alpha}{\beta}, \varepsilon)$
       of the characteristic finite automaton \charfa.
       \item There exists a rightmost derivation 
-      \derivers{P'}{S'}{\gamma' A w}
-      $\derivera \gamma' \alpha \beta w$ with
+      \mbox{\derivers{S'}{\gamma' A w} $\derivera \gamma' \alpha \beta w$} with
       $\gamma = \gamma' \alpha$
       \item There exists a computation 
       $(\cfitem{A}{\alpha}{\beta} \varrho, w)
@@ -442,46 +426,10 @@ code that is then machine-checked
   \end{itemize}
 \end{frame}
 
-\begin{frame}
-  \frametitle{Correcting Theorem 3.4.1}
-  \note{Remark use of rightmost chains for bottom two lemmas}
-  \small
-  \begin{lemma}[$(1) \implies (2)$]
-    If there exists a computation
-      $(\cfitem{S'}{}{S}, \gamma) \vdash_c^* (\cfitem{A}{\alpha}{\beta}, \varepsilon)$
-      of \charfa, then there exists a rightmost derivation of the form
-      \derivers{P'}{S'}{\gamma' A w}
-      $\derivera \gamma' \alpha \beta w$ with
-      $\gamma = \gamma' \alpha$.
-  \end{lemma}
-  \begin{lemma}[$(2) \implies (3)$]
-    If there exists a rightmost derivation
-      \derivers{P'}{S'}{\gamma' A w}
-      $\derivera \gamma' \alpha \beta w$
-      with $\derives{P'}{\beta}{v}$, there exists an IPDA computation
-      $(\cfitem{A}{\alpha}{\beta} \varrho, v w)
-        \vdash_I^* ([\cfitem{S'}{S}{}] ,\varepsilon)$ with
-        $\gamma' = \hist(\rev (\varrho))$.
-  \end{lemma}
-  \begin{lemma}[$(3) \implies (1)$]
-    If there exists an IPDA computation 
-      $(\cfitem{A}{\alpha}{\beta} \varrho, w)
-        \vdash_I^* ([\cfitem{S'}{S}{}] ,\varepsilon)$ 
-    then there exists a \charfa\ computation of the form
-      $(\cfitem{S'}{}{S}, \hist (\rev (\varrho)) \alpha)
-        \vdash_c^* (\cfitem{A}{\alpha}{\beta}, \varepsilon)$.
-  \end{lemma}
-\end{frame}
-
 \subsection{The Canonical $LR(0)$ Automaton}
 
 \begin{frame}
   \frametitle{The Canonical $LR(0)$ Automaton}
-  \begin{itemize}
-    \item Construction of a DFA which explores all \charfa\ transitions in
-    parallel
-  \end{itemize}
-  \pause
   \begin{definition}[The Canonical $LR(0)$ Automaton]
     The \concept{canonical $LR(0)$ automaton} \lrdfa\ is the
     DFA resulting from the powerset construction of \charfa\ restricted to
@@ -507,7 +455,7 @@ code that is then machine-checked
     state of \lrdfa, $Q$ the set of states of \lrdfa, and $f$ the set
     $\{\cfitem{S'}{}{}\}$. The \concept{$LR(0)$ parser} to G is the 
     GPDA 
-    \[ \parser = (V_T, Q \cup \{f\}, q_{0,G}, \{f\}, \varDelta_P, \varDelta_{P,\varepsilon})\]
+    \[ \parser = (T, Q \cup \{f\}, q_{0,G}, \{f\}, \varDelta_P \cup \varDelta_{P,\varepsilon})\]
     where
     \begin{align*}
       \varDelta_P &= \{([q], a, [\varDelta_G(q,a), q])
@@ -516,7 +464,7 @@ code that is then machine-checked
     \end{align*}
   \end{definition}
   \begin{itemize}
-    \item Parser steps denoted by $\vdash_P$, $\vdash_P^*$, and $\vdash_P^n$
+    \item Parser steps denoted by $\vdash_P$ and $\vdash_P^*$
   \end{itemize}
 \end{frame}
 
@@ -524,38 +472,22 @@ code that is then machine-checked
   \frametitle{\parser\ Transitions}
   \begin{itemize}
     \item \concept{Reading} transitions ($\varDelta_P$)
-    \[ (\cfitem{A}{\alpha}{a \beta} \varrho, aw) \vdash_P (\cfitem{A}{\alpha a}{\beta}, w) \]
-    \item \concept{Reducing} transitions
+    \begin{gather*}
+    (q \varrho, aw) \vdash_P (\varDelta_G(q, a) q \varrho, w)\\
+    \text{if } \varDelta_G(q, a) \neq \emptyset
+    \end{gather*}
+    \item \concept{Reducing} transitions ($\varDelta_{P, \varepsilon}$)
     \begin{gather*}
     (q_n \ldots q_1 q \varrho, w) \vdash_P (\varDelta_G(q, X) q \varrho, w)\\
     \text{ if } \cfitem{X}{\alpha}{} \in q_n \text{ with } |\alpha| = n
+    \text{ and } X \neq S'
     \end{gather*}
-    \item \concept{Finishing} transitions
+    \item \concept{Finishing} transitions ($\varDelta_{P, \varepsilon}$)
     \begin{gather*}
       (q q_0 \varrho, w) \vdash_P (f \varrho, w)\\
       \text{ if } \cfitem{S'}{S}{} \in q
     \end{gather*}
   \end{itemize}
-\end{frame}
-
-\begin{frame}[label=parser_finiteness]
-  \frametitle{Finiteness of $\varDelta_P$ and $\varDelta_{P, \varepsilon}$}
-  \begin{itemize}
-    \item Executable parser of interest
-    \item Needed: function computing parser transitions
-    \item Possible approach: iterate on $\varDelta_P$ and
-    $\varDelta_{P, \varepsilon}$ sets to construct function
-    \begin{itemize}
-      \item \alert{Transition relations must be finite}
-    \end{itemize}
-  \end{itemize}
-  \pause
-  \begin{proposition}
-  $\varDelta_P$ is finite.
-  \end{proposition}
-  \begin{proposition}
-  $\varDelta_{P, \varepsilon}$ is finite.
-  \end{proposition}
 \end{frame}
 
 \subsection{$LR(0)$ Adequacy}
@@ -586,12 +518,22 @@ code that is then machine-checked
 \subsection{$LR(k)$ Grammars}
 
 \begin{frame}
+  \frametitle{String Prefixes and Suffixes}
+  \begin{itemize}
+    \item $w|_n$: prefix of $w$ of length $n$
+    \[(a_0 \ldots a_{n-1} a_n \ldots a_m)|_n = a_0 \ldots a_{n-1}\]
+    \item ${}_n|w$: suffix of $w$ starting on index $n$ 
+    \[{}_n|(a_0 \ldots a_{n-1} a_n \ldots a_m) = a_n \ldots a_{m}\]
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
   \frametitle{$LR(k)$ Grammars}
   \begin{definition}[$LR(k)$ Grammar]
     $G'$ is an \concept{$LR(k)$ grammar} if 
     \begin{gather*}
-      \derivers{P'}{S'}{\alpha X w} \derivera \alpha \beta w \text{ and}\\
-      \derivers{P'}{S'}{\gamma Y x} \derivera \alpha \beta y \text{ and}\\
+      \derivers{S'}{\alpha X w} \derivera \alpha \beta w \text{ and}\\
+      \derivers{S'}{\gamma Y x} \derivera \alpha \beta y \text{ and}\\
       w|_k = y|_k
     \end{gather*}
     implies $\alpha = \gamma$, $X = Y$, and $x = y$.
@@ -608,10 +550,10 @@ code that is then machine-checked
     $G'$ is an $LR(0)$ grammar if and only if \lrdfa\ has no $LR(0)$-inadequate states.
   \end{theorem}
   \begin{itemize}
-    \item ``$\implies$'' correct
+    \item ``$\implies$'': correct
     \item ``$\impliedby$'': multiple errors
     \begin{itemize}
-      \item Rewritten distinguishing cases on $LR(0)$-adequate states
+      \item Fully rewritten
     \end{itemize}
   \end{itemize}
 \end{frame}
@@ -636,11 +578,11 @@ code that is then machine-checked
   \end{itemize}
   \begin{theorem}[Preservation of the $LR(0)$ condition]
     $G'$ is an $LR(0)$ grammar if and only if $G$ is an $LR(0)$ grammar with no
-    left recursions of the form \derivern{P}{S}{n+1}{S \alpha}.
+    left recursions of the form \derivern{S}{n+1}{S \alpha}.
   \end{theorem}
   \begin{theorem}[Preservation of the $LR(k)$ condition for $k > 0$]
     $G'$ is an $LR(k)$ grammar for $k > 0$ if and only if $G$ is an $LR(k)$
-    grammar with no cycles of the form \derivern{P}{S}{n+1}{S}.
+    grammar with no cycles of the form \derivern{S}{n+1}{S}.
   \end{theorem}
 \end{frame}
 
@@ -649,13 +591,10 @@ code that is then machine-checked
 \begin{frame}
   \frametitle{Stack Words: Proving Soundness}
   \begin{itemize}
-    \item Based on an intuitive explanation by Wilhelm et al.\ of the parser's
-    stack
-    \item Symbols related to stack states tracked as a string
-    \item \sword{\alpha}{c_0}{c_1}: $c_0$ reaches $c_1$ with
-    \concept{stack word} $\alpha$
-  \end{itemize}
+    \item Symbols passed to $\varDelta_G$ tracked as a string (\concept{stack word})
   \pause
+    \item \sword{\alpha}{c_0}{c_1}: $c_0$ reaches $c_1$ with stack word $\alpha$
+  \end{itemize}
   \begin{gather*}
     \inferrule[refl]{}{\sword{\varepsilon}{c_0}{c_0}}\\[10 pt]
     \inferrule[step]{\sword{\alpha}{c_0}{(\varrho q \sigma, u)} \\
@@ -674,13 +613,14 @@ code that is then machine-checked
 \begin{definition}
   The \concept{shift-reduce pushdown automaton} (SRPDA) for $G$ is the
   GPDA 
-  \[ \srpda = (V_T, \sym \cup \{q_0, q_f\}, q_0, \{q_f\}, \varDelta_M,
-    \varDelta_{M, \varepsilon}) \]
+  \[ \srpda = (T, \sym \cup \{q_0, q_f\}, q_0, \{q_f\},
+    \varDelta_M \cup \varDelta_{M, \varepsilon}) \]
    for $(\sym) \cap \{q_0, q_f\} = \emptyset$ and $\varDelta_M = \ldots$,
    $\varDelta_{M, \varepsilon} = \ldots$
 \end{definition}
 \begin{itemize}
-  \item We denote SRPDA steps by $\vdash_M$, $\vdash_M^*$, and $\vdash_M^n$
+  \item We denote SRPDA steps by $\vdash_M$ and $\vdash_M^*$
+  \item SRPDA definition following lecture slides by Petter
 \end{itemize}
 \end{frame}
 
@@ -688,10 +628,9 @@ code that is then machine-checked
   \frametitle{\srpda\ Transitions}
   \begin{itemize}
     \item \concept{Reading} transitions ($\varDelta_M$)
-    \[ (\alpha, aw) \vdash_M (a \alpha, w) \text{ for } \alpha \neq \varepsilon \]
+    \[ (\alpha, aw) \vdash_M (a \alpha, w) \]
     \item \concept{Reducing} transitions ($\varDelta_{M, \varepsilon}$)
-      \[ (\rev(\alpha)\beta, w) \vdash_M (A \beta, w) \text{ for } \beta \neq \varepsilon 
-      \text{ if } (A, \alpha) \in P \]
+      \[ (\rev(\alpha)\beta, w) \vdash_M (A \beta, w) \text{ for } (A, \alpha) \in P \]
     \item \concept{Finishing} transitions ($\varDelta_{M, \varepsilon}$)
       \[ (S q_0 \alpha, w) \vdash_M (q_f \alpha, w) \]
   \end{itemize}
@@ -716,25 +655,31 @@ code that is then machine-checked
 
 \section{Conclusion}
 
-\begin{frame}[allowframebreaks]
+\begin{frame}
   \frametitle{Results}
   \begin{itemize}
-    \item Formalization of reduced grammars and grammar extensions, and GPDAs
-    \item Definition of the IPDA and correctness proof 
-    \item Formalization of rightmost chains
-    \item Definition of \charfa\ and correction of Theorem~\hyperref[thm341]{3.4.1}
+    \item Reduced grammars, grammar extensions, and GPDAs
+    \item IPDA and correctness proof 
+    \item Rightmost chains
+    \item \charfa\ and correction of Theorem~\hyperref[thm341]{3.4.1}
     \begin{itemize}
       \item Definition of \lrdfa
     \end{itemize}
-    \item Definition of \parser\ with small corrections
-    \item Finiteness of the transition relations of \parser
-    \item Definition of $LR(0)$ adequacy and proof of unproven lemma
-    \item Definition of $LR(k)$ for $G'$ and corrected proof of Theorem~\ref{lr0_iff_no_inad}
-    \framebreak
-    \item Sufficient and necessary conditions for the preservation of the
-    generalized $LR(k)$ condition
-    \item Formalization of stack words and the SRPDA
-    \item Correctness proof for the $LR(0)$ parser
+    \item The $LR(0)$ parser, $LR(0)$-adequacy and proof of $LR(0)$-adequate
+    cases
+    \begin{itemize}
+      \item Small corrections in the definition
+    \end{itemize}
+    \item $LR(k)$ and correction of Theorem~\ref{lr0_iff_no_inad}
+    \item Preservation of $LR(k)$ property under grammar extension
+    \begin{itemize}
+      \item Necessary and sufficient conditions
+    \end{itemize}
+    \item Correctness of \parser
+    \begin{itemize}
+      \item Stack words
+      \item SRPDA
+    \end{itemize}
   \end{itemize}
 \end{frame}
 

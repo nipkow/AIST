@@ -245,9 +245,10 @@ proof (rule finite_subset)
       "q = last (q\<^sub>n#qs)" "e = (q\<^sub>n # qs, dfa.nxt LR\<^sub>0 q (Nt X) # [q])"
       "set (q\<^sub>n#qs) \<subseteq> dfa.states LR\<^sub>0" "[X \<rightarrow> \<alpha> \<cdot> []] \<in> q\<^sub>n" "length \<alpha> = length qs" "X \<noteq> S'"
       by (smt (verit, ccfv_SIG) mem_Collect_eq)
-    then show "e \<in> ?L \<times> ?T" 
-      by (smt (verit, ccfv_threshold) dfa_LR0.nxt last_in_set list.discI mem_Collect_eq 
-          mem_Sigma_iff subset_code(1))
+    moreover then have "q\<^sub>n # qs \<in> ?L" "dfa.nxt LR\<^sub>0 q (Nt X) # [q] \<in> ?T"
+      using dfa_LR0.nxt last_in_set by auto
+    ultimately show "e \<in> ?L \<times> ?T" 
+      by simp
   qed
   have "finite ?T" 
   proof -
@@ -351,7 +352,8 @@ proof -
   moreover then have "set (q#qs) \<subseteq> dfa.states LR\<^sub>0"
     using assms(3) by auto
   ultimately show thesis using that assms(2) unfolding eps_P0 
-    by (smt (verit, ccfv_threshold) Un_iff assms(1) mem_Collect_eq)
+    using assms(1) eps_P0_reduceI that
+    by (metis (no_types, opaque_lifting))
 qed
 
 lemma P0_completes_nonempty_imp_eps:

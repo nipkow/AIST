@@ -1,7 +1,6 @@
-session LR0_Base = HOL +
+session LR0_Base = Context_Free_Grammar +
   options [document = pdf, document_output = "output"]
-   sessions 
-    Context_Free_Grammar
+  sessions
     Finite_Automata_HF
   theories
     LR0_Parser

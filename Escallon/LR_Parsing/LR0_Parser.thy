@@ -1,10 +1,10 @@
+section \<open>The \<open>LR(0)\<close> Parser\<close>
+
 theory LR0_Parser 
   imports 
     LR0_Automata
     Shift_Reduce_PDA
 begin
-
-section \<open>The \<open>LR(0)\<close> Parser\<close>
 
 context Reduced_Cfg
 begin

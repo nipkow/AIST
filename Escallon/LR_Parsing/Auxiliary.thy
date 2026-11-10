@@ -1,8 +1,10 @@
+section \<open>Auxiliary Material\<close>
+
 theory Auxiliary
   imports Context_Free_Grammar.Context_Free_Grammar Finite_Automata_HF.Finite_Automata_HF
 begin 
 
-section \<open>Lists\<close>
+subsection \<open>Lists\<close>
 
 lemma list_of_subset:
   assumes "A \<noteq> {}"
@@ -37,7 +39,7 @@ lemma last_of_Cons_idx_len_tl:
   "x = last (y # xs) \<Longrightarrow> x = (y # xs) ! (length xs)"
   by (induction xs rule: rev_induct) auto
 
-section \<open>Syms (generalize to all list types?)\<close>
+subsection \<open>Syms (generalize to all list types?)\<close>
 
 lemma syms_split_last_eq_imp_tl_eq:
   assumes "\<alpha> @ Nt A # map Tm w = \<beta> @ Nt A # \<gamma> @ map Tm v"
@@ -251,7 +253,7 @@ lemma app_eq_rm_cases:
   qed (use snoc in simp)
 qed simp
 
-section \<open>Rightmost derivations\<close>
+subsection \<open>Rightmost derivations\<close>
 
 lemma deriver_imp_handle:
   assumes "P \<turnstile> \<beta> @ Nt A#map Tm u \<Rightarrow>r \<gamma> @ Nt X#map Tm v"
@@ -476,7 +478,7 @@ next
     using Suc step_Suc unfolding Nts_def Nts_syms_def by cases auto
 qed
 
-section \<open>NFAs\<close>
+subsection \<open>NFAs\<close>
 
 context nfa begin
 lemma Power_nextl_eq_nfa_nextl [simp]:(*TODO mv?*)
@@ -494,8 +496,6 @@ lemma in_states_imp_in_epsclo:
   assumes "q \<in> nfa.states M" "q \<in> Q"
   shows "q \<in> epsclo Q"
   unfolding epsclo_def using assms by blast
-
-subsection \<open>NFA Configurations and Steps\<close>
 
 type_synonym ('b,'c) config = "'b \<times> 'c list"
 
@@ -648,7 +648,7 @@ lemma eps_subst_states_imp_language_eq_init_final_reachable:
 
 end
 
-section \<open>Others\<close>
+subsection \<open>Misc\<close>
 
 lemma prod_substring_imp_Nts_subset:
   "(A, \<alpha> @ \<beta> @ \<gamma>) \<in> P \<Longrightarrow> Nts_syms \<beta> \<subseteq> Nts P"

@@ -60,6 +60,18 @@
 \maketitle
 
 %-------------------------------------------------------------
+\begin{frame}{Why Verify Parsers?}
+``\bad{Attackers exploited a faulty parser \dots\
+  obtaining the sensitive data of as many as 143 million consumers.}\\
+\high{An HTML parser vulnerability led to private user data being leaked \dots.}\\
+\bad{And a flaw in an XML parser enabled remote code execution on a network
+security device \dots.}\\
+These and other examples highlight the need for secure parsing technologies.''
+\bigskip
+
+Kathleen Fisher et al., ITP 2019
+\end{frame}
+%-------------------------------------------------------------
 \section{Background}
 %-------------------------------------------------------------
 \begin{frame}{Earley's Algorithm}
@@ -103,17 +115,17 @@ The rank is defined as \high{$a + 2(j + b + c)$'}'\pause\smallskip\\
 \begin{frame}{Cliff Jones: Fixpoints!}
 \framesubtitle{1971}
 \pause
-Define each $E_{i+1}$ as least fixpoint\\ (closure under Scan, Predict, Complete)\pause\\
-depending on $E_0$, \dots, $E_i$
+Define each $E_{i+1}$ as least fixpoint%\\ (closure under Scan, Predict, Complete)\pause\\
+%depending on $E_0$, \dots, $E_i$
 \pause\bigskip
 
-2 nested fixpoints
-\pause\bigskip
+%2 nested fixpoints
+%\pause\bigskip
 
 Proofs by fixpoint inductions
 \end{frame}
 %-------------------------------------------------------------
-\begin{frame}{\mbox{First$^?$ recognizer verification:} Obua 2017}
+\begin{frame}{\mbox{First$^?$ formal recognizer verification:} Obua 2017}
 \begin{itemize}
 \pause
 \item
@@ -123,7 +135,7 @@ Based on Jones
 \end{itemize}
 \end{frame}
 %-------------------------------------------------------------
-\begin{frame}{\mbox{First$^?$ parser verification:} \mbox{Rau \& N.\ 2023/24}}
+\begin{frame}{\mbox{First$^?$ formal parser verification:} \mbox{Rau \& N.\ 2023/24}}
 \begin{itemize}
 \pause
 \item
@@ -196,12 +208,12 @@ of derivation, length of rhs)
 %-------------------------------------------------------------
 \section{Stepwise Refinement}
 %-------------------------------------------------------------
-\begin{frame}
-  \begin{center}
-    The refinement proofs are standard\\
-    if we do not comment on them
-  \end{center}
-\end{frame}
+% \begin{frame}
+%   \begin{center}
+%     The refinement proofs are standard\\
+%     if we do not comment on them
+%   \end{center}
+% \end{frame}
 %-------------------------------------------------------------
 \subsection{Standard Earley}
 %-------------------------------------------------------------
@@ -236,19 +248,26 @@ Refinement focuses on \high{closure} from now on
 \subsection{Epsilon}
 %-------------------------------------------------------------
 \begin{frame}{A complication due to \textsc{Complete}}
- \bad{$close \;\textbf{B}_j \;B$ \ may need to combine two elements of $B$}\pause\\
- but only \bad{if the grammar has $\epsilon$ productions}
+%\bad{$close \;\textbf{B}_j \;B$ \ may need to combine two elements of $B$}\pause\\
+%but only \bad{if the grammar has $\epsilon$ productions}
+ %\pause
+ \begin{description}[Earlier:]
+\item[Earlier:] \bad{We assumed that the grammar is $\epsilon$-free}
  \pause
- \begin{center}
-  \high{We assume that the grammar is $\epsilon$-free}
-  \pause
-  \end{center}
+\item[Now:] \high{We follow Aycock and Horspool to accommodate $\epsilon$
+ productions}\pause\\
 
-  Now we can combine \textsc{Predict} and \textsc{Complete}
-  into a single function\\ \high{$PreCo :: bins \to item \to item\; set$}
+Claude helped
+  \end{description}
+  \bigskip\pause
+
+
+For convenience:
+We combine \textsc{Predict} and \textsc{Complete}
+  into a single function\\ \high{$PreCom :: bins \to item \to item\; set$}
   \pause\bigskip
   
-  Closure is saturation under $PreCo$.
+  Closure is saturation under $PreCom$.
 \end{frame}
 %-------------------------------------------------------------
 \subsection{Work set algorithm (inductive)}
@@ -258,7 +277,7 @@ Refinement focuses on \high{closure} from now on
   $B$: to be visited (work set), $C$: visited
   \bigskip\pause
   
-  One $Step$ (eg $PreCo$):
+  One $Step$ (eg $PreCom$):
   \medskip\pause
   
   \[ \inferrule{x \in B \quad C' = C \cup \{x\}
@@ -353,10 +372,10 @@ each partition has size $O(1)$
   Assume bins are functions:: from-index $\to$ item list\pause\\
   Then each item list has size $O(1)$ \pause\medskip
 
-  Assume access $bin(i)$ takes time $T_B$ \pause\medskip
+  Assume access $bin(i)$ takes time $T_B(i)$ \pause\medskip
 
-  Then searching for $(A \to \alpha\bullet\beta,i)$  takes time
-  $T_B(n)$\pause\medskip
+  Then searching for item $x$  takes time
+  $T_B(from(x))$\pause\medskip
 
   Possible implementations of bins:
   \begin{itemize}
@@ -395,19 +414,17 @@ Alternative: write all functions in a time monad
 \end{center}
 \end{frame}
 %-------------------------------------------------------------
-\begin{frame}{Size of formalization}
-  \begin{tabular}{lrr}
-    & Refinement & Time\\
- Recognizer: & 2000 & 1000\\
- Parser: & 1000 & 1000
-\end{tabular}
-\end{frame}
+% \begin{frame}{Size of formalization}
+%   \begin{tabular}{lrr}
+%     & Refinement & Time\\
+%  Recognizer: & 2000 & 1000\\
+%  Parser: & 1000 & 1000
+% \end{tabular}
+% \end{frame}
 %-------------------------------------------------------------
 \begin{frame}{Better:\\ Reasoning directly with $O$}
   \pause
-  Just proved:
-  \bigskip
-  
+    
   \textbf{Lemma}
   If $f(n+1) = f(n) + g(n)$\pause\\
   and $g \in O(\lambda n.\ n^k)$\pause\\

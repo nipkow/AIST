@@ -1,9 +1,13 @@
 session LR0_Base = HOL +
-  sessions 
+  options [document = pdf, document_output = "output"]
+   sessions 
     Context_Free_Grammar
     Finite_Automata_HF
   theories
     LR0_Parser
+  document_files
+    "root.tex"
+    "root.bib"
 
 session thesis in thesis = LR0_Base +
   options [document = pdf, show_question_marks = false, names_short = true, 
